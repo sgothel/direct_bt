@@ -21,6 +21,12 @@ case "$machine" in
         archabi="amd64"
         syslibdir="x86_64-linux-gnu"
     ;;
+    "aarch64")
+        cpu="aarch64"
+        cpufamily="aarch64"
+        archabi="arm64"
+        syslibdir="aarch64-linux-gnu"
+    ;;
     *) 
         echo "Unsupported machine $machine"
         exit 1
