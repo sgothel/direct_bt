@@ -51,3 +51,20 @@ set_target_properties(
 
 install(TARGETS javadirect_bt LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
+#
+# and once more with the OS_AND_ARCH library basename
+#
+add_library (${JAVADIRECT_BT_LIB_NAME} SHARED ${direct_bt_JNI_SRCS})
+target_link_libraries(${JAVADIRECT_BT_LIB_NAME} ${JNI_LIBRARIES} direct_bt)
+
+set_target_properties(
+    ${JAVADIRECT_BT_LIB_NAME}
+    PROPERTIES
+    SOVERSION ${tinyb_VERSION_MAJOR}
+    VERSION ${tinyb_VERSION_STRING}
+    CXX_STANDARD 11
+    COMPILE_FLAGS "-Wall -Wextra -Werror"
+)
+
+install(TARGETS ${JAVADIRECT_BT_LIB_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+

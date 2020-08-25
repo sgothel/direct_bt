@@ -59,3 +59,22 @@ tinyb_create_install_pkgconfig (direct_bt.pc lib${LIB_SUFFIX}/pkgconfig)
 
 install(TARGETS direct_bt LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
+#
+# and once more with the OS_AND_ARCH library basename
+#
+add_library (${DIRECT_BT_LIB_NAME} SHARED ${direct_bt_LIB_SRCS})
+target_link_libraries (
+  ${DIRECT_BT_LIB_NAME}
+  ${CMAKE_THREAD_LIBS_INIT}
+)
+
+set_target_properties(
+   ${DIRECT_BT_LIB_NAME}
+   PROPERTIES
+   SOVERSION ${tinyb_VERSION_MAJOR}
+   VERSION ${tinyb_VERSION_STRING}
+   CXX_STANDARD 11
+   COMPILE_FLAGS "-Wall -Wextra -Werror"
+)
+
+install(TARGETS ${DIRECT_BT_LIB_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})

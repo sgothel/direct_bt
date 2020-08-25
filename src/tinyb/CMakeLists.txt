@@ -76,3 +76,24 @@ tinyb_create_install_pkgconfig (tinyb.pc lib${LIB_SUFFIX}/pkgconfig)
 
 install(TARGETS tinyb LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
+#
+# and once more with the OS_AND_ARCH library basename
+#
+add_library (${TINYB_LIB_NAME} SHARED ${tinyb_LIB_SRCS})
+target_link_libraries (
+  ${TINYB_LIB_NAME}
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${GLIB2_LIBRARIES}
+  ${GIO_LIBRARIES}
+)
+
+set_target_properties(
+   ${TINYB_LIB_NAME}
+   PROPERTIES
+   SOVERSION ${tinyb_VERSION_MAJOR}
+   VERSION ${tinyb_VERSION_STRING}
+   CXX_STANDARD 11
+)
+
+install(TARGETS ${TINYB_LIB_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+

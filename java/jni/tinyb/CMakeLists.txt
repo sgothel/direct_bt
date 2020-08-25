@@ -52,3 +52,20 @@ set_target_properties(
 
 install(TARGETS javatinyb LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
+#
+# and once more with the OS_AND_ARCH library basename
+#
+add_library (${JAVATINYB_LIB_NAME} SHARED ${tinyb_JNI_SRCS})
+target_link_libraries(${JAVATINYB_LIB_NAME} ${JNI_LIBRARIES} tinyb)
+
+set_target_properties(
+    ${JAVATINYB_LIB_NAME}
+    PROPERTIES
+    SOVERSION ${tinyb_VERSION_MAJOR}
+    VERSION ${tinyb_VERSION_STRING}
+    CXX_STANDARD 11
+    COMPILE_FLAGS "-Wall -Wextra"
+)
+
+install(TARGETS ${JAVATINYB_LIB_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
