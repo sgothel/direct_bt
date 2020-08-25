@@ -38,9 +38,16 @@ set (tinyb_JNI_SRCS
 
 set (CMAKE_SHARED_LINKER_FLAGS "-Wl,--as-needed")
 
-add_library (javatinyb SHARED ${tinyb_JNI_SRCS})
-target_link_libraries(javatinyb ${JNI_LIBRARIES} tinyb)
+add_library (javatinyb_objs OBJECT ${tinyb_JNI_SRCS})
+set_target_properties(
+   javatinyb_objs
+   PROPERTIES
+   CXX_STANDARD 11
+   COMPILE_FLAGS "-Wall -Wextra -fPIC"
+)
 
+add_library (javatinyb SHARED $<TARGET_OBJECTS:javatinyb_objs>)
+target_link_libraries(javatinyb ${JNI_LIBRARIES} tinyb)
 set_target_properties(
     javatinyb
     PROPERTIES
@@ -49,15 +56,13 @@ set_target_properties(
     CXX_STANDARD 11
     COMPILE_FLAGS "-Wall -Wextra"
 )
-
 install(TARGETS javatinyb LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 #
 # and once more with the OS_AND_ARCH library basename
 #
-add_library (${JAVATINYB_LIB_NAME} SHARED ${tinyb_JNI_SRCS})
-target_link_libraries(${JAVATINYB_LIB_NAME} ${JNI_LIBRARIES} tinyb)
-
+add_library (${JAVATINYB_LIB_NAME} SHARED $<TARGET_OBJECTS:javatinyb_objs>)
+target_link_libraries(${JAVATINYB_LIB_NAME} ${JNI_LIBRARIES} ${TINYB_LIB_NAME})
 set_target_properties(
     ${JAVATINYB_LIB_NAME}
     PROPERTIES
@@ -66,6 +71,5 @@ set_target_properties(
     CXX_STANDARD 11
     COMPILE_FLAGS "-Wall -Wextra"
 )
-
 install(TARGETS ${JAVATINYB_LIB_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 

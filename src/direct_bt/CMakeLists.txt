@@ -35,12 +35,19 @@ set (direct_bt_LIB_SRCS
   ${CMAKE_CURRENT_BINARY_DIR}/../version.c
 )
 
-add_library (direct_bt SHARED ${direct_bt_LIB_SRCS})
+add_library (direct_bt_objs OBJECT ${direct_bt_LIB_SRCS})
+set_target_properties(
+   direct_bt_objs
+   PROPERTIES
+   CXX_STANDARD 11
+   COMPILE_FLAGS "-Wall -Wextra -Werror -fPIC"
+)
+
+add_library (direct_bt SHARED $<TARGET_OBJECTS:direct_bt_objs>)
 target_link_libraries (
   direct_bt
   ${CMAKE_THREAD_LIBS_INIT}
 )
-
 set_target_properties(
    direct_bt
    PROPERTIES
@@ -49,6 +56,7 @@ set_target_properties(
    CXX_STANDARD 11
    COMPILE_FLAGS "-Wall -Wextra -Werror"
 )
+
 install (DIRECTORY ${PROJECT_SOURCE_DIR}/api/direct_bt/ DESTINATION include/direct_bt)
 
 macro (tinyb_CREATE_INSTALL_PKGCONFIG generated_file install_location)
@@ -62,12 +70,11 @@ install(TARGETS direct_bt LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 #
 # and once more with the OS_AND_ARCH library basename
 #
-add_library (${DIRECT_BT_LIB_NAME} SHARED ${direct_bt_LIB_SRCS})
+add_library (${DIRECT_BT_LIB_NAME} SHARED $<TARGET_OBJECTS:direct_bt_objs>)
 target_link_libraries (
   ${DIRECT_BT_LIB_NAME}
   ${CMAKE_THREAD_LIBS_INIT}
 )
-
 set_target_properties(
    ${DIRECT_BT_LIB_NAME}
    PROPERTIES
@@ -76,5 +83,5 @@ set_target_properties(
    CXX_STANDARD 11
    COMPILE_FLAGS "-Wall -Wextra -Werror"
 )
-
 install(TARGETS ${DIRECT_BT_LIB_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+

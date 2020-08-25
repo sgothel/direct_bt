@@ -32,16 +32,16 @@ elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
 else()
     set(OS_ARCH ${CMAKE_SYSTEM_PROCESSOR})
 endif()
-set(OS_AND_ARCH ${OS_NAME}-${OS_ARCH})
+set(OS_AND_ARCH "${OS_NAME}-${OS_ARCH}")
 
-message (INFO " - OS_NAME ${OS_NAME}")
-message (INFO " - OS_ARCH ${OS_ARCH} (${CMAKE_SYSTEM_PROCESSOR})")
-message (INFO " - OS_AND_ARCH ${OS_AND_ARCH}")
+message (INFO " - OS_NAME '${OS_NAME}'")
+message (INFO " - OS_ARCH '${OS_ARCH}' ('${CMAKE_SYSTEM_PROCESSOR}')")
+message (INFO " - OS_AND_ARCH '${OS_AND_ARCH}'")
 
 set(DIRECT_BT_LIB_NAME "direct_bt-${OS_AND_ARCH}")
 set(JAVADIRECT_BT_LIB_NAME "javadirect_bt-${OS_AND_ARCH}")
-set(TINYB_LIB_NAME "direct_bt-${OS_AND_ARCH}")
-set(JAVATINYB_LIB_NAME "javadirect_bt-${OS_AND_ARCH}")
+set(TINYB_LIB_NAME "tinyb-${OS_AND_ARCH}")
+set(JAVATINYB_LIB_NAME "javatinyb-${OS_AND_ARCH}")
 
 # Make a version file containing the current version from git.
 include (GetGitRevisionDescription)

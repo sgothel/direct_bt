@@ -37,9 +37,16 @@ set (direct_bt_JNI_SRCS
 
 set (CMAKE_SHARED_LINKER_FLAGS "-Wl,--as-needed")
 
-add_library (javadirect_bt SHARED ${direct_bt_JNI_SRCS})
-target_link_libraries(javadirect_bt ${JNI_LIBRARIES} direct_bt)
+add_library (javadirect_bt_objs OBJECT ${direct_bt_JNI_SRCS})
+set_target_properties(
+   javadirect_bt_objs
+   PROPERTIES
+   CXX_STANDARD 11
+   COMPILE_FLAGS "-Wall -Wextra -Werror -fPIC"
+)
 
+add_library (javadirect_bt SHARED $<TARGET_OBJECTS:javadirect_bt_objs>)
+target_link_libraries(javadirect_bt ${JNI_LIBRARIES} direct_bt)
 set_target_properties(
     javadirect_bt
     PROPERTIES
@@ -48,15 +55,13 @@ set_target_properties(
     CXX_STANDARD 11
     COMPILE_FLAGS "-Wall -Wextra -Werror"
 )
-
 install(TARGETS javadirect_bt LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 #
 # and once more with the OS_AND_ARCH library basename
 #
-add_library (${JAVADIRECT_BT_LIB_NAME} SHARED ${direct_bt_JNI_SRCS})
-target_link_libraries(${JAVADIRECT_BT_LIB_NAME} ${JNI_LIBRARIES} direct_bt)
-
+add_library (${JAVADIRECT_BT_LIB_NAME} SHARED $<TARGET_OBJECTS:javadirect_bt_objs>)
+target_link_libraries(${JAVADIRECT_BT_LIB_NAME} ${JNI_LIBRARIES} ${DIRECT_BT_LIB_NAME})
 set_target_properties(
     ${JAVADIRECT_BT_LIB_NAME}
     PROPERTIES
@@ -65,6 +70,5 @@ set_target_properties(
     CXX_STANDARD 11
     COMPILE_FLAGS "-Wall -Wextra -Werror"
 )
-
 install(TARGETS ${JAVADIRECT_BT_LIB_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 

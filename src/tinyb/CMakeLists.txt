@@ -50,14 +50,21 @@ add_custom_command(OUTPUT orgbluez-dbus.c orgbluez-dbus.h
   DEPENDS ${PROJECT_SOURCE_DIR}/src/tinyb/org.bluez.xml
   COMMENT "Generating dbus code from org.bluez.xml")
 
-add_library (tinyb SHARED ${tinyb_LIB_SRCS})
+add_library (tinyb_objs OBJECT ${tinyb_LIB_SRCS})
+set_target_properties(
+   tinyb_objs
+   PROPERTIES
+   CXX_STANDARD 11
+   COMPILE_FLAGS "-fPIC"
+)
+
+add_library (tinyb SHARED $<TARGET_OBJECTS:tinyb_objs>)
 target_link_libraries (
   tinyb
   ${CMAKE_THREAD_LIBS_INIT}
   ${GLIB2_LIBRARIES}
   ${GIO_LIBRARIES}
 )
-
 set_target_properties(
    tinyb
    PROPERTIES
@@ -65,6 +72,7 @@ set_target_properties(
    VERSION ${tinyb_VERSION_STRING}
    CXX_STANDARD 11
 )
+
 install (FILES ${tinyb_LIB_GLOB_HEADERS} DESTINATION include/)
 install (DIRECTORY ${PROJECT_SOURCE_DIR}/api/tinyb/ DESTINATION include/tinyb)
 
@@ -79,14 +87,13 @@ install(TARGETS tinyb LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 #
 # and once more with the OS_AND_ARCH library basename
 #
-add_library (${TINYB_LIB_NAME} SHARED ${tinyb_LIB_SRCS})
+add_library (${TINYB_LIB_NAME} SHARED $<TARGET_OBJECTS:tinyb_objs>)
 target_link_libraries (
   ${TINYB_LIB_NAME}
   ${CMAKE_THREAD_LIBS_INIT}
   ${GLIB2_LIBRARIES}
   ${GIO_LIBRARIES}
 )
-
 set_target_properties(
    ${TINYB_LIB_NAME}
    PROPERTIES
@@ -94,6 +101,5 @@ set_target_properties(
    VERSION ${tinyb_VERSION_STRING}
    CXX_STANDARD 11
 )
-
 install(TARGETS ${TINYB_LIB_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
