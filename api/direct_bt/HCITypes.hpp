@@ -314,11 +314,24 @@ namespace direct_bt {
      */
     enum class HCIOpcode : uint16_t {
         SPECIAL                     = 0x0000,/**< SPECIAL */
+
         CREATE_CONN                 = 0x0405,
         DISCONNECT                  = 0x0406,
+
         SET_EVENT_MASK              = 0x0C01,/**< SET_EVENT_MASK */
         RESET                       = 0x0C03,
+        FLUSH                       = 0x0C08,
+        READ_SCAN_ENABLE            = 0x0c19,
+        WRITE_SCAN_ENABLE           = 0x0c1a,
+        READ_PAGE_SCAN_ACTIVITY     = 0x0c1b,
+        WRITE_PAGE_SCAN_ACTIVITY    = 0x0c1c,
+        READ_INQUIRY_SCAN_ACTIVITY  = 0x0c1d,
+        WRITE_INQUIRY_SCAN_ACTIVITY = 0x0c1e,
+        READ_AUTH_ENABLE            = 0x0c1f,
+        WRITE_AUTH_ENABLE           = 0x0c20,
+
         READ_LOCAL_VERSION          = 0x1001,
+
         LE_SET_EVENT_MASK           = 0x2001,/**< LE_SET_EVENT_MASK */
         LE_READ_BUFFER_SIZE         = 0x2002,
         LE_READ_LOCAL_FEATURES      = 0x2003,
@@ -348,31 +361,44 @@ namespace direct_bt {
 
     enum class HCIOpcodeBit : uint8_t {
         SPECIAL                     =  0,
+
         CREATE_CONN                 =  3,
         DISCONNECT                  =  4,
-        SET_EVENT_MASK              =  6,
-        RESET                       =  7,
-        READ_LOCAL_VERSION          = 10,
-        LE_SET_EVENT_MASK           = 20,
-        LE_READ_BUFFER_SIZE         = 21,
-        LE_READ_LOCAL_FEATURES      = 22,
-        LE_SET_RANDOM_ADDR          = 23,
-        LE_SET_ADV_PARAM            = 24,
-        LE_READ_ADV_TX_POWER        = 25,
-        LE_SET_ADV_DATA             = 26,
-        LE_SET_SCAN_RSP_DATA        = 27,
-        LE_SET_ADV_ENABLE           = 28,
-        LE_SET_SCAN_PARAM           = 29,
-        LE_SET_SCAN_ENABLE          = 30,
-        LE_CREATE_CONN              = 31,
-        LE_CREATE_CONN_CANCEL       = 32,
-        LE_READ_WHITE_LIST_SIZE     = 33,
-        LE_CLEAR_WHITE_LIST         = 34,
-        LE_ADD_TO_WHITE_LIST        = 35,
-        LE_DEL_FROM_WHITE_LIST      = 36,
-        LE_CONN_UPDATE              = 37,
-        LE_READ_REMOTE_FEATURES     = 38,
-        LE_START_ENC                = 39
+
+        SET_EVENT_MASK              = 10,
+        RESET                       = 11,
+        FLUSH                       = 12,
+        READ_SCAN_ENABLE            = 13,
+        WRITE_SCAN_ENABLE           = 14,
+        READ_PAGE_SCAN_ACTIVITY     = 15,
+        WRITE_PAGE_SCAN_ACTIVITY    = 16,
+        READ_INQUIRY_SCAN_ACTIVITY  = 17,
+        WRITE_INQUIRY_SCAN_ACTIVITY = 18,
+        READ_AUTH_ENABLE            = 19,
+        WRITE_AUTH_ENABLE           = 20,
+
+        READ_LOCAL_VERSION          = 30,
+
+        LE_SET_EVENT_MASK           = 40,
+        LE_READ_BUFFER_SIZE         = 41,
+        LE_READ_LOCAL_FEATURES      = 42,
+        LE_SET_RANDOM_ADDR          = 43,
+        LE_SET_ADV_PARAM            = 44,
+        LE_READ_ADV_TX_POWER        = 45,
+        LE_SET_ADV_DATA             = 46,
+        LE_SET_SCAN_RSP_DATA        = 47,
+        LE_SET_ADV_ENABLE           = 48,
+        LE_SET_SCAN_PARAM           = 49,
+        LE_SET_SCAN_ENABLE          = 50,
+        LE_CREATE_CONN              = 51,
+        LE_CREATE_CONN_CANCEL       = 52,
+        LE_READ_WHITE_LIST_SIZE     = 53,
+        LE_CLEAR_WHITE_LIST         = 54,
+        LE_ADD_TO_WHITE_LIST        = 55,
+        LE_DEL_FROM_WHITE_LIST      = 56,
+        LE_CONN_UPDATE              = 57,
+        LE_READ_REMOTE_FEATURES     = 58,
+        LE_START_ENC                = 59
         // etc etc - incomplete
     };
     inline uint8_t number(const HCIOpcodeBit rhs) {
