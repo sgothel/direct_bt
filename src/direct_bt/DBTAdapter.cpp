@@ -434,27 +434,33 @@ bool DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType 
         return false;
     }
 
-    HCIStatusCode status = hci->le_set_scan_param();
-    if( HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("DBTAdapter::startDiscovery: le_set_scan_param failed: %s", getHCIStatusCodeString(status).c_str());
+    bool resLE = false;
+    bool resBREDR = false;
+
+    if( BTMode::LE == btMode || BTMode::DUAL == btMode ) {
+        HCIStatusCode status = hci->le_set_scan_param();
+        if( HCIStatusCode::SUCCESS != status ) {
+            ERR_PRINT("DBTAdapter::startDiscovery: le_set_scan_param failed: %s", getHCIStatusCodeString(status).c_str());
+        }
+
+        // Will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, don't change current scan-type state here
+        status = hci->le_enable_scan(true /* enable */);
+        if( HCIStatusCode::SUCCESS != status ) {
+            ERR_PRINT("DBTAdapter::startDiscovery: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
+        } else {
+            resLE = true;
+        }
+    }
+    if( BTMode::BREDR == btMode || BTMode::DUAL == btMode ) {
+        // resBREDR = true;
     }
 
-    bool res;
-    // Will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, don't change current scan-type state here
-    status = hci->le_enable_scan(true /* enable */);
-    if( HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("DBTAdapter::startDiscovery: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
-        res = false;
-    } else {
-        res = true;
-    }
-
-    DBG_PRINT("DBTAdapter::startDiscovery: End: Result %d, keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
-            res, keepDiscoveringAlive.load(), keepAlive,
+    DBG_PRINT("DBTAdapter::startDiscovery: End: Result[%d le, %d bredr], keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
+            resLE, resBREDR, keepDiscoveringAlive.load(), keepAlive,
             getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str());
     checkDiscoveryState();
 
-    return res;
+    return resLE || resBREDR;
 }
 
 void DBTAdapter::startDiscoveryBackground() {
