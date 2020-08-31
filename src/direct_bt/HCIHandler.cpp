@@ -564,6 +564,25 @@ HCIStatusCode HCIHandler::reset() {
     return ev_cc->getReturnStatus(0);
 }
 
+HCIStatusCode HCIHandler::flush(const uint16_t conn_handle) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
+    if( !comm.isOpen() ) {
+        ERR_PRINT("HCIHandler::flush: device not open");
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
+    HCIStructCommand<uint16_t> req0(HCIOpcode::FLUSH);
+    {
+        uint16_t *p = req0.getWStruct();
+        *p = cpu_to_le(conn_handle);
+    }
+    HCICommandCompleteEvent * ev_cc;
+    std::shared_ptr<HCIEvent> ev = sendWithCmdCompleteReply(req0, &ev_cc);
+    if( nullptr == ev || nullptr == ev_cc ) {
+        return HCIStatusCode::INTERNAL_TIMEOUT; // timeout
+    }
+    return ev_cc->getReturnStatus(0);
+}
+
 HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
                                             const HCILEOwnAddressType own_mac_type,
                                             const uint16_t le_scan_interval, const uint16_t le_scan_window,

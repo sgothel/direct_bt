@@ -178,6 +178,13 @@ namespace direct_bt {
      * <p>
      * Controlling Environment variables, see {@link HCIEnv}.
      * </p>
+     * <p>
+     * Some useful references to the HCI spec
+     * <pre>
+     * BT Core Spec v5.2: Vol 2 BREDR, Part B Baseband: 8 Link Controller Operations
+     * BT Core Spec v5.2: Vol 6 LE, Part B Link Layer: 4.4.3 Scanning State
+     * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 3 Overview of commands and events
+     * </pre>
      */
     class HCIHandler {
         public:
@@ -294,16 +301,30 @@ namespace direct_bt {
             std::string toString() const { return "HCIHandler[BTMode "+getBTModeString(btMode)+", dev_id "+std::to_string(dev_id)+"]"; }
 
             /**
+             * Reset the controller and BREDR/LE link manager, while keeping this HCI connection alive.
+             * <p>
+             * Adapter should revert to its default values, being in IDLE mode afterwards.
+             * </p>
+             * <p>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
+             * </p>
              */
             HCIStatusCode reset();
 
             /**
-             * Sets LE scanning parameters.
+             * Discard all pending data for the given connection handle, e.g. L2CAP etc.
              * <p>
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.4 Flush command
+             * </p>
+             */
+            HCIStatusCode flush(const uint16_t conn_handle);
+
+            /**
+             * Sets LE scanning parameters for discovery.
+             * <pre>
              * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.10 LE Set Scan Parameters command
              * BT Core Spec v5.2: Vol 6 LE, Part B Link Layer: 4.4.3 Scanning State
-             * </p>
+             * </pre>
              * Should not be called while scanning is active.
              * <p>
              * Scan parameters control advertising (AD) Protocol Data Unit (PDU) delivery behavior.
@@ -322,9 +343,10 @@ namespace direct_bt {
 
             /**
              * Starts or stops LE scanning.
-             * <p>
+             * <pre>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.11 LE Set Scan Enable command
-             * </p>
+             * BT Core Spec v5.2: Vol 6 LE, Part B Link Layer: 4.4.3 Scanning State
+             * </pre>
              * @param enable true to enable discovery, otherwise false
              * @param filter_dup true to filter out duplicate AD PDUs (default), otherwise all will be reported.
              */
@@ -334,6 +356,7 @@ namespace direct_bt {
              * Establish a connection to the given LE peer.
              * <p>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.12 LE Create Connection command
+             * BT Core Spec v5.2: Vol 6 LE, Part B Link Layer: 4.5 Connection State
              * </p>
              * <p>
              * Set window to the same value as the interval, enables continuous scanning.
@@ -356,6 +379,71 @@ namespace direct_bt {
                                         const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48,
                                         const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
                                         const uint16_t conn_latency=0x0000, const uint16_t supervision_timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10);
+
+            /**
+             * Sets BREDR inquiry scanning parameters for discovery (non LE).
+             * <pre>
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 6.2 Inquiry Scan Interval
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 6.3 Inquiry Scan Window
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 6.4 Inquiry Scan Type
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 6.5 Inquiry Mode
+             * </pre>
+             * <p>
+             * BT Core Spec v5.2: Vol 2 BREDR, Part B Baseband: 8 Link Controller Operations
+             * </p>
+             * Should not be called while scanning is active.
+             * <p>
+             * Scan type will be set according to {@link #btMode},
+             * i.e. interlaced for {@link BTMode#DUAL} or standard for {@link BTMode#BREDR}.
+             * </p>
+             *
+             * @param scan_type inquiry scan type with 0x00 standard scan for {@link BTMode#BREDR}, 0x01 interlaced scan for {@link BTMode#DUAL}
+             * @param mode inquiry mode with 0x00 standard event format, 0x01 with RSSI, 0x02 with RSSI and Extended Inquiry Result (EIR) format (default)
+             * @param scan_interval inquiry scan interval in units of 0.625ms, default value 18 for 11.25ms, min value 4 for 2.5ms -> 0x4000 for 10.24s
+             * @param scan_window inquiry scan window in units of 0.625ms, default value 18 for 11.25ms,  min value 4 for 2.5ms -> 0x4000 for 10.24s. Shall be <= le_scan_interval
+             */
+            HCIStatusCode set_inquiry_param(const uint8_t scan_type,
+                                            const uint8_t mode=0x02,
+                                            const uint16_t scan_interval=18, const uint16_t scan_window=18);
+
+            /**
+             * Sets BREDR page scanning parameters to connect (non LE).
+             * <pre>
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 6.6 Page Timeout
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 6.7 Connection Accept Timeout
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 6.8 Page Scan Interval
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 6.9 Page Scan Window
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 6.11 Page Scan Type
+             * </pre>
+             * <p>
+             * BT Core Spec v5.2: Vol 2 BREDR, Part B Baseband: 8 Link Controller Operations
+             * </p>
+             * Should not be called while scanning is active.
+             * <p>
+             * Scan type will be set according to {@link #btMode},
+             * i.e. interlaced for {@link BTMode#DUAL} or standard for {@link BTMode#BREDR}.
+             * </p>
+             *
+             * @param scan_type page scan type with 0x00 standard scan for {@link BTMode#BREDR}, 0x01 interlaced scan for {@link BTMode#DUAL}
+             * @param scan_interval page scan interval in units of 0.625ms, default value 18 for 11.25ms, min value 4 for 2.5ms -> 0x4000 for 10.24s
+             * @param scan_window page scan window in units of 0.625ms, default value 18 for 11.25ms,  min value 4 for 2.5ms -> 0x4000 for 10.24s. Shall be <= le_scan_interval
+             * @param page_timeout connection page timeout in units of 0.625ms waiting for response, default value 16000 for 10s, min value 1 for 0.625ms -> 0xFFA0 for 40.9s
+             */
+            HCIStatusCode set_paging_param(const uint8_t scan_type,
+                                           const uint16_t scan_interval=18, const uint16_t scan_window=18,
+                                           const uint16_t page_timeout=16000);
+
+            /**
+             * Starts or stops BREDR inquiry or page scanning (non LE).
+             * <pre>
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 6.1 Scan Enable
+             * </pre>
+             * <p>
+             * BT Core Spec v5.2: Vol 2 BREDR, Part B Baseband: 8 Link Controller Operations
+             * </p>
+             * @param scan_op scan operation with 0x00 disabled, 0x01 inquiry only, 0x02 page scan only, 0x03 inquiry and page scan enabled.
+             */
+            HCIStatusCode enable_scan(const uint8_t scan_op);
 
             /**
              * Establish a connection to the given BREDR (non LE).
