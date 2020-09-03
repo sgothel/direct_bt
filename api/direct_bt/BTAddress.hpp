@@ -39,10 +39,8 @@ namespace direct_bt {
      * - EUI-48 or MAC (6 octets)
      *
      * 2) BT public address used as BD_ADDR for the LE physical channel is defined in Vol 6, Part B 1.3
-     * </pre>
-     * <p>
-     * BT Core Spec v5.2:  Vol 3, Part C Generic Access Profile (GAP): 15.1.1.2 Random Bluetooth address
-     * <pre>
+     *    BT Core Spec v5.2:  Vol 3, Part C Generic Access Profile (GAP): 15.1.1.2 Random Bluetooth address
+     *
      * 3) BT random address used as BD_ADDR on the LE physical channel is defined in Vol 3, Part C 10.8
      * </pre>
      */

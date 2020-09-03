@@ -34,10 +34,13 @@ extern "C" {
 
 using namespace direct_bt;
 
-/***
- * This C++ direct_bt scanner code uses the high-level API like dbt_scanner00
+/*** \example dbt_scanner10.cpp
+ * This C++ scanner example uses the Direct-BT fully event driven workflow
  * and adds multithreading, i.e. one thread processes each found device found
  * as notified via the event listener.
+ * <p>
+ * This example represents the recommended utilization of Direct-BT.
+ * </p>
  */
 
 static int64_t timestamp_t0;

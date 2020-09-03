@@ -32,11 +32,15 @@ extern "C" {
 
 using namespace direct_bt;
 
-/***
- * This C++ direct_bt scanner code
- * uses a more fine grained control via GATTHandler.
- *
- * For a more user convenient and readable approach see dbt_scanner00.cpp!
+/*** \example dbt_scanner01.cpp
+ * This C++ direct_bt scanner example is a TinyB backward compatible and not fully event driven.
+ * It uses a more fine grained control via GATTHandler.
+ * <p>
+ * For a more user convenient and readable approach see dbt_scanner00.cpp or dbt_scanner10.cpp!
+ * </p>
+ * <p>
+ * This example does not represent the recommended utilization of Direct-BT.
+ * </p>
  */
 
 std::shared_ptr<DBTDevice> deviceFound = nullptr;

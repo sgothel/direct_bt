@@ -38,14 +38,24 @@ Direct-BT
 *Direct-BT* provides direct Bluetooth LE and BREDR programming without intermediate layers
 targeting high-performance reliable Bluetooth support.
 
-*Direct-BT* may be utilized via its C++ API or via the TinyB Java API.
-
 By having least system and userspace dependencies and no communication overhead, 
 Direct-BT shall be suitable for embedded device configurations besides others.
+
+*Direct-BT* supports a fully event driven workflow from discovery to GATT programming.
+[AdapterStatusListener](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1AdapterStatusListener.html) 
+allows listening to adapter changes and device discovery and
+[GATTCharacteristicListener](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1GATTCharacteristicListener.html)
+to GATT indications and notifications.
+
+*Direct-BT* may be utilized via its [C++ API](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/index.html)
+or via the refactored TinyB [Java API](https://ict.zafena.se/direct_bt/build/documentation/java/html/index.html).
 
 *Direct-BT* is exposed via the following native libraries
 - *libdirect_bt.so* for the core C++ implementation.
 - *libjavadirect_bt.so* for the Java binding.
+
+You will find a detailed overview of *Direct-BT* in the doxygen generated 
+[C++ API doc of its *direct_bt* namespace](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
 
 To use *Direct-BT* in the most efficient way, 
 the BlueZ userspace daemon *bluetoothd* should be disabled.
@@ -56,9 +66,6 @@ systemctl stop bluetooth
 systemctl disable bluetooth
 systemctl mask bluetooth
 ```
-
-You will find a detailed overview of *Direct-BT* in the doxygen generated 
-[C++ API doc of its *direct_bt* namespace](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
 
 *Direct-BT* is the new implementation as provided by [Zafena ICT](https://ict.zafena.se).
 
@@ -122,22 +129,34 @@ systemctl restart bluetooth.
 nor shall the BlueZ userspace service *bluetoothd* be active for best experience.
 
 To disable the *bluetoothd* service using systemd:
-```
+~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 systemctl stop bluetooth
 systemctl disable bluetooth
 systemctl mask bluetooth
-```
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Installing build dependencies on Debian (10 or 11):
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
+apt install git
+apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev
+apt install libglib2.0 libglib2.0-0 libglib2.0-dev
+apt install openjdk-11-jdk openjdk-11-jre
+apt install cmake cmake-extras extra-cmake-modules pkg-config
+apt install doxygen graphviz
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For a generic build use:
-~~~~~~~~~~~~~{.sh}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
+git clone https://ict.zafena.se/cgit/direct_bt.git
+cd direct_bt
 mkdir build
 cd build
-cmake ..
+cmake -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TESTING=ON ..
 make
-make install
-~~~~~~~~~~~~~
+make install test doc
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The last command will create the include/ and lib/ directories with a copy of
+The install target of the last command will create the include/ and lib/ directories with a copy of
 the headers and library objects respectively in your build location. Note that
 doing an out-of-source build may cause issues when rebuilding later on.
 

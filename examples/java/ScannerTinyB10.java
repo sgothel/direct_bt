@@ -53,6 +53,14 @@ import org.tinyb.HCIWhitelistConnectType;
 
 import direct_bt.tinyb.DBTManager;
 
+/*** \example ScannerTinyB10.java
+ * This Java scanner example uses the Direct-BT fully event driven workflow
+ * and adds multithreading, i.e. one thread processes each found device found
+ * as notified via the event listener.
+ * <p>
+ * This example represents the recommended utilization of Direct-BT.
+ * </p>
+ */
 public class ScannerTinyB10 {
     static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
 

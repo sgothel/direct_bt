@@ -87,6 +87,11 @@
  *
  * - - - - - - - - - - - - - - -
  *
+ * A fully event driven workflow from discovery to GATT programming is supported.
+ *
+ * AdapterStatusListener allows listening to adapter changes and device discovery
+ * and GATTCharacteristicListener to GATT indications and notifications.
+ *
  * Main event listener can be attached to these objects
  * which maintain a set of unique listener instances without duplicates.
  *
@@ -98,6 +103,7 @@
  *
  * Other API attachment method exists for GATTCharacteristicListener,
  * however, they only exists for convenience and end up to be attached to GATTHandler.
+ *
  *
  * - - - - - - - - - - - - - - -
  *

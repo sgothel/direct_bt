@@ -34,12 +34,16 @@ extern "C" {
 
 using namespace direct_bt;
 
-/***
- * This C++ direct_bt scanner code
- * uses a more simple high-level approach via semantic GATT types (Service, Characteristic, ..)
+/*** \example dbt_scanner00.cpp
+ * This C++ direct_bt scanner example is a TinyB backward compatible and not fully event driven.
+ * It uses a more simple high-level approach via semantic GATT types (Service, Characteristic, ..)
  * without bothering with fine implementation details of GATTHandler.
- *
+ * <p>
  * For a more technical and low-level approach see dbt_scanner01.cpp!
+ * </p>
+ * <p>
+ * This example does not represent the recommended utilization of Direct-BT.
+ * </p>
  */
 
 std::shared_ptr<DBTDevice> deviceFound = nullptr;

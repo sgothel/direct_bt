@@ -39,6 +39,13 @@ import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothUtils;
 import org.tinyb.HCIStatusCode;
 
+/*** \example ScannerTinyB00.java
+ * This Java scanner example is a TinyB backward compatible and not fully event driven.
+ * It simply polls found devices and shows certain results.
+ * <p>
+ * This example does not represent the recommended utilization of Direct-BT.
+ * </p>
+ */
 public class ScannerTinyB00 {
     static {
         System.setProperty("org.tinyb.verbose", "true");
