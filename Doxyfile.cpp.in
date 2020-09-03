@@ -251,7 +251,6 @@ OPTIMIZE_OUTPUT_FOR_C  = NO
 # The default value is: NO.
 
 OPTIMIZE_OUTPUT_JAVA   = NO
-# FIXME OPTIMIZE_OUTPUT_JAVA   = YES
 
 # Set the OPTIMIZE_FOR_FORTRAN tag to YES if your project consists of Fortran
 # sources. Doxygen will then generate output that is tailored for Fortran.
@@ -453,7 +452,7 @@ EXTRACT_LOCAL_METHODS  = NO
 # are hidden.
 # The default value is: NO.
 
-EXTRACT_ANON_NSPACES   = NO
+EXTRACT_ANON_NSPACES   = YES
 
 # If the HIDE_UNDOC_MEMBERS tag is set to YES, doxygen will hide all
 # undocumented members inside documented classes or files. If set to NO these
@@ -483,7 +482,7 @@ HIDE_FRIEND_COMPOUNDS  = NO
 # blocks will be appended to the function's detailed documentation block.
 # The default value is: NO.
 
-HIDE_IN_BODY_DOCS      = NO
+HIDE_IN_BODY_DOCS      = YES
 
 # The INTERNAL_DOCS tag determines if documentation that is typed after a
 # \internal command is included. If the tag is set to NO then the documentation
@@ -760,7 +759,12 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/api/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/README.md
+                         @CMAKE_CURRENT_SOURCE_DIR@/src/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/README.md \
+                         @CMAKE_CURRENT_SOURCE_DIR@/examples/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/examples/direct_bt_scanner10/dbt_scanner10.cpp \
+                         @CMAKE_CURRENT_SOURCE_DIR@/examples/direct_bt_scanner01/dbt_scanner01.cpp \
+                         @CMAKE_CURRENT_SOURCE_DIR@/examples/direct_bt_scanner00/dbt_scanner00.cpp
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -780,7 +784,7 @@ INPUT_ENCODING         = UTF-8
 # *.md, *.mm, *.dox, *.py, *.f90, *.f, *.for, *.tcl, *.vhd, *.vhdl, *.ucf,
 # *.qsf, *.as and *.js.
 
-FILE_PATTERNS          = *.hpp *.md
+FILE_PATTERNS          = *.hpp *.md *.cpp *.cxx
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.
@@ -829,7 +833,9 @@ EXCLUDE_SYMBOLS        =
 # command).
 
 EXAMPLE_PATH           = @CMAKE_CURRENT_SOURCE_DIR@/examples/ \
-                         @CMAKE_CURRENT_SOURCE_DIR@/test/
+                         @CMAKE_CURRENT_SOURCE_DIR@/examples/direct_bt_scanner10/dbt_scanner10.cpp \
+                         @CMAKE_CURRENT_SOURCE_DIR@/examples/direct_bt_scanner01/dbt_scanner01.cpp \
+                         @CMAKE_CURRENT_SOURCE_DIR@/examples/direct_bt_scanner00/dbt_scanner00.cpp
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp and
@@ -910,7 +916,7 @@ USE_MDFILE_AS_MAINPAGE = @CMAKE_CURRENT_SOURCE_DIR@/README.md
 # also VERBATIM_HEADERS is set to NO.
 # The default value is: NO.
 
-SOURCE_BROWSER         = NO
+SOURCE_BROWSER         = YES
 
 # Setting the INLINE_SOURCES tag to YES will include the body of functions,
 # classes and enums directly into the documentation.
@@ -923,7 +929,7 @@ INLINE_SOURCES         = NO
 # Fortran comments will always remain visible.
 # The default value is: YES.
 
-STRIP_CODE_COMMENTS    = YES
+STRIP_CODE_COMMENTS    = NO
 
 # If the REFERENCED_BY_RELATION tag is set to YES then for each documented
 # function all documented functions referencing it will be listed.
