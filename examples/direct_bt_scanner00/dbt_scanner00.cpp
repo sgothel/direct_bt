@@ -34,7 +34,7 @@ extern "C" {
 
 using namespace direct_bt;
 
-/*** \example dbt_scanner00.cpp
+/**
  * This C++ direct_bt scanner example is a TinyB backward compatible and not fully event driven.
  * It uses a more simple high-level approach via semantic GATT types (Service, Characteristic, ..)
  * without bothering with fine implementation details of GATTHandler.

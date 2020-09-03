@@ -1462,5 +1462,36 @@ namespace direct_bt {
     };
 }
 
+/** \example dbt_scanner10.cpp
+ * This C++ scanner example uses the Direct-BT fully event driven workflow
+ * and adds multithreading, i.e. one thread processes each found device found
+ * as notified via the event listener.
+ * <p>
+ * This example represents the recommended utilization of Direct-BT.
+ * </p>
+ */
+
+ /** \example dbt_scanner00.cpp
+  * This C++ direct_bt scanner example is a TinyB backward compatible and not fully event driven.
+  * It uses a more simple high-level approach via semantic GATT types (Service, Characteristic, ..)
+  * without bothering with fine implementation details of GATTHandler.
+  * <p>
+  * For a more technical and low-level approach see dbt_scanner01.cpp!
+  * </p>
+  * <p>
+  * This example does not represent the recommended utilization of Direct-BT.
+  * </p>
+  */
+
+ /** \example dbt_scanner01.cpp
+  * This C++ direct_bt scanner example is a TinyB backward compatible and not fully event driven.
+  * It uses a more fine grained control via GATTHandler.
+  * <p>
+  * For a more user convenient and readable approach see dbt_scanner00.cpp or dbt_scanner10.cpp!
+  * </p>
+  * <p>
+  * This example does not represent the recommended utilization of Direct-BT.
+  * </p>
+  */
 
 #endif /* ATT_PDU_TYPES_HPP_ */

@@ -32,7 +32,7 @@ extern "C" {
 
 using namespace direct_bt;
 
-/*** \example dbt_scanner01.cpp
+/**
  * This C++ direct_bt scanner example is a TinyB backward compatible and not fully event driven.
  * It uses a more fine grained control via GATTHandler.
  * <p>

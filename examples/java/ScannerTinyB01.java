@@ -45,7 +45,7 @@ import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 
-/*** \example ScannerTinyB01.java
+/**
  * This Java scanner example is a TinyB backward compatible and not fully event driven.
  * It simply polls found devices and shows certain results.
  * However, the AdapterStatusListener is attached if supported.

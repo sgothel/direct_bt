@@ -521,3 +521,29 @@ public class BluetoothFactory {
 
     /* pp */ static long getStartupTimeMilliseconds() { return t0; }
 }
+
+/** \example ScannerTinyB10.java
+ * This Java scanner example uses the Direct-BT fully event driven workflow
+ * and adds multithreading, i.e. one thread processes each found device found
+ * as notified via the event listener.
+ * <p>
+ * This example represents the recommended utilization of Direct-BT.
+ * </p>
+ */
+
+/** \example ScannerTinyB00.java
+ * This Java scanner example is a TinyB backward compatible and not fully event driven.
+ * It simply polls found devices and shows certain results.
+ * <p>
+ * This example does not represent the recommended utilization of Direct-BT.
+ * </p>
+ */
+
+/** \example ScannerTinyB01.java
+ * This Java scanner example is a TinyB backward compatible and not fully event driven.
+ * It simply polls found devices and shows certain results.
+ * However, the AdapterStatusListener is attached if supported.
+ * <p>
+ * This example does not represent the recommended utilization of Direct-BT.
+ * </p>
+ */
