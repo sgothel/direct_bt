@@ -100,9 +100,17 @@ Up to date API documentation can be found:
     * [Overview of *direct_bt*](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
 * [Java API Doc](https://ict.zafena.se/direct_bt/build/documentation/java/html/index.html).
 
-A guide for getting started with Direct-BT on C++ and Java will follow up soon from Zafena ICT.
+A guide for getting started with *Direct-BT* on C++ and Java will follow up soon from Zafena ICT.
 
-A guide for getting started with TinyB on Java is available from Intel:
+*Direct-BT* [C++ examples](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/examples.html)
+are available, [dbt_scanner10.cpp](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/dbt_scanner10_8cpp-example.html)
+demonstrates the event driven and multithreading workflow.
+
+*Direct-BT* [Java examples](file:///usr/local/projects/zafena/direct_bt/build-amd64/documentation/java/html/examples.html)
+are availble, [ScannerTinyB10.java](file:///usr/local/projects/zafena/direct_bt/build-amd64/documentation/java/html/ScannerTinyB10_8java-example.html)
+demonstrates the event driven and multithreading workflow - matching *dbt_scanner10.cpp*.
+
+A guide for getting started with *TinyB* on Java is available from Intel:
 https://software.intel.com/en-us/java-for-bluetooth-le-apps.
 
 Build Status
