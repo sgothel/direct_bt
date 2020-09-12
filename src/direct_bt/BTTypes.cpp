@@ -45,9 +45,9 @@ BDAddressType direct_bt::getBDAddressType(const HCILEPeerAddressType hciPeerAddr
         case HCILEPeerAddressType::PUBLIC:
             return BDADDR_LE_PUBLIC;
         case HCILEPeerAddressType::RANDOM:
-            /* fall through intended */
+            [[fallthrough]];
         case HCILEPeerAddressType::PUBLIC_IDENTITY:
-            /* fall through intended */
+            [[fallthrough]];
         case HCILEPeerAddressType::RANDOM_STATIC_IDENTITY:
             return BDADDR_LE_RANDOM;
         default:
@@ -75,9 +75,9 @@ BDAddressType direct_bt::getBDAddressType(const HCILEOwnAddressType hciOwnAddrTy
         case HCILEOwnAddressType::PUBLIC:
             return BDADDR_LE_PUBLIC;
         case HCILEOwnAddressType::RANDOM:
-            /* fall through intended */
+            [[fallthrough]];
         case HCILEOwnAddressType::RESOLVABLE_OR_PUBLIC:
-            /* fall through intended */
+            [[fallthrough]];
         case HCILEOwnAddressType::RESOLVABLE_OR_RANDOM:
             return BDADDR_LE_RANDOM;
         default:

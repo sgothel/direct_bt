@@ -238,7 +238,7 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
             setAdapterMode(dev_id, 1 /* ssp */, 1 /* bredr */, 0 /* le */);
             break;
         case BTMode::NONE:
-            // fall through intended, map NONE -> LE
+            [[fallthrough]]; // map NONE -> LE
         case BTMode::LE:
             setAdapterMode(dev_id, 0 /* ssp */, 0 /* bredr */, 1 /* le */);
             break;

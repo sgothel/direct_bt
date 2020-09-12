@@ -384,7 +384,7 @@ HCIStatusCode DBTDevice::connectDefault()
 {
     switch( addressType ) {
         case BDAddressType::BDADDR_LE_PUBLIC:
-            /* fall through intended */
+            [[fallthrough]];
         case BDAddressType::BDADDR_LE_RANDOM:
             return connectLE();
         case BDAddressType::BDADDR_BREDR:
