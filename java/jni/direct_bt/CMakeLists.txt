@@ -45,7 +45,8 @@ set_target_properties(
     PROPERTIES
     SOVERSION ${tinyb_VERSION_MAJOR}
     VERSION ${tinyb_VERSION_STRING}
-    CXX_STANDARD 11
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
     COMPILE_FLAGS "-Wall -Wextra -Werror"
 )
 

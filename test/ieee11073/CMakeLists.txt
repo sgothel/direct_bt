@@ -7,7 +7,9 @@ add_executable (test_datatypes01     test_datatypes01.cpp)
 
 set_target_properties(test_datatypes01
     PROPERTIES
-    CXX_STANDARD 11)
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+)
 
 target_link_libraries (test_datatypes01 direct_bt)
 

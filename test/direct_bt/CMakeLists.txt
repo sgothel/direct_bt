@@ -12,32 +12,38 @@ add_executable (test_lfringbuffer11  test_lfringbuffer11.cpp)
 
 set_target_properties(test_functiondef01
     PROPERTIES
-    CXX_STANDARD 11
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
     COMPILE_FLAGS "-Wall -Wextra -Werror"
 )
 set_target_properties(test_uuid
     PROPERTIES
-    CXX_STANDARD 11
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
     COMPILE_FLAGS "-Wall -Wextra -Werror"
 )
 set_target_properties(test_basictypes01
     PROPERTIES
-    CXX_STANDARD 11
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
     COMPILE_FLAGS "-Wall -Wextra -Werror"
 )
 set_target_properties(test_attpdu01
     PROPERTIES
-    CXX_STANDARD 11
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
     COMPILE_FLAGS "-Wall -Wextra -Werror"
 )
 set_target_properties(test_lfringbuffer01
     PROPERTIES
-    CXX_STANDARD 11
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
     COMPILE_FLAGS "-Wall -Wextra -Werror"
 )
 set_target_properties(test_lfringbuffer11
     PROPERTIES
-    CXX_STANDARD 11
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
     COMPILE_FLAGS "-Wall -Wextra -Werror"
 )
 
