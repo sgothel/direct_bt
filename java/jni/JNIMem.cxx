@@ -29,6 +29,7 @@
 #include <cstdio>
 
 #include "JNIMem.hpp"
+#include "dbt_debug.hpp"
 
 // #define VERBOSE_ON 1
 #ifdef VERBOSE_ON
@@ -96,7 +97,7 @@ void JNIEnvContainer::detach() {
     needsDetach = false;
 }
 
-JNIGlobalRef::JNIGlobalRef() {
+JNIGlobalRef::JNIGlobalRef() noexcept {
     this->object = nullptr;
     DBG_PRINT("JNIGlobalRef::def_ctor nullptr");
 }
@@ -116,7 +117,7 @@ JNIGlobalRef::JNIGlobalRef(const JNIGlobalRef &o) {
     object = jni_env->NewGlobalRef(o.object);
     DBG_PRINT("JNIGlobalRef::copy_ctor %p -> %p", o.object, object);
 }
-JNIGlobalRef::JNIGlobalRef(JNIGlobalRef &&o)
+JNIGlobalRef::JNIGlobalRef(JNIGlobalRef &&o) noexcept
 : object(o.object) {
     DBG_PRINT("JNIGlobalRef::move_ctor %p (nulled) -> %p", o.object, object);
     o.object = nullptr;
@@ -136,18 +137,19 @@ JNIGlobalRef& JNIGlobalRef::operator=(const JNIGlobalRef &o) {
     DBG_PRINT("JNIGlobalRef::copy_assign %p -> %p", o.object, object);
     return *this;
 }
-JNIGlobalRef& JNIGlobalRef::operator=(JNIGlobalRef &&o) {
+JNIGlobalRef& JNIGlobalRef::operator=(JNIGlobalRef &&o) noexcept {
     object = o.object;
     DBG_PRINT("JNIGlobalRef::move_assign %p (nulled) -> %p", o.object, object);
     o.object = nullptr;
     return *this;
 }
 
-JNIGlobalRef::~JNIGlobalRef() {
+JNIGlobalRef::~JNIGlobalRef() noexcept {
     try {
         JNIEnv * env = *jni_env;
         if( nullptr == env ) {
-            throw direct_bt::RuntimeException("JNIGlobalRef dtor null JNIEnv", E_FILE_LINE);
+            ERR_PRINT("JNIGlobalRef dtor null JNIEnv");
+            abort();
         }
         DBG_PRINT("JNIGlobalRef::dtor %p", object);
         if( nullptr != object ) {
@@ -159,12 +161,12 @@ JNIGlobalRef::~JNIGlobalRef() {
     }
 }
 
-void JNIGlobalRef::clear() {
+void JNIGlobalRef::clear() noexcept {
     DBG_PRINT("JNIGlobalRef::clear %p (nulled) -> null", object);
     object = nullptr;
 }
 
-bool JNIGlobalRef::operator==(const JNIGlobalRef& rhs) const {
+bool JNIGlobalRef::operator==(const JNIGlobalRef& rhs) const noexcept {
     if( &rhs == this ) {
         DBG_PRINT("JNIGlobalRef::== true: %p == %p (ptr)", object, rhs.object);
         return true;

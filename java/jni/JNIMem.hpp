@@ -84,34 +84,34 @@ public:
     }
 
     /* Creates a GlobalRef using a nullptr for API convenience, lazy assignment. */
-    JNIGlobalRef();
+    JNIGlobalRef() noexcept;
 
     /* Creates a GlobalRef from an object passed to it */
     JNIGlobalRef(jobject object);
 
     JNIGlobalRef(const JNIGlobalRef &o);
-    JNIGlobalRef(JNIGlobalRef &&o);
+    JNIGlobalRef(JNIGlobalRef &&o) noexcept;
 
     JNIGlobalRef& operator=(const JNIGlobalRef &o);
-    JNIGlobalRef& operator=(JNIGlobalRef &&o);
+    JNIGlobalRef& operator=(JNIGlobalRef &&o) noexcept;
 
     /* Deletes the stored GlobalRef */
-    ~JNIGlobalRef();
+    ~JNIGlobalRef() noexcept;
 
     /** Clears the java reference, i.e. nulling it, without deleting the global reference via JNI. */
-    void clear();
+    void clear() noexcept;
 
     /* Provides access to the stored GlobalRef as an jobject. */
-    jobject operator*() { return object; }
+    jobject operator*() noexcept { return object; }
 
     /* Provides access to the stored GlobalRef as an jobject. */
-    jobject getObject() const { return object; }
+    jobject getObject() const noexcept { return object; }
     /* Provides access to the stored GlobalRef as a jclass. */
-    jclass getClass() const { return (jclass)object; }
+    jclass getClass() const noexcept { return (jclass)object; }
 
-    bool operator==(const JNIGlobalRef& rhs) const;
+    bool operator==(const JNIGlobalRef& rhs) const noexcept;
 
-    bool operator!=(const JNIGlobalRef& rhs) const
+    bool operator!=(const JNIGlobalRef& rhs) const noexcept
     { return !( *this == rhs ); }
 };
 
