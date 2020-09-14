@@ -48,7 +48,7 @@ std::shared_ptr<DBTDevice> GATTService::getDeviceChecked() const {
 
 std::string GATTService::toString() const {
     std::string name = "";
-    if( uuid_t::UUID16_SZ == type->getTypeSize() ) {
+    if( uuid_t::TypeSize::UUID16_SZ == type->getTypeSize() ) {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(type.get()))->value;
         name = " - "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
     }
@@ -58,7 +58,7 @@ std::string GATTService::toString() const {
 
 std::string GATTService::toSafeString() const {
     std::string name = "";
-    if( uuid_t::UUID16_SZ == type->getTypeSize() ) {
+    if( uuid_t::TypeSize::UUID16_SZ == type->getTypeSize() ) {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(type.get()))->value;
         name = " - "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
     }

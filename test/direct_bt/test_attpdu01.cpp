@@ -21,8 +21,8 @@ class Cppunit_tests: public Cppunit {
         const AttReadByNTypeReq req(true /* group */, 1, 0xffff, uuid16);
 
         std::shared_ptr<const uuid_t> uuid16_2 = req.getNType();
-        CHECK(uuid16.getTypeSize(), 2);
-        CHECK(uuid16_2->getTypeSize(), 2);
+        CHECK(uuid16.getTypeSizeInt(), 2);
+        CHECK(uuid16_2->getTypeSizeInt(), 2);
         CHECKT( 0 == memcmp(uuid16.data(), uuid16_2->data(), 2) )
         CHECKT( uuid16.toString() == uuid16_2->toString() );
 

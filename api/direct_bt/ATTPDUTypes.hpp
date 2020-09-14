@@ -1073,7 +1073,7 @@ namespace direct_bt {
 
         public:
             AttReadByNTypeReq(const bool groupTypeReq, const uint16_t startHandle, const uint16_t endHandle, const uuid_t & uuid)
-            : AttPDUMsg(groupTypeReq ? ATT_READ_BY_GROUP_TYPE_REQ : ATT_READ_BY_TYPE_REQ, 1+2+2+uuid.getTypeSize())
+            : AttPDUMsg(groupTypeReq ? ATT_READ_BY_GROUP_TYPE_REQ : ATT_READ_BY_TYPE_REQ, 1+2+2+uuid.getTypeSizeInt())
             {
                 if( uuid.getTypeSize() != uuid_t::TypeSize::UUID16_SZ && uuid.getTypeSize()!= uuid_t::TypeSize::UUID128_SZ ) {
                     throw IllegalArgumentException("Only UUID16 and UUID128 allowed: "+uuid.toString(), E_FILE_LINE);
@@ -1432,7 +1432,7 @@ namespace direct_bt {
              * </p>
              */
             int getElementValueSize() const override {
-                return getUUIFormat();
+                return uuid_t::number(getUUIFormat());
             }
 
             int getElementCount() const override {

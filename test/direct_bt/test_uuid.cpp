@@ -23,40 +23,40 @@ class Cppunit_tests : public Cppunit {
 
         {
             const uuid128_t v01 = uuid128_t(uuid128_bytes, 0, true);
-            CHECK(v01.getTypeSize(), 16);
-            CHECK(v01.getTypeSize(), sizeof(v01.value));
-            CHECK(v01.getTypeSize(), sizeof(v01.value.data));
+            CHECK(v01.getTypeSizeInt(), 16);
+            CHECK(v01.getTypeSizeInt(), sizeof(v01.value));
+            CHECK(v01.getTypeSizeInt(), sizeof(v01.value.data));
             CHECKT( 0 == memcmp(uuid128_bytes, v01.data(), 16) )
 
             put_uuid(buffer, 0, v01, true);
             std::shared_ptr<const uuid_t> v02 = uuid_t::create(uuid_t::TypeSize::UUID128_SZ, buffer, 0, true);
-            CHECK(v02->getTypeSize(), 16);
+            CHECK(v02->getTypeSizeInt(), 16);
             CHECKT( 0 == memcmp(v01.data(), v02->data(), 16) )
             CHECKT( v01.toString() == v02->toString() );
         }
 
         {
             const uuid32_t v01 = uuid32_t(uuid32_t(0x12345678));
-            CHECK(v01.getTypeSize(), 4);
-            CHECK(v01.getTypeSize(), sizeof(v01.value));
+            CHECK(v01.getTypeSizeInt(), 4);
+            CHECK(v01.getTypeSizeInt(), sizeof(v01.value));
             CHECK(0x12345678, v01.value);
 
             put_uuid(buffer, 0, v01, true);
             std::shared_ptr<const uuid_t> v02 = uuid_t::create(uuid_t::TypeSize::UUID32_SZ, buffer, 0, true);
-            CHECK(v02->getTypeSize(), 4);
+            CHECK(v02->getTypeSizeInt(), 4);
             CHECKT( 0 == memcmp(v01.data(), v02->data(), 4) )
             CHECKT( v01.toString() == v02->toString() );
         }
 
         {
             const uuid16_t v01 = uuid16_t(uuid16_t(0x1234));
-            CHECK(v01.getTypeSize(), 2);
-            CHECK(v01.getTypeSize(), sizeof(v01.value));
+            CHECK(v01.getTypeSizeInt(), 2);
+            CHECK(v01.getTypeSizeInt(), sizeof(v01.value));
             CHECK(0x1234, v01.value);
 
             put_uuid(buffer, 0, v01, true);
             std::shared_ptr<const uuid_t> v02 = uuid_t::create(uuid_t::TypeSize::UUID16_SZ, buffer, 0, true);
-            CHECK(v02->getTypeSize(), 2);
+            CHECK(v02->getTypeSizeInt(), 2);
             CHECKT( 0 == memcmp(v01.data(), v02->data(), 2) )
             CHECKT( v01.toString() == v02->toString() );
         }

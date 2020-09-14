@@ -117,12 +117,12 @@ std::string GATTCharacteristic::toString() const {
         service_uuid_str = service_uuid->toString();
         service_handle_end = serviceRef->endHandle;
 
-        if( uuid_t::UUID16_SZ == service_uuid->getTypeSize() ) {
+        if( uuid_t::TypeSize::UUID16_SZ == service_uuid->getTypeSize() ) {
             const uint16_t uuid16 = (static_cast<const uuid16_t*>(service_uuid.get()))->value;
             service_name = ", "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
         }
     }
-    if( uuid_t::UUID16_SZ == value_type->getTypeSize() ) {
+    if( uuid_t::TypeSize::UUID16_SZ == value_type->getTypeSize() ) {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(value_type.get()))->value;
         char_name = ", "+GattCharacteristicTypeToString(static_cast<GattCharacteristicType>(uuid16));
     }
@@ -141,7 +141,7 @@ std::string GATTCharacteristic::toString() const {
 std::string GATTCharacteristic::toSafeString() const {
     std::string char_name = "";
 
-    if( uuid_t::UUID16_SZ == value_type->getTypeSize() ) {
+    if( uuid_t::TypeSize::UUID16_SZ == value_type->getTypeSize() ) {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(value_type.get()))->value;
         char_name = ", "+GattCharacteristicTypeToString(static_cast<GattCharacteristicType>(uuid16));
     }

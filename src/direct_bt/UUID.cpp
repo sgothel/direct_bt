@@ -35,7 +35,7 @@ static uint8_t bt_base_uuid_be[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0
 uuid128_t direct_bt::BT_BASE_UUID( bt_base_uuid_be, 0, false );
 
 uuid_t::TypeSize uuid_t::toTypeSize(const int size) {
-    switch(size) {
+    switch( static_cast<TypeSize>(size) ) {
         case TypeSize::UUID16_SZ: return TypeSize::UUID16_SZ;
         case TypeSize::UUID32_SZ: return TypeSize::UUID32_SZ;
         case TypeSize::UUID128_SZ: return TypeSize::UUID128_SZ;
@@ -54,28 +54,29 @@ std::shared_ptr<const uuid_t> uuid_t::create(TypeSize t, uint8_t const * const b
     throw IllegalArgumentException("Unknown Type "+std::to_string(static_cast<int>(t)), E_FILE_LINE);
 }
 
-uuid128_t uuid_t::toUUID128(uuid128_t const & base_uuid, int const uuid32_le_octet_index) const {
+uuid128_t uuid_t::toUUID128(uuid128_t const & base_uuid, int const uuid32_le_octet_index) const noexcept {
     switch(type) {
         case TypeSize::UUID16_SZ: return uuid128_t(*((uuid16_t*)this), base_uuid, uuid32_le_octet_index);
         case TypeSize::UUID32_SZ: return uuid128_t(*((uuid32_t*)this), base_uuid, uuid32_le_octet_index);
         case TypeSize::UUID128_SZ: return uuid128_t(*((uuid128_t*)this));
     }
-    throw InternalError("Unknown Type "+std::to_string(static_cast<int>(type)), E_FILE_LINE);
+    ERR_PRINT("Unknown Type %d", static_cast<int>(type));
+    abort();
 }
 
-std::string uuid_t::toUUID128String(uuid128_t const & base_uuid, int const le_octet_index) const {
+std::string uuid_t::toUUID128String(uuid128_t const & base_uuid, int const le_octet_index) const noexcept {
     (void)base_uuid;
     (void)le_octet_index;
     return "";
 }
 
-uuid128_t::uuid128_t(uuid16_t const & uuid16, uuid128_t const & base_uuid, int const uuid16_le_octet_index)
+uuid128_t::uuid128_t(uuid16_t const & uuid16, uuid128_t const & base_uuid, int const uuid16_le_octet_index) noexcept
 : uuid_t(TypeSize::UUID128_SZ), value(merge_uint128(uuid16.value, base_uuid.value, uuid16_le_octet_index)) {}
 
-uuid128_t::uuid128_t(uuid32_t const & uuid32, uuid128_t const & base_uuid, int const uuid32_le_octet_index)
+uuid128_t::uuid128_t(uuid32_t const & uuid32, uuid128_t const & base_uuid, int const uuid32_le_octet_index) noexcept
 : uuid_t(TypeSize::UUID128_SZ), value(merge_uint128(uuid32.value, base_uuid.value, uuid32_le_octet_index)) {}
 
-std::string uuid16_t::toString() const {
+std::string uuid16_t::toString() const noexcept {
     const int length = 4;
     std::string str;
     str.reserve(length+1); // including EOS for snprintf
@@ -83,18 +84,19 @@ std::string uuid16_t::toString() const {
 
     const int count = snprintf(&str[0], str.capacity(), "%.4x", value);
     if( length != count ) {
-        throw InternalError("UUID16 string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);
+        ERR_PRINT("UUID16 string not of length %d but %d", length, count);
+        abort();
     }
     return str;
 }
 
-std::string uuid16_t::toUUID128String(uuid128_t const & base_uuid, int const le_octet_index) const
+std::string uuid16_t::toUUID128String(uuid128_t const & base_uuid, int const le_octet_index) const noexcept
 {
     uuid128_t u128(*this, base_uuid, le_octet_index);
     return u128.toString();
 }
 
-std::string uuid32_t::toString() const {
+std::string uuid32_t::toString() const noexcept {
     const int length = 8;
     std::string str;
     str.reserve(length+1); // including EOS for snprintf
@@ -102,18 +104,19 @@ std::string uuid32_t::toString() const {
 
     const int count = snprintf(&str[0], str.capacity(), "%.8x", value);
     if( length != count ) {
-        throw InternalError("UUID32 string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);
+        ERR_PRINT("UUID32 string not of length %d but %d", length, count);
+        abort();
     }
     return str;
 }
 
-std::string uuid32_t::toUUID128String(uuid128_t const & base_uuid, int const le_octet_index) const
+std::string uuid32_t::toUUID128String(uuid128_t const & base_uuid, int const le_octet_index) const noexcept
 {
     uuid128_t u128(*this, base_uuid, le_octet_index);
     return u128.toString();
 }
 
-std::string uuid128_t::toString() const {
+std::string uuid128_t::toString() const noexcept {
     //               87654321-0000-1000-8000-00805F9B34FB
     //                   0      1    2    3      4    5
     // LE: low-mem - FB349B5F0800-0080-0010-0000-12345678 - high-mem
@@ -151,7 +154,8 @@ std::string uuid128_t::toString() const {
     const int count = snprintf(&str[0], str.capacity(), "%.8x-%.4x-%.4x-%.4x-%.8x%.4x",
                                 part0, part1, part2, part3, part4, part5);
     if( length != count ) {
-        throw InternalError("UUID128 string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);
+        ERR_PRINT("UUID128 string not of length %d but %d", length, count);
+        abort();
     }
     return str;
 }

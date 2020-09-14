@@ -188,7 +188,7 @@ namespace direct_bt {
             }
 
             uuid128_t get_uuid128(const int i) const {
-                check_range(i, uuid_t::TypeSize::UUID128_SZ);
+                check_range(i, uuid_t::number(uuid_t::TypeSize::UUID128_SZ));
                 return uuid128_t(get_uint128(_data, i, true /* littleEndian */));
             }
             inline uuid128_t get_uuid128_nc(const int i) const noexcept {
@@ -196,7 +196,7 @@ namespace direct_bt {
             }
 
             std::shared_ptr<const uuid_t> get_uuid(const int i, const uuid_t::TypeSize tsize) const {
-                check_range(i, tsize);
+                check_range(i, uuid_t::number(tsize));
                 return uuid_t::create(tsize, _data, i, true /* littleEndian */);
             }
 
@@ -281,7 +281,7 @@ namespace direct_bt {
             }
 
             void put_uuid(const int i, const uuid_t & v) {
-                check_range(i, v.getTypeSize());
+                check_range(i, v.getTypeSizeInt());
                 direct_bt::put_uuid(data(), i, v, true /* littleEndian */);
             }
 
