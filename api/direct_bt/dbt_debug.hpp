@@ -44,10 +44,10 @@ extern "C" {
 namespace direct_bt {
 
     /** Use for environment-variable DBTEnv::DEBUG conditional debug messages, prefix '[elapsed_time] Debug: '. */
-    void DBG_PRINT(const char * format, ...);
+    void DBG_PRINT(const char * format, ...) noexcept;
 
     /** Use for environment-variable DBTEnv::VERBOSE conditional info messages, prefix '[elapsed_time] Info: '. */
-    void INFO_PRINT(const char * format, ...);
+    void INFO_PRINT(const char * format, ...) noexcept;
 
     #ifdef PERF_PRINT_ON
         #define PERF_TS_T0()  const uint64_t _t0 = direct_bt::getCurrentMilliseconds()
@@ -60,31 +60,31 @@ namespace direct_bt {
     #endif
 
     /** Use for unconditional error messages, prefix '[elapsed_time] Error @ file:line: '. Function also appends last errno and strerror(errno). */
-    void ERR_PRINTv(const char *file, const int line, const char * format, va_list args);
+    void ERR_PRINTv(const char *file, const int line, const char * format, va_list args) noexcept;
 
     /** Use for unconditional error messages, prefix '[elapsed_time] Error @ file:line: '. Function also appends last errno and strerror(errno). */
-    void ERR_PRINT2(const char *file, const int line, const char * format, ...);
+    void ERR_PRINT2(const char *file, const int line, const char * format, ...) noexcept;
 
     /** Use for unconditional error messages, prefix '[elapsed_time] Error @ FILE:LINE: '. Function also appends last errno and strerror(errno). */
     #define ERR_PRINT(...) { ERR_PRINT2(__FILE__, __LINE__, __VA_ARGS__); }
 
     /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ file:line: ' */
-    void WARN_PRINTv(const char *file, const int line, const char * format, va_list args);
+    void WARN_PRINTv(const char *file, const int line, const char * format, va_list args) noexcept;
 
     /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ file:line: ' */
-    void WARN_PRINT2(const char *file, const int line, const char * format, ...);
+    void WARN_PRINT2(const char *file, const int line, const char * format, ...) noexcept;
 
     /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ FILE:LINE: ' */
     #define WARN_PRINT(...) { WARN_PRINT2(__FILE__, __LINE__, __VA_ARGS__); }
 
     /** Use for unconditional plain messages, prefix '[elapsed_time] '. */
-    void PLAIN_PRINT(const char * format, ...);
+    void PLAIN_PRINT(const char * format, ...) noexcept;
 
     /** Use for conditional plain messages, prefix '[elapsed_time] '. */
-    void COND_PRINT(const bool condition, const char * format, ...);
+    void COND_PRINT(const bool condition, const char * format, ...) noexcept;
 
     template<class ListElemType>
-    inline void printSharedPtrList(std::string prefix, std::vector<std::shared_ptr<ListElemType>> & list) {
+    inline void printSharedPtrList(std::string prefix, std::vector<std::shared_ptr<ListElemType>> & list) noexcept {
         fprintf(stderr, "%s: Start: %zd elements\n", prefix.c_str(), (size_t)list.size());
         int idx = 0;
         for (auto it = list.begin(); it != list.end(); idx++) {

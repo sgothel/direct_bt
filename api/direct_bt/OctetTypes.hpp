@@ -290,6 +290,9 @@ namespace direct_bt {
                 check_range(i, 1);
                 return data() + i;
             }
+            uint8_t * get_wptr_nc(const int i) noexcept {
+                return data() + i;
+            }
 
             std::string toString() const noexcept {
                 return "size "+std::to_string(getSize())+", rw: "+bytesHexString(get_ptr(), 0, getSize(), true /* lsbFirst */, true /* leading0X */);

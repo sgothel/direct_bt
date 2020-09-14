@@ -124,7 +124,7 @@ namespace direct_bt {
 
 #define HCI_STATUS_CODE_CASE_TO_STRING(V) case HCIStatusCode::V: return #V;
 
-std::string getHCIStatusCodeString(const HCIStatusCode ec) {
+std::string getHCIStatusCodeString(const HCIStatusCode ec) noexcept {
     switch(ec) {
     HCI_STATUS_CODE(HCI_STATUS_CODE_CASE_TO_STRING)
         default: ; // fall through intended
@@ -132,7 +132,7 @@ std::string getHCIStatusCodeString(const HCIStatusCode ec) {
     return "Unknown HCIStatusCode";
 }
 
-std::string getHCIPacketTypeString(const HCIPacketType op) {
+std::string getHCIPacketTypeString(const HCIPacketType op) noexcept {
     switch(op) {
         case HCIPacketType::COMMAND: return "COMMAND";
         case HCIPacketType::ACLDATA: return "ACLDATA";
@@ -144,7 +144,7 @@ std::string getHCIPacketTypeString(const HCIPacketType op) {
     return "Unknown HCIPacketType";
 }
 
-std::string getHCIOGFString(const HCIOGF op) {
+std::string getHCIOGFString(const HCIOGF op) noexcept {
     (void)op;
     return "";
 }
@@ -179,7 +179,7 @@ std::string getHCIOGFString(const HCIOGF op) {
 
 #define HCI_OPCODE_CASE_TO_STRING(V) case HCIOpcode::V: return #V;
 
-std::string getHCIOpcodeString(const HCIOpcode op) {
+std::string getHCIOpcodeString(const HCIOpcode op) noexcept {
     switch(op) {
     HCI_OPCODE(HCI_OPCODE_CASE_TO_STRING)
         default: ; // fall through intended
@@ -218,7 +218,7 @@ std::string getHCIOpcodeString(const HCIOpcode op) {
 
 #define HCI_EVENTTYPE_CASE_TO_STRING(V) case HCIEventType::V: return #V;
 
-std::string getHCIEventTypeString(const HCIEventType op) {
+std::string getHCIEventTypeString(const HCIEventType op) noexcept {
         switch(op) {
         HCI_EVENTTYPE(HCI_EVENTTYPE_CASE_TO_STRING)
             default: ; // fall through intended
@@ -265,7 +265,7 @@ std::string getHCIEventTypeString(const HCIEventType op) {
 
 #define HCI_METATYPE_CASE_TO_STRING(V) case HCIMetaEventType::V: return #V;
 
-std::string getHCIMetaEventTypeString(const HCIMetaEventType op) {
+std::string getHCIMetaEventTypeString(const HCIMetaEventType op) noexcept {
     switch(op) {
     HCI_METATYPE(HCI_METATYPE_CASE_TO_STRING)
         default: ; // fall through intended
@@ -273,7 +273,7 @@ std::string getHCIMetaEventTypeString(const HCIMetaEventType op) {
     return "Unknown HCIMetaType";
 }
 
-HCIEvent* HCIEvent::getSpecialized(const uint8_t * buffer, int const buffer_size) {
+HCIEvent* HCIEvent::getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept {
     const HCIPacketType pc = static_cast<HCIPacketType>( get_uint8(buffer, 0) );
     if( HCIPacketType::EVENT != pc ) {
         return nullptr;

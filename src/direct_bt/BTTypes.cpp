@@ -190,11 +190,11 @@ const EUI48 direct_bt::EUI48_LOCAL_DEVICE( _EUI48_LOCAL_DEVICE );
 // *************************************************
 // *************************************************
 
-static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) {
+static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) noexcept {
     return static_cast<const int8_t *>( static_cast<void *>( const_cast<uint8_t*>( p ) ) );
 }
 
-std::string direct_bt::getBTModeString(const BTMode v) {
+std::string direct_bt::getBTModeString(const BTMode v) noexcept {
     switch(v) {
         case BTMode::NONE: return "NONE";
         case BTMode::DUAL: return "DUAL";
@@ -204,7 +204,7 @@ std::string direct_bt::getBTModeString(const BTMode v) {
     return "Unknown BTMode";
 }
 
-BTMode direct_bt::getBTMode(const std::string & value) {
+BTMode direct_bt::getBTMode(const std::string & value) noexcept {
     if( "DUAL" == value ) {
         return BTMode::DUAL;
     }
@@ -238,7 +238,7 @@ ScanType direct_bt::getScanType(BTMode btMode) {
 
 #define SCANTYPE_CASE_TO_STRING(V) case ScanType::V: return #V;
 
-std::string direct_bt::getScanTypeString(const ScanType v) {
+std::string direct_bt::getScanTypeString(const ScanType v) noexcept {
     switch(v) {
         SCANTYPE_ENUM(SCANTYPE_CASE_TO_STRING)
         default: ; // fall through intended
@@ -256,7 +256,7 @@ std::string direct_bt::getScanTypeString(const ScanType v) {
 
 #define AD_PDU_Type_CASE_TO_STRING(V) case AD_PDU_Type::V: return #V;
 
-std::string direct_bt::getAD_PDU_TypeString(const AD_PDU_Type v) {
+std::string direct_bt::getAD_PDU_TypeString(const AD_PDU_Type v) noexcept {
     switch(v) {
         AD_PDU_Type_ENUM(AD_PDU_Type_CASE_TO_STRING)
         default: ; // fall through intended
@@ -326,7 +326,7 @@ std::string direct_bt::getAD_PDU_TypeString(const AD_PDU_Type v) {
 
 #define APPEARANCE_CASE_TO_STRING(V) case AppearanceCat::V: return #V;
 
-std::string direct_bt::getAppearanceCatString(const AppearanceCat v) {
+std::string direct_bt::getAppearanceCatString(const AppearanceCat v) noexcept {
     switch(v) {
         APPEARANCECAT_ENUM(APPEARANCE_CASE_TO_STRING)
         default: ; // fall through intended
@@ -338,15 +338,15 @@ std::string direct_bt::getAppearanceCatString(const AppearanceCat v) {
 // *************************************************
 // *************************************************
 
-static std::string bt_compidtostr(const uint16_t companyid) {
+static std::string bt_compidtostr(const uint16_t companyid) noexcept {
     return std::to_string(companyid);
 }
 
-ManufactureSpecificData::ManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len)
+ManufactureSpecificData::ManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) noexcept
 : company(company), companyName(std::string(bt_compidtostr(company))), data(data, data_len) {
 }
 
-std::string ManufactureSpecificData::toString() const {
+std::string ManufactureSpecificData::toString() const noexcept {
   std::string out("MSD[company[");
   out.append(std::to_string(company)+" "+companyName);
   out.append("], data["+data.toString()+"]]");
@@ -375,7 +375,7 @@ std::string ManufactureSpecificData::toString() const {
     X(EIRDataType,DEVICE_ID) \
     X(EIRDataType,SERVICE_UUID)
 
-std::string direct_bt::getEIRDataBitString(const EIRDataType bit) {
+std::string direct_bt::getEIRDataBitString(const EIRDataType bit) noexcept {
     switch(bit) {
     EIRDATATYPE_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
@@ -383,7 +383,7 @@ std::string direct_bt::getEIRDataBitString(const EIRDataType bit) {
     return "Unknown EIRDataType Bit";
 }
 
-std::string direct_bt::getEIRDataMaskString(const EIRDataType mask) {
+std::string direct_bt::getEIRDataMaskString(const EIRDataType mask) noexcept {
     const uint32_t one = 1;
     bool has_pre = false;
     std::string out("[");
@@ -403,7 +403,7 @@ std::string direct_bt::getEIRDataMaskString(const EIRDataType mask) {
 // *************************************************
 // *************************************************
 
-std::string EInfoReport::getSourceString() const {
+std::string EInfoReport::getSourceString() const noexcept {
     switch (source) {
         case Source::NA: return "N/A";
         case Source::AD: return "AD";
@@ -413,7 +413,7 @@ std::string EInfoReport::getSourceString() const {
     return "N/A";
 }
 
-void EInfoReport::setADAddressType(uint8_t adAddressType) {
+void EInfoReport::setADAddressType(uint8_t adAddressType) noexcept {
     ad_address_type = adAddressType;
     switch( ad_address_type ) {
         case 0x00: addressType = BDAddressType::BDADDR_LE_PUBLIC; break;
@@ -425,7 +425,7 @@ void EInfoReport::setADAddressType(uint8_t adAddressType) {
     set(EIRDataType::BDADDR_TYPE);
 }
 
-void EInfoReport::setAddressType(BDAddressType at) {
+void EInfoReport::setAddressType(BDAddressType at) noexcept {
     addressType = at;
     switch( addressType ) {
         case BDAddressType::BDADDR_BREDR: ad_address_type = 0; break;
@@ -436,17 +436,17 @@ void EInfoReport::setAddressType(BDAddressType at) {
     set(EIRDataType::BDADDR_TYPE);
 }
 
-void EInfoReport::setName(const uint8_t *buffer, int buffer_len) {
+void EInfoReport::setName(const uint8_t *buffer, int buffer_len) noexcept {
     name = get_string(buffer, buffer_len, 30);
     set(EIRDataType::NAME);
 }
 
-void EInfoReport::setShortName(const uint8_t *buffer, int buffer_len) {
+void EInfoReport::setShortName(const uint8_t *buffer, int buffer_len) noexcept {
     name_short = get_string(buffer, buffer_len, 30);
     set(EIRDataType::NAME_SHORT);
 }
 
-void EInfoReport::addService(std::shared_ptr<uuid_t> const &uuid)
+void EInfoReport::addService(std::shared_ptr<uuid_t> const &uuid) noexcept
 {
     auto begin = services.begin();
     auto it = std::find_if(begin, services.end(), [&](std::shared_ptr<uuid_t> const& p) {
@@ -457,10 +457,10 @@ void EInfoReport::addService(std::shared_ptr<uuid_t> const &uuid)
     }
 }
 
-std::string EInfoReport::eirDataMaskToString() const {
+std::string EInfoReport::eirDataMaskToString() const noexcept {
     return std::string("DataSet"+ direct_bt::getEIRDataMaskString(eir_data_mask) );
 }
-std::string EInfoReport::toString(const bool includeServices) const {
+std::string EInfoReport::toString(const bool includeServices) const noexcept {
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
     std::string out("EInfoReport::"+getSourceString()+
                     "[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+"/"+std::to_string(ad_address_type)+
@@ -487,7 +487,7 @@ std::string EInfoReport::toString(const bool includeServices) const {
     return out;
 }
 
-std::string EInfoReport::getDeviceIDModalias() const {
+std::string EInfoReport::getDeviceIDModalias() const noexcept {
     char *cstr = NULL;
     int length;
 
@@ -518,7 +518,7 @@ std::string EInfoReport::getDeviceIDModalias() const {
 // *************************************************
 
 int EInfoReport::next_data_elem(uint8_t *eir_elem_len, uint8_t *eir_elem_type, uint8_t const **eir_elem_data,
-                               uint8_t const * data, int offset, int const size)
+                               uint8_t const * data, int offset, int const size) noexcept
 {
     if (offset < size) {
         uint8_t len = data[offset]; // covers: type + data, less len field itself
@@ -540,7 +540,7 @@ int EInfoReport::next_data_elem(uint8_t *eir_elem_len, uint8_t *eir_elem_type, u
     return -ENOENT;
 }
 
-int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
+int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noexcept {
     int count = 0;
     int offset = 0;
     uint8_t elem_len, elem_type;
@@ -646,7 +646,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
     return count;
 }
 
-std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t const * data, uint8_t const data_length) {
+std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t const * data, uint8_t const data_length) noexcept {
     int const num_reports = (int) data[0];
     std::vector<std::shared_ptr<EInfoReport>> ad_reports;
 

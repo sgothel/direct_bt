@@ -51,17 +51,17 @@ namespace direct_bt {
         /** LE only Bluetooth mode */
         LE          = 3 /**< LE */
     };
-    inline uint8_t number(const BTMode rhs) {
+    inline uint8_t number(const BTMode rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
-    std::string getBTModeString(const BTMode v);
+    std::string getBTModeString(const BTMode v) noexcept;
 
     /**
      * Maps the specified name to a constant of BTMode.
      * @param name the string name to be mapped to a constant of this enum type.
      * @return the corresponding constant of this enum type, using {@link BRMode#NONE} if not supported.
      */
-    BTMode getBTMode(const std::string & value);
+    BTMode getBTMode(const std::string & value) noexcept;
 
     /**
      * Meta ScanType as derived from BTMode,
@@ -77,10 +77,10 @@ namespace direct_bt {
         LE    = ( 1 << BDAddressType::BDADDR_LE_PUBLIC ) | ( 1 << BDAddressType::BDADDR_LE_RANDOM ),
         DUAL  = BREDR | LE
     };
-    inline uint8_t number(const ScanType rhs) {
+    inline uint8_t number(const ScanType rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
-    std::string getScanTypeString(const ScanType v);
+    std::string getScanTypeString(const ScanType v) noexcept;
 
     ScanType getScanType(BTMode btMode);
 
@@ -107,10 +107,10 @@ namespace direct_bt {
         SCAN_RSP = 0x04,
         ADV_UNDEFINED = 0xff
     };
-    inline uint8_t number(const AD_PDU_Type rhs) {
+    inline uint8_t number(const AD_PDU_Type rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
-    std::string getAD_PDU_TypeString(const AD_PDU_Type v);
+    std::string getAD_PDU_TypeString(const AD_PDU_Type v) noexcept;
 
 
     /**
@@ -124,7 +124,7 @@ namespace direct_bt {
         /** Auto Connect: Only supported for LE on Linux .. */
         HCI_AUTO_CONN_ALWAYS = 0x02
     };
-    inline uint8_t number(const HCIWhitelistConnectType rhs) {
+    inline uint8_t number(const HCIWhitelistConnectType rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
 
@@ -387,7 +387,7 @@ namespace direct_bt {
         OUTDOOR_SPORTS_ACTIVITY_LOCATION_POD = 5187,
         OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_POD = 5188
     };
-    std::string getAppearanceCatString(const AppearanceCat v);
+    std::string getAppearanceCatString(const AppearanceCat v) noexcept;
 
     // *************************************************
     // *************************************************
@@ -400,18 +400,18 @@ namespace direct_bt {
         std::string const companyName;
         POctets data;
 
-        ManufactureSpecificData()
+        ManufactureSpecificData() noexcept
         : company(0), companyName(), data(0) {}
 
-        ManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len);
+        ManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) noexcept;
 
-        std::string toString() const;
+        std::string toString() const noexcept;
     };
 
-    inline bool operator==(const ManufactureSpecificData& lhs, const ManufactureSpecificData& rhs)
+    inline bool operator==(const ManufactureSpecificData& lhs, const ManufactureSpecificData& rhs) noexcept
     { return lhs.company == rhs.company && lhs.data == rhs.data; }
 
-    inline bool operator!=(const ManufactureSpecificData& lhs, const ManufactureSpecificData& rhs)
+    inline bool operator!=(const ManufactureSpecificData& lhs, const ManufactureSpecificData& rhs) noexcept
     { return !(lhs == rhs); }
 
     // *************************************************
@@ -440,22 +440,22 @@ namespace direct_bt {
         DEVICE_ID    = (1 << 13),
         SERVICE_UUID = (1 << 30)
     };
-    inline EIRDataType operator |(const EIRDataType lhs, const EIRDataType rhs) {
+    inline EIRDataType operator |(const EIRDataType lhs, const EIRDataType rhs) noexcept {
         return static_cast<EIRDataType> ( static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs) );
     }
-    inline EIRDataType operator &(const EIRDataType lhs, const EIRDataType rhs) {
+    inline EIRDataType operator &(const EIRDataType lhs, const EIRDataType rhs) noexcept {
         return static_cast<EIRDataType> ( static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs) );
     }
-    inline bool operator ==(const EIRDataType lhs, const EIRDataType rhs) {
+    inline bool operator ==(const EIRDataType lhs, const EIRDataType rhs) noexcept {
         return static_cast<uint32_t>(lhs) == static_cast<uint32_t>(rhs);
     }
-    inline bool operator !=(const EIRDataType lhs, const EIRDataType rhs) {
+    inline bool operator !=(const EIRDataType lhs, const EIRDataType rhs) noexcept {
         return !( lhs == rhs );
     }
-    inline bool isEIRDataTypeSet(const EIRDataType mask, const EIRDataType bit) { return EIRDataType::NONE != ( mask & bit ); }
-    inline void setEIRDataTypeSet(EIRDataType &mask, const EIRDataType bit) { mask = mask | bit; }
-    std::string getEIRDataBitString(const EIRDataType bit);
-    std::string getEIRDataMaskString(const EIRDataType mask);
+    inline bool isEIRDataTypeSet(const EIRDataType mask, const EIRDataType bit) noexcept { return EIRDataType::NONE != ( mask & bit ); }
+    inline void setEIRDataTypeSet(EIRDataType &mask, const EIRDataType bit) noexcept { mask = mask | bit; }
+    std::string getEIRDataBitString(const EIRDataType bit) noexcept;
+    std::string getEIRDataMaskString(const EIRDataType mask) noexcept;
 
     /**
      * Collection of 'Advertising Data' (AD)
@@ -501,21 +501,21 @@ namespace direct_bt {
         uint16_t did_product = 0;
         uint16_t did_version = 0;
 
-        void set(EIRDataType bit) { eir_data_mask = eir_data_mask | bit; }
-        void setFlags(uint8_t f) { flags = f; set(EIRDataType::FLAGS); }
-        void setName(const uint8_t *buffer, int buffer_len);
-        void setShortName(const uint8_t *buffer, int buffer_len);
-        void setTxPower(int8_t v) { tx_power = v; set(EIRDataType::TX_POWER); }
-        void setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) {
+        void set(EIRDataType bit) noexcept { eir_data_mask = eir_data_mask | bit; }
+        void setFlags(uint8_t f) noexcept { flags = f; set(EIRDataType::FLAGS); }
+        void setName(const uint8_t *buffer, int buffer_len) noexcept;
+        void setShortName(const uint8_t *buffer, int buffer_len) noexcept;
+        void setTxPower(int8_t v) noexcept { tx_power = v; set(EIRDataType::TX_POWER); }
+        void setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) noexcept {
             msd = std::shared_ptr<ManufactureSpecificData>(new ManufactureSpecificData(company, data, data_len));
             set(EIRDataType::MANUF_DATA);
         }
-        void addService(std::shared_ptr<uuid_t> const &uuid);
-        void setDeviceClass(uint32_t c) { device_class= c; set(EIRDataType::DEVICE_CLASS); }
-        void setAppearance(AppearanceCat a) { appearance= a; set(EIRDataType::APPEARANCE); }
-        void setHash(const uint8_t * h) { hash.resize(16); memcpy(hash.get_wptr(), h, 16); set(EIRDataType::HASH); }
-        void setRandomizer(const uint8_t * r) { randomizer.resize(16); memcpy(randomizer.get_wptr(), r, 16); set(EIRDataType::RANDOMIZER); }
-        void setDeviceID(const uint16_t source, const uint16_t vendor, const uint16_t product, const uint16_t version) {
+        void addService(std::shared_ptr<uuid_t> const &uuid) noexcept;
+        void setDeviceClass(uint32_t c) noexcept { device_class= c; set(EIRDataType::DEVICE_CLASS); }
+        void setAppearance(AppearanceCat a) noexcept { appearance= a; set(EIRDataType::APPEARANCE); }
+        void setHash(const uint8_t * h) noexcept { hash.resize(16); memcpy(hash.get_wptr(), h, 16); set(EIRDataType::HASH); }
+        void setRandomizer(const uint8_t * r) noexcept { randomizer.resize(16); memcpy(randomizer.get_wptr(), r, 16); set(EIRDataType::RANDOMIZER); }
+        void setDeviceID(const uint16_t source, const uint16_t vendor, const uint16_t product, const uint16_t version) noexcept {
             did_source = source;
             did_vendor = vendor;
             did_product = product;
@@ -524,18 +524,18 @@ namespace direct_bt {
         }
 
         int next_data_elem(uint8_t *eir_elem_len, uint8_t *eir_elem_type, uint8_t const **eir_elem_data,
-                           uint8_t const * data, int offset, int const size);
+                           uint8_t const * data, int offset, int const size) noexcept;
 
     public:
-        EInfoReport() : hash(16, 0), randomizer(16, 0) {}
+        EInfoReport() noexcept : hash(16, 0), randomizer(16, 0) {}
 
-        void setSource(Source s) { source = s; }
-        void setTimestamp(uint64_t ts) { timestamp = ts; }
-        void setEvtType(AD_PDU_Type et) { evt_type = et; set(EIRDataType::EVT_TYPE); }
-        void setADAddressType(uint8_t adAddressType);
-        void setAddressType(BDAddressType at);
-        void setAddress(EUI48 const &a) { address = a; set(EIRDataType::BDADDR); }
-        void setRSSI(int8_t v) { rssi = v; set(EIRDataType::RSSI); }
+        void setSource(Source s) noexcept { source = s; }
+        void setTimestamp(uint64_t ts) noexcept { timestamp = ts; }
+        void setEvtType(AD_PDU_Type et) noexcept { evt_type = et; set(EIRDataType::EVT_TYPE); }
+        void setADAddressType(uint8_t adAddressType) noexcept;
+        void setAddressType(BDAddressType at) noexcept;
+        void setAddress(EUI48 const &a) noexcept { address = a; set(EIRDataType::BDADDR); }
+        void setRSSI(int8_t v) noexcept { rssi = v; set(EIRDataType::RSSI); }
 
         /**
          * Reads a complete Advertising Data (AD) Report
@@ -546,7 +546,7 @@ namespace direct_bt {
          * https://www.bluetooth.com/specifications/archived-specifications/
          * </p>
          */
-        static std::vector<std::shared_ptr<EInfoReport>> read_ad_reports(uint8_t const * data, uint8_t const data_length);
+        static std::vector<std::shared_ptr<EInfoReport>> read_ad_reports(uint8_t const * data, uint8_t const data_length) noexcept;
 
         /**
          * Reads the Extended Inquiry Response (EIR) or Advertising Data (AD) segments
@@ -573,39 +573,39 @@ namespace direct_bt {
          * https://www.bluetooth.com/specifications/archived-specifications/
          * </p>
          */
-        int read_data(uint8_t const * data, uint8_t const data_length);
+        int read_data(uint8_t const * data, uint8_t const data_length) noexcept;
 
-        Source getSource() const { return source; }
-        uint64_t getTimestamp() const { return timestamp; }
-        bool isSet(EIRDataType bit) const { return EIRDataType::NONE != (eir_data_mask & bit); }
-        EIRDataType getEIRDataMask() const { return eir_data_mask; }
+        Source getSource() const noexcept { return source; }
+        uint64_t getTimestamp() const noexcept { return timestamp; }
+        bool isSet(EIRDataType bit) const noexcept { return EIRDataType::NONE != (eir_data_mask & bit); }
+        EIRDataType getEIRDataMask() const noexcept { return eir_data_mask; }
 
-        AD_PDU_Type getEvtType() const { return evt_type; }
-        uint8_t getFlags() const { return flags; }
-        uint8_t getADAddressType() const { return ad_address_type; }
-        BDAddressType getAddressType() const { return addressType; }
-        EUI48 const & getAddress() const { return address; }
-        std::string const & getName() const { return name; }
-        std::string const & getShortName() const { return name_short; }
-        int8_t getRSSI() const { return rssi; }
-        int8_t getTxPower() const { return tx_power; }
+        AD_PDU_Type getEvtType() const noexcept { return evt_type; }
+        uint8_t getFlags() const noexcept { return flags; }
+        uint8_t getADAddressType() const noexcept { return ad_address_type; }
+        BDAddressType getAddressType() const noexcept { return addressType; }
+        EUI48 const & getAddress() const noexcept { return address; }
+        std::string const & getName() const noexcept { return name; }
+        std::string const & getShortName() const noexcept{ return name_short; }
+        int8_t getRSSI() const noexcept { return rssi; }
+        int8_t getTxPower() const noexcept { return tx_power; }
 
-        std::shared_ptr<ManufactureSpecificData> getManufactureSpecificData() const { return msd; }
-        std::vector<std::shared_ptr<uuid_t>> getServices() const { return services; }
+        std::shared_ptr<ManufactureSpecificData> getManufactureSpecificData() const noexcept { return msd; }
+        std::vector<std::shared_ptr<uuid_t>> getServices() const noexcept { return services; }
 
-        uint32_t getDeviceClass() const { return device_class; }
-        AppearanceCat getAppearance() const { return appearance; }
-        const TROOctets & getHash() const { return hash; }
-        const TROOctets & getRandomizer() const { return randomizer; }
-        uint16_t getDeviceIDSource() const { return did_source; }
-        uint16_t getDeviceIDVendor() const { return did_vendor; }
-        uint16_t getDeviceIDProduct() const { return did_product; }
-        uint16_t getDeviceIDVersion() const { return did_version; }
-        std::string getDeviceIDModalias() const;
-        std::string getSourceString() const;
-        std::string getAddressString() const { return address.toString(); }
-        std::string eirDataMaskToString() const;
-        std::string toString(const bool includeServices=true) const;
+        uint32_t getDeviceClass() const noexcept { return device_class; }
+        AppearanceCat getAppearance() const noexcept { return appearance; }
+        const TROOctets & getHash() const noexcept { return hash; }
+        const TROOctets & getRandomizer() const noexcept { return randomizer; }
+        uint16_t getDeviceIDSource() const noexcept { return did_source; }
+        uint16_t getDeviceIDVendor() const noexcept { return did_vendor; }
+        uint16_t getDeviceIDProduct() const noexcept { return did_product; }
+        uint16_t getDeviceIDVersion() const noexcept { return did_version; }
+        std::string getDeviceIDModalias() const noexcept;
+        std::string getSourceString() const noexcept;
+        std::string getAddressString() const noexcept { return address.toString(); }
+        std::string eirDataMaskToString() const noexcept;
+        std::string toString(const bool includeServices=true) const noexcept;
     };
 
     // *************************************************
