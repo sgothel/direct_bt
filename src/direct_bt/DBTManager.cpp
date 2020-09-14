@@ -51,7 +51,7 @@ extern "C" {
 
 using namespace direct_bt;
 
-MgmtEnv::MgmtEnv()
+MgmtEnv::MgmtEnv() noexcept
 : DEBUG_GLOBAL( DBTEnv::get().DEBUG ),
   exploding( DBTEnv::getExplodingProperties("direct_bt.mgmt") ),
   MGMT_READER_THREAD_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.mgmt.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
@@ -65,7 +65,7 @@ MgmtEnv::MgmtEnv()
 const pid_t DBTManager::pidSelf = getpid();
 std::mutex DBTManager::mtx_singleton;
 
-void DBTManager::mgmtReaderThreadImpl() {
+void DBTManager::mgmtReaderThreadImpl() noexcept {
     {
         const std::lock_guard<std::mutex> lock(mtx_mgmtReaderInit); // RAII-style acquire and relinquish via destructor
         mgmtReaderShallStop = false;
@@ -115,7 +115,7 @@ void DBTManager::mgmtReaderThreadImpl() {
     mgmtEventRing.clear();
 }
 
-void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
+void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     const int dev_id = event->getDevID();
     MgmtAdapterEventCallbackList & mgmtEventCallbackList = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(event->getOpcode())];
@@ -136,7 +136,7 @@ void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
     (void)invokeCount;
 }
 
-static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
+static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) noexcept {
     bool pidMatch = info->si_pid == DBTManager::pidSelf;
     INFO_PRINT("DBTManager.sigaction: sig %d, info[code %d, errno %d, signo %d, pid %d, uid %d, fd %d], pid-self %d (match %d)",
             sig, info->si_code, info->si_errno, info->si_signo,
@@ -163,7 +163,7 @@ static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
 #endif
 }
 
-std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
+std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     {
         COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO SENT %s", req.toString().c_str());
@@ -197,7 +197,7 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
     return nullptr;
 }
 
-void DBTManager::setAdapterMode(const uint16_t dev_id, const uint8_t ssp, const uint8_t bredr, const uint8_t le) {
+void DBTManager::setAdapterMode(const uint16_t dev_id, const uint8_t ssp, const uint8_t bredr, const uint8_t le) noexcept {
     bool res;
     res = setMode(dev_id, MgmtOpcode::SET_SSP, ssp);
     DBG_PRINT("setAdapterMode[%d]: SET_SSP(%d): result %d", dev_id, ssp, res);
@@ -209,7 +209,7 @@ void DBTManager::setAdapterMode(const uint16_t dev_id, const uint8_t ssp, const 
     DBG_PRINT("setAdapterMode[%d]: SET_LE(%d): result %d", dev_id, le, res);
 }
 
-std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) {
+std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) noexcept {
     std::shared_ptr<AdapterInfo> adapterInfo = nullptr;
     bool powered;
     MgmtCommand req0(MgmtOpcode::READ_INFO, dev_id);
@@ -225,7 +225,8 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
         const MgmtEvtAdapterInfo * res1 = static_cast<MgmtEvtAdapterInfo*>(res.get());
         adapterInfo = res1->toAdapterInfo();
         if( dev_id != adapterInfo->dev_id ) {
-            throw InternalError("AdapterInfo dev_id="+std::to_string(adapterInfo->dev_id)+" != dev_id="+std::to_string(dev_id)+"]: "+adapterInfo->toString(), E_FILE_LINE);
+            ERR_PRINT("Internal-Error: AdapterInfo dev_id=%d != dev_id=%d: %s", adapterInfo->dev_id, dev_id, adapterInfo->toString().c_str());
+            abort();
         }
     }
     DBG_PRINT("initAdapter[%d]: Start: %s", dev_id, adapterInfo->toString().c_str());
@@ -269,7 +270,8 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
         const MgmtEvtAdapterInfo * res1 = static_cast<MgmtEvtAdapterInfo*>(res.get());
         adapterInfo = res1->toAdapterInfo();
         if( dev_id != adapterInfo->dev_id ) {
-            throw InternalError("AdapterInfo dev_id="+std::to_string(adapterInfo->dev_id)+" != dev_id="+std::to_string(dev_id)+"]: "+adapterInfo->toString(), E_FILE_LINE);
+            ERR_PRINT("Internal-Error: AdapterInfo dev_id=%d != dev_id=%d: %s", adapterInfo->dev_id, dev_id, adapterInfo->toString().c_str());
+            abort();
         }
     }
     DBG_PRINT("initAdapter[%d]: End: %s", dev_id, adapterInfo->toString().c_str());
@@ -278,14 +280,14 @@ fail:
     return adapterInfo;
 }
 
-void DBTManager::shutdownAdapter(const uint16_t dev_id) {
+void DBTManager::shutdownAdapter(const uint16_t dev_id) noexcept {
     setMode(dev_id, MgmtOpcode::SET_CONNECTABLE, 0);
     setMode(dev_id, MgmtOpcode::SET_FAST_CONNECTABLE, 0);
     setMode(dev_id, MgmtOpcode::SET_DISCOVERABLE, 0);
     setMode(dev_id, MgmtOpcode::SET_POWERED, 0);
 }
 
-DBTManager::DBTManager(const BTMode _defaultBTMode)
+DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
 : env(MgmtEnv::get()),
   defaultBTMode(BTMode::NONE != _defaultBTMode ? _defaultBTMode : BTMode::LE),
   rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
@@ -391,10 +393,12 @@ next1:
         for(int i=0; ok && i < num_adapter; i++) {
             const uint16_t dev_id = get_uint16(data, 2+i*2, true /* littleEndian */);
             if( dev_id >= num_adapter ) {
-                throw InternalError("dev_id "+std::to_string(dev_id)+" >= num_adapter "+std::to_string(num_adapter), E_FILE_LINE);
+                ERR_PRINT("Internal-Error: dev_id %d >= num_adapter %d", dev_id, num_adapter);
+                abort();
             }
             if( adapterInfos[dev_id] != nullptr ) {
-                throw InternalError("adapters[dev_id="+std::to_string(dev_id)+"] != nullptr: "+adapterInfos[dev_id]->toString(), E_FILE_LINE);
+                ERR_PRINT("Internal-Error: adapters[dev_id=%d] != nullptr: %s", dev_id, adapterInfos[dev_id]->toString().c_str());
+                abort();
             }
             std::shared_ptr<AdapterInfo> adapterInfo = initAdapter(dev_id, defaultBTMode);
             adapterInfos[dev_id] = adapterInfo;
@@ -435,7 +439,7 @@ fail:
     return;
 }
 
-void DBTManager::close() {
+void DBTManager::close() noexcept {
     DBG_PRINT("DBTManager::close: Start");
 
     removeAllDevicesFromWhitelist();
@@ -473,7 +477,7 @@ void DBTManager::close() {
     DBG_PRINT("DBTManager::close: End");
 }
 
-int DBTManager::findAdapterInfoIdx(const EUI48 &mac) const {
+int DBTManager::findAdapterInfoIdx(const EUI48 &mac) const noexcept {
     auto begin = adapterInfos.begin();
     auto it = std::find_if(begin, adapterInfos.end(), [&](std::shared_ptr<AdapterInfo> const& p) {
         return p->address == mac;
@@ -484,7 +488,7 @@ int DBTManager::findAdapterInfoIdx(const EUI48 &mac) const {
         return std::distance(begin, it);
     }
 }
-std::shared_ptr<AdapterInfo> DBTManager::findAdapterInfo(const EUI48 &mac) const {
+std::shared_ptr<AdapterInfo> DBTManager::findAdapterInfo(const EUI48 &mac) const noexcept {
     auto begin = adapterInfos.begin();
     auto it = std::find_if(begin, adapterInfos.end(), [&](std::shared_ptr<AdapterInfo> const& p) {
         return p->address == mac;
@@ -503,7 +507,7 @@ std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const int idx) const {
     return adapter;
 }
 
-bool DBTManager::setMode(const int dev_id, const MgmtOpcode opc, const uint8_t mode) {
+bool DBTManager::setMode(const int dev_id, const MgmtOpcode opc, const uint8_t mode) noexcept {
     MgmtUint8Cmd req(opc, dev_id, mode);
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res ) {
@@ -518,11 +522,11 @@ bool DBTManager::setMode(const int dev_id, const MgmtOpcode opc, const uint8_t m
     return false;
 }
 
-ScanType DBTManager::startDiscovery(const int dev_id, const BTMode btMode) {
+ScanType DBTManager::startDiscovery(const int dev_id, const BTMode btMode) noexcept {
     return startDiscovery(dev_id, getScanType(btMode));
 }
 
-ScanType DBTManager::startDiscovery(const int dev_id, const ScanType scanType) {
+ScanType DBTManager::startDiscovery(const int dev_id, const ScanType scanType) noexcept {
     MgmtUint8Cmd req(MgmtOpcode::START_DISCOVERY, dev_id, number(scanType));
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     ScanType type = ScanType::NONE;
@@ -534,7 +538,7 @@ ScanType DBTManager::startDiscovery(const int dev_id, const ScanType scanType) {
     }
     return type;
 }
-bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) {
+bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) noexcept {
     MgmtUint8Cmd req(MgmtOpcode::STOP_DISCOVERY, dev_id, number(type));
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -546,7 +550,7 @@ bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) {
 
 bool DBTManager::uploadConnParam(const int dev_id, const EUI48 &address, const BDAddressType address_type,
                                  const uint16_t min_interval, const uint16_t max_interval,
-                                 const uint16_t latency, const uint16_t timeout) {
+                                 const uint16_t latency, const uint16_t timeout) noexcept {
     MgmtConnParam connParam{ address, address_type, min_interval, max_interval, latency, timeout };
     MgmtLoadConnParamCmd req(dev_id, connParam);
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
@@ -557,7 +561,7 @@ bool DBTManager::uploadConnParam(const int dev_id, const EUI48 &address, const B
     return false;
 }
 
-bool DBTManager::isDeviceWhitelisted(const int dev_id, const EUI48 &address) {
+bool DBTManager::isDeviceWhitelisted(const int dev_id, const EUI48 &address) noexcept {
     for(auto it = whitelist.begin(); it != whitelist.end(); ) {
         std::shared_ptr<WhitelistElem> wle = *it;
         if( wle->dev_id == dev_id && wle->address == address ) {
@@ -569,7 +573,7 @@ bool DBTManager::isDeviceWhitelisted(const int dev_id, const EUI48 &address) {
     return false;
 }
 
-bool DBTManager::addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype) {
+bool DBTManager::addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype) noexcept {
     MgmtAddDeviceToWhitelistCmd req(dev_id, address, address_type, ctype);
 
     // Check if already exist in our local whitelist first, reject if so ..
@@ -589,7 +593,7 @@ bool DBTManager::addDeviceToWhitelist(const int dev_id, const EUI48 &address, co
     return false;
 }
 
-int DBTManager::removeAllDevicesFromWhitelist() {
+int DBTManager::removeAllDevicesFromWhitelist() noexcept {
 #if 0
     std::vector<std::shared_ptr<WhitelistElem>> whitelist_copy = whitelist;
     int count = 0;
@@ -614,7 +618,7 @@ int DBTManager::removeAllDevicesFromWhitelist() {
     return count;
 }
 
-bool DBTManager::removeDeviceFromWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type) {
+bool DBTManager::removeDeviceFromWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type) noexcept {
     // Remove from our local whitelist first
     {
         for(auto it = whitelist.begin(); it != whitelist.end(); ) {
@@ -641,10 +645,13 @@ bool DBTManager::removeDeviceFromWhitelist(const int dev_id, const EUI48 &addres
 
 bool DBTManager::disconnect(const bool ioErrorCause,
                             const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
-                            const HCIStatusCode reason) {
+                            const HCIStatusCode reason) noexcept {
     bool bres = false;
 
-    if( !ioErrorCause ) {
+    // Always issue DISCONNECT command, even in case of an ioError (lost-connection),
+    // see Issue #124 fast re-connect on CSR adapter.
+    // This will always notify the adapter of a disconnected device.
+    {
         MgmtDisconnectCmd req(dev_id, peer_bdaddr, peer_mac_type);
         std::shared_ptr<MgmtEvent> res = sendWithReply(req);
         if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -653,15 +660,17 @@ bool DBTManager::disconnect(const bool ioErrorCause,
                 bres = true;
             }
         }
-    } else {
-        // explicit disconnected event anyways
+    }
+    if( !ioErrorCause ) {
+        // In case of an ioError (lost-connection), don't wait for the lagging
+        // DISCONN_COMPLETE event but send it directly.
         MgmtEvtDeviceDisconnected *e = new MgmtEvtDeviceDisconnected(dev_id, peer_bdaddr, peer_mac_type, reason, 0xffff);
         sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
     }
     return bres;
 }
 
-std::shared_ptr<ConnectionInfo> DBTManager::getConnectionInfo(const int dev_id, const EUI48 &address, const BDAddressType address_type) {
+std::shared_ptr<ConnectionInfo> DBTManager::getConnectionInfo(const int dev_id, const EUI48 &address, const BDAddressType address_type) noexcept {
     MgmtGetConnectionInfoCmd req(dev_id, address, address_type);
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -674,7 +683,7 @@ std::shared_ptr<ConnectionInfo> DBTManager::getConnectionInfo(const int dev_id, 
     return nullptr;
 }
 
-std::shared_ptr<NameAndShortName> DBTManager::setLocalName(const int dev_id, const std::string & name, const std::string & short_name) {
+std::shared_ptr<NameAndShortName> DBTManager::setLocalName(const int dev_id, const std::string & name, const std::string & short_name) noexcept {
     MgmtSetLocalNameCmd req (dev_id, name, short_name);
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -745,91 +754,91 @@ void DBTManager::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) {
     checkMgmtEventCallbackListsIndex(opc);
     mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)].clear();
 }
-void DBTManager::clearAllMgmtEventCallbacks() {
+void DBTManager::clearAllMgmtEventCallbacks() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     for(size_t i=0; i<mgmtAdapterEventCallbackLists.size(); i++) {
         mgmtAdapterEventCallbackLists[i].clear();
     }
 }
 
-bool DBTManager::mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) noexcept {
     PLAIN_PRINT("DBTManager::EventCB:ClassOfDeviceChanged: %s", e->toString().c_str());
     (void)e;
     return true;
 }
-bool DBTManager::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) noexcept {
     PLAIN_PRINT("DBTManager::EventCB:DeviceDiscovering: %s", e->toString().c_str());
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
     (void)event;
     return true;
 }
-bool DBTManager::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) noexcept {
     PLAIN_PRINT("DBTManager::EventCB:DeviceFound: %s", e->toString().c_str());
     const MgmtEvtDeviceFound &event = *static_cast<const MgmtEvtDeviceFound *>(e.get());
     (void)event;
     return true;
 }
-bool DBTManager::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) noexcept {
     PLAIN_PRINT("DBTManager::EventCB:DeviceDisconnected: %s", e->toString().c_str());
     const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
     (void)event;
     return true;
 }
-bool DBTManager::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
     PLAIN_PRINT("DBTManager::EventCB:DeviceConnected: %s", e->toString().c_str());
     const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(e.get());
     (void)event;
     return true;
 }
-bool DBTManager::mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
     PLAIN_PRINT("DBTManager::EventCB:ConnectFailed: %s", e->toString().c_str());
     const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(e.get());
     (void)event;
     return true;
 }
-bool DBTManager::mgmtEvDeviceBlockedCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvDeviceBlockedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
     PLAIN_PRINT("DBTManager::EventCB:DeviceBlocked: %s", e->toString().c_str());
     const MgmtEvtDeviceBlocked &event = *static_cast<const MgmtEvtDeviceBlocked *>(e.get());
     (void)event;
     return true;
 }
-bool DBTManager::mgmtEvDeviceUnblockedCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvDeviceUnblockedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
     PLAIN_PRINT("DBTManager::EventCB:DeviceUnblocked: %s", e->toString().c_str());
     const MgmtEvtDeviceUnblocked &event = *static_cast<const MgmtEvtDeviceUnblocked *>(e.get());
     (void)event;
     return true;
 }
-bool DBTManager::mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
     PLAIN_PRINT("DBTManager::EventCB:DeviceUnpaired: %s", e->toString().c_str());
     const MgmtEvtDeviceUnpaired &event = *static_cast<const MgmtEvtDeviceUnpaired *>(e.get());
     (void)event;
     return true;
 }
-bool DBTManager::mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e) noexcept  {
     PLAIN_PRINT("DBTManager::EventCB:NewConnectionParam: %s", e->toString().c_str());
     const MgmtEvtNewConnectionParam &event = *static_cast<const MgmtEvtNewConnectionParam *>(e.get());
     (void)event;
     return true;
 }
-bool DBTManager::mgmtEvDeviceWhitelistAddedCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvDeviceWhitelistAddedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
     PLAIN_PRINT("DBTManager::EventCB:DeviceWhitelistAdded: %s", e->toString().c_str());
     const MgmtEvtDeviceWhitelistAdded &event = *static_cast<const MgmtEvtDeviceWhitelistAdded *>(e.get());
     (void)event;
     return true;
 }
-bool DBTManager::mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
     PLAIN_PRINT("DBTManager::EventCB:DeviceWhitelistRemoved: %s", e->toString().c_str());
     const MgmtEvtDeviceWhitelistRemoved &event = *static_cast<const MgmtEvtDeviceWhitelistRemoved *>(e.get());
     (void)event;
     return true;
 }
-bool DBTManager::mgmtEvPinCodeRequestCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvPinCodeRequestCB(std::shared_ptr<MgmtEvent> e) noexcept  {
     PLAIN_PRINT("DBTManager::EventCB:PinCodeRequest: %s", e->toString().c_str());
     const MgmtEvtPinCodeRequest &event = *static_cast<const MgmtEvtPinCodeRequest *>(e.get());
     (void)event;
     return true;
 }
-bool DBTManager::mgmtEvUserPasskeyRequestCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvUserPasskeyRequestCB(std::shared_ptr<MgmtEvent> e) noexcept {
     PLAIN_PRINT("DBTManager::EventCB:UserPasskeyRequest: %s", e->toString().c_str());
     const MgmtEvtUserPasskeyRequest &event = *static_cast<const MgmtEvtUserPasskeyRequest *>(e.get());
     (void)event;

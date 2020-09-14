@@ -58,7 +58,7 @@ namespace direct_bt {
         friend class DBTManager;
 
         private:
-            MgmtEnv();
+            MgmtEnv() noexcept;
 
         public:
             /** Global Debug flag, retrieved first to triggers DBTEnv initialization. */
@@ -105,7 +105,7 @@ namespace direct_bt {
             const int32_t MGMT_READ_PACKET_MAX_RETRY;
 
         public:
-            static MgmtEnv& get() {
+            static MgmtEnv& get() noexcept {
                 /**
                  * Thread safe starting with C++11 6.7:
                  *
@@ -173,40 +173,40 @@ namespace direct_bt {
             }
 
             std::vector<std::shared_ptr<AdapterInfo>> adapterInfos;
-            void mgmtReaderThreadImpl();
+            void mgmtReaderThreadImpl() noexcept;
 
             /**
              * In case response size check or devID and optional opcode validation fails,
              * function returns NULL.
              */
-            std::shared_ptr<MgmtEvent> sendWithReply(MgmtCommand &req);
+            std::shared_ptr<MgmtEvent> sendWithReply(MgmtCommand &req) noexcept;
 
             /**
              * Instantiate singleton.
              * @param btMode default {@link BTMode}, adapters are tried to be initialized.
              */
-            DBTManager(const BTMode defaultBTMode);
+            DBTManager(const BTMode defaultBTMode) noexcept;
             DBTManager(const DBTManager&) = delete;
             void operator=(const DBTManager&) = delete;
 
-            void setAdapterMode(const uint16_t dev_id, const uint8_t ssp, const uint8_t bredr, const uint8_t le);
-            std::shared_ptr<AdapterInfo> initAdapter(const uint16_t dev_id, const BTMode btMode);
-            void shutdownAdapter(const uint16_t dev_id);
+            void setAdapterMode(const uint16_t dev_id, const uint8_t ssp, const uint8_t bredr, const uint8_t le) noexcept;
+            std::shared_ptr<AdapterInfo> initAdapter(const uint16_t dev_id, const BTMode btMode) noexcept;
+            void shutdownAdapter(const uint16_t dev_id) noexcept;
 
-            bool mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceBlockedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceUnblockedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceWhitelistAddedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvPinCodeRequestCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvUserPasskeyRequestCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e)noexcept;
+            bool mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvDeviceBlockedCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvDeviceUnblockedCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvDeviceWhitelistAddedCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvPinCodeRequestCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvUserPasskeyRequestCB(std::shared_ptr<MgmtEvent> e) noexcept;
 
         public:
             /**
@@ -234,7 +234,7 @@ namespace direct_bt {
             }
             ~DBTManager() { close(); }
 
-            void close();
+            void close() noexcept;
 
             std::string get_java_class() const override {
                 return java_class();
@@ -247,11 +247,11 @@ namespace direct_bt {
             BTMode getDefaultBTMode() { return defaultBTMode; }
 
             /** Returns true if this mgmt instance is open and hence valid, otherwise false */
-            bool isOpen() const {
+            bool isOpen() const noexcept {
                 return comm.isOpen();
             }
 
-            std::string toString() const override {
+            std::string toString() const noexcept override {
                 return "MgmtHandler[BTMode "+getBTModeString(defaultBTMode)+", "+std::to_string(adapterInfos.size())+" adapter, "+javaObjectToString()+"]";
             }
 
@@ -260,21 +260,21 @@ namespace direct_bt {
             /**
              * Returns list of AdapterInfo with index == dev_id.
              */
-            const std::vector<std::shared_ptr<AdapterInfo>> getAdapterInfos() const { return adapterInfos; }
+            const std::vector<std::shared_ptr<AdapterInfo>> getAdapterInfos() const noexcept { return adapterInfos; }
 
             /**
              * Returns number of AdapterInfo with index == dev_id.
              */
-            int getAdapterCount() const { return adapterInfos.size(); }
+            int getAdapterCount() const noexcept { return adapterInfos.size(); }
 
             /**
              * Returns the AdapterInfo index (== dev_id) with the given address or -1 if not found.
              */
-            int findAdapterInfoIdx(const EUI48 &mac) const;
+            int findAdapterInfoIdx(const EUI48 &mac) const noexcept;
             /**
              * Returns the AdapterInfo (index == dev_id) with the given address or nullptr if not found.
              */
-            std::shared_ptr<AdapterInfo> findAdapterInfo(const EUI48 &mac) const;
+            std::shared_ptr<AdapterInfo> findAdapterInfo(const EUI48 &mac) const noexcept;
             /**
              * Returns the AdapterInfo (index == dev_id) with the given index.
              * <p>
@@ -285,16 +285,16 @@ namespace direct_bt {
             /**
              * Returns the default AdapterInfo (0 == index == dev_id) or nullptr if no adapter is available.
              */
-            std::shared_ptr<AdapterInfo> getDefaultAdapterInfo() const { return adapterInfos.size() > 0 ? getAdapterInfo(0) : nullptr; }
+            std::shared_ptr<AdapterInfo> getDefaultAdapterInfo() const noexcept { return adapterInfos.size() > 0 ? getAdapterInfo(0) : nullptr; }
 
-            bool setMode(const int dev_id, const MgmtOpcode opc, const uint8_t mode);
+            bool setMode(const int dev_id, const MgmtOpcode opc, const uint8_t mode) noexcept;
 
             /** Start discovery on given adapter dev_id with a ScanType matching the given BTMode. Returns set ScanType. */
-            ScanType startDiscovery(const int dev_id, const BTMode btMode);
+            ScanType startDiscovery(const int dev_id, const BTMode btMode) noexcept;
             /** Start discovery on given adapter dev_id with given ScanType. Returns set ScanType. */
-            ScanType startDiscovery(const int dev_id, const ScanType type);
+            ScanType startDiscovery(const int dev_id, const ScanType type) noexcept;
             /** Stop discovery on given adapter dev_id. */
-            bool stopDiscovery(const int dev_id, const ScanType type);
+            bool stopDiscovery(const int dev_id, const ScanType type) noexcept;
 
             /**
              * Uploads given connection parameter for given device to the kernel.
@@ -310,12 +310,12 @@ namespace direct_bt {
              */
             bool uploadConnParam(const int dev_id, const EUI48 &address, const BDAddressType address_type,
                                  const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
-                                 const uint16_t conn_latency=0x0000, const uint16_t timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10);
+                                 const uint16_t conn_latency=0x0000, const uint16_t timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10) noexcept;
 
             /**
              * Returns true, if the adapter's device is already whitelisted.
              */
-            bool isDeviceWhitelisted(const int dev_id, const EUI48 &address);
+            bool isDeviceWhitelisted(const int dev_id, const EUI48 &address) noexcept;
 
             /**
              * Add the given device to the adapter's autoconnect whitelist.
@@ -326,20 +326,20 @@ namespace direct_bt {
              * Method will reject duplicate devices, in which case it should be removed first.
              * </p>
              */
-            bool addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype);
+            bool addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype) noexcept;
 
             /** Remove the given device from the adapter's autoconnect whitelist. */
-            bool removeDeviceFromWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type);
+            bool removeDeviceFromWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type) noexcept;
 
             /** Remove all previously added devices from the autoconnect whitelist. Returns number of removed devices. */
-            int removeAllDevicesFromWhitelist();
+            int removeAllDevicesFromWhitelist() noexcept;
 
             bool disconnect(const bool ioErrorCause,
                             const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
-                            const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION );
+                            const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
 
-            std::shared_ptr<ConnectionInfo> getConnectionInfo(const int dev_id, const EUI48 &address, const BDAddressType address_type);
-            std::shared_ptr<NameAndShortName> setLocalName(const int dev_id, const std::string & name, const std::string & short_name);
+            std::shared_ptr<ConnectionInfo> getConnectionInfo(const int dev_id, const EUI48 &address, const BDAddressType address_type) noexcept;
+            std::shared_ptr<NameAndShortName> setLocalName(const int dev_id, const std::string & name, const std::string & short_name) noexcept;
 
             /** MgmtEventCallback handling  */
 
@@ -359,10 +359,10 @@ namespace direct_bt {
             /** Removes all MgmtEventCallbacks from the to the named MgmtEvent::Opcode list. */
             void clearMgmtEventCallbacks(const MgmtEvent::Opcode opc);
             /** Removes all MgmtEventCallbacks from all MgmtEvent::Opcode lists. */
-            void clearAllMgmtEventCallbacks();
+            void clearAllMgmtEventCallbacks() noexcept;
 
             /** Manually send a MgmtEvent to all of its listeners. */
-            void sendMgmtEvent(std::shared_ptr<MgmtEvent> event);
+            void sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept;
     };
 
 } // namespace direct_bt
