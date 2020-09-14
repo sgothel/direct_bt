@@ -51,8 +51,8 @@ namespace direct_bt {
      */
     class HCIComm {
         private:
-            static int hci_open_dev(const uint16_t dev_id, const uint16_t channel);
-            static int hci_close_dev(int dd);
+            static int hci_open_dev(const uint16_t dev_id, const uint16_t channel) noexcept;
+            static int hci_close_dev(int dd) noexcept;
 
             std::recursive_mutex mtx_write;
             const uint16_t dev_id;
@@ -61,7 +61,7 @@ namespace direct_bt {
 
         public:
             /** Constructing a new HCI communication channel instance */
-            HCIComm(const uint16_t dev_id, const uint16_t channel)
+            HCIComm(const uint16_t dev_id, const uint16_t channel) noexcept
             : dev_id(dev_id), channel(channel), _dd(-1) {
                 _dd = hci_open_dev(dev_id, channel);
             }
@@ -69,87 +69,87 @@ namespace direct_bt {
             /**
              * Releases this instance after issuing {@link #close()}.
              */
-            ~HCIComm() { close(); }
+            ~HCIComm() noexcept { close(); }
 
             /** Closing the HCI channel, locking {@link #mutex_write()}. */
-            void close();
+            void close() noexcept;
 
-            bool isOpen() const { return 0 <= _dd; }
+            bool isOpen() const noexcept { return 0 <= _dd; }
 
             /** Return this HCI device descriptor, for multithreading access use {@link #dd()}. */
-            int dd() const { return _dd; }
+            inline int dd() const noexcept { return _dd; }
 
             /** Return the recursive write mutex for multithreading access. */
-            std::recursive_mutex & mutex_write() { return mtx_write; }
+            inline std::recursive_mutex & mutex_write() noexcept { return mtx_write; }
 
             /** Generic read w/ own timeoutMS, w/o locking suitable for a unique ringbuffer sink. */
-            int read(uint8_t* buffer, const int capacity, const int32_t timeoutMS);
+            int read(uint8_t* buffer, const int capacity, const int32_t timeoutMS) noexcept;
 
             /** Generic write, locking {@link #mutex_write()}. */
-            int write(const uint8_t* buffer, const int size);
+            int write(const uint8_t* buffer, const int size) noexcept;
 
         private:
-            static inline void set_bit(int nr, void *addr)
+            static inline void set_bit(int nr, void *addr) noexcept
             {
                 *((uint32_t *) addr + (nr >> 5)) |= (1 << (nr & 31));
             }
 
-            static inline void clear_bit(int nr, void *addr)
+            static inline void clear_bit(int nr, void *addr) noexcept
             {
                 *((uint32_t *) addr + (nr >> 5)) &= ~(1 << (nr & 31));
             }
 
-            static inline int test_bit(int nr, void *addr)
+            static inline int test_bit(int nr, void *addr) noexcept
             {
                 return *((uint32_t *) addr + (nr >> 5)) & (1 << (nr & 31));
             }
 
         public:
-            static inline void filter_clear(hci_ufilter *f)
+            static inline void filter_clear(hci_ufilter *f) noexcept
             {
                 bzero(f, sizeof(*f));
             }
-            static inline void filter_set_ptype(int t, hci_ufilter *f)
+            static inline void filter_set_ptype(int t, hci_ufilter *f) noexcept
             {
                 set_bit((t == HCI_VENDOR_PKT) ? 0 : (t & HCI_FLT_TYPE_BITS), &f->type_mask);
             }
-            static inline void filter_clear_ptype(int t, hci_ufilter *f)
+            static inline void filter_clear_ptype(int t, hci_ufilter *f) noexcept
             {
                 clear_bit((t == HCI_VENDOR_PKT) ? 0 : (t & HCI_FLT_TYPE_BITS), &f->type_mask);
             }
-            static inline int filter_test_ptype(int t, hci_ufilter *f)
+            static inline int filter_test_ptype(int t, hci_ufilter *f) noexcept
             {
                 return test_bit((t == HCI_VENDOR_PKT) ? 0 : (t & HCI_FLT_TYPE_BITS), &f->type_mask);
             }
-            static inline void filter_all_ptypes(hci_ufilter *f)
+            static inline void filter_all_ptypes(hci_ufilter *f) noexcept
             {
                 memset((void *) &f->type_mask, 0xff, sizeof(f->type_mask));
             }
-            static inline void filter_set_event(int e, hci_ufilter *f)
+            static inline void filter_set_event(int e, hci_ufilter *f) noexcept
             {
                 set_bit((e & HCI_FLT_EVENT_BITS), &f->event_mask);
             }
-            static inline void filter_clear_event(int e, hci_ufilter *f)
+            static inline void filter_clear_event(int e, hci_ufilter *f) noexcept
             {
                 clear_bit((e & HCI_FLT_EVENT_BITS), &f->event_mask);
             }
-            static inline int filter_test_event(int e, hci_ufilter *f)
+            static inline int filter_test_event(int e, hci_ufilter *f) noexcept
             {
                 return test_bit((e & HCI_FLT_EVENT_BITS), &f->event_mask);
             }
-            static inline void filter_all_events(hci_ufilter *f)
+            static inline void filter_all_events(hci_ufilter *f) noexcept
             {
                 memset((void *) f->event_mask, 0xff, sizeof(f->event_mask));
             }
-            static inline void filter_set_opcode(int opcode, hci_ufilter *f)
+            static inline void filter_set_opcode(int opcode, hci_ufilter *f) noexcept
             {
                 f->opcode = opcode;
             }
-            static inline void filter_clear_opcode(hci_ufilter *f)
+            static inline void filter_clear_opcode(hci_ufilter *f) noexcept
             {
                 f->opcode = 0;
             }
-            static inline int filter_test_opcode(int opcode, hci_ufilter *f)
+            static inline int filter_test_opcode(int opcode, hci_ufilter *f) noexcept
             {
                 return (f->opcode == opcode);
             }

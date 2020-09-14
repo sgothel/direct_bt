@@ -57,12 +57,12 @@ namespace direct_bt {
      */
     class DBTEnv : public DBTEnvrionment {
         private:
-            DBTEnv();
+            DBTEnv() noexcept;
 
             static bool debug;
 
-            static void envSet(std::string prefixDomain, std::string basepair);
-            static void envExplodeProperties(std::string prefixDomain, std::string list);
+            static void envSet(std::string prefixDomain, std::string basepair) noexcept;
+            static void envExplodeProperties(std::string prefixDomain, std::string list) noexcept;
 
         public:
             /**
@@ -73,7 +73,7 @@ namespace direct_bt {
             /**
              * Returns current elapsed monotonic time in milliseconds since module startup, see {@link #startupTimeMilliseconds}.
              */
-            static uint64_t getElapsedMillisecond() {
+            static uint64_t getElapsedMillisecond() noexcept {
                 return getCurrentMilliseconds() - startupTimeMilliseconds;
             }
 
@@ -83,7 +83,7 @@ namespace direct_bt {
              * Note that only '[org.]tinyb.*' and 'direct_bt.*' Java JVM properties are passed via 'org.tinyb.BluetoothFactory'
              * </p>
              */
-            static std::string getProperty(const std::string & name);
+            static std::string getProperty(const std::string & name) noexcept;
 
             /**
              * Returns the value of the environment's variable 'name',
@@ -92,7 +92,7 @@ namespace direct_bt {
              * Implementation uses {@link #getProperty(const std::string & name)}
              * </p>
              */
-            static std::string getProperty(const std::string & name, const std::string & default_value);
+            static std::string getProperty(const std::string & name, const std::string & default_value) noexcept;
 
             /**
              * Returns the boolean value of the environment's variable 'name',
@@ -105,7 +105,7 @@ namespace direct_bt {
              * Implementation uses {@link #getProperty(const std::string & name)}.
              * </p>
              */
-            static bool getBooleanProperty(const std::string & name, const bool default_value);
+            static bool getBooleanProperty(const std::string & name, const bool default_value) noexcept;
 
             /**
              * Returns the int32_t value of the environment's variable 'name',
@@ -116,7 +116,7 @@ namespace direct_bt {
              * </p>
              */
             static int32_t getInt32Property(const std::string & name, const int32_t default_value,
-                                            const int32_t min_allowed=INT32_MIN, const int32_t max_allowed=INT32_MAX);
+                                            const int32_t min_allowed=INT32_MIN, const int32_t max_allowed=INT32_MAX) noexcept;
 
             /**
              * Returns the uint32_t value of the environment's variable 'name',
@@ -127,7 +127,7 @@ namespace direct_bt {
              * </p>
              */
             static uint32_t getUint32Property(const std::string & name, const uint32_t default_value,
-                                              const uint32_t min_allowed=0, const uint32_t max_allowed=UINT32_MAX);
+                                              const uint32_t min_allowed=0, const uint32_t max_allowed=UINT32_MAX) noexcept;
 
             /**
              * Fetches exploding variable-name (prefixDomain) values.
@@ -175,9 +175,9 @@ namespace direct_bt {
              * @param prefixDomain
              * @return
              */
-            static bool getExplodingProperties(const std::string & prefixDomain);
+            static bool getExplodingProperties(const std::string & prefixDomain) noexcept;
 
-            static DBTEnv& get() {
+            static DBTEnv& get() noexcept {
                 /**
                  * Thread safe starting with C++11 6.7:
                  *

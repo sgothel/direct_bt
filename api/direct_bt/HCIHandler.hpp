@@ -103,7 +103,7 @@ namespace direct_bt {
         friend class HCIHandler;
 
         private:
-            HCIEnv();
+            HCIEnv() noexcept;
 
             const bool exploding; // just to trigger exploding properties
 
@@ -154,7 +154,7 @@ namespace direct_bt {
             const int32_t HCI_READ_PACKET_MAX_RETRY;
 
         public:
-            static HCIEnv& get() {
+            static HCIEnv& get() noexcept {
                 /**
                  * Thread safe starting with C++11 6.7:
                  *
@@ -188,7 +188,7 @@ namespace direct_bt {
             static const pid_t pidSelf;
 
         private:
-            static MgmtEvent::Opcode translate(HCIEventType evt, HCIMetaEventType met);
+            static MgmtEvent::Opcode translate(HCIEventType evt, HCIMetaEventType met) noexcept;
 
             const HCIEnv & env;
             const BTMode btMode;
@@ -200,19 +200,19 @@ namespace direct_bt {
             std::atomic<uint32_t> metaev_filter_mask;
             std::atomic<uint64_t> opcbit_filter_mask;
 
-            inline bool filter_test_metaev(HCIMetaEventType mec) { return 0 != test_bit_uint32(number(mec)-1, metaev_filter_mask); }
-            inline void filter_put_metaevs(const uint32_t mask) { metaev_filter_mask=mask; }
+            inline bool filter_test_metaev(HCIMetaEventType mec) noexcept { return 0 != test_bit_uint32(number(mec)-1, metaev_filter_mask); }
+            inline void filter_put_metaevs(const uint32_t mask) noexcept { metaev_filter_mask=mask; }
 
-            inline static void filter_clear_metaevs(uint32_t &mask) { mask=0; }
-            inline static void filter_all_metaevs(uint32_t &mask) { mask=0xffffffffU; }
-            inline static void filter_set_metaev(HCIMetaEventType mec, uint32_t &mask) { set_bit_uint32(number(mec)-1, mask); }
+            inline static void filter_clear_metaevs(uint32_t &mask) noexcept { mask=0; }
+            inline static void filter_all_metaevs(uint32_t &mask) noexcept { mask=0xffffffffU; }
+            inline static void filter_set_metaev(HCIMetaEventType mec, uint32_t &mask) noexcept { set_bit_uint32(number(mec)-1, mask); }
 
-            inline bool filter_test_opcbit(HCIOpcodeBit opcbit) { return 0 != test_bit_uint64(number(opcbit), opcbit_filter_mask); }
-            inline void filter_put_opcbit(const uint64_t mask) { opcbit_filter_mask=mask; }
+            inline bool filter_test_opcbit(HCIOpcodeBit opcbit) noexcept { return 0 != test_bit_uint64(number(opcbit), opcbit_filter_mask); }
+            inline void filter_put_opcbit(const uint64_t mask) noexcept { opcbit_filter_mask=mask; }
 
-            inline static void filter_clear_opcbit(uint64_t &mask) { mask=0; }
-            inline static void filter_all_opcbit(uint64_t &mask) { mask=0xffffffffffffffffUL; }
-            inline static void filter_set_opcbit(HCIOpcodeBit opcbit, uint64_t &mask) { set_bit_uint64(number(opcbit), mask); }
+            inline static void filter_clear_opcbit(uint64_t &mask) noexcept { mask=0; }
+            inline static void filter_all_opcbit(uint64_t &mask) noexcept { mask=0xffffffffffffffffUL; }
+            inline static void filter_set_opcbit(HCIOpcodeBit opcbit, uint64_t &mask) noexcept { set_bit_uint64(number(opcbit), mask); }
 
             LFRingbuffer<std::shared_ptr<HCIEvent>, nullptr> hciEventRing;
             std::atomic<pthread_t> hciReaderThreadId;
@@ -236,11 +236,11 @@ namespace direct_bt {
              * @param addrType key to matching connection
              * @param handle ignored for existing tracker _if_ invalid, i.e. zero.
              */
-            HCIConnectionRef addOrUpdateTrackerConnection(const EUI48 & address, BDAddressType addrType, const uint16_t handle);
-            HCIConnectionRef findTrackerConnection(const EUI48 & address, BDAddressType addrType);
-            HCIConnectionRef findTrackerConnection(const uint16_t handle);
-            HCIConnectionRef removeTrackerConnection(const HCIConnectionRef conn);
-            HCIConnectionRef removeTrackerConnection(const uint16_t handle);
+            HCIConnectionRef addOrUpdateTrackerConnection(const EUI48 & address, BDAddressType addrType, const uint16_t handle) noexcept;
+            HCIConnectionRef findTrackerConnection(const EUI48 & address, BDAddressType addrType) noexcept;
+            HCIConnectionRef findTrackerConnection(const uint16_t handle) noexcept;
+            HCIConnectionRef removeTrackerConnection(const HCIConnectionRef conn) noexcept;
+            HCIConnectionRef removeTrackerConnection(const uint16_t handle) noexcept;
 
             /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
             std::array<MgmtEventCallbackList, static_cast<uint16_t>(MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT)> mgmtEventCallbackLists;
@@ -250,53 +250,53 @@ namespace direct_bt {
                     throw IndexOutOfBoundsException(static_cast<uint16_t>(opc), mgmtEventCallbackLists.size(), E_FILE_LINE);
                 }
             }
-            std::shared_ptr<MgmtEvent> translate(std::shared_ptr<HCIEvent> ev);
+            std::shared_ptr<MgmtEvent> translate(std::shared_ptr<HCIEvent> ev) noexcept;
 
-            void hciReaderThreadImpl();
+            void hciReaderThreadImpl() noexcept;
 
-            bool sendCommand(HCICommand &req);
-            std::shared_ptr<HCIEvent> getNextReply(HCICommand &req, int32_t & retryCount, const int32_t replyTimeoutMS);
+            bool sendCommand(HCICommand &req) noexcept;
+            std::shared_ptr<HCIEvent> getNextReply(HCICommand &req, int32_t & retryCount, const int32_t replyTimeoutMS) noexcept;
 
-            std::shared_ptr<HCIEvent> sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res);
+            std::shared_ptr<HCIEvent> sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) noexcept;
 
-            std::shared_ptr<HCIEvent> processCommandStatus(HCICommand &req, HCIStatusCode *status);
+            std::shared_ptr<HCIEvent> processCommandStatus(HCICommand &req, HCIStatusCode *status) noexcept;
 
             template<typename hci_cmd_event_struct>
             std::shared_ptr<HCIEvent> processCommandComplete(HCICommand &req,
-                                                             const hci_cmd_event_struct **res, HCIStatusCode *status);
+                                                             const hci_cmd_event_struct **res, HCIStatusCode *status) noexcept;
 
             template<typename hci_cmd_event_struct>
-            const hci_cmd_event_struct* getReplyStruct(std::shared_ptr<HCIEvent> event, HCIEventType evc, HCIStatusCode *status);
+            const hci_cmd_event_struct* getReplyStruct(std::shared_ptr<HCIEvent> event, HCIEventType evc, HCIStatusCode *status) noexcept;
 
             template<typename hci_cmd_event_struct>
-            const hci_cmd_event_struct* getMetaReplyStruct(std::shared_ptr<HCIEvent> event, HCIMetaEventType mec, HCIStatusCode *status);
+            const hci_cmd_event_struct* getMetaReplyStruct(std::shared_ptr<HCIEvent> event, HCIMetaEventType mec, HCIStatusCode *status) noexcept;
 
             HCIHandler(const HCIHandler&) = delete;
             void operator=(const HCIHandler&) = delete;
 
         public:
-            HCIHandler(const BTMode btMode, const uint16_t dev_id);
+            HCIHandler(const BTMode btMode, const uint16_t dev_id) noexcept;
 
             /**
              * Releases this instance after issuing {@link #close()}.
              */
-            ~HCIHandler() { close(); }
+            ~HCIHandler() noexcept { close(); }
 
-            void close();
+            void close() noexcept;
 
-            BTMode getBTMode() { return btMode; }
+            inline BTMode getBTMode() noexcept { return btMode; }
 
             /** Returns true if this mgmt instance is open and hence valid, otherwise false */
-            bool isOpen() const {
+            bool isOpen() const noexcept {
                 return comm.isOpen();
             }
 
-            std::string toString() const { return "HCIHandler[BTMode "+getBTModeString(btMode)+", dev_id "+std::to_string(dev_id)+"]"; }
+            std::string toString() const noexcept { return "HCIHandler[BTMode "+getBTModeString(btMode)+", dev_id "+std::to_string(dev_id)+"]"; }
 
             /**
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
              */
-            HCIStatusCode reset();
+            HCIStatusCode reset() noexcept;
 
             /**
              * Sets LE scanning parameters.
@@ -318,7 +318,7 @@ namespace direct_bt {
             HCIStatusCode le_set_scan_param(const bool le_scan_active=false,
                                             const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
                                             const uint16_t le_scan_interval=18, const uint16_t le_scan_window=18,
-                                            const uint8_t filter_policy=0x00);
+                                            const uint8_t filter_policy=0x00) noexcept;
 
             /**
              * Starts or stops LE scanning.
@@ -328,7 +328,7 @@ namespace direct_bt {
              * @param enable true to enable discovery, otherwise false
              * @param filter_dup true to filter out duplicate AD PDUs (default), otherwise all will be reported.
              */
-            HCIStatusCode le_enable_scan(const bool enable, const bool filter_dup=true);
+            HCIStatusCode le_enable_scan(const bool enable, const bool filter_dup=true) noexcept;
 
             /**
              * Establish a connection to the given LE peer.
@@ -355,7 +355,7 @@ namespace direct_bt {
                                         const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
                                         const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48,
                                         const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
-                                        const uint16_t conn_latency=0x0000, const uint16_t supervision_timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10);
+                                        const uint16_t conn_latency=0x0000, const uint16_t supervision_timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10) noexcept;
 
             /**
              * Establish a connection to the given BREDR (non LE).
@@ -365,7 +365,7 @@ namespace direct_bt {
              */
             HCIStatusCode create_conn(const EUI48 &bdaddr,
                                      const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
-                                     const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
+                                     const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01) noexcept;
 
             /**
              * Disconnect an established connection.
@@ -375,7 +375,7 @@ namespace direct_bt {
              */
             HCIStatusCode disconnect(const bool ioErrorCause,
                                      const uint16_t conn_handle, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
-                                     const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
+                                     const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION) noexcept;
 
             /** MgmtEventCallback handling  */
 
@@ -389,10 +389,10 @@ namespace direct_bt {
             /** Removes all MgmtEventCallbacks from the to the named MgmtEvent::Opcode list. */
             void clearMgmtEventCallbacks(const MgmtEvent::Opcode opc);
             /** Removes all MgmtEventCallbacks from all MgmtEvent::Opcode lists. */
-            void clearAllMgmtEventCallbacks();
+            void clearAllMgmtEventCallbacks() noexcept;
 
             /** Manually send a MgmtEvent to all of its listeners. */
-            void sendMgmtEvent(std::shared_ptr<MgmtEvent> event);
+            void sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept;
 
             /**
              * FIXME / TODO: Privacy Mode / Pairing / Bonding

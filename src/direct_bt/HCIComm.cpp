@@ -50,7 +50,7 @@ extern "C" {
 
 namespace direct_bt {
 
-int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel)
+int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel) noexcept
 {
 	sockaddr_hci a;
 	int dd, err;
@@ -90,12 +90,12 @@ failed:
 	return -1;
 }
 
-int HCIComm::hci_close_dev(int dd)
+int HCIComm::hci_close_dev(int dd) noexcept
 {
 	return ::close(dd);
 }
 
-void HCIComm::close() {
+void HCIComm::close() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
     if( 0 > _dd ) {
         return;
@@ -104,7 +104,7 @@ void HCIComm::close() {
     _dd = -1;
 }
 
-int HCIComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS) {
+int HCIComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS) noexcept {
     int len = 0;
     if( 0 > _dd || 0 > capacity ) {
         goto errout;
@@ -156,7 +156,7 @@ errout:
     return -1;
 }
 
-int HCIComm::write(const uint8_t* buffer, const int size) {
+int HCIComm::write(const uint8_t* buffer, const int size) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
     int len = 0;
     if( 0 > _dd || 0 > size ) {

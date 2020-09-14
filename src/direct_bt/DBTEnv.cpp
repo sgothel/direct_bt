@@ -39,7 +39,7 @@ const uint64_t DBTEnv::startupTimeMilliseconds = direct_bt::getCurrentMillisecon
 
 bool DBTEnv::debug = false;
 
-std::string DBTEnv::getProperty(const std::string & name) {
+std::string DBTEnv::getProperty(const std::string & name) noexcept {
     const char * value = getenv(name.c_str());
     if( nullptr != value ) {
         return std::string( value );
@@ -48,7 +48,7 @@ std::string DBTEnv::getProperty(const std::string & name) {
     }
 }
 
-std::string DBTEnv::getProperty(const std::string & name, const std::string & default_value) {
+std::string DBTEnv::getProperty(const std::string & name, const std::string & default_value) noexcept {
     const std::string value = getProperty(name);
     if( 0 == value.length() ) {
         COND_PRINT(debug, "DBTEnv::getProperty %s: null -> %s (default)", name.c_str(), default_value.c_str());
@@ -59,7 +59,7 @@ std::string DBTEnv::getProperty(const std::string & name, const std::string & de
     }
 }
 
-bool DBTEnv::getBooleanProperty(const std::string & name, const bool default_value) {
+bool DBTEnv::getBooleanProperty(const std::string & name, const bool default_value) noexcept {
     const std::string value = getProperty(name);
     if( 0 == value.length() ) {
         COND_PRINT(debug, "DBTEnv::getBooleanProperty %s: null -> %d (default)", name.c_str(), default_value);
@@ -74,7 +74,7 @@ bool DBTEnv::getBooleanProperty(const std::string & name, const bool default_val
 #include <limits.h>
 
 int32_t DBTEnv::getInt32Property(const std::string & name, const int32_t default_value,
-                                 const int32_t min_allowed, const int32_t max_allowed)
+                                 const int32_t min_allowed, const int32_t max_allowed) noexcept
 {
     const std::string value = getProperty(name);
     if( 0 == value.length() ) {
@@ -114,7 +114,7 @@ int32_t DBTEnv::getInt32Property(const std::string & name, const int32_t default
 }
 
 uint32_t DBTEnv::getUint32Property(const std::string & name, const uint32_t default_value,
-                                   const uint32_t min_allowed, const uint32_t max_allowed)
+                                   const uint32_t min_allowed, const uint32_t max_allowed) noexcept
 {
     const std::string value = getProperty(name);
     if( 0 == value.length() ) {
@@ -153,7 +153,7 @@ uint32_t DBTEnv::getUint32Property(const std::string & name, const uint32_t defa
     }
 }
 
-void DBTEnv::envSet(std::string prefixDomain, std::string basepair) {
+void DBTEnv::envSet(std::string prefixDomain, std::string basepair) noexcept {
     trimInPlace(basepair);
     if( basepair.length() > 0 ) {
         size_t pos = 0, start = 0;
@@ -180,7 +180,7 @@ void DBTEnv::envSet(std::string prefixDomain, std::string basepair) {
     }
 }
 
-void DBTEnv::envExplodeProperties(std::string prefixDomain, std::string list) {
+void DBTEnv::envExplodeProperties(std::string prefixDomain, std::string list) noexcept {
     size_t pos = 0, start = 0;
     while( (pos = list.find(',', start)) != std::string::npos ) {
         const size_t elem_len = pos-start; // excluding ','
@@ -195,7 +195,7 @@ void DBTEnv::envExplodeProperties(std::string prefixDomain, std::string list) {
     setenv(prefixDomain.c_str(), "true", 1 /* overwrite */);
 }
 
-bool DBTEnv::getExplodingProperties(const std::string & prefixDomain) {
+bool DBTEnv::getExplodingProperties(const std::string & prefixDomain) noexcept {
     std::string value = DBTEnv::getProperty(prefixDomain, "false");
     if( "false" == value ) {
         return false;
@@ -210,7 +210,7 @@ bool DBTEnv::getExplodingProperties(const std::string & prefixDomain) {
     return true;
 }
 
-DBTEnv::DBTEnv()
+DBTEnv::DBTEnv() noexcept
 : DEBUG( getExplodingProperties("direct_bt.debug") ),
   VERBOSE( getExplodingProperties("direct_bt.verbose") || DBTEnv::DEBUG )
 {

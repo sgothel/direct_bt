@@ -54,7 +54,7 @@ extern "C" {
 
 using namespace direct_bt;
 
-HCIEnv::HCIEnv()
+HCIEnv::HCIEnv() noexcept
 : exploding( DBTEnv::getExplodingProperties("direct_bt.hci") ),
   HCI_READER_THREAD_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.hci.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
   HCI_COMMAND_STATUS_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.hci.cmd.status.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
@@ -71,7 +71,7 @@ struct hci_rp_status {
     __u8    status;
 } __packed;
 
-HCIConnectionRef HCIHandler::addOrUpdateTrackerConnection(const EUI48 & address, BDAddressType addrType, const uint16_t handle) {
+HCIConnectionRef HCIHandler::addOrUpdateTrackerConnection(const EUI48 & address, BDAddressType addrType, const uint16_t handle) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     // remove all old entry with given address first
     for (auto it = connectionList.begin(); it != connectionList.end(); ) {
@@ -98,7 +98,7 @@ HCIConnectionRef HCIHandler::addOrUpdateTrackerConnection(const EUI48 & address,
     return res;
 }
 
-HCIConnectionRef HCIHandler::findTrackerConnection(const EUI48 & address, BDAddressType addrType) {
+HCIConnectionRef HCIHandler::findTrackerConnection(const EUI48 & address, BDAddressType addrType) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     const size_t size = connectionList.size();
     for (size_t i = 0; i < size; i++) {
@@ -110,7 +110,7 @@ HCIConnectionRef HCIHandler::findTrackerConnection(const EUI48 & address, BDAddr
     return nullptr;
 }
 
-HCIConnectionRef HCIHandler::findTrackerConnection(const uint16_t handle) {
+HCIConnectionRef HCIHandler::findTrackerConnection(const uint16_t handle) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     const size_t size = connectionList.size();
     for (size_t i = 0; i < size; i++) {
@@ -122,7 +122,7 @@ HCIConnectionRef HCIHandler::findTrackerConnection(const uint16_t handle) {
     return nullptr;
 }
 
-HCIConnectionRef HCIHandler::removeTrackerConnection(const HCIConnectionRef conn) {
+HCIConnectionRef HCIHandler::removeTrackerConnection(const HCIConnectionRef conn) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     for (auto it = connectionList.begin(); it != connectionList.end(); ) {
         HCIConnectionRef e = *it;
@@ -136,7 +136,7 @@ HCIConnectionRef HCIHandler::removeTrackerConnection(const HCIConnectionRef conn
     return nullptr;
 }
 
-HCIConnectionRef HCIHandler::removeTrackerConnection(const uint16_t handle) {
+HCIConnectionRef HCIHandler::removeTrackerConnection(const uint16_t handle) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     for (auto it = connectionList.begin(); it != connectionList.end(); ) {
         HCIConnectionRef e = *it;
@@ -150,7 +150,7 @@ HCIConnectionRef HCIHandler::removeTrackerConnection(const uint16_t handle) {
     return nullptr;
 }
 
-MgmtEvent::Opcode HCIHandler::translate(HCIEventType evt, HCIMetaEventType met) {
+MgmtEvent::Opcode HCIHandler::translate(HCIEventType evt, HCIMetaEventType met) noexcept {
     if( HCIEventType::LE_META == evt ) {
         switch( met ) {
             case HCIMetaEventType::LE_CONN_COMPLETE: return MgmtEvent::Opcode::DEVICE_CONNECTED;
@@ -166,7 +166,7 @@ MgmtEvent::Opcode HCIHandler::translate(HCIEventType evt, HCIMetaEventType met) 
     }
 }
 
-std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) {
+std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) noexcept {
     const HCIEventType evt = ev->getEventType();
     const HCIMetaEventType mevt = ev->getMetaEventType();
 
@@ -239,7 +239,7 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) {
     }
 }
 
-void HCIHandler::hciReaderThreadImpl() {
+void HCIHandler::hciReaderThreadImpl() noexcept {
     {
         const std::lock_guard<std::mutex> lock(mtx_hciReaderInit); // RAII-style acquire and relinquish via destructor
         hciReaderShallStop = false;
@@ -317,7 +317,7 @@ void HCIHandler::hciReaderThreadImpl() {
     hciEventRing.clear();
 }
 
-void HCIHandler::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
+void HCIHandler::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     MgmtEventCallbackList & mgmtEventCallbackList = mgmtEventCallbackLists[static_cast<uint16_t>(event->getOpcode())];
     int invokeCount = 0;
@@ -337,7 +337,7 @@ void HCIHandler::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
     (void)invokeCount;
 }
 
-bool HCIHandler::sendCommand(HCICommand &req) {
+bool HCIHandler::sendCommand(HCICommand &req) noexcept {
     COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO SENT %s", req.toString().c_str());
 
     TROOctets & pdu = req.getPDU();
@@ -348,7 +348,7 @@ bool HCIHandler::sendCommand(HCICommand &req) {
     return true;
 }
 
-std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int32_t & retryCount, const int32_t replyTimeoutMS)
+std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int32_t & retryCount, const int32_t replyTimeoutMS) noexcept
 {
     // Ringbuffer read is thread safe
     while( retryCount < env.HCI_READ_PACKET_MAX_RETRY ) {
@@ -372,7 +372,7 @@ std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int32_t & re
     return nullptr;
 }
 
-std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) {
+std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
     *res = nullptr;
@@ -420,7 +420,7 @@ exit:
     return ev;
 }
 
-HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id)
+HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id) noexcept
 : env(HCIEnv::get()),
   btMode(btMode), dev_id(dev_id), rbuffer(HCI_MAX_MTU),
   comm(dev_id, HCI_CHANNEL_RAW),
@@ -524,7 +524,7 @@ fail:
     return;
 }
 
-void HCIHandler::close() {
+void HCIHandler::close() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("HCIHandler::close: Start");
 
@@ -549,7 +549,7 @@ void HCIHandler::close() {
     DBG_PRINT("HCIHandler::close: End");
 }
 
-HCIStatusCode HCIHandler::reset() {
+HCIStatusCode HCIHandler::reset() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( !comm.isOpen() ) {
         ERR_PRINT("HCIHandler::reset: device not open");
@@ -567,7 +567,7 @@ HCIStatusCode HCIHandler::reset() {
 HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
                                             const HCILEOwnAddressType own_mac_type,
                                             const uint16_t le_scan_interval, const uint16_t le_scan_window,
-                                            const uint8_t filter_policy) {
+                                            const uint8_t filter_policy) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( !comm.isOpen() ) {
         ERR_PRINT("HCIHandler::le_set_scan_param: device not open");
@@ -587,7 +587,7 @@ HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
     return status;
 }
 
-HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_dup) {
+HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_dup) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( !comm.isOpen() ) {
         ERR_PRINT("HCIHandler::le_enable_scan: device not open");
@@ -614,7 +614,7 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
                             const HCILEOwnAddressType own_mac_type,
                             const uint16_t le_scan_interval, const uint16_t le_scan_window,
                             const uint16_t conn_interval_min, const uint16_t conn_interval_max,
-                            const uint16_t conn_latency, const uint16_t supervision_timeout) {
+                            const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( !comm.isOpen() ) {
         ERR_PRINT("HCIHandler::le_create_conn: device not open");
@@ -647,7 +647,7 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
 
 HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
                                      const uint16_t pkt_type,
-                                     const uint16_t clock_offset, const uint8_t role_switch) {
+                                     const uint16_t clock_offset, const uint8_t role_switch) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( !comm.isOpen() ) {
         ERR_PRINT("HCIHandler::create_conn: device not open");
@@ -670,7 +670,7 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
 
 HCIStatusCode HCIHandler::disconnect(const bool ioErrorCause,
                                      const uint16_t conn_handle, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
-                                     const HCIStatusCode reason)
+                                     const HCIStatusCode reason) noexcept
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( !comm.isOpen() ) {
@@ -728,7 +728,7 @@ HCIStatusCode HCIHandler::disconnect(const bool ioErrorCause,
     return status;
 }
 
-std::shared_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIStatusCode *status)
+std::shared_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIStatusCode *status) noexcept
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
@@ -775,7 +775,7 @@ exit:
 
 template<typename hci_cmd_event_struct>
 std::shared_ptr<HCIEvent> HCIHandler::processCommandComplete(HCICommand &req,
-                                                             const hci_cmd_event_struct **res, HCIStatusCode *status)
+                                                             const hci_cmd_event_struct **res, HCIStatusCode *status) noexcept
 {
     *res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
@@ -815,7 +815,7 @@ std::shared_ptr<HCIEvent> HCIHandler::processCommandComplete(HCICommand &req,
 }
 
 template<typename hci_cmd_event_struct>
-const hci_cmd_event_struct* HCIHandler::getReplyStruct(std::shared_ptr<HCIEvent> event, HCIEventType evc, HCIStatusCode *status)
+const hci_cmd_event_struct* HCIHandler::getReplyStruct(std::shared_ptr<HCIEvent> event, HCIEventType evc, HCIStatusCode *status) noexcept
 {
     const hci_cmd_event_struct* res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
@@ -835,7 +835,7 @@ const hci_cmd_event_struct* HCIHandler::getReplyStruct(std::shared_ptr<HCIEvent>
 }
 
 template<typename hci_cmd_event_struct>
-const hci_cmd_event_struct* HCIHandler::getMetaReplyStruct(std::shared_ptr<HCIEvent> event, HCIMetaEventType mec, HCIStatusCode *status)
+const hci_cmd_event_struct* HCIHandler::getMetaReplyStruct(std::shared_ptr<HCIEvent> event, HCIMetaEventType mec, HCIStatusCode *status) noexcept
 {
     const hci_cmd_event_struct* res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
@@ -892,7 +892,7 @@ void HCIHandler::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) {
     checkMgmtEventCallbackListsIndex(opc);
     mgmtEventCallbackLists[static_cast<uint16_t>(opc)].clear();
 }
-void HCIHandler::clearAllMgmtEventCallbacks() {
+void HCIHandler::clearAllMgmtEventCallbacks() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     for(size_t i=0; i<mgmtEventCallbackLists.size(); i++) {
         mgmtEventCallbackLists[i].clear();

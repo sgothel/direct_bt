@@ -330,11 +330,11 @@ namespace direct_bt {
                 }
             }
 
-            virtual std::string baseString() const {
+            virtual std::string baseString() const noexcept {
                 return "opcode="+uint8HexString(getOpcode(), true)+" "+getOpcodeString()+
                         ", size[total="+std::to_string(pdu.getSize())+", param "+std::to_string(getPDUParamSize())+"]";
             }
-            virtual std::string valueString() const {
+            virtual std::string valueString() const noexcept {
                 return "size "+std::to_string(getPDUValueSize())+", data "
                         +bytesHexString(pdu.get_ptr(), getPDUValueOffset(), getPDUValueSize(), true /* lsbFirst */, true /* leading0X */);
             }
@@ -492,7 +492,7 @@ namespace direct_bt {
                 return "AttPDUMsg";
             }
 
-            virtual std::string toString() const {
+            virtual std::string toString() const noexcept{
                 return getName()+"["+baseString()+", value["+valueString()+"]]";
             }
     };
@@ -580,7 +580,7 @@ namespace direct_bt {
             }
 
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 return getErrorString();
             }
     };
@@ -623,7 +623,7 @@ namespace direct_bt {
             }
 
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 return "mtu "+std::to_string(getMTUSize());
             }
     };
@@ -659,7 +659,7 @@ namespace direct_bt {
             }
 
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 return "handle "+uint16HexString(getHandle(), true);
             }
     };
@@ -703,7 +703,7 @@ namespace direct_bt {
             }
 
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 return "size "+std::to_string(getPDUValueSize())+", data "+view.toString();
             }
     };
@@ -744,7 +744,7 @@ namespace direct_bt {
             }
 
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 return "handle "+uint16HexString(getHandle(), true)+", valueOffset "+uint16HexString(getValueOffset(), true);
             }
     };
@@ -788,7 +788,7 @@ namespace direct_bt {
             }
 
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 return "size "+std::to_string(getPDUValueSize())+", data "+view.toString();
             }
     };
@@ -837,7 +837,7 @@ namespace direct_bt {
             }
 
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 return "handle "+uint16HexString(getHandle(), true)+", data "+view.toString();;
             }
     };
@@ -909,7 +909,7 @@ namespace direct_bt {
             }
 
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 return "handle "+uint16HexString(getHandle(), true)+", data "+view.toString();;
             }
     };
@@ -965,7 +965,7 @@ namespace direct_bt {
             }
 
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 return "handle "+uint16HexString(getHandle(), true)+", size "+std::to_string(getPDUValueSize())+", data "+view.toString();
             }
     };
@@ -1008,7 +1008,7 @@ namespace direct_bt {
             virtual std::string addValueString() const { return ""; }
             virtual std::string elementString(const int idx) const { (void)idx; return "not implemented"; }
 
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 std::string res = "size "+std::to_string(getPDUValueSize())+", "+addValueString()+"elements[count "+std::to_string(getElementCount())+", "+
                         "size [total "+std::to_string(getElementTotalSize())+", value "+std::to_string(getElementValueSize())+"]: ";
                 const int count = getElementCount();
@@ -1103,7 +1103,7 @@ namespace direct_bt {
             }
 
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 return "handle ["+uint16HexString(getStartHandle(), true)+".."+uint16HexString(getEndHandle(), true)+
                        "], uuid "+getNType()->toString();
             }
@@ -1358,7 +1358,7 @@ namespace direct_bt {
             }
 
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 return "handle ["+uint16HexString(getStartHandle(), true)+".."+uint16HexString(getEndHandle(), true)+"]";
             }
     };
