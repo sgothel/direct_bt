@@ -497,7 +497,7 @@ std::shared_ptr<AdapterInfo> DBTManager::findAdapterInfo(const EUI48 &mac) const
 }
 std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const int idx) const {
     if( 0 > idx || idx >= static_cast<int>(adapterInfos.size()) ) {
-        throw IndexOutOfBoundsException(idx, adapterInfos.size(), 1, E_FILE_LINE);
+        throw IndexOutOfBoundsException(idx, adapterInfos.size(), E_FILE_LINE);
     }
     std::shared_ptr<AdapterInfo> adapter = adapterInfos.at(idx);
     return adapter;

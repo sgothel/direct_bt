@@ -99,6 +99,9 @@ namespace direct_bt {
 
     class IndexOutOfBoundsException : public RuntimeException {
       public:
+        IndexOutOfBoundsException(const int index, const int length, const char* file, int line) noexcept
+        : RuntimeException("IndexOutOfBoundsException", "Index "+std::to_string(index)+", data length "+std::to_string(length), file, line) {}
+
         IndexOutOfBoundsException(const int index, const int count, const int length, const char* file, int line) noexcept
         : RuntimeException("IndexOutOfBoundsException", "Index "+std::to_string(index)+", count "+std::to_string(count)+", data length "+std::to_string(length), file, line) {}
     };
@@ -311,37 +314,37 @@ namespace direct_bt {
 
     inline void set_bit_uint32(const uint8_t nr, uint32_t &mask)
     {
-        if( nr > 31 ) { throw IndexOutOfBoundsException(nr, 32, 32, E_FILE_LINE); }
+        if( nr > 31 ) { throw IndexOutOfBoundsException(nr, 32, E_FILE_LINE); }
         mask |= 1 << (nr & 31);
     }
 
     inline void clear_bit_uint32(const uint8_t nr, uint32_t &mask)
     {
-        if( nr > 31 ) { throw IndexOutOfBoundsException(nr, 32, 32, E_FILE_LINE); }
+        if( nr > 31 ) { throw IndexOutOfBoundsException(nr, 32, E_FILE_LINE); }
         mask |= ~(1 << (nr & 31));
     }
 
     inline uint32_t test_bit_uint32(const uint8_t nr, const uint32_t mask)
     {
-        if( nr > 31 ) { throw IndexOutOfBoundsException(nr, 32, 32, E_FILE_LINE); }
+        if( nr > 31 ) { throw IndexOutOfBoundsException(nr, 32, E_FILE_LINE); }
         return mask & (1 << (nr & 31));
     }
 
     inline void set_bit_uint64(const uint8_t nr, uint64_t &mask)
     {
-        if( nr > 63 ) { throw IndexOutOfBoundsException(nr, 64, 64, E_FILE_LINE); }
+        if( nr > 63 ) { throw IndexOutOfBoundsException(nr, 64, E_FILE_LINE); }
         mask |= 1 << (nr & 63);
     }
 
     inline void clear_bit_uint64(const uint8_t nr, uint64_t &mask)
     {
-        if( nr > 63 ) { throw IndexOutOfBoundsException(nr, 64, 64, E_FILE_LINE); }
+        if( nr > 63 ) { throw IndexOutOfBoundsException(nr, 64, E_FILE_LINE); }
         mask |= ~(1 << (nr & 63));
     }
 
     inline uint64_t test_bit_uint64(const uint8_t nr, const uint64_t mask)
     {
-        if( nr > 63 ) { throw IndexOutOfBoundsException(nr, 64, 64, E_FILE_LINE); }
+        if( nr > 63 ) { throw IndexOutOfBoundsException(nr, 64, E_FILE_LINE); }
         return mask & (1 << (nr & 63));
     }
 

@@ -168,7 +168,7 @@ namespace direct_bt {
             std::recursive_mutex mtx_callbackLists;
             inline void checkMgmtEventCallbackListsIndex(const MgmtEvent::Opcode opc) const {
                 if( static_cast<uint16_t>(opc) >= mgmtAdapterEventCallbackLists.size() ) {
-                    throw IndexOutOfBoundsException(static_cast<uint16_t>(opc), 1, mgmtAdapterEventCallbackLists.size(), E_FILE_LINE);
+                    throw IndexOutOfBoundsException(static_cast<uint16_t>(opc), mgmtAdapterEventCallbackLists.size(), E_FILE_LINE);
                 }
             }
 
