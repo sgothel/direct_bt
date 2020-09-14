@@ -232,19 +232,19 @@ namespace direct_bt {
                 static DBTManager s(defaultBTMode);
                 return s;
             }
-            ~DBTManager() { close(); }
+            ~DBTManager() noexcept { close(); }
 
             void close() noexcept;
 
-            std::string get_java_class() const override {
+            std::string get_java_class() const noexcept override {
                 return java_class();
             }
-            static std::string java_class() {
+            static std::string java_class() noexcept {
                 return std::string(JAVA_DBT_PACKAGE "DBTManager");
             }
 
             /** Returns the default {@link BTMode}, adapters are tried to be initialized. */
-            BTMode getDefaultBTMode() { return defaultBTMode; }
+            BTMode getDefaultBTMode() noexcept { return defaultBTMode; }
 
             /** Returns true if this mgmt instance is open and hence valid, otherwise false */
             bool isOpen() const noexcept {

@@ -80,14 +80,14 @@ DBTDevice::~DBTDevice() {
     DBG_PRINT("DBTDevice::dtor: XXX %p %s", this, getAddressString().c_str());
 }
 
-std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const {
+std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const noexcept {
     return adapter.getSharedDevice(*this);
 }
-void DBTDevice::releaseSharedInstance() const {
+void DBTDevice::releaseSharedInstance() const noexcept {
     adapter.removeSharedDevice(*this);
 }
 
-bool DBTDevice::addAdvService(std::shared_ptr<uuid_t> const &uuid)
+bool DBTDevice::addAdvService(std::shared_ptr<uuid_t> const &uuid) noexcept
 {
     if( 0 > findAdvService(uuid) ) {
         advServices.push_back(uuid);
@@ -95,7 +95,7 @@ bool DBTDevice::addAdvService(std::shared_ptr<uuid_t> const &uuid)
     }
     return false;
 }
-bool DBTDevice::addAdvServices(std::vector<std::shared_ptr<uuid_t>> const & services)
+bool DBTDevice::addAdvServices(std::vector<std::shared_ptr<uuid_t>> const & services) noexcept
 {
     bool res = false;
     for(size_t j=0; j<services.size(); j++) {
@@ -105,7 +105,7 @@ bool DBTDevice::addAdvServices(std::vector<std::shared_ptr<uuid_t>> const & serv
     return res;
 }
 
-int DBTDevice::findAdvService(std::shared_ptr<uuid_t> const &uuid) const
+int DBTDevice::findAdvService(std::shared_ptr<uuid_t> const &uuid) const noexcept
 {
     const size_t size = advServices.size();
     for (size_t i = 0; i < size; i++) {
@@ -117,22 +117,22 @@ int DBTDevice::findAdvService(std::shared_ptr<uuid_t> const &uuid) const
     return -1;
 }
 
-std::string const DBTDevice::getName() const {
+std::string const DBTDevice::getName() const noexcept {
     const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
     return name;
 }
 
-std::shared_ptr<ManufactureSpecificData> const DBTDevice::getManufactureSpecificData() const {
+std::shared_ptr<ManufactureSpecificData> const DBTDevice::getManufactureSpecificData() const noexcept {
     const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
     return advMSD;
 }
 
-std::vector<std::shared_ptr<uuid_t>> DBTDevice::getAdvertisedServices() const {
+std::vector<std::shared_ptr<uuid_t>> DBTDevice::getAdvertisedServices() const noexcept {
     const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
     return advServices;
 }
 
-std::string DBTDevice::toString(bool includeDiscoveredServices) const {
+std::string DBTDevice::toString(bool includeDiscoveredServices) const noexcept {
     const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
     const uint64_t t0 = getCurrentMilliseconds();
     std::string leaddrtype;
@@ -160,7 +160,7 @@ std::string DBTDevice::toString(bool includeDiscoveredServices) const {
     return out;
 }
 
-EIRDataType DBTDevice::update(EInfoReport const & data) {
+EIRDataType DBTDevice::update(EInfoReport const & data) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
 
     EIRDataType res = EIRDataType::NONE;
@@ -219,7 +219,7 @@ EIRDataType DBTDevice::update(EInfoReport const & data) {
     return res;
 }
 
-EIRDataType DBTDevice::update(GenericAccess const &data, const uint64_t timestamp) {
+EIRDataType DBTDevice::update(GenericAccess const &data, const uint64_t timestamp) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
 
     EIRDataType res = EIRDataType::NONE;
@@ -235,7 +235,7 @@ EIRDataType DBTDevice::update(GenericAccess const &data, const uint64_t timestam
     return res;
 }
 
-std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() {
+std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() noexcept {
     DBTManager & mgmt = adapter.getManager();
     std::shared_ptr<ConnectionInfo> connInfo = mgmt.getConnectionInfo(adapter.dev_id, address, addressType);
     if( nullptr != connInfo ) {

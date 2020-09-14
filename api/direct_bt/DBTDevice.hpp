@@ -76,19 +76,19 @@ namespace direct_bt {
             DBTDevice(DBTAdapter & adapter, EInfoReport const & r);
 
             /** Add advertised service (GAP discovery) */
-            bool addAdvService(std::shared_ptr<uuid_t> const &uuid);
+            bool addAdvService(std::shared_ptr<uuid_t> const &uuid) noexcept;
             /** Add advertised service (GAP discovery) */
-            bool addAdvServices(std::vector<std::shared_ptr<uuid_t>> const & services);
+            bool addAdvServices(std::vector<std::shared_ptr<uuid_t>> const & services) noexcept;
             /**
              * Find advertised service (GAP discovery) index
              * @return index >= 0 if found, otherwise -1
              */
-            int findAdvService(std::shared_ptr<uuid_t> const &uuid) const;
+            int findAdvService(std::shared_ptr<uuid_t> const &uuid) const noexcept;
 
-            EIRDataType update(EInfoReport const & data);
-            EIRDataType update(GenericAccess const &data, const uint64_t timestamp);
+            EIRDataType update(EInfoReport const & data) noexcept;
+            EIRDataType update(GenericAccess const &data, const uint64_t timestamp) noexcept;
 
-            void releaseSharedInstance() const;
+            void releaseSharedInstance() const noexcept;
             void notifyDisconnected();
             void notifyConnected(const uint16_t handle);
 
@@ -105,12 +105,12 @@ namespace direct_bt {
             /**
              * Releases this instance after calling {@link #remove()}.
              */
-            ~DBTDevice();
+            ~DBTDevice() noexcept;
 
-            std::string get_java_class() const override {
+            std::string get_java_class() const noexcept override {
                 return java_class();
             }
-            static std::string java_class() {
+            static std::string java_class() noexcept {
                 return std::string(JAVA_DBT_PACKAGE "DBTDevice");
             }
 
@@ -118,39 +118,39 @@ namespace direct_bt {
             DBTAdapter & getAdapter() const { return adapter; }
 
             /** Returns the shared pointer of this instance managed by the adapter. */
-            std::shared_ptr<DBTDevice> getSharedInstance() const;
+            std::shared_ptr<DBTDevice> getSharedInstance() const noexcept;
 
             /**
              * Returns the timestamp in monotonic milliseconds when this device instance has been created,
              * either via its initial discovery or its initial direct connection.
              * @see BasicTypes::getCurrentMilliseconds()
              */
-            uint64_t getCreationTimestamp() const { return ts_creation; }
+            uint64_t getCreationTimestamp() const noexcept { return ts_creation; }
 
             /**
              * Returns the timestamp in monotonic milliseconds when this device instance has
              * discovered or connected directly the last time.
              * @see BasicTypes::getCurrentMilliseconds()
              */
-            uint64_t getLastDiscoveryTimestamp() const { return ts_last_discovery; }
+            uint64_t getLastDiscoveryTimestamp() const noexcept { return ts_last_discovery; }
 
             /**
              * Returns the timestamp in monotonic milliseconds when this device instance underlying data
              * has been updated the last time.
              * @see BasicTypes::getCurrentMilliseconds()
              */
-            uint64_t getLastUpdateTimestamp() const { return ts_last_update; }
+            uint64_t getLastUpdateTimestamp() const noexcept { return ts_last_update; }
 
             /**
              * @see getLastUpdateTimestamp()
              */
-            uint64_t getLastUpdateAge(const uint64_t ts_now) const { return ts_now - ts_last_update; }
+            uint64_t getLastUpdateAge(const uint64_t ts_now) const noexcept { return ts_now - ts_last_update; }
 
-            EUI48 const & getAddress() const { return address; }
-            std::string getAddressString() const { return address.toString(); }
-            BDAddressType getAddressType() const { return addressType; }
-            bool isLEAddressType() const { return BDADDR_LE_PUBLIC == addressType || BDADDR_LE_RANDOM == addressType; }
-            bool isBREDRAddressType() const { return BDADDR_BREDR == addressType; }
+            EUI48 const & getAddress() const noexcept { return address; }
+            std::string getAddressString() const noexcept { return address.toString(); }
+            BDAddressType getAddressType() const noexcept { return addressType; }
+            bool isLEAddressType() const noexcept { return BDADDR_LE_PUBLIC == addressType || BDADDR_LE_RANDOM == addressType; }
+            bool isBREDRAddressType() const noexcept { return BDADDR_BREDR == addressType; }
 
             /**
              * Returns the {@link BLERandomAddressType}.
@@ -164,21 +164,21 @@ namespace direct_bt {
              * </p>
              * @since 2.0.0
              */
-            BLERandomAddressType getBLERandomAddressType() const { return leRandomAddressType; }
+            BLERandomAddressType getBLERandomAddressType() const noexcept { return leRandomAddressType; }
 
             /** Return RSSI of device as recognized at discovery and connect. */
-            int8_t getRSSI() const { return rssi; }
+            int8_t getRSSI() const noexcept { return rssi; }
 
             /** Return Tx Power of device as recognized at discovery and connect. */
-            int8_t getTxPower() const { return tx_power; }
+            int8_t getTxPower() const noexcept { return tx_power; }
 
             /** Return AppearanceCat of device as recognized at discovery, connect and GATT discovery. */
-            AppearanceCat getAppearance() const { return appearance; }
+            AppearanceCat getAppearance() const noexcept { return appearance; }
 
-            std::string const getName() const;
+            std::string const getName() const noexcept;
 
             /** Return shared ManufactureSpecificData as recognized at discovery, pre GATT discovery. */
-            std::shared_ptr<ManufactureSpecificData> const getManufactureSpecificData() const;
+            std::shared_ptr<ManufactureSpecificData> const getManufactureSpecificData() const noexcept;
 
             /**
              * Return a list of advertised services as recognized at discovery, pre GATT discovery.
@@ -187,11 +187,11 @@ namespace direct_bt {
              * use {@link #getGATTServices()}.
              * </p>
              */
-            std::vector<std::shared_ptr<uuid_t>> getAdvertisedServices() const;
+            std::vector<std::shared_ptr<uuid_t>> getAdvertisedServices() const noexcept;
 
-            std::string toString() const override { return toString(false); }
+            std::string toString() const noexcept override { return toString(false); }
 
-            std::string toString(bool includeDiscoveredServices) const;
+            std::string toString(bool includeDiscoveredServices) const noexcept;
 
             /**
              * Retrieves the current connection info for this device and returns the ConnectionInfo reference if successful,
@@ -201,12 +201,12 @@ namespace direct_bt {
              * and therefore all DBTAdapterStatusListener's deviceUpdated(..) method called for notification.
              * </p>
              */
-            std::shared_ptr<ConnectionInfo> getConnectionInfo();
+            std::shared_ptr<ConnectionInfo> getConnectionInfo() noexcept;
 
             /**
              * Return true if the device has been successfully connected, otherwise false.
              */
-            bool getConnected() { return isConnected.load(); }
+            bool getConnected() noexcept { return isConnected.load(); }
 
             /**
              * Establish a HCI BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM connection to this device.
@@ -292,7 +292,7 @@ namespace direct_bt {
 
 
             /** Return the HCI connection handle to the LE or BREDR peer, zero if not connected. */
-            uint16_t getConnectionHandle() const { return hciConnHandle; }
+            uint16_t getConnectionHandle() const noexcept { return hciConnHandle; }
 
             /**
              * Disconnect the LE or BREDR peer's GATT and HCI connection.
@@ -444,13 +444,13 @@ namespace direct_bt {
             int removeAllCharacteristicListener();
     };
 
-    inline bool operator<(const DBTDevice& lhs, const DBTDevice& rhs)
+    inline bool operator<(const DBTDevice& lhs, const DBTDevice& rhs) noexcept
     { return lhs.address < rhs.address; }
 
-    inline bool operator==(const DBTDevice& lhs, const DBTDevice& rhs)
+    inline bool operator==(const DBTDevice& lhs, const DBTDevice& rhs) noexcept
     { return lhs.address == rhs.address && lhs.addressType == rhs.addressType; }
 
-    inline bool operator!=(const DBTDevice& lhs, const DBTDevice& rhs)
+    inline bool operator!=(const DBTDevice& lhs, const DBTDevice& rhs) noexcept
     { return !(lhs == rhs); }
 
 } // namespace direct_bt

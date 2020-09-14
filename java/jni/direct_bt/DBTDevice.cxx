@@ -94,7 +94,7 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
         }
     }
 
-    bool match(const GATTCharacteristic & characteristic) override {
+    bool match(const GATTCharacteristic & characteristic) noexcept override {
         if( nullptr == associatedCharacteristicRef ) {
             return true;
         }

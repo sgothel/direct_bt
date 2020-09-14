@@ -161,9 +161,9 @@ namespace direct_bt {
     {
         private:
             /** Returns index >= 0 if found, otherwise -1 */
-            static int findDeviceIdx(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType);
-            static std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType);
-            std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device);
+            static int findDeviceIdx(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType) noexcept;
+            static std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType) noexcept;
+            std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device) noexcept;
 
             const bool debug_event;
             DBTManager& mgmt;
@@ -209,18 +209,18 @@ namespace direct_bt {
             friend HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch);
             friend std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices();
 
-            bool addConnectedDevice(const std::shared_ptr<DBTDevice> & device);
-            bool removeConnectedDevice(const DBTDevice & device);
+            bool addConnectedDevice(const std::shared_ptr<DBTDevice> & device) noexcept;
+            bool removeConnectedDevice(const DBTDevice & device) noexcept;
             int disconnectAllDevices(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION );
-            std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac, const BDAddressType macType);
+            std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac, const BDAddressType macType) noexcept;
 
-            bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
-            bool removeDiscoveredDevice(const DBTDevice & device);
+            bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) noexcept;
+            bool removeDiscoveredDevice(const DBTDevice & device) noexcept;
 
-            bool addSharedDevice(std::shared_ptr<DBTDevice> const &device);
-            std::shared_ptr<DBTDevice> getSharedDevice(const DBTDevice & device);
-            void removeSharedDevice(const DBTDevice & device);
-            std::shared_ptr<DBTDevice> findSharedDevice (EUI48 const & mac, const BDAddressType macType);
+            bool addSharedDevice(std::shared_ptr<DBTDevice> const &device) noexcept;
+            std::shared_ptr<DBTDevice> getSharedDevice(const DBTDevice & device) noexcept;
+            void removeSharedDevice(const DBTDevice & device) noexcept;
+            std::shared_ptr<DBTDevice> findSharedDevice (EUI48 const & mac, const BDAddressType macType) noexcept;
 
             bool mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e);
@@ -244,27 +244,27 @@ namespace direct_bt {
             /**
              * Using the default adapter device
              */
-            DBTAdapter();
+            DBTAdapter() noexcept;
 
             /**
              * @param[in] mac address
              */
-            DBTAdapter(EUI48 &mac);
+            DBTAdapter(EUI48 &mac) noexcept;
 
             /**
              * @param[in] dev_id an already identified HCI device id
              */
-            DBTAdapter(const int dev_id);
+            DBTAdapter(const int dev_id) noexcept;
 
             /**
              * Releases this instance after HCISession shutdown().
              */
-            ~DBTAdapter();
+            ~DBTAdapter() noexcept;
 
-            std::string get_java_class() const override {
+            std::string get_java_class() const noexcept override {
                 return java_class();
             }
-            static std::string java_class() {
+            static std::string java_class() noexcept {
                 return std::string(JAVA_DBT_PACKAGE "DBTAdapter");
             }
 
@@ -277,12 +277,12 @@ namespace direct_bt {
                 }
             }
 
-            bool hasDevId() const { return 0 <= dev_id; }
+            bool hasDevId() const noexcept { return 0 <= dev_id; }
 
             /**
              * Returns true if the device is powered.
              */
-            bool isPowered() {
+            bool isPowered() noexcept {
                 return isAdapterSettingSet(adapterInfo->getCurrentSetting(), AdapterSetting::POWERED);
             }
 
@@ -293,18 +293,18 @@ namespace direct_bt {
                 return isPowered() && nullptr != getHCI(); // implies 'checkValidAdapter()'
             }
 
-            EUI48 const & getAddress() const { return adapterInfo->address; }
-            std::string getAddressString() const { return adapterInfo->address.toString(); }
+            EUI48 const & getAddress() const noexcept { return adapterInfo->address; }
+            std::string getAddressString() const noexcept { return adapterInfo->address.toString(); }
 
             /**
              * Returns the system name.
              */
-            std::string getName() const { return adapterInfo->getName(); }
+            std::string getName() const noexcept { return adapterInfo->getName(); }
 
             /**
              * Returns the short system name.
              */
-            std::string getShortName() const { return adapterInfo->getShortName(); }
+            std::string getShortName() const noexcept { return adapterInfo->getShortName(); }
 
             /**
              * Returns the local friendly name and short_name. Contains empty strings if not set.
@@ -312,7 +312,7 @@ namespace direct_bt {
              * The value is being updated via SET_LOCAL_NAME management event reply.
              * </p>
              */
-            const NameAndShortName & getLocalName() const { return localName; }
+            const NameAndShortName & getLocalName() const noexcept { return localName; }
 
             /**
              * Sets the local friendly name.
@@ -321,27 +321,27 @@ namespace direct_bt {
              * The corresponding management event will be received separately.
              * </p>
              */
-            std::shared_ptr<NameAndShortName> setLocalName(const std::string &name, const std::string &short_name);
+            std::shared_ptr<NameAndShortName> setLocalName(const std::string &name, const std::string &short_name) noexcept;
 
             /**
              * Set the power state of the adapter.
              */
-            void setPowered(bool value);
+            void setPowered(bool value) noexcept;
 
             /**
              * Set the discoverable state of the adapter.
              */
-            void setDiscoverable(bool value);
+            void setDiscoverable(bool value) noexcept;
 
             /**
              * Set the bondable (aka pairable) state of the adapter.
              */
-            void setBondable(bool value);
+            void setBondable(bool value) noexcept;
 
             /**
              * Returns a reference to the used singleton DBTManager instance.
              */
-            DBTManager& getManager() const { return mgmt; }
+            DBTManager& getManager() const noexcept { return mgmt; }
 
             /**
              * Returns the already open or newly opened HCIHandler or {@code nullptr} if not available.
@@ -351,7 +351,7 @@ namespace direct_bt {
             /**
              * Returns true, if the adapter's device is already whitelisted.
              */
-            bool isDeviceWhitelisted(const EUI48 &address);
+            bool isDeviceWhitelisted(const EUI48 &address) noexcept;
 
             /**
              * Add the given device to the adapter's autoconnect whitelist.
@@ -474,21 +474,21 @@ namespace direct_bt {
             /**
              * Returns the meta discovering state. It can be modified through startDiscovery(..) and stopDiscovery().
              */
-            ScanType getDiscoveringScanType() const {
+            ScanType getDiscoveringScanType() const noexcept {
                 return currentMetaScanType;
             }
 
             /**
              * Returns the adapter's native discovering state. It can be modified through startDiscovery(..) and stopDiscovery().
              */
-            ScanType getNativeDiscoveringScanType() const {
+            ScanType getNativeDiscoveringScanType() const noexcept{
                 return currentNativeScanType;
             }
 
             /**
              * Returns the meta discovering state. It can be modified through startDiscovery(..) and stopDiscovery().
              */
-            bool getDiscovering() const {
+            bool getDiscovering() const noexcept {
                 return ScanType::NONE != currentMetaScanType;
             }
 
@@ -502,21 +502,21 @@ namespace direct_bt {
              * use 'DeviceStatusListener::deviceFound(..)' callback.
              * </p>
              */
-            std::vector<std::shared_ptr<DBTDevice>> getDiscoveredDevices() const;
+            std::vector<std::shared_ptr<DBTDevice>> getDiscoveredDevices() const noexcept;
 
             /** Discards all discovered devices. Returns number of removed discovered devices. */
-            int removeDiscoveredDevices();
+            int removeDiscoveredDevices() noexcept;
 
             /** Returns shared DBTDevice if found, otherwise nullptr */
-            std::shared_ptr<DBTDevice> findDiscoveredDevice (EUI48 const & mac, const BDAddressType macType);
+            std::shared_ptr<DBTDevice> findDiscoveredDevice (EUI48 const & mac, const BDAddressType macType) noexcept;
 
-            std::string toString() const override;
+            std::string toString() const noexcept override;
 
             /**
              * This is a debug facility only, to observe consistency
              * of the internally maintained lists of shared_ptr<DBTDevice>.
              */
-            void printSharedPtrListOfDevices();
+            void printSharedPtrListOfDevices() noexcept;
     };
 
 } // namespace direct_bt
