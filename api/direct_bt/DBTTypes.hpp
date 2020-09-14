@@ -71,7 +71,7 @@ namespace direct_bt {
                 valid = false;
             }
 
-            inline bool isValid() const { return valid.load(); }
+            inline bool isValid() const noexcept { return valid.load(); }
 
             /**
              * Throws an IllegalStateException if isValid() == false
@@ -99,18 +99,18 @@ namespace direct_bt {
             int8_t max_tx_power;
 
         public:
-            static int minimumDataSize() { return 6 + 1 + 1 + 1 + 1; }
+            static int minimumDataSize() noexcept { return 6 + 1 + 1 + 1 + 1; }
 
-            ConnectionInfo(const EUI48 &address, BDAddressType addressType, int8_t rssi, int8_t tx_power, int8_t max_tx_power)
+            ConnectionInfo(const EUI48 &address, BDAddressType addressType, int8_t rssi, int8_t tx_power, int8_t max_tx_power) noexcept
             : address(address), addressType(addressType), rssi(rssi), tx_power(tx_power), max_tx_power(max_tx_power) {}
 
-            const EUI48 getAddress() const { return address; }
-            BDAddressType getAddressType() const { return addressType; }
-            int8_t getRSSI() const { return rssi; }
-            int8_t getTxPower() const { return tx_power; }
-            int8_t getMaxTxPower() const { return max_tx_power; }
+            const EUI48 getAddress() const noexcept { return address; }
+            BDAddressType getAddressType() const noexcept { return addressType; }
+            int8_t getRSSI() const noexcept { return rssi; }
+            int8_t getTxPower() const noexcept { return tx_power; }
+            int8_t getMaxTxPower() const noexcept { return max_tx_power; }
 
-            std::string toString() const {
+            std::string toString() const noexcept {
                 return "address="+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
                        ", rssi "+std::to_string(rssi)+
                        ", tx_power[set "+std::to_string(tx_power)+", max "+std::to_string(tx_power)+"]";
@@ -127,20 +127,20 @@ namespace direct_bt {
             std::string short_name;
 
         protected:
-            void setName(const std::string v) { name = v; }
-            void setShortName(const std::string v) { short_name = v; }
+            void setName(const std::string v) noexcept { name = v; }
+            void setShortName(const std::string v) noexcept { short_name = v; }
 
         public:
-            NameAndShortName()
+            NameAndShortName() noexcept
             : name(), short_name() {}
 
-            NameAndShortName(const std::string & name, const std::string & short_name)
+            NameAndShortName(const std::string & name, const std::string & short_name) noexcept
             : name(name), short_name(short_name) {}
 
-            std::string getName() const { return name; }
-            std::string getShortName() const { return short_name; }
+            std::string getName() const noexcept { return name; }
+            std::string getShortName() const noexcept { return short_name; }
 
-            std::string toString() const {
+            std::string toString() const noexcept {
                 return "name '"+getName()+"', shortName '"+getShortName()+"'";
             }
     };
@@ -165,28 +165,28 @@ namespace direct_bt {
         STATIC_ADDRESS     = 0x00008000,
         PHY_CONFIGURATION  = 0x00010000
     };
-    inline AdapterSetting operator ^(const AdapterSetting lhs, const AdapterSetting rhs) {
+    inline AdapterSetting operator ^(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
         return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) ^ static_cast<uint32_t>(rhs) );
     }
-    inline AdapterSetting operator |(const AdapterSetting lhs, const AdapterSetting rhs) {
+    inline AdapterSetting operator |(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
         return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs) );
     }
-    inline AdapterSetting operator &(const AdapterSetting lhs, const AdapterSetting rhs) {
+    inline AdapterSetting operator &(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
         return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs) );
     }
-    inline bool operator ==(const AdapterSetting lhs, const AdapterSetting rhs) {
+    inline bool operator ==(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
         return static_cast<uint32_t>(lhs) == static_cast<uint32_t>(rhs);
     }
-    inline bool operator !=(const AdapterSetting lhs, const AdapterSetting rhs) {
+    inline bool operator !=(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
         return !( lhs == rhs );
     }
-    inline bool isAdapterSettingSet(const AdapterSetting mask, const AdapterSetting bit) { return AdapterSetting::NONE != ( mask & bit ); }
-    inline void setAdapterSettingSet(AdapterSetting &mask, const AdapterSetting bit) { mask = mask | bit; }
-    std::string getAdapterSettingBitString(const AdapterSetting settingBit);
-    std::string getAdapterSettingsString(const AdapterSetting settingBitMask);
+    inline bool isAdapterSettingSet(const AdapterSetting mask, const AdapterSetting bit) noexcept { return AdapterSetting::NONE != ( mask & bit ); }
+    inline void setAdapterSettingSet(AdapterSetting &mask, const AdapterSetting bit) noexcept { mask = mask | bit; }
+    std::string getAdapterSettingBitString(const AdapterSetting settingBit) noexcept;
+    std::string getAdapterSettingsString(const AdapterSetting settingBitMask) noexcept;
 
     /** Maps the given {@link AdapterSetting} to {@link BTMode} */
-    BTMode getAdapterSettingsBTMode(const AdapterSetting settingMask);
+    BTMode getAdapterSettingsBTMode(const AdapterSetting settingMask) noexcept;
 
     class AdapterInfo
     {
@@ -209,7 +209,7 @@ namespace direct_bt {
             /**
              * Sets the current_setting and returns the changed AdapterSetting bit-mask.
              */
-            AdapterSetting setCurrentSetting(AdapterSetting new_setting) {
+            AdapterSetting setCurrentSetting(AdapterSetting new_setting) noexcept {
                 new_setting = new_setting & supported_setting;
                 AdapterSetting changes = new_setting ^ current_setting;
 
@@ -218,33 +218,33 @@ namespace direct_bt {
                 }
                 return changes;
             }
-            void setDevClass(const uint32_t v) { dev_class = v; }
-            void setName(const std::string v) { name = v; }
-            void setShortName(const std::string v) { short_name = v; }
+            void setDevClass(const uint32_t v) noexcept { dev_class = v; }
+            void setName(const std::string v) noexcept { name = v; }
+            void setShortName(const std::string v) noexcept { short_name = v; }
 
         public:
             AdapterInfo(const int dev_id, const EUI48 & address,
                         const uint8_t version, const uint16_t manufacturer,
                         const AdapterSetting supported_setting, const AdapterSetting current_setting,
-                        const uint32_t dev_class, const std::string & name, const std::string & short_name)
+                        const uint32_t dev_class, const std::string & name, const std::string & short_name) noexcept
             : dev_id(dev_id), address(address), version(version),
               manufacturer(manufacturer), supported_setting(supported_setting),
               current_setting(current_setting), dev_class(dev_class),
               name(name), short_name(short_name)
             { }
 
-            bool isSettingSupported(const AdapterSetting setting) const {
+            bool isSettingSupported(const AdapterSetting setting) const noexcept {
                 return setting == ( setting & supported_setting );
             }
-            AdapterSetting getCurrentSetting() const { return current_setting; }
-            uint32_t getDevClass() const { return dev_class; }
-            std::string getName() const { return name; }
-            std::string getShortName() const { return short_name; }
+            AdapterSetting getCurrentSetting() const noexcept { return current_setting; }
+            uint32_t getDevClass() const noexcept { return dev_class; }
+            std::string getName() const noexcept { return name; }
+            std::string getShortName() const noexcept { return short_name; }
 
             /** Map {@link #getCurrentSetting()} to {@link BTMode} */
-            BTMode getCurrentBTMode() const { return getAdapterSettingsBTMode(current_setting); }
+            BTMode getCurrentBTMode() const noexcept { return getAdapterSettingsBTMode(current_setting); }
 
-            std::string toString() const {
+            std::string toString() const noexcept {
                 return "Adapter[id "+std::to_string(dev_id)+", address "+address.toString()+", version "+std::to_string(version)+
                         ", manuf "+std::to_string(manufacturer)+
                         ", settings[sup "+getAdapterSettingsString(supported_setting)+", cur "+getAdapterSettingsString(current_setting)+
