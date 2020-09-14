@@ -247,7 +247,7 @@ namespace direct_bt {
             std::recursive_mutex mtx_callbackLists;
             inline void checkMgmtEventCallbackListsIndex(const MgmtEvent::Opcode opc) const {
                 if( static_cast<uint16_t>(opc) >= mgmtEventCallbackLists.size() ) {
-                    throw IndexOutOfBoundsException(static_cast<uint16_t>(opc), 1, mgmtEventCallbackLists.size(), E_FILE_LINE);
+                    throw IndexOutOfBoundsException(static_cast<uint16_t>(opc), mgmtEventCallbackLists.size(), E_FILE_LINE);
                 }
             }
             std::shared_ptr<MgmtEvent> translate(std::shared_ptr<HCIEvent> ev);

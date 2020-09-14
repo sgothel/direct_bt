@@ -82,7 +82,7 @@ using namespace direct_bt;
 
 #define MGMT_STATUS_CASE_TO_STRING(V) case MgmtStatus::V: return #V;
 
-std::string direct_bt::getMgmtStatusString(const MgmtStatus opc) {
+std::string direct_bt::getMgmtStatusString(const MgmtStatus opc) noexcept {
     switch(opc) {
         MGMT_STATUS_ENUM(MGMT_STATUS_CASE_TO_STRING)
         default: ; // fall through intended
@@ -168,7 +168,7 @@ std::string direct_bt::getMgmtStatusString(const MgmtStatus opc) {
 
 #define MGMT_OPCODE_CASE_TO_STRING(V) case MgmtOpcode::V: return #V;
 
-std::string direct_bt::getMgmtOpcodeString(const MgmtOpcode op) {
+std::string direct_bt::getMgmtOpcodeString(const MgmtOpcode op) noexcept {
     switch(op) {
         MGMT_OPCODE_ENUM(MGMT_OPCODE_CASE_TO_STRING)
         default: ; // fall through intended
@@ -223,7 +223,7 @@ std::string direct_bt::getMgmtOpcodeString(const MgmtOpcode op) {
 
 #define MGMT_EV_OPCODE_CASE_TO_STRING(V) case MgmtEvent::Opcode::V: return #V;
 
-std::string MgmtEvent::getOpcodeString(const Opcode opc) {
+std::string MgmtEvent::getOpcodeString(const Opcode opc) noexcept {
     switch(opc) {
         MGMT_EV_OPCODE_ENUM(MGMT_EV_OPCODE_CASE_TO_STRING)
         default: ; // fall through intended
@@ -231,11 +231,11 @@ std::string MgmtEvent::getOpcodeString(const Opcode opc) {
     return "Unknown Opcode";
 }
 
-MgmtEvent* MgmtEvent::getSpecialized(const uint8_t * buffer, int const buffer_size) {
+MgmtEvent* MgmtEvent::getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept {
     const MgmtEvent::Opcode opc = static_cast<MgmtEvent::Opcode>( get_uint16(buffer, 0, true /* littleEndian */) );
     switch( opc ) {
         case MgmtEvent::Opcode::CMD_COMPLETE:
-            if( buffer_size >= MgmtEvtAdapterInfo::getRequiredSize() ) {
+            if( buffer_size >= MgmtEvtAdapterInfo::getRequiredTotalSize() ) {
                 const MgmtOpcode opc = MgmtEvtCmdComplete::getReqOpcode(buffer);
                 if( MgmtOpcode::READ_INFO == opc ) {
                     return new MgmtEvtAdapterInfo(buffer, buffer_size);
@@ -269,7 +269,7 @@ MgmtEvent* MgmtEvent::getSpecialized(const uint8_t * buffer, int const buffer_si
         case MgmtEvent::Opcode::LOCAL_NAME_CHANGED:
             return new MgmtEvtLocalNameChanged(buffer, buffer_size);
         default:
-            return new MgmtEvent(buffer, buffer_size);
+            return new MgmtEvent(buffer, buffer_size, 0);
     }
 }
 
@@ -277,7 +277,7 @@ MgmtEvent* MgmtEvent::getSpecialized(const uint8_t * buffer, int const buffer_si
 // *************************************************
 // *************************************************
 
-std::shared_ptr<ConnectionInfo> MgmtEvtCmdComplete::toConnectionInfo() const {
+std::shared_ptr<ConnectionInfo> MgmtEvtCmdComplete::toConnectionInfo() const noexcept {
     if( MgmtOpcode::GET_CONN_INFO != getReqOpcode() ) {
         ERR_PRINT("Not a GET_CONN_INFO reply: %s", toString().c_str());
         return nullptr;
@@ -301,7 +301,7 @@ std::shared_ptr<ConnectionInfo> MgmtEvtCmdComplete::toConnectionInfo() const {
     return std::shared_ptr<ConnectionInfo>(new ConnectionInfo(address, addressType, rssi, tx_power, max_tx_power) );
 }
 
-std::shared_ptr<NameAndShortName> MgmtEvtCmdComplete::toNameAndShortName() const {
+std::shared_ptr<NameAndShortName> MgmtEvtCmdComplete::toNameAndShortName() const noexcept {
     if( MgmtOpcode::SET_LOCAL_NAME != getReqOpcode() ) {
         ERR_PRINT("Not a SET_LOCAL_NAME reply: %s", toString().c_str());
         return nullptr;
@@ -324,11 +324,11 @@ std::shared_ptr<NameAndShortName> MgmtEvtCmdComplete::toNameAndShortName() const
     return std::shared_ptr<NameAndShortName>(new NameAndShortName(name, short_name) );
 }
 
-std::shared_ptr<NameAndShortName> MgmtEvtLocalNameChanged::toNameAndShortName() const {
+std::shared_ptr<NameAndShortName> MgmtEvtLocalNameChanged::toNameAndShortName() const noexcept {
     return std::shared_ptr<NameAndShortName>(new NameAndShortName(getName(), getShortName()) );
 }
 
-std::shared_ptr<AdapterInfo> MgmtEvtAdapterInfo::toAdapterInfo() const {
+std::shared_ptr<AdapterInfo> MgmtEvtAdapterInfo::toAdapterInfo() const noexcept {
     return std::shared_ptr<AdapterInfo>(new AdapterInfo(
             getDevID(), getAddress(), getVersion(),
             getManufacturer(), getSupportedSetting(),
@@ -336,7 +336,7 @@ std::shared_ptr<AdapterInfo> MgmtEvtAdapterInfo::toAdapterInfo() const {
             getName(), getShortName()) );
 }
 
-std::string MgmtEvtDeviceDisconnected::getDisconnectReasonString(DisconnectReason mgmtReason) {
+std::string MgmtEvtDeviceDisconnected::getDisconnectReasonString(DisconnectReason mgmtReason) noexcept {
     switch(mgmtReason) {
         case DisconnectReason::TIMEOUT: return "TIMEOUT";
         case DisconnectReason::LOCAL_HOST: return "LOCAL_HOST";
@@ -350,7 +350,7 @@ std::string MgmtEvtDeviceDisconnected::getDisconnectReasonString(DisconnectReaso
     return "Unknown DisconnectReason";
 }
 
-MgmtEvtDeviceDisconnected::DisconnectReason MgmtEvtDeviceDisconnected::getDisconnectReason(HCIStatusCode hciReason) {
+MgmtEvtDeviceDisconnected::DisconnectReason MgmtEvtDeviceDisconnected::getDisconnectReason(HCIStatusCode hciReason) noexcept {
     switch (hciReason) {
         case HCIStatusCode::CONNECTION_TIMEOUT:
             return DisconnectReason::TIMEOUT;
@@ -370,7 +370,7 @@ MgmtEvtDeviceDisconnected::DisconnectReason MgmtEvtDeviceDisconnected::getDiscon
 
     }
 }
-HCIStatusCode MgmtEvtDeviceDisconnected::getHCIReason(DisconnectReason mgmtReason) {
+HCIStatusCode MgmtEvtDeviceDisconnected::getHCIReason(DisconnectReason mgmtReason) noexcept {
     switch(mgmtReason) {
         case DisconnectReason::TIMEOUT: return HCIStatusCode::CONNECTION_TIMEOUT;
         case DisconnectReason::LOCAL_HOST: return HCIStatusCode::CONNECTION_TERMINATED_BY_LOCAL_HOST;
