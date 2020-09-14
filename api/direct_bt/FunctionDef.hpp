@@ -77,26 +77,26 @@ namespace direct_bt {
     template<typename R, typename... A>
     class InvocationFunc {
         protected:
-            InvocationFunc() {}
+            InvocationFunc() noexcept {}
 
         public:
             virtual ~InvocationFunc() noexcept {}
 
-            InvocationFunc(const InvocationFunc &o) = default;
-            InvocationFunc(InvocationFunc &&o) = default;
-            InvocationFunc& operator=(const InvocationFunc &o) = default;
-            InvocationFunc& operator=(InvocationFunc &&o) = default;
+            InvocationFunc(const InvocationFunc &o) noexcept = default;
+            InvocationFunc(InvocationFunc &&o) noexcept = default;
+            InvocationFunc& operator=(const InvocationFunc &o) noexcept = default;
+            InvocationFunc& operator=(InvocationFunc &&o) noexcept = default;
 
             /** Poor man's RTTI */
-            virtual int getType() const = 0;
+            virtual int getType() const noexcept = 0;
 
-            virtual InvocationFunc<R, A...> * clone() const = 0;
+            virtual InvocationFunc<R, A...> * clone() const noexcept = 0;
 
             virtual R invoke(A... args) = 0;
 
-            virtual bool operator==(const InvocationFunc<R, A...>& rhs) const = 0;
+            virtual bool operator==(const InvocationFunc<R, A...>& rhs) const noexcept = 0;
 
-            virtual bool operator!=(const InvocationFunc<R, A...>& rhs) const = 0;
+            virtual bool operator!=(const InvocationFunc<R, A...>& rhs) const noexcept = 0;
 
             virtual std::string toString() const = 0;
     };
@@ -104,22 +104,22 @@ namespace direct_bt {
     template<typename R, typename C, typename... A>
     class NullInvocationFunc : public InvocationFunc<R, A...> {
         public:
-            NullInvocationFunc() { }
+            NullInvocationFunc() noexcept { }
 
-            int getType() const override { return 0; }
+            int getType() const noexcept override { return 0; }
 
-            InvocationFunc<R, A...> clone() const override { return NullInvocationFunc(); }
+            InvocationFunc<R, A...> clone() const noexcept override { return NullInvocationFunc(); }
 
             R invoke(A... args) override {
                 return (R)0;
             }
 
-            bool operator==(const InvocationFunc<R, A...>& rhs) const override
+            bool operator==(const InvocationFunc<R, A...>& rhs) const noexcept override
             {
                 return getType() == rhs.getType();
             }
 
-            bool operator!=(const InvocationFunc<R, A...>& rhs) const override
+            bool operator!=(const InvocationFunc<R, A...>& rhs) const noexcept override
             {
                 return !( *this == rhs );
             }
@@ -136,19 +136,19 @@ namespace direct_bt {
             R(C::*member)(A...);
 
         public:
-            ClassInvocationFunc(C *_base, R(C::*_member)(A...))
+            ClassInvocationFunc(C *_base, R(C::*_member)(A...)) noexcept
             : base(_base), member(_member) {
             }
 
-            int getType() const override { return 1; }
+            int getType() const noexcept override { return 1; }
 
-            InvocationFunc<R, A...> * clone() const override { return new ClassInvocationFunc(*this); }
+            InvocationFunc<R, A...> * clone() const noexcept override { return new ClassInvocationFunc(*this); }
 
             R invoke(A... args) override {
                 return (base->*member)(args...);
             }
 
-            bool operator==(const InvocationFunc<R, A...>& rhs) const override
+            bool operator==(const InvocationFunc<R, A...>& rhs) const noexcept override
             {
                 if( &rhs == this ) {
                     return true;
@@ -160,7 +160,7 @@ namespace direct_bt {
                 return base == prhs->base && member == prhs->member;
             }
 
-            bool operator!=(const InvocationFunc<R, A...>& rhs) const override
+            bool operator!=(const InvocationFunc<R, A...>& rhs) const noexcept override
             {
                 return !( *this == rhs );
             }
@@ -177,19 +177,19 @@ namespace direct_bt {
             R(*function)(A...);
 
         public:
-            PlainInvocationFunc(R(*_function)(A...))
+            PlainInvocationFunc(R(*_function)(A...)) noexcept
             : function(_function) {
             }
 
-            int getType() const override { return 2; }
+            int getType() const noexcept override { return 2; }
 
-            InvocationFunc<R, A...> * clone() const override { return new PlainInvocationFunc(*this); }
+            InvocationFunc<R, A...> * clone() const noexcept override { return new PlainInvocationFunc(*this); }
 
             R invoke(A... args) override {
                 return (*function)(args...);
             }
 
-            bool operator==(const InvocationFunc<R, A...>& rhs) const override
+            bool operator==(const InvocationFunc<R, A...>& rhs) const noexcept override
             {
                 if( &rhs == this ) {
                     return true;
@@ -201,7 +201,7 @@ namespace direct_bt {
                 return function == prhs->function;
             }
 
-            bool operator!=(const InvocationFunc<R, A...>& rhs) const override
+            bool operator!=(const InvocationFunc<R, A...>& rhs) const noexcept override
             {
                 return !( *this == rhs );
             }
@@ -221,24 +221,24 @@ namespace direct_bt {
 
         public:
             /** Utilizes copy-ctor from 'const I& _data' */
-            CaptureInvocationFunc(const I& _data, R(*_function)(I&, A...), bool dataIsIdentity)
+            CaptureInvocationFunc(const I& _data, R(*_function)(I&, A...), bool dataIsIdentity) noexcept
             : data(_data), function(_function), dataIsIdentity(dataIsIdentity) {
             }
 
             /** Utilizes move-ctor from moved 'I&& _data' */
-            CaptureInvocationFunc(I&& _data, R(*_function)(I&, A...), bool dataIsIdentity)
+            CaptureInvocationFunc(I&& _data, R(*_function)(I&, A...), bool dataIsIdentity) noexcept
             : data(std::move(_data)), function(_function), dataIsIdentity(dataIsIdentity) {
             }
 
-            int getType() const override { return 3; }
+            int getType() const noexcept override { return 3; }
 
-            InvocationFunc<R, A...> * clone() const override { return new CaptureInvocationFunc(*this); }
+            InvocationFunc<R, A...> * clone() const noexcept override { return new CaptureInvocationFunc(*this); }
 
             R invoke(A... args) override {
                 return (*function)(data, args...);
             }
 
-            bool operator==(const InvocationFunc<R, A...>& rhs) const override
+            bool operator==(const InvocationFunc<R, A...>& rhs) const noexcept override
             {
                 if( &rhs == this ) {
                     return true;
@@ -250,7 +250,7 @@ namespace direct_bt {
                 return dataIsIdentity == prhs->dataIsIdentity && function == prhs->function && ( !dataIsIdentity || data == prhs->data );
             }
 
-            bool operator!=(const InvocationFunc<R, A...>& rhs) const override
+            bool operator!=(const InvocationFunc<R, A...>& rhs) const noexcept override
             {
                 return !( *this == rhs );
             }
@@ -268,22 +268,22 @@ namespace direct_bt {
             std::function<R(A...)> function;
 
         public:
-            StdInvocationFunc(uint64_t _id, std::function<R(A...)> _function)
+            StdInvocationFunc(uint64_t _id, std::function<R(A...)> _function) noexcept
             : id(_id), function(_function) {
             }
-            StdInvocationFunc(uint64_t _id)
+            StdInvocationFunc(uint64_t _id) noexcept
             : id(_id), function() {
             }
 
-            int getType() const override { return 10; }
+            int getType() const noexcept override { return 10; }
 
-            InvocationFunc<R, A...> * clone() const override { return new StdInvocationFunc(*this); }
+            InvocationFunc<R, A...> * clone() const noexcept override { return new StdInvocationFunc(*this); }
 
             R invoke(A... args) override {
                 return function(args...);
             }
 
-            bool operator==(const InvocationFunc<R, A...>& rhs) const override
+            bool operator==(const InvocationFunc<R, A...>& rhs) const noexcept override
             {
                 if( &rhs == this ) {
                     return true;
@@ -295,7 +295,7 @@ namespace direct_bt {
                 return id == prhs->id;
             }
 
-            bool operator!=(const InvocationFunc<R, A...>& rhs) const override
+            bool operator!=(const InvocationFunc<R, A...>& rhs) const noexcept override
             {
                 return !( *this == rhs );
             }
@@ -314,14 +314,14 @@ namespace direct_bt {
             /**
              * Constructs an instance with a null function.
              */
-            FunctionDef()
+            FunctionDef() noexcept
             : func(std::shared_ptr<InvocationFunc<R, A...>>( new NullInvocationFunc<R, A...>() ))
             {};
 
             /**
              * Constructs an instance using the shared InvocationFunc<R, A...> function.
              */
-            FunctionDef(std::shared_ptr<InvocationFunc<R, A...>> _func)
+            FunctionDef(std::shared_ptr<InvocationFunc<R, A...>> _func) noexcept
             : func(_func) { }
 
             /**
@@ -331,25 +331,25 @@ namespace direct_bt {
              * A convenience method.
              * </p.
              */
-            FunctionDef(InvocationFunc<R, A...> * _funcPtr)
+            FunctionDef(InvocationFunc<R, A...> * _funcPtr) noexcept
             : func(std::shared_ptr<InvocationFunc<R, A...>>(_funcPtr)) { }
 
-            FunctionDef(const FunctionDef &o) = default;
-            FunctionDef(FunctionDef &&o) = default;
-            FunctionDef& operator=(const FunctionDef &o) = default;
-            FunctionDef& operator=(FunctionDef &&o) = default;
+            FunctionDef(const FunctionDef &o) noexcept = default;
+            FunctionDef(FunctionDef &&o) noexcept = default;
+            FunctionDef& operator=(const FunctionDef &o) noexcept = default;
+            FunctionDef& operator=(FunctionDef &&o) noexcept= default;
 
-            bool operator==(const FunctionDef<R, A...>& rhs) const
+            bool operator==(const FunctionDef<R, A...>& rhs) const noexcept
             { return *func == *rhs.func; }
 
-            bool operator!=(const FunctionDef<R, A...>& rhs) const
+            bool operator!=(const FunctionDef<R, A...>& rhs) const noexcept
             { return *func != *rhs.func; }
 
             /** Returns the shared InvocationFunc<R, A...> function */
-            std::shared_ptr<InvocationFunc<R, A...>> getFunction() { return func; }
+            std::shared_ptr<InvocationFunc<R, A...>> getFunction() noexcept { return func; }
 
             /** Returns a new instance of the held InvocationFunc<R, A...> function. */
-            InvocationFunc<R, A...> * cloneFunction() const { return func->clone(); }
+            InvocationFunc<R, A...> * cloneFunction() const noexcept { return func->clone(); }
 
             std::string toString() const {
                 return "FunctionDef["+func->toString()+"]";
@@ -362,13 +362,13 @@ namespace direct_bt {
 
     template<typename R, typename C, typename... A>
     inline FunctionDef<R, A...>
-    bindMemberFunc(C *base, R(C::*mfunc)(A...)) {
+    bindMemberFunc(C *base, R(C::*mfunc)(A...)) noexcept {
         return FunctionDef<R, A...>( new ClassInvocationFunc<R, C, A...>(base, mfunc) );
     }
 
     template<typename R, typename... A>
     inline FunctionDef<R, A...>
-    bindPlainFunc(R(*func)(A...)) {
+    bindPlainFunc(R(*func)(A...)) noexcept {
         return FunctionDef<R, A...>( new PlainInvocationFunc<R, A...>(func) );
     }
 
@@ -381,7 +381,7 @@ namespace direct_bt {
      */
     template<typename R, typename I, typename... A>
     inline FunctionDef<R, A...>
-    bindCaptureFunc(const I& data, R(*func)(I&, A...), bool dataIsIdentity=true) {
+    bindCaptureFunc(const I& data, R(*func)(I&, A...), bool dataIsIdentity=true) noexcept {
         return FunctionDef<R, A...>( new CaptureInvocationFunc<R, I, A...>(data, func, dataIsIdentity) );
     }
 
@@ -393,18 +393,18 @@ namespace direct_bt {
      */
     template<typename R, typename I, typename... A>
     inline FunctionDef<R, A...>
-    bindCaptureFunc(I&& data, R(*func)(I&, A...), bool dataIsIdentity=true) {
+    bindCaptureFunc(I&& data, R(*func)(I&, A...), bool dataIsIdentity=true) noexcept {
         return FunctionDef<R, A...>( new CaptureInvocationFunc<R, I, A...>(std::move(data), func, dataIsIdentity) );
     }
 
     template<typename R, typename... A>
     inline FunctionDef<R, A...>
-    bindStdFunc(uint64_t id, std::function<R(A...)> func) {
+    bindStdFunc(uint64_t id, std::function<R(A...)> func) noexcept {
         return FunctionDef<R, A...>( new StdInvocationFunc<R, A...>(id, func) );
     }
     template<typename R, typename... A>
     inline FunctionDef<R, A...>
-    bindStdFunc(uint64_t id) {
+    bindStdFunc(uint64_t id) noexcept {
         return FunctionDef<R, A...>( new StdInvocationFunc<R, A...>(id) );
     }
 
