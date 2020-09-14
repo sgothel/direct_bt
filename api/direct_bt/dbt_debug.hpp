@@ -66,7 +66,7 @@ namespace direct_bt {
     void ERR_PRINT2(const char *file, const int line, const char * format, ...) noexcept;
 
     /** Use for unconditional error messages, prefix '[elapsed_time] Error @ FILE:LINE: '. Function also appends last errno and strerror(errno). */
-    #define ERR_PRINT(...) { ERR_PRINT2(__FILE__, __LINE__, __VA_ARGS__); }
+    #define ERR_PRINT(...) { direct_bt::ERR_PRINT2(__FILE__, __LINE__, __VA_ARGS__); }
 
     /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ file:line: ' */
     void WARN_PRINTv(const char *file, const int line, const char * format, va_list args) noexcept;
@@ -75,7 +75,7 @@ namespace direct_bt {
     void WARN_PRINT2(const char *file, const int line, const char * format, ...) noexcept;
 
     /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ FILE:LINE: ' */
-    #define WARN_PRINT(...) { WARN_PRINT2(__FILE__, __LINE__, __VA_ARGS__); }
+    #define WARN_PRINT(...) { direct_bt::WARN_PRINT2(__FILE__, __LINE__, __VA_ARGS__); }
 
     /** Use for unconditional plain messages, prefix '[elapsed_time] '. */
     void PLAIN_PRINT(const char * format, ...) noexcept;
