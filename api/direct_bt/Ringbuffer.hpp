@@ -51,16 +51,16 @@ namespace direct_bt {
  */
 template <class T> class Ringbuffer {
     public:
-        virtual ~Ringbuffer() {}
+        virtual ~Ringbuffer() noexcept {}
 
         /** Returns a short string representation incl. size/capacity and internal r/w index (impl. dependent). */
-        virtual std::string toString() const = 0;
+        virtual std::string toString() const noexcept = 0;
 
         /** Debug functionality - Dumps the contents of the internal array. */
-        virtual void dump(FILE *stream, std::string prefix) const = 0;
+        virtual void dump(FILE *stream, std::string prefix) const noexcept = 0;
 
         /** Returns the net capacity of this ring buffer. */
-        virtual int capacity() const = 0;
+        virtual int capacity() const noexcept = 0;
 
         /**
          * Releasing all elements by assigning <code>null</code>.
@@ -69,26 +69,26 @@ template <class T> class Ringbuffer {
          * {@link #getSize()} will return <code>0</code> after calling this method.
          * </p>
          */
-        virtual void clear() = 0;
+        virtual void clear() noexcept = 0;
 
         /**
          * {@link #clear()} all elements and add all <code>copyFrom</code> elements thereafter.
          * @param copyFrom Mandatory array w/ length {@link #capacity()} to be copied into the internal array.
          */
-        virtual void reset(const T * copyFrom, const int copyFromCount) = 0;
-        virtual void reset(const std::vector<T> & copyFrom) = 0;
+        virtual void reset(const T * copyFrom, const int copyFromCount) noexcept = 0;
+        virtual void reset(const std::vector<T> & copyFrom) noexcept = 0;
 
         /** Returns the number of elements in this ring buffer. */
-        virtual int getSize() const = 0;
+        virtual int getSize() const noexcept = 0;
 
         /** Returns the number of free slots available to put.  */
-        virtual int getFreeSlots() const = 0;
+        virtual int getFreeSlots() const noexcept = 0;
 
         /** Returns true if this ring buffer is empty, otherwise false. */
-        virtual bool isEmpty() const = 0;
+        virtual bool isEmpty() const noexcept = 0;
 
         /** Returns true if this ring buffer is full, otherwise false. */
-        virtual bool isFull() const = 0;
+        virtual bool isFull() const noexcept = 0;
 
         /**
          * Dequeues the oldest enqueued element if available, otherwise null.
@@ -101,7 +101,7 @@ template <class T> class Ringbuffer {
          * </p>
          * @return the oldest put element if available, otherwise null.
          */
-        virtual T get() = 0;
+        virtual T get() noexcept = 0;
 
         /**
          * Dequeues the oldest enqueued element.
@@ -117,13 +117,13 @@ template <class T> class Ringbuffer {
          * @return the oldest put element or <code>null</code> if timeout occurred.
          * @throws InterruptedException
          */
-        virtual T getBlocking(const int timeoutMS=0) /* throws InterruptedException */ = 0;
+        virtual T getBlocking(const int timeoutMS=0) noexcept = 0;
 
         /**
          * Peeks the next element at the read position w/o modifying pointer, nor blocking.
          * @return <code>null</code> if empty, otherwise the element which would be read next.
          */
-        virtual T peek() = 0;
+        virtual T peek() noexcept = 0;
 
         /**
          * Peeks the next element at the read position w/o modifying pointer, but with blocking.
@@ -134,7 +134,7 @@ template <class T> class Ringbuffer {
          * </p>
          * @return <code>null</code> if empty or timeout occurred, otherwise the element which would be read next.
          */
-        virtual T peekBlocking(const int timeoutMS=0) /* throws InterruptedException */ = 0;
+        virtual T peekBlocking(const int timeoutMS=0) noexcept = 0;
 
         /**
          * Drops up to {@code count} oldest enqueued elements.
@@ -144,7 +144,7 @@ template <class T> class Ringbuffer {
          * @param count maximum number of elements to drop from ringbuffer.
          * @return actual number of dropped elements.
          */
-        virtual int drop(const int count) = 0;
+        virtual int drop(const int count) noexcept = 0;
 
         /**
          * Enqueues the given element.
@@ -155,7 +155,7 @@ template <class T> class Ringbuffer {
          * Method is non blocking and returns immediately;.
          * </p>
          */
-        virtual bool put(const T & e) = 0;
+        virtual bool put(const T & e) noexcept = 0;
 
         /**
          * Enqueues the given element.
@@ -168,7 +168,7 @@ template <class T> class Ringbuffer {
          * Returns true if successful, otherwise false in case timeout occurred.
          * </p>
          */
-        virtual bool putBlocking(const T & e, const int timeoutMS=0) = 0;
+        virtual bool putBlocking(const T & e, const int timeoutMS=0) noexcept = 0;
 
         /**
          * Enqueues the same element at it's write position, if not full.
@@ -180,7 +180,7 @@ template <class T> class Ringbuffer {
          * </p>
          * @throws InterruptedException
          */
-        virtual bool putSame() = 0;
+        virtual bool putSame() noexcept = 0;
 
         /**
          * Enqueues the same element at it's write position, if not full.
@@ -194,13 +194,13 @@ template <class T> class Ringbuffer {
          * </p>
          * @throws InterruptedException
          */
-        virtual bool putSameBlocking(const int timeoutMS=0) = 0;
+        virtual bool putSameBlocking(const int timeoutMS=0) noexcept = 0;
 
         /**
          * Blocks until at least <code>count</code> free slots become available.
          * @throws InterruptedException
          */
-        virtual void waitForFreeSlots(const int count) /* throws InterruptedException */ = 0;
+        virtual void waitForFreeSlots(const int count) noexcept = 0;
 
         /**
          * Resizes this ring buffer's capacity.

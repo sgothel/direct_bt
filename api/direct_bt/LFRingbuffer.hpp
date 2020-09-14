@@ -36,6 +36,8 @@
 #include <chrono>
 #include <algorithm>
 
+#include "dbt_debug.hpp"
+
 #include "BasicTypes.hpp"
 
 #include "Ringbuffer.hpp"
@@ -92,14 +94,14 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
         std::atomic<int> writePos;
         std::atomic<int> size;
 
-        T * newArray(const int count) {
+        T * newArray(const int count) noexcept {
             return new T[count];
         }
-        void freeArray(T * a) {
+        void freeArray(T * a) noexcept {
             delete[] a;
         }
 
-        void cloneFrom(const bool allocArrayAndCapacity, const LFRingbuffer & source) {
+        void cloneFrom(const bool allocArrayAndCapacity, const LFRingbuffer & source) noexcept {
             if( allocArrayAndCapacity ) {
                 capacityPlusOne = source.capacityPlusOne;
                 if( nullptr != array ) {
@@ -123,7 +125,7 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
             }
         }
 
-        void resetImpl(const T * copyFrom, const int copyFromCount) /* throws IllegalArgumentException */ {
+        void clearImpl() noexcept {
             // clear all elements, zero size
             if( 0 < size ) {
                 int localReadPos = readPos;
@@ -132,16 +134,27 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
                     array[localReadPos] = nullelem;
                 }
                 if( writePos != localReadPos ) {
-                    throw InternalError("copy segment error: this "+toString()+", localReadPos "+std::to_string(localReadPos)+"; source count "+std::to_string(copyFromCount), E_FILE_LINE);
+                    // Avoid exception, abort!
+                    ERR_PRINT("Internal Error: copy segment error: this %s, readPos %d/%d; writePos %d",
+                            toString().c_str(), readPos.load(), localReadPos, writePos.load());
+                    abort();
                 }
                 readPos = localReadPos;
                 size = 0;
             }
+        }
+
+        void resetImpl(const T * copyFrom, const int copyFromCount) noexcept {
+            clearImpl();
 
             // fill with copyFrom elements
             if( nullptr != copyFrom && 0 < copyFromCount ) {
                 if( copyFromCount > capacityPlusOne-1 ) {
-                    throw IllegalArgumentException("copyFrom array length "+std::to_string(copyFromCount)+" > capacity "+toString(), E_FILE_LINE);
+                    // new blank resized array
+                    capacityPlusOne = copyFromCount + 1;
+                    array = newArray(capacityPlusOne);
+                    readPos = 0;
+                    writePos = 0;
                 }
                 int localWritePos = writePos;
                 for(int i=0; i<copyFromCount; i++) {
@@ -153,7 +166,7 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
             }
         }
 
-        T getImpl(const bool blocking, const bool peek, const int timeoutMS) {
+        T getImpl(const bool blocking, const bool peek, const int timeoutMS) noexcept {
             std::unique_lock<std::mutex> lockMultiRead(syncMultiRead); // RAII-style acquire and relinquish via destructor
 
             int localReadPos = readPos;
@@ -189,7 +202,7 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
             return r;
         }
 
-        int dropImpl (const int count) {
+        int dropImpl (const int count) noexcept {
             // locks ringbuffer completely (read/write), hence no need for local copy nor wait/sync etc
             std::unique_lock<std::mutex> lockMultiRead(syncMultiRead); // RAII-style acquire and relinquish via destructor
             std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite); // ditto
@@ -207,7 +220,7 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
             return dropCount;
         }
 
-        bool putImpl(const T &e, const bool sameRef, const bool blocking, const int timeoutMS) /* throws InterruptedException */ {
+        bool putImpl(const T &e, const bool sameRef, const bool blocking, const int timeoutMS) noexcept {
             std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite); // RAII-style acquire and relinquish via destructor
 
             int localWritePos = writePos;
@@ -243,14 +256,14 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
         }
 
     public:
-        std::string toString() const override {
+        std::string toString() const noexcept override {
             const std::string es = isEmpty() ? ", empty" : "";
             const std::string fs = isFull() ? ", full" : "";
             return "LFRingbuffer<?>[size "+std::to_string(size)+" / "+std::to_string(capacityPlusOne-1)+
                     ", writePos "+std::to_string(writePos)+", readPos "+std::to_string(readPos)+es+fs+"]";
         }
 
-        void dump(FILE *stream, std::string prefix) const override {
+        void dump(FILE *stream, std::string prefix) const noexcept override {
             fprintf(stream, "%s %s {\n", prefix.c_str(), toString().c_str());
             for(int i=0; i<capacityPlusOne; i++) {
                 // fprintf(stream, "\t[%d]: %p\n", i, array[i].get()); // FIXME
@@ -278,14 +291,14 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
          * @param copyFrom mandatory source array determining ring buffer's net {@link #capacity()} and initial content.
          * @throws IllegalArgumentException if <code>copyFrom</code> is <code>nullptr</code>
          */
-        LFRingbuffer(const std::vector<T> & copyFrom) /* throws IllegalArgumentException */
+        LFRingbuffer(const std::vector<T> & copyFrom) noexcept
         : capacityPlusOne(copyFrom.size() + 1), array(newArray(capacityPlusOne)),
           readPos(0), writePos(0), size(0)
         {
             resetImpl(copyFrom.data(), copyFrom.size());
         }
 
-        LFRingbuffer(const T * copyFrom, const int copyFromSize) /* throws IllegalArgumentException */
+        LFRingbuffer(const T * copyFrom, const int copyFromSize) noexcept
         : capacityPlusOne(copyFromSize + 1), array(newArray(capacityPlusOne)),
           readPos(0), writePos(0), size(0)
         {
@@ -309,12 +322,12 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
          * @param arrayType the array type of the created empty internal array.
          * @param capacity the initial net capacity of the ring buffer
          */
-        LFRingbuffer(const int capacity)
+        LFRingbuffer(const int capacity) noexcept
         : capacityPlusOne(capacity + 1), array(newArray(capacityPlusOne)),
           readPos(0), writePos(0), size(0)
         { }
 
-        ~LFRingbuffer() {
+        ~LFRingbuffer() noexcept {
             freeArray(array);
         }
 
@@ -329,7 +342,7 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
             cloneFrom(false, _source);
         }
 
-        LFRingbuffer& operator=(const LFRingbuffer &_source) {
+        LFRingbuffer& operator=(const LFRingbuffer &_source) noexcept {
             std::unique_lock<std::mutex> lockMultiReadS(_source.syncMultiRead);
             std::unique_lock<std::mutex> lockMultiWriteS(_source.syncMultiWrite);
             std::unique_lock<std::mutex> lockMultiRead(syncMultiRead);
@@ -341,7 +354,7 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
             if( capacityPlusOne != _source.capacityPlusOne ) {
                 cloneFrom(true, _source);
             } else {
-                resetImpl(nullptr, 0 /* empty, nothing to copy */ ); // clear
+                clearImpl(); // clear
                 cloneFrom(false, _source);
             }
             return *this;
@@ -350,69 +363,69 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
         LFRingbuffer(LFRingbuffer &&o) noexcept = default;
         LFRingbuffer& operator=(LFRingbuffer &&o) noexcept = default;
 
-        int capacity() const override { return capacityPlusOne-1; }
+        int capacity() const noexcept override { return capacityPlusOne-1; }
 
-        void clear() override {
+        void clear() noexcept override {
             std::unique_lock<std::mutex> lockMultiRead(syncMultiRead); // RAII-style acquire and relinquish via destructor
             std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite); // ditto
-            resetImpl(nullptr, 0 /* empty, nothing to copy */ );
+            clearImpl();
         }
 
-        void reset(const T * copyFrom, const int copyFromCount) override {
+        void reset(const T * copyFrom, const int copyFromCount) noexcept override {
             std::unique_lock<std::mutex> lockMultiRead(syncMultiRead); // RAII-style acquire and relinquish via destructor
             std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite); // ditto
             resetImpl(copyFrom, copyFromCount);
         }
 
-        void reset(const std::vector<T> & copyFrom) override {
+        void reset(const std::vector<T> & copyFrom) noexcept override {
             std::unique_lock<std::mutex> lockMultiRead(syncMultiRead); // RAII-style acquire and relinquish via destructor
             std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite); // ditto
             resetImpl(copyFrom.data(), copyFrom.size());
         }
 
-        int getSize() const override { return size; }
+        int getSize() const noexcept override { return size; }
 
-        int getFreeSlots() const override { return capacityPlusOne - 1 - size; }
+        int getFreeSlots() const noexcept override { return capacityPlusOne - 1 - size; }
 
-        bool isEmpty() const override { return writePos == readPos; /* 0 == size */ }
+        bool isEmpty() const noexcept override { return writePos == readPos; /* 0 == size */ }
 
-        bool isFull() const override { return ( writePos + 1 ) % capacityPlusOne == readPos ; /* capacityPlusOne - 1 == size */; }
+        bool isFull() const noexcept override { return ( writePos + 1 ) % capacityPlusOne == readPos ; /* capacityPlusOne - 1 == size */; }
 
-        T get() override { return getImpl(false, false, 0); }
+        T get() noexcept override { return getImpl(false, false, 0); }
 
-        T getBlocking(const int timeoutMS=0) override /* throws InterruptedException */ {
+        T getBlocking(const int timeoutMS=0) noexcept override {
             return getImpl(true, false, timeoutMS);
         }
 
-        T peek() override {
+        T peek() noexcept override {
             return getImpl(false, true, 0);
         }
 
-        T peekBlocking(const int timeoutMS=0) override /* throws InterruptedException */ {
+        T peekBlocking(const int timeoutMS=0) noexcept override {
             return getImpl(true, true, timeoutMS);
         }
 
-        int drop(const int count) override {
+        int drop(const int count) noexcept override {
             return dropImpl(count);
         }
 
-        bool put(const T & e) override {
+        bool put(const T & e) noexcept override {
             return putImpl(e, false, false, 0);
         }
 
-        bool putBlocking(const T & e, const int timeoutMS=0) override {
+        bool putBlocking(const T & e, const int timeoutMS=0) noexcept override {
             return !putImpl(e, false, true, timeoutMS);
         }
 
-        bool putSame() override {
+        bool putSame() noexcept override {
             return putImpl(nullelem, true, false, 0);
         }
 
-        bool putSameBlocking(const int timeoutMS=0) override {
+        bool putSameBlocking(const int timeoutMS=0) noexcept override {
             return putImpl(nullelem, true, true, timeoutMS);
         }
 
-        void waitForFreeSlots(const int count) override /* throws InterruptedException */ {
+        void waitForFreeSlots(const int count) noexcept override {
             std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite); // RAII-style acquire and relinquish via destructor
             std::unique_lock<std::mutex> lockRead(syncRead); // RAII-style acquire and relinquish via destructor
 
