@@ -204,7 +204,7 @@ const std::vector<const GattServiceCharacteristic*> direct_bt::GATT_SERVICES = {
 	X(DEVICE_INFORMATION) \
     X(BATTERY_SERVICE)
 
-std::string direct_bt::GattServiceTypeToString(const GattServiceType v) {
+std::string direct_bt::GattServiceTypeToString(const GattServiceType v) noexcept {
     switch(v) {
         SERVICE_TYPE_ENUM(CASE_TO_STRING)
         default: ; // fall through intended
@@ -236,7 +236,7 @@ std::string direct_bt::GattServiceTypeToString(const GattServiceType v) {
     X(PNP_ID)
 
 
-std::string direct_bt::GattCharacteristicTypeToString(const GattCharacteristicType v) {
+std::string direct_bt::GattCharacteristicTypeToString(const GattCharacteristicType v) noexcept {
     switch(v) {
         CHARACTERISTIC_TYPE_ENUM(CASE_TO_STRING)
         default: ; // fall through intended
@@ -256,7 +256,7 @@ std::string direct_bt::GattCharacteristicTypeToString(const GattCharacteristicTy
         X(ReliableWriteExt) \
         X(AuxWriteExt)
 
-std::string direct_bt::GattCharacteristicPropertyToString(const GattCharacteristicProperty v) {
+std::string direct_bt::GattCharacteristicPropertyToString(const GattCharacteristicProperty v) noexcept {
     switch(v) {
         CHARACTERISTIC_PROP_ENUM(CASE_TO_STRING)
         default: ; // fall through intended
@@ -273,7 +273,7 @@ std::string direct_bt::GattCharacteristicPropertyToString(const GattCharacterist
     X(if_notify_or_indicate_supported) \
     X(C1)
 
-std::string direct_bt::GattRequirementSpecToString(const GattRequirementSpec v) {
+std::string direct_bt::GattRequirementSpecToString(const GattRequirementSpec v) noexcept {
     switch(v) {
         REQUIREMENT_SPEC_ENUM(CASE_TO_STRING)
         default: ; // fall through intended
@@ -281,15 +281,15 @@ std::string direct_bt::GattRequirementSpecToString(const GattRequirementSpec v) 
     return "Unknown";
 }
 
-std::string GattCharacteristicPropertySpec::toString() const {
+std::string GattCharacteristicPropertySpec::toString() const noexcept {
     return GattCharacteristicPropertyToString(property)+": "+GattRequirementSpecToString(requirement);
 }
 
-std::string GattClientCharacteristicConfigSpec::toString() const {
+std::string GattClientCharacteristicConfigSpec::toString() const noexcept {
     return "ClientCharCfg["+GattRequirementSpecToString(requirement)+"["+read.toString()+", "+writeWithAck.toString()+"]]";
 }
 
-std::string GattCharacteristicSpec::toString() const {
+std::string GattCharacteristicSpec::toString() const noexcept {
     std::string res = GattCharacteristicTypeToString(characteristic)+": "+GattRequirementSpecToString(requirement)+", Properties[";
     for(size_t i=0; i<propertySpec.size(); i++) {
         if(0<i) {
@@ -301,7 +301,7 @@ std::string GattCharacteristicSpec::toString() const {
     return res;
 }
 
-std::string GattServiceCharacteristic::toString() const {
+std::string GattServiceCharacteristic::toString() const noexcept {
     std::string res = GattServiceTypeToString(service)+": [";
     for(size_t i=0; i<characteristics.size(); i++) {
         if(0<i) {
@@ -313,7 +313,7 @@ std::string GattServiceCharacteristic::toString() const {
     return res;
 }
 
-const GattServiceCharacteristic * direct_bt::findGattServiceChar(const uint16_t uuid16) {
+const GattServiceCharacteristic * direct_bt::findGattServiceChar(const uint16_t uuid16) noexcept {
     for(size_t i=0; i<GATT_SERVICES.size(); i++) {
         const GattServiceCharacteristic & serviceChar = *GATT_SERVICES.at(i);
         if( uuid16 == serviceChar.service ) {
@@ -329,7 +329,7 @@ const GattServiceCharacteristic * direct_bt::findGattServiceChar(const uint16_t 
     return nullptr;
 }
 
-const GattCharacteristicSpec * direct_bt::findGattCharSpec(const uint16_t uuid16) {
+const GattCharacteristicSpec * direct_bt::findGattCharSpec(const uint16_t uuid16) noexcept {
     for(size_t i=0; i<GATT_SERVICES.size(); i++) {
         const GattServiceCharacteristic & serviceChar = *GATT_SERVICES.at(i);
         for(size_t j=0; j<serviceChar.characteristics.size(); j++) {
@@ -346,7 +346,7 @@ const GattCharacteristicSpec * direct_bt::findGattCharSpec(const uint16_t uuid16
 /********************************************************/
 /********************************************************/
 
-std::string direct_bt::GattNameToString(const TROOctets &v) {
+std::string direct_bt::GattNameToString(const TROOctets &v) noexcept {
 	const int str_len = v.getSize();
 	POctets s(str_len+1); // dtor releases chunk
 	memcpy(s.get_wptr(), v.get_ptr(), str_len);
@@ -354,42 +354,42 @@ std::string direct_bt::GattNameToString(const TROOctets &v) {
 	return std::string((const char*)s.get_ptr());
 }
 
-PeriphalPreferredConnectionParameters::PeriphalPreferredConnectionParameters(const TROOctets &source)
+PeriphalPreferredConnectionParameters::PeriphalPreferredConnectionParameters(const TROOctets &source) noexcept
 : minConnectionInterval(source.get_uint16(0)), maxConnectionInterval(source.get_uint16(2)),
   slaveLatency(source.get_uint16(4)), connectionSupervisionTimeoutMultiplier(source.get_uint16(6))
 {
 }
 
-std::string PeriphalPreferredConnectionParameters::toString() const {
+std::string PeriphalPreferredConnectionParameters::toString() const noexcept {
   return "PrefConnectionParam[interval["+
 		  std::to_string(minConnectionInterval)+".."+std::to_string(maxConnectionInterval)+
 		  "], slaveLatency "+std::to_string(slaveLatency)+
 		  ", csTimeoutMul "+std::to_string(connectionSupervisionTimeoutMultiplier)+"]";
 }
 
-std::string GenericAccess::toString() const {
+std::string GenericAccess::toString() const noexcept {
     return "'"+deviceName+"'[appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+"), "+
             prefConnParam.toString()+"]";
 }
 
-PnP_ID::PnP_ID(const TROOctets &source)
+PnP_ID::PnP_ID(const TROOctets &source) noexcept
 : vendor_id_source(source.get_uint8(0)), vendor_id(source.get_uint16(1)),
   product_id(source.get_uint16(3)), product_version(source.get_uint16(5)) {}
 
-std::string PnP_ID::toString() const {
+std::string PnP_ID::toString() const noexcept {
     return "vendor_id[source "+uint8HexString(vendor_id_source, true)+
             ", id "+uint16HexString(vendor_id, true)+
             "], product_id "+uint16HexString(product_id, true)+
             ", product_version "+uint16HexString(product_version, true);
 }
 
-std::string DeviceInformation::toString() const {
+std::string DeviceInformation::toString() const noexcept {
     return "DeviceInfo[manufacturer '"+manufacturer+"', model '"+modelNumber+"', serial '"+serialNumber+"', systemID '"+systemID.toString()+
             "', revisions[firmware '"+firmwareRevision+"', hardware '"+hardwareRevision+"', software '"+softwareRevision+
             "'], pnpID["+pnpID.toString()+"], regCertData '"+regulatoryCertDataList.toString()+"']";
 }
 
-std::shared_ptr<TemperatureMeasurementCharateristic> TemperatureMeasurementCharateristic::get(const TROOctets &source) {
+std::shared_ptr<TemperatureMeasurementCharateristic> TemperatureMeasurementCharateristic::get(const TROOctets &source) noexcept {
     const int size = source.getSize();
     int reqSize = 1 + 4; // max size = 13
     if( reqSize > size ) {
@@ -427,7 +427,7 @@ std::shared_ptr<TemperatureMeasurementCharateristic> TemperatureMeasurementChara
     return std::shared_ptr<TemperatureMeasurementCharateristic>(new TemperatureMeasurementCharateristic(flags, temperatureValue, timestamp, temperature_type));
 }
 
-std::string TemperatureMeasurementCharateristic::toString() const {
+std::string TemperatureMeasurementCharateristic::toString() const noexcept {
     std::string res = std::to_string(temperatureValue);
     res += isFahrenheit() ? " F" : " C";
     if( hasTimestamp() ) {

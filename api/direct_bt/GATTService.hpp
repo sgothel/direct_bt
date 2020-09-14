@@ -76,7 +76,7 @@ namespace direct_bt {
              * which also does not call any other virtual function.
              * </p>
              */
-            std::string toSafeString() const;
+            std::string toSafeString() const noexcept;
 
         public:
             const bool isPrimary;
@@ -104,28 +104,28 @@ namespace direct_bt {
             std::vector<GATTCharacteristicRef> characteristicList;
 
             GATTService(const std::shared_ptr<DBTDevice> &device, const bool isPrimary,
-                        const uint16_t startHandle, const uint16_t endHandle, std::shared_ptr<const uuid_t> type)
+                        const uint16_t startHandle, const uint16_t endHandle, std::shared_ptr<const uuid_t> type) noexcept
             : wbr_device(device), isPrimary(isPrimary), startHandle(startHandle), endHandle(endHandle), type(type), characteristicList() {
                 characteristicList.reserve(10);
             }
 
-            std::string get_java_class() const override {
+            std::string get_java_class() const noexcept override {
                 return java_class();
             }
-            static std::string java_class() {
+            static std::string java_class() noexcept {
                 return std::string(JAVA_DBT_PACKAGE "DBTGattService");
             }
 
-            std::shared_ptr<DBTDevice> getDeviceUnchecked() const { return wbr_device.lock(); }
+            std::shared_ptr<DBTDevice> getDeviceUnchecked() const noexcept { return wbr_device.lock(); }
             std::shared_ptr<DBTDevice> getDeviceChecked() const;
 
-            std::string toString() const override;
+            std::string toString() const noexcept override;
     };
 
-    inline bool operator==(const GATTService& lhs, const GATTService& rhs)
+    inline bool operator==(const GATTService& lhs, const GATTService& rhs) noexcept
     { return lhs.startHandle == rhs.startHandle && lhs.endHandle == rhs.endHandle; /** unique attribute handles */ }
 
-    inline bool operator!=(const GATTService& lhs, const GATTService& rhs)
+    inline bool operator!=(const GATTService& lhs, const GATTService& rhs) noexcept
     { return !(lhs == rhs); }
 
 } // namespace direct_bt

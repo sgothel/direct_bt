@@ -65,7 +65,7 @@ using namespace direct_bt;
 
 #define CASE_TO_STRING2(V,S) case V: return #S;
 
-std::string GATTCharacteristic::getPropertyString(const PropertyBitVal prop) {
+std::string GATTCharacteristic::getPropertyString(const PropertyBitVal prop) noexcept {
     switch(prop) {
         CHAR_DECL_PROPS_ENUM(CASE_TO_STRING2)
         default: ; // fall through intended
@@ -73,7 +73,7 @@ std::string GATTCharacteristic::getPropertyString(const PropertyBitVal prop) {
     return "Unknown property";
 }
 
-std::string GATTCharacteristic::getPropertiesString(const PropertyBitVal properties) {
+std::string GATTCharacteristic::getPropertiesString(const PropertyBitVal properties) noexcept {
     const PropertyBitVal none = static_cast<PropertyBitVal>(0);
     const uint8_t one = 1;
     bool has_pre = false;
@@ -90,7 +90,7 @@ std::string GATTCharacteristic::getPropertiesString(const PropertyBitVal propert
     return out;
 }
 
-std::vector<std::unique_ptr<std::string>> GATTCharacteristic::getPropertiesStringList(const PropertyBitVal properties) {
+std::vector<std::unique_ptr<std::string>> GATTCharacteristic::getPropertiesStringList(const PropertyBitVal properties) noexcept {
     std::vector<std::unique_ptr<std::string>> out;
     const PropertyBitVal none = static_cast<PropertyBitVal>(0);
     const uint8_t one = 1;
@@ -103,7 +103,7 @@ std::vector<std::unique_ptr<std::string>> GATTCharacteristic::getPropertiesStrin
     return out;
 }
 
-std::string GATTCharacteristic::toString() const {
+std::string GATTCharacteristic::toString() const noexcept {
     std::shared_ptr<const uuid_t> service_uuid;
     uint16_t service_handle_end = 0xffff;
     GATTServiceRef serviceRef = getServiceUnchecked();
@@ -138,7 +138,7 @@ std::string GATTCharacteristic::toString() const {
            service_name+", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"] ]";
 }
 
-std::string GATTCharacteristic::toSafeString() const {
+std::string GATTCharacteristic::toSafeString() const noexcept {
     std::string char_name = "";
 
     if( uuid_t::TypeSize::UUID16_SZ == value_type->getTypeSize() ) {
@@ -160,7 +160,7 @@ std::shared_ptr<GATTService> GATTCharacteristic::getServiceChecked() const {
     return ref;
 }
 
-std::shared_ptr<DBTDevice> GATTCharacteristic::getDeviceUnchecked() const {
+std::shared_ptr<DBTDevice> GATTCharacteristic::getDeviceUnchecked() const noexcept {
     std::shared_ptr<GATTService> s = getServiceUnchecked();
     if( nullptr != s ) {
         return s->getDeviceUnchecked();

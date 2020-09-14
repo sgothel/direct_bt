@@ -88,7 +88,7 @@ namespace direct_bt {
              * which also does not call any other virtual function.
              * </p>
              */
-            std::string toSafeString() const;
+            std::string toSafeString() const noexcept;
 
         public:
             /** BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1.1 Characteristic Properties */
@@ -108,10 +108,10 @@ namespace direct_bt {
              * org.bluez.GattCharacteristic1 :: array{string} Flags [read-only]
              * </pre>
              */
-            static std::string getPropertyString(const PropertyBitVal prop);
+            static std::string getPropertyString(const PropertyBitVal prop) noexcept;
 
-            static std::string getPropertiesString(const PropertyBitVal properties);
-            static std::vector<std::unique_ptr<std::string>> getPropertiesStringList(const PropertyBitVal properties);
+            static std::string getPropertiesString(const PropertyBitVal properties) noexcept;
+            static std::vector<std::unique_ptr<std::string>> getPropertiesStringList(const PropertyBitVal properties) noexcept;
 
             /**
              * Characteristics's Service Handle - key to service's handle range, retrieved from Characteristics data.
@@ -150,39 +150,39 @@ namespace direct_bt {
             int clientCharacteristicsConfigIndex = -1;
 
             GATTCharacteristic(const GATTServiceRef & service, const uint16_t service_handle, const uint16_t handle,
-                                   const PropertyBitVal properties, const uint16_t value_handle, std::shared_ptr<const uuid_t> value_type)
+                                   const PropertyBitVal properties, const uint16_t value_handle, std::shared_ptr<const uuid_t> value_type) noexcept
             : wbr_service(service), service_handle(service_handle), handle(handle),
               properties(properties), value_handle(value_handle), value_type(value_type) {}
 
-            std::string get_java_class() const override {
+            std::string get_java_class() const noexcept override {
                 return java_class();
             }
-            static std::string java_class() {
+            static std::string java_class() noexcept {
                 return std::string(JAVA_DBT_PACKAGE "DBTGattCharacteristic");
             }
 
-            std::shared_ptr<GATTService> getServiceUnchecked() const { return wbr_service.lock(); }
+            std::shared_ptr<GATTService> getServiceUnchecked() const noexcept { return wbr_service.lock(); }
             std::shared_ptr<GATTService> getServiceChecked() const;
-            std::shared_ptr<DBTDevice> getDeviceUnchecked() const;
+            std::shared_ptr<DBTDevice> getDeviceUnchecked() const noexcept;
             std::shared_ptr<DBTDevice> getDeviceChecked() const;
 
-            bool hasProperties(const PropertyBitVal v) const { return v == ( properties & v ); }
+            bool hasProperties(const PropertyBitVal v) const noexcept { return v == ( properties & v ); }
 
-            std::string getPropertiesString() const {
+            std::string getPropertiesString() const noexcept {
                 return getPropertiesString(properties);
             }
-            std::string toString() const override;
+            std::string toString() const noexcept override;
 
-            void clearDescriptors() {
+            void clearDescriptors() noexcept {
                 descriptorList.clear();
                 clientCharacteristicsConfigIndex = -1;
             }
 
-            GATTDescriptorRef getClientCharacteristicConfig() {
+            GATTDescriptorRef getClientCharacteristicConfig() noexcept {
                 if( 0 > clientCharacteristicsConfigIndex ) {
                     return nullptr;
                 }
-                return descriptorList.at(clientCharacteristicsConfigIndex);
+                return descriptorList.at(clientCharacteristicsConfigIndex); // abort if out of bounds
             }
 
             /**
@@ -383,10 +383,10 @@ namespace direct_bt {
     };
     typedef std::shared_ptr<GATTCharacteristic> GATTCharacteristicRef;
 
-    inline bool operator==(const GATTCharacteristic& lhs, const GATTCharacteristic& rhs)
+    inline bool operator==(const GATTCharacteristic& lhs, const GATTCharacteristic& rhs) noexcept
     { return lhs.handle == rhs.handle; /** unique attribute handles */ }
 
-    inline bool operator!=(const GATTCharacteristic& lhs, const GATTCharacteristic& rhs)
+    inline bool operator!=(const GATTCharacteristic& lhs, const GATTCharacteristic& rhs) noexcept
     { return !(lhs == rhs); }
 
     /**
@@ -421,7 +421,7 @@ namespace direct_bt {
              * Defaults to true;
              * </p>
              */
-            virtual bool match(const GATTCharacteristic & characteristic) {
+            virtual bool match(const GATTCharacteristic & characteristic) noexcept {
                 (void)characteristic;
                 return true;
             }
@@ -448,7 +448,7 @@ namespace direct_bt {
                                             std::shared_ptr<TROOctets> charValue, const uint64_t timestamp,
                                             const bool confirmationSent) = 0;
 
-            virtual ~GATTCharacteristicListener() {}
+            virtual ~GATTCharacteristicListener() noexcept {}
 
             /**
              * Default comparison operator, merely testing for same memory reference.
@@ -456,10 +456,10 @@ namespace direct_bt {
              * Specializations may override.
              * </p>
              */
-            virtual bool operator==(const GATTCharacteristicListener& rhs) const
+            virtual bool operator==(const GATTCharacteristicListener& rhs) const noexcept
             { return this == &rhs; }
 
-            bool operator!=(const GATTCharacteristicListener& rhs) const
+            bool operator!=(const GATTCharacteristicListener& rhs) const noexcept
             { return !(*this == rhs); }
     };
 
@@ -471,10 +471,10 @@ namespace direct_bt {
             /**
              * Passing the associated GATTCharacteristic to filter out non matching events.
              */
-            AssociatedGATTCharacteristicListener(const GATTCharacteristic * characteristicMatch)
+            AssociatedGATTCharacteristicListener(const GATTCharacteristic * characteristicMatch) noexcept
             : associatedCharacteristic(characteristicMatch) { }
 
-            bool match(const GATTCharacteristic & characteristic) override {
+            bool match(const GATTCharacteristic & characteristic) noexcept override {
                 if( nullptr == associatedCharacteristic ) {
                     return true;
                 }

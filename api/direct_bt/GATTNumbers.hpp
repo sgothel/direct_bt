@@ -55,7 +55,7 @@ enum GattServiceType : uint16_t {
     /** The Battery Service exposes the state of a battery within a device. */
     BATTERY_SERVICE                             = 0x180F,
 };
-std::string GattServiceTypeToString(const GattServiceType v);
+std::string GattServiceTypeToString(const GattServiceType v) noexcept;
 
 /**
  * GATT Assigned Characteristic Attribute Type for single logical value.
@@ -103,7 +103,7 @@ enum GattCharacteristicType : uint16_t {
 	REGULATORY_CERT_DATA_LIST 					= 0x2A2A,
 	PNP_ID 										= 0x2A50,
 };
-std::string GattCharacteristicTypeToString(const GattCharacteristicType v);
+std::string GattCharacteristicTypeToString(const GattCharacteristicType v) noexcept;
 
 enum GattCharacteristicProperty : uint8_t {
     Broadcast = 0x01,
@@ -119,7 +119,7 @@ enum GattCharacteristicProperty : uint8_t {
     /** FIXME: extension? */
     AuxWriteExt = 0x82
 };
-std::string GattCharacteristicPropertyToString(const GattCharacteristicProperty v);
+std::string GattCharacteristicPropertyToString(const GattCharacteristicProperty v) noexcept;
 
 enum GattRequirementSpec : uint8_t {
     Excluded    = 0x00,
@@ -130,13 +130,13 @@ enum GattRequirementSpec : uint8_t {
     if_notify_or_indicate_supported = 0x12,
     C1 = 0x21,
 };
-std::string GattRequirementSpecToString(const GattRequirementSpec v);
+std::string GattRequirementSpecToString(const GattRequirementSpec v) noexcept;
 
 struct GattCharacteristicPropertySpec {
     const GattCharacteristicProperty property;
     const GattRequirementSpec requirement;
 
-    std::string toString() const;
+    std::string toString() const noexcept;
 };
 
 struct GattClientCharacteristicConfigSpec {
@@ -144,7 +144,7 @@ struct GattClientCharacteristicConfigSpec {
     const GattCharacteristicPropertySpec read;
     const GattCharacteristicPropertySpec writeWithAck;
 
-    std::string toString() const;
+    std::string toString() const noexcept;
 };
 
 struct GattCharacteristicSpec {
@@ -167,14 +167,14 @@ struct GattCharacteristicSpec {
 
     const GattClientCharacteristicConfigSpec clientConfig;
 
-    std::string toString() const;
+    std::string toString() const noexcept;
 };
 
 struct GattServiceCharacteristic {
     const GattServiceType service;
     const std::vector<GattCharacteristicSpec> characteristics;
 
-    std::string toString() const;
+    std::string toString() const noexcept;
 };
 
 /**
@@ -191,13 +191,13 @@ extern const std::vector<const GattServiceCharacteristic*> GATT_SERVICES;
  * Find the GattServiceCharacteristic entry by given uuid16,
  * denominating either a GattServiceType or GattCharacteristicType.
  */
-const GattServiceCharacteristic * findGattServiceChar(const uint16_t uuid16);
+const GattServiceCharacteristic * findGattServiceChar(const uint16_t uuid16) noexcept;
 
 /**
  * Find the GattCharacteristicSpec entry by given uuid16,
  * denominating either a GattCharacteristicType.
  */
-const GattCharacteristicSpec * findGattCharSpec(const uint16_t uuid16);
+const GattCharacteristicSpec * findGattCharSpec(const uint16_t uuid16) noexcept;
 
 /********************************************************/
 /********************************************************/
@@ -206,7 +206,7 @@ const GattCharacteristicSpec * findGattCharSpec(const uint16_t uuid16);
 /**
  * Converts a GATT Name (not null-terminated) UTF8 to a null-terminated C++ string
  */
-std::string GattNameToString(const TROOctets &v);
+std::string GattNameToString(const TROOctets &v) noexcept;
 
 struct PeriphalPreferredConnectionParameters {
     /** mandatory [6..3200] x 1.25ms */
@@ -218,8 +218,8 @@ struct PeriphalPreferredConnectionParameters {
     /** mandatory [10..3200] */
     const uint16_t connectionSupervisionTimeoutMultiplier;
 
-    PeriphalPreferredConnectionParameters(const TROOctets &source);
-    std::string toString() const;
+    PeriphalPreferredConnectionParameters(const TROOctets &source) noexcept;
+    std::string toString() const noexcept;
 };
 
 /** https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.generic_access.xml */
@@ -229,10 +229,10 @@ class GenericAccess {
 		const AppearanceCat appearance;
 		const PeriphalPreferredConnectionParameters prefConnParam;
 
-		GenericAccess(const std::string & deviceName, const AppearanceCat appearance, const PeriphalPreferredConnectionParameters & prefConnParam)
+		GenericAccess(const std::string & deviceName, const AppearanceCat appearance, const PeriphalPreferredConnectionParameters & prefConnParam) noexcept
 		: deviceName(deviceName), appearance(appearance), prefConnParam(prefConnParam) {}
 
-		std::string toString() const;
+		std::string toString() const noexcept;
 };
 
 struct PnP_ID {
@@ -241,13 +241,13 @@ struct PnP_ID {
     const uint16_t product_id;
     const uint16_t product_version;
 
-    PnP_ID()
+    PnP_ID() noexcept
     : vendor_id_source(0), vendor_id(0), product_id(0), product_version(0) {}
-    PnP_ID(const TROOctets &source);
-    PnP_ID(const uint8_t vendor_id_source, const uint16_t vendor_id, const uint16_t product_id, const uint16_t product_version)
+    PnP_ID(const TROOctets &source) noexcept;
+    PnP_ID(const uint8_t vendor_id_source, const uint16_t vendor_id, const uint16_t product_id, const uint16_t product_version) noexcept
     : vendor_id_source(vendor_id_source), vendor_id(vendor_id), product_id(product_id), product_version(product_version) {}
 
-    std::string toString() const;
+    std::string toString() const noexcept;
 };
 
 /** https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.device_information.xml */
@@ -265,12 +265,12 @@ class DeviceInformation {
 
         DeviceInformation(const POctets &systemID, const std::string &modelNumber, const std::string &serialNumber,
                           const std::string &firmwareRevision, const std::string &hardwareRevision, const std::string &softwareRevision,
-                          const std::string &manufacturer, const POctets &regulatoryCertDataList, const PnP_ID &pnpID)
+                          const std::string &manufacturer, const POctets &regulatoryCertDataList, const PnP_ID &pnpID) noexcept
         : systemID(systemID), modelNumber(modelNumber), serialNumber(serialNumber), firmwareRevision(firmwareRevision),
           hardwareRevision(hardwareRevision), softwareRevision(softwareRevision), manufacturer(manufacturer),
           regulatoryCertDataList(regulatoryCertDataList), pnpID(pnpID) {}
 
-        std::string toString() const;
+        std::string toString() const noexcept;
 };
 
 /** https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.battery_service.xml */
@@ -301,20 +301,21 @@ class TemperatureMeasurementCharateristic {
         /** Temperature Type, if HAS_TEMP_TYPE is set: Format ????. 1 byte (!?). */
         const uint8_t temperature_type;
 
-        static std::shared_ptr<TemperatureMeasurementCharateristic> get(const TROOctets &source);
-        static std::shared_ptr<TemperatureMeasurementCharateristic> get(const TOctetSlice &source) {
+        static std::shared_ptr<TemperatureMeasurementCharateristic> get(const TROOctets &source) noexcept;
+        static std::shared_ptr<TemperatureMeasurementCharateristic> get(const TOctetSlice &source) noexcept {
             const TROOctets o(source.get_ptr(0), source.getSize());
             return get(o);
         }
 
-        TemperatureMeasurementCharateristic(const uint8_t flags, const float temperatureValue, const ieee11073::AbsoluteTime &timestamp, const uint8_t temperature_type)
+        TemperatureMeasurementCharateristic(const uint8_t flags, const float temperatureValue,
+                                            const ieee11073::AbsoluteTime &timestamp, const uint8_t temperature_type) noexcept
         : flags(flags), temperatureValue(temperatureValue), timestamp(timestamp), temperature_type(temperature_type) {}
 
-        bool isFahrenheit() const { return 0 != ( flags & Bits::IS_TEMP_FAHRENHEIT ); }
-        bool hasTimestamp() const { return 0 != ( flags & Bits::HAS_TIMESTAMP ); }
-        bool hasTemperatureType() const { return 0 != ( flags & Bits::HAS_TEMP_TYPE ); }
+        bool isFahrenheit() const noexcept { return 0 != ( flags & Bits::IS_TEMP_FAHRENHEIT ); }
+        bool hasTimestamp() const noexcept { return 0 != ( flags & Bits::HAS_TIMESTAMP ); }
+        bool hasTemperatureType() const noexcept { return 0 != ( flags & Bits::HAS_TEMP_TYPE ); }
 
-        std::string toString() const;
+        std::string toString() const noexcept;
 };
 
 

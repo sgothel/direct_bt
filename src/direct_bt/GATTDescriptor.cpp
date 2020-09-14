@@ -73,10 +73,10 @@ bool GATTDescriptor::writeValue() {
     return gatt->writeDescriptorValue(*this);
 }
 
-std::string GATTDescriptor::toString() const {
+std::string GATTDescriptor::toString() const noexcept {
     return "[type 0x"+type->toString()+", handle "+uint16HexString(handle)+", value["+value.toString()+"]]";
 }
 
-std::string GATTDescriptor::toSafeString() const {
+std::string GATTDescriptor::toSafeString() const noexcept {
     return "[handle "+uint16HexString(handle)+", value["+value.toString()+"]]";
 }

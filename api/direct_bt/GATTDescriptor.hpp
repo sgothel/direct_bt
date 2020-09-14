@@ -72,13 +72,13 @@ namespace direct_bt {
              * which also does not call any other virtual function.
              * </p>
              */
-            std::string toSafeString() const;
+            std::string toSafeString() const noexcept;
 
         public:
             static const uuid16_t TYPE_EXT_PROP;
             static const uuid16_t TYPE_USER_DESC;
             static const uuid16_t TYPE_CCC_DESC;
-            static std::shared_ptr<const uuid_t> getStaticType(const uuid16_t & type) {
+            static std::shared_ptr<const uuid_t> getStaticType(const uuid16_t & type) noexcept {
                 return std::shared_ptr<const uuid_t>(&type, [](const uuid_t *){});
             }
 
@@ -124,27 +124,27 @@ namespace direct_bt {
             POctets value;
 
             GATTDescriptor(const GATTCharacteristicRef & characteristic, const std::shared_ptr<const uuid_t> & type,
-                           const uint16_t handle)
+                           const uint16_t handle) noexcept
             : wbr_characteristic(characteristic), type(type), handle(handle), value(0) {}
 
-            std::string get_java_class() const override {
+            std::string get_java_class() const noexcept override {
                 return java_class();
             }
-            static std::string java_class() {
+            static std::string java_class() noexcept {
                 return std::string(JAVA_DBT_PACKAGE "DBTGattDescriptor");
             }
 
-            std::shared_ptr<GATTCharacteristic> getCharacteristicUnchecked() const { return wbr_characteristic.lock(); }
+            std::shared_ptr<GATTCharacteristic> getCharacteristicUnchecked() const noexcept { return wbr_characteristic.lock(); }
             std::shared_ptr<GATTCharacteristic> getCharacteristicChecked() const;
             std::shared_ptr<DBTDevice> getDeviceChecked() const;
 
-            virtual std::string toString() const override;
+            virtual std::string toString() const noexcept override;
 
             /** Value is uint16_t bitfield */
-            bool isExtendedProperties() const { return TYPE_EXT_PROP == *type; }
+            bool isExtendedProperties() const noexcept { return TYPE_EXT_PROP == *type; }
 
             /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration (Characteristic Descriptor, optional, single, uint16_t bitfield) */
-            bool isClientCharacteristicConfiguration() const { return TYPE_CCC_DESC == *type; }
+            bool isClientCharacteristicConfiguration() const noexcept{ return TYPE_CCC_DESC == *type; }
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.1 Read Characteristic Descriptor
@@ -186,10 +186,10 @@ namespace direct_bt {
     };
     typedef std::shared_ptr<GATTDescriptor> GATTDescriptorRef;
 
-    inline bool operator==(const GATTDescriptor& lhs, const GATTDescriptor& rhs)
+    inline bool operator==(const GATTDescriptor& lhs, const GATTDescriptor& rhs) noexcept
     { return lhs.handle == rhs.handle; /** unique attribute handles */ }
 
-    inline bool operator!=(const GATTDescriptor& lhs, const GATTDescriptor& rhs)
+    inline bool operator!=(const GATTDescriptor& lhs, const GATTDescriptor& rhs) noexcept
     { return !(lhs == rhs); }
 
 } // namespace direct_bt
