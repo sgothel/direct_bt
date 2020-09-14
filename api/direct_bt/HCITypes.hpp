@@ -459,10 +459,10 @@ namespace direct_bt {
                 }
             }
 
-            virtual std::string baseString() const {
+            virtual std::string baseString() const noexcept {
                 return "opcode="+uint16HexString(number(getOpcode()))+" "+getOpcodeString();
             }
-            virtual std::string valueString() const {
+            virtual std::string valueString() const noexcept {
                 const int psz = getParamSize();
                 const std::string ps = psz > 0 ? bytesHexString(getParam(), 0, psz, true /* lsbFirst */, true /* leading0X */) : "";
                 return "param[size "+std::to_string(getParamSize())+", data "+ps+"], tsz "+std::to_string(getTotalSize());
@@ -496,7 +496,7 @@ namespace direct_bt {
             uint8_t getParamSize() const noexcept { return pdu.get_uint8_nc(3); }
             const uint8_t* getParam() const noexcept { return pdu.get_ptr_nc(number(HCIConstU8::COMMAND_HDR_SIZE)); }
 
-            std::string toString() const {
+            std::string toString() const noexcept {
                 return "HCICommand["+baseString()+", "+valueString()+"]";
             }
     };
@@ -576,10 +576,10 @@ namespace direct_bt {
                 }
             }
 
-            virtual std::string baseString() const {
+            virtual std::string baseString() const noexcept {
                 return "event="+uint8HexString(number(getEventType()))+" "+getEventTypeString();
             }
-            virtual std::string valueString() const {
+            virtual std::string valueString() const noexcept {
                 const int d_sz_base = getBaseParamSize();
                 const int d_sz = getParamSize();
                 const std::string d_str = d_sz > 0 ? bytesHexString(getParam(), 0, d_sz, true /* lsbFirst */, true /* leading0X */) : "";
@@ -648,7 +648,7 @@ namespace direct_bt {
 
             virtual bool validate(const HCICommand & cmd) const noexcept { (void)cmd; return true; }
 
-            std::string toString() const {
+            std::string toString() const noexcept {
                 return "HCIEvent["+baseString()+", "+valueString()+"]";
             }
     };
@@ -699,7 +699,7 @@ namespace direct_bt {
     class HCIDisconnectionCompleteEvent : public HCIEvent
     {
         protected:
-            std::string baseString() const override {
+            std::string baseString() const noexcept override {
                 return HCIEvent::baseString()+
                         ", status "+uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getHCIStatusCodeString(getStatus())+
                         ", handle "+uint16HexString(getHandle())+
@@ -734,7 +734,7 @@ namespace direct_bt {
     class HCICommandCompleteEvent : public HCIEvent
     {
         protected:
-            std::string baseString() const override {
+            std::string baseString() const noexcept override {
                 return HCIEvent::baseString()+", opcode="+uint16HexString(static_cast<uint16_t>(getOpcode()))+
                         " "+getHCIOpcodeString(getOpcode())+
                         ", ncmd "+std::to_string(getNumCommandPackets());
@@ -787,7 +787,7 @@ namespace direct_bt {
     class HCICommandStatusEvent : public HCIEvent
     {
         protected:
-            std::string baseString() const override {
+            std::string baseString() const noexcept override {
                 return HCIEvent::baseString()+", opcode="+uint16HexString(static_cast<uint16_t>(getOpcode()))+
                         " "+getHCIOpcodeString(getOpcode())+
                         ", ncmd "+std::to_string(getNumCommandPackets())+
@@ -839,7 +839,7 @@ namespace direct_bt {
                 }
             }
 
-            virtual std::string baseString() const override {
+            virtual std::string baseString() const noexcept override {
                 return "event="+uint8HexString(number(getMetaEventType()))+" "+getMetaEventTypeString()+" (le-meta)";
             }
 

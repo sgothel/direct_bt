@@ -191,10 +191,10 @@ namespace direct_bt {
                 }
             }
 
-            virtual std::string baseString() const {
+            virtual std::string baseString() const noexcept {
                 return "opcode="+uint16HexString(static_cast<uint16_t>(getOpcode()))+" "+getOpcodeString()+", devID "+uint16HexString(getDevID());
             }
-            virtual std::string valueString() const {
+            virtual std::string valueString() const noexcept {
                 const int psz = getParamSize();
                 const std::string ps = psz > 0 ? bytesHexString(getParam(), 0, psz, true /* lsbFirst */, true /* leading0X */) : "";
                 return "param[size "+std::to_string(getParamSize())+", data "+ps+"], tsz "+std::to_string(getTotalSize());
@@ -231,7 +231,7 @@ namespace direct_bt {
             uint16_t getParamSize() const noexcept { return pdu.get_uint16_nc(4); }
             const uint8_t* getParam() const noexcept { return pdu.get_ptr_nc(MGMT_HEADER_SIZE); }
 
-            std::string toString() const {
+            std::string toString() const noexcept {
                 return "MgmtReq["+baseString()+", "+valueString()+"]";
             }
     };
@@ -253,7 +253,7 @@ namespace direct_bt {
     class MgmtDisconnectCmd : public MgmtCommand
     {
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType());
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
             }
@@ -275,7 +275,7 @@ namespace direct_bt {
     class MgmtGetConnectionInfoCmd : public MgmtCommand
     {
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType());
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
             }
@@ -299,7 +299,7 @@ namespace direct_bt {
     class MgmtPinCodeReplyCmd : public MgmtCommand
     {
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
                                        ", pin "+getPinCode().toString();
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
@@ -327,7 +327,7 @@ namespace direct_bt {
     class MgmtPinCodeNegativeReplyCmd : public MgmtCommand
     {
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType());
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
             }
@@ -350,7 +350,7 @@ namespace direct_bt {
     class MgmtAddDeviceToWhitelistCmd : public MgmtCommand
     {
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
                                        ", connectionType "+std::to_string(static_cast<uint8_t>(getConnectionType()));
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
@@ -375,7 +375,7 @@ namespace direct_bt {
     class MgmtRemoveDeviceFromWhitelistCmd : public MgmtCommand
     {
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType());
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
             }
@@ -398,7 +398,7 @@ namespace direct_bt {
     class MgmtSetLocalNameCmd : public MgmtCommand
     {
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 const std::string ps = "name '"+getName()+"', shortName '"+getShortName()+"'";
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
             }
@@ -448,7 +448,7 @@ namespace direct_bt {
             }
 
         protected:
-            std::string valueString() const override {
+            std::string valueString() const noexcept override {
                 const int paramCount = getParamCount();
                 std::string ps = "count "+std::to_string(paramCount)+": ";
                 for(int i=0; i<paramCount; i++) {
