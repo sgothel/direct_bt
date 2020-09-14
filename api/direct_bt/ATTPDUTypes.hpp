@@ -309,7 +309,7 @@ namespace direct_bt {
                 ATT_SIGNED_WRITE_CMD            = ATT_WRITE_REQ + ATT_COMMAND_FLAG + ATT_AUTH_SIGNATURE_FLAG // = 0xD2
             };
 
-            static std::string getOpcodeString(const Opcode opc);
+            static std::string getOpcodeString(const Opcode opc) noexcept;
 
         protected:
             void checkOpcode(const Opcode expected) const
@@ -374,26 +374,26 @@ namespace direct_bt {
             AttPDUMsg& operator=(const AttPDUMsg &o) noexcept = default;
             AttPDUMsg& operator=(AttPDUMsg &&o) noexcept = default;
 
-            virtual ~AttPDUMsg() {}
+            virtual ~AttPDUMsg() noexcept {}
 
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
-            Opcode getOpcode() const {
+            inline Opcode getOpcode() const noexcept {
                 return static_cast<Opcode>(pdu.get_uint8(0));
             }
-            std::string getOpcodeString() const { return getOpcodeString(getOpcode()); }
+            std::string getOpcodeString() const noexcept { return getOpcodeString(getOpcode()); }
 
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
-            Opcode getOpMethod() const {
+            Opcode getOpMethod() const noexcept {
                 return static_cast<Opcode>(getOpcode() & ATT_METHOD_MASK);
             }
 
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
-            bool getOpCommandFlag() const {
+            bool getOpCommandFlag() const noexcept {
                 return static_cast<Opcode>(getOpcode() & ATT_COMMAND_FLAG);
             }
 
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
-            bool getOpAuthSigFlag() const {
+            bool getOpAuthSigFlag() const noexcept {
                 return static_cast<Opcode>(getOpcode() & ATT_AUTH_SIGNATURE_FLAG);
             }
 
@@ -406,7 +406,7 @@ namespace direct_bt {
              * This auth-signature comes at the very last of the PDU.
              * </p>
              */
-            int getAuthSigSize() const {
+            int getAuthSigSize() const noexcept {
                 return getOpAuthSigFlag() ? 12 : 0;
             }
 
@@ -426,7 +426,7 @@ namespace direct_bt {
              * Note that the optional auth-signature is at the end of the PDU.
              * </p>
              */
-            int getPDUParamSize() const {
+            int getPDUParamSize() const noexcept {
                 return pdu.getSize() - getAuthSigSize() - 1 /* opcode */;
             }
 
@@ -448,7 +448,7 @@ namespace direct_bt {
              * conveniently.
              * </p>
              */
-            virtual int getPDUValueOffset() const { return 1; /* default: opcode */ }
+            virtual int getPDUValueOffset() const noexcept { return 1; /* default: opcode */ }
 
             /**
              * Returns this PDU's minimum size, i.e.
@@ -457,7 +457,7 @@ namespace direct_bt {
              * </pre>
              * Value is excluded as it might be flexible.
              */
-            int getPDUMinSize() const {
+            int getPDUMinSize() const noexcept {
                 return getPDUValueOffset() + getAuthSigSize();
             }
 
@@ -476,7 +476,7 @@ namespace direct_bt {
              *   value-size := pdu.size - getAuthSigSize() - value-offset
              * </pre>
              */
-            int getPDUValueSize() const { return getPDUParamSize() - getPDUValueOffset() + 1; }
+            int getPDUValueSize() const noexcept { return getPDUParamSize() - getPDUValueOffset() + 1; }
 
             /**
              * Returns the theoretical maximum value size of a PDU.
@@ -484,11 +484,11 @@ namespace direct_bt {
              *  ATT_MTU - getAuthSigSize() - value-offset
              * </pre>
              */
-            int getMaxPDUValueSize(const int mtu) const {
+            int getMaxPDUValueSize(const int mtu) const noexcept {
                 return mtu - getAuthSigSize() - getPDUValueOffset();
             }
 
-            virtual std::string getName() const {
+            virtual std::string getName() const noexcept {
                 return "AttPDUMsg";
             }
 
@@ -511,9 +511,9 @@ namespace direct_bt {
             }
 
             /** opcode */
-            int getPDUValueOffset() const override { return 1; }
+            int getPDUValueOffset() const noexcept override { return 1; }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttPDUUndefined";
             }
     };
@@ -549,33 +549,33 @@ namespace direct_bt {
                 FORBIDDEN_VALUE             = 0x13
             };
 
-            static std::string getPlainErrorString(const ErrorCode errorCode);
+            static std::string getPlainErrorString(const ErrorCode errorCode) noexcept;
 
             AttErrorRsp(const uint8_t* source, const int length) : AttPDUMsg(source, length) {
                 checkOpcode(ATT_ERROR_RSP);
             }
 
             /** opcode + reqOpcodeCause + handleCause + errorCode */
-            int getPDUValueOffset() const override { return 1 + 1 + 2 + 1; }
+            int getPDUValueOffset() const noexcept override { return 1 + 1 + 2 + 1; }
 
-            uint8_t getRequestedOpcodeCause() const {
-                return pdu.get_uint8(1);
+            uint8_t getRequestedOpcodeCause() const noexcept {
+                return pdu.get_uint8_nc(1);
             }
 
-            uint16_t getHandleCause() const {
-                return pdu.get_uint16(2);
+            uint16_t getHandleCause() const noexcept {
+                return pdu.get_uint16_nc(2);
             }
 
-            ErrorCode getErrorCode() const {
-                return static_cast<ErrorCode>(pdu.get_uint8(4));
+            ErrorCode getErrorCode() const noexcept {
+                return static_cast<ErrorCode>(pdu.get_uint8_nc(4));
             }
 
-            std::string getErrorString() const {
+            std::string getErrorString() const noexcept {
                 const ErrorCode ec = getErrorCode();
                 return uint8HexString(ec, true) + ": " + getPlainErrorString(ec);
             }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttErrorRsp";
             }
 
@@ -612,13 +612,13 @@ namespace direct_bt {
             }
 
             /** opcode + mtu-size */
-            int getPDUValueOffset() const override { return 1+2; }
+            int getPDUValueOffset() const noexcept override { return 1+2; }
 
-            uint16_t getMTUSize() const {
-                return pdu.get_uint16(1);
+            uint16_t getMTUSize() const noexcept {
+                return pdu.get_uint16_nc(1);
             }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttExchangeMTU";
             }
 
@@ -648,13 +648,13 @@ namespace direct_bt {
             }
 
             /** opcode + handle */
-            int getPDUValueOffset() const override { return 1+2; }
+            int getPDUValueOffset() const noexcept override { return 1+2; }
 
-            uint16_t getHandle() const {
-                return pdu.get_uint16( 1 );
+            uint16_t getHandle() const noexcept {
+                return pdu.get_uint16_nc( 1 );
             }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttReadReq";
             }
 
@@ -692,13 +692,13 @@ namespace direct_bt {
             }
 
             /** opcode */
-            int getPDUValueOffset() const override { return 1; }
+            int getPDUValueOffset() const noexcept override { return 1; }
 
-            uint8_t const * getValuePtr() const { return pdu.get_ptr(getPDUValueOffset()); }
+            uint8_t const * getValuePtr() const noexcept { return pdu.get_ptr_nc(getPDUValueOffset()); }
 
-            TOctetSlice const & getValue() const { return view; }
+            TOctetSlice const & getValue() const noexcept { return view; }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttReadRsp";
             }
 
@@ -729,17 +729,17 @@ namespace direct_bt {
             }
 
             /** opcode + handle + value_offset */
-            int getPDUValueOffset() const override { return 1 + 2 + 2; }
+            int getPDUValueOffset() const noexcept override { return 1 + 2 + 2; }
 
-            uint16_t getHandle() const {
-                return pdu.get_uint16( 1 );
+            uint16_t getHandle() const noexcept {
+                return pdu.get_uint16_nc( 1 );
             }
 
-            uint16_t getValueOffset() const {
-                return pdu.get_uint16( 1 + 2 );
+            uint16_t getValueOffset() const noexcept {
+                return pdu.get_uint16_nc( 1 + 2 );
             }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttReadBlobReq";
             }
 
@@ -777,13 +777,13 @@ namespace direct_bt {
             }
 
             /** opcode */
-            int getPDUValueOffset() const override { return 1; }
+            int getPDUValueOffset() const noexcept override { return 1; }
 
-            uint8_t const * getValuePtr() const { return pdu.get_ptr(getPDUValueOffset()); }
+            uint8_t const * getValuePtr() const noexcept { return pdu.get_ptr_nc(getPDUValueOffset()); }
 
-            TOctetSlice const & getValue() const { return view; }
+            TOctetSlice const & getValue() const noexcept { return view; }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttReadBlobRsp";
             }
 
@@ -822,17 +822,17 @@ namespace direct_bt {
             }
 
             /** opcode + handle */
-            int getPDUValueOffset() const override { return 1 + 2; }
+            int getPDUValueOffset() const noexcept override { return 1 + 2; }
 
-            uint16_t getHandle() const {
-                return pdu.get_uint16( 1 );
+            uint16_t getHandle() const noexcept {
+                return pdu.get_uint16_nc( 1 );
             }
 
-            uint8_t const * getValuePtr() const { return pdu.get_ptr(getPDUValueOffset()); }
+            uint8_t const * getValuePtr() const noexcept { return pdu.get_ptr_nc(getPDUValueOffset()); }
 
-            TOctetSlice const & getValue() const { return view; }
+            TOctetSlice const & getValue() const noexcept { return view; }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttWriteReq";
             }
 
@@ -861,9 +861,9 @@ namespace direct_bt {
             }
 
             /** opcode */
-            int getPDUValueOffset() const override { return 1; }
+            int getPDUValueOffset() const noexcept override { return 1; }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttWriteRsp";
             }
     };
@@ -894,17 +894,17 @@ namespace direct_bt {
             }
 
             /** opcode + handle */
-            int getPDUValueOffset() const override { return 1 + 2; }
+            int getPDUValueOffset() const noexcept override { return 1 + 2; }
 
-            uint16_t getHandle() const {
-                return pdu.get_uint16( 1 );
+            uint16_t getHandle() const noexcept {
+                return pdu.get_uint16_nc( 1 );
             }
 
-            uint8_t const * getValuePtr() const { return pdu.get_ptr(getPDUValueOffset()); }
+            uint8_t const * getValuePtr() const noexcept { return pdu.get_ptr_nc(getPDUValueOffset()); }
 
-            TOctetSlice const & getValue() const { return view; }
+            TOctetSlice const & getValue() const noexcept { return view; }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttWriteCmd";
             }
 
@@ -942,25 +942,25 @@ namespace direct_bt {
             }
 
             /** opcode + handle */
-            int getPDUValueOffset() const override { return 1+2; }
+            int getPDUValueOffset() const noexcept override { return 1+2; }
 
-            uint16_t getHandle() const {
-                return pdu.get_uint16(1);
+            uint16_t getHandle() const noexcept {
+                return pdu.get_uint16_nc(1);
             }
 
-            uint8_t const * getValuePtr() const { return pdu.get_ptr(getPDUValueOffset()); }
+            uint8_t const * getValuePtr() const noexcept { return pdu.get_ptr_nc(getPDUValueOffset()); }
 
-            TOctetSlice const & getValue() const { return view; }
+            TOctetSlice const & getValue() const noexcept { return view; }
 
-            bool isNotification() const {
+            bool isNotification() const noexcept {
                 return ATT_HANDLE_VALUE_NTF == getOpcode();
             }
 
-            bool isIndication() const {
+            bool isIndication() const noexcept {
                 return ATT_HANDLE_VALUE_IND == getOpcode();
             }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttHandleValueRcv";
             }
 
@@ -992,9 +992,9 @@ namespace direct_bt {
             }
 
             /** opcode */
-            int getPDUValueOffset() const override { return 1; }
+            int getPDUValueOffset() const noexcept override { return 1; }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttHandleValueCfm";
             }
     };
@@ -1020,7 +1020,7 @@ namespace direct_bt {
             }
 
         public:
-            virtual ~AttElementList() {}
+            virtual ~AttElementList() noexcept {}
 
             virtual int getElementTotalSize() const = 0;
             virtual int getElementValueSize() const = 0;
@@ -1034,7 +1034,7 @@ namespace direct_bt {
                 return pdu.get_ptr(getElementPDUOffset(elementIdx));
             }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttElementList";
             }
     };
@@ -1084,17 +1084,17 @@ namespace direct_bt {
             }
 
             /** opcode + handle-start + handle-end */
-            int getPDUValueOffset() const override { return 1 + 2 + 2; }
+            int getPDUValueOffset() const noexcept override { return 1 + 2 + 2; }
 
-            uint16_t getStartHandle() const {
-                return pdu.get_uint16( 1 );
+            uint16_t getStartHandle() const noexcept {
+                return pdu.get_uint16_nc( 1 );
             }
 
-            uint16_t getEndHandle() const {
-                return pdu.get_uint16( 1 + 2 /* 1 handle size */ );
+            uint16_t getEndHandle() const noexcept {
+                return pdu.get_uint16_nc( 1 + 2 /* 1 handle size */ );
             }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttReadByNTypeReq";
             }
 
@@ -1143,15 +1143,15 @@ namespace direct_bt {
                     Element(const AttReadByTypeRsp & p, const int idx)
                     : view(p.pdu, p.getElementPDUOffset(idx), p.getElementTotalSize()) {}
 
-                    uint16_t getHandle() const {
-                        return view.get_uint16(0);
+                    uint16_t getHandle() const noexcept {
+                        return view.get_uint16_nc(0);
                     }
 
-                    uint8_t const * getValuePtr() const {
-                        return view.get_ptr(2 /* handle size */);
+                    uint8_t const * getValuePtr() const noexcept {
+                        return view.get_ptr_nc(2 /* handle size */);
                     }
 
-                    int getValueSize() const { return view.getSize() - 2 /* handle size */; }
+                    int getValueSize() const noexcept { return view.getSize() - 2 /* handle size */; }
 
                     std::string toString() const {
                         return "handle "+uint16HexString(getHandle(), true)+
@@ -1159,7 +1159,9 @@ namespace direct_bt {
                     }
             };
 
-            AttReadByTypeRsp(const uint8_t* source, const int length) : AttElementList(source, length) {
+            AttReadByTypeRsp(const uint8_t* source, const int length)
+            : AttElementList(source, length)
+            {
                 checkOpcode(ATT_READ_BY_TYPE_RSP);
 
                 if( getPDUValueSize() % getElementTotalSize() != 0 ) {
@@ -1169,11 +1171,11 @@ namespace direct_bt {
             }
 
             /** opcode + element-size */
-            int getPDUValueOffset() const override { return 1 + 1; }
+            int getPDUValueOffset() const noexcept override { return 1 + 1; }
 
             /** Returns size of each element, i.e. handle-value pair. */
-            int getElementTotalSize() const override {
-                return pdu.get_uint8(1);
+            int getElementTotalSize() const noexcept override {
+                return pdu.get_uint8_nc(1);
             }
 
             /**
@@ -1182,11 +1184,11 @@ namespace direct_bt {
              * element := { uint16_t handle, uint8_t value[value-size] }
              * </p>
              */
-            int getElementValueSize() const override {
+            int getElementValueSize() const noexcept override {
                 return getElementTotalSize() - 2;
             }
 
-            int getElementCount() const override {
+            int getElementCount() const noexcept override {
                 return getPDUValueSize()  / getElementTotalSize();
             }
 
@@ -1202,7 +1204,7 @@ namespace direct_bt {
                 return pdu.get_wptr() + getElementPDUOffset(elementIdx) + 2 /* handle size */;
             }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttReadByTypeRsp";
             }
 
@@ -1244,22 +1246,24 @@ namespace direct_bt {
                     Element(const AttReadByGroupTypeRsp & p, const int idx)
                     : view(p.pdu, p.getElementPDUOffset(idx), p.getElementTotalSize()) {}
 
-                    uint16_t getStartHandle() const {
-                        return view.get_uint16(0);
+                    uint16_t getStartHandle() const noexcept {
+                        return view.get_uint16_nc(0);
                     }
 
-                    uint16_t getEndHandle() const {
-                        return view.get_uint16(2);
+                    uint16_t getEndHandle() const noexcept {
+                        return view.get_uint16_nc(2);
                     }
 
-                    uint8_t const * getValuePtr() const {
-                        return view.get_ptr(4 /* handle size */);
+                    uint8_t const * getValuePtr() const noexcept {
+                        return view.get_ptr_nc(4 /* handle size */);
                     }
 
-                    int getValueSize() const { return view.getSize() - 4 /* handle size */; }
+                    int getValueSize() const noexcept { return view.getSize() - 4 /* handle size */; }
             };
 
-            AttReadByGroupTypeRsp(const uint8_t* source, const int length) : AttElementList(source, length) {
+            AttReadByGroupTypeRsp(const uint8_t* source, const int length)
+            : AttElementList(source, length)
+            {
                 checkOpcode(ATT_READ_BY_GROUP_TYPE_RSP);
 
                 if( getPDUValueSize() % getElementTotalSize() != 0 ) {
@@ -1269,11 +1273,11 @@ namespace direct_bt {
             }
 
             /** opcode + element-size */
-            int getPDUValueOffset() const override { return 1 + 1; }
+            int getPDUValueOffset() const noexcept override { return 1 + 1; }
 
             /** Returns size of each element, i.e. handle-value triple. */
-            int getElementTotalSize() const override {
-                return pdu.get_uint8(1);
+            int getElementTotalSize() const noexcept override {
+                return pdu.get_uint8_nc(1);
             }
 
             /**
@@ -1282,11 +1286,11 @@ namespace direct_bt {
              * element := { uint16_t startHandle, uint16_t endHandle, uint8_t value[value-size] }
              * </p>
              */
-            int getElementValueSize() const override {
+            int getElementValueSize() const noexcept override {
                 return getElementTotalSize() - 4;
             }
 
-            int getElementCount() const override {
+            int getElementCount() const noexcept override {
                 return getPDUValueSize()  / getElementTotalSize();
             }
 
@@ -1306,7 +1310,7 @@ namespace direct_bt {
                 return pdu.get_wptr() + getElementPDUOffset(elementIdx) + 4 /* 2 handle size */;
             }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttReadByGroupTypeRsp";
             }
 
@@ -1339,17 +1343,17 @@ namespace direct_bt {
             }
 
             /** opcode + handle_start + handle_end */
-            int getPDUValueOffset() const override { return 1 + 2 + 2; }
+            int getPDUValueOffset() const noexcept override { return 1 + 2 + 2; }
 
-            uint16_t getStartHandle() const {
-                return pdu.get_uint16( 1 );
+            uint16_t getStartHandle() const noexcept {
+                return pdu.get_uint16_nc( 1 );
             }
 
-            uint16_t getEndHandle() const {
-                return pdu.get_uint16( 1 + 2 );
+            uint16_t getEndHandle() const noexcept {
+                return pdu.get_uint16_nc( 1 + 2 );
             }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttFindInfoReq";
             }
 
@@ -1414,9 +1418,9 @@ namespace direct_bt {
             }
 
             /** opcode + format */
-            int getPDUValueOffset() const override { return 1 + 1; }
+            int getPDUValueOffset() const noexcept override { return 1 + 1; }
 
-            /** Returns size of each element, i.e. handle-value triple. */
+            /** Returns size of each element, i.e. handle-value tuple. */
             int getElementTotalSize() const override {
                 return 2 + getElementValueSize();
             }
@@ -1447,7 +1451,7 @@ namespace direct_bt {
                 return pdu.get_uuid( getElementPDUOffset(elementIdx) + 2, getUUIFormat() );
             }
 
-            std::string getName() const override {
+            std::string getName() const noexcept override {
                 return "AttFindInfoRsp";
             }
 

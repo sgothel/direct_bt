@@ -40,7 +40,7 @@ using namespace direct_bt;
 #define CASE_TO_STRING(V) case V: return #V;
 #define CASE2_TO_STRING(U,V) case U::V: return #V;
 
-BDAddressType direct_bt::getBDAddressType(const HCILEPeerAddressType hciPeerAddrType) {
+BDAddressType direct_bt::getBDAddressType(const HCILEPeerAddressType hciPeerAddrType) noexcept {
     switch(hciPeerAddrType) {
         case HCILEPeerAddressType::PUBLIC:
             return BDADDR_LE_PUBLIC;
@@ -62,7 +62,7 @@ BDAddressType direct_bt::getBDAddressType(const HCILEPeerAddressType hciPeerAddr
         X(HCILEPeerAddressType,RANDOM_STATIC_IDENTITY) \
         X(HCILEPeerAddressType,UNDEFINED)
 
-std::string direct_bt::getHCILEPeerAddressTypeString(const HCILEPeerAddressType type) {
+std::string direct_bt::getHCILEPeerAddressTypeString(const HCILEPeerAddressType type) noexcept {
     switch(type) {
         CHAR_DECL_HCILEPeerAddressType_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
@@ -70,7 +70,7 @@ std::string direct_bt::getHCILEPeerAddressTypeString(const HCILEPeerAddressType 
     return "Unknown HCILEPeerAddressType";
 }
 
-BDAddressType direct_bt::getBDAddressType(const HCILEOwnAddressType hciOwnAddrType) {
+BDAddressType direct_bt::getBDAddressType(const HCILEOwnAddressType hciOwnAddrType) noexcept {
     switch(hciOwnAddrType) {
         case HCILEOwnAddressType::PUBLIC:
             return BDADDR_LE_PUBLIC;
@@ -92,7 +92,7 @@ BDAddressType direct_bt::getBDAddressType(const HCILEOwnAddressType hciOwnAddrTy
         X(HCILEOwnAddressType,RESOLVABLE_OR_RANDOM) \
         X(HCILEOwnAddressType,UNDEFINED)
 
-std::string direct_bt::getHCILEOwnAddressTypeString(const HCILEOwnAddressType type) {
+std::string direct_bt::getHCILEOwnAddressTypeString(const HCILEOwnAddressType type) noexcept {
     switch(type) {
         CHAR_DECL_HCILEOwnAddressType_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
@@ -107,7 +107,7 @@ std::string direct_bt::getHCILEOwnAddressTypeString(const HCILEOwnAddressType ty
         X(BDADDR_LE_RANDOM) \
         X(BDADDR_UNDEFINED)
 
-std::string direct_bt::getBDAddressTypeString(const BDAddressType type) {
+std::string direct_bt::getBDAddressTypeString(const BDAddressType type) noexcept {
     switch(type) {
         CHAR_DECL_BDADDRESSTYPE_ENUM(CASE_TO_STRING)
         default: ; // fall through intended
@@ -122,7 +122,7 @@ std::string direct_bt::getBDAddressTypeString(const BDAddressType type) {
         X(BLERandomAddressType,STATIC_PUBLIC) \
         X(BLERandomAddressType,UNDEFINED)
 
-std::string direct_bt::getBLERandomAddressTypeString(const BLERandomAddressType type) {
+std::string direct_bt::getBLERandomAddressTypeString(const BLERandomAddressType type) noexcept {
     switch(type) {
         CHAR_DECL_LERANDOMADDRESSTYPE_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
@@ -130,7 +130,7 @@ std::string direct_bt::getBLERandomAddressTypeString(const BLERandomAddressType 
     return "Unknown BLERandomAddressType";
 }
 
-BLERandomAddressType EUI48::getBLERandomAddressType(const BDAddressType addressType) const {
+BLERandomAddressType EUI48::getBLERandomAddressType(const BDAddressType addressType) const noexcept {
     if( BDAddressType::BDADDR_LE_RANDOM != addressType ) {
         return BLERandomAddressType::UNDEFINED;
     }
@@ -176,7 +176,7 @@ EUI48::EUI48(const std::string str) {
     // hence no endian conversion
 }
 
-EUI48::EUI48(const uint8_t * _b) {
+EUI48::EUI48(const uint8_t * _b) noexcept {
     memcpy(b, _b, sizeof(b));
 }
 

@@ -78,7 +78,7 @@ const char* direct_bt::RuntimeException::what() const noexcept {
 #endif
 }
 
-std::string direct_bt::get_string(const uint8_t *buffer, int const buffer_len, int const max_len) {
+std::string direct_bt::get_string(const uint8_t *buffer, int const buffer_len, int const max_len) noexcept {
     const int cstr_len = std::min(buffer_len, max_len);
     char cstr[max_len+1]; // EOS
     memcpy(cstr, buffer, cstr_len);
@@ -208,9 +208,13 @@ std::string direct_bt::uint64HexString(const uint64_t v, const bool leading0X) {
     return str;
 }
 
+std::string direct_bt::aptrHexString(const void * v, const bool leading0X) {
+    return uint64HexString((uint64_t)v, leading0X);
+}
+
 static const char* HEX_ARRAY = "0123456789ABCDEF";
 
-std::string direct_bt::bytesHexString(const uint8_t * bytes, const int offset, const int length, const bool lsbFirst, const bool leading0X) {
+std::string direct_bt::bytesHexString(const uint8_t * bytes, const int offset, const int length, const bool lsbFirst, const bool leading0X) noexcept {
     std::string str;
 
     if( nullptr == bytes ) {
@@ -244,7 +248,7 @@ std::string direct_bt::bytesHexString(const uint8_t * bytes, const int offset, c
     return str;
 }
 
-std::string direct_bt::int32SeparatedString(const int32_t v, const char separator) {
+std::string direct_bt::int32SeparatedString(const int32_t v, const char separator) noexcept {
     // INT32_MIN:    -2147483648 int32_t 11 chars
     // INT32_MIN: -2,147,483,648 int32_t 14 chars
     // INT32_MAX:     2147483647 int32_t 10 chars
@@ -273,7 +277,7 @@ std::string direct_bt::int32SeparatedString(const int32_t v, const char separato
     return std::string(dst, p_dst - dst);
 }
 
-std::string direct_bt::uint32SeparatedString(const uint32_t v, const char separator) {
+std::string direct_bt::uint32SeparatedString(const uint32_t v, const char separator) noexcept {
     // UINT32_MAX:    4294967295 uint32_t 10 chars
     // UINT32_MAX: 4,294,967,295 uint32_t 13 chars
     char src[16]; // aligned 4 byte
@@ -295,7 +299,7 @@ std::string direct_bt::uint32SeparatedString(const uint32_t v, const char separa
     return std::string(dst, p_dst - dst);
 }
 
-std::string direct_bt::uint64SeparatedString(const uint64_t v, const char separator) {
+std::string direct_bt::uint64SeparatedString(const uint64_t v, const char separator) noexcept {
     // UINT64_MAX:       18446744073709551615 uint64_t 20 chars
     // UINT64_MAX: 18,446,744,073,709,551,615 uint64_t 26 chars
     char src[28]; // aligned 4 byte
@@ -317,11 +321,7 @@ std::string direct_bt::uint64SeparatedString(const uint64_t v, const char separa
     return std::string(dst, p_dst - dst);
 }
 
-std::string direct_bt::aptrHexString(const void * v, const bool leading0X) {
-    return uint64HexString((uint64_t)v, leading0X);
-}
-
-void direct_bt::trimInPlace(std::string &s) {
+void direct_bt::trimInPlace(std::string &s) noexcept {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
         return !std::isspace(ch);
     }));
@@ -330,7 +330,7 @@ void direct_bt::trimInPlace(std::string &s) {
     }).base(), s.end());
 }
 
-std::string direct_bt::trimCopy(const std::string &_s) {
+std::string direct_bt::trimCopy(const std::string &_s) noexcept {
     std::string s(_s);
     trimInPlace(s);
     return s;

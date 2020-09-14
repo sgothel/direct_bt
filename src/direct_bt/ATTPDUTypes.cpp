@@ -74,7 +74,7 @@ using namespace direct_bt;
 
 #define CASE_TO_STRING(V) case V: return #V;
 
-std::string AttPDUMsg::getOpcodeString(const Opcode opc) {
+std::string AttPDUMsg::getOpcodeString(const Opcode opc) noexcept {
     switch(opc) {
         OPCODE_ENUM(CASE_TO_STRING)
         default: ; // fall through intended
@@ -82,7 +82,7 @@ std::string AttPDUMsg::getOpcodeString(const Opcode opc) {
     return "Unknown Opcode";
 }
 
-std::string AttErrorRsp::getPlainErrorString(const ErrorCode errorCode) {
+std::string AttErrorRsp::getPlainErrorString(const ErrorCode errorCode) noexcept {
     switch(errorCode) {
         case INVALID_HANDLE: return "Invalid Handle";
         case NO_READ_PERM: return "Read Not Permitted";

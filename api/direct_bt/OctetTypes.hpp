@@ -58,21 +58,54 @@ namespace direct_bt {
     class TROOctets
     {
         private:
+            /** Used memory size <= capacity, maybe zero. */
             int _size;
+            /** Non-null memory pointer. Actual capacity known by owner. */
             uint8_t * _data;
 
         protected:
-            inline uint8_t * data() { return _data; }
-            inline void setData(uint8_t *d, int s) {
-                TRACE_PRINT("POctets setData: %p -> %p", _data, d);
-                _data = d; _size = s;
+            static inline void checkPtr(uint8_t *d) {
+                if( nullptr == d ) {
+                    throw IllegalArgumentException("TROOctets::setData: nullptr", E_FILE_LINE);
+                }
             }
-            inline void setSize(int s) { _size = s; }
+
+            inline uint8_t * data() noexcept { return _data; }
+
+            /**
+             * @param d a non nullptr memory, otherwise throws exception
+             * @param s used memory size, may be zero
+             */
+            inline void setData(uint8_t *d, int s) {
+                TRACE_PRINT("POctets setData: %d bytes @ %p -> %d bytes @ %p",
+                        _size, _data, s, d);
+                checkPtr(d);
+                _size = s;
+                _data = d;
+            }
+            inline void setData_nc(uint8_t *d, int s) noexcept {
+                TRACE_PRINT("POctets setData_nc: %d bytes @ %p -> %d bytes @ %p",
+                        _size, _data, s, d);
+                _size = s;
+                _data = d;
+            }
+            inline void setSize(int s) noexcept { _size = s; }
+
+            TROOctets(const uint8_t *source, const int len, const int nocheck) noexcept
+            : _size( len ), _data( const_cast<uint8_t *>(source) ) {
+                (void)nocheck;
+            }
 
         public:
-            /** Transient passthrough read-only memory, w/o ownership ..*/
+            /**
+             * Transient passthrough read-only memory, w/o ownership ..
+             * @param source a non nullptr memory, otherwise throws exception. Actual capacity known by owner.
+             * @param len readable size of the memory, may be zero
+             */
             TROOctets(const uint8_t *source, const int len)
-            : _size( len ), _data( const_cast<uint8_t *>(source) ) { }
+            : _size( len ), _data( const_cast<uint8_t *>(source) ) {
+                checkPtr(_data);
+            }
 
             TROOctets(const TROOctets &o) noexcept = default;
             TROOctets(TROOctets &&o) noexcept = default;
@@ -84,17 +117,26 @@ namespace direct_bt {
                     throw IndexOutOfBoundsException(i, count, _size, E_FILE_LINE);
                 }
             }
-            inline bool is_range_valid(const int i, const int count) const {
+            inline bool is_range_valid(const int i, const int count) const noexcept {
                 return 0 <= i && i+count <= _size;
             }
-            int getSize() const { return _size; }
+
+            /** Returns the used memory size for read and write operations, may be zero. */
+            inline int getSize() const noexcept { return _size; }
 
             uint8_t get_uint8(const int i) const {
                 check_range(i, 1);
                 return _data[i];
             }
+            inline uint8_t get_uint8_nc(const int i) const noexcept {
+                return _data[i];
+            }
+
             int8_t get_int8(const int i) const {
                 check_range(i, 1);
+                return direct_bt::get_int8(_data, i);
+            }
+            inline int8_t get_int8_nc(const int i) const noexcept {
                 return direct_bt::get_int8(_data, i);
             }
 
@@ -102,9 +144,15 @@ namespace direct_bt {
                 check_range(i, 2);
                 return direct_bt::get_uint16(_data, i, true /* littleEndian */);
             }
+            inline uint16_t get_uint16_nc(const int i) const noexcept {
+                return direct_bt::get_uint16(_data, i, true /* littleEndian */);
+            }
 
             uint32_t get_uint32(const int i) const {
                 check_range(i, 4);
+                return direct_bt::get_uint32(_data, i, true /* littleEndian */);
+            }
+            inline uint32_t get_uint32_nc(const int i) const noexcept {
                 return direct_bt::get_uint32(_data, i, true /* littleEndian */);
             }
 
@@ -112,10 +160,17 @@ namespace direct_bt {
                 check_range(i, sizeof(EUI48));
                 return EUI48(_data+i);
             }
+            inline EUI48 get_eui48_nc(const int i) const noexcept {
+                return EUI48(_data+i);
+            }
 
             /** Assumes a null terminated string */
             std::string get_string(const int i) const {
                 check_range(i, 1); // minimum size
+                return std::string( (const char*)(_data+i) );
+            }
+            /** Assumes a null terminated string */
+            inline std::string get_string_nc(const int i) const noexcept {
                 return std::string( (const char*)(_data+i) );
             }
 
@@ -128,29 +183,40 @@ namespace direct_bt {
             uuid16_t get_uuid16(const int i) const {
                 return uuid16_t(get_uint16(i));
             }
+            inline uuid16_t get_uuid16_nc(const int i) const noexcept {
+                return uuid16_t(get_uint16_nc(i));
+            }
+
             uuid128_t get_uuid128(const int i) const {
                 check_range(i, uuid_t::TypeSize::UUID128_SZ);
                 return uuid128_t(get_uint128(_data, i, true /* littleEndian */));
             }
+            inline uuid128_t get_uuid128_nc(const int i) const noexcept {
+                return uuid128_t(get_uint128(_data, i, true /* littleEndian */));
+            }
+
             std::shared_ptr<const uuid_t> get_uuid(const int i, const uuid_t::TypeSize tsize) const {
                 check_range(i, tsize);
                 return uuid_t::create(tsize, _data, i, true /* littleEndian */);
             }
 
-            uint8_t const * get_ptr() const { return _data; }
+            inline uint8_t const * get_ptr() const noexcept { return _data; }
             uint8_t const * get_ptr(const int i) const {
                 check_range(i, 1);
                 return _data + i;
             }
+            inline uint8_t const * get_ptr_nc(const int i) const noexcept {
+                return _data + i;
+            }
 
-            bool operator==(const TROOctets& rhs) const {
+            bool operator==(const TROOctets& rhs) const noexcept {
                 return _size == rhs._size && 0 == memcmp(_data, rhs._data, _size);
             }
-            bool operator!=(const TROOctets& rhs) const {
+            bool operator!=(const TROOctets& rhs) const noexcept {
                 return !(*this == rhs);
             }
 
-            std::string toString() const {
+            std::string toString() const noexcept {
                 return "size "+std::to_string(_size)+", ro: "+bytesHexString(_data, 0, _size, true /* lsbFirst */, true /* leading0X */);
             }
     };
@@ -163,6 +229,12 @@ namespace direct_bt {
      */
     class TOctets : public TROOctets
     {
+        protected:
+            TOctets(const uint8_t *source, const int len, const int nocheck) noexcept
+            : TROOctets(source, len, true /* nocheck */) {
+                (void)nocheck;
+            }
+
         public:
             /** Transient passthrough r/w memory, w/o ownership ..*/
             TOctets(uint8_t *source, const int len)
@@ -213,13 +285,13 @@ namespace direct_bt {
                 direct_bt::put_uuid(data(), i, v, true /* littleEndian */);
             }
 
-            uint8_t * get_wptr() { return data(); }
+            inline uint8_t * get_wptr() noexcept { return data(); }
             uint8_t * get_wptr(const int i) {
                 check_range(i, 1);
                 return data() + i;
             }
 
-            std::string toString() const {
+            std::string toString() const noexcept {
                 return "size "+std::to_string(getSize())+", rw: "+bytesHexString(get_ptr(), 0, getSize(), true /* lsbFirst */, true /* leading0X */);
             }
     };
@@ -240,23 +312,32 @@ namespace direct_bt {
                 }
             }
 
-            int getSize() const { return size; }
-            int getOffset() const { return offset; }
-            const TOctets& getParent() const { return parent; }
+            int getSize() const noexcept { return size; }
+            int getOffset() const noexcept { return offset; }
+            const TOctets& getParent() const noexcept { return parent; }
 
             uint8_t get_uint8(const int i) const {
                 return parent.get_uint8(offset+i);
+            }
+            inline uint8_t get_uint8_nc(const int i) const noexcept {
+                return parent.get_uint8_nc(offset+i);
             }
 
             uint16_t get_uint16(const int i) const {
                 return parent.get_uint16(offset+i);
             }
+            inline uint16_t get_uint16_nc(const int i) const noexcept {
+                return parent.get_uint16_nc(offset+i);
+            }
 
             uint8_t const * get_ptr(const int i) const {
                 return parent.get_ptr(offset+i);
             }
+            inline uint8_t const * get_ptr_nc(const int i) const noexcept {
+                return parent.get_ptr_nc(offset+i);
+            }
 
-            std::string toString() const {
+            std::string toString() const noexcept {
                 return "offset "+std::to_string(offset)+", size "+std::to_string(size)+": "+bytesHexString(parent.get_ptr(), offset, size, true /* lsbFirst */, true /* leading0X */);
             }
     };
@@ -272,25 +353,26 @@ namespace direct_bt {
         private:
             int capacity;
 
-            void release() {
-                uint8_t * ptr = get_wptr();
+            void freeData() {
+                uint8_t * ptr = data();
                 if( nullptr == ptr ) {
-                    throw InternalError("POctets::release: Null memory", E_FILE_LINE);
+                    throw InternalError("POctets::freeData: Old null memory", E_FILE_LINE);
                 }
                 TRACE_PRINT("POctets release: %p", ptr);
                 free(ptr);
-                setData(nullptr, 0);
-                capacity=0;
             }
 
         public:
+            /** Returns the memory capacity, never zero, greater or equal {@link #getSize()}. */
+            inline int getCapacity() const noexcept { return capacity; }
+
             /** Takes ownership (malloc and copy, free) ..*/
             POctets(const uint8_t *_source, const int _size)
             : TOctets( static_cast<uint8_t*>( std::malloc(_size) ), _size),
               capacity( _size )
             {
-                std::memcpy(get_wptr(), _source, _size);
-                TRACE_PRINT("POctets ctor0: %p", get_wptr());
+                std::memcpy(data(), _source, _size);
+                TRACE_PRINT("POctets ctor0: %p", data());
             }
 
             /** New buffer (malloc, free) */
@@ -301,78 +383,83 @@ namespace direct_bt {
                 if( capacity < getSize() ) {
                     throw IllegalArgumentException("capacity "+std::to_string(capacity)+" < size "+std::to_string(getSize()), E_FILE_LINE);
                 }
-                TRACE_PRINT("POctets ctor1: %p", get_wptr());
+                TRACE_PRINT("POctets ctor1: %p", data());
             }
 
             /** New buffer (malloc, free) */
             POctets(const int size)
             : POctets(size, size)
             {
-                TRACE_PRINT("POctets ctor2: %p", get_wptr());
+                TRACE_PRINT("POctets ctor2: %p", data());
             }
 
-            POctets(const POctets &_source) noexcept
+            POctets(const POctets &_source)
             : TOctets( static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize()),
               capacity( _source.getSize() )
             {
-                std::memcpy(get_wptr(), _source.get_ptr(), _source.getSize());
-                TRACE_PRINT("POctets ctor-cpy0: %p", get_wptr());
+                std::memcpy(data(), _source.get_ptr(), _source.getSize());
+                TRACE_PRINT("POctets ctor-cpy0: %p", data());
             }
 
             POctets(POctets &&o) noexcept
-            : TOctets( o.get_wptr(), o.getSize()),
+            : TOctets( o.data(), o.getSize(), true /* nocheck */),
               capacity( o.getCapacity() )
             {
                 // moved origin data references
                 // purge origin
-                o.setData(nullptr, 0);
+                o.setData_nc(nullptr, 0);
                 o.capacity = 0;
-                TRACE_PRINT("POctets ctor-move0: %p", get_wptr());
+                TRACE_PRINT("POctets ctor-move0: %p", data());
             }
 
             POctets& operator=(const POctets &_source) {
                 if( this == &_source ) {
                     return *this;
                 }
-                release();
-                setData(static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize());
-                capacity = _source.getSize();
-                std::memcpy(get_wptr(), _source.get_ptr(), _source.getSize());
-                TRACE_PRINT("POctets assign0: %p", get_wptr());
+                freeData();
+                const int newCapacity = _source.getSize() > 0 ? _source.getSize() : _source.getCapacity();
+                setData(static_cast<uint8_t*>( std::malloc(newCapacity) ), _source.getSize());
+                capacity = newCapacity;
+                std::memcpy(data(), _source.get_ptr(), _source.getSize());
+                TRACE_PRINT("POctets assign0: %p", data());
                 return *this;
             }
 
             POctets& operator=(POctets &&o) noexcept {
                 // move origin data references
-                setData(o.get_wptr(), o.getSize());
+                setData(o.data(), o.getSize());
                 capacity = o.capacity;
                 // purge origin
-                o.setData(nullptr, 0);
+                o.setData_nc(nullptr, 0);
                 o.capacity = 0;
-                TRACE_PRINT("POctets assign-move0: %p", get_wptr());
+                TRACE_PRINT("POctets assign-move0: %p", data());
                 return *this;
             }
 
-            ~POctets() { release(); }
+            ~POctets() noexcept {
+                freeData();
+                setData_nc(nullptr, 0);
+                capacity=0;
+            }
 
             /** Makes a persistent POctets by copying the data from TROOctets. */
             POctets(const TROOctets & _source)
             : TOctets( static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize()),
               capacity( _source.getSize() )
             {
-                std::memcpy(get_wptr(), _source.get_ptr(), _source.getSize());
-                TRACE_PRINT("POctets ctor-cpy1: %p", get_wptr());
+                std::memcpy(data(), _source.get_ptr(), _source.getSize());
+                TRACE_PRINT("POctets ctor-cpy1: %p", data());
             }
 
             POctets& operator=(const TROOctets &_source) {
                 if( static_cast<TROOctets *>(this) == &_source ) {
                     return *this;
                 }
-                release();
+                freeData();
                 setData(static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize());
                 capacity = _source.getSize();
-                std::memcpy(get_wptr(), _source.get_ptr(), _source.getSize());
-                TRACE_PRINT("POctets assign1: %p", get_wptr());
+                std::memcpy(data(), _source.get_ptr(), _source.getSize());
+                TRACE_PRINT("POctets assign1: %p", data());
                 return *this;
             }
 
@@ -381,16 +468,16 @@ namespace direct_bt {
             : TOctets( static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize()),
               capacity( _source.getSize() )
             {
-                std::memcpy(get_wptr(), _source.getParent().get_ptr() + _source.getOffset(), _source.getSize());
-                TRACE_PRINT("POctets ctor-cpy2: %p", get_wptr());
+                std::memcpy(data(), _source.getParent().get_ptr() + _source.getOffset(), _source.getSize());
+                TRACE_PRINT("POctets ctor-cpy2: %p", data());
             }
 
             POctets& operator=(const TOctetSlice &_source) {
-                release();
+                freeData();
                 setData(static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize());
                 capacity = _source.getSize();
-                std::memcpy(get_wptr(), _source.get_ptr(0), _source.getSize());
-                TRACE_PRINT("POctets assign2: %p", get_wptr());
+                std::memcpy(data(), _source.get_ptr(0), _source.getSize());
+                TRACE_PRINT("POctets assign2: %p", data());
                 return *this;
             }
 
@@ -431,14 +518,12 @@ namespace direct_bt {
                 if( getSize() > 0 ) {
                     memcpy(data2, get_ptr(), getSize());
                 }
-                TRACE_PRINT("POctets recapacity: %p -> %p", get_wptr(), data2);
-                free(get_wptr());
+                TRACE_PRINT("POctets recapacity: %p -> %p", data(), data2);
+                free(data());
                 setData(data2, getSize());
                 capacity = newCapacity;
                 return *this;
             }
-
-            int getCapacity() const { return capacity; }
 
             POctets & operator+=(const TROOctets &b) {
                 if( 0 < b.getSize() ) {
@@ -446,7 +531,7 @@ namespace direct_bt {
                     if( capacity < newSize ) {
                         recapacity( newSize );
                     }
-                    memcpy(get_wptr()+getSize(), b.get_ptr(), b.getSize());
+                    memcpy(data()+getSize(), b.get_ptr(), b.getSize());
                     setSize(newSize);
                 }
                 return *this;
@@ -457,7 +542,7 @@ namespace direct_bt {
                     if( capacity < newSize ) {
                         recapacity( newSize );
                     }
-                    memcpy(get_wptr()+getSize(), b.getParent().get_ptr()+b.getOffset(), b.getSize());
+                    memcpy(data()+getSize(), b.getParent().get_ptr()+b.getOffset(), b.getSize());
                     setSize(newSize);
                 }
                 return *this;

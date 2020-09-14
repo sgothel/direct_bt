@@ -121,17 +121,17 @@ namespace direct_bt {
     struct __attribute__((packed)) uint128_t {
         uint8_t data[16];
 
-        bool operator==(uint128_t const &o) const {
+        bool operator==(uint128_t const &o) const noexcept {
             if( this == &o ) {
                 return true;
             }
             return !std::memcmp(data, o.data, 16);
         }
-        bool operator!=(uint128_t const &o) const
+        bool operator!=(uint128_t const &o) const noexcept
         { return !(*this == o); }
     };
 
-    inline uint128_t bswap(uint128_t const & source) {
+    inline uint128_t bswap(uint128_t const & source) noexcept {
         uint128_t dest;
         uint8_t const * const s = source.data;
         uint8_t * const d = dest.data;
@@ -150,160 +150,160 @@ namespace direct_bt {
      */
 
 #if __BYTE_ORDER == __BIG_ENDIAN
-    inline uint16_t be_to_cpu(uint16_t const & n) {
+    inline uint16_t be_to_cpu(uint16_t const & n) noexcept {
         return n;
     }
-    inline uint16_t cpu_to_be(uint16_t const & h) {
+    inline uint16_t cpu_to_be(uint16_t const & h) noexcept {
         return h;
     }
-    inline uint16_t le_to_cpu(uint16_t const & l) {
+    inline uint16_t le_to_cpu(uint16_t const & l) noexcept {
         return bswap_16(l);
     }
-    inline uint16_t cpu_to_le(uint16_t const & h) {
+    inline uint16_t cpu_to_le(uint16_t const & h) noexcept {
         return bswap_16(h);
     }
 
-    inline uint32_t be_to_cpu(uint32_t const & n) {
+    inline uint32_t be_to_cpu(uint32_t const & n) noexcept {
         return n;
     }
-    inline uint32_t cpu_to_be(uint32_t const & h) {
+    inline uint32_t cpu_to_be(uint32_t const & h) noexcept {
         return h;
     }
-    inline uint32_t le_to_cpu(uint32_t const & l) {
+    inline uint32_t le_to_cpu(uint32_t const & l) noexcept {
         return bswap_32(l);
     }
-    inline uint32_t cpu_to_le(uint32_t const & h) {
+    inline uint32_t cpu_to_le(uint32_t const & h) noexcept {
         return bswap_32(h);
     }
 
-    inline uint128_t be_to_cpu(uint128_t const & n) {
+    inline uint128_t be_to_cpu(uint128_t const & n) noexcept {
         return n;
     }
-    inline uint128_t cpu_to_be(uint128_t const & h) {
+    inline uint128_t cpu_to_be(uint128_t const & h) noexcept {
         return n;
     }
-    inline uint128_t le_to_cpu(uint128_t const & l) {
+    inline uint128_t le_to_cpu(uint128_t const & l) noexcept {
         return bswap(l);
     }
-    inline uint128_t cpu_to_le(uint128_t const & h) {
+    inline uint128_t cpu_to_le(uint128_t const & h) noexcept {
         return bswap(h);
     }
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
-    inline uint16_t be_to_cpu(uint16_t const & n) {
+    inline uint16_t be_to_cpu(uint16_t const & n) noexcept {
         return bswap_16(n);
     }
-    inline uint16_t cpu_to_be(uint16_t const & h) {
+    inline uint16_t cpu_to_be(uint16_t const & h) noexcept {
         return bswap_16(h);
     }
-    inline uint16_t le_to_cpu(uint16_t const & l) {
+    inline uint16_t le_to_cpu(uint16_t const & l) noexcept {
         return l;
     }
-    inline uint16_t cpu_to_le(uint16_t const & h) {
+    inline uint16_t cpu_to_le(uint16_t const & h) noexcept {
         return h;
     }
 
-    inline uint32_t be_to_cpu(uint32_t const & n) {
+    inline uint32_t be_to_cpu(uint32_t const & n) noexcept {
         return bswap_32(n);
     }
-    inline uint32_t cpu_to_be(uint32_t const & h) {
+    inline uint32_t cpu_to_be(uint32_t const & h) noexcept {
         return bswap_32(h);
     }
-    inline uint32_t le_to_cpu(uint32_t const & l) {
+    inline uint32_t le_to_cpu(uint32_t const & l) noexcept {
         return l;
     }
-    inline uint32_t cpu_to_le(uint32_t const & h) {
+    inline uint32_t cpu_to_le(uint32_t const & h) noexcept {
         return h;
     }
 
-    inline uint128_t be_to_cpu(uint128_t const & n) {
+    inline uint128_t be_to_cpu(uint128_t const & n) noexcept {
         return bswap(n);
     }
-    inline uint128_t cpu_to_be(uint128_t const & h) {
+    inline uint128_t cpu_to_be(uint128_t const & h) noexcept {
         return bswap(h);
     }
-    inline uint128_t le_to_cpu(uint128_t const & l) {
+    inline uint128_t le_to_cpu(uint128_t const & l) noexcept {
         return l;
     }
-    inline uint128_t cpu_to_le(uint128_t const & h) {
+    inline uint128_t cpu_to_le(uint128_t const & h) noexcept {
         return h;
     }
 #else
     #error "Unexpected __BYTE_ORDER"
 #endif
 
-    inline void put_uint8(uint8_t * buffer, int const byte_offset, const uint8_t v)
+    inline void put_uint8(uint8_t * buffer, int const byte_offset, const uint8_t v) noexcept
     {
         uint8_t * p = (uint8_t *) ( buffer + byte_offset );
         *p = v;
     }
-    inline uint8_t get_uint8(uint8_t const * buffer, int const byte_offset)
+    inline uint8_t get_uint8(uint8_t const * buffer, int const byte_offset) noexcept
     {
         uint8_t const * p = (uint8_t const *) ( buffer + byte_offset );
         return *p;
     }
-    inline int8_t get_int8(uint8_t const * buffer, int const byte_offset)
+    inline int8_t get_int8(uint8_t const * buffer, int const byte_offset) noexcept
     {
         int8_t const * p = (int8_t const *) ( buffer + byte_offset );
         return *p;
     }
-    inline void put_uint16(uint8_t * buffer, int const byte_offset, const uint16_t v)
+    inline void put_uint16(uint8_t * buffer, int const byte_offset, const uint16_t v) noexcept
     {
         uint16_t * p = (uint16_t *) ( buffer + byte_offset );
         *p = v;
     }
-    inline void put_uint16(uint8_t * buffer, int const byte_offset, const uint16_t v, bool littleEndian)
+    inline void put_uint16(uint8_t * buffer, int const byte_offset, const uint16_t v, bool littleEndian) noexcept
     {
         uint16_t * p = (uint16_t *) ( buffer + byte_offset );
         *p = littleEndian ? cpu_to_le(v) : cpu_to_be(v);
     }
-    inline uint16_t get_uint16(uint8_t const * buffer, int const byte_offset)
+    inline uint16_t get_uint16(uint8_t const * buffer, int const byte_offset) noexcept
     {
         uint16_t const * p = (uint16_t const *) ( buffer + byte_offset );
         return *p;
     }
-    inline uint16_t get_uint16(uint8_t const * buffer, int const byte_offset, bool littleEndian)
+    inline uint16_t get_uint16(uint8_t const * buffer, int const byte_offset, bool littleEndian) noexcept
     {
         uint16_t const * p = (uint16_t const *) ( buffer + byte_offset );
         return littleEndian ? le_to_cpu(*p) : be_to_cpu(*p);
     }
 
-    inline void put_uint32(uint8_t * buffer, int const byte_offset, const uint32_t v)
+    inline void put_uint32(uint8_t * buffer, int const byte_offset, const uint32_t v) noexcept
     {
         uint32_t * p = (uint32_t *) ( buffer + byte_offset );
         *p = v;
     }
-    inline void put_uint32(uint8_t * buffer, int const byte_offset, const uint32_t v, bool littleEndian)
+    inline void put_uint32(uint8_t * buffer, int const byte_offset, const uint32_t v, bool littleEndian) noexcept
     {
         uint32_t * p = (uint32_t *) ( buffer + byte_offset );
         *p = littleEndian ? cpu_to_le(v) : cpu_to_be(v);
     }
-    inline uint32_t get_uint32(uint8_t const * buffer, int const byte_offset)
+    inline uint32_t get_uint32(uint8_t const * buffer, int const byte_offset) noexcept
     {
         uint32_t const * p = (uint32_t const *) ( buffer + byte_offset );
         return *p;
     }
-    inline uint32_t get_uint32(uint8_t const * buffer, int const byte_offset, bool littleEndian)
+    inline uint32_t get_uint32(uint8_t const * buffer, int const byte_offset, bool littleEndian) noexcept
     {
         uint32_t const * p = (uint32_t const *) ( buffer + byte_offset );
         return littleEndian ? le_to_cpu(*p) : be_to_cpu(*p);
     }
 
-    inline void put_uint128(uint8_t * buffer, int const byte_offset, const uint128_t v)
+    inline void put_uint128(uint8_t * buffer, int const byte_offset, const uint128_t v) noexcept
     {
         uint128_t * p = (uint128_t *) ( buffer + byte_offset );
         *p = v;
     }
-    inline void put_uint128(uint8_t * buffer, int const byte_offset, const uint128_t v, bool littleEndian)
+    inline void put_uint128(uint8_t * buffer, int const byte_offset, const uint128_t v, bool littleEndian) noexcept
     {
         uint128_t * p = (uint128_t *) ( buffer + byte_offset );
         *p = littleEndian ? cpu_to_le(v) : cpu_to_be(v);
     }
-    inline uint128_t get_uint128(uint8_t const * buffer, int const byte_offset)
+    inline uint128_t get_uint128(uint8_t const * buffer, int const byte_offset) noexcept
     {
         uint128_t const * p = (uint128_t const *) ( buffer + byte_offset );
         return *p;
     }
-    inline uint128_t get_uint128(uint8_t const * buffer, int const byte_offset, bool littleEndian)
+    inline uint128_t get_uint128(uint8_t const * buffer, int const byte_offset, bool littleEndian) noexcept
     {
         uint128_t const * p = (uint128_t const *) ( buffer + byte_offset );
         return littleEndian ? le_to_cpu(*p) : be_to_cpu(*p);
@@ -355,7 +355,7 @@ namespace direct_bt {
      * The source string within buffer is not required to contain an EOS null byte;
      * </p>
      */
-    std::string get_string(const uint8_t *buffer, int const buffer_len, int const max_len);
+    std::string get_string(const uint8_t *buffer, int const buffer_len, int const max_len) noexcept;
 
     /**
      * Merge the given 'uuid16' into a 'base_uuid' copy at the given little endian 'uuid16_le_octet_index' position.
@@ -413,17 +413,17 @@ namespace direct_bt {
      * Otherwise orders MSB left -> LSB right, usual for readable integer values.
      * </p>
      */
-    std::string bytesHexString(const uint8_t * bytes, const int offset, const int length, const bool lsbFirst, const bool leading0X=true);
+    std::string bytesHexString(const uint8_t * bytes, const int offset, const int length, const bool lsbFirst, const bool leading0X=true) noexcept;
 
-    std::string int32SeparatedString(const int32_t v, const char separator=',');
-    std::string uint32SeparatedString(const uint32_t v, const char separator=',');
-    std::string uint64SeparatedString(const uint64_t v, const char separator=',');
+    std::string int32SeparatedString(const int32_t v, const char separator=',') noexcept;
+    std::string uint32SeparatedString(const uint32_t v, const char separator=',') noexcept;
+    std::string uint64SeparatedString(const uint64_t v, const char separator=',') noexcept;
 
     /** trim in place */
-    void trimInPlace(std::string &s);
+    void trimInPlace(std::string &s) noexcept;
 
     /** trim copy */
-    std::string trimCopy(const std::string &s);
+    std::string trimCopy(const std::string &s) noexcept;
 
 } // namespace direct_bt
 

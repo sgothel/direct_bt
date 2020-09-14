@@ -55,7 +55,7 @@ namespace direct_bt {
         BDADDR_UNDEFINED  = 0xff
     };
 
-    std::string getBDAddressTypeString(const BDAddressType type);
+    std::string getBDAddressTypeString(const BDAddressType type) noexcept;
 
     /**
      * BT Core Spec v5.2:  Vol 6 LE, Part B Link Layer Specification: 1.3 Device Address
@@ -86,7 +86,7 @@ namespace direct_bt {
         /** Undefined, e.g. address not of type {@link BDAddressType::BDADDR_LE_RANDOM} */
         UNDEFINED           = 0xff
     };
-    std::string getBLERandomAddressTypeString(const BLERandomAddressType type);
+    std::string getBLERandomAddressTypeString(const BLERandomAddressType type) noexcept;
 
     /**
      * HCI LE Address-Type is PUBLIC: 0x00, RANDOM: 0x01
@@ -116,8 +116,8 @@ namespace direct_bt {
         UNDEFINED = 0xff /**< HCIADDR_UNDEFINED */
     };
 
-    BDAddressType getBDAddressType(const HCILEPeerAddressType hciPeerAddrType);
-    std::string getHCILEPeerAddressTypeString(const HCILEPeerAddressType type);
+    BDAddressType getBDAddressType(const HCILEPeerAddressType hciPeerAddrType) noexcept;
+    std::string getHCILEPeerAddressTypeString(const HCILEPeerAddressType type) noexcept;
 
     enum class HCILEOwnAddressType : uint8_t {
         /** Public Device Address */
@@ -131,8 +131,8 @@ namespace direct_bt {
         UNDEFINED = 0xff
     };
 
-    BDAddressType getBDAddressType(const HCILEOwnAddressType hciOwnAddrType);
-    std::string getHCILEOwnAddressTypeString(const HCILEOwnAddressType type);
+    BDAddressType getBDAddressType(const HCILEOwnAddressType hciOwnAddrType) noexcept;
+    std::string getHCILEOwnAddressTypeString(const HCILEOwnAddressType type) noexcept;
 
     /**
      * A packed 48 bit EUI-48 identifier, formerly known as MAC-48
@@ -145,25 +145,25 @@ namespace direct_bt {
     struct __attribute__((packed)) EUI48 {
         uint8_t b[6]; // == sizeof(EUI48)
 
-        EUI48() { bzero(b, sizeof(EUI48)); }
-        EUI48(const uint8_t * b);
+        EUI48() noexcept { bzero(b, sizeof(EUI48)); }
+        EUI48(const uint8_t * b) noexcept;
         EUI48(const std::string mac);
         EUI48(const EUI48 &o) noexcept = default;
         EUI48(EUI48 &&o) noexcept = default;
         EUI48& operator=(const EUI48 &o) noexcept = default;
         EUI48& operator=(EUI48 &&o) noexcept = default;
 
-        BLERandomAddressType getBLERandomAddressType(const BDAddressType addressType) const;
+        BLERandomAddressType getBLERandomAddressType(const BDAddressType addressType) const noexcept;
         std::string toString() const;
     };
 
-    inline bool operator<(const EUI48& lhs, const EUI48& rhs)
+    inline bool operator<(const EUI48& lhs, const EUI48& rhs) noexcept
     { return memcmp(&lhs, &rhs, sizeof(EUI48))<0; }
 
-    inline bool operator==(const EUI48& lhs, const EUI48& rhs)
+    inline bool operator==(const EUI48& lhs, const EUI48& rhs) noexcept
     { return !memcmp(&lhs, &rhs, sizeof(EUI48)); }
 
-    inline bool operator!=(const EUI48& lhs, const EUI48& rhs)
+    inline bool operator!=(const EUI48& lhs, const EUI48& rhs) noexcept
     { return !(lhs == rhs); }
 
     /** EUI48 MAC address matching any device, i.e. '0:0:0:0:0:0'. */

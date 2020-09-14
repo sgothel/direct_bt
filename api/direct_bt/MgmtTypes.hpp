@@ -410,8 +410,8 @@ namespace direct_bt {
                 pdu.put_string(MGMT_HEADER_SIZE, name, MgmtConstU16::MGMT_MAX_NAME_LENGTH, true);
                 pdu.put_string(MGMT_HEADER_SIZE+MgmtConstU16::MGMT_MAX_NAME_LENGTH, short_name, MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH, true);
             }
-            const std::string getName() const { return pdu.get_string(MGMT_HEADER_SIZE); }
-            const std::string getShortName() const { return pdu.get_string(MGMT_HEADER_SIZE + MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
+            const std::string getName() const { return pdu.get_string_nc(MGMT_HEADER_SIZE); }
+            const std::string getShortName() const { return pdu.get_string_nc(MGMT_HEADER_SIZE + MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
     };
 
     struct MgmtConnParam {
@@ -1209,8 +1209,8 @@ namespace direct_bt {
                 pdu.put_string(MGMT_HEADER_SIZE+MgmtConstU16::MGMT_MAX_NAME_LENGTH, short_name, MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH, true);
             }
 
-            const std::string getName() const { return pdu.get_string(MGMT_HEADER_SIZE); }
-            const std::string getShortName() const { return pdu.get_string(MGMT_HEADER_SIZE + MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
+            const std::string getName() const { return pdu.get_string_nc(MGMT_HEADER_SIZE); }
+            const std::string getShortName() const { return pdu.get_string_nc(MGMT_HEADER_SIZE + MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
 
             std::shared_ptr<NameAndShortName> toNameAndShortName() const;
     };
@@ -1242,8 +1242,8 @@ namespace direct_bt {
             uint32_t getDevClass() const { return pdu.get_uint8(getDataOffset()+17)
                                                   | ( pdu.get_uint8(getDataOffset()+18) << 8 )
                                                   | ( pdu.get_uint8(getDataOffset()+19) << 16 ); }
-            std::string getName() const { return pdu.get_string(getDataOffset()+20); }
-            std::string getShortName() const { return pdu.get_string(getDataOffset()+20+MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
+            std::string getName() const { return pdu.get_string_nc(getDataOffset()+20); }
+            std::string getShortName() const { return pdu.get_string_nc(getDataOffset()+20+MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
 
             std::shared_ptr<AdapterInfo> toAdapterInfo() const;
 
