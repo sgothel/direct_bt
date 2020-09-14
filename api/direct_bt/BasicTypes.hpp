@@ -42,7 +42,7 @@ namespace direct_bt {
     /**
      * Returns current monotonic time in milliseconds.
      */
-    int64_t getCurrentMilliseconds();
+    int64_t getCurrentMilliseconds() noexcept;
 
     #define E_FILE_LINE __FILE__,__LINE__
 
@@ -404,11 +404,11 @@ namespace direct_bt {
      */
     uint128_t merge_uint128(uint32_t const uuid32, uint128_t const & base_uuid, int const uuid32_le_octet_index);
 
-    std::string uint8HexString(const uint8_t v, const bool leading0X=true);
-    std::string uint16HexString(const uint16_t v, const bool leading0X=true);
-    std::string uint32HexString(const uint32_t v, const bool leading0X=true);
-    std::string uint64HexString(const uint64_t v, const bool leading0X=true);
-    std::string aptrHexString(const void * v, const bool leading0X=true);
+    std::string uint8HexString(const uint8_t v, const bool leading0X=true) noexcept;
+    std::string uint16HexString(const uint16_t v, const bool leading0X=true) noexcept;
+    std::string uint32HexString(const uint32_t v, const bool leading0X=true) noexcept;
+    std::string uint64HexString(const uint64_t v, const bool leading0X=true) noexcept;
+    std::string aptrHexString(const void * v, const bool leading0X=true) noexcept;
 
     /**
      * If lsbFirst is true, orders LSB left -> MSB right, usual for byte streams.

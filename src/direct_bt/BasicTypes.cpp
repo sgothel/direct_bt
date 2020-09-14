@@ -36,6 +36,7 @@ extern "C" {
     #endif
 }
 
+#include "direct_bt/dbt_debug.hpp"
 #include "direct_bt/BasicTypes.hpp"
 
 using namespace direct_bt;
@@ -51,7 +52,7 @@ static const int64_t MilliPerOne = 1000L;
  * clock_gettime seems to be well supported at least on kernel >= 4.4.
  * Only bfin and sh are missing, while ia64 seems to be complicated.
  */
-int64_t direct_bt::getCurrentMilliseconds() {
+int64_t direct_bt::getCurrentMilliseconds() noexcept {
     struct timespec t;
     clock_gettime(CLOCK_MONOTONIC, &t);
     return t.tv_sec * MilliPerOne + t.tv_nsec / NanoPerMilli;
@@ -156,7 +157,7 @@ uint128_t direct_bt::merge_uint128(uint32_t const uuid32, uint128_t const & base
     return dest;
 }
 
-std::string direct_bt::uint8HexString(const uint8_t v, const bool leading0X) {
+std::string direct_bt::uint8HexString(const uint8_t v, const bool leading0X) noexcept {
     const int length = leading0X ? 4 : 2; // ( '0x00' | '00' )
     std::string str;
     str.reserve(length+1); // including EOS for snprintf
@@ -164,12 +165,13 @@ std::string direct_bt::uint8HexString(const uint8_t v, const bool leading0X) {
 
     const int count = snprintf(&str[0], str.capacity(), ( leading0X ? "0x%.2X" : "%.2X" ), v);
     if( length != count ) {
-        throw InternalError("uint8_t string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);
+        ERR_PRINT("Internal-Error: uint8_t string not of length %d but %d", length, count);
+        abort();
     }
     return str;
 }
 
-std::string direct_bt::uint16HexString(const uint16_t v, const bool leading0X) {
+std::string direct_bt::uint16HexString(const uint16_t v, const bool leading0X) noexcept {
     const int length = leading0X ? 6 : 4; // ( '0x0000' | '0000' )
     std::string str;
     str.reserve(length+1); // including EOS for snprintf
@@ -177,12 +179,13 @@ std::string direct_bt::uint16HexString(const uint16_t v, const bool leading0X) {
 
     const int count = snprintf(&str[0], str.capacity(), ( leading0X ? "0x%.4X" : "%.4X" ), v);
     if( length != count ) {
-        throw InternalError("uint16_t string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);
+        ERR_PRINT("Internal-Error: uint16_t string not of length %d but %d", length, count);
+        abort();
     }
     return str;
 }
 
-std::string direct_bt::uint32HexString(const uint32_t v, const bool leading0X) {
+std::string direct_bt::uint32HexString(const uint32_t v, const bool leading0X) noexcept {
     const int length = leading0X ? 10 : 8; // ( '0x00000000' | '00000000' )
     std::string str;
     str.reserve(length+1); // including EOS for snprintf
@@ -190,12 +193,13 @@ std::string direct_bt::uint32HexString(const uint32_t v, const bool leading0X) {
 
     const int count = snprintf(&str[0], str.capacity(), ( leading0X ? "0x%.8X" : "%.8X" ), v);
     if( length != count ) {
-        throw InternalError("uint32_t string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);
+        ERR_PRINT("Internal-Error: uint32_t string not of length %d but %d", length, count);
+        abort();
     }
     return str;
 }
 
-std::string direct_bt::uint64HexString(const uint64_t v, const bool leading0X) {
+std::string direct_bt::uint64HexString(const uint64_t v, const bool leading0X) noexcept {
     const int length = leading0X ? 18 : 16; // ( '0x0000000000000000' | '0000000000000000' )
     std::string str;
     str.reserve(length+1); // including EOS for snprintf
@@ -203,12 +207,13 @@ std::string direct_bt::uint64HexString(const uint64_t v, const bool leading0X) {
 
     const int count = snprintf(&str[0], str.capacity(), ( leading0X ? "0x%.16" PRIX64 : "%.16" PRIX64 ), v);
     if( length != count ) {
-        throw InternalError("uint64_t string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);
+        ERR_PRINT("Internal-Error: uint64_t string not of length %d but %d", length, count);
+        abort();
     }
     return str;
 }
 
-std::string direct_bt::aptrHexString(const void * v, const bool leading0X) {
+std::string direct_bt::aptrHexString(const void * v, const bool leading0X) noexcept {
     return uint64HexString((uint64_t)v, leading0X);
 }
 
