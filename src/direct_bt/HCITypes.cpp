@@ -290,10 +290,10 @@ HCIEvent* HCIEvent::getSpecialized(const uint8_t * buffer, int const buffer_size
         case HCIEventType::LE_META:
             // No need to HCIMetaType specializations as we use HCIStructCmdCompleteMetaEvt template
             // based on HCIMetaEvent.
-            return new HCIMetaEvent(buffer, buffer_size);
+            return new HCIMetaEvent(buffer, buffer_size, 1);
         default:
             // No further specialization, use HCIStructCmdCompleteEvt template
-            return new HCIEvent(buffer, buffer_size);
+            return new HCIEvent(buffer, buffer_size, 0);
     }
 }
 
