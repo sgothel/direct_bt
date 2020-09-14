@@ -49,9 +49,9 @@ namespace direct_bt {
             std::atomic_bool valid;
             std::mutex lk;
 
-            DBTObject() : valid(true) {}
+            DBTObject() noexcept : valid(true) {}
 
-            bool lock() {
+            bool lock() noexcept {
                  if (valid) {
                      lk.lock();
                      return true;
@@ -60,14 +60,14 @@ namespace direct_bt {
                  }
              }
 
-             void unlock() {
+             void unlock() noexcept {
                  lk.unlock();
              }
 
         public:
-            virtual std::string toString() const { return "DBTObject["+aptrHexString(this)+"]"; }
+            virtual std::string toString() const noexcept { return "DBTObject["+aptrHexString(this)+"]"; }
 
-            virtual ~DBTObject() {
+            virtual ~DBTObject() noexcept {
                 valid = false;
             }
 

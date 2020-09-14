@@ -71,7 +71,7 @@ namespace direct_bt {
                     throw direct_bt::RuntimeException("JavaGlobalObj::check: Null object", file, line);
                 }
             }
-            static bool isValid(const std::shared_ptr<JavaAnonObj> & shref) {
+            static bool isValid(const std::shared_ptr<JavaAnonObj> & shref) noexcept {
                 if( nullptr == shref ) {
                     return false;
                 }
@@ -81,7 +81,7 @@ namespace direct_bt {
                 }
                 return true;
             }
-            JavaGlobalObj(jobject obj, jmethodID mNotifyDeleted)
+            JavaGlobalObj(jobject obj, jmethodID mNotifyDeleted) noexcept
             : javaObjectRef(obj), mNotifyDeleted(mNotifyDeleted) { }
 
             JavaGlobalObj(const JavaGlobalObj &o) noexcept = default;
@@ -89,34 +89,34 @@ namespace direct_bt {
             JavaGlobalObj& operator=(const JavaGlobalObj &o) noexcept = default;
             JavaGlobalObj& operator=(JavaGlobalObj &&o) noexcept = default;
 
-            virtual ~JavaGlobalObj();
+            virtual ~JavaGlobalObj() noexcept;
 
-            std::string toString() const override {
+            std::string toString() const noexcept override {
                 const uint64_t ref = (uint64_t)(void*)javaObjectRef.getObject();
                 return "JavaGlobalObj["+uint64HexString(ref, true)+"]";
             }
 
             /** Clears the java reference, i.e. nulling it, without deleting the global reference via JNI. */
-            void clear() override { javaObjectRef.clear(); }
+            void clear() noexcept override { javaObjectRef.clear(); }
 
-            JNIGlobalRef & getJavaObject() { return javaObjectRef; }
+            JNIGlobalRef & getJavaObject() noexcept { return javaObjectRef; }
 
             /* Provides access to the stored GlobalRef as an jobject. */
-            jobject getObject() const { return javaObjectRef.getObject(); }
+            jobject getObject() const noexcept { return javaObjectRef.getObject(); }
             /* Provides access to the stored GlobalRef as a jclass. */
-            jclass getClass() const { return javaObjectRef.getClass(); }
+            jclass getClass() const noexcept { return javaObjectRef.getClass(); }
 
             /* Provides access to the stored GlobalRef as an getJavaObject. */
-            static JNIGlobalRef GetJavaObject(const std::shared_ptr<JavaAnonObj> & shref) {
+            static JNIGlobalRef GetJavaObject(const std::shared_ptr<JavaAnonObj> & shref) noexcept {
                 return static_cast<JavaGlobalObj*>(shref.get())->getJavaObject();
             }
             /* Provides access to the stored GlobalRef as an jobject. */
-            static jobject GetObject(const std::shared_ptr<JavaAnonObj> & shref) {
+            static jobject GetObject(const std::shared_ptr<JavaAnonObj> & shref) noexcept {
                 return static_cast<JavaGlobalObj*>(shref.get())->getObject();
             }
 
             /* Provides access to the stored GlobalRef as a jclass. */
-            static jclass GetClass(const std::shared_ptr<JavaAnonObj> & shref) {
+            static jclass GetClass(const std::shared_ptr<JavaAnonObj> & shref) noexcept {
                 return static_cast<JavaGlobalObj*>(shref.get())->getClass();
             }
     };

@@ -43,11 +43,11 @@ namespace direct_bt {
      */
     class JavaAnonObj {
         public:
-            virtual ~JavaAnonObj() { }
-            virtual std::string toString() const { return "JavaAnonObj[???]"; }
+            virtual ~JavaAnonObj() noexcept { }
+            virtual std::string toString() const noexcept { return "JavaAnonObj[???]"; }
 
             /** Clears the java reference, i.e. nulling it, without deleting the global reference via JNI. */
-            virtual void clear() = 0;
+            virtual void clear() noexcept = 0;
     };
 
     /**
@@ -59,25 +59,25 @@ namespace direct_bt {
             std::shared_ptr<JavaAnonObj> javaObjectRef;
 
         public:
-            virtual std::string toString() const { return "JavaUplink["+direct_bt::aptrHexString(this)+"]"; }
+            virtual std::string toString() const noexcept { return "JavaUplink["+direct_bt::aptrHexString(this)+"]"; }
 
-            virtual std::string get_java_class() const = 0;
+            virtual std::string get_java_class() const noexcept = 0;
 
-            std::string javaObjectToString() const { return nullptr == javaObjectRef ? "JavaAnonObj[null]" : javaObjectRef->toString(); }
+            std::string javaObjectToString() const noexcept { return nullptr == javaObjectRef ? "JavaAnonObj[null]" : javaObjectRef->toString(); }
 
-            std::shared_ptr<JavaAnonObj> getJavaObject() { return javaObjectRef; }
+            std::shared_ptr<JavaAnonObj> getJavaObject() noexcept { return javaObjectRef; }
 
             /** Assigns a new shared JavaAnonObj reference, replaced item might be deleted via JNI from dtor */
-            void setJavaObject(std::shared_ptr<JavaAnonObj> objRef) { javaObjectRef = objRef; }
+            void setJavaObject(std::shared_ptr<JavaAnonObj> objRef) noexcept { javaObjectRef = objRef; }
 
             /** Clears the java reference, i.e. nulling it, without deleting the global reference via JNI. */
-            void clearJavaObject() {
+            void clearJavaObject() noexcept {
                 if( nullptr != javaObjectRef ) {
                     javaObjectRef->clear();
                 }
             }
 
-            virtual ~JavaUplink() {
+            virtual ~JavaUplink() noexcept {
                 javaObjectRef = nullptr;
             }
     };
