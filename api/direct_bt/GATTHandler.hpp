@@ -65,7 +65,7 @@ namespace direct_bt {
      */
     class GATTEnv : public DBTEnvrionment {
         private:
-            GATTEnv();
+            GATTEnv() noexcept;
 
             const bool exploding; // just to trigger exploding properties
 
@@ -119,7 +119,7 @@ namespace direct_bt {
             const bool DEBUG_DATA;
 
         public:
-            static GATTEnv& get() {
+            static GATTEnv& get() noexcept {
                 /**
                  * Thread safe starting with C++11 6.7:
                  *
@@ -187,7 +187,7 @@ namespace direct_bt {
 
             std::shared_ptr<DBTDevice> getDevice() const { return wbr_device.lock(); }
 
-            bool validateConnected();
+            bool validateConnected() noexcept;
 
             void l2capReaderThreadImpl();
 
@@ -203,19 +203,19 @@ namespace direct_bt {
             uint16_t exchangeMTU(const uint16_t clientMaxMTU);
 
         public:
-            GATTHandler(const std::shared_ptr<DBTDevice> & device);
+            GATTHandler(const std::shared_ptr<DBTDevice> & device) noexcept;
 
             ~GATTHandler();
 
-            bool getIsConnected() const { return isConnected; }
-            bool getHasIOError() const { return hasIOError; }
-            std::string getStateString() const { return L2CAPComm::getStateString(isConnected, hasIOError); }
+            bool getIsConnected() const noexcept { return isConnected; }
+            bool getHasIOError() const noexcept { return hasIOError; }
+            std::string getStateString() const noexcept { return L2CAPComm::getStateString(isConnected, hasIOError); }
 
             /**
              * After successful l2cap connection, the MTU will be exchanged.
              * See getServerMTU() and getUsedMTU(), the latter is in use.
              */
-            bool connect();
+            bool connect() noexcept;
 
             /**
              * Disconnect this GATTHandler and optionally the associated device
@@ -223,12 +223,12 @@ namespace direct_bt {
              * @param ioErrorCause if true, reason for disconnection is an IO error
              * @return true if successful, otherwise false
              */
-            bool disconnect(const bool disconnectDevice, const bool ioErrorCause);
+            bool disconnect(const bool disconnectDevice, const bool ioErrorCause) noexcept;
 
-            bool isOpen() const { return isConnected && l2cap.isOpen(); }
+            bool isOpen() const noexcept { return isConnected && l2cap.isOpen(); }
 
-            uint16_t getServerMTU() const { return serverMTU; }
-            uint16_t getUsedMTU()  const { return usedMTU; }
+            inline uint16_t getServerMTU() const noexcept { return serverMTU; }
+            inline uint16_t getUsedMTU()  const noexcept { return usedMTU; }
 
             /**
              * Find and return the GATTCharacterisicsDecl within internal primary services
@@ -237,7 +237,7 @@ namespace direct_bt {
              * Returns nullptr if not found.
              * </p>
              */
-            GATTCharacteristicRef findCharacterisicsByValueHandle(const uint16_t charValueHandle);
+            GATTCharacteristicRef findCharacterisicsByValueHandle(const uint16_t charValueHandle) noexcept;
 
             /**
              * Find and return the GATTCharacterisicsDecl within given list of primary services
@@ -246,7 +246,7 @@ namespace direct_bt {
              * Returns nullptr if not found.
              * </p>
              */
-            GATTCharacteristicRef findCharacterisicsByValueHandle(const uint16_t charValueHandle, std::vector<GATTServiceRef> &services);
+            GATTCharacteristicRef findCharacterisicsByValueHandle(const uint16_t charValueHandle, std::vector<GATTServiceRef> &services) noexcept;
 
             /**
              * Find and return the GATTCharacterisicsDecl within given primary service
@@ -255,7 +255,7 @@ namespace direct_bt {
              * Returns nullptr if not found.
              * </p>
              */
-            GATTCharacteristicRef findCharacterisicsByValueHandle(const uint16_t charValueHandle, GATTServiceRef service);
+            GATTCharacteristicRef findCharacterisicsByValueHandle(const uint16_t charValueHandle, GATTServiceRef service) noexcept;
 
             /**
              * Discover all primary services _and_ all its characteristics declarations
@@ -273,7 +273,7 @@ namespace direct_bt {
              * The internal list will be populated via {@link #discoverCompletePrimaryServices()}.
              * </p>
              */
-            std::vector<GATTServiceRef> & getServices() { return services; }
+            inline std::vector<GATTServiceRef> & getServices() noexcept { return services; }
 
             /**
              * Discover all primary services _only_.
@@ -441,7 +441,7 @@ namespace direct_bt {
              * Returns the number of removed event listener.
              * </p>
              */
-            int removeAllCharacteristicListener();
+            int removeAllCharacteristicListener() noexcept ;
 
             /**
              * Enable or disable sending an immediate confirmation for received indication events from the device.
@@ -463,7 +463,7 @@ namespace direct_bt {
              * This setting is per GATTHandler and hence per DBTDevice.
              * </p>
              */
-            bool getSendIndicationConfirmation();
+            bool getSendIndicationConfirmation() noexcept;
 
             /*****************************************************/
             /** Higher level semantic functionality **/

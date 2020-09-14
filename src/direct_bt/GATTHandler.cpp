@@ -65,7 +65,7 @@ extern "C" {
 
 using namespace direct_bt;
 
-GATTEnv::GATTEnv()
+GATTEnv::GATTEnv() noexcept
 : exploding( DBTEnv::getExplodingProperties("direct_bt.gatt") ),
   L2CAP_READER_THREAD_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.gatt.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
   GATT_READ_COMMAND_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.gatt.cmd.read.timeout", 500, 250 /* min */, INT32_MAX /* max */) ),
@@ -78,7 +78,7 @@ GATTEnv::GATTEnv()
 
 #define CASE_TO_STRING(V) case V: return #V;
 
-bool GATTHandler::validateConnected() {
+bool GATTHandler::validateConnected() noexcept {
     bool l2capIsConnected = l2cap.getIsConnected();
     bool l2capHasIOError = l2cap.getHasIOError();
 
@@ -158,7 +158,7 @@ int GATTHandler::removeAllAssociatedCharacteristicListener(const GATTCharacteris
     return false;
 }
 
-int GATTHandler::removeAllCharacteristicListener() {
+int GATTHandler::removeAllCharacteristicListener() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_eventListenerList); // RAII-style acquire and relinquish via destructor
     int count = characteristicListenerList.size();
     characteristicListenerList.clear();
@@ -170,7 +170,7 @@ void GATTHandler::setSendIndicationConfirmation(const bool v) {
     sendIndicationConfirmation = v;
 }
 
-bool GATTHandler::getSendIndicationConfirmation() {
+bool GATTHandler::getSendIndicationConfirmation() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_eventListenerList); // RAII-style acquire and relinquish via destructor
     return sendIndicationConfirmation;
 }
@@ -267,7 +267,7 @@ void GATTHandler::l2capReaderThreadImpl() {
     disconnect(true /* disconnectDevice */, ioErrorCause);
 }
 
-GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device)
+GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device) noexcept
 : env(GATTEnv::get()),
   wbr_device(device), deviceString(device->getAddressString()), rbuffer(number(Defaults::MAX_ATT_MTU)),
   l2cap(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT),
@@ -277,12 +277,12 @@ GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device)
   serverMTU(number(Defaults::MIN_ATT_MTU)), usedMTU(number(Defaults::MIN_ATT_MTU))
 { }
 
-GATTHandler::~GATTHandler() {
+GATTHandler::~GATTHandler() noexcept {
     disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
     services.clear();
 }
 
-bool GATTHandler::connect() {
+bool GATTHandler::connect() noexcept {
     // Avoid connect re-entry -> potential deadlock
     bool expConn = false; // C++11, exp as value since C++20
     if( !isConnected.compare_exchange_strong(expConn, true) ) {
@@ -332,7 +332,7 @@ bool GATTHandler::connect() {
     return true;
 }
 
-bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause) {
+bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause) noexcept {
     // Interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
     // and pull all underlying l2cap read operations!
     l2cap.disconnect();
@@ -454,11 +454,11 @@ uint16_t GATTHandler::exchangeMTU(const uint16_t clientMaxMTU) {
     return mtu;
 }
 
-GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle) {
+GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle) noexcept {
     return findCharacterisicsByValueHandle(charValueHandle, services);
 }
 
-GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle, std::vector<GATTServiceRef> &services) {
+GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle, std::vector<GATTServiceRef> &services) noexcept {
     for(auto it = services.begin(); it != services.end(); it++) {
         GATTCharacteristicRef decl = findCharacterisicsByValueHandle(charValueHandle, *it);
         if( nullptr != decl ) {
@@ -468,7 +468,7 @@ GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_
     return nullptr;
 }
 
-GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle, GATTServiceRef service) {
+GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle, GATTServiceRef service) noexcept {
     for(auto it = service->characteristicList.begin(); it != service->characteristicList.end(); it++) {
         GATTCharacteristicRef decl = *it;
         if( charValueHandle == decl->value_handle ) {
