@@ -14,12 +14,15 @@ if [ ! -e $JAVA_HOME ] ; then
     exit 1
 fi
 
+CPU_COUNT=`getconf _NPROCESSORS_ONLN`
+
 buildit() {
     echo rootdir $rootdir
     echo logfile $logfile
+    echo CPU_COUNT $CPU_COUNT
 
     cd $rootdir/build-$archabi
-    make install test
+    make -j $CPU_COUNT install test
     if [ $? -eq 0 ] ; then
         echo "REBUILD SUCCESS $bname $archabi"
         cp -a examples/* $rootdir/dist-$archabi/bin

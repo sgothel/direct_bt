@@ -52,3 +52,5 @@ set_target_properties(
 
 install(TARGETS javatinyb LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
+add_dependencies(javatinyb tinyb tinybjar)
+

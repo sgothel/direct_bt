@@ -52,3 +52,5 @@ set_target_properties(
 
 install(TARGETS javadirect_bt LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
+add_dependencies(javadirect_bt direct_bt tinybjar)
+

@@ -16,50 +16,56 @@ if(NOT SKIP_TINYB)
         PROPERTIES
         CXX_STANDARD 11
         COMPILE_FLAGS "-Wall -Wextra -Werror")
+    target_link_libraries (hellotinyb tinyb)
+    add_dependencies(hellotinyb tinyb)
 
     add_executable (checkinit tinyb/checkinit.cpp)
     set_target_properties(checkinit
         PROPERTIES
         CXX_STANDARD 11
         COMPILE_FLAGS "-Wall -Wextra -Werror")
+    target_link_libraries (checkinit tinyb)
+    add_dependencies(checkinit tinyb)
 
     add_executable (asynctinyb tinyb/asynctinyb.cpp)
     set_target_properties(asynctinyb
         PROPERTIES
         CXX_STANDARD 11
         COMPILE_FLAGS "-Wall -Wextra -Werror")
+    target_link_libraries (asynctinyb tinyb)
+    add_dependencies(asynctinyb tinyb)
 
     add_executable (esstinyb tinyb/esstinyb.cpp)
     set_target_properties(esstinyb
         PROPERTIES
         CXX_STANDARD 11
         COMPILE_FLAGS "-Wall -Wextra -Werror")
+    target_link_libraries (esstinyb tinyb)
+    add_dependencies(esstinyb tinyb)
 
     add_executable (notifications tinyb/notifications.cpp)
     set_target_properties(notifications
         PROPERTIES
         CXX_STANDARD 11
         COMPILE_FLAGS "-Wall -Wextra -Werror")
+    target_link_libraries (notifications tinyb)
+    add_dependencies(notifications tinyb)
 
     add_executable (uuid tinyb/uuid.cpp)
     set_target_properties(uuid
         PROPERTIES
         CXX_STANDARD 11
         COMPILE_FLAGS "-Wall -Wextra -Werror")
+    target_link_libraries (uuid tinyb)
+    add_dependencies(uuid tinyb)
 
     add_executable (list_mfg tinyb/list_mfg.cpp)
     set_target_properties(list_mfg
         PROPERTIES
         CXX_STANDARD 11
         COMPILE_FLAGS "-Wall -Wextra -Werror")
-
-    target_link_libraries (hellotinyb tinyb)
-    target_link_libraries (checkinit tinyb)
-    target_link_libraries (asynctinyb tinyb)
-    target_link_libraries (esstinyb tinyb)
-    target_link_libraries (notifications tinyb)
-    target_link_libraries (uuid tinyb)
     target_link_libraries (list_mfg tinyb)
+    add_dependencies(list_mfg tinyb)
 
 endif()
 
@@ -69,6 +75,8 @@ set_target_properties(dbt_scanner00
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     COMPILE_FLAGS "-Wall -Wextra -Werror")
+target_link_libraries (dbt_scanner00 direct_bt)
+add_dependencies(dbt_scanner00 direct_bt)
 
 add_executable (dbt_scanner01 direct_bt_scanner01/dbt_scanner01.cpp)
 set_target_properties(dbt_scanner01
@@ -76,6 +84,8 @@ set_target_properties(dbt_scanner01
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     COMPILE_FLAGS "-Wall -Wextra -Werror")
+target_link_libraries (dbt_scanner01 direct_bt)
+add_dependencies(dbt_scanner01 direct_bt)
 
 add_executable (dbt_scanner10 direct_bt_scanner10/dbt_scanner10.cpp)
 set_target_properties(dbt_scanner10
@@ -83,10 +93,8 @@ set_target_properties(dbt_scanner10
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     COMPILE_FLAGS "-Wall -Wextra -Werror")
-
-target_link_libraries (dbt_scanner00 direct_bt)
-target_link_libraries (dbt_scanner01 direct_bt)
 target_link_libraries (dbt_scanner10 direct_bt)
+add_dependencies(dbt_scanner10 direct_bt)
 
 install(TARGETS dbt_scanner00 dbt_scanner01 dbt_scanner10 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
