@@ -25,6 +25,7 @@
 
 #include <cstring>
 #include <string>
+#include <algorithm>
 #include <memory>
 #include <cstdint>
 #include <vector>
@@ -39,13 +40,25 @@ const uint64_t DBTEnv::startupTimeMilliseconds = direct_bt::getCurrentMillisecon
 
 bool DBTEnv::debug = false;
 
+static const std::string s_true("true");
+static const std::string s_false("false");
+
 std::string DBTEnv::getProperty(const std::string & name) noexcept {
     const char * value = getenv(name.c_str());
     if( nullptr != value ) {
         return std::string( value );
-    } else {
-        return std::string();
     }
+    if( std::string::npos != name.find('.', 0) ) {
+        // Retry with '.' -> '_' to please unix shell
+        std::string alt_name(name);
+        std::replace( alt_name.begin(), alt_name.end(), '.', '_');
+        value = getenv(alt_name.c_str());
+        if( nullptr != value ) {
+            return std::string( value );
+        }
+    }
+    // not found: empty string
+    return std::string();
 }
 
 std::string DBTEnv::getProperty(const std::string & name, const std::string & default_value) noexcept {
@@ -196,11 +209,11 @@ void DBTEnv::envExplodeProperties(std::string prefixDomain, std::string list) no
 }
 
 bool DBTEnv::getExplodingProperties(const std::string & prefixDomain) noexcept {
-    std::string value = DBTEnv::getProperty(prefixDomain, "false");
-    if( "false" == value ) {
+    std::string value = DBTEnv::getProperty(prefixDomain, s_false);
+    if( s_false == value ) {
         return false;
     }
-    if( "true" == value ) {
+    if( s_true == value ) {
         return true;
     }
     if( "direct_bt.debug" == prefixDomain ) {

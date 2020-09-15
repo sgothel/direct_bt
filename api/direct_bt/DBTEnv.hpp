@@ -82,6 +82,15 @@ namespace direct_bt {
              * <p>
              * Note that only '[org.]tinyb.*' and 'direct_bt.*' Java JVM properties are passed via 'org.tinyb.BluetoothFactory'
              * </p>
+             * <p>
+             * Implementation attempts to also find a Unix conform environment name,
+             * e.g. 'direct_bt_debug' if ''direct_bt.debug' wasn't found.</br>
+             *
+             * Dots are not allowed as valid Unix envrionment variable identifier.
+             * If the property 'name' isn't found and if the 'name' contains a dot ('.'),
+             * all dots ('.') will be replaced y underscore ('_') and looked up again.</br>
+             * This allows Unix shell user to set the property 'direct_bt_debug' instead of 'direct_bt.debug'.
+             * </p>
              */
             static std::string getProperty(const std::string & name) noexcept;
 
@@ -90,6 +99,8 @@ namespace direct_bt {
              * or the 'default_value' if the environment variable's value is null.
              * <p>
              * Implementation uses {@link #getProperty(const std::string & name)}
+             * and hence attempts to also find a Unix conform name,
+             * e.g. 'direct_bt_debug' if ''direct_bt.debug' wasn't found.
              * </p>
              */
             static std::string getProperty(const std::string & name, const std::string & default_value) noexcept;
@@ -102,7 +113,9 @@ namespace direct_bt {
              * true is determined if the value equals 'true'.
              * </p>
              * <p>
-             * Implementation uses {@link #getProperty(const std::string & name)}.
+             * Implementation uses {@link #getProperty(const std::string & name)}
+             * and hence attempts to also find a Unix conform name,
+             * e.g. 'direct_bt_debug' if ''direct_bt.debug' wasn't found.
              * </p>
              */
             static bool getBooleanProperty(const std::string & name, const bool default_value) noexcept;
@@ -113,6 +126,8 @@ namespace direct_bt {
              * or not within int32_t value range or within the given value range.
              * <p>
              * Implementation uses {@link #getProperty(const std::string & name)}
+             * and hence attempts to also find a Unix conform name,
+             * e.g. 'direct_bt_debug' if ''direct_bt.debug' wasn't found.
              * </p>
              */
             static int32_t getInt32Property(const std::string & name, const int32_t default_value,
@@ -124,6 +139,8 @@ namespace direct_bt {
              * or not within uint32_t value range or within the given value range.
              * <p>
              * Implementation uses {@link #getProperty(const std::string & name)}
+             * and hence attempts to also find a Unix conform name,
+             * e.g. 'direct_bt_debug' if ''direct_bt.debug' wasn't found.
              * </p>
              */
             static uint32_t getUint32Property(const std::string & name, const uint32_t default_value,
@@ -131,6 +148,11 @@ namespace direct_bt {
 
             /**
              * Fetches exploding variable-name (prefixDomain) values.
+             * <p>
+             * Implementation uses {@link #getProperty(const std::string & name)}
+             * and hence attempts to also find a Unix conform name,
+             * e.g. 'direct_bt_debug' if ''direct_bt.debug' wasn't found.
+             * </p>
              * <p>
              * If the value of a prefixDomain is neither 'true' or 'false',
              * it is treated as a list of sub-variable names including their optional value separated by comma ','.
