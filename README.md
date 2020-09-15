@@ -1,4 +1,4 @@
-Tiny Bluetooth LE Library / Direct-BT LE and BREDR Library
+Direct-BT LE and BREDR Library + Tiny Bluetooth LE Library
 ==========================================================
 
 Git Repository
@@ -7,41 +7,29 @@ This project's canonical repository is hosted on [Zafena ICT](https://ict.zafena
 
 Goals
 ============
-
 This project aims to create a clean, modern and easy to use Bluetooth LE and BREDR API
 fully accessible through C++, Java and other languages.
 
 
-TinyB Version 2
-================
+Version 2
+==========
+Starting with version 2.1.0, the *TinyB* Java API has slightly changed
+to support new features provided by the new *Direct-BT* implementation.
 
-Starting with version 2.1.0, the specification has slightly changed and hence its implementation.
-
-As of today, the TinyB Java API comprises two implementations, *TinyB* and *Direct-BT*.
-
-
-TinyB
------
-*TinyB* exposes the BLE GATT API for C++, Java and other languages, using BlueZ over DBus.
-
-*TinyB* does not expose the BREDR API.
-
-*TinyB* is exposed via the following native libraries
-- *libtinyb.so* for the core C++ implementation.
-- *libjavatinyb.so* for the Java binding.
-
-*TinyB* is the original implementation of the TinyB project by Intel.
+As of today, the *TinyB* Java API comprises two implementations, *Direct-BT* and *TinyB*.
 
 
 Direct-BT
 ----------
-*Direct-BT* provides direct Bluetooth LE and BREDR programming without intermediate layers
-targeting high-performance reliable Bluetooth support.
+*Direct-BT* provides direct Bluetooth LE and BREDR programming without intermediate layers,
+offering robust high-performance Bluetooth support.
 
-By having least system and userspace dependencies and no communication overhead, 
-Direct-BT shall be suitable for embedded device configurations besides others.
+By having least system and userspace dependencies and zero overhead, 
+Direct-BT is suitable for embedded device configurations and desktop.
 
-*Direct-BT* supports a fully event driven workflow from discovery to GATT programming.
+*Direct-BT* supports a fully event driven workflow from discovery to GATT programming,
+implementing & using the platform agnostic HCI and GATT/L2CAP Bluetooth layer.
+
 [AdapterStatusListener](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1AdapterStatusListener.html) 
 allows listening to adapter changes and device discovery and
 [GATTCharacteristicListener](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1GATTCharacteristicListener.html)
@@ -53,6 +41,8 @@ or via the refactored TinyB [Java API](https://ict.zafena.se/direct_bt/build/doc
 *Direct-BT* is exposed via the following native libraries
 - *libdirect_bt.so* for the core C++ implementation.
 - *libjavadirect_bt.so* for the Java binding.
+
+*Direct-BT* is C++17 conform and shall upgrade towards C++20 when widely available on all target platforms.
 
 You will find a detailed overview of *Direct-BT* in the doxygen generated 
 [C++ API doc of its *direct_bt* namespace](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
@@ -68,6 +58,19 @@ systemctl mask bluetooth
 ```
 
 *Direct-BT* is the new implementation as provided by [Zafena ICT](https://ict.zafena.se).
+
+
+TinyB
+-----
+*TinyB* exposes the BLE GATT API for C++, Java and other languages, using BlueZ over DBus.
+
+*TinyB* does not expose the BREDR API.
+
+*TinyB* is exposed via the following native libraries
+- *libtinyb.so* for the core C++ implementation.
+- *libjavatinyb.so* for the Java binding.
+
+*TinyB* is the original implementation of the TinyB project by Intel.
 
 
 TinyB and Direct-BT
@@ -155,13 +158,13 @@ apt install doxygen graphviz
 
 For a generic build use:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
+CPU_COUNT=`getconf _NPROCESSORS_ONLN`
 git clone https://ict.zafena.se/cgit/direct_bt.git
 cd direct_bt
 mkdir build
 cd build
 cmake -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TESTING=ON ..
-make
-make install test doc
+make -j $CPU_COUNT install test doc
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The install target of the last command will create the include/ and lib/ directories with a copy of
