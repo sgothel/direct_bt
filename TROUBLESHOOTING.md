@@ -1,5 +1,8 @@
-Solving common issues with TinyB                           {#troubleshooting}
-======================
+Solving common issues with Direct-BT and TinyB                           {#troubleshooting}
+==============================================
+
+TinyB
+=====
 
 If you are having issues with TinyB, please follow these steps to resolve common issues:
 

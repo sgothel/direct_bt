@@ -7,28 +7,25 @@ This project's canonical repository is hosted on [Zafena ICT](https://ict.zafena
 
 Goals
 ============
-This project aims to create a clean, modern and easy to use Bluetooth LE and BREDR API
+This project aims to create a clean, modern and easy to use API for [Bluetooth LE and BREDR](https://www.bluetooth.com/specifications/bluetooth-core-specification/), 
 fully accessible through C++, Java and other languages.
 
 
 Version 2
 ==========
-Starting with version 2.1.0, the *TinyB* Java API has slightly changed
-to support new features provided by the new *Direct-BT* implementation.
+Starting with version 2.1.0, the *TinyB* Java API has been refactored
+to support all new features of its new *Direct-BT* implementation.
 
 As of today, the *TinyB* Java API comprises two implementations, *Direct-BT* and *TinyB*.
 
 
 Direct-BT
 ----------
-*Direct-BT* provides direct Bluetooth LE and BREDR programming without intermediate layers,
-offering robust high-performance Bluetooth support.
+*Direct-BT* provides direct [Bluetooth LE and BREDR](https://www.bluetooth.com/specifications/bluetooth-core-specification/) programming,
+offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
 
-By having least system and userspace dependencies and zero overhead, 
-Direct-BT is suitable for embedded device configurations and desktop.
-
-*Direct-BT* supports a fully event driven workflow from discovery to GATT programming,
-implementing & using the platform agnostic HCI and GATT/L2CAP Bluetooth layer.
+*Direct-BT* supports a fully event driven workflow from device discovery to GATT programming,
+using its platform agnostic HCI and GATT/L2CAP implementation.
 
 [AdapterStatusListener](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1AdapterStatusListener.html) 
 allows listening to adapter changes and device discovery and
@@ -47,9 +44,10 @@ or via the refactored TinyB [Java API](https://ict.zafena.se/direct_bt/build/doc
 You will find a detailed overview of *Direct-BT* in the doxygen generated 
 [C++ API doc of its *direct_bt* namespace](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
 
-To use *Direct-BT* in the most efficient way, 
-the BlueZ userspace daemon *bluetoothd* should be disabled.
-Using systemd this should be:
+Since *Direct-BT* is not using a 3rd party Bluetooth library but using its own implementation,
+they should be disabled to allow operation without any interference.
+To disable the BlueZ D-Bus userspace daemon *bluetoothd* via systemd, 
+you may use the following commands.
 
 ```
 systemctl stop bluetooth
