@@ -569,13 +569,13 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
      * {@inheritDoc}
      * <p>
      * Disconnects this device via disconnect(..) and
-     * removes its shared reference from the Adapter altogether.
+     * explicitly removes its shared references from the Adapter:
+     * connected-devices, discovered-devices and shared-devices.
      * </p>
      * <p>
      * This method shall be issued to ensure no device reference will
      * be leaked in a long lived adapter,
-     * as only the connected-devices are removed at disconnect
-     * and the discovered-devices removed with a new discovery.
+     * as only its reference within connected-devices and discovered-devices are removed at disconnect.
      * </p>
      * <p>
      * After calling this method, the device shall no more being used.
@@ -586,7 +586,9 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
      */
     @Override
     public final boolean remove() throws BluetoothException {
-        close(); // -> super.close() -> delete() -> deleteImpl() -> DBTDevice::remove()
+        // close: disconnectImpl(), clear java-listener, super.close()
+        //        -> DBTNativeDownlink.delete(): deleteNativeJavaObject(..), deleteImpl(..) -> DBTDevice::remove()
+        close();
         // return removeImpl();
         return true;
     }

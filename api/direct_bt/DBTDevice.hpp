@@ -318,13 +318,12 @@ namespace direct_bt {
 
             /**
              * Disconnects this device via disconnect(..) and
-             * removes its shared reference from the Adapter altogether,
-             * i.e. shared-devices, discovered-devices and connected-devices.
+             * explicitly removes its shared references from the Adapter:
+             * connected-devices, discovered-devices and shared-devices.
              * <p>
              * This method shall be issued to ensure no device reference will
              * be leaked in a long lived adapter,
-             * as only the connected-devices are removed at disconnect
-             * and the discovered-devices removed with a new discovery.
+             * as only its reference within connected-devices and discovered-devices are removed at disconnect.
              * </p>
              * <p>
              * After calling this method, the device shall no more being used.
