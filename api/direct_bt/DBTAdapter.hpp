@@ -180,9 +180,7 @@ namespace direct_bt {
             std::vector<std::shared_ptr<DBTDevice>> sharedDevices; // all active shared devices
             std::vector<std::shared_ptr<AdapterStatusListener>> statusListenerList;
             std::recursive_mutex mtx_hci;
-            std::recursive_mutex mtx_connectedDevices;
-            std::recursive_mutex mtx_discoveredDevices;
-            std::recursive_mutex mtx_sharedDevices;
+            std::recursive_mutex mtx_deviceReferences; // locking: discoveredDevices, connectedDevices and sharedDevices
             std::recursive_mutex mtx_statusListenerList;
             std::recursive_mutex mtx_discovery;
 
@@ -199,7 +197,6 @@ namespace direct_bt {
             bool closeHCI();
 
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
-            friend void DBTDevice::releaseSharedInstance() const;
             friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo();
             friend HCIStatusCode DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause,const HCIStatusCode reason);
             friend void DBTDevice::remove();
@@ -216,6 +213,8 @@ namespace direct_bt {
 
             bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) noexcept;
             bool removeDiscoveredDevice(const DBTDevice & device) noexcept;
+
+            void removeDevice(DBTDevice & device);
 
             bool addSharedDevice(std::shared_ptr<DBTDevice> const &device) noexcept;
             std::shared_ptr<DBTDevice> getSharedDevice(const DBTDevice & device) noexcept;

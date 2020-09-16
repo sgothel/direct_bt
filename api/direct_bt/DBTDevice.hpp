@@ -88,7 +88,6 @@ namespace direct_bt {
             EIRDataType update(EInfoReport const & data) noexcept;
             EIRDataType update(GenericAccess const &data, const uint64_t timestamp) noexcept;
 
-            void releaseSharedInstance() const noexcept;
             void notifyDisconnected();
             void notifyConnected(const uint16_t handle);
 

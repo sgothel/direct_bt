@@ -85,7 +85,7 @@ std::shared_ptr<DBTDevice> DBTAdapter::findDevice(std::vector<std::shared_ptr<DB
 }
 
 bool DBTAdapter::addConnectedDevice(const std::shared_ptr<DBTDevice> & device) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
     if( nullptr != findDevice(connectedDevices, *device) ) {
         return false;
     }
@@ -94,7 +94,7 @@ bool DBTAdapter::addConnectedDevice(const std::shared_ptr<DBTDevice> & device) n
 }
 
 bool DBTAdapter::removeConnectedDevice(const DBTDevice & device) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
     for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ) {
         if ( nullptr != *it && device == **it ) {
             it = connectedDevices.erase(it);
@@ -109,7 +109,7 @@ bool DBTAdapter::removeConnectedDevice(const DBTDevice & device) noexcept {
 int DBTAdapter::disconnectAllDevices(const HCIStatusCode reason) {
     std::vector<std::shared_ptr<DBTDevice>> devices;
     {
-        const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+        const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
         devices = connectedDevices; // copy!
     }
     const int count = devices.size();
@@ -122,7 +122,7 @@ int DBTAdapter::disconnectAllDevices(const HCIStatusCode reason) {
 }
 
 std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (EUI48 const & mac, const BDAddressType macType) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
     return findDevice(connectedDevices, mac, macType);
 }
 
@@ -258,9 +258,7 @@ void DBTAdapter::poweredOff() {
 }
 
 void DBTAdapter::printSharedPtrListOfDevices() noexcept {
-    const std::lock_guard<std::recursive_mutex> lock0(mtx_connectedDevices);
-    const std::lock_guard<std::recursive_mutex> lock1(mtx_discoveredDevices);
-    const std::lock_guard<std::recursive_mutex> lock2(mtx_sharedDevices);
+    const std::lock_guard<std::recursive_mutex> lock0(mtx_deviceReferences);
 
     printSharedPtrList("SharedDevices", sharedDevices);
     printSharedPtrList("DiscoveredDevices", discoveredDevices);
@@ -545,12 +543,12 @@ bool DBTAdapter::stopDiscovery() {
 }
 
 std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (EUI48 const & mac, const BDAddressType macType) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
     return findDevice(discoveredDevices, mac, macType);
 }
 
 bool DBTAdapter::addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
     if( nullptr != findDevice(discoveredDevices, *device) ) {
         // already discovered
         return false;
@@ -560,7 +558,7 @@ bool DBTAdapter::addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) n
 }
 
 bool DBTAdapter::removeDiscoveredDevice(const DBTDevice & device) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
     for (auto it = discoveredDevices.begin(); it != discoveredDevices.end(); ) {
         if ( nullptr != *it && device == **it ) {
             it = discoveredDevices.erase(it);
@@ -574,20 +572,20 @@ bool DBTAdapter::removeDiscoveredDevice(const DBTDevice & device) noexcept {
 
 
 int DBTAdapter::removeDiscoveredDevices() noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
     int res = discoveredDevices.size();
     discoveredDevices.clear();
     return res;
 }
 
 std::vector<std::shared_ptr<DBTDevice>> DBTAdapter::getDiscoveredDevices() const noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
     std::vector<std::shared_ptr<DBTDevice>> res = discoveredDevices;
     return res;
 }
 
 bool DBTAdapter::addSharedDevice(std::shared_ptr<DBTDevice> const &device) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
     if( nullptr != findDevice(sharedDevices, *device) ) {
         // already shared
         return false;
@@ -597,12 +595,12 @@ bool DBTAdapter::addSharedDevice(std::shared_ptr<DBTDevice> const &device) noexc
 }
 
 std::shared_ptr<DBTDevice> DBTAdapter::getSharedDevice(const DBTDevice & device) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
     return findDevice(sharedDevices, device);
 }
 
 void DBTAdapter::removeSharedDevice(const DBTDevice & device) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
     for (auto it = sharedDevices.begin(); it != sharedDevices.end(); ) {
         if ( nullptr != *it && device == **it ) {
             it = sharedDevices.erase(it);
@@ -614,8 +612,17 @@ void DBTAdapter::removeSharedDevice(const DBTDevice & device) noexcept {
 }
 
 std::shared_ptr<DBTDevice> DBTAdapter::findSharedDevice (EUI48 const & mac, const BDAddressType macType) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
     return findDevice(sharedDevices, mac, macType);
+}
+
+void DBTAdapter::removeDevice(DBTDevice & device) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
+
+    device.disconnect(false /* fromDisconnectCB */, false /* ioErrorCause */, HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
+    removeConnectedDevice(device); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
+    removeDiscoveredDevice(device); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
+    removeSharedDevice(device);
 }
 
 std::string DBTAdapter::toString() const noexcept {
@@ -756,6 +763,8 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) {
         ad_report.setAddress( event.getAddress() );
         ad_report.read_data(event.getData(), event.getDataSize());
     }
+    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
+
     int new_connect = 0;
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
@@ -826,6 +835,8 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) {
 bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) {
     COND_PRINT(debug_event, "DBTAdapter::EventHCI:ConnectFailed: %s", e->toString().c_str());
     const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(e.get());
+    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
+
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         const uint16_t handle = device->getConnectionHandle();
@@ -859,6 +870,8 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) {
 
 bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) {
     const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
+    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
+
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         if( device->getConnectionHandle() != event.getHCIHandle() ) {
@@ -917,13 +930,9 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) {
         eir->setRSSI( deviceFoundEvent.getRSSI() );
         eir->read_data(deviceFoundEvent.getData(), deviceFoundEvent.getDataSize());
     } // else: Sourced from HCIHandler via LE_ADVERTISING_REPORT (default!)
+    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceReferences); // RAII-style acquire and relinquish via destructor
 
-    // std::shared_ptr<DBTDevice> dev = findDiscoveredDevice(ad_report.getAddress());
-    std::shared_ptr<DBTDevice> dev;
-    {
-        const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
-        dev = findDiscoveredDevice(eir->getAddress(), eir->getAddressType());
-    }
+    std::shared_ptr<DBTDevice> dev = findDiscoveredDevice(eir->getAddress(), eir->getAddressType());
     if( nullptr != dev ) {
         //
         // drop existing device

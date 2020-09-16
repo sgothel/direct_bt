@@ -83,9 +83,6 @@ DBTDevice::~DBTDevice() {
 std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const noexcept {
     return adapter.getSharedDevice(*this);
 }
-void DBTDevice::releaseSharedInstance() const noexcept {
-    adapter.removeSharedDevice(*this);
-}
 
 bool DBTDevice::addAdvService(std::shared_ptr<uuid_t> const &uuid) noexcept
 {
@@ -474,10 +471,7 @@ exit:
 }
 
 void DBTDevice::remove() {
-    disconnect(false /* fromDisconnectCB */, false /* ioErrorCause */, HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
-    adapter.removeConnectedDevice(*this); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
-    adapter.removeDiscoveredDevice(*this); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
-    releaseSharedInstance();
+    adapter.removeDevice(*this);
 }
 
 std::shared_ptr<GATTHandler> DBTDevice::connectGATT() {
