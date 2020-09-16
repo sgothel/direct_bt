@@ -78,6 +78,7 @@ public class ScannerTinyB10 {
     final List<String> characteristicList = new ArrayList<String>();
 
     boolean SHOW_UPDATE_EVENTS = false;
+    boolean SILENT_GATT = false;
 
     int dev_id = -1; // use default
 
@@ -272,7 +273,7 @@ public class ScannerTinyB10 {
                 throw new RuntimeException("Processing Device: getServices() failed " + device.toString());
             }
             final long t5 = BluetoothUtils.getCurrentMilliseconds();
-            {
+            if( !SILENT_GATT ) {
                 final long td01 = t1 - timestamp_t0; // adapter-init -> processing-start
                 final long td15 = t5 - t1; // get-gatt-services
                 final long tdc5 = t5 - device.getLastDiscoveryTimestamp(); // discovered to gatt-complete
@@ -319,25 +320,33 @@ public class ScannerTinyB10 {
                 };
                 final boolean addedCharacteristicListenerRes =
                   BluetoothGattService.addCharacteristicListenerToAll(device, primServices, myCharacteristicListener);
-                println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
+                if( !SILENT_GATT ) {
+                    println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
+                }
             }
 
             try {
                 int i=0, j=0;
                 for(final Iterator<BluetoothGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
                     final BluetoothGattService primService = srvIter.next();
-                    printf("  [%02d] Service %s\n", i, primService.toString());
-                    printf("  [%02d] Service Characteristics\n", i);
+                    if( !SILENT_GATT ) {
+                        printf("  [%02d] Service %s\n", i, primService.toString());
+                        printf("  [%02d] Service Characteristics\n", i);
+                    }
                     final List<BluetoothGattCharacteristic> serviceCharacteristics = primService.getCharacteristics();
                     for(final Iterator<BluetoothGattCharacteristic> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
                         final BluetoothGattCharacteristic serviceChar = charIter.next();
-                        printf("  [%02d.%02d] Decla: %s\n", i, j, serviceChar.toString());
+                        if( !SILENT_GATT ) {
+                            printf("  [%02d.%02d] Decla: %s\n", i, j, serviceChar.toString());
+                        }
                         final List<String> properties = Arrays.asList(serviceChar.getFlags());
                         if( properties.contains("read") ) {
                             final byte[] value = serviceChar.readValue();
                             final String svalue = BluetoothUtils.decodeUTF8String(value, 0, value.length);
-                            printf("  [%02d.%02d] Value: %s ('%s')\n",
-                                    i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
+                            if( !SILENT_GATT ) {
+                                printf("  [%02d.%02d] Value: %s ('%s')\n",
+                                        i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
+                            }
                         }
                     }
                 }
@@ -544,6 +553,8 @@ public class ScannerTinyB10 {
                     waitForEnter = true;
                 } else if( arg.equals("-show_update_events") ) {
                     test.SHOW_UPDATE_EVENTS = true;
+                } else if( arg.equals("-silent_gatt") ) {
+                    test.SILENT_GATT = true;
                 } else if( arg.equals("-dev_id") && args.length > (i+1) ) {
                     test.dev_id = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-shutdown") && args.length > (i+1) ) {
@@ -568,7 +579,7 @@ public class ScannerTinyB10 {
                 }
             }
             println("Run with '[-default_dev_id <adapter-index>] [-dev_id <adapter-index>] (-mac <device_address>)* "+
-                    "[-disconnect] [-count <number>] [-single] (-wl <device_address>)* (-char <uuid>)* [-show_update_events] "+
+                    "[-disconnect] [-count <number>] [-single] (-wl <device_address>)* (-char <uuid>)* [-show_update_events] [-silent_gatt]"+
                     "[-bluetoothManager <BluetoothManager-Implementation-Class-Name>] "+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose [true|false]] "+
@@ -584,6 +595,9 @@ public class ScannerTinyB10 {
         println("KEEP_CONNECTED "+test.KEEP_CONNECTED);
         println("REMOVE_DEVICE "+test.REMOVE_DEVICE);
         println("USE_WHITELIST "+test.USE_WHITELIST);
+        println("SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
+        println("SILENT_GATT "+test.SILENT_GATT);
+
         println("dev_id "+test.dev_id);
         println("waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));
         println("characteristicList: "+Arrays.toString(test.characteristicList.toArray()));

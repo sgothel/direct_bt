@@ -61,8 +61,9 @@ static bool USE_WHITELIST = false;
 static std::vector<EUI48> WHITELIST;
 
 static bool SHOW_UPDATE_EVENTS = false;
+static bool SILENT_GATT = false;
 
-static std::vector<EUI48> waitForDevice;
+static std::vector<EUI48> waitForDevices;
 
 static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device);
 
@@ -151,8 +152,8 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             return;
         }
         if( !isDeviceProcessing( device->getAddress() ) &&
-            ( waitForDevice.empty() ||
-              ( contains(waitForDevice, device->getAddress()) &&
+            ( waitForDevices.empty() ||
+              ( contains(waitForDevices, device->getAddress()) &&
                 ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(device->getAddress()) )
               )
             )
@@ -182,8 +183,8 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
 
         if( !isDeviceProcessing( device->getAddress() ) &&
-            ( waitForDevice.empty() ||
-              ( contains(waitForDevice, device->getAddress()) &&
+            ( waitForDevices.empty() ||
+              ( contains(waitForDevices, device->getAddress()) &&
                 ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(device->getAddress()) )
               )
             )
@@ -287,7 +288,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
         }
 
         const uint64_t t5 = getCurrentMilliseconds();
-        {
+        if( !SILENT_GATT ) {
             const uint64_t td01 = t1 - timestamp_t0; // adapter-init -> processing-start
             const uint64_t td15 = t5 - t1; // get-gatt-services
             const uint64_t tdc5 = t5 - device->getLastDiscoveryTimestamp(); // discovered to gatt-complete
@@ -301,14 +302,14 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
                             td01, td15, tdc5, (tdc5 - td15), td05);
         }
         std::shared_ptr<GenericAccess> ga = device->getGATTGenericAccess();
-        if( nullptr != ga ) {
+        if( nullptr != ga && !SILENT_GATT ) {
             fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
         }
         {
             std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
             if( nullptr != gatt && gatt->isOpen() ) {
                 std::shared_ptr<DeviceInformation> di = gatt->getDeviceInformation(primServices);
-                if( nullptr != di ) {
+                if( nullptr != di && !SILENT_GATT ) {
                     fprintf(stderr, "  DeviceInformation: %s\n\n", di->toString().c_str());
                 }
             }
@@ -316,24 +317,32 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
 
         for(size_t i=0; i<primServices.size(); i++) {
             GATTService & primService = *primServices.at(i);
-            fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
-            fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
+            if( !SILENT_GATT ) {
+                fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
+                fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
+            }
             std::vector<GATTCharacteristicRef> & serviceCharacteristics = primService.characteristicList;
             for(size_t j=0; j<serviceCharacteristics.size(); j++) {
                 GATTCharacteristic & serviceChar = *serviceCharacteristics.at(j);
-                fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
+                if( !SILENT_GATT ) {
+                    fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
+                }
                 if( serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Read) ) {
                     POctets value(GATTHandler::number(GATTHandler::Defaults::MAX_ATT_MTU), 0);
                     if( serviceChar.readValue(value) ) {
                         std::string sval = dfa_utf8_decode(value.get_ptr(), value.getSize());
-                        fprintf(stderr, "  [%2.2d.%2.2d] Value: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
+                        if( !SILENT_GATT ) {
+                            fprintf(stderr, "  [%2.2d.%2.2d] Value: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
+                        }
                     }
                 }
                 bool cccdEnableResult[2];
                 bool cccdRet = serviceChar.addCharacteristicListener( std::shared_ptr<GATTCharacteristicListener>( new MyGATTEventListener(&serviceChar) ),
                                                                       cccdEnableResult );
-                fprintf(stderr, "  [%2.2d.%2.2d] addCharacteristicListener Notification(%d), Indication(%d): Result %d\n",
-                        (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], cccdRet);
+                if( !SILENT_GATT ) {
+                    fprintf(stderr, "  [%2.2d.%2.2d] addCharacteristicListener Notification(%d), Indication(%d): Result %d\n",
+                            (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], cccdRet);
+                }
             }
         }
         // FIXME sleep 1s for potential callbacks ..
@@ -417,12 +426,12 @@ void test(int dev_id) {
 
     while( !done ) {
         if( 0 == MULTI_MEASUREMENTS ||
-            ( -1 == MULTI_MEASUREMENTS && !waitForDevice.empty() && allDevicesProcessed(waitForDevice) )
+            ( -1 == MULTI_MEASUREMENTS && !waitForDevices.empty() && allDevicesProcessed(waitForDevices) )
           )
         {
             fprintf(stderr, "****** EOL Test MULTI_MEASUREMENTS left %d, processed %zd/%zd\n",
-                    MULTI_MEASUREMENTS, devicesProcessed.size(), waitForDevice.size());
-            printList("****** WaitForDevice ", waitForDevice);
+                    MULTI_MEASUREMENTS, devicesProcessed.size(), waitForDevices.size());
+            printList("****** WaitForDevice ", waitForDevices);
             printList("****** DevicesProcessed ", devicesProcessed);
             done = true;
         } else {
@@ -444,6 +453,8 @@ int main(int argc, char *argv[])
             waitForEnter = true;
         } else if( !strcmp("-show_update_events", argv[i]) ) {
             SHOW_UPDATE_EVENTS = true;
+        } else if( !strcmp("-silent_gatt", argv[i]) ) {
+            SILENT_GATT = true;
         } else if( !strcmp("-dev_id", argv[i]) && argc > (i+1) ) {
             dev_id = atoi(argv[++i]);
         } else if( !strcmp("-btmode", argv[i]) && argc > (i+1) ) {
@@ -453,7 +464,7 @@ int main(int argc, char *argv[])
             }
         } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
             std::string macstr = std::string(argv[++i]);
-            waitForDevice.push_back( EUI48(macstr) );
+            waitForDevices.push_back( EUI48(macstr) );
         } else if( !strcmp("-wl", argv[i]) && argc > (i+1) ) {
             std::string macstr = std::string(argv[++i]);
             EUI48 wlmac(macstr);
@@ -472,15 +483,18 @@ int main(int argc, char *argv[])
     }
     fprintf(stderr, "pid %d\n", getpid());
 
-    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-btmode <BT-MODE>] [-mac <device_address>] [-disconnect] [-count <number>] [-single] (-wl <device_address>)* [-show_update_events]'\n");
+    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-btmode <BT-MODE>] (-mac <device_address>)* "
+                    "[-disconnect] [-count <number>] [-single] (-wl <device_address>)* [-show_update_events] [-silent_gatt]'\n");
 
     fprintf(stderr, "MULTI_MEASUREMENTS %d\n", MULTI_MEASUREMENTS);
     fprintf(stderr, "KEEP_CONNECTED %d\n", KEEP_CONNECTED);
     fprintf(stderr, "REMOVE_DEVICE %d\n", REMOVE_DEVICE);
     fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
+    fprintf(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
+    fprintf(stderr, "SILENT_GATT %d\n", SILENT_GATT);
     fprintf(stderr, "dev_id %d\n", dev_id);
     fprintf(stderr, "btmode %s\n", getBTModeString(btMode).c_str());
-    printList( "waitForDevice: ", waitForDevice);
+    printList( "waitForDevice: ", waitForDevices);
 
     // initialize manager with given default BTMode
     DBTManager::get(btMode);
