@@ -23,8 +23,15 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <direct_bt/DirectBT.hpp>
+#include <cstring>
+#include <string>
+#include <memory>
+#include <cstdint>
+#include <vector>
+
 #include <cinttypes>
+
+#include <direct_bt/DirectBT.hpp>
 
 #include "direct_bt/dfa_utf8_decode.hpp"
 
@@ -51,11 +58,11 @@ static bool KEEP_CONNECTED = true;
 static bool REMOVE_DEVICE = true;
 
 static bool USE_WHITELIST = false;
-static std::vector<std::shared_ptr<EUI48>> WHITELIST;
+static std::vector<EUI48> WHITELIST;
 
 static bool SHOW_UPDATE_EVENTS = false;
 
-static EUI48 waitForDevice = EUI48_ANY_DEVICE;
+static std::vector<EUI48> waitForDevice;
 
 static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device);
 
@@ -69,18 +76,33 @@ static std::recursive_mutex mtx_devicesProcessing;
 static std::recursive_mutex mtx_devicesProcessed;
 static std::vector<EUI48> devicesProcessed;
 
+bool contains(std::vector<EUI48> &cont, const EUI48 &mac) {
+    return cont.end() != find(cont.begin(), cont.end(), mac);
+}
+
+void printList(const std::string &msg, std::vector<EUI48> &cont) {
+    fprintf(stderr, "%s ", msg.c_str());
+    std::for_each(cont.begin(), cont.end(),
+            [](const EUI48 &mac) { fprintf(stderr, "%s, ", mac.toString().c_str()); });
+    fprintf(stderr, "\n");
+}
+
 static void addToDevicesProcessed(const EUI48 &a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
     devicesProcessed.push_back(a);
 }
 static bool isDeviceProcessed(const EUI48 & a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
-    for (auto it = devicesProcessed.begin(); it != devicesProcessed.end(); ++it) {
-        if ( a == *it ) {
-            return true;
+    return contains(devicesProcessed, a);
+}
+static bool allDevicesProcessed(std::vector<EUI48> &cont) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
+    for (auto it = cont.begin(); it != cont.end(); ++it) {
+        if( !contains(devicesProcessed, *it) ) {
+            return false;
         }
     }
-    return false;
+    return true;
 }
 
 static void addToDevicesProcessing(const EUI48 &a) {
@@ -99,12 +121,7 @@ static bool removeFromDevicesProcessing(const EUI48 &a) {
 }
 static bool isDeviceProcessing(const EUI48 & a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
-    for (auto it = devicesInProcessing.begin(); it != devicesInProcessing.end(); ++it) {
-        if ( a == *it ) {
-            return true;
-        }
-    }
-    return false;
+    return contains(devicesInProcessing, a);
 }
 
 class MyAdapterStatusListener : public AdapterStatusListener {
@@ -134,9 +151,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             return;
         }
         if( !isDeviceProcessing( device->getAddress() ) &&
-            ( waitForDevice == EUI48_ANY_DEVICE ||
-              ( waitForDevice == device->getAddress() &&
-                ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(waitForDevice) )
+            ( waitForDevice.empty() ||
+              ( contains(waitForDevice, device->getAddress()) &&
+                ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(device->getAddress()) )
               )
             )
           )
@@ -165,9 +182,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
 
         if( !isDeviceProcessing( device->getAddress() ) &&
-            ( waitForDevice == EUI48_ANY_DEVICE ||
-              ( waitForDevice == device->getAddress() &&
-                ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(waitForDevice) )
+            ( waitForDevice.empty() ||
+              ( contains(waitForDevice, device->getAddress()) &&
+                ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(device->getAddress()) )
               )
             )
           )
@@ -388,9 +405,8 @@ void test(int dev_id) {
 
     if( USE_WHITELIST ) {
         for (auto it = WHITELIST.begin(); it != WHITELIST.end(); ++it) {
-            std::shared_ptr<EUI48> wlmac = *it;
-            bool res = adapter.addDeviceToWhitelist(*wlmac, BDAddressType::BDADDR_LE_PUBLIC, HCIWhitelistConnectType::HCI_AUTO_CONN_ALWAYS);
-            fprintf(stderr, "Added to WHITELIST: res %d, address %s\n", res, wlmac->toString().c_str());
+            bool res = adapter.addDeviceToWhitelist(*it, BDAddressType::BDADDR_LE_PUBLIC, HCIWhitelistConnectType::HCI_AUTO_CONN_ALWAYS);
+            fprintf(stderr, "Added to WHITELIST: res %d, address %s\n", res, it->toString().c_str());
         }
     } else {
         if( !adapter.startDiscovery( true ) ) {
@@ -401,12 +417,13 @@ void test(int dev_id) {
 
     while( !done ) {
         if( 0 == MULTI_MEASUREMENTS ||
-            ( -1 == MULTI_MEASUREMENTS && waitForDevice != EUI48_ANY_DEVICE && isDeviceProcessed(waitForDevice) )
+            ( -1 == MULTI_MEASUREMENTS && !waitForDevice.empty() && allDevicesProcessed(waitForDevice) )
           )
         {
-            fprintf(stderr, "****** EOL Test MULTI_MEASUREMENTS left %d, processed %zd\n",
-                    MULTI_MEASUREMENTS, devicesProcessed.size());
-            fprintf(stderr, "****** WaitForDevice %s\n", waitForDevice.toString().c_str());
+            fprintf(stderr, "****** EOL Test MULTI_MEASUREMENTS left %d, processed %zd/%zd\n",
+                    MULTI_MEASUREMENTS, devicesProcessed.size(), waitForDevice.size());
+            printList("****** WaitForDevice ", waitForDevice);
+            printList("****** DevicesProcessed ", devicesProcessed);
             done = true;
         } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(3000));
@@ -436,11 +453,11 @@ int main(int argc, char *argv[])
             }
         } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
             std::string macstr = std::string(argv[++i]);
-            waitForDevice = EUI48(macstr);
+            waitForDevice.push_back( EUI48(macstr) );
         } else if( !strcmp("-wl", argv[i]) && argc > (i+1) ) {
             std::string macstr = std::string(argv[++i]);
-            std::shared_ptr<EUI48> wlmac( new EUI48(macstr) );
-            fprintf(stderr, "Whitelist + %s\n", wlmac->toString().c_str());
+            EUI48 wlmac(macstr);
+            fprintf(stderr, "Whitelist + %s\n", wlmac.toString().c_str());
             WHITELIST.push_back( wlmac );
             USE_WHITELIST = true;
         } else if( !strcmp("-disconnect", argv[i]) ) {
@@ -463,7 +480,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
     fprintf(stderr, "dev_id %d\n", dev_id);
     fprintf(stderr, "btmode %s\n", getBTModeString(btMode).c_str());
-    fprintf(stderr, "waitForDevice: %s\n", waitForDevice.toString().c_str());
+    printList( "waitForDevice: ", waitForDevice);
 
     // initialize manager with given default BTMode
     DBTManager::get(btMode);

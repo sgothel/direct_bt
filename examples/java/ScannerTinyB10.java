@@ -132,8 +132,8 @@ public class ScannerTinyB10 {
             }
             if( !devicesInProcessing.contains( device.getAddress() ) &&
                 ( waitForDevices.isEmpty() ||
-                  ( waitForDevices.contains(device.getAddress()) &&
-                    ( 0 < MULTI_MEASUREMENTS || !devicesProcessed.containsAll(waitForDevices) )
+                  ( waitForDevices.contains( device.getAddress() ) &&
+                    ( 0 < MULTI_MEASUREMENTS || !devicesProcessed.contains( device.getAddress() ) )
                   )
                 )
               )
@@ -167,8 +167,8 @@ public class ScannerTinyB10 {
         public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) {
             if( !devicesInProcessing.contains( device.getAddress() ) &&
                 ( waitForDevices.isEmpty() ||
-                  ( waitForDevices.contains(device.getAddress()) &&
-                    ( 0 < MULTI_MEASUREMENTS || !devicesProcessed.containsAll(waitForDevices) )
+                  ( waitForDevices.contains( device.getAddress() ) &&
+                    ( 0 < MULTI_MEASUREMENTS || !devicesProcessed.contains( device.getAddress() ) )
                   )
                 )
               )
