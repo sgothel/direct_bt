@@ -303,11 +303,22 @@ GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device) noexcept
     }
 
     // First point of failure if device exposes no GATT functionality. Allow a longer timeout!
-    serverMTU = exchangeMTU(number(Defaults::MAX_ATT_MTU));
-    usedMTU = std::min(number(Defaults::MAX_ATT_MTU), (int)serverMTU);
-    if( 0 == serverMTU ) {
+    uint16_t mtu = 0;
+    try {
+        mtu = exchangeMTU(number(Defaults::MAX_ATT_MTU));
+    } catch (std::exception &e) {
+        ERR_PRINT("GattHandler.ctor: exchangeMTU failed: %s", e.what());
+    } catch (std::string &msg) {
+        ERR_PRINT("GattHandler.ctor: exchangeMTU failed: %s", msg.c_str());
+    } catch (const char *msg) {
+        ERR_PRINT("GattHandler.ctor: exchangeMTU failed: %s", msg);
+    }
+    if( 0 == mtu ) {
         ERR_PRINT("GATTHandler::ctor: Zero serverMTU -> disconnect: %s", deviceString.c_str());
         disconnect(true /* disconnectDevice */, false /* ioErrorCause */);
+    } else {
+        serverMTU = mtu;
+        usedMTU = std::min(number(Defaults::MAX_ATT_MTU), (int)serverMTU);
     }
 }
 
