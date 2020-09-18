@@ -563,7 +563,7 @@ std::shared_ptr<GATTService> DBTDevice::findGATTService(std::shared_ptr<uuid_t> 
     return nullptr;
 }
 
-bool DBTDevice::pingGATT() {
+bool DBTDevice::pingGATT() noexcept {
     try {
         std::shared_ptr<GATTHandler> gh = gattHandler; // local copy avoiding dtor while in operation
         if( nullptr == gh || !gh->isConnected() ) {

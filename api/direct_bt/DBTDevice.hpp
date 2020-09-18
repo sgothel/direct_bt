@@ -374,7 +374,7 @@ namespace direct_bt {
              * In case no GATT connection has been established it will be created via connectGATT().
              * </p>
              */
-            std::vector<std::shared_ptr<GATTService>> getGATTServices();
+            std::vector<std::shared_ptr<GATTService>> getGATTServices() noexcept;
 
             /**
              * Returns the matching GATTService for the given uuid.
@@ -402,7 +402,7 @@ namespace direct_bt {
              * </p>
              * @return {@code true} if successful, otherwise false in case no GATT services exists or is not connected .. etc.
              */
-            bool pingGATT();
+            bool pingGATT() noexcept;
 
             /**
              * Add the given GATTCharacteristicListener to the listener list if not already present.
