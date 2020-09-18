@@ -79,16 +79,16 @@ GATTEnv::GATTEnv() noexcept
 #define CASE_TO_STRING(V) case V: return #V;
 
 bool GATTHandler::validateConnected() noexcept {
-    bool l2capIsConnected = l2cap.getIsConnected();
-    bool l2capHasIOError = l2cap.getHasIOError();
+    bool l2capIsConnected = l2cap.isConnected();
+    bool l2capHasIOError = l2cap.hasIOError();
 
-    if( hasIOError || l2capHasIOError ) {
+    if( has_ioerror || l2capHasIOError ) {
         ERR_PRINT("IOError state: GattHandler %s, l2cap %s: %s",
                 getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
         return false;
     }
 
-    if( !isConnected || !l2capIsConnected ) {
+    if( !is_connected || !l2capIsConnected ) {
         ERR_PRINT("Disconnected state: GattHandler %s, l2cap %s: %s",
                 getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
         return false;
@@ -271,14 +271,14 @@ GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device) noexcept
 : env(GATTEnv::get()),
   wbr_device(device), deviceString(device->getAddressString()), rbuffer(number(Defaults::MAX_ATT_MTU)),
   l2cap(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT),
-  isConnected(true), hasIOError(false),
+  is_connected(true), has_ioerror(false),
   attPDURing(env.ATTPDU_RING_CAPACITY),
   l2capReaderThreadId(0), l2capReaderRunning(false), l2capReaderShallStop(false),
   serverMTU(number(Defaults::MIN_ATT_MTU)), usedMTU(number(Defaults::MIN_ATT_MTU))
 {
     if( !validateConnected() ) {
         ERR_PRINT("GATTHandler.ctor: L2CAP could not connect");
-        isConnected = false;
+        is_connected = false;
         return;
     }
     DBG_PRINT("GATTHandler::ctor: Start Connect: GattHandler[%s], l2cap[%s]: %s",
@@ -323,7 +323,7 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
 
     // Avoid disconnect re-entry -> potential deadlock
     bool expConn = true; // C++11, exp as value since C++20
-    if( !isConnected.compare_exchange_strong(expConn, false) ) {
+    if( !is_connected.compare_exchange_strong(expConn, false) ) {
         // not connected
         DBG_PRINT("GATTHandler::disconnect: Not connected: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
                   disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
@@ -333,7 +333,7 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
     // Lock to avoid other threads using instance while disconnecting
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
 
-    hasIOError = false;
+    has_ioerror = false;
     DBG_PRINT("GATTHandler::disconnect: Start: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
               disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
 
@@ -382,14 +382,14 @@ void GATTHandler::send(const AttPDUMsg & msg) {
     const int res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.getSize());
     if( 0 > res ) {
         ERR_PRINT("GATTHandler::send: l2cap write error -> disconnect: %s to %s", msg.toString().c_str(), deviceString.c_str());
-        hasIOError = true;
+        has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
         throw BluetoothException("GATTHandler::send: l2cap write error: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     if( res != msg.pdu.getSize() ) {
         ERR_PRINT("GATTHandler::send: l2cap write count error, %d != %d: %s -> disconnect: %s",
                 res, msg.pdu.getSize(), msg.toString().c_str(), deviceString.c_str());
-        hasIOError = true;
+        has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
         throw BluetoothException("GATTHandler::send: l2cap write count error, "+std::to_string(res)+" != "+std::to_string(res)
                                  +": "+msg.toString()+" -> disconnect: "+deviceString, E_FILE_LINE);

@@ -489,7 +489,7 @@ std::shared_ptr<GATTHandler> DBTDevice::connectGATT() {
         return nullptr;
     }
     if( nullptr != gattHandler ) {
-        if( gattHandler->getIsConnected() ) {
+        if( gattHandler->isConnected() ) {
             return gattHandler;
         }
         gattHandler = nullptr;
@@ -500,7 +500,7 @@ std::shared_ptr<GATTHandler> DBTDevice::connectGATT() {
         throw InternalError("DBTDevice::connectGATT: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
     }
     gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sharedInstance));
-    if( !gattHandler->getIsConnected() ) {
+    if( !gattHandler->isConnected() ) {
         ERR_PRINT("DBTDevice::connectGATT: Connection failed");
         gattHandler = nullptr;
     }
@@ -564,7 +564,7 @@ std::shared_ptr<GATTService> DBTDevice::findGATTService(std::shared_ptr<uuid_t> 
 bool DBTDevice::pingGATT() {
     try {
         std::shared_ptr<GATTHandler> gh = gattHandler; // local copy avoiding dtor while in operation
-        if( nullptr == gh || !gh->getIsConnected() ) {
+        if( nullptr == gh || !gh->isConnected() ) {
             INFO_PRINT("DBTDevice::pingGATT: GATTHandler not connected -> disconnected on %s", toString().c_str());
             disconnect(false /* fromDisconnectCB */, true /* ioErrorCause */, HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
             return false;

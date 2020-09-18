@@ -53,15 +53,15 @@ using namespace direct_bt;
 
 int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const bool pubaddrAdapter) {
     sockaddr_l2 a;
-    int dd, err;
+    int fd, err;
 
     // Create a loose L2CAP socket
-    dd = ::socket(AF_BLUETOOTH, // AF_BLUETOOTH == PF_BLUETOOTH
+    fd = ::socket(AF_BLUETOOTH, // AF_BLUETOOTH == PF_BLUETOOTH
                   SOCK_SEQPACKET, BTPROTO_L2CAP);
 
-    if( 0 > dd ) {
+    if( 0 > fd ) {
         ERR_PRINT("L2CAPComm::l2cap_open_dev: socket failed");
-        return dd;
+        return fd;
     }
 
     // Bind socket to the L2CAP adapter
@@ -72,15 +72,15 @@ int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, 
     a.l2_bdaddr = adapterAddress;
     a.l2_cid = cpu_to_le(cid);
     a.l2_bdaddr_type = pubaddrAdapter ? BDADDR_LE_PUBLIC : BDADDR_LE_RANDOM;
-    if ( bind(dd, (struct sockaddr *) &a, sizeof(a)) < 0 ) {
+    if ( bind(fd, (struct sockaddr *) &a, sizeof(a)) < 0 ) {
         ERR_PRINT("L2CAPComm::l2cap_open_dev: bind failed");
         goto failed;
     }
-    return dd;
+    return fd;
 
 failed:
     err = errno;
-    close(dd);
+    close(fd);
     errno = err;
 
     return -1;
@@ -98,21 +98,20 @@ int L2CAPComm::l2cap_close_dev(int dd)
 
 L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid)
 : device(device), deviceString(device->getAddressString()), psm(psm), cid(cid),
-  _dd(-1), isConnected(true), hasIOError(false), interruptFlag(false), tid_connect(0)
+  socket_descriptor( l2cap_open_dev(device->getAdapter().getAddress(), psm, cid, true /* pubaddrAdptr */) ),
+  is_connected(true), has_ioerror(false), interrupt_flag(false), tid_connect(0)
 {
     /** BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ */
-    DBG_PRINT("L2CAPComm::ctor: Start Connect: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
-              getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, true);
-
     sockaddr_l2 req;
     int res;
     int to_retry_count=0; // ETIMEDOUT retry count
 
-    _dd = l2cap_open_dev(device->getAdapter().getAddress(), psm, cid, true /* pubaddrAdapter */);
-    if( 0 > _dd ) {
+    DBG_PRINT("L2CAPComm::ctor: Start Connect: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
+              getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid, true);
+
+    if( 0 > socket_descriptor ) {
         goto failure; // open failed
     }
-
     tid_connect = pthread_self(); // temporary safe tid to allow interruption
 
     // actual request to connect to remote device
@@ -123,9 +122,9 @@ L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, cons
     req.l2_cid = cpu_to_le(cid);
     req.l2_bdaddr_type = device->getAddressType();
 
-    while( !interruptFlag ) {
+    while( !interrupt_flag ) {
         // blocking
-        res = ::connect(_dd, (struct sockaddr*)&req, sizeof(req));
+        res = ::connect(socket_descriptor, (struct sockaddr*)&req, sizeof(req));
 
         DBG_PRINT("L2CAPComm::ctor: Connect Result %d, errno 0%X %s, %s", res, errno, strerror(errno), deviceString.c_str());
 
@@ -161,17 +160,17 @@ failure:
 
 bool L2CAPComm::disconnect() noexcept {
     bool expConn = true; // C++11, exp as value since C++20
-    if( !isConnected.compare_exchange_strong(expConn, false) ) {
+    if( !is_connected.compare_exchange_strong(expConn, false) ) {
         DBG_PRINT("L2CAPComm::disconnect: Not connected: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
-                  getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, true);
+                  getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid, true);
         return false;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
 
-    hasIOError = false;
+    has_ioerror = false;
     DBG_PRINT("L2CAPComm::disconnect: Start: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
-              getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, true);
-    interruptFlag = true;
+              getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid, true);
+    interrupt_flag = true;
 
     // interrupt L2CAP ::connect(..), avoiding prolonged hang
     pthread_t _tid_connect = tid_connect;
@@ -186,16 +185,16 @@ bool L2CAPComm::disconnect() noexcept {
         }
     }
 
-    l2cap_close_dev(_dd);
-    _dd = -1;
-    interruptFlag = false;
-    DBG_PRINT("L2CAPComm::disconnect: End: dd %d", _dd.load());
+    l2cap_close_dev(socket_descriptor);
+    socket_descriptor = -1;
+    interrupt_flag = false;
+    DBG_PRINT("L2CAPComm::disconnect: End: dd %d", socket_descriptor.load());
     return true;
 }
 
 int L2CAPComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS) {
     int len = 0;
-    if( 0 > _dd || 0 > capacity ) {
+    if( 0 > socket_descriptor || 0 > capacity ) {
         goto errout;
     }
     if( 0 == capacity ) {
@@ -206,9 +205,9 @@ int L2CAPComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS
         struct pollfd p;
         int n;
 
-        p.fd = _dd; p.events = POLLIN;
-        while ( !interruptFlag && (n = poll(&p, 1, timeoutMS)) < 0 ) {
-            if ( !interruptFlag && ( errno == EAGAIN || errno == EINTR ) ) {
+        p.fd = socket_descriptor; p.events = POLLIN;
+        while ( !interrupt_flag && (n = poll(&p, 1, timeoutMS)) < 0 ) {
+            if ( !interrupt_flag && ( errno == EAGAIN || errno == EINTR ) ) {
                 // cont temp unavail or interruption
                 continue;
             }
@@ -220,7 +219,7 @@ int L2CAPComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS
         }
     }
 
-    while ((len = ::read(_dd, buffer, capacity)) < 0) {
+    while ((len = ::read(socket_descriptor, buffer, capacity)) < 0) {
         if (errno == EAGAIN || errno == EINTR ) {
             // cont temp unavail or interruption
             continue;
@@ -233,7 +232,7 @@ done:
 
 errout:
     if( errno != ETIMEDOUT ) {
-        hasIOError = true;
+        has_ioerror = true;
     }
     return -1;
 
@@ -242,14 +241,14 @@ errout:
 int L2CAPComm::write(const uint8_t * buffer, const int length) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
     int len = 0;
-    if( 0 > _dd || 0 > length ) {
+    if( 0 > socket_descriptor || 0 > length ) {
         goto errout;
     }
     if( 0 == length ) {
         goto done;
     }
 
-    while( ( len = ::write(_dd, buffer, length) ) < 0 ) {
+    while( ( len = ::write(socket_descriptor, buffer, length) ) < 0 ) {
         if( EAGAIN == errno || EINTR == errno ) {
             continue;
         }
@@ -260,7 +259,7 @@ done:
     return len;
 
 errout:
-    hasIOError = true;
+    has_ioerror = true;
     return -1;
 }
 

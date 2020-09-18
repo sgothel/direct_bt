@@ -166,8 +166,8 @@ namespace direct_bt {
             POctets rbuffer;
 
             L2CAPComm l2cap;
-            std::atomic<bool> isConnected; // reflects state
-            std::atomic<bool> hasIOError;  // reflects state
+            std::atomic<bool> is_connected; // reflects state
+            std::atomic<bool> has_ioerror;  // reflects state
 
             LFRingbuffer<std::shared_ptr<const AttPDUMsg>, nullptr> attPDURing;
             std::atomic<pthread_t> l2capReaderThreadId;
@@ -215,9 +215,9 @@ namespace direct_bt {
             /** Destructor closing this instance including L2CAP channel, see {@link #disconnect()}. */
             ~GATTHandler() noexcept;
 
-            bool getIsConnected() const noexcept { return isConnected ; }
-            bool getHasIOError() const noexcept { return hasIOError; }
-            std::string getStateString() const noexcept { return L2CAPComm::getStateString(isConnected, hasIOError); }
+            bool isConnected() const noexcept { return is_connected ; }
+            bool hasIOError() const noexcept { return has_ioerror; }
+            std::string getStateString() const noexcept { return L2CAPComm::getStateString(is_connected, has_ioerror); }
 
             /**
              * Disconnect this GATTHandler and optionally the associated device

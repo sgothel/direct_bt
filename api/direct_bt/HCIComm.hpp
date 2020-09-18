@@ -57,14 +57,13 @@ namespace direct_bt {
             std::recursive_mutex mtx_write;
             const uint16_t dev_id;
             const uint16_t channel;
-            int _dd; // the hci socket
+            int socket_descriptor; // the hci socket
 
         public:
             /** Constructing a newly opened HCI communication channel instance */
             HCIComm(const uint16_t dev_id, const uint16_t channel) noexcept
-            : dev_id(dev_id), channel(channel), _dd(-1) {
-                _dd = hci_open_dev(dev_id, channel);
-            }
+            : dev_id( dev_id ), channel( channel ),
+              socket_descriptor( hci_open_dev(dev_id, channel) ) { }
 
             /**
              * Releases this instance after issuing {@link #close()}.
@@ -74,10 +73,10 @@ namespace direct_bt {
             /** Closing the HCI channel, locking {@link #mutex_write()}. */
             void close() noexcept;
 
-            bool isOpen() const noexcept { return 0 <= _dd; }
+            bool isOpen() const noexcept { return 0 <= socket_descriptor; }
 
-            /** Return this HCI device descriptor, for multithreading access use {@link #dd()}. */
-            inline int dd() const noexcept { return _dd; }
+            /** Return this HCI socket descriptor, for multithreading access use {@link #dd()}. */
+            inline int getSocketDescriptor() const noexcept { return socket_descriptor; }
 
             /** Return the recursive write mutex for multithreading access. */
             inline std::recursive_mutex & mutex_write() noexcept { return mtx_write; }

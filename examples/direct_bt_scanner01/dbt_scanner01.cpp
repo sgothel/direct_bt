@@ -277,19 +277,19 @@ int main(int argc, char *argv[])
                 if( nullptr != ga ) {
                     fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
                 }
-                if( nullptr != gatt && gatt->getIsConnected() ) {
+                if( nullptr != gatt && gatt->isConnected() ) {
                     std::shared_ptr<DeviceInformation> di = gatt->getDeviceInformation(primServices);
                     if( nullptr != di ) {
                         fprintf(stderr, "  DeviceInformation: %s\n\n", di->toString().c_str());
                     }
                 }
 
-                for(size_t i=0; i<primServices.size() && gatt->getIsConnected(); i++) {
+                for(size_t i=0; i<primServices.size() && gatt->isConnected(); i++) {
                     GATTService & primService = *primServices.at(i);
                     fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
                     fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
                     std::vector<GATTCharacteristicRef> & serviceCharacteristics = primService.characteristicList;
-                    for(size_t j=0; j<serviceCharacteristics.size() && gatt->getIsConnected(); j++) {
+                    for(size_t j=0; j<serviceCharacteristics.size() && gatt->isConnected(); j++) {
                         GATTCharacteristic & serviceChar = *serviceCharacteristics.at(j);
                         fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
                         if( serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Read) ) {

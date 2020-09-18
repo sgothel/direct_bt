@@ -53,7 +53,7 @@ namespace direct_bt {
 int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel) noexcept
 {
 	sockaddr_hci a;
-	int dd, err;
+	int fd, err;
 
 	/**
 	 * dev_id is unsigned and hence always >= 0
@@ -64,10 +64,10 @@ int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel) noexcep
 	} */
 
 	// Create a loose HCI socket
-	dd = socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
-	if (0 > dd ) {
+	fd = socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
+	if (0 > fd ) {
         ERR_PRINT("HCIComm::hci_open_dev: socket failed");
-		return dd;
+		return fd;
 	}
 
 	// Bind socket to the HCI device
@@ -75,16 +75,16 @@ int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel) noexcep
 	a.hci_family = AF_BLUETOOTH;
 	a.hci_dev = dev_id;
 	a.hci_channel = channel;
-	if (bind(dd, (struct sockaddr *) &a, sizeof(a)) < 0) {
+	if (bind(fd, (struct sockaddr *) &a, sizeof(a)) < 0) {
 	    ERR_PRINT("hci_open_dev: bind failed");
 		goto failed;
 	}
 
-	return dd;
+	return fd;
 
 failed:
 	err = errno;
-	::close(dd);
+	::close(fd);
 	errno = err;
 
 	return -1;
@@ -97,16 +97,16 @@ int HCIComm::hci_close_dev(int dd) noexcept
 
 void HCIComm::close() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
-    if( 0 > _dd ) {
+    if( 0 > socket_descriptor ) {
         return;
     }
-    hci_close_dev(_dd);
-    _dd = -1;
+    hci_close_dev(socket_descriptor);
+    socket_descriptor = -1;
 }
 
 int HCIComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS) noexcept {
     int len = 0;
-    if( 0 > _dd || 0 > capacity ) {
+    if( 0 > socket_descriptor || 0 > capacity ) {
         goto errout;
     }
     if( 0 == capacity ) {
@@ -117,7 +117,7 @@ int HCIComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS) 
         struct pollfd p;
         int n;
 
-        p.fd = _dd; p.events = POLLIN;
+        p.fd = socket_descriptor; p.events = POLLIN;
 #if 0
         sigset_t sigmask;
         sigemptyset(&sigmask);
@@ -141,7 +141,7 @@ int HCIComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS) 
         }
     }
 
-    while ((len = ::read(_dd, buffer, capacity)) < 0) {
+    while ((len = ::read(socket_descriptor, buffer, capacity)) < 0) {
         if (errno == EAGAIN || errno == EINTR ) {
             // cont temp unavail or interruption
             continue;
@@ -159,14 +159,14 @@ errout:
 int HCIComm::write(const uint8_t* buffer, const int size) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
     int len = 0;
-    if( 0 > _dd || 0 > size ) {
+    if( 0 > socket_descriptor || 0 > size ) {
         goto errout;
     }
     if( 0 == size ) {
         goto done;
     }
 
-    while( ( len = ::write(_dd, buffer, size) ) < 0 ) {
+    while( ( len = ::write(socket_descriptor, buffer, size) ) < 0 ) {
         if( EAGAIN == errno || EINTR == errno ) {
             continue;
         }

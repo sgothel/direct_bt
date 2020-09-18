@@ -72,10 +72,10 @@ namespace direct_bt {
             const std::string deviceString;
             const uint16_t psm;
             const uint16_t cid;
-            std::atomic<int> _dd; // the l2cap socket
-            std::atomic<bool> isConnected; // reflects state
-            std::atomic<bool> hasIOError;  // reflects state
-            std::atomic<bool> interruptFlag; // for forced disconnect
+            std::atomic<int> socket_descriptor; // the l2cap socket
+            std::atomic<bool> is_connected; // reflects state
+            std::atomic<bool> has_ioerror;  // reflects state
+            std::atomic<bool> interrupt_flag; // for forced disconnect
             std::atomic<pthread_t> tid_connect;
 
         public:
@@ -92,9 +92,9 @@ namespace direct_bt {
 
             std::shared_ptr<DBTDevice> getDevice() { return device; }
 
-            bool getIsConnected() const { return isConnected; }
-            bool getHasIOError() const { return hasIOError; }
-            std::string getStateString() const { return getStateString(isConnected, hasIOError); }
+            bool isConnected() const { return is_connected; }
+            bool hasIOError() const { return has_ioerror; }
+            std::string getStateString() const { return getStateString(is_connected, has_ioerror); }
 
             /** Closing the L2CAP channel, locking {@link #mutex_write()}. */
             bool disconnect() noexcept;

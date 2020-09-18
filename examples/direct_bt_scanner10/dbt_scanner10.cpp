@@ -307,7 +307,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
         }
         {
             std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
-            if( nullptr != gatt && gatt->getIsConnected() ) {
+            if( nullptr != gatt && gatt->isConnected() ) {
                 std::shared_ptr<DeviceInformation> di = gatt->getDeviceInformation(primServices);
                 if( nullptr != di && !SILENT_GATT ) {
                     fprintf(stderr, "  DeviceInformation: %s\n\n", di->toString().c_str());

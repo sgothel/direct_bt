@@ -456,7 +456,7 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id) noexcept
         socklen_t olen;
 
         olen = sizeof(of);
-        if (getsockopt(comm.dd(), SOL_HCI, HCI_FILTER, &of, &olen) < 0) {
+        if (getsockopt(comm.getSocketDescriptor(), SOL_HCI, HCI_FILTER, &of, &olen) < 0) {
             ERR_PRINT("HCIHandler::ctor: getsockopt");
             goto fail;
         }
@@ -475,7 +475,7 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id) noexcept
         // HCIComm::filter_set_event(number(HCIEventType::DISCONN_LOGICAL_LINK_COMPLETE), &filter_mask);
         HCIComm::filter_set_opcode(0, &filter_mask); // all opcode
 
-        if (setsockopt(comm.dd(), SOL_HCI, HCI_FILTER, &filter_mask, sizeof(filter_mask)) < 0) {
+        if (setsockopt(comm.getSocketDescriptor(), SOL_HCI, HCI_FILTER, &filter_mask, sizeof(filter_mask)) < 0) {
             ERR_PRINT("HCIHandler::ctor: setsockopt");
             goto fail;
         }
