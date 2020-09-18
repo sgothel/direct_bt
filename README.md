@@ -3,7 +3,7 @@ Direct-BT LE and BREDR Library + Tiny Bluetooth LE Library
 
 Git Repository
 ==============
-This project's canonical repository is hosted on [Zafena ICT](https://ict.zafena.se/cgit/direct_bt.git/).
+This project's canonical repositories is hosted on [Gothel Software](https://jausoft.com/cgit/direct_bt.git/).
 
 Goals
 ============
@@ -27,13 +27,13 @@ offering robust high-performance support for embedded & desktop with zero overhe
 *Direct-BT* supports a fully event driven workflow from device discovery to GATT programming,
 using its platform agnostic HCI and GATT/L2CAP implementation.
 
-[AdapterStatusListener](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1AdapterStatusListener.html) 
+[AdapterStatusListener](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1AdapterStatusListener.html) 
 allows listening to adapter changes and device discovery and
-[GATTCharacteristicListener](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1GATTCharacteristicListener.html)
+[GATTCharacteristicListener](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1GATTCharacteristicListener.html)
 to GATT indications and notifications.
 
-*Direct-BT* may be utilized via its [C++ API](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/index.html)
-or via the refactored TinyB [Java API](https://ict.zafena.se/direct_bt/build/documentation/java/html/index.html).
+*Direct-BT* may be utilized via its [C++ API](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/index.html)
+or via the refactored TinyB [Java API](https://jausoft.com/projects/direct_bt/build/documentation/java/html/index.html).
 
 *Direct-BT* is exposed via the following native libraries
 - *libdirect_bt.so* for the core C++ implementation.
@@ -42,7 +42,7 @@ or via the refactored TinyB [Java API](https://ict.zafena.se/direct_bt/build/doc
 *Direct-BT* is C++17 conform and shall upgrade towards C++20 when widely available on all target platforms.
 
 You will find a detailed overview of *Direct-BT* in the doxygen generated 
-[C++ API doc of its *direct_bt* namespace](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
+[C++ API doc of its *direct_bt* namespace](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
 
 Since *Direct-BT* is not using a 3rd party Bluetooth library but using its own implementation,
 they should be disabled to allow operation without any interference.
@@ -55,7 +55,7 @@ systemctl disable bluetooth
 systemctl mask bluetooth
 ```
 
-*Direct-BT* is the new implementation as provided by [Zafena ICT](https://ict.zafena.se).
+*Direct-BT* is the new implementation as provided by [Zafena ICT](https://ict.zafena.se) and [Gothel Software](https://jausoft.com/).
 
 
 TinyB
@@ -97,30 +97,39 @@ API Documentation
 ============
 
 Up to date API documentation can be found:
-* [C++ API Doc](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/index.html).
-    * [Overview of *direct_bt*](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
-* [Java API Doc](https://ict.zafena.se/direct_bt/build/documentation/java/html/index.html).
+* [C++ API Doc](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/index.html).
+    * [Overview of *direct_bt*](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
+* [Java API Doc](https://jausoft.com/projects/direct_bt/build/documentation/java/html/index.html).
 
-A guide for getting started with *Direct-BT* on C++ and Java will follow up soon from Zafena ICT.
+A guide for getting started with *Direct-BT* on C++ and Java may follow up.
 
-*Direct-BT* [C++ examples](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/examples.html)
-are available, [dbt_scanner10.cpp](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/dbt_scanner10_8cpp-example.html)
+
+Examples
+============
+
+*Direct-BT* [C++ examples](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/examples.html)
+are available, [dbt_scanner10.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_scanner10_8cpp-example.html)
 demonstrates the event driven and multithreading workflow.
 
-*Direct-BT* [Java examples](https://ict.zafena.se/direct_bt/build/documentation/java/html/examples.html)
-are availble, [ScannerTinyB10.java](https://ict.zafena.se/direct_bt/build/documentation/java/html/ScannerTinyB10_8java-example.html)
+*Direct-BT* [Java examples](https://jausoft.com/projects/direct_bt/build/documentation/java/html/examples.html)
+are availble, [ScannerTinyB10.java](https://jausoft.com/projects/direct_bt/build/documentation/java/html/ScannerTinyB10_8java-example.html)
 demonstrates the event driven and multithreading workflow - matching *dbt_scanner10.cpp*.
 
 A guide for getting started with *TinyB* on Java is available from Intel:
 https://software.intel.com/en-us/java-for-bluetooth-le-apps.
 
+The hellotinyb example uses a [TI Sensor Tag](http://www.ti.com/ww/en/wireless_connectivity/sensortag2015/?INTC=SensorTag&HQS=sensortag)
+from which it reads the ambient temperature. You have to pass the MAC address
+of the Sensor Tag as a first parameter to the program.
+
+
 Build Status
 ============
 
-*Will be updated soon*
+*Will be updated*
 
 
-Using TinyB / Direct-BT
+Building Binaries
 =========================
 
 The project requires CMake 3.1+ for building and a Java JDK >= 11.
@@ -157,7 +166,7 @@ apt install doxygen graphviz
 For a generic build use:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 CPU_COUNT=`getconf _NPROCESSORS_ONLN`
-git clone https://ict.zafena.se/cgit/direct_bt.git
+git clone https://jausoft.com/cgit/direct_bt.git
 cd direct_bt
 mkdir build
 cd build
@@ -206,12 +215,16 @@ To build documentation run:
 make doc
 ~~~~~~~~~~~~~
 
-The hellotinyb example uses a [TI Sensor Tag](http://www.ti.com/ww/en/wireless_connectivity/sensortag2015/?INTC=SensorTag&HQS=sensortag)
-from which it reads the ambient temperature. You have to pass the MAC address
-of the Sensor Tag as a first parameter to the program.
 
 Changes
 ============
+- 2.1.23 Early *Direct-BT* Maturity (Bluetooth LE)
+  - Reaching robust implementation state of *Direct-BT*, including recovery from L2CAP transmission breakdown on Raspberry Pi.
+  - Resolved race conditions on rapid device discovery and connect, using one thread per device.
+  - API documentation with examples
+  - Tested on GNU/Linux x86_64, arm32 and arm64 with native and Java examples.
+  - Tested on Bluetooth Adapter: Intel, CSR and Raspberry Pi
+  - Almost removed Linux/BlueZ kernel dependency using own HCI implementation, remaining portion is the adapter setup.
 - 2.0.0
   - Java D-Bus implementation details of package 'tinyb' moved to *tinyb.dbus*.
   - The *tinyb.jar* jar file has been renamed to *tinyb2.jar*, avoiding conflicts.
@@ -230,11 +243,14 @@ Common issues
 ============
 
 If you have any issues, please go through the [Troubleshooting Guide](TROUBLESHOOTING.md). 
-If the solution is not there, please create a new issue on [Zafena ICT](https://ict.zafena.se/issues/).
+
+If the solution is not there, please search for an existing issue in our [Bugzilla DB](https://jausoft.com/bugzilla/describecomponents.cgi?product=Direct-BT/), please [contact us](https://jausoft.com/) for a new account to create a new entry.
+
 
 Contributing to TinyB / Direct-BT
 ===================================
 
 You shall agree to Developer Certificate of Origin and Sign-off your code,
 using a real name and e-mail address. 
+
 Please check the [Contribution](CONTRIBUTING.md) document for more details.
