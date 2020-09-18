@@ -182,108 +182,25 @@ jobject get_new_arraylist(JNIEnv *env, unsigned int size, jmethodID *add)
     return result;
 }
 
-void raise_java_exception(JNIEnv *env, std::exception &e) {
-    env->ThrowNew(env->FindClass("java/lang/Error"), e.what());
-}
-void raise_java_exception(JNIEnv *env, std::runtime_error &e) {
-    env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
-}
-void raise_java_exception(JNIEnv *env, direct_bt::RuntimeException &e) {
-    env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
-}
-void raise_java_exception(JNIEnv *env, direct_bt::InternalError &e) {
-    env->ThrowNew(env->FindClass("java/lang/InternalError"), e.what());
-}
-void raise_java_exception(JNIEnv *env, direct_bt::NullPointerException &e) {
-    env->ThrowNew(env->FindClass("java/lang/NullPointerException"), e.what());
-}
-void raise_java_exception(JNIEnv *env, direct_bt::IllegalArgumentException &e) {
-    env->ThrowNew(env->FindClass("java/lang/IllegalArgumentException"), e.what());
-}
-void raise_java_exception(JNIEnv *env, std::invalid_argument &e) {
-    env->ThrowNew(env->FindClass("java/lang/IllegalArgumentException"), e.what());
-}
-void raise_java_exception(JNIEnv *env, direct_bt::IllegalStateException &e) {
-    env->ThrowNew(env->FindClass("java/lang/IllegalStateException"), e.what());
-}
-void raise_java_exception(JNIEnv *env, direct_bt::UnsupportedOperationException &e) {
-    env->ThrowNew(env->FindClass("java/lang/UnsupportedOperationException"), e.what());
-}
-void raise_java_exception(JNIEnv *env, direct_bt::IndexOutOfBoundsException &e) {
-    env->ThrowNew(env->FindClass("java/lang/IndexOutOfBoundsException"), e.what());
-}
-void raise_java_exception(JNIEnv *env, std::bad_alloc &e) {
-    env->ThrowNew(env->FindClass("java/lang/OutOfMemoryError"), e.what());
-}
-void raise_java_exception(JNIEnv *env, direct_bt::BluetoothException &e) {
-    env->ThrowNew(env->FindClass("org/tinyb/BluetoothException"), e.what());
-}
-
-void raise_java_runtime_exception(JNIEnv *env, std::runtime_error &e) {
-    raise_java_exception(env, e);
-}
-void raise_java_runtime_exception(JNIEnv *env, direct_bt::RuntimeException &e) {
-    raise_java_exception(env, e);
-}
-void raise_java_oom_exception(JNIEnv *env, std::bad_alloc &e) {
-    raise_java_exception(env, e);
-}
-void raise_java_invalid_arg_exception(JNIEnv *env, std::invalid_argument &e) {
-    raise_java_exception(env, e);
-}
-void raise_java_bluetooth_exception(JNIEnv *env, direct_bt::BluetoothException &e) {
-    raise_java_exception(env, e);
-}
-
-void rethrow_and_raise_java_exception(JNIEnv *env) {
-    // std::exception_ptr e = std::current_exception();
-    try {
-        // std::rethrow_exception(e);
-        throw; // re-throw current exception
-    } catch (std::bad_alloc &e) { \
-        raise_java_exception(env, e);
-    } catch (direct_bt::InternalError &e) {
-        raise_java_exception(env, e);
-    } catch (direct_bt::NullPointerException &e) {
-        raise_java_exception(env, e);
-    } catch (direct_bt::IllegalArgumentException &e) {
-        raise_java_exception(env, e);
-    } catch (direct_bt::IllegalStateException &e) {
-        raise_java_exception(env, e);
-    } catch (direct_bt::UnsupportedOperationException &e) {
-        raise_java_exception(env, e);
-    } catch (direct_bt::IndexOutOfBoundsException &e) {
-        raise_java_exception(env, e);
-    } catch (direct_bt::BluetoothException &e) {
-        raise_java_exception(env, e);
-    } catch (direct_bt::RuntimeException &e) {
-        raise_java_exception(env, e);
-    } catch (std::runtime_error &e) {
-        raise_java_exception(env, e);
-    } catch (std::invalid_argument &e) {
-        raise_java_exception(env, e);
-    } catch (std::exception &e) {
-        raise_java_exception(env, e);
-    } catch (std::string &msg) {
-        env->ThrowNew(env->FindClass("java/lang/Error"), msg.c_str());
-    } catch (const char *msg) {
-        env->ThrowNew(env->FindClass("java/lang/Error"), msg);
-    } catch (...) {
-        env->ThrowNew(env->FindClass("java/lang/Error"), "Unknown exception type");
-    }
-}
+const std::string unknown_exception_type_msg("Unknown exception type");
 
 bool java_exception_check(JNIEnv *env, const char* file, int line)
 {
     jthrowable e = env->ExceptionOccurred();
     if( nullptr != e ) {
 #if 1
-        fprintf(stderr, "Java exception occurred @ %s : %d and forwarded.", file, line); fflush(stderr);
         // ExceptionDescribe prints an exception and a backtrace of the stack to a system error-reporting channel, such as stderr.
         // The pending exception is cleared as a side-effect of calling this function. This is a convenience routine provided for debugging.
         env->ExceptionDescribe();
 #endif
         env->ExceptionClear(); // just be sure, to have same side-effects
+
+        jclass eClazz = search_class(env, e);
+        jmethodID toString = search_method(env, eClazz, "toString", "()Ljava/lang/String;", false);
+        jstring jmsg = (jstring) env->CallObjectMethod(e, toString);
+        std::string msg = from_jstring_to_string(env, jmsg);
+        fprintf(stderr, "Java exception occurred @ %s : %d and forwarded to Java: %s\n", file, line, msg.c_str()); fflush(stderr);
+
         env->Throw(e); // re-throw the java exception - java side!
         return true;
     }
@@ -294,7 +211,6 @@ void java_exception_check_and_throw(JNIEnv *env, const char* file, int line)
 {
     jthrowable e = env->ExceptionOccurred();
     if( nullptr != e ) {
-        fprintf(stderr, "Java exception occurred @ %s : %d and forwarded.", file, line); fflush(stderr);
         // ExceptionDescribe prints an exception and a backtrace of the stack to a system error-reporting channel, such as stderr.
         // The pending exception is cleared as a side-effect of calling this function. This is a convenience routine provided for debugging.
         env->ExceptionDescribe();
@@ -304,6 +220,8 @@ void java_exception_check_and_throw(JNIEnv *env, const char* file, int line)
         jmethodID toString = search_method(env, eClazz, "toString", "()Ljava/lang/String;", false);
         jstring jmsg = (jstring) env->CallObjectMethod(e, toString);
         std::string msg = from_jstring_to_string(env, jmsg);
+        fprintf(stderr, "Java exception occurred @ %s : %d and forwarded to Native: %s\n", file, line, msg.c_str()); fflush(stderr);
+
         throw direct_bt::RuntimeException("Java exception occurred @ %s : %d: "+msg, file, line);
     }
 }
