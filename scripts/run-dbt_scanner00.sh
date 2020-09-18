@@ -10,6 +10,7 @@ if [ ! -e bin/dbt_scanner00 -o ! -e lib/libdirect_bt.so ] ; then
     exit 1
 fi
 # hciconfig hci0 reset
+ulimit -c unlimited
 
 # run 'dpkg-reconfigure locales' enable 'en_US.UTF-8'
 export LANG=en_US.UTF-8

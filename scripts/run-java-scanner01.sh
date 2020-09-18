@@ -13,6 +13,8 @@ if [ ! -e lib/java/tinyb2.jar -o ! -e bin/java/ScannerTinyB01.jar -o ! -e lib/li
     echo run from dist directory
     exit 1
 fi
+# hciconfig hci0 reset
+ulimit -c unlimited
 
 # run 'dpkg-reconfigure locales' enable 'en_US.UTF-8'
 export LANG=en_US.UTF-8
