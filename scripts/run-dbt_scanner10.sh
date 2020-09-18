@@ -1,7 +1,10 @@
 #!/bin/sh
 
-# export direct_bt_debug=hci.event,mgmt.event=false,gatt.data
-# export direct_bt_debug=hci.event,mgmt.event,gatt.data
+# export direct_bt_debug=true
+# export direct_bt_debug=adapter.event=false,gatt.data=false,hci.event=false,mgmt.event=false
+# export direct_bt_debug=adapter.event,gatt.data,hci.event,mgmt.event
+# export direct_bt_debug=adapter.event,hci.event
+# export direct_bt_debug=adapter.event
 #
 # ../scripts/run-dbt_scanner10.sh -wait -mac C0:26:DA:01:DA:B1 2>&1 | tee ~/scanner-h01-dbt10.log
 # ../scripts/run-dbt_scanner10.sh -wait -wl C0:26:DA:01:DA:B1 2>&1 | tee ~/scanner-h01-dbt10.log

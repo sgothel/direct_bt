@@ -163,12 +163,13 @@ namespace direct_bt {
              * Example 1
              * <pre>
              * Input Environment:
-             *   "direct_bt.debug" := "hci.event,mgmt.event=true,gatt.data=false"
+             *   "direct_bt.debug" := "adapter.event,gatt.data=false,hci.event,mgmt.event=true"
              *
              * Result Environment:
+             *   "direct_bt.debug.adapter.event" := "true"
+             *   "direct_bt.debug.gatt.data"     := "false"
              *   "direct_bt.debug.hci.event"     := "true"
              *   "direct_bt.debug.mgmt.event"    := "true"
-             *   "direct_bt.debug.gatt.data"     := "false"
              *   "direct_bt.debug"               := "true" (will be overwritten)
              * </pre>
              * Example 2
