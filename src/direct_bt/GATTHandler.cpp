@@ -271,37 +271,18 @@ GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device) noexcept
 : env(GATTEnv::get()),
   wbr_device(device), deviceString(device->getAddressString()), rbuffer(number(Defaults::MAX_ATT_MTU)),
   l2cap(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT),
-  isConnected(false), hasIOError(false),
+  isConnected(true), hasIOError(false),
   attPDURing(env.ATTPDU_RING_CAPACITY),
   l2capReaderThreadId(0), l2capReaderRunning(false), l2capReaderShallStop(false),
   serverMTU(number(Defaults::MIN_ATT_MTU)), usedMTU(number(Defaults::MIN_ATT_MTU))
-{ }
-
-GATTHandler::~GATTHandler() noexcept {
-    disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
-    services.clear();
-}
-
-bool GATTHandler::connect() noexcept {
-    // Avoid connect re-entry -> potential deadlock
-    bool expConn = false; // C++11, exp as value since C++20
-    if( !isConnected.compare_exchange_strong(expConn, true) ) {
-        // already connected
-        DBG_PRINT("GATTHandler::connect: Already connected: GattHandler[%s], l2cap[%s]: %s",
-                  getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
-        return true;
+{
+    if( !validateConnected() ) {
+        ERR_PRINT("GATTHandler.ctor: L2CAP could not connect");
+        isConnected = false;
+        return;
     }
-    // Lock to avoid other threads using instance while connecting
-    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
-
-    hasIOError = false;
-    DBG_PRINT("GATTHandler::connect: Start: GattHandler[%s], l2cap[%s]: %s",
+    DBG_PRINT("GATTHandler::ctor: Start Connect: GattHandler[%s], l2cap[%s]: %s",
                 getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
-
-    if( !l2cap.connect() || !validateConnected() ) {
-        DBG_PRINT("GATTHandler.connect: Could not connect");
-        return false;
-    }
 
     /**
      * We utilize DBTManager's mgmthandler_sigaction SIGALRM handler,
@@ -325,11 +306,14 @@ bool GATTHandler::connect() noexcept {
     serverMTU = exchangeMTU(number(Defaults::MAX_ATT_MTU));
     usedMTU = std::min(number(Defaults::MAX_ATT_MTU), (int)serverMTU);
     if( 0 == serverMTU ) {
-        ERR_PRINT("GATTHandler::connect: Zero serverMTU -> disconnect: %s", deviceString.c_str());
+        ERR_PRINT("GATTHandler::ctor: Zero serverMTU -> disconnect: %s", deviceString.c_str());
         disconnect(true /* disconnectDevice */, false /* ioErrorCause */);
-        return false;
     }
-    return true;
+}
+
+GATTHandler::~GATTHandler() noexcept {
+    disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
+    services.clear();
 }
 
 bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause) noexcept {
@@ -378,7 +362,7 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
         const HCIStatusCode reason = ioErrorCause ?
                                HCIStatusCode::REMOTE_DEVICE_TERMINATED_CONNECTION_POWER_OFF :
                                HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION;
-        device->disconnect(false /* sentFromManager */, ioErrorCause, reason);
+        device->disconnect(false /* fromDisconnectCB */, ioErrorCause, reason);
     }
 
     DBG_PRINT("GATTHandler::disconnect: End: %s", deviceString.c_str());

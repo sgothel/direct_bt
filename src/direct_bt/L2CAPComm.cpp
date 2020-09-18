@@ -98,26 +98,14 @@ int L2CAPComm::l2cap_close_dev(int dd)
 
 L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid)
 : device(device), deviceString(device->getAddressString()), psm(psm), cid(cid),
-  _dd(-1), isConnected(false), hasIOError(false), interruptFlag(false), tid_connect(0)
-{ }
-
-bool L2CAPComm::connect() {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
-
+  _dd(-1), isConnected(true), hasIOError(false), interruptFlag(false), tid_connect(0)
+{
     /** BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ */
-    bool expConn = false; // C++11, exp as value since C++20
-    if( !isConnected.compare_exchange_strong(expConn, true) ) {
-        // already connected
-        DBG_PRINT("L2CAPComm::connect: Already connected: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
-                  getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, true);
-        return true;
-    }
-    hasIOError = false;
-    DBG_PRINT("L2CAPComm::connect: Start: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
+    DBG_PRINT("L2CAPComm::ctor: Start Connect: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
               getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, true);
 
     sockaddr_l2 req;
-    int err, res;
+    int res;
     int to_retry_count=0; // ETIMEDOUT retry count
 
     _dd = l2cap_open_dev(device->getAdapter().getAddress(), psm, cid, true /* pubaddrAdapter */);
@@ -139,7 +127,7 @@ bool L2CAPComm::connect() {
         // blocking
         res = ::connect(_dd, (struct sockaddr*)&req, sizeof(req));
 
-        DBG_PRINT("L2CAPComm::connect: Result %d, errno 0%X %s, %s", res, errno, strerror(errno), deviceString.c_str());
+        DBG_PRINT("L2CAPComm::ctor: Connect Result %d, errno 0%X %s, %s", res, errno, strerror(errno), deviceString.c_str());
 
         if( !res )
         {
@@ -148,40 +136,38 @@ bool L2CAPComm::connect() {
         } else if( ETIMEDOUT == errno ) {
             to_retry_count++;
             if( to_retry_count < number(Defaults::L2CAP_CONNECT_MAX_RETRY) ) {
-                INFO_PRINT("L2CAPComm::connect: timeout, retry %d", to_retry_count);
+                INFO_PRINT("L2CAPComm::ctor: Connect timeout, retry %d", to_retry_count);
                 continue;
             } else {
-                ERR_PRINT("L2CAPComm::connect: timeout, retried %d", to_retry_count);
+                ERR_PRINT("L2CAPComm::ctor: Connect timeout, retried %d", to_retry_count);
                 goto failure; // exit
             }
 
         } else  {
             // EALREADY == errno || ENETUNREACH == errno || EHOSTUNREACH == errno || ..
-            ERR_PRINT("L2CAPComm::connect: connect failed");
+            ERR_PRINT("L2CAPComm::ctor: Connect failed");
             goto failure; // exit
         }
     }
+    // success
     tid_connect = 0;
-
-    return true;
+    return;
 
 failure:
-    tid_connect = 0;
-    err = errno;
+    const int err = errno;
     disconnect();
     errno = err;
-    return false;
 }
 
-bool L2CAPComm::disconnect() {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
-
+bool L2CAPComm::disconnect() noexcept {
     bool expConn = true; // C++11, exp as value since C++20
     if( !isConnected.compare_exchange_strong(expConn, false) ) {
         DBG_PRINT("L2CAPComm::disconnect: Not connected: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
                   getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, true);
         return false;
     }
+    const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
+
     hasIOError = false;
     DBG_PRINT("L2CAPComm::disconnect: Start: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
               getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, true);

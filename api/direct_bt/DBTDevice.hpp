@@ -69,7 +69,6 @@ namespace direct_bt {
             std::shared_ptr<GenericAccess> gattGenericAccess = nullptr;
             std::recursive_mutex mtx_connect;
             std::recursive_mutex mtx_data;
-            std::recursive_mutex mtx_gatt;
             std::atomic<bool> isConnected;
             /** atomic: allowDisconnect = isConnected || 'isConnectIssued' */
             std::atomic<bool> allowDisconnect;
@@ -307,7 +306,7 @@ namespace direct_bt {
              * when AdapterStatusListener::deviceDisconnected(..) has been received.
              * </p>
              * <p>
-             * An open GATTHandler will also be closed via disconnectGATT()
+             * An open GATTHandler will also be closed.
              * </p>
              * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */
@@ -339,25 +338,26 @@ namespace direct_bt {
              * The HCI connectLE(..) or connectBREDR(..) must be performed first, see {@link #connectDefault()}.
              * </p>
              * <p>
-             * The returned GATTHandler is managed by this device instance
-             * and closed @ disconnect() or explicitly @ disconnectGATT().
-             * May return nullptr if not connected or failure.
+             * The returned GATTHandler is managed by this device instance and closed @ disconnect().
+             * May return nullptr if this device is not connected or failed otherwise.
              * </p>
              */
             std::shared_ptr<GATTHandler> connectGATT();
 
-            /** Returns already opened GATTHandler, see connectGATT(..) and disconnectGATT(). */
+            /** Returns already opened GATTHandler or nullptr, see connectGATT(), getGATTServices() and disconnect(). */
             std::shared_ptr<GATTHandler> getGATTHandler();
 
             /**
              * Returns a list of shared GATTService available on this device if successful,
              * otherwise returns an empty list if an error occurred.
              * <p>
+             * The HCI connectLE(..) or connectBREDR(..) must be performed first, see {@link #connectDefault()}.
+             * </p>
+             * <p>
              * If this method has been called for the first time or no services has been detected yet,
              * a list of GATTService will be discovered.
              * <br>
-             * In case no GATT connection has been established yet or disconnectGATT() has been called thereafter,
-             * connectGATT(..) will be performed.
+             * In case no GATT connection has been established it will be created via connectGATT().
              * </p>
              */
             std::vector<std::shared_ptr<GATTService>> getGATTServices();
@@ -389,14 +389,6 @@ namespace direct_bt {
              * @return {@code true} if successful, otherwise false in case no GATT services exists or is not connected .. etc.
              */
             bool pingGATT();
-
-            /**
-             * Explicit disconnecting an open GATTHandler, which is usually performed via disconnect()
-             * <p>
-             * Implementation will also discard the GATTHandler reference.
-             * </p>
-             */
-            void disconnectGATT();
 
             /**
              * Add the given GATTCharacteristicListener to the listener list if not already present.

@@ -60,7 +60,7 @@ namespace direct_bt {
             int _dd; // the hci socket
 
         public:
-            /** Constructing a new HCI communication channel instance */
+            /** Constructing a newly opened HCI communication channel instance */
             HCIComm(const uint16_t dev_id, const uint16_t channel) noexcept
             : dev_id(dev_id), channel(channel), _dd(-1) {
                 _dd = hci_open_dev(dev_id, channel);

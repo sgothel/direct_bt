@@ -432,7 +432,15 @@ HCIStatusCode DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioEr
             allowDisconnect.load(), isConnected.load(), fromDisconnectCB, ioErrorCause,
             static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
             (nullptr != gattHandler), uint16HexString(hciConnHandle).c_str());
-    disconnectGATT();
+
+    // GATTHandler dtor w/ disconnect
+    {
+        std::shared_ptr<GATTHandler> gh = gattHandler; // local copy avoiding immediate dtor
+        gattHandler = nullptr; // clear field before actual dtor, avoiding a race condition
+        gh->disconnect(false /* disconnectDevice */, false /* ioErrorCause */); // in case gattHandler copied concurrently (pingGATT, ..)
+        // gh dtor leaving scope, will dtor actual GATTHandler instance eventually
+    }
+    DBG_PRINT("DBTDevice::disconnect: GATT dtor end");
 
     std::shared_ptr<HCIHandler> hci = adapter.getHCI();
     HCIStatusCode res = HCIStatusCode::UNSPECIFIED_ERROR;
@@ -475,46 +483,40 @@ void DBTDevice::remove() {
 }
 
 std::shared_ptr<GATTHandler> DBTDevice::connectGATT() {
-    std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
-    if( nullptr == sharedInstance ) {
-        throw InternalError("DBTDevice::connectGATT: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
+    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // covers gattHandler dtor via disconnect(..)
+    if( !isConnected ) {
+        ERR_PRINT("DBTDevice::connectGATT: Device not connected: %s", toString().c_str());
+        return nullptr;
     }
-
-    const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
     if( nullptr != gattHandler ) {
-        if( gattHandler->isOpen() ) {
+        if( gattHandler->getIsConnected() ) {
             return gattHandler;
         }
         gattHandler = nullptr;
     }
 
-    if( !isConnected ) {
-        ERR_PRINT("DBTDevice::connectGATT: Device not connected: %s", toString().c_str());
-        return nullptr;
+    std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
+    if( nullptr == sharedInstance ) {
+        throw InternalError("DBTDevice::connectGATT: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
     }
-
     gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sharedInstance));
-    if( !gattHandler->connect() ) {
-        DBG_PRINT("DBTDevice::connectGATT: Connection failed");
+    if( !gattHandler->getIsConnected() ) {
+        ERR_PRINT("DBTDevice::connectGATT: Connection failed");
         gattHandler = nullptr;
     }
     return gattHandler;
 }
 
 std::shared_ptr<GATTHandler> DBTDevice::getGATTHandler() {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
     return gattHandler;
 }
 
 std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // covers gattHandler dtor via disconnect(..)
     try {
-        if( nullptr == gattHandler || !gattHandler->isOpen() ) {
-            connectGATT();
-            if( nullptr == gattHandler || !gattHandler->isOpen() ) {
-                ERR_PRINT("DBTDevice::getServices: connectGATT failed");
-                return std::vector<std::shared_ptr<GATTService>>();
-            }
+        if( nullptr == connectGATT() ) {
+            ERR_PRINT("DBTDevice::getGATTServices: connectGATT failed");
+            return std::vector<std::shared_ptr<GATTService>>();
         }
         std::vector<std::shared_ptr<GATTService>> & gattServices = gattHandler->getServices(); // reference of the GATTHandler's list
         if( gattServices.size() > 0 ) { // reuse previous discovery result
@@ -548,7 +550,6 @@ std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() {
 }
 
 std::shared_ptr<GATTService> DBTDevice::findGATTService(std::shared_ptr<uuid_t> const &uuid) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
     const std::vector<std::shared_ptr<GATTService>> & gattServices = getGATTServices(); // reference of the GATTHandler's list
     const size_t size = gattServices.size();
     for (size_t i = 0; i < size; i++) {
@@ -561,20 +562,20 @@ std::shared_ptr<GATTService> DBTDevice::findGATTService(std::shared_ptr<uuid_t> 
 }
 
 bool DBTDevice::pingGATT() {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
     try {
-        if( nullptr == gattHandler || !gattHandler->isOpen() ) {
+        std::shared_ptr<GATTHandler> gh = gattHandler; // local copy avoiding dtor while in operation
+        if( nullptr == gh || !gh->getIsConnected() ) {
             INFO_PRINT("DBTDevice::pingGATT: GATTHandler not connected -> disconnected on %s", toString().c_str());
             disconnect(false /* fromDisconnectCB */, true /* ioErrorCause */, HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
             return false;
         }
-        std::vector<std::shared_ptr<GATTService>> & gattServices = gattHandler->getServices(); // reference of the GATTHandler's list
+        std::vector<std::shared_ptr<GATTService>> & gattServices = gh->getServices(); // reference of the GATTHandler's list
         if( gattServices.size() == 0 ) { // discover services
             INFO_PRINT("DBTDevice::pingGATT: No GATTService available -> disconnected on %s", toString().c_str());
             disconnect(false /* fromDisconnectCB */, true /* ioErrorCause */, HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
             return false;
         }
-        return gattHandler->ping();
+        return gh->ping();
     } catch (std::exception &e) {
         INFO_PRINT("DBTDevice::pingGATT: Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());
     }
@@ -582,24 +583,7 @@ bool DBTDevice::pingGATT() {
 }
 
 std::shared_ptr<GenericAccess> DBTDevice::getGATTGenericAccess() {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
     return gattGenericAccess;
-}
-
-void DBTDevice::disconnectGATT() {
-    // Perform a safe GATTHandler::disconnect w/o locking mtx_gatt,
-    // so it can pull the l2cap resources ASAP avoiding prolonged hangs.
-    // Only then we can lock mtx_gatt to null the GATTHandler references.
-    std::shared_ptr<GATTHandler> _gattHandler = gattHandler; // local instance, no dtor while operating!
-    DBG_PRINT("DBTDevice::disconnectGATT: Start: gattHandle %d", (nullptr!=_gattHandler));
-    if( nullptr != _gattHandler ) {
-        // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
-        _gattHandler->disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
-        const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
-        _gattHandler = nullptr;
-        gattHandler = nullptr;
-    }
-    DBG_PRINT("DBTDevice::disconnectGATT: End");
 }
 
 bool DBTDevice::addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) {

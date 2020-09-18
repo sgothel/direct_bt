@@ -203,19 +203,21 @@ namespace direct_bt {
             uint16_t exchangeMTU(const uint16_t clientMaxMTU);
 
         public:
-            GATTHandler(const std::shared_ptr<DBTDevice> & device) noexcept;
-
-            ~GATTHandler();
-
-            bool getIsConnected() const noexcept { return isConnected; }
-            bool getHasIOError() const noexcept { return hasIOError; }
-            std::string getStateString() const noexcept { return L2CAPComm::getStateString(isConnected, hasIOError); }
-
             /**
+             * Constructing a new GATTHandler instance with its opened and connected L2CAP channel.
+             * <p>
              * After successful l2cap connection, the MTU will be exchanged.
              * See getServerMTU() and getUsedMTU(), the latter is in use.
+             * </p>
              */
-            bool connect() noexcept;
+            GATTHandler(const std::shared_ptr<DBTDevice> & device) noexcept;
+
+            /** Destructor closing this instance including L2CAP channel, see {@link #disconnect()}. */
+            ~GATTHandler() noexcept;
+
+            bool getIsConnected() const noexcept { return isConnected ; }
+            bool getHasIOError() const noexcept { return hasIOError; }
+            std::string getStateString() const noexcept { return L2CAPComm::getStateString(isConnected, hasIOError); }
 
             /**
              * Disconnect this GATTHandler and optionally the associated device
@@ -224,8 +226,6 @@ namespace direct_bt {
              * @return true if successful, otherwise false
              */
             bool disconnect(const bool disconnectDevice, const bool ioErrorCause) noexcept;
-
-            bool isOpen() const noexcept { return isConnected && l2cap.isOpen(); }
 
             inline uint16_t getServerMTU() const noexcept { return serverMTU; }
             inline uint16_t getUsedMTU()  const noexcept { return usedMTU; }

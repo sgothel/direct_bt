@@ -79,8 +79,16 @@ namespace direct_bt {
             std::atomic<pthread_t> tid_connect;
 
         public:
-            /** Constructing a closed L2CAP channel, use {@link #connect()} to open. */
+            /**
+             * Constructing a newly opened and connected L2CAP channel instance.
+             * <p>
+             * BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ
+             * </p>
+             */
             L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid);
+
+            /** Destructor closing the L2CAP channel, see {@link #disconnect()}. */
+            ~L2CAPComm() noexcept { disconnect(); }
 
             std::shared_ptr<DBTDevice> getDevice() { return device; }
 
@@ -88,19 +96,8 @@ namespace direct_bt {
             bool getHasIOError() const { return hasIOError; }
             std::string getStateString() const { return getStateString(isConnected, hasIOError); }
 
-            /**
-             * Opening the L2CAP channel, locking {@link #mutex_write()}.
-             * <p>
-             * BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ
-             * </p>
-             */
-            bool connect();
-
             /** Closing the L2CAP channel, locking {@link #mutex_write()}. */
-            bool disconnect();
-
-            bool isOpen() const { return 0 <= _dd; }
-            int dd() const { return _dd; }
+            bool disconnect() noexcept;
 
             /** Return the recursive write mutex for multithreading access. */
             std::recursive_mutex & mutex_write() { return mtx_write; }

@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
                 }
                 {
                     std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
-                    if( nullptr != gatt && gatt->isOpen() ) {
+                    if( nullptr != gatt && gatt->getIsConnected() ) {
                         std::shared_ptr<DeviceInformation> di = gatt->getDeviceInformation(primServices);
                         if( nullptr != di ) {
                             fprintf(stderr, "  DeviceInformation: %s\n\n", di->toString().c_str());
