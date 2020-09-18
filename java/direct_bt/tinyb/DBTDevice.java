@@ -238,9 +238,6 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         if( !isValid() ) {
             return;
         }
-        // GATTHandler::removeAllCharacteristicListener(): implicit via device.disconnect -> gatt.disconnect
-        disconnectImpl(); // make sure, regardless of isConnected state
-
         disableConnectedNotifications();
         disableRSSINotifications();
         disableManufacturerDataNotifications();
@@ -586,7 +583,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
      */
     @Override
     public final boolean remove() throws BluetoothException {
-        // close: disconnectImpl(), clear java-listener, super.close()
+        // close: clear java-listener, super.close()
         //        -> DBTNativeDownlink.delete(): deleteNativeJavaObject(..), deleteImpl(..) -> DBTDevice::remove()
         close();
         // return removeImpl();

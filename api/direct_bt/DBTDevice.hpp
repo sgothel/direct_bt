@@ -306,7 +306,13 @@ namespace direct_bt {
              * when AdapterStatusListener::deviceDisconnected(..) has been received.
              * </p>
              * <p>
-             * An open GATTHandler will also be closed.
+             * An open GATTHandler will also be closed.<br>
+             * The connection to this device is removed, removing all connected profiles.
+             * </p>
+             * <p>
+             * An application using one thread per device and rapid connect, should either use disconnect() or remove(),
+             * but never issue remove() after disconnect(). Doing so would eventually delete the device being already
+             * in use by another thread due to discovery post disconnect!
              * </p>
              * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */
@@ -328,6 +334,14 @@ namespace direct_bt {
              * </p>
              * <p>
              * This method is automatically called @ destructor.
+             * </p>
+             * <p>
+             * This method is an atomic operation.
+             * </p>
+             * <p>
+             * An application using one thread per device and rapid connect, should either use disconnect() or remove(),
+             * but never issue remove() after disconnect(). Doing so would eventually delete the device being already
+             * in use by another thread due to discovery post disconnect!
              * </p>
              */
             void remove();

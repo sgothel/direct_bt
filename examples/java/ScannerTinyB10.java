@@ -384,18 +384,12 @@ public class ScannerTinyB10 {
             println("****** Processing Device: pingGATT failed: "+device.getAddress());
         }
 
-        println("****** Processing Device: disconnecting: "+device.getAddress());
-        device.disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
-        while( device.getConnected() ) {
-            try {
-                Thread.sleep(100);
-            } catch (final InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
         if( REMOVE_DEVICE ) {
             println("****** Processing Device: removing: "+device.getAddress());
             device.remove();
+        } else {
+            println("****** Processing Device: disconnecting: "+device.getAddress());
+            device.disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
         }
 
         if( 0 < MULTI_MEASUREMENTS ) {

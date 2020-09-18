@@ -81,11 +81,13 @@ public interface BluetoothDevice extends BluetoothObject
      * when {@link AdapterStatusListener#deviceDisconnected(BluetoothDevice, HCIStatusCode, long)} has been received.
      * </p>
      * <p>
-     * Any open GATT connection will be closed as well.
+     * An open GATT connection will also be closed.<br>
+     * The connection to this device is removed, removing all connected profiles.
      * </p>
      * <p>
-     * <b>tinyb.dbus</b> The connection to this device is removed, removing all connected
-     * profiles.
+     * An application using one thread per device and rapid connect, should either use {@link #disconnect()} or {@link #remove()},
+     * but never issue remove() after disconnect(). Doing so would eventually delete the device being already
+     * in use by another thread due to discovery post disconnect!
      * </p>
      * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
      * @since 2.1.0 change API, i.e. return value from boolean to HCIStatusCode in favor of <i>direct_bt</i>
@@ -181,10 +183,35 @@ public interface BluetoothDevice extends BluetoothObject
       */
     boolean pair() throws BluetoothException;
 
-    /** Remove this device from the system (like an unpair).
-      * @return TRUE if the device has been removed
-      * @throws BluetoothException
-      */
+    /**
+     * Remove this device from the system (like an unpair).
+     * <p>
+     * Direct-BT: Disconnects this device via disconnect(..) and
+     * explicitly removes its shared references from the Adapter:
+     * connected-devices, discovered-devices and shared-devices.
+     * </p>
+     * <p>
+     * This method shall be issued to ensure no device reference will
+     * be leaked in a long lived adapter,
+     * as only its reference within connected-devices and discovered-devices are removed at disconnect.
+     * </p>
+     * <p>
+     * After calling this method, the device shall no more being used.
+     * </p>
+     * <p>
+     * This method is automatically called @ destructor.
+     * </p>
+     * <p>
+     * This method is an atomic operation.
+     * </p>
+     * <p>
+     * An application using one thread per device and rapid connect, should either use {@link #disconnect()} or {@link #remove()},
+     * but never issue remove() after disconnect(). Doing so would eventually delete the device being already
+     * in use by another thread due to discovery post disconnect!
+     * </p>
+     * @return TRUE if the device has been removed
+     * @throws BluetoothException
+     */
     boolean remove() throws BluetoothException;
 
     /** Cancels an initiated pairing operation

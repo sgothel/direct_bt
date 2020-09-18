@@ -368,15 +368,14 @@ exit:
         fprintf(stderr, "****** Processing Device: pingGATT failed: %s\n", device->getAddressString().c_str());
     }
 
-    fprintf(stderr, "****** Processing Device: disconnecting: %s\n", device->getAddressString().c_str());
-    device->disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
-    while( device->getConnected() ) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
     if( REMOVE_DEVICE ) {
         fprintf(stderr, "****** Processing Device: removing: %s\n", device->getAddressString().c_str());
         device->remove();
+    } else {
+        fprintf(stderr, "****** Processing Device: disconnecting: %s\n", device->getAddressString().c_str());
+        device->disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
     }
+
     if( !SILENT_GATT ) {
         device->getAdapter().printSharedPtrListOfDevices();
     }
