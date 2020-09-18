@@ -46,8 +46,13 @@ namespace direct_bt {
     /** Use for environment-variable DBTEnv::DEBUG conditional debug messages, prefix '[elapsed_time] Debug: '. */
     void DBG_PRINT(const char * format, ...) noexcept;
 
-    /** Use for environment-variable DBTEnv::VERBOSE conditional info messages, prefix '[elapsed_time] Info: '. */
-    void INFO_PRINT(const char * format, ...) noexcept;
+    /**
+     * Use for environment-variable DBTEnv::VERBOSE conditional verbose messages, prefix '[elapsed_time] Wordy: '.
+     * <p>
+     * 'Wordy' is the shorter English form of the Latin word 'verbosus', from which the word 'verbosity' is sourced.
+     * </p>
+     */
+    void WORDY_PRINT(const char * format, ...) noexcept;
 
     #ifdef PERF_PRINT_ON
         #define PERF_TS_T0()  const uint64_t _t0 = direct_bt::getCurrentMilliseconds()
@@ -76,6 +81,9 @@ namespace direct_bt {
 
     /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ FILE:LINE: ' */
     #define WARN_PRINT(...) { direct_bt::WARN_PRINT2(__FILE__, __LINE__, __VA_ARGS__); }
+
+    /** Use for unconditional informal messages, prefix '[elapsed_time] Info: '. */
+    void INFO_PRINT(const char * format, ...) noexcept;
 
     /** Use for unconditional plain messages, prefix '[elapsed_time] '. */
     void PLAIN_PRINT(const char * format, ...) noexcept;

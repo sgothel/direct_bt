@@ -862,7 +862,7 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) {
         });
         removeDiscoveredDevice(*device); // ensure device will cause a deviceFound event after disconnect
     } else {
-        INFO_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): %s\n    -> Device not tracked",
+        WORDY_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): %s\n    -> Device not tracked",
             dev_id, event.toString().c_str());
     }
     return true;
@@ -875,7 +875,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) {
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         if( device->getConnectionHandle() != event.getHCIHandle() ) {
-            INFO_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): ConnHandle mismatch %s\n    -> %s",
+            WORDY_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): ConnHandle mismatch %s\n    -> %s",
                 dev_id, event.toString().c_str(), device->toString().c_str());
             return true;
         }
@@ -901,7 +901,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) {
         });
         removeDiscoveredDevice(*device); // ensure device will cause a deviceFound event after disconnect
     } else {
-        INFO_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): %s\n    -> Device not tracked",
+        WORDY_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): %s\n    -> Device not tracked",
             dev_id, event.toString().c_str());
     }
     return true;

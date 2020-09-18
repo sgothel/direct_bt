@@ -135,7 +135,7 @@ L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, cons
         } else if( ETIMEDOUT == errno ) {
             to_retry_count++;
             if( to_retry_count < number(Defaults::L2CAP_CONNECT_MAX_RETRY) ) {
-                INFO_PRINT("L2CAPComm::ctor: Connect timeout, retry %d", to_retry_count);
+                WORDY_PRINT("L2CAPComm::ctor: Connect timeout, retry %d", to_retry_count);
                 continue;
             } else {
                 ERR_PRINT("L2CAPComm::ctor: Connect timeout, retried %d", to_retry_count);

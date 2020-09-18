@@ -110,7 +110,7 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
         }
     }
 
-    INFO_PRINT("DBTManager::reader: Ended. Ring has %d entries flushed", mgmtEventRing.getSize());
+    WORDY_PRINT("DBTManager::reader: Ended. Ring has %d entries flushed", mgmtEventRing.getSize());
     mgmtReaderRunning = false;
     mgmtEventRing.clear();
 }
@@ -138,7 +138,7 @@ void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept {
 
 static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) noexcept {
     bool pidMatch = info->si_pid == DBTManager::pidSelf;
-    INFO_PRINT("DBTManager.sigaction: sig %d, info[code %d, errno %d, signo %d, pid %d, uid %d, fd %d], pid-self %d (match %d)",
+    WORDY_PRINT("DBTManager.sigaction: sig %d, info[code %d, errno %d, signo %d, pid %d, uid %d, fd %d], pid-self %d (match %d)",
             sig, info->si_code, info->si_errno, info->si_signo,
             info->si_pid, info->si_uid, info->si_fd,
             DBTManager::pidSelf, pidMatch);
@@ -293,7 +293,7 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
   rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
   mgmtEventRing(env.MGMT_EVT_RING_CAPACITY), mgmtReaderRunning(false), mgmtReaderShallStop(false)
 {
-    INFO_PRINT("DBTManager.ctor: pid %d", DBTManager::pidSelf);
+    WORDY_PRINT("DBTManager.ctor: pid %d", DBTManager::pidSelf);
     if( !comm.isOpen() ) {
         ERR_PRINT("DBTManager::open: Could not open mgmt control channel");
         return;
@@ -334,7 +334,7 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
         const uint8_t *data = res->getData();
         const uint8_t version = data[0];
         const uint16_t revision = get_uint16(data, 1, true /* littleEndian */);
-        INFO_PRINT("Bluetooth version %d.%d", version, revision);
+        WORDY_PRINT("Bluetooth version %d.%d", version, revision);
         if( version < 1 ) {
             ERR_PRINT("Bluetooth version >= 1.0 required");
             goto fail;
@@ -351,7 +351,7 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
             const uint8_t *data = res->getData();
             const uint16_t num_commands = get_uint16(data, 0, true /* littleEndian */);
             const uint16_t num_events = get_uint16(data, 2, true /* littleEndian */);
-            INFO_PRINT("Bluetooth %d commands, %d events", num_commands, num_events);
+            WORDY_PRINT("Bluetooth %d commands, %d events", num_commands, num_events);
 #ifdef VERBOSE_ON
             const int expDataSize = 4 + num_commands * 2 + num_events * 2;
             if( res->getDataSize() >= expDataSize ) {
@@ -382,7 +382,7 @@ next1:
         }
         const uint8_t *data = res->getData();
         const uint16_t num_adapter = get_uint16(data, 0, true /* littleEndian */);
-        INFO_PRINT("Bluetooth %d adapter", num_adapter);
+        WORDY_PRINT("Bluetooth %d adapter", num_adapter);
 
         const int expDataSize = 2 + num_adapter * 2;
         if( res->getDataSize() < expDataSize ) {

@@ -41,9 +41,9 @@ void direct_bt::DBG_PRINT(const char * format, ...) noexcept {
     }
 }
 
-void direct_bt::INFO_PRINT(const char * format, ...) noexcept {
+void direct_bt::WORDY_PRINT(const char * format, ...) noexcept {
     if(direct_bt::DBTEnv::get().VERBOSE) {
-        fprintf(stderr, "[%'9" PRIu64 "] Info: ", DBTEnv::getElapsedMillisecond());
+        fprintf(stderr, "[%'9" PRIu64 "] Wordy: ", DBTEnv::getElapsedMillisecond());
         va_list args;
         va_start (args, format);
         vfprintf(stderr, format, args);
@@ -79,6 +79,16 @@ void direct_bt::WARN_PRINTv(const char *file, const int line, const char * forma
 
 void direct_bt::WARN_PRINT2(const char *file, const int line, const char * format, ...) noexcept {
     fprintf(stderr, "[%'9" PRIu64 "] Warning @ %s:%d: ", DBTEnv::getElapsedMillisecond(), file, line);
+    va_list args;
+    va_start (args, format);
+    vfprintf(stderr, format, args);
+    va_end (args);
+    fprintf(stderr, "\n");
+    fflush(stderr);
+}
+
+void direct_bt::INFO_PRINT(const char * format, ...) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] Info: ", DBTEnv::getElapsedMillisecond());
     va_list args;
     va_start (args, format);
     vfprintf(stderr, format, args);

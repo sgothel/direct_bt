@@ -78,7 +78,7 @@ HCIConnectionRef HCIHandler::addOrUpdateTrackerConnection(const EUI48 & address,
         HCIConnectionRef conn = *it;
         if ( conn->equals(address, addrType) ) {
             // reuse same entry
-            INFO_PRINT("HCIHandler::addTrackerConnection: address[%s, %s], handle %s: reuse entry %s",
+            WORDY_PRINT("HCIHandler::addTrackerConnection: address[%s, %s], handle %s: reuse entry %s",
                address.toString().c_str(), getBDAddressTypeString(addrType).c_str(), uint16HexString(handle).c_str(), conn->toString().c_str());
             // Overwrite tracked connection handle with given _valid_ handle only, i.e. non zero!
             if( 0 != handle ) {
@@ -220,7 +220,7 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
             }
             HCIConnectionRef conn = removeTrackerConnection(ev_cc->handle);
             if( nullptr == conn ) {
-                INFO_PRINT("HCIHandler::translate(reader): DISCONN_COMPLETE: Not tracked handle %s: %s",
+                WORDY_PRINT("HCIHandler::translate(reader): DISCONN_COMPLETE: Not tracked handle %s: %s",
                            uint16HexString(ev_cc->handle).c_str(), ev->toString().c_str());
                 return nullptr;
             } else {
@@ -259,9 +259,9 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
 
         len = comm.read(rbuffer.get_wptr(), rbuffer.getSize(), env.HCI_READER_THREAD_POLL_TIMEOUT);
         if( 0 < len ) {
-            const uint16_t paramSize = len >= 3 ? rbuffer.get_uint8(2) : 0;
+            const uint16_t paramSize = len >= number(HCIConstU8::EVENT_HDR_SIZE) ? rbuffer.get_uint8(2) : 0;
             if( len < number(HCIConstU8::EVENT_HDR_SIZE) + paramSize ) {
-                WARN_PRINT("HCIHandler::reader: length mismatch %d < %d + %d",
+                WARN_PRINT("HCIHandler::reader: length mismatch %d < EVENT_HDR_SIZE(%d) + %d",
                         len, number(HCIConstU8::EVENT_HDR_SIZE), paramSize);
                 continue; // discard data
             }
@@ -312,7 +312,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
             ERR_PRINT("HCIHandler::reader: HCIComm read error");
         }
     }
-    INFO_PRINT("HCIHandler::reader: Ended. Ring has %d entries flushed", hciEventRing.getSize());
+    WORDY_PRINT("HCIHandler::reader: Ended. Ring has %d entries flushed", hciEventRing.getSize());
     hciReaderRunning = false;
     hciEventRing.clear();
 }
@@ -426,7 +426,7 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id) noexcept
   comm(dev_id, HCI_CHANNEL_RAW),
   hciEventRing(env.HCI_EVT_RING_CAPACITY), hciReaderRunning(false), hciReaderShallStop(false)
 {
-    INFO_PRINT("HCIHandler.ctor: pid %d", HCIHandler::pidSelf);
+    WORDY_PRINT("HCIHandler.ctor: pid %d", HCIHandler::pidSelf);
     if( !comm.isOpen() ) {
         ERR_PRINT("HCIHandler::ctor: Could not open hci control channel");
         return;
@@ -510,7 +510,7 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id) noexcept
             ERR_PRINT("HCIHandler::ctor: failed READ_LOCAL_VERSION: 0x%x (%s)", number(status), getHCIStatusCodeString(status).c_str());
             goto fail;
         }
-        INFO_PRINT("HCIHandler: LOCAL_VERSION: %d (rev %d), manuf 0x%x, lmp %d (subver %d)",
+        WORDY_PRINT("HCIHandler: LOCAL_VERSION: %d (rev %d), manuf 0x%x, lmp %d (subver %d)",
                 ev_lv->hci_ver, le_to_cpu(ev_lv->hci_rev), le_to_cpu(ev_lv->manufacturer),
                 ev_lv->lmp_ver, le_to_cpu(ev_lv->lmp_subver));
     }
@@ -689,7 +689,7 @@ HCIStatusCode HCIHandler::disconnect(const bool ioErrorCause,
         if( nullptr == conn ) {
             // disconnect called w/o being connected through this HCIHandler
             conn = addOrUpdateTrackerConnection(peer_bdaddr, peer_mac_type, conn_handle);
-            INFO_PRINT("HCIHandler::disconnect: Not tracked address[%s, %s], added %s",
+            WORDY_PRINT("HCIHandler::disconnect: Not tracked address[%s, %s], added %s",
                        peer_bdaddr.toString().c_str(), getBDAddressTypeString(peer_mac_type).c_str(),
                        conn->toString().c_str());
         } else if( !conn->equals(peer_bdaddr, peer_mac_type) ) {

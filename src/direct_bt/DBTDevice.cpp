@@ -323,7 +323,7 @@ HCIStatusCode DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_w
     allowDisconnect = true;
 #if 0
     if( HCIStatusCode::CONNECTION_ALREADY_EXISTS == status ) {
-        INFO_PRINT("DBTDevice::connectLE: Connection already exists: status 0x%2.2X (%s) on %s",
+        WORDY_PRINT("DBTDevice::connectLE: Connection already exists: status 0x%2.2X (%s) on %s",
                 static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), toString().c_str());
         std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
         if( nullptr == sharedInstance ) {
@@ -428,7 +428,7 @@ HCIStatusCode DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioEr
     // Lock to avoid other threads connecting while disconnecting
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
 
-    INFO_PRINT("DBTDevice::disconnect: Start: isConnected %d/%d, fromDisconnectCB %d, ioError %d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
+    WORDY_PRINT("DBTDevice::disconnect: Start: isConnected %d/%d, fromDisconnectCB %d, ioError %d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
             allowDisconnect.load(), isConnected.load(), fromDisconnectCB, ioErrorCause,
             static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
             (nullptr != gattHandler), uint16HexString(hciConnHandle).c_str());
@@ -472,7 +472,7 @@ HCIStatusCode DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioEr
     }
 
 exit:
-    INFO_PRINT("DBTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d, fromDisconnectCB %d, ioError %d on %s",
+    WORDY_PRINT("DBTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d, fromDisconnectCB %d, ioError %d on %s",
             getHCIStatusCodeString(res).c_str(), hciConnHandle.load(),
             allowDisconnect.load(), isConnected.load(), fromDisconnectCB, ioErrorCause,
             toString(false).c_str());
@@ -513,7 +513,7 @@ std::shared_ptr<GATTHandler> DBTDevice::getGATTHandler() {
     return gattHandler;
 }
 
-std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() {
+std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // covers gattHandler dtor via disconnect(..)
     try {
         if( nullptr == connectGATT() ) {
