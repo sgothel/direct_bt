@@ -204,7 +204,7 @@ namespace direct_bt {
                                                       uint16_t min_interval, uint16_t max_interval,
                                                       uint16_t latency, uint16_t supervision_timeout);
             friend HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch);
-            friend std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices();
+            friend std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept;
 
             bool addConnectedDevice(const std::shared_ptr<DBTDevice> & device) noexcept;
             bool removeConnectedDevice(const DBTDevice & device) noexcept;
