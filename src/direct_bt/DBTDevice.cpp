@@ -569,12 +569,6 @@ bool DBTDevice::pingGATT() {
             disconnect(false /* fromDisconnectCB */, true /* ioErrorCause */, HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
             return false;
         }
-        std::vector<std::shared_ptr<GATTService>> & gattServices = gh->getServices(); // reference of the GATTHandler's list
-        if( gattServices.size() == 0 ) { // discover services
-            INFO_PRINT("DBTDevice::pingGATT: No GATTService available -> disconnected on %s", toString().c_str());
-            disconnect(false /* fromDisconnectCB */, true /* ioErrorCause */, HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
-            return false;
-        }
         return gh->ping();
     } catch (std::exception &e) {
         INFO_PRINT("DBTDevice::pingGATT: Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());

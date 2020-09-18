@@ -947,12 +947,13 @@ std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTSer
 
 bool GATTHandler::ping() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
+    bool isOK = true;
 
-    for(size_t i=0; i<services.size(); i++) {
+    for(size_t i=0; isOK && i<services.size(); i++) {
         std::vector<GATTCharacteristicRef> & genericAccessCharDeclList = services.at(i)->characteristicList;
         POctets value(32, 0);
 
-        for(size_t i=0; i<genericAccessCharDeclList.size(); i++) {
+        for(size_t i=0; isOK && i<genericAccessCharDeclList.size(); i++) {
             const GATTCharacteristic & charDecl = *genericAccessCharDeclList.at(i);
             std::shared_ptr<GATTService> service = charDecl.getServiceUnchecked();
             if( nullptr == service || _GENERIC_ACCESS != *(service->type) ) {
@@ -960,11 +961,19 @@ bool GATTHandler::ping() {
             }
             if( _APPEARANCE == *charDecl.value_type ) {
                 if( readCharacteristicValue(charDecl, value.resize(0)) ) {
-                    return true;
+                    return true; // unique success case
                 }
+                // read failure, but not disconnected as no exception thrown from sendWithReply
+                isOK = false;
             }
         }
     }
+    if( isOK ) {
+        INFO_PRINT("GATTHandler::pingGATT: No GENERIC_ACCESS Service with APPEARANCE Characteristic available -> disconnect");
+    } else {
+        INFO_PRINT("GATTHandler::pingGATT: Read error -> disconnect");
+    }
+    disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
     return false;
 }
 
