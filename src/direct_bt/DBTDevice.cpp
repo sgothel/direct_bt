@@ -436,8 +436,10 @@ HCIStatusCode DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioEr
     // GATTHandler dtor w/ disconnect
     {
         std::shared_ptr<GATTHandler> gh = gattHandler; // local copy avoiding immediate dtor
-        gattHandler = nullptr; // clear field before actual dtor, avoiding a race condition
-        gh->disconnect(false /* disconnectDevice */, false /* ioErrorCause */); // in case gattHandler copied concurrently (pingGATT, ..)
+        if( nullptr != gh ) {
+            gattHandler = nullptr; // clear field before actual dtor, avoiding a race condition
+            gh->disconnect(false /* disconnectDevice */, false /* ioErrorCause */); // in case gattHandler copied concurrently (pingGATT, ..)
+        }
         // gh dtor leaving scope, will dtor actual GATTHandler instance eventually
     }
     DBG_PRINT("DBTDevice::disconnect: GATT dtor end");
