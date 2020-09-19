@@ -244,7 +244,8 @@ Common issues
 
 If you have any issues, please go through the [Troubleshooting Guide](TROUBLESHOOTING.md). 
 
-If the solution is not there, please search for an existing issue in our [Bugzilla DB](https://jausoft.com/bugzilla/describecomponents.cgi?product=Direct-BT), please [contact us](https://jausoft.com/) for a new account to create a new entry.
+If the solution is not there, please search for an existing issue in our [Bugzilla DB](https://jausoft.com/bugzilla/describecomponents.cgi?product=Direct-BT),
+please [contact us](https://jausoft.com/) for a new bugzilla account via email to Sven Gothel <sgothel@jausoft.com>.
 
 
 Contributing to TinyB / Direct-BT

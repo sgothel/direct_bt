@@ -11,11 +11,13 @@ with:
 
 The recommended method to contribute is to fork on an openly available git service, 
 and then send pull requests to the main project. 
-You can open issues on [Zafena ICT](https://ict.zafena.se/issues/) 
-if you find any bugs/have questions.
 
-If you'd rather not use github you are more than welcome to send git formatted
-patches to Xerxes Ranby <xerxes@zafena.se> or Sven Gothel <sgothel@jausoft.com>.
+You can create new issues in our [Bugzilla DB](https://jausoft.com/bugzilla/describecomponents.cgi?product=Direct-BT), 
+please [contact us](https://jausoft.com/) for a new bugzilla account via email to Sven Gothel <sgothel@jausoft.com>.
+
+If you'd rather not use an openly available git server,
+you are more than welcome to send git formatted
+patches to Sven Gothel <sgothel@jausoft.com> or Xerxes Ranby <xerxes@zafena.se>.
 
 Basic rules
 -----------
