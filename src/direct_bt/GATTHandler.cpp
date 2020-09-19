@@ -83,6 +83,7 @@ bool GATTHandler::validateConnected() noexcept {
     bool l2capHasIOError = l2cap.hasIOError();
 
     if( has_ioerror || l2capHasIOError ) {
+        has_ioerror = true; // propagate l2capHasIOError -> has_ioerror
         ERR_PRINT("IOError state: GattHandler %s, l2cap %s: %s",
                 getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
         return false;
@@ -176,7 +177,6 @@ bool GATTHandler::getSendIndicationConfirmation() noexcept {
 }
 
 void GATTHandler::l2capReaderThreadImpl() {
-    bool ioErrorCause = false;
     {
         const std::lock_guard<std::mutex> lock(mtx_l2capReaderInit); // RAII-style acquire and relinquish via destructor
         l2capReaderShallStop = false;
@@ -257,14 +257,14 @@ void GATTHandler::l2capReaderThreadImpl() {
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
             IRQ_PRINT("GATTHandler::l2capReaderThread: l2cap read error -> Stop");
             l2capReaderShallStop = true;
-            ioErrorCause = true;
+            has_ioerror = true;
         }
     }
 
     WORDY_PRINT("l2capReaderThreadImpl Ended. Ring has %d entries flushed", attPDURing.getSize());
     l2capReaderRunning = false;
     attPDURing.clear();
-    disconnect(true /* disconnectDevice */, ioErrorCause);
+    disconnect(true /* disconnectDevice */, has_ioerror);
 }
 
 GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device) noexcept
@@ -415,6 +415,7 @@ std::shared_ptr<const AttPDUMsg> GATTHandler::sendWithReply(const AttPDUMsg & ms
     if( nullptr == res ) {
         errno = ETIMEDOUT;
         IRQ_PRINT("GATTHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), deviceString.c_str());
+        has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */);
         throw BluetoothException("GATTHandler::sendWithReply: nullptr result (timeout "+std::to_string(timeout)+"): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
