@@ -218,7 +218,7 @@ make doc
 
 Changes
 ============
-- 2.1.24 Early *Direct-BT* Maturity (Bluetooth LE)
+- 2.1.25 Early *Direct-BT* Maturity (Bluetooth LE)
   - Reaching robust implementation state of *Direct-BT*, including recovery from L2CAP transmission breakdown on Raspberry Pi.
   - Resolved race conditions on rapid device discovery and connect, using one thread per device.
   - API documentation with examples
