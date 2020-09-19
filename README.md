@@ -218,7 +218,7 @@ make doc
 
 Changes
 ============
-- 2.1.23 Early *Direct-BT* Maturity (Bluetooth LE)
+- 2.1.24 Early *Direct-BT* Maturity (Bluetooth LE)
   - Reaching robust implementation state of *Direct-BT*, including recovery from L2CAP transmission breakdown on Raspberry Pi.
   - Resolved race conditions on rapid device discovery and connect, using one thread per device.
   - API documentation with examples
@@ -244,7 +244,7 @@ Common issues
 
 If you have any issues, please go through the [Troubleshooting Guide](TROUBLESHOOTING.md). 
 
-If the solution is not there, please search for an existing issue in our [Bugzilla DB](https://jausoft.com/bugzilla/describecomponents.cgi?product=Direct-BT/), please [contact us](https://jausoft.com/) for a new account to create a new entry.
+If the solution is not there, please search for an existing issue in our [Bugzilla DB](https://jausoft.com/bugzilla/describecomponents.cgi?product=Direct-BT), please [contact us](https://jausoft.com/) for a new account to create a new entry.
 
 
 Contributing to TinyB / Direct-BT
