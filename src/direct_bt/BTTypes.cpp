@@ -226,7 +226,7 @@ ScanType direct_bt::getScanType(BTMode btMode) {
         case BTMode::LE:
             return ScanType::LE;
         default:
-            throw new IllegalArgumentException("Unsupported BTMode "+getBTModeString(btMode), E_FILE_LINE);
+            throw IllegalArgumentException("Unsupported BTMode "+getBTModeString(btMode), E_FILE_LINE);
     }
 }
 

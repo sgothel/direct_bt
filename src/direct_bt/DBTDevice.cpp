@@ -66,7 +66,7 @@ DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
         }
     } else {
         if( BLERandomAddressType::UNDEFINED != leRandomAddressType ) {
-            throw new IllegalArgumentException("Not BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+
+            throw IllegalArgumentException("Not BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+
                     getBLERandomAddressTypeString(leRandomAddressType)+": "+toString(), E_FILE_LINE);
         }
     }

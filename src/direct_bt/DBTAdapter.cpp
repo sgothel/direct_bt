@@ -376,7 +376,7 @@ void DBTAdapter::checkDiscoveryState() {
                     getScanTypeString(currentNativeScanType)+" != meta "+
                     getScanTypeString(currentMetaScanType)+"]");
             ERR_PRINT(msg.c_str());
-            throw new IllegalStateException(msg, E_FILE_LINE);
+            throw IllegalStateException(msg, E_FILE_LINE);
         }
     } else {
         if( currentMetaScanType == ScanType::NONE && currentNativeScanType != ScanType::NONE ) {
@@ -385,7 +385,7 @@ void DBTAdapter::checkDiscoveryState() {
                     getScanTypeString(currentNativeScanType)+", meta "+
                     getScanTypeString(currentMetaScanType)+"]");
             ERR_PRINT(msg.c_str());
-            throw new IllegalStateException(msg, E_FILE_LINE);
+            throw IllegalStateException(msg, E_FILE_LINE);
         }
     }
 }
