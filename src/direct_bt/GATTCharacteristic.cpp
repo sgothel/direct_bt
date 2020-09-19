@@ -160,6 +160,18 @@ std::shared_ptr<GATTService> GATTCharacteristic::getServiceChecked() const {
     return ref;
 }
 
+std::shared_ptr<GATTHandler> GATTCharacteristic::getGATTHandlerUnchecked() const noexcept {
+    std::shared_ptr<GATTService> s = getServiceUnchecked();
+    if( nullptr != s ) {
+        return s->getGATTHandlerUnchecked();
+    }
+    return nullptr;
+}
+
+std::shared_ptr<GATTHandler> GATTCharacteristic::getGATTHandlerChecked() const {
+    return getServiceChecked()->getGATTHandlerChecked();
+}
+
 std::shared_ptr<DBTDevice> GATTCharacteristic::getDeviceUnchecked() const noexcept {
     std::shared_ptr<GATTService> s = getServiceUnchecked();
     if( nullptr != s ) {

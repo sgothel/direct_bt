@@ -261,7 +261,7 @@ int main(int argc, char *argv[])
 
                 gatt->addCharacteristicListener( std::shared_ptr<GATTCharacteristicListener>( new MyGATTEventListener() ) );
 
-                std::vector<GATTServiceRef> & primServices = gatt->discoverCompletePrimaryServices();
+                std::vector<GATTServiceRef> & primServices = gatt->discoverCompletePrimaryServices(gatt);
                 const uint64_t t5 = getCurrentMilliseconds();
                 {
                     const uint64_t td45 = t5 - t4; // connect -> gatt complete

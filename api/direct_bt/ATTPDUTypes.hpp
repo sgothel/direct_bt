@@ -74,16 +74,14 @@
  *
  * - - - - - - - - - - - - - - -
  *
- * Object lifecycle with all instances having a back-references to their owner
+ * Object lifecycle with all instances and marked weak back-references to their owner
  * - DBTManager singleton instance for all
  * - DBTAdapter ownership by user
  *   - DBTDevice ownership by DBTAdapter
- *     - GATTHandler optional ownership by DBTDevice
- *
- * - GATTHandler with DBTDevice reference
- *   - GATTService ownership by GATTHandler
- *     - GATTCharacteristic ownership by GATTService
- *       - GATTDescriptor ownership by GATTCharacteristic
+ *     - GATTHandler ownership by DBTDevice, with weak DBTDevice back-reference
+ *       - GATTService ownership by GATTHandler, with weak GATTHandler back-reference
+ *         - GATTCharacteristic ownership by GATTService, with weak GATTService back-reference
+ *           - GATTDescriptor ownership by GATTCharacteristic, with weak GATTCharacteristic back-reference
  *
  * - - - - - - - - - - - - - - -
  *

@@ -185,8 +185,6 @@ namespace direct_bt {
             uint16_t usedMTU;
             std::vector<GATTServiceRef> services;
 
-            std::shared_ptr<DBTDevice> getDevice() const { return wbr_device.lock(); }
-
             bool validateConnected() noexcept;
 
             void l2capReaderThreadImpl();
@@ -214,6 +212,9 @@ namespace direct_bt {
 
             /** Destructor closing this instance including L2CAP channel, see {@link #disconnect()}. */
             ~GATTHandler() noexcept;
+
+            std::shared_ptr<DBTDevice> getDeviceUnchecked() const noexcept { return wbr_device.lock(); }
+            std::shared_ptr<DBTDevice> getDeviceChecked() const;
 
             bool isConnected() const noexcept { return is_connected ; }
             bool hasIOError() const noexcept { return has_ioerror; }
@@ -263,9 +264,12 @@ namespace direct_bt {
              * <p>
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
              * </p>
-             * Method returns reference to GATTHandler internal data.
+             * Method returns reference to GATTHandler's internal GATTService vector of discovered services
+             *
+             * @param shared_this shared pointer of this instance, used to forward a weak_ptr to GATTService for back-reference. Reference is validated.
+             * @return GATTHandler's internal GATTService vector of discovered services
              */
-            std::vector<GATTServiceRef> & discoverCompletePrimaryServices();
+            std::vector<GATTServiceRef> & discoverCompletePrimaryServices(std::shared_ptr<GATTHandler> shared_this);
 
             /**
              * Returns a reference of the internal kept GATTService list.
@@ -280,8 +284,11 @@ namespace direct_bt {
              * <p>
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
              * </p>
+             * @param shared_this shared pointer of this instance, used to forward a weak_ptr to GATTService for back-reference. Reference is validated.
+             * @param result vector containing all discovered primary services
+             * @return true on success, otherwise false
              */
-            bool discoverPrimaryServices(std::vector<GATTServiceRef> & result);
+            bool discoverPrimaryServices(std::shared_ptr<GATTHandler> shared_this, std::vector<GATTServiceRef> & result);
 
             /**
              * Discover all characteristics of a service and declaration attributes _only_.

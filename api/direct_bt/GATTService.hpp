@@ -56,6 +56,7 @@
  */
 namespace direct_bt {
 
+    class GATTHandler; // forward
     class DBTDevice; // forward
 
     /**
@@ -65,8 +66,8 @@ namespace direct_bt {
      */
     class GATTService : public DBTObject {
         private:
-            /** Service's device weak back-reference */
-            std::weak_ptr<DBTDevice> wbr_device;
+            /** Service's GATTHandler weak back-reference */
+            std::weak_ptr<GATTHandler> wbr_handler;
 
             /**
              * For an unknown reason, using the virtual function 'toString()'
@@ -103,9 +104,9 @@ namespace direct_bt {
             /** List of Characteristic Declarations as shared reference */
             std::vector<GATTCharacteristicRef> characteristicList;
 
-            GATTService(const std::shared_ptr<DBTDevice> &device, const bool isPrimary,
+            GATTService(const std::shared_ptr<GATTHandler> &handler, const bool isPrimary,
                         const uint16_t startHandle, const uint16_t endHandle, std::shared_ptr<const uuid_t> type) noexcept
-            : wbr_device(device), isPrimary(isPrimary), startHandle(startHandle), endHandle(endHandle), type(type), characteristicList() {
+            : wbr_handler(handler), isPrimary(isPrimary), startHandle(startHandle), endHandle(endHandle), type(type), characteristicList() {
                 characteristicList.reserve(10);
             }
 
@@ -116,7 +117,10 @@ namespace direct_bt {
                 return std::string(JAVA_DBT_PACKAGE "DBTGattService");
             }
 
-            std::shared_ptr<DBTDevice> getDeviceUnchecked() const noexcept { return wbr_device.lock(); }
+            std::shared_ptr<GATTHandler> getGATTHandlerUnchecked() const noexcept { return wbr_handler.lock(); }
+            std::shared_ptr<GATTHandler> getGATTHandlerChecked() const;
+
+            std::shared_ptr<DBTDevice> getDeviceUnchecked() const noexcept;
             std::shared_ptr<DBTDevice> getDeviceChecked() const;
 
             std::string toString() const noexcept override;

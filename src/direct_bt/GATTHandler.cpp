@@ -78,6 +78,14 @@ GATTEnv::GATTEnv() noexcept
 
 #define CASE_TO_STRING(V) case V: return #V;
 
+std::shared_ptr<DBTDevice> GATTHandler::getDeviceChecked() const {
+    std::shared_ptr<DBTDevice> ref = wbr_device.lock();
+    if( nullptr == ref ) {
+        throw IllegalStateException("GATTHandler's device already destructed: "+deviceString, E_FILE_LINE);
+    }
+    return ref;
+}
+
 bool GATTHandler::validateConnected() noexcept {
     bool l2capIsConnected = l2cap.isConnected();
     bool l2capHasIOError = l2cap.hasIOError();
@@ -365,15 +373,16 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
     }
     removeAllCharacteristicListener();
 
-    std::shared_ptr<DBTDevice> device = getDevice();
-
-    if( disconnectDevice && nullptr != device ) {
-        // Cleanup device resources, proper connection state
-        // Intentionally giving the POWER_OFF reason for the device in case of ioErrorCause!
-        const HCIStatusCode reason = ioErrorCause ?
-                               HCIStatusCode::REMOTE_DEVICE_TERMINATED_CONNECTION_POWER_OFF :
-                               HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION;
-        device->disconnect(false /* fromDisconnectCB */, ioErrorCause, reason);
+    if( disconnectDevice ) {
+        std::shared_ptr<DBTDevice> device = getDeviceUnchecked();
+        if( nullptr != device ) {
+            // Cleanup device resources, proper connection state
+            // Intentionally giving the POWER_OFF reason for the device in case of ioErrorCause!
+            const HCIStatusCode reason = ioErrorCause ?
+                                   HCIStatusCode::REMOTE_DEVICE_TERMINATED_CONNECTION_POWER_OFF :
+                                   HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION;
+            device->disconnect(false /* fromDisconnectCB */, ioErrorCause, reason);
+        }
     }
 
     DBG_PRINT("GATTHandler::disconnect: End: %s", deviceString.c_str());
@@ -474,9 +483,9 @@ GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_
     return nullptr;
 }
 
-std::vector<GATTServiceRef> & GATTHandler::discoverCompletePrimaryServices() {
+std::vector<GATTServiceRef> & GATTHandler::discoverCompletePrimaryServices(std::shared_ptr<GATTHandler> shared_this) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
-    if( !discoverPrimaryServices(services) ) {
+    if( !discoverPrimaryServices(shared_this, services) ) {
         return services;
     }
     for(auto it = services.begin(); it != services.end(); it++) {
@@ -488,7 +497,14 @@ std::vector<GATTServiceRef> & GATTHandler::discoverCompletePrimaryServices() {
     return services;
 }
 
-bool GATTHandler::discoverPrimaryServices(std::vector<GATTServiceRef> & result) {
+bool GATTHandler::discoverPrimaryServices(std::shared_ptr<GATTHandler> shared_this, std::vector<GATTServiceRef> & result) {
+    {
+        // validate shared_this first!
+        GATTHandler *given_this = shared_this.get();
+        if( given_this != this ) {
+            throw IllegalArgumentException("Given shared GATTHandler reference "+aptrHexString(given_this)+" not matching this "+aptrHexString(this), E_FILE_LINE);
+        }
+    }
     /***
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
      *
@@ -500,11 +516,6 @@ bool GATTHandler::discoverPrimaryServices(std::vector<GATTServiceRef> & result) 
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     PERF_TS_T0();
 
-    std::shared_ptr<DBTDevice> device = getDevice();
-    if( nullptr == device ) {
-        ERR_PRINT("GATT discoverPrimary: Device destructed: %s", deviceString.c_str());
-        return false;
-    }
     bool done=false;
     uint16_t startHandle=0x0001;
     result.clear();
@@ -522,7 +533,7 @@ bool GATTHandler::discoverPrimaryServices(std::vector<GATTServiceRef> & result) 
                 for(int i=0; i<count; i++) {
                     const int ePDUOffset = p->getElementPDUOffset(i);
                     const int esz = p->getElementTotalSize();
-                    result.push_back( GATTServiceRef( new GATTService( device, true,
+                    result.push_back( GATTServiceRef( new GATTService( shared_this, true,
                             p->pdu.get_uint16(ePDUOffset), // start-handle
                             p->pdu.get_uint16(ePDUOffset + 2), // end-handle
                             p->pdu.get_uuid( ePDUOffset + 2 + 2, uuid_t::toTypeSize(esz-2-2) ) // uuid

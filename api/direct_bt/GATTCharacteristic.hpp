@@ -58,6 +58,7 @@ namespace direct_bt {
 
     class GATTCharacteristicListener; // forward
 
+    class GATTHandler; // forward
     class GATTService; // forward
     typedef std::shared_ptr<GATTService> GATTServiceRef;
 
@@ -163,6 +164,8 @@ namespace direct_bt {
 
             std::shared_ptr<GATTService> getServiceUnchecked() const noexcept { return wbr_service.lock(); }
             std::shared_ptr<GATTService> getServiceChecked() const;
+            std::shared_ptr<GATTHandler> getGATTHandlerUnchecked() const noexcept;
+            std::shared_ptr<GATTHandler> getGATTHandlerChecked() const;
             std::shared_ptr<DBTDevice> getDeviceUnchecked() const noexcept;
             std::shared_ptr<DBTDevice> getDeviceChecked() const;
 

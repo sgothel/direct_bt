@@ -51,6 +51,10 @@ std::shared_ptr<GATTCharacteristic> GATTDescriptor::getCharacteristicChecked() c
     return ref;
 }
 
+std::shared_ptr<GATTHandler> GATTDescriptor::getGATTHandlerChecked() const {
+    return getCharacteristicChecked()->getGATTHandlerChecked();
+}
+
 std::shared_ptr<DBTDevice> GATTDescriptor::getDeviceChecked() const {
     return getCharacteristicChecked()->getDeviceChecked();
 }

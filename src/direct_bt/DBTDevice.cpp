@@ -524,7 +524,7 @@ std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept 
         if( gattServices.size() > 0 ) { // reuse previous discovery result
             return gattServices;
         }
-        gattServices = gattHandler->discoverCompletePrimaryServices(); // same reference of the GATTHandler's list
+        gattServices = gattHandler->discoverCompletePrimaryServices(gattHandler); // same reference of the GATTHandler's list
         if( gattServices.size() == 0 ) { // nothing discovered
             return gattServices;
         }

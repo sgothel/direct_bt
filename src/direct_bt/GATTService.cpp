@@ -33,17 +33,31 @@
 
 #include  <algorithm>
 
+#include "DBTDevice.hpp"
+#include "GATTHandler.hpp"
 #include "GATTService.hpp"
 #include "GATTNumbers.hpp"
 
 using namespace direct_bt;
 
-std::shared_ptr<DBTDevice> GATTService::getDeviceChecked() const {
-    std::shared_ptr<DBTDevice> ref = wbr_device.lock();
+std::shared_ptr<GATTHandler> GATTService::getGATTHandlerChecked() const {
+    std::shared_ptr<GATTHandler> ref = wbr_handler.lock();
     if( nullptr == ref ) {
-        throw IllegalStateException("GATTService's device already destructed: "+toSafeString(), E_FILE_LINE);
+        throw IllegalStateException("GATTService's GATTHandler already destructed: "+toSafeString(), E_FILE_LINE);
     }
     return ref;
+}
+
+std::shared_ptr<DBTDevice> GATTService::getDeviceUnchecked() const noexcept {
+    std::shared_ptr<GATTHandler> h = getGATTHandlerUnchecked();
+    if( nullptr != h ) {
+        return h->getDeviceUnchecked();
+    }
+    return nullptr;
+}
+
+std::shared_ptr<DBTDevice> GATTService::getDeviceChecked() const {
+    return getGATTHandlerChecked()->getDeviceChecked();
 }
 
 std::string GATTService::toString() const noexcept {

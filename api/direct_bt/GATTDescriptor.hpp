@@ -136,6 +136,7 @@ namespace direct_bt {
 
             std::shared_ptr<GATTCharacteristic> getCharacteristicUnchecked() const noexcept { return wbr_characteristic.lock(); }
             std::shared_ptr<GATTCharacteristic> getCharacteristicChecked() const;
+            std::shared_ptr<GATTHandler> getGATTHandlerChecked() const;
             std::shared_ptr<DBTDevice> getDeviceChecked() const;
 
             virtual std::string toString() const noexcept override;
