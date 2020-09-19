@@ -524,9 +524,14 @@ std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept 
         if( gattServices.size() > 0 ) { // reuse previous discovery result
             return gattServices;
         }
-        gattServices = gattHandler->discoverCompletePrimaryServices(gattHandler); // same reference of the GATTHandler's list
-        if( gattServices.size() == 0 ) { // nothing discovered
-            return gattServices;
+        try {
+            gattServices = gattHandler->discoverCompletePrimaryServices(gattHandler); // same reference of the GATTHandler's list
+            if( gattServices.size() == 0 ) { // nothing discovered
+                return gattServices;
+            }
+        } catch (std::exception &e) {
+            IRQ_PRINT("DBTDevice::getGATTServices: Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());
+            return gattServices; // nothing...
         }
         // discovery success, retrieve and parse GenericAccess
         gattGenericAccess = gattHandler->getGenericAccess(gattServices);
@@ -573,7 +578,7 @@ bool DBTDevice::pingGATT() noexcept {
         }
         return gh->ping();
     } catch (std::exception &e) {
-        INFO_PRINT("DBTDevice::pingGATT: Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());
+        IRQ_PRINT("DBTDevice::pingGATT: Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());
     }
     return false;
 }
