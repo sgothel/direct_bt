@@ -53,6 +53,7 @@
 namespace direct_bt {
 
     class DBTDevice; // forward
+    class GATTHandler; // forward
     class GATTCharacteristic; // forward
     typedef std::shared_ptr<GATTCharacteristic> GATTCharacteristicRef;
 
@@ -125,7 +126,7 @@ namespace direct_bt {
 
             GATTDescriptor(const GATTCharacteristicRef & characteristic, const std::shared_ptr<const uuid_t> & type,
                            const uint16_t handle) noexcept
-            : wbr_characteristic(characteristic), type(type), handle(handle), value(0) {}
+            : wbr_characteristic(characteristic), type(type), handle(handle), value(/* intentional zero sized */) {}
 
             std::string get_java_class() const noexcept override {
                 return java_class();

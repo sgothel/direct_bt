@@ -400,9 +400,7 @@ namespace direct_bt {
         std::string const companyName;
         POctets data;
 
-        ManufactureSpecificData() noexcept
-        : company(0), companyName(), data(0) {}
-
+        ManufactureSpecificData(uint16_t const company) noexcept;
         ManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) noexcept;
 
         std::string toString() const noexcept;
@@ -506,22 +504,13 @@ namespace direct_bt {
         void setName(const uint8_t *buffer, int buffer_len) noexcept;
         void setShortName(const uint8_t *buffer, int buffer_len) noexcept;
         void setTxPower(int8_t v) noexcept { tx_power = v; set(EIRDataType::TX_POWER); }
-        void setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) noexcept {
-            msd = std::shared_ptr<ManufactureSpecificData>(new ManufactureSpecificData(company, data, data_len));
-            set(EIRDataType::MANUF_DATA);
-        }
+        void setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) noexcept;
         void addService(std::shared_ptr<uuid_t> const &uuid) noexcept;
         void setDeviceClass(uint32_t c) noexcept { device_class= c; set(EIRDataType::DEVICE_CLASS); }
         void setAppearance(AppearanceCat a) noexcept { appearance= a; set(EIRDataType::APPEARANCE); }
         void setHash(const uint8_t * h) noexcept { hash.resize(16); memcpy(hash.get_wptr(), h, 16); set(EIRDataType::HASH); }
         void setRandomizer(const uint8_t * r) noexcept { randomizer.resize(16); memcpy(randomizer.get_wptr(), r, 16); set(EIRDataType::RANDOMIZER); }
-        void setDeviceID(const uint16_t source, const uint16_t vendor, const uint16_t product, const uint16_t version) noexcept {
-            did_source = source;
-            did_vendor = vendor;
-            did_product = product;
-            did_version = version;
-            set(EIRDataType::DEVICE_ID);
-        }
+        void setDeviceID(const uint16_t source, const uint16_t vendor, const uint16_t product, const uint16_t version) noexcept;
 
         int next_data_elem(uint8_t *eir_elem_len, uint8_t *eir_elem_type, uint8_t const **eir_elem_data,
                            uint8_t const * data, int offset, int const size) noexcept;

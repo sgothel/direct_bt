@@ -408,13 +408,21 @@ namespace direct_bt {
             /** Returns the memory capacity, never zero, greater or equal {@link #getSize()}. */
             inline int getCapacity() const noexcept { return capacity; }
 
+            /** Intentional zero sized POctets instance. */
+            POctets()
+            : TOctets( nullptr, 0, true /* nocheck */),
+              capacity(0)
+            {
+                TRACE_PRINT("POctets ctor0: zero-sized");
+            }
+
             /** Takes ownership (malloc and copy, free) ..*/
             POctets(const uint8_t *_source, const int _size)
             : TOctets( malloc(_size), _size),
               capacity( _size )
             {
                 std::memcpy(data(), _source, _size);
-                TRACE_PRINT("POctets ctor0: %p", data());
+                TRACE_PRINT("POctets ctor1: %p", data());
             }
 
             /** New buffer (malloc, free) */
@@ -425,14 +433,14 @@ namespace direct_bt {
                 if( capacity < getSize() ) {
                     throw IllegalArgumentException("capacity "+std::to_string(capacity)+" < size "+std::to_string(getSize()), E_FILE_LINE);
                 }
-                TRACE_PRINT("POctets ctor1: %p", data());
+                TRACE_PRINT("POctets ctor2: %p", data());
             }
 
             /** New buffer (malloc, free) */
             POctets(const int size)
             : POctets(size, size)
             {
-                TRACE_PRINT("POctets ctor2: %p", data());
+                TRACE_PRINT("POctets ctor3: %p", data());
             }
 
             POctets(const POctets &_source)

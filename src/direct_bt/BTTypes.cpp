@@ -342,6 +342,10 @@ static std::string bt_compidtostr(const uint16_t companyid) noexcept {
     return std::to_string(companyid);
 }
 
+ManufactureSpecificData::ManufactureSpecificData(uint16_t const company) noexcept
+: company(company), companyName(std::string(bt_compidtostr(company))), data(/* intentional zero sized */) {
+}
+
 ManufactureSpecificData::ManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) noexcept
 : company(company), companyName(std::string(bt_compidtostr(company))), data(data, data_len) {
 }
@@ -444,6 +448,23 @@ void EInfoReport::setName(const uint8_t *buffer, int buffer_len) noexcept {
 void EInfoReport::setShortName(const uint8_t *buffer, int buffer_len) noexcept {
     name_short = get_string(buffer, buffer_len, 30);
     set(EIRDataType::NAME_SHORT);
+}
+
+void EInfoReport::setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) noexcept {
+    if( nullptr == data || 0 >= data_len ) {
+        msd = std::shared_ptr<ManufactureSpecificData>(new ManufactureSpecificData(company));
+    } else {
+        msd = std::shared_ptr<ManufactureSpecificData>(new ManufactureSpecificData(company, data, data_len));
+    }
+    set(EIRDataType::MANUF_DATA);
+}
+
+void EInfoReport::setDeviceID(const uint16_t source, const uint16_t vendor, const uint16_t product, const uint16_t version) noexcept {
+    did_source = source;
+    did_vendor = vendor;
+    did_product = product;
+    did_version = version;
+    set(EIRDataType::DEVICE_ID);
 }
 
 void EInfoReport::addService(std::shared_ptr<uuid_t> const &uuid) noexcept
@@ -632,8 +653,9 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                 break;
             case GAP_T::MANUFACTURE_SPECIFIC:
                 if( 2 <= elem_len ) {
-                    uint16_t company = get_uint16(elem_data, 0, true /* littleEndian */);
-                    setManufactureSpecificData(company, elem_data+2, elem_len-2);
+                    const uint16_t company = get_uint16(elem_data, 0, true /* littleEndian */);
+                    const int data_size = elem_len-2;
+                    setManufactureSpecificData(company, data_size > 0 ? elem_data+2 : nullptr, data_size);
                 }
                 break;
             default:
