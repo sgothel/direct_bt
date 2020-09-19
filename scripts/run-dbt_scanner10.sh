@@ -3,6 +3,7 @@
 # export direct_bt_debug=true
 # export direct_bt_debug=adapter.event=false,gatt.data=false,hci.event=false,mgmt.event=false
 # export direct_bt_debug=adapter.event,gatt.data,hci.event,mgmt.event
+# export direct_bt_debug=adapter.event,gatt.data
 # export direct_bt_debug=adapter.event,hci.event
 # export direct_bt_debug=adapter.event
 #
