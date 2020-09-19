@@ -26,21 +26,23 @@
 #include <stdexcept>
 #include <iostream>
 
-using namespace tinyb;
+namespace tinyb {
 
-class tinyb::BluetoothException: public std::runtime_error {
+    class BluetoothException: public std::runtime_error {
 
-public:
-    explicit BluetoothException(const std::string &msg): std::runtime_error(msg) {
-    }
+    public:
+        explicit BluetoothException(const std::string &msg): std::runtime_error(msg) {
+        }
 
-    explicit BluetoothException(const char *msg): std::runtime_error(msg) {
-    }
+        explicit BluetoothException(const char *msg): std::runtime_error(msg) {
+        }
 
-    virtual ~BluetoothException() throw() {
-    }
+        virtual ~BluetoothException() throw() {
+        }
 
-    virtual const char* what() const throw() {
-        return std::runtime_error::what();
-    }
-};
+        virtual const char* what() const throw() {
+            return std::runtime_error::what();
+        }
+    };
+
+}
