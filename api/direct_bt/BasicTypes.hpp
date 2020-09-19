@@ -73,6 +73,12 @@ namespace direct_bt {
         : RuntimeException("InternalError", m, file, line) {}
     };
 
+    class OutOfMemoryError : public RuntimeException {
+      public:
+        OutOfMemoryError(std::string const m, const char* file, int line) noexcept
+        : RuntimeException("OutOfMemoryError", m, file, line) {}
+    };
+
     class NullPointerException : public RuntimeException {
       public:
         NullPointerException(std::string const m, const char* file, int line) noexcept

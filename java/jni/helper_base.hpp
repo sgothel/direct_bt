@@ -252,6 +252,7 @@ void raise_java_exception(JNIEnv *env, const direct_bt::IllegalStateException &e
 void raise_java_exception(JNIEnv *env, const direct_bt::UnsupportedOperationException &e, const char* file, int line);
 void raise_java_exception(JNIEnv *env, const direct_bt::IndexOutOfBoundsException &e, const char* file, int line);
 void raise_java_exception(JNIEnv *env, const std::bad_alloc &e, const char* file, int line);
+void raise_java_exception(JNIEnv *env, const direct_bt::OutOfMemoryError &e, const char* file, int line);
 void raise_java_exception(JNIEnv *env, const direct_bt::BluetoothException &e, const char* file, int line);
 void raise_java_exception(JNIEnv *env, const tinyb::BluetoothException &e, const char* file, int line);
 

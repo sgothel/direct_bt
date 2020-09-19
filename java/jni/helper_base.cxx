@@ -236,6 +236,10 @@ void raise_java_exception(JNIEnv *env, const std::bad_alloc &e, const char* file
     print_native_caught_exception_fwd2java(e, file, line);
     env->ThrowNew(env->FindClass("java/lang/OutOfMemoryError"), e.what());
 }
+void raise_java_exception(JNIEnv *env, const direct_bt::OutOfMemoryError &e, const char* file, int line) {
+    print_native_caught_exception_fwd2java(e, file, line);
+    env->ThrowNew(env->FindClass("java/lang/OutOfMemoryError"), e.what());
+}
 void raise_java_exception(JNIEnv *env, const direct_bt::BluetoothException &e, const char* file, int line) {
     print_native_caught_exception_fwd2java(e, file, line);
     env->ThrowNew(env->FindClass("org/tinyb/BluetoothException"), e.what());
@@ -252,7 +256,9 @@ void rethrow_and_raise_java_exception_impl(JNIEnv *env, const char* file, int li
     try {
         // std::rethrow_exception(e);
         throw; // re-throw current exception
-    } catch (const std::bad_alloc &e) { \
+    } catch (const std::bad_alloc &e) {
+        raise_java_exception(env, e, file, line);
+    } catch (const direct_bt::OutOfMemoryError &e) {
         raise_java_exception(env, e, file, line);
     } catch (const direct_bt::InternalError &e) {
         raise_java_exception(env, e, file, line);
