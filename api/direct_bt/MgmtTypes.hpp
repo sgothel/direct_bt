@@ -207,15 +207,15 @@ namespace direct_bt {
             {
                 checkOpcode(opc, MgmtOpcode::READ_VERSION, MgmtOpcode::SET_BLOCKED_KEYS);
 
-                pdu.put_uint16(0, static_cast<uint16_t>(opc));
-                pdu.put_uint16(2, dev_id);
-                pdu.put_uint16(4, param_size);
+                pdu.put_uint16_nc(0, static_cast<uint16_t>(opc));
+                pdu.put_uint16_nc(2, dev_id);
+                pdu.put_uint16_nc(4, param_size);
             }
             MgmtCommand(const MgmtOpcode opc, const uint16_t dev_id, const uint16_t param_size, const uint8_t* param)
             : MgmtCommand(opc, dev_id, param_size)
             {
                 if( param_size > 0 ) {
-                    memcpy(pdu.get_wptr(MGMT_HEADER_SIZE), param, param_size);
+                    memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE), param, param_size);
                 }
             }
             virtual ~MgmtCommand() noexcept {}
@@ -242,7 +242,7 @@ namespace direct_bt {
             MgmtUint8Cmd(const MgmtOpcode opc, const uint16_t dev_id, const uint8_t data)
             : MgmtCommand(opc, dev_id, 1)
             {
-                pdu.put_uint8(MGMT_HEADER_SIZE, data);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE, data);
             }
     };
 
@@ -262,8 +262,8 @@ namespace direct_bt {
             MgmtDisconnectCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
             : MgmtCommand(MgmtOpcode::DISCONNECT, dev_id, 6+1)
             {
-                pdu.put_eui48(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
             }
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -284,8 +284,8 @@ namespace direct_bt {
             MgmtGetConnectionInfoCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
             : MgmtCommand(MgmtOpcode::GET_CONN_INFO, dev_id, 6+1)
             {
-                pdu.put_eui48(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
             }
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -310,10 +310,10 @@ namespace direct_bt {
                                 const uint8_t pin_len, const TROOctets &pin_code)
             : MgmtCommand(MgmtOpcode::PIN_CODE_REPLY, dev_id, 6+1+1+16)
             {
-                pdu.put_eui48(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
-                pdu.put_uint8(MGMT_HEADER_SIZE+7, pin_len);
-                pdu.put_octets(MGMT_HEADER_SIZE+8, pin_code);
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+7, pin_len);
+                pdu.put_octets_nc(MGMT_HEADER_SIZE+8, pin_code);
             }
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -336,8 +336,8 @@ namespace direct_bt {
             MgmtPinCodeNegativeReplyCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
             : MgmtCommand(MgmtOpcode::PIN_CODE_NEG_REPLY, dev_id, 6+1)
             {
-                pdu.put_eui48(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
             }
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -360,9 +360,9 @@ namespace direct_bt {
             MgmtAddDeviceToWhitelistCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const HCIWhitelistConnectType ctype)
             : MgmtCommand(MgmtOpcode::ADD_DEVICE_WHITELIST, dev_id, 6+1+1)
             {
-                pdu.put_eui48(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
-                pdu.put_uint8(MGMT_HEADER_SIZE+6+1, number(ctype));
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, number(ctype));
             }
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -384,8 +384,8 @@ namespace direct_bt {
             MgmtRemoveDeviceFromWhitelistCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
             : MgmtCommand(MgmtOpcode::REMOVE_DEVICE_WHITELIST, dev_id, 6+1)
             {
-                pdu.put_eui48(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
             }
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -407,8 +407,8 @@ namespace direct_bt {
             MgmtSetLocalNameCmd(const uint16_t dev_id, const std::string & name, const std::string & short_name)
             : MgmtCommand(MgmtOpcode::SET_LOCAL_NAME, dev_id, MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH)
             {
-                pdu.put_string(MGMT_HEADER_SIZE, name, MgmtConstU16::MGMT_MAX_NAME_LENGTH, true);
-                pdu.put_string(MGMT_HEADER_SIZE+MgmtConstU16::MGMT_MAX_NAME_LENGTH, short_name, MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH, true);
+                pdu.put_string_nc(MGMT_HEADER_SIZE, name, MgmtConstU16::MGMT_MAX_NAME_LENGTH, true);
+                pdu.put_string_nc(MGMT_HEADER_SIZE+MgmtConstU16::MGMT_MAX_NAME_LENGTH, short_name, MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH, true);
             }
             const std::string getName() const noexcept { return pdu.get_string_nc(MGMT_HEADER_SIZE); }
             const std::string getShortName() const noexcept { return pdu.get_string_nc(MGMT_HEADER_SIZE + MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
@@ -467,31 +467,31 @@ namespace direct_bt {
             : MgmtCommand(MgmtOpcode::LOAD_CONN_PARAM, dev_id, 2 + 15)
             {
                 int offset = MGMT_HEADER_SIZE;
-                pdu.put_uint16(offset, 1); offset+= 2;
+                pdu.put_uint16_nc(offset, 1); offset+= 2;
 
-                pdu.put_eui48(offset, connParam.address); offset+=6;
-                pdu.put_uint8(offset, connParam.address_type); offset+=1;
-                pdu.put_uint16(offset, connParam.min_interval); offset+=2;
-                pdu.put_uint16(offset, connParam.max_interval); offset+=2;
-                pdu.put_uint16(offset, connParam.latency); offset+=2;
-                pdu.put_uint16(offset, connParam.timeout); offset+=2;
+                pdu.put_eui48_nc(offset, connParam.address); offset+=6;
+                pdu.put_uint8_nc(offset, connParam.address_type); offset+=1;
+                pdu.put_uint16_nc(offset, connParam.min_interval); offset+=2;
+                pdu.put_uint16_nc(offset, connParam.max_interval); offset+=2;
+                pdu.put_uint16_nc(offset, connParam.latency); offset+=2;
+                pdu.put_uint16_nc(offset, connParam.timeout); offset+=2;
             }
 
             MgmtLoadConnParamCmd(const uint16_t dev_id, std::vector<std::shared_ptr<MgmtConnParam>> connParams)
             : MgmtCommand(MgmtOpcode::LOAD_CONN_PARAM, dev_id, 2 + connParams.size() * 15)
             {
                 int offset = MGMT_HEADER_SIZE;
-                pdu.put_uint16(offset, connParams.size()); offset+= 2;
+                pdu.put_uint16_nc(offset, connParams.size()); offset+= 2;
 
                 for(auto it = connParams.begin(); it != connParams.end(); ++it) {
                     std::shared_ptr<MgmtConnParam> connParam = *it;
 
-                    pdu.put_eui48(offset, connParam->address); offset+=6;
-                    pdu.put_uint8(offset, connParam->address_type); offset+=1;
-                    pdu.put_uint16(offset, connParam->min_interval); offset+=2;
-                    pdu.put_uint16(offset, connParam->max_interval); offset+=2;
-                    pdu.put_uint16(offset, connParam->latency); offset+=2;
-                    pdu.put_uint16(offset, connParam->timeout); offset+=2;
+                    pdu.put_eui48_nc(offset, connParam->address); offset+=6;
+                    pdu.put_uint8_nc(offset, connParam->address_type); offset+=1;
+                    pdu.put_uint16_nc(offset, connParam->min_interval); offset+=2;
+                    pdu.put_uint16_nc(offset, connParam->max_interval); offset+=2;
+                    pdu.put_uint16_nc(offset, connParam->latency); offset+=2;
+                    pdu.put_uint16_nc(offset, connParam->timeout); offset+=2;
                 }
             }
             uint16_t getParamCount() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE); }
@@ -615,15 +615,15 @@ namespace direct_bt {
             {
                 // checkOpcode(opc, READ_VERSION, SET_BLOCKED_KEYS);
 
-                pdu.put_uint16(0, static_cast<uint16_t>(opc));
-                pdu.put_uint16(2, dev_id);
-                pdu.put_uint16(4, param_size);
+                pdu.put_uint16_nc(0, static_cast<uint16_t>(opc));
+                pdu.put_uint16_nc(2, dev_id);
+                pdu.put_uint16_nc(4, param_size);
             }
             MgmtEvent(const Opcode opc, const uint16_t dev_id, const uint16_t param_size, const uint8_t* param)
             : MgmtEvent(opc, dev_id, param_size)
             {
                 if( param_size > 0 ) {
-                    memcpy(pdu.get_wptr(MGMT_HEADER_SIZE), param, param_size);
+                    memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE), param, param_size);
                 }
             }
             virtual ~MgmtEvent() noexcept {}
@@ -750,8 +750,8 @@ namespace direct_bt {
             MgmtEvtDiscovering(const uint16_t dev_id, const ScanType scanType, const bool enabled)
             : MgmtEvent(Opcode::DISCOVERING, dev_id, 1+1)
             {
-                pdu.put_uint8(MGMT_HEADER_SIZE, number(scanType));
-                pdu.put_uint8(MGMT_HEADER_SIZE+1, enabled);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE, number(scanType));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+1, enabled);
             }
 
             ScanType getScanType() const noexcept { return static_cast<ScanType>( pdu.get_uint8_nc(MGMT_HEADER_SIZE) ); }
@@ -862,11 +862,11 @@ namespace direct_bt {
             MgmtEvtDeviceFound(const uint16_t dev_id, std::shared_ptr<EInfoReport> eir)
             : MgmtEvent(Opcode::DEVICE_FOUND, dev_id, 6+1+1+4+2+0)
             {
-                pdu.put_eui48(MGMT_HEADER_SIZE, eir->getAddress());
-                pdu.put_uint8(MGMT_HEADER_SIZE+6, eir->getAddressType());
-                pdu.put_uint8(MGMT_HEADER_SIZE+6+1, eir->getRSSI());
-                pdu.put_uint32(MGMT_HEADER_SIZE+6+1+1, eir->getFlags()); // EIR flags only 8bit, Mgmt uses 32bit?
-                pdu.put_uint16(MGMT_HEADER_SIZE+6+1+1+4, 0); // eir_len
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, eir->getAddress());
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, eir->getAddressType());
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, eir->getRSSI());
+                pdu.put_uint32_nc(MGMT_HEADER_SIZE+6+1+1, eir->getFlags()); // EIR flags only 8bit, Mgmt uses 32bit?
+                pdu.put_uint16_nc(MGMT_HEADER_SIZE+6+1+1+4, 0); // eir_len
                 eireport = eir;
             }
 
@@ -914,10 +914,10 @@ namespace direct_bt {
             MgmtEvtDeviceConnected(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint16_t hci_conn_handle)
             : MgmtEvent(Opcode::DEVICE_CONNECTED, dev_id, 6+1+4+2), hci_conn_handle(hci_conn_handle)
             {
-                pdu.put_eui48(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
-                pdu.put_uint32(MGMT_HEADER_SIZE+6+1, 0); // flags
-                pdu.put_uint16(MGMT_HEADER_SIZE+6+1+4, 0); // eir-len
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint32_nc(MGMT_HEADER_SIZE+6+1, 0); // flags
+                pdu.put_uint16_nc(MGMT_HEADER_SIZE+6+1+4, 0); // eir-len
             }
 
             /** Returns the HCI connection handle, assuming creation occurred via HCIHandler */
@@ -960,9 +960,9 @@ namespace direct_bt {
             MgmtEvtDeviceConnectFailed(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const HCIStatusCode status)
             : MgmtEvent(Opcode::CONNECT_FAILED, dev_id, 6+1+1), hciStatus(status)
             {
-                pdu.put_eui48(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
-                pdu.put_uint8(MGMT_HEADER_SIZE+6+1, static_cast<uint8_t>(MgmtStatus::CONNECT_FAILED));
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, static_cast<uint8_t>(MgmtStatus::CONNECT_FAILED));
             }
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -1033,9 +1033,9 @@ namespace direct_bt {
             : MgmtEvent(Opcode::DEVICE_DISCONNECTED, dev_id, 6+1+1), hciReason(hciReason), hci_conn_handle(hci_conn_handle)
             {
                 DisconnectReason disconnectReason = getDisconnectReason(hciReason);
-                pdu.put_eui48(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
-                pdu.put_uint8(MGMT_HEADER_SIZE+6+1, static_cast<uint8_t>(disconnectReason));
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, static_cast<uint8_t>(disconnectReason));
             }
 
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
@@ -1224,8 +1224,8 @@ namespace direct_bt {
             MgmtEvtLocalNameChanged(const uint16_t dev_id, const std::string & name, const std::string & short_name)
             : MgmtEvent(Opcode::LOCAL_NAME_CHANGED, dev_id, MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH)
             {
-                pdu.put_string(MGMT_HEADER_SIZE, name, MgmtConstU16::MGMT_MAX_NAME_LENGTH, true);
-                pdu.put_string(MGMT_HEADER_SIZE+MgmtConstU16::MGMT_MAX_NAME_LENGTH, short_name, MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH, true);
+                pdu.put_string_nc(MGMT_HEADER_SIZE, name, MgmtConstU16::MGMT_MAX_NAME_LENGTH, true);
+                pdu.put_string_nc(MGMT_HEADER_SIZE+MgmtConstU16::MGMT_MAX_NAME_LENGTH, short_name, MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH, true);
             }
 
             const std::string getName() const noexcept { return pdu.get_string_nc(MGMT_HEADER_SIZE); }

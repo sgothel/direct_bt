@@ -877,7 +877,7 @@ bool GATTHandler::configNotificationIndication(GATTDescriptor & cccd, const bool
     COND_PRINT(env.DEBUG_DATA, "GATTHandler::configNotificationIndication decl %s, enableNotification %d, enableIndication %d",
             cccd.toString().c_str(), enableNotification, enableIndication);
     cccd.value.resize(2, 2);
-    cccd.value.put_uint16(0, ccc_value);
+    cccd.value.put_uint16_nc(0, ccc_value);
     try {
         return writeDescriptorValue(cccd);
     } catch (BluetoothException & bte) {

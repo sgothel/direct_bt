@@ -249,9 +249,15 @@ namespace direct_bt {
                 check_range(i, 1);
                 data()[i] = v;;
             }
+            void put_uint8_nc(const int i, const uint8_t v) noexcept {
+                data()[i] = v;;
+            }
 
             void put_uint16(const int i, const uint16_t v) {
                 check_range(i, 2);
+                direct_bt::put_uint16(data(), i, v, true /* littleEndian */);
+            }
+            void put_uint16_nc(const int i, const uint16_t v) noexcept {
                 direct_bt::put_uint16(data(), i, v, true /* littleEndian */);
             }
 
@@ -259,14 +265,23 @@ namespace direct_bt {
                 check_range(i, 4);
                 direct_bt::put_uint32(data(), i, v, true /* littleEndian */);
             }
+            void put_uint32_nc(const int i, const uint32_t v) noexcept {
+                direct_bt::put_uint32(data(), i, v, true /* littleEndian */);
+            }
 
             void put_eui48(const int i, const EUI48 & v) {
                 check_range(i, sizeof(v.b));
                 memcpy(data() + i, v.b, sizeof(v.b));
             }
+            void put_eui48_nc(const int i, const EUI48 & v) noexcept {
+                memcpy(data() + i, v.b, sizeof(v.b));
+            }
 
             void put_octets(const int i, const TROOctets & v) {
                 check_range(i, v.getSize());
+                memcpy(data() + i, v.get_ptr(), v.getSize());
+            }
+            void put_octets_nc(const int i, const TROOctets & v) noexcept {
                 memcpy(data() + i, v.get_ptr(), v.getSize());
             }
 
@@ -279,9 +294,20 @@ namespace direct_bt {
                     *(data() + i + size - 1) = 0; // ensure EOS
                 }
             }
+            void put_string_nc(const int i, const std::string & v, const int max_len, const bool includeEOS) noexcept {
+                const int size1 = v.size() + ( includeEOS ? 1 : 0 );
+                const int size = std::min(size1, max_len);
+                memcpy(data() + i, v.c_str(), size);
+                if( size < size1 && includeEOS ) {
+                    *(data() + i + size - 1) = 0; // ensure EOS
+                }
+            }
 
             void put_uuid(const int i, const uuid_t & v) {
                 check_range(i, v.getTypeSizeInt());
+                direct_bt::put_uuid(data(), i, v, true /* littleEndian */);
+            }
+            void put_uuid_nc(const int i, const uuid_t & v) noexcept {
                 direct_bt::put_uuid(data(), i, v, true /* littleEndian */);
             }
 

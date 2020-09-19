@@ -350,7 +350,7 @@ std::string direct_bt::GattNameToString(const TROOctets &v) noexcept {
 	const int str_len = v.getSize();
 	POctets s(str_len+1); // dtor releases chunk
 	memcpy(s.get_wptr(), v.get_ptr(), str_len);
-	s.put_uint8(str_len, 0); // EOS
+	s.put_uint8_nc(str_len, 0); // EOS
 	return std::string((const char*)s.get_ptr());
 }
 

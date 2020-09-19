@@ -365,7 +365,7 @@ namespace direct_bt {
             AttPDUMsg(const Opcode opc, const int size)
                 : pdu(std::max(1, size)), ts_creation(getCurrentMilliseconds())
             {
-                pdu.put_uint8(0, opc);
+                pdu.put_uint8_nc(0, opc);
                 pdu.check_range(0, getPDUMinSize());
             }
 
@@ -378,7 +378,7 @@ namespace direct_bt {
 
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
             inline Opcode getOpcode() const noexcept {
-                return static_cast<Opcode>(pdu.get_uint8(0));
+                return static_cast<Opcode>(pdu.get_uint8_nc(0));
             }
             std::string getOpcodeString() const noexcept { return getOpcodeString(getOpcode()); }
 
@@ -597,9 +597,6 @@ namespace direct_bt {
      */
     class AttExchangeMTU: public AttPDUMsg
     {
-        private:
-            uint8_t _data[1+2];
-
         public:
             AttExchangeMTU(const uint8_t* source, const int length) : AttPDUMsg(source, length) {
                 checkOpcode(ATT_EXCHANGE_MTU_RSP);
@@ -608,7 +605,7 @@ namespace direct_bt {
             AttExchangeMTU(const uint16_t mtuSize)
             : AttPDUMsg(ATT_EXCHANGE_MTU_REQ, 1+2)
             {
-                pdu.put_uint16(1, mtuSize);
+                pdu.put_uint16_nc(1, mtuSize);
             }
 
             /** opcode + mtu-size */
@@ -644,7 +641,7 @@ namespace direct_bt {
             AttReadReq(const uint16_t handle)
             : AttPDUMsg(ATT_READ_REQ, 1+2)
             {
-                pdu.put_uint16(1, handle);
+                pdu.put_uint16_nc(1, handle);
             }
 
             /** opcode + handle */
@@ -724,8 +721,8 @@ namespace direct_bt {
             AttReadBlobReq(const uint16_t handle, const uint16_t value_offset)
             : AttPDUMsg(ATT_READ_BLOB_REQ, 1+2+2)
             {
-                pdu.put_uint16(1, handle);
-                pdu.put_uint16(3, value_offset);
+                pdu.put_uint16_nc(1, handle);
+                pdu.put_uint16_nc(3, value_offset);
             }
 
             /** opcode + handle + value_offset */
@@ -815,9 +812,9 @@ namespace direct_bt {
             AttWriteReq(const uint16_t handle, const TROOctets & value)
             : AttPDUMsg(ATT_WRITE_REQ, 1+2+value.getSize()), view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
-                pdu.put_uint16(1, handle);
+                pdu.put_uint16_nc(1, handle);
                 for(int i=0; i<value.getSize(); i++) {
-                    pdu.put_uint8(3+i, value.get_uint8(i));
+                    pdu.put_uint8_nc(3+i, value.get_uint8_nc(i));
                 }
             }
 
@@ -887,9 +884,9 @@ namespace direct_bt {
             AttWriteCmd(const uint16_t handle, const TROOctets & value)
             : AttPDUMsg(ATT_WRITE_CMD, 1+2+value.getSize()), view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
-                pdu.put_uint16(1, handle);
+                pdu.put_uint16_nc(1, handle);
                 for(int i=0; i<value.getSize(); i++) {
-                    pdu.put_uint8(3+i, value.get_uint8(i));
+                    pdu.put_uint8_nc(3+i, value.get_uint8_nc(i));
                 }
             }
 
@@ -982,9 +979,6 @@ namespace direct_bt {
      */
     class AttHandleValueCfm: public AttPDUMsg
     {
-        private:
-            uint8_t _data[1];
-
         public:
             AttHandleValueCfm()
             : AttPDUMsg(ATT_HANDLE_VALUE_CFM, 1)
@@ -1078,9 +1072,9 @@ namespace direct_bt {
                 if( uuid.getTypeSize() != uuid_t::TypeSize::UUID16_SZ && uuid.getTypeSize()!= uuid_t::TypeSize::UUID128_SZ ) {
                     throw IllegalArgumentException("Only UUID16 and UUID128 allowed: "+uuid.toString(), E_FILE_LINE);
                 }
-                pdu.put_uint16(1, startHandle);
-                pdu.put_uint16(3, endHandle);
-                pdu.put_uuid(5, uuid);
+                pdu.put_uint16_nc(1, startHandle);
+                pdu.put_uint16_nc(3, endHandle);
+                pdu.put_uuid_nc(5, uuid);
             }
 
             /** opcode + handle-start + handle-end */
@@ -1338,8 +1332,8 @@ namespace direct_bt {
             AttFindInfoReq(const uint16_t startHandle, const uint16_t endHandle)
             : AttPDUMsg(ATT_FIND_INFORMATION_REQ, 1+2+2)
             {
-                pdu.put_uint16(1, startHandle);
-                pdu.put_uint16(3, endHandle);
+                pdu.put_uint16_nc(1, startHandle);
+                pdu.put_uint16_nc(3, endHandle);
             }
 
             /** opcode + handle_start + handle_end */
@@ -1386,7 +1380,7 @@ namespace direct_bt {
     {
         private:
             uuid_t::TypeSize getUUIFormat() const {
-                const int f = pdu.get_uint8(1);
+                const int f = pdu.get_uint8_nc(1);
                 if( 0x01 == f ) {
                     return uuid_t::TypeSize::UUID16_SZ;
                 } else if( 0x02 == f ) {
@@ -1456,7 +1450,7 @@ namespace direct_bt {
             }
 
         protected:
-            std::string addValueString() const override { return "format "+std::to_string(pdu.get_uint8(1))+", "; }
+            std::string addValueString() const override { return "format "+std::to_string(pdu.get_uint8_nc(1))+", "; }
 
             std::string elementString(const int idx) const override {
                 Element e = getElement(idx);

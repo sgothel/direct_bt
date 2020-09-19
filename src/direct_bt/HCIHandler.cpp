@@ -259,7 +259,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
 
         len = comm.read(rbuffer.get_wptr(), rbuffer.getSize(), env.HCI_READER_THREAD_POLL_TIMEOUT);
         if( 0 < len ) {
-            const uint16_t paramSize = len >= number(HCIConstU8::EVENT_HDR_SIZE) ? rbuffer.get_uint8(2) : 0;
+            const uint16_t paramSize = len >= number(HCIConstU8::EVENT_HDR_SIZE) ? rbuffer.get_uint8_nc(2) : 0;
             if( len < number(HCIConstU8::EVENT_HDR_SIZE) + paramSize ) {
                 WARN_PRINT("HCIHandler::reader: length mismatch %d < EVENT_HDR_SIZE(%d) + %d",
                         len, number(HCIConstU8::EVENT_HDR_SIZE), paramSize);

@@ -85,7 +85,7 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
 
         len = comm.read(rbuffer.get_wptr(), rbuffer.getSize(), env.MGMT_READER_THREAD_POLL_TIMEOUT);
         if( 0 < len ) {
-            const uint16_t paramSize = len >= MGMT_HEADER_SIZE ? rbuffer.get_uint16(4) : 0;
+            const uint16_t paramSize = len >= MGMT_HEADER_SIZE ? rbuffer.get_uint16_nc(4) : 0;
             if( len < MGMT_HEADER_SIZE + paramSize ) {
                 WARN_PRINT("DBTManager::reader: length mismatch %d < MGMT_HEADER_SIZE(%d) + %d", len, MGMT_HEADER_SIZE, paramSize);
                 continue; // discard data

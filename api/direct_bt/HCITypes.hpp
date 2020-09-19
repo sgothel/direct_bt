@@ -413,7 +413,10 @@ namespace direct_bt {
             HCIPacket(const HCIPacketType type, const uint8_t total_packet_size)
             : pdu(total_packet_size)
             {
-                pdu.put_uint8 (0, number(type));
+                if( 0 == total_packet_size ) {
+                    throw IndexOutOfBoundsException(1, total_packet_size, E_FILE_LINE);
+                }
+                pdu.put_uint8_nc(0, number(type));
             }
 
             /** Persistent memory, w/ ownership ..*/
@@ -476,8 +479,8 @@ namespace direct_bt {
             {
                 checkOpcode(opc, HCIOpcode::SPECIAL, HCIOpcode::LE_START_ENC);
 
-                pdu.put_uint16(1, static_cast<uint16_t>(opc));
-                pdu.put_uint8(3, param_size);
+                pdu.put_uint16_nc(1, static_cast<uint16_t>(opc));
+                pdu.put_uint8_nc(3, param_size);
             }
 
             /** Enabling manual construction of command with given value.  */
@@ -485,7 +488,7 @@ namespace direct_bt {
             : HCICommand(opc, param_size)
             {
                 if( param_size > 0 ) {
-                    memcpy(pdu.get_wptr(number(HCIConstU8::COMMAND_HDR_SIZE)), param, param_size);
+                    memcpy(pdu.get_wptr_nc(number(HCIConstU8::COMMAND_HDR_SIZE)), param, param_size);
                 }
             }
 
@@ -515,8 +518,8 @@ namespace direct_bt {
             HCIDisconnectCmd(const uint16_t handle, HCIStatusCode reason)
             : HCICommand(HCIOpcode::DISCONNECT, 3)
             {
-                pdu.put_uint16(number(HCIConstU8::COMMAND_HDR_SIZE),handle);
-                pdu.put_uint8(number(HCIConstU8::COMMAND_HDR_SIZE)+2, number(reason));
+                pdu.put_uint16_nc(number(HCIConstU8::COMMAND_HDR_SIZE),handle);
+                pdu.put_uint8_nc(number(HCIConstU8::COMMAND_HDR_SIZE)+2, number(reason));
             }
     };
 
@@ -615,8 +618,8 @@ namespace direct_bt {
             : HCIPacket(HCIPacketType::EVENT, number(HCIConstU8::EVENT_HDR_SIZE)+param_size), ts_creation(getCurrentMilliseconds())
             {
                 checkEventType(evt, HCIEventType::INQUIRY_COMPLETE, HCIEventType::AMP_Receiver_Report);
-                pdu.put_uint8(1, number(evt));
-                pdu.put_uint8(2, param_size);
+                pdu.put_uint8_nc(1, number(evt));
+                pdu.put_uint8_nc(2, param_size);
             }
 
             /** Enabling manual construction of event with given value.  */
@@ -624,7 +627,7 @@ namespace direct_bt {
             : HCIEvent(evt, param_size)
             {
                 if( param_size > 0 ) {
-                    memcpy(pdu.get_wptr(number(HCIConstU8::EVENT_HDR_SIZE)), param, param_size);
+                    memcpy(pdu.get_wptr_nc(number(HCIConstU8::EVENT_HDR_SIZE)), param, param_size);
                 }
             }
 
@@ -855,7 +858,7 @@ namespace direct_bt {
             HCIMetaEvent(const HCIMetaEventType mc, const int meta_param_size)
             : HCIEvent(HCIEventType::LE_META, 1+meta_param_size)
             {
-                pdu.put_uint8(number(HCIConstU8::EVENT_HDR_SIZE), number(mc));
+                pdu.put_uint8_nc(number(HCIConstU8::EVENT_HDR_SIZE), number(mc));
             }
 
             /** Enabling manual construction of event with given value.  */
@@ -863,7 +866,7 @@ namespace direct_bt {
             : HCIMetaEvent(mc, meta_param_size)
             {
                 if( meta_param_size > 0 ) {
-                    memcpy(pdu.get_wptr(number(HCIConstU8::EVENT_HDR_SIZE)+1), meta_param, meta_param_size);
+                    memcpy(pdu.get_wptr_nc(number(HCIConstU8::EVENT_HDR_SIZE)+1), meta_param, meta_param_size);
                 }
             }
 
