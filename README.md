@@ -123,6 +123,28 @@ from which it reads the ambient temperature. You have to pass the MAC address
 of the Sensor Tag as a first parameter to the program.
 
 
+Supported Platforms
+===================
+
+Currently this project is being tested and hence supported on the following platforms.
+
+- Debian 10 Buster (GNU/Linux)
+  - amd64 (validated, Generic)
+  - arm64 (validated, Raspberry Pi 3+4)
+  - arm32 (validated, Raspberry Pi 3+4)
+
+- Debian 11 Bullseye (GNU/Linux)
+  - amd64 (validated, Generic)
+  - arm64 (should work, Raspberry Pi 3+4)
+  - arm32 (should work, Raspberry Pi 3+4)
+
+After we have resolved the last Linux/Bluez dependency in DBTManager for BT adapter configuration,
+we should be capable working on other systems than GNU/Linux.
+
+Other systems than mentioned above are possible to support in general,
+but might need some work and has not been tested by us yet.
+
+
 Build Status
 ============
 
