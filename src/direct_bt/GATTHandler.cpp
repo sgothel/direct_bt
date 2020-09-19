@@ -255,7 +255,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 delete attPDU; // free unhandled PDU
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
-            ERR_PRINT("GATTHandler::l2capReaderThread: l2cap read error -> Stop");
+            IRQ_PRINT("GATTHandler::l2capReaderThread: l2cap read error -> Stop");
             l2capReaderShallStop = true;
             ioErrorCause = true;
         }
@@ -392,7 +392,7 @@ void GATTHandler::send(const AttPDUMsg & msg) {
     // Thread safe l2cap.write(..) operation..
     const int res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.getSize());
     if( 0 > res ) {
-        ERR_PRINT("GATTHandler::send: l2cap write error -> disconnect: %s to %s", msg.toString().c_str(), deviceString.c_str());
+        IRQ_PRINT("GATTHandler::send: l2cap write error -> disconnect: %s to %s", msg.toString().c_str(), deviceString.c_str());
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
         throw BluetoothException("GATTHandler::send: l2cap write error: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
@@ -414,7 +414,7 @@ std::shared_ptr<const AttPDUMsg> GATTHandler::sendWithReply(const AttPDUMsg & ms
     std::shared_ptr<const AttPDUMsg> res = attPDURing.getBlocking(timeout);
     if( nullptr == res ) {
         errno = ETIMEDOUT;
-        ERR_PRINT("GATTHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), deviceString.c_str());
+        IRQ_PRINT("GATTHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), deviceString.c_str());
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */);
         throw BluetoothException("GATTHandler::sendWithReply: nullptr result (timeout "+std::to_string(timeout)+"): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }

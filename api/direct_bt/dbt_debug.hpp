@@ -67,20 +67,23 @@ namespace direct_bt {
     /** Use for unconditional error messages, prefix '[elapsed_time] Error @ file:line: '. Function also appends last errno and strerror(errno). */
     void ERR_PRINTv(const char *file, const int line, const char * format, va_list args) noexcept;
 
-    /** Use for unconditional error messages, prefix '[elapsed_time] Error @ file:line: '. Function also appends last errno and strerror(errno). */
-    void ERR_PRINT2(const char *file, const int line, const char * format, ...) noexcept;
+    /** Use for unconditional error messages, prefix '[elapsed_time] 'prefix' @ file:line: '. Function also appends last errno and strerror(errno). */
+    void ERR_PRINT_impl(const char *prefix, const char *file, const int line, const char * format, ...) noexcept;
 
     /** Use for unconditional error messages, prefix '[elapsed_time] Error @ FILE:LINE: '. Function also appends last errno and strerror(errno). */
-    #define ERR_PRINT(...) { direct_bt::ERR_PRINT2(__FILE__, __LINE__, __VA_ARGS__); }
+    #define ERR_PRINT(...) { direct_bt::ERR_PRINT_impl("Error", __FILE__, __LINE__, __VA_ARGS__); }
+
+    /** Use for unconditional interruption messages, prefix '[elapsed_time] Interrupted @ FILE:LINE: '. Function also appends last errno and strerror(errno). */
+    #define IRQ_PRINT(...) { direct_bt::ERR_PRINT_impl("Interrupted", __FILE__, __LINE__, __VA_ARGS__); }
 
     /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ file:line: ' */
     void WARN_PRINTv(const char *file, const int line, const char * format, va_list args) noexcept;
 
     /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ file:line: ' */
-    void WARN_PRINT2(const char *file, const int line, const char * format, ...) noexcept;
+    void WARN_PRINT_impl(const char *file, const int line, const char * format, ...) noexcept;
 
     /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ FILE:LINE: ' */
-    #define WARN_PRINT(...) { direct_bt::WARN_PRINT2(__FILE__, __LINE__, __VA_ARGS__); }
+    #define WARN_PRINT(...) { direct_bt::WARN_PRINT_impl(__FILE__, __LINE__, __VA_ARGS__); }
 
     /** Use for unconditional informal messages, prefix '[elapsed_time] Info: '. */
     void INFO_PRINT(const char * format, ...) noexcept;

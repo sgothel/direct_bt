@@ -60,8 +60,8 @@ void direct_bt::ERR_PRINTv(const char *file, const int line, const char * format
     fflush(stderr);
 }
 
-void direct_bt::ERR_PRINT2(const char *file, const int line, const char * format, ...) noexcept {
-    fprintf(stderr, "[%'9" PRIu64 "] Error @ %s:%d: ", DBTEnv::getElapsedMillisecond(), file, line);
+void direct_bt::ERR_PRINT_impl(const char *prefix, const char *file, const int line, const char * format, ...) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] %s @ %s:%d: ", DBTEnv::getElapsedMillisecond(), prefix, file, line);
     va_list args;
     va_start (args, format);
     vfprintf(stderr, format, args);
@@ -77,7 +77,7 @@ void direct_bt::WARN_PRINTv(const char *file, const int line, const char * forma
     fflush(stderr);
 }
 
-void direct_bt::WARN_PRINT2(const char *file, const int line, const char * format, ...) noexcept {
+void direct_bt::WARN_PRINT_impl(const char *file, const int line, const char * format, ...) noexcept {
     fprintf(stderr, "[%'9" PRIu64 "] Warning @ %s:%d: ", DBTEnv::getElapsedMillisecond(), file, line);
     va_list args;
     va_start (args, format);
