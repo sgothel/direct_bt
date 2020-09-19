@@ -39,16 +39,8 @@ jobject Java_tinyb_dbus_DBusGattService_getBluetoothType(JNIEnv *env, jobject ob
         (void)obj;
 
         return get_bluetooth_type(env, "GATT_SERVICE");
-    } catch (std::bad_alloc &e) {
-        raise_java_oom_exception(env, e);
-    } catch (BluetoothException &e) {
-        raise_java_bluetooth_exception(env, e);
-    } catch (std::runtime_error &e) {
-        raise_java_runtime_exception(env, e);
-    } catch (std::invalid_argument &e) {
-        raise_java_invalid_arg_exception(env, e);
-    } catch (std::exception &e) {
-        raise_java_exception(env, e);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
     }
     return nullptr;
 }
@@ -57,16 +49,8 @@ jobject Java_tinyb_dbus_DBusGattService_clone(JNIEnv *env, jobject obj)
 {
     try {
         return generic_clone<BluetoothGattService>(env, obj);
-    } catch (std::bad_alloc &e) {
-        raise_java_oom_exception(env, e);
-    } catch (BluetoothException &e) {
-        raise_java_bluetooth_exception(env, e);
-    } catch (std::runtime_error &e) {
-        raise_java_runtime_exception(env, e);
-    } catch (std::invalid_argument &e) {
-        raise_java_invalid_arg_exception(env, e);
-    } catch (std::exception &e) {
-        raise_java_exception(env, e);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
     }
     return nullptr;
 }
@@ -78,16 +62,8 @@ jstring Java_tinyb_dbus_DBusGattService_getUUID(JNIEnv *env, jobject obj)
         std::string uuid = obj_gatt_serv->get_uuid();
 
         return env->NewStringUTF((const char *)uuid.c_str());
-    } catch (std::bad_alloc &e) {
-        raise_java_oom_exception(env, e);
-    } catch (BluetoothException &e) {
-        raise_java_bluetooth_exception(env, e);
-    } catch (std::runtime_error &e) {
-        raise_java_runtime_exception(env, e);
-    } catch (std::invalid_argument &e) {
-        raise_java_invalid_arg_exception(env, e);
-    } catch (std::exception &e) {
-        raise_java_exception(env, e);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
     }
     return nullptr;
 }
@@ -108,16 +84,8 @@ jobject Java_tinyb_dbus_DBusGattService_getDevice(JNIEnv *env, jobject obj)
         }
 
         return result;
-    } catch (std::bad_alloc &e) {
-        raise_java_oom_exception(env, e);
-    } catch (BluetoothException &e) {
-        raise_java_bluetooth_exception(env, e);
-    } catch (std::runtime_error &e) {
-        raise_java_runtime_exception(env, e);
-    } catch (std::invalid_argument &e) {
-        raise_java_invalid_arg_exception(env, e);
-    } catch (std::exception &e) {
-        raise_java_exception(env, e);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
     }
     return nullptr;
 }
@@ -128,16 +96,8 @@ jboolean Java_tinyb_dbus_DBusGattService_getPrimary(JNIEnv *env, jobject obj)
         BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
 
         return obj_gatt_serv->get_primary() ? JNI_TRUE : JNI_FALSE;
-    } catch (std::bad_alloc &e) {
-        raise_java_oom_exception(env, e);
-    } catch (BluetoothException &e) {
-        raise_java_bluetooth_exception(env, e);
-    } catch (std::runtime_error &e) {
-        raise_java_runtime_exception(env, e);
-    } catch (std::invalid_argument &e) {
-        raise_java_invalid_arg_exception(env, e);
-    } catch (std::exception &e) {
-        raise_java_exception(env, e);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
     }
     return JNI_FALSE;
 }
@@ -151,16 +111,8 @@ jobject Java_tinyb_dbus_DBusGattService_getCharacteristics(JNIEnv *env, jobject 
         jobject result = convert_vector_uniqueptr_to_jarraylist<BluetoothGattCharacteristic>(env, array,
                                                                         "(J)V");
         return result;
-    } catch (std::bad_alloc &e) {
-        raise_java_oom_exception(env, e);
-    } catch (BluetoothException &e) {
-        raise_java_bluetooth_exception(env, e);
-    } catch (std::runtime_error &e) {
-        raise_java_runtime_exception(env, e);
-    } catch (std::invalid_argument &e) {
-        raise_java_invalid_arg_exception(env, e);
-    } catch (std::exception &e) {
-        raise_java_exception(env, e);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
     }
     return nullptr;
 }
@@ -170,16 +122,8 @@ void Java_tinyb_dbus_DBusGattService_delete(JNIEnv *env, jobject obj)
     try {
         BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
         delete obj_gatt_serv;
-    } catch (std::bad_alloc &e) {
-        raise_java_oom_exception(env, e);
-    } catch (BluetoothException &e) {
-        raise_java_bluetooth_exception(env, e);
-    } catch (std::runtime_error &e) {
-        raise_java_runtime_exception(env, e);
-    } catch (std::invalid_argument &e) {
-        raise_java_invalid_arg_exception(env, e);
-    } catch (std::exception &e) {
-        raise_java_exception(env, e);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
     }
 }
 

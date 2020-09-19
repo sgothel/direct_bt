@@ -37,14 +37,8 @@ jstring Java_org_tinyb_BluetoothFactory_getNativeAPIVersion(JNIEnv *env, jclass 
 
         std::string api_version = std::string(gVERSION_API);
         return env->NewStringUTF(api_version.c_str());
-    } catch (std::bad_alloc &e) {
-        raise_java_exception(env, e);
-    } catch (std::runtime_error &e) {
-        raise_java_exception(env, e);
-    } catch (std::invalid_argument &e) {
-        raise_java_exception(env, e);
-    } catch (std::exception &e) {
-        raise_java_exception(env, e);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
     }
     return nullptr;
 }
@@ -63,13 +57,7 @@ void Java_org_tinyb_BluetoothFactory_setenv(JNIEnv *env, jclass clazz, jstring j
                 setenv(name.c_str(), "true", overwrite);
             }
         }
-    } catch (std::bad_alloc &e) {
-        raise_java_exception(env, e);
-    } catch (std::runtime_error &e) {
-        raise_java_exception(env, e);
-    } catch (std::invalid_argument &e) {
-        raise_java_exception(env, e);
-    } catch (std::exception &e) {
-        raise_java_exception(env, e);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
     }
 }
