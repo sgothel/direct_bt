@@ -133,10 +133,12 @@ Currently this project is being tested and hence supported on the following plat
   - arm64 (validated, Raspberry Pi 3+4)
   - arm32 (validated, Raspberry Pi 3+4)
 
+
 - Debian 11 Bullseye (GNU/Linux)
   - amd64 (validated, Generic)
   - arm64 (should work, Raspberry Pi 3+4)
   - arm32 (should work, Raspberry Pi 3+4)
+
 
 After we have resolved the last Linux/Bluez dependency in DBTManager for BT adapter configuration,
 we should be capable working on other systems than GNU/Linux.
