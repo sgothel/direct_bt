@@ -112,11 +112,13 @@ namespace direct_bt {
             TROOctets& operator=(const TROOctets &o) noexcept = default;
             TROOctets& operator=(TROOctets &&o) noexcept = default;
 
-            inline void check_range(const int i, const int count) const {
+            inline void check_range(const int i, const int count, const char *file, int line) const {
                 if( 0 > i || i+count > _size ) {
-                    throw IndexOutOfBoundsException(i, count, _size, E_FILE_LINE);
+                    throw IndexOutOfBoundsException(i, count, _size, file, line);
                 }
             }
+            #define check_range(I,C) check_range((I), (C), E_FILE_LINE)
+
             inline bool is_range_valid(const int i, const int count) const noexcept {
                 return 0 <= i && i+count <= _size;
             }
