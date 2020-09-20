@@ -386,20 +386,19 @@ namespace direct_bt {
 
             void freeData() {
                 uint8_t * ptr = data();
-                if( nullptr == ptr ) {
-                    throw InternalError("POctets::freeData: Old null memory", E_FILE_LINE);
-                }
-                TRACE_PRINT("POctets release: %p", ptr);
-                free(ptr);
+                if( nullptr != ptr ) {
+                    TRACE_PRINT("POctets release: %p", ptr);
+                    free(ptr);
+                } // else: zero sized POctets w/ nullptr are supported now, see POctets::POctets().
             }
 
-            static uint8_t * malloc(const int size) {
+            static uint8_t * allocData(const int size) {
                 if( size <= 0 ) {
-                    throw IllegalArgumentException("malloc size "+std::to_string(size)+" <= 0", E_FILE_LINE);
+                    throw IllegalArgumentException("allocData size "+std::to_string(size)+" <= 0", E_FILE_LINE);
                 }
                 uint8_t * m = static_cast<uint8_t*>( std::malloc(size) );
                 if( nullptr == m ) {
-                    throw OutOfMemoryError("malloc size "+std::to_string(size)+" <= 0", E_FILE_LINE);
+                    throw OutOfMemoryError("allocData size "+std::to_string(size)+" -> nullptr", E_FILE_LINE);
                 }
                 return m;
             }
@@ -418,7 +417,7 @@ namespace direct_bt {
 
             /** Takes ownership (malloc and copy, free) ..*/
             POctets(const uint8_t *_source, const int _size)
-            : TOctets( malloc(_size), _size),
+            : TOctets( allocData(_size), _size),
               capacity( _size )
             {
                 std::memcpy(data(), _source, _size);
@@ -427,7 +426,7 @@ namespace direct_bt {
 
             /** New buffer (malloc, free) */
             POctets(const int _capacity, const int _size)
-            : TOctets( malloc(_capacity), _size),
+            : TOctets( allocData(_capacity), _size),
               capacity( _capacity )
             {
                 if( capacity < getSize() ) {
@@ -444,7 +443,7 @@ namespace direct_bt {
             }
 
             POctets(const POctets &_source)
-            : TOctets( malloc(_source.getSize()), _source.getSize()),
+            : TOctets( allocData(_source.getSize()), _source.getSize()),
               capacity( _source.getSize() )
             {
                 std::memcpy(data(), _source.get_ptr(), _source.getSize());
@@ -468,7 +467,7 @@ namespace direct_bt {
                 }
                 freeData();
                 const int newCapacity = _source.getSize() > 0 ? _source.getSize() : _source.getCapacity();
-                setData(malloc(newCapacity), _source.getSize());
+                setData(allocData(newCapacity), _source.getSize());
                 capacity = newCapacity;
                 std::memcpy(data(), _source.get_ptr(), _source.getSize());
                 TRACE_PRINT("POctets assign0: %p", data());
@@ -494,7 +493,7 @@ namespace direct_bt {
 
             /** Makes a persistent POctets by copying the data from TROOctets. */
             POctets(const TROOctets & _source)
-            : TOctets( malloc(_source.getSize()), _source.getSize()),
+            : TOctets( allocData(_source.getSize()), _source.getSize()),
               capacity( _source.getSize() )
             {
                 std::memcpy(data(), _source.get_ptr(), _source.getSize());
@@ -506,7 +505,7 @@ namespace direct_bt {
                     return *this;
                 }
                 freeData();
-                setData(malloc(_source.getSize()), _source.getSize());
+                setData(allocData(_source.getSize()), _source.getSize());
                 capacity = _source.getSize();
                 std::memcpy(data(), _source.get_ptr(), _source.getSize());
                 TRACE_PRINT("POctets assign1: %p", data());
@@ -515,7 +514,7 @@ namespace direct_bt {
 
             /** Makes a persistent POctets by copying the data from TOctetSlice. */
             POctets(const TOctetSlice & _source)
-            : TOctets( malloc(_source.getSize()), _source.getSize()),
+            : TOctets( allocData(_source.getSize()), _source.getSize()),
               capacity( _source.getSize() )
             {
                 std::memcpy(data(), _source.getParent().get_ptr() + _source.getOffset(), _source.getSize());
@@ -524,7 +523,7 @@ namespace direct_bt {
 
             POctets& operator=(const TOctetSlice &_source) {
                 freeData();
-                setData(malloc(_source.getSize()), _source.getSize());
+                setData(allocData(_source.getSize()), _source.getSize());
                 capacity = _source.getSize();
                 std::memcpy(data(), _source.get_ptr(0), _source.getSize());
                 TRACE_PRINT("POctets assign2: %p", data());
@@ -564,7 +563,7 @@ namespace direct_bt {
                 if( newCapacity == capacity ) {
                     return *this;
                 }
-                uint8_t* data2 = malloc(newCapacity);
+                uint8_t* data2 = allocData(newCapacity);
                 if( getSize() > 0 ) {
                     memcpy(data2, get_ptr(), getSize());
                 }
