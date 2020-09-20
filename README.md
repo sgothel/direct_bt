@@ -25,7 +25,7 @@ Direct-BT
 offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
 
 *Direct-BT* supports a fully event driven workflow from device discovery to GATT programming,
-using its platform agnostic HCI and GATT/L2CAP implementation.
+using its platform agnostic HCI and GATT/L2CAP client-side protocol implementation.
 
 [AdapterStatusListener](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1AdapterStatusListener.html) 
 allows listening to adapter changes and device discovery and
@@ -44,9 +44,23 @@ or via the refactored TinyB [Java API](https://jausoft.com/projects/direct_bt/bu
 You will find a detailed overview of *Direct-BT* in the doxygen generated 
 [C++ API doc of its *direct_bt* namespace](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
 
-Since *Direct-BT* is not using a 3rd party Bluetooth library but using its own implementation,
+Some more elaboration on the implementation and its status
+> The host-side of HCI, L2CAP etc is usually implemented within the OS, e.g. *Linux/BlueZ* Kernel.
+> These layers communicate with the actual BT controller and the user application, acting as the middleman.
+> 
+> *Direct-BT* offers packet types and handler facilities for HCI, L2CAP, ATT-PDU and GATT (as well to *Linux/BlueZ-Mngr[1]*)
+> to communicate with these universal host-side Bluetooth layers and hence to reach-out to devices.
+> 
+> Currently only the master/client mode is supported to work with BT devices, as well as LE w/o *LE Secure Connections*.
+> 
+> Work on *LE Secure Connections* is in progress and BREDR (non LE, or classic mode) is planned and prepared for.
+>
+> [1] *Linux/BlueZ-Mngr* is still used for adapter configuration and shall be removed to support universal platforms,
+> implementing the Bluetooth host-side protocols.
+
+Since *Direct-BT* is not using a 3rd party Bluetooth client library or daemon/service,
 they should be disabled to allow operation without any interference.
-To disable the BlueZ D-Bus userspace daemon *bluetoothd* via systemd, 
+To disable the *BlueZ* D-Bus userspace daemon *bluetoothd* via systemd, 
 you may use the following commands.
 
 ```
@@ -60,7 +74,7 @@ systemctl mask bluetooth
 
 TinyB
 -----
-*TinyB* exposes the BLE GATT API for C++, Java and other languages, using BlueZ over DBus.
+*TinyB* exposes the BLE GATT API for C++, Java and other languages, using *BlueZ* over DBus.
 
 *TinyB* does not expose the BREDR API.
 
@@ -97,8 +111,11 @@ API Documentation
 ============
 
 Up to date API documentation can be found:
+
+* [Brief overview of *direct_bt*](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
+
 * [C++ API Doc](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/index.html).
-    * [Overview of *direct_bt*](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
+
 * [Java API Doc](https://jausoft.com/projects/direct_bt/build/documentation/java/html/index.html).
 
 A guide for getting started with *Direct-BT* on C++ and Java may follow up.
@@ -126,25 +143,28 @@ of the Sensor Tag as a first parameter to the program.
 Supported Platforms
 ===================
 
-Currently this project is being tested and hence supported on the following platforms.
+The following **platforms** are tested and hence supported
 
-- Debian 10 Buster (GNU/Linux)
-  - amd64 (validated, Generic)
-  - arm64 (validated, Raspberry Pi 3+4)
-  - arm32 (validated, Raspberry Pi 3+4)
+**Debian 10 Buster (GNU/Linux)**
 
+- amd64 (validated, Generic)
+- arm64 (validated, Raspberry Pi 3+ and 4)
+- arm32 (validated, Raspberry Pi 3+ and 4)
 
-- Debian 11 Bullseye (GNU/Linux)
-  - amd64 (validated, Generic)
-  - arm64 (should work, Raspberry Pi 3+4)
-  - arm32 (should work, Raspberry Pi 3+4)
+**Debian 11 Bullseye (GNU/Linux)**
 
+- amd64 (validated, Generic)
+- arm64 (should work, Raspberry Pi 3+ and 4)
+- arm32 (should work, Raspberry Pi 3+ and 4)
+
+The following **Bluetooth Adapter** were tested
+
+* Intel Bluemoon Bluetooth Adapter
+* CSR Bluetooth Adapter (CSR8510,..)
+* Raspberry Pi Bluetooth Adapter (BCM43455 on 3+, 4)
 
 After we have resolved the last Linux/Bluez dependency in DBTManager for BT adapter configuration,
 we should be capable working on other systems than GNU/Linux.
-
-Other systems than mentioned above are possible to support in general,
-but might need some work and has not been tested by us yet.
 
 
 Build Status
@@ -159,8 +179,8 @@ Building Binaries
 The project requires CMake 3.1+ for building and a Java JDK >= 11.
 
 *TinyB* requires GLib/GIO 2.40+. It also
-requires BlueZ with GATT profile activated, which is currently experimental (as
-of BlueZ 5.37), so you might have to run bluetoothd with the -E flag. For
+requires *BlueZ* with GATT profile activated, which is currently experimental (as
+of *BlueZ* 5.37), so you might have to run bluetoothd with the -E flag. For
 example, on a system with systemd (Fedora, poky, etc.) edit the
 bluetooth.service file (usually found in /usr/lib/systemd/system/ or
 /lib/systemd/system) and append -E to ExecStart line, restart the daemon with
@@ -168,7 +188,7 @@ systemctl restart bluetooth.
 
 
 *Direct-BT* does not require GLib/GIO 
-nor shall the BlueZ userspace service *bluetoothd* be active for best experience.
+nor shall the *BlueZ* userspace service *bluetoothd* be active for best experience.
 
 To disable the *bluetoothd* service using systemd:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
@@ -242,26 +262,34 @@ make doc
 
 Changes
 ============
-- 2.1.25 Early *Direct-BT* Maturity (Bluetooth LE)
-  - Reaching robust implementation state of *Direct-BT*, including recovery from L2CAP transmission breakdown on Raspberry Pi.
-  - Resolved race conditions on rapid device discovery and connect, using one thread per device.
-  - API documentation with examples
-  - Tested on GNU/Linux x86_64, arm32 and arm64 with native and Java examples.
-  - Tested on Bluetooth Adapter: Intel, CSR and Raspberry Pi
-  - Almost removed Linux/BlueZ kernel dependency using own HCI implementation, remaining portion is the adapter setup.
-- 2.0.0
-  - Java D-Bus implementation details of package 'tinyb' moved to *tinyb.dbus*.
-  - The *tinyb.jar* jar file has been renamed to *tinyb2.jar*, avoiding conflicts.
-  - General interfaces matching the original implementation and following [BlueZ API](http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/device-api.txt)
+
+**2.1.26 Early *Direct-BT* Maturity (Bluetooth LE)**
+
+* Reaching robust implementation state of *Direct-BT*, including recovery from L2CAP transmission breakdown on Raspberry Pi.
+* Resolved race conditions on rapid device discovery and connect, using one thread per device.
+* API documentation with examples
+* Tested on GNU/Linux x86_64, arm32 and arm64 with native and Java examples.
+* Tested on Bluetooth Adapter: Intel, CSR and Raspberry Pi
+* Almost removed non-standard *Linux/BlueZ-Mngr* kernel dependency using the universal HCI protocol, remaining portion configures the adapter.
+
+**2.0.0**
+
+* Java D-Bus implementation details of package 'tinyb' moved to *tinyb.dbus*.
+* The *tinyb.jar* jar file has been renamed to *tinyb2.jar*, avoiding conflicts.
+* General interfaces matching the original implementation and following [BlueZ API](http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/device-api.txt)
 were created in package *org.tinyb*.
-  - Class *org.tinyb.BluetoothFactory* provides a factory to instantiate the initial root *org.tinyb.BluetoothManager*, either using the original D-Bus implementation or an alternative implementation.
-  - C++ namespace and implementation kept unchanged.
-- 0.5.0
-  - Added notifications API
-  - Capitalized RSSI and UUID properly in Java
-  - Added JNI Helper classes for managing lifetime of JNIEnv and Global Refences
-- 0.4.0 
-  - Added asynchronous methods for discovering BluetoothObjects
+* Class *org.tinyb.BluetoothFactory* provides a factory to instantiate the initial root *org.tinyb.BluetoothManager*, either using the original D-Bus implementation or an alternative implementation.
+* C++ namespace and implementation kept unchanged.
+
+**0.5.0**
+
+* Added notifications API
+* Capitalized RSSI and UUID properly in Java
+* Added JNI Helper classes for managing lifetime of JNIEnv and Global Refences
+
+**0.4.0**
+
+* Added asynchronous methods for discovering BluetoothObjects
 
 Common issues
 ============

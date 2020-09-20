@@ -41,14 +41,14 @@
 #include "OctetTypes.hpp"
 
 /**
- * Direct-BT provides direct Bluetooth programming without intermediate layers
- * targeting high-performance reliable Bluetooth support.
+ * Direct-BT provides direct Bluetooth LE and BREDR programming,
+ * offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
  *
- * By having least system and userspace dependencies and no communication overhead,
- * Direct-BT shall be suitable for embedded device configurations besides others.
+ * Direct-BT supports a fully event driven workflow from device discovery to GATT programming,
+ * using its platform agnostic HCI and GATT/L2CAP client-side protocol implementation.
  *
  * Direct-BT implements the following layers
- * - DBTManager for adapter management
+ * - DBTManager for adapter configuration
  *   - Using *BlueZ Kernel Manager Control Channel*
  * - *HCI Handling* via HCIHandler implementing connect/disconnect w/ tracking, device discovery, etc
  * - *ATT PDU* AttPDUMsg via L2CAP for low level packet communication
@@ -58,8 +58,9 @@
  *   -  GATTDescriptor
  *
  * DBTManager still utilizes the *BlueZ Kernel Manager Control Channel*
- * adapter configuration.
- * To remove potential side-effects and this last Linux dependency,
+ * adapter configuration for adapter configuration.
+ *
+ * To remove potential side-effects and this last non-standard Linux/BlueZ dependency,
  * we will have DBTManager using direct HCI programming via HCIHandler
  * for the remaining functionality.
  *
