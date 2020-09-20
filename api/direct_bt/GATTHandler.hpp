@@ -189,7 +189,43 @@ namespace direct_bt {
 
             void l2capReaderThreadImpl();
 
+            /**
+             * Sends the given AttPDUMsg to the connected device via l2cap.
+             * <p>
+             * Implementation throws an IllegalStateException if not connected,
+             * a IllegalArgumentException if message size exceeds usedMTU.
+             * </p>
+             * <p>
+             * Implementation disconnect() and throws an BluetoothException
+             * if an l2cap write errors occurs.
+             * </p>
+             * <p>
+             * In case method completes, the message has been send out successfully.
+             * </p>
+             * @param msg the message to be send
+             */
             void send(const AttPDUMsg & msg);
+
+            /**
+             * Sends the given AttPDUMsg to the connected device via l2cap using {@link #send()}.
+             * <p>
+             * Implementation waits for timeout milliseconds receiving the response
+             * from the ringbuffer, filled from the reader-thread.
+             * </p>
+             * <p>
+             * Implementation disconnect() and throws an BluetoothException
+             * if no matching reply has been received within timeout milliseconds.
+             * </p>
+             * <p>
+             * In case method completes, the message has been send out successfully
+             * and a reply has also been received and is returned as a result.<br>
+             * Hence this method either throws an exception or returns a matching reply.
+             * </p>
+             *
+             * @param msg the message to be send
+             * @param timeout milliseconds to wait for a reply
+             * @return a valid reply, never nullptrs
+             */
             std::shared_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg, const int timeout);
 
             /**

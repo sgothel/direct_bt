@@ -445,14 +445,11 @@ uint16_t GATTHandler::exchangeMTU(const uint16_t clientMaxMTU) {
     uint16_t mtu = 0;
     DBG_PRINT("GATT send: %s", req.toString().c_str());
 
-    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_INITIAL_COMMAND_REPLY_TIMEOUT);
-    if( nullptr != pdu ) {
-        if( pdu->getOpcode() == AttPDUMsg::ATT_EXCHANGE_MTU_RSP ) {
-            const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
-            mtu = p->getMTUSize();
-        }
-    } else {
-        ERR_PRINT("GATT exchangeMTU send failed: %s - %s", req.toString().c_str(), deviceString.c_str());
+    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_INITIAL_COMMAND_REPLY_TIMEOUT); // valid reply or exception
+
+    if( pdu->getOpcode() == AttPDUMsg::ATT_EXCHANGE_MTU_RSP ) {
+        const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
+        mtu = p->getMTUSize();
     }
     PERF_TS_TD("GATT exchangeMTU");
 
@@ -523,40 +520,36 @@ bool GATTHandler::discoverPrimaryServices(std::shared_ptr<GATTHandler> shared_th
         const AttReadByNTypeReq req(true /* group */, startHandle, 0xffff, groupType);
         COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discover send: %s to %s", req.toString().c_str(), deviceString.c_str());
 
-        std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT);
-        if( nullptr != pdu ) {
-            COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discover recv: %s on %s", pdu->toString().c_str(), deviceString.c_str());
-            if( pdu->getOpcode() == AttPDUMsg::ATT_READ_BY_GROUP_TYPE_RSP ) {
-                const AttReadByGroupTypeRsp * p = static_cast<const AttReadByGroupTypeRsp*>(pdu.get());
-                const int count = p->getElementCount();
+        std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT); // valid reply or exception
+        COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discover recv: %s on %s", pdu->toString().c_str(), deviceString.c_str());
 
-                for(int i=0; i<count; i++) {
-                    const int ePDUOffset = p->getElementPDUOffset(i);
-                    const int esz = p->getElementTotalSize();
-                    result.push_back( GATTServiceRef( new GATTService( shared_this, true,
-                            p->pdu.get_uint16(ePDUOffset), // start-handle
-                            p->pdu.get_uint16(ePDUOffset + 2), // end-handle
-                            p->pdu.get_uuid( ePDUOffset + 2 + 2, uuid_t::toTypeSize(esz-2-2) ) // uuid
-                        ) ) );
-                    COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discovered[%d/%d]: %s on %s", i,
-                            count, result.at(result.size()-1)->toString().c_str(), deviceString.c_str());
-                }
-                startHandle = p->getElementEndHandle(count-1);
-                if( startHandle < 0xffff ) {
-                    startHandle++;
-                } else {
-                    done = true; // OK by spec: End of communication
-                }
-            } else if( pdu->getOpcode() == AttPDUMsg::ATT_ERROR_RSP ) {
-                done = true; // OK by spec: End of communication
-            } else {
-                ERR_PRINT("GATT discoverPrimary unexpected reply %s, req %s from %s",
-                        pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
-                done = true;
+        if( pdu->getOpcode() == AttPDUMsg::ATT_READ_BY_GROUP_TYPE_RSP ) {
+            const AttReadByGroupTypeRsp * p = static_cast<const AttReadByGroupTypeRsp*>(pdu.get());
+            const int count = p->getElementCount();
+
+            for(int i=0; i<count; i++) {
+                const int ePDUOffset = p->getElementPDUOffset(i);
+                const int esz = p->getElementTotalSize();
+                result.push_back( GATTServiceRef( new GATTService( shared_this, true,
+                        p->pdu.get_uint16(ePDUOffset), // start-handle
+                        p->pdu.get_uint16(ePDUOffset + 2), // end-handle
+                        p->pdu.get_uuid( ePDUOffset + 2 + 2, uuid_t::toTypeSize(esz-2-2) ) // uuid
+                    ) ) );
+                COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discovered[%d/%d]: %s on %s", i,
+                        count, result.at(result.size()-1)->toString().c_str(), deviceString.c_str());
             }
+            startHandle = p->getElementEndHandle(count-1);
+            if( startHandle < 0xffff ) {
+                startHandle++;
+            } else {
+                done = true; // OK by spec: End of communication
+            }
+        } else if( pdu->getOpcode() == AttPDUMsg::ATT_ERROR_RSP ) {
+            done = true; // OK by spec: End of communication
         } else {
-            ERR_PRINT("GATT discoverPrimary send failed: %s to %s", req.toString().c_str(), deviceString.c_str());
-            done = true; // send failed
+            ERR_PRINT("GATT discoverPrimary unexpected reply %s, req %s from %s",
+                    pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
+            done = true;
         }
     }
     PERF_TS_TD("GATT discoverPrimaryServices");
@@ -587,44 +580,39 @@ bool GATTHandler::discoverCharacteristics(GATTServiceRef & service) {
         const AttReadByNTypeReq req(false /* group */, handle, service->endHandle, characteristicTypeReq);
         COND_PRINT(env.DEBUG_DATA, "GATT C discover send: %s to %s", req.toString().c_str(), deviceString.c_str());
 
-        std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT);
-        if( nullptr != pdu ) {
-            COND_PRINT(env.DEBUG_DATA, "GATT C discover recv: %s from %s", pdu->toString().c_str(), deviceString.c_str());
-            if( pdu->getOpcode() == AttPDUMsg::ATT_READ_BY_TYPE_RSP ) {
-                const AttReadByTypeRsp * p = static_cast<const AttReadByTypeRsp*>(pdu.get());
-                const int e_count = p->getElementCount();
+        std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT); // valid reply or exception
+        COND_PRINT(env.DEBUG_DATA, "GATT C discover recv: %s from %s", pdu->toString().c_str(), deviceString.c_str());
 
-                for(int e_iter=0; e_iter<e_count; e_iter++) {
-                    // handle: handle for the Characteristics declaration
-                    // value: Characteristics Property, Characteristics Value Handle _and_ Characteristics UUID
-                    const int ePDUOffset = p->getElementPDUOffset(e_iter);
-                    const int esz = p->getElementTotalSize();
-                    service->characteristicList.push_back( GATTCharacteristicRef( new GATTCharacteristic(
-                        service,
-                        p->pdu.get_uint16(ePDUOffset), // Characteristics's Service Handle
-                        p->getElementHandle(e_iter), // Characteristic Handle
-                        static_cast<GATTCharacteristic::PropertyBitVal>(p->pdu.get_uint8(ePDUOffset  + 2)), // Characteristics Property
-                        p->pdu.get_uint16(ePDUOffset + 2 + 1), // Characteristics Value Handle
-                        p->pdu.get_uuid(ePDUOffset   + 2 + 1 + 2, uuid_t::toTypeSize(esz-2-1-2) ) ) ) ); // Characteristics Value Type UUID
-                    COND_PRINT(env.DEBUG_DATA, "GATT C discovered[%d/%d]: %s on %s", e_iter, e_count,
-                            service->characteristicList.at(service->characteristicList.size()-1)->toString().c_str(), deviceString.c_str());
-                }
-                handle = p->getElementHandle(e_count-1); // Last Characteristic Handle
-                if( handle < service->endHandle ) {
-                    handle++;
-                } else {
-                    done = true; // OK by spec: End of communication
-                }
-            } else if( pdu->getOpcode() == AttPDUMsg::ATT_ERROR_RSP ) {
-                done = true; // OK by spec: End of communication
-            } else {
-                ERR_PRINT("GATT discoverCharacteristics unexpected reply %s, req %s from %s",
-                        pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
-                done = true;
+        if( pdu->getOpcode() == AttPDUMsg::ATT_READ_BY_TYPE_RSP ) {
+            const AttReadByTypeRsp * p = static_cast<const AttReadByTypeRsp*>(pdu.get());
+            const int e_count = p->getElementCount();
+
+            for(int e_iter=0; e_iter<e_count; e_iter++) {
+                // handle: handle for the Characteristics declaration
+                // value: Characteristics Property, Characteristics Value Handle _and_ Characteristics UUID
+                const int ePDUOffset = p->getElementPDUOffset(e_iter);
+                const int esz = p->getElementTotalSize();
+                service->characteristicList.push_back( GATTCharacteristicRef( new GATTCharacteristic(
+                    service,
+                    p->pdu.get_uint16(ePDUOffset), // Characteristics's Service Handle
+                    p->getElementHandle(e_iter), // Characteristic Handle
+                    static_cast<GATTCharacteristic::PropertyBitVal>(p->pdu.get_uint8(ePDUOffset  + 2)), // Characteristics Property
+                    p->pdu.get_uint16(ePDUOffset + 2 + 1), // Characteristics Value Handle
+                    p->pdu.get_uuid(ePDUOffset   + 2 + 1 + 2, uuid_t::toTypeSize(esz-2-1-2) ) ) ) ); // Characteristics Value Type UUID
+                COND_PRINT(env.DEBUG_DATA, "GATT C discovered[%d/%d]: %s on %s", e_iter, e_count,
+                        service->characteristicList.at(service->characteristicList.size()-1)->toString().c_str(), deviceString.c_str());
             }
+            handle = p->getElementHandle(e_count-1); // Last Characteristic Handle
+            if( handle < service->endHandle ) {
+                handle++;
+            } else {
+                done = true; // OK by spec: End of communication
+            }
+        } else if( pdu->getOpcode() == AttPDUMsg::ATT_ERROR_RSP ) {
+            done = true; // OK by spec: End of communication
         } else {
-            ERR_PRINT("GATT discoverCharacteristics send failed: %s to %s", req.toString().c_str(), deviceString.c_str());
-            service->characteristicList.clear();
+            ERR_PRINT("GATT discoverCharacteristics unexpected reply %s, req %s from %s",
+                    pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
             done = true;
         }
     }
@@ -664,12 +652,7 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
             const AttFindInfoReq req(cd_handle_iter, cd_handle_end);
             COND_PRINT(env.DEBUG_DATA, "GATT CD discover send: %s", req.toString().c_str());
 
-            std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT);
-            if( nullptr == pdu ) {
-                ERR_PRINT("GATT discoverDescriptors send failed: %s to %s", req.toString().c_str(), deviceString.c_str());
-                done = true;
-                break;
-            }
+            std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT); // valid reply or exception
             COND_PRINT(env.DEBUG_DATA, "GATT CD discover recv: %s from ", pdu->toString().c_str(), deviceString.c_str());
 
             if( pdu->getOpcode() == AttPDUMsg::ATT_FIND_INFORMATION_RSP ) {
@@ -757,52 +740,47 @@ bool GATTHandler::readValue(const uint16_t handle, POctets & res, int expectedLe
         const AttReadBlobReq req1(handle, offset);
         const AttPDUMsg & req = ( 0 == offset ) ? static_cast<const AttPDUMsg &>(req0) : static_cast<const AttPDUMsg &>(req1);
         COND_PRINT(env.DEBUG_DATA, "GATT RV send: %s", req.toString().c_str());
-        pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT);
+        pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT); // valid reply or exception
 
-        if( nullptr != pdu ) {
-            COND_PRINT(env.DEBUG_DATA, "GATT RV recv: %s from %s", pdu->toString().c_str(), deviceString.c_str());
-            if( pdu->getOpcode() == AttPDUMsg::ATT_READ_RSP ) {
-                const AttReadRsp * p = static_cast<const AttReadRsp*>(pdu.get());
-                const TOctetSlice & v = p->getValue();
+        COND_PRINT(env.DEBUG_DATA, "GATT RV recv: %s from %s", pdu->toString().c_str(), deviceString.c_str());
+        if( pdu->getOpcode() == AttPDUMsg::ATT_READ_RSP ) {
+            const AttReadRsp * p = static_cast<const AttReadRsp*>(pdu.get());
+            const TOctetSlice & v = p->getValue();
+            res += v;
+            offset += v.getSize();
+            if( p->getPDUValueSize() < p->getMaxPDUValueSize(usedMTU) ) {
+                done = true; // No full ATT_MTU PDU used - end of communication
+            }
+        } else if( pdu->getOpcode() == AttPDUMsg::ATT_READ_BLOB_RSP ) {
+            const AttReadBlobRsp * p = static_cast<const AttReadBlobRsp*>(pdu.get());
+            const TOctetSlice & v = p->getValue();
+            if( 0 == v.getSize() ) {
+                done = true; // OK by spec: No more data - end of communication
+            } else {
                 res += v;
                 offset += v.getSize();
                 if( p->getPDUValueSize() < p->getMaxPDUValueSize(usedMTU) ) {
                     done = true; // No full ATT_MTU PDU used - end of communication
                 }
-            } else if( pdu->getOpcode() == AttPDUMsg::ATT_READ_BLOB_RSP ) {
-                const AttReadBlobRsp * p = static_cast<const AttReadBlobRsp*>(pdu.get());
-                const TOctetSlice & v = p->getValue();
-                if( 0 == v.getSize() ) {
-                    done = true; // OK by spec: No more data - end of communication
-                } else {
-                    res += v;
-                    offset += v.getSize();
-                    if( p->getPDUValueSize() < p->getMaxPDUValueSize(usedMTU) ) {
-                        done = true; // No full ATT_MTU PDU used - end of communication
-                    }
-                }
-            } else if( pdu->getOpcode() == AttPDUMsg::ATT_ERROR_RSP ) {
-                /**
-                 * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value
-                 *
-                 * If the Characteristic Value is not longer than (ATT_MTU – 1)
-                 * an ATT_ERROR_RSP PDU with the error
-                 * code set to Attribute Not Long shall be received on the first
-                 * ATT_READ_BLOB_REQ PDU.
-                 */
-                const AttErrorRsp * p = static_cast<const AttErrorRsp *>(pdu.get());
-                if( AttErrorRsp::ATTRIBUTE_NOT_LONG == p->getErrorCode() ) {
-                    done = true; // OK by spec: No more data - end of communication
-                } else {
-                    ERR_PRINT("GATT readValue unexpected error %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
-                    done = true;
-                }
+            }
+        } else if( pdu->getOpcode() == AttPDUMsg::ATT_ERROR_RSP ) {
+            /**
+             * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value
+             *
+             * If the Characteristic Value is not longer than (ATT_MTU – 1)
+             * an ATT_ERROR_RSP PDU with the error
+             * code set to Attribute Not Long shall be received on the first
+             * ATT_READ_BLOB_REQ PDU.
+             */
+            const AttErrorRsp * p = static_cast<const AttErrorRsp *>(pdu.get());
+            if( AttErrorRsp::ATTRIBUTE_NOT_LONG == p->getErrorCode() ) {
+                done = true; // OK by spec: No more data - end of communication
             } else {
-                ERR_PRINT("GATT readValue unexpected reply %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
+                ERR_PRINT("GATT readValue unexpected error %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
                 done = true;
             }
         } else {
-            ERR_PRINT("GATT readValue send failed: handle %u, offset %d, req %s to %s", handle, offset, req.toString().c_str(), deviceString.c_str());
+            ERR_PRINT("GATT readValue unexpected reply %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
             done = true;
         }
     }
@@ -860,19 +838,16 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
     COND_PRINT(env.DEBUG_DATA, "GATT WV send(resp %d): %s to %s", withResponse, req.toString().c_str(), deviceString.c_str());
 
     bool res = false;
-    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_WRITE_COMMAND_REPLY_TIMEOUT);
-    if( nullptr != pdu ) {
-        COND_PRINT(env.DEBUG_DATA, "GATT WV recv: %s from %s", pdu->toString().c_str(), deviceString.c_str());
-        if( pdu->getOpcode() == AttPDUMsg::ATT_WRITE_RSP ) {
-            // OK
-            res = true;
-        } else if( pdu->getOpcode() == AttPDUMsg::ATT_ERROR_RSP ) {
-            ERR_PRINT("GATT writeValue unexpected error %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
-        } else {
-            ERR_PRINT("GATT writeValue unexpected reply %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
-        }
+    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_WRITE_COMMAND_REPLY_TIMEOUT); // valid reply or exception
+    COND_PRINT(env.DEBUG_DATA, "GATT WV recv: %s from %s", pdu->toString().c_str(), deviceString.c_str());
+
+    if( pdu->getOpcode() == AttPDUMsg::ATT_WRITE_RSP ) {
+        // OK
+        res = true;
+    } else if( pdu->getOpcode() == AttPDUMsg::ATT_ERROR_RSP ) {
+        ERR_PRINT("GATT writeValue unexpected error %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
     } else {
-        ERR_PRINT("GATT writeValue send failed: handle %u, req %s to %s", handle, req.toString().c_str(), deviceString.c_str());
+        ERR_PRINT("GATT writeValue unexpected reply %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
     }
     PERF2_TS_TD("GATT writeValue (with-resp)");
     return res;
