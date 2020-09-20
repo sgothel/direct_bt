@@ -61,6 +61,7 @@ uuid128_t uuid_t::toUUID128(uuid128_t const & base_uuid, int const uuid32_le_oct
         case TypeSize::UUID128_SZ: return uuid128_t(*((uuid128_t*)this));
     }
     ABORT("Unknown Type %d", static_cast<int>(type));
+    abort(); // never reached
 }
 
 std::string uuid_t::toUUID128String(uuid128_t const & base_uuid, int const le_octet_index) const noexcept {
