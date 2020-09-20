@@ -155,7 +155,7 @@ public class BluetoothFactory {
     /**
      * Default {@link BTMode} when initializing new adapter
      * <p>
-     * System property {@code org.tinyb.btmode}, string, default {@code DUAL}.
+     * System property {@code org.tinyb.btmode}, string, default {@code LE}.
      * </p>
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus.
@@ -182,8 +182,8 @@ public class BluetoothFactory {
             DEBUG = Boolean.valueOf(v);
         }
         {
-            final String v = System.getProperty("org.tinyb.btmode", "DUAL");
-            BTMode btMode = BTMode.DUAL;
+            final String v = System.getProperty("org.tinyb.btmode", "LE");
+            BTMode btMode = BTMode.LE;
             try {
                 btMode = BTMode.get(v);
             } catch (final IllegalArgumentException ex) {

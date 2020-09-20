@@ -199,21 +199,21 @@ bool DBTAdapter::validateDevInfo() {
 
 DBTAdapter::DBTAdapter() noexcept
 : debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.adapter.event", false)),
-  mgmt(DBTManager::get(BTMode::NONE /* already initialized */)), dev_id(nullptr != mgmt.getDefaultAdapterInfo() ? 0 : -1)
+  mgmt(DBTManager::get(BTMode::NONE /* use env default */)), dev_id(nullptr != mgmt.getDefaultAdapterInfo() ? 0 : -1)
 {
     valid = validateDevInfo();
 }
 
 DBTAdapter::DBTAdapter(EUI48 &mac) noexcept
 : debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.adapter.event", false)),
-  mgmt(DBTManager::get(BTMode::NONE /* already initialized */)), dev_id(mgmt.findAdapterInfoIdx(mac))
+  mgmt(DBTManager::get(BTMode::NONE /* use env default */)), dev_id(mgmt.findAdapterInfoIdx(mac))
 {
     valid = validateDevInfo();
 }
 
 DBTAdapter::DBTAdapter(const int dev_id) noexcept
 : debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.adapter.event", false)),
-  mgmt(DBTManager::get(BTMode::NONE /* already initialized */)), dev_id(dev_id)
+  mgmt(DBTManager::get(BTMode::NONE /* use env default */)), dev_id(dev_id)
 {
     valid = validateDevInfo();
 }

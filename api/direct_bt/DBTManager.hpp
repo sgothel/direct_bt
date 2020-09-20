@@ -66,6 +66,7 @@ namespace direct_bt {
 
         private:
             const bool exploding; // just to trigger exploding properties
+            static BTMode getEnvBTMode();
 
         public:
             /**
@@ -99,6 +100,17 @@ namespace direct_bt {
              * </p>
              */
             const bool DEBUG_EVENT;
+
+            /**
+             * Default {@link BTMode} when initializing new adapter
+             * <p>
+             * Environment variable is 'direct_bt.mgmt.btmode' first, then try 'org.tinyb.btmode'.
+             * </p>
+             * <p>
+             * Default is BTMode::LE, if non of the above environment variable is set.
+             * </p>
+             */
+            const BTMode DEFAULT_BTMODE;
 
         private:
             /** Maximum number of packets to wait for until matching a sequential command. Won't block as timeout will limit. */
@@ -183,7 +195,7 @@ namespace direct_bt {
 
             /**
              * Instantiate singleton.
-             * @param btMode default {@link BTMode}, adapters are tried to be initialized.
+             * @param btMode default {@link BTMode} when initializing new adapter. If BTMode::NONE given, MgmtEnv::DEFAULT_BTMODE is being used.
              */
             DBTManager(const BTMode defaultBTMode) noexcept;
             DBTManager(const DBTManager&) = delete;
@@ -214,7 +226,7 @@ namespace direct_bt {
              * <p>
              * First call will open and initialize the bluetooth kernel.
              * </p>
-             * @param btMode default {@link BTMode}, adapters are tried to be initialized.
+             * @param btMode default {@link BTMode} when initializing new adapter. If BTMode::NONE given, MgmtEnv::DEFAULT_BTMODE is being used.
              * @return singleton instance.
              */
             static DBTManager& get(const BTMode defaultBTMode) {

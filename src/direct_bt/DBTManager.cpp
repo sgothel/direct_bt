@@ -51,6 +51,17 @@ extern "C" {
 
 using namespace direct_bt;
 
+BTMode MgmtEnv::getEnvBTMode() {
+    // Environment variable is 'direct_bt.mgmt.btmode' or 'org.tinyb.btmode'
+    // Default is BTMode::LE, if non of the above environment variable is set.
+    std::string val = DBTEnv::getProperty("direct_bt.mgmt.btmode");
+    if( val.empty() ) {
+        val = DBTEnv::getProperty("org.tinyb.btmode");
+    }
+    const BTMode res = direct_bt::getBTMode(val);
+    return BTMode::NONE != res ? res : BTMode::LE; // fallback to default LE
+}
+
 MgmtEnv::MgmtEnv() noexcept
 : DEBUG_GLOBAL( DBTEnv::get().DEBUG ),
   exploding( DBTEnv::getExplodingProperties("direct_bt.mgmt") ),
@@ -58,6 +69,7 @@ MgmtEnv::MgmtEnv() noexcept
   MGMT_COMMAND_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.mgmt.cmd.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
   MGMT_EVT_RING_CAPACITY( DBTEnv::getInt32Property("direct_bt.mgmt.ringsize", 64, 64 /* min */, 1024 /* max */) ),
   DEBUG_EVENT( DBTEnv::getBooleanProperty("direct_bt.debug.mgmt.event", false) ),
+  DEFAULT_BTMODE( getEnvBTMode() ),
   MGMT_READ_PACKET_MAX_RETRY( MGMT_EVT_RING_CAPACITY )
 {
 }
@@ -289,7 +301,7 @@ void DBTManager::shutdownAdapter(const uint16_t dev_id) noexcept {
 
 DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
 : env(MgmtEnv::get()),
-  defaultBTMode(BTMode::NONE != _defaultBTMode ? _defaultBTMode : BTMode::LE),
+  defaultBTMode(BTMode::NONE != _defaultBTMode ? _defaultBTMode : env.DEFAULT_BTMODE),
   rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
   mgmtEventRing(env.MGMT_EVT_RING_CAPACITY), mgmtReaderRunning(false), mgmtReaderShallStop(false)
 {

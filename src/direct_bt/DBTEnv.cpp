@@ -46,6 +46,7 @@ static const std::string s_false("false");
 std::string DBTEnv::getProperty(const std::string & name) noexcept {
     const char * value = getenv(name.c_str());
     if( nullptr != value ) {
+        COND_PRINT(debug, "DBTEnv::getProperty0 '%s': '%s'", name.c_str(), value);
         return std::string( value );
     }
     if( std::string::npos != name.find('.', 0) ) {
@@ -54,8 +55,12 @@ std::string DBTEnv::getProperty(const std::string & name) noexcept {
         std::replace( alt_name.begin(), alt_name.end(), '.', '_');
         value = getenv(alt_name.c_str());
         if( nullptr != value ) {
+            COND_PRINT(debug, "DBTEnv::getProperty0 '%s' -> '%s': '%s'", name.c_str(), alt_name.c_str(), value);
             return std::string( value );
         }
+        COND_PRINT(debug, "DBTEnv::getProperty0 '%s' -> '%s': NOT FOUND", name.c_str(), alt_name.c_str());
+    } else {
+        COND_PRINT(debug, "DBTEnv::getProperty0 '%s': NOT FOUND", name.c_str());
     }
     // not found: empty string
     return std::string();
@@ -64,10 +69,10 @@ std::string DBTEnv::getProperty(const std::string & name) noexcept {
 std::string DBTEnv::getProperty(const std::string & name, const std::string & default_value) noexcept {
     const std::string value = getProperty(name);
     if( 0 == value.length() ) {
-        COND_PRINT(debug, "DBTEnv::getProperty %s: null -> %s (default)", name.c_str(), default_value.c_str());
+        COND_PRINT(debug, "DBTEnv::getProperty1 %s: null -> %s (default)", name.c_str(), default_value.c_str());
         return default_value;
     } else {
-        COND_PRINT(debug, "DBTEnv::getProperty %s (default %s): %s", name.c_str(), default_value.c_str(), value.c_str());
+        COND_PRINT(debug, "DBTEnv::getProperty1 %s (default %s): %s", name.c_str(), default_value.c_str(), value.c_str());
         return value;
     }
 }
