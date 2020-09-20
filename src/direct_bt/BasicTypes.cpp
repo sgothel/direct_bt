@@ -165,8 +165,7 @@ std::string direct_bt::uint8HexString(const uint8_t v, const bool leading0X) noe
 
     const int count = snprintf(&str[0], str.capacity(), ( leading0X ? "0x%.2X" : "%.2X" ), v);
     if( length != count ) {
-        ERR_PRINT("Internal-Error: uint8_t string not of length %d but %d", length, count);
-        abort();
+        ABORT("uint8_t string not of length %d but %d", length, count);
     }
     return str;
 }
@@ -179,8 +178,7 @@ std::string direct_bt::uint16HexString(const uint16_t v, const bool leading0X) n
 
     const int count = snprintf(&str[0], str.capacity(), ( leading0X ? "0x%.4X" : "%.4X" ), v);
     if( length != count ) {
-        ERR_PRINT("Internal-Error: uint16_t string not of length %d but %d", length, count);
-        abort();
+        ABORT("uint16_t string not of length %d but %d", length, count);
     }
     return str;
 }
@@ -193,8 +191,7 @@ std::string direct_bt::uint32HexString(const uint32_t v, const bool leading0X) n
 
     const int count = snprintf(&str[0], str.capacity(), ( leading0X ? "0x%.8X" : "%.8X" ), v);
     if( length != count ) {
-        ERR_PRINT("Internal-Error: uint32_t string not of length %d but %d", length, count);
-        abort();
+        ABORT("uint32_t string not of length %d but %d", length, count);
     }
     return str;
 }
@@ -207,8 +204,7 @@ std::string direct_bt::uint64HexString(const uint64_t v, const bool leading0X) n
 
     const int count = snprintf(&str[0], str.capacity(), ( leading0X ? "0x%.16" PRIX64 : "%.16" PRIX64 ), v);
     if( length != count ) {
-        ERR_PRINT("Internal-Error: uint64_t string not of length %d but %d", length, count);
-        abort();
+        ABORT("uint64_t string not of length %d but %d", length, count);
     }
     return str;
 }

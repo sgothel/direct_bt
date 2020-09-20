@@ -148,8 +148,7 @@ JNIGlobalRef::~JNIGlobalRef() noexcept {
     try {
         JNIEnv * env = *jni_env;
         if( nullptr == env ) {
-            ERR_PRINT("JNIGlobalRef dtor null JNIEnv");
-            abort();
+            ABORT("JNIGlobalRef dtor null JNIEnv");
         }
         DBG_PRINT("JNIGlobalRef::dtor %p", object);
         if( nullptr != object ) {

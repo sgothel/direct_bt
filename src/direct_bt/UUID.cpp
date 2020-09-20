@@ -60,8 +60,7 @@ uuid128_t uuid_t::toUUID128(uuid128_t const & base_uuid, int const uuid32_le_oct
         case TypeSize::UUID32_SZ: return uuid128_t(*((uuid32_t*)this), base_uuid, uuid32_le_octet_index);
         case TypeSize::UUID128_SZ: return uuid128_t(*((uuid128_t*)this));
     }
-    ERR_PRINT("Unknown Type %d", static_cast<int>(type));
-    abort();
+    ABORT("Unknown Type %d", static_cast<int>(type));
 }
 
 std::string uuid_t::toUUID128String(uuid128_t const & base_uuid, int const le_octet_index) const noexcept {
@@ -84,8 +83,7 @@ std::string uuid16_t::toString() const noexcept {
 
     const int count = snprintf(&str[0], str.capacity(), "%.4x", value);
     if( length != count ) {
-        ERR_PRINT("UUID16 string not of length %d but %d", length, count);
-        abort();
+        ABORT("UUID16 string not of length %d but %d", length, count);
     }
     return str;
 }
@@ -104,8 +102,7 @@ std::string uuid32_t::toString() const noexcept {
 
     const int count = snprintf(&str[0], str.capacity(), "%.8x", value);
     if( length != count ) {
-        ERR_PRINT("UUID32 string not of length %d but %d", length, count);
-        abort();
+        ABORT("UUID32 string not of length %d but %d", length, count);
     }
     return str;
 }
@@ -154,8 +151,7 @@ std::string uuid128_t::toString() const noexcept {
     const int count = snprintf(&str[0], str.capacity(), "%.8x-%.4x-%.4x-%.4x-%.8x%.4x",
                                 part0, part1, part2, part3, part4, part5);
     if( length != count ) {
-        ERR_PRINT("UUID128 string not of length %d but %d", length, count);
-        abort();
+        ABORT("UUID128 string not of length %d but %d", length, count);
     }
     return str;
 }

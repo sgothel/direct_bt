@@ -53,6 +53,17 @@ void direct_bt::WORDY_PRINT(const char * format, ...) noexcept {
     }
 }
 
+void direct_bt::ABORT_impl(const char *file, const int line, const char * format, ...) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] ABORT @ %s:%d: ", DBTEnv::getElapsedMillisecond(), file, line);
+    va_list args;
+    va_start (args, format);
+    vfprintf(stderr, format, args);
+    va_end (args);
+    fprintf(stderr, "; last errno %d %s\n", errno, strerror(errno));
+    fflush(stderr);
+    abort();
+}
+
 void direct_bt::ERR_PRINTv(const char *file, const int line, const char * format, va_list args) noexcept {
     fprintf(stderr, "[%'9" PRIu64 "] Error @ %s:%d: ", DBTEnv::getElapsedMillisecond(), file, line);
     vfprintf(stderr, format, args);

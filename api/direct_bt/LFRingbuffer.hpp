@@ -135,9 +135,7 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
                 }
                 if( writePos != localReadPos ) {
                     // Avoid exception, abort!
-                    ERR_PRINT("Internal Error: copy segment error: this %s, readPos %d/%d; writePos %d",
-                            toString().c_str(), readPos.load(), localReadPos, writePos.load());
-                    abort();
+                    ABORT("copy segment error: this %s, readPos %d/%d; writePos %d", toString().c_str(), readPos.load(), localReadPos, writePos.load());
                 }
                 readPos = localReadPos;
                 size = 0;

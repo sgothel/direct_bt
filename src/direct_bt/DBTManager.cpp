@@ -237,8 +237,7 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
         const MgmtEvtAdapterInfo * res1 = static_cast<MgmtEvtAdapterInfo*>(res.get());
         adapterInfo = res1->toAdapterInfo();
         if( dev_id != adapterInfo->dev_id ) {
-            ERR_PRINT("Internal-Error: AdapterInfo dev_id=%d != dev_id=%d: %s", adapterInfo->dev_id, dev_id, adapterInfo->toString().c_str());
-            abort();
+            ABORT("AdapterInfo dev_id=%d != dev_id=%d: %s", adapterInfo->dev_id, dev_id, adapterInfo->toString().c_str());
         }
     }
     DBG_PRINT("initAdapter[%d]: Start: %s", dev_id, adapterInfo->toString().c_str());
@@ -282,8 +281,7 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
         const MgmtEvtAdapterInfo * res1 = static_cast<MgmtEvtAdapterInfo*>(res.get());
         adapterInfo = res1->toAdapterInfo();
         if( dev_id != adapterInfo->dev_id ) {
-            ERR_PRINT("Internal-Error: AdapterInfo dev_id=%d != dev_id=%d: %s", adapterInfo->dev_id, dev_id, adapterInfo->toString().c_str());
-            abort();
+            ABORT("AdapterInfo dev_id=%d != dev_id=%d: %s", adapterInfo->dev_id, dev_id, adapterInfo->toString().c_str());
         }
     }
     DBG_PRINT("initAdapter[%d]: End: %s", dev_id, adapterInfo->toString().c_str());
@@ -405,12 +403,10 @@ next1:
         for(int i=0; ok && i < num_adapter; i++) {
             const uint16_t dev_id = get_uint16(data, 2+i*2, true /* littleEndian */);
             if( dev_id >= num_adapter ) {
-                ERR_PRINT("Internal-Error: dev_id %d >= num_adapter %d", dev_id, num_adapter);
-                abort();
+                ABORT("dev_id %d >= num_adapter %d", dev_id, num_adapter);
             }
             if( adapterInfos[dev_id] != nullptr ) {
-                ERR_PRINT("Internal-Error: adapters[dev_id=%d] != nullptr: %s", dev_id, adapterInfos[dev_id]->toString().c_str());
-                abort();
+                ABORT("adapters[dev_id=%d] != nullptr: %s", dev_id, adapterInfos[dev_id]->toString().c_str());
             }
             std::shared_ptr<AdapterInfo> adapterInfo = initAdapter(dev_id, defaultBTMode);
             adapterInfos[dev_id] = adapterInfo;

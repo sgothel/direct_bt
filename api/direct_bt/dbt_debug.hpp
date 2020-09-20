@@ -64,6 +64,12 @@ namespace direct_bt {
         #define PERF_TS_TD(m)
     #endif
 
+    /** Use for unconditional ::abort() call with given messages, prefix '[elapsed_time] ABORT @ file:line: '. Function also appends last errno and strerror(errno). */
+    void ABORT_impl(const char *file, const int line, const char * format, ...) noexcept;
+
+    /** Use for unconditional ::abort() call with given messages, prefix '[elapsed_time] ABORT @ FILE:LINE: '. Function also appends last errno and strerror(errno). */
+    #define ABORT(...) { direct_bt::ABORT_impl(__FILE__, __LINE__, __VA_ARGS__); }
+
     /** Use for unconditional error messages, prefix '[elapsed_time] Error @ file:line: '. Function also appends last errno and strerror(errno). */
     void ERR_PRINTv(const char *file, const int line, const char * format, va_list args) noexcept;
 
