@@ -572,12 +572,13 @@ public class ScannerTinyB10 {
                     test.MULTI_MEASUREMENTS = -1;
                 }
             }
-            println("Run with '[-default_dev_id <adapter-index>] [-dev_id <adapter-index>] (-mac <device_address>)* "+
-                    "[-disconnect] [-count <number>] [-single] (-wl <device_address>)* (-char <uuid>)* [-show_update_events] [-silent_gatt]"+
+            println("Run with '[-default_dev_id <adapter-index>] [-dev_id <adapter-index>] [-btmode <BT-MODE>] "+
+                    "(-mac <device_address>)* (-wl <device_address>)* "+
+                    "[-disconnect] [-count <number>] [-single] (-char <uuid>)* [-show_update_events] [-silent_gatt]"+
                     "[-bluetoothManager <BluetoothManager-Implementation-Class-Name>] "+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose [true|false]] "+
-                    "[-dbt_debug [true|false|hci.event,mgmt.event,adapter.event,gatt.data]] "+
+                    "[-dbt_debug [true|false|adapter.event,gatt.data,hci.event,mgmt.event]] "+
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,... "+
                     "[-dbt_hci cmd.complete.timeout=10000,cmd.status.timeout=3000,ringsize=64,... "+
                     "[-dbt_gatt cmd.read.timeout=500,cmd.write.timeout=500,cmd.init.timeout=2500,ringsize=128,... "+

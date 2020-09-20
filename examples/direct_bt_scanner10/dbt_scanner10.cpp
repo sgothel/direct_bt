@@ -445,26 +445,38 @@ void test(int dev_id) {
     adapter.printSharedPtrListOfDevices();
 }
 
+#include <cstdio>
+
 int main(int argc, char *argv[])
 {
     int dev_id = 0; // default
-    BTMode btMode = BTMode::LE; // default
+    BTMode btMode = BTMode::NONE;
     bool waitForEnter=false;
 
     for(int i=1; i<argc; i++) {
-        if( !strcmp("-wait", argv[i]) ) {
+        if( !strcmp("-dbt_debug", argv[i]) && argc > (i+1) ) {
+            setenv("direct_bt.debug", argv[++i], 1 /* overwrite */);
+        } else if( !strcmp("-dbt_verbose", argv[i]) && argc > (i+1) ) {
+            setenv("direct_bt.verbose", argv[++i], 1 /* overwrite */);
+        } else if( !strcmp("-dbt_gatt", argv[i]) && argc > (i+1) ) {
+            setenv("direct_bt.gatt", argv[++i], 1 /* overwrite */);
+        } else if( !strcmp("-dbt_hci", argv[i]) && argc > (i+1) ) {
+            setenv("direct_bt.hci", argv[++i], 1 /* overwrite */);
+        } else if( !strcmp("-dbt_mgmt", argv[i]) && argc > (i+1) ) {
+            setenv("direct_bt.mgmt", argv[++i], 1 /* overwrite */);
+        } else if( !strcmp("-dev_id", argv[i]) && argc > (i+1) ) {
+            dev_id = atoi(argv[++i]);
+        } else if( !strcmp("-btmode", argv[i]) && argc > (i+1) ) {
+            btMode = getBTMode(argv[++i]);
+            if( BTMode::NONE != btMode ) {
+                setenv("direct_bt.mgmt.btmode", getBTModeString(btMode).c_str(), 1 /* overwrite */);
+            }
+        } else if( !strcmp("-wait", argv[i]) ) {
             waitForEnter = true;
         } else if( !strcmp("-show_update_events", argv[i]) ) {
             SHOW_UPDATE_EVENTS = true;
         } else if( !strcmp("-silent_gatt", argv[i]) ) {
             SILENT_GATT = true;
-        } else if( !strcmp("-dev_id", argv[i]) && argc > (i+1) ) {
-            dev_id = atoi(argv[++i]);
-        } else if( !strcmp("-btmode", argv[i]) && argc > (i+1) ) {
-            BTMode v = getBTMode(argv[++i]);
-            if( BTMode::NONE != v ) {
-                btMode = v;
-            }
         } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
             std::string macstr = std::string(argv[++i]);
             waitForDevices.push_back( EUI48(macstr) );
@@ -486,8 +498,14 @@ int main(int argc, char *argv[])
     }
     fprintf(stderr, "pid %d\n", getpid());
 
-    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-btmode <BT-MODE>] (-mac <device_address>)* "
-                    "[-disconnect] [-count <number>] [-single] (-wl <device_address>)* [-show_update_events] [-silent_gatt]'\n");
+    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-btmode <BT-MODE>] (-mac <device_address>)* (-wl <device_address>)* "
+                    "[-disconnect] [-count <number>] [-single] [-show_update_events] [-silent_gatt] "
+                    "[-dbt_verbose [true|false]] "
+                    "[-dbt_debug [true|false|adapter.event,gatt.data,hci.event,mgmt.event]] "
+                    "[-dbt_mgmt cmd.timeout=3000,ringsize=64,... "
+                    "[-dbt_hci cmd.complete.timeout=10000,cmd.status.timeout=3000,ringsize=64,... "
+                    "[-dbt_gatt cmd.read.timeout=500,cmd.write.timeout=500,cmd.init.timeout=2500,ringsize=128,... "
+                    "\n");
 
     fprintf(stderr, "MULTI_MEASUREMENTS %d\n", MULTI_MEASUREMENTS);
     fprintf(stderr, "KEEP_CONNECTED %d\n", KEEP_CONNECTED);
@@ -498,9 +516,6 @@ int main(int argc, char *argv[])
     fprintf(stderr, "dev_id %d\n", dev_id);
     fprintf(stderr, "btmode %s\n", getBTModeString(btMode).c_str());
     printList( "waitForDevice: ", waitForDevices);
-
-    // initialize manager with given default BTMode
-    DBTManager::get(btMode);
 
     if( waitForEnter ) {
         fprintf(stderr, "Press ENTER to continue\n");
