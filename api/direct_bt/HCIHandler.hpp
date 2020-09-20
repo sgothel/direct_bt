@@ -397,6 +397,20 @@ namespace direct_bt {
             /**
              * FIXME / TODO: Privacy Mode / Pairing / Bonding
              *
+             * LE Secure Connections:
+             * <pre>
+             * BT Core Spec v5.2: Vol 1, Part A Architecture: 5.4 LE Security
+             * BT Core Spec v5.2: Vol 3, Part C GAP: 10.2 LE SECURITY MODES
+             * BT Core Spec v5.2: Vol 3, Part H SM: 2 Security Manager
+             * BT Core Spec v5.2: Vol 3, Part H SM: 2.3.5 Pairing: 2.3.5.6 LE Secure Connections pairing phase 2
+             * BT Core Spec v5.2: Vol 3, Part H SM: 2.3.5 Pairing: 2.3.5.6.3 LE Authentication stage 1 – Passkey Entry
+             * BT Core Spec v5.2: Vol 3, Part H SM: 3 Security Manager Protocol (SMP) fixed channel over L2CAP
+             *
+             *
+             * LE Legacy Pairing** similar to BREDR like: Secure Simple Pairing (SSP)
+             * LE Secure Connections functional equivalent to SSP, using 128 bit Long Term Key (LTK)
+             * </pre>
+             *
              * <p>
              * BT Core Spec v5.2: Vol 1, Part A Architecture: 5 Security architecture
              * BT Core Spec v5.2: Vol 1, Part A Architecture: 5.4 LE Security
