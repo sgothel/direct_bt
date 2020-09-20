@@ -395,6 +395,7 @@ void DBTAdapter::checkDiscoveryState() {
 bool DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType own_mac_type,
                                 const uint16_t le_scan_interval, const uint16_t le_scan_window)
 {
+    // FIXME: Respect DBTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
     if( !isEnabled() ) {
         ERR_PRINT("DBTAdapter::startDiscovery: Adapter not enabled/powered: %s", toString().c_str());
         return false;
@@ -473,6 +474,8 @@ void DBTAdapter::startDiscoveryBackground() {
 }
 
 bool DBTAdapter::stopDiscovery() {
+    // FIXME: Respect DBTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to stop BREDR, LE or DUAL scanning!
+
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     /**
      * Need to send mgmtEvDeviceDiscoveringMgmt(..)
