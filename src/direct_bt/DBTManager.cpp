@@ -240,7 +240,7 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
             ABORT("AdapterInfo dev_id=%d != dev_id=%d: %s", adapterInfo->dev_id, dev_id, adapterInfo->toString().c_str());
         }
     }
-    DBG_PRINT("initAdapter[%d]: Start: %s", dev_id, adapterInfo->toString().c_str());
+    DBG_PRINT("initAdapter[%d, BTMode %s]: Start: %s", dev_id, getBTModeString(btMode).c_str(), adapterInfo->toString().c_str());
 
     switch ( btMode ) {
         case BTMode::DUAL:
@@ -284,7 +284,7 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
             ABORT("AdapterInfo dev_id=%d != dev_id=%d: %s", adapterInfo->dev_id, dev_id, adapterInfo->toString().c_str());
         }
     }
-    DBG_PRINT("initAdapter[%d]: End: %s", dev_id, adapterInfo->toString().c_str());
+    DBG_PRINT("initAdapter[%d, BTMode %s]: End: %s", dev_id, getBTModeString(btMode).c_str(), adapterInfo->toString().c_str());
 
 fail:
     return adapterInfo;
@@ -303,7 +303,7 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
   rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
   mgmtEventRing(env.MGMT_EVT_RING_CAPACITY), mgmtReaderRunning(false), mgmtReaderShallStop(false)
 {
-    WORDY_PRINT("DBTManager.ctor: pid %d", DBTManager::pidSelf);
+    WORDY_PRINT("DBTManager.ctor: BTMode %s, pid %d", getBTModeString(defaultBTMode).c_str(), DBTManager::pidSelf);
     if( !comm.isOpen() ) {
         ERR_PRINT("DBTManager::open: Could not open mgmt control channel");
         return;
