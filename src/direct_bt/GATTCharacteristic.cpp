@@ -131,11 +131,11 @@ std::string GATTCharacteristic::toString() const noexcept {
         desc_str += cd->toString() + ", ";
     }
     desc_str += " ]";
-    return "handle "+uint16HexString(handle)+", props "+uint8HexString(properties)+" "+getPropertiesString()+
+    return "[handle "+uint16HexString(handle)+", props "+uint8HexString(properties)+" "+getPropertiesString()+
            ", value[type 0x"+value_type->toString()+", handle "+uint16HexString(value_handle)+char_name+desc_str+
            "], service[type 0x"+service_uuid_str+
            ", handle[ "+uint16HexString(service_handle)+".."+uint16HexString(service_handle_end)+" ]"+
-           service_name+", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"] ]";
+           service_name+", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"] ] ]";
 }
 
 std::string GATTCharacteristic::toShortString() const noexcept {
@@ -145,11 +145,11 @@ std::string GATTCharacteristic::toShortString() const noexcept {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(value_type.get()))->value;
         char_name = ", "+GattCharacteristicTypeToString(static_cast<GattCharacteristicType>(uuid16));
     }
-    return "handle "+uint16HexString(handle)+", props "+uint8HexString(properties)+" "+getPropertiesString()+
+    return "[handle "+uint16HexString(handle)+", props "+uint8HexString(properties)+" "+getPropertiesString()+
            ", value[handle "+uint16HexString(value_handle)+char_name+
            "], service["+
            ", handle[ "+uint16HexString(service_handle)+".. ]"+
-           ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"] ]";
+           ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"] ] ]";
 }
 
 std::shared_ptr<GATTService> GATTCharacteristic::getServiceChecked() const {

@@ -327,14 +327,14 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
             for(size_t j=0; j<serviceCharacteristics.size(); j++) {
                 GATTCharacteristic & serviceChar = *serviceCharacteristics.at(j);
                 if( !SILENT_GATT ) {
-                    fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
+                    fprintf(stderr, "  [%2.2d.%2.2d] CharDef: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
                 }
                 if( serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Read) ) {
                     POctets value(GATTHandler::number(GATTHandler::Defaults::MAX_ATT_MTU), 0);
                     if( serviceChar.readValue(value) ) {
                         std::string sval = dfa_utf8_decode(value.get_ptr(), value.getSize());
                         if( !SILENT_GATT ) {
-                            fprintf(stderr, "  [%2.2d.%2.2d] Value: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
+                            fprintf(stderr, "  [%2.2d.%2.2d] CharVal: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
                         }
                     }
                 }
@@ -501,8 +501,8 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-btmode LE|BREDR|DUAL] "
                     "[-disconnect] [-count <number>] [-single] [-show_update_events] [-silent_gatt] "
                     "(-mac <device_address>)* (-wl <device_address>)* "
-                    "[-dbt_verbose [true|false]] "
-                    "[-dbt_debug [true|false|adapter.event,gatt.data,hci.event,mgmt.event]] "
+                    "[-dbt_verbose true|false] "
+                    "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,... "
                     "[-dbt_hci cmd.complete.timeout=10000,cmd.status.timeout=3000,ringsize=64,... "
                     "[-dbt_gatt cmd.read.timeout=500,cmd.write.timeout=500,cmd.init.timeout=2500,ringsize=128,... "

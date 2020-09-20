@@ -337,14 +337,14 @@ public class ScannerTinyB10 {
                     for(final Iterator<BluetoothGattCharacteristic> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
                         final BluetoothGattCharacteristic serviceChar = charIter.next();
                         if( !SILENT_GATT ) {
-                            printf("  [%02d.%02d] Decla: %s\n", i, j, serviceChar.toString());
+                            printf("  [%02d.%02d] CharDec: %s\n", i, j, serviceChar.toString());
                         }
                         final List<String> properties = Arrays.asList(serviceChar.getFlags());
                         if( properties.contains("read") ) {
                             final byte[] value = serviceChar.readValue();
                             final String svalue = BluetoothUtils.decodeUTF8String(value, 0, value.length);
                             if( !SILENT_GATT ) {
-                                printf("  [%02d.%02d] Value: %s ('%s')\n",
+                                printf("  [%02d.%02d] CharVal: %s ('%s')\n",
                                         i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
                             }
                         }
@@ -577,8 +577,8 @@ public class ScannerTinyB10 {
                     "[-disconnect] [-count <number>] [-single] (-char <uuid>)* [-show_update_events] [-silent_gatt]"+
                     "(-mac <device_address>)* (-wl <device_address>)* "+
                     "[-verbose] [-debug] "+
-                    "[-dbt_verbose [true|false]] "+
-                    "[-dbt_debug [true|false|adapter.event,gatt.data,hci.event,mgmt.event]] "+
+                    "[-dbt_verbose true|false] "+
+                    "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "+
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,... "+
                     "[-dbt_hci cmd.complete.timeout=10000,cmd.status.timeout=3000,ringsize=64,... "+
                     "[-dbt_gatt cmd.read.timeout=500,cmd.write.timeout=500,cmd.init.timeout=2500,ringsize=128,... "+

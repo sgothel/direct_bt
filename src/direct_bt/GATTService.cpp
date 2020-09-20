@@ -66,8 +66,8 @@ std::string GATTService::toString() const noexcept {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(type.get()))->value;
         name = " - "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
     }
-    return "type 0x"+type->toString()+", handle ["+uint16HexString(startHandle, true)+".."+uint16HexString(endHandle, true)+"]"+
-                name+", "+std::to_string(characteristicList.size())+" characteristics";
+    return "[type 0x"+type->toString()+", handle ["+uint16HexString(startHandle, true)+".."+uint16HexString(endHandle, true)+"]"+
+                name+", "+std::to_string(characteristicList.size())+" characteristics]";
 }
 
 std::string GATTService::toShortString() const noexcept {
@@ -76,6 +76,6 @@ std::string GATTService::toShortString() const noexcept {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(type.get()))->value;
         name = " - "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
     }
-    return "handle ["+uint16HexString(startHandle, true)+".."+uint16HexString(endHandle, true)+"]"+
-                name+", "+std::to_string(characteristicList.size())+" characteristics";
+    return "[handle ["+uint16HexString(startHandle, true)+".."+uint16HexString(endHandle, true)+"]"+
+                name+", "+std::to_string(characteristicList.size())+" characteristics]";
 }

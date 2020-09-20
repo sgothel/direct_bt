@@ -78,9 +78,9 @@ bool GATTDescriptor::writeValue() {
 }
 
 std::string GATTDescriptor::toString() const noexcept {
-    return "[type 0x"+type->toString()+", handle "+uint16HexString(handle)+", value["+value.toString()+"]]";
+    return "[type 0x"+type->toString()+", handle "+uint16HexString(handle)+", value["+value.toString()+"] ]";
 }
 
 std::string GATTDescriptor::toShortString() const noexcept {
-    return "[handle "+uint16HexString(handle)+", value["+value.toString()+"]]";
+    return "[handle "+uint16HexString(handle)+", value["+value.toString()+"] ]";
 }
