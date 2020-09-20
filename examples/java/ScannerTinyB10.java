@@ -572,10 +572,10 @@ public class ScannerTinyB10 {
                     test.MULTI_MEASUREMENTS = -1;
                 }
             }
-            println("Run with '[-default_dev_id <adapter-index>] [-dev_id <adapter-index>] [-btmode <BT-MODE>] "+
-                    "(-mac <device_address>)* (-wl <device_address>)* "+
-                    "[-disconnect] [-count <number>] [-single] (-char <uuid>)* [-show_update_events] [-silent_gatt]"+
+            println("Run with '[-default_dev_id <adapter-index>] [-dev_id <adapter-index>] [-btmode LE|BREDR|DUAL] "+
                     "[-bluetoothManager <BluetoothManager-Implementation-Class-Name>] "+
+                    "[-disconnect] [-count <number>] [-single] (-char <uuid>)* [-show_update_events] [-silent_gatt]"+
+                    "(-mac <device_address>)* (-wl <device_address>)* "+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose [true|false]] "+
                     "[-dbt_debug [true|false|adapter.event,gatt.data,hci.event,mgmt.event]] "+

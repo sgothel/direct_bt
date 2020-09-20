@@ -498,8 +498,9 @@ int main(int argc, char *argv[])
     }
     fprintf(stderr, "pid %d\n", getpid());
 
-    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-btmode <BT-MODE>] (-mac <device_address>)* (-wl <device_address>)* "
+    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-btmode LE|BREDR|DUAL] "
                     "[-disconnect] [-count <number>] [-single] [-show_update_events] [-silent_gatt] "
+                    "(-mac <device_address>)* (-wl <device_address>)* "
                     "[-dbt_verbose [true|false]] "
                     "[-dbt_debug [true|false|adapter.event,gatt.data,hci.event,mgmt.event]] "
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,... "
