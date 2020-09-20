@@ -509,7 +509,8 @@ namespace direct_bt {
             /** Returns shared DBTDevice if found, otherwise nullptr */
             std::shared_ptr<DBTDevice> findDiscoveredDevice (EUI48 const & mac, const BDAddressType macType) noexcept;
 
-            std::string toString() const noexcept override;
+            std::string toString() const noexcept override { return toString(true); }
+            std::string toString(bool includeDiscoveredDevices) const noexcept;
 
             /**
              * This is a debug facility only, to observe consistency

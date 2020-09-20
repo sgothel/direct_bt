@@ -237,7 +237,7 @@ DBTAdapter::~DBTAdapter() {
 void DBTAdapter::poweredOff() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
 
-    DBG_PRINT("DBTAdapter::poweredOff: ... %p %s", this, toString().c_str());
+    DBG_PRINT("DBTAdapter::poweredOff: ... %p %s", this, toString(false).c_str());
     keepDiscoveringAlive = false;
 
     if( nullptr != hci ) {
@@ -628,13 +628,13 @@ void DBTAdapter::removeDevice(DBTDevice & device) {
     removeSharedDevice(device);
 }
 
-std::string DBTAdapter::toString() const noexcept {
+std::string DBTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
     std::string out("Adapter[BTMode "+getBTModeString(btMode)+", "+getAddressString()+", '"+getName()+"', id "+std::to_string(dev_id)+
                     ", curSettings"+getAdapterSettingsString(adapterInfo->getCurrentSetting())+
                     ", scanType[native "+getScanTypeString(currentNativeScanType)+", meta "+getScanTypeString(currentMetaScanType)+"]"
                     ", "+javaObjectToString()+"]");
     std::vector<std::shared_ptr<DBTDevice>> devices = getDiscoveredDevices();
-    if(devices.size() > 0 ) {
+    if( includeDiscoveredDevices && devices.size() > 0 ) {
         out.append("\n");
         for(auto it = devices.begin(); it != devices.end(); it++) {
             std::shared_ptr<DBTDevice> p = *it;
@@ -694,10 +694,16 @@ bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) {
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(e.get());
     AdapterSetting old_setting = adapterInfo->getCurrentSetting();
     AdapterSetting changes = adapterInfo->setCurrentSetting(event.getSettings());
-    COND_PRINT(debug_event, "DBTAdapter::EventCB:NewSettings: %s -> %s, changes %s",
+    {
+        const BTMode _btMode = adapterInfo->getCurrentBTMode();
+        if( BTMode::NONE != _btMode ) {
+            btMode = _btMode;
+        }
+    }
+    COND_PRINT(debug_event, "DBTAdapter::EventCB:NewSettings: %s -> %s, changes %s: %s",
             getAdapterSettingsString(old_setting).c_str(),
             getAdapterSettingsString(adapterInfo->getCurrentSetting()).c_str(),
-            getAdapterSettingsString(changes).c_str() );
+            getAdapterSettingsString(changes).c_str(), toString(false).c_str() );
 
     int i=0;
     for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
@@ -706,7 +712,7 @@ bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) {
         } catch (std::exception &e) {
             ERR_PRINT("DBTAdapter::EventCB:NewSettings-CBs %d/%zd: %s of %s: Caught exception %s",
                     i+1, statusListenerList.size(),
-                    l->toString().c_str(), toString().c_str(), e.what());
+                    l->toString().c_str(), toString(false).c_str(), e.what());
         }
         i++;
     });
