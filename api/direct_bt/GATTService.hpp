@@ -69,15 +69,7 @@ namespace direct_bt {
             /** Service's GATTHandler weak back-reference */
             std::weak_ptr<GATTHandler> wbr_handler;
 
-            /**
-             * For an unknown reason, using the virtual function 'toString()'
-             * while constructing an exception message causes a SIGSEGV.
-             * <p>
-             * This method represents a non-virtual variation,
-             * which also does not call any other virtual function.
-             * </p>
-             */
-            std::string toSafeString() const noexcept;
+            std::string toShortString() const noexcept;
 
         public:
             const bool isPrimary;

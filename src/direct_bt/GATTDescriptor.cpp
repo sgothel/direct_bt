@@ -46,7 +46,7 @@ const uuid16_t GATTDescriptor::TYPE_CCC_DESC(Type::CLIENT_CHARACTERISTIC_CONFIGU
 std::shared_ptr<GATTCharacteristic> GATTDescriptor::getCharacteristicChecked() const {
     std::shared_ptr<GATTCharacteristic> ref = wbr_characteristic.lock();
     if( nullptr == ref ) {
-        throw IllegalStateException("GATTDescriptor's characteristic already destructed: "+toSafeString(), E_FILE_LINE);
+        throw IllegalStateException("GATTDescriptor's characteristic already destructed: "+toShortString(), E_FILE_LINE);
     }
     return ref;
 }
@@ -63,7 +63,7 @@ bool GATTDescriptor::readValue(int expectedLength) {
     std::shared_ptr<DBTDevice> device = getDeviceChecked();
     std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
     if( nullptr == gatt ) {
-        throw IllegalStateException("Descriptor's device GATTHandle not connected: "+toSafeString(), E_FILE_LINE);
+        throw IllegalStateException("Descriptor's device GATTHandle not connected: "+toShortString(), E_FILE_LINE);
     }
     return gatt->readDescriptorValue(*this, expectedLength);
 }
@@ -72,7 +72,7 @@ bool GATTDescriptor::writeValue() {
     std::shared_ptr<DBTDevice> device = getDeviceChecked();
     std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
     if( nullptr == gatt ) {
-        throw IllegalStateException("Descriptor's device GATTHandle not connected: "+toSafeString(), E_FILE_LINE);
+        throw IllegalStateException("Descriptor's device GATTHandle not connected: "+toShortString(), E_FILE_LINE);
     }
     return gatt->writeDescriptorValue(*this);
 }
@@ -81,6 +81,6 @@ std::string GATTDescriptor::toString() const noexcept {
     return "[type 0x"+type->toString()+", handle "+uint16HexString(handle)+", value["+value.toString()+"]]";
 }
 
-std::string GATTDescriptor::toSafeString() const noexcept {
+std::string GATTDescriptor::toShortString() const noexcept {
     return "[handle "+uint16HexString(handle)+", value["+value.toString()+"]]";
 }

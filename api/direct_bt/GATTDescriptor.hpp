@@ -65,15 +65,7 @@ namespace direct_bt {
             /** Descriptor's characteristic weak back-reference */
             std::weak_ptr<GATTCharacteristic> wbr_characteristic;
 
-            /**
-             * For an unknown reason, using the virtual function 'toString()'
-             * while constructing an exception message causes a SIGSEGV.
-             * <p>
-             * This method represents a non-virtual variation,
-             * which also does not call any other virtual function.
-             * </p>
-             */
-            std::string toSafeString() const noexcept;
+            std::string toShortString() const noexcept;
 
         public:
             static const uuid16_t TYPE_EXT_PROP;

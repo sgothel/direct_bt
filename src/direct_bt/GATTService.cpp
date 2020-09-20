@@ -43,7 +43,7 @@ using namespace direct_bt;
 std::shared_ptr<GATTHandler> GATTService::getGATTHandlerChecked() const {
     std::shared_ptr<GATTHandler> ref = wbr_handler.lock();
     if( nullptr == ref ) {
-        throw IllegalStateException("GATTService's GATTHandler already destructed: "+toSafeString(), E_FILE_LINE);
+        throw IllegalStateException("GATTService's GATTHandler already destructed: "+toShortString(), E_FILE_LINE);
     }
     return ref;
 }
@@ -70,7 +70,7 @@ std::string GATTService::toString() const noexcept {
                 name+", "+std::to_string(characteristicList.size())+" characteristics";
 }
 
-std::string GATTService::toSafeString() const noexcept {
+std::string GATTService::toShortString() const noexcept {
     std::string name = "";
     if( uuid_t::TypeSize::UUID16_SZ == type->getTypeSize() ) {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(type.get()))->value;
