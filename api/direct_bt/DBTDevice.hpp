@@ -230,6 +230,10 @@ namespace direct_bt {
              * <p>
              * Set window to the same value as the interval, enables continuous scanning.
              * </p>
+             * <p>
+             * The associated DBTAdapter's HCIHandler instance is used to connect,
+             * see HCIHandler::le_create_conn().
+             * </p>
              *
              * @param le_scan_interval in units of 0.625ms, default value 48 for 30ms, min value 4 for 2.5ms -> 0x4000 for 10.24s
              * @param le_scan_window in units of 0.625ms, default value 48 for 30ms,  min value 4 for 2.5ms -> 0x4000 for 10.24s. Shall be <= le_scan_interval
@@ -261,6 +265,10 @@ namespace direct_bt {
              * <p>
              * The device is tracked by the managing adapter.
              * </p>
+             * <p>
+             * The associated DBTAdapter's HCIHandler instance is used to connect,
+             * see HCIHandler::create_conn().
+             * </p>
              * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */
             HCIStatusCode connectBREDR(const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
@@ -283,6 +291,9 @@ namespace direct_bt {
              * or if failed via AdapterStatusListener::deviceDisconnected(..).
              * <p>
              * The device is tracked by the managing adapter.
+             * </p>
+             * <p>
+             * See connectLE() and connectBREDR() for more details.
              * </p>
              * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */
@@ -313,6 +324,10 @@ namespace direct_bt {
              * An application using one thread per device and rapid connect, should either use disconnect() or remove(),
              * but never issue remove() after disconnect(). Doing so would eventually delete the device being already
              * in use by another thread due to discovery post disconnect!
+             * </p>
+             * <p>
+             * The associated DBTAdapter's HCIHandler instance is used to disconnect,
+             * see HCIHandler::disconnect().
              * </p>
              * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */

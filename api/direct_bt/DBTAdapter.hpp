@@ -447,7 +447,8 @@ namespace direct_bt {
              * and usual discovery intervals etc.
              * </p>
              * <p>
-             * This adapter's DBTManager instance is used, i.e. the management channel.
+             * This adapter's HCIHandler instance is used to initiate scanning,
+             * see HCIHandler::le_set_scan_param() and HCIHandler::le_enable_scan().
              * </p>
              * <p>
              * Method will always clear previous discovered devices via removeDiscoveredDevices().
@@ -464,7 +465,8 @@ namespace direct_bt {
             /**
              * Closes the discovery session.
              * <p>
-             * This adapter's DBTManager instance is used, i.e. the management channel.
+             * This adapter's HCIHandler instance is used to stop scanning,
+             * see HCIHandler::le_enable_scan().
              * </p>
              * @return true if no error, otherwise false.
              */
