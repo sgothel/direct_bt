@@ -371,6 +371,13 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
                         }
                     }
                 }
+                std::vector<GATTDescriptorRef> & charDescList = serviceChar.descriptorList;
+                for(size_t k=0; k<charDescList.size(); k++) {
+                    GATTDescriptor & charDesc = *charDescList.at(k);
+                    if( !SILENT_GATT ) {
+                        fprintf(stderr, "  [%2.2d.%2.2d.%2.2d] Desc: %s\n", (int)i, (int)j, (int)k, charDesc.toString().c_str());
+                    }
+                }
                 bool cccdEnableResult[2];
                 bool cccdRet = serviceChar.addCharacteristicListener( std::shared_ptr<GATTCharacteristicListener>( new MyGATTEventListener(&serviceChar) ),
                                                                       cccdEnableResult );

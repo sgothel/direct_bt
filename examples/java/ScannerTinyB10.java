@@ -41,6 +41,7 @@ import org.tinyb.BTMode;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothGattCharacteristic;
+import org.tinyb.BluetoothGattDescriptor;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
@@ -353,18 +354,19 @@ public class ScannerTinyB10 {
             }
 
             try {
-                int i=0, j=0;
+                int i=0;
                 for(final Iterator<BluetoothGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
                     final BluetoothGattService primService = srvIter.next();
                     if( !SILENT_GATT ) {
                         printf("  [%02d] Service %s\n", i, primService.toString());
                         printf("  [%02d] Service Characteristics\n", i);
                     }
+                    int j=0;
                     final List<BluetoothGattCharacteristic> serviceCharacteristics = primService.getCharacteristics();
                     for(final Iterator<BluetoothGattCharacteristic> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
                         final BluetoothGattCharacteristic serviceChar = charIter.next();
                         if( !SILENT_GATT ) {
-                            printf("  [%02d.%02d] CharDec: %s\n", i, j, serviceChar.toString());
+                            printf("  [%02d.%02d] CharDef: %s\n", i, j, serviceChar.toString());
                         }
                         final List<String> properties = Arrays.asList(serviceChar.getFlags());
                         if( properties.contains("read") ) {
@@ -373,6 +375,14 @@ public class ScannerTinyB10 {
                             if( !SILENT_GATT ) {
                                 printf("  [%02d.%02d] CharVal: %s ('%s')\n",
                                         i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
+                            }
+                        }
+                        int k=0;
+                        final List<BluetoothGattDescriptor> charDescList = serviceChar.getDescriptors();
+                        for(final Iterator<BluetoothGattDescriptor> descIter = charDescList.iterator(); descIter.hasNext(); k++) {
+                            final BluetoothGattDescriptor charDesc = descIter.next();
+                            if( !SILENT_GATT ) {
+                                printf("  [%02d.%02d.%02d] Desc: %s\n", i, j, k, charDesc.toString());
                             }
                         }
                     }
