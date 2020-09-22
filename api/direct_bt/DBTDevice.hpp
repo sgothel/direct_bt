@@ -336,6 +336,40 @@ namespace direct_bt {
             }
 
             /**
+             * The device is securely paired with PasskeyEntry or JustWorks.
+             * <p>
+             * The device must be connected before pairing, see connectDefault().
+             * </p>
+             * <p>
+             * If passkey is an empty string, JustWorks method is being used, otherwise PasskeyEntry.
+             * </p>
+             * @param passkey optional secret used for PasskeyEntry method.
+             *        Will be encrypted before sending to counterparty.
+             *        Can be an empty string, in which case JustWork method is used.
+             *
+             * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
+             */
+            HCIStatusCode pair(const std::string & passkey);
+
+            /**
+             * Returns a vector of supported PairingMode by the device.
+             * <p>
+             * The device must be connected before querying this status, see connectDefault(). FIXME?
+             * </p>
+             * @return vector of supported PairingMode, empty if pairing is not supported.
+             */
+            std::vector<PairingMode> getSupportedPairingModes();
+
+            /**
+             * Returns a vector of required PairingMode by the device.
+             * <p>
+             * The device must be connected before querying this status, see connectDefault(). FIXME?
+             * </p>
+             * @return vector of required PairingMode, empty if pairing is not required.
+             */
+            std::vector<PairingMode> getRequiredPairingModes();
+
+            /**
              * Disconnects this device via disconnect(..) and
              * explicitly removes its shared references from the Adapter:
              * connected-devices, discovered-devices and shared-devices.

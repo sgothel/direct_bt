@@ -46,6 +46,7 @@ import org.tinyb.BluetoothType;
 import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
+import org.tinyb.PairingMode;
 
 public class DBTDevice extends DBTObject implements BluetoothDevice
 {
@@ -131,6 +132,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         }
         @Override
         public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
+            devicePaired(false);
+
             if( isConnected.compareAndSet(true, false) ) {
                 clearServiceCache();
                 synchronized(userCallbackLock) {
@@ -164,20 +167,22 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         }
     };
 
+    final private void devicePaired(final boolean _isPaired) {
+        if( DEBUG ) {
+            System.err.println("Device.PairedNotification: "+isPaired+" -> "+_isPaired+" on "+DBTDevice.this.toString());
+        }
+        if( isPaired.compareAndSet(!_isPaired, _isPaired) ) {
+            synchronized(userCallbackLock) {
+                if( null != userPairedNotificationsCB ) {
+                    userPairedNotificationsCB.run(_isPaired);
+                }
+            }
+        }
+    }
     final private BluetoothNotification<Boolean> pairedNotificationsCB = new BluetoothNotification<Boolean>() {
         @Override
         public void run(final Boolean value) {
-            if( DEBUG ) {
-                System.err.println("Device.PairedNotification: "+isPaired+" -> "+value+" on "+DBTDevice.this.toString());
-            }
-            final boolean _isPaired = value.booleanValue();
-            if( isPaired.compareAndSet(!_isPaired, _isPaired) ) {
-                synchronized(userCallbackLock) {
-                    if( null != userPairedNotificationsCB ) {
-                        userPairedNotificationsCB.run(value);
-                    }
-                }
-            }
+            devicePaired( value.booleanValue() );
         }
     };
 
@@ -321,10 +326,51 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public final BluetoothDevice clone() { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
-    public boolean pair() throws BluetoothException { throw new UnsupportedOperationException(); } // FIXME
+    public final boolean pair() throws BluetoothException {
+        return HCIStatusCode.SUCCESS == pair(null);
+    }
 
     @Override
-    public boolean cancelPairing() throws BluetoothException { throw new UnsupportedOperationException(); } // FIXME
+    public HCIStatusCode pair(final String passkey) throws BluetoothException {
+        if( !getConnected() ) {
+            throw new IllegalStateException("Device must be connected first: "+toString());
+        }
+        final HCIStatusCode res = HCIStatusCode.get( pairImpl(passkey) );
+
+        // Secure Pairing (paired == true) has no explicit notification
+        devicePaired( HCIStatusCode.SUCCESS == res );
+
+        return res;
+    }
+    private native byte pairImpl(final String passkey) throws BluetoothException;
+
+    @Override
+    public final PairingMode[] getSupportedPairingModes() throws BluetoothException {
+        final byte[] res0 = getSupportedPairingModesImpl();
+        final PairingMode[] res1 = new PairingMode[res0.length];
+        for(int i=0; i<res0.length; i++) {
+            res1[i] = PairingMode.get(res0[i]);
+        }
+        return res1;
+    }
+    private native byte[] getSupportedPairingModesImpl() throws BluetoothException;
+
+    @Override
+    public final PairingMode[] getRequiredPairingModes() throws BluetoothException {
+        final byte[] res0 = getRequiredPairingModesImpl();
+        final PairingMode[] res1 = new PairingMode[res0.length];
+        for(int i=0; i<res0.length; i++) {
+            res1[i] = PairingMode.get(res0[i]);
+        }
+        return res1;
+    }
+    private native byte[] getRequiredPairingModesImpl() throws BluetoothException;
+
+    @Override
+    public final boolean cancelPairing() throws BluetoothException {
+        // FIXME: Not supporter (yet)
+        return false;
+    }
 
     @Override
     public String getAlias() { return null; } // FIXME
@@ -491,7 +537,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     }
 
     @Override
-    public boolean getPaired() { return isPaired.get(); }
+    public final boolean getPaired() { return isPaired.get(); }
 
     @Override
     public void enableTrustedNotifications(final BluetoothNotification<Boolean> callback) {
@@ -542,7 +588,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     private native void disableBlockedNotificationsImpl();
     private native void setBlockedImpl(final boolean value);
 
-    // FIXME: Figure out paired:=true, as currently we only attach to unpaired
+    // Note that this is only called natively for unpaired, i.e. paired:=false. Using deviceConnected for paired:=true.
     private native void enablePairedNotificationsImpl(BluetoothNotification<Boolean> callback);
     private native void disablePairedNotificationsImpl();
 

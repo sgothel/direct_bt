@@ -43,6 +43,7 @@ import org.tinyb.BluetoothType;
 import org.tinyb.BluetoothUtils;
 import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
+import org.tinyb.PairingMode;
 
 public class DBusDevice extends DBusObject implements BluetoothDevice
 {
@@ -105,7 +106,20 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     @Override
     public native boolean pair() throws BluetoothException;
 
-     @Override
+    @Override
+    public HCIStatusCode pair(final String passkey) throws BluetoothException { return HCIStatusCode.INTERNAL_FAILURE; }
+
+    @Override
+    public final PairingMode[] getSupportedPairingModes() throws BluetoothException {
+        return new PairingMode[0];
+    }
+
+    @Override
+    public final PairingMode[] getRequiredPairingModes() throws BluetoothException {
+        return new PairingMode[0];
+    }
+
+    @Override
     public native boolean remove() throws BluetoothException;
 
     @Override

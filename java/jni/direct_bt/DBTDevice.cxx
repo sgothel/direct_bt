@@ -357,6 +357,66 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_connectImpl__SSSSSS(JNIEnv *env, jobject o
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
+jbyte Java_direct_1bt_tinyb_DBTDevice_pairImpl(JNIEnv *env, jobject obj, jstring jpasskey)
+{
+    try {
+        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        const std::string passkey = nullptr != jpasskey ? from_jstring_to_string(env, jpasskey) : std::string();
+        HCIStatusCode res = device->pair(passkey);
+        return (jbyte) number(res);
+
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+}
+
+jbyteArray Java_direct_1bt_tinyb_DBTDevice_getSupportedPairingModesImpl(JNIEnv *env, jobject obj) {
+    try {
+        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        std::vector<PairingMode> res0 = device->getSupportedPairingModes();
+        const size_t value_size = res0.size();
+
+        uint8_t res1[value_size];
+        for(size_t i=0; i < value_size; i++) {
+            res1[i] = number(res0[i]);
+        }
+        jbyteArray jres = env->NewByteArray((jsize)value_size);
+        env->SetByteArrayRegion(jres, 0, (jsize)value_size, (const jbyte *)res1);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        return jres;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
+jbyteArray Java_direct_1bt_tinyb_DBTDevice_getRequiredPairingModesImpl(JNIEnv *env, jobject obj) {
+    try {
+        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        std::vector<PairingMode> res0 = device->getRequiredPairingModes();
+        const size_t value_size = res0.size();
+
+        uint8_t res1[value_size];
+        for(size_t i=0; i < value_size; i++) {
+            res1[i] = number(res0[i]);
+        }
+        jbyteArray jres = env->NewByteArray((jsize)value_size);
+        env->SetByteArrayRegion(jres, 0, (jsize)value_size, (const jbyte *)res1);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        return jres;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
 //
 // getter
 //
@@ -742,7 +802,7 @@ void Java_direct_1bt_tinyb_DBTDevice_enablePairedNotificationsImpl(JNIEnv *env, 
         // move BooleanDeviceCBContextRef into CaptureInvocationFunc and operator== includes javaCallback comparison
         FunctionDef<bool, std::shared_ptr<MgmtEvent>> funcDef = bindCaptureFunc(BooleanDeviceCBContextRef(ctx), nativeCallback);
         setObjectRef(env, obj, funcDef.cloneFunction(), "pairedNotificationRef"); // set java ref
-        // FIXME: Figure out paired:=true, as currently we only attach to unpaired
+        // Note that this is only called natively for unpaired, i.e. paired:=false. Using deviceConnected for paired:=true on Java side
         mgmt.addMgmtEventCallback(adapter.dev_id, MgmtEvent::Opcode::DEVICE_UNPAIRED, funcDef);
     } catch(...) {
         rethrow_and_raise_java_exception(env);

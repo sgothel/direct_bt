@@ -50,6 +50,7 @@ import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.HCIWhitelistConnectType;
+import org.tinyb.PairingMode;
 
 import direct_bt.tinyb.DBTManager;
 
@@ -261,6 +262,32 @@ public class ScannerTinyB10 {
 
         final long t1 = BluetoothUtils.getCurrentMilliseconds();
         boolean success = false;
+
+        // Secure Pairing
+        {
+            final List<PairingMode> spm = Arrays.asList(device.getSupportedPairingModes());
+            println("Supported Secure Pairing Modes: " + spm.toString());
+            final List<PairingMode> rpm = Arrays.asList(device.getRequiredPairingModes());
+            println("Required Secure Pairing Modes: " + spm.toString());
+
+            if( spm.contains(PairingMode.JUST_WORKS) ) {
+                final HCIStatusCode res = device.pair(null); // empty for JustWorks
+                println("Secure Pairing Just Works result " + res + " of " + device);
+            } else if( spm.contains(PairingMode.PASSKEY_ENTRY) ) {
+                final HCIStatusCode res = device.pair("111111"); // PasskeyEntry
+                println("Secure Pairing Passkey Entry result " + res + " of " + device);
+            } else {
+                println("Secure Pairing JUST_WORKS or PASSKEY_ENTRY not supported, but " + spm.toString() + " on " + device);
+            }
+            {
+                final HCIStatusCode res = device.pair(null); // empty for JustWorks
+                println("T1 Processing Device: Secure Pairing Just Works result " + res + " of " + device);
+            }
+            {
+                final HCIStatusCode res = device.pair("111111"); // PasskeyEntry
+                println("T2 Processing Device: Secure Pairing Passkey Entry result " + res + " of " + device);
+            }
+        }
 
         //
         // GATT Service Processing

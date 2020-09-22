@@ -177,11 +177,59 @@ public interface BluetoothDevice extends BluetoothObject
       */
     boolean disconnectProfile(String arg_UUID) throws BluetoothException;
 
-    /** A connection to this device is established, and the device is then
-      * paired.
-      * @return TRUE if the device connected and paired
-      */
+    /**
+     * A secure connection to this device is established, and the device is then paired.
+     * <p>
+     * Use {@link #pair(int[])} for direct_bt
+     * </p>
+     * @return TRUE if the device connected and paired
+     * @implNote secure pairing with JustWorks method on direct_bt.tinyb,
+     *           but device must be {@link #connect(short, short, short, short, short, short)} before.
+     *           Use {@link #pair(int[])}
+     */
     boolean pair() throws BluetoothException;
+
+    /**
+     * The device is securely paired with PasskeyEntry or JustWorks.
+     * <p>
+     * The device must be {@link #connect(short, short, short, short, short, short) connected}
+     * before pairing.
+     * </p>
+     * <p>
+     * If passkey is null or an empty string, JustWorks method is being used, otherwise PasskeyEntry.
+     * </p>
+     * @param passkey the optional secret used for secure PasskeyEntry method.
+     *        Will be encrypted before sending to counterparty.
+     *        Can be null or an empty string, in which case JustWork method is used.
+     * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
+     * @since 2.1.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    HCIStatusCode pair(final String passkey) throws BluetoothException;
+
+    /**
+     * Returns a vector of supported PairingMode by the device.
+     * <p>
+     * The device must be {@link #connect(short, short, short, short, short, short) connected}
+     * before querying this status. FIXME?
+     * </p>
+     * @return array of supported PairingMode, empty if pairing is not supported.
+     * @since 2.1.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    PairingMode[] getSupportedPairingModes() throws BluetoothException;
+
+    /**
+     * Returns a vector of required PairingMode by the device.
+     * <p>
+     * The device must be {@link #connect(short, short, short, short, short, short) connected}
+     * before querying this status. FIXME?
+     * </p>
+     * @return array of required PairingMode, empty if pairing is not required.
+     * @since 2.1.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    PairingMode[] getRequiredPairingModes() throws BluetoothException;
 
     /**
      * Remove this device from the system (like an unpair).

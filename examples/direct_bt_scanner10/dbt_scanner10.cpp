@@ -275,6 +275,39 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
     const uint64_t t1 = getCurrentMilliseconds();
     bool success = false;
 
+    // Secure Pairing
+    {
+        std::vector<PairingMode> spm = device->getSupportedPairingModes();
+        fprintf(stderr, "Supported Secure Pairing Modes: ");
+        std::for_each(spm.begin(), spm.end(), [](PairingMode pm) { fprintf(stderr, "%s, ", getPairingModeString(pm).c_str()); } );
+        fprintf(stderr, "\n");
+
+        std::vector<PairingMode> rpm = device->getRequiredPairingModes();
+        fprintf(stderr, "Required Secure Pairing Modes: ");
+        std::for_each(rpm.begin(), rpm.end(), [](PairingMode pm) { fprintf(stderr, "%s, ", getPairingModeString(pm).c_str()); } );
+        fprintf(stderr, "\n");
+
+        if( spm.end() != std::find (spm.begin(), spm.end(), PairingMode::JUST_WORKS) ) {
+            const std::vector<int> passkey; // empty for JustWorks
+            HCIStatusCode res = device->pair(""); // empty for JustWorks
+            fprintf(stderr, "Secure Pairing Just Works result %s of %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
+        } else if( spm.end() != std::find (spm.begin(), spm.end(), PairingMode::PASSKEY_ENTRY) ) {
+            HCIStatusCode res = device->pair("111111"); // PasskeyEntry
+            fprintf(stderr, "Secure Pairing Passkey Entry result %s of %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
+        } else {
+            fprintf(stderr, "Secure Pairing JUST_WORKS or PASSKEY_ENTRY not supported %s\n", device->toString().c_str());
+        }
+        {
+            const std::vector<int> passkey; // empty for JustWorks
+            HCIStatusCode res = device->pair(""); // empty for JustWorks
+            fprintf(stderr, "T1 Secure Pairing Just Works result %s of %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
+        }
+        {
+            HCIStatusCode res = device->pair("111111"); // PasskeyEntry
+            fprintf(stderr, "T2 Secure Pairing Passkey Entry result %s of %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
+        }
+    }
+
     //
     // GATT Service Processing
     //

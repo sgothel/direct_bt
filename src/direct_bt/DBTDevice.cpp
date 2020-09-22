@@ -480,6 +480,21 @@ exit:
     return res;
 }
 
+std::vector<PairingMode> DBTDevice::getSupportedPairingModes() {
+    std::vector<PairingMode> pairingModes; // FIXME: Implement LE Secure Connections
+    return pairingModes;
+}
+
+std::vector<PairingMode> DBTDevice::getRequiredPairingModes() {
+    std::vector<PairingMode> pairingModes; // FIXME: Implement LE Secure Connections
+    return pairingModes;
+}
+
+HCIStatusCode DBTDevice::pair(const std::string & passkey) {
+    (void) passkey;
+    return HCIStatusCode::INTERNAL_FAILURE; // FIXME: Implement LE Secure Connections
+}
+
 void DBTDevice::remove() {
     adapter.removeDevice(*this);
 }

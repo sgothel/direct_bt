@@ -59,9 +59,40 @@ namespace direct_bt {
     /**
      * Maps the specified name to a constant of BTMode.
      * @param name the string name to be mapped to a constant of this enum type.
-     * @return the corresponding constant of this enum type, using {@link BRMode#NONE} if not supported.
+     * @return the corresponding constant of this enum type, using {@link BTMode#NONE} if not supported.
      */
     BTMode getBTMode(const std::string & value) noexcept;
+
+    /**
+     * Bluetooth secure pairing mode
+     * <pre>
+     * BT Core Spec v5.2: Vol 1, Part A, 5 Security Overview
+     * BT Core Spec v5.2: Vol 1, Part A, 5.4 LE SECURITY
+     * </pre>
+     */
+    enum class PairingMode : uint8_t {
+        /** No pairing mode, implying no secure connections, no encryption and no MITM protection. */
+        NONE               = 0,
+        /** Just Works. Random key exchange with encryption but no MITM protection. */
+        JUST_WORKS         = 1,
+        /** Passkey Entry. A known digit sequence (PIN) must be given as a secret to be validated on the device. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
+        PASSKEY_ENTRY      = 2,
+        /** Visual numeric comparison of digit sequence (PIN) shown on both devices, peripheral and host, to be answered. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
+        NUMERIC_COMPARISON = 3,
+        /** Utilizing a second factor secret to be used as a secret, e.g. NFC field. Random key exchange with additional secret (2FA) and encryption and potential MITM protection. */
+        OUT_OF_BAND        = 4
+    };
+    inline uint8_t number(const PairingMode rhs) noexcept {
+        return static_cast<uint8_t>(rhs);
+    }
+    std::string getPairingModeString(const PairingMode v) noexcept;
+
+    /**
+     * Maps the specified name to a constant of PairingMode.
+     * @param name the string name to be mapped to a constant of this enum type.
+     * @return the corresponding constant of this enum type, using {@link PairingMode#NONE} if not supported.
+     */
+    PairingMode getPairingMode(const std::string & value) noexcept;
 
     /**
      * Meta ScanType as derived from BTMode,
