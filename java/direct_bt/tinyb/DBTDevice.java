@@ -345,22 +345,22 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     private native byte pairImpl(final String passkey) throws BluetoothException;
 
     @Override
-    public final PairingMode[] getSupportedPairingModes() throws BluetoothException {
+    public final List<PairingMode> getSupportedPairingModes() throws BluetoothException {
         final byte[] res0 = getSupportedPairingModesImpl();
-        final PairingMode[] res1 = new PairingMode[res0.length];
+        final ArrayList<PairingMode> res1 = new ArrayList<PairingMode>(res0.length);
         for(int i=0; i<res0.length; i++) {
-            res1[i] = PairingMode.get(res0[i]);
+            res1.add( PairingMode.get(res0[i]) );
         }
         return res1;
     }
     private native byte[] getSupportedPairingModesImpl() throws BluetoothException;
 
     @Override
-    public final PairingMode[] getRequiredPairingModes() throws BluetoothException {
+    public final List<PairingMode> getRequiredPairingModes() throws BluetoothException {
         final byte[] res0 = getRequiredPairingModesImpl();
-        final PairingMode[] res1 = new PairingMode[res0.length];
+        final ArrayList<PairingMode> res1 = new ArrayList<PairingMode>(res0.length);
         for(int i=0; i<res0.length; i++) {
-            res1[i] = PairingMode.get(res0[i]);
+            res1.add( PairingMode.get(res0[i]) );
         }
         return res1;
     }

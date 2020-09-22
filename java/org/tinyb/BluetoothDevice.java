@@ -213,11 +213,11 @@ public interface BluetoothDevice extends BluetoothObject
      * The device must be {@link #connect(short, short, short, short, short, short) connected}
      * before querying this status. FIXME?
      * </p>
-     * @return array of supported PairingMode, empty if pairing is not supported.
+     * @return list of supported PairingMode, empty if pairing is not supported.
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
      */
-    PairingMode[] getSupportedPairingModes() throws BluetoothException;
+    List<PairingMode> getSupportedPairingModes() throws BluetoothException;
 
     /**
      * Returns a vector of required PairingMode by the device.
@@ -225,11 +225,11 @@ public interface BluetoothDevice extends BluetoothObject
      * The device must be {@link #connect(short, short, short, short, short, short) connected}
      * before querying this status. FIXME?
      * </p>
-     * @return array of required PairingMode, empty if pairing is not required.
+     * @return list of required PairingMode, empty if pairing is not required.
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
      */
-    PairingMode[] getRequiredPairingModes() throws BluetoothException;
+    List<PairingMode> getRequiredPairingModes() throws BluetoothException;
 
     /**
      * Remove this device from the system (like an unpair).

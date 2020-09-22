@@ -267,9 +267,10 @@ public class ScannerTinyB10 {
 
         // Secure Pairing
         {
-            final List<PairingMode> spm = Arrays.asList(device.getSupportedPairingModes());
+            final List<PairingMode> spm = device.getSupportedPairingModes();
             println("Supported Secure Pairing Modes: " + spm.toString());
-            final List<PairingMode> rpm = Arrays.asList(device.getRequiredPairingModes());
+
+            final List<PairingMode> rpm = device.getRequiredPairingModes();
             println("Required Secure Pairing Modes: " + rpm.toString());
 
             if( spm.contains(PairingMode.JUST_WORKS) ) {
