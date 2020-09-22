@@ -235,6 +235,12 @@ namespace direct_bt {
             void startDiscoveryBackground();
             void checkDiscoveryState();
 
+            void sendAdapterSettingsChanged(const AdapterSetting old_settings, const AdapterSetting current_settings,
+                                            const uint64_t timestampMS) noexcept;
+            void sendAdapterSettingsChanged(AdapterStatusListener & asl,
+                                            const AdapterSetting old_settings, const AdapterSetting current_settings,
+                                            const uint64_t timestampMS) noexcept;
+
             void sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask);
 
         public:
@@ -386,6 +392,12 @@ namespace direct_bt {
              * <p>
              * Returns true if the given listener is not element of the list and has been newly added,
              * otherwise false.
+             * </p>
+             * <p>
+             * The newly added AdapterStatusListener will receive an initial
+             * AdapterStatusListener::adapterSettingsChanged(..) event,
+             * passing an empty AdapterSetting::NONE oldMask and current AdapterSetting newMask. <br>
+             * This allows the receiver to be aware of this adapter's current settings.
              * </p>
              */
             bool addStatusListener(std::shared_ptr<AdapterStatusListener> l);

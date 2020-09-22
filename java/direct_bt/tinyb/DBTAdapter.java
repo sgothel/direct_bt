@@ -106,9 +106,16 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         }
 
         // done in native dtor: removeDevicesImpl();
-        discoveredDevices.clear();
+
+        poweredOff();
 
         super.close();
+    }
+
+    private final void poweredOff() {
+        isPowered.set(false);
+        isDiscovering.set(false);
+        discoveredDevices.clear();
     }
 
     @Override
@@ -413,6 +420,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
                 if( changedmask.isSet(AdapterSettings.SettingType.POWERED) ) {
                     final boolean _isPowered = newmask.isSet(AdapterSettings.SettingType.POWERED);
                     if( isPowered.compareAndSet(!_isPowered, _isPowered) ) {
+                        if( !_isPowered ) {
+                            poweredOff();
+                        }
                         synchronized(userCallbackLock) {
                             if( null != userPoweredNotificationCB ) {
                                 userPoweredNotificationCB.run(_isPowered);

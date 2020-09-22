@@ -352,6 +352,12 @@ public interface BluetoothAdapter extends BluetoothObject
 
     /**
      * Add the given {@link AdapterStatusListener} to the list if not already present.
+     * <p>
+     * The newly added {@link AdapterStatusListener} will receive an initial
+     * {@link AdapterStatusListener#adapterSettingsChanged(BluetoothAdapter, AdapterSettings, AdapterSettings, AdapterSettings, long) adapterSettingsChanged}
+     * event, passing an {@link AdapterSettings empty oldMask} and {@link AdapterSettings current newMask}. <br>
+     * This allows the receiver to be aware of this adapter's current settings.
+     * </p>
      * @param listener A {@link AdapterStatusListener} instance
      * @param deviceMatch Optional {@link BluetoothDevice} to be matched before calling any
      *        {@link AdapterStatusListener} {@code device*} methods. Pass {@code null} for no filtering.

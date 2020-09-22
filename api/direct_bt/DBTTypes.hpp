@@ -184,6 +184,7 @@ namespace direct_bt {
     inline void setAdapterSettingSet(AdapterSetting &mask, const AdapterSetting bit) noexcept { mask = mask | bit; }
     std::string getAdapterSettingBitString(const AdapterSetting settingBit) noexcept;
     std::string getAdapterSettingsString(const AdapterSetting settingBitMask) noexcept;
+    inline AdapterSetting getAdapterSettingsDelta(const AdapterSetting setting_a, const AdapterSetting setting_b) noexcept { return setting_a ^ setting_b; }
 
     /** Maps the given {@link AdapterSetting} to {@link BTMode} */
     BTMode getAdapterSettingsBTMode(const AdapterSetting settingMask) noexcept;
@@ -211,7 +212,7 @@ namespace direct_bt {
              */
             AdapterSetting setCurrentSetting(AdapterSetting new_setting) noexcept {
                 new_setting = new_setting & supported_setting;
-                AdapterSetting changes = new_setting ^ current_setting;
+                AdapterSetting changes = getAdapterSettingsDelta(new_setting, current_setting);
 
                 if( AdapterSetting::NONE != changes ) {
                     current_setting = new_setting;

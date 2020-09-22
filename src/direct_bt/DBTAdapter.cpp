@@ -240,10 +240,6 @@ void DBTAdapter::poweredOff() {
     DBG_PRINT("DBTAdapter::poweredOff: ... %p %s", this, toString(false).c_str());
     keepDiscoveringAlive = false;
 
-    if( nullptr != hci ) {
-        hci->clearAllMgmtEventCallbacks();
-    }
-
     // Removes all device references from the lists: connectedDevices, discoveredDevices, sharedDevices
     stopDiscovery();
     disconnectAllDevices();
@@ -322,6 +318,8 @@ bool DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
             ++it;
         }
     }
+    sendAdapterSettingsChanged(*l, AdapterSetting::NONE, this->adapterInfo->getCurrentSetting(), getCurrentMilliseconds());
+
     statusListenerList.push_back(l);
     return true;
 }
@@ -527,11 +525,16 @@ bool DBTAdapter::stopDiscovery() {
         res = true;
     } else {
         // Actual disabling discovery
-        // Will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, don't change current scan-type state here
+        // If le_enable_scan returns HCIStatusCode::SUCCESS, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately,
+        // otherwise we need to send out the event ourselves - assuming a dead controller -> disconnected current scan-type state.
         HCIStatusCode status = hci->le_enable_scan(false /* enable */);
         if( HCIStatusCode::SUCCESS != status ) {
             res = false;
             ERR_PRINT("DBTAdapter::stopDiscovery: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
+
+            // Will issue 'mgmtEvDeviceDiscoveringHCI(..)' and hence AdapterStatusListener.discoveryChanged(..)
+            MgmtEvtDiscovering *e = new MgmtEvtDiscovering(dev_id, ScanType::LE, false);
+            hci->sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
         } else {
             res = true;
         }
@@ -692,23 +695,37 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) {
 bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) {
     COND_PRINT(debug_event, "DBTAdapter::EventCB:NewSettings: %s", e->toString().c_str());
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(e.get());
-    AdapterSetting old_setting = adapterInfo->getCurrentSetting();
-    AdapterSetting changes = adapterInfo->setCurrentSetting(event.getSettings());
+    AdapterSetting old_settings = adapterInfo->getCurrentSetting();
+    /* AdapterSetting changes = */ adapterInfo->setCurrentSetting(event.getSettings());
     {
         const BTMode _btMode = adapterInfo->getCurrentBTMode();
         if( BTMode::NONE != _btMode ) {
             btMode = _btMode;
         }
     }
-    COND_PRINT(debug_event, "DBTAdapter::EventCB:NewSettings: %s -> %s, changes %s: %s",
-            getAdapterSettingsString(old_setting).c_str(),
-            getAdapterSettingsString(adapterInfo->getCurrentSetting()).c_str(),
-            getAdapterSettingsString(changes).c_str(), toString(false).c_str() );
 
+    if( !isPowered() ) {
+        // Adapter has been powered off, close connections and cleanup off-thread.
+        std::thread bg(&DBTAdapter::poweredOff, this);
+        bg.detach();
+    }
+
+    sendAdapterSettingsChanged(old_settings, adapterInfo->getCurrentSetting(), event.getTimestamp());
+    return true;
+}
+
+void DBTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings, const AdapterSetting current_settings,
+                                            const uint64_t timestampMS) noexcept
+{
+    AdapterSetting changes = getAdapterSettingsDelta(current_settings, old_settings);
+    COND_PRINT(debug_event, "DBTAdapter::sendAdapterSettingsChanged: %s -> %s, changes %s: %s",
+            getAdapterSettingsString(old_settings).c_str(),
+            getAdapterSettingsString(current_settings).c_str(),
+            getAdapterSettingsString(changes).c_str(), toString(false).c_str() );
     int i=0;
     for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
-            l->adapterSettingsChanged(*this, old_setting, adapterInfo->getCurrentSetting(), changes, event.getTimestamp());
+            l->adapterSettingsChanged(*this, old_settings, current_settings, changes, timestampMS);
         } catch (std::exception &e) {
             ERR_PRINT("DBTAdapter::EventCB:NewSettings-CBs %d/%zd: %s of %s: Caught exception %s",
                     i+1, statusListenerList.size(),
@@ -716,13 +733,23 @@ bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) {
         }
         i++;
     });
+}
 
-    if( !isPowered() ) {
-        // Adapter has been powered off, close connections and cleanup off-thread.
-        std::thread bg(&DBTAdapter::poweredOff, this);
-        bg.detach();
+void DBTAdapter::sendAdapterSettingsChanged(AdapterStatusListener & asl,
+                                const AdapterSetting old_settings, const AdapterSetting current_settings,
+                                const uint64_t timestampMS) noexcept
+{
+    AdapterSetting changes = getAdapterSettingsDelta(current_settings, old_settings);
+    COND_PRINT(debug_event, "DBTAdapter::sendAdapterSettingsChanged: %s -> %s, changes %s: %s",
+            getAdapterSettingsString(old_settings).c_str(),
+            getAdapterSettingsString(current_settings).c_str(),
+            getAdapterSettingsString(changes).c_str(), toString(false).c_str() );
+    try {
+        asl.adapterSettingsChanged(*this, old_settings, current_settings, changes, timestampMS);
+    } catch (std::exception &e) {
+        ERR_PRINT("DBTAdapter::sendAdapterSettingsChanged-CB: %s of %s: Caught exception %s",
+                asl.toString().c_str(), toString(false).c_str(), e.what());
     }
-    return true;
 }
 
 bool DBTAdapter::mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) {
