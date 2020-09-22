@@ -28,6 +28,7 @@
 
 package tinyb.dbus;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -110,13 +111,13 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public HCIStatusCode pair(final String passkey) throws BluetoothException { return HCIStatusCode.INTERNAL_FAILURE; }
 
     @Override
-    public final PairingMode[] getSupportedPairingModes() throws BluetoothException {
-        return new PairingMode[0];
+    public final List<PairingMode> getSupportedPairingModes() throws BluetoothException {
+        return new ArrayList<PairingMode>(0);
     }
 
     @Override
-    public final PairingMode[] getRequiredPairingModes() throws BluetoothException {
-        return new PairingMode[0];
+    public final List<PairingMode> getRequiredPairingModes() throws BluetoothException {
+        return new ArrayList<PairingMode>(0);
     }
 
     @Override
