@@ -67,7 +67,6 @@ using namespace direct_bt;
 
 GATTEnv::GATTEnv() noexcept
 : exploding( DBTEnv::getExplodingProperties("direct_bt.gatt") ),
-  L2CAP_READER_THREAD_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.gatt.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
   GATT_READ_COMMAND_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.gatt.cmd.read.timeout", 500, 250 /* min */, INT32_MAX /* max */) ),
   GATT_WRITE_COMMAND_REPLY_TIMEOUT(  DBTEnv::getInt32Property("direct_bt.gatt.cmd.write.timeout", 500, 250 /* min */, INT32_MAX /* max */) ),
   GATT_INITIAL_COMMAND_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.gatt.cmd.init.timeout", 2500, 2000 /* min */, INT32_MAX /* max */) ),
@@ -201,7 +200,7 @@ void GATTHandler::l2capReaderThreadImpl() {
             break;
         }
 
-        len = l2cap.read(rbuffer.get_wptr(), rbuffer.getSize(), env.L2CAP_READER_THREAD_POLL_TIMEOUT);
+        len = l2cap.read(rbuffer.get_wptr(), rbuffer.getSize());
         if( 0 < len ) {
             const AttPDUMsg * attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), len);
             const AttPDUMsg::Opcode opc = attPDU->getOpcode();
@@ -263,7 +262,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 delete attPDU; // free unhandled PDU
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
-            IRQ_PRINT("GATTHandler::l2capReaderThread: l2cap read error -> Stop");
+            IRQ_PRINT("GATTHandler::l2capReaderThread: l2cap read error -> Stop; l2cap.read %d", len);
             l2capReaderShallStop = true;
             has_ioerror = true;
         }

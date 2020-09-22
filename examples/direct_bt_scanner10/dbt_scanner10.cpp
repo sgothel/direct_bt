@@ -500,6 +500,8 @@ int main(int argc, char *argv[])
             setenv("direct_bt.verbose", argv[++i], 1 /* overwrite */);
         } else if( !strcmp("-dbt_gatt", argv[i]) && argc > (i+1) ) {
             setenv("direct_bt.gatt", argv[++i], 1 /* overwrite */);
+        } else if( !strcmp("-dbt_l2cap", argv[i]) && argc > (i+1) ) {
+            setenv("direct_bt.l2cap", argv[++i], 1 /* overwrite */);
         } else if( !strcmp("-dbt_hci", argv[i]) && argc > (i+1) ) {
             setenv("direct_bt.hci", argv[++i], 1 /* overwrite */);
         } else if( !strcmp("-dbt_mgmt", argv[i]) && argc > (i+1) ) {
@@ -543,9 +545,10 @@ int main(int argc, char *argv[])
                     "(-mac <device_address>)* (-wl <device_address>)* "
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "
-                    "[-dbt_mgmt cmd.timeout=3000,ringsize=64,... "
-                    "[-dbt_hci cmd.complete.timeout=10000,cmd.status.timeout=3000,ringsize=64,... "
-                    "[-dbt_gatt cmd.read.timeout=500,cmd.write.timeout=500,cmd.init.timeout=2500,ringsize=128,... "
+                    "[-dbt_mgmt cmd.timeout=3000,ringsize=64,...] "
+                    "[-dbt_hci cmd.complete.timeout=10000,cmd.status.timeout=3000,ringsize=64,...] "
+                    "[-dbt_gatt cmd.read.timeout=500,cmd.write.timeout=500,cmd.init.timeout=2500,ringsize=128,...] "
+                    "[-dbt_l2cap reader.timeout=10000,restart.count=0,...] "
                     "\n");
 
     fprintf(stderr, "MULTI_MEASUREMENTS %d\n", MULTI_MEASUREMENTS);

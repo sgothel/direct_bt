@@ -77,7 +77,8 @@ public class ScannerTinyB10 {
     boolean REMOVE_DEVICE = true;
     boolean USE_WHITELIST = false;
     final List<String> whitelist = new ArrayList<String>();
-    final List<String> characteristicList = new ArrayList<String>();
+    final List<String> charIdentifierList = new ArrayList<String>();
+    final List<String> charValueList = new ArrayList<String>();
 
     boolean SHOW_UPDATE_EVENTS = false;
     boolean SILENT_GATT = false;
@@ -269,7 +270,7 @@ public class ScannerTinyB10 {
             final List<PairingMode> spm = Arrays.asList(device.getSupportedPairingModes());
             println("Supported Secure Pairing Modes: " + spm.toString());
             final List<PairingMode> rpm = Arrays.asList(device.getRequiredPairingModes());
-            println("Required Secure Pairing Modes: " + spm.toString());
+            println("Required Secure Pairing Modes: " + rpm.toString());
 
             if( spm.contains(PairingMode.JUST_WORKS) ) {
                 final HCIStatusCode res = device.pair(null); // empty for JustWorks
@@ -314,7 +315,7 @@ public class ScannerTinyB10 {
                         "PERF:  adapter-init to gatt-complete " + td05 + " ms"+System.lineSeparator());
             }
             {
-                for(final String characteristic : characteristicList) {
+                for(final String characteristic : charIdentifierList) {
                     final BluetoothGattCharacteristic char0 = (BluetoothGattCharacteristic)
                             manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, null);
                     final BluetoothGattCharacteristic char1 = (BluetoothGattCharacteristic)
@@ -325,6 +326,31 @@ public class ScannerTinyB10 {
                     println("  over manager: "+char0);
                     println("  over adapter: "+char1);
                     println("  over device : "+char2);
+                    if( null != char2 ) {
+                        final GATTCharacteristicListener charPingPongListener = new GATTCharacteristicListener(null) {
+                            @Override
+                            public void notificationReceived(final BluetoothGattCharacteristic charDecl,
+                                                             final byte[] value, final long timestamp) {
+                                println("****** PingPong GATT notificationReceived: "+charDecl+
+                                        ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                            }
+
+                            @Override
+                            public void indicationReceived(final BluetoothGattCharacteristic charDecl,
+                                                           final byte[] value, final long timestamp, final boolean confirmationSent) {
+                                println("****** PingPong GATT indicationReceived: "+charDecl+
+                                        ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                            }
+                        };
+                        final boolean enabledState[] = { false, false };
+                        final boolean addedCharPingPongListenerRes =
+                                char2.addCharacteristicListener(charPingPongListener, enabledState);
+                          BluetoothGattService.addCharacteristicListenerToAll(device, primServices, charPingPongListener);
+                        if( !SILENT_GATT ) {
+                            println("Added CharPingPongListenerRes: "+addedCharPingPongListenerRes+", enabledState "+Arrays.toString(enabledState));
+                        }
+
+                    }
                 }
             }
             {
@@ -551,6 +577,8 @@ public class ScannerTinyB10 {
                 System.setProperty("direct_bt.verbose", args[++i]);
             } else if( arg.equals("-dbt_gatt") && args.length > (i+1) ) {
                 System.setProperty("direct_bt.gatt", args[++i]);
+            } else if( arg.equals("-dbt_l2cap") && args.length > (i+1) ) {
+                System.setProperty("direct_bt.l2cap", args[++i]);
             } else if( arg.equals("-dbt_hci") && args.length > (i+1) ) {
                 System.setProperty("direct_bt.hci", args[++i]);
             } else if( arg.equals("-dbt_mgmt") && args.length > (i+1) ) {
@@ -598,7 +626,7 @@ public class ScannerTinyB10 {
                     test.whitelist.add(addr);
                     test.USE_WHITELIST = true;
                 } else if( arg.equals("-char") && args.length > (i+1) ) {
-                    test.characteristicList.add(args[++i]);
+                    test.charIdentifierList.add(args[++i]);
                 } else if( arg.equals("-disconnect") ) {
                     test.KEEP_CONNECTED = false;
                 } else if( arg.equals("-keepDevice") ) {
@@ -616,9 +644,10 @@ public class ScannerTinyB10 {
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "+
-                    "[-dbt_mgmt cmd.timeout=3000,ringsize=64,... "+
-                    "[-dbt_hci cmd.complete.timeout=10000,cmd.status.timeout=3000,ringsize=64,... "+
-                    "[-dbt_gatt cmd.read.timeout=500,cmd.write.timeout=500,cmd.init.timeout=2500,ringsize=128,... "+
+                    "[-dbt_mgmt cmd.timeout=3000,ringsize=64,...] "+
+                    "[-dbt_hci cmd.complete.timeout=10000,cmd.status.timeout=3000,ringsize=64,...] "+
+                    "[-dbt_gatt cmd.read.timeout=500,cmd.write.timeout=500,cmd.init.timeout=2500,ringsize=128,...] "+
+                    "[-dbt_l2cap reader.timeout=10000,restart.count=0,...] "+
                     "[-shutdown <int>]'");
         }
 
@@ -632,7 +661,7 @@ public class ScannerTinyB10 {
 
         println("dev_id "+test.dev_id);
         println("waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));
-        println("characteristicList: "+Arrays.toString(test.characteristicList.toArray()));
+        println("characteristicList: "+Arrays.toString(test.charIdentifierList.toArray()));
 
         if( waitForEnter ) {
             println("Press ENTER to continue\n");

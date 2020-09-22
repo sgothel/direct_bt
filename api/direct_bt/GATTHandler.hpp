@@ -71,17 +71,9 @@ namespace direct_bt {
 
         public:
             /**
-             * L2CAP poll timeout for reader thread, defaults to 10s.
-             * <p>
-             * Environment variable is 'direct_bt.gatt.reader.timeout'.
-             * </p>
-             */
-            const int32_t L2CAP_READER_THREAD_POLL_TIMEOUT;
-
-            /**
              * Timeout for GATT read command replies, defaults to 500ms.
              * <p>
-             * Environment variable is 'direct_bt.gatt.read.timeout'.
+             * Environment variable is 'direct_bt.gatt.cmd.read.timeout'.
              * </p>
              */
             const int32_t GATT_READ_COMMAND_REPLY_TIMEOUT;
@@ -89,7 +81,7 @@ namespace direct_bt {
             /**
              * Timeout for GATT write command replies, defaults to 500ms.
              * <p>
-             * Environment variable is 'direct_bt.gatt.write.timeout'.
+             * Environment variable is 'direct_bt.gatt.cmd.write.timeout'.
              * </p>
              */
             const int32_t GATT_WRITE_COMMAND_REPLY_TIMEOUT;
@@ -97,7 +89,7 @@ namespace direct_bt {
             /**
              * Timeout for l2cap _initial_ command reply, defaults to 2500ms.
              * <p>
-             * Environment variable is 'direct_bt.gatt.init.timeout'.
+             * Environment variable is 'direct_bt.gatt.cmd.init.timeout'.
              * </p>
              */
             const int32_t GATT_INITIAL_COMMAND_REPLY_TIMEOUT;

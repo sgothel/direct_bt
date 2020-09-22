@@ -51,6 +51,14 @@ extern "C" {
 
 using namespace direct_bt;
 
+L2CAPEnv::L2CAPEnv() noexcept
+: exploding( DBTEnv::getExplodingProperties("direct_bt.l2cap") ),
+  L2CAP_READER_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.l2cap.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
+  L2CAP_RESTART_COUNT_ON_ERROR( DBTEnv::getInt32Property("direct_bt.l2cap.restart.count", 5, INT32_MIN /* min */, INT32_MAX /* max */) ), // FIXME: Move to L2CAPComm
+  DEBUG_DATA( DBTEnv::getBooleanProperty("direct_bt.debug.l2cap.data", false) )
+{
+}
+
 int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const bool pubaddrAdapter) {
     sockaddr_l2 a;
     int fd, err;
@@ -97,7 +105,8 @@ int L2CAPComm::l2cap_close_dev(int dd)
 // *************************************************
 
 L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid)
-: device(device), deviceString(device->getAddressString()), psm(psm), cid(cid),
+: env(L2CAPEnv::get()),
+  device(device), deviceString(device->getAddressString()), psm(psm), cid(cid),
   socket_descriptor( l2cap_open_dev(device->getAdapter().getAddress(), psm, cid, true /* pubaddrAdptr */) ),
   is_connected(true), has_ioerror(false), interrupt_flag(false), tid_connect(0)
 {
@@ -192,9 +201,13 @@ bool L2CAPComm::disconnect() noexcept {
     return true;
 }
 
-int L2CAPComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS) {
+int L2CAPComm::read(uint8_t* buffer, const int capacity) {
+    const int32_t timeoutMS = env.L2CAP_READER_POLL_TIMEOUT;
     int len = 0;
+    int err_res = 0;
+
     if( 0 > socket_descriptor || 0 > capacity ) {
+        err_res = -1; // invalid socket_descriptor or capacity
         goto errout;
     }
     if( 0 == capacity ) {
@@ -211,9 +224,11 @@ int L2CAPComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS
                 // cont temp unavail or interruption
                 continue;
             }
+            err_res = -10; // poll error !(ETIMEDOUT || EAGAIN || EINTR)
             goto errout;
         }
         if (!n) {
+            err_res = -11; // poll error ETIMEDOUT
             errno = ETIMEDOUT;
             goto errout;
         }
@@ -224,6 +239,7 @@ int L2CAPComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS
             // cont temp unavail or interruption
             continue;
         }
+        err_res = -20; // read error
         goto errout;
     }
 
@@ -234,14 +250,26 @@ errout:
     if( errno != ETIMEDOUT ) {
         has_ioerror = true;
     }
-    return -1;
+    if( is_connected ) {
+        if( env.L2CAP_RESTART_COUNT_ON_ERROR < 0 ) {
+            ABORT("L2CAPComm::read: Error res %d; %s, dd %d, %s, psm %u, cid %u",
+                  err_res, getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid);
+        } else {
+            IRQ_PRINT("L2CAPComm::read: Error res %d; %s, dd %d, %s, psm %u, cid %u",
+                  err_res, getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid);
+        }
+    }
+    return err_res;
 
 }
 
 int L2CAPComm::write(const uint8_t * buffer, const int length) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
     int len = 0;
+    int err_res = 0;
+
     if( 0 > socket_descriptor || 0 > length ) {
+        err_res = -1; // invalid socket_descriptor or capacity
         goto errout;
     }
     if( 0 == length ) {
@@ -252,6 +280,7 @@ int L2CAPComm::write(const uint8_t * buffer, const int length) {
         if( EAGAIN == errno || EINTR == errno ) {
             continue;
         }
+        err_res = -10; // write error !(EAGAIN || EINTR)
         goto errout;
     }
 
@@ -260,6 +289,15 @@ done:
 
 errout:
     has_ioerror = true;
-    return -1;
+    if( is_connected ) {
+        if( env.L2CAP_RESTART_COUNT_ON_ERROR < 0 ) {
+            ABORT("L2CAPComm::write: Error res %d; %s, dd %d, %s, psm %u, cid %u",
+                  err_res, getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid);
+        } else {
+            IRQ_PRINT("L2CAPComm::write: Error res %d; %s, dd %d, %s, psm %u, cid %u",
+                  err_res, getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid);
+        }
+    }
+    return err_res;
 }
 

@@ -35,6 +35,7 @@
 #include <mutex>
 #include <atomic>
 
+#include "DBTEnv.hpp"
 #include "UUID.hpp"
 #include "BTTypes.hpp"
 
@@ -48,6 +49,63 @@
 namespace direct_bt {
 
     class DBTDevice; // forward
+
+    /**
+     * L2CAP Singleton runtime environment properties
+     * <p>
+     * Also see {@link DBTEnv::getExplodingProperties(const std::string & prefixDomain)}.
+     * </p>
+     */
+    class L2CAPEnv : public DBTEnvrionment {
+        private:
+            L2CAPEnv() noexcept;
+
+            const bool exploding; // just to trigger exploding properties
+
+        public:
+            /**
+             * L2CAP poll timeout for reading, defaults to 10s.
+             * <p>
+             * Environment variable is 'direct_bt.l2cap.reader.timeout'.
+             * </p>
+             */
+            const int32_t L2CAP_READER_POLL_TIMEOUT;
+
+            /**
+             * Debugging facility: L2CAP restart count on transmission errors, defaults to 5 attempts.
+             * <p>
+             * If negative, L2CAPComm will abort() the program.
+             * </p>
+             * <p>
+             * Environment variable is 'direct_bt.l2cap.restart.count'.
+             * </p>
+             */
+            const int32_t L2CAP_RESTART_COUNT_ON_ERROR;
+
+            /**
+             * Debug all GATT Data communication
+             * <p>
+             * Environment variable is 'direct_bt.debug.l2cap.data'.
+             * </p>
+             */
+            const bool DEBUG_DATA;
+
+        public:
+            static L2CAPEnv& get() noexcept {
+                /**
+                 * Thread safe starting with C++11 6.7:
+                 *
+                 * If control enters the declaration concurrently while the variable is being initialized,
+                 * the concurrent execution shall wait for completion of the initialization.
+                 *
+                 * (Magic Statics)
+                 *
+                 * Avoiding non-working double checked locking.
+                 */
+                static L2CAPEnv e;
+                return e;
+            }
+    };
 
     /**
      * Read/Write L2CAP communication channel.
@@ -66,6 +124,8 @@ namespace direct_bt {
         private:
             static int l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const bool pubaddr);
             static int l2cap_close_dev(int dd);
+
+            const L2CAPEnv & env;
 
             std::recursive_mutex mtx_write;
             std::shared_ptr<DBTDevice> device;
@@ -102,8 +162,8 @@ namespace direct_bt {
             /** Return the recursive write mutex for multithreading access. */
             std::recursive_mutex & mutex_write() { return mtx_write; }
 
-            /** Generic read w/ own timeoutMS, w/o locking suitable for a unique ringbuffer sink. */
-            int read(uint8_t* buffer, const int capacity, const int32_t timeoutMS);
+            /** Generic read, w/o locking suitable for a unique ringbuffer sink. Using L2CAPEnv::L2CAP_READER_POLL_TIMEOUT.*/
+            int read(uint8_t* buffer, const int capacity);
 
             /** Generic write, locking {@link #mutex_write()}. */
             int write(const uint8_t *buffer, const int length);
