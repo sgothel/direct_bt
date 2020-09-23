@@ -177,10 +177,12 @@ namespace direct_bt {
             std::shared_ptr<HCIHandler> hci;
             std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
-            std::vector<std::shared_ptr<DBTDevice>> sharedDevices; // all active shared devices
+            std::vector<std::shared_ptr<DBTDevice>> sharedDevices; // All active shared devices. Final holder of DBTDevice lifecycle!
             std::vector<std::shared_ptr<AdapterStatusListener>> statusListenerList;
             std::recursive_mutex mtx_hci;
-            std::recursive_mutex mtx_deviceReferences; // locking: discoveredDevices, connectedDevices and sharedDevices
+            std::recursive_mutex mtx_discoveredDevices;
+            std::recursive_mutex mtx_connectedDevices;
+            std::recursive_mutex mtx_sharedDevices; // Final mutex of all DBTDevice lifecycle!
             std::recursive_mutex mtx_statusListenerList;
             std::recursive_mutex mtx_discovery;
 
