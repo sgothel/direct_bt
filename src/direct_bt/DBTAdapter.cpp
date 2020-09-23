@@ -230,6 +230,7 @@ DBTAdapter::~DBTAdapter() {
     statusListenerList.clear();
 
     poweredOff();
+    sharedDevices.clear();
 
     DBG_PRINT("DBTAdapter::dtor: XXX");
 }
@@ -245,7 +246,6 @@ void DBTAdapter::poweredOff() {
     disconnectAllDevices();
     closeHCI();
     removeDiscoveredDevices();
-    sharedDevices.clear();
 
     currentNativeScanType = ScanType::NONE;
     currentMetaScanType = ScanType::NONE;
