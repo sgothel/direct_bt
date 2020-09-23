@@ -115,7 +115,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private final void poweredOff() {
         isPowered.set(false);
         isDiscovering.set(false);
-        discoveredDevices.clear();
     }
 
     @Override

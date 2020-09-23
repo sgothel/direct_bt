@@ -704,13 +704,14 @@ bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) {
         }
     }
 
+    sendAdapterSettingsChanged(old_settings, adapterInfo->getCurrentSetting(), event.getTimestamp());
+
     if( !isPowered() ) {
         // Adapter has been powered off, close connections and cleanup off-thread.
         std::thread bg(&DBTAdapter::poweredOff, this);
         bg.detach();
     }
 
-    sendAdapterSettingsChanged(old_settings, adapterInfo->getCurrentSetting(), event.getTimestamp());
     return true;
 }
 
