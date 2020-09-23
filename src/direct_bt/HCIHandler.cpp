@@ -717,13 +717,6 @@ HCIStatusCode HCIHandler::disconnect(const bool ioErrorCause,
 
         std::shared_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
     }
-    if( ioErrorCause ) {
-        // In case of an ioError (lost-connection), don't wait for the lagging
-        // DISCONN_COMPLETE event but send it directly.
-        removeTrackerConnection(conn);
-        MgmtEvtDeviceDisconnected *e = new MgmtEvtDeviceDisconnected(dev_id, peer_bdaddr, peer_mac_type, reason, conn_handle);
-        sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
-    }
 
     return status;
 }

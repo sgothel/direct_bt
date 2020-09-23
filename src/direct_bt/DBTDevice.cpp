@@ -459,12 +459,6 @@ HCIStatusCode DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioEr
     if( nullptr == hci ) {
         DBG_PRINT("DBTDevice::disconnect: Skip disconnect: HCI not available: %s", toString().c_str());
         res = HCIStatusCode::INTERNAL_FAILURE;
-
-        adapter.mgmtEvDeviceDisconnectedHCI(
-                std::shared_ptr<MgmtEvent>(
-                        new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load())
-                ) );
-
         goto exit;
     }
 
@@ -478,6 +472,14 @@ HCIStatusCode DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioEr
     }
 
 exit:
+    if( ioErrorCause || HCIStatusCode::SUCCESS != res ) {
+        // In case of an ioError (lost-connection), power-off or already pulled HCIHandler,
+        // don't wait for the lagging DISCONN_COMPLETE event but send it directly.
+        adapter.mgmtEvDeviceDisconnectedHCI(
+                std::shared_ptr<MgmtEvent>(
+                        new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load())
+                ) );
+    }
     WORDY_PRINT("DBTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d, fromDisconnectCB %d, ioError %d on %s",
             getHCIStatusCodeString(res).c_str(), hciConnHandle.load(),
             allowDisconnect.load(), isConnected.load(), fromDisconnectCB, ioErrorCause,
