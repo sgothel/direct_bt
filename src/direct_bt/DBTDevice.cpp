@@ -459,6 +459,12 @@ HCIStatusCode DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioEr
     if( nullptr == hci ) {
         DBG_PRINT("DBTDevice::disconnect: Skip disconnect: HCI not available: %s", toString().c_str());
         res = HCIStatusCode::INTERNAL_FAILURE;
+
+        adapter.mgmtEvDeviceDisconnectedHCI(
+                std::shared_ptr<MgmtEvent>(
+                        new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load())
+                ) );
+
         goto exit;
     }
 
