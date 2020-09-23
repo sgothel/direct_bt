@@ -348,29 +348,31 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
         characteristicListenerList.clear();
         return false;
     }
-    // Lock to avoid other threads using instance while disconnecting
-    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
+    {
+        // Lock to avoid other threads using instance while disconnecting
+        const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
 
-    has_ioerror = false;
-    DBG_PRINT("GATTHandler::disconnect: Start: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
-              disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
+        has_ioerror = false;
+        DBG_PRINT("GATTHandler::disconnect: Start: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
+                  disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
 
-    const pthread_t tid_self = pthread_self();
-    const pthread_t tid_l2capReader = l2capReaderThreadId;
-    l2capReaderThreadId = 0;
-    const bool is_l2capReader = tid_l2capReader == tid_self;
-    DBG_PRINT("GATTHandler.disconnect: l2capReader[running %d, shallStop %d, isReader %d, tid %p)",
-              l2capReaderRunning.load(), l2capReaderShallStop.load(), is_l2capReader, (void*)tid_l2capReader);
-    if( l2capReaderRunning ) {
-        l2capReaderShallStop = true;
-        if( !is_l2capReader && 0 != tid_l2capReader ) {
-            int kerr;
-            if( 0 != ( kerr = pthread_kill(tid_l2capReader, SIGALRM) ) ) {
-                ERR_PRINT("GATTHandler::disconnect: pthread_kill %p FAILED: %d", (void*)tid_l2capReader, kerr);
+        const pthread_t tid_self = pthread_self();
+        const pthread_t tid_l2capReader = l2capReaderThreadId;
+        l2capReaderThreadId = 0;
+        const bool is_l2capReader = tid_l2capReader == tid_self;
+        DBG_PRINT("GATTHandler.disconnect: l2capReader[running %d, shallStop %d, isReader %d, tid %p)",
+                  l2capReaderRunning.load(), l2capReaderShallStop.load(), is_l2capReader, (void*)tid_l2capReader);
+        if( l2capReaderRunning ) {
+            l2capReaderShallStop = true;
+            if( !is_l2capReader && 0 != tid_l2capReader ) {
+                int kerr;
+                if( 0 != ( kerr = pthread_kill(tid_l2capReader, SIGALRM) ) ) {
+                    ERR_PRINT("GATTHandler::disconnect: pthread_kill %p FAILED: %d", (void*)tid_l2capReader, kerr);
+                }
             }
         }
+        removeAllCharacteristicListener();
     }
-    removeAllCharacteristicListener();
 
     if( disconnectDevice ) {
         std::shared_ptr<DBTDevice> device = getDeviceUnchecked();
