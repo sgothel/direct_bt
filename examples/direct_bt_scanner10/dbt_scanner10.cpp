@@ -55,6 +55,7 @@ static int64_t timestamp_t0;
 static int MULTI_MEASUREMENTS = 8;
 
 static bool KEEP_CONNECTED = true;
+static bool GATT_PING_ENABLED = false;
 static bool REMOVE_DEVICE = true;
 
 static bool USE_WHITELIST = false;
@@ -68,6 +69,8 @@ static std::vector<EUI48> waitForDevices;
 static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device);
 
 static void processConnectedDevice(std::shared_ptr<DBTDevice> device);
+
+static void removeDevice(std::shared_ptr<DBTDevice> device);
 
 #include <pthread.h>
 
@@ -207,11 +210,20 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
                 uint16HexString(handle).c_str(), device->toString(true).c_str());
         (void)timestamp;
+
+        if( REMOVE_DEVICE ) {
+            std::thread dc(::removeDevice, device);
+            dc.detach();
+        } else {
+            removeFromDevicesProcessing(device->getAddress());
+        }
+
     }
 
     std::string toString() const override {
         return "MyAdapterStatusListener[this "+aptrHexString(this)+"]";
     }
+
 };
 
 static const uuid16_t _TEMPERATURE_MEASUREMENT(GattCharacteristicType::TEMPERATURE_MEASUREMENT);
@@ -395,25 +407,17 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
     }
 
 exit:
-    removeFromDevicesProcessing(device->getAddress());
     if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
         device->getAdapter().startDiscovery( true );
     }
 
-    if( KEEP_CONNECTED ) {
+    if( KEEP_CONNECTED && GATT_PING_ENABLED && success ) {
         while( device->pingGATT() ) {
             fprintf(stderr, "****** Processing Device: pingGATT OK: %s\n", device->getAddressString().c_str());
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
-        fprintf(stderr, "****** Processing Device: pingGATT failed: %s\n", device->getAddressString().c_str());
-    }
-
-    if( REMOVE_DEVICE ) {
-        fprintf(stderr, "****** Processing Device: removing: %s\n", device->getAddressString().c_str());
-        device->remove();
-    } else {
-        fprintf(stderr, "****** Processing Device: disconnecting: %s\n", device->getAddressString().c_str());
-        device->disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
+        fprintf(stderr, "****** Processing Device: pingGATT failed, waiting for disconnect: %s\n", device->getAddressString().c_str());
+        // Even w/ GATT_PING_ENABLED, we utilize disconnect event to clean up -> remove
     }
 
     if( !SILENT_GATT ) {
@@ -424,10 +428,25 @@ exit:
         MULTI_MEASUREMENTS--;
         fprintf(stderr, "****** Processing Device: MULTI_MEASUREMENTS left %d: %s\n", MULTI_MEASUREMENTS, device->getAddressString().c_str());
     }
+
     fprintf(stderr, "****** Processing Device: End: Success %d on %s; devInProc %zd\n",
             success, device->toString().c_str(), devicesInProcessing.size());
+
     if( success ) {
         addToDevicesProcessed(device->getAddress());
+    }
+}
+
+static void removeDevice(std::shared_ptr<DBTDevice> device) {
+    fprintf(stderr, "****** Remove Device: removing: %s\n", device->getAddressString().c_str());
+    device->getAdapter().stopDiscovery();
+
+    removeFromDevicesProcessing(device->getAddress());
+
+    device->remove();
+
+    if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
+        device->getAdapter().startDiscovery( true );
     }
 }
 
@@ -530,6 +549,8 @@ int main(int argc, char *argv[])
             USE_WHITELIST = true;
         } else if( !strcmp("-disconnect", argv[i]) ) {
             KEEP_CONNECTED = false;
+        } else if( !strcmp("-enableGATTPing", argv[i]) ) {
+            GATT_PING_ENABLED = true;
         } else if( !strcmp("-keepDevice", argv[i]) ) {
             REMOVE_DEVICE = false;
         } else if( !strcmp("-count", argv[i]) && argc > (i+1) ) {
@@ -541,7 +562,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "pid %d\n", getpid());
 
     fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-btmode LE|BREDR|DUAL] "
-                    "[-disconnect] [-count <number>] [-single] [-show_update_events] [-silent_gatt] "
+                    "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-silent_gatt] "
                     "(-mac <device_address>)* (-wl <device_address>)* "
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "
@@ -553,6 +574,7 @@ int main(int argc, char *argv[])
 
     fprintf(stderr, "MULTI_MEASUREMENTS %d\n", MULTI_MEASUREMENTS);
     fprintf(stderr, "KEEP_CONNECTED %d\n", KEEP_CONNECTED);
+    fprintf(stderr, "GATT_PING_ENABLED %d\n", GATT_PING_ENABLED);
     fprintf(stderr, "REMOVE_DEVICE %d\n", REMOVE_DEVICE);
     fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
     fprintf(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);

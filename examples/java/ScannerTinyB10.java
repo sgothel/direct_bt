@@ -74,6 +74,7 @@ public class ScannerTinyB10 {
 
     int MULTI_MEASUREMENTS = 8;
     boolean KEEP_CONNECTED = true;
+    boolean GATT_PING_ENABLED = false;
     boolean REMOVE_DEVICE = true;
     boolean USE_WHITELIST = false;
     final List<String> whitelist = new ArrayList<String>();
@@ -199,6 +200,19 @@ public class ScannerTinyB10 {
         @Override
         public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
             println("****** DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
+
+            if( REMOVE_DEVICE ) {
+                final Thread deviceRemoverProcessingTask = new Thread( new Runnable() {
+                    @Override
+                    public void run() {
+                        removeDevice(device);
+                    }
+                }, "DBT-Remove-"+device.getAddress());
+                deviceRemoverProcessingTask.setDaemon(true); // detach thread
+                deviceRemoverProcessingTask.start();
+            } else {
+                devicesInProcessing.remove(device.getAddress());
+            }
         }
     };
 
@@ -430,13 +444,12 @@ public class ScannerTinyB10 {
             t.printStackTrace();
         }
 
-        devicesInProcessing.remove(device.getAddress());
         if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
             final boolean r = device.getAdapter().startDiscovery( true );
             println("****** Processing Device: startDiscovery result "+r);
         }
 
-        if( KEEP_CONNECTED && success ) {
+        if( KEEP_CONNECTED && GATT_PING_ENABLED && success ) {
             while( device.pingGATT() ) {
                 println("****** Processing Device: pingGATT OK: "+device.getAddress());
                 try {
@@ -445,25 +458,33 @@ public class ScannerTinyB10 {
                     e.printStackTrace();
                 }
             }
-            println("****** Processing Device: pingGATT failed: "+device.getAddress());
-        }
-
-        if( REMOVE_DEVICE ) {
-            println("****** Processing Device: removing: "+device.getAddress());
-            device.remove();
-        } else {
-            println("****** Processing Device: disconnecting: "+device.getAddress());
-            device.disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
+            println("****** Processing Device: pingGATT failed, waiting for disconnect: "+device.getAddress());
+            // Even w/ GATT_PING_ENABLED, we utilize disconnect event to clean up -> remove
         }
 
         if( 0 < MULTI_MEASUREMENTS ) {
             MULTI_MEASUREMENTS--;
             println("****** Processing Device: MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS+": "+device.getAddress());
         }
+
         println("****** Processing Device: End: Success " + success +
                            " on " + device.toString() + "; devInProc "+devicesInProcessing.size());
         if( success ) {
             devicesProcessed.add(device.getAddress());
+        }
+    }
+
+    private void removeDevice(final BluetoothDevice device) {
+        println("****** Remove Device: removing: "+device.getAddress());
+        device.getAdapter().stopDiscovery();
+
+        devicesInProcessing.remove(device.getAddress());
+
+        device.remove();
+
+        if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
+            final boolean r = device.getAdapter().startDiscovery( true );
+            println("****** Remove Device: startDiscovery result "+r);
         }
     }
 
@@ -630,6 +651,8 @@ public class ScannerTinyB10 {
                     test.charIdentifierList.add(args[++i]);
                 } else if( arg.equals("-disconnect") ) {
                     test.KEEP_CONNECTED = false;
+                } else if( arg.equals("-enableGATTPing") ) {
+                    test.GATT_PING_ENABLED = true;
                 } else if( arg.equals("-keepDevice") ) {
                     test.REMOVE_DEVICE = false;
                 } else if( arg.equals("-count")  && args.length > (i+1) ) {
@@ -640,7 +663,7 @@ public class ScannerTinyB10 {
             }
             println("Run with '[-default_dev_id <adapter-index>] [-dev_id <adapter-index>] [-btmode LE|BREDR|DUAL] "+
                     "[-bluetoothManager <BluetoothManager-Implementation-Class-Name>] "+
-                    "[-disconnect] [-count <number>] [-single] (-char <uuid>)* [-show_update_events] [-silent_gatt]"+
+                    "[-disconnect] [-enableGATTPing] [-count <number>] [-single] (-char <uuid>)* [-show_update_events] [-silent_gatt]"+
                     "(-mac <device_address>)* (-wl <device_address>)* "+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
@@ -655,6 +678,7 @@ public class ScannerTinyB10 {
         println("BluetoothManager "+bluetoothManagerClazzName);
         println("MULTI_MEASUREMENTS "+test.MULTI_MEASUREMENTS);
         println("KEEP_CONNECTED "+test.KEEP_CONNECTED);
+        println("GATT_PING_ENABLED "+test.GATT_PING_ENABLED);
         println("REMOVE_DEVICE "+test.REMOVE_DEVICE);
         println("USE_WHITELIST "+test.USE_WHITELIST);
         println("SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
