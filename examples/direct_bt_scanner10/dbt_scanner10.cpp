@@ -435,6 +435,15 @@ exit:
     if( success ) {
         addToDevicesProcessed(device->getAddress());
     }
+
+    if( !KEEP_CONNECTED ) {
+        removeFromDevicesProcessing(device->getAddress());
+
+        device->remove();
+        if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
+            device->getAdapter().startDiscovery( true );
+        }
+    }
 }
 
 static void removeDevice(std::shared_ptr<DBTDevice> device) {

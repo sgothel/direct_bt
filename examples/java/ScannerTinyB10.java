@@ -472,6 +472,17 @@ public class ScannerTinyB10 {
         if( success ) {
             devicesProcessed.add(device.getAddress());
         }
+
+        if( !KEEP_CONNECTED ) {
+            devicesInProcessing.remove(device.getAddress());
+
+            device.remove();
+
+            if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
+                final boolean r = device.getAdapter().startDiscovery( true );
+                println("****** Processing Device: startDiscovery result "+r);
+            }
+        }
     }
 
     private void removeDevice(final BluetoothDevice device) {
