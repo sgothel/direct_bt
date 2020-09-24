@@ -90,7 +90,8 @@ namespace direct_bt {
             void notifyDisconnected();
             void notifyConnected(const uint16_t handle);
 
-            HCIStatusCode disconnect(const bool fromDisconnectCB, const bool ioErrorCause,
+            void disconnectGATT();
+            HCIStatusCode disconnect(const bool ioErrorCause,
                                      const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION );
 
         public:
@@ -331,7 +332,7 @@ namespace direct_bt {
              * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */
             HCIStatusCode disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) {
-                return disconnect(false /* fromDisconnectCB */, false /* ioErrorCause */, reason);
+                return disconnect(false /* ioErrorCause */, reason);
             }
 
             /**
