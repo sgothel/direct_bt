@@ -221,7 +221,11 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_removeCharacteristicListener(JNIEnv *en
         }
         setObjectRef<JNICharacteristicListener>(env, jlistener, nullptr, "nativeInstance");
 
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getDBTObjectUnchecked<DBTDevice>(env, obj);
+        if( nullptr == device ) {
+            // OK to have device being deleted already @ shutdown
+            return 0;
+        }
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
         if( nullptr == gatt ) {
@@ -246,7 +250,11 @@ jint Java_direct_1bt_tinyb_DBTDevice_removeAllAssociatedCharacteristicListener(J
         if( nullptr == jAssociatedCharacteristic ) {
             throw IllegalArgumentException("associatedCharacteristic argument is null", E_FILE_LINE);
         }
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getDBTObjectUnchecked<DBTDevice>(env, obj);
+        if( nullptr == device ) {
+            // OK to have device being deleted already @ shutdown
+            return 0;
+        }
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
         if( nullptr == gatt ) {
@@ -267,7 +275,11 @@ jint Java_direct_1bt_tinyb_DBTDevice_removeAllAssociatedCharacteristicListener(J
 
 jint Java_direct_1bt_tinyb_DBTDevice_removeAllCharacteristicListener(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getDBTObjectUnchecked<DBTDevice>(env, obj);
+        if( nullptr == device ) {
+            // OK to have device being deleted already @ shutdown
+            return 0;
+        }
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
         if( nullptr == gatt ) {
