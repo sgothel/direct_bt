@@ -72,7 +72,7 @@ namespace direct_bt {
         /** 10s le connection timeout, supervising max is 32s (v5.2 Vol 4, Part E - 7.8.12) */
         LE_CONN_TIMEOUT_MS     = 10000
     };
-    inline int32_t number(const HCIConstInt rhs) noexcept {
+    constexpr int32_t number(const HCIConstInt rhs) noexcept {
         return static_cast<int>(rhs);
     }
 
@@ -83,7 +83,7 @@ namespace direct_bt {
         MAX_SHORT_NAME_LENGTH  =  10,
         MAX_AD_LENGTH          =  31
     };
-    inline uint16_t number(const HCIConstU16 rhs) noexcept {
+    constexpr uint16_t number(const HCIConstU16 rhs) noexcept {
         return static_cast<uint16_t>(rhs);
     }
 
@@ -166,7 +166,7 @@ namespace direct_bt {
         INTERNAL_FAILURE = 0xfe,
         UNKNOWN = 0xff
     };
-    inline uint8_t number(const HCIStatusCode rhs) noexcept {
+    constexpr uint8_t number(const HCIStatusCode rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
     std::string getHCIStatusCodeString(const HCIStatusCode ec) noexcept;
@@ -183,7 +183,7 @@ namespace direct_bt {
         /** Total packet size, guaranteed to be handled by adapter. */
         PACKET_MAX_SIZE   = 255
     };
-    inline uint8_t number(const HCIConstU8 rhs) noexcept {
+    constexpr uint8_t number(const HCIConstU8 rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
 
@@ -195,7 +195,7 @@ namespace direct_bt {
         DIAG    = 0xf0,
         VENDOR  = 0xff
     };
-    inline uint8_t number(const HCIPacketType rhs) noexcept {
+    constexpr uint8_t number(const HCIPacketType rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
     std::string getHCIPacketTypeString(const HCIPacketType op) noexcept;
@@ -210,7 +210,7 @@ namespace direct_bt {
         /** LE controller commands */
         LE_CTL      = 0x08
     };
-    inline uint8_t number(const HCIOGF rhs) noexcept {
+    constexpr uint8_t number(const HCIOGF rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
     std::string getHCIOGFString(const HCIOGF op) noexcept;
@@ -250,7 +250,7 @@ namespace direct_bt {
 
         // etc etc - incomplete
     };
-    inline uint8_t number(const HCIEventType rhs) noexcept {
+    constexpr uint8_t number(const HCIEventType rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
     std::string getHCIEventTypeString(const HCIEventType op) noexcept;
@@ -295,7 +295,7 @@ namespace direct_bt {
         LE_TRANSMIT_POWER_REPORTING         = 0x21,/**< LE_TRANSMIT_POWER_REPORTING */
         LE_BIGINFO_ADV_REPORT               = 0x22 /**< LE_BIGINFO_ADV_REPORT */
     };
-    inline uint8_t number(const HCIMetaEventType rhs) noexcept {
+    constexpr uint8_t number(const HCIMetaEventType rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
     std::string getHCIMetaEventTypeString(const HCIMetaEventType op) noexcept;
@@ -341,7 +341,7 @@ namespace direct_bt {
         LE_START_ENC                = 0x2019
         // etc etc - incomplete
     };
-    inline uint16_t number(const HCIOpcode rhs) noexcept {
+    constexpr uint16_t number(const HCIOpcode rhs) noexcept {
         return static_cast<uint16_t>(rhs);
     }
     std::string getHCIOpcodeString(const HCIOpcode op) noexcept;
@@ -375,7 +375,7 @@ namespace direct_bt {
         LE_START_ENC                = 39
         // etc etc - incomplete
     };
-    inline uint8_t number(const HCIOpcodeBit rhs) noexcept {
+    constexpr uint8_t number(const HCIOpcodeBit rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
 

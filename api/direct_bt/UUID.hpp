@@ -55,7 +55,7 @@ public:
     enum class TypeSize : int {
         UUID16_SZ=2, UUID32_SZ=4, UUID128_SZ=16
     };
-    static inline int number(const TypeSize rhs) noexcept {
+    static constexpr int number(const TypeSize rhs) noexcept {
         return static_cast<int>(rhs);
     }
 

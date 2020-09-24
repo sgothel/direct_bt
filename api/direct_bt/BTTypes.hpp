@@ -51,7 +51,7 @@ namespace direct_bt {
         /** LE only Bluetooth mode */
         LE          = 3 /**< LE */
     };
-    inline uint8_t number(const BTMode rhs) noexcept {
+    constexpr uint8_t number(const BTMode rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
     std::string getBTModeString(const BTMode v) noexcept;
@@ -82,7 +82,7 @@ namespace direct_bt {
         /** Utilizing a second factor secret to be used as a secret, e.g. NFC field. Random key exchange with additional secret (2FA) and encryption and potential MITM protection. */
         OUT_OF_BAND        = 4
     };
-    inline uint8_t number(const PairingMode rhs) noexcept {
+    constexpr uint8_t number(const PairingMode rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
     std::string getPairingModeString(const PairingMode v) noexcept;
@@ -108,7 +108,7 @@ namespace direct_bt {
         LE    = ( 1 << BDAddressType::BDADDR_LE_PUBLIC ) | ( 1 << BDAddressType::BDADDR_LE_RANDOM ),
         DUAL  = BREDR | LE
     };
-    inline uint8_t number(const ScanType rhs) noexcept {
+    constexpr uint8_t number(const ScanType rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
     std::string getScanTypeString(const ScanType v) noexcept;
@@ -138,7 +138,7 @@ namespace direct_bt {
         SCAN_RSP = 0x04,
         ADV_UNDEFINED = 0xff
     };
-    inline uint8_t number(const AD_PDU_Type rhs) noexcept {
+    constexpr uint8_t number(const AD_PDU_Type rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
     std::string getAD_PDU_TypeString(const AD_PDU_Type v) noexcept;
@@ -155,7 +155,7 @@ namespace direct_bt {
         /** Auto Connect: Only supported for LE on Linux .. */
         HCI_AUTO_CONN_ALWAYS = 0x02
     };
-    inline uint8_t number(const HCIWhitelistConnectType rhs) noexcept {
+    constexpr uint8_t number(const HCIWhitelistConnectType rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
 

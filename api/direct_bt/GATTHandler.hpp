@@ -145,7 +145,7 @@ namespace direct_bt {
                 /* BT Core Spec v5.2: Vol 3, Part G GATT: 5.2.1 ATT_MTU */
                 MIN_ATT_MTU = 23
             };
-            static inline int number(const Defaults d) { return static_cast<int>(d); }
+            static constexpr int number(const Defaults d) { return static_cast<int>(d); }
 
        private:
             const GATTEnv & env;

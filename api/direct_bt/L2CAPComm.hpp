@@ -115,7 +115,7 @@ namespace direct_bt {
             enum class Defaults : int {
                 L2CAP_CONNECT_MAX_RETRY = 3
             };
-            static inline int number(const Defaults d) { return static_cast<int>(d); }
+            static constexpr int number(const Defaults d) { return static_cast<int>(d); }
 
             static std::string getStateString(bool isConnected, bool hasIOError) {
                 return "State[connected "+std::to_string(isConnected)+", ioError "+std::to_string(hasIOError)+"]";
