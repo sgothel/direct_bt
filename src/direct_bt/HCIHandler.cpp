@@ -677,8 +677,7 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
     return status;
 }
 
-HCIStatusCode HCIHandler::disconnect(const bool ioErrorCause,
-                                     const uint16_t conn_handle, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
+HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
                                      const HCIStatusCode reason) noexcept
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
@@ -708,10 +707,10 @@ HCIStatusCode HCIHandler::disconnect(const bool ioErrorCause,
             return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
         }
     }
-    DBG_PRINT("HCIHandler::disconnect: address[%s, %s], handle %s, %s, ioError %d",
+    DBG_PRINT("HCIHandler::disconnect: address[%s, %s], handle %s, %s",
                peer_bdaddr.toString().c_str(), getBDAddressTypeString(peer_mac_type).c_str(),
                uint16HexString(conn_handle).c_str(),
-               conn->toString().c_str(), ioErrorCause);
+               conn->toString().c_str());
 
     HCIStatusCode status;
 

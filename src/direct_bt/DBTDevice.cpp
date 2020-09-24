@@ -462,7 +462,7 @@ HCIStatusCode DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioEr
         goto exit;
     }
 
-    res = hci->disconnect(ioErrorCause, hciConnHandle.load(), address, addressType, reason);
+    res = hci->disconnect(hciConnHandle.load(), address, addressType, reason);
     if( HCIStatusCode::SUCCESS != res ) {
         ERR_PRINT("DBTDevice::disconnect: status %s, handle 0x%X, isConnected %d/%d, fromDisconnectCB %d, ioError %d: errno %d %s on %s",
                 getHCIStatusCodeString(res).c_str(), hciConnHandle.load(),

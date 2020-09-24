@@ -380,8 +380,7 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.6 Disconnect command
              * </p>
              */
-            HCIStatusCode disconnect(const bool ioErrorCause,
-                                     const uint16_t conn_handle, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
+            HCIStatusCode disconnect(const uint16_t conn_handle, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
                                      const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION) noexcept;
 
             /** MgmtEventCallback handling  */
