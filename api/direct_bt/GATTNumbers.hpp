@@ -33,26 +33,44 @@
 #include "BTTypes.hpp"
 #include "ieee11073/DataTypes.hpp"
 
+/**
+ * - - - - - - - - - - - - - - -
+ *
+ * Higher level GATT values for services and so forth:
+ *
+ * - https://www.bluetooth.com/specifications/gatt/services/
+ *
+ * - https://www.bluetooth.com/specifications/gatt/ - See GATT Specification Supplement (GSS) Version 2
+ *
+ */
 namespace direct_bt {
 
 /**
- * Higher level GATT values for services and so forth ...
  */
 
 /**
  * GATT Service Type, each encapsulating a set of Characteristics.
- * <p>
+ *
+ * <pre>
  * https://www.bluetooth.com/specifications/gatt/services/
- * </p>
+ *
+ * https://www.bluetooth.com/specifications/gatt/ - See GATT Specification Supplement (GSS) Version 2
+ * </pre>
  */
 enum GattServiceType : uint16_t {
-    /** The generic_access service contains generic information about the device. All available Characteristics are readonly. */
+    /** This service contains generic information about the device. This is a mandatory service. */
     GENERIC_ACCESS                              = 0x1800,
-    /** The Health Thermometer service exposes temperature and other data from a thermometer intended for healthcare and fitness applications. */
+    /** The service allows receiving indications of changed services. This is a mandatory service. */
+    GENERIC_ATTRIBUTE                           = 0x1801,
+    /** This service exposes a control point to change the peripheral alert behavior. */
+    IMMEDIATE_ALERT                             = 0x1802,
+    /** The service defines behavior on the device when a link is lost between two devices. */
+    LINK_LOSS                                   = 0x1803,
+    /** This service exposes temperature and other data from a thermometer intended for healthcare and fitness applications. */
     HEALTH_THERMOMETER                          = 0x1809,
-	/** The Device Information Service exposes manufacturer and/or vendor information about a device. */
+	/** This service exposes manufacturer and/or vendor information about a device. */
 	DEVICE_INFORMATION                          = 0x180A,
-    /** The Battery Service exposes the state of a battery within a device. */
+    /** This service exposes the state of a battery within a device. */
     BATTERY_SERVICE                             = 0x180F,
 };
 std::string GattServiceTypeToString(const GattServiceType v) noexcept;
@@ -199,9 +217,11 @@ const GattServiceCharacteristic * findGattServiceChar(const uint16_t uuid16) noe
  */
 const GattCharacteristicSpec * findGattCharSpec(const uint16_t uuid16) noexcept;
 
-/********************************************************/
-/********************************************************/
-/********************************************************/
+/********************************************************
+ *
+ * Known GATT Characteristic data value types.
+ *
+ ********************************************************/
 
 /**
  * Converts a GATT Name (not null-terminated) UTF8 to a null-terminated C++ string
@@ -219,14 +239,27 @@ struct PeriphalPreferredConnectionParameters {
     const uint16_t connectionSupervisionTimeoutMultiplier;
 
     PeriphalPreferredConnectionParameters(const TROOctets &source) noexcept;
+
     std::string toString() const noexcept;
 };
 
-/** https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.generic_access.xml */
+/**
+ * <i>Generic Access Service</i> is a mandatory GATT service all peripherals are required to implement. (FIXME: Add reference)
+ * <pre>
+ * https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.generic_access.xml
+ * </pre>
+ */
 class GenericAccess {
 	public:
+        /** Characteristic: Mandatory [Read: Mandatory; Write: Optional; ...]*/
 		const std::string deviceName;
+		/** Characteristic: Mandatory [Read: Mandatory; Write: Excluded; ...]*/
 		const AppearanceCat appearance;
+        /** Characteristic: Optional [Read: Mandatory; Write: Conditional; ...]*/
+        const std::string peripheralPrivacyFlag; // FIXME: Value
+        /** Characteristic: Conditional [Read: Excluded; Write: Mandatory; ...]*/
+        const std::string reconnectionAdress; // FIXME: Value
+		/** Characteristic: Optional [Read: Mandatory; Write: Excluded; ...]*/
 		const PeriphalPreferredConnectionParameters prefConnParam;
 
 		GenericAccess(const std::string & deviceName, const AppearanceCat appearance, const PeriphalPreferredConnectionParameters & prefConnParam) noexcept
@@ -243,7 +276,9 @@ struct PnP_ID {
 
     PnP_ID() noexcept
     : vendor_id_source(0), vendor_id(0), product_id(0), product_version(0) {}
+
     PnP_ID(const TROOctets &source) noexcept;
+
     PnP_ID(const uint8_t vendor_id_source, const uint16_t vendor_id, const uint16_t product_id, const uint16_t product_version) noexcept
     : vendor_id_source(vendor_id_source), vendor_id(vendor_id), product_id(product_id), product_version(product_version) {}
 
@@ -302,6 +337,7 @@ class TemperatureMeasurementCharateristic {
         const uint8_t temperature_type;
 
         static std::shared_ptr<TemperatureMeasurementCharateristic> get(const TROOctets &source) noexcept;
+
         static std::shared_ptr<TemperatureMeasurementCharateristic> get(const TOctetSlice &source) noexcept {
             const TROOctets o(source.get_ptr(0), source.getSize());
             return get(o);
