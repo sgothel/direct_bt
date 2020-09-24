@@ -372,16 +372,16 @@ namespace direct_bt {
              * @param address
              * @param address_type
              * @param ctype
-             * @param conn_interval_min in units of 1.25ms, default value 16 for 20ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]
-             * @param conn_interval_max in units of 1.25ms, default value 24 for 30ms Value range [6 .. 3200] for [7.5ms .. 4000ms]
+             * @param conn_interval_min in units of 1.25ms, default value 12 for 15ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]
+             * @param conn_interval_max in units of 1.25ms, default value 12 for 15ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]
              * @param conn_latency slave latency in units of connection events, default value 0; Value range [0 .. 0x01F3].
              * @param supervision_timeout in units of 10ms, default value >= 10 x conn_interval_max, we use HCIConstInt::LE_CONN_MIN_TIMEOUT_MS minimum; Value range [0xA-0x0C80] for [100ms - 32s].
              * @return true if the device was already added or has been newly added to the adapter's whitelist.
              */
             bool addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type,
                                       const HCIWhitelistConnectType ctype,
-                                      const uint16_t conn_interval_min=16, const uint16_t conn_interval_max=24,
-                                      const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 30));
+                                      const uint16_t conn_interval_min=12, const uint16_t conn_interval_max=12,
+                                      const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 15)) noexcept;
 
 
             /** Remove the given device from the adapter's autoconnect whitelist. */
