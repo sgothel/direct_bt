@@ -249,18 +249,17 @@ done:
 errout:
     if( errno != ETIMEDOUT ) {
         has_ioerror = true;
-    }
-    if( is_connected ) {
-        if( env.L2CAP_RESTART_COUNT_ON_ERROR < 0 ) {
-            ABORT("L2CAPComm::read: Error res %d; %s, dd %d, %s, psm %u, cid %u",
-                  err_res, getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid);
-        } else {
-            IRQ_PRINT("L2CAPComm::read: Error res %d; %s, dd %d, %s, psm %u, cid %u",
-                  err_res, getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid);
+        if( is_connected ) {
+            if( env.L2CAP_RESTART_COUNT_ON_ERROR < 0 ) {
+                ABORT("L2CAPComm::read: Error res %d; %s, dd %d, %s, psm %u, cid %u",
+                      err_res, getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid);
+            } else {
+                IRQ_PRINT("L2CAPComm::read: Error res %d; %s, dd %d, %s, psm %u, cid %u",
+                      err_res, getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid);
+            }
         }
     }
     return err_res;
-
 }
 
 int L2CAPComm::write(const uint8_t * buffer, const int length) {
