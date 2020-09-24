@@ -30,6 +30,7 @@
 #include <string>
 #include <cstdint>
 
+#include <algorithm>
 #include <mutex>
 
 #include "BTTypes.hpp"
@@ -69,12 +70,35 @@ namespace direct_bt {
     };
 
     enum class HCIConstInt : int32_t {
-        /** 10s le connection timeout, supervising max is 32s (v5.2 Vol 4, Part E - 7.8.12) */
-        LE_CONN_TIMEOUT_MS     = 10000
+        /** le connection supervisor timeout minimum of 500ms, see getHCIConnSupervisorTimeout() and v5.2 Vol 4, Part E - 7.8.12. */
+        LE_CONN_MIN_TIMEOUT_MS  = 500
     };
     constexpr int32_t number(const HCIConstInt rhs) noexcept {
         return static_cast<int>(rhs);
     }
+
+    /**
+     * Defining the supervising timeout for LE connections to be a multiple of the maximum connection interval as follows:
+     * <pre>
+     *  ( 1 + conn_latency ) * conn_interval_max_ms * max(2, multiplier) [ms]
+     * </pre>
+     * If above result is smaller than the given min_result_ms, min_result_ms/10 will be returned.
+     * @param conn_latency the connection latency
+     * @param conn_interval_max_ms the maximum connection interval in [ms]
+     * @param multiplier recommendation is 6, we use 10 as default for safety.
+     * @param min_result_ms the minimum resulting supervisor timeout, defaults to HCIConstInt::LE_CONN_MIN_TIMEOUT_MS.
+     *        If above formula results in a smaller value, min_result_ms/10 will be returned.
+     * @return the resulting supervising timeout in 1/10 [ms], suitable for the HCIHandler::le_create_conn() command.
+     */
+    constexpr int32_t getHCIConnSupervisorTimeout(const uint16_t conn_latency, const uint16_t conn_interval_max_ms,
+                                                  const uint16_t min_result_ms=number(HCIConstInt::LE_CONN_MIN_TIMEOUT_MS),
+                                                  const uint16_t multiplier=10) noexcept
+    {
+        return std::max<uint16_t>(min_result_ms,
+                                  ( 1 + conn_latency ) * conn_interval_max_ms * std::max<uint16_t>(2, multiplier)
+                                 ) / 10;
+    }
+
 
     enum class HCIConstU16 : uint16_t {
         INDEX_NONE             = 0xFFFF,

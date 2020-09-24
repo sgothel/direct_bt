@@ -573,6 +573,9 @@ HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
         ERR_PRINT("HCIHandler::le_set_scan_param: device not open");
         return HCIStatusCode::INTERNAL_FAILURE;
     }
+    DBG_PRINT("HCI Scan Param: scan [interval %.3f ms, window %.3f ms]",
+            0.625f * (float)le_scan_interval, 0.625f * (float)le_scan_window);
+
     HCIStructCommand<hci_cp_le_set_scan_param> req0(HCIOpcode::LE_SET_SCAN_PARAM);
     hci_cp_le_set_scan_param * cp = req0.getWStruct();
     cp->type = le_scan_active ? LE_SCAN_ACTIVE : LE_SCAN_PASSIVE;
@@ -623,6 +626,12 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
     const uint16_t min_ce_length = 0x0000;
     const uint16_t max_ce_length = 0x0000;
     const uint8_t initiator_filter = 0x00; // whitelist not used but peer_bdaddr*
+
+    DBG_PRINT("HCI Conn Param: scan [interval %.3f ms, window %.3f ms]", 0.625f *
+            (float)le_scan_interval, 0.625f * (float)le_scan_window);
+    DBG_PRINT("HCI Conn Param: conn [interval [%.3f ms - %.3f ms], latency %d, sup_timeout %d ms]",
+            1.25f * (float)conn_interval_min, 1.25f * (float)conn_interval_max,
+            conn_latency, supervision_timeout*10);
 
     HCIStructCommand<hci_cp_le_create_conn> req0(HCIOpcode::LE_CREATE_CONN);
     hci_cp_le_create_conn * cp = req0.getWStruct();

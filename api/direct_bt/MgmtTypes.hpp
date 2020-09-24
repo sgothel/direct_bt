@@ -420,7 +420,7 @@ namespace direct_bt {
         uint16_t min_interval;
         uint16_t max_interval;
         uint16_t latency;
-        uint16_t timeout;
+        uint16_t supervision_timeout;
     } __packed;
 
     /**
@@ -474,7 +474,7 @@ namespace direct_bt {
                 pdu.put_uint16_nc(offset, connParam.min_interval); offset+=2;
                 pdu.put_uint16_nc(offset, connParam.max_interval); offset+=2;
                 pdu.put_uint16_nc(offset, connParam.latency); offset+=2;
-                pdu.put_uint16_nc(offset, connParam.timeout); offset+=2;
+                pdu.put_uint16_nc(offset, connParam.supervision_timeout); offset+=2;
             }
 
             MgmtLoadConnParamCmd(const uint16_t dev_id, std::vector<std::shared_ptr<MgmtConnParam>> connParams)
@@ -491,7 +491,7 @@ namespace direct_bt {
                     pdu.put_uint16_nc(offset, connParam->min_interval); offset+=2;
                     pdu.put_uint16_nc(offset, connParam->max_interval); offset+=2;
                     pdu.put_uint16_nc(offset, connParam->latency); offset+=2;
-                    pdu.put_uint16_nc(offset, connParam->timeout); offset+=2;
+                    pdu.put_uint16_nc(offset, connParam->supervision_timeout); offset+=2;
                 }
             }
             uint16_t getParamCount() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE); }

@@ -311,13 +311,13 @@ namespace direct_bt {
              *
              * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
              * @param own_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
-             * @param le_scan_interval in units of 0.625ms, default value 18 for 11.25ms, min value 4 for 2.5ms -> 0x4000 for 10.24s
-             * @param le_scan_window in units of 0.625ms, default value 18 for 11.25ms,  min value 4 for 2.5ms -> 0x4000 for 10.24s. Shall be <= le_scan_interval
+             * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
+             * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
              * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
              */
             HCIStatusCode le_set_scan_param(const bool le_scan_active=false,
                                             const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
-                                            const uint16_t le_scan_interval=18, const uint16_t le_scan_window=18,
+                                            const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
                                             const uint8_t filter_policy=0x00) noexcept;
 
             /**
@@ -338,24 +338,31 @@ namespace direct_bt {
              * <p>
              * Set window to the same value as the interval, enables continuous scanning.
              * </p>
+             * <p>
+             * The supervising timeout period is the time it takes before a devices gives up on the link if no packets are received.
+             * Hence this parameter influences the responsiveness on a link loss.
+             * A too small number may render the link too unstable, it should be at least 6 times of the connection interval.
+             * <br>
+             * To detect a link loss one can also send a regular ping to check whether the peripheral is still responding, see GATTHandler::ping().
+             * </p>
              *
              * @param peer_bdaddr
              * @param peer_mac_type
              * @param own_mac_type
-             * @param le_scan_interval in units of 0.625ms, default value 48 for 30ms, min value 4 for 2.5ms -> 0x4000 for 10.24s
-             * @param le_scan_window in units of 0.625ms, default value 48 for 30ms,  min value 4 for 2.5ms -> 0x4000 for 10.24s. Shall be <= le_scan_interval
-             * @param conn_interval_min in units of 1.25ms, default value 15 for 19.75ms
-             * @param conn_interval_max in units of 1.25ms, default value 15 for 19.75ms
-             * @param conn_latency slave latency in units of connection events, default value 0
-             * @param supervision_timeout in units of 10ms, default value 1000 for 10000ms or 10s.
+             * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
+             * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
+             * @param conn_interval_min in units of 1.25ms, default value 16 for 20ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]
+             * @param conn_interval_max in units of 1.25ms, default value 24 for 30ms Value range [6 .. 3200] for [7.5ms .. 4000ms]
+             * @param conn_latency slave latency in units of connection events, default value 0; Value range [0 .. 0x01F3].
+             * @param supervision_timeout in units of 10ms, default value >= 10 x conn_interval_max, we use HCIConstInt::LE_CONN_MIN_TIMEOUT_MS minimum; Value range [0xA-0x0C80] for [100ms - 32s].
              * @return
              */
             HCIStatusCode le_create_conn(const EUI48 &peer_bdaddr,
                                         const HCILEPeerAddressType peer_mac_type=HCILEPeerAddressType::PUBLIC,
                                         const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
-                                        const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48,
-                                        const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
-                                        const uint16_t conn_latency=0x0000, const uint16_t supervision_timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10) noexcept;
+                                        const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
+                                        const uint16_t conn_interval_min=16, const uint16_t conn_interval_max=24,
+                                        const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 30)) noexcept;
 
             /**
              * Establish a connection to the given BREDR (non LE).

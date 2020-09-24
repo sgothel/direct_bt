@@ -557,9 +557,9 @@ bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) noexcept {
 }
 
 bool DBTManager::uploadConnParam(const int dev_id, const EUI48 &address, const BDAddressType address_type,
-                                 const uint16_t min_interval, const uint16_t max_interval,
-                                 const uint16_t latency, const uint16_t timeout) noexcept {
-    MgmtConnParam connParam{ address, address_type, min_interval, max_interval, latency, timeout };
+                                 const uint16_t conn_min_interval, const uint16_t conn_max_interval,
+                                 const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
+    MgmtConnParam connParam{ address, address_type, conn_min_interval, conn_max_interval, conn_latency, supervision_timeout };
     MgmtLoadConnParamCmd req(dev_id, connParam);
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {

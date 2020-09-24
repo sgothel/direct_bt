@@ -235,18 +235,17 @@ namespace direct_bt {
              * see HCIHandler::le_create_conn().
              * </p>
              *
-             * @param le_scan_interval in units of 0.625ms, default value 48 for 30ms, min value 4 for 2.5ms -> 0x4000 for 10.24s
-             * @param le_scan_window in units of 0.625ms, default value 48 for 30ms,  min value 4 for 2.5ms -> 0x4000 for 10.24s. Shall be <= le_scan_interval
-             * @param conn_interval_min in units of 1.25ms, default value 15 for 19.75ms
-             * @param conn_interval_max in units of 1.25ms, default value 15 for 19.75ms
-             * @param conn_latency slave latency in units of connection events, default value 0
-             * @param supervision_timeout in units of 10ms, default value 1000 for 10000ms or 10s.
-             * @return the HCIStatusCode result whether the command has been accepted, HCIStatusCode::SUCCESS on success.
+             * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
+             * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
+             * @param conn_interval_min in units of 1.25ms, default value 16 for 20ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]
+             * @param conn_interval_max in units of 1.25ms, default value 24 for 30ms Value range [6 .. 3200] for [7.5ms .. 4000ms]
+             * @param conn_latency slave latency in units of connection events, default value 0; Value range [0 .. 0x01F3].
+             * @param supervision_timeout in units of 10ms, default value >= 10 x conn_interval_max, we use HCIConstInt::LE_CONN_MIN_TIMEOUT_MS minimum; Value range [0xA-0x0C80] for [100ms - 32s].
              * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */
-            HCIStatusCode connectLE(const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48,
-                                    const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
-                                    const uint16_t conn_latency=0x0000, const uint16_t supervision_timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10);
+            HCIStatusCode connectLE(const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
+                                    const uint16_t conn_interval_min=16, const uint16_t conn_interval_max=24,
+                                    const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 30));
 
             /**
              * Establish a HCI BDADDR_BREDR connection to this device.
