@@ -256,7 +256,7 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
         if( nullptr != charDecl ) {
             fprintf(stderr, "****** decl %s\n", charDecl->toString().c_str());
             if( _TEMPERATURE_MEASUREMENT == *charDecl->value_type ) {
-                std::shared_ptr<TemperatureMeasurementCharateristic> temp = TemperatureMeasurementCharateristic::get(*charValue);
+                std::shared_ptr<GattTemperatureMeasurement> temp = GattTemperatureMeasurement::get(*charValue);
                 if( nullptr != temp ) {
                     fprintf(stderr, "****** valu %s\n", temp->toString().c_str());
                 }
@@ -348,14 +348,14 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
                             "PERF:  adapter-init to gatt-complete %" PRIu64 " ms\n\n",
                             td01, td15, tdc5, (tdc5 - td15), td05);
         }
-        std::shared_ptr<GenericAccess> ga = device->getGATTGenericAccess();
+        std::shared_ptr<GattGenericAccessSvc> ga = device->getGATTGenericAccess();
         if( nullptr != ga && !SILENT_GATT ) {
             fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
         }
         {
             std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
             if( nullptr != gatt && gatt->isConnected() ) {
-                std::shared_ptr<DeviceInformation> di = gatt->getDeviceInformation(primServices);
+                std::shared_ptr<GattDeviceInformationSvc> di = gatt->getDeviceInformation(primServices);
                 if( nullptr != di && !SILENT_GATT ) {
                     fprintf(stderr, "  DeviceInformation: %s\n\n", di->toString().c_str());
                 }

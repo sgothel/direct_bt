@@ -916,12 +916,12 @@ static const uuid16_t _MANUFACTURER_NAME_STRING(GattCharacteristicType::MANUFACT
 static const uuid16_t _REGULATORY_CERT_DATA_LIST(GattCharacteristicType::REGULATORY_CERT_DATA_LIST);
 static const uuid16_t _PNP_ID(GattCharacteristicType::PNP_ID);
 
-std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTCharacteristicRef> & genericAccessCharDeclList) {
-    std::shared_ptr<GenericAccess> res = nullptr;
+std::shared_ptr<GattGenericAccessSvc> GATTHandler::getGenericAccess(std::vector<GATTCharacteristicRef> & genericAccessCharDeclList) {
+    std::shared_ptr<GattGenericAccessSvc> res = nullptr;
     POctets value(number(Defaults::MAX_ATT_MTU), 0);
     std::string deviceName = "";
     AppearanceCat appearance = AppearanceCat::UNKNOWN;
-    PeriphalPreferredConnectionParameters * prefConnParam = nullptr;
+    std::shared_ptr<GattPeriphalPreferredConnectionParameters> prefConnParam = nullptr;
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
 
@@ -933,29 +933,26 @@ std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTCha
         }
         if( _DEVICE_NAME == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
-            	deviceName = GattNameToString(value);
+            	deviceName = GattNameToString(value); // mandatory
             }
         } else if( _APPEARANCE == *charDecl.value_type ) {
-            if( readCharacteristicValue(charDecl, value.resize(0)) ) {
-            	appearance = static_cast<AppearanceCat>(value.get_uint16(0));
+            if( readCharacteristicValue(charDecl, value.resize(0)) && value.getSize() >= 2 ) {
+            	appearance = static_cast<AppearanceCat>(value.get_uint16(0)); // manatory
             }
         } else if( _PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
-            	prefConnParam = new PeriphalPreferredConnectionParameters(value);
+            	prefConnParam = GattPeriphalPreferredConnectionParameters::get(value); // optional
             }
         }
     }
-    if( deviceName.size() > 0 && nullptr != prefConnParam ) {
-    	res = std::shared_ptr<GenericAccess>(new GenericAccess(deviceName, appearance, *prefConnParam));
-    }
-    if( nullptr != prefConnParam ) {
-        delete prefConnParam;
+    if( deviceName.size() > 0 ) {
+    	res = std::shared_ptr<GattGenericAccessSvc>(new GattGenericAccessSvc(deviceName, appearance, prefConnParam));
     }
     return res;
 }
 
-std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTServiceRef> & primServices) {
-	std::shared_ptr<GenericAccess> res = nullptr;
+std::shared_ptr<GattGenericAccessSvc> GATTHandler::getGenericAccess(std::vector<GATTServiceRef> & primServices) {
+	std::shared_ptr<GattGenericAccessSvc> res = nullptr;
 	for(size_t i=0; i<primServices.size() && nullptr == res; i++) {
 		res = getGenericAccess(primServices.at(i)->characteristicList);
 	}
@@ -994,8 +991,8 @@ bool GATTHandler::ping() {
     return false;
 }
 
-std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector<GATTCharacteristicRef> & characteristicDeclList) {
-    std::shared_ptr<DeviceInformation> res = nullptr;
+std::shared_ptr<GattDeviceInformationSvc> GATTHandler::getDeviceInformation(std::vector<GATTCharacteristicRef> & characteristicDeclList) {
+    std::shared_ptr<GattDeviceInformationSvc> res = nullptr;
     POctets value(number(Defaults::MAX_ATT_MTU), 0);
 
     POctets systemID(8, 0);
@@ -1006,7 +1003,7 @@ std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector
     std::string softwareRevision;
     std::string manufacturer;
     POctets regulatoryCertDataList(128, 0);
-    PnP_ID * pnpID = nullptr;
+    std::shared_ptr<GattPnP_ID> pnpID = nullptr;
     bool found = false;
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
@@ -1028,7 +1025,7 @@ std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector
             }
         } else if( _PNP_ID == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
-                pnpID = new PnP_ID(value);
+                pnpID = GattPnP_ID::get(value);
             }
         } else if( _MODEL_NUMBER_STRING == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
@@ -1056,20 +1053,16 @@ std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector
             }
         }
     }
-    if( nullptr == pnpID ) {
-        pnpID = new PnP_ID();
-    }
     if( found ) {
-        res = std::shared_ptr<DeviceInformation>(new DeviceInformation(systemID, modelNumber, serialNumber,
+        res = std::shared_ptr<GattDeviceInformationSvc>(new GattDeviceInformationSvc(systemID, modelNumber, serialNumber,
                                                       firmwareRevision, hardwareRevision, softwareRevision,
-                                                      manufacturer, regulatoryCertDataList, *pnpID) );
+                                                      manufacturer, regulatoryCertDataList, pnpID) );
     }
-    delete pnpID;
     return res;
 }
 
-std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector<GATTServiceRef> & primServices) {
-    std::shared_ptr<DeviceInformation> res = nullptr;
+std::shared_ptr<GattDeviceInformationSvc> GATTHandler::getDeviceInformation(std::vector<GATTServiceRef> & primServices) {
+    std::shared_ptr<GattDeviceInformationSvc> res = nullptr;
     for(size_t i=0; i<primServices.size() && nullptr == res; i++) {
         res = getDeviceInformation(primServices.at(i)->characteristicList);
     }

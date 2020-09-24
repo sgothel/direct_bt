@@ -216,7 +216,7 @@ EIRDataType DBTDevice::update(EInfoReport const & data) noexcept {
     return res;
 }
 
-EIRDataType DBTDevice::update(GenericAccess const &data, const uint64_t timestamp) noexcept {
+EIRDataType DBTDevice::update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
 
     EIRDataType res = EIRDataType::NONE;
@@ -616,7 +616,7 @@ bool DBTDevice::pingGATT() noexcept {
     return false;
 }
 
-std::shared_ptr<GenericAccess> DBTDevice::getGATTGenericAccess() {
+std::shared_ptr<GattGenericAccessSvc> DBTDevice::getGATTGenericAccess() {
     return gattGenericAccess;
 }
 

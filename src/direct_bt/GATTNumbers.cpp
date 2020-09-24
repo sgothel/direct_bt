@@ -348,52 +348,75 @@ const GattCharacteristicSpec * direct_bt::findGattCharSpec(const uint16_t uuid16
 
 std::string direct_bt::GattNameToString(const TROOctets &v) noexcept {
 	const int str_len = v.getSize();
+	if( 0 == str_len ) {
+	    return std::string(); // empty
+	}
 	POctets s(str_len+1); // dtor releases chunk
 	memcpy(s.get_wptr(), v.get_ptr(), str_len);
 	s.put_uint8_nc(str_len, 0); // EOS
 	return std::string((const char*)s.get_ptr());
 }
 
-PeriphalPreferredConnectionParameters::PeriphalPreferredConnectionParameters(const TROOctets &source) noexcept
+GattPeriphalPreferredConnectionParameters::GattPeriphalPreferredConnectionParameters(const TROOctets &source) noexcept
 : minConnectionInterval(source.get_uint16(0)), maxConnectionInterval(source.get_uint16(2)),
   slaveLatency(source.get_uint16(4)), connectionSupervisionTimeoutMultiplier(source.get_uint16(6))
 {
 }
 
-std::string PeriphalPreferredConnectionParameters::toString() const noexcept {
+std::shared_ptr<GattPeriphalPreferredConnectionParameters> GattPeriphalPreferredConnectionParameters::get(const TROOctets &source) noexcept {
+    const int reqSize = 8;
+    if( source.getSize() < reqSize ) {
+        ERR_PRINT("GattPeriphalPreferredConnectionParameters: Insufficient data, less than %d bytes in %s", reqSize, source.toString().c_str());
+        return nullptr;
+    }
+    return std::shared_ptr<GattPeriphalPreferredConnectionParameters>(new GattPeriphalPreferredConnectionParameters(source));
+}
+
+std::string GattPeriphalPreferredConnectionParameters::toString() const noexcept {
   return "PrefConnectionParam[interval["+
 		  std::to_string(minConnectionInterval)+".."+std::to_string(maxConnectionInterval)+
 		  "], slaveLatency "+std::to_string(slaveLatency)+
 		  ", csTimeoutMul "+std::to_string(connectionSupervisionTimeoutMultiplier)+"]";
 }
 
-std::string GenericAccess::toString() const noexcept {
-    return "'"+deviceName+"'[appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+"), "+
-            prefConnParam.toString()+"]";
+std::string GattGenericAccessSvc::toString() const noexcept {
+    std::string pcp(nullptr != prefConnParam ? prefConnParam->toString() : "");
+    return "'"+deviceName+"'[appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+"), "+pcp+"]";
 }
 
-PnP_ID::PnP_ID(const TROOctets &source) noexcept
+GattPnP_ID::GattPnP_ID(const TROOctets &source) noexcept
 : vendor_id_source(source.get_uint8(0)), vendor_id(source.get_uint16(1)),
   product_id(source.get_uint16(3)), product_version(source.get_uint16(5)) {}
 
-std::string PnP_ID::toString() const noexcept {
+std::shared_ptr<GattPnP_ID> GattPnP_ID::get(const TROOctets &source) noexcept {
+    const int reqSize = 7;
+    if( source.getSize() < reqSize ) {
+        ERR_PRINT("GattPnP_ID: Insufficient data, less than %d bytes in %s", reqSize, source.toString().c_str());
+        return nullptr;
+    }
+    return std::shared_ptr<GattPnP_ID>(new GattPnP_ID(source));
+}
+
+std::string GattPnP_ID::toString() const noexcept {
     return "vendor_id[source "+uint8HexString(vendor_id_source, true)+
             ", id "+uint16HexString(vendor_id, true)+
             "], product_id "+uint16HexString(product_id, true)+
             ", product_version "+uint16HexString(product_version, true);
 }
 
-std::string DeviceInformation::toString() const noexcept {
+std::string GattDeviceInformationSvc::toString() const noexcept {
+    std::string pnp(nullptr != pnpID ? pnpID->toString() : "");
     return "DeviceInfo[manufacturer '"+manufacturer+"', model '"+modelNumber+"', serial '"+serialNumber+"', systemID '"+systemID.toString()+
             "', revisions[firmware '"+firmwareRevision+"', hardware '"+hardwareRevision+"', software '"+softwareRevision+
-            "'], pnpID["+pnpID.toString()+"], regCertData '"+regulatoryCertDataList.toString()+"']";
+            "'], pnpID["+pnp+"], regCertData '"+regulatoryCertDataList.toString()+"']";
 }
 
-std::shared_ptr<TemperatureMeasurementCharateristic> TemperatureMeasurementCharateristic::get(const TROOctets &source) noexcept {
+std::shared_ptr<GattTemperatureMeasurement> GattTemperatureMeasurement::get(const TROOctets &source) noexcept {
     const int size = source.getSize();
     int reqSize = 1 + 4; // max size = 13
     if( reqSize > size ) {
         // min size: flags + temperatureValue
+        ERR_PRINT("GattTemperatureMeasurement: Insufficient data, less than %d bytes in %s", reqSize, source.toString().c_str());
         return nullptr;
     }
 
@@ -424,10 +447,10 @@ std::shared_ptr<TemperatureMeasurementCharateristic> TemperatureMeasurementChara
     if( hasTemperatureType ) {
         temperature_type = source.get_uint8(1+4+7);
     }
-    return std::shared_ptr<TemperatureMeasurementCharateristic>(new TemperatureMeasurementCharateristic(flags, temperatureValue, timestamp, temperature_type));
+    return std::shared_ptr<GattTemperatureMeasurement>(new GattTemperatureMeasurement(flags, temperatureValue, timestamp, temperature_type));
 }
 
-std::string TemperatureMeasurementCharateristic::toString() const noexcept {
+std::string GattTemperatureMeasurement::toString() const noexcept {
     std::string res = std::to_string(temperatureValue);
     res += isFahrenheit() ? " F" : " C";
     if( hasTimestamp() ) {

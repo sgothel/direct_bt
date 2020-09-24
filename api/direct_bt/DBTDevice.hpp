@@ -66,7 +66,7 @@ namespace direct_bt {
             std::shared_ptr<ManufactureSpecificData> advMSD = nullptr;
             std::vector<std::shared_ptr<uuid_t>> advServices;
             std::shared_ptr<GATTHandler> gattHandler = nullptr;
-            std::shared_ptr<GenericAccess> gattGenericAccess = nullptr;
+            std::shared_ptr<GattGenericAccessSvc> gattGenericAccess = nullptr;
             std::recursive_mutex mtx_connect;
             std::recursive_mutex mtx_data;
             std::atomic<bool> isConnected;
@@ -85,7 +85,7 @@ namespace direct_bt {
             int findAdvService(std::shared_ptr<uuid_t> const &uuid) const noexcept;
 
             EIRDataType update(EInfoReport const & data) noexcept;
-            EIRDataType update(GenericAccess const &data, const uint64_t timestamp) noexcept;
+            EIRDataType update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept;
 
             void notifyDisconnected();
             void notifyConnected(const uint16_t handle);
@@ -434,7 +434,7 @@ namespace direct_bt {
             std::shared_ptr<GATTService> findGATTService(std::shared_ptr<uuid_t> const &uuid);
 
             /** Returns the shared GenericAccess instance, retrieved by {@link #getGATTServices()} or nullptr if not available. */
-            std::shared_ptr<GenericAccess> getGATTGenericAccess();
+            std::shared_ptr<GattGenericAccessSvc> getGATTGenericAccess();
 
             /**
              * Issues a GATT ping to the device, validating whether it is still reachable.

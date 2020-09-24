@@ -442,7 +442,7 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj
 
         std::vector<GATTServiceRef> services = device->getGATTServices(); // implicit GATT connect and discovery if required incl GenericAccess retrieval
         if( services.size() > 0 ) {
-            std::shared_ptr<GenericAccess> ga = device->getGATTGenericAccess();
+            std::shared_ptr<GattGenericAccessSvc> ga = device->getGATTGenericAccess();
             if( nullptr != ga ) {
                 env->SetShortField(obj, getField(env, obj, "appearance", "S"), static_cast<jshort>(ga->appearance));
                 java_exception_check_and_throw(env, E_FILE_LINE);

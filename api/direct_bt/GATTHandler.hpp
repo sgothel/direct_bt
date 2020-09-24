@@ -504,11 +504,11 @@ namespace direct_bt {
             /** Higher level semantic functionality **/
             /*****************************************************/
 
-            std::shared_ptr<GenericAccess> getGenericAccess(std::vector<GATTServiceRef> & primServices);
-            std::shared_ptr<GenericAccess> getGenericAccess(std::vector<GATTCharacteristicRef> & genericAccessCharDeclList);
+            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(std::vector<GATTServiceRef> & primServices);
+            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(std::vector<GATTCharacteristicRef> & genericAccessCharDeclList);
 
-            std::shared_ptr<DeviceInformation> getDeviceInformation(std::vector<GATTServiceRef> & primServices);
-            std::shared_ptr<DeviceInformation> getDeviceInformation(std::vector<GATTCharacteristicRef> & deviceInfoCharDeclList);
+            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(std::vector<GATTServiceRef> & primServices);
+            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(std::vector<GATTCharacteristicRef> & deviceInfoCharDeclList);
 
             /**
              * Issues a ping to the device, validating whether it is still reachable.

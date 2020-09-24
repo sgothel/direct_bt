@@ -228,7 +228,13 @@ const GattCharacteristicSpec * findGattCharSpec(const uint16_t uuid16) noexcept;
  */
 std::string GattNameToString(const TROOctets &v) noexcept;
 
-struct PeriphalPreferredConnectionParameters {
+/**
+ * <i>Peripheral Preferred Connection Parameters</i> is a GATT Characteristic.
+ * <pre>
+ * https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Characteristics/org.bluetooth.characteristic.gap.peripheral_preferred_connection_parameters.xml
+ * </pre>
+ */
+struct GattPeriphalPreferredConnectionParameters {
     /** mandatory [6..3200] x 1.25ms */
     const uint16_t minConnectionInterval;
     /** mandatory [6..3200] x 1.25ms and >= minConnectionInterval */
@@ -238,7 +244,9 @@ struct PeriphalPreferredConnectionParameters {
     /** mandatory [10..3200] */
     const uint16_t connectionSupervisionTimeoutMultiplier;
 
-    PeriphalPreferredConnectionParameters(const TROOctets &source) noexcept;
+    static std::shared_ptr<GattPeriphalPreferredConnectionParameters> get(const TROOctets &source) noexcept;
+
+    GattPeriphalPreferredConnectionParameters(const TROOctets &source) noexcept;
 
     std::string toString() const noexcept;
 };
@@ -249,7 +257,7 @@ struct PeriphalPreferredConnectionParameters {
  * https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.generic_access.xml
  * </pre>
  */
-class GenericAccess {
+class GattGenericAccessSvc {
 	public:
         /** Characteristic: Mandatory [Read: Mandatory; Write: Optional; ...]*/
 		const std::string deviceName;
@@ -260,47 +268,70 @@ class GenericAccess {
         /** Characteristic: Conditional [Read: Excluded; Write: Mandatory; ...]*/
         const std::string reconnectionAdress; // FIXME: Value
 		/** Characteristic: Optional [Read: Mandatory; Write: Excluded; ...]*/
-		const PeriphalPreferredConnectionParameters prefConnParam;
+		const std::shared_ptr<GattPeriphalPreferredConnectionParameters> prefConnParam;
 
-		GenericAccess(const std::string & deviceName, const AppearanceCat appearance, const PeriphalPreferredConnectionParameters & prefConnParam) noexcept
+		GattGenericAccessSvc(const std::string & deviceName, const AppearanceCat appearance,
+		                     const std::shared_ptr<GattPeriphalPreferredConnectionParameters> & prefConnParam) noexcept
 		: deviceName(deviceName), appearance(appearance), prefConnParam(prefConnParam) {}
 
 		std::string toString() const noexcept;
 };
 
-struct PnP_ID {
+/**
+ * <i>PnP ID</i> is a GATT Characteristic.
+ * <pre>
+ * https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Characteristics/org.bluetooth.characteristic.pnp_id.xml
+ * </pre>
+ */
+struct GattPnP_ID {
     const uint8_t vendor_id_source;
     const uint16_t vendor_id;
     const uint16_t product_id;
     const uint16_t product_version;
 
-    PnP_ID() noexcept
+    static std::shared_ptr<GattPnP_ID> get(const TROOctets &source) noexcept;
+
+    GattPnP_ID() noexcept
     : vendor_id_source(0), vendor_id(0), product_id(0), product_version(0) {}
 
-    PnP_ID(const TROOctets &source) noexcept;
+    GattPnP_ID(const TROOctets &source) noexcept;
 
-    PnP_ID(const uint8_t vendor_id_source, const uint16_t vendor_id, const uint16_t product_id, const uint16_t product_version) noexcept
+    GattPnP_ID(const uint8_t vendor_id_source, const uint16_t vendor_id, const uint16_t product_id, const uint16_t product_version) noexcept
     : vendor_id_source(vendor_id_source), vendor_id(vendor_id), product_id(product_id), product_version(product_version) {}
 
     std::string toString() const noexcept;
 };
 
-/** https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.device_information.xml */
-class DeviceInformation {
+/**
+ * <i>Device Information</i> is a GATT service.
+ * <pre>
+ * https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.device_information.xml
+ * </pre>
+ */
+class GattDeviceInformationSvc {
     public:
+        /** Optional */
         const POctets systemID;
+        /** Optional */
         const std::string modelNumber;
+        /** Optional */
         const std::string serialNumber;
+        /** Optional */
         const std::string firmwareRevision;
+        /** Optional */
         const std::string hardwareRevision;
+        /** Optional */
         const std::string softwareRevision;
+        /** Optional */
         const std::string manufacturer;
+        /** Optional */
         const POctets regulatoryCertDataList;
-        const PnP_ID pnpID;
+        /** Optional */
+        const std::shared_ptr<GattPnP_ID> pnpID;
 
-        DeviceInformation(const POctets &systemID, const std::string &modelNumber, const std::string &serialNumber,
+        GattDeviceInformationSvc(const POctets &systemID, const std::string &modelNumber, const std::string &serialNumber,
                           const std::string &firmwareRevision, const std::string &hardwareRevision, const std::string &softwareRevision,
-                          const std::string &manufacturer, const POctets &regulatoryCertDataList, const PnP_ID &pnpID) noexcept
+                          const std::string &manufacturer, const POctets &regulatoryCertDataList, const std::shared_ptr<GattPnP_ID> &pnpID) noexcept
         : systemID(systemID), modelNumber(modelNumber), serialNumber(serialNumber), firmwareRevision(firmwareRevision),
           hardwareRevision(hardwareRevision), softwareRevision(softwareRevision), manufacturer(manufacturer),
           regulatoryCertDataList(regulatoryCertDataList), pnpID(pnpID) {}
@@ -309,12 +340,12 @@ class DeviceInformation {
 };
 
 /** https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.battery_service.xml */
-class BatteryService {
+class GattBatteryServiceSvc {
     // TODO
 };
 
 /** https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Characteristics/org.bluetooth.characteristic.temperature_measurement.xml */
-class TemperatureMeasurementCharateristic {
+class GattTemperatureMeasurement {
     public:
         enum Bits : uint8_t {
             /** bit 0: If set, temperature is in Fahrenheit, otherwise Celsius. */
@@ -336,14 +367,14 @@ class TemperatureMeasurementCharateristic {
         /** Temperature Type, if HAS_TEMP_TYPE is set: Format ????. 1 byte (!?). */
         const uint8_t temperature_type;
 
-        static std::shared_ptr<TemperatureMeasurementCharateristic> get(const TROOctets &source) noexcept;
+        static std::shared_ptr<GattTemperatureMeasurement> get(const TROOctets &source) noexcept;
 
-        static std::shared_ptr<TemperatureMeasurementCharateristic> get(const TOctetSlice &source) noexcept {
+        static std::shared_ptr<GattTemperatureMeasurement> get(const TOctetSlice &source) noexcept {
             const TROOctets o(source.get_ptr(0), source.getSize());
             return get(o);
         }
 
-        TemperatureMeasurementCharateristic(const uint8_t flags, const float temperatureValue,
+        GattTemperatureMeasurement(const uint8_t flags, const float temperatureValue,
                                             const ieee11073::AbsoluteTime &timestamp, const uint8_t temperature_type) noexcept
         : flags(flags), temperatureValue(temperatureValue), timestamp(timestamp), temperature_type(temperature_type) {}
 
