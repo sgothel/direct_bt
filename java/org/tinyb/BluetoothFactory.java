@@ -308,7 +308,7 @@ public class BluetoothFactory {
             throws BluetoothException, NoSuchMethodException, SecurityException,
                    IllegalAccessException, IllegalArgumentException, InvocationTargetException
     {
-        final Method m = factoryImplClass.getMethod("getBluetoothManager");
+        final Method m = factoryImplClass.getMethod("getManager");
         return (BluetoothManager)m.invoke(null);
     }
 
