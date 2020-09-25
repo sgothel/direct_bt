@@ -245,11 +245,10 @@ namespace direct_bt {
             /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
             std::array<MgmtEventCallbackList, static_cast<uint16_t>(MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT)> mgmtEventCallbackLists;
             std::recursive_mutex mtx_callbackLists;
-            inline void checkMgmtEventCallbackListsIndex(const MgmtEvent::Opcode opc) const {
-                if( static_cast<uint16_t>(opc) >= mgmtEventCallbackLists.size() ) {
-                    throw IndexOutOfBoundsException(static_cast<uint16_t>(opc), mgmtEventCallbackLists.size(), E_FILE_LINE);
-                }
+            inline bool isValidMgmtEventCallbackListsIndex(const MgmtEvent::Opcode opc) const noexcept {
+                return static_cast<uint16_t>(opc) < mgmtEventCallbackLists.size();
             }
+
             std::shared_ptr<MgmtEvent> translate(std::shared_ptr<HCIEvent> ev) noexcept;
 
             void hciReaderThreadImpl() noexcept;
@@ -388,12 +387,15 @@ namespace direct_bt {
             /**
              * Appends the given MgmtEventCallback to the named MgmtEvent::Opcode list,
              * if it is not present already (opcode + callback).
+             * @param opc opcode index for callback list, the callback shall be added to
+             * @param cb the to be added callback
+             * @return true if newly added or already existing, false if given MgmtEvent::Opcode is out of supported range.
              */
-            void addMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb);
+            bool addMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept;
             /** Returns count of removed given MgmtEventCallback from the named MgmtEvent::Opcode list. */
-            int removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb);
+            int removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept;
             /** Removes all MgmtEventCallbacks from the to the named MgmtEvent::Opcode list. */
-            void clearMgmtEventCallbacks(const MgmtEvent::Opcode opc);
+            void clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept;
             /** Removes all MgmtEventCallbacks from all MgmtEvent::Opcode lists. */
             void clearAllMgmtEventCallbacks() noexcept;
 

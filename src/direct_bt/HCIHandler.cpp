@@ -861,21 +861,28 @@ const hci_cmd_event_struct* HCIHandler::getMetaReplyStruct(std::shared_ptr<HCIEv
  *
  */
 
-void HCIHandler::addMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) {
+bool HCIHandler::addMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
-    checkMgmtEventCallbackListsIndex(opc);
+    if( !isValidMgmtEventCallbackListsIndex(opc) ) {
+        ERR_PRINT("Opcode %s >= %d", MgmtEvent::getOpcodeString(opc).c_str(), mgmtEventCallbackLists.size());
+        return false;
+    }
     MgmtEventCallbackList &l = mgmtEventCallbackLists[static_cast<uint16_t>(opc)];
     for (auto it = l.begin(); it != l.end(); ++it) {
         if ( *it == cb ) {
             // already exists for given adapter
-            return;
+            return true;
         }
     }
     l.push_back( cb );
+    return true;
 }
-int HCIHandler::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) {
+int HCIHandler::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
-    checkMgmtEventCallbackListsIndex(opc);
+    if( !isValidMgmtEventCallbackListsIndex(opc) ) {
+        ERR_PRINT("Opcode %s >= %d", MgmtEvent::getOpcodeString(opc).c_str(), mgmtEventCallbackLists.size());
+        return 0;
+    }
     int count = 0;
     MgmtEventCallbackList &l = mgmtEventCallbackLists[static_cast<uint16_t>(opc)];
     for (auto it = l.begin(); it != l.end(); ) {
@@ -888,9 +895,12 @@ int HCIHandler::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtE
     }
     return count;
 }
-void HCIHandler::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) {
+void HCIHandler::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
-    checkMgmtEventCallbackListsIndex(opc);
+    if( !isValidMgmtEventCallbackListsIndex(opc) ) {
+        ERR_PRINT("Opcode %s >= %d", MgmtEvent::getOpcodeString(opc).c_str(), mgmtEventCallbackLists.size());
+        return;
+    }
     mgmtEventCallbackLists[static_cast<uint16_t>(opc)].clear();
 }
 void HCIHandler::clearAllMgmtEventCallbacks() noexcept {

@@ -106,7 +106,7 @@ bool DBTAdapter::removeConnectedDevice(const DBTDevice & device) noexcept {
     return false;
 }
 
-int DBTAdapter::disconnectAllDevices(const HCIStatusCode reason) {
+int DBTAdapter::disconnectAllDevices(const HCIStatusCode reason) noexcept {
     std::vector<std::shared_ptr<DBTDevice>> devices;
     {
         const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
@@ -131,27 +131,36 @@ std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (EUI48 const & mac, c
 // *************************************************
 // *************************************************
 
-std::shared_ptr<HCIHandler> DBTAdapter::getHCI()
+std::shared_ptr<HCIHandler> DBTAdapter::getHCI() noexcept
 {
-    checkValidAdapter();
-    const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
-    if( nullptr == hci ) {
-        hci = std::shared_ptr<HCIHandler>( new HCIHandler(btMode, dev_id) );
-        if( !hci->isOpen() ) {
-            ERR_PRINT("Could not open HCIHandler: %s of %s", hci->toString().c_str(), toString().c_str());
-            hci = nullptr;
-        } else {
-            hci->addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringHCI));
-            hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceConnectedHCI));
-            hci->addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, bindMemberFunc(this, &DBTAdapter::mgmtEvConnectFailedHCI));
-            hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedHCI));
-            hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceFoundHCI));
-        }
+    if( !isValid() ) {
+        ERR_PRINT("DBTAdapter::getHCI(): Adapter state invalid: %s, %s", aptrHexString(this).c_str(), toString().c_str());
+        return nullptr;
     }
+    const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
+    if( nullptr != hci ) {
+        return hci;
+    }
+    std::shared_ptr<HCIHandler> _hci = std::shared_ptr<HCIHandler>( new HCIHandler(btMode, dev_id) );
+    if( !_hci->isOpen() ) {
+        ERR_PRINT("Could not open HCIHandler: %s of %s", _hci->toString().c_str(), toString().c_str());
+        return nullptr; // dtor local HCIHandler
+    }
+    bool ok = true;
+    ok = _hci->addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringHCI)) && ok;
+    ok = _hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceConnectedHCI)) && ok;
+    ok = _hci->addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, bindMemberFunc(this, &DBTAdapter::mgmtEvConnectFailedHCI)) && ok;
+    ok = _hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedHCI)) && ok;
+    ok = _hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceFoundHCI)) && ok;
+    if( !ok ) {
+        ERR_PRINT("Could not add all required MgmtEventCallbacks to HCIHandler: %s of %s", _hci->toString().c_str(), toString().c_str());
+        return nullptr; // dtor local HCIHandler w/ closing
+    }
+    hci = _hci; // make it persistent for all
     return hci;
 }
 
-bool DBTAdapter::closeHCI()
+bool DBTAdapter::closeHCI() noexcept
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("DBTAdapter::closeHCI: ...");
@@ -165,7 +174,7 @@ bool DBTAdapter::closeHCI()
     return true;
 }
 
-bool DBTAdapter::validateDevInfo() {
+bool DBTAdapter::validateDevInfo() noexcept {
     currentMetaScanType = ScanType::NONE;
     currentNativeScanType = ScanType::NONE;
     keepDiscoveringAlive = false;
@@ -187,9 +196,14 @@ bool DBTAdapter::validateDevInfo() {
         return false;
     }
 
-    mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringMgmt));
-    mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, bindMemberFunc(this, &DBTAdapter::mgmtEvNewSettingsMgmt));
-    mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindMemberFunc(this, &DBTAdapter::mgmtEvLocalNameChangedMgmt));
+    bool ok = true;
+    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
+    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, bindMemberFunc(this, &DBTAdapter::mgmtEvNewSettingsMgmt)) && ok;
+    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindMemberFunc(this, &DBTAdapter::mgmtEvLocalNameChangedMgmt)) && ok;
+    if( !ok ) {
+        ERR_PRINT("Could not add all required MgmtEventCallbacks to DBTManager: %s", toString().c_str());
+        return false;
+    }
 
 #ifdef VERBOSE_ON
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedMgmt));
@@ -218,7 +232,7 @@ DBTAdapter::DBTAdapter(const int dev_id) noexcept
     valid = validateDevInfo();
 }
 
-DBTAdapter::~DBTAdapter() {
+DBTAdapter::~DBTAdapter() noexcept {
     DBG_PRINT("DBTAdapter::dtor: ... %p %s", this, toString().c_str());
     keepDiscoveringAlive = false;
     // mute all listener first
@@ -237,7 +251,7 @@ DBTAdapter::~DBTAdapter() {
     DBG_PRINT("DBTAdapter::dtor: XXX");
 }
 
-void DBTAdapter::poweredOff() {
+void DBTAdapter::poweredOff() noexcept {
     DBG_PRINT("DBTAdapter::poweredOff: ... %p %s", this, toString(false).c_str());
     keepDiscoveringAlive = false;
 
@@ -373,7 +387,7 @@ int DBTAdapter::removeAllStatusListener() {
     return count;
 }
 
-void DBTAdapter::checkDiscoveryState() {
+void DBTAdapter::checkDiscoveryState() noexcept {
     if( keepDiscoveringAlive == false ) {
         if( currentMetaScanType != currentNativeScanType ) {
             std::string msg("Invalid DiscoveryState: keepAlive "+std::to_string(keepDiscoveringAlive.load())+
@@ -381,7 +395,7 @@ void DBTAdapter::checkDiscoveryState() {
                     getScanTypeString(currentNativeScanType)+" != meta "+
                     getScanTypeString(currentMetaScanType)+"]");
             ERR_PRINT(msg.c_str());
-            throw IllegalStateException(msg, E_FILE_LINE);
+            // ABORT?
         }
     } else {
         if( currentMetaScanType == ScanType::NONE && currentNativeScanType != ScanType::NONE ) {
@@ -390,7 +404,7 @@ void DBTAdapter::checkDiscoveryState() {
                     getScanTypeString(currentNativeScanType)+", meta "+
                     getScanTypeString(currentMetaScanType)+"]");
             ERR_PRINT(msg.c_str());
-            throw IllegalStateException(msg, E_FILE_LINE);
+            // ABORT?
         }
     }
 }
@@ -461,7 +475,7 @@ bool DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType 
     return res;
 }
 
-void DBTAdapter::startDiscoveryBackground() {
+void DBTAdapter::startDiscoveryBackground() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     if( ScanType::NONE == currentNativeScanType && keepDiscoveringAlive ) { // still?
         std::shared_ptr<HCIHandler> hci = getHCI();
@@ -478,7 +492,7 @@ void DBTAdapter::startDiscoveryBackground() {
     }
 }
 
-bool DBTAdapter::stopDiscovery() {
+bool DBTAdapter::stopDiscovery() noexcept {
     // FIXME: Respect DBTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to stop BREDR, LE or DUAL scanning!
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
@@ -656,11 +670,11 @@ std::string DBTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
 
 // *************************************************
 
-bool DBTAdapter::mgmtEvDeviceDiscoveringHCI(std::shared_ptr<MgmtEvent> e) {
+bool DBTAdapter::mgmtEvDeviceDiscoveringHCI(std::shared_ptr<MgmtEvent> e) noexcept {
     return mgmtEvDeviceDiscoveringMgmt(e);
 }
 
-bool DBTAdapter::mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) {
+bool DBTAdapter::mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
     const bool enabled = event.getEnabled();
     if( enabled ) {
@@ -697,7 +711,7 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) {
     return true;
 }
 
-bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) {
+bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
     COND_PRINT(debug_event, "DBTAdapter::EventCB:NewSettings: %s", e->toString().c_str());
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(e.get());
     AdapterSetting old_settings = adapterInfo->getCurrentSetting();
@@ -758,7 +772,7 @@ void DBTAdapter::sendAdapterSettingsChanged(AdapterStatusListener & asl,
     }
 }
 
-bool DBTAdapter::mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) {
+bool DBTAdapter::mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
     COND_PRINT(debug_event, "DBTAdapter::EventCB:LocalNameChanged: %s", e->toString().c_str());
     const MgmtEvtLocalNameChanged &event = *static_cast<const MgmtEvtLocalNameChanged *>(e.get());
     std::string old_name = localName.getName();
@@ -779,7 +793,7 @@ bool DBTAdapter::mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) {
     return true;
 }
 
-void DBTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask) {
+void DBTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept {
     int i=0;
     for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
@@ -795,7 +809,7 @@ void DBTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice>
     });
 }
 
-bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) {
+bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
     const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(e.get());
     EInfoReport ad_report;
     {
@@ -872,7 +886,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) {
     return true;
 }
 
-bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) {
+bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
     COND_PRINT(debug_event, "DBTAdapter::EventHCI:ConnectFailed: %s", e->toString().c_str());
     const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(e.get());
 
@@ -945,14 +959,14 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexc
     return true;
 }
 
-bool DBTAdapter::mgmtEvDeviceDisconnectedMgmt(std::shared_ptr<MgmtEvent> e) {
+bool DBTAdapter::mgmtEvDeviceDisconnectedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
     COND_PRINT(debug_event, "DBTAdapter::EventCB:DeviceDisconnected: %s", e->toString().c_str());
     const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
     (void)event;
     return true;
 }
 
-bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) {
+bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
     COND_PRINT(debug_event, "DBTAdapter::EventCB:DeviceFound(dev_id %d): %s", dev_id, e->toString().c_str());
     const MgmtEvtDeviceFound &deviceFoundEvent = *static_cast<const MgmtEvtDeviceFound *>(e.get());
 

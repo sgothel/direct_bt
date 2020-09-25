@@ -186,7 +186,7 @@ namespace direct_bt {
             std::recursive_mutex mtx_statusListenerList;
             std::recursive_mutex mtx_discovery;
 
-            bool validateDevInfo();
+            bool validateDevInfo() noexcept;
 
             /**
              * Closes all connections, stops discovery and cleans up all references.
@@ -194,13 +194,13 @@ namespace direct_bt {
              * To be called at destructor or when powered off.
              * </p>
              */
-            void poweredOff();
+            void poweredOff() noexcept;
 
-            bool closeHCI();
+            bool closeHCI() noexcept;
 
-            friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
-            friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo();
-            friend HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason);
+            friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const noexcept;
+            friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() noexcept;
+            friend HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept;
             friend void DBTDevice::remove() noexcept;
             friend HCIStatusCode DBTDevice::connectLE(uint16_t interval, uint16_t window,
                                                       uint16_t min_interval, uint16_t max_interval,
@@ -210,7 +210,7 @@ namespace direct_bt {
 
             bool addConnectedDevice(const std::shared_ptr<DBTDevice> & device) noexcept;
             bool removeConnectedDevice(const DBTDevice & device) noexcept;
-            int disconnectAllDevices(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION );
+            int disconnectAllDevices(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
             std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac, const BDAddressType macType) noexcept;
 
             bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) noexcept;
@@ -223,19 +223,19 @@ namespace direct_bt {
             void removeSharedDevice(const DBTDevice & device) noexcept;
             std::shared_ptr<DBTDevice> findSharedDevice (EUI48 const & mac, const BDAddressType macType) noexcept;
 
-            bool mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceDisconnectedMgmt(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvDeviceDisconnectedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
 
-            bool mgmtEvDeviceDiscoveringHCI(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDeviceDiscoveringHCI(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
 
-            void startDiscoveryBackground();
-            void checkDiscoveryState();
+            void startDiscoveryBackground() noexcept;
+            void checkDiscoveryState() noexcept;
 
             void sendAdapterSettingsChanged(const AdapterSetting old_settings, const AdapterSetting current_settings,
                                             const uint64_t timestampMS) noexcept;
@@ -243,7 +243,7 @@ namespace direct_bt {
                                             const AdapterSetting old_settings, const AdapterSetting current_settings,
                                             const uint64_t timestampMS) noexcept;
 
-            void sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask);
+            void sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept;
 
         public:
             const int dev_id;
@@ -353,7 +353,7 @@ namespace direct_bt {
             /**
              * Returns the already open or newly opened HCIHandler or {@code nullptr} if not available.
              */
-            std::shared_ptr<HCIHandler> getHCI();
+            std::shared_ptr<HCIHandler> getHCI() noexcept;
 
             /**
              * Returns true, if the adapter's device is already whitelisted.
@@ -484,7 +484,7 @@ namespace direct_bt {
              * </p>
              * @return true if no error, otherwise false.
              */
-            bool stopDiscovery();
+            bool stopDiscovery() noexcept;
 
             /**
              * Returns the meta discovering state. It can be modified through startDiscovery(..) and stopDiscovery().
