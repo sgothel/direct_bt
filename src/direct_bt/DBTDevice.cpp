@@ -72,7 +72,7 @@ DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
     }
 }
 
-DBTDevice::~DBTDevice() {
+DBTDevice::~DBTDevice() noexcept {
     DBG_PRINT("DBTDevice::dtor: ... %p %s", this, getAddressString().c_str());
     remove();
     advServices.clear();
@@ -392,7 +392,7 @@ HCIStatusCode DBTDevice::connectDefault()
     }
 }
 
-void DBTDevice::notifyConnected(const uint16_t handle) {
+void DBTDevice::notifyConnected(const uint16_t handle) noexcept {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
 
     DBG_PRINT("DBTDevice::notifyConnected: handle %s -> %s, %s",
@@ -402,24 +402,19 @@ void DBTDevice::notifyConnected(const uint16_t handle) {
     hciConnHandle = handle;
 }
 
-void DBTDevice::notifyDisconnected() {
+void DBTDevice::notifyDisconnected() noexcept {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
 
     // coming from disconnect callback, ensure cleaning up!
     DBG_PRINT("DBTDevice::notifyDisconnected: handle %s -> zero, %s",
             uint16HexString(hciConnHandle).c_str(), toString().c_str());
-
-    try {
-        disconnectGATT();
-    } catch (std::exception &e) {
-        ERR_PRINT("Exception caught on %s: %s", toString().c_str(), e.what());
-    }
+    disconnectGATT();
     isConnected = false;
     allowDisconnect = false;
     hciConnHandle = 0;
 }
 
-void DBTDevice::disconnectGATT() {
+void DBTDevice::disconnectGATT() noexcept {
     DBG_PRINT("DBTDevice::disconnectGATT: start");
     std::shared_ptr<GATTHandler> gh = gattHandler; // local copy avoiding immediate dtor
     if( nullptr != gh ) {
@@ -513,7 +508,7 @@ HCIStatusCode DBTDevice::pair(const std::string & passkey) {
     return HCIStatusCode::INTERNAL_FAILURE; // FIXME: Implement LE Secure Connections
 }
 
-void DBTDevice::remove() {
+void DBTDevice::remove() noexcept {
     adapter.removeDevice(*this);
 }
 
@@ -542,7 +537,7 @@ std::shared_ptr<GATTHandler> DBTDevice::connectGATT() {
     return gattHandler;
 }
 
-std::shared_ptr<GATTHandler> DBTDevice::getGATTHandler() {
+std::shared_ptr<GATTHandler> DBTDevice::getGATTHandler() noexcept {
     return gattHandler;
 }
 
@@ -629,7 +624,7 @@ bool DBTDevice::addCharacteristicListener(std::shared_ptr<GATTCharacteristicList
     return gatt->addCharacteristicListener(l);
 }
 
-bool DBTDevice::removeCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) {
+bool DBTDevice::removeCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) noexcept {
     std::shared_ptr<GATTHandler> gatt = getGATTHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
@@ -639,7 +634,7 @@ bool DBTDevice::removeCharacteristicListener(std::shared_ptr<GATTCharacteristicL
     return gatt->removeCharacteristicListener(l);
 }
 
-int DBTDevice::removeAllAssociatedCharacteristicListener(std::shared_ptr<GATTCharacteristic> associatedCharacteristic) {
+int DBTDevice::removeAllAssociatedCharacteristicListener(std::shared_ptr<GATTCharacteristic> associatedCharacteristic) noexcept {
     std::shared_ptr<GATTHandler> gatt = getGATTHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
@@ -649,7 +644,7 @@ int DBTDevice::removeAllAssociatedCharacteristicListener(std::shared_ptr<GATTCha
     return gatt->removeAllAssociatedCharacteristicListener( associatedCharacteristic );
 }
 
-int DBTDevice::removeAllCharacteristicListener() {
+int DBTDevice::removeAllCharacteristicListener() noexcept {
     std::shared_ptr<GATTHandler> gatt = getGATTHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable

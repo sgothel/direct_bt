@@ -120,16 +120,18 @@ bool GATTHandler::addCharacteristicListener(std::shared_ptr<GATTCharacteristicLi
     return true;
 }
 
-bool GATTHandler::removeCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) {
+bool GATTHandler::removeCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) noexcept {
     if( nullptr == l ) {
-        throw IllegalArgumentException("GATTEventListener ref is null", E_FILE_LINE);
+        ERR_PRINT("Given GATTCharacteristicListener ref is null");
+        return false;
     }
     return removeCharacteristicListener( l.get() );
 }
 
-bool GATTHandler::removeCharacteristicListener(const GATTCharacteristicListener * l) {
+bool GATTHandler::removeCharacteristicListener(const GATTCharacteristicListener * l) noexcept {
     if( nullptr == l ) {
-        throw IllegalArgumentException("GATTEventListener ref is null", E_FILE_LINE);
+        ERR_PRINT("Given GATTCharacteristicListener ref is null");
+        return false;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_eventListenerList); // RAII-style acquire and relinquish via destructor
     for(auto it = characteristicListenerList.begin(); it != characteristicListenerList.end(); ) {
@@ -143,16 +145,18 @@ bool GATTHandler::removeCharacteristicListener(const GATTCharacteristicListener 
     return false;
 }
 
-int GATTHandler::removeAllAssociatedCharacteristicListener(std::shared_ptr<GATTCharacteristic> associatedCharacteristic) {
+int GATTHandler::removeAllAssociatedCharacteristicListener(std::shared_ptr<GATTCharacteristic> associatedCharacteristic) noexcept {
     if( nullptr == associatedCharacteristic ) {
-        throw IllegalArgumentException("GATTCharacteristic ref is null", E_FILE_LINE);
+        ERR_PRINT("Given GATTCharacteristic ref is null");
+        return false;
     }
     return removeAllAssociatedCharacteristicListener( associatedCharacteristic.get() );
 }
 
-int GATTHandler::removeAllAssociatedCharacteristicListener(const GATTCharacteristic * associatedCharacteristic) {
+int GATTHandler::removeAllAssociatedCharacteristicListener(const GATTCharacteristic * associatedCharacteristic) noexcept {
     if( nullptr == associatedCharacteristic ) {
-        throw IllegalArgumentException("GATTCharacteristic ref is null", E_FILE_LINE);
+        ERR_PRINT("Given GATTCharacteristic ref is null");
+        return false;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_eventListenerList); // RAII-style acquire and relinquish via destructor
     for(auto it = characteristicListenerList.begin(); it != characteristicListenerList.end(); ) {

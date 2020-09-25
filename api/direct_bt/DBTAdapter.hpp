@@ -216,7 +216,7 @@ namespace direct_bt {
             bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) noexcept;
             bool removeDiscoveredDevice(const DBTDevice & device) noexcept;
 
-            void removeDevice(DBTDevice & device);
+            void removeDevice(DBTDevice & device) noexcept;
 
             bool addSharedDevice(std::shared_ptr<DBTDevice> const &device) noexcept;
             std::shared_ptr<DBTDevice> getSharedDevice(const DBTDevice & device) noexcept;
@@ -232,7 +232,7 @@ namespace direct_bt {
             bool mgmtEvDeviceDiscoveringHCI(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
 
             void startDiscoveryBackground();
             void checkDiscoveryState();

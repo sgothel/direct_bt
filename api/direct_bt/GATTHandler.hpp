@@ -445,7 +445,7 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool removeCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l);
+            bool removeCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) noexcept;
 
             /**
              * Remove the given listener from the list.
@@ -454,7 +454,7 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool removeCharacteristicListener(const GATTCharacteristicListener * l);
+            bool removeCharacteristicListener(const GATTCharacteristicListener * l) noexcept;
 
             
             /**
@@ -466,9 +466,9 @@ namespace direct_bt {
              * @param associatedCharacteristic the match criteria to remove any GATTCharacteristicListener from the list
              * @return number of removed listener.
              */
-            int removeAllAssociatedCharacteristicListener(std::shared_ptr<GATTCharacteristic> associatedCharacteristic);
+            int removeAllAssociatedCharacteristicListener(std::shared_ptr<GATTCharacteristic> associatedCharacteristic) noexcept;
 
-            int removeAllAssociatedCharacteristicListener(const GATTCharacteristic * associatedCharacteristic);
+            int removeAllAssociatedCharacteristicListener(const GATTCharacteristic * associatedCharacteristic) noexcept;
 
             /**
              * Remove all event listener from the list.

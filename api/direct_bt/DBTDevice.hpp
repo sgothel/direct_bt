@@ -87,8 +87,8 @@ namespace direct_bt {
             EIRDataType update(EInfoReport const & data) noexcept;
             EIRDataType update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept;
 
-            void notifyDisconnected();
-            void notifyConnected(const uint16_t handle);
+            void notifyDisconnected() noexcept;
+            void notifyConnected(const uint16_t handle) noexcept;
 
             void disconnectGATT() noexcept;
 
@@ -389,7 +389,7 @@ namespace direct_bt {
              * in use by another thread due to discovery post disconnect!
              * </p>
              */
-            void remove();
+            void remove() noexcept;
 
             /**
              * Returns a newly established GATT connection or an already open GATT connection.
@@ -404,7 +404,7 @@ namespace direct_bt {
             std::shared_ptr<GATTHandler> connectGATT();
 
             /** Returns already opened GATTHandler or nullptr, see connectGATT(), getGATTServices() and disconnect(). */
-            std::shared_ptr<GATTHandler> getGATTHandler();
+            std::shared_ptr<GATTHandler> getGATTHandler() noexcept;
 
             /**
              * Returns a list of shared GATTService available on this device if successful,
@@ -473,7 +473,7 @@ namespace direct_bt {
              * @param listener A {@link GATTCharacteristicListener} instance
              * @return true if the given listener is an element of the list and has been removed, otherwise false.
              */
-            bool removeCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l);
+            bool removeCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) noexcept;
 
             /**
              * Remove all {@link GATTCharacteristicListener} from the list, which are associated to the given {@link GATTCharacteristic}.
@@ -484,13 +484,13 @@ namespace direct_bt {
              * @param associatedCharacteristic the match criteria to remove any GATTCharacteristicListener from the list
              * @return number of removed listener.
              */
-            int removeAllAssociatedCharacteristicListener(std::shared_ptr<GATTCharacteristic> associatedCharacteristic);
+            int removeAllAssociatedCharacteristicListener(std::shared_ptr<GATTCharacteristic> associatedCharacteristic) noexcept;
 
             /**
              * Remove all {@link GATTCharacteristicListener} from the list.
              * @return number of removed listener.
              */
-            int removeAllCharacteristicListener();
+            int removeAllCharacteristicListener() noexcept;
     };
 
     inline bool operator<(const DBTDevice& lhs, const DBTDevice& rhs) noexcept
