@@ -62,7 +62,7 @@ static bool USE_WHITELIST = false;
 static std::vector<EUI48> WHITELIST;
 
 static bool SHOW_UPDATE_EVENTS = false;
-static bool SILENT_GATT = false;
+static bool QUIET = false;
 
 static std::vector<EUI48> waitForDevices;
 
@@ -290,14 +290,18 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
     // Secure Pairing
     {
         std::vector<PairingMode> spm = device->getSupportedPairingModes();
-        fprintf(stderr, "Supported Secure Pairing Modes: ");
-        std::for_each(spm.begin(), spm.end(), [](PairingMode pm) { fprintf(stderr, "%s, ", getPairingModeString(pm).c_str()); } );
-        fprintf(stderr, "\n");
+        if( !QUIET ) {
+            fprintf(stderr, "Supported Secure Pairing Modes: ");
+            std::for_each(spm.begin(), spm.end(), [](PairingMode pm) { fprintf(stderr, "%s, ", getPairingModeString(pm).c_str()); } );
+            fprintf(stderr, "\n");
+        }
 
         std::vector<PairingMode> rpm = device->getRequiredPairingModes();
-        fprintf(stderr, "Required Secure Pairing Modes: ");
-        std::for_each(rpm.begin(), rpm.end(), [](PairingMode pm) { fprintf(stderr, "%s, ", getPairingModeString(pm).c_str()); } );
-        fprintf(stderr, "\n");
+        if( !QUIET ) {
+            fprintf(stderr, "Required Secure Pairing Modes: ");
+            std::for_each(rpm.begin(), rpm.end(), [](PairingMode pm) { fprintf(stderr, "%s, ", getPairingModeString(pm).c_str()); } );
+            fprintf(stderr, "\n");
+        }
 
         if( spm.end() != std::find (spm.begin(), spm.end(), PairingMode::JUST_WORKS) ) {
             const std::vector<int> passkey; // empty for JustWorks
@@ -306,17 +310,8 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
         } else if( spm.end() != std::find (spm.begin(), spm.end(), PairingMode::PASSKEY_ENTRY) ) {
             HCIStatusCode res = device->pair("111111"); // PasskeyEntry
             fprintf(stderr, "Secure Pairing Passkey Entry result %s of %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
-        } else {
+        } else if( !QUIET ) {
             fprintf(stderr, "Secure Pairing JUST_WORKS or PASSKEY_ENTRY not supported %s\n", device->toString().c_str());
-        }
-        {
-            const std::vector<int> passkey; // empty for JustWorks
-            HCIStatusCode res = device->pair(""); // empty for JustWorks
-            fprintf(stderr, "T1 Secure Pairing Just Works result %s of %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
-        }
-        {
-            HCIStatusCode res = device->pair("111111"); // PasskeyEntry
-            fprintf(stderr, "T2 Secure Pairing Passkey Entry result %s of %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
         }
     }
 
@@ -324,7 +319,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
     // GATT Service Processing
     //
     fprintf(stderr, "****** Processing Device: GATT start: %s\n", device->getAddressString().c_str());
-    if( !SILENT_GATT ) {
+    if( !QUIET ) {
         device->getAdapter().printSharedPtrListOfDevices();
     }
     try {
@@ -335,7 +330,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
         }
 
         const uint64_t t5 = getCurrentMilliseconds();
-        if( !SILENT_GATT ) {
+        if( !QUIET ) {
             const uint64_t td01 = t1 - timestamp_t0; // adapter-init -> processing-start
             const uint64_t td15 = t5 - t1; // get-gatt-services
             const uint64_t tdc5 = t5 - device->getLastDiscoveryTimestamp(); // discovered to gatt-complete
@@ -349,14 +344,14 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
                             td01, td15, tdc5, (tdc5 - td15), td05);
         }
         std::shared_ptr<GattGenericAccessSvc> ga = device->getGATTGenericAccess();
-        if( nullptr != ga && !SILENT_GATT ) {
+        if( nullptr != ga && !QUIET ) {
             fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
         }
         {
             std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
             if( nullptr != gatt && gatt->isConnected() ) {
                 std::shared_ptr<GattDeviceInformationSvc> di = gatt->getDeviceInformation(primServices);
-                if( nullptr != di && !SILENT_GATT ) {
+                if( nullptr != di && !QUIET ) {
                     fprintf(stderr, "  DeviceInformation: %s\n\n", di->toString().c_str());
                 }
             }
@@ -364,21 +359,21 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
 
         for(size_t i=0; i<primServices.size(); i++) {
             GATTService & primService = *primServices.at(i);
-            if( !SILENT_GATT ) {
+            if( !QUIET ) {
                 fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
                 fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
             }
             std::vector<GATTCharacteristicRef> & serviceCharacteristics = primService.characteristicList;
             for(size_t j=0; j<serviceCharacteristics.size(); j++) {
                 GATTCharacteristic & serviceChar = *serviceCharacteristics.at(j);
-                if( !SILENT_GATT ) {
+                if( !QUIET ) {
                     fprintf(stderr, "  [%2.2d.%2.2d] CharDef: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
                 }
                 if( serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Read) ) {
                     POctets value(GATTHandler::number(GATTHandler::Defaults::MAX_ATT_MTU), 0);
                     if( serviceChar.readValue(value) ) {
                         std::string sval = dfa_utf8_decode(value.get_ptr(), value.getSize());
-                        if( !SILENT_GATT ) {
+                        if( !QUIET ) {
                             fprintf(stderr, "  [%2.2d.%2.2d] CharVal: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
                         }
                     }
@@ -386,14 +381,14 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
                 std::vector<GATTDescriptorRef> & charDescList = serviceChar.descriptorList;
                 for(size_t k=0; k<charDescList.size(); k++) {
                     GATTDescriptor & charDesc = *charDescList.at(k);
-                    if( !SILENT_GATT ) {
+                    if( !QUIET ) {
                         fprintf(stderr, "  [%2.2d.%2.2d.%2.2d] Desc: %s\n", (int)i, (int)j, (int)k, charDesc.toString().c_str());
                     }
                 }
                 bool cccdEnableResult[2];
                 bool cccdRet = serviceChar.addCharacteristicListener( std::shared_ptr<GATTCharacteristicListener>( new MyGATTEventListener(&serviceChar) ),
                                                                       cccdEnableResult );
-                if( !SILENT_GATT ) {
+                if( !QUIET ) {
                     fprintf(stderr, "  [%2.2d.%2.2d] addCharacteristicListener Notification(%d), Indication(%d): Result %d\n",
                             (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], cccdRet);
                 }
@@ -420,7 +415,7 @@ exit:
         // Even w/ GATT_PING_ENABLED, we utilize disconnect event to clean up -> remove
     }
 
-    if( !SILENT_GATT ) {
+    if( !QUIET ) {
         device->getAdapter().printSharedPtrListOfDevices();
     }
 
@@ -545,8 +540,8 @@ int main(int argc, char *argv[])
             waitForEnter = true;
         } else if( !strcmp("-show_update_events", argv[i]) ) {
             SHOW_UPDATE_EVENTS = true;
-        } else if( !strcmp("-silent_gatt", argv[i]) ) {
-            SILENT_GATT = true;
+        } else if( !strcmp("-quiet", argv[i]) ) {
+            QUIET = true;
         } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
             std::string macstr = std::string(argv[++i]);
             waitForDevices.push_back( EUI48(macstr) );
@@ -571,7 +566,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "pid %d\n", getpid());
 
     fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-btmode LE|BREDR|DUAL] "
-                    "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-silent_gatt] "
+                    "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "
                     "(-mac <device_address>)* (-wl <device_address>)* "
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "
@@ -587,7 +582,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "REMOVE_DEVICE %d\n", REMOVE_DEVICE);
     fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
     fprintf(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
-    fprintf(stderr, "SILENT_GATT %d\n", SILENT_GATT);
+    fprintf(stderr, "QUIET %d\n", QUIET);
     fprintf(stderr, "dev_id %d\n", dev_id);
     fprintf(stderr, "btmode %s\n", getBTModeString(btMode).c_str());
     printList( "waitForDevice: ", waitForDevices);

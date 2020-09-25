@@ -82,7 +82,7 @@ public class ScannerTinyB10 {
     final List<String> charValueList = new ArrayList<String>();
 
     boolean SHOW_UPDATE_EVENTS = false;
-    boolean SILENT_GATT = false;
+    boolean QUIET = false;
 
     int dev_id = -1; // use default
 
@@ -282,10 +282,14 @@ public class ScannerTinyB10 {
         // Secure Pairing
         {
             final List<PairingMode> spm = device.getSupportedPairingModes();
-            println("Supported Secure Pairing Modes: " + spm.toString());
+            if( !QUIET ) {
+                println("Supported Secure Pairing Modes: " + spm.toString());
+            }
 
             final List<PairingMode> rpm = device.getRequiredPairingModes();
-            println("Required Secure Pairing Modes: " + rpm.toString());
+            if( !QUIET ) {
+                println("Required Secure Pairing Modes: " + rpm.toString());
+            }
 
             if( spm.contains(PairingMode.JUST_WORKS) ) {
                 final HCIStatusCode res = device.pair(null); // empty for JustWorks
@@ -293,16 +297,8 @@ public class ScannerTinyB10 {
             } else if( spm.contains(PairingMode.PASSKEY_ENTRY) ) {
                 final HCIStatusCode res = device.pair("111111"); // PasskeyEntry
                 println("Secure Pairing Passkey Entry result " + res + " of " + device);
-            } else {
+            } else if( !QUIET ) {
                 println("Secure Pairing JUST_WORKS or PASSKEY_ENTRY not supported, but " + spm.toString() + " on " + device);
-            }
-            {
-                final HCIStatusCode res = device.pair(null); // empty for JustWorks
-                println("T1 Processing Device: Secure Pairing Just Works result " + res + " of " + device);
-            }
-            {
-                final HCIStatusCode res = device.pair("111111"); // PasskeyEntry
-                println("T2 Processing Device: Secure Pairing Passkey Entry result " + res + " of " + device);
             }
         }
 
@@ -317,7 +313,7 @@ public class ScannerTinyB10 {
                 throw new RuntimeException("Processing Device: getServices() failed " + device.toString());
             }
             final long t5 = BluetoothUtils.getCurrentMilliseconds();
-            if( !SILENT_GATT ) {
+            if( !QUIET ) {
                 final long td01 = t1 - timestamp_t0; // adapter-init -> processing-start
                 final long td15 = t5 - t1; // get-gatt-services
                 final long tdc5 = t5 - device.getLastDiscoveryTimestamp(); // discovered to gatt-complete
@@ -361,7 +357,7 @@ public class ScannerTinyB10 {
                         final boolean addedCharPingPongListenerRes =
                                 char2.addCharacteristicListener(charPingPongListener, enabledState);
                           BluetoothGattService.addCharacteristicListenerToAll(device, primServices, charPingPongListener);
-                        if( !SILENT_GATT ) {
+                        if( !QUIET ) {
                             println("Added CharPingPongListenerRes: "+addedCharPingPongListenerRes+", enabledState "+Arrays.toString(enabledState));
                         }
 
@@ -389,7 +385,7 @@ public class ScannerTinyB10 {
                 };
                 final boolean addedCharacteristicListenerRes =
                   BluetoothGattService.addCharacteristicListenerToAll(device, primServices, myCharacteristicListener);
-                if( !SILENT_GATT ) {
+                if( !QUIET ) {
                     println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
                 }
             }
@@ -398,7 +394,7 @@ public class ScannerTinyB10 {
                 int i=0;
                 for(final Iterator<BluetoothGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
                     final BluetoothGattService primService = srvIter.next();
-                    if( !SILENT_GATT ) {
+                    if( !QUIET ) {
                         printf("  [%02d] Service %s\n", i, primService.toString());
                         printf("  [%02d] Service Characteristics\n", i);
                     }
@@ -406,14 +402,14 @@ public class ScannerTinyB10 {
                     final List<BluetoothGattCharacteristic> serviceCharacteristics = primService.getCharacteristics();
                     for(final Iterator<BluetoothGattCharacteristic> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
                         final BluetoothGattCharacteristic serviceChar = charIter.next();
-                        if( !SILENT_GATT ) {
+                        if( !QUIET ) {
                             printf("  [%02d.%02d] CharDef: %s\n", i, j, serviceChar.toString());
                         }
                         final List<String> properties = Arrays.asList(serviceChar.getFlags());
                         if( properties.contains("read") ) {
                             final byte[] value = serviceChar.readValue();
                             final String svalue = BluetoothUtils.decodeUTF8String(value, 0, value.length);
-                            if( !SILENT_GATT ) {
+                            if( !QUIET ) {
                                 printf("  [%02d.%02d] CharVal: %s ('%s')\n",
                                         i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
                             }
@@ -422,7 +418,7 @@ public class ScannerTinyB10 {
                         final List<BluetoothGattDescriptor> charDescList = serviceChar.getDescriptors();
                         for(final Iterator<BluetoothGattDescriptor> descIter = charDescList.iterator(); descIter.hasNext(); k++) {
                             final BluetoothGattDescriptor charDesc = descIter.next();
-                            if( !SILENT_GATT ) {
+                            if( !QUIET ) {
                                 printf("  [%02d.%02d.%02d] Desc: %s\n", i, j, k, charDesc.toString());
                             }
                         }
@@ -645,8 +641,8 @@ public class ScannerTinyB10 {
                     waitForEnter = true;
                 } else if( arg.equals("-show_update_events") ) {
                     test.SHOW_UPDATE_EVENTS = true;
-                } else if( arg.equals("-silent_gatt") ) {
-                    test.SILENT_GATT = true;
+                } else if( arg.equals("-quiet") ) {
+                    test.QUIET = true;
                 } else if( arg.equals("-dev_id") && args.length > (i+1) ) {
                     test.dev_id = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-shutdown") && args.length > (i+1) ) {
@@ -674,7 +670,7 @@ public class ScannerTinyB10 {
             }
             println("Run with '[-default_dev_id <adapter-index>] [-dev_id <adapter-index>] [-btmode LE|BREDR|DUAL] "+
                     "[-bluetoothManager <BluetoothManager-Implementation-Class-Name>] "+
-                    "[-disconnect] [-enableGATTPing] [-count <number>] [-single] (-char <uuid>)* [-show_update_events] [-silent_gatt]"+
+                    "[-disconnect] [-enableGATTPing] [-count <number>] [-single] (-char <uuid>)* [-show_update_events] [-quiet]"+
                     "(-mac <device_address>)* (-wl <device_address>)* "+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
@@ -693,7 +689,7 @@ public class ScannerTinyB10 {
         println("REMOVE_DEVICE "+test.REMOVE_DEVICE);
         println("USE_WHITELIST "+test.USE_WHITELIST);
         println("SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
-        println("SILENT_GATT "+test.SILENT_GATT);
+        println("QUIET "+test.QUIET);
 
         println("dev_id "+test.dev_id);
         println("waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));
