@@ -41,13 +41,18 @@ import org.tinyb.BluetoothType;
 public class DBusManager implements BluetoothManager
 {
     private long nativeInstance;
-    private static DBusManager inst;
+    private final Settings settings;
 
     private native static String getNativeAPIVersion();
 
     public native BluetoothType getBluetoothType();
 
     private native DBusObject find(int type, String name, String identifier, BluetoothObject parent, long milliseconds);
+
+    @Override
+    public final Settings getSettings() {
+        return settings;
+    }
 
     @Override
     public DBusObject find(final BluetoothType type, final String name, final String identifier, final BluetoothObject parent, final long timeoutMS) {
@@ -119,19 +124,36 @@ public class DBusManager implements BluetoothManager
     private DBusManager()
     {
         init();
+        settings = new Settings() {
+            @Override
+            public final boolean isDirectBT() {
+                return false;
+            }
+            @Override
+            public boolean isTinyB() {
+                return true;
+            }
+            @Override
+            public boolean isCharacteristicValueCacheNotificationSupported() {
+                return true;
+            }
+            @Override
+            public String toString() {
+                return "Settings[dbt false, tinyb true, charValueCacheNotify "+isCharacteristicValueCacheNotificationSupported()+"]";
+            }
+        };
+        System.err.println("DBusManager: Using "+settings.toString());
     }
 
     /** Returns an instance of BluetoothManager, to be used instead of constructor.
       * @return An initialized BluetoothManager instance.
       */
-    public static synchronized BluetoothManager getBluetoothManager() throws RuntimeException, BluetoothException
-    {
-        if (inst == null)
-        {
-            inst = new DBusManager();
-            inst.init();
-        }
-        return inst;
+    public static synchronized BluetoothManager getManager() throws RuntimeException, BluetoothException {
+        return LazySingletonHolder.singleton;
+    }
+    /** Initialize-On-Demand Holder Class, similar to C++11's "Magic Statics". */
+    private static class LazySingletonHolder {
+        private static DBusManager singleton = new DBusManager();
     }
 
     @Override

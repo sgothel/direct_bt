@@ -56,7 +56,7 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
 
     @Override
     public BluetoothDevice find(final String name, final String address, final long timeoutMS) {
-            final BluetoothManager manager = DBusManager.getBluetoothManager();
+            final BluetoothManager manager = DBusManager.getManager();
             return (BluetoothDevice) manager.find(BluetoothType.DEVICE, name, address, this, timeoutMS);
     }
 
@@ -93,6 +93,9 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     public boolean removeDeviceFromWhitelist(final String address, final BluetoothAddressType address_type) {
         return false; // FIXME
     }
+
+    @Override
+    public final BluetoothManager getManager() { return DBusManager.getManager(); }
 
     /* D-Bus method calls: */
 

@@ -346,7 +346,7 @@ namespace direct_bt {
             void setBondable(bool value) noexcept;
 
             /**
-             * Returns a reference to the used singleton DBTManager instance.
+             * Returns a reference to the used singleton DBTManager instance, used to create this adapter.
              */
             DBTManager& getManager() const noexcept { return mgmt; }
 

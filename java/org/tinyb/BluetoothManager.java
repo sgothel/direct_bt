@@ -32,6 +32,54 @@ import java.util.List;
 
 public interface BluetoothManager
 {
+    /**
+     * Interface allowing to retrieve certain settings
+     * of the implementation.
+     * <p>
+     * In case this interface will have to add a multitude of settings in the future,
+     * we will revise the API using a more efficient bitfield approach.
+     * </p>
+     */
+    public static interface Settings {
+        /**
+         * Returns true if underlying implementation is Direct-BT.
+         */
+        boolean isDirectBT();
+
+        /**
+         * Returns true if underlying implementation is TinyB.
+         */
+        boolean isTinyB();
+
+        /**
+         * Returns whether {@link BluetoothGattCharacteristic} API: {@link BluetoothGattCharacteristic#getValue() value cache} and
+         * {@link BluetoothGattCharacteristic#enableValueNotifications(BluetoothNotification) value notification}
+         * is supported.
+         * <p>
+         * This is enabled using {@link #isTinyB() TinyB}, but disabled by default using {@link #isDirectBT() Direct-BT}.
+         * </p>
+         * <p>
+         * If using {@link #isDirectBT() Direct-BT}, user are encouraged to
+         * {@link BluetoothGattCharacteristic#addCharacteristicListener(GATTCharacteristicListener, boolean[]) utilize GATTCharacteristicListener}
+         * to handle value notifications when they occur w/o caching.
+         * </p>
+         * <p>
+         * If using {@link #isDirectBT() Direct-BT}, users can enable this TinyB compatibility
+         * by setting the System property {@code direct_bt.tinyb.characteristic.compat} to {@code true}.
+         * It defaults to {@code false}, i.e. disabled.
+         * </p>
+         */
+        boolean isCharacteristicValueCacheNotificationSupported();
+
+        @Override
+        String toString();
+    }
+
+    /**
+     * Returns this implmentation's {@link Settings}.
+     */
+    public Settings getSettings();
+
     /** Find a BluetoothObject of a type matching type. If parameters name,
       * identifier and parent are not null, the returned object will have to
       * match them.

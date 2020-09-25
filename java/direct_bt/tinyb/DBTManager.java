@@ -98,7 +98,7 @@ public class DBTManager implements BluetoothManager
         }
 
         try {
-            final BluetoothManager mgmt = getBluetoothManager();
+            final BluetoothManager mgmt = getManager();
             mgmt.shutdown();
         } catch(final Throwable t) {
             System.err.println("DBTManager.shutdown: Caught "+t.getClass().getName()+" during DBTManager.shutdown()");
@@ -147,16 +147,19 @@ public class DBTManager implements BluetoothManager
      * Default is {@code true}, as this represent compatibility with original TinyB D-Bus behavior.
      * </p>
      * <p>
-     * If desired, this value should be set once before the first call of {@link #getBluetoothManager()}!
+     * If desired, this value should be set once before the first call of {@link #getManager()}!
      * </p>
      * @see #getUnifyUUID128Bit()
      */
     public static void setUnifyUUID128Bit(final boolean v) { unifyUUID128Bit=v; }
 
     private long nativeInstance;
-    private static DBTManager inst;
     private final List<BluetoothAdapter> adapters = new ArrayList<BluetoothAdapter>();
     private int defaultAdapterIndex = 0;
+    private final Settings settings;
+
+    @Override
+    public final Settings getSettings() { return settings; }
 
     public BluetoothType getBluetoothType() { return BluetoothType.NONE; }
 
@@ -297,6 +300,30 @@ public class DBTManager implements BluetoothManager
                 }
             }
         }
+        final boolean supCharValCacheNotify;
+        {
+            final String v = System.getProperty("direct_bt.tinyb.characteristic.compat", "false");
+            supCharValCacheNotify = Boolean.valueOf(v);
+        }
+        settings = new Settings() {
+            @Override
+            public final boolean isDirectBT() {
+                return true;
+            }
+            @Override
+            public boolean isTinyB() {
+                return false;
+            }
+            @Override
+            public boolean isCharacteristicValueCacheNotificationSupported() {
+                return supCharValCacheNotify;
+            }
+            @Override
+            public String toString() {
+                return "Settings[dbt true, tinyb false, charValueCacheNotify "+isCharacteristicValueCacheNotificationSupported()+"]";
+            }
+        };
+        System.err.println("DBTManager: Using "+settings.toString());
         System.err.println("DBTManager: Using default adapter index "+defaultAdapterIndex+", user choice "+DefaultAdapterIndex+", isEnabled "+isDefaultAdapterEnabled);
         System.err.println("DBTManager: Using default adapter "+adapters.get(defaultAdapterIndex).toString());
     }
@@ -304,13 +331,12 @@ public class DBTManager implements BluetoothManager
     /** Returns an instance of BluetoothManager, to be used instead of constructor.
       * @return An initialized BluetoothManager instance.
       */
-    public static synchronized BluetoothManager getBluetoothManager() throws RuntimeException, BluetoothException
-    {
-        if (inst == null)
-        {
-            inst = new DBTManager();
-        }
-        return inst;
+    public static BluetoothManager getManager() throws RuntimeException, BluetoothException {
+        return LazySingletonHolder.singleton;
+    }
+    /** Initialize-On-Demand Holder Class, similar to C++11's "Magic Statics". */
+    private static class LazySingletonHolder {
+        private static DBTManager singleton = new DBTManager();
     }
 
     @Override

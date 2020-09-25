@@ -162,16 +162,6 @@ public class BluetoothFactory {
      */
     public static final BTMode DEFAULT_BTMODE;
 
-    /**
-     * Have direct_bt provide compatibility to TinyB's {@link BluetoothGattCharacteristic}
-     * API: {@link BluetoothGattCharacteristic#getValue() value cache} and
-     * {@link BluetoothGattCharacteristic#enableValueNotifications(BluetoothNotification) value notification}.
-     * <p>
-     * System property {@code direct_bt.tinyb.characteristic.compat}, boolean, default {@code true}.
-     * </p>
-     */
-    public static final boolean DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT;
-
     static {
         {
             final String v = System.getProperty("org.tinyb.verbose", "false");
@@ -190,10 +180,6 @@ public class BluetoothFactory {
                 System.err.println("Invalid BTMode '"+v+"': "+ex.getMessage());
             }
             DEFAULT_BTMODE = btMode;
-        }
-        {
-            final String v = System.getProperty("direct_bt.tinyb.characteristic.compat", "true");
-            DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT = Boolean.valueOf(v);
         }
         implIDs.add(DirectBTImplementationID);
         implIDs.add(DBusImplementationID);

@@ -76,6 +76,8 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
 
     /* pp */ final List<BluetoothGattDescriptor> descriptorList;
 
+    private final boolean supCharValueCacheNotification;
+
     boolean enabledNotifyState = false;
     boolean enabledIndicateState = false;
 
@@ -116,8 +118,9 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
         this.value_handle = value_handle;
         this.clientCharacteristicsConfigIndex = clientCharacteristicsConfigIndex;
         this.descriptorList = getDescriptorsImpl();
+        this.supCharValueCacheNotification = DBTManager.getManager().getSettings().isCharacteristicValueCacheNotificationSupported();
 
-        if( ( BluetoothFactory.DEBUG || BluetoothFactory.DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT ) &&
+        if( ( BluetoothFactory.DEBUG || supCharValueCacheNotification ) &&
             ( hasNotify || hasIndicate )
           )
         {
@@ -132,7 +135,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
                                                 ", expected "+DBTGattCharacteristic.this.toString());
                     }
                     final boolean valueChanged;
-                    if( BluetoothFactory.DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT ) {
+                    if( supCharValueCacheNotification ) {
                         valueChanged = updateCachedValue(value, true);
                     } else {
                         valueChanged = true;
@@ -151,7 +154,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
                                                 ", expected "+DBTGattCharacteristic.this.toString());
                     }
                     final boolean valueChanged;
-                    if( BluetoothFactory.DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT ) {
+                    if( supCharValueCacheNotification ) {
                         valueChanged = updateCachedValue(value, true);
                     } else {
                         valueChanged = true;
@@ -222,7 +225,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
 
     @Override
     public final byte[] readValue() throws BluetoothException {
-        if( BluetoothFactory.DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT ) {
+        if( supCharValueCacheNotification ) {
             final byte[] value = readValueImpl();
             updateCachedValue(value, true);
             return cachedValue;
@@ -234,7 +237,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
     @Override
     public final boolean writeValue(final byte[] value, final boolean withResponse) throws BluetoothException {
         final boolean res = writeValueImpl(value, withResponse);
-        if( BluetoothFactory.DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT && res ) {
+        if( supCharValueCacheNotification && res ) {
             updateCachedValue(value, false);
         }
         return res;

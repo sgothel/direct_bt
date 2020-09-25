@@ -50,7 +50,7 @@ public class DBusGattCharacteristic extends DBusObject implements BluetoothGattC
 
     @Override
     public BluetoothGattDescriptor find(final String UUID, final long timeoutMS) {
-        final BluetoothManager manager = DBusManager.getBluetoothManager();
+        final BluetoothManager manager = DBusManager.getManager();
         return (BluetoothGattDescriptor) manager.find(BluetoothType.GATT_DESCRIPTOR,
                 null, UUID, this, timeoutMS);
     }

@@ -86,6 +86,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     }
 
     @Override
+    public final BluetoothManager getManager() { return DBTManager.getManager(); }
+
+    @Override
     public synchronized void close() {
         if( !isValid() ) {
             return;

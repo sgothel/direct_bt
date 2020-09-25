@@ -40,6 +40,11 @@ public interface BluetoothAdapter extends BluetoothObject
     @Override
     public BluetoothAdapter clone();
 
+    /**
+     * Returns the used singleton {@link BluetoothManager} instance, used to create this adapter.
+     */
+    public BluetoothManager getManager();
+
     /** Find a BluetoothDevice. If parameters name and address are not null,
       * the returned object will have to match them.
       * It will first check for existing objects. It will not turn on discovery
