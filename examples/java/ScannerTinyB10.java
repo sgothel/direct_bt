@@ -67,8 +67,6 @@ public class ScannerTinyB10 {
     static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
 
     final List<String> waitForDevices = new ArrayList<String>();
-    final boolean isDirectBT;
-    final BluetoothManager manager;
 
     long timestamp_t0;
 
@@ -258,7 +256,7 @@ public class ScannerTinyB10 {
     }
     void shutdownTest01() {
         execute( () -> {
-            final DBTManager mngr = (DBTManager) DBTManager.getBluetoothManager();
+            final DBTManager mngr = (DBTManager) DBTManager.getManager();
             mngr.shutdown();
         }, true);
     }
@@ -326,16 +324,12 @@ public class ScannerTinyB10 {
                         "PERF:  adapter-init to gatt-complete " + td05 + " ms"+System.lineSeparator());
             }
             {
+                // WIP: Implement a simple Characteristic ping-pong writeValue <-> notify transmission for stress testing.
+                final BluetoothManager manager = device.getAdapter().getManager();
                 for(final String characteristic : charIdentifierList) {
-                    final BluetoothGattCharacteristic char0 = (BluetoothGattCharacteristic)
-                            manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, null);
-                    final BluetoothGattCharacteristic char1 = (BluetoothGattCharacteristic)
-                            manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, device.getAdapter());
                     final BluetoothGattCharacteristic char2 = (BluetoothGattCharacteristic)
                             manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, device);
                     println("Char UUID "+characteristic);
-                    println("  over manager: "+char0);
-                    println("  over adapter: "+char1);
                     println("  over device : "+char2);
                     if( null != char2 ) {
                         final GATTCharacteristicListener charPingPongListener = new GATTCharacteristicListener(null) {
@@ -360,7 +354,6 @@ public class ScannerTinyB10 {
                         if( !QUIET ) {
                             println("Added CharPingPongListenerRes: "+addedCharPingPongListenerRes+", enabledState "+Arrays.toString(enabledState));
                         }
-
                     }
                 }
             }
@@ -495,30 +488,7 @@ public class ScannerTinyB10 {
         }
     }
 
-    public ScannerTinyB10(final String bluetoothManagerClazzName) {
-        BluetoothManager _manager = null;
-        final BluetoothFactory.ImplementationIdentifier implID = BluetoothFactory.getImplementationIdentifier(bluetoothManagerClazzName);
-        if( null == implID ) {
-            System.err.println("Unable to find BluetoothManager "+bluetoothManagerClazzName);
-            System.exit(-1);
-        }
-        isDirectBT = BluetoothFactory.DirectBTImplementationID.equals(implID);
-        System.err.println("Using BluetoothManager "+bluetoothManagerClazzName);
-        System.err.println("Using Implementation "+implID+", isDirectBT "+isDirectBT);
-        try {
-            _manager = BluetoothFactory.getBluetoothManager( implID );
-        } catch (BluetoothException | NoSuchMethodException | SecurityException
-                | IllegalAccessException | IllegalArgumentException
-                | InvocationTargetException | ClassNotFoundException e) {
-            System.err.println("Unable to instantiate BluetoothManager via "+implID);
-            e.printStackTrace();
-            System.exit(-1);
-        }
-        manager = _manager;
-        println("BluetoothManager "+bluetoothManagerClazzName+" initialized!");
-    }
-
-    public void runTest() {
+    public void runTest(final BluetoothManager manager) {
         final BluetoothAdapter adapter;
         {
             final List<BluetoothAdapter> adapters = manager.getAdapters();
@@ -590,12 +560,9 @@ public class ScannerTinyB10 {
     }
 
     public static void main(final String[] args) throws InterruptedException {
-        String bluetoothManagerClazzName = null;
         for(int i=0; i< args.length; i++) {
             final String arg = args[i];
-            if( arg.equals("-bluetoothManager") && args.length > (i+1) ) {
-                bluetoothManagerClazzName = args[++i];
-            } else if( arg.equals("-debug") ) {
+            if( arg.equals("-debug") ) {
                 System.setProperty("org.tinyb.verbose", "true");
                 System.setProperty("org.tinyb.debug", "true");
             } else if( arg.equals("-verbose") ) {
@@ -624,13 +591,19 @@ public class ScannerTinyB10 {
                 System.err.println("Setting 'org.tinyb.btmode' to "+btmode.toString());
             }
         }
-        // Drop BluetoothGattCharacteristic value cache and notification compatibility using direct_bt.
-        System.setProperty("direct_bt.tinyb.characteristic.compat", "false");
-
-        if( null == bluetoothManagerClazzName ) {
-            bluetoothManagerClazzName = BluetoothFactory.DirectBTImplementationID.BluetoothManagerClassName;
+        final BluetoothManager manager;
+        try {
+            manager = BluetoothFactory.getDirectBTBluetoothManager();
+        } catch (BluetoothException | NoSuchMethodException | SecurityException
+                | IllegalAccessException | IllegalArgumentException
+                | InvocationTargetException | ClassNotFoundException e) {
+            System.err.println("Unable to instantiate DirectBT BluetoothManager");
+            e.printStackTrace();
+            System.exit(-1);
+            return;
         }
-        final ScannerTinyB10 test = new ScannerTinyB10(bluetoothManagerClazzName);
+        println("DirectBT BluetoothManager initialized!");
+        final ScannerTinyB10 test = new ScannerTinyB10();
 
         boolean waitForEnter=false;
         {
@@ -682,7 +655,6 @@ public class ScannerTinyB10 {
                     "[-shutdown <int>]'");
         }
 
-        println("BluetoothManager "+bluetoothManagerClazzName);
         println("MULTI_MEASUREMENTS "+test.MULTI_MEASUREMENTS);
         println("KEEP_CONNECTED "+test.KEEP_CONNECTED);
         println("GATT_PING_ENABLED "+test.GATT_PING_ENABLED);
@@ -700,7 +672,7 @@ public class ScannerTinyB10 {
             try{ System.in.read();
             } catch(final Exception e) { }
         }
-        test.runTest();
+        test.runTest(manager);
     }
 
     static class BooleanNotification implements BluetoothNotification<Boolean> {

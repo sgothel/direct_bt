@@ -100,6 +100,8 @@ public class ScannerTinyB01 {
 
             System.err.println("Run with '[-dev_id <adapter-index>] [-mac <device_address>] (-char <uuid>)* [-mode <mode>] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>]'");
         }
+        // Enable BluetoothGattCharacteristic value cache and notification compatibility using direct_bt.
+        System.setProperty("direct_bt.tinyb.characteristic.compat", "true");
 
         System.err.println("BluetoothManager "+bluetoothManagerClazzName);
         System.err.println("dev_id "+dev_id);

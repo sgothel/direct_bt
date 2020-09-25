@@ -75,6 +75,8 @@ public class ScannerTinyB00 {
                 forever = true;
             }
         }
+        // Enable BluetoothGattCharacteristic value cache and notification compatibility using direct_bt.
+        System.setProperty("direct_bt.tinyb.characteristic.compat", "true");
 
         System.err.println("BluetoothManager "+bluetoothManagerClazzName);
         System.err.println("dev_id "+dev_id);
