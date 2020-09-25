@@ -90,9 +90,7 @@ namespace direct_bt {
             void notifyDisconnected();
             void notifyConnected(const uint16_t handle);
 
-            void disconnectGATT();
-            HCIStatusCode disconnect(const bool ioErrorCause,
-                                     const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION );
+            void disconnectGATT() noexcept;
 
         public:
             const uint64_t ts_creation;
@@ -331,9 +329,7 @@ namespace direct_bt {
              * </p>
              * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */
-            HCIStatusCode disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) {
-                return disconnect(false /* ioErrorCause */, reason);
-            }
+            HCIStatusCode disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
 
             /**
              * The device is securely paired with PasskeyEntry or JustWorks.

@@ -382,7 +382,7 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
             const HCIStatusCode reason = ioErrorCause ?
                                    HCIStatusCode::REMOTE_DEVICE_TERMINATED_CONNECTION_POWER_OFF :
                                    HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION;
-            device->disconnect(ioErrorCause, reason);
+            device->disconnect(reason);
         }
     }
 

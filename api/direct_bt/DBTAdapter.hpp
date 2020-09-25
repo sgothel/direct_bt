@@ -200,8 +200,8 @@ namespace direct_bt {
 
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
             friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo();
-            friend HCIStatusCode DBTDevice::disconnect(const bool ioErrorCause,const HCIStatusCode reason);
-            friend void DBTDevice::remove();
+            friend HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason);
+            friend void DBTDevice::remove() noexcept;
             friend HCIStatusCode DBTDevice::connectLE(uint16_t interval, uint16_t window,
                                                       uint16_t min_interval, uint16_t max_interval,
                                                       uint16_t latency, uint16_t supervision_timeout);

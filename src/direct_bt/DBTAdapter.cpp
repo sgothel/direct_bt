@@ -630,7 +630,7 @@ std::shared_ptr<DBTDevice> DBTAdapter::findSharedDevice (EUI48 const & mac, cons
 
 void DBTAdapter::removeDevice(DBTDevice & device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
-    device.disconnect(false /* ioErrorCause */, HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
+    device.disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
     removeConnectedDevice(device); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
     removeDiscoveredDevice(device); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
     removeSharedDevice(device);

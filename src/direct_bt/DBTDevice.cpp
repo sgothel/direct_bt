@@ -430,15 +430,15 @@ void DBTDevice::disconnectGATT() {
     DBG_PRINT("DBTDevice::disconnectGATT: end");
 }
 
-HCIStatusCode DBTDevice::disconnect(const bool ioErrorCause, const HCIStatusCode reason) {
+HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
     // ioErrorCause only true: pingGATT failure or GATTHandler::disconnect(..) called on failure
 
     // Avoid disconnect re-entry -> potential deadlock
     bool expConn = true; // C++11, exp as value since C++20
     if( !allowDisconnect.compare_exchange_strong(expConn, false) ) {
         // Not connected or disconnect already in process.
-        DBG_PRINT("DBTDevice::disconnect: Not connected: isConnected %d/%d, ioError %d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
-                allowDisconnect.load(), isConnected.load(), ioErrorCause,
+        DBG_PRINT("DBTDevice::disconnect: Not connected: isConnected %d/%d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
+                allowDisconnect.load(), isConnected.load(),
                 static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
                 (nullptr != gattHandler), uint16HexString(hciConnHandle).c_str());
         return HCIStatusCode::CONNECTION_TERMINATED_BY_LOCAL_HOST;
@@ -446,8 +446,8 @@ HCIStatusCode DBTDevice::disconnect(const bool ioErrorCause, const HCIStatusCode
     // Lock to avoid other threads connecting while disconnecting
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
 
-    WORDY_PRINT("DBTDevice::disconnect: Start: isConnected %d/%d, ioError %d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
-            allowDisconnect.load(), isConnected.load(), ioErrorCause,
+    WORDY_PRINT("DBTDevice::disconnect: Start: isConnected %d/%d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
+            allowDisconnect.load(), isConnected.load(),
             static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
             (nullptr != gattHandler), uint16HexString(hciConnHandle).c_str());
 
@@ -473,26 +473,26 @@ HCIStatusCode DBTDevice::disconnect(const bool ioErrorCause, const HCIStatusCode
 
     res = hci->disconnect(hciConnHandle.load(), address, addressType, reason);
     if( HCIStatusCode::SUCCESS != res ) {
-        ERR_PRINT("DBTDevice::disconnect: status %s, handle 0x%X, isConnected %d/%d, ioError %d: errno %d %s on %s",
+        ERR_PRINT("DBTDevice::disconnect: status %s, handle 0x%X, isConnected %d/%d: errno %d %s on %s",
                 getHCIStatusCodeString(res).c_str(), hciConnHandle.load(),
-                allowDisconnect.load(), isConnected.load(), ioErrorCause,
+                allowDisconnect.load(), isConnected.load(),
                 errno, strerror(errno),
                 toString(false).c_str());
     }
 
 exit:
-    if( /* FIXME ioErrorCause || */ HCIStatusCode::SUCCESS != res ) {
-        // FIXME: Will the supervisor timeout of 500ms ensure receiving the disconnect?
-        // In case of an ioError (lost-connection), power-off or already pulled HCIHandler,
-        // don't wait for the lagging DISCONN_COMPLETE event but send it directly.
+    if( HCIStatusCode::SUCCESS != res ) {
+        // In case of an already pulled or disconnected HCIHandler (e.g. power-off)
+        // or in case the hci->disconnect() itself fails,
+        // send the DISCONN_COMPLETE event directly.
         adapter.mgmtEvDeviceDisconnectedHCI(
                 std::shared_ptr<MgmtEvent>(
                         new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load())
                 ) );
     }
-    WORDY_PRINT("DBTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d, ioError %d on %s",
+    WORDY_PRINT("DBTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d on %s",
             getHCIStatusCodeString(res).c_str(), hciConnHandle.load(),
-            allowDisconnect.load(), isConnected.load(), ioErrorCause,
+            allowDisconnect.load(), isConnected.load(),
             toString(false).c_str());
 
     return res;
@@ -606,7 +606,7 @@ bool DBTDevice::pingGATT() noexcept {
         std::shared_ptr<GATTHandler> gh = gattHandler; // local copy avoiding dtor while in operation
         if( nullptr == gh || !gh->isConnected() ) {
             INFO_PRINT("DBTDevice::pingGATT: GATTHandler not connected -> disconnected on %s", toString().c_str());
-            disconnect(true /* ioErrorCause */, HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
+            disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
             return false;
         }
         return gh->ping();
