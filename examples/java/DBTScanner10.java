@@ -63,7 +63,7 @@ import direct_bt.tinyb.DBTManager;
  * This example represents the recommended utilization of Direct-BT.
  * </p>
  */
-public class ScannerTinyB10 {
+public class DBTScanner10 {
     static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
 
     final List<String> waitForDevices = new ArrayList<String>();
@@ -603,7 +603,7 @@ public class ScannerTinyB10 {
             return;
         }
         println("DirectBT BluetoothManager initialized!");
-        final ScannerTinyB10 test = new ScannerTinyB10();
+        final DBTScanner10 test = new DBTScanner10();
 
         boolean waitForEnter=false;
         {

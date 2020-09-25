@@ -44,10 +44,10 @@ add_custom_command(TARGET ScannerTinyB02
 )
 add_dependencies(ScannerTinyB02 tinybjar)
 
-add_jar(ScannerTinyB10 SOURCES ScannerTinyB10.java INCLUDE_JARS "${CMAKE_CURRENT_BINARY_DIR}/../../java/tinyb2.jar" ENTRY_POINT Notification)
-add_custom_command(TARGET ScannerTinyB10
+add_jar(DBTScanner10 SOURCES DBTScanner10.java INCLUDE_JARS "${CMAKE_CURRENT_BINARY_DIR}/../../java/tinyb2.jar" ENTRY_POINT Notification)
+add_custom_command(TARGET DBTScanner10
         POST_BUILD
-        COMMAND cp "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/ScannerTinyB10.dir/ScannerTinyB10.class" "${CMAKE_CURRENT_BINARY_DIR}"
+        COMMAND cp "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/DBTScanner10.dir/DBTScanner10.class" "${CMAKE_CURRENT_BINARY_DIR}"
 )
-add_dependencies(ScannerTinyB10 tinybjar)
+add_dependencies(DBTScanner10 tinybjar)
 

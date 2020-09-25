@@ -129,7 +129,7 @@ are available, [dbt_scanner10.cpp](https://jausoft.com/projects/direct_bt/build/
 demonstrates the event driven and multithreading workflow.
 
 *Direct-BT* [Java examples](https://jausoft.com/projects/direct_bt/build/documentation/java/html/examples.html)
-are availble, [ScannerTinyB10.java](https://jausoft.com/projects/direct_bt/build/documentation/java/html/ScannerTinyB10_8java-example.html)
+are availble, [DBTScanner10.java](https://jausoft.com/projects/direct_bt/build/documentation/java/html/DBTScanner10_8java-example.html)
 demonstrates the event driven and multithreading workflow - matching *dbt_scanner10.cpp*.
 
 A guide for getting started with *TinyB* on Java is available from Intel:
@@ -263,7 +263,7 @@ make doc
 Changes
 ============
 
-**2.1.26 Early *Direct-BT* Maturity (Bluetooth LE)**
+**2.1.29 Early *Direct-BT* Maturity (Bluetooth LE)**
 
 * Reaching robust implementation state of *Direct-BT*, including recovery from L2CAP transmission breakdown on Raspberry Pi.
 * Resolved race conditions on rapid device discovery and connect, using one thread per device.

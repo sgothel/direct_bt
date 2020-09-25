@@ -508,7 +508,7 @@ public class BluetoothFactory {
     /* pp */ static long getStartupTimeMilliseconds() { return t0; }
 }
 
-/** \example ScannerTinyB10.java
+/** \example DBTScanner10.java
  * This Java scanner example uses the Direct-BT fully event driven workflow
  * and adds multithreading, i.e. one thread processes each found device found
  * as notified via the event listener.
