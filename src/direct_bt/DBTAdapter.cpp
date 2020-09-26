@@ -561,10 +561,10 @@ exit:
     if( discoveryTempDisabled || !res ) {
         // In case of discoveryTempDisabled, power-off, le_enable_scane failure
         // or already pulled HCIHandler, send the event directly.
-        mgmtEvDeviceDiscoveringHCI(
-                std::shared_ptr<MgmtEvent>(
-                        new MgmtEvtDiscovering(dev_id, ScanType::LE, false)
-                ) );
+        // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
+        std::thread bg(&DBTAdapter::mgmtEvDeviceDiscoveringHCI, this, std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, false) ) );
+        bg.detach();
+        // mgmtEvDeviceDiscoveringHCI( std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, false) ) );
     }
     DBG_PRINT("DBTAdapter::stopDiscovery: End: Result %d, keepAlive %d, currentScanType[native %s, meta %s], discoveryTempDisabled %d ...",
             res, keepDiscoveringAlive.load(),

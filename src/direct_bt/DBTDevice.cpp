@@ -426,8 +426,6 @@ void DBTDevice::disconnectGATT() noexcept {
 }
 
 HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
-    // ioErrorCause only true: pingGATT failure or GATTHandler::disconnect(..) called on failure
-
     // Avoid disconnect re-entry -> potential deadlock
     bool expConn = true; // C++11, exp as value since C++20
     if( !allowDisconnect.compare_exchange_strong(expConn, false) ) {
@@ -480,10 +478,11 @@ exit:
         // In case of an already pulled or disconnected HCIHandler (e.g. power-off)
         // or in case the hci->disconnect() itself fails,
         // send the DISCONN_COMPLETE event directly.
-        adapter.mgmtEvDeviceDisconnectedHCI(
-                std::shared_ptr<MgmtEvent>(
-                        new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load())
-                ) );
+        // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
+        std::thread bg(&DBTAdapter::mgmtEvDeviceDisconnectedHCI, &adapter, std::shared_ptr<MgmtEvent>(
+                 new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load()) ) );
+        bg.detach();
+        // adapter.mgmtEvDeviceDisconnectedHCI( std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load()) ) );
     }
     WORDY_PRINT("DBTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d on %s",
             getHCIStatusCodeString(res).c_str(), hciConnHandle.load(),

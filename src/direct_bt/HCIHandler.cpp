@@ -606,8 +606,10 @@ HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_du
     std::shared_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
 
     if( HCIStatusCode::SUCCESS == status ) {
-        MgmtEvtDiscovering *e = new MgmtEvtDiscovering(dev_id, ScanType::LE, enable);
-        sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
+        // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
+        std::thread bg(&HCIHandler::sendMgmtEvent, this, std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, enable) ) );
+        bg.detach();
+        // sendMgmtEvent(std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, enable) ) );
     }
     return status;
 }

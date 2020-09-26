@@ -41,7 +41,7 @@ namespace direct_bt {
     template<class InputArray, class UnaryFunction>
     constexpr UnaryFunction for_each_idx(InputArray &array, UnaryFunction f)
     {
-        size_t size = array.size();
+        const size_t size = array.size();
         for (size_t i = 0; i < size; i++) {
             f(array[i]);
         }
@@ -65,7 +65,7 @@ namespace direct_bt {
     {
         const std::lock_guard<Mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
 
-        size_t size = array.size();
+        const size_t size = array.size();
         for (size_t i = 0; i < size; i++) {
             f(array[i]);
         }
