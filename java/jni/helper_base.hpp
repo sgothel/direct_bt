@@ -133,6 +133,10 @@ void setInstance(JNIEnv *env, jobject obj, T *t)
     env->SetLongField(obj, getInstanceField(env, obj), instance);
 }
 
+inline void clearInstance(JNIEnv *env, jobject obj) {
+    env->SetLongField(obj, getInstanceField(env, obj), 0);
+}
+
 template <typename T>
 jobject generic_clone(JNIEnv *env, jobject obj)
 {

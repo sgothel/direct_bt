@@ -370,8 +370,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(JNIEnv *env, jobject
             throw IllegalArgumentException("JNIAdapterStatusListener::addStatusListener: statusListener is null", E_FILE_LINE);
         }
         {
-            JNIAdapterStatusListener * pre =
-                    getObjectRef<JNIAdapterStatusListener>(env, statusListener, "nativeInstance");
+            JNIAdapterStatusListener * pre = getInstanceUnchecked<JNIAdapterStatusListener>(env, statusListener);
             if( nullptr != pre ) {
                 WARN_PRINT("JNIAdapterStatusListener::addStatusListener: statusListener's nativeInstance not null, already in use");
                 return false;
@@ -389,12 +388,14 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(JNIEnv *env, jobject
         std::shared_ptr<AdapterStatusListener> l =
                 std::shared_ptr<AdapterStatusListener>( new JNIAdapterStatusListener(env, adapter, statusListener, deviceMatchRef) );
 
+        setInstance(env, statusListener, l.get());
         if( adapter->addStatusListener( l ) ) {
-            setInstance(env, statusListener, l.get());
             return JNI_TRUE;
         }
+        clearInstance(env, statusListener);
         ERR_PRINT("JNIAdapterStatusListener::addStatusListener: FAILED: %s", l->toString().c_str());
     } catch(...) {
+        clearInstance(env, statusListener);
         rethrow_and_raise_java_exception(env);
     }
     ERR_PRINT("JNIAdapterStatusListener::addStatusListener: FAILED XX");
@@ -407,13 +408,12 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_removeStatusListener(JNIEnv *env, jobj
         if( nullptr == statusListener ) {
             throw IllegalArgumentException("statusListener is null", E_FILE_LINE);
         }
-        const JNIAdapterStatusListener * pre =
-                getObjectRef<JNIAdapterStatusListener>(env, statusListener, "nativeInstance");
+        JNIAdapterStatusListener * pre = getInstanceUnchecked<JNIAdapterStatusListener>(env, statusListener);
         if( nullptr == pre ) {
             DBG_PRINT("statusListener's nativeInstance is null, not in use");
             return false;
         }
-        setObjectRef<JNIAdapterStatusListener>(env, statusListener, nullptr, "nativeInstance");
+        clearInstance(env, statusListener);
 
         DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
