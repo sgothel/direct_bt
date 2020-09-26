@@ -48,6 +48,16 @@ namespace direct_bt {
         return f; // implicit move since C++11
     }
 
+    template<class InputArray, class UnaryFunction>
+    constexpr UnaryFunction for_each_idx_copy(InputArray copy, UnaryFunction f)
+    {
+        const size_t size = copy.size();
+        for (size_t idx = 0; idx < size; idx++) {
+            f(copy[idx]);
+        }
+        return f; // implicit move since C++11
+    }
+
     /**
      * Custom for_each template, using indices instead of iterators,
      * allowing container to be modified within lambda 'callback'.
@@ -72,6 +82,21 @@ namespace direct_bt {
         return f; // implicit move since C++11
     }
 
+    template<class Mutex, class InputArray, class UnaryFunction>
+    constexpr UnaryFunction for_each_idx_copy(Mutex &mtx, InputArray &array, UnaryFunction f)
+    {
+        InputArray copy;
+        {
+            const std::lock_guard<Mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
+            copy = array;
+        }
+
+        const size_t size = copy.size();
+        for (size_t idx = 0; idx < size; idx++) {
+            f(copy[idx]);
+        }
+        return f; // implicit move since C++11
+    }
 
 } // namespace direct_bt
 
