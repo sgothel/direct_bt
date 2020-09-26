@@ -477,6 +477,11 @@ bool DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType 
 }
 
 void DBTAdapter::startDiscoveryBackground() noexcept {
+    // FIXME: Respect DBTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
+    if( !isEnabled() ) {
+        ERR_PRINT("DBTAdapter::startDiscoveryBackground: Adapter not enabled/powered: %s", toString().c_str());
+        return;
+    }
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     if( ScanType::NONE == currentNativeScanType && keepDiscoveringAlive ) { // still?
         std::shared_ptr<HCIHandler> hci = getHCI();
@@ -494,8 +499,8 @@ void DBTAdapter::startDiscoveryBackground() noexcept {
 }
 
 bool DBTAdapter::stopDiscovery() noexcept {
+    // We allow !isEnabled, to utilize method for adjusting discovery state and notifying listeners
     // FIXME: Respect DBTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to stop BREDR, LE or DUAL scanning!
-
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     /**
      * Need to send mgmtEvDeviceDiscoveringMgmt(..)
