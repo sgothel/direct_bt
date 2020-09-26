@@ -189,6 +189,7 @@ bool DBTAdapter::validateDevInfo() noexcept {
     }
 
     adapterInfo = mgmt.getAdapterInfo(dev_id);
+    currentAdapterSettings = adapterInfo->getCurrentSetting();
 
     btMode = adapterInfo->getCurrentBTMode();
     if( BTMode::NONE == btMode ) {
@@ -339,7 +340,7 @@ bool DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
             ++it;
         }
     }
-    sendAdapterSettingsChanged(*l, AdapterSetting::NONE, this->adapterInfo->getCurrentSetting(), getCurrentMilliseconds());
+    sendAdapterSettingsChanged(*l, AdapterSetting::NONE, currentAdapterSettings, getCurrentMilliseconds());
 
     statusListenerList.push_back(l);
     return true;
@@ -652,7 +653,7 @@ void DBTAdapter::removeDevice(DBTDevice & device) noexcept {
 
 std::string DBTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
     std::string out("Adapter[BTMode "+getBTModeString(btMode)+", "+getAddressString()+", '"+getName()+"', id "+std::to_string(dev_id)+
-                    ", curSettings"+getAdapterSettingsString(adapterInfo->getCurrentSetting())+
+                    ", curSettings"+getAdapterSettingsString(currentAdapterSettings)+
                     ", scanType[native "+getScanTypeString(currentNativeScanType)+", meta "+getScanTypeString(currentMetaScanType)+"]"
                     ", "+javaObjectToString()+"]");
     std::vector<std::shared_ptr<DBTDevice>> devices = getDiscoveredDevices();
@@ -716,6 +717,7 @@ bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(e.get());
     AdapterSetting old_settings = adapterInfo->getCurrentSetting();
     /* AdapterSetting changes = */ adapterInfo->setCurrentSetting(event.getSettings());
+    currentAdapterSettings = adapterInfo->getCurrentSetting();
     {
         const BTMode _btMode = adapterInfo->getCurrentBTMode();
         if( BTMode::NONE != _btMode ) {
@@ -723,7 +725,7 @@ bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
         }
     }
 
-    sendAdapterSettingsChanged(old_settings, adapterInfo->getCurrentSetting(), event.getTimestamp());
+    sendAdapterSettingsChanged(old_settings, currentAdapterSettings, event.getTimestamp());
 
     if( !isPowered() ) {
         // Adapter has been powered off, close connections and cleanup off-thread.

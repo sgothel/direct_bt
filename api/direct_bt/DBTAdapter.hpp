@@ -168,7 +168,8 @@ namespace direct_bt {
             const bool debug_event;
             DBTManager& mgmt;
             std::shared_ptr<AdapterInfo> adapterInfo;
-            BTMode btMode = BTMode::NONE;
+            std::atomic<AdapterSetting> currentAdapterSettings;
+            std::atomic<BTMode> btMode = BTMode::NONE;
             NameAndShortName localName;
             std::atomic<ScanType> currentMetaScanType; // = ScanType::NONE
             std::atomic<ScanType> currentNativeScanType; // = ScanType::NONE
@@ -290,7 +291,7 @@ namespace direct_bt {
              * Returns true if the device is powered.
              */
             bool isPowered() noexcept {
-                return isAdapterSettingSet(adapterInfo->getCurrentSetting(), AdapterSetting::POWERED);
+                return isAdapterSettingSet(currentAdapterSettings, AdapterSetting::POWERED);
             }
 
             /**
