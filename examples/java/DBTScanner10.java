@@ -106,7 +106,12 @@ public class DBTScanner10 {
         @Override
         public void adapterSettingsChanged(final BluetoothAdapter adapter, final AdapterSettings oldmask,
                                            final AdapterSettings newmask, final AdapterSettings changedmask, final long timestamp) {
-            println("****** SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
+            final boolean initialSetting = oldmask.isEmpty();
+            if( initialSetting ) {
+                println("****** SETTINGS: "+oldmask+" -> "+newmask+", initial "+changedmask);
+            } else {
+                println("****** SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
+            }
             println("Status Adapter:");
             println(adapter.toString());
             if( changedmask.isSet(AdapterSettings.SettingType.POWERED) &&

@@ -65,15 +65,15 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private final Object discoveredDevicesLock = new Object();
     private final Object userCallbackLock = new Object();
 
-    private BluetoothNotification<Boolean> userDiscoverableNotificationCB = null;
-    private final AtomicBoolean isDiscoverable = new AtomicBoolean(false);
-    private BluetoothNotification<Boolean> userDiscoveringNotificationCB = null;
-    private final AtomicBoolean isDiscovering = new AtomicBoolean(false);
-
-    private BluetoothNotification<Boolean> userPoweredNotificationCB = null;
-    private final AtomicBoolean isPowered = new AtomicBoolean(false);
+    private final AtomicBoolean isPowered = new AtomicBoolean(false); // AdapterSettings
     private BluetoothNotification<Boolean> userPairableNotificationCB = null;
-    private final AtomicBoolean isPairable = new AtomicBoolean(false);
+    private final AtomicBoolean isDiscoverable = new AtomicBoolean(false); // AdapterSettings
+    private BluetoothNotification<Boolean> userDiscoverableNotificationCB = null;
+    private final AtomicBoolean isPairable = new AtomicBoolean(false); // AdapterSettings
+    private BluetoothNotification<Boolean> userPoweredNotificationCB = null;
+
+    private final AtomicBoolean isDiscovering = new AtomicBoolean(false); // AdapterStatusListener and powerdOff
+    private BluetoothNotification<Boolean> userDiscoveringNotificationCB = null;
 
     private final List<BluetoothDevice> discoveredDevices = new ArrayList<BluetoothDevice>();
 
@@ -415,44 +415,49 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         @Override
         public void adapterSettingsChanged(final BluetoothAdapter a, final AdapterSettings oldmask, final AdapterSettings newmask,
                                            final AdapterSettings changedmask, final long timestamp) {
+            final boolean initialSetting = oldmask.isEmpty();
             if( DEBUG ) {
-                System.err.println("Adapter.StatusListener.SETTINGS_CHANGED: "+oldmask+" -> "+newmask+", changed "+changedmask+" on "+a);
+                if( initialSetting ) {
+                    System.err.println("Adapter.StatusListener.SETTINGS: "+oldmask+" -> "+newmask+", initial "+changedmask+" on "+a);
+                } else {
+                    System.err.println("Adapter.StatusListener.SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask+" on "+a);
+                }
             }
-            {
-                if( changedmask.isSet(AdapterSettings.SettingType.POWERED) ) {
-                    final boolean _isPowered = newmask.isSet(AdapterSettings.SettingType.POWERED);
-                    if( isPowered.compareAndSet(!_isPowered, _isPowered) ) {
-                        if( !_isPowered ) {
-                            poweredOff();
-                        }
-                        synchronized(userCallbackLock) {
-                            if( null != userPoweredNotificationCB ) {
-                                userPoweredNotificationCB.run(_isPowered);
-                            }
+            if( initialSetting ) {
+                isPowered.set( newmask.isSet(AdapterSettings.SettingType.POWERED) );
+                isDiscoverable.set( newmask.isSet(AdapterSettings.SettingType.DISCOVERABLE) );
+                isPairable.set( newmask.isSet(AdapterSettings.SettingType.BONDABLE) );
+                return;
+            }
+            if( changedmask.isSet(AdapterSettings.SettingType.POWERED) ) {
+                final boolean _isPowered = newmask.isSet(AdapterSettings.SettingType.POWERED);
+                if( isPowered.compareAndSet(!_isPowered, _isPowered) ) {
+                    if( !_isPowered ) {
+                        poweredOff();
+                    }
+                    synchronized(userCallbackLock) {
+                        if( null != userPoweredNotificationCB ) {
+                            userPoweredNotificationCB.run(_isPowered);
                         }
                     }
                 }
             }
-            {
-                if( changedmask.isSet(AdapterSettings.SettingType.DISCOVERABLE) ) {
-                    final boolean _isDiscoverable = newmask.isSet(AdapterSettings.SettingType.DISCOVERABLE);
-                    if( isDiscoverable.compareAndSet(!_isDiscoverable, _isDiscoverable) ) {
-                        synchronized(userCallbackLock) {
-                            if( null != userDiscoverableNotificationCB ) {
-                                userDiscoverableNotificationCB.run( _isDiscoverable );
-                            }
+            if( changedmask.isSet(AdapterSettings.SettingType.DISCOVERABLE) ) {
+                final boolean _isDiscoverable = newmask.isSet(AdapterSettings.SettingType.DISCOVERABLE);
+                if( isDiscoverable.compareAndSet(!_isDiscoverable, _isDiscoverable) ) {
+                    synchronized(userCallbackLock) {
+                        if( null != userDiscoverableNotificationCB ) {
+                            userDiscoverableNotificationCB.run( _isDiscoverable );
                         }
                     }
                 }
             }
-            {
-                if( changedmask.isSet(AdapterSettings.SettingType.BONDABLE) ) {
-                    final boolean _isPairable = newmask.isSet(AdapterSettings.SettingType.BONDABLE);
-                    if( isPairable.compareAndSet(!_isPairable, _isPairable) ) {
-                        synchronized(userCallbackLock) {
-                            if( null != userPairableNotificationCB ) {
-                                userPairableNotificationCB.run( _isPairable );
-                            }
+            if( changedmask.isSet(AdapterSettings.SettingType.BONDABLE) ) {
+                final boolean _isPairable = newmask.isSet(AdapterSettings.SettingType.BONDABLE);
+                if( isPairable.compareAndSet(!_isPairable, _isPairable) ) {
+                    synchronized(userCallbackLock) {
+                        if( null != userPairableNotificationCB ) {
+                            userPairableNotificationCB.run( _isPairable );
                         }
                     }
                 }

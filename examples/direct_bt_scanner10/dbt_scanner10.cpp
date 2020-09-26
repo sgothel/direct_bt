@@ -132,10 +132,14 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
     void adapterSettingsChanged(DBTAdapter const &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
-        fprintf(stderr, "****** SETTINGS_CHANGED: %s -> %s, changed %s\n",
-                getAdapterSettingsString(oldmask).c_str(),
-                getAdapterSettingsString(newmask).c_str(),
-                getAdapterSettingsString(changedmask).c_str());
+        const bool initialSetting = AdapterSetting::NONE == oldmask;
+        if( initialSetting ) {
+            fprintf(stderr, "****** SETTINGS_INITIAL: %s -> %s, changed %s\n", getAdapterSettingsString(oldmask).c_str(),
+                    getAdapterSettingsString(newmask).c_str(), getAdapterSettingsString(changedmask).c_str());
+        } else {
+            fprintf(stderr, "****** SETTINGS_CHANGED: %s -> %s, changed %s\n", getAdapterSettingsString(oldmask).c_str(),
+                    getAdapterSettingsString(newmask).c_str(), getAdapterSettingsString(changedmask).c_str());
+        }
         fprintf(stderr, "Status DBTAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
         (void)timestamp;
