@@ -67,9 +67,11 @@ public class AdapterSettings {
         mask = v;
     }
 
+    public boolean isEmpty() { return 0 == mask; }
     public boolean isSet(final SettingType bit) { return 0 != ( mask & bit.value ); }
     public void set(final SettingType bit) { mask = mask | bit.value; }
 
+    @Override
     public String toString() {
         int count = 0;
         final StringBuilder out = new StringBuilder();
@@ -140,10 +142,6 @@ public class AdapterSettings {
             if( 0 < count ) { out.append(", "); }
             out.append(SettingType.PHY_CONFIGURATION.name()); count++;
         }
-        if( 1 < count ) {
-            out.insert(0, "[");
-            out.append("]");
-        }
-        return out.toString();
+        return "["+out.toString()+"]";
     }
 }
