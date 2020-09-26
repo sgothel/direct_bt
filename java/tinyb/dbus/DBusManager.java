@@ -153,7 +153,7 @@ public class DBusManager implements BluetoothManager
     }
     /** Initialize-On-Demand Holder Class, similar to C++11's "Magic Statics". */
     private static class LazySingletonHolder {
-        private static DBusManager singleton = new DBusManager();
+        private static final DBusManager singleton = new DBusManager();
     }
 
     @Override

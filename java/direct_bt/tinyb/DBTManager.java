@@ -336,7 +336,7 @@ public class DBTManager implements BluetoothManager
     }
     /** Initialize-On-Demand Holder Class, similar to C++11's "Magic Statics". */
     private static class LazySingletonHolder {
-        private static DBTManager singleton = new DBTManager();
+        private static final DBTManager singleton = new DBTManager();
     }
 
     @Override
