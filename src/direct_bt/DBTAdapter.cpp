@@ -48,7 +48,6 @@ extern "C" {
     #include <poll.h>
 }
 
-
 using namespace direct_bt;
 
 int DBTAdapter::findDeviceIdx(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType) noexcept {
@@ -85,7 +84,7 @@ std::shared_ptr<DBTDevice> DBTAdapter::findDevice(std::vector<std::shared_ptr<DB
 }
 
 bool DBTAdapter::addConnectedDevice(const std::shared_ptr<DBTDevice> & device) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     if( nullptr != findDevice(connectedDevices, *device) ) {
         return false;
     }
@@ -94,7 +93,7 @@ bool DBTAdapter::addConnectedDevice(const std::shared_ptr<DBTDevice> & device) n
 }
 
 bool DBTAdapter::removeConnectedDevice(const DBTDevice & device) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ) {
         if ( nullptr != *it && device == **it ) {
             it = connectedDevices.erase(it);
@@ -109,7 +108,7 @@ bool DBTAdapter::removeConnectedDevice(const DBTDevice & device) noexcept {
 int DBTAdapter::disconnectAllDevices(const HCIStatusCode reason) noexcept {
     std::vector<std::shared_ptr<DBTDevice>> devices;
     {
-        const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+        const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
         devices = connectedDevices; // copy!
     }
     const int count = devices.size();
@@ -122,7 +121,7 @@ int DBTAdapter::disconnectAllDevices(const HCIStatusCode reason) noexcept {
 }
 
 std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (EUI48 const & mac, const BDAddressType macType) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     return findDevice(connectedDevices, mac, macType);
 }
 
@@ -274,11 +273,11 @@ void DBTAdapter::printSharedPtrListOfDevices() noexcept {
         printSharedPtrList("SharedDevices", sharedDevices);
     }
     {
-        const std::lock_guard<std::recursive_mutex> lock0(mtx_discoveredDevices);
+        const std::lock_guard<std::mutex> lock0(mtx_discoveredDevices);
         printSharedPtrList("DiscoveredDevices", discoveredDevices);
     }
     {
-        const std::lock_guard<std::recursive_mutex> lock0(mtx_connectedDevices);
+        const std::lock_guard<std::mutex> lock0(mtx_connectedDevices);
         printSharedPtrList("ConnectedDevices", connectedDevices);
     }
 }
@@ -332,17 +331,19 @@ bool DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
     if( nullptr == l ) {
         throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
-    const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
-    for(auto it = statusListenerList.begin(); it != statusListenerList.end(); ) {
-        if ( **it == *l ) {
-            return false; // already included
-        } else {
-            ++it;
+    {
+        const std::lock_guard<std::mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
+        for(auto it = statusListenerList.begin(); it != statusListenerList.end(); ) {
+            if ( **it == *l ) {
+                return false; // already included
+            } else {
+                ++it;
+            }
         }
+        statusListenerList.push_back(l);
     }
     sendAdapterSettingsChanged(*l, AdapterSetting::NONE, currentAdapterSettings, getCurrentMilliseconds());
 
-    statusListenerList.push_back(l);
     return true;
 }
 
@@ -351,7 +352,7 @@ bool DBTAdapter::removeStatusListener(std::shared_ptr<AdapterStatusListener> l) 
     if( nullptr == l ) {
         throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
-    const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
     for(auto it = statusListenerList.begin(); it != statusListenerList.end(); ) {
         if ( **it == *l ) {
             it = statusListenerList.erase(it);
@@ -368,7 +369,7 @@ bool DBTAdapter::removeStatusListener(const AdapterStatusListener * l) {
     if( nullptr == l ) {
         throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
-    const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
     for(auto it = statusListenerList.begin(); it != statusListenerList.end(); ) {
         if ( **it == *l ) {
             it = statusListenerList.erase(it);
@@ -382,7 +383,7 @@ bool DBTAdapter::removeStatusListener(const AdapterStatusListener * l) {
 
 int DBTAdapter::removeAllStatusListener() {
     checkValidAdapter();
-    const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
     int count = statusListenerList.size();
     statusListenerList.clear();
     return count;
@@ -575,12 +576,12 @@ exit:
 }
 
 std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (EUI48 const & mac, const BDAddressType macType) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     return findDevice(discoveredDevices, mac, macType);
 }
 
 bool DBTAdapter::addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     if( nullptr != findDevice(discoveredDevices, *device) ) {
         // already discovered
         return false;
@@ -590,7 +591,7 @@ bool DBTAdapter::addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) n
 }
 
 bool DBTAdapter::removeDiscoveredDevice(const DBTDevice & device) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = discoveredDevices.begin(); it != discoveredDevices.end(); ) {
         if ( nullptr != *it && device == **it ) {
             it = discoveredDevices.erase(it);
@@ -604,14 +605,14 @@ bool DBTAdapter::removeDiscoveredDevice(const DBTDevice & device) noexcept {
 
 
 int DBTAdapter::removeDiscoveredDevices() noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     int res = discoveredDevices.size();
     discoveredDevices.clear();
     return res;
 }
 
 std::vector<std::shared_ptr<DBTDevice>> DBTAdapter::getDiscoveredDevices() const noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     std::vector<std::shared_ptr<DBTDevice>> res = discoveredDevices;
     return res;
 }
@@ -700,7 +701,7 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) noexc
     checkDiscoveryState();
 
     int i=0;
-    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    for_each_idx_copy(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             l->discoveringChanged(*this, enabled, keepDiscoveringAlive, event.getTimestamp());
         } catch (std::exception &e) {
@@ -750,7 +751,7 @@ void DBTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings, c
             getAdapterSettingsString(current_settings).c_str(),
             getAdapterSettingsString(changes).c_str(), toString(false).c_str() );
     int i=0;
-    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    for_each_idx_copy(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             l->adapterSettingsChanged(*this, old_settings, current_settings, changes, timestampMS);
         } catch (std::exception &e) {
@@ -802,7 +803,7 @@ bool DBTAdapter::mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) noexce
 
 void DBTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept {
     int i=0;
-    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    for_each_idx_copy(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*device) ) {
                 l->deviceUpdated(device, updateMask, timestamp);
@@ -873,7 +874,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept
     device->notifyConnected(event.getHCIHandle());
 
     int i=0;
-    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    for_each_idx_copy(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*device) ) {
                 if( EIRDataType::NONE != updateMask ) {
@@ -908,7 +909,7 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
         removeConnectedDevice(*device);
 
         int i=0;
-        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        for_each_idx_copy(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*device) ) {
                     l->deviceDisconnected(device, event.getHCIStatus(), handle, event.getTimestamp());
@@ -946,7 +947,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexc
         removeConnectedDevice(*device);
 
         int i=0;
-        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        for_each_idx_copy(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*device) ) {
                     l->deviceDisconnected(device, event.getHCIReason(), event.getHCIHandle(), event.getTimestamp());
@@ -1019,7 +1020,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
                 dev->getAddressString().c_str(), eir->toString().c_str());
 
         int i=0;
-        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        for_each_idx_copy(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*dev) ) {
                     l->deviceFound(dev, eir->getTimestamp());
@@ -1047,7 +1048,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
             dev->getAddressString().c_str(), eir->toString().c_str());
 
     int i=0;
-    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    for_each_idx_copy(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*dev) ) {
                 l->deviceFound(dev, eir->getTimestamp());

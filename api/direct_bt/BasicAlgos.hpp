@@ -72,6 +72,21 @@ namespace direct_bt {
         return f; // implicit move since C++11
     }
 
+    template<class Mutex, class InputArray, class UnaryFunction>
+    constexpr UnaryFunction for_each_idx_copy(Mutex &mtx, InputArray &array, UnaryFunction f)
+    {
+        InputArray b;
+        {
+            const std::lock_guard<Mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
+            b = array;
+        }
+
+        const size_t size = b.size();
+        for (size_t idx = 0; idx < size; idx++) {
+            f(b[idx]);
+        }
+        return f; // implicit move since C++11
+    }
 
 } // namespace direct_bt
 
