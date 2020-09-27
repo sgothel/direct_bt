@@ -234,8 +234,8 @@ public interface BluetoothDevice extends BluetoothObject
     /**
      * Remove this device from the system (like an unpair).
      * <p>
-     * Direct-BT: Disconnects this device via disconnect(..) and
-     * explicitly removes its shared references from the Adapter:
+     * Direct-BT: Disconnects this device via disconnect(..) if getConnected()==true
+     * and explicitly removes its shared references from the Adapter:
      * connected-devices, discovered-devices and shared-devices.
      * </p>
      * <p>
@@ -244,7 +244,7 @@ public interface BluetoothDevice extends BluetoothObject
      * as only its reference within connected-devices and discovered-devices are removed at disconnect.
      * </p>
      * <p>
-     * After calling this method, the device shall no more being used.
+     * After calling this method, this instance is destroyed and shall not be used anymore!
      * </p>
      * <p>
      * This method is automatically called @ destructor.
@@ -253,9 +253,8 @@ public interface BluetoothDevice extends BluetoothObject
      * This method is an atomic operation.
      * </p>
      * <p>
-     * An application using one thread per device and rapid connect, should either use {@link #disconnect()} or {@link #remove()},
-     * but never issue remove() after disconnect(). Doing so would eventually delete the device being already
-     * in use by another thread due to discovery post disconnect!
+     * An application using one thread per device and rapid connect, should either use disconnect() or remove(),
+     * but never issue remove() after disconnect() if the device is in use.
      * </p>
      * @return TRUE if the device has been removed
      * @throws BluetoothException
