@@ -135,7 +135,8 @@ public class DBTScanner10 {
 
             if( BluetoothAddressType.BDADDR_LE_PUBLIC != device.getAddressType()
                 && BLERandomAddressType.STATIC_PUBLIC != device.getBLERandomAddressType() ) {
-                println("****** FOUND__-2: Skip 'non public' or 'random static public' LE "+device.toString());
+                // Requires BREDR or LE Secure Connection support: WIP
+                println("****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' "+device.toString());
                 return;
             }
             if( !devicesInProcessing.contains( device.getAddress() ) &&

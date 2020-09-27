@@ -155,7 +155,8 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
         if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressType()
             && BLERandomAddressType::STATIC_PUBLIC != device->getBLERandomAddressType() ) {
-            fprintf(stderr, "****** FOUND__-2: Skip 'non public' or 'random static public' LE %s\n", device->toString(true).c_str());
+            // Requires BREDR or LE Secure Connection support: WIP
+            fprintf(stderr, "****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' %s\n", device->toString(true).c_str());
             return;
         }
         if( !isDeviceProcessing( device->getAddress() ) &&
