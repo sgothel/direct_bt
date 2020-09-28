@@ -370,8 +370,8 @@ namespace direct_bt {
 
             AttPDUMsg(const AttPDUMsg &o) noexcept = default;
             AttPDUMsg(AttPDUMsg &&o) noexcept = default;
-            AttPDUMsg& operator=(const AttPDUMsg &o) noexcept = default;
-            AttPDUMsg& operator=(AttPDUMsg &&o) noexcept = default;
+            AttPDUMsg& operator=(const AttPDUMsg &o) noexcept = delete; // const ts_creation
+            AttPDUMsg& operator=(AttPDUMsg &&o) noexcept = delete; // const ts_creation
 
             virtual ~AttPDUMsg() noexcept {}
 

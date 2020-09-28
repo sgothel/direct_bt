@@ -50,13 +50,15 @@ namespace direct_bt {
      * Read/Write HCI communication channel.
      */
     class HCIComm {
+        public:
+            const uint16_t dev_id;
+            const uint16_t channel;
+
         private:
             static int hci_open_dev(const uint16_t dev_id, const uint16_t channel) noexcept;
             static int hci_close_dev(int dd) noexcept;
 
             std::recursive_mutex mtx_write;
-            const uint16_t dev_id;
-            const uint16_t channel;
             int socket_descriptor; // the hci socket
 
         public:

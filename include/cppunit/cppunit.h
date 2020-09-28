@@ -100,7 +100,7 @@ template<> void Cppunit::checkDelta<float>(cs m, float a, float b, float epsilon
 }
 
 template<> void Cppunit::checkDelta<double>(cs m, double a, double b, double epsilon, cs stra, cs strb, cs file, int line, cs func) {
-    checks++; if ( fabsf( a - b ) < epsilon ) { std::cout << "."; return; }
+    checks++; if ( fabs( a - b ) < epsilon ) { std::cout << "."; return; }
     fails++; std::cout << "F"; fail_hdr(stra, strb, file, line, func);
     serr << "  Error: " << m << ": \"" << a << "\" ! = \"" << b << "\" (epsilon " << epsilon << ")" << std::endl << std::endl;
 }

@@ -110,7 +110,7 @@ namespace direct_bt {
 
             InvocationFunc<R, A...> clone() const noexcept override { return NullInvocationFunc(); }
 
-            R invoke(A... args) override {
+            R invoke(A...) override {
                 return (R)0;
             }
 
