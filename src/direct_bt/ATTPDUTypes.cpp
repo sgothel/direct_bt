@@ -116,7 +116,7 @@ std::string AttErrorRsp::getPlainErrorString(const ErrorCode errorCode) noexcept
 
 std::shared_ptr<const AttPDUMsg> AttPDUMsg::getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept {
     const uint8_t opc = *buffer;
-    AttPDUMsg * res;
+    const AttPDUMsg * res;
     switch( opc ) {
         case ATT_PDU_UNDEFINED: res = new AttPDUUndefined(buffer, buffer_size); break;
         case ATT_ERROR_RSP: res = new AttErrorRsp(buffer, buffer_size); break;

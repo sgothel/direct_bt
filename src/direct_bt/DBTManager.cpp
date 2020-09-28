@@ -102,7 +102,7 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
                 WARN_PRINT("DBTManager::reader: length mismatch %d < MGMT_HEADER_SIZE(%d) + %d", len, MGMT_HEADER_SIZE, paramSize);
                 continue; // discard data
             }
-            std::shared_ptr<MgmtEvent> event( MgmtEvent::getSpecialized(rbuffer.get_ptr(), len) );
+            std::shared_ptr<MgmtEvent> event = MgmtEvent::getSpecialized(rbuffer.get_ptr(), len);
             const MgmtEvent::Opcode opc = event->getOpcode();
             if( MgmtEvent::Opcode::CMD_COMPLETE == opc || MgmtEvent::Opcode::CMD_STATUS == opc ) {
                 COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV (CMD) %s", event->toString().c_str());

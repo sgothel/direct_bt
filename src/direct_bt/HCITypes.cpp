@@ -273,28 +273,29 @@ std::string getHCIMetaEventTypeString(const HCIMetaEventType op) noexcept {
     return "Unknown HCIMetaType";
 }
 
-HCIEvent* HCIEvent::getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept {
+std::shared_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept {
     const HCIPacketType pc = static_cast<HCIPacketType>( get_uint8(buffer, 0) );
     if( HCIPacketType::EVENT != pc ) {
         return nullptr;
     }
     const HCIEventType ec = static_cast<HCIEventType>( get_uint8(buffer, 1) );
-
+    HCIEvent *res;
     switch( ec ) {
         case HCIEventType::DISCONN_COMPLETE:
-            return new HCIDisconnectionCompleteEvent(buffer, buffer_size);
+            res = new HCIDisconnectionCompleteEvent(buffer, buffer_size); break;
         case HCIEventType::CMD_COMPLETE:
-            return new HCICommandCompleteEvent(buffer, buffer_size);
+            res = new HCICommandCompleteEvent(buffer, buffer_size); break;
         case HCIEventType::CMD_STATUS:
-            return new HCICommandStatusEvent(buffer, buffer_size);
+            res = new HCICommandStatusEvent(buffer, buffer_size); break;
         case HCIEventType::LE_META:
             // No need to HCIMetaType specializations as we use HCIStructCmdCompleteMetaEvt template
             // based on HCIMetaEvent.
-            return new HCIMetaEvent(buffer, buffer_size, 1);
+            res = new HCIMetaEvent(buffer, buffer_size, 1); break;
         default:
             // No further specialization, use HCIStructCmdCompleteEvt template
-            return new HCIEvent(buffer, buffer_size, 0);
+            res = new HCIEvent(buffer, buffer_size, 0); break;
     }
+    return std::shared_ptr<HCIEvent>(res);
 }
 
 } /* namespace direct_bt */

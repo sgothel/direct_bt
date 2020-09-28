@@ -231,46 +231,48 @@ std::string MgmtEvent::getOpcodeString(const Opcode opc) noexcept {
     return "Unknown Opcode";
 }
 
-MgmtEvent* MgmtEvent::getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept {
+std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept {
     const MgmtEvent::Opcode opc = static_cast<MgmtEvent::Opcode>( get_uint16(buffer, 0, true /* littleEndian */) );
+    MgmtEvent * res;
     switch( opc ) {
         case MgmtEvent::Opcode::CMD_COMPLETE:
-            if( buffer_size >= MgmtEvtAdapterInfo::getRequiredTotalSize() ) {
-                const MgmtOpcode opc = MgmtEvtCmdComplete::getReqOpcode(buffer);
-                if( MgmtOpcode::READ_INFO == opc ) {
-                    return new MgmtEvtAdapterInfo(buffer, buffer_size);
-                }
+            if( buffer_size >= MgmtEvtAdapterInfo::getRequiredTotalSize() &&
+                MgmtOpcode::READ_INFO == MgmtEvtCmdComplete::getReqOpcode(buffer) ) {
+                res = new MgmtEvtAdapterInfo(buffer, buffer_size);
+            } else {
+                res = new MgmtEvtCmdComplete(buffer, buffer_size);
             }
-            return new MgmtEvtCmdComplete(buffer, buffer_size);
+            break;
         case MgmtEvent::Opcode::CMD_STATUS:
-            return new MgmtEvtCmdStatus(buffer, buffer_size);
+            res = new MgmtEvtCmdStatus(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DISCOVERING:
-            return new MgmtEvtDiscovering(buffer, buffer_size);
+            res = new MgmtEvtDiscovering(buffer, buffer_size); break;
         case MgmtEvent::Opcode::NEW_SETTINGS:
-            return new MgmtEvtNewSettings(buffer, buffer_size);
+            res = new MgmtEvtNewSettings(buffer, buffer_size); break;
         case MgmtEvent::Opcode::NEW_CONN_PARAM:
-            return new MgmtEvtNewConnectionParam(buffer, buffer_size);
+            res = new MgmtEvtNewConnectionParam(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_FOUND:
-            return new MgmtEvtDeviceFound(buffer, buffer_size);
+            res = new MgmtEvtDeviceFound(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_CONNECTED:
-            return new MgmtEvtDeviceConnected(buffer, buffer_size);
+            res = new MgmtEvtDeviceConnected(buffer, buffer_size); break;
         case MgmtEvent::Opcode::CONNECT_FAILED:
-            return new MgmtEvtDeviceConnectFailed(buffer, buffer_size);
+            res = new MgmtEvtDeviceConnectFailed(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_DISCONNECTED:
-            return new MgmtEvtDeviceDisconnected(buffer, buffer_size);
+            res = new MgmtEvtDeviceDisconnected(buffer, buffer_size); break;
         case MgmtEvent::Opcode::PIN_CODE_REQUEST:
-            return new MgmtEvtPinCodeRequest(buffer, buffer_size);
+            res = new MgmtEvtPinCodeRequest(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED:
-            return new MgmtEvtDeviceWhitelistAdded(buffer, buffer_size);
+            res = new MgmtEvtDeviceWhitelistAdded(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED:
-            return new MgmtEvtDeviceWhitelistRemoved(buffer, buffer_size);
+            res = new MgmtEvtDeviceWhitelistRemoved(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_UNPAIRED:
-            return new MgmtEvtDeviceUnpaired(buffer, buffer_size);
+            res = new MgmtEvtDeviceUnpaired(buffer, buffer_size); break;
         case MgmtEvent::Opcode::LOCAL_NAME_CHANGED:
-            return new MgmtEvtLocalNameChanged(buffer, buffer_size);
+            res = new MgmtEvtLocalNameChanged(buffer, buffer_size); break;
         default:
-            return new MgmtEvent(buffer, buffer_size, 0);
+            res = new MgmtEvent(buffer, buffer_size, 0); break;
     }
+    return std::shared_ptr<MgmtEvent>( res );
 }
 
 // *************************************************

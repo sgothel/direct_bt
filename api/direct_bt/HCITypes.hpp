@@ -623,7 +623,7 @@ namespace direct_bt {
              * Returned memory reference is managed by caller (delete etc)
              * </p>
              */
-            static HCIEvent* getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept;
+            static std::shared_ptr<HCIEvent> getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept;
 
             /** Persistent memory, w/ ownership ..*/
             HCIEvent(const uint8_t* buffer, const int buffer_len, const int exp_param_size)

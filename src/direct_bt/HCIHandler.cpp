@@ -265,7 +265,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                         len, number(HCIConstU8::EVENT_HDR_SIZE), paramSize);
                 continue; // discard data
             }
-            std::shared_ptr<HCIEvent> event( HCIEvent::getSpecialized(rbuffer.get_ptr(), len) );
+            std::shared_ptr<HCIEvent> event = HCIEvent::getSpecialized(rbuffer.get_ptr(), len);
             if( nullptr == event ) {
                 // not an event ...
                 ERR_PRINT("HCIHandler-IO RECV Drop (non-event) %s", bytesHexString(rbuffer.get_ptr(), 0, len, true /* lsbFirst*/).c_str());
