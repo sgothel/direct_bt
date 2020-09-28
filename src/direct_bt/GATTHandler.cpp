@@ -206,11 +206,11 @@ void GATTHandler::l2capReaderThreadImpl() {
 
         len = l2cap.read(rbuffer.get_wptr(), rbuffer.getSize());
         if( 0 < len ) {
-            const AttPDUMsg * attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), len);
+            std::shared_ptr<const AttPDUMsg> attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), len);
             const AttPDUMsg::Opcode opc = attPDU->getOpcode();
 
             if( AttPDUMsg::Opcode::ATT_HANDLE_VALUE_NTF == opc ) {
-                const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU);
+                const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
                 COND_PRINT(env.DEBUG_DATA, "GATTHandler: NTF: %s, listener %zd", a->toString().c_str(), characteristicListenerList.size());
                 GATTCharacteristicRef decl = findCharacterisicsByValueHandle(a->getHandle());
                 const std::shared_ptr<TROOctets> data(new POctets(a->getValue()));
@@ -228,9 +228,8 @@ void GATTHandler::l2capReaderThreadImpl() {
                     }
                     i++;
                 });
-                attPDU = nullptr;
             } else if( AttPDUMsg::Opcode::ATT_HANDLE_VALUE_IND == opc ) {
-                const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU);
+                const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
                 COND_PRINT(env.DEBUG_DATA, "GATTHandler: IND: %s, sendIndicationConfirmation %d, listener %zd", a->toString().c_str(), sendIndicationConfirmation, characteristicListenerList.size());
                 bool cfmSent = false;
                 if( sendIndicationConfirmation ) {
@@ -254,16 +253,11 @@ void GATTHandler::l2capReaderThreadImpl() {
                     }
                     i++;
                 });
-                attPDU = nullptr;
             } else if( AttPDUMsg::Opcode::ATT_MULTIPLE_HANDLE_VALUE_NTF == opc ) {
                 // FIXME TODO ..
                 ERR_PRINT("GATTHandler: MULTI-NTF not implemented: %s", attPDU->toString().c_str());
             } else {
-                attPDURing.putBlocking( std::shared_ptr<const AttPDUMsg>( attPDU ) );
-                attPDU = nullptr;
-            }
-            if( nullptr != attPDU ) {
-                delete attPDU; // free unhandled PDU
+                attPDURing.putBlocking( attPDU );
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
             IRQ_PRINT("GATTHandler::l2capReaderThread: l2cap read error -> Stop; l2cap.read %d", len);

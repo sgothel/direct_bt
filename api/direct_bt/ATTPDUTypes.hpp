@@ -351,7 +351,7 @@ namespace direct_bt {
              * Returned memory reference is managed by caller (delete etc)
              * </p>
              */
-            static AttPDUMsg* getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept;
+            static std::shared_ptr<const AttPDUMsg> getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept;
 
             /** Persistent memory, w/ ownership ..*/
             AttPDUMsg(const uint8_t* source, const int size)
