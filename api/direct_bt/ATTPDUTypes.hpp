@@ -1013,7 +1013,7 @@ namespace direct_bt {
             }
 
         public:
-            virtual ~AttElementList() noexcept {}
+            virtual ~AttElementList() noexcept override {}
 
             virtual int getElementTotalSize() const = 0;
             virtual int getElementValueSize() const = 0;

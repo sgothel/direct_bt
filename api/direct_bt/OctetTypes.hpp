@@ -112,6 +112,8 @@ namespace direct_bt {
             TROOctets& operator=(const TROOctets &o) noexcept = default;
             TROOctets& operator=(TROOctets &&o) noexcept = default;
 
+            virtual ~TROOctets() noexcept {}
+
             inline void check_range(const int i, const int count, const char *file, int line) const {
                 if( 0 > i || i+count > _size ) {
                     throw IndexOutOfBoundsException(i, count, _size, file, line);
@@ -246,6 +248,8 @@ namespace direct_bt {
             TOctets(TOctets &&o) noexcept = default;
             TOctets& operator=(const TOctets &o) noexcept = default;
             TOctets& operator=(TOctets &&o) noexcept = default;
+
+            virtual ~TOctets() noexcept override {}
 
             void put_uint8(const int i, const uint8_t v) {
                 check_range(i, 1);
@@ -485,7 +489,7 @@ namespace direct_bt {
                 return *this;
             }
 
-            ~POctets() noexcept {
+            virtual ~POctets() noexcept override {
                 freeData();
                 setData_nc(nullptr, 0);
                 capacity=0;
