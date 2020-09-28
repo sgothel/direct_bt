@@ -202,8 +202,9 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
 
         int dropImpl (const int count) noexcept {
             // locks ringbuffer completely (read/write), hence no need for local copy nor wait/sync etc
-            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead); // RAII-style acquire and relinquish via destructor
-            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite); // ditto
+            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead, std::defer_lock); // utilize std::lock(r, w), allowing mixed order waiting on read/write ops
+            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite, std::defer_lock); // otherwise RAII-style relinquish via destructor
+            std::lock(lockMultiRead, lockMultiWrite);
 
             const int dropCount = std::min(count, size.load());
             if( 0 == dropCount ) {
@@ -333,18 +334,18 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
         : capacityPlusOne(_source.capacityPlusOne), array(newArray(capacityPlusOne)),
           readPos(0), writePos(0), size(0)
         {
-            std::unique_lock<std::mutex> lockMultiReadS(_source.syncMultiRead);
-            std::unique_lock<std::mutex> lockMultiWriteS(_source.syncMultiWrite);
-            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead);
-            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite);
+            std::unique_lock<std::mutex> lockMultiReadS(_source.syncMultiRead, std::defer_lock); // utilize std::lock(r, w), allowing mixed order waiting on read/write ops
+            std::unique_lock<std::mutex> lockMultiWriteS(_source.syncMultiWrite, std::defer_lock); // otherwise RAII-style relinquish via destructor
+            std::lock(lockMultiReadS, lockMultiWriteS);                                          // *this instance does not exist yet
             cloneFrom(false, _source);
         }
 
         LFRingbuffer& operator=(const LFRingbuffer &_source) noexcept {
-            std::unique_lock<std::mutex> lockMultiReadS(_source.syncMultiRead);
-            std::unique_lock<std::mutex> lockMultiWriteS(_source.syncMultiWrite);
-            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead);
-            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite);
+            std::unique_lock<std::mutex> lockMultiReadS(_source.syncMultiRead, std::defer_lock); // utilize std::lock(r, w), allowing mixed order waiting on read/write ops
+            std::unique_lock<std::mutex> lockMultiWriteS(_source.syncMultiWrite, std::defer_lock); // otherwise RAII-style relinquish via destructor
+            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead, std::defer_lock);          // same for *this instance!
+            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite, std::defer_lock);
+            std::lock(lockMultiReadS, lockMultiWriteS, lockMultiRead, lockMultiWrite);
 
             if( this == &_source ) {
                 return *this;
@@ -364,20 +365,23 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
         int capacity() const noexcept override { return capacityPlusOne-1; }
 
         void clear() noexcept override {
-            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead); // RAII-style acquire and relinquish via destructor
-            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite); // ditto
+            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead, std::defer_lock);          // utilize std::lock(r, w), allowing mixed order waiting on read/write ops
+            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite, std::defer_lock);        // otherwise RAII-style relinquish via destructor
+            std::lock(lockMultiRead, lockMultiWrite);
             clearImpl();
         }
 
         void reset(const T * copyFrom, const int copyFromCount) noexcept override {
-            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead); // RAII-style acquire and relinquish via destructor
-            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite); // ditto
+            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead, std::defer_lock);          // utilize std::lock(r, w), allowing mixed order waiting on read/write ops
+            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite, std::defer_lock);        // otherwise RAII-style relinquish via destructor
+            std::lock(lockMultiRead, lockMultiWrite);
             resetImpl(copyFrom, copyFromCount);
         }
 
         void reset(const std::vector<T> & copyFrom) noexcept override {
-            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead); // RAII-style acquire and relinquish via destructor
-            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite); // ditto
+            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead, std::defer_lock);          // utilize std::lock(r, w), allowing mixed order waiting on read/write ops
+            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite, std::defer_lock);        // otherwise RAII-style relinquish via destructor
+            std::lock(lockMultiRead, lockMultiWrite);
             resetImpl(copyFrom.data(), copyFrom.size());
         }
 
@@ -424,8 +428,9 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
         }
 
         void waitForFreeSlots(const int count) noexcept override {
-            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite); // RAII-style acquire and relinquish via destructor
-            std::unique_lock<std::mutex> lockRead(syncRead); // RAII-style acquire and relinquish via destructor
+            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite, std::defer_lock);        // utilize std::lock(r, w), allowing mixed order waiting on read/write ops
+            std::unique_lock<std::mutex> lockRead(syncRead, std::defer_lock);                    // otherwise RAII-style relinquish via destructor
+            std::lock(lockMultiWrite, lockRead);
 
             while( capacityPlusOne - 1 - size < count ) {
                 cvRead.wait(lockRead);
@@ -433,8 +438,9 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
         }
 
         void recapacity(const int newCapacity) override {
-            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead);
-            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite);
+            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead, std::defer_lock);          // utilize std::lock(r, w), allowing mixed order waiting on read/write ops
+            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite, std::defer_lock);        // otherwise RAII-style relinquish via destructor
+            std::lock(lockMultiRead, lockMultiWrite);
 
             if( capacityPlusOne == newCapacity+1 ) {
                 return;
