@@ -52,7 +52,7 @@ using namespace direct_bt;
 
 static int64_t timestamp_t0;
 
-static int MULTI_MEASUREMENTS = 8;
+static std::atomic<int> MULTI_MEASUREMENTS = 8;
 
 static bool KEEP_CONNECTED = true;
 static bool GATT_PING_ENABLED = false;
@@ -424,11 +424,6 @@ exit:
         device->getAdapter().printSharedPtrListOfDevices();
     }
 
-    if( 0 < MULTI_MEASUREMENTS ) {
-        MULTI_MEASUREMENTS--;
-        fprintf(stderr, "****** Processing Device: MULTI_MEASUREMENTS left %d: %s\n", MULTI_MEASUREMENTS, device->getAddressString().c_str());
-    }
-
     fprintf(stderr, "****** Processing Device: End: Success %d on %s; devInProc %zd\n",
             success, device->toString().c_str(), devicesInProcessing.size());
 
@@ -443,6 +438,11 @@ exit:
         if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
             device->getAdapter().startDiscovery( true );
         }
+    }
+
+    if( 0 < MULTI_MEASUREMENTS ) {
+        MULTI_MEASUREMENTS--;
+        fprintf(stderr, "****** Processing Device: MULTI_MEASUREMENTS left %d: %s\n", MULTI_MEASUREMENTS.load(), device->getAddressString().c_str());
     }
 }
 
@@ -501,7 +501,7 @@ void test(int dev_id) {
           )
         {
             fprintf(stderr, "****** EOL Test MULTI_MEASUREMENTS left %d, processed %zd/%zd\n",
-                    MULTI_MEASUREMENTS, devicesProcessed.size(), waitForDevices.size());
+                    MULTI_MEASUREMENTS.load(), devicesProcessed.size(), waitForDevices.size());
             printList("****** WaitForDevice ", waitForDevices);
             printList("****** DevicesProcessed ", devicesProcessed);
             done = true;
@@ -581,7 +581,7 @@ int main(int argc, char *argv[])
                     "[-dbt_l2cap reader.timeout=10000,restart.count=0,...] "
                     "\n");
 
-    fprintf(stderr, "MULTI_MEASUREMENTS %d\n", MULTI_MEASUREMENTS);
+    fprintf(stderr, "MULTI_MEASUREMENTS %d\n", MULTI_MEASUREMENTS.load());
     fprintf(stderr, "KEEP_CONNECTED %d\n", KEEP_CONNECTED);
     fprintf(stderr, "GATT_PING_ENABLED %d\n", GATT_PING_ENABLED);
     fprintf(stderr, "REMOVE_DEVICE %d\n", REMOVE_DEVICE);
@@ -598,6 +598,13 @@ int main(int argc, char *argv[])
     }
     fprintf(stderr, "****** TEST start\n");
     test(dev_id);
-    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     fprintf(stderr, "****** TEST end\n");
+    if( true ) {
+        // Just for testing purpose, i.e. triggering DBTManager::close() within the test controlled app,
+        // instead of program shutdown.
+        fprintf(stderr, "****** Manager close start\n");
+        DBTManager & mngr = DBTManager::get(BTMode::NONE); // already existing
+        mngr.close();
+        fprintf(stderr, "****** Manager close end\n");
+    }
 }
