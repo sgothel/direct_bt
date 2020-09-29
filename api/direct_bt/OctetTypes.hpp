@@ -64,9 +64,9 @@ namespace direct_bt {
             uint8_t * _data;
 
         protected:
-            static inline void checkPtr(uint8_t *d) {
-                if( nullptr == d ) {
-                    throw IllegalArgumentException("TROOctets::setData: nullptr", E_FILE_LINE);
+            static inline void checkPtr(uint8_t *d, int s) {
+                if( nullptr == d && 0 < s ) {
+                    throw IllegalArgumentException("TROOctets::setData: nullptr with size "+std::to_string(s)+" > 0", E_FILE_LINE);
                 }
             }
 
@@ -79,22 +79,11 @@ namespace direct_bt {
             inline void setData(uint8_t *d, int s) {
                 TRACE_PRINT("POctets setData: %d bytes @ %p -> %d bytes @ %p",
                         _size, _data, s, d);
-                checkPtr(d);
-                _size = s;
-                _data = d;
-            }
-            inline void setData_nc(uint8_t *d, int s) noexcept {
-                TRACE_PRINT("POctets setData_nc: %d bytes @ %p -> %d bytes @ %p",
-                        _size, _data, s, d);
+                checkPtr(d, s);
                 _size = s;
                 _data = d;
             }
             inline void setSize(int s) noexcept { _size = s; }
-
-            TROOctets(const uint8_t *source, const int len, const int nocheck) noexcept
-            : _size( len ), _data( const_cast<uint8_t *>(source) ) {
-                (void)nocheck;
-            }
 
         public:
             /**
@@ -104,7 +93,7 @@ namespace direct_bt {
              */
             TROOctets(const uint8_t *source, const int len)
             : _size( len ), _data( const_cast<uint8_t *>(source) ) {
-                checkPtr(_data);
+                checkPtr(_data, _size);
             }
 
             TROOctets(const TROOctets &o) noexcept = default;
@@ -233,12 +222,6 @@ namespace direct_bt {
      */
     class TOctets : public TROOctets
     {
-        protected:
-            TOctets(const uint8_t *source, const int len, const int nocheck) noexcept
-            : TROOctets(source, len, true /* nocheck */) {
-                (void)nocheck;
-            }
-
         public:
             /** Transient passthrough r/w memory, w/o ownership ..*/
             TOctets(uint8_t *source, const int len)
@@ -393,12 +376,12 @@ namespace direct_bt {
                 if( nullptr != ptr ) {
                     TRACE_PRINT("POctets release: %p", ptr);
                     free(ptr);
-                } // else: zero sized POctets w/ nullptr are supported now, see POctets::POctets().
+                } // else: zero sized POctets w/ nullptr are supported
             }
 
             static uint8_t * allocData(const int size) {
                 if( size <= 0 ) {
-                    throw IllegalArgumentException("allocData size "+std::to_string(size)+" <= 0", E_FILE_LINE);
+                    return nullptr;
                 }
                 uint8_t * m = static_cast<uint8_t*>( std::malloc(size) );
                 if( nullptr == m ) {
@@ -413,8 +396,7 @@ namespace direct_bt {
 
             /** Intentional zero sized POctets instance. */
             POctets()
-            : TOctets( nullptr, 0, true /* nocheck */),
-              capacity(0)
+            : TOctets(nullptr, 0), capacity(0)
             {
                 TRACE_PRINT("POctets ctor0: zero-sized");
             }
@@ -455,12 +437,12 @@ namespace direct_bt {
             }
 
             POctets(POctets &&o) noexcept
-            : TOctets( o.data(), o.getSize(), true /* nocheck */),
+            : TOctets( o.data(), o.getSize() ),
               capacity( o.getCapacity() )
             {
                 // moved origin data references
                 // purge origin
-                o.setData_nc(nullptr, 0);
+                o.setData(nullptr, 0);
                 o.capacity = 0;
                 TRACE_PRINT("POctets ctor-move0: %p", data());
             }
@@ -470,9 +452,8 @@ namespace direct_bt {
                     return *this;
                 }
                 freeData();
-                const int newCapacity = _source.getSize() > 0 ? _source.getSize() : _source.getCapacity();
-                setData(allocData(newCapacity), _source.getSize());
-                capacity = newCapacity;
+                setData(allocData(_source.getSize()), _source.getSize());
+                capacity = _source.getSize();
                 std::memcpy(data(), _source.get_ptr(), _source.getSize());
                 TRACE_PRINT("POctets assign0: %p", data());
                 return *this;
@@ -483,7 +464,7 @@ namespace direct_bt {
                 setData(o.data(), o.getSize());
                 capacity = o.capacity;
                 // purge origin
-                o.setData_nc(nullptr, 0);
+                o.setData(nullptr, 0);
                 o.capacity = 0;
                 TRACE_PRINT("POctets assign-move0: %p", data());
                 return *this;
@@ -491,7 +472,7 @@ namespace direct_bt {
 
             virtual ~POctets() noexcept override {
                 freeData();
-                setData_nc(nullptr, 0);
+                setData(nullptr, 0);
                 capacity=0;
             }
 
