@@ -27,5 +27,8 @@ echo COMMANDLINE $0 $*
 echo direct_bt_debug $direct_bt_debug
 echo direct_bt_verbose $direct_bt_verbose
 
+# VALGRIND="valgrind --leak-check=full --run-cxx-freeres=yes"
+# VALGRIND="valgrind --leak-check=yes"
+
 #LD_LIBRARY_PATH=`pwd`/lib strace bin/dbt_scanner10 $*
-LD_LIBRARY_PATH=`pwd`/lib bin/dbt_scanner10 $*
+LD_LIBRARY_PATH=`pwd`/lib $VALGRIND bin/dbt_scanner10 $*
