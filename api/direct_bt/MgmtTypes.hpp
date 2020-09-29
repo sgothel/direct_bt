@@ -675,6 +675,9 @@ namespace direct_bt {
             {
                 checkOpcode(getOpcode(), Opcode::CMD_COMPLETE);
             }
+
+            virtual ~MgmtEvtCmdComplete() noexcept override {}
+
             MgmtOpcode getReqOpcode() const noexcept { return static_cast<MgmtOpcode>( pdu.get_uint16_nc(MGMT_HEADER_SIZE) ); }
             MgmtStatus getStatus() const noexcept { return static_cast<MgmtStatus>( pdu.get_uint8_nc(MGMT_HEADER_SIZE+2) ); }
 
@@ -1138,6 +1141,9 @@ namespace direct_bt {
             {
                 checkOpcode(getOpcode(), opc);
             }
+
+            virtual ~MgmtEvtAdressInfoMeta() noexcept override {}
+
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
 
