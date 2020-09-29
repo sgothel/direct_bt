@@ -239,11 +239,21 @@ DBTAdapter::~DBTAdapter() noexcept {
     {
         int count = mgmt.removeMgmtEventCallback(dev_id);
         DBG_PRINT("DBTAdapter removeMgmtEventCallback(DISCOVERING): %d callbacks", count);
-        (void)count;
     }
-    statusListenerList.clear();
+    {
+        const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
+        statusListenerList.clear();
+    }
 
     poweredOff();
+    {
+        const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+        discoveredDevices.clear();
+    }
+    {
+        const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+        connectedDevices.clear();;
+    }
     {
         const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
         sharedDevices.clear();
@@ -822,6 +832,7 @@ void DBTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice>
 }
 
 bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
+    COND_PRINT(debug_event, "DBTAdapter::EventCB:DeviceConnected(dev_id %d): %s", dev_id, e->toString().c_str());
     const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(e.get());
     EInfoReport ad_report;
     {
