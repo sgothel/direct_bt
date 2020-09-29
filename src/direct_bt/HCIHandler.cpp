@@ -241,7 +241,7 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
 
 void HCIHandler::hciReaderThreadImpl() noexcept {
     {
-        const std::lock_guard<std::mutex> lock(mtx_hciReaderInit); // RAII-style acquire and relinquish via destructor
+        const std::lock_guard<std::mutex> lock(mtx_hciReaderLifecycle); // RAII-style acquire and relinquish via destructor
         hciReaderShallStop = false;
         hciReaderRunning = true;
         DBG_PRINT("HCIHandler::reader: Started");
@@ -291,12 +291,9 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
             } else if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
                 // issue callbacks for the translated AD events
                 std::vector<std::shared_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
-                int i=0;
-                for_each_idx(eirlist, [&](std::shared_ptr<EInfoReport> &eir) {
+                for_each_idx(eirlist, [&](std::shared_ptr<EInfoReport> & eir) {
                     // COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (AD EIR) %s", eir->toString().c_str());
-                    std::shared_ptr<MgmtEvent> mevent( new MgmtEvtDeviceFound(dev_id, eir) );
-                    sendMgmtEvent( mevent );
-                    i++;
+                    sendMgmtEvent( std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceFound(dev_id, eir) ) );
                 });
             } else {
                 // issue a callback for the translated event
@@ -312,9 +309,13 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
             ERR_PRINT("HCIHandler::reader: HCIComm read error");
         }
     }
-    WORDY_PRINT("HCIHandler::reader: Ended. Ring has %d entries flushed", hciEventRing.getSize());
-    hciReaderRunning = false;
-    hciEventRing.clear();
+    {
+        const std::lock_guard<std::mutex> lock(mtx_hciReaderLifecycle); // RAII-style acquire and relinquish via destructor
+        WORDY_PRINT("HCIHandler::reader: Ended. Ring has %d entries flushed", hciEventRing.getSize());
+        hciEventRing.clear();
+        hciReaderRunning = false;
+        cv_hciReaderInit.notify_all();
+    }
 }
 
 void HCIHandler::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept {
@@ -424,16 +425,17 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id) noexcept
 : env(HCIEnv::get()),
   btMode(btMode), dev_id(dev_id), rbuffer(HCI_MAX_MTU),
   comm(dev_id, HCI_CHANNEL_RAW),
-  hciEventRing(env.HCI_EVT_RING_CAPACITY), hciReaderRunning(false), hciReaderShallStop(false)
+  hciEventRing(env.HCI_EVT_RING_CAPACITY), hciReaderRunning(false), hciReaderShallStop(false),
+  allowClose( comm.isOpen() )
 {
     WORDY_PRINT("HCIHandler.ctor: pid %d", HCIHandler::pidSelf);
-    if( !comm.isOpen() ) {
+    if( !allowClose ) {
         ERR_PRINT("HCIHandler::ctor: Could not open hci control channel");
         return;
     }
 
     {
-        std::unique_lock<std::mutex> lock(mtx_hciReaderInit); // RAII-style acquire and relinquish via destructor
+        std::unique_lock<std::mutex> lock(mtx_hciReaderLifecycle); // RAII-style acquire and relinquish via destructor
 
         std::thread hciReaderThread = std::thread(&HCIHandler::hciReaderThreadImpl, this);
         hciReaderThreadId = hciReaderThread.native_handle();
@@ -525,27 +527,48 @@ fail:
 }
 
 void HCIHandler::close() noexcept {
+    // Avoid disconnect re-entry -> potential deadlock
+    bool expConn = true; // C++11, exp as value since C++20
+    if( !allowClose.compare_exchange_strong(expConn, false) ) {
+        // not open
+        DBG_PRINT("HCIHandler::close: Not open");
+        clearAllMgmtEventCallbacks();
+        comm.close();
+        return;
+    }
+    PERF_TS_T0();
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("HCIHandler::close: Start");
-
     clearAllMgmtEventCallbacks();
 
-    const pthread_t tid_self = pthread_self();
-    const pthread_t tid_reader = hciReaderThreadId;
-    hciReaderThreadId = 0;
-    const bool is_reader = tid_reader == tid_self;
-    DBG_PRINT("HCIHandler.disconnect: Start hciReader[running %d, shallStop %d, isReader %d, tid %p)",
-            hciReaderRunning.load(), hciReaderShallStop.load(), is_reader, (void*)tid_reader);
-    if( hciReaderRunning ) {
-        hciReaderShallStop = true;
-        if( !is_reader && 0 != tid_reader ) {
-            int kerr;
-            if( 0 != ( kerr = pthread_kill(tid_reader, SIGALRM) ) ) {
-                ERR_PRINT("HCIHandler::disconnect: pthread_kill %p FAILED: %d", (void*)tid_reader, kerr);
+    // Interrupt HCIHandler's HCIComm::read(..), avoiding prolonged hang
+    // and pull all underlying hci read operations!
+    comm.close();
+
+    PERF_TS_TD("HCIHandler::close.1");
+    {
+        std::unique_lock<std::mutex> lockReader(mtx_hciReaderLifecycle); // RAII-style acquire and relinquish via destructor
+        const pthread_t tid_self = pthread_self();
+        const pthread_t tid_reader = hciReaderThreadId;
+        hciReaderThreadId = 0;
+        const bool is_reader = tid_reader == tid_self;
+        DBG_PRINT("HCIHandler::close: hciReader[running %d, shallStop %d, isReader %d, tid %p)",
+                hciReaderRunning.load(), hciReaderShallStop.load(), is_reader, (void*)tid_reader);
+        if( hciReaderRunning ) {
+            hciReaderShallStop = true;
+            if( !is_reader && 0 != tid_reader ) {
+                int kerr;
+                if( 0 != ( kerr = pthread_kill(tid_reader, SIGALRM) ) ) {
+                    ERR_PRINT("HCIHandler::close: pthread_kill %p FAILED: %d", (void*)tid_reader, kerr);
+                }
+            }
+            // Ensure the reader thread has ended, no runaway-thread using *this instance after destruction
+            while( true == hciReaderRunning ) {
+                cv_hciReaderInit.wait(lockReader);
             }
         }
     }
-    comm.close();
+    PERF_TS_TD("HCIHandler::close.X");
     DBG_PRINT("HCIHandler::close: End");
 }
 

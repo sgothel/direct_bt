@@ -168,12 +168,14 @@ namespace direct_bt {
             HCIComm comm;
 
             LFRingbuffer<std::shared_ptr<MgmtEvent>, nullptr> mgmtEventRing;
-            std::thread mgmtReaderThread;
+            std::atomic<pthread_t> mgmtReaderThreadId;
             std::atomic<bool> mgmtReaderRunning;
             std::atomic<bool> mgmtReaderShallStop;
-            std::mutex mtx_mgmtReaderInit;
+            std::mutex mtx_mgmtReaderLifecycle;
             std::condition_variable cv_mgmtReaderInit;
             std::recursive_mutex mtx_sendReply; // for sendWithReply
+
+            std::atomic<bool> allowClose;
 
             /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
             std::array<MgmtAdapterEventCallbackList, static_cast<uint16_t>(MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT)> mgmtAdapterEventCallbackLists;

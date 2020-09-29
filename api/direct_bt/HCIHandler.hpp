@@ -218,9 +218,11 @@ namespace direct_bt {
             std::atomic<pthread_t> hciReaderThreadId;
             std::atomic<bool> hciReaderRunning;
             std::atomic<bool> hciReaderShallStop;
-            std::mutex mtx_hciReaderInit;
+            std::mutex mtx_hciReaderLifecycle;
             std::condition_variable cv_hciReaderInit;
             std::recursive_mutex mtx_sendReply; // for sendWith*Reply, process*Command, ..
+
+            std::atomic<bool> allowClose;
 
             std::vector<HCIConnectionRef> connectionList;
             std::recursive_mutex mtx_connectionList;

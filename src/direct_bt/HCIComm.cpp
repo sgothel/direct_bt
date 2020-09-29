@@ -32,7 +32,7 @@
 
 #include <algorithm>
 
-// #define VERBOSE_ON 1
+// #define PERF_PRINT_ON 1
 #include <dbt_debug.hpp>
 
 #include "HCIComm.hpp"
@@ -95,13 +95,44 @@ int HCIComm::hci_close_dev(int dd) noexcept
 	return ::close(dd);
 }
 
+// *************************************************
+// *************************************************
+// *************************************************
+
+HCIComm::HCIComm(const uint16_t _dev_id, const uint16_t _channel) noexcept
+: dev_id( _dev_id ), channel( _channel ),
+  socket_descriptor( hci_open_dev(_dev_id, _channel) ), interrupt_flag(false), tid_read(0)
+{
+}
+
 void HCIComm::close() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
     if( 0 > socket_descriptor ) {
+        DBG_PRINT("HCIComm::close: Not opened: dd %d", socket_descriptor.load());
         return;
+    }
+    DBG_PRINT("HCIComm::close: Start: dd %d", socket_descriptor.load());
+    PERF_TS_T0();
+    // interrupt ::read(..) and , avoiding prolonged hang
+    interrupt_flag = true;
+    {
+        pthread_t _tid_read = tid_read;
+        tid_read = 0;
+        if( 0 != _tid_read ) {
+            pthread_t tid_self = pthread_self();
+            if( tid_self != _tid_read ) {
+                int kerr;
+                if( 0 != ( kerr = pthread_kill(_tid_read, SIGALRM) ) ) {
+                    ERR_PRINT("HCIComm::close: pthread_kill read %p FAILED: %d", (void*)_tid_read, kerr);
+                }
+            }
+        }
     }
     hci_close_dev(socket_descriptor);
     socket_descriptor = -1;
+    interrupt_flag = false;
+    PERF_TS_TD("HCIComm::close");
+    DBG_PRINT("HCIComm::close: End: dd %d", socket_descriptor.load());
 }
 
 int HCIComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS) noexcept {
@@ -118,18 +149,8 @@ int HCIComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS) 
         int n;
 
         p.fd = socket_descriptor; p.events = POLLIN;
-#if 0
-        sigset_t sigmask;
-        sigemptyset(&sigmask);
-        // sigaddset(&sigmask, SIGALRM);
-        struct timespec timeout_ts;
-        timeout_ts.tv_sec=0;
-        timeout_ts.tv_nsec=(long)timeoutMS*1000000L;
-        while ((n = ppoll(&p, 1, &timeout_ts, &sigmask)) < 0) {
-#else
-        while ((n = poll(&p, 1, timeoutMS)) < 0) {
-#endif
-            if (errno == EAGAIN || errno == EINTR ) {
+        while ( !interrupt_flag && (n = poll(&p, 1, timeoutMS)) < 0 ) {
+            if ( !interrupt_flag && ( errno == EAGAIN || errno == EINTR ) ) {
                 // cont temp unavail or interruption
                 continue;
             }

@@ -54,14 +54,30 @@ namespace direct_bt {
      */
     void WORDY_PRINT(const char * format, ...) noexcept;
 
-    #ifdef PERF_PRINT_ON
-        #define PERF_TS_T0()  const uint64_t _t0 = direct_bt::getCurrentMilliseconds()
+    #define PERF_TS_T0_BASE()  const uint64_t _t0 = direct_bt::getCurrentMilliseconds()
 
-        #define PERF_TS_TD(m)  { const uint64_t _td = direct_bt::getCurrentMilliseconds() - _t0; \
-                                 fprintf(stderr, "[%'9" PRIu64 "] %s done in %d ms,\n", direct_bt::DBTEnv::getElapsedMillisecond(), (m), (int)_td); }
+    #define PERF_TS_TD_BASE(m)  { const uint64_t _td = direct_bt::getCurrentMilliseconds() - _t0; \
+                                  fprintf(stderr, "[%'9" PRIu64 "] PERF %s done in %d ms,\n", direct_bt::DBTEnv::getElapsedMillisecond(), (m), (int)_td); }
+    #ifdef PERF_PRINT_ON
+        #define PERF_TS_T0() PERF_TS_T0_BASE()
+        #define PERF_TS_TD(m) PERF_TS_TD_BASE(m)
     #else
         #define PERF_TS_T0()
         #define PERF_TS_TD(m)
+    #endif
+    #ifdef PERF2_PRINT_ON
+        #define PERF2_TS_T0() PERF_TS_T0_BASE()
+        #define PERF2_TS_TD(m) PERF_TS_TD_BASE(m)
+    #else
+        #define PERF2_TS_T0()
+        #define PERF2_TS_TD(m)
+    #endif
+    #ifdef PERF3_PRINT_ON
+        #define PERF3_TS_T0() PERF_TS_T0_BASE()
+        #define PERF3_TS_TD(m) PERF_TS_TD_BASE(m)
+    #else
+        #define PERF3_TS_T0()
+        #define PERF3_TS_TD(m)
     #endif
 
     /** Use for unconditional ::abort() call with given messages, prefix '[elapsed_time] ABORT @ file:line: '. Function also appends last errno and strerror(errno). */

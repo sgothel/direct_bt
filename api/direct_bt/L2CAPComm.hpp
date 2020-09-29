@@ -137,6 +137,7 @@ namespace direct_bt {
             std::atomic<bool> has_ioerror;  // reflects state
             std::atomic<bool> interrupt_flag; // for forced disconnect
             std::atomic<pthread_t> tid_connect;
+            std::atomic<pthread_t> tid_read;
 
         public:
             /**

@@ -59,13 +59,13 @@ namespace direct_bt {
             static int hci_close_dev(int dd) noexcept;
 
             std::recursive_mutex mtx_write;
-            int socket_descriptor; // the hci socket
+            std::atomic<int> socket_descriptor; // the hci socket
+            std::atomic<bool> interrupt_flag; // for forced disconnect
+            std::atomic<pthread_t> tid_read;
 
         public:
             /** Constructing a newly opened HCI communication channel instance */
-            HCIComm(const uint16_t dev_id, const uint16_t channel) noexcept
-            : dev_id( dev_id ), channel( channel ),
-              socket_descriptor( hci_open_dev(dev_id, channel) ) { }
+            HCIComm(const uint16_t dev_id, const uint16_t channel) noexcept;
 
             /**
              * Releases this instance after issuing {@link #close()}.

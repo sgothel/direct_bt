@@ -33,6 +33,8 @@
 #include <algorithm>
 
 // #define PERF_PRINT_ON 1
+// PERF3_PRINT_ON for close
+// #define PERF3_PRINT_ON 1
 #include <dbt_debug.hpp>
 
 #include "BTIoctl.hpp"
@@ -79,7 +81,7 @@ std::mutex DBTManager::mtx_singleton;
 
 void DBTManager::mgmtReaderThreadImpl() noexcept {
     {
-        const std::lock_guard<std::mutex> lock(mtx_mgmtReaderInit); // RAII-style acquire and relinquish via destructor
+        const std::lock_guard<std::mutex> lock(mtx_mgmtReaderLifecycle); // RAII-style acquire and relinquish via destructor
         mgmtReaderShallStop = false;
         mgmtReaderRunning = true;
         DBG_PRINT("DBTManager::reader: Started");
@@ -121,10 +123,15 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
             ERR_PRINT("DBTManager::reader: HCIComm read error");
         }
     }
+    {
+        const std::lock_guard<std::mutex> lock(mtx_mgmtReaderLifecycle); // RAII-style acquire and relinquish via destructor
+        WORDY_PRINT("DBTManager::reader: Ended. Ring has %d entries flushed", mgmtEventRing.getSize());
+        mgmtEventRing.clear();
+        mgmtReaderRunning = false;
+        cv_mgmtReaderInit.notify_all();
+    }
 
-    WORDY_PRINT("DBTManager::reader: Ended. Ring has %d entries flushed", mgmtEventRing.getSize());
-    mgmtReaderRunning = false;
-    mgmtEventRing.clear();
+
 }
 
 void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept {
@@ -301,10 +308,11 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
 : env(MgmtEnv::get()),
   defaultBTMode(BTMode::NONE != _defaultBTMode ? _defaultBTMode : env.DEFAULT_BTMODE),
   rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
-  mgmtEventRing(env.MGMT_EVT_RING_CAPACITY), mgmtReaderRunning(false), mgmtReaderShallStop(false)
+  mgmtEventRing(env.MGMT_EVT_RING_CAPACITY), mgmtReaderRunning(false), mgmtReaderShallStop(false),
+  allowClose( comm.isOpen() )
 {
     WORDY_PRINT("DBTManager.ctor: BTMode %s, pid %d", getBTModeString(defaultBTMode).c_str(), DBTManager::pidSelf);
-    if( !comm.isOpen() ) {
+    if( !allowClose ) {
         ERR_PRINT("DBTManager::open: Could not open mgmt control channel");
         return;
     }
@@ -320,8 +328,13 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
         }
     }
     {
-        std::unique_lock<std::mutex> lock(mtx_mgmtReaderInit); // RAII-style acquire and relinquish via destructor
-        mgmtReaderThread = std::thread(&DBTManager::mgmtReaderThreadImpl, this);
+        std::unique_lock<std::mutex> lock(mtx_mgmtReaderLifecycle); // RAII-style acquire and relinquish via destructor
+        std::thread mgmtReaderThread = std::thread(&DBTManager::mgmtReaderThreadImpl, this);
+        mgmtReaderThreadId = mgmtReaderThread.native_handle();
+        // Avoid 'terminate called without an active exception'
+        // as hciReaderThreadImpl may end due to I/O errors.
+        mgmtReaderThread.detach();
+
         while( false == mgmtReaderRunning ) {
             cv_mgmtReaderInit.wait(lock);
         }
@@ -448,10 +461,22 @@ fail:
 }
 
 void DBTManager::close() noexcept {
+    // Avoid disconnect re-entry -> potential deadlock
+    bool expConn = true; // C++11, exp as value since C++20
+    if( !allowClose.compare_exchange_strong(expConn, false) ) {
+        // not open
+        DBG_PRINT("DBTManager::close: Not open");
+        whitelist.clear();
+        clearAllMgmtEventCallbacks();
+        adapterInfos.clear();
+        comm.close();
+        return;
+    }
+    PERF3_TS_T0();
+
+    const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("DBTManager::close: Start");
-
     removeAllDevicesFromWhitelist();
-
     clearAllMgmtEventCallbacks();
 
     for (auto it = adapterInfos.begin(); it != adapterInfos.end(); it++) {
@@ -459,19 +484,35 @@ void DBTManager::close() noexcept {
     }
     adapterInfos.clear();
 
-    if( mgmtReaderRunning && mgmtReaderThread.joinable() ) {
-        mgmtReaderShallStop = true;
-        pthread_t tid = mgmtReaderThread.native_handle();
-        pthread_kill(tid, SIGALRM);
-    }
+    // Interrupt DBTManager's HCIComm::read(..), avoiding prolonged hang
+    // and pull all underlying hci read operations!
     comm.close();
 
-    if( mgmtReaderRunning && mgmtReaderThread.joinable() ) {
-        // still running ..
-        DBG_PRINT("DBTManager::close: join mgmtReaderThread");
-        mgmtReaderThread.join();
+    PERF3_TS_TD("DBTManager::close.1");
+    {
+        std::unique_lock<std::mutex> lockReader(mtx_mgmtReaderLifecycle); // RAII-style acquire and relinquish via destructor
+        const pthread_t tid_self = pthread_self();
+        const pthread_t tid_reader = mgmtReaderThreadId;
+        mgmtReaderThreadId = 0;
+        const bool is_reader = tid_reader == tid_self;
+        DBG_PRINT("DBTManager::close: mgmtReader[running %d, shallStop %d, isReader %d, tid %p)",
+                mgmtReaderRunning.load(), mgmtReaderShallStop.load(), is_reader, (void*)tid_reader);
+        if( mgmtReaderRunning ) {
+            mgmtReaderShallStop = true;
+            if( !is_reader && 0 != tid_reader ) {
+                int kerr;
+                if( 0 != ( kerr = pthread_kill(tid_reader, SIGALRM) ) ) {
+                    ERR_PRINT("DBTManager::close: pthread_kill %p FAILED: %d", (void*)tid_reader, kerr);
+                }
+            }
+            // Ensure the reader thread has ended, no runaway-thread using *this instance after destruction
+            while( true == mgmtReaderRunning ) {
+                cv_mgmtReaderInit.wait(lockReader);
+            }
+        }
     }
-    mgmtReaderThread = std::thread(); // empty
+    PERF3_TS_TD("DBTManager::close.2");
+
     {
         struct sigaction sa_setup;
         bzero(&sa_setup, sizeof(sa_setup));
@@ -482,6 +523,8 @@ void DBTManager::close() noexcept {
             ERR_PRINT("DBTManager.sigaction: Resetting sighandler");
         }
     }
+
+    PERF3_TS_TD("DBTManager::close.X");
     DBG_PRINT("DBTManager::close: End");
 }
 

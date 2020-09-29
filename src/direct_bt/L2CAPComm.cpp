@@ -32,6 +32,9 @@
 
 #include  <algorithm>
 
+// #define PERF_PRINT_ON 1
+#include <dbt_debug.hpp>
+
 #include "BTIoctl.hpp"
 #include "HCIIoctl.hpp"
 #include "L2CAPIoctl.hpp"
@@ -46,8 +49,6 @@ extern "C" {
     #include <poll.h>
     #include <signal.h>
 }
-
-#include <dbt_debug.hpp>
 
 using namespace direct_bt;
 
@@ -108,7 +109,7 @@ L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, cons
 : env(L2CAPEnv::get()),
   device(device), deviceString(device->getAddressString()), psm(psm), cid(cid),
   socket_descriptor( l2cap_open_dev(device->getAdapter().getAddress(), psm, cid, true /* pubaddrAdptr */) ),
-  is_connected(true), has_ioerror(false), interrupt_flag(false), tid_connect(0)
+  is_connected(true), has_ioerror(false), interrupt_flag(false), tid_connect(0), tid_read(0)
 {
     /** BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ */
     sockaddr_l2 req;
@@ -179,17 +180,29 @@ bool L2CAPComm::disconnect() noexcept {
     has_ioerror = false;
     DBG_PRINT("L2CAPComm::disconnect: Start: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
               getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid, true);
-    interrupt_flag = true;
+    PERF_TS_T0();
 
-    // interrupt L2CAP ::connect(..), avoiding prolonged hang
-    pthread_t _tid_connect = tid_connect;
-    tid_connect = 0;
-    if( 0 != _tid_connect ) {
+    interrupt_flag = true;
+    {
         pthread_t tid_self = pthread_self();
-        if( tid_self != _tid_connect ) {
+        pthread_t _tid_connect = tid_connect;
+        pthread_t _tid_read = tid_read;
+        tid_read = 0;
+        tid_connect = 0;
+
+        // interrupt read(..) and , avoiding prolonged hang
+        if( 0 != _tid_read && tid_self != _tid_read ) {
+            int kerr;
+            if( 0 != ( kerr = pthread_kill(_tid_read, SIGALRM) ) ) {
+                ERR_PRINT("L2CAPComm::disconnect: pthread_kill read %p FAILED: %d", (void*)_tid_read, kerr);
+            }
+        }
+        // interrupt connect(..) and , avoiding prolonged hang
+        interrupt_flag = true;
+        if( 0 != _tid_connect && _tid_read != _tid_connect && tid_self != _tid_connect ) {
             int kerr;
             if( 0 != ( kerr = pthread_kill(_tid_connect, SIGALRM) ) ) {
-                ERR_PRINT("L2CAP::disconnect: pthread_kill %p FAILED: %d", (void*)_tid_connect, kerr);
+                ERR_PRINT("L2CAPComm::disconnect: pthread_kill connect %p FAILED: %d", (void*)_tid_connect, kerr);
             }
         }
     }
@@ -197,6 +210,7 @@ bool L2CAPComm::disconnect() noexcept {
     l2cap_close_dev(socket_descriptor);
     socket_descriptor = -1;
     interrupt_flag = false;
+    PERF_TS_TD("L2CAPComm::disconnect");
     DBG_PRINT("L2CAPComm::disconnect: End: dd %d", socket_descriptor.load());
     return true;
 }
@@ -205,6 +219,8 @@ int L2CAPComm::read(uint8_t* buffer, const int capacity) {
     const int32_t timeoutMS = env.L2CAP_READER_POLL_TIMEOUT;
     int len = 0;
     int err_res = 0;
+
+    tid_read = pthread_self(); // temporary safe tid to allow interruption
 
     if( 0 > socket_descriptor || 0 > capacity ) {
         err_res = -1; // invalid socket_descriptor or capacity
@@ -244,9 +260,11 @@ int L2CAPComm::read(uint8_t* buffer, const int capacity) {
     }
 
 done:
+    tid_read = 0;
     return len;
 
 errout:
+    tid_read = 0;
     if( errno != ETIMEDOUT ) {
         has_ioerror = true;
         if( is_connected ) {

@@ -40,17 +40,11 @@ extern "C" {
 }
 
 // #define PERF_PRINT_ON 1
-// #define PERF2_PRINT_ON 1
-#include <dbt_debug.hpp>
-
 // PERF2_PRINT_ON for read/write single values
-#ifdef PERF2_PRINT_ON
-    #define PERF2_TS_T0() PERF_TS_T0()
-    #define PERF2_TS_TD(m) PERF_TS_TD(m)
-#else
-    #define PERF2_TS_T0()
-    #define PERF2_TS_TD(m)
-#endif
+// #define PERF2_PRINT_ON 1
+// PERF3_PRINT_ON for disconnect
+// #define PERF3_PRINT_ON 1
+#include <dbt_debug.hpp>
 
 #include "BasicAlgos.hpp"
 
@@ -189,17 +183,17 @@ bool GATTHandler::getSendIndicationConfirmation() noexcept {
 
 void GATTHandler::l2capReaderThreadImpl() {
     {
-        const std::lock_guard<std::mutex> lock(mtx_l2capReaderInit); // RAII-style acquire and relinquish via destructor
+        const std::lock_guard<std::mutex> lock(mtx_l2capReaderLifecycle); // RAII-style acquire and relinquish via destructor
         l2capReaderShallStop = false;
         l2capReaderRunning = true;
-        DBG_PRINT("l2capReaderThreadImpl Started");
+        DBG_PRINT("GATTHandler::reader Started");
         cv_l2capReaderInit.notify_all();
     }
 
     while( !l2capReaderShallStop ) {
         int len;
         if( !validateConnected() ) {
-            ERR_PRINT("GATTHandler::l2capReaderThread: Invalid IO state -> Stop");
+            ERR_PRINT("GATTHandler::reader: Invalid IO state -> Stop");
             l2capReaderShallStop = true;
             break;
         }
@@ -211,7 +205,7 @@ void GATTHandler::l2capReaderThreadImpl() {
 
             if( AttPDUMsg::Opcode::ATT_HANDLE_VALUE_NTF == opc ) {
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
-                COND_PRINT(env.DEBUG_DATA, "GATTHandler: NTF: %s, listener %zd", a->toString().c_str(), characteristicListenerList.size());
+                COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: NTF: %s, listener %zd", a->toString().c_str(), characteristicListenerList.size());
                 GATTCharacteristicRef decl = findCharacterisicsByValueHandle(a->getHandle());
                 const std::shared_ptr<TROOctets> data(new POctets(a->getValue()));
                 const uint64_t timestamp = a->ts_creation;
@@ -230,7 +224,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 });
             } else if( AttPDUMsg::Opcode::ATT_HANDLE_VALUE_IND == opc ) {
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
-                COND_PRINT(env.DEBUG_DATA, "GATTHandler: IND: %s, sendIndicationConfirmation %d, listener %zd", a->toString().c_str(), sendIndicationConfirmation, characteristicListenerList.size());
+                COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: IND: %s, sendIndicationConfirmation %d, listener %zd", a->toString().c_str(), sendIndicationConfirmation, characteristicListenerList.size());
                 bool cfmSent = false;
                 if( sendIndicationConfirmation ) {
                     AttHandleValueCfm cfm;
@@ -255,20 +249,23 @@ void GATTHandler::l2capReaderThreadImpl() {
                 });
             } else if( AttPDUMsg::Opcode::ATT_MULTIPLE_HANDLE_VALUE_NTF == opc ) {
                 // FIXME TODO ..
-                ERR_PRINT("GATTHandler: MULTI-NTF not implemented: %s", attPDU->toString().c_str());
+                ERR_PRINT("GATTHandler::reader: MULTI-NTF not implemented: %s", attPDU->toString().c_str());
             } else {
                 attPDURing.putBlocking( attPDU );
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
-            IRQ_PRINT("GATTHandler::l2capReaderThread: l2cap read error -> Stop; l2cap.read %d", len);
+            IRQ_PRINT("GATTHandler::reader: l2cap read error -> Stop; l2cap.read %d", len);
             l2capReaderShallStop = true;
             has_ioerror = true;
         }
     }
-
-    WORDY_PRINT("l2capReaderThreadImpl Ended. Ring has %d entries flushed", attPDURing.getSize());
-    l2capReaderRunning = false;
-    attPDURing.clear();
+    {
+        const std::lock_guard<std::mutex> lock(mtx_l2capReaderLifecycle); // RAII-style acquire and relinquish via destructor
+        WORDY_PRINT("GATTHandler::reader: Ended. Ring has %d entries flushed", attPDURing.getSize());
+        attPDURing.clear();
+        l2capReaderRunning = false;
+        cv_l2capReaderInit.notify_all();
+    }
     disconnect(true /* disconnectDevice */, has_ioerror);
 }
 
@@ -294,7 +291,7 @@ GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device) noexcept
      * as we only can install one handler.
      */
     {
-        std::unique_lock<std::mutex> lock(mtx_l2capReaderInit); // RAII-style acquire and relinquish via destructor
+        std::unique_lock<std::mutex> lock(mtx_l2capReaderLifecycle); // RAII-style acquire and relinquish via destructor
 
         std::thread l2capReaderThread = std::thread(&GATTHandler::l2capReaderThreadImpl, this);
         l2capReaderThreadId = l2capReaderThread.native_handle();
@@ -333,7 +330,8 @@ GATTHandler::~GATTHandler() noexcept {
 }
 
 bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause) noexcept {
-    // Interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
+    PERF3_TS_T0();
+    // Interrupt GATT's L2CAP::connect(..) and L2CAP::read(..), avoiding prolonged hang
     // and pull all underlying l2cap read operations!
     l2cap.disconnect();
 
@@ -346,13 +344,16 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
         characteristicListenerList.clear();
         return false;
     }
-    {
-        // Lock to avoid other threads using instance while disconnecting
-        const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
+    // Lock to avoid other threads using instance while disconnecting
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
+    DBG_PRINT("GATTHandler::disconnect: Start: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
+              disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
+    removeAllCharacteristicListener();
 
+    PERF3_TS_TD("GATTHandler::disconnect.1");
+    {
+        std::unique_lock<std::mutex> lockReader(mtx_l2capReaderLifecycle); // RAII-style acquire and relinquish via destructor
         has_ioerror = false;
-        DBG_PRINT("GATTHandler::disconnect: Start: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
-                  disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
 
         const pthread_t tid_self = pthread_self();
         const pthread_t tid_l2capReader = l2capReaderThreadId;
@@ -368,9 +369,13 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
                     ERR_PRINT("GATTHandler::disconnect: pthread_kill %p FAILED: %d", (void*)tid_l2capReader, kerr);
                 }
             }
+            // Ensure the reader thread has ended, no runaway-thread using *this instance after destruction
+            while( true == l2capReaderRunning ) {
+                cv_l2capReaderInit.wait(lockReader);
+            }
         }
-        removeAllCharacteristicListener();
     }
+    PERF3_TS_TD("GATTHandler::disconnect.2");
 
     if( disconnectDevice ) {
         std::shared_ptr<DBTDevice> device = getDeviceUnchecked();
@@ -384,6 +389,7 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
         }
     }
 
+    PERF3_TS_TD("GATTHandler::disconnect.X");
     DBG_PRINT("GATTHandler::disconnect: End: %s", deviceString.c_str());
     return true;
 }
