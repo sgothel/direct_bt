@@ -31,6 +31,7 @@
 #include <cstdio>
 
 #include <algorithm>
+#include <type_traits>
 
 // #define PERF_PRINT_ON 1
 #include <dbt_debug.hpp>
@@ -52,7 +53,9 @@ namespace direct_bt {
 
 int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel) noexcept
 {
-	sockaddr_hci a;
+    static_assert( sizeof(struct sockaddr) > sizeof(sockaddr_hci), "Requirement sizeof(struct sockaddr) > sizeof(sockaddr_hci)" );
+    sockaddr addr_holder; // sizeof(struct sockaddr) > sizeof(sockaddr_hci), silent valgrind.
+	sockaddr_hci * ptr_hci_addr = (sockaddr_hci*)&addr_holder;
 	int fd, err;
 
 	/**
@@ -71,11 +74,11 @@ int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel) noexcep
 	}
 
 	// Bind socket to the HCI device
-	bzero((void *)&a, sizeof(a));
-	a.hci_family = AF_BLUETOOTH;
-	a.hci_dev = dev_id;
-	a.hci_channel = channel;
-	if (bind(fd, (struct sockaddr *) &a, sizeof(a)) < 0) {
+	bzero(&addr_holder, sizeof(addr_holder));
+	ptr_hci_addr->hci_family = AF_BLUETOOTH;
+	ptr_hci_addr->hci_dev = dev_id;
+	ptr_hci_addr->hci_channel = channel;
+	if (bind(fd, &addr_holder, sizeof(sockaddr_hci)) < 0) {
 	    ERR_PRINT("hci_open_dev: bind failed");
 		goto failed;
 	}
