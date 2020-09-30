@@ -402,7 +402,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(JNIEnv *env, jobject
     return JNI_FALSE;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_removeStatusListener(JNIEnv *env, jobject obj, jobject statusListener)
+jboolean Java_direct_1bt_tinyb_DBTAdapter_removeStatusListenerImpl(JNIEnv *env, jobject obj, jobject statusListener)
 {
     try {
         if( nullptr == statusListener ) {

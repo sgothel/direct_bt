@@ -65,6 +65,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     volatile short hciConnHandle;
     /* pp */ final List<WeakReference<DBTGattService>> serviceCache = new ArrayList<WeakReference<DBTGattService>>();
 
+    private final AtomicBoolean isClosing = new AtomicBoolean(false);
+
     private final Object userCallbackLock = new Object();
 
     private final long blockedNotificationRef = 0;
@@ -239,8 +241,11 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     }
 
     @Override
-    public synchronized void close() {
+    public void close() {
         if( !isValid() ) {
+            return;
+        }
+        if( !isClosing.compareAndSet(false, true) ) {
             return;
         }
         disableConnectedNotifications();

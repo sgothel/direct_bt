@@ -65,6 +65,8 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private final Object discoveredDevicesLock = new Object();
     private final Object userCallbackLock = new Object();
 
+    private final AtomicBoolean isClosing = new AtomicBoolean(false);
+
     private final AtomicBoolean isPowered = new AtomicBoolean(false); // AdapterSettings
     private BluetoothNotification<Boolean> userPairableNotificationCB = null;
     private final AtomicBoolean isDiscoverable = new AtomicBoolean(false); // AdapterSettings
@@ -89,8 +91,11 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public final BluetoothManager getManager() { return DBTManager.getManager(); }
 
     @Override
-    public synchronized void close() {
+    public void close() {
         if( !isValid() ) {
+            return;
+        }
+        if( !isClosing.compareAndSet(false, true) ) {
             return;
         }
         // mute all listener first
@@ -386,7 +391,14 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public native boolean addStatusListener(final AdapterStatusListener l, final BluetoothDevice deviceMatch);
 
     @Override
-    public native boolean removeStatusListener(final AdapterStatusListener l);
+    public boolean removeStatusListener(final AdapterStatusListener l) {
+        if( !isClosing.get() ) {
+            return removeStatusListenerImpl(l);
+        }
+        return false;
+    }
+
+    private native boolean removeStatusListenerImpl(final AdapterStatusListener l);
 
     @Override
     public native int removeAllStatusListener();
