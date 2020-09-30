@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.tinyb.AdapterSettings;
 import org.tinyb.BluetoothAdapter;
@@ -70,7 +71,7 @@ public class DBTScanner10 {
 
     long timestamp_t0;
 
-    int MULTI_MEASUREMENTS = 8;
+    AtomicInteger MULTI_MEASUREMENTS = new AtomicInteger(8);
     boolean KEEP_CONNECTED = true;
     boolean GATT_PING_ENABLED = false;
     boolean REMOVE_DEVICE = true;
@@ -142,7 +143,7 @@ public class DBTScanner10 {
             if( !devicesInProcessing.contains( device.getAddress() ) &&
                 ( waitForDevices.isEmpty() ||
                   ( waitForDevices.contains( device.getAddress() ) &&
-                    ( 0 < MULTI_MEASUREMENTS || !devicesProcessed.contains( device.getAddress() ) )
+                    ( 0 < MULTI_MEASUREMENTS.get() || !devicesProcessed.contains( device.getAddress() ) )
                   )
                 )
               )
@@ -177,7 +178,7 @@ public class DBTScanner10 {
             if( !devicesInProcessing.contains( device.getAddress() ) &&
                 ( waitForDevices.isEmpty() ||
                   ( waitForDevices.contains( device.getAddress() ) &&
-                    ( 0 < MULTI_MEASUREMENTS || !devicesProcessed.contains( device.getAddress() ) )
+                    ( 0 < MULTI_MEASUREMENTS.get() || !devicesProcessed.contains( device.getAddress() ) )
                   )
                 )
               )
@@ -457,11 +458,6 @@ public class DBTScanner10 {
             // Even w/ GATT_PING_ENABLED, we utilize disconnect event to clean up -> remove
         }
 
-        if( 0 < MULTI_MEASUREMENTS ) {
-            MULTI_MEASUREMENTS--;
-            println("****** Processing Device: MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS+": "+device.getAddress());
-        }
-
         println("****** Processing Device: End: Success " + success +
                            " on " + device.toString() + "; devInProc "+devicesInProcessing.size());
         if( success ) {
@@ -477,6 +473,11 @@ public class DBTScanner10 {
                 final boolean r = device.getAdapter().startDiscovery( true );
                 println("****** Processing Device: startDiscovery result "+r);
             }
+        }
+
+        if( 0 < MULTI_MEASUREMENTS.get() ) {
+            MULTI_MEASUREMENTS.decrementAndGet();
+            println("****** Processing Device: MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS.get()+": "+device.getAddress());
         }
     }
 
@@ -543,11 +544,11 @@ public class DBTScanner10 {
         }
 
         while( !done ) {
-            if( 0 == MULTI_MEASUREMENTS ||
-                ( -1 == MULTI_MEASUREMENTS && !waitForDevices.isEmpty() && devicesProcessed.containsAll(waitForDevices) )
+            if( 0 == MULTI_MEASUREMENTS.get() ||
+                ( -1 == MULTI_MEASUREMENTS.get() && !waitForDevices.isEmpty() && devicesProcessed.containsAll(waitForDevices) )
               )
             {
-                println("****** EOL Test MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS+
+                println("****** EOL Test MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS.get()+
                                    ", processed "+devicesProcessed.size()+"/"+waitForDevices.size());
                 println("****** WaitForDevices "+Arrays.toString(waitForDevices.toArray()));
                 println("****** DevicesProcessed "+Arrays.toString(devicesProcessed.toArray()));
@@ -642,9 +643,9 @@ public class DBTScanner10 {
                 } else if( arg.equals("-keepDevice") ) {
                     test.REMOVE_DEVICE = false;
                 } else if( arg.equals("-count")  && args.length > (i+1) ) {
-                    test.MULTI_MEASUREMENTS = Integer.valueOf(args[++i]).intValue();
+                    test.MULTI_MEASUREMENTS.set(Integer.valueOf(args[++i]).intValue());
                 } else if( arg.equals("-single") ) {
-                    test.MULTI_MEASUREMENTS = -1;
+                    test.MULTI_MEASUREMENTS.set(-1);
                 }
             }
             println("Run with '[-default_dev_id <adapter-index>] [-dev_id <adapter-index>] [-btmode LE|BREDR|DUAL] "+
@@ -661,7 +662,7 @@ public class DBTScanner10 {
                     "[-shutdown <int>]'");
         }
 
-        println("MULTI_MEASUREMENTS "+test.MULTI_MEASUREMENTS);
+        println("MULTI_MEASUREMENTS "+test.MULTI_MEASUREMENTS.get());
         println("KEEP_CONNECTED "+test.KEEP_CONNECTED);
         println("GATT_PING_ENABLED "+test.GATT_PING_ENABLED);
         println("REMOVE_DEVICE "+test.REMOVE_DEVICE);
