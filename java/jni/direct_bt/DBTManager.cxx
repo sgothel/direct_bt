@@ -100,8 +100,11 @@ jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject
                     jobject jAdapter = env->NewObject(clazz, clazz_ctor, (jlong)adapter, addr, name);
                     java_exception_check_and_throw(env, E_FILE_LINE);
                     JNIGlobalRef::check(jAdapter, E_FILE_LINE);
-                    std::shared_ptr<JavaAnonObj> jAdapterRef = adapter->getJavaObject();
+                    std::shared_ptr<JavaAnonObj> jAdapterRef = adapter->getJavaObject(); // GlobalRef
                     JavaGlobalObj::check(jAdapterRef, E_FILE_LINE);
+                    env->DeleteLocalRef(addr);
+                    env->DeleteLocalRef(name);
+                    env->DeleteLocalRef(jAdapter);
 
                     DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl: New Adapter %p %s", adapter, adapter->toString().c_str());
                     return JavaGlobalObj::GetObject(jAdapterRef);

@@ -85,13 +85,17 @@ jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristicsImpl(JNIEnv *env,
                     std::vector<std::unique_ptr<std::string>> props = GATTCharacteristic::getPropertiesStringList(characteristic->properties);
                     unsigned int props_size = props.size();
 
-                    jclass string_class = search_class(env, "Ljava/lang/String;");
-                    jobjectArray jproperties = env->NewObjectArray(props_size, string_class, 0);
-                    java_exception_check_and_throw(env, E_FILE_LINE);
-
+                    jobjectArray jproperties;
+                    {
+                        jclass string_class = search_class(env, "java/lang/String");
+                        jproperties = env->NewObjectArray(props_size, string_class, 0);
+                        java_exception_check_and_throw(env, E_FILE_LINE);
+                        env->DeleteLocalRef(string_class);
+                    }
                     for (unsigned int i = 0; i < props_size; ++i) {
                         jobject elem = from_string_to_jstring(env, *props[i].get());
                         env->SetObjectArrayElement(jproperties, i, elem);
+                        env->DeleteLocalRef(elem);
                     }
                     java_exception_check_and_throw(env, E_FILE_LINE);
 
@@ -108,9 +112,10 @@ jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristicsImpl(JNIEnv *env,
                             uuid, characteristic->value_handle, characteristic->clientCharacteristicsConfigIndex);
                     java_exception_check_and_throw(env, E_FILE_LINE);
                     JNIGlobalRef::check(jchar, E_FILE_LINE);
-                    std::shared_ptr<JavaAnonObj> jCharRef = characteristic->getJavaObject();
+                    std::shared_ptr<JavaAnonObj> jCharRef = characteristic->getJavaObject(); // GlobalRef
                     JavaGlobalObj::check(jCharRef, E_FILE_LINE);
-
+                    env->DeleteLocalRef(jproperties);
+                    env->DeleteLocalRef(jchar);
                     return JavaGlobalObj::GetObject(jCharRef);
                 };
         return convert_vector_sharedptr_to_jarraylist<GATTCharacteristic>(env, characteristics, _characteristicClazzCtorArgs.c_str(), ctor_char);

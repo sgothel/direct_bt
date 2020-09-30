@@ -81,7 +81,7 @@ jobject Java_direct_1bt_tinyb_DBTGattCharacteristic_getDescriptorsImpl(JNIEnv *e
                     JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
                     jobject jcharacteristic = JavaGlobalObj::GetObject(characteristic->getJavaObject());
 
-                    const jstring uuid = from_string_to_jstring(env,
+                    const jstring juuid = from_string_to_jstring(env,
                             directBTJNISettings.getUnifyUUID128Bit() ? descriptor->type->toUUID128String() :
                                                                        descriptor->type->toString());
                     java_exception_check_and_throw(env, E_FILE_LINE);
@@ -91,14 +91,16 @@ jobject Java_direct_1bt_tinyb_DBTGattCharacteristic_getDescriptorsImpl(JNIEnv *e
                     env->SetByteArrayRegion(jvalue, 0, (jsize)value_size, (const jbyte *)descriptor->value.get_ptr());
                     java_exception_check_and_throw(env, E_FILE_LINE);
 
-                    jobject jchar = env->NewObject(clazz, clazz_ctor, (jlong)descriptor, jcharacteristic,
-                            uuid, (jshort)descriptor->handle, jvalue);
+                    jobject jdesc = env->NewObject(clazz, clazz_ctor, (jlong)descriptor, jcharacteristic,
+                            juuid, (jshort)descriptor->handle, jvalue);
                     java_exception_check_and_throw(env, E_FILE_LINE);
-                    JNIGlobalRef::check(jchar, E_FILE_LINE);
-                    std::shared_ptr<JavaAnonObj> jCharRef = descriptor->getJavaObject();
-                    JavaGlobalObj::check(jCharRef, E_FILE_LINE);
-
-                    return JavaGlobalObj::GetObject(jCharRef);
+                    JNIGlobalRef::check(jdesc, E_FILE_LINE);
+                    std::shared_ptr<JavaAnonObj> jDescRef = descriptor->getJavaObject(); // GlobalRef
+                    JavaGlobalObj::check(jDescRef, E_FILE_LINE);
+                    env->DeleteLocalRef(juuid);
+                    env->DeleteLocalRef(jvalue);
+                    env->DeleteLocalRef(jdesc);
+                    return JavaGlobalObj::GetObject(jDescRef);
                 };
         return convert_vector_sharedptr_to_jarraylist<GATTDescriptor>(env, descriptorList, _descriptorClazzCtorArgs.c_str(), ctor_desc);
     } catch(...) {

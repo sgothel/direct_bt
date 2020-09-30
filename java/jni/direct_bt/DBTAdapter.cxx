@@ -249,6 +249,9 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->CallVoidMethod(listenerObjRef.getObject(), mAdapterSettingsChanged,
                 JavaGlobalObj::GetObject(adapterObjRef), adapterSettingOld, adapterSettingNew, adapterSettingChanged, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
+        env->DeleteLocalRef(adapterSettingOld);
+        env->DeleteLocalRef(adapterSettingNew);
+        env->DeleteLocalRef(adapterSettingChanged);
     }
 
     void discoveringChanged(DBTAdapter const &a, const bool enabled, const bool keepAlive, const uint64_t timestamp) override {
@@ -281,6 +284,8 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             std::shared_ptr<JavaAnonObj> jDeviceRef1 = device->getJavaObject();
             JavaGlobalObj::check(jDeviceRef1, E_FILE_LINE);
             jdevice = JavaGlobalObj::GetObject(jDeviceRef1);
+            env->DeleteLocalRef(addr);
+            env->DeleteLocalRef(name);
             env->DeleteLocalRef(tmp_jdevice);
         }
         env->SetLongField(jdevice, deviceClazzTSLastDiscoveryField, (jlong)device->getLastDiscoveryTimestamp());
@@ -302,6 +307,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 
         env->CallVoidMethod(listenerObjRef.getObject(), mDeviceUpdated, JavaGlobalObj::GetObject(jDeviceRef), eirDataTypeSet, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
+        env->DeleteLocalRef(eirDataTypeSet);
     }
 
     void deviceConnected(std::shared_ptr<DBTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
@@ -327,6 +333,8 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             std::shared_ptr<JavaAnonObj> jDeviceRef1 = device->getJavaObject();
             JavaGlobalObj::check(jDeviceRef1, E_FILE_LINE);
             jdevice = JavaGlobalObj::GetObject(jDeviceRef1);
+            env->DeleteLocalRef(addr);
+            env->DeleteLocalRef(name);
             env->DeleteLocalRef(tmp_jdevice);
         }
         env->SetShortField(jdevice, deviceClazzConnectionHandleField, (jshort)handle);

@@ -112,10 +112,10 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
         env->SetByteArrayRegion(jvalue, 0, (jsize)value_size, (const jbyte *)charValue->get_ptr());
         java_exception_check_and_throw(env, E_FILE_LINE);
 
-
         env->CallVoidMethod(listenerObj.getObject(), mNotificationReceived,
                             jCharDecl, jvalue, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
+        env->DeleteLocalRef(jvalue);
     }
 
     void indicationReceived(GATTCharacteristicRef charDecl,
@@ -130,10 +130,10 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
         env->SetByteArrayRegion(jvalue, 0, (jsize)value_size, (const jbyte *)charValue->get_ptr());
         java_exception_check_and_throw(env, E_FILE_LINE);
 
-
         env->CallVoidMethod(listenerObj.getObject(), mIndicationReceived,
                             jCharDecl, jvalue, (jlong)timestamp, (jboolean)confirmationSent);
         java_exception_check_and_throw(env, E_FILE_LINE);
+        env->DeleteLocalRef(jvalue);
     }
 };
 
@@ -462,18 +462,19 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj
                     JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
                     jobject jdevice = JavaGlobalObj::GetObject(device->getJavaObject());
                     const jboolean isPrimary = service->isPrimary;
-                    const jstring uuid = from_string_to_jstring(env,
+                    const jstring juuid = from_string_to_jstring(env,
                             directBTJNISettings.getUnifyUUID128Bit() ? service->type->toUUID128String() :
                                                                        service->type->toString());
                     java_exception_check_and_throw(env, E_FILE_LINE);
 
                     jobject jservice = env->NewObject(clazz, clazz_ctor, (jlong)service, jdevice, isPrimary,
-                            uuid, service->startHandle, service->endHandle);
+                            juuid, service->startHandle, service->endHandle);
                     java_exception_check_and_throw(env, E_FILE_LINE);
                     JNIGlobalRef::check(jservice, E_FILE_LINE);
-                    std::shared_ptr<JavaAnonObj> jServiceRef = service->getJavaObject();
+                    std::shared_ptr<JavaAnonObj> jServiceRef = service->getJavaObject(); // GlobalRef
                     JavaGlobalObj::check(jServiceRef, E_FILE_LINE);
-
+                    env->DeleteLocalRef(juuid);
+                    env->DeleteLocalRef(jservice);
                     return JavaGlobalObj::GetObject(jServiceRef);
                 };
         return convert_vector_sharedptr_to_jarraylist<GATTService>(env, services, _serviceClazzCtorArgs.c_str(), ctor_service);
