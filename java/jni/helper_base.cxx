@@ -167,7 +167,7 @@ jobject get_bluetooth_type(JNIEnv *env, const char *field_name)
 
 jobject get_new_arraylist(JNIEnv *env, unsigned int size, jmethodID *add)
 {
-    jclass arraylist_class = search_class(env, "Ljava/util/ArrayList;");
+    jclass arraylist_class = search_class(env, "java/util/ArrayList");
     jmethodID arraylist_ctor = search_method(env, arraylist_class, "<init>", "(I)V", false);
 
     jobject result = env->NewObject(arraylist_class, arraylist_ctor, size);
