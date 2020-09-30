@@ -26,4 +26,8 @@ echo COMMANDLINE $0 $*
 echo direct_bt_debug $direct_bt_debug
 echo direct_bt_verbose $direct_bt_verbose
 
-java -cp lib/java/tinyb2.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
+# JAVA_CMD="valgrind java -XX:CompileOnly=nothing -XX:UseSSE=0"
+# JAVA_CMD="java -Xcheck:jni"
+JAVA_CMD="java"
+
+$JAVA_CMD -cp lib/java/tinyb2.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
