@@ -181,6 +181,7 @@ jobject convert_vector_uniqueptr_to_jarraylist(JNIEnv *env, std::vector<std::uni
             throw direct_bt::InternalError("cannot create instance of class", E_FILE_LINE);
         }
         env->CallBooleanMethod(result, arraylist_add, object);
+        java_exception_check_and_throw(env, E_FILE_LINE);
     }
     return result;
 }
@@ -211,6 +212,7 @@ jobject convert_vector_uniqueptr_to_jarraylist(JNIEnv *env, std::vector<std::uni
             throw std::runtime_error("cannot create instance of class\n");
         }
         env->CallBooleanMethod(result, arraylist_add, object);
+        java_exception_check_and_throw(env, E_FILE_LINE);
     }
     return result;
 }
@@ -241,6 +243,7 @@ jobject convert_vector_sharedptr_to_jarraylist(JNIEnv *env, std::vector<std::sha
             throw std::runtime_error("cannot create instance of class\n");
         }
         env->CallBooleanMethod(result, arraylist_add, object);
+        java_exception_check_and_throw(env, E_FILE_LINE);
     }
     return result;
 }
