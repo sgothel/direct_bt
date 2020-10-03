@@ -38,6 +38,8 @@
 
 #include "dbt_debug.hpp"
 
+#include "OrderedAtomic.hpp"
+
 #include "BasicTypes.hpp"
 
 #include "Ringbuffer.hpp"
@@ -62,7 +64,7 @@ namespace direct_bt {
  * </ul>
  * </p>
  * <p>
- * Following methods use acquire the global multi-read and -write mutex:
+ * Following methods acquire the global multi-read _and_ -write mutex:
  * <ul>
  *  <li>{@link #resetFull(Object[])}</li>
  *  <li>{@link #clear()}</li>
@@ -80,19 +82,24 @@ namespace direct_bt {
  *   <tr><td>Full</td><td>writePos == readPos - 1</td><td>size == capacity</td></tr>
  * </table>
  * </p>
+ * See also:
+ * <pre>
+ * - Sequentially Consistent (SC) ordering or SC-DRF (data race free) <https://en.cppreference.com/w/cpp/atomic/memory_order#Sequentially-consistent_ordering>
+ * - std::memory_order <https://en.cppreference.com/w/cpp/atomic/memory_order>
+ * </pre>
  */
 template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringbuffer<T> {
     private:
-        std::mutex syncRead, syncMultiRead;
-        std::mutex syncWrite, syncMultiWrite;
+        std::mutex syncRead, syncMultiRead;   // Memory-Model (MM) guaranteed sequential consistency (SC) between acquire and release
+        std::mutex syncWrite, syncMultiWrite; // ditto
         std::condition_variable cvRead;
         std::condition_variable cvWrite;
 
         /* final */ int capacityPlusOne;  // not final due to grow
-        /* final */ T * array; // not final due to grow
-        std::atomic<int> readPos;
-        std::atomic<int> writePos;
-        std::atomic<int> size;
+        /* final */ T * array;     // Synchronized due to MM's data-race-free SC (SC-DRF) between [atomic] acquire/release
+        sc_atomic_int readPos;     // Memory-Model (MM) guaranteed sequential consistency (SC) between acquire (read) and release (write)
+        sc_atomic_int writePos;    // ditto
+        relaxed_atomic_int size;   // Non-SC atomic size, only atomic value itself is synchronized.
 
         T * newArray(const int count) noexcept {
             return new T[count];
@@ -127,9 +134,10 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
 
         void clearImpl() noexcept {
             // clear all elements, zero size
-            if( 0 < size ) {
+            const int _size = size; // fast access
+            if( 0 < _size ) {
                 int localReadPos = readPos;
-                for(int i=0; i<size; i++) {
+                for(int i=0; i<_size; i++) {
                     localReadPos = (localReadPos + 1) % capacityPlusOne;
                     array[localReadPos] = nullelem;
                 }
@@ -165,12 +173,12 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
         }
 
         T getImpl(const bool blocking, const bool peek, const int timeoutMS) noexcept {
-            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead); // RAII-style acquire and relinquish via destructor
+            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead); // acquire syncMultiRead, _not_ sync'ing w/ putImpl
 
-            int localReadPos = readPos;
-            if( localReadPos == writePos ) {
+            int localReadPos = readPos; // SC-DRF acquire atomic readPos, sync'ing with putImpl
+            if( localReadPos == writePos ) { // SC-DRF acquire atomic writePos, sync'ing with putImpl
                 if( blocking ) {
-                    std::unique_lock<std::mutex> lockRead(syncRead); // RAII-style acquire and relinquish via destructor
+                    std::unique_lock<std::mutex> lockRead(syncRead); // SC-DRF w/ putImpl via same lock
                     while( localReadPos == writePos ) {
                         if( 0 == timeoutMS ) {
                             cvRead.wait(lockRead);
@@ -187,17 +195,52 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
                 }
             }
             localReadPos = (localReadPos + 1) % capacityPlusOne;
-            T r = array[localReadPos];
+            T r = array[localReadPos]; // SC-DRF
             if( !peek ) {
                 array[localReadPos] = nullelem;
                 {
-                    std::unique_lock<std::mutex> lockWrite(syncWrite); // RAII-style acquire and relinquish via destructor
+                    std::unique_lock<std::mutex> lockWrite(syncWrite); // SC-DRF w/ putImpl via same lock
                     size--;
-                    readPos = localReadPos;
+                    readPos = localReadPos; // SC-DRF release atomic readPos
                     cvWrite.notify_all(); // notify waiting putter
                 }
             }
             return r;
+        }
+
+        bool putImpl(const T &e, const bool sameRef, const bool blocking, const int timeoutMS) noexcept {
+            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite); // acquire syncMultiRead, _not_ sync'ing w/ getImpl
+
+            int localWritePos = writePos; // SC-DRF acquire atomic writePos, sync'ing with getImpl
+            localWritePos = (localWritePos + 1) % capacityPlusOne;
+            if( localWritePos == readPos ) { // SC-DRF acquire atomic readPos, sync'ing with getImpl
+                if( blocking ) {
+                    std::unique_lock<std::mutex> lockWrite(syncWrite); // SC-DRF w/ getImpl via same lock
+                    while( localWritePos == readPos ) {
+                        if( 0 == timeoutMS ) {
+                            cvWrite.wait(lockWrite);
+                        } else {
+                            std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+                            std::cv_status s = cvWrite.wait_until(lockWrite, t0 + std::chrono::milliseconds(timeoutMS));
+                            if( std::cv_status::timeout == s && localWritePos == readPos ) {
+                                return false;
+                            }
+                        }
+                    }
+                } else {
+                    return false;
+                }
+            }
+            if( !sameRef ) {
+                array[localWritePos] = e; // SC-DRF
+            }
+            {
+                std::unique_lock<std::mutex> lockRead(syncRead); // SC-DRF w/ getImpl via same lock
+                size++;
+                writePos = localWritePos; // release (atomic write)
+                cvRead.notify_all(); // notify waiting getter
+            }
+            return true;
         }
 
         int dropImpl (const int count) noexcept {
@@ -217,41 +260,6 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
                 size--;
             }
             return dropCount;
-        }
-
-        bool putImpl(const T &e, const bool sameRef, const bool blocking, const int timeoutMS) noexcept {
-            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite); // RAII-style acquire and relinquish via destructor
-
-            int localWritePos = writePos;
-            localWritePos = (localWritePos + 1) % capacityPlusOne;
-            if( localWritePos == readPos ) {
-                if( blocking ) {
-                    std::unique_lock<std::mutex> lockWrite(syncWrite); // RAII-style acquire and relinquish via destructor
-                    while( localWritePos == readPos ) {
-                        if( 0 == timeoutMS ) {
-                            cvWrite.wait(lockWrite);
-                        } else {
-                            std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
-                            std::cv_status s = cvWrite.wait_until(lockWrite, t0 + std::chrono::milliseconds(timeoutMS));
-                            if( std::cv_status::timeout == s && localWritePos == readPos ) {
-                                return false;
-                            }
-                        }
-                    }
-                } else {
-                    return false;
-                }
-            }
-            if( !sameRef ) {
-                array[localWritePos] = e;
-            }
-            {
-                std::unique_lock<std::mutex> lockRead(syncRead); // RAII-style acquire and relinquish via destructor
-                size++;
-                writePos = localWritePos;
-                cvRead.notify_all(); // notify waiting getter
-            }
-            return true;
         }
 
     public:
@@ -441,11 +449,12 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
             std::unique_lock<std::mutex> lockMultiRead(syncMultiRead, std::defer_lock);          // utilize std::lock(r, w), allowing mixed order waiting on read/write ops
             std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite, std::defer_lock);        // otherwise RAII-style relinquish via destructor
             std::lock(lockMultiRead, lockMultiWrite);
+            const int _size = size; // fast access
 
             if( capacityPlusOne == newCapacity+1 ) {
                 return;
             }
-            if( size > newCapacity ) {
+            if( _size > newCapacity ) {
                 throw IllegalArgumentException("amount "+std::to_string(newCapacity)+" < size, "+toString(), E_FILE_LINE);
             }
             if( 0 > newCapacity ) {
@@ -462,7 +471,6 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
             array = newArray(capacityPlusOne);
             readPos = 0;
             writePos = 0;
-            const int _size = size.load(); // fast access
 
             // copy saved data
             if( nullptr != oldArray && 0 < _size ) {
