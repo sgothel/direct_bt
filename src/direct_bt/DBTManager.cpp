@@ -329,7 +329,8 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
     }
     {
         std::unique_lock<std::mutex> lock(mtx_mgmtReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        std::thread mgmtReaderThread = std::thread(&DBTManager::mgmtReaderThreadImpl, this);
+
+        std::thread mgmtReaderThread(&DBTManager::mgmtReaderThreadImpl, this); // @suppress("Invalid arguments")
         mgmtReaderThreadId = mgmtReaderThread.native_handle();
         // Avoid 'terminate called without an active exception'
         // as hciReaderThreadImpl may end due to I/O errors.

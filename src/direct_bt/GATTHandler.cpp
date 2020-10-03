@@ -293,7 +293,7 @@ GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device) noexcept
     {
         std::unique_lock<std::mutex> lock(mtx_l2capReaderLifecycle); // RAII-style acquire and relinquish via destructor
 
-        std::thread l2capReaderThread = std::thread(&GATTHandler::l2capReaderThreadImpl, this);
+        std::thread l2capReaderThread(&GATTHandler::l2capReaderThreadImpl, this); // @suppress("Invalid arguments")
         l2capReaderThreadId = l2capReaderThread.native_handle();
         // Avoid 'terminate called without an active exception'
         // as l2capReaderThread may end due to I/O errors.

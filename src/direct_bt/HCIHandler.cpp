@@ -437,7 +437,7 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id) noexcept
     {
         std::unique_lock<std::mutex> lock(mtx_hciReaderLifecycle); // RAII-style acquire and relinquish via destructor
 
-        std::thread hciReaderThread = std::thread(&HCIHandler::hciReaderThreadImpl, this);
+        std::thread hciReaderThread(&HCIHandler::hciReaderThreadImpl, this); // @suppress("Invalid arguments")
         hciReaderThreadId = hciReaderThread.native_handle();
         // Avoid 'terminate called without an active exception'
         // as hciReaderThreadImpl may end due to I/O errors.
@@ -630,7 +630,7 @@ HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_du
 
     if( HCIStatusCode::SUCCESS == status ) {
         // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
-        std::thread bg(&HCIHandler::sendMgmtEvent, this, std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, enable) ) );
+        std::thread bg(&HCIHandler::sendMgmtEvent, this, std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, enable) ) ); // @suppress("Invalid arguments")
         bg.detach();
         // sendMgmtEvent(std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, enable) ) );
     }
