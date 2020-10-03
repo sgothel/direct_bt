@@ -69,4 +69,15 @@ target_link_libraries (test_lfringbuffer11 direct_bt)
 add_dependencies(test_lfringbuffer11 direct_bt)
 add_test (NAME lfringbuffer11 COMMAND test_lfringbuffer11)
 
+add_executable (test_mm_sc_drf  test_mm_sc_drf.cpp)
+set_target_properties(test_mm_sc_drf
+    PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+    COMPILE_FLAGS "-Wall -Wextra -Werror"
+)
+target_link_libraries (test_mm_sc_drf direct_bt)
+add_dependencies(test_mm_sc_drf direct_bt)
+add_test (NAME mm_sc_drf COMMAND test_mm_sc_drf)
+
 
