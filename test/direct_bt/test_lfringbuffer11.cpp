@@ -100,8 +100,8 @@ class Cppunit_tests : public Cppunit {
         CHECKM("Not empty size "+rb->toString(), 0, rb->getSize());
         CHECKTM("Not empty "+rb->toString(), rb->isEmpty());
 
-        std::thread getThread01(&Cppunit_tests::getThreadType01, this, "test01.get01", rb, capacity, 0);
-        std::thread putThread01(&Cppunit_tests::putThreadType01, this, "test01.put01", rb, capacity, 0);
+        std::thread getThread01(&Cppunit_tests::getThreadType01, this, "test01.get01", rb, capacity, 0); // @suppress("Invalid arguments")
+        std::thread putThread01(&Cppunit_tests::putThreadType01, this, "test01.put01", rb, capacity, 0); // @suppress("Invalid arguments")
         putThread01.join();
         getThread01.join();
 
@@ -116,11 +116,11 @@ class Cppunit_tests : public Cppunit {
         CHECKM("Not empty size "+rb->toString(), 0, rb->getSize());
         CHECKTM("Not empty "+rb->toString(), rb->isEmpty());
 
-        std::thread getThread01(&Cppunit_tests::getThreadType01, this, "test02.get01", rb, capacity/4, -1);
-        std::thread getThread02(&Cppunit_tests::getThreadType01, this, "test02.get02", rb, capacity/4, -1);
-        std::thread putThread01(&Cppunit_tests::putThreadType01, this, "test02.put01", rb, capacity, 0);
-        std::thread getThread03(&Cppunit_tests::getThreadType01, this, "test02.get03", rb, capacity/4, -1);
-        std::thread getThread04(&Cppunit_tests::getThreadType01, this, "test02.get04", rb, capacity/4, -1);
+        std::thread getThread01(&Cppunit_tests::getThreadType01, this, "test02.get01", rb, capacity/4, -1); // @suppress("Invalid arguments")
+        std::thread getThread02(&Cppunit_tests::getThreadType01, this, "test02.get02", rb, capacity/4, -1); // @suppress("Invalid arguments")
+        std::thread putThread01(&Cppunit_tests::putThreadType01, this, "test02.put01", rb, capacity, 0); // @suppress("Invalid arguments")
+        std::thread getThread03(&Cppunit_tests::getThreadType01, this, "test02.get03", rb, capacity/4, -1); // @suppress("Invalid arguments")
+        std::thread getThread04(&Cppunit_tests::getThreadType01, this, "test02.get04", rb, capacity/4, -1); // @suppress("Invalid arguments")
         putThread01.join();
         getThread01.join();
         getThread02.join();
@@ -138,17 +138,17 @@ class Cppunit_tests : public Cppunit {
         CHECKM("Not empty size "+rb->toString(), 0, rb->getSize());
         CHECKTM("Not empty "+rb->toString(), rb->isEmpty());
 
-        std::thread getThread01(&Cppunit_tests::getThreadType01, this, "test03.get01", rb, capacity/8, -1);
-        std::thread getThread02(&Cppunit_tests::getThreadType01, this, "test03.get02", rb, capacity/8, -1);
-        std::thread putThread01(&Cppunit_tests::putThreadType01, this, "test03.put01", rb, capacity/2,  0);
-        std::thread getThread03(&Cppunit_tests::getThreadType01, this, "test03.get03", rb, capacity/8, -1);
-        std::thread getThread04(&Cppunit_tests::getThreadType01, this, "test03.get04", rb, capacity/8, -1);
+        std::thread getThread01(&Cppunit_tests::getThreadType01, this, "test03.get01", rb, capacity/8, -1); // @suppress("Invalid arguments")
+        std::thread getThread02(&Cppunit_tests::getThreadType01, this, "test03.get02", rb, capacity/8, -1); // @suppress("Invalid arguments")
+        std::thread putThread01(&Cppunit_tests::putThreadType01, this, "test03.put01", rb, capacity/2,  0); // @suppress("Invalid arguments")
+        std::thread getThread03(&Cppunit_tests::getThreadType01, this, "test03.get03", rb, capacity/8, -1); // @suppress("Invalid arguments")
+        std::thread getThread04(&Cppunit_tests::getThreadType01, this, "test03.get04", rb, capacity/8, -1); // @suppress("Invalid arguments")
 
-        std::thread getThread05(&Cppunit_tests::getThreadType01, this, "test03.get05", rb, capacity/8, -1);
-        std::thread getThread06(&Cppunit_tests::getThreadType01, this, "test03.get06", rb, capacity/8, -1);
-        std::thread putThread02(&Cppunit_tests::putThreadType01, this, "test03.put02", rb, capacity/2,  400);
-        std::thread getThread07(&Cppunit_tests::getThreadType01, this, "test03.get07", rb, capacity/8, -1);
-        std::thread getThread08(&Cppunit_tests::getThreadType01, this, "test03.get08", rb, capacity/8, -1);
+        std::thread getThread05(&Cppunit_tests::getThreadType01, this, "test03.get05", rb, capacity/8, -1); // @suppress("Invalid arguments")
+        std::thread getThread06(&Cppunit_tests::getThreadType01, this, "test03.get06", rb, capacity/8, -1); // @suppress("Invalid arguments")
+        std::thread putThread02(&Cppunit_tests::putThreadType01, this, "test03.put02", rb, capacity/2,  400); // @suppress("Invalid arguments")
+        std::thread getThread07(&Cppunit_tests::getThreadType01, this, "test03.get07", rb, capacity/8, -1); // @suppress("Invalid arguments")
+        std::thread getThread08(&Cppunit_tests::getThreadType01, this, "test03.get08", rb, capacity/8, -1); // @suppress("Invalid arguments")
 
         putThread01.join();
         putThread02.join();
@@ -168,6 +168,14 @@ class Cppunit_tests : public Cppunit {
     void test_list() override {
         test01_Read1Write1();
         test02_Read4Write1();
+        test03_Read8Write2();
+
+        test01_Read1Write1();
+        test02_Read4Write1();
+        test03_Read8Write2();
+
+        test03_Read8Write2();
+        test03_Read8Write2();
         test03_Read8Write2();
     }
 };
