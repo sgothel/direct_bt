@@ -1,0 +1,245 @@
+#
+# All file and line numbers from debug build using commit 60e6f5f67c5bc2a8fb26e8f2ef76c169c5b78813
+#
+# See <https://www.valgrind.org/docs/manual/mc-manual.html#mc-manual.suppfiles>
+# See <https://wiki.wxwidgets.org/Valgrind_Suppression_File_Howto>
+#
+
+# direct_bt::LFRingbuffer::* utilizes SC-DRF atomic acquire (read) and release (write)
+# not detected by helgrind. See uni test test_mm_sc_drf (passed).
+#
+# ==1175024== ---Thread-Announcement------------------------------------------
+# ==1175024== Thread #2 was created
+# ==1175024==    by 0x49434C1: direct_bt::DBTManager::DBTManager(direct_bt::BTMode) (DBTManager.cpp:333)
+# ==1175024== Thread #2: Bug in libpthread: write lock granted on mutex/rwlock which is currently wr-held by a different thread
+# ==1175024==    by 0x13283A: _ZN9direct_bt12LFRingbufferISt10shared_ptrINS_9MgmtEventEELDnEE7putImplERKS3_bbi (LFRingbuffer.hpp:240)
+#                    (see below: cpp_unique_lock_cond_wait_002)
+{
+   dbt_lfringbuffer_lock_and_wait_001
+   Helgrind:Misc
+   fun:mutex_lock_WRK
+   ...
+   fun:*direct_bt*LFRingbuffer*putImpl*
+   ...
+   obj:*libdirect_bt.so*
+}
+
+# direct_bt::LFRingbuffer::* utilizes SC-DRF atomic acquire (read) and release (write)
+# not detected by helgrind. See uni test test_mm_sc_drf (passed).
+#
+# ==1175024== Thread #1 is the program's root thread
+# ==1175024== Thread #2 unlocked lock at 0x13F628 currently held by thread #1
+# ==1175024==    by 0x132913: _ZN9direct_bt12LFRingbufferISt10shared_ptrINS_9MgmtEventEELDnEE7putImplERKS3_bbi (LFRingbuffer.hpp:240)
+#            {
+# 240            std::unique_lock<std::mutex> lockRead(syncRead); // SC-DRF w/ getImpl via same lock
+#                size++;
+#                writePos = localWritePos; // SC-DRF release atomic writePos
+#                cvRead.notify_all(); // notify waiting getter
+#            }
+
+# ==1175024==  Lock at 0x13F628 was first observed
+# ==1175024==    by 0x131EDC: _ZN9direct_bt12LFRingbufferISt10shared_ptrINS_9MgmtEventEELDnEE7getImplEbbi (LFRingbuffer.hpp:181)
+#                    if( blocking ) {
+# 181                    std::unique_lock<std::mutex> lockRead(syncRead); // SC-DRF w/ putImpl via same lock
+#                        while( localReadPos == writePos ) {
+#                            ..
+#                            cvRead.wait(lockRead); or cvRead.wait_until(lockRead, ..);
+#                        }
+#                    }
+{
+   dbt_lfringbuffer_lock_and_wait_002
+   Helgrind:UnlockForeign
+   fun:mutex_unlock_WRK
+   ...
+   fun:*direct_bt*LFRingbuffer*putImpl*
+   ...
+   obj:*libdirect_bt.so*
+}
+
+#
+# direct_bt::LFRingbuffer::* utilizes SC-DRF atomic acquire (read) and release (write)
+# not detected by helgrind. See uni test test_mm_sc_drf (passed).
+#
+# ==1175024== Possible data race during read of size 8 at 0x4F490E8 by thread #1
+# ==1175024== Locks held: 3, at addresses 0x13F480 0x13F650 0x13F7B0
+# ==1175024==    at 0x131D90: std::__shared_ptr<direct_bt::MgmtEvent, (__gnu_cxx::_Lock_policy)2>::__shared_ptr(std::__shared_ptr<direct_bt::MgmtEvent, (__gnu_cxx::_Lock_policy)2> const&) (shared_ptr_base.h:1181)
+# ==1175024==    by 0x131DDA: std::shared_ptr<direct_bt::MgmtEvent>::shared_ptr(std::shared_ptr<direct_bt::MgmtEvent> const&) (shared_ptr.h:149)
+# ==1175024==    by 0x1320B0: _ZN9direct_bt12LFRingbufferISt10shared_ptrINS_9MgmtEventEELDnEE7getImplEbbi (LFRingbuffer.hpp:198)
+#
+# ==1175024== This conflicts with a previous write of size 8 by thread #2
+# ==1175024== Locks held: 1, at address 0x13F6A0
+# ==1175024==    at 0x130E6D: std::__shared_ptr<direct_bt::MgmtEvent, (__gnu_cxx::_Lock_policy)2>::operator=(std::__shared_ptr<direct_bt::MgmtEvent, (__gnu_cxx::_Lock_policy)2> const&) (shared_ptr_base.h:1182)
+# ==1175024==    by 0x130EB4: std::shared_ptr<direct_bt::MgmtEvent>::operator=(std::shared_ptr<direct_bt::MgmtEvent> const&) (shared_ptr.h:358)
+# ==1175024==    by 0x13281D: _ZN9direct_bt12LFRingbufferISt10shared_ptrINS_9MgmtEventEELDnEE7putImplERKS3_bbi (LFRingbuffer.hpp:237)
+{
+   dbt_lfringbuffer_sc_drf_atomic_001
+   Helgrind:Race
+   ...
+   fun:*direct_bt*LFRingbuffer*getImpl*
+   ...
+   obj:*libdirect_bt.so*
+}
+
+#
+# DBTManager
+#
+# ==1175024== Possible data race during read of size 8 at 0x4F49690 by thread #1
+# ==1175024== Locks held: 2, at addresses 0x13F480 0x13F7B0
+# ==1175024==    at 0x494261F: direct_bt::DBTManager::sendWithReply(direct_bt::MgmtCommand&) (DBTManager.cpp:205)
+# ==1175024==    by 0x494359D: direct_bt::DBTManager::DBTManager(direct_bt::BTMode) (DBTManager.cpp:350)
+# 
+# ==1175024==  Address 0x4f49690 is 0 bytes inside a block of size 48 alloc'd
+# ==1175024==    at 0x4839E3F: operator new(unsigned long) (vg_replace_malloc.c:342)
+# ==1175024==    by 0x493C244: direct_bt::MgmtEvent::getSpecialized(unsigned char const*, int) (MgmtTypes.cpp:243)
+{
+   dbt_lfringbuffer_sc_drf_atomic_011
+   Helgrind:Race
+   ...
+   fun:*direct_bt*DBTManager*sendWithReply*
+   ...
+   obj:*libdirect_bt.so*
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_012
+   Helgrind:Race
+   ...
+   fun:_ZN9direct_bt10DBTManagerC1ENS_6BTModeE
+   ...
+#  obj:*libdirect_bt.so*
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_013
+   Helgrind:Race
+   ...
+   fun:_ZN9direct_bt9MgmtEventD1Ev
+   ...
+   obj:*libdirect_bt.so*
+}
+
+#
+# GATTHandler
+#
+{
+   dbt_lfringbuffer_sc_drf_atomic_021
+   Helgrind:Race
+   ...
+   fun:*direct_bt*GATTHandler*sendWithReply*
+   ...
+   obj:*libdirect_bt.so*
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_022
+   Helgrind:Race
+   ...
+   fun:_ZN9direct_bt11GATTHandlerC1ERKSt10shared_ptrINS_9DBTDeviceEE
+   ...
+#  obj:*libdirect_bt.so*
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_023
+   Helgrind:Race
+   ...
+#   fun:*direct_bt*GATTHandler*discoverPrimaryServices*
+#   fun:*direct_bt*GATTHandler*discoverCharacteristics*
+   fun:*direct_bt*GATTHandler*discoverCompletePrimaryServices*
+   ...
+   obj:*libdirect_bt.so*
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_024
+   Helgrind:Race
+   ...
+   fun:_ZN9direct_bt9AttPDUMsgD1Ev
+   ...
+   obj:*libdirect_bt.so*
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_025
+   Helgrind:Race
+   ...
+   fun:*direct_bt*GATTHandler*readValue*
+   ...
+   obj:*libdirect_bt.so*
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_026
+   Helgrind:Race
+   ...
+   fun:*direct_bt*GATTHandler*writeValue*
+   ...
+   obj:*libdirect_bt.so*
+}
+
+
+#
+# HCIHandler
+#
+{
+   dbt_lfringbuffer_sc_drf_atomic_031
+   Helgrind:Race
+   ...
+   fun:*direct_bt*HCIHandler*getNextReply*
+   ...
+   obj:*libdirect_bt.so*
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_032
+   Helgrind:Race
+   ...
+   fun:*direct_bt*HCIHandler*sendWithCmdCompleteReply*
+   ...
+   obj:*libdirect_bt.so*
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_033
+   Helgrind:Race
+   ...
+   fun:_ZN9direct_bt10HCIHandlerC1ENS_6BTModeEt
+   ...
+   obj:*libdirect_bt.so*
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_034
+   Helgrind:Race
+   ...
+   fun:_ZN9direct_bt9HCIPacketD1Ev
+   ...
+   obj:*libdirect_bt.so*
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_035
+   Helgrind:Race
+   ...
+   fun:_ZNSt10shared_ptrIN9direct_bt8HCIEventEED1Ev
+   ...
+   obj:*libdirect_bt.so*
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_036
+   Helgrind:Race
+   ...
+   fun:*direct_bt*HCIHandler*processCommandComplete*
+   ...
+   obj:*libdirect_bt.so*
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_037
+   Helgrind:Race
+   ...
+   fun:*direct_bt*HCIHandler*processCommandStatus*
+   ...
+   obj:*libdirect_bt.so*
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_038
+   Helgrind:Race
+   ...
+   fun:*direct_bt*HCIEvent*le_set_scan_param*
+   ...
+   obj:*libdirect_bt.so*
+}
+
+#
+#
+#
+
