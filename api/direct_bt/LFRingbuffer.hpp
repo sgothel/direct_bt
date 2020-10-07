@@ -46,7 +46,6 @@
 
 namespace direct_bt {
 
-
 /**
  * Simple implementation of {@link Ringbuffer},
  * exposing <i>lock-free</i>
@@ -175,7 +174,8 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
         T getImpl(const bool blocking, const bool peek, const int timeoutMS) noexcept {
             std::unique_lock<std::mutex> lockMultiRead(syncMultiRead); // acquire syncMultiRead, _not_ sync'ing w/ putImpl
 
-            int localReadPos = readPos; // SC-DRF acquire atomic readPos, sync'ing with putImpl
+            const int oldReadPos = readPos; // SC-DRF acquire atomic readPos, sync'ing with putImpl
+            int localReadPos = oldReadPos;
             if( localReadPos == writePos ) { // SC-DRF acquire atomic writePos, sync'ing with putImpl
                 if( blocking ) {
                     std::unique_lock<std::mutex> lockRead(syncRead); // SC-DRF w/ putImpl via same lock
@@ -204,6 +204,8 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
                     readPos = localReadPos; // SC-DRF release atomic readPos
                     cvWrite.notify_all(); // notify waiting putter
                 }
+            } else {
+                readPos = oldReadPos; // SC-DRF release atomic readPos (complete acquire-release even @ peek)
             }
             return r;
         }
@@ -237,7 +239,7 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
             {
                 std::unique_lock<std::mutex> lockRead(syncRead); // SC-DRF w/ getImpl via same lock
                 size++;
-                writePos = localWritePos; // release (atomic write)
+                writePos = localWritePos; // SC-DRF release atomic writePos
                 cvRead.notify_all(); // notify waiting getter
             }
             return true;
