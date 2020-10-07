@@ -145,9 +145,9 @@ namespace direct_bt {
 
             EUI48 const & getAddress() const noexcept { return address; }
             std::string getAddressString() const noexcept { return address.toString(); }
-            BDAddressType getAddressType() const noexcept { return addressType; }
-            bool isLEAddressType() const noexcept { return BDADDR_LE_PUBLIC == addressType || BDADDR_LE_RANDOM == addressType; }
-            bool isBREDRAddressType() const noexcept { return BDADDR_BREDR == addressType; }
+            constexpr BDAddressType getAddressType() const noexcept { return addressType; }
+            constexpr bool isLEAddressType() const noexcept { return direct_bt::isLEAddressType(addressType); }
+            constexpr bool isBREDRAddressType() const noexcept { return direct_bt::isBREDRAddressType(addressType); }
 
             /**
              * Returns the {@link BLERandomAddressType}.
@@ -161,7 +161,7 @@ namespace direct_bt {
              * </p>
              * @since 2.0.0
              */
-            BLERandomAddressType getBLERandomAddressType() const noexcept { return leRandomAddressType; }
+            constexpr BLERandomAddressType getBLERandomAddressType() const noexcept { return leRandomAddressType; }
 
             /** Return RSSI of device as recognized at discovery and connect. */
             int8_t getRSSI() const noexcept { return rssi; }
