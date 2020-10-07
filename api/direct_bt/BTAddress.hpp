@@ -58,6 +58,18 @@ namespace direct_bt {
     std::string getBDAddressTypeString(const BDAddressType type) noexcept;
 
     /**
+     * Returns true if the given BDAddressType is a LE address type.
+     * @param type given BDAddressType
+     */
+    constexpr bool isLEAddressType(const BDAddressType type) noexcept { return BDADDR_LE_PUBLIC == type || BDADDR_LE_RANDOM == type; }
+
+    /**
+     * Returns true if the given BDAddressType is a BREDR address type.
+     * @param type given BDAddressType
+     */
+    constexpr bool isBREDRAddressType(const BDAddressType type) noexcept { return BDAddressType::BDADDR_BREDR == type; }
+
+    /**
      * BT Core Spec v5.2:  Vol 6 LE, Part B Link Layer Specification: 1.3 Device Address
      * <p>
      * BT Core Spec v5.2:  Vol 6 LE, Part B Link Layer Specification: 1.3.2 Random device Address
