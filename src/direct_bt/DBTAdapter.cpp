@@ -660,12 +660,7 @@ std::shared_ptr<DBTDevice> DBTAdapter::findSharedDevice (EUI48 const & mac, cons
 }
 
 void DBTAdapter::removeDevice(DBTDevice & device) noexcept {
-    // Lock device.mtx_connect to avoid other threads connecting or disconnecting while removing
-    // and holding mtx_sharedDevices also blocks deviceFound etc ..
-    const std::scoped_lock lock_conn(device.mtx_connect, mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
-    if( device.getConnected() ) {
-        device.disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
-    }
+    device.disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
     removeConnectedDevice(device); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
     removeDiscoveredDevice(device); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
     removeSharedDevice(device);
