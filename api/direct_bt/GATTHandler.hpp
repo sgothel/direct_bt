@@ -174,7 +174,7 @@ namespace direct_bt {
             std::recursive_mutex mtx_eventListenerList;
 
             uint16_t serverMTU;
-            uint16_t usedMTU;
+            std::atomic<uint16_t> usedMTU; // concurrent use in ctor(set), send and l2capReaderThreadImpl
             std::vector<GATTServiceRef> services;
 
             bool validateConnected() noexcept;
