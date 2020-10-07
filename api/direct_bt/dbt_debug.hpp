@@ -114,7 +114,10 @@ namespace direct_bt {
     void PLAIN_PRINT(const char * format, ...) noexcept;
 
     /** Use for conditional plain messages, prefix '[elapsed_time] '. */
-    void COND_PRINT(const bool condition, const char * format, ...) noexcept;
+    void COND_PRINT_impl(const char *func, const char *file, const int line, const char * format, ...) noexcept;
+
+    /** Use for conditional plain messages, prefix '[elapsed_time] '. */
+    #define COND_PRINT(C, ...) { if(C) { COND_PRINT_impl(__func__, __FILE__, __LINE__, __VA_ARGS__); } }
 
     template<class ListElemType>
     inline void printSharedPtrList(std::string prefix, std::vector<std::shared_ptr<ListElemType>> & list) noexcept {

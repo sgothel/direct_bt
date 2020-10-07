@@ -118,14 +118,12 @@ void direct_bt::PLAIN_PRINT(const char * format, ...) noexcept {
     fflush(stderr);
 }
 
-void direct_bt::COND_PRINT(const bool condition, const char * format, ...) noexcept {
-    if( condition ) {
-        fprintf(stderr, "[%'9" PRIu64 "] ", DBTEnv::getElapsedMillisecond());
-        va_list args;
-        va_start (args, format);
-        vfprintf(stderr, format, args);
-        va_end (args);
-        fprintf(stderr, "\n");
-        fflush(stderr);
-    }
+void direct_bt::COND_PRINT_impl(const char *func, const char *file, const int line, const char * format, ...) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] ", DBTEnv::getElapsedMillisecond());
+    va_list args;
+    va_start (args, format);
+    vfprintf(stderr, format, args);
+    va_end (args);
+    fprintf(stderr, " @ %s:%d %s\n", file, line, func);
+    fflush(stderr);
 }
