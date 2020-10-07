@@ -99,6 +99,10 @@ static bool isDeviceProcessed(const EUI48 & a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
     return contains(devicesProcessed, a);
 }
+static size_t getDeviceProcessedCount() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
+    return devicesProcessed.size();
+}
 static bool allDevicesProcessed(std::vector<EUI48> &cont) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
     for (auto it = cont.begin(); it != cont.end(); ++it) {
@@ -107,6 +111,10 @@ static bool allDevicesProcessed(std::vector<EUI48> &cont) {
         }
     }
     return true;
+}
+static void printDevicesProcessed(const std::string &msg) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
+    printList(msg, devicesProcessed);
 }
 
 static void addToDevicesProcessing(const EUI48 &a) {
@@ -126,6 +134,10 @@ static bool removeFromDevicesProcessing(const EUI48 &a) {
 static bool isDeviceProcessing(const EUI48 & a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
     return contains(devicesInProcessing, a);
+}
+static size_t getDeviceProcessingCount() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
+    return devicesInProcessing.size();
 }
 
 class MyAdapterStatusListener : public AdapterStatusListener {
@@ -281,7 +293,7 @@ static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
         res = HCIStatusCode::SUCCESS;
     }
     fprintf(stderr, "****** Connecting Device: End result %s of %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
-    if( !USE_WHITELIST && 0 == devicesInProcessing.size() && HCIStatusCode::SUCCESS != res ) {
+    if( !USE_WHITELIST && 0 == getDeviceProcessingCount() && HCIStatusCode::SUCCESS != res ) {
         device->getAdapter().startDiscovery( true );
     }
 }
@@ -407,7 +419,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
     }
 
 exit:
-    if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
+    if( !USE_WHITELIST && 0 == getDeviceProcessingCount() ) {
         device->getAdapter().startDiscovery( true );
     }
 
@@ -425,7 +437,7 @@ exit:
     }
 
     fprintf(stderr, "****** Processing Device: End: Success %d on %s; devInProc %zd\n",
-            success, device->toString().c_str(), devicesInProcessing.size());
+            success, device->toString().c_str(), getDeviceProcessingCount());
 
     if( success ) {
         addToDevicesProcessed(device->getAddress());
@@ -435,7 +447,7 @@ exit:
         removeFromDevicesProcessing(device->getAddress());
 
         device->remove();
-        if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
+        if( !USE_WHITELIST && 0 == getDeviceProcessingCount() ) {
             device->getAdapter().startDiscovery( true );
         }
     }
@@ -454,7 +466,7 @@ static void removeDevice(std::shared_ptr<DBTDevice> device) {
 
     device->remove();
 
-    if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
+    if( !USE_WHITELIST && 0 == getDeviceProcessingCount() ) {
         device->getAdapter().startDiscovery( true );
     }
 }
@@ -501,9 +513,9 @@ void test(int dev_id) {
           )
         {
             fprintf(stderr, "****** EOL Test MULTI_MEASUREMENTS left %d, processed %zd/%zd\n",
-                    MULTI_MEASUREMENTS.load(), devicesProcessed.size(), waitForDevices.size());
+                    MULTI_MEASUREMENTS.load(), getDeviceProcessedCount(), waitForDevices.size());
             printList("****** WaitForDevice ", waitForDevices);
-            printList("****** DevicesProcessed ", devicesProcessed);
+            printDevicesProcessed("****** DevicesProcessed ");
             done = true;
         } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(3000));
