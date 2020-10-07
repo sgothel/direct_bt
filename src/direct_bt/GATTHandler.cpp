@@ -307,7 +307,7 @@ GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device) noexcept
     // First point of failure if device exposes no GATT functionality. Allow a longer timeout!
     uint16_t mtu = 0;
     try {
-        mtu = exchangeMTU(number(Defaults::MAX_ATT_MTU));
+        mtu = exchangeMTUImpl(number(Defaults::MAX_ATT_MTU), env.GATT_INITIAL_COMMAND_REPLY_TIMEOUT);
     } catch (std::exception &e) {
         ERR_PRINT("GattHandler.ctor: exchangeMTU failed: %s", e.what());
     } catch (std::string &msg) {
@@ -436,7 +436,7 @@ std::shared_ptr<const AttPDUMsg> GATTHandler::sendWithReply(const AttPDUMsg & ms
     return res;
 }
 
-uint16_t GATTHandler::exchangeMTU(const uint16_t clientMaxMTU) {
+uint16_t GATTHandler::exchangeMTUImpl(const uint16_t clientMaxMTU, const int32_t timeout) {
     /***
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.3.1 Exchange MTU (Server configuration)
      */
@@ -444,13 +444,13 @@ uint16_t GATTHandler::exchangeMTU(const uint16_t clientMaxMTU) {
         throw IllegalArgumentException("clientMaxMTU "+std::to_string(clientMaxMTU)+" > ClientMaxMTU "+std::to_string(number(Defaults::MAX_ATT_MTU)), E_FILE_LINE);
     }
     const AttExchangeMTU req(clientMaxMTU);
-    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
+    // called by ctor only, no locking: const std::lock_guard<std::recursive_mutex> lock(mtx_command);
     PERF_TS_T0();
 
     uint16_t mtu = 0;
     DBG_PRINT("GATT send: %s", req.toString().c_str());
 
-    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_INITIAL_COMMAND_REPLY_TIMEOUT); // valid reply or exception
+    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, timeout); // valid reply or exception
 
     if( pdu->getOpcode() == AttPDUMsg::ATT_EXCHANGE_MTU_RSP ) {
         const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());

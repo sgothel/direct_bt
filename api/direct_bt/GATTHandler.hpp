@@ -226,7 +226,7 @@ namespace direct_bt {
              * Returns the server-mtu if successful, otherwise 0.
              * </p>
              */
-            uint16_t exchangeMTU(const uint16_t clientMaxMTU);
+            uint16_t exchangeMTUImpl(const uint16_t clientMaxMTU, const int32_t timeout);
 
         public:
             /**
