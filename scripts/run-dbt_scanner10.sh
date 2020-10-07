@@ -12,6 +12,14 @@
 # ../scripts/run-dbt_scanner10.sh -wait 2>&1 | tee ~/scanner-h01-dbt10.log
 #
 
+sdir=`dirname $(readlink -f $0)`
+rootdir=`dirname $sdir`
+bname=`basename $0 .sh`
+logfile=$bname.log
+rm -f $logfile
+valgrindlogfile=$bname-valgrind.log
+rm -f $valgrindlogfile
+
 if [ ! -e bin/dbt_scanner00 -o ! -e lib/libdirect_bt.so ] ; then
     echo run from dist directory
     exit 1
@@ -27,8 +35,8 @@ echo COMMANDLINE $0 $*
 echo direct_bt_debug $direct_bt_debug
 echo direct_bt_verbose $direct_bt_verbose
 
-# VALGRIND="valgrind --leak-check=full --run-cxx-freeres=yes"
-# VALGRIND="valgrind --leak-check=yes"
+# VALGRIND="valgrind --leak-check=full --show-reachable=yes --error-limit=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
+# VALGRIND="valgrind --tool=helgrind --track-lockorders=yes  --ignore-thread-creation=yes --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
 
 #LD_LIBRARY_PATH=`pwd`/lib strace bin/dbt_scanner10 $*
 LD_LIBRARY_PATH=`pwd`/lib $VALGRIND bin/dbt_scanner10 $*

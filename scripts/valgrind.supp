@@ -6,7 +6,7 @@
 #
 
 # direct_bt::LFRingbuffer::* utilizes SC-DRF atomic acquire (read) and release (write)
-# not detected by helgrind. See uni test test_mm_sc_drf (passed).
+# not detected by helgrind. See unit test test_mm_sc_drf (passed).
 #
 # ==1175024== ---Thread-Announcement------------------------------------------
 # ==1175024== Thread #2 was created
@@ -112,6 +112,16 @@
    Helgrind:Race
    ...
    fun:_ZN9direct_bt9MgmtEventD1Ev
+   ...
+   obj:*libdirect_bt.so*
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_014
+   Helgrind:Race
+   ...
+#   fun:*direct_bt*MgmtEvtCmdComplete*getStatus*
+#   fun:*direct_bt*MgmtEvtCmdStatus*getStatus*
+   fun:*direct_bt*MgmtEvtCmd*getStatus*
    ...
    obj:*libdirect_bt.so*
 }
