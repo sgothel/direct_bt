@@ -255,7 +255,7 @@ int main(int argc, char *argv[])
             //
             const uint64_t t4 = getCurrentMilliseconds();
             // let's check further for full GATT
-            std::shared_ptr<GATTHandler> gatt = device->connectGATT();
+            std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
             if( nullptr != gatt ) {
                 fprintf(stderr, "GATT usedMTU %d (server) -> %d (used)\n", gatt->getServerMTU(), gatt->getUsedMTU());
 

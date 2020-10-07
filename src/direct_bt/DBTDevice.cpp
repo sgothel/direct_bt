@@ -393,40 +393,42 @@ HCIStatusCode DBTDevice::connectDefault()
 }
 
 void DBTDevice::notifyConnected(const uint16_t handle) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
-
+    // coming from connected callback, update state and spawn-off connectGATT in background if appropriate (LE)
     DBG_PRINT("DBTDevice::notifyConnected: handle %s -> %s, %s",
             uint16HexString(hciConnHandle).c_str(), uint16HexString(handle).c_str(), toString().c_str());
-    isConnected = true;
     allowDisconnect = true;
+    isConnected = true;
     hciConnHandle = handle;
+    if( isLEAddressType() ) {
+        std::thread bg(&DBTDevice::connectGATT, this); // @suppress("Invalid arguments")
+        bg.detach();
+    }
 }
 
 void DBTDevice::notifyDisconnected() noexcept {
-    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
-
     // coming from disconnect callback, ensure cleaning up!
     DBG_PRINT("DBTDevice::notifyDisconnected: handle %s -> zero, %s",
             uint16HexString(hciConnHandle).c_str(), toString().c_str());
-    disconnectGATT();
-    isConnected = false;
     allowDisconnect = false;
+    isConnected = false;
     hciConnHandle = 0;
+    disconnectGATT();
 }
 
 void DBTDevice::disconnectGATT() noexcept {
-    DBG_PRINT("DBTDevice::disconnectGATT: start");
-    std::shared_ptr<GATTHandler> gh = gattHandler; // local copy avoiding immediate dtor
-    if( nullptr != gh ) {
-        gattHandler = nullptr; // clear field before actual dtor, avoiding a race condition
-        gh->disconnect(false /* disconnectDevice */, false /* ioErrorCause */); // in case gattHandler copied concurrently (pingGATT, ..)
+    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_gattHandler);
+    if( nullptr != gattHandler ) {
+        DBG_PRINT("DBTDevice::disconnectGATT: start (has gattHandler)");
+        gattHandler->disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
+    } else {
+        DBG_PRINT("DBTDevice::disconnectGATT: start (nil gattHandler)");
     }
-    // gh dtor leaving scope, will dtor actual GATTHandler instance eventually
+    gattHandler = nullptr;
     DBG_PRINT("DBTDevice::disconnectGATT: end");
 }
 
 HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
-    // Avoid disconnect re-entry -> potential deadlock
+    // Avoid disconnect re-entry lock-free
     bool expConn = true; // C++11, exp as value since C++20
     if( !allowDisconnect.compare_exchange_strong(expConn, false) ) {
         // Not connected or disconnect already in process.
@@ -436,6 +438,15 @@ HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
                 (nullptr != gattHandler), uint16HexString(hciConnHandle).c_str());
         return HCIStatusCode::CONNECTION_TERMINATED_BY_LOCAL_HOST;
     }
+    if( !isConnected ) { // should not happen
+        WARN_PRINT("DBTDevice::disconnect: allowConnect true -> false, but !isConnected on %s", toString(false).c_str());
+        return HCIStatusCode::SUCCESS;
+    }
+
+    // Disconnect GATT before device, keeping reversed initialization order intact if possible.
+    // This outside mtx_connect, keeping same mutex lock order intact as well
+    disconnectGATT();
+
     // Lock to avoid other threads connecting while disconnecting
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
 
@@ -444,14 +455,8 @@ HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
             static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
             (nullptr != gattHandler), uint16HexString(hciConnHandle).c_str());
 
-    disconnectGATT();
-
     std::shared_ptr<HCIHandler> hci = adapter.getHCI();
     HCIStatusCode res = HCIStatusCode::SUCCESS;
-
-    if( !isConnected ) {
-        goto exit; // OK
-    }
 
     if( 0 == hciConnHandle ) {
         res = HCIStatusCode::UNSPECIFIED_ERROR;
@@ -479,7 +484,7 @@ exit:
         // or in case the hci->disconnect() itself fails,
         // send the DISCONN_COMPLETE event directly.
         // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
-        std::thread bg(&DBTAdapter::mgmtEvDeviceDisconnectedHCI, &adapter, std::shared_ptr<MgmtEvent>(
+        std::thread bg(&DBTAdapter::mgmtEvDeviceDisconnectedHCI, &adapter, std::shared_ptr<MgmtEvent>( // @suppress("Invalid arguments")
                  new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load()) ) );
         bg.detach();
         // adapter.mgmtEvDeviceDisconnectedHCI( std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load()) ) );
@@ -511,57 +516,58 @@ void DBTDevice::remove() noexcept {
     adapter.removeDevice(*this);
 }
 
-std::shared_ptr<GATTHandler> DBTDevice::connectGATT() {
-    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // covers gattHandler dtor via disconnect(..)
-    if( !isConnected ) {
+bool DBTDevice::connectGATT() noexcept {
+    if( !isConnected || !allowDisconnect) {
         ERR_PRINT("DBTDevice::connectGATT: Device not connected: %s", toString().c_str());
-        return nullptr;
-    }
-    if( nullptr != gattHandler ) {
-        if( gattHandler->isConnected() ) {
-            return gattHandler;
-        }
-        gattHandler = nullptr;
+        return false;
     }
 
     std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
     if( nullptr == sharedInstance ) {
-        throw InternalError("DBTDevice::connectGATT: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
+        ERR_PRINT("DBTDevice::connectGATT: Device unknown to adapter and not tracked: %s", toString().c_str());
+        return false;
     }
+
+    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_gattHandler);
+    if( nullptr != gattHandler ) {
+        if( gattHandler->isConnected() ) {
+            return true;
+        }
+        gattHandler = nullptr;
+    }
+
     gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sharedInstance));
     if( !gattHandler->isConnected() ) {
         ERR_PRINT("DBTDevice::connectGATT: Connection failed");
         gattHandler = nullptr;
+        return false;
     }
-    return gattHandler;
+    return true;
 }
 
 std::shared_ptr<GATTHandler> DBTDevice::getGATTHandler() noexcept {
+    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_gattHandler);
     return gattHandler;
 }
 
 std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept {
-    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // covers gattHandler dtor via disconnect(..)
+    std::shared_ptr<GATTHandler> gh = getGATTHandler();
+    if( nullptr == gh ) {
+        ERR_PRINT("DBTDevice::getGATTServices: GATTHandler nullptr");
+        return std::vector<std::shared_ptr<GATTService>>();
+    }
+    std::vector<std::shared_ptr<GATTService>> & gattServices = gh->getServices(); // reference of the GATTHandler's list
+    if( gattServices.size() > 0 ) { // reuse previous discovery result
+        return gattServices;
+    }
     try {
-        if( nullptr == connectGATT() ) {
-            ERR_PRINT("DBTDevice::getGATTServices: connectGATT failed");
-            return std::vector<std::shared_ptr<GATTService>>();
-        }
-        std::vector<std::shared_ptr<GATTService>> & gattServices = gattHandler->getServices(); // reference of the GATTHandler's list
-        if( gattServices.size() > 0 ) { // reuse previous discovery result
+        gattServices = gh->discoverCompletePrimaryServices(gh); // same reference of the GATTHandler's list
+        if( gattServices.size() == 0 ) { // nothing discovered
             return gattServices;
         }
-        try {
-            gattServices = gattHandler->discoverCompletePrimaryServices(gattHandler); // same reference of the GATTHandler's list
-            if( gattServices.size() == 0 ) { // nothing discovered
-                return gattServices;
-            }
-        } catch (std::exception &e) {
-            IRQ_PRINT("DBTDevice::getGATTServices: Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());
-            return gattServices; // nothing...
-        }
+
         // discovery success, retrieve and parse GenericAccess
-        gattGenericAccess = gattHandler->getGenericAccess(gattServices);
+        gattGenericAccess = gh->getGenericAccess(gattServices);
         if( nullptr != gattGenericAccess ) {
             const uint64_t ts = getCurrentMilliseconds();
             EIRDataType updateMask = update(*gattGenericAccess, ts);
@@ -576,11 +582,10 @@ std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept 
                 }
             }
         }
-        return gattServices;
     } catch (std::exception &e) {
         WARN_PRINT("DBTDevice::getGATTServices: Caught exception: '%s' on %s", e.what(), toString().c_str());
     }
-    return std::vector<std::shared_ptr<GATTService>>();
+    return gattServices;
 }
 
 std::shared_ptr<GATTService> DBTDevice::findGATTService(std::shared_ptr<uuid_t> const &uuid) {
@@ -596,13 +601,13 @@ std::shared_ptr<GATTService> DBTDevice::findGATTService(std::shared_ptr<uuid_t> 
 }
 
 bool DBTDevice::pingGATT() noexcept {
+    std::shared_ptr<GATTHandler> gh = getGATTHandler();
+    if( nullptr == gh || !gh->isConnected() ) {
+        INFO_PRINT("DBTDevice::pingGATT: GATTHandler not connected -> disconnected on %s", toString().c_str());
+        disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
+        return false;
+    }
     try {
-        std::shared_ptr<GATTHandler> gh = gattHandler; // local copy avoiding dtor while in operation
-        if( nullptr == gh || !gh->isConnected() ) {
-            INFO_PRINT("DBTDevice::pingGATT: GATTHandler not connected -> disconnected on %s", toString().c_str());
-            disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
-            return false;
-        }
         return gh->ping();
     } catch (std::exception &e) {
         IRQ_PRINT("DBTDevice::pingGATT: Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());

@@ -67,11 +67,11 @@ namespace direct_bt {
             std::vector<std::shared_ptr<uuid_t>> advServices;
             std::shared_ptr<GATTHandler> gattHandler = nullptr;
             std::shared_ptr<GattGenericAccessSvc> gattGenericAccess = nullptr;
+            std::recursive_mutex mtx_gattHandler;
             std::recursive_mutex mtx_connect;
             std::recursive_mutex mtx_data;
             std::atomic<bool> isConnected;
-            /** atomic: allowDisconnect = isConnected || 'isConnectIssued' */
-            std::atomic<bool> allowDisconnect;
+            std::atomic<bool> allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
             DBTDevice(DBTAdapter & adapter, EInfoReport const & r);
 
             /** Add advertised service (GAP discovery) */
@@ -90,6 +90,20 @@ namespace direct_bt {
             void notifyDisconnected() noexcept;
             void notifyConnected(const uint16_t handle) noexcept;
 
+            /**
+             * Returns a newly established GATT connection.
+             * <p>
+             * Will be performed after connectLE(..) via notifyConnected().
+             * </p>
+             * <p>
+             * The GATTHandler is managed by this device instance and closed via disconnectGATT().
+             * </p>
+             */
+            bool connectGATT() noexcept;
+
+            /**
+             * Will be performed within disconnect() and notifyDisconnected().
+             */
             void disconnectGATT() noexcept;
 
         public:
@@ -390,19 +404,7 @@ namespace direct_bt {
              */
             void remove() noexcept;
 
-            /**
-             * Returns a newly established GATT connection or an already open GATT connection.
-             * <p>
-             * The HCI connectLE(..) or connectBREDR(..) must be performed first, see {@link #connectDefault()}.
-             * </p>
-             * <p>
-             * The returned GATTHandler is managed by this device instance and closed @ disconnect().
-             * May return nullptr if this device is not connected or failed otherwise.
-             * </p>
-             */
-            std::shared_ptr<GATTHandler> connectGATT();
-
-            /** Returns already opened GATTHandler or nullptr, see connectGATT(), getGATTServices() and disconnect(). */
+            /** Returns the connected GATTHandler or nullptr, see connectGATT(), getGATTServices() and disconnect(). */
             std::shared_ptr<GATTHandler> getGATTHandler() noexcept;
 
             /**
