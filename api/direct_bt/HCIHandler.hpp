@@ -215,11 +215,13 @@ namespace direct_bt {
             inline static void filter_set_opcbit(HCIOpcodeBit opcbit, uint64_t &mask) noexcept { set_bit_uint64(number(opcbit), mask); }
 
             LFRingbuffer<std::shared_ptr<HCIEvent>, nullptr> hciEventRing;
-            std::atomic<pthread_t> hciReaderThreadId;
-            std::atomic<bool> hciReaderRunning;
             std::atomic<bool> hciReaderShallStop;
+
             std::mutex mtx_hciReaderLifecycle;
             std::condition_variable cv_hciReaderInit;
+            pthread_t hciReaderThreadId;
+            bool hciReaderRunning;
+
             std::recursive_mutex mtx_sendReply; // for sendWith*Reply, process*Command, ..
 
             std::atomic<bool> allowClose;

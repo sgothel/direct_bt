@@ -168,11 +168,13 @@ namespace direct_bt {
             HCIComm comm;
 
             LFRingbuffer<std::shared_ptr<MgmtEvent>, nullptr> mgmtEventRing;
-            std::atomic<pthread_t> mgmtReaderThreadId;
-            std::atomic<bool> mgmtReaderRunning;
             std::atomic<bool> mgmtReaderShallStop;
+
             std::mutex mtx_mgmtReaderLifecycle;
             std::condition_variable cv_mgmtReaderInit;
+            pthread_t mgmtReaderThreadId;
+            bool mgmtReaderRunning;
+
             std::recursive_mutex mtx_sendReply; // for sendWithReply
 
             std::atomic<bool> allowClose;

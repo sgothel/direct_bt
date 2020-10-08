@@ -162,11 +162,12 @@ namespace direct_bt {
             std::atomic<bool> has_ioerror;  // reflects state
 
             LFRingbuffer<std::shared_ptr<const AttPDUMsg>, nullptr> attPDURing;
-            std::atomic<pthread_t> l2capReaderThreadId;
-            std::atomic<bool> l2capReaderRunning;
             std::atomic<bool> l2capReaderShallStop;
+
             std::mutex mtx_l2capReaderLifecycle;
             std::condition_variable cv_l2capReaderInit;
+            pthread_t l2capReaderThreadId;
+            bool l2capReaderRunning;
 
             /** send immediate confirmation of indication events from device, defaults to true. */
             bool sendIndicationConfirmation = true;

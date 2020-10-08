@@ -308,7 +308,8 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
 : env(MgmtEnv::get()),
   defaultBTMode(BTMode::NONE != _defaultBTMode ? _defaultBTMode : env.DEFAULT_BTMODE),
   rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
-  mgmtEventRing(env.MGMT_EVT_RING_CAPACITY), mgmtReaderRunning(false), mgmtReaderShallStop(false),
+  mgmtEventRing(env.MGMT_EVT_RING_CAPACITY), mgmtReaderShallStop(false),
+  mgmtReaderThreadId(0), mgmtReaderRunning(false),
   allowClose( comm.isOpen() )
 {
     WORDY_PRINT("DBTManager.ctor: BTMode %s, pid %d", getBTModeString(defaultBTMode).c_str(), DBTManager::pidSelf);
@@ -497,7 +498,7 @@ void DBTManager::close() noexcept {
         mgmtReaderThreadId = 0;
         const bool is_reader = tid_reader == tid_self;
         DBG_PRINT("DBTManager::close: mgmtReader[running %d, shallStop %d, isReader %d, tid %p)",
-                mgmtReaderRunning.load(), mgmtReaderShallStop.load(), is_reader, (void*)tid_reader);
+                mgmtReaderRunning, mgmtReaderShallStop.load(), is_reader, (void*)tid_reader);
         if( mgmtReaderRunning ) {
             mgmtReaderShallStop = true;
             if( !is_reader && 0 != tid_reader ) {

@@ -425,7 +425,8 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id) noexcept
 : env(HCIEnv::get()),
   btMode(btMode), dev_id(dev_id), rbuffer(HCI_MAX_MTU),
   comm(dev_id, HCI_CHANNEL_RAW),
-  hciEventRing(env.HCI_EVT_RING_CAPACITY), hciReaderRunning(false), hciReaderShallStop(false),
+  hciEventRing(env.HCI_EVT_RING_CAPACITY), hciReaderShallStop(false),
+  hciReaderThreadId(0), hciReaderRunning(false),
   allowClose( comm.isOpen() )
 {
     WORDY_PRINT("HCIHandler.ctor: pid %d", HCIHandler::pidSelf);
@@ -553,7 +554,7 @@ void HCIHandler::close() noexcept {
         hciReaderThreadId = 0;
         const bool is_reader = tid_reader == tid_self;
         DBG_PRINT("HCIHandler::close: hciReader[running %d, shallStop %d, isReader %d, tid %p)",
-                hciReaderRunning.load(), hciReaderShallStop.load(), is_reader, (void*)tid_reader);
+                hciReaderRunning, hciReaderShallStop.load(), is_reader, (void*)tid_reader);
         if( hciReaderRunning ) {
             hciReaderShallStop = true;
             if( !is_reader && 0 != tid_reader ) {

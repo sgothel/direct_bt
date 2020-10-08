@@ -274,8 +274,8 @@ GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device) noexcept
   wbr_device(device), deviceString(device->getAddressString()), rbuffer(number(Defaults::MAX_ATT_MTU)),
   l2cap(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT),
   is_connected(true), has_ioerror(false),
-  attPDURing(env.ATTPDU_RING_CAPACITY),
-  l2capReaderThreadId(0), l2capReaderRunning(false), l2capReaderShallStop(false),
+  attPDURing(env.ATTPDU_RING_CAPACITY), l2capReaderShallStop(false),
+  l2capReaderThreadId(0), l2capReaderRunning(false),
   serverMTU(number(Defaults::MIN_ATT_MTU)), usedMTU(number(Defaults::MIN_ATT_MTU))
 {
     if( !validateConnected() ) {
@@ -360,7 +360,7 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
         l2capReaderThreadId = 0;
         const bool is_l2capReader = tid_l2capReader == tid_self;
         DBG_PRINT("GATTHandler.disconnect: l2capReader[running %d, shallStop %d, isReader %d, tid %p)",
-                  l2capReaderRunning.load(), l2capReaderShallStop.load(), is_l2capReader, (void*)tid_l2capReader);
+                  l2capReaderRunning, l2capReaderShallStop.load(), is_l2capReader, (void*)tid_l2capReader);
         if( l2capReaderRunning ) {
             l2capReaderShallStop = true;
             if( !is_l2capReader && 0 != tid_l2capReader ) {
