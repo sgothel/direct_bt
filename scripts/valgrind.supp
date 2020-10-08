@@ -250,6 +250,215 @@
 }
 
 #
+# DRD
 #
-#
+
+{
+   dbt_lfringbuffer_lock_and_wait_001
+   drd:CondErr
+   ...
+   fun:*direct_bt*LFRingbuffer*putImpl*
+   ...
+}
+{
+   dbt_lfringbuffer_lock_and_wait_002
+   drd:MutexErr
+   ...
+   fun:*direct_bt*LFRingbuffer*putImpl*
+   ...
+}
+{
+   dbt_lfringbuffer_lock_and_wait_002
+   drd:CondErr
+   ...
+   fun:_ZN9direct_bt12LFRingbufferISt10shared_ptrIKNS_9AttPDUMsgEELDnEED1Ev
+   ...
+}
+
+{
+   dbt_lfringbuffer_lock_and_wait_021
+   drd:MutexErr
+   ...
+   fun:_ZNSt15_Sp_counted_ptrIPN9direct_bt11GATTHandlerELN9__gnu_cxx12_Lock_policyE2EE10_M_disposeEv
+   ...
+}
+
+{
+   dbt_lfringbuffer_lock_and_wait_031
+   drd:CondErr
+   ...
+   fun:_ZN9direct_bt12LFRingbufferISt10shared_ptrINS_8HCIEventEELDnEED1Ev
+   ...
+}
+{
+   dbt_lfringbuffer_lock_and_wait_031
+   drd:CondErr
+   ...
+   fun:_ZN9direct_bt12LFRingbufferISt10shared_ptrINS_9MgmtEventEELDnEED1Ev
+   ...
+}
+{
+   dbt_lfringbuffer_lock_and_wait_032
+   drd:MutexErr
+   ...
+   fun:_ZNSt15_Sp_counted_ptrIPN9direct_bt10HCIHandlerELN9__gnu_cxx12_Lock_policyE2EE10_M_disposeEv
+   ...
+}
+
+{
+   dbt_lfringbuffer_sc_drf_atomic_001
+   drd:MutexErr
+   ...
+   fun:*direct_bt*LFRingbuffer*getImpl*
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_001
+   drd:ConflictingAccess
+   ...
+   fun:*direct_bt*LFRingbuffer*getImpl*
+   ...
+}
+
+{
+   dbt_lfringbuffer_sc_drf_atomic_011
+   drd:ConflictingAccess
+   ...
+   fun:*direct_bt*DBTManager*sendWithReply*
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_012
+   drd:ConflictingAccess
+   ...
+   fun:_ZN9direct_bt10DBTManagerC1ENS_6BTModeE
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_013
+   drd:ConflictingAccess
+   ...
+   fun:_ZN9direct_bt9MgmtEventD1Ev
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_014
+   drd:ConflictingAccess
+   ...
+#   fun:*direct_bt*MgmtEvtCmdComplete*getStatus*
+#   fun:*direct_bt*MgmtEvtCmdStatus*getStatus*
+   fun:*direct_bt*MgmtEvtCmd*getStatus*
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_015
+   drd:ConflictingAccess
+   ...
+   fun:*direct_bt*MgmtEvent*getOpcode*
+   ...
+}
+
+{
+   dbt_lfringbuffer_sc_drf_atomic_021
+   drd:ConflictingAccess
+   ...
+   fun:*direct_bt*GATTHandler*sendWithReply*
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_022
+   drd:ConflictingAccess
+   ...
+   fun:_ZN9direct_bt11GATTHandlerC1ERKSt10shared_ptrINS_9DBTDeviceEE
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_023
+   drd:ConflictingAccess
+   ...
+#   fun:*direct_bt*GATTHandler*discoverPrimaryServices*
+#   fun:*direct_bt*GATTHandler*discoverCharacteristics*
+   fun:*direct_bt*GATTHandler*discoverCompletePrimaryServices*
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_024
+   drd:ConflictingAccess
+   ...
+   fun:_ZN9direct_bt9AttPDUMsgD1Ev
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_025
+   drd:ConflictingAccess
+   ...
+   fun:*direct_bt*GATTHandler*readValue*
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_026
+   drd:ConflictingAccess
+   ...
+   fun:*direct_bt*GATTHandler*writeValue*
+   ...
+}
+
+
+{
+   dbt_lfringbuffer_sc_drf_atomic_031
+   drd:ConflictingAccess
+   ...
+   fun:*direct_bt*HCIHandler*getNextReply*
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_032
+   drd:ConflictingAccess
+   ...
+   fun:*direct_bt*HCIHandler*sendWithCmdCompleteReply*
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_033
+   drd:ConflictingAccess
+   ...
+   fun:_ZN9direct_bt10HCIHandlerC1ENS_6BTModeEt
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_034
+   drd:ConflictingAccess
+   ...
+   fun:_ZN9direct_bt9HCIPacketD1Ev
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_035
+   drd:ConflictingAccess
+   ...
+   fun:_ZNSt10shared_ptrIN9direct_bt8HCIEventEED1Ev
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_036
+   drd:ConflictingAccess
+   ...
+   fun:*direct_bt*HCIHandler*processCommandComplete*
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_037
+   drd:ConflictingAccess
+   ...
+   fun:*direct_bt*HCIHandler*processCommandStatus*
+   ...
+}
+{
+   dbt_lfringbuffer_sc_drf_atomic_038
+   drd:ConflictingAccess
+   ...
+   fun:*direct_bt*HCIEvent*le_set_scan_param*
+   ...
+}
+
 
