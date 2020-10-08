@@ -29,14 +29,9 @@
 #include <cstdio>
 
 #include "JNIMem.hpp"
+
 #include "dbt_debug.hpp"
 
-// #define VERBOSE_ON 1
-#ifdef VERBOSE_ON
-    #define DBG_PRINT(...) { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
-#else
-    #define DBG_PRINT(...)
-#endif
 
 JavaVM* vm;
 thread_local JNIEnvContainer jni_env;

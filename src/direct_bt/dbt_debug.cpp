@@ -29,28 +29,24 @@
 
 using namespace direct_bt;
 
-void direct_bt::DBG_PRINT(const char * format, ...) noexcept {
-    if(direct_bt::DBTEnv::get().DEBUG) {
-        fprintf(stderr, "[%'9" PRIu64 "] Debug: ", DBTEnv::getElapsedMillisecond());
-        va_list args;
-        va_start (args, format);
-        vfprintf(stderr, format, args);
-        va_end (args);
-        fprintf(stderr, "\n");
-        fflush(stderr);
-    }
+void direct_bt::DBG_PRINT_impl(const char * format, ...) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] Debug: ", DBTEnv::getElapsedMillisecond());
+    va_list args;
+    va_start (args, format);
+    vfprintf(stderr, format, args);
+    va_end (args);
+    fprintf(stderr, "\n");
+    fflush(stderr);
 }
 
-void direct_bt::WORDY_PRINT(const char * format, ...) noexcept {
-    if(direct_bt::DBTEnv::get().VERBOSE) {
-        fprintf(stderr, "[%'9" PRIu64 "] Wordy: ", DBTEnv::getElapsedMillisecond());
-        va_list args;
-        va_start (args, format);
-        vfprintf(stderr, format, args);
-        va_end (args);
-        fprintf(stderr, "\n");
-        fflush(stderr);
-    }
+void direct_bt::WORDY_PRINT_impl(const char * format, ...) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] Wordy: ", DBTEnv::getElapsedMillisecond());
+    va_list args;
+    va_start (args, format);
+    vfprintf(stderr, format, args);
+    va_end (args);
+    fprintf(stderr, "\n");
+    fflush(stderr);
 }
 
 void direct_bt::ABORT_impl(const char *func, const char *file, const int line, const char * format, ...) noexcept {
@@ -118,12 +114,12 @@ void direct_bt::PLAIN_PRINT(const char * format, ...) noexcept {
     fflush(stderr);
 }
 
-void direct_bt::COND_PRINT_impl(const char *func, const char *file, const int line, const char * format, ...) noexcept {
+void direct_bt::COND_PRINT_impl(const char * format, ...) noexcept {
     fprintf(stderr, "[%'9" PRIu64 "] ", DBTEnv::getElapsedMillisecond());
     va_list args;
     va_start (args, format);
     vfprintf(stderr, format, args);
     va_end (args);
-    fprintf(stderr, " @ %s:%d %s\n", file, line, func);
+    fprintf(stderr, "\n");
     fflush(stderr);
 }

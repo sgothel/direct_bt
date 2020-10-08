@@ -43,8 +43,13 @@ extern "C" {
 
 namespace direct_bt {
 
+    void DBG_PRINT_impl(const char * format, ...) noexcept;
+
     /** Use for environment-variable DBTEnv::DEBUG conditional debug messages, prefix '[elapsed_time] Debug: '. */
-    void DBG_PRINT(const char * format, ...) noexcept;
+    #define DBG_PRINT(...) { if( direct_bt::DBTEnv::get().DEBUG ) { direct_bt::DBG_PRINT_impl(__VA_ARGS__); } }
+
+
+    void WORDY_PRINT_impl(const char * format, ...) noexcept;
 
     /**
      * Use for environment-variable DBTEnv::VERBOSE conditional verbose messages, prefix '[elapsed_time] Wordy: '.
@@ -52,7 +57,8 @@ namespace direct_bt {
      * 'Wordy' is the shorter English form of the Latin word 'verbosus', from which the word 'verbosity' is sourced.
      * </p>
      */
-    void WORDY_PRINT(const char * format, ...) noexcept;
+    #define WORDY_PRINT(...) { if( direct_bt::DBTEnv::get().VERBOSE ) { direct_bt::WORDY_PRINT_impl(__VA_ARGS__); } }
+
 
     #define PERF_TS_T0_BASE()  const uint64_t _t0 = direct_bt::getCurrentMilliseconds()
 
@@ -89,7 +95,6 @@ namespace direct_bt {
     /** Use for unconditional error messages, prefix '[elapsed_time] Error @ file:line: '. Function also appends last errno and strerror(errno). */
     void ERR_PRINTv(const char *func, const char *file, const int line, const char * format, va_list args) noexcept;
 
-    /** Use for unconditional error messages, prefix '[elapsed_time] 'prefix' @ file:line: '. Function also appends last errno and strerror(errno). */
     void ERR_PRINT_impl(const char *func, const char *prefix, const char *file, const int line, const char * format, ...) noexcept;
 
     /** Use for unconditional error messages, prefix '[elapsed_time] Error @ FILE:LINE: '. Function also appends last errno and strerror(errno). */
@@ -101,7 +106,6 @@ namespace direct_bt {
     /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ file:line: ' */
     void WARN_PRINTv(const char *func, const char *file, const int line, const char * format, va_list args) noexcept;
 
-    /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ file:line: ' */
     void WARN_PRINT_impl(const char *func, const char *file, const int line, const char * format, ...) noexcept;
 
     /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ FILE:LINE: ' */
@@ -113,11 +117,12 @@ namespace direct_bt {
     /** Use for unconditional plain messages, prefix '[elapsed_time] '. */
     void PLAIN_PRINT(const char * format, ...) noexcept;
 
-    /** Use for conditional plain messages, prefix '[elapsed_time] '. */
-    void COND_PRINT_impl(const char *func, const char *file, const int line, const char * format, ...) noexcept;
+
+    void COND_PRINT_impl(const char * format, ...) noexcept;
 
     /** Use for conditional plain messages, prefix '[elapsed_time] '. */
-    #define COND_PRINT(C, ...) { if(C) { COND_PRINT_impl(__func__, __FILE__, __LINE__, __VA_ARGS__); } }
+    #define COND_PRINT(C, ...) { if( C ) { direct_bt::COND_PRINT_impl(__VA_ARGS__); } }
+
 
     template<class ListElemType>
     inline void printSharedPtrList(std::string prefix, std::vector<std::shared_ptr<ListElemType>> & list) noexcept {
