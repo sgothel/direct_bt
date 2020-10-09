@@ -304,6 +304,12 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public native void setPowered(boolean value);
 
     @Override
+    public final HCIStatusCode reset() {
+        return HCIStatusCode.get( resetImpl() );
+    }
+    private native byte resetImpl();
+
+    @Override
     public native String getAlias();
 
     @Override

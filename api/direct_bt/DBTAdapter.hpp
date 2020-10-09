@@ -199,6 +199,8 @@ namespace direct_bt {
 
             bool closeHCI() noexcept;
 
+            void preReset() noexcept;
+
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const noexcept;
             friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() noexcept;
             friend HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept;
@@ -332,11 +334,6 @@ namespace direct_bt {
             std::shared_ptr<NameAndShortName> setLocalName(const std::string &name, const std::string &short_name) noexcept;
 
             /**
-             * Set the power state of the adapter.
-             */
-            void setPowered(bool value) noexcept;
-
-            /**
              * Set the discoverable state of the adapter.
              */
             void setDiscoverable(bool value) noexcept;
@@ -345,6 +342,19 @@ namespace direct_bt {
              * Set the bondable (aka pairable) state of the adapter.
              */
             void setBondable(bool value) noexcept;
+
+            /**
+             * Set the power state of the adapter.
+             */
+            void setPowered(bool value) noexcept;
+
+            /**
+             * Reset the adapter.
+             * <pre>
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
+             * </pre>
+             */
+            HCIStatusCode reset() noexcept;
 
             /**
              * Returns a reference to the used singleton DBTManager instance, used to create this adapter.

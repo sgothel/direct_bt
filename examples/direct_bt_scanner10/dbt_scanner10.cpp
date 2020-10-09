@@ -31,6 +31,8 @@
 
 #include <cinttypes>
 
+#include <pthread.h>
+
 #include <direct_bt/DirectBT.hpp>
 
 #include "direct_bt/dfa_utf8_decode.hpp"
@@ -52,6 +54,10 @@ using namespace direct_bt;
 
 static int64_t timestamp_t0;
 
+
+static int RESET_ADAPTER_EACH_CONN = 0;
+static std::atomic<int> connectionCount = 0;
+
 static std::atomic<int> MULTI_MEASUREMENTS = 8;
 
 static bool KEEP_CONNECTED = true;
@@ -71,8 +77,7 @@ static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device);
 static void processConnectedDevice(std::shared_ptr<DBTDevice> device);
 
 static void removeDevice(std::shared_ptr<DBTDevice> device);
-
-#include <pthread.h>
+static void resetAdapter(DBTAdapter *a);
 
 static std::vector<EUI48> devicesInProcessing;
 static std::recursive_mutex mtx_devicesProcessing;
@@ -184,7 +189,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 const uint64_t td = getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
                 fprintf(stderr, "PERF: adapter-init -> FOUND__-0  %" PRIu64 " ms\n", td);
             }
-            std::thread dc(::connectDiscoveredDevice, device);
+            std::thread dc(::connectDiscoveredDevice, device); // @suppress("Invalid arguments")
             dc.detach();
         } else {
             fprintf(stderr, "****** FOUND__-1: NOP %s\n", device->toString(true).c_str());
@@ -216,7 +221,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 fprintf(stderr, "PERF: adapter-init -> CONNECTED-0  %" PRIu64 " ms\n", td);
             }
             addToDevicesProcessing(device->getAddress());
-            std::thread dc(::processConnectedDevice, device);
+            std::thread dc(::processConnectedDevice, device); // @suppress("Invalid arguments")
             dc.detach();
         } else {
             fprintf(stderr, "****** CONNECTED-1: NOP %s\n", device->toString(true).c_str());
@@ -229,12 +234,16 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
 
         if( REMOVE_DEVICE ) {
-            std::thread dc(::removeDevice, device);
+            std::thread dc(::removeDevice, device); // @suppress("Invalid arguments")
             dc.detach();
         } else {
             removeFromDevicesProcessing(device->getAddress());
         }
-
+        connectionCount++;
+        if( 0 == connectionCount % RESET_ADAPTER_EACH_CONN ) {
+            std::thread dc(::resetAdapter, &device->getAdapter()); // @suppress("Invalid arguments")
+            dc.detach();
+        }
     }
 
     std::string toString() const override {
@@ -471,6 +480,12 @@ static void removeDevice(std::shared_ptr<DBTDevice> device) {
     }
 }
 
+static void resetAdapter(DBTAdapter *a) {
+    fprintf(stderr, "****** Reset Adapter: reset start: %s\n", a->toString().c_str());
+    HCIStatusCode res = a->reset();
+    fprintf(stderr, "****** Reset Adapter: reset end: %s, %s\n", getHCIStatusCodeString(res).c_str(), a->toString().c_str());
+}
+
 void test(int dev_id) {
     bool done = false;
 
@@ -578,12 +593,15 @@ int main(int argc, char *argv[])
             MULTI_MEASUREMENTS = atoi(argv[++i]);
         } else if( !strcmp("-single", argv[i]) ) {
             MULTI_MEASUREMENTS = -1;
+        } else if( !strcmp("-resetEachCon", argv[i]) && argc > (i+1) ) {
+            RESET_ADAPTER_EACH_CONN = atoi(argv[++i]);
         }
     }
     fprintf(stderr, "pid %d\n", getpid());
 
     fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-btmode LE|BREDR|DUAL] "
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "
+                    "[-resetEachCon connectionCount] "
                     "(-mac <device_address>)* (-wl <device_address>)* "
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "
@@ -595,6 +613,7 @@ int main(int argc, char *argv[])
 
     fprintf(stderr, "MULTI_MEASUREMENTS %d\n", MULTI_MEASUREMENTS.load());
     fprintf(stderr, "KEEP_CONNECTED %d\n", KEEP_CONNECTED);
+    fprintf(stderr, "RESET_ADAPTER_EACH_CONN %d\n", RESET_ADAPTER_EACH_CONN);
     fprintf(stderr, "GATT_PING_ENABLED %d\n", GATT_PING_ENABLED);
     fprintf(stderr, "REMOVE_DEVICE %d\n", REMOVE_DEVICE);
     fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
@@ -602,6 +621,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "QUIET %d\n", QUIET);
     fprintf(stderr, "dev_id %d\n", dev_id);
     fprintf(stderr, "btmode %s\n", getBTModeString(btMode).c_str());
+
     printList( "waitForDevice: ", waitForDevices);
 
     if( waitForEnter ) {

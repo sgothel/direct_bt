@@ -604,6 +604,18 @@ void Java_direct_1bt_tinyb_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jbool
     }
 }
 
+jbyte Java_direct_1bt_tinyb_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {
+    try {
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
+        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        HCIStatusCode res = adapter->reset();
+        return (jbyte) number(res);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+}
+
 jstring Java_direct_1bt_tinyb_DBTAdapter_getAlias(JNIEnv *env, jobject obj) {
     try {
         DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);

@@ -253,6 +253,16 @@ public interface BluetoothAdapter extends BluetoothObject
       */
     public void setPowered(boolean value);
 
+    /**
+     * Reset the adapter.
+     * <pre>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
+     * </pre>
+     * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    public HCIStatusCode reset();
+
     /** Returns the discoverable state the adapter.
       * @return The discoverable state of the adapter.
       */

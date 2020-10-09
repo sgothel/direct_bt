@@ -41,6 +41,7 @@ import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
+import org.tinyb.HCIStatusCode;
 import org.tinyb.HCIWhitelistConnectType;
 import org.tinyb.TransportType;
 
@@ -145,6 +146,9 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
 
     @Override
     public native void setPowered(boolean value);
+
+    @Override
+    public final HCIStatusCode reset() { return HCIStatusCode.INTERNAL_FAILURE; }
 
     @Override
     public native boolean getDiscoverable();

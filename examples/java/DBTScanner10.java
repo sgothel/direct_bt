@@ -71,6 +71,9 @@ public class DBTScanner10 {
 
     long timestamp_t0;
 
+    int RESET_ADAPTER_EACH_CONN = 0;
+    AtomicInteger connectionCount = new AtomicInteger(0);
+
     AtomicInteger MULTI_MEASUREMENTS = new AtomicInteger(8);
     boolean KEEP_CONNECTED = true;
     boolean GATT_PING_ENABLED = false;
@@ -217,6 +220,16 @@ public class DBTScanner10 {
                 deviceRemoverProcessingTask.start();
             } else {
                 devicesInProcessing.remove(device.getAddress());
+            }
+            if( 0 == connectionCount.addAndGet(1) % RESET_ADAPTER_EACH_CONN ) {
+                final Thread adapterResetTask = new Thread( new Runnable() {
+                    @Override
+                    public void run() {
+                        resetAdapter(device.getAdapter());
+                    }
+                }, "DBT-Reset-"+device.getAdapter().getAddress());
+                adapterResetTask.setDaemon(true); // detach thread
+                adapterResetTask.start();
             }
         }
     };
@@ -495,6 +508,12 @@ public class DBTScanner10 {
         }
     }
 
+    private void resetAdapter(final BluetoothAdapter adapter) {
+        println("****** Reset Adapter: reset start: "+adapter.toString());
+        final HCIStatusCode res = adapter.reset();
+        println("****** Reset Adapter: reset end: "+res+", "+adapter.toString());
+    }
+
     public void runTest(final BluetoothManager manager) {
         final BluetoothAdapter adapter;
         {
@@ -646,11 +665,14 @@ public class DBTScanner10 {
                     test.MULTI_MEASUREMENTS.set(Integer.valueOf(args[++i]).intValue());
                 } else if( arg.equals("-single") ) {
                     test.MULTI_MEASUREMENTS.set(-1);
+                } else if( arg.equals("-resetEachCon")  && args.length > (i+1) ) {
+                    test.RESET_ADAPTER_EACH_CONN = Integer.valueOf(args[++i]).intValue();
                 }
             }
             println("Run with '[-default_dev_id <adapter-index>] [-dev_id <adapter-index>] [-btmode LE|BREDR|DUAL] "+
                     "[-bluetoothManager <BluetoothManager-Implementation-Class-Name>] "+
-                    "[-disconnect] [-enableGATTPing] [-count <number>] [-single] (-char <uuid>)* [-show_update_events] [-quiet]"+
+                    "[-disconnect] [-enableGATTPing] [-count <number>] [-single] (-char <uuid>)* [-show_update_events] [-quiet]  "+
+                    "[-resetEachCon connectionCount] "+
                     "(-mac <device_address>)* (-wl <device_address>)* "+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
@@ -664,6 +686,7 @@ public class DBTScanner10 {
 
         println("MULTI_MEASUREMENTS "+test.MULTI_MEASUREMENTS.get());
         println("KEEP_CONNECTED "+test.KEEP_CONNECTED);
+        println("RESET_ADAPTER_EACH_CONN "+test.RESET_ADAPTER_EACH_CONN);
         println("GATT_PING_ENABLED "+test.GATT_PING_ENABLED);
         println("REMOVE_DEVICE "+test.REMOVE_DEVICE);
         println("USE_WHITELIST "+test.USE_WHITELIST);
