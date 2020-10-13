@@ -200,7 +200,8 @@ systemctl mask bluetooth
 Installing build dependencies on Debian (10 or 11):
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 apt install git
-apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev libunwind-dev
+apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev 
+apt install libunwind8 libunwind-dev
 apt install libglib2.0 libglib2.0-0 libglib2.0-dev
 apt install openjdk-11-jdk openjdk-11-jre
 apt install cmake cmake-extras extra-cmake-modules pkg-config
@@ -263,7 +264,7 @@ make doc
 Changes
 ============
 
-**2.1.29 Early *Direct-BT* Maturity (Bluetooth LE)**
+**2.1.30 Early *Direct-BT* Maturity (Bluetooth LE)**
 
 * Reaching robust implementation state of *Direct-BT*, including recovery from L2CAP transmission breakdown on Raspberry Pi.
 * Resolved race conditions on rapid device discovery and connect, using one thread per device.
@@ -271,6 +272,8 @@ Changes
 * Tested on GNU/Linux x86_64, arm32 and arm64 with native and Java examples.
 * Tested on Bluetooth Adapter: Intel, CSR and Raspberry Pi
 * Almost removed non-standard *Linux/BlueZ-Mngr* kernel dependency using the universal HCI protocol, remaining portion configures the adapter.
+* Passed valgrind's memcheck, helgrind and drd validating no memory leak nor data race or deadlock using dbt_scanner10
+* Added native de-mangled backtrace support using *libunwind* and and *abi::__cxa_demangle*
 
 **2.0.0**
 
