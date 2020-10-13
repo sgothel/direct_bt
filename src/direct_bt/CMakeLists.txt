@@ -39,6 +39,7 @@ set (direct_bt_LIB_SRCS
 add_library (direct_bt SHARED ${direct_bt_LIB_SRCS})
 target_link_libraries (
   direct_bt
+  unwind
   ${CMAKE_THREAD_LIBS_INIT}
 )
 

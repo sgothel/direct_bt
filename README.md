@@ -200,7 +200,7 @@ systemctl mask bluetooth
 Installing build dependencies on Debian (10 or 11):
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 apt install git
-apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev
+apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev libunwind-dev
 apt install libglib2.0 libglib2.0-0 libglib2.0-dev
 apt install openjdk-11-jdk openjdk-11-jre
 apt install cmake cmake-extras extra-cmake-modules pkg-config

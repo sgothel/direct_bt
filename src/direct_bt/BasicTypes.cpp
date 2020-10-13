@@ -28,14 +28,6 @@
 
 #include <algorithm>
 
-// #define _USE_BACKTRACE_ 1
-
-extern "C" {
-    #if _USE_BACKTRACE_
-        #include <execinfo.h>
-    #endif
-}
-
 #include "direct_bt/dbt_debug.hpp"
 #include "direct_bt/BasicTypes.hpp"
 
@@ -59,24 +51,11 @@ int64_t direct_bt::getCurrentMilliseconds() noexcept {
 }
 
 const char* direct_bt::RuntimeException::what() const noexcept {
-#if    _USE_BACKTRACE_
-    // std::string out(std::runtime_error::what());
-    std::string out(msg);
-    void *buffers[10];
-    size_t nptrs = backtrace(buffers, 10);
-    char **symbols = backtrace_symbols(buffers, nptrs);
-    if( NULL != symbols ) {
-        out.append("\nBacktrace:\n");
-        for(size_t i=0; i<nptrs; i++) {
-            out.append(symbols[i]).append("\n");
-        }
-        free(symbols);
-    }
-    return out.c_str();
-#else
     // return std::runtime_error::what();
-    return msg.c_str();
-#endif
+    std::string out(msg);
+    out.append("\nBacktrace:\n");
+    out.append(get_backtrace(1));
+    return out.c_str();
 }
 
 std::string direct_bt::get_string(const uint8_t *buffer, int const buffer_len, int const max_len) noexcept {

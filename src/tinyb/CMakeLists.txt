@@ -54,6 +54,7 @@ add_custom_command(OUTPUT orgbluez-dbus.c orgbluez-dbus.h
 add_library (tinyb SHARED ${tinyb_LIB_SRCS})
 target_link_libraries (
   tinyb
+  unwind
   ${CMAKE_THREAD_LIBS_INIT}
   ${GLIB2_LIBRARIES}
   ${GIO_LIBRARIES}
