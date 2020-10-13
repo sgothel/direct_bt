@@ -52,7 +52,7 @@ namespace direct_bt {
 
     /**
      * Prints the de-mangled backtrace string separated by newline excluding this function to stderr, using get_backtrace().
-     * @param skip_frames number of stack frames to skip, default is one frame for this function.
+     * @param skip_frames number of stack frames to skip, default is two frames for this function and for get_backtrace().
      */
     void print_backtrace(int skip_frames=2) noexcept;
 
