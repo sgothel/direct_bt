@@ -246,6 +246,7 @@ DBTAdapter::~DBTAdapter() noexcept {
     }
 
     poweredOff();
+    closeHCI();
     {
         const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
         discoveredDevices.clear();
@@ -268,29 +269,12 @@ void DBTAdapter::poweredOff() noexcept {
     // Removes all device references from the lists: connectedDevices, discoveredDevices, sharedDevices
     stopDiscovery();
     disconnectAllDevices();
-    closeHCI();
     removeDiscoveredDevices();
 
     currentNativeScanType = ScanType::NONE;
     currentMetaScanType = ScanType::NONE;
 
     DBG_PRINT("DBTAdapter::poweredOff: XXX");
-}
-
-void DBTAdapter::preReset() noexcept {
-    DBG_PRINT("DBTAdapter::preReset: ... %p %s", this, toString(false).c_str());
-    keepDiscoveringAlive = false;
-
-    // Removes all device references from the lists: connectedDevices, discoveredDevices, sharedDevices
-    stopDiscovery();
-    disconnectAllDevices();
-    // Nope: closeHCI();
-    removeDiscoveredDevices();
-
-    currentNativeScanType = ScanType::NONE;
-    currentMetaScanType = ScanType::NONE;
-
-    DBG_PRINT("DBTAdapter::preReset: XXX");
 }
 
 void DBTAdapter::printSharedPtrListOfDevices() noexcept {
@@ -330,15 +314,28 @@ HCIStatusCode DBTAdapter::reset() noexcept {
         ERR_PRINT("DBTAdapter::reset: HCI not available: %s", toString().c_str());
         return HCIStatusCode::UNSPECIFIED_ERROR;
     }
+#if 0
+    const bool wasPowered = isPowered();
     // Adapter will be reset, close connections and cleanup off-thread.
-    std::thread bg(&DBTAdapter::preReset, this);
-    bg.detach();
+    preReset();
 
     HCIStatusCode status = hci->reset();
     if( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("DBTAdapter::reset: reset failed: %s", getHCIStatusCodeString(status).c_str());
+    } else if( wasPowered ) {
+        if( !setPowered(true) ) {
+            ERR_PRINT("DBTAdapter::reset: setPowered(true) failed");
+            status = HCIStatusCode::UNSPECIFIED_ERROR;
+        }
     }
     return status;
+#else
+    if( hci->resetAdapter() ) {
+        return HCIStatusCode::SUCCESS;
+    } else {
+        return HCIStatusCode::UNSPECIFIED_ERROR;
+    }
+#endif
 }
 
 bool DBTAdapter::isDeviceWhitelisted(const EUI48 &address) noexcept {

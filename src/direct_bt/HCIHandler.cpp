@@ -50,6 +50,9 @@ extern "C" {
     #include <unistd.h>
     #include <poll.h>
     #include <signal.h>
+    #ifdef __linux__
+        #include <sys/ioctl.h>
+    #endif
 }
 
 using namespace direct_bt;
@@ -571,6 +574,40 @@ void HCIHandler::close() noexcept {
     }
     PERF_TS_TD("HCIHandler::close.X");
     DBG_PRINT("HCIHandler::close: End");
+}
+
+bool HCIHandler::startAdapter() {
+    #ifdef __linux__
+        int res;
+        if( ( res = ioctl(comm.getSocketDescriptor(), HCIDEVUP, dev_id) ) < 0 ) {
+            if (errno != EALREADY) {
+                ERR_PRINT("HCIHandler::startAdapter(dev_id %d): FAILED: %d", dev_id, res);
+                return false;
+            }
+        }
+        return true;
+    #else
+        return false;
+    #endif
+}
+bool HCIHandler::stopAdapter() {
+    #ifdef __linux__
+        int res;
+        if( ( res = ioctl(comm.getSocketDescriptor(), HCIDEVDOWN, dev_id) ) < 0) {
+            ERR_PRINT("HCIHandler::stopAdapter(dev_id %d): FAILED: %d", dev_id, res);
+            return false;
+        }
+        return true;
+    #else
+        return false;
+    #endif
+}
+bool HCIHandler::resetAdapter() {
+    #ifdef __linux__
+        return stopAdapter() && startAdapter();
+    #else
+        return false;
+    #endif
 }
 
 HCIStatusCode HCIHandler::reset() noexcept {

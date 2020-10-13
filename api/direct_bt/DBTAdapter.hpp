@@ -190,7 +190,7 @@ namespace direct_bt {
             bool validateDevInfo() noexcept;
 
             /**
-             * Closes all connections, stops discovery and cleans up all references.
+             * Closes all device connections, stops discovery and cleans up all references.
              * <p>
              * To be called at destructor or when powered off.
              * </p>
@@ -198,8 +198,6 @@ namespace direct_bt {
             void poweredOff() noexcept;
 
             bool closeHCI() noexcept;
-
-            void preReset() noexcept;
 
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const noexcept;
             friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() noexcept;
@@ -350,6 +348,11 @@ namespace direct_bt {
 
             /**
              * Reset the adapter.
+             * <p>
+             * The semantics are specific to the HCI host implementation,
+             * however, it shall comply at least with the HCI Reset command
+             * and bring up the device from standby into a POWERED functional state afterwards.
+             * </p>
              * <pre>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
              * </pre>

@@ -261,6 +261,11 @@ public interface BluetoothAdapter extends BluetoothObject
 
     /**
      * Reset the adapter.
+     * <p>
+     * The semantics are specific to the HCI host implementation,
+     * however, it shall comply at least with the HCI Reset command
+     * and bring up the device from standby into a POWERED functional state afterwards.
+     * </p>
      * <pre>
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
      * </pre>

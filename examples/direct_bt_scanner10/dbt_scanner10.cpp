@@ -225,7 +225,8 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             )
           )
         {
-            fprintf(stderr, "****** CONNECTED-0: Processing %s\n", device->toString(true).c_str());
+            connectionCount++;
+            fprintf(stderr, "****** CONNECTED-0: Processing[%d] %s\n", connectionCount.load(), device->toString(true).c_str());
             {
                 const uint64_t td = getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
                 fprintf(stderr, "PERF: adapter-init -> CONNECTED-0  %" PRIu64 " ms\n", td);
@@ -249,9 +250,8 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         } else {
             removeFromDevicesProcessing(device->getAddress());
         }
-        connectionCount++;
-        if( 0 == connectionCount % RESET_ADAPTER_EACH_CONN ) {
-            std::thread dc(::resetAdapter, &device->getAdapter()); // @suppress("Invalid arguments")
+        if( 0 < RESET_ADAPTER_EACH_CONN && 0 == connectionCount % RESET_ADAPTER_EACH_CONN ) {
+            std::thread dc(::resetAdapter, &device->getAdapter(), 1); // @suppress("Invalid arguments")
             dc.detach();
         }
     }
@@ -468,6 +468,9 @@ exit:
         removeFromDevicesProcessing(device->getAddress());
 
         device->remove();
+        if( 0 < RESET_ADAPTER_EACH_CONN && 0 == connectionCount % RESET_ADAPTER_EACH_CONN ) {
+            resetAdapter(&device->getAdapter(), 2);
+        }
         if( !USE_WHITELIST && 0 == getDeviceProcessingCount() ) {
             const HCIStatusCode r = device->getAdapter().startDiscovery( true );
             fprintf(stderr, "****** Processing Device: startDiscovery.1 result %s\n", getHCIStatusCodeString(r).c_str());

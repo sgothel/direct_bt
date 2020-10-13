@@ -297,6 +297,36 @@ namespace direct_bt {
             std::string toString() const noexcept { return "HCIHandler[BTMode "+getBTModeString(btMode)+", dev_id "+std::to_string(dev_id)+"]"; }
 
             /**
+             * Bring up this adapter into a POWERED functional state.
+             */
+            bool startAdapter();
+
+            /**
+             * Bring down this adapter into a non-POWERED non-functional state.
+             * <p>
+             * All allocated resources should be freed and the internal state being reset
+             * in compliance to
+             * <pre>
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
+             * </pre>
+             * </p>
+             */
+            bool stopAdapter();
+
+            /**
+             * Reset the adapter.
+             * <p>
+             * The semantics are specific to the HCI host implementation,
+             * however, it shall comply at least with the HCI Reset command
+             * and bring up the device from standby into a POWERED functional state afterwards.
+             * </p>
+             * <pre>
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
+             * </pre>
+             */
+            bool resetAdapter();
+
+            /**
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
              */
             HCIStatusCode reset() noexcept;
