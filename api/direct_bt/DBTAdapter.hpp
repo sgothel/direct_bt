@@ -78,7 +78,7 @@ namespace direct_bt {
             /**
              * DBTAdapter setting(s) changed.
              * @param adapter the adapter which settings have changed.
-             * @param oldmask the previous settings mask
+             * @param oldmask the previous settings mask. AdapterSetting::NONE indicates the initial setting notification, see DBTAdapter::addStatusListener().
              * @param newmask the new settings mask
              * @param changedmask the changes settings mask
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
