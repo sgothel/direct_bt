@@ -37,6 +37,7 @@ import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothType;
+import org.tinyb.HCIStatusCode;
 
 public class DBusManager implements BluetoothManager
 {
@@ -109,12 +110,15 @@ public class DBusManager implements BluetoothManager
     public native boolean startDiscovery() throws BluetoothException;
 
     @Override
-    public boolean startDiscovery(final boolean keepAlive) throws BluetoothException {
-        return startDiscovery(); // FIXME keepAlive
+    public HCIStatusCode startDiscovery(final boolean keepAlive) throws BluetoothException {
+        return startDiscovery() ? HCIStatusCode.SUCCESS : HCIStatusCode.INTERNAL_FAILURE; // FIXME keepAlive
     }
 
     @Override
-    public native boolean stopDiscovery() throws BluetoothException;
+    public HCIStatusCode stopDiscovery() throws BluetoothException {
+        return stopDiscoveryImpl() ? HCIStatusCode.SUCCESS : HCIStatusCode.INTERNAL_FAILURE;
+    }
+    private native boolean stopDiscoveryImpl() throws BluetoothException;
 
     @Override
     public native boolean getDiscovering() throws BluetoothException;

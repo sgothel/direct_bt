@@ -41,6 +41,7 @@ import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothType;
+import org.tinyb.HCIStatusCode;
 
 public class DBTManager implements BluetoothManager
 {
@@ -259,13 +260,13 @@ public class DBTManager implements BluetoothManager
     public BluetoothAdapter getDefaultAdapter() { return adapters.get(defaultAdapterIndex); }
 
     @Override
-    public boolean startDiscovery() throws BluetoothException { return startDiscovery(true); }
+    public boolean startDiscovery() throws BluetoothException { return HCIStatusCode.SUCCESS == startDiscovery(true); }
 
     @Override
-    public boolean startDiscovery(final boolean keepAlive) throws BluetoothException { return getDefaultAdapter().startDiscovery(keepAlive); }
+    public HCIStatusCode startDiscovery(final boolean keepAlive) throws BluetoothException { return getDefaultAdapter().startDiscovery(keepAlive); }
 
     @Override
-    public boolean stopDiscovery() throws BluetoothException { return getDefaultAdapter().stopDiscovery(); }
+    public HCIStatusCode stopDiscovery() throws BluetoothException { return getDefaultAdapter().stopDiscovery(); }
 
     @Override
     public boolean getDiscovering() throws BluetoothException { return getDefaultAdapter().getDiscovering(); }

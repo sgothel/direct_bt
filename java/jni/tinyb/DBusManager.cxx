@@ -293,7 +293,7 @@ jboolean Java_tinyb_dbus_DBusManager_startDiscovery(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jboolean Java_tinyb_dbus_DBusManager_stopDiscovery(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusManager_stopDiscoveryImpl(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);

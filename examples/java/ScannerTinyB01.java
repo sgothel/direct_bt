@@ -225,10 +225,10 @@ public class ScannerTinyB01 {
 
                 final long t0 = BluetoothUtils.getCurrentMilliseconds();
 
-                final boolean discoveryStarted = adapter.startDiscovery(true);
+                final HCIStatusCode discoveryStatus = adapter.startDiscovery(true);
 
-                System.err.println("The discovery started: " + (discoveryStarted ? "true" : "false") + " for mac "+waitForDevice+", mode "+mode);
-                if( !discoveryStarted ) {
+                System.err.println("The discovery started: " + discoveryStatus + " for mac "+waitForDevice+", mode "+mode);
+                if( HCIStatusCode.SUCCESS != discoveryStatus ) {
                     break;
                 }
                 BluetoothDevice sensor = null;

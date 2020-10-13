@@ -122,8 +122,9 @@ public class DBTScanner10 {
                 newmask.isSet(AdapterSettings.SettingType.POWERED) )
             {
                 // powered on adapter ....
-                if( !adapter.startDiscovery( true ) ) {
-                    println("Adapter (powered-on): Start discovery failed");
+                final HCIStatusCode res = adapter.startDiscovery( true );
+                if( res != HCIStatusCode.SUCCESS ) {
+                    println("Adapter (powered-on): Start discovery failed: "+res);
                 }
             }
         }
@@ -186,7 +187,8 @@ public class DBTScanner10 {
                 )
               )
             {
-                println("****** CONNECTED-0: Processing "+device.toString());
+                connectionCount.incrementAndGet();
+                println("****** CONNECTED-0: Processing["+connectionCount.get()+"] "+device.toString());
                 {
                     final long td = BluetoothUtils.getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
                     println("PERF: adapter-init -> CONNECTED-0 " + td + " ms");
@@ -221,11 +223,11 @@ public class DBTScanner10 {
             } else {
                 devicesInProcessing.remove(device.getAddress());
             }
-            if( 0 == connectionCount.addAndGet(1) % RESET_ADAPTER_EACH_CONN ) {
+            if( 0 < RESET_ADAPTER_EACH_CONN && 0 == connectionCount.get() % RESET_ADAPTER_EACH_CONN ) {
                 final Thread adapterResetTask = new Thread( new Runnable() {
                     @Override
                     public void run() {
-                        resetAdapter(device.getAdapter());
+                        resetAdapter(device.getAdapter(), 1);
                     }
                 }, "DBT-Reset-"+device.getAdapter().getAddress());
                 adapterResetTask.setDaemon(true); // detach thread
@@ -237,7 +239,7 @@ public class DBTScanner10 {
     private void connectDiscoveredDevice(final BluetoothDevice device) {
         println("****** Connecting Device: Start " + device.toString());
         {
-            final boolean r = device.getAdapter().stopDiscovery();
+            final HCIStatusCode r = device.getAdapter().stopDiscovery();
             println("****** Connecting Device: stopDiscovery result "+r);
         }
         HCIStatusCode res;
@@ -248,7 +250,7 @@ public class DBTScanner10 {
         }
         println("****** Connecting Device Command, res "+res+": End result "+res+" of " + device.toString());
         if( !USE_WHITELIST && 0 == devicesInProcessing.size() && HCIStatusCode.SUCCESS != res ) {
-            final boolean r = device.getAdapter().startDiscovery( true );
+            final HCIStatusCode r = device.getAdapter().startDiscovery( true );
             println("****** Connecting Device: startDiscovery result "+r);
         }
     }
@@ -290,7 +292,7 @@ public class DBTScanner10 {
         println("****** Processing Device: Start " + device.toString());
         {
             // make sure for pending connections on failed connect*(..) command
-            final boolean r = device.getAdapter().stopDiscovery();
+            final HCIStatusCode r = device.getAdapter().stopDiscovery();
             println("****** Processing Device: stopDiscovery result "+r);
         }
 
@@ -454,8 +456,8 @@ public class DBTScanner10 {
         }
 
         if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
-            final boolean r = device.getAdapter().startDiscovery( true );
-            println("****** Processing Device: startDiscovery result "+r);
+            final HCIStatusCode r = device.getAdapter().startDiscovery( true );
+            println("****** Processing Device: startDiscovery.0 result "+r);
         }
 
         if( KEEP_CONNECTED && GATT_PING_ENABLED && success ) {
@@ -483,9 +485,13 @@ public class DBTScanner10 {
             device.remove();
 
             if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
-                final boolean r = device.getAdapter().startDiscovery( true );
-                println("****** Processing Device: startDiscovery result "+r);
+                final HCIStatusCode r = device.getAdapter().startDiscovery( true );
+                println("****** Processing Device: startDiscovery.1 result "+r);
             }
+        }
+
+        if( 0 < RESET_ADAPTER_EACH_CONN && 0 == connectionCount.get() % RESET_ADAPTER_EACH_CONN ) {
+            resetAdapter(device.getAdapter(), 2);
         }
 
         if( 0 < MULTI_MEASUREMENTS.get() ) {
@@ -503,15 +509,15 @@ public class DBTScanner10 {
         device.remove();
 
         if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
-            final boolean r = device.getAdapter().startDiscovery( true );
+            final HCIStatusCode r = device.getAdapter().startDiscovery( true );
             println("****** Remove Device: startDiscovery result "+r);
         }
     }
 
-    private void resetAdapter(final BluetoothAdapter adapter) {
-        println("****** Reset Adapter: reset start: "+adapter.toString());
+    private void resetAdapter(final BluetoothAdapter adapter, final int mode) {
+        println("****** Reset Adapter: reset["+mode+"] start: "+adapter.toString());
         final HCIStatusCode res = adapter.reset();
-        println("****** Reset Adapter: reset end: "+res+", "+adapter.toString());
+        println("****** Reset Adapter: reset["+mode+"] end: "+res+", "+adapter.toString());
     }
 
     public void runTest(final BluetoothManager manager) {
@@ -556,8 +562,9 @@ public class DBTScanner10 {
                 println("Added to whitelist: res "+res+", address "+addr);
             }
         } else {
-            if( !adapter.startDiscovery( true ) ) {
-                println("Adapter start discovery failed");
+            final HCIStatusCode status = adapter.startDiscovery( true );
+            if( HCIStatusCode.SUCCESS != status ) {
+                println("Adapter start discovery failed: "+status);
                 done = true;
             }
         }

@@ -167,18 +167,21 @@ public interface BluetoothAdapter extends BluetoothObject
      *        Using {@link #startDiscovery(boolean) startDiscovery}({@code keepAlive=true})
      *        and {@link #stopDiscovery()} is the recommended workflow
      *        for a reliable discovery process.
-     * @return TRUE if discovery was successfully enabled
+     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
      * @throws BluetoothException
      * @since 2.0.0
      * @implNote {@code keepAlive} not implemented in tinyb.dbus
      * @see #getDiscovering()
      */
-    public boolean startDiscovery(final boolean keepAlive) throws BluetoothException;
+    public HCIStatusCode startDiscovery(final boolean keepAlive) throws BluetoothException;
 
-    /** Turns off device discovery if it is enabled.
-      * @return TRUE if discovery was successfully disabled
-      */
-    public boolean stopDiscovery() throws BluetoothException;
+    /**
+     * Turns off device discovery if it is enabled.
+     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
+     * @apiNote return {@link HCIStatusCode} since 2.0.0
+     * @since 2.0.0
+     */
+    public HCIStatusCode stopDiscovery() throws BluetoothException;
 
     /** Returns a list of BluetoothDevices visible from this adapter.
       * @return A list of BluetoothDevices visible on this adapter,
@@ -249,9 +252,12 @@ public interface BluetoothAdapter extends BluetoothObject
      */
     public void disablePoweredNotifications();
 
-    /** Sets the power state the adapter.
-      */
-    public void setPowered(boolean value);
+    /**
+     * Sets the power state the adapter.
+     * @apiNote return value boolean since 2.0.0
+     * @since 2.0.0
+     */
+    public boolean setPowered(boolean value);
 
     /**
      * Reset the adapter.
@@ -282,19 +288,25 @@ public interface BluetoothAdapter extends BluetoothObject
      */
     public void disableDiscoverableNotifications();
 
-    /** Sets the discoverable state the adapter.
-      */
-    public void setDiscoverable(boolean value);
+    /**
+     * Sets the discoverable state the adapter.
+     * @apiNote return value boolean since 2.0.0
+     * @since 2.0.0
+     */
+    public boolean setDiscoverable(boolean value);
 
     /** Returns the discoverable timeout the adapter.
       * @return The discoverable timeout of the adapter.
       */
     public long getDiscoverableTimeout();
 
-    /** Sets the discoverable timeout the adapter. A value of 0 disables
-      * the timeout.
-      */
-    public void setDiscoverableTimout(long value);
+    /**
+     * Sets the discoverable timeout the adapter. A value of 0 disables
+     * the timeout.
+     * @apiNote return value boolean since 2.0.0
+     * @since 2.0.0
+     */
+    public boolean setDiscoverableTimout(long value);
 
     /**
      * This method connects to device without need of
@@ -342,9 +354,12 @@ public interface BluetoothAdapter extends BluetoothObject
      */
     public void disablePairableNotifications();
 
-    /** Sets the discoverable state the adapter.
-      */
-    public void setPairable(boolean value);
+    /**
+     * Sets the discoverable state the adapter.
+     * @apiNote return value boolean since 2.0.0
+     * @since 2.0.0
+     */
+    public boolean setPairable(boolean value);
 
     /** Returns the timeout in seconds after which pairable state turns off
       * automatically, 0 means never.
@@ -352,9 +367,12 @@ public interface BluetoothAdapter extends BluetoothObject
       */
     public long getPairableTimeout();
 
-    /** Sets the timeout after which pairable state turns off automatically, 0 means never.
-      */
-    public void setPairableTimeout(long value);
+    /**
+     * Sets the timeout after which pairable state turns off automatically, 0 means never.
+     * @apiNote return value boolean since 2.0.0
+     * @since 2.0.0
+     */
+    public boolean setPairableTimeout(long value);
 
     /**
      * Returns the meta discovering state (of the adapter).

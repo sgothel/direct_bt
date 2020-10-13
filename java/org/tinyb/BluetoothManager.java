@@ -229,18 +229,20 @@ public interface BluetoothManager
      *        Using {@link #startDiscovery(boolean) startDiscovery}({@code keepAlive=true})
      *        and {@link #stopDiscovery()} is the recommended workflow
      *        for a reliable discovery process.
-     * @return TRUE if discovery was successfully enabled
+     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
      * @throws BluetoothException
      * @since 2.0.0
      * @implNote {@code keepAlive} not implemented in tinyb.dbus
      */
-    public boolean startDiscovery(final boolean keepAlive) throws BluetoothException;
+    public HCIStatusCode startDiscovery(final boolean keepAlive) throws BluetoothException;
 
-
-    /** Turns off device discovery on the default adapter if it is enabled.
-      * @return TRUE if discovery was successfully disabled
-      */
-    public boolean stopDiscovery() throws BluetoothException;
+    /**
+     * Turns off device discovery on the default adapter if it is enabled.
+     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
+     * @apiNote return {@link HCIStatusCode} since 2.0.0
+     * @since 2.0.0
+     */
+    public HCIStatusCode stopDiscovery() throws BluetoothException;
 
     /** Returns if the discovers is running or not.
       * @return TRUE if discovery is running

@@ -105,12 +105,15 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     public native boolean startDiscovery() throws BluetoothException;
 
     @Override
-    public synchronized boolean startDiscovery(final boolean keepAlive) throws BluetoothException {
-        return startDiscovery(); // FIXME keepAlive
+    public synchronized HCIStatusCode startDiscovery(final boolean keepAlive) throws BluetoothException {
+        return startDiscovery() ? HCIStatusCode.SUCCESS : HCIStatusCode.INTERNAL_FAILURE; // FIXME keepAlive
     }
 
     @Override
-    public native boolean stopDiscovery() throws BluetoothException;
+    public HCIStatusCode stopDiscovery() throws BluetoothException {
+        return stopDiscoveryImpl() ? HCIStatusCode.SUCCESS : HCIStatusCode.INTERNAL_FAILURE;
+    }
+    private native boolean stopDiscoveryImpl() throws BluetoothException;
 
     @Override
     public native List<BluetoothDevice> getDevices();
@@ -145,7 +148,7 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     public native void disablePoweredNotifications();
 
     @Override
-    public native void setPowered(boolean value);
+    public native boolean setPowered(boolean value);
 
     @Override
     public final HCIStatusCode reset() { return HCIStatusCode.INTERNAL_FAILURE; }
@@ -160,13 +163,13 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     public native void disableDiscoverableNotifications();
 
     @Override
-    public native void setDiscoverable(boolean value);
+    public native boolean setDiscoverable(boolean value);
 
     @Override
     public native long getDiscoverableTimeout();
 
     @Override
-    public native void setDiscoverableTimout(long value);
+    public native boolean setDiscoverableTimout(long value);
 
     @Override
     public native BluetoothDevice connectDevice(String address, String addressType);
@@ -181,13 +184,13 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     public native void disablePairableNotifications();
 
     @Override
-    public native void setPairable(boolean value);
+    public native boolean setPairable(boolean value);
 
     @Override
     public native long getPairableTimeout();
 
     @Override
-    public native void setPairableTimeout(long value);
+    public native boolean setPairableTimeout(long value);
 
     @Override
     public native boolean getDiscovering();

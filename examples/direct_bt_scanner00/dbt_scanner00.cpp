@@ -51,7 +51,7 @@ std::mutex mtxDeviceFound;
 std::condition_variable cvDeviceFound;
 
 class MyAdapterStatusListener : public AdapterStatusListener {
-    void adapterSettingsChanged(DBTAdapter const &a, const AdapterSetting oldmask, const AdapterSetting newmask,
+    void adapterSettingsChanged(DBTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         fprintf(stderr, "****** Native Adapter SETTINGS_CHANGED: %s -> %s, changed %s\n",
                 getAdapterSettingsString(oldmask).c_str(),
@@ -62,7 +62,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
-    void discoveringChanged(DBTAdapter const &a, const bool enabled, const bool keepAlive, const uint64_t timestamp) override {
+    void discoveringChanged(DBTAdapter &a, const bool enabled, const bool keepAlive, const uint64_t timestamp) override {
         fprintf(stderr, "****** DISCOVERING: enabled %d, keepAlive %d: %s\n", enabled, keepAlive, a.toString().c_str());
         (void)timestamp;
     }
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
     const int64_t t0 = getCurrentMilliseconds();
 
     while( ok && ( forever || !foundDevice ) ) {
-        ok = adapter.startDiscovery(true /* keepAlive */);
+        ok = HCIStatusCode::SUCCESS == adapter.startDiscovery(true /* keepAlive */);
         if( !ok) {
             perror("Adapter start discovery failed");
             goto out;

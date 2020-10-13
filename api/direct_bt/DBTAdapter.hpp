@@ -77,23 +77,23 @@ namespace direct_bt {
 
             /**
              * DBTAdapter setting(s) changed.
-             * @param a the adapter which settings have changed.
+             * @param adapter the adapter which settings have changed.
              * @param oldmask the previous settings mask
              * @param newmask the new settings mask
              * @param changedmask the changes settings mask
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
-            virtual void adapterSettingsChanged(DBTAdapter const &a, const AdapterSetting oldmask, const AdapterSetting newmask,
+            virtual void adapterSettingsChanged(DBTAdapter &adapter, const AdapterSetting oldmask, const AdapterSetting newmask,
                                                 const AdapterSetting changedmask, const uint64_t timestamp) = 0;
 
             /**
              * DBTAdapter's discovery state has changed, i.e. enabled or disabled.
-             * @param a the adapter which discovering state has changed.
+             * @param adapter the adapter which discovering state has changed.
              * @param enabled the new discovery state
              * @param keepAlive if {@code true}, the discovery will be re-enabled if disabled by the underlying Bluetooth implementation.
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
-            virtual void discoveringChanged(DBTAdapter const &a, const bool enabled, const bool keepAlive, const uint64_t timestamp) = 0;
+            virtual void discoveringChanged(DBTAdapter &adapter, const bool enabled, const bool keepAlive, const uint64_t timestamp) = 0;
 
             /**
              * A DBTDevice has been newly discovered.
@@ -336,17 +336,17 @@ namespace direct_bt {
             /**
              * Set the discoverable state of the adapter.
              */
-            void setDiscoverable(bool value) noexcept;
+            bool setDiscoverable(bool value) noexcept;
 
             /**
              * Set the bondable (aka pairable) state of the adapter.
              */
-            void setBondable(bool value) noexcept;
+            bool setBondable(bool value) noexcept;
 
             /**
              * Set the power state of the adapter.
              */
-            void setPowered(bool value) noexcept;
+            bool setPowered(bool value) noexcept;
 
             /**
              * Reset the adapter.
@@ -444,7 +444,7 @@ namespace direct_bt {
             /**
              * Starts a new discovery session.
              * <p>
-             * Returns true if successful, otherwise false;
+             * Returns HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state;
              * </p>
              * <p>
              * if {@code keepAlive} is {@code  true}, discovery state will be re-enabled
@@ -482,10 +482,10 @@ namespace direct_bt {
              * @param own_mac_type
              * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
              * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
-             * @return
+             * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
              */
-            bool startDiscovery(const bool keepAlive=true, const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
-                                const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24);
+            HCIStatusCode startDiscovery(const bool keepAlive=true, const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
+                                         const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24);
 
             /**
              * Closes the discovery session.
@@ -493,9 +493,9 @@ namespace direct_bt {
              * This adapter's HCIHandler instance is used to stop scanning,
              * see HCIHandler::le_enable_scan().
              * </p>
-             * @return true if no error, otherwise false.
+             * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
              */
-            bool stopDiscovery() noexcept;
+            HCIStatusCode stopDiscovery() noexcept;
 
             /**
              * Returns the meta discovering state. It can be modified through startDiscovery(..) and stopDiscovery().

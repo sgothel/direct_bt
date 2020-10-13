@@ -67,7 +67,7 @@ jboolean Java_tinyb_dbus_DBusAdapter_startDiscovery(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jboolean Java_tinyb_dbus_DBusAdapter_stopDiscovery(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusAdapter_stopDiscoveryImpl(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
@@ -192,16 +192,18 @@ jboolean Java_tinyb_dbus_DBusAdapter_getPowered(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-void Java_tinyb_dbus_DBusAdapter_setPowered(JNIEnv *env, jobject obj, jboolean val)
+jboolean Java_tinyb_dbus_DBusAdapter_setPowered(JNIEnv *env, jobject obj, jboolean val)
 {
     try {
         BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
 
         bool val_to_write = from_jboolean_to_bool(val);
         obj_adapter->set_powered(val_to_write);
+        return JNI_TRUE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
+    return JNI_FALSE;
 }
 
 void Java_tinyb_dbus_DBusAdapter_enablePoweredNotifications(JNIEnv *env, jobject obj, jobject callback)
@@ -254,16 +256,18 @@ jboolean Java_tinyb_dbus_DBusAdapter_getDiscoverable(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-void Java_tinyb_dbus_DBusAdapter_setDiscoverable(JNIEnv *env, jobject obj, jboolean val)
+jboolean Java_tinyb_dbus_DBusAdapter_setDiscoverable(JNIEnv *env, jobject obj, jboolean val)
 {
     try {
         BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
 
         bool val_to_write = from_jboolean_to_bool(val);
         obj_adapter->set_discoverable(val_to_write);
+        return JNI_TRUE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
+    return JNI_FALSE;
 }
 
 void Java_tinyb_dbus_DBusAdapter_enableDiscoverableNotifications(JNIEnv *env, jobject obj, jobject callback)
@@ -316,7 +320,7 @@ jlong Java_tinyb_dbus_DBusAdapter_getDiscoverableTimeout(JNIEnv *env, jobject ob
     return 0;
 }
 
-void Java_tinyb_dbus_DBusAdapter_setDiscoverableTimout(JNIEnv *env, jobject obj, jlong timeout)
+jboolean Java_tinyb_dbus_DBusAdapter_setDiscoverableTimout(JNIEnv *env, jobject obj, jlong timeout)
 {
     try {
         BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
@@ -326,9 +330,11 @@ void Java_tinyb_dbus_DBusAdapter_setDiscoverableTimout(JNIEnv *env, jobject obj,
             throw std::invalid_argument("timeout argument is negative\n");
         }
         obj_adapter->set_discoverable_timeout((unsigned int)timeout);
+        return JNI_TRUE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
+    return JNI_FALSE;
 }
 
 jboolean Java_tinyb_dbus_DBusAdapter_getPairable(JNIEnv *env, jobject obj)
@@ -381,16 +387,18 @@ void Java_tinyb_dbus_DBusAdapter_disablePairableNotifications(JNIEnv *env, jobje
     }
 }
 
-void Java_tinyb_dbus_DBusAdapter_setPairable(JNIEnv *env, jobject obj, jboolean val)
+jboolean Java_tinyb_dbus_DBusAdapter_setPairable(JNIEnv *env, jobject obj, jboolean val)
 {
     try {
         BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
 
         bool val_to_write = from_jboolean_to_bool(val);
         obj_adapter->set_pairable(val_to_write);
+        return JNI_TRUE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
+    return JNI_FALSE;
 }
 
 jlong Java_tinyb_dbus_DBusAdapter_getPairableTimeout(JNIEnv *env, jobject obj)
@@ -405,7 +413,7 @@ jlong Java_tinyb_dbus_DBusAdapter_getPairableTimeout(JNIEnv *env, jobject obj)
     return 0;
 }
 
-void Java_tinyb_dbus_DBusAdapter_setPairableTimeout(JNIEnv *env, jobject obj, jlong timeout)
+jboolean Java_tinyb_dbus_DBusAdapter_setPairableTimeout(JNIEnv *env, jobject obj, jlong timeout)
 {
     try {
         BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
@@ -415,9 +423,11 @@ void Java_tinyb_dbus_DBusAdapter_setPairableTimeout(JNIEnv *env, jobject obj, jl
             throw std::invalid_argument("timeout argument is negative\n");
         }
         obj_adapter->set_pairable_timeout((unsigned int)timeout);
+        return JNI_TRUE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
+    return JNI_FALSE;
 }
 
 jboolean Java_tinyb_dbus_DBusAdapter_getDiscovering(JNIEnv *env, jobject obj)

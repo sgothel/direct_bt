@@ -137,9 +137,9 @@ public class ScannerTinyB00 {
             if( useAdapter ) {
                 adapter.removeDevices();
             }
-            final boolean discoveryStarted = useAdapter ? adapter.startDiscovery(true) : manager.startDiscovery();
+            final HCIStatusCode discoveryStatus = useAdapter ? adapter.startDiscovery(true) : manager.startDiscovery(true);
 
-            System.err.println("The discovery started: " + (discoveryStarted ? "true" : "false") + " for mac "+mac+", mode "+mode+", useAdapter "+useAdapter);
+            System.err.println("The discovery started: " + discoveryStatus + " for mac "+mac+", mode "+mode+", useAdapter "+useAdapter);
             BluetoothDevice sensor = null;
 
             if( 0 == mode ) {

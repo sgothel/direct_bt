@@ -312,16 +312,16 @@ std::shared_ptr<NameAndShortName> DBTAdapter::setLocalName(const std::string &na
     return mgmt.setLocalName(dev_id, name, short_name);
 }
 
-void DBTAdapter::setDiscoverable(bool value) noexcept {
-    mgmt.setMode(dev_id, MgmtOpcode::SET_DISCOVERABLE, value ? 1 : 0);
+bool DBTAdapter::setDiscoverable(bool value) noexcept {
+    return mgmt.setMode(dev_id, MgmtOpcode::SET_DISCOVERABLE, value ? 1 : 0);
 }
 
-void DBTAdapter::setBondable(bool value) noexcept {
-    mgmt.setMode(dev_id, MgmtOpcode::SET_BONDABLE, value ? 1 : 0);
+bool DBTAdapter::setBondable(bool value) noexcept {
+    return mgmt.setMode(dev_id, MgmtOpcode::SET_BONDABLE, value ? 1 : 0);
 }
 
-void DBTAdapter::setPowered(bool value) noexcept {
-    mgmt.setMode(dev_id, MgmtOpcode::SET_POWERED, value ? 1 : 0);
+bool DBTAdapter::setPowered(bool value) noexcept {
+    return mgmt.setMode(dev_id, MgmtOpcode::SET_POWERED, value ? 1 : 0);
 }
 
 HCIStatusCode DBTAdapter::reset() noexcept {
@@ -456,13 +456,13 @@ void DBTAdapter::checkDiscoveryState() noexcept {
 
 #define USE_HCI_DISCOVERY 1
 
-bool DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType own_mac_type,
-                                const uint16_t le_scan_interval, const uint16_t le_scan_window)
+HCIStatusCode DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType own_mac_type,
+                                         const uint16_t le_scan_interval, const uint16_t le_scan_window)
 {
     // FIXME: Respect DBTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
     if( !isEnabled() ) {
         ERR_PRINT("DBTAdapter::startDiscovery: Adapter not enabled/powered: %s", toString().c_str());
-        return false;
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     if( ScanType::NONE != currentMetaScanType ) {
@@ -478,7 +478,7 @@ bool DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType 
             keepDiscoveringAlive = keepAlive;
         }
         checkDiscoveryState();
-        return true;
+        return HCIStatusCode::SUCCESS;
     }
     (void)own_mac_type;
     (void)le_scan_interval;
@@ -494,30 +494,25 @@ bool DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType 
     std::shared_ptr<HCIHandler> hci = getHCI();
     if( nullptr == hci ) {
         ERR_PRINT("DBTAdapter::startDiscovery: HCI not available: %s", toString().c_str());
-        return false;
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
 
     HCIStatusCode status = hci->le_set_scan_param();
     if( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("DBTAdapter::startDiscovery: le_set_scan_param failed: %s", getHCIStatusCodeString(status).c_str());
-    }
-
-    bool res;
-    // Will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, don't change current scan-type state here
-    status = hci->le_enable_scan(true /* enable */);
-    if( HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("DBTAdapter::startDiscovery: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
-        res = false;
     } else {
-        res = true;
+        // Will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, don't change current scan-type state here
+        status = hci->le_enable_scan(true /* enable */);
+        if( HCIStatusCode::SUCCESS != status ) {
+            ERR_PRINT("DBTAdapter::startDiscovery: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
+        }
     }
-
-    DBG_PRINT("DBTAdapter::startDiscovery: End: Result %d, keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
-            res, keepDiscoveringAlive.load(), keepAlive,
+    DBG_PRINT("DBTAdapter::startDiscovery: End: Result %s, keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
+            getHCIStatusCodeString(status).c_str(), keepDiscoveringAlive.load(), keepAlive,
             getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str());
     checkDiscoveryState();
 
-    return res;
+    return status;
 }
 
 void DBTAdapter::startDiscoveryBackground() noexcept {
@@ -542,7 +537,7 @@ void DBTAdapter::startDiscoveryBackground() noexcept {
     }
 }
 
-bool DBTAdapter::stopDiscovery() noexcept {
+HCIStatusCode DBTAdapter::stopDiscovery() noexcept {
     // We allow !isEnabled, to utilize method for adjusting discovery state and notifying listeners
     // FIXME: Respect DBTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to stop BREDR, LE or DUAL scanning!
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
@@ -575,47 +570,44 @@ bool DBTAdapter::stopDiscovery() noexcept {
                 keepDiscoveringAlive.load(),
                 getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str());
         checkDiscoveryState();
-        return true;
+        return HCIStatusCode::SUCCESS;
     }
-    bool res;
 
+    HCIStatusCode status;
     std::shared_ptr<HCIHandler> hci = getHCI();
     if( nullptr == hci ) {
         ERR_PRINT("DBTAdapter::stopDiscovery: HCI not available: %s", toString().c_str());
-        res = false; // send event
+        status = HCIStatusCode::INTERNAL_FAILURE;
         goto exit;
     }
 
     if( discoveryTempDisabled ) {
         // meta state transition [4] -> [5], w/o native disabling
         currentMetaScanType = currentNativeScanType.load();
-        res = true; // send event: discoveryTempDisabled
+        status = HCIStatusCode::SUCCESS; // send event: discoveryTempDisabled
     } else {
         // Actual disabling discovery
         HCIStatusCode status = hci->le_enable_scan(false /* enable */);
         if( HCIStatusCode::SUCCESS != status ) {
-            res = false; // send event
             ERR_PRINT("DBTAdapter::stopDiscovery: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
-        } else {
-            res = true;
         }
     }
 
 exit:
-    if( discoveryTempDisabled || !res ) {
+    if( discoveryTempDisabled || HCIStatusCode::SUCCESS != status ) {
         // In case of discoveryTempDisabled, power-off, le_enable_scane failure
         // or already pulled HCIHandler, send the event directly.
         // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
-        std::thread bg(&DBTAdapter::mgmtEvDeviceDiscoveringHCI, this, std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, false) ) );
+        std::thread bg(&DBTAdapter::mgmtEvDeviceDiscoveringHCI, this, std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, false) ) ); // @suppress("Invalid arguments")
         bg.detach();
         // mgmtEvDeviceDiscoveringHCI( std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, false) ) );
     }
-    DBG_PRINT("DBTAdapter::stopDiscovery: End: Result %d, keepAlive %d, currentScanType[native %s, meta %s], discoveryTempDisabled %d ...",
-            res, keepDiscoveringAlive.load(),
+    DBG_PRINT("DBTAdapter::stopDiscovery: End: Result %s, keepAlive %d, currentScanType[native %s, meta %s], discoveryTempDisabled %d ...",
+            getHCIStatusCodeString(status).c_str(), keepDiscoveringAlive.load(),
             getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str(), discoveryTempDisabled);
     checkDiscoveryState();
 
-    return res;
+    return status;
 }
 
 std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (EUI48 const & mac, const BDAddressType macType) noexcept {
@@ -754,7 +746,7 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) noexc
         i++;
     });
     if( ScanType::NONE == currentNativeScanType && keepDiscoveringAlive ) {
-        std::thread bg(&DBTAdapter::startDiscoveryBackground, this);
+        std::thread bg(&DBTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
         bg.detach();
     }
     return true;
@@ -777,7 +769,7 @@ bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
 
     if( !isPowered() ) {
         // Adapter has been powered off, close connections and cleanup off-thread.
-        std::thread bg(&DBTAdapter::poweredOff, this);
+        std::thread bg(&DBTAdapter::poweredOff, this); // @suppress("Invalid arguments")
         bg.detach();
     }
 

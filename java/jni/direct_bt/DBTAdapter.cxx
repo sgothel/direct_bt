@@ -230,7 +230,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         return device == *deviceMatchRef;
     }
 
-    void adapterSettingsChanged(DBTAdapter const &a, const AdapterSetting oldmask, const AdapterSetting newmask,
+    void adapterSettingsChanged(DBTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         (void)a;
@@ -254,7 +254,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->DeleteLocalRef(adapterSettingChanged);
     }
 
-    void discoveringChanged(DBTAdapter const &a, const bool enabled, const bool keepAlive, const uint64_t timestamp) override {
+    void discoveringChanged(DBTAdapter &a, const bool enabled, const bool keepAlive, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         (void)a;
         env->CallVoidMethod(listenerObjRef.getObject(), mDiscoveringChanged, JavaGlobalObj::GetObject(adapterObjRef),
@@ -545,26 +545,26 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_isEnabled(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj, jboolean keepAlive)
+jbyte Java_direct_1bt_tinyb_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj, jboolean keepAlive)
 {
     try {
         DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
-        return adapter->startDiscovery(keepAlive);
+        return (jbyte) number( adapter->startDiscovery(keepAlive) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return JNI_FALSE;
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject obj)
+jbyte Java_direct_1bt_tinyb_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
-        return adapter->stopDiscovery();
+        return (jbyte) number( adapter->stopDiscovery() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return JNI_FALSE;
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
 jobject Java_direct_1bt_tinyb_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, jobject obj)
@@ -594,14 +594,15 @@ jint Java_direct_1bt_tinyb_DBTAdapter_removeDevicesImpl(JNIEnv *env, jobject obj
 // misc
 //
 
-void Java_direct_1bt_tinyb_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jboolean value) {
+jboolean Java_direct_1bt_tinyb_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jboolean value) {
     try {
         DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
-        adapter->setPowered(JNI_TRUE == value ? true : false);
+        return adapter->setPowered(JNI_TRUE == value ? true : false) ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
+    return JNI_FALSE;
 }
 
 jbyte Java_direct_1bt_tinyb_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {
@@ -638,14 +639,15 @@ void Java_direct_1bt_tinyb_DBTAdapter_setAlias(JNIEnv *env, jobject obj, jstring
     }
 }
 
-void Java_direct_1bt_tinyb_DBTAdapter_setDiscoverable(JNIEnv *env, jobject obj, jboolean value) {
+jboolean Java_direct_1bt_tinyb_DBTAdapter_setDiscoverable(JNIEnv *env, jobject obj, jboolean value) {
     try {
         DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
-        adapter->setDiscoverable(JNI_TRUE == value ? true : false);
+        return adapter->setDiscoverable(JNI_TRUE == value ? true : false) ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
+    return JNI_FALSE;
 }
 
 jobject Java_direct_1bt_tinyb_DBTAdapter_connectDevice(JNIEnv *env, jobject obj, jstring jaddress, jstring jaddressType) {
@@ -673,14 +675,15 @@ jobject Java_direct_1bt_tinyb_DBTAdapter_connectDevice(JNIEnv *env, jobject obj,
     return nullptr;
 }
 
-void Java_direct_1bt_tinyb_DBTAdapter_setPairable(JNIEnv *env, jobject obj, jboolean value) {
+jboolean Java_direct_1bt_tinyb_DBTAdapter_setPairable(JNIEnv *env, jobject obj, jboolean value) {
     try {
         DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
-        adapter->setBondable(JNI_TRUE == value ? true : false);
+        return adapter->setBondable(JNI_TRUE == value ? true : false) ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
+    return JNI_FALSE;
 }
 
 void Java_direct_1bt_tinyb_DBTAdapter_setDiscoveryFilter(JNIEnv *env, jobject obj, jobject juuids, jint rssi, jint pathloss, jint transportType) {
