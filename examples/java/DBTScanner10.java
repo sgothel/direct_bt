@@ -118,7 +118,8 @@ public class DBTScanner10 {
             }
             println("Status Adapter:");
             println(adapter.toString());
-            if( changedmask.isSet(AdapterSettings.SettingType.POWERED) &&
+            if( !initialSetting &&
+                changedmask.isSet(AdapterSettings.SettingType.POWERED) &&
                 newmask.isSet(AdapterSettings.SettingType.POWERED) )
             {
                 // powered on adapter ....

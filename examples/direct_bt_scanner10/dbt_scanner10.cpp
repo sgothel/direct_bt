@@ -160,6 +160,16 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         fprintf(stderr, "Status DBTAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
         (void)timestamp;
+
+        if( !initialSetting &&
+            isAdapterSettingSet(changedmask, AdapterSetting::POWERED) &&
+            isAdapterSettingSet(newmask, AdapterSetting::POWERED) )
+        {
+            HCIStatusCode status = a.startDiscovery( true );
+            if( HCIStatusCode::SUCCESS != status ) {
+                fprintf(stderr, "Adapter (powered-on): Start discovery failed: %s", getHCIStatusCodeString(status).c_str());
+            }
+        }
     }
 
     void discoveringChanged(DBTAdapter &a, const bool enabled, const bool keepAlive, const uint64_t timestamp) override {
