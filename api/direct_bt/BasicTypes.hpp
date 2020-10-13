@@ -47,11 +47,12 @@ namespace direct_bt {
     #define E_FILE_LINE __FILE__,__LINE__
 
     class RuntimeException : public std::exception {
-      protected:
+      private:
         std::string msg;
+        std::string backtrace;
 
-        RuntimeException(std::string const type, std::string const m, const char* file, int line) noexcept
-        : msg(std::string(type).append(" @ ").append(file).append(":").append(std::to_string(line)).append(": ").append(m)) { }
+      protected:
+        RuntimeException(std::string const type, std::string const m, const char* file, int line) noexcept;
 
       public:
         RuntimeException(std::string const m, const char* file, int line) noexcept
@@ -63,6 +64,8 @@ namespace direct_bt {
         RuntimeException(RuntimeException &&o) = default;
         RuntimeException& operator=(const RuntimeException &o) = default;
         RuntimeException& operator=(RuntimeException &&o) = default;
+
+        std::string get_backtrace() const noexcept { return backtrace; }
 
         virtual const char* what() const noexcept override;
     };

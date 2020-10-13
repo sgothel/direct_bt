@@ -50,11 +50,17 @@ int64_t direct_bt::getCurrentMilliseconds() noexcept {
     return t.tv_sec * MilliPerOne + t.tv_nsec / NanoPerMilli;
 }
 
+direct_bt::RuntimeException::RuntimeException(std::string const type, std::string const m, const char* file, int line) noexcept
+: msg(std::string(type).append(" @ ").append(file).append(":").append(std::to_string(line)).append(": ").append(m)),
+  backtrace(direct_bt::get_backtrace(1))
+{
+}
+
 const char* direct_bt::RuntimeException::what() const noexcept {
     // return std::runtime_error::what();
     std::string out(msg);
-    out.append("\nBacktrace:\n");
-    out.append(get_backtrace(1));
+    out.append("\nNative backtrace:\n");
+    out.append(backtrace);
     return out.c_str();
 }
 
