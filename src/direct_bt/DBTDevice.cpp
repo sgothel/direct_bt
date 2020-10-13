@@ -623,7 +623,7 @@ bool DBTDevice::addCharacteristicListener(std::shared_ptr<GATTCharacteristicList
     std::shared_ptr<GATTHandler> gatt = getGATTHandler();
     if( nullptr == gatt ) {
         throw IllegalStateException("Device's GATTHandle not connected: "+
-                toString() + ", " + toString(), E_FILE_LINE);
+                toString(), E_FILE_LINE);
     }
     return gatt->addCharacteristicListener(l);
 }
@@ -632,7 +632,7 @@ bool DBTDevice::removeCharacteristicListener(std::shared_ptr<GATTCharacteristicL
     std::shared_ptr<GATTHandler> gatt = getGATTHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
-        DBG_PRINT("Device's GATTHandle not connected: %s, %s", toString().c_str(), toString().c_str());
+        DBG_PRINT("Device's GATTHandle not connected: %s", toString().c_str());
         return false;
     }
     return gatt->removeCharacteristicListener(l);
@@ -642,7 +642,7 @@ int DBTDevice::removeAllAssociatedCharacteristicListener(std::shared_ptr<GATTCha
     std::shared_ptr<GATTHandler> gatt = getGATTHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
-        DBG_PRINT("Device's GATTHandle not connected: %s, %s", toString().c_str(), toString().c_str());
+        DBG_PRINT("Device's GATTHandle not connected: %s", toString().c_str());
         return false;
     }
     return gatt->removeAllAssociatedCharacteristicListener( associatedCharacteristic );
@@ -652,7 +652,7 @@ int DBTDevice::removeAllCharacteristicListener() noexcept {
     std::shared_ptr<GATTHandler> gatt = getGATTHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
-        DBG_PRINT("Device's GATTHandle not connected: %s, %s", toString().c_str(), toString().c_str());
+        DBG_PRINT("Device's GATTHandle not connected: %s", toString().c_str());
         return 0;
     }
     return gatt->removeAllCharacteristicListener();
