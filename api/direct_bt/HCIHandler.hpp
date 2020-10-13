@@ -299,7 +299,7 @@ namespace direct_bt {
             /**
              * Bring up this adapter into a POWERED functional state.
              */
-            bool startAdapter();
+            HCIStatusCode startAdapter();
 
             /**
              * Bring down this adapter into a non-POWERED non-functional state.
@@ -311,7 +311,7 @@ namespace direct_bt {
              * </pre>
              * </p>
              */
-            bool stopAdapter();
+            HCIStatusCode stopAdapter();
 
             /**
              * Reset the adapter.
@@ -324,7 +324,7 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
              * </pre>
              */
-            bool resetAdapter();
+            HCIStatusCode resetAdapter();
 
             /**
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command

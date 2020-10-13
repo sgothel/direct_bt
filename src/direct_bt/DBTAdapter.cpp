@@ -330,11 +330,7 @@ HCIStatusCode DBTAdapter::reset() noexcept {
     }
     return status;
 #else
-    if( hci->resetAdapter() ) {
-        return HCIStatusCode::SUCCESS;
-    } else {
-        return HCIStatusCode::UNSPECIFIED_ERROR;
-    }
+    return hci->resetAdapter();
 #endif
 }
 

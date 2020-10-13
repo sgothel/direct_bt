@@ -576,38 +576,45 @@ void HCIHandler::close() noexcept {
     DBG_PRINT("HCIHandler::close: End");
 }
 
-bool HCIHandler::startAdapter() {
+HCIStatusCode HCIHandler::startAdapter() {
     #ifdef __linux__
         int res;
         if( ( res = ioctl(comm.getSocketDescriptor(), HCIDEVUP, dev_id) ) < 0 ) {
             if (errno != EALREADY) {
                 ERR_PRINT("HCIHandler::startAdapter(dev_id %d): FAILED: %d", dev_id, res);
-                return false;
+                return HCIStatusCode::INTERNAL_FAILURE;
             }
         }
-        return true;
+        return HCIStatusCode::SUCCESS;
     #else
-        return false;
+        #warning add implementation
     #endif
+    return HCIStatusCode::INTERNAL_FAILURE;
 }
-bool HCIHandler::stopAdapter() {
+
+HCIStatusCode HCIHandler::stopAdapter() {
     #ifdef __linux__
         int res;
         if( ( res = ioctl(comm.getSocketDescriptor(), HCIDEVDOWN, dev_id) ) < 0) {
             ERR_PRINT("HCIHandler::stopAdapter(dev_id %d): FAILED: %d", dev_id, res);
-            return false;
+            return HCIStatusCode::INTERNAL_FAILURE;
         }
-        return true;
+        return HCIStatusCode::SUCCESS;
     #else
-        return false;
+        #warning add implementation
     #endif
+    return HCIStatusCode::INTERNAL_FAILURE;
 }
-bool HCIHandler::resetAdapter() {
+
+HCIStatusCode HCIHandler::resetAdapter() {
     #ifdef __linux__
-        return stopAdapter() && startAdapter();
+        if( HCIStatusCode::SUCCESS == stopAdapter() && HCIStatusCode::SUCCESS == startAdapter() ) {
+            return HCIStatusCode::SUCCESS;
+        }
     #else
-        return false;
+        #warning add implementation
     #endif
+    return HCIStatusCode::INTERNAL_FAILURE;
 }
 
 HCIStatusCode HCIHandler::reset() noexcept {
