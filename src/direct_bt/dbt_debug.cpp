@@ -39,8 +39,7 @@ std::string direct_bt::get_backtrace(int skip_frames) noexcept {
     // de-mangled:
     //  1: direct_bt::DBTAdapter::startDiscovery(bool, direct_bt::HCILEOwnAddressType, unsigned short, unsigned short) + 0x58d @ ip 0x7f687b459071, sp 0x7fff2bf795d0
     std::string out;
-    int depth, res;
-    char symbol[201];
+    int frame=0, res;
     char cstr[256];
     unw_context_t uc;
     unw_word_t ip, sp;
@@ -48,27 +47,32 @@ std::string direct_bt::get_backtrace(int skip_frames) noexcept {
     unw_word_t offset;
     unw_getcontext(&uc);
     unw_init_local(&cursor, &uc);
-    for(depth=0; unw_step(&cursor) > 0; depth++) {
-        if( skip_frames > depth ) {
+    while( unw_step(&cursor) > 0 ) {
+        frame++;
+        if( skip_frames > frame ) {
             continue;
         }
+        snprintf(cstr, sizeof(cstr), "%3d: ", frame);
+        out.append(cstr);
+
         unw_get_reg(&cursor, UNW_REG_IP, &ip);
         unw_get_reg(&cursor, UNW_REG_SP, &sp);
-        if( 0 == ( res = unw_get_proc_name(&cursor, symbol, sizeof(symbol), &offset) ) ) {
+        if( 0 == ( res = unw_get_proc_name(&cursor, cstr, sizeof(cstr), &offset) ) ) {
             int status;
             char *real_name;
-            symbol[sizeof(symbol) -1] = 0; // fail safe
-            if ( (real_name = abi::__cxa_demangle(symbol, nullptr, nullptr, &status)) == nullptr ) {
-                real_name = symbol; // didn't work, use symbol
-            }
-            snprintf(cstr, sizeof(cstr), "%3d: %s + 0x%lx @ ip 0x%lx, sp 0x%lx\n", depth, real_name, (uint64_t)offset, (uint64_t)ip, (uint64_t)sp);
-            if( real_name != symbol ) {
+            cstr[sizeof(cstr) -1] = 0; // fail safe
+            if ( (real_name = abi::__cxa_demangle(cstr, nullptr, nullptr, &status)) == nullptr ) {
+                out.append(cstr); // didn't work, use cstr
+            } else {
+                out.append(real_name);
                 free( real_name );
             }
+            snprintf(cstr, sizeof(cstr), " + 0x%lx @ ip 0x%lx, sp 0x%lx", (uint64_t)offset, (uint64_t)ip, (uint64_t)sp);
         } else {
-            snprintf(cstr, sizeof(cstr), "%3d: ip 0x%lx, sp 0x%lx, get_proc_name error 0x%x\n", depth, (uint64_t)ip, (uint64_t)sp, res);
+            snprintf(cstr, sizeof(cstr), "ip 0x%lx, sp 0x%lx, get_proc_name error 0x%x", (uint64_t)ip, (uint64_t)sp, res);
         }
         out.append(cstr);
+        out.append("\n");
     }
     return out;
 }

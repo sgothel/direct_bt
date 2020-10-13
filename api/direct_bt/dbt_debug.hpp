@@ -44,15 +44,15 @@ extern "C" {
 namespace direct_bt {
 
     /**
-     * Returns a de-mangled backtrace string separated by newline
-     * @param skip_frames number of stack frames to skip, default is one frame for the caller
+     * Returns a de-mangled backtrace string separated by newline excluding this function.
+     * @param skip_frames number of stack frames to skip, default is one frame for this function.
      * @return the de-mangled backtrace, separated by newline
      */
     std::string get_backtrace(int skip_frames=1) noexcept;
 
     /**
-     * Prints the de-mangled backtrace string separated by newline to stderr, using get_backtrace().
-     * @param skip_frames number of stack frames to skip, default is two frames for this function and the caller.
+     * Prints the de-mangled backtrace string separated by newline excluding this function to stderr, using get_backtrace().
+     * @param skip_frames number of stack frames to skip, default is one frame for this function.
      */
     void print_backtrace(int skip_frames=2) noexcept;
 
