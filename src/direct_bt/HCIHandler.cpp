@@ -424,13 +424,15 @@ exit:
     return ev;
 }
 
-HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id) noexcept
+HCIHandler::HCIHandler(const uint16_t dev_id, const BTMode btMode) noexcept
 : env(HCIEnv::get()),
-  btMode(btMode), dev_id(dev_id), rbuffer(HCI_MAX_MTU),
+  dev_id(dev_id),
+  rbuffer(HCI_MAX_MTU),
   comm(dev_id, HCI_CHANNEL_RAW),
   hciEventRing(env.HCI_EVT_RING_CAPACITY), hciReaderShallStop(false),
   hciReaderThreadId(0), hciReaderRunning(false),
-  allowClose( comm.isOpen() )
+  allowClose( comm.isOpen() ),
+  btMode(btMode)
 {
     WORDY_PRINT("HCIHandler.ctor: pid %d", HCIHandler::pidSelf);
     if( !allowClose ) {

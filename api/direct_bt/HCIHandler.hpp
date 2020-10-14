@@ -191,7 +191,6 @@ namespace direct_bt {
             static MgmtEvent::Opcode translate(HCIEventType evt, HCIMetaEventType met) noexcept;
 
             const HCIEnv & env;
-            const BTMode btMode;
             const uint16_t dev_id;
             POctets rbuffer;
             HCIComm comm;
@@ -225,6 +224,7 @@ namespace direct_bt {
             std::recursive_mutex mtx_sendReply; // for sendWith*Reply, process*Command, ..
 
             std::atomic<bool> allowClose;
+            std::atomic<BTMode> btMode;
 
             std::vector<HCIConnectionRef> connectionList;
             std::recursive_mutex mtx_connectionList;
@@ -278,7 +278,7 @@ namespace direct_bt {
             void operator=(const HCIHandler&) = delete;
 
         public:
-            HCIHandler(const BTMode btMode, const uint16_t dev_id) noexcept;
+            HCIHandler(const uint16_t dev_id, const BTMode btMode=BTMode::NONE) noexcept;
 
             /**
              * Releases this instance after issuing {@link #close()}.
@@ -287,7 +287,9 @@ namespace direct_bt {
 
             void close() noexcept;
 
-            constexpr BTMode getBTMode() noexcept { return btMode; }
+            inline BTMode getBTMode() const noexcept { return btMode; }
+
+            inline void setBTMode(const BTMode mode) noexcept { btMode = mode; }
 
             /** Returns true if this mgmt instance is open and hence valid, otherwise false */
             bool isOpen() const noexcept {
