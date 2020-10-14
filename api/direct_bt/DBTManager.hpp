@@ -289,6 +289,7 @@ namespace direct_bt {
              * Returns the AdapterInfo (index == dev_id) with the given address or nullptr if not found.
              */
             std::shared_ptr<AdapterInfo> findAdapterInfo(const EUI48 &mac) const noexcept;
+
             /**
              * Returns the AdapterInfo (index == dev_id) with the given index.
              * <p>
@@ -296,10 +297,31 @@ namespace direct_bt {
              * </p>
              */
             std::shared_ptr<AdapterInfo> getAdapterInfo(const int idx) const;
+
             /**
-             * Returns the default AdapterInfo (0 == index == dev_id) or nullptr if no adapter is available.
+             * Returns the current BTMode of given adapter dev_idx or BTMode::NONE if dev_id adapter is not available.
              */
-            std::shared_ptr<AdapterInfo> getDefaultAdapterInfo() const noexcept { return adapterInfos.size() > 0 ? getAdapterInfo(0) : nullptr; }
+            BTMode getCurrentBTMode(int dev_id) const noexcept;
+
+            /**
+             * Returns the default AdapterInfo.
+             * <p>
+             * The default adapter is either the first POWERED adapter,
+             * or the one with index == dev_id == 0,
+             * or nullptr if no adapter is available.
+             * </p>
+             */
+            std::shared_ptr<AdapterInfo> getDefaultAdapterInfo() const noexcept;
+
+            /**
+             * Returns the default adapter dev_id (index).
+             * <p>
+             * The default adapter is either the first POWERED adapter,
+             * or the one with index == dev_id == 0,
+             * or function returns -1 if no adapter is available.
+             * </p>
+             */
+            int getDefaultAdapterIdx() const noexcept;
 
             bool setMode(const int dev_id, const MgmtOpcode opc, const uint8_t mode) noexcept;
 

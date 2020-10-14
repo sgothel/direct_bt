@@ -560,6 +560,33 @@ std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const int idx) const {
     return adapter;
 }
 
+BTMode DBTManager::getCurrentBTMode(int dev_id) const noexcept {
+    if( 0 > dev_id || dev_id >= static_cast<int>(adapterInfos.size()) ) {
+        ERR_PRINT("dev_id %d out of bounds [0..%d[", dev_id, static_cast<int>(adapterInfos.size()));
+        return BTMode::NONE;
+    }
+    return adapterInfos.at(dev_id)->getCurrentBTMode();
+}
+
+std::shared_ptr<AdapterInfo> DBTManager::getDefaultAdapterInfo() const noexcept {
+    auto begin = adapterInfos.begin();
+    auto it = std::find_if(begin, adapterInfos.end(), [&](std::shared_ptr<AdapterInfo> const& p) {
+        return p->isCurrentSettingBitSet(AdapterSetting::POWERED);
+    });
+    if ( it != std::end(adapterInfos) ) {
+        return *it; // the 1st POWERED adapter
+    }
+    return adapterInfos.size() > 0 ? getAdapterInfo(0) : nullptr; // first adapter or nullptr, if none.
+}
+
+int DBTManager::getDefaultAdapterIdx() const noexcept {
+    std::shared_ptr<AdapterInfo> ai = getDefaultAdapterInfo();
+    if( nullptr == ai ) {
+        return -1;
+    }
+    return ai->dev_id;
+}
+
 bool DBTManager::setMode(const int dev_id, const MgmtOpcode opc, const uint8_t mode) noexcept {
     MgmtUint8Cmd req(opc, dev_id, mode);
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
