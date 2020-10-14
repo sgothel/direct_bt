@@ -507,19 +507,6 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id) noexcept
         filter_set_opcbit(HCIOpcodeBit::LE_CREATE_CONN, mask);
         filter_put_opcbit(mask);
     }
-    {
-        HCICommand req0(HCIOpcode::READ_LOCAL_VERSION, 0);
-        const hci_rp_read_local_version * ev_lv;
-        HCIStatusCode status;
-        std::shared_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_lv, &status);
-        if( nullptr == ev || nullptr == ev_lv ) {
-            ERR_PRINT("HCIHandler::ctor: failed READ_LOCAL_VERSION: 0x%x (%s)", number(status), getHCIStatusCodeString(status).c_str());
-            goto fail;
-        }
-        WORDY_PRINT("HCIHandler: LOCAL_VERSION: %d (rev %d), manuf 0x%x, lmp %d (subver %d)",
-                ev_lv->hci_ver, le_to_cpu(ev_lv->hci_rev), le_to_cpu(ev_lv->manufacturer),
-                ev_lv->lmp_ver, le_to_cpu(ev_lv->lmp_subver));
-    }
 
     PERF_TS_TD("HCIHandler::open.ok");
     return;
@@ -630,6 +617,24 @@ HCIStatusCode HCIHandler::reset() noexcept {
         return HCIStatusCode::INTERNAL_TIMEOUT; // timeout
     }
     return ev_cc->getReturnStatus(0);
+}
+
+HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
+    HCICommand req0(HCIOpcode::READ_LOCAL_VERSION, 0);
+    const hci_rp_read_local_version * ev_lv;
+    HCIStatusCode status;
+    std::shared_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_lv, &status);
+    if( nullptr == ev || nullptr == ev_lv || HCIStatusCode::SUCCESS != status ) {
+        ERR_PRINT("HCIHandler::getLocalVersion: READ_LOCAL_VERSION: 0x%x (%s)", number(status), getHCIStatusCodeString(status).c_str());
+        bzero(&version, sizeof(version));
+    } else {
+        version.hci_ver = ev_lv->hci_ver;
+        version.hci_rev = le_to_cpu(ev_lv->hci_rev);
+        version.manufacturer = le_to_cpu(ev_lv->manufacturer);
+        version.lmp_ver = ev_lv->lmp_ver;
+        version.lmp_subver = le_to_cpu(ev_lv->lmp_subver);
+    }
+    return status;
 }
 
 HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,

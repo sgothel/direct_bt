@@ -933,6 +933,16 @@ namespace direct_bt {
             // hcistruct * getWStruct() noexcept { return (hcistruct *)( pdu.get_wptr_nc(number(HCIConstU8::EVENT_HDR_SIZE)+1) ); }
     };
 
+    struct HCILocalVersion {
+        uint8_t     hci_ver;
+        uint16_t    hci_rev;
+        uint8_t     lmp_ver;
+        uint16_t    manufacturer;
+        uint16_t    lmp_subver;
+
+        std::string toString() noexcept;
+    };
+
 } // namespace direct_bt
 
 #endif /* HCI_TYPES_HPP_ */

@@ -331,6 +331,8 @@ namespace direct_bt {
              */
             HCIStatusCode reset() noexcept;
 
+            HCIStatusCode getLocalVersion(HCILocalVersion &version) noexcept;
+
             /**
              * Sets LE scanning parameters.
              * <p>

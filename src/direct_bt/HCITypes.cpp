@@ -298,4 +298,9 @@ std::shared_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, int c
     return std::shared_ptr<HCIEvent>(res);
 }
 
+std::string HCILocalVersion::toString() noexcept {
+    return "LocalVersion[version "+std::to_string(hci_ver)+"."+std::to_string(hci_rev)+
+           ", manuf "+uint16HexString(manufacturer)+", lmp "+std::to_string(lmp_ver)+"."+std::to_string(lmp_subver)+"]";
+}
+
 } /* namespace direct_bt */
