@@ -50,6 +50,10 @@ namespace direct_bt {
      * {@link DBTAdapter} status listener for {@link DBTDevice} discovery events: Added, updated and removed;
      * as well as for certain {@link DBTAdapter} events.
      * <p>
+     * User implementations shall return as early as possible to avoid blocking the event-handler thread.<br>
+     * Especially complex mutable operations on DBTDevice or DBTAdapter should be issued off-thread!
+     * </p>
+     * <p>
      * A listener instance may be attached to a {@link DBTAdapter} via
      * {@link DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener>)}.
      * </p>
