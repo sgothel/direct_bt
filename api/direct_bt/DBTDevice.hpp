@@ -104,7 +104,7 @@ namespace direct_bt {
             /**
              * Will be performed within disconnect() and notifyDisconnected().
              */
-            void disconnectGATT() noexcept;
+            void disconnectGATT(int caller) noexcept;
 
         public:
             const uint64_t ts_creation;

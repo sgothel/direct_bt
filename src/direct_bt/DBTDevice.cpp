@@ -412,16 +412,16 @@ void DBTDevice::notifyDisconnected() noexcept {
     allowDisconnect = false;
     isConnected = false;
     hciConnHandle = 0;
-    disconnectGATT();
+    disconnectGATT(1);
 }
 
-void DBTDevice::disconnectGATT() noexcept {
+void DBTDevice::disconnectGATT(int caller) noexcept {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_gattHandler);
     if( nullptr != gattHandler ) {
-        DBG_PRINT("DBTDevice::disconnectGATT: start (has gattHandler)");
+        DBG_PRINT("DBTDevice::disconnectGATT: start (has gattHandler, caller %d)", caller);
         gattHandler->disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
     } else {
-        DBG_PRINT("DBTDevice::disconnectGATT: start (nil gattHandler)");
+        DBG_PRINT("DBTDevice::disconnectGATT: start (nil gattHandler, caller %d)", caller);
     }
     gattHandler = nullptr;
     DBG_PRINT("DBTDevice::disconnectGATT: end");
@@ -445,7 +445,7 @@ HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
 
     // Disconnect GATT before device, keeping reversed initialization order intact if possible.
     // This outside mtx_connect, keeping same mutex lock order intact as well
-    disconnectGATT();
+    disconnectGATT(0);
 
     // Lock to avoid other threads connecting while disconnecting
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
