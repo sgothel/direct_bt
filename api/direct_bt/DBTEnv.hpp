@@ -163,9 +163,10 @@ namespace direct_bt {
              * Example 1
              * <pre>
              * Input Environment:
-             *   "direct_bt.debug" := "adapter.event,gatt.data=false,hci.event,mgmt.event=true"
+             *   "direct_bt.debug" := "jni,adapter.event,gatt.data=false,hci.event,mgmt.event=true"
              *
              * Result Environment:
+             *   "direct_bt.debug.jni"           := "true"
              *   "direct_bt.debug.adapter.event" := "true"
              *   "direct_bt.debug.gatt.data"     := "false"
              *   "direct_bt.debug.hci.event"     := "true"
@@ -192,7 +193,7 @@ namespace direct_bt {
              *
              * The prefixDomain will also be set to the new value 'true', hence gets overwritten.</br>
              *
-             * This is supported for DEBUG 'direct_bt.debug' and VERBOSE 'direct_bt.verbose', pre default.
+             * This is supported for DEBUG 'direct_bt.debug' and VERBOSE 'direct_bt.verbose', per default.
              * </p>
              *
              * @param prefixDomain
@@ -229,6 +230,17 @@ namespace direct_bt {
              * </p>
              */
             const bool DEBUG;
+
+            /**
+             * JNI Debug logging enabled or disabled.
+             * <p>
+             * Environment variable 'direct_bt.debug.jni', boolean, default 'false'.
+             * </p>
+             * <p>
+             * Implementation uses getBooleanProperty().
+             * </p>
+             */
+            const bool DEBUG_JNI;
 
             /**
              * Verbose info logging enabled or disabled.

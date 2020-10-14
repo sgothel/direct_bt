@@ -122,7 +122,7 @@ void direct_bt::ERR_PRINTv(const char *func, const char *file, const int line, c
     direct_bt::print_backtrace(2);
 }
 
-void direct_bt::ERR_PRINT_impl(const char *prefix, const char *func, const char *file, const int line, const char * format, ...) noexcept {
+void direct_bt::ERR_PRINT_impl(const char *prefix, const bool backtrace, const char *func, const char *file, const int line, const char * format, ...) noexcept {
     fprintf(stderr, "[%'9" PRIu64 "] %s @ %s:%d %s: ", DBTEnv::getElapsedMillisecond(), prefix, file, line, func);
     va_list args;
     va_start (args, format);
@@ -130,7 +130,9 @@ void direct_bt::ERR_PRINT_impl(const char *prefix, const char *func, const char 
     va_end (args);
     fprintf(stderr, "; last errno %d %s\n", errno, strerror(errno));
     fflush(stderr);
-    direct_bt::print_backtrace(2);
+    if( backtrace ) {
+        direct_bt::print_backtrace(2);
+    }
 }
 
 void direct_bt::WARN_PRINTv(const char *func, const char *file, const int line, const char * format, va_list args) noexcept {

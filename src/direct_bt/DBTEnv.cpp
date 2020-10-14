@@ -230,6 +230,7 @@ bool DBTEnv::getExplodingProperties(const std::string & prefixDomain) noexcept {
 
 DBTEnv::DBTEnv() noexcept
 : DEBUG( getExplodingProperties("direct_bt.debug") ),
+  DEBUG_JNI( getBooleanProperty("direct_bt.debug.jni", false) ),
   VERBOSE( getExplodingProperties("direct_bt.verbose") || DBTEnv::DEBUG )
 {
 }
