@@ -153,6 +153,11 @@ HCIConnectionRef HCIHandler::removeTrackerConnection(const uint16_t handle) noex
     return nullptr;
 }
 
+void HCIHandler::clearTrackerConnections() noexcept {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+    connectionList.clear();
+}
+
 MgmtEvent::Opcode HCIHandler::translate(HCIEventType evt, HCIMetaEventType met) noexcept {
     if( HCIEventType::LE_META == evt ) {
         switch( met ) {
@@ -526,6 +531,7 @@ void HCIHandler::close() noexcept {
         // not open
         DBG_PRINT("HCIHandler::close: Not open");
         clearAllMgmtEventCallbacks();
+        clearTrackerConnections();
         comm.close();
         return;
     }
@@ -533,6 +539,7 @@ void HCIHandler::close() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("HCIHandler::close: Start");
     clearAllMgmtEventCallbacks();
+    clearTrackerConnections();
 
     // Interrupt HCIHandler's HCIComm::read(..), avoiding prolonged hang
     // and pull all underlying hci read operations!
@@ -582,17 +589,23 @@ HCIStatusCode HCIHandler::startAdapter() {
 }
 
 HCIStatusCode HCIHandler::stopAdapter() {
+    HCIStatusCode status;
     #ifdef __linux__
         int res;
         if( ( res = ioctl(comm.getSocketDescriptor(), HCIDEVDOWN, dev_id) ) < 0) {
             ERR_PRINT("HCIHandler::stopAdapter(dev_id %d): FAILED: %d", dev_id, res);
-            return HCIStatusCode::INTERNAL_FAILURE;
+            status = HCIStatusCode::INTERNAL_FAILURE;
+        } else {
+            status = HCIStatusCode::SUCCESS;
         }
-        return HCIStatusCode::SUCCESS;
     #else
         #warning add implementation
+        status = HCIStatusCode::INTERNAL_FAILURE;
     #endif
-    return HCIStatusCode::INTERNAL_FAILURE;
+    if( HCIStatusCode::SUCCESS == status ) {
+        clearTrackerConnections();
+    }
+    return status;
 }
 
 HCIStatusCode HCIHandler::resetAdapter() {
@@ -618,7 +631,11 @@ HCIStatusCode HCIHandler::reset() noexcept {
     if( nullptr == ev || nullptr == ev_cc ) {
         return HCIStatusCode::INTERNAL_TIMEOUT; // timeout
     }
-    return ev_cc->getReturnStatus(0);
+    const HCIStatusCode status = ev_cc->getReturnStatus(0);
+    if( HCIStatusCode::SUCCESS == status ) {
+        clearTrackerConnections();
+    }
+    return status;
 }
 
 HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {

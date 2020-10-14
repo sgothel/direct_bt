@@ -245,6 +245,7 @@ namespace direct_bt {
             HCIConnectionRef findTrackerConnection(const uint16_t handle) noexcept;
             HCIConnectionRef removeTrackerConnection(const HCIConnectionRef conn) noexcept;
             HCIConnectionRef removeTrackerConnection(const uint16_t handle) noexcept;
+            void clearTrackerConnections() noexcept;
 
             /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
             std::array<MgmtEventCallbackList, static_cast<uint16_t>(MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT)> mgmtEventCallbackLists;
