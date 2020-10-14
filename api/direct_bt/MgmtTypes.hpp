@@ -774,7 +774,7 @@ namespace direct_bt {
 
         protected:
             std::string baseString() const override {
-                return MgmtEvent::baseString()+", settings="+getAdapterSettingsString(getSettings());
+                return MgmtEvent::baseString()+", settings="+getAdapterSettingMaskString(getSettings());
             }
 
         public:
@@ -1246,7 +1246,7 @@ namespace direct_bt {
             std::string valueString() const override {
                 return getAddress().toString()+", version "+std::to_string(getVersion())+
                         ", manuf "+std::to_string(getManufacturer())+
-                        ", settings[sup "+getAdapterSettingsString(getSupportedSetting())+", cur "+getAdapterSettingsString(getCurrentSetting())+
+                        ", settings[sup "+getAdapterSettingMaskString(getSupportedSetting())+", cur "+getAdapterSettingMaskString(getCurrentSetting())+
                         "], name '"+getName()+"', shortName '"+getShortName()+"'";
             }
 

@@ -165,26 +165,29 @@ namespace direct_bt {
         STATIC_ADDRESS     = 0x00008000,
         PHY_CONFIGURATION  = 0x00010000
     };
-    inline AdapterSetting operator ^(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
+    constexpr AdapterSetting operator ^(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
         return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) ^ static_cast<uint32_t>(rhs) );
     }
-    inline AdapterSetting operator |(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
+    constexpr AdapterSetting operator |(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
         return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs) );
     }
-    inline AdapterSetting operator &(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
+    constexpr AdapterSetting operator &(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
         return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs) );
     }
-    inline bool operator ==(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
+    constexpr bool operator ==(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
         return static_cast<uint32_t>(lhs) == static_cast<uint32_t>(rhs);
     }
-    inline bool operator !=(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
+    constexpr bool operator !=(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
         return !( lhs == rhs );
     }
-    inline bool isAdapterSettingSet(const AdapterSetting mask, const AdapterSetting bit) noexcept { return AdapterSetting::NONE != ( mask & bit ); }
-    inline void setAdapterSettingSet(AdapterSetting &mask, const AdapterSetting bit) noexcept { mask = mask | bit; }
+
+    constexpr AdapterSetting getAdapterSettingMaskDiff(const AdapterSetting setting_a, const AdapterSetting setting_b) noexcept { return setting_a ^ setting_b; }
+
+    constexpr bool isAdapterSettingBitSet(const AdapterSetting mask, const AdapterSetting bit) noexcept { return AdapterSetting::NONE != ( mask & bit ); }
+
+    inline void setAdapterSettingMaskBit(AdapterSetting &mask, const AdapterSetting bit) noexcept { mask = mask | bit; }
     std::string getAdapterSettingBitString(const AdapterSetting settingBit) noexcept;
-    std::string getAdapterSettingsString(const AdapterSetting settingBitMask) noexcept;
-    inline AdapterSetting getAdapterSettingsDelta(const AdapterSetting setting_a, const AdapterSetting setting_b) noexcept { return setting_a ^ setting_b; }
+    std::string getAdapterSettingMaskString(const AdapterSetting settingBitMask) noexcept;
 
     /** Maps the given {@link AdapterSetting} to {@link BTMode} */
     BTMode getAdapterSettingsBTMode(const AdapterSetting settingMask) noexcept;
@@ -202,22 +205,20 @@ namespace direct_bt {
             const AdapterSetting supported_setting;
 
         private:
-            AdapterSetting current_setting;
+            std::atomic<AdapterSetting> current_setting;
             uint32_t dev_class;
             std::string name;
             std::string short_name;
 
             /**
-             * Sets the current_setting and returns the changed AdapterSetting bit-mask.
+             * Assigns the given 'new_setting & supported_setting' to the current_setting.
+             * @param new_setting assigned to current_setting after masking with supported_setting.
+             * @return 'new_setting & supported_setting', i.e. the new current_setting.
              */
-            AdapterSetting setCurrentSetting(AdapterSetting new_setting) noexcept {
-                new_setting = new_setting & supported_setting;
-                AdapterSetting changes = getAdapterSettingsDelta(new_setting, current_setting);
-
-                if( AdapterSetting::NONE != changes ) {
-                    current_setting = new_setting;
-                }
-                return changes;
+            AdapterSetting setCurrentSettingMask(const AdapterSetting new_setting) noexcept {
+                const AdapterSetting _current_setting = new_setting & supported_setting;
+                current_setting = _current_setting;
+                return _current_setting;
             }
             void setDevClass(const uint32_t v) noexcept { dev_class = v; }
             void setName(const std::string v) noexcept { name = v; }
@@ -234,21 +235,23 @@ namespace direct_bt {
               name(name), short_name(short_name)
             { }
 
-            bool isSettingSupported(const AdapterSetting setting) const noexcept {
+            bool isSettingMaskSupported(const AdapterSetting setting) const noexcept {
                 return setting == ( setting & supported_setting );
             }
-            AdapterSetting getCurrentSetting() const noexcept { return current_setting; }
+            AdapterSetting getCurrentSettingMask() const noexcept { return current_setting; }
+            bool isCurrentSettingBitSet(const AdapterSetting bit) noexcept { return AdapterSetting::NONE != ( current_setting & bit ); }
+
+            /** Map {@link #getCurrentSettingMask()} to {@link BTMode} */
+            BTMode getCurrentBTMode() const noexcept { return getAdapterSettingsBTMode(current_setting); }
+
             uint32_t getDevClass() const noexcept { return dev_class; }
             std::string getName() const noexcept { return name; }
             std::string getShortName() const noexcept { return short_name; }
 
-            /** Map {@link #getCurrentSetting()} to {@link BTMode} */
-            BTMode getCurrentBTMode() const noexcept { return getAdapterSettingsBTMode(current_setting); }
-
             std::string toString() const noexcept {
                 return "Adapter[id "+std::to_string(dev_id)+", address "+address.toString()+", version "+std::to_string(version)+
                         ", manuf "+std::to_string(manufacturer)+
-                        ", settings[sup "+getAdapterSettingsString(supported_setting)+", cur "+getAdapterSettingsString(current_setting)+
+                        ", settings[sup "+getAdapterSettingMaskString(supported_setting)+", cur "+getAdapterSettingMaskString(current_setting)+
                         "], name '"+name+"', shortName '"+short_name+"']";
             }
     };

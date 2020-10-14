@@ -51,9 +51,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     void adapterSettingsChanged(DBTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         fprintf(stderr, "****** Native Adapter SETTINGS_CHANGED: %s -> %s, changed %s\n",
-                getAdapterSettingsString(oldmask).c_str(),
-                getAdapterSettingsString(newmask).c_str(),
-                getAdapterSettingsString(changedmask).c_str());
+                getAdapterSettingMaskString(oldmask).c_str(),
+                getAdapterSettingMaskString(newmask).c_str(),
+                getAdapterSettingMaskString(changedmask).c_str());
         fprintf(stderr, "Status DBTAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
         (void)timestamp;

@@ -188,7 +188,6 @@ bool DBTAdapter::validateDevInfo() noexcept {
     }
 
     adapterInfo = mgmt.getAdapterInfo(dev_id);
-    currentAdapterSettings = adapterInfo->getCurrentSetting();
 
     btMode = adapterInfo->getCurrentBTMode();
     if( BTMode::NONE == btMode ) {
@@ -378,7 +377,7 @@ bool DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
         }
         statusListenerList.push_back(l);
     }
-    sendAdapterSettingsChanged(*l, AdapterSetting::NONE, currentAdapterSettings, getCurrentMilliseconds());
+    sendAdapterSettingsChanged(*l, AdapterSetting::NONE, adapterInfo->getCurrentSettingMask(), getCurrentMilliseconds());
 
     return true;
 }
@@ -686,7 +685,7 @@ void DBTAdapter::removeDevice(DBTDevice & device) noexcept {
 
 std::string DBTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
     std::string out("Adapter[BTMode "+getBTModeString(btMode)+", "+getAddressString()+", '"+getName()+"', id "+std::to_string(dev_id)+
-                    ", curSettings"+getAdapterSettingsString(currentAdapterSettings)+
+                    ", curSettings"+getAdapterSettingMaskString(adapterInfo->getCurrentSettingMask())+
                     ", scanType[native "+getScanTypeString(currentNativeScanType)+", meta "+getScanTypeString(currentMetaScanType)+"]"
                     ", "+javaObjectToString()+"]");
     std::vector<std::shared_ptr<DBTDevice>> devices = getDiscoveredDevices();
@@ -748,17 +747,15 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) noexc
 bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
     COND_PRINT(debug_event, "DBTAdapter::EventCB:NewSettings: %s", e->toString().c_str());
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(e.get());
-    AdapterSetting old_settings = adapterInfo->getCurrentSetting();
-    /* AdapterSetting changes = */ adapterInfo->setCurrentSetting(event.getSettings());
-    currentAdapterSettings = adapterInfo->getCurrentSetting();
+    const AdapterSetting old_settings = adapterInfo->getCurrentSettingMask();
+    const AdapterSetting new_settings = adapterInfo->setCurrentSettingMask(event.getSettings());
     {
-        const BTMode _btMode = adapterInfo->getCurrentBTMode();
+        const BTMode _btMode = getAdapterSettingsBTMode(new_settings);
         if( BTMode::NONE != _btMode ) {
             btMode = _btMode;
         }
     }
-
-    sendAdapterSettingsChanged(old_settings, currentAdapterSettings, event.getTimestamp());
+    sendAdapterSettingsChanged(old_settings, new_settings, event.getTimestamp());
 
     if( !isPowered() ) {
         // Adapter has been powered off, close connections and cleanup off-thread.
@@ -772,11 +769,11 @@ bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
 void DBTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings, const AdapterSetting current_settings,
                                             const uint64_t timestampMS) noexcept
 {
-    AdapterSetting changes = getAdapterSettingsDelta(current_settings, old_settings);
+    AdapterSetting changes = getAdapterSettingMaskDiff(current_settings, old_settings);
     COND_PRINT(debug_event, "DBTAdapter::sendAdapterSettingsChanged: %s -> %s, changes %s: %s",
-            getAdapterSettingsString(old_settings).c_str(),
-            getAdapterSettingsString(current_settings).c_str(),
-            getAdapterSettingsString(changes).c_str(), toString(false).c_str() );
+            getAdapterSettingMaskString(old_settings).c_str(),
+            getAdapterSettingMaskString(current_settings).c_str(),
+            getAdapterSettingMaskString(changes).c_str(), toString(false).c_str() );
     int i=0;
     for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
@@ -794,11 +791,11 @@ void DBTAdapter::sendAdapterSettingsChanged(AdapterStatusListener & asl,
                                 const AdapterSetting old_settings, const AdapterSetting current_settings,
                                 const uint64_t timestampMS) noexcept
 {
-    AdapterSetting changes = getAdapterSettingsDelta(current_settings, old_settings);
+    AdapterSetting changes = getAdapterSettingMaskDiff(current_settings, old_settings);
     COND_PRINT(debug_event, "DBTAdapter::sendAdapterSettingsChanged: %s -> %s, changes %s: %s",
-            getAdapterSettingsString(old_settings).c_str(),
-            getAdapterSettingsString(current_settings).c_str(),
-            getAdapterSettingsString(changes).c_str(), toString(false).c_str() );
+            getAdapterSettingMaskString(old_settings).c_str(),
+            getAdapterSettingMaskString(current_settings).c_str(),
+            getAdapterSettingMaskString(changes).c_str(), toString(false).c_str() );
     try {
         asl.adapterSettingsChanged(*this, old_settings, current_settings, changes, timestampMS);
     } catch (std::exception &e) {

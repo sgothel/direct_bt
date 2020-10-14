@@ -168,7 +168,6 @@ namespace direct_bt {
             const bool debug_event;
             DBTManager& mgmt;
             std::shared_ptr<AdapterInfo> adapterInfo;
-            std::atomic<AdapterSetting> currentAdapterSettings;
             std::atomic<BTMode> btMode = BTMode::NONE;
             NameAndShortName localName;
             std::atomic<ScanType> currentMetaScanType; // = ScanType::NONE

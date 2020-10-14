@@ -151,19 +151,19 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         const bool initialSetting = AdapterSetting::NONE == oldmask;
         if( initialSetting ) {
-            fprintf(stderr, "****** SETTINGS_INITIAL: %s -> %s, changed %s\n", getAdapterSettingsString(oldmask).c_str(),
-                    getAdapterSettingsString(newmask).c_str(), getAdapterSettingsString(changedmask).c_str());
+            fprintf(stderr, "****** SETTINGS_INITIAL: %s -> %s, changed %s\n", getAdapterSettingMaskString(oldmask).c_str(),
+                    getAdapterSettingMaskString(newmask).c_str(), getAdapterSettingMaskString(changedmask).c_str());
         } else {
-            fprintf(stderr, "****** SETTINGS_CHANGED: %s -> %s, changed %s\n", getAdapterSettingsString(oldmask).c_str(),
-                    getAdapterSettingsString(newmask).c_str(), getAdapterSettingsString(changedmask).c_str());
+            fprintf(stderr, "****** SETTINGS_CHANGED: %s -> %s, changed %s\n", getAdapterSettingMaskString(oldmask).c_str(),
+                    getAdapterSettingMaskString(newmask).c_str(), getAdapterSettingMaskString(changedmask).c_str());
         }
         fprintf(stderr, "Status DBTAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
         (void)timestamp;
 
         if( !initialSetting &&
-            isAdapterSettingSet(changedmask, AdapterSetting::POWERED) &&
-            isAdapterSettingSet(newmask, AdapterSetting::POWERED) )
+            isAdapterSettingBitSet(changedmask, AdapterSetting::POWERED) &&
+            isAdapterSettingBitSet(newmask, AdapterSetting::POWERED) )
         {
             HCIStatusCode status = a.startDiscovery( true );
             if( HCIStatusCode::SUCCESS != status ) {

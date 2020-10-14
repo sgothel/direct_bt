@@ -80,7 +80,7 @@ std::string direct_bt::getAdapterSettingBitString(const AdapterSetting settingBi
     return "Unknown Setting Bit";
 }
 
-std::string direct_bt::getAdapterSettingsString(const AdapterSetting settingMask) noexcept {
+std::string direct_bt::getAdapterSettingMaskString(const AdapterSetting settingMask) noexcept {
     const uint32_t one = 1;
     bool has_pre = false;
     std::string out("[");
@@ -97,8 +97,8 @@ std::string direct_bt::getAdapterSettingsString(const AdapterSetting settingMask
 }
 
 BTMode direct_bt::getAdapterSettingsBTMode(const AdapterSetting settingMask) noexcept {
-    const bool isBREDR = isAdapterSettingSet(settingMask, AdapterSetting::BREDR);
-    const bool isLE = isAdapterSettingSet(settingMask, AdapterSetting::LE);
+    const bool isBREDR = isAdapterSettingBitSet(settingMask, AdapterSetting::BREDR);
+    const bool isLE = isAdapterSettingBitSet(settingMask, AdapterSetting::LE);
     if( isBREDR && isLE ) {
         return BTMode::DUAL;
     } else if( isBREDR ) {
