@@ -78,6 +78,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device);
 
 static void removeDevice(std::shared_ptr<DBTDevice> device);
 static void resetAdapter(DBTAdapter *a, int mode);
+static bool startDiscovery(DBTAdapter *a, std::string msg);
 
 static std::vector<EUI48> devicesInProcessing;
 static std::recursive_mutex mtx_devicesProcessing;
@@ -165,10 +166,8 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             isAdapterSettingBitSet(changedmask, AdapterSetting::POWERED) &&
             isAdapterSettingBitSet(newmask, AdapterSetting::POWERED) )
         {
-            HCIStatusCode status = a.startDiscovery( true );
-            if( HCIStatusCode::SUCCESS != status ) {
-                fprintf(stderr, "Adapter (powered-on): Start discovery failed: %s", getHCIStatusCodeString(status).c_str());
-            }
+            std::thread sd(::startDiscovery, &a, "powered-on"); // @suppress("Invalid arguments")
+            sd.detach();
         }
     }
 
@@ -313,8 +312,7 @@ static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
     }
     fprintf(stderr, "****** Connecting Device: End result %s of %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
     if( !USE_WHITELIST && 0 == getDeviceProcessingCount() && HCIStatusCode::SUCCESS != res ) {
-        const HCIStatusCode r = device->getAdapter().startDiscovery( true );
-        fprintf(stderr, "****** Connecting Device: startDiscovery result %s\n", getHCIStatusCodeString(r).c_str());
+        startDiscovery(&device->getAdapter(), "post-connect");
     }
 }
 
@@ -440,8 +438,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
 
 exit:
     if( !USE_WHITELIST && 0 == getDeviceProcessingCount() ) {
-        const HCIStatusCode r = device->getAdapter().startDiscovery( true );
-        fprintf(stderr, "****** Processing Device: startDiscovery.0 result %s\n", getHCIStatusCodeString(r).c_str());
+        startDiscovery(&device->getAdapter(), "post-processing-1");
     }
 
     if( KEEP_CONNECTED && GATT_PING_ENABLED && success ) {
@@ -468,12 +465,11 @@ exit:
         removeFromDevicesProcessing(device->getAddress());
 
         device->remove();
+
         if( 0 < RESET_ADAPTER_EACH_CONN && 0 == connectionCount % RESET_ADAPTER_EACH_CONN ) {
             resetAdapter(&device->getAdapter(), 2);
-        }
-        if( !USE_WHITELIST && 0 == getDeviceProcessingCount() ) {
-            const HCIStatusCode r = device->getAdapter().startDiscovery( true );
-            fprintf(stderr, "****** Processing Device: startDiscovery.1 result %s\n", getHCIStatusCodeString(r).c_str());
+        } else if( !USE_WHITELIST && 0 == getDeviceProcessingCount() ) {
+            startDiscovery(&device->getAdapter(), "post-processing-2");
         }
     }
 
@@ -492,8 +488,7 @@ static void removeDevice(std::shared_ptr<DBTDevice> device) {
     device->remove();
 
     if( !USE_WHITELIST && 0 == getDeviceProcessingCount() ) {
-        const HCIStatusCode r = device->getAdapter().startDiscovery( true );
-        fprintf(stderr, "****** Remove Device: startDiscovery result %s\n", getHCIStatusCodeString(r).c_str());
+        startDiscovery(&device->getAdapter(), "post-remove-device");
     }
 }
 
@@ -501,6 +496,12 @@ static void resetAdapter(DBTAdapter *a, int mode) {
     fprintf(stderr, "****** Reset Adapter: reset[%d] start: %s\n", mode, a->toString().c_str());
     HCIStatusCode res = a->reset();
     fprintf(stderr, "****** Reset Adapter: reset[%d] end: %s, %s\n", mode, getHCIStatusCodeString(res).c_str(), a->toString().c_str());
+}
+
+static bool startDiscovery(DBTAdapter *a, std::string msg) {
+    HCIStatusCode status = a->startDiscovery( true );
+    fprintf(stderr, "****** Start discovery (%s) result: %s\n", msg.c_str(), getHCIStatusCodeString(status).c_str());
+    return HCIStatusCode::SUCCESS == status;
 }
 
 void test(int dev_id) {
@@ -533,9 +534,7 @@ void test(int dev_id) {
             fprintf(stderr, "Added to WHITELIST: res %d, address %s\n", res, it->toString().c_str());
         }
     } else {
-        HCIStatusCode status = adapter.startDiscovery( true );
-        if( HCIStatusCode::SUCCESS != status ) {
-            fprintf(stderr, "Adapter: Start discovery failed: %s", getHCIStatusCodeString(status).c_str());
+        if( !startDiscovery(&adapter, "kick-off") ) {
             done = true;
         }
     }

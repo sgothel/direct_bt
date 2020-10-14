@@ -122,11 +122,14 @@ public class DBTScanner10 {
                 changedmask.isSet(AdapterSettings.SettingType.POWERED) &&
                 newmask.isSet(AdapterSettings.SettingType.POWERED) )
             {
-                // powered on adapter ....
-                final HCIStatusCode res = adapter.startDiscovery( true );
-                if( res != HCIStatusCode.SUCCESS ) {
-                    println("Adapter (powered-on): Start discovery failed: "+res);
-                }
+                final Thread startDisoveryTask = new Thread( new Runnable() {
+                    @Override
+                    public void run() {
+                        startDiscovery(adapter, "powered-on");
+                    }
+                }, "DBT-StartDiscovery-"+adapter.getAddress());
+                startDisoveryTask.setDaemon(true); // detach thread
+                startDisoveryTask.start();
             }
         }
 
@@ -251,8 +254,7 @@ public class DBTScanner10 {
         }
         println("****** Connecting Device Command, res "+res+": End result "+res+" of " + device.toString());
         if( !USE_WHITELIST && 0 == devicesInProcessing.size() && HCIStatusCode.SUCCESS != res ) {
-            final HCIStatusCode r = device.getAdapter().startDiscovery( true );
-            println("****** Connecting Device: startDiscovery result "+r);
+            startDiscovery(device.getAdapter(), "post-connect");
         }
     }
 
@@ -457,8 +459,7 @@ public class DBTScanner10 {
         }
 
         if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
-            final HCIStatusCode r = device.getAdapter().startDiscovery( true );
-            println("****** Processing Device: startDiscovery.0 result "+r);
+            startDiscovery(device.getAdapter(), "post-processing-1");
         }
 
         if( KEEP_CONNECTED && GATT_PING_ENABLED && success ) {
@@ -485,14 +486,11 @@ public class DBTScanner10 {
 
             device.remove();
 
-            if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
-                final HCIStatusCode r = device.getAdapter().startDiscovery( true );
-                println("****** Processing Device: startDiscovery.1 result "+r);
+            if( 0 < RESET_ADAPTER_EACH_CONN && 0 == connectionCount.get() % RESET_ADAPTER_EACH_CONN ) {
+                resetAdapter(device.getAdapter(), 2);
+            } else if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
+                startDiscovery(device.getAdapter(), "post-processing-2");
             }
-        }
-
-        if( 0 < RESET_ADAPTER_EACH_CONN && 0 == connectionCount.get() % RESET_ADAPTER_EACH_CONN ) {
-            resetAdapter(device.getAdapter(), 2);
         }
 
         if( 0 < MULTI_MEASUREMENTS.get() ) {
@@ -510,8 +508,7 @@ public class DBTScanner10 {
         device.remove();
 
         if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
-            final HCIStatusCode r = device.getAdapter().startDiscovery( true );
-            println("****** Remove Device: startDiscovery result "+r);
+            startDiscovery(device.getAdapter(), "post-remove-device");
         }
     }
 
@@ -519,6 +516,12 @@ public class DBTScanner10 {
         println("****** Reset Adapter: reset["+mode+"] start: "+adapter.toString());
         final HCIStatusCode res = adapter.reset();
         println("****** Reset Adapter: reset["+mode+"] end: "+res+", "+adapter.toString());
+    }
+
+    private boolean startDiscovery(final BluetoothAdapter adapter, final String msg) {
+        final HCIStatusCode status = adapter.startDiscovery( true );
+        println("****** Start discovery ("+msg+") result: "+status);
+        return HCIStatusCode.SUCCESS == status;
     }
 
     public void runTest(final BluetoothManager manager) {
@@ -563,9 +566,7 @@ public class DBTScanner10 {
                 println("Added to whitelist: res "+res+", address "+addr);
             }
         } else {
-            final HCIStatusCode status = adapter.startDiscovery( true );
-            if( HCIStatusCode.SUCCESS != status ) {
-                println("Adapter start discovery failed: "+status);
+            if( !startDiscovery(adapter, "kick-off") ) {
                 done = true;
             }
         }
