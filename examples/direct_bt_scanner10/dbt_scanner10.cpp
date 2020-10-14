@@ -509,7 +509,7 @@ void test(int dev_id) {
 
     timestamp_t0 = getCurrentMilliseconds();
 
-    DBTAdapter adapter(dev_id);
+    DBTAdapter adapter(dev_id); // given dev_id >= 0 or default adapter (1st powered)
     if( !adapter.hasDevId() ) {
         fprintf(stderr, "Default adapter not available.\n");
         exit(1);
@@ -561,7 +561,7 @@ void test(int dev_id) {
 
 int main(int argc, char *argv[])
 {
-    int dev_id = 0; // default
+    int dev_id = -1; // default
     BTMode btMode = BTMode::NONE;
     bool waitForEnter=false;
 
