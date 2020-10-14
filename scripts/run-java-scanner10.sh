@@ -11,23 +11,57 @@
 # ../scripts/run-java-scanner10.sh -wait 2>&1 | tee ~/scanner-h01-java10.log
 #
 
+sdir=`dirname $(readlink -f $0)`
+rootdir=`dirname $sdir`
+bname=`basename $0 .sh`
+
 if [ ! -e lib/java/tinyb2.jar -o ! -e bin/java/DBTScanner10.jar -o ! -e lib/libdirect_bt.so ] ; then
     echo run from dist directory
     exit 1
 fi
-# hciconfig hci0 reset
+
+if [ "$1" = "-log" ] ; then
+    logbasename=$2
+    shift 2
+else
+    logbasename=~/$bname
+fi
+
+logfile=$logbasename.log
+rm -f $logfile
+
+valgrindlogfile=$logbasename-valgrind.log
+rm -f $valgrindlogfile
+
+callgrindoutfile=$logbasename-callgrind.out
+rm -f $callgrindoutfile
+
 ulimit -c unlimited
 
 # run 'dpkg-reconfigure locales' enable 'en_US.UTF-8'
 export LANG=en_US.UTF-8
 export LC_MEASUREMENT=en_US.UTF-8
 
-echo COMMANDLINE $0 $*
-echo direct_bt_debug $direct_bt_debug
-echo direct_bt_verbose $direct_bt_verbose
-
-# JAVA_CMD="valgrind java -XX:CompileOnly=nothing -XX:UseSSE=0"
 # JAVA_CMD="java -Xcheck:jni"
 JAVA_CMD="java"
 
-$JAVA_CMD -cp lib/java/tinyb2.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
+# VALGRIND="valgrind --tool=memcheck --leak-check=full --show-reachable=yes --error-limit=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
+# VALGRIND="valgrind --tool=helgrind --track-lockorders=yes  --ignore-thread-creation=yes --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
+# VALGRIND="valgrind --tool=drd --segment-merging=no --ignore-thread-creation=yes --trace-barrier=no --trace-cond=no --trace-fork-join=no --trace-mutex=no --trace-rwlock=no --trace-semaphore=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
+# VALGRIND="valgrind --tool=callgrind --instr-atstart=yes --collect-atstart=yes --collect-systime=yes --combine-dumps=yes --separate-threads=no --callgrind-out-file=$callgrindoutfile --log-file=$valgrindlogfile"
+
+runit() {
+    echo COMMANDLINE $0 $*
+    echo VALGRIND $VALGRIND
+    echo logbasename $logbasename
+    echo logfile $logfile
+    echo valgrindlogfile $valgrindlogfile
+    echo callgrindoutfile $callgrindoutfile
+    echo direct_bt_debug $direct_bt_debug
+    echo direct_bt_verbose $direct_bt_verbose
+
+    $VALGRIND $JAVA_CMD -cp lib/java/tinyb2.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
+}
+
+runit $* 2>&1 | tee $logfile
+

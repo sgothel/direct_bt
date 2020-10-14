@@ -37,7 +37,6 @@ rm -f $valgrindlogfile
 callgrindoutfile=$logbasename-callgrind.out
 rm -f $callgrindoutfile
 
-# hciconfig hci0 reset
 ulimit -c unlimited
 
 # run 'dpkg-reconfigure locales' enable 'en_US.UTF-8'
