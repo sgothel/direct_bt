@@ -311,12 +311,12 @@ HCIStatusCode DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_w
         return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
     }
 
-    std::shared_ptr<HCIHandler> hci = adapter.getHCI();
-    if( nullptr == hci ) {
-        ERR_PRINT("DBTDevice::connectLE: HCI not available: %s", toString().c_str());
+    HCIHandler &hci = adapter.getHCI();
+    if( !hci.isOpen() ) {
+        ERR_PRINT("DBTDevice::connectLE: HCI closed: %s", toString().c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
-    HCIStatusCode status = hci->le_create_conn(address,
+    HCIStatusCode status = hci.le_create_conn(address,
                                       hci_peer_mac_type, hci_own_mac_type,
                                       le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
                                       conn_latency, supervision_timeout);
@@ -363,12 +363,12 @@ HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t cl
         return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
     }
 
-    std::shared_ptr<HCIHandler> hci = adapter.getHCI();
-    if( nullptr == hci ) {
-        ERR_PRINT("DBTDevice::connectBREDR: HCI not available: %s", toString().c_str());
+    HCIHandler &hci = adapter.getHCI();
+    if( !hci.isOpen() ) {
+        ERR_PRINT("DBTDevice::connectBREDR: HCI closed: %s", toString().c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
-    HCIStatusCode status = hci->create_conn(address, pkt_type, clock_offset, role_switch);
+    HCIStatusCode status = hci.create_conn(address, pkt_type, clock_offset, role_switch);
     allowDisconnect = true;
     if ( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("DBTDevice::connectBREDR: Could not create connection: status 0x%2.2X (%s), errno %d %s on %s",
@@ -455,7 +455,7 @@ HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
             static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
             (nullptr != gattHandler), uint16HexString(hciConnHandle).c_str());
 
-    std::shared_ptr<HCIHandler> hci = adapter.getHCI();
+    HCIHandler &hci = adapter.getHCI();
     HCIStatusCode res = HCIStatusCode::SUCCESS;
 
     if( 0 == hciConnHandle ) {
@@ -463,13 +463,13 @@ HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
         goto exit;
     }
 
-    if( nullptr == hci ) {
-        DBG_PRINT("DBTDevice::disconnect: Skip disconnect: HCI not available: %s", toString().c_str());
+    if( !hci.isOpen() ) {
+        ERR_PRINT("DBTDevice::disconnect: Skip disconnect: HCI closed: %s", toString().c_str());
         res = HCIStatusCode::UNSPECIFIED_ERROR; // powered-off?
         goto exit;
     }
 
-    res = hci->disconnect(hciConnHandle.load(), address, addressType, reason);
+    res = hci.disconnect(hciConnHandle.load(), address, addressType, reason);
     if( HCIStatusCode::SUCCESS != res ) {
         ERR_PRINT("DBTDevice::disconnect: status %s, handle 0x%X, isConnected %d/%d: errno %d %s on %s",
                 getHCIStatusCodeString(res).c_str(), hciConnHandle.load(),

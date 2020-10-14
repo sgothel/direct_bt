@@ -130,49 +130,6 @@ std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (EUI48 const & mac, c
 // *************************************************
 // *************************************************
 
-std::shared_ptr<HCIHandler> DBTAdapter::getHCI() noexcept
-{
-    if( !isValid() ) {
-        ERR_PRINT("DBTAdapter::getHCI(): Adapter state invalid: %s, %s", aptrHexString(this).c_str(), toString().c_str());
-        return nullptr;
-    }
-    const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
-    if( nullptr != hci ) {
-        return hci;
-    }
-    std::shared_ptr<HCIHandler> _hci = std::shared_ptr<HCIHandler>( new HCIHandler(btMode, dev_id) );
-    if( !_hci->isOpen() ) {
-        ERR_PRINT("Could not open HCIHandler: %s of %s", _hci->toString().c_str(), toString().c_str());
-        return nullptr; // dtor local HCIHandler
-    }
-    bool ok = true;
-    ok = _hci->addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringHCI)) && ok;
-    ok = _hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceConnectedHCI)) && ok;
-    ok = _hci->addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, bindMemberFunc(this, &DBTAdapter::mgmtEvConnectFailedHCI)) && ok;
-    ok = _hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedHCI)) && ok;
-    ok = _hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceFoundHCI)) && ok;
-    if( !ok ) {
-        ERR_PRINT("Could not add all required MgmtEventCallbacks to HCIHandler: %s of %s", _hci->toString().c_str(), toString().c_str());
-        return nullptr; // dtor local HCIHandler w/ closing
-    }
-    hci = _hci; // make it persistent for all
-    return hci;
-}
-
-bool DBTAdapter::closeHCI() noexcept
-{
-    const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
-    DBG_PRINT("DBTAdapter::closeHCI: ...");
-    if( nullptr == hci ) {
-        DBG_PRINT("DBTAdapter::closeHCI: HCI null");
-        return false;
-    }
-    hci->close();
-    hci = nullptr;
-    DBG_PRINT("DBTAdapter::closeHCI: XXX");
-    return true;
-}
-
 bool DBTAdapter::validateDevInfo() noexcept {
     currentMetaScanType = ScanType::NONE;
     currentNativeScanType = ScanType::NONE;
@@ -183,7 +140,11 @@ bool DBTAdapter::validateDevInfo() noexcept {
         return false;
     }
     if( !mgmt.isOpen() ) {
-        ERR_PRINT("DBTAdapter::validateDevInfo: Manager not open on dev_id %d", dev_id);
+        ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: Manager not open", dev_id);
+        return false;
+    }
+    if( !hci.isOpen() ) {
+        ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: HCIHandler closed", dev_id);
         return false;
     }
 
@@ -191,10 +152,25 @@ bool DBTAdapter::validateDevInfo() noexcept {
 
     btMode = adapterInfo->getCurrentBTMode();
     if( BTMode::NONE == btMode ) {
-        ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d] BTMode invalid, BREDR nor LE set: %s", dev_id, adapterInfo->toString().c_str());
+        ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: BTMode invalid, BREDR nor LE set: %s", dev_id, adapterInfo->toString().c_str());
         return false;
     }
+    hci.setBTMode(btMode);
 
+    if( isPowered() ) {
+        HCILocalVersion version;
+        HCIStatusCode status = hci.getLocalVersion(version);
+        if( HCIStatusCode::SUCCESS != status ) {
+            ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: POWERED, LocalVersion failed %s - %s",
+                    dev_id, getHCIStatusCodeString(status).c_str(), adapterInfo->toString().c_str());
+            return false;
+        } else {
+            WORDY_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: POWERED, %s - %s",
+                    dev_id, version.toString().c_str(), adapterInfo->toString().c_str());
+        }
+    } else {
+        WORDY_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: Not POWERED: %s", dev_id, adapterInfo->toString().c_str());
+    }
     bool ok = true;
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, bindMemberFunc(this, &DBTAdapter::mgmtEvNewSettingsMgmt)) && ok;
@@ -207,26 +183,42 @@ bool DBTAdapter::validateDevInfo() noexcept {
 #ifdef VERBOSE_ON
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedMgmt));
 #endif
+
+    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringHCI)) && ok;
+    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceConnectedHCI)) && ok;
+    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, bindMemberFunc(this, &DBTAdapter::mgmtEvConnectFailedHCI)) && ok;
+    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedHCI)) && ok;
+    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceFoundHCI)) && ok;
+    if( !ok ) {
+        ERR_PRINT("Could not add all required MgmtEventCallbacks to HCIHandler: %s of %s", hci.toString().c_str(), toString().c_str());
+        return false; // dtor local HCIHandler w/ closing
+    }
     return true;
 }
 
 DBTAdapter::DBTAdapter() noexcept
 : debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.adapter.event", false)),
-  mgmt(DBTManager::get(BTMode::NONE /* use env default */)), dev_id(nullptr != mgmt.getDefaultAdapterInfo() ? 0 : -1)
+  mgmt( DBTManager::get(BTMode::NONE /* use env default */) ),
+  dev_id( mgmt.getDefaultAdapterIdx() ),
+  hci( dev_id )
 {
     valid = validateDevInfo();
 }
 
 DBTAdapter::DBTAdapter(EUI48 &mac) noexcept
 : debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.adapter.event", false)),
-  mgmt(DBTManager::get(BTMode::NONE /* use env default */)), dev_id(mgmt.findAdapterInfoIdx(mac))
+  mgmt( DBTManager::get(BTMode::NONE /* use env default */) ),
+  dev_id( mgmt.findAdapterInfoIdx(mac) ),
+  hci( dev_id )
 {
     valid = validateDevInfo();
 }
 
-DBTAdapter::DBTAdapter(const int dev_id) noexcept
+DBTAdapter::DBTAdapter(const int _dev_id) noexcept
 : debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.adapter.event", false)),
-  mgmt(DBTManager::get(BTMode::NONE /* use env default */)), dev_id(dev_id)
+  mgmt( DBTManager::get(BTMode::NONE /* use env default */) ),
+  dev_id( 0 <= _dev_id ? _dev_id : mgmt.getDefaultAdapterIdx() ),
+  hci( dev_id )
 {
     valid = validateDevInfo();
 }
@@ -245,7 +237,11 @@ DBTAdapter::~DBTAdapter() noexcept {
     }
 
     poweredOff();
-    closeHCI();
+
+    DBG_PRINT("DBTAdapter::dtor: closeHCI: ...");
+    hci.close();
+    DBG_PRINT("DBTAdapter::dtor: closeHCI: XXX");
+
     {
         const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
         discoveredDevices.clear();
@@ -308,9 +304,12 @@ bool DBTAdapter::setPowered(bool value) noexcept {
 }
 
 HCIStatusCode DBTAdapter::reset() noexcept {
-    std::shared_ptr<HCIHandler> hci = getHCI();
-    if( nullptr == hci ) {
-        ERR_PRINT("DBTAdapter::reset: HCI not available: %s", toString().c_str());
+    if( !isValid() ) {
+        ERR_PRINT("DBTAdapter::reset(): Adapter invalid: %s, %s", aptrHexString(this).c_str(), toString().c_str());
+        return HCIStatusCode::UNSPECIFIED_ERROR;
+    }
+    if( !hci.isOpen() ) {
+        ERR_PRINT("DBTAdapter::reset(): HCI closed: %s, %s", aptrHexString(this).c_str(), toString().c_str());
         return HCIStatusCode::UNSPECIFIED_ERROR;
     }
 #if 0
@@ -329,7 +328,7 @@ HCIStatusCode DBTAdapter::reset() noexcept {
     }
     return status;
 #else
-    return hci->resetAdapter();
+    return hci.resetAdapter();
 #endif
 }
 
@@ -483,18 +482,12 @@ HCIStatusCode DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAdd
     removeDiscoveredDevices();
     keepDiscoveringAlive = keepAlive;
 
-    std::shared_ptr<HCIHandler> hci = getHCI();
-    if( nullptr == hci ) {
-        ERR_PRINT("DBTAdapter::startDiscovery: HCI not available: %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
-    }
-
-    HCIStatusCode status = hci->le_set_scan_param();
+    HCIStatusCode status = hci.le_set_scan_param();
     if( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("DBTAdapter::startDiscovery: le_set_scan_param failed: %s", getHCIStatusCodeString(status).c_str());
     } else {
         // Will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, don't change current scan-type state here
-        status = hci->le_enable_scan(true /* enable */);
+        status = hci.le_enable_scan(true /* enable */);
         if( HCIStatusCode::SUCCESS != status ) {
             ERR_PRINT("DBTAdapter::startDiscovery: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
         }
@@ -515,13 +508,8 @@ void DBTAdapter::startDiscoveryBackground() noexcept {
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     if( ScanType::NONE == currentNativeScanType && keepDiscoveringAlive ) { // still?
-        std::shared_ptr<HCIHandler> hci = getHCI();
-        if( nullptr == hci ) {
-            ERR_PRINT("DBTAdapter::startDiscoveryBackground: HCI not available: %s", toString().c_str());
-            return;
-        }
         // Will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, don't change current scan-type state here
-        HCIStatusCode status = hci->le_enable_scan(true /* enable */);
+        HCIStatusCode status = hci.le_enable_scan(true /* enable */);
         if( HCIStatusCode::SUCCESS != status ) {
             ERR_PRINT("DBTAdapter::startDiscoveryBackground: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
         }
@@ -566,9 +554,8 @@ HCIStatusCode DBTAdapter::stopDiscovery() noexcept {
     }
 
     HCIStatusCode status;
-    std::shared_ptr<HCIHandler> hci = getHCI();
-    if( nullptr == hci ) {
-        ERR_PRINT("DBTAdapter::stopDiscovery: HCI not available: %s", toString().c_str());
+    if( !hci.isOpen() ) {
+        ERR_PRINT("DBTAdapter::stopDiscovery: HCI closed: %s", toString().c_str());
         status = HCIStatusCode::INTERNAL_FAILURE;
         goto exit;
     }
@@ -579,7 +566,7 @@ HCIStatusCode DBTAdapter::stopDiscovery() noexcept {
         status = HCIStatusCode::SUCCESS; // send event: discoveryTempDisabled
     } else {
         // Actual disabling discovery
-        HCIStatusCode status = hci->le_enable_scan(false /* enable */);
+        HCIStatusCode status = hci.le_enable_scan(false /* enable */);
         if( HCIStatusCode::SUCCESS != status ) {
             ERR_PRINT("DBTAdapter::stopDiscovery: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
         }
@@ -588,7 +575,7 @@ HCIStatusCode DBTAdapter::stopDiscovery() noexcept {
 exit:
     if( discoveryTempDisabled || HCIStatusCode::SUCCESS != status ) {
         // In case of discoveryTempDisabled, power-off, le_enable_scane failure
-        // or already pulled HCIHandler, send the event directly.
+        // or already closed HCIHandler, send the event directly.
         // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
         std::thread bg(&DBTAdapter::mgmtEvDeviceDiscoveringHCI, this, std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, false) ) ); // @suppress("Invalid arguments")
         bg.detach();

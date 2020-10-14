@@ -160,13 +160,15 @@ namespace direct_bt {
     class DBTAdapter : public DBTObject
     {
         private:
-            /** Returns index >= 0 if found, otherwise -1 */
-            static int findDeviceIdx(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType) noexcept;
-            static std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType) noexcept;
-            std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device) noexcept;
-
             const bool debug_event;
             DBTManager& mgmt;
+
+        public:
+            const int dev_id;
+
+        private:
+            HCIHandler hci;
+
             std::shared_ptr<AdapterInfo> adapterInfo;
             std::atomic<BTMode> btMode = BTMode::NONE;
             NameAndShortName localName;
@@ -174,12 +176,10 @@ namespace direct_bt {
             std::atomic<ScanType> currentNativeScanType; // = ScanType::NONE
             std::atomic<bool> keepDiscoveringAlive; //  = false;
 
-            std::shared_ptr<HCIHandler> hci;
             std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
             std::vector<std::shared_ptr<DBTDevice>> sharedDevices; // All active shared devices. Final holder of DBTDevice lifecycle!
             std::vector<std::shared_ptr<AdapterStatusListener>> statusListenerList;
-            std::recursive_mutex mtx_hci;
             std::mutex mtx_discoveredDevices;
             std::mutex mtx_connectedDevices;
             std::recursive_mutex mtx_sharedDevices; // Final mutex of all DBTDevice lifecycle!
@@ -188,6 +188,11 @@ namespace direct_bt {
 
             bool validateDevInfo() noexcept;
 
+            /** Returns index >= 0 if found, otherwise -1 */
+            static int findDeviceIdx(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType) noexcept;
+            static std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType) noexcept;
+            std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device) noexcept;
+
             /**
              * Closes all device connections, stops discovery and cleans up all references.
              * <p>
@@ -195,8 +200,6 @@ namespace direct_bt {
              * </p>
              */
             void poweredOff() noexcept;
-
-            bool closeHCI() noexcept;
 
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const noexcept;
             friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() noexcept;
@@ -246,25 +249,38 @@ namespace direct_bt {
             void sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept;
 
         public:
-            const int dev_id;
 
             /**
              * Using the default adapter device
+             * <p>
+             * The default adapter is either the first POWERED adapter,
+             * or the one with index == dev_id == 0.
+             * </p>
              */
             DBTAdapter() noexcept;
 
             /**
+             * Using the identified adapter with given mac address.
+             *
              * @param[in] mac address
              */
             DBTAdapter(EUI48 &mac) noexcept;
 
             /**
+             * Using the identified adapter with given dev_id,
+             * or the default adapter device if dev_id < 0.
+             * <p>
+             * The default adapter is either the first POWERED adapter,
+             * or the one with index == dev_id == 0.
+             * </p>
+             *
              * @param[in] dev_id an already identified HCI device id
+             *            or use -1 to choose the default adapter.
              */
             DBTAdapter(const int dev_id) noexcept;
 
             /**
-             * Releases this instance after HCISession shutdown().
+             * Releases this instance.
              */
             ~DBTAdapter() noexcept;
 
@@ -289,15 +305,13 @@ namespace direct_bt {
             /**
              * Returns true if the device is powered.
              */
-            bool isPowered() noexcept {
-                return isAdapterSettingSet(currentAdapterSettings, AdapterSetting::POWERED);
-            }
+            bool isPowered() noexcept { return adapterInfo->isCurrentSettingBitSet(AdapterSetting::POWERED); }
 
             /**
-             * Returns true if {@link #isPowered()} and if {@link #getHCI()} succeeds.
+             * Returns true if DBTAdapter::isValid() and HCIHandler::isOpen() and DBTAdapter::isPowered().
              */
-            bool isEnabled() {
-                return isPowered() && nullptr != getHCI(); // implies 'checkValidAdapter()'
+            bool isEnabled() noexcept {
+                return isValid() && hci.isOpen() && isPowered();
             }
 
             EUI48 const & getAddress() const noexcept { return adapterInfo->address; }
@@ -364,9 +378,9 @@ namespace direct_bt {
             DBTManager& getManager() const noexcept { return mgmt; }
 
             /**
-             * Returns the already open or newly opened HCIHandler or {@code nullptr} if not available.
+             * Returns a reference to the aggregated HCIHandler instance.
              */
-            std::shared_ptr<HCIHandler> getHCI() noexcept;
+            HCIHandler& getHCI() noexcept { return hci; }
 
             /**
              * Returns true, if the adapter's device is already whitelisted.
