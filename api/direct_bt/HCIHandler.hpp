@@ -227,6 +227,7 @@ namespace direct_bt {
             std::atomic<BTMode> btMode;
 
             std::vector<HCIConnectionRef> connectionList;
+            std::vector<HCIConnectionRef> disconnectList;
             std::recursive_mutex mtx_connectionList;
             /**
              * Returns a newly added HCIConnectionRef tracker connection with given parameters, if not existing yet.
@@ -240,12 +241,35 @@ namespace direct_bt {
              * @param addrType key to matching connection
              * @param handle ignored for existing tracker _if_ invalid, i.e. zero.
              */
-            HCIConnectionRef addOrUpdateTrackerConnection(const EUI48 & address, BDAddressType addrType, const uint16_t handle) noexcept;
-            HCIConnectionRef findTrackerConnection(const EUI48 & address, BDAddressType addrType) noexcept;
+            HCIConnectionRef addOrUpdateHCIConnection(std::vector<HCIConnectionRef> &list,
+                                                      const EUI48 & address, BDAddressType addrType, const uint16_t handle) noexcept;
+            HCIConnectionRef addOrUpdateTrackerConnection(const EUI48 & address, BDAddressType addrType, const uint16_t handle) noexcept {
+                return addOrUpdateHCIConnection(connectionList, address, addrType, handle);
+            }
+            HCIConnectionRef addOrUpdateDisconnect(const EUI48 & address, BDAddressType addrType, const uint16_t handle) noexcept {
+                return addOrUpdateHCIConnection(disconnectList, address, addrType, handle);
+            }
+
+            HCIConnectionRef findHCIConnection(std::vector<HCIConnectionRef> &list, const EUI48 & address, BDAddressType addrType) noexcept;
+            HCIConnectionRef findTrackerConnection(const EUI48 & address, BDAddressType addrType) noexcept {
+                return findHCIConnection(connectionList, address, addrType);
+            }
+            HCIConnectionRef findDisconnect(const EUI48 & address, BDAddressType addrType) noexcept {
+                return findHCIConnection(disconnectList, address, addrType);
+            }
+
             HCIConnectionRef findTrackerConnection(const uint16_t handle) noexcept;
             HCIConnectionRef removeTrackerConnection(const HCIConnectionRef conn) noexcept;
-            HCIConnectionRef removeTrackerConnection(const uint16_t handle) noexcept;
-            void clearTrackerConnections() noexcept;
+
+            HCIConnectionRef removeHCIConnection(std::vector<HCIConnectionRef> &list, const uint16_t handle) noexcept;
+            HCIConnectionRef removeTrackerConnection(const uint16_t handle) noexcept {
+                return removeHCIConnection(connectionList, handle);
+            }
+            HCIConnectionRef removeDisconnect(const uint16_t handle) noexcept {
+                return removeHCIConnection(disconnectList, handle);
+            }
+
+            void clearConnectionLists() noexcept;
 
             /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
             std::array<MgmtEventCallbackList, static_cast<uint16_t>(MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT)> mgmtEventCallbackLists;

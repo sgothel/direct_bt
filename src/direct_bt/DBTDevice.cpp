@@ -321,18 +321,6 @@ HCIStatusCode DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_w
                                       le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
                                       conn_latency, supervision_timeout);
     allowDisconnect = true;
-#if 0
-    if( HCIStatusCode::CONNECTION_ALREADY_EXISTS == status ) {
-        WORDY_PRINT("DBTDevice::connectLE: Connection already exists: status 0x%2.2X (%s) on %s",
-                static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), toString().c_str());
-        std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
-        if( nullptr == sharedInstance ) {
-            throw InternalError("DBTDevice::connectLE: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
-        }
-        adapter.performDeviceConnected(sharedInstance, getCurrentMilliseconds());
-        return 0;
-    }
-#endif
     if( HCIStatusCode::COMMAND_DISALLOWED == status ) {
         WARN_PRINT("DBTDevice::connectLE: Could not yet create connection: status 0x%2.2X (%s), errno %d, hci-atype[peer %s, own %s] %s on %s",
                 static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno),
