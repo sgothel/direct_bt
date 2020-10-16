@@ -758,8 +758,12 @@ WARN_LOGFILE           =
 # spaces.
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/api/ \
+INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/jaucpp/include/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/jaucpp/src \
+                         @CMAKE_CURRENT_SOURCE_DIR@/jaucpp/java/jni \
+                         @CMAKE_CURRENT_SOURCE_DIR@/api/ \
                          @CMAKE_CURRENT_SOURCE_DIR@/src/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/java/jni/ \
                          @CMAKE_CURRENT_SOURCE_DIR@/README.md \
                          @CMAKE_CURRENT_SOURCE_DIR@/examples/
 
