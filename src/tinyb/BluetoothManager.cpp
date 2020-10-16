@@ -41,6 +41,9 @@ class tinyb::BluetoothEventManager {
 public:
     static void on_interface_added (GDBusObject *object,
         GDBusInterface *interface, gpointer user_data) {
+        (void) object;
+        (void) user_data;
+
         GDBusInterfaceInfo *info = g_dbus_interface_get_info(interface);
         BluetoothType type = BluetoothType::NONE;
         BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
@@ -89,6 +92,8 @@ public:
 
     static void on_object_added (GDBusObjectManager *manager,
         GDBusObject *object, gpointer user_data) {
+        (void) manager;
+
         GList *l, *interfaces = g_dbus_object_get_interfaces(object);
 
         for(l = interfaces; l != NULL; l = l->next)
@@ -198,6 +203,10 @@ std::weak_ptr<BluetoothEvent> BluetoothManager::find(BluetoothType type,
     BluetoothCallback cb, bool execute_once,
     std::chrono::milliseconds timeout)
 {
+    (void)cb;
+    (void)execute_once;
+    (void)timeout;
+
     std::shared_ptr<BluetoothEvent> event(new BluetoothEvent(type, name,
         identifier, parent));
     add_event(event);

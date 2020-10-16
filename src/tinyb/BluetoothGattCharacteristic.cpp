@@ -33,7 +33,8 @@
 using namespace tinyb;
 
 void BluetoothNotificationHandler::on_properties_changed_characteristic(GDBusProxy *proxy, GVariant *changed_properties, GStrv invalidated_properties, gpointer userdata) {
-
+    (void) proxy;
+    (void) invalidated_properties;
     auto c = static_cast<BluetoothGattCharacteristic*>(userdata);
 
     if(g_variant_n_children(changed_properties) > 0) {

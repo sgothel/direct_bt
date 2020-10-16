@@ -32,7 +32,8 @@
 using namespace tinyb;
 
 void BluetoothNotificationHandler::on_properties_changed_descriptor(GDBusProxy *proxy, GVariant *changed_properties, GStrv invalidated_properties, gpointer userdata) {
-
+    (void) proxy;
+    (void) invalidated_properties;
     auto c = static_cast<BluetoothGattDescriptor*>(userdata);
 
     if(g_variant_n_children(changed_properties) > 0) {
