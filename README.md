@@ -118,6 +118,8 @@ Up to date API documentation can be found:
 
 * [Java API Doc](https://jausoft.com/projects/direct_bt/build/documentation/java/html/index.html).
 
+* [Jau C++ Standalone API Doc](https://jausoft.com/projects/jaucpp/build/documentation/cpp/html/index.html).
+
 A guide for getting started with *Direct-BT* on C++ and Java may follow up.
 
 
@@ -178,6 +180,10 @@ Building Binaries
 
 The project requires CMake 3.1+ for building and a Java JDK >= 11.
 
+This project also uses the [Jau C++ Library](https://jausoft.com/cgit/jaucpp.git/)
+as a git submodule, which has been extracted earlier from this project
+to better encapsulation and allow general use.
+
 *TinyB* requires GLib/GIO 2.40+. It also
 requires *BlueZ* with GATT profile activated, which is currently experimental (as
 of *BlueZ* 5.37), so you might have to run bluetoothd with the -E flag. For
@@ -185,7 +191,6 @@ example, on a system with systemd (Fedora, poky, etc.) edit the
 bluetooth.service file (usually found in /usr/lib/systemd/system/ or
 /lib/systemd/system) and append -E to ExecStart line, restart the daemon with
 systemctl restart bluetooth.
-
 
 *Direct-BT* does not require GLib/GIO 
 nor shall the *BlueZ* userspace service *bluetoothd* be active for best experience.
