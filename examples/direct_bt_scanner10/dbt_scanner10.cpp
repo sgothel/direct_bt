@@ -455,7 +455,7 @@ exit:
         device->getAdapter().printSharedPtrListOfDevices();
     }
 
-    fprintf(stderr, "****** Processing Device: End: Success %d on %s; devInProc %zd\n",
+    fprintf(stderr, "****** Processing Device: End: Success %d on %s; devInProc %zu\n",
             success, device->toString().c_str(), getDeviceProcessingCount());
 
     if( success ) {
@@ -545,7 +545,7 @@ void test(int dev_id) {
             ( -1 == MULTI_MEASUREMENTS && !waitForDevices.empty() && allDevicesProcessed(waitForDevices) )
           )
         {
-            fprintf(stderr, "****** EOL Test MULTI_MEASUREMENTS left %d, processed %zd/%zd\n",
+            fprintf(stderr, "****** EOL Test MULTI_MEASUREMENTS left %d, processed %zu/%zu\n",
                     MULTI_MEASUREMENTS.load(), getDeviceProcessedCount(), waitForDevices.size());
             printList("****** WaitForDevice ", waitForDevices);
             printDevicesProcessed("****** DevicesProcessed ");
