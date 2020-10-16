@@ -180,7 +180,7 @@ Building Binaries
 
 The project requires CMake 3.1+ for building and a Java JDK >= 11.
 
-This project also uses the [Jau C++ Library](https://jausoft.com/cgit/jaucpp.git/)
+This project also uses the [Jau C++ Library](https://jausoft.com/cgit/jaucpp.git/about/)
 as a git submodule, which has been extracted earlier from this project
 to better encapsulation and allow general use.
 
