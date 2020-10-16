@@ -1,5 +1,5 @@
-cmake_minimum_required (VERSION 3.0.0 FATAL_ERROR)
-project (tinyb)
+cmake_minimum_required (VERSION 3.13.0 FATAL_ERROR)
+project (tinyb LANGUAGES C CXX)
 
 FIND_PACKAGE (Threads REQUIRED)
 FIND_PACKAGE (PkgConfig REQUIRED)
