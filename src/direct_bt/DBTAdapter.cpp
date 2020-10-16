@@ -566,7 +566,7 @@ HCIStatusCode DBTAdapter::stopDiscovery() noexcept {
         status = HCIStatusCode::SUCCESS; // send event: discoveryTempDisabled
     } else {
         // Actual disabling discovery
-        HCIStatusCode status = hci.le_enable_scan(false /* enable */);
+        status = hci.le_enable_scan(false /* enable */);
         if( HCIStatusCode::SUCCESS != status ) {
             ERR_PRINT("DBTAdapter::stopDiscovery: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
         }
