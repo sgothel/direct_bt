@@ -612,8 +612,13 @@ ScanType DBTManager::startDiscovery(const int dev_id, const ScanType scanType) n
     ScanType type = ScanType::NONE;
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-        if( MgmtStatus::SUCCESS == res1.getStatus() && 1 == res1.getDataSize() ) {
-            type = static_cast<ScanType>( *res1.getData() );
+        if( MgmtStatus::SUCCESS == res1.getStatus() && 1 <= res1.getDataSize() ) {
+            const uint8_t *p = res1.getData();
+            if( nullptr == p ) { // G++ 10: -Werror=null-dereference
+                ERR_PRINT("DBTManager::startDiscovery: Impossible MgmtEvtCmdComplete data nullptr: %s - %s", res1.toString().c_str(), req.toString().c_str());
+                return type;
+            }
+            type = static_cast<ScanType>( p[0] );
         }
     }
     return type;

@@ -59,9 +59,11 @@ AbsoluteTime::AbsoluteTime(const uint8_t * data_le, const int size) {
 
 std::string AbsoluteTime::toString() const {
     char cbuf[24]; // '2020-04-04 10:58:59' 19 + second_fractions
-    snprintf(cbuf, sizeof(cbuf), "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%2.2d",
-            (int)year, (int)month, (int)day, (int)hour, (int)minute, (int)second);
-
+    const size_t count = snprintf(cbuf, sizeof(cbuf), "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%2.2d",
+                               (int)year, (int)month, (int)day, (int)hour, (int)minute, (int)second);
+    if( count >= sizeof(cbuf) ) { // truncated?
+        throw jau::InternalError("snprintf date-format truncated "+std::to_string(count)+" >= "+std::to_string(sizeof(cbuf)), E_FILE_LINE);
+    }
     std::string res(cbuf);
     if( 0 != second_fractions ) {
         res += "."+std::to_string(second_fractions);
