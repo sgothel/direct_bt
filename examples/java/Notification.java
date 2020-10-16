@@ -38,6 +38,7 @@ import org.tinyb.HCIStatusCode;
 
 class ValueNotification implements BluetoothNotification<byte[]> {
 
+    @Override
     public void run(final byte[] tempRaw) {
             System.out.print("Temp raw = {");
             for (final byte b : tempRaw) {
@@ -66,6 +67,7 @@ class ValueNotification implements BluetoothNotification<byte[]> {
 
 class ConnectedNotification implements BluetoothNotification<Boolean> {
 
+    @Override
     public void run(final Boolean connected) {
             System.out.println("Connected");
     }
@@ -73,7 +75,7 @@ class ConnectedNotification implements BluetoothNotification<Boolean> {
 }
 
 public class Notification {
-    private static final float SCALE_LSB = 0.03125f;
+    // private static final float SCALE_LSB = 0.03125f;
     static boolean running = true;
 
     static void printDevice(final BluetoothDevice device) {
@@ -122,6 +124,7 @@ public class Notification {
          * The manager will try to initialize a BluetoothAdapter if any adapter is present in the system. To initialize
          * discovery we can call startDiscovery, which will put the default adapter in discovery mode.
          */
+        @SuppressWarnings("deprecation")
         final boolean discoveryStarted = manager.startDiscovery();
 
         System.out.println("The discovery started: " + (discoveryStarted ? "true" : "false"));
@@ -158,6 +161,7 @@ public class Notification {
         final Condition cv = lock.newCondition();
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
             public void run() {
                 running = false;
                 lock.lock();

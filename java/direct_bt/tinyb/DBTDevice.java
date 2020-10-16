@@ -39,7 +39,6 @@ import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothGattCharacteristic;
 import org.tinyb.BluetoothGattDescriptor;
 import org.tinyb.BluetoothGattService;
-import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothType;

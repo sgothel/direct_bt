@@ -128,6 +128,7 @@ public class HelloTinyB {
          * The manager will try to initialize a BluetoothAdapter if any adapter is present in the system. To initialize
          * discovery we can call startDiscovery, which will put the default adapter in discovery mode.
          */
+        @SuppressWarnings("deprecation")
         final boolean discoveryStarted = manager.startDiscovery();
 
         System.out.println("The discovery started: " + (discoveryStarted ? "true" : "false"));
@@ -161,6 +162,7 @@ public class HelloTinyB {
         final Condition cv = lock.newCondition();
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
             public void run() {
                 running = false;
                 lock.lock();

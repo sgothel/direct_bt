@@ -28,6 +28,7 @@ import tinyb.dbus.DBusObject;
 
 public class ObjectArgCallback extends BluetoothCallback
 {
+    @SuppressWarnings("unused")
     private final Object callbackArg;
 
     public ObjectArgCallback(final DBusObject bObj, final Object callbackArg)

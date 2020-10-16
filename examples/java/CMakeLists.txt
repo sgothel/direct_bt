@@ -1,3 +1,4 @@
+# examples/java/CMakeLists.txt
 find_package(Java REQUIRED)
 include(UseJava)
 

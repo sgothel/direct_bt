@@ -316,70 +316,19 @@ public class ScannerTinyB02 {
                     // System.exit(-1);
                 }
 
-                if( true ) {
-                    final BluetoothDevice _sensor = sensor;
-                    final Thread lalaTask = new Thread( new Runnable() {
-                        @Override
-                        public void run() {
-                            _sensor.disconnect();
-                        }
-                    }, "lala");
-                    lalaTask.setDaemon(true); // detach thread
-                    lalaTask.start();
-
-                    // Thread.sleep(60);
-                    // sensor.connect();
-                    continue;
-                } else {
-                final List<BluetoothGattService> primServices = sensor.getServices();
-                if ( null == primServices || primServices.isEmpty() ) {
-                    System.err.println("No BluetoothGattService found!");
-                } else {
-                    final GATTCharacteristicListener myCharacteristicListener = new GATTCharacteristicListener(null) {
-                        @Override
-                        public void notificationReceived(final BluetoothGattCharacteristic charDecl,
-                                                         final byte[] value, final long timestamp) {
-                            System.err.println("****** GATT notificationReceived: "+charDecl+
-                                               ", value "+BluetoothUtils.bytesHexString(value, true, true));
-                        }
-
-                        @Override
-                        public void indicationReceived(final BluetoothGattCharacteristic charDecl,
-                                                       final byte[] value, final long timestamp, final boolean confirmationSent) {
-                            System.err.println("****** GATT indicationReceived: "+charDecl+
-                                               ", value "+BluetoothUtils.bytesHexString(value, true, true));
-                        }
-                    };
-                    final boolean addedCharacteristicListenerRes =
-                      BluetoothGattService.addCharacteristicListenerToAll(sensor, primServices, myCharacteristicListener);
-                    System.err.println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
-
-                    int i=0, j=0;
-                    for(final Iterator<BluetoothGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
-                        final BluetoothGattService primService = srvIter.next();
-                        System.err.printf("  [%02d] Service %s\n", i, primService.toString());
-                        System.err.printf("  [%02d] Service Characteristics\n", i);
-                        final List<BluetoothGattCharacteristic> serviceCharacteristics = primService.getCharacteristics();
-                        for(final Iterator<BluetoothGattCharacteristic> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
-                            final BluetoothGattCharacteristic serviceChar = charIter.next();
-                            System.err.printf("  [%02d.%02d] Decla: %s\n", i, j, serviceChar.toString());
-                            final List<String> properties = Arrays.asList(serviceChar.getFlags());
-                            if( properties.contains("read") ) {
-                                final byte[] value = serviceChar.readValue();
-                                final String svalue = BluetoothUtils.decodeUTF8String(value, 0, value.length);
-                                System.err.printf("  [%02d.%02d] Value: %s ('%s')\n",
-                                        i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
-                            }
-                        }
+                final BluetoothDevice _sensor = sensor;
+                final Thread lalaTask = new Thread( new Runnable() {
+                    @Override
+                    public void run() {
+                        _sensor.disconnect();
                     }
-                    Thread.sleep(1000); // FIXME: Wait for notifications
+                }, "lala");
+                lalaTask.setDaemon(true); // detach thread
+                lalaTask.start();
 
-                    final boolean remRes = BluetoothGattService.removeCharacteristicListenerFromAll(sensor, primServices, myCharacteristicListener);
-                    System.err.println("Removed GATTCharacteristicListener: "+remRes);
-                }
-                sensor.disconnect();
-                System.err.println("ScannerTinyB01 04 ...: "+adapter);
-                }
+                // Thread.sleep(60);
+                // sensor.connect();
+                continue;
             }
         } catch (final Throwable t) {
             System.err.println("Caught: "+t.getMessage());

@@ -174,7 +174,6 @@ public class DBTManager implements BluetoothManager
         return find(type, name, identifier, parent, 0);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public <T extends BluetoothObject>  T find(final String name, final String identifier, final BluetoothObject parent, final long timeoutMS) {
         // Due to generic type erasure, we cannot determine the matching BluetoothType for the return parameter,
@@ -183,7 +182,6 @@ public class DBTManager implements BluetoothManager
         // return (T) find(BluetoothType.NONE, name, identifier, parent, timeoutMS);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public <T extends BluetoothObject>  T find(final String name, final String identifier, final BluetoothObject parent) {
         // Due to generic type erasure, we cannot determine the matching BluetoothType for the return parameter,

@@ -332,7 +332,7 @@ public class ScannerTinyB01 {
                             final BluetoothGattCharacteristic char2 = (BluetoothGattCharacteristic)
                                     manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, sensor, 1000);
                             System.err.println("Char UUID "+characteristic);
-                            //System.err.println("  over manager: "+char0);
+                            System.err.println("  over manager: "+char0);
                             System.err.println("  over adapter: "+char1);
                             System.err.println("  over device : "+char2);
                         }
