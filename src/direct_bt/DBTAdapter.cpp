@@ -172,9 +172,9 @@ bool DBTAdapter::validateDevInfo() noexcept {
         WORDY_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: Not POWERED: %s", dev_id, adapterInfo->toString().c_str());
     }
     bool ok = true;
-    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
-    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, bindMemberFunc(this, &DBTAdapter::mgmtEvNewSettingsMgmt)) && ok;
-    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindMemberFunc(this, &DBTAdapter::mgmtEvLocalNameChangedMgmt)) && ok;
+    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
+    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvNewSettingsMgmt)) && ok;
+    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvLocalNameChangedMgmt)) && ok;
     if( !ok ) {
         ERR_PRINT("Could not add all required MgmtEventCallbacks to DBTManager: %s", toString().c_str());
         return false;
@@ -184,11 +184,11 @@ bool DBTAdapter::validateDevInfo() noexcept {
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedMgmt));
 #endif
 
-    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringHCI)) && ok;
-    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceConnectedHCI)) && ok;
-    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, bindMemberFunc(this, &DBTAdapter::mgmtEvConnectFailedHCI)) && ok;
-    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedHCI)) && ok;
-    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceFoundHCI)) && ok;
+    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringHCI)) && ok;
+    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceConnectedHCI)) && ok;
+    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvConnectFailedHCI)) && ok;
+    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedHCI)) && ok;
+    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceFoundHCI)) && ok;
     if( !ok ) {
         ERR_PRINT("Could not add all required MgmtEventCallbacks to HCIHandler: %s of %s", hci.toString().c_str(), toString().c_str());
         return false; // dtor local HCIHandler w/ closing
@@ -275,15 +275,15 @@ void DBTAdapter::poweredOff() noexcept {
 void DBTAdapter::printSharedPtrListOfDevices() noexcept {
     {
         const std::lock_guard<std::recursive_mutex> lock0(mtx_sharedDevices);
-        printSharedPtrList("SharedDevices", sharedDevices);
+        jau::printSharedPtrList("SharedDevices", sharedDevices);
     }
     {
         const std::lock_guard<std::mutex> lock0(mtx_discoveredDevices);
-        printSharedPtrList("DiscoveredDevices", discoveredDevices);
+        jau::printSharedPtrList("DiscoveredDevices", discoveredDevices);
     }
     {
         const std::lock_guard<std::mutex> lock0(mtx_connectedDevices);
-        printSharedPtrList("ConnectedDevices", connectedDevices);
+        jau::printSharedPtrList("ConnectedDevices", connectedDevices);
     }
 }
 

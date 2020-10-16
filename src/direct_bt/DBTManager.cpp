@@ -65,7 +65,7 @@ BTMode MgmtEnv::getEnvBTMode() {
 }
 
 MgmtEnv::MgmtEnv() noexcept
-: DEBUG_GLOBAL( jau::environment::get().DEBUG ),
+: DEBUG_GLOBAL( jau::environment::get("direct_bt").debug ),
   exploding( jau::environment::getExplodingProperties("direct_bt.mgmt") ),
   MGMT_READER_THREAD_POLL_TIMEOUT( jau::environment::getInt32Property("direct_bt.mgmt.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
   MGMT_COMMAND_REPLY_TIMEOUT( jau::environment::getInt32Property("direct_bt.mgmt.cmd.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
