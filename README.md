@@ -211,7 +211,7 @@ apt install doxygen graphviz
 For a generic build use:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 CPU_COUNT=`getconf _NPROCESSORS_ONLN`
-git clone https://jausoft.com/cgit/direct_bt.git
+git clone --recurse-submodules https://jausoft.com/cgit/direct_bt.git
 cd direct_bt
 mkdir build
 cd build
