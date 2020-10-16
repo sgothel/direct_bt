@@ -1,0 +1,5 @@
+#include <jau/version.hpp>
+
+const char* jau::VERSION = "@VERSION@";
+const char* jau::VERSION_SHORT = "@VERSION_SHORT@";
+const char* jau::VERSION_API = "@VERSION_API@";
