@@ -23,12 +23,12 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef BASIC_ALGOS_HPP_
-#define BASIC_ALGOS_HPP_
+#ifndef JAU_BASIC_ALGOS_HPP_
+#define JAU_BASIC_ALGOS_HPP_
 
 #include <mutex>
 
-namespace direct_bt {
+namespace jau {
 
     /**
      * Custom for_each template, using indices instead of iterators,
@@ -73,6 +73,6 @@ namespace direct_bt {
     }
 
 
-} // namespace direct_bt
+} // namespace jau
 
-#endif /* BASIC_ALGOS_HPP_ */
+#endif /* JAU_BASIC_ALGOS_HPP_ */

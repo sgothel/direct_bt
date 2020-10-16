@@ -35,6 +35,8 @@
 #include <mutex>
 #include <atomic>
 
+#include <jau/java_uplink.hpp>
+
 #include "UUID.hpp"
 #include "BTTypes.hpp"
 #include "OctetTypes.hpp"
@@ -44,7 +46,6 @@
 
 #include "GATTDescriptor.hpp"
 
-#include "JavaUplink.hpp"
 
 /**
  * - - - - - - - - - - - - - - -

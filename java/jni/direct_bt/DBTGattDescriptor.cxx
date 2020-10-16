@@ -26,9 +26,8 @@
 #include "direct_bt_tinyb_DBTGattDescriptor.h"
 
 // #define VERBOSE_ON 1
-#include <dbt_debug.hpp>
+#include <jau/debug.hpp>
 
-#include "JNIMem.hpp"
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
@@ -36,10 +35,11 @@
 #include "direct_bt/DBTAdapter.hpp"
 
 using namespace direct_bt;
+using namespace jau;
 
 void Java_direct_1bt_tinyb_DBTGattDescriptor_deleteImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTDescriptor *descriptor = getDBTObject<GATTDescriptor>(env, obj);
+        GATTDescriptor *descriptor = getJavaUplinkObject<GATTDescriptor>(env, obj);
         (void)descriptor;
         // No delete: Service instance owned by GATTService -> DBTDevice
     } catch(...) {
@@ -50,7 +50,7 @@ void Java_direct_1bt_tinyb_DBTGattDescriptor_deleteImpl(JNIEnv *env, jobject obj
 jstring Java_direct_1bt_tinyb_DBTGattDescriptor_toStringImpl(JNIEnv *env, jobject obj) {
     (void)obj;
     try {
-        GATTDescriptor *descriptor = getDBTObject<GATTDescriptor>(env, obj);
+        GATTDescriptor *descriptor = getJavaUplinkObject<GATTDescriptor>(env, obj);
         JavaGlobalObj::check(descriptor->getJavaObject(), E_FILE_LINE);
         return from_string_to_jstring(env, descriptor->toString());
     } catch(...) {
@@ -61,7 +61,7 @@ jstring Java_direct_1bt_tinyb_DBTGattDescriptor_toStringImpl(JNIEnv *env, jobjec
 
 jbyteArray Java_direct_1bt_tinyb_DBTGattDescriptor_readValueImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTDescriptor *descriptor = getDBTObject<GATTDescriptor>(env, obj);
+        GATTDescriptor *descriptor = getJavaUplinkObject<GATTDescriptor>(env, obj);
         JavaGlobalObj::check(descriptor->getJavaObject(), E_FILE_LINE);
 
         if( !descriptor->readValue() ) {
@@ -89,7 +89,7 @@ jboolean Java_direct_1bt_tinyb_DBTGattDescriptor_writeValueImpl(JNIEnv *env, job
         if( 0 == value_size ) {
             return JNI_TRUE;
         }
-        GATTDescriptor *descriptor = getDBTObject<GATTDescriptor>(env, obj);
+        GATTDescriptor *descriptor = getJavaUplinkObject<GATTDescriptor>(env, obj);
         JavaGlobalObj::check(descriptor->getJavaObject(), E_FILE_LINE);
 
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release

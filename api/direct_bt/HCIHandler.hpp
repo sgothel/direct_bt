@@ -35,15 +35,16 @@
 #include <atomic>
 #include <thread>
 
-#include "DBTEnv.hpp"
+#include <jau/ringbuffer.hpp>
+#include <jau/environment.hpp>
+#include <jau/java_uplink.hpp>
+
 #include "BTTypes.hpp"
 #include "BTIoctl.hpp"
 #include "OctetTypes.hpp"
 #include "HCIComm.hpp"
-#include "JavaUplink.hpp"
 #include "HCITypes.hpp"
 #include "MgmtTypes.hpp"
-#include "LFRingbuffer.hpp"
 
 /**
  * - - - - - - - - - - - - - - -
@@ -85,7 +86,7 @@ namespace direct_bt {
             { return !(*this == rhs); }
 
             std::string toString() const {
-                return "HCIConnection[handle "+uint16HexString(handle)+
+                return "HCIConnection[handle "+jau::uint16HexString(handle)+
                        ", address="+address.toString()+", addressType "+getBDAddressTypeString(addressType)+"]";
             }
     };
@@ -99,7 +100,7 @@ namespace direct_bt {
      * Also see {@link DBTEnv::getExplodingProperties(const std::string & prefixDomain)}.
      * </p>
      */
-    class HCIEnv : public DBTEnvrionment {
+    class HCIEnv : public jau::root_environment {
         friend class HCIHandler;
 
         private:
@@ -199,21 +200,21 @@ namespace direct_bt {
             std::atomic<uint32_t> metaev_filter_mask;
             std::atomic<uint64_t> opcbit_filter_mask;
 
-            inline bool filter_test_metaev(HCIMetaEventType mec) noexcept { return 0 != test_bit_uint32(number(mec)-1, metaev_filter_mask); }
+            inline bool filter_test_metaev(HCIMetaEventType mec) noexcept { return 0 != jau::test_bit_uint32(number(mec)-1, metaev_filter_mask); }
             inline void filter_put_metaevs(const uint32_t mask) noexcept { metaev_filter_mask=mask; }
 
             constexpr static void filter_clear_metaevs(uint32_t &mask) noexcept { mask=0; }
             constexpr static void filter_all_metaevs(uint32_t &mask) noexcept { mask=0xffffffffU; }
-            inline static void filter_set_metaev(HCIMetaEventType mec, uint32_t &mask) noexcept { set_bit_uint32(number(mec)-1, mask); }
+            inline static void filter_set_metaev(HCIMetaEventType mec, uint32_t &mask) noexcept { jau::set_bit_uint32(number(mec)-1, mask); }
 
-            inline bool filter_test_opcbit(HCIOpcodeBit opcbit) noexcept { return 0 != test_bit_uint64(number(opcbit), opcbit_filter_mask); }
+            inline bool filter_test_opcbit(HCIOpcodeBit opcbit) noexcept { return 0 != jau::test_bit_uint64(number(opcbit), opcbit_filter_mask); }
             inline void filter_put_opcbit(const uint64_t mask) noexcept { opcbit_filter_mask=mask; }
 
             constexpr static void filter_clear_opcbit(uint64_t &mask) noexcept { mask=0; }
             constexpr static void filter_all_opcbit(uint64_t &mask) noexcept { mask=0xffffffffffffffffUL; }
-            inline static void filter_set_opcbit(HCIOpcodeBit opcbit, uint64_t &mask) noexcept { set_bit_uint64(number(opcbit), mask); }
+            inline static void filter_set_opcbit(HCIOpcodeBit opcbit, uint64_t &mask) noexcept { jau::set_bit_uint64(number(opcbit), mask); }
 
-            LFRingbuffer<std::shared_ptr<HCIEvent>, nullptr> hciEventRing;
+            jau::ringbuffer<std::shared_ptr<HCIEvent>, nullptr> hciEventRing;
             std::atomic<bool> hciReaderShallStop;
 
             std::mutex mtx_hciReaderLifecycle;

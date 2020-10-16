@@ -4,6 +4,8 @@
 #include <cstring>
 
 #include <atomic>
+#include <mutex>
+#include <condition_variable>
 #include <memory>
 
 #include <thread>
@@ -11,26 +13,21 @@
 
 #include <cppunit.h>
 
-#include <direct_bt/OrderedAtomic.hpp>
+#include <jau/ordered_atomic.hpp>
 
-using namespace direct_bt;
+using namespace jau;
 
 static int loops = 10;
 
 /**
- * test_mm_sc_drf_00: Testing SC-DRF non-atomic global read and write within an atomic acquire/release critical block.
+ * test_mm_sc_drf_01: Testing SC-DRF non-atomic global read and write within a locked mutex critical block.
  * <p>
- * Modified non-atomic memory within the atomic acquire (load) and release (store) block,
+ * Modified non-atomic memory within the locked mutex acquire and release block,
  * must be visible for all threads according to memory model (MM) Sequentially Consistent (SC) being data-race-free (DRF).
  * <br>
  * See Herb Sutter's 2013-12-23 slides p19, first box "It must be impossible for the assertion to fail – wouldn’t be SC.".
  * </p>
- * <p>
- * This test's threads utilize a spin-lock, waiting for their turn.
- * Such busy cycles were chosen to simplify the test and are not recommended
- * as they expose poor performance on a high thread-count and hence long 'working thread pipe'.
- * </p>
- * See 'test_mm_sc_drf_01' implementing same test using mutex-lock and condition wait.
+ * See 'test_mm_sc_drf_00' implementing same test using an atomic acquire/release critical block with spin-lock.
  */
 class Cppunit_tests : public Cppunit {
   private:
@@ -43,44 +40,42 @@ class Cppunit_tests : public Cppunit {
 
     int value1 = 0;
     int array[array_size] = { 0 };
-    sc_atomic_int sync_value;
+    std::mutex mtx_value;
+    std::condition_variable cvRead;
+    std::condition_variable cvWrite;
 
     void reset(int v1, int array_value) {
-        int _sync_value = sync_value; // SC-DRF acquire atomic
-        (void) _sync_value;
+        std::unique_lock<std::mutex> lock(mtx_value); // SC-DRF acquire and release @ scope exit
         value1 = v1;
         for(int i=0; i<array_size; i++) {
             array[i] = array_value;
         }
-        sync_value = v1; // SC-DRF release atomic
     }
 
     void putThreadType01(int _len, int startValue) {
         const int len = std::min(number(array_size), _len);
         {
-            int _sync_value = sync_value; // SC-DRF acquire atomic
-            _sync_value = startValue;
+            std::unique_lock<std::mutex> lock(mtx_value); // SC-DRF acquire and release @ scope exit
             for(int i=0; i<len; i++) {
-                array[i] = _sync_value+i;
+                array[i] = startValue+i;
             }
             value1 = startValue;
-            sync_value = _sync_value; // SC-DRF release atomic
+            cvRead.notify_all(); // notify waiting getter
         }
     }
     void getThreadType01(const std::string msg, int _len, int startValue) {
         const int len = std::min(number(array_size), _len);
 
-        int _sync_value;
-        while( startValue != ( _sync_value = sync_value ) ) ; // SC-DRF acquire atomic with spin-lock waiting for startValue
-        CHECKM(msg+": %s: Wrong value at read value1 (sync)", _sync_value, value1);
+        std::unique_lock<std::mutex> lock(mtx_value); // SC-DRF acquire and release @ scope exit
+        while( startValue != value1 ) {
+            cvRead.wait(lock);
+        }
         CHECKM(msg+": %s: Wrong value at read value1 (start)", startValue, value1);
 
         for(int i=0; i<len; i++) {
             int v = array[i];
-            CHECKM(msg+": %s: Wrong sync value at read array #"+std::to_string(i), (_sync_value+i), v);
             CHECKM(msg+": %s: Wrong start value at read array #"+std::to_string(i), (startValue+i), v);
         }
-        sync_value = _sync_value; // SC-DRF release atomic
     }
 
     void putThreadType11(int indexAndValue) {
@@ -89,16 +84,15 @@ class Cppunit_tests : public Cppunit {
             // idx is encoded on sync_value (v) as follows
             //   v > 0: get @ idx = v -1
             //   v < 0: put @ idx = abs(v) -1
-            int _sync_value;
+            std::unique_lock<std::mutex> lock(mtx_value); // SC-DRF acquire and release @ scope exit
             // SC-DRF acquire atomic with spin-lock waiting for encoded idx
-            do {
-                _sync_value = sync_value;
-            } while( idx != (_sync_value * -1) - 1 );
-            // fprintf(stderr, "putThreadType11.done @ %d (has %d, exp %d)\n", idx, _sync_value, (idx+1)*-1);
-            _sync_value = idx;
+            while( idx != (value1 * -1) - 1 ) {
+                cvWrite.wait(lock);
+            }
+            // fprintf(stderr, "putThreadType11.done @ %d (has %d, exp %d)\n", idx, value1, (idx+1)*-1);
             value1 = idx;
             array[idx] = idx; // last written checked first, SC-DRF should handle...
-            sync_value = _sync_value; // SC-DRF release atomic
+            cvRead.notify_all();
         }
     }
     void getThreadType11(const std::string msg, int _idx) {
@@ -107,27 +101,27 @@ class Cppunit_tests : public Cppunit {
         // idx is encoded on sync_value (v) as follows
         //   v > 0: get @ idx = v -1
         //   v < 0: put @ idx = abs(v) -1
-        int _sync_value;
         // SC-DRF acquire atomic with spin-lock waiting for idx
-        do {
-            _sync_value = sync_value;
-        } while( idx != _sync_value );
-        CHECKM(msg+": %s: Wrong value at read array (a), idx "+std::to_string(idx), idx, array[idx]); // check last-written first
-        CHECKM(msg+": %s: Wrong value at read value1, idx "+std::to_string(idx), idx, value1);
-        CHECKM(msg+": %s: Wrong value at read sync, idx "+std::to_string(idx), idx, _sync_value);
+        std::unique_lock<std::mutex> lock(mtx_value);
+        while( idx != value1 ) {
+            // fprintf(stderr, "getThreadType11.wait for has %d == exp %d\n", value1, idx);
+            cvRead.wait(lock);
+        }
+        CHECKM(msg+": %s: Wrong value at read array (idx), idx "+std::to_string(idx), idx, array[idx]); // check last-written first
+        CHECKM(msg+": %s: Wrong value at read value1 (idx), idx "+std::to_string(idx), idx, value1);
         // next write encoded idx
-        _sync_value = (idx+1)%array_size;
-        _sync_value = ( _sync_value + 1 ) * -1;
-        // fprintf(stderr, "getThreadType11.done for %d, next %d (v %d)\n", idx, (idx+1)%array_size, _sync_value);
-        value1 = _sync_value;
-        sync_value = _sync_value; // SC-DRF release atomic
+        int next_idx = (idx+1)%array_size;
+        next_idx = ( next_idx + 1 ) * -1;
+        // fprintf(stderr, "getThreadType11.done for %d, next %d (v %d)\n", idx, (idx+1)%array_size, next_idx);
+        value1 = next_idx;
+        cvWrite.notify_all();
     }
 
 
   public:
 
     Cppunit_tests()
-    : value1(0), sync_value(0) {}
+    : value1(0) {}
 
     void test01_Read1Write1() {
         fprintf(stderr, "\n\ntest01_Read1Write1.a\n");
@@ -181,7 +175,7 @@ class Cppunit_tests : public Cppunit {
 
     void test11_Read10Write10() {
         fprintf(stderr, "\n\ntest11_Read10Write10\n");
-        reset(-1, 1110); // start put idx 0
+        reset(-1, 1110);
 
         std::thread reader[array_size];
         std::thread writer[array_size];
@@ -201,7 +195,7 @@ class Cppunit_tests : public Cppunit {
 
     void test12_Read10Write10() {
         fprintf(stderr, "\n\ntest12_Read10Write10\n");
-        reset(-1, 1120); // start put idx 0
+        reset(-1, 1120);
 
         std::thread reader[array_size];
         std::thread writer[array_size];

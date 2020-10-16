@@ -32,9 +32,8 @@
 
 #include <algorithm>
 
-#define PERF_PRINT_ON 1
-// #define VERBOSE_ON 1
-#include <dbt_debug.hpp>
+// #define PERF_PRINT_ON 1
+#include <jau/debug.hpp>
 
 #include "BTIoctl.hpp"
 
@@ -232,7 +231,7 @@ std::string MgmtEvent::getOpcodeString(const Opcode opc) noexcept {
 }
 
 std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept {
-    const MgmtEvent::Opcode opc = static_cast<MgmtEvent::Opcode>( get_uint16(buffer, 0, true /* littleEndian */) );
+    const MgmtEvent::Opcode opc = static_cast<MgmtEvent::Opcode>( jau::get_uint16(buffer, 0, true /* littleEndian */) );
     MgmtEvent * res;
     switch( opc ) {
         case MgmtEvent::Opcode::CMD_COMPLETE:
@@ -296,10 +295,10 @@ std::shared_ptr<ConnectionInfo> MgmtEvtCmdComplete::toConnectionInfo() const noe
 
     const uint8_t *data = getData();
     EUI48 address = EUI48( data );
-    BDAddressType addressType = static_cast<BDAddressType>( direct_bt::get_uint8(data, 6) );
-    int8_t rssi = direct_bt::get_int8(data, 7);
-    int8_t tx_power = direct_bt::get_int8(data, 8);
-    int8_t max_tx_power = direct_bt::get_int8(data, 9);
+    BDAddressType addressType = static_cast<BDAddressType>( jau::get_uint8(data, 6) );
+    int8_t rssi = jau::get_int8(data, 7);
+    int8_t tx_power = jau::get_int8(data, 8);
+    int8_t max_tx_power = jau::get_int8(data, 9);
     return std::shared_ptr<ConnectionInfo>(new ConnectionInfo(address, addressType, rssi, tx_power, max_tx_power) );
 }
 

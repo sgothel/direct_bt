@@ -23,13 +23,13 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "BasicTypes.hpp"
-
 #include <cstdint>
 #include <cinttypes>
 #include <cmath>
 
 #include <algorithm>
+
+#include <jau/basic_types.hpp>
 
 #include "ieee11073/DataTypes.hpp"
 

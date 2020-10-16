@@ -28,10 +28,10 @@
 
 #include <algorithm>
 
-#include "direct_bt/dbt_debug.hpp"
-#include "direct_bt/BasicTypes.hpp"
+#include <jau/debug.hpp>
+#include <jau/basic_types.hpp>
 
-using namespace direct_bt;
+using namespace jau;
 
 static const int64_t NanoPerMilli = 1000000L;
 static const int64_t MilliPerOne = 1000L;
@@ -44,19 +44,19 @@ static const int64_t MilliPerOne = 1000L;
  * clock_gettime seems to be well supported at least on kernel >= 4.4.
  * Only bfin and sh are missing, while ia64 seems to be complicated.
  */
-int64_t direct_bt::getCurrentMilliseconds() noexcept {
+int64_t jau::getCurrentMilliseconds() noexcept {
     struct timespec t;
     clock_gettime(CLOCK_MONOTONIC, &t);
     return t.tv_sec * MilliPerOne + t.tv_nsec / NanoPerMilli;
 }
 
-direct_bt::RuntimeException::RuntimeException(std::string const type, std::string const m, const char* file, int line) noexcept
+jau::RuntimeException::RuntimeException(std::string const type, std::string const m, const char* file, int line) noexcept
 : msg(std::string(type).append(" @ ").append(file).append(":").append(std::to_string(line)).append(": ").append(m)),
-  backtrace(direct_bt::get_backtrace(1))
+  backtrace(jau::get_backtrace(1))
 {
 }
 
-const char* direct_bt::RuntimeException::what() const noexcept {
+const char* jau::RuntimeException::what() const noexcept {
     // return std::runtime_error::what();
     std::string out(msg);
     out.append("\nNative backtrace:\n");
@@ -64,7 +64,7 @@ const char* direct_bt::RuntimeException::what() const noexcept {
     return out.c_str();
 }
 
-std::string direct_bt::get_string(const uint8_t *buffer, int const buffer_len, int const max_len) noexcept {
+std::string jau::get_string(const uint8_t *buffer, int const buffer_len, int const max_len) noexcept {
     const int cstr_len = std::min(buffer_len, max_len);
     char cstr[max_len+1]; // EOS
     memcpy(cstr, buffer, cstr_len);
@@ -72,7 +72,7 @@ std::string direct_bt::get_string(const uint8_t *buffer, int const buffer_len, i
     return std::string(cstr);
 }
 
-uint128_t direct_bt::merge_uint128(uint16_t const uuid16, uint128_t const & base_uuid, int const uuid16_le_octet_index)
+uint128_t jau::merge_uint128(uint16_t const uuid16, uint128_t const & base_uuid, int const uuid16_le_octet_index)
 {
     if( 0 > uuid16_le_octet_index || uuid16_le_octet_index > 14 ) {
         std::string msg("uuid16_le_octet_index ");
@@ -107,7 +107,7 @@ uint128_t direct_bt::merge_uint128(uint16_t const uuid16, uint128_t const & base
     return dest;
 }
 
-uint128_t direct_bt::merge_uint128(uint32_t const uuid32, uint128_t const & base_uuid, int const uuid32_le_octet_index)
+uint128_t jau::merge_uint128(uint32_t const uuid32, uint128_t const & base_uuid, int const uuid32_le_octet_index)
 {
     if( 0 > uuid32_le_octet_index || uuid32_le_octet_index > 12 ) {
         std::string msg("uuid32_le_octet_index ");
@@ -142,7 +142,7 @@ uint128_t direct_bt::merge_uint128(uint32_t const uuid32, uint128_t const & base
     return dest;
 }
 
-std::string direct_bt::uint8HexString(const uint8_t v, const bool leading0X) noexcept {
+std::string jau::uint8HexString(const uint8_t v, const bool leading0X) noexcept {
     const int length = leading0X ? 4 : 2; // ( '0x00' | '00' )
     std::string str;
     str.reserve(length+1); // including EOS for snprintf
@@ -155,7 +155,7 @@ std::string direct_bt::uint8HexString(const uint8_t v, const bool leading0X) noe
     return str;
 }
 
-std::string direct_bt::uint16HexString(const uint16_t v, const bool leading0X) noexcept {
+std::string jau::uint16HexString(const uint16_t v, const bool leading0X) noexcept {
     const int length = leading0X ? 6 : 4; // ( '0x0000' | '0000' )
     std::string str;
     str.reserve(length+1); // including EOS for snprintf
@@ -168,7 +168,7 @@ std::string direct_bt::uint16HexString(const uint16_t v, const bool leading0X) n
     return str;
 }
 
-std::string direct_bt::uint32HexString(const uint32_t v, const bool leading0X) noexcept {
+std::string jau::uint32HexString(const uint32_t v, const bool leading0X) noexcept {
     const int length = leading0X ? 10 : 8; // ( '0x00000000' | '00000000' )
     std::string str;
     str.reserve(length+1); // including EOS for snprintf
@@ -181,7 +181,7 @@ std::string direct_bt::uint32HexString(const uint32_t v, const bool leading0X) n
     return str;
 }
 
-std::string direct_bt::uint64HexString(const uint64_t v, const bool leading0X) noexcept {
+std::string jau::uint64HexString(const uint64_t v, const bool leading0X) noexcept {
     const int length = leading0X ? 18 : 16; // ( '0x0000000000000000' | '0000000000000000' )
     std::string str;
     str.reserve(length+1); // including EOS for snprintf
@@ -194,13 +194,13 @@ std::string direct_bt::uint64HexString(const uint64_t v, const bool leading0X) n
     return str;
 }
 
-std::string direct_bt::aptrHexString(const void * v, const bool leading0X) noexcept {
+std::string jau::aptrHexString(const void * v, const bool leading0X) noexcept {
     return uint64HexString((uint64_t)v, leading0X);
 }
 
 static const char* HEX_ARRAY = "0123456789ABCDEF";
 
-std::string direct_bt::bytesHexString(const uint8_t * bytes, const int offset, const int length, const bool lsbFirst, const bool leading0X) noexcept {
+std::string jau::bytesHexString(const uint8_t * bytes, const int offset, const int length, const bool lsbFirst, const bool leading0X) noexcept {
     std::string str;
 
     if( nullptr == bytes ) {
@@ -234,7 +234,7 @@ std::string direct_bt::bytesHexString(const uint8_t * bytes, const int offset, c
     return str;
 }
 
-std::string direct_bt::int32SeparatedString(const int32_t v, const char separator) noexcept {
+std::string jau::int32SeparatedString(const int32_t v, const char separator) noexcept {
     // INT32_MIN:    -2147483648 int32_t 11 chars
     // INT32_MIN: -2,147,483,648 int32_t 14 chars
     // INT32_MAX:     2147483647 int32_t 10 chars
@@ -263,7 +263,7 @@ std::string direct_bt::int32SeparatedString(const int32_t v, const char separato
     return std::string(dst, p_dst - dst);
 }
 
-std::string direct_bt::uint32SeparatedString(const uint32_t v, const char separator) noexcept {
+std::string jau::uint32SeparatedString(const uint32_t v, const char separator) noexcept {
     // UINT32_MAX:    4294967295 uint32_t 10 chars
     // UINT32_MAX: 4,294,967,295 uint32_t 13 chars
     char src[16]; // aligned 4 byte
@@ -285,7 +285,7 @@ std::string direct_bt::uint32SeparatedString(const uint32_t v, const char separa
     return std::string(dst, p_dst - dst);
 }
 
-std::string direct_bt::uint64SeparatedString(const uint64_t v, const char separator) noexcept {
+std::string jau::uint64SeparatedString(const uint64_t v, const char separator) noexcept {
     // UINT64_MAX:       18446744073709551615 uint64_t 20 chars
     // UINT64_MAX: 18,446,744,073,709,551,615 uint64_t 26 chars
     char src[28]; // aligned 4 byte
@@ -307,7 +307,7 @@ std::string direct_bt::uint64SeparatedString(const uint64_t v, const char separa
     return std::string(dst, p_dst - dst);
 }
 
-void direct_bt::trimInPlace(std::string &s) noexcept {
+void jau::trimInPlace(std::string &s) noexcept {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
         return !std::isspace(ch);
     }));
@@ -316,7 +316,7 @@ void direct_bt::trimInPlace(std::string &s) noexcept {
     }).base(), s.end());
 }
 
-std::string direct_bt::trimCopy(const std::string &_s) noexcept {
+std::string jau::trimCopy(const std::string &_s) noexcept {
     std::string s(_s);
     trimInPlace(s);
     return s;

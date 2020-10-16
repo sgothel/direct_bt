@@ -25,15 +25,15 @@
 
 #include "direct_bt_tinyb_DBTNativeDownlink.h"
 
-#include <dbt_debug.hpp>
+#include <jau/debug.hpp>
 
-#include "JNIMem.hpp"
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
 #include "direct_bt/DBTTypes.hpp"
 
 using namespace direct_bt;
+using namespace jau;
 
 void Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, jobject obj, jlong nativeInstance)
 {

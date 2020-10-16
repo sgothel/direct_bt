@@ -24,9 +24,11 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt/dfa_utf8_decode.hpp"
+#include <jau/dfa_utf8_decode.hpp>
 
-std::string dfa_utf8_decode(const uint8_t *buffer, const size_t buffer_size) {
+using namespace jau;
+
+std::string jau::dfa_utf8_decode(const uint8_t *buffer, const size_t buffer_size) {
     uint32_t codepoint;
     uint32_t state = DFA_UTF8_ACCEPT;
     size_t byte_count;
@@ -85,7 +87,7 @@ static const uint8_t dfa_utf8d[] = {
     12,36,12,12,12,12,12,12,12,12,12,12,
 };
 
-uint32_t dfa_utf8_decode(uint32_t & state, uint32_t & codep, const uint32_t byte_value) {
+uint32_t jau::dfa_utf8_decode(uint32_t & state, uint32_t & codep, const uint32_t byte_value) {
   const uint32_t type = dfa_utf8d[byte_value];
 
   codep = (state != DFA_UTF8_ACCEPT) ?

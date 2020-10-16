@@ -44,9 +44,9 @@ extern "C" {
 // #define PERF2_PRINT_ON 1
 // PERF3_PRINT_ON for disconnect
 // #define PERF3_PRINT_ON 1
-#include <dbt_debug.hpp>
+#include <jau/debug.hpp>
 
-#include "BasicAlgos.hpp"
+#include <jau/basic_algos.hpp>
 
 #include "L2CAPIoctl.hpp"
 #include "GATTNumbers.hpp"
@@ -58,14 +58,15 @@ extern "C" {
 #include "DBTDevice.hpp"
 
 using namespace direct_bt;
+using namespace jau;
 
 GATTEnv::GATTEnv() noexcept
-: exploding( DBTEnv::getExplodingProperties("direct_bt.gatt") ),
-  GATT_READ_COMMAND_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.gatt.cmd.read.timeout", 500, 250 /* min */, INT32_MAX /* max */) ),
-  GATT_WRITE_COMMAND_REPLY_TIMEOUT(  DBTEnv::getInt32Property("direct_bt.gatt.cmd.write.timeout", 500, 250 /* min */, INT32_MAX /* max */) ),
-  GATT_INITIAL_COMMAND_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.gatt.cmd.init.timeout", 2500, 2000 /* min */, INT32_MAX /* max */) ),
-  ATTPDU_RING_CAPACITY( DBTEnv::getInt32Property("direct_bt.gatt.ringsize", 128, 64 /* min */, 1024 /* max */) ),
-  DEBUG_DATA( DBTEnv::getBooleanProperty("direct_bt.debug.gatt.data", false) )
+: exploding( environment::getExplodingProperties("direct_bt.gatt") ),
+  GATT_READ_COMMAND_REPLY_TIMEOUT( environment::getInt32Property("direct_bt.gatt.cmd.read.timeout", 500, 250 /* min */, INT32_MAX /* max */) ),
+  GATT_WRITE_COMMAND_REPLY_TIMEOUT(  environment::getInt32Property("direct_bt.gatt.cmd.write.timeout", 500, 250 /* min */, INT32_MAX /* max */) ),
+  GATT_INITIAL_COMMAND_REPLY_TIMEOUT( environment::getInt32Property("direct_bt.gatt.cmd.init.timeout", 2500, 2000 /* min */, INT32_MAX /* max */) ),
+  ATTPDU_RING_CAPACITY( environment::getInt32Property("direct_bt.gatt.ringsize", 128, 64 /* min */, 1024 /* max */) ),
+  DEBUG_DATA( environment::getBooleanProperty("direct_bt.debug.gatt.data", false) )
 {
 }
 

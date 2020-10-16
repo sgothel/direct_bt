@@ -29,6 +29,7 @@
 #pragma once
 
 #include "helper_base.hpp"
+
 #include "tinyb/BluetoothObject.hpp"
 #include "tinyb/BluetoothException.hpp"
 

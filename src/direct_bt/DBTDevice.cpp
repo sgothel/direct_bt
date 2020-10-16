@@ -33,7 +33,7 @@
 #include  <algorithm>
 
 // #define VERBOSE_ON 1
-#include <dbt_debug.hpp>
+#include <jau/debug.hpp>
 
 #include "HCIComm.hpp"
 
@@ -52,21 +52,21 @@ DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
     isConnected = false;
     allowDisconnect = false;
     if( !r.isSet(EIRDataType::BDADDR) ) {
-        throw IllegalArgumentException("Address not set: "+r.toString(), E_FILE_LINE);
+        throw jau::IllegalArgumentException("Address not set: "+r.toString(), E_FILE_LINE);
     }
     if( !r.isSet(EIRDataType::BDADDR_TYPE) ) {
-        throw IllegalArgumentException("AddressType not set: "+r.toString(), E_FILE_LINE);
+        throw jau::IllegalArgumentException("AddressType not set: "+r.toString(), E_FILE_LINE);
     }
     update(r);
 
     if( BDAddressType::BDADDR_LE_RANDOM == addressType ) {
         if( BLERandomAddressType::UNDEFINED == leRandomAddressType ) {
-            throw IllegalArgumentException("BDADDR_LE_RANDOM: Invalid BLERandomAddressType "+
+            throw jau::IllegalArgumentException("BDADDR_LE_RANDOM: Invalid BLERandomAddressType "+
                     getBLERandomAddressTypeString(leRandomAddressType)+": "+toString(), E_FILE_LINE);
         }
     } else {
         if( BLERandomAddressType::UNDEFINED != leRandomAddressType ) {
-            throw IllegalArgumentException("Not BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+
+            throw jau::IllegalArgumentException("Not BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+
                     getBLERandomAddressTypeString(leRandomAddressType)+": "+toString(), E_FILE_LINE);
         }
     }
@@ -131,7 +131,7 @@ std::vector<std::shared_ptr<uuid_t>> DBTDevice::getAdvertisedServices() const no
 
 std::string DBTDevice::toString(bool includeDiscoveredServices) const noexcept {
     const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
-    const uint64_t t0 = getCurrentMilliseconds();
+    const uint64_t t0 = jau::getCurrentMilliseconds();
     std::string leaddrtype;
     if( BLERandomAddressType::UNDEFINED != leRandomAddressType ) {
         leaddrtype = ", random "+getBLERandomAddressTypeString(leRandomAddressType);
@@ -139,9 +139,9 @@ std::string DBTDevice::toString(bool includeDiscoveredServices) const noexcept {
     std::string msdstr = nullptr != advMSD ? advMSD->toString() : "MSD[null]";
     std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+leaddrtype+"], name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
-            "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", "+uint16HexString(hciConnHandle)+"], rssi "+std::to_string(getRSSI())+
+            "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", "+jau::uint16HexString(hciConnHandle)+"], rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+
-            ", appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
+            ", appearance "+jau::uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
             "), "+msdstr+", "+javaObjectToString()+"]");
     if(includeDiscoveredServices && advServices.size() > 0 ) {
         out.append("\n");
@@ -250,7 +250,7 @@ std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() noexcept {
             if( nullptr == sharedInstance ) {
                 ERR_PRINT("DBTDevice::getConnectionInfo: Device unknown to adapter and not tracked: %s", toString().c_str());
             } else {
-                adapter.sendDeviceUpdated("getConnectionInfo", sharedInstance, getCurrentMilliseconds(), updateMask);
+                adapter.sendDeviceUpdated("getConnectionInfo", sharedInstance, jau::getCurrentMilliseconds(), updateMask);
             }
         }
     }
@@ -383,7 +383,7 @@ HCIStatusCode DBTDevice::connectDefault()
 void DBTDevice::notifyConnected(const uint16_t handle) noexcept {
     // coming from connected callback, update state and spawn-off connectGATT in background if appropriate (LE)
     DBG_PRINT("DBTDevice::notifyConnected: handle %s -> %s, %s",
-            uint16HexString(hciConnHandle).c_str(), uint16HexString(handle).c_str(), toString().c_str());
+              jau::uint16HexString(hciConnHandle).c_str(), jau::uint16HexString(handle).c_str(), toString().c_str());
     allowDisconnect = true;
     isConnected = true;
     hciConnHandle = handle;
@@ -396,7 +396,7 @@ void DBTDevice::notifyConnected(const uint16_t handle) noexcept {
 void DBTDevice::notifyDisconnected() noexcept {
     // coming from disconnect callback, ensure cleaning up!
     DBG_PRINT("DBTDevice::notifyDisconnected: handle %s -> zero, %s",
-            uint16HexString(hciConnHandle).c_str(), toString().c_str());
+              jau::uint16HexString(hciConnHandle).c_str(), toString().c_str());
     allowDisconnect = false;
     isConnected = false;
     hciConnHandle = 0;
@@ -423,7 +423,7 @@ HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
         DBG_PRINT("DBTDevice::disconnect: Not connected: isConnected %d/%d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
                 allowDisconnect.load(), isConnected.load(),
                 static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
-                (nullptr != gattHandler), uint16HexString(hciConnHandle).c_str());
+                (nullptr != gattHandler), jau::uint16HexString(hciConnHandle).c_str());
         return HCIStatusCode::CONNECTION_TERMINATED_BY_LOCAL_HOST;
     }
     if( !isConnected ) { // should not happen
@@ -441,7 +441,7 @@ HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
     WORDY_PRINT("DBTDevice::disconnect: Start: isConnected %d/%d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
             allowDisconnect.load(), isConnected.load(),
             static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
-            (nullptr != gattHandler), uint16HexString(hciConnHandle).c_str());
+            (nullptr != gattHandler), jau::uint16HexString(hciConnHandle).c_str());
 
     HCIHandler &hci = adapter.getHCI();
     HCIStatusCode res = HCIStatusCode::SUCCESS;
@@ -559,7 +559,7 @@ std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept 
         // discovery success, retrieve and parse GenericAccess
         gattGenericAccess = gh->getGenericAccess(gattServices);
         if( nullptr != gattGenericAccess ) {
-            const uint64_t ts = getCurrentMilliseconds();
+            const uint64_t ts = jau::getCurrentMilliseconds();
             EIRDataType updateMask = update(*gattGenericAccess, ts);
             DBG_PRINT("DBTDevice::getGATTServices: updated %s:\n    %s\n    -> %s",
                 getEIRDataMaskString(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
@@ -593,7 +593,7 @@ std::shared_ptr<GATTService> DBTDevice::findGATTService(std::shared_ptr<uuid_t> 
 bool DBTDevice::pingGATT() noexcept {
     std::shared_ptr<GATTHandler> gh = getGATTHandler();
     if( nullptr == gh || !gh->isConnected() ) {
-        INFO_PRINT("DBTDevice::pingGATT: GATTHandler not connected -> disconnected on %s", toString().c_str());
+        jau::INFO_PRINT("DBTDevice::pingGATT: GATTHandler not connected -> disconnected on %s", toString().c_str());
         disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
         return false;
     }
@@ -612,7 +612,7 @@ std::shared_ptr<GattGenericAccessSvc> DBTDevice::getGATTGenericAccess() {
 bool DBTDevice::addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) {
     std::shared_ptr<GATTHandler> gatt = getGATTHandler();
     if( nullptr == gatt ) {
-        throw IllegalStateException("Device's GATTHandle not connected: "+
+        throw jau::IllegalStateException("Device's GATTHandle not connected: "+
                 toString(), E_FILE_LINE);
     }
     return gatt->addCharacteristicListener(l);

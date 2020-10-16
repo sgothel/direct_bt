@@ -36,7 +36,8 @@
 #include <mutex>
 #include <atomic>
 
-#include "BasicTypes.hpp"
+#include <jau/basic_types.hpp>
+
 #include "UUID.hpp"
 #include "BTAddress.hpp"
 
@@ -66,7 +67,7 @@ namespace direct_bt {
         protected:
             static inline void checkPtr(uint8_t *d, int s) {
                 if( nullptr == d && 0 < s ) {
-                    throw IllegalArgumentException("TROOctets::setData: nullptr with size "+std::to_string(s)+" > 0", E_FILE_LINE);
+                    throw jau::IllegalArgumentException("TROOctets::setData: nullptr with size "+std::to_string(s)+" > 0", E_FILE_LINE);
                 }
             }
 
@@ -105,7 +106,7 @@ namespace direct_bt {
 
             inline void check_range(const int i, const int count, const char *file, int line) const {
                 if( 0 > i || i+count > _size ) {
-                    throw IndexOutOfBoundsException(i, count, _size, file, line);
+                    throw jau::IndexOutOfBoundsException(i, count, _size, file, line);
                 }
             }
             #define check_range(I,C) check_range((I), (C), E_FILE_LINE)
@@ -127,26 +128,26 @@ namespace direct_bt {
 
             int8_t get_int8(const int i) const {
                 check_range(i, 1);
-                return direct_bt::get_int8(_data, i);
+                return jau::get_int8(_data, i);
             }
             inline int8_t get_int8_nc(const int i) const noexcept {
-                return direct_bt::get_int8(_data, i);
+                return jau::get_int8(_data, i);
             }
 
             uint16_t get_uint16(const int i) const {
                 check_range(i, 2);
-                return direct_bt::get_uint16(_data, i, true /* littleEndian */);
+                return jau::get_uint16(_data, i, true /* littleEndian */);
             }
             inline uint16_t get_uint16_nc(const int i) const noexcept {
-                return direct_bt::get_uint16(_data, i, true /* littleEndian */);
+                return jau::get_uint16(_data, i, true /* littleEndian */);
             }
 
             uint32_t get_uint32(const int i) const {
                 check_range(i, 4);
-                return direct_bt::get_uint32(_data, i, true /* littleEndian */);
+                return jau::get_uint32(_data, i, true /* littleEndian */);
             }
             inline uint32_t get_uint32_nc(const int i) const noexcept {
-                return direct_bt::get_uint32(_data, i, true /* littleEndian */);
+                return jau::get_uint32(_data, i, true /* littleEndian */);
             }
 
             EUI48 get_eui48(const int i) const {
@@ -182,10 +183,10 @@ namespace direct_bt {
 
             uuid128_t get_uuid128(const int i) const {
                 check_range(i, uuid_t::number(uuid_t::TypeSize::UUID128_SZ));
-                return uuid128_t(get_uint128(_data, i, true /* littleEndian */));
+                return uuid128_t(jau::get_uint128(_data, i, true /* littleEndian */));
             }
             inline uuid128_t get_uuid128_nc(const int i) const noexcept {
-                return uuid128_t(get_uint128(_data, i, true /* littleEndian */));
+                return uuid128_t(jau::get_uint128(_data, i, true /* littleEndian */));
             }
 
             std::shared_ptr<const uuid_t> get_uuid(const int i, const uuid_t::TypeSize tsize) const {
@@ -210,7 +211,7 @@ namespace direct_bt {
             }
 
             std::string toString() const noexcept {
-                return "size "+std::to_string(_size)+", ro: "+bytesHexString(_data, 0, _size, true /* lsbFirst */, true /* leading0X */);
+                return "size "+std::to_string(_size)+", ro: "+jau::bytesHexString(_data, 0, _size, true /* lsbFirst */, true /* leading0X */);
             }
     };
 
@@ -244,18 +245,18 @@ namespace direct_bt {
 
             void put_uint16(const int i, const uint16_t v) {
                 check_range(i, 2);
-                direct_bt::put_uint16(data(), i, v, true /* littleEndian */);
+                jau::put_uint16(data(), i, v, true /* littleEndian */);
             }
             void put_uint16_nc(const int i, const uint16_t v) noexcept {
-                direct_bt::put_uint16(data(), i, v, true /* littleEndian */);
+                jau::put_uint16(data(), i, v, true /* littleEndian */);
             }
 
             void put_uint32(const int i, const uint32_t v) {
                 check_range(i, 4);
-                direct_bt::put_uint32(data(), i, v, true /* littleEndian */);
+                jau::put_uint32(data(), i, v, true /* littleEndian */);
             }
             void put_uint32_nc(const int i, const uint32_t v) noexcept {
-                direct_bt::put_uint32(data(), i, v, true /* littleEndian */);
+                jau::put_uint32(data(), i, v, true /* littleEndian */);
             }
 
             void put_eui48(const int i, const EUI48 & v) {
@@ -310,7 +311,7 @@ namespace direct_bt {
             }
 
             std::string toString() const noexcept {
-                return "size "+std::to_string(getSize())+", rw: "+bytesHexString(get_ptr(), 0, getSize(), true /* lsbFirst */, true /* leading0X */);
+                return "size "+std::to_string(getSize())+", rw: "+jau::bytesHexString(get_ptr(), 0, getSize(), true /* lsbFirst */, true /* leading0X */);
             }
     };
 
@@ -326,7 +327,7 @@ namespace direct_bt {
             : parent(buffer), offset(offset), size(len)
             {
                 if( offset+size > buffer.getSize() ) {
-                    throw IndexOutOfBoundsException(offset, size, buffer.getSize(), E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsException(offset, size, buffer.getSize(), E_FILE_LINE);
                 }
             }
 
@@ -356,7 +357,7 @@ namespace direct_bt {
             }
 
             std::string toString() const noexcept {
-                return "offset "+std::to_string(offset)+", size "+std::to_string(size)+": "+bytesHexString(parent.get_ptr(), offset, size, true /* lsbFirst */, true /* leading0X */);
+                return "offset "+std::to_string(offset)+", size "+std::to_string(size)+": "+jau::bytesHexString(parent.get_ptr(), offset, size, true /* lsbFirst */, true /* leading0X */);
             }
     };
 
@@ -385,7 +386,7 @@ namespace direct_bt {
                 }
                 uint8_t * m = static_cast<uint8_t*>( std::malloc(size) );
                 if( nullptr == m ) {
-                    throw OutOfMemoryError("allocData size "+std::to_string(size)+" -> nullptr", E_FILE_LINE);
+                    throw jau::OutOfMemoryError("allocData size "+std::to_string(size)+" -> nullptr", E_FILE_LINE);
                 }
                 return m;
             }
@@ -416,7 +417,7 @@ namespace direct_bt {
               capacity( _capacity )
             {
                 if( capacity < getSize() ) {
-                    throw IllegalArgumentException("capacity "+std::to_string(capacity)+" < size "+std::to_string(getSize()), E_FILE_LINE);
+                    throw jau::IllegalArgumentException("capacity "+std::to_string(capacity)+" < size "+std::to_string(getSize()), E_FILE_LINE);
                 }
                 TRACE_PRINT("POctets ctor2: %p", data());
             }
@@ -517,7 +518,7 @@ namespace direct_bt {
 
             POctets & resize(const int newSize, const int newCapacity) {
                 if( newCapacity < newSize ) {
-                    throw IllegalArgumentException("newCapacity "+std::to_string(newCapacity)+" < newSize "+std::to_string(newSize), E_FILE_LINE);
+                    throw jau::IllegalArgumentException("newCapacity "+std::to_string(newCapacity)+" < newSize "+std::to_string(newSize), E_FILE_LINE);
                 }
                 if( newCapacity != capacity ) {
                     if( newSize > getSize() ) {
@@ -535,7 +536,7 @@ namespace direct_bt {
 
             POctets & resize(const int newSize) {
                 if( capacity < newSize ) {
-                    throw IllegalArgumentException("capacity "+std::to_string(capacity)+" < newSize "+std::to_string(newSize), E_FILE_LINE);
+                    throw jau::IllegalArgumentException("capacity "+std::to_string(capacity)+" < newSize "+std::to_string(newSize), E_FILE_LINE);
                 }
                 setSize(newSize);
                 return *this;
@@ -543,7 +544,7 @@ namespace direct_bt {
 
             POctets & recapacity(const int newCapacity) {
                 if( newCapacity < getSize() ) {
-                    throw IllegalArgumentException("newCapacity "+std::to_string(newCapacity)+" < size "+std::to_string(getSize()), E_FILE_LINE);
+                    throw jau::IllegalArgumentException("newCapacity "+std::to_string(newCapacity)+" < size "+std::to_string(getSize()), E_FILE_LINE);
                 }
                 if( newCapacity == capacity ) {
                     return *this;
@@ -583,7 +584,7 @@ namespace direct_bt {
             }
 
             std::string toString() const {
-                return "size "+std::to_string(getSize())+", capacity "+std::to_string(getCapacity())+", l->h: "+bytesHexString(get_ptr(), 0, getSize(), true /* lsbFirst */, true /* leading0X */);
+                return "size "+std::to_string(getSize())+", capacity "+std::to_string(getCapacity())+", l->h: "+jau::bytesHexString(get_ptr(), 0, getSize(), true /* lsbFirst */, true /* leading0X */);
             }
     };
 

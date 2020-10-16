@@ -31,22 +31,22 @@
 #include <vector>
 #include <cstdio>
 
-#include "direct_bt/DBTEnv.hpp"
-#include "direct_bt/dbt_debug.hpp"
+#include <jau/environment.hpp>
+#include <jau/debug.hpp>
 
-using namespace direct_bt;
+using namespace jau;
 
-const uint64_t DBTEnv::startupTimeMilliseconds = direct_bt::getCurrentMilliseconds();
+const uint64_t environment::startupTimeMilliseconds = jau::getCurrentMilliseconds();
 
-bool DBTEnv::debug = false;
+bool environment::debug = false;
 
 static const std::string s_true("true");
 static const std::string s_false("false");
 
-std::string DBTEnv::getProperty(const std::string & name) noexcept {
+std::string environment::getProperty(const std::string & name) noexcept {
     const char * value = getenv(name.c_str());
     if( nullptr != value ) {
-        COND_PRINT(debug, "DBTEnv::getProperty0 '%s': '%s'", name.c_str(), value);
+        COND_PRINT(debug, "env::getProperty0 '%s': '%s'", name.c_str(), value);
         return std::string( value );
     }
     if( std::string::npos != name.find('.', 0) ) {
@@ -55,48 +55,48 @@ std::string DBTEnv::getProperty(const std::string & name) noexcept {
         std::replace( alt_name.begin(), alt_name.end(), '.', '_');
         value = getenv(alt_name.c_str());
         if( nullptr != value ) {
-            COND_PRINT(debug, "DBTEnv::getProperty0 '%s' -> '%s': '%s'", name.c_str(), alt_name.c_str(), value);
+            COND_PRINT(debug, "env::getProperty0 '%s' -> '%s': '%s'", name.c_str(), alt_name.c_str(), value);
             return std::string( value );
         }
-        COND_PRINT(debug, "DBTEnv::getProperty0 '%s' -> '%s': NOT FOUND", name.c_str(), alt_name.c_str());
+        COND_PRINT(debug, "env::getProperty0 '%s' -> '%s': NOT FOUND", name.c_str(), alt_name.c_str());
     } else {
-        COND_PRINT(debug, "DBTEnv::getProperty0 '%s': NOT FOUND", name.c_str());
+        COND_PRINT(debug, "env::getProperty0 '%s': NOT FOUND", name.c_str());
     }
     // not found: empty string
     return std::string();
 }
 
-std::string DBTEnv::getProperty(const std::string & name, const std::string & default_value) noexcept {
+std::string environment::getProperty(const std::string & name, const std::string & default_value) noexcept {
     const std::string value = getProperty(name);
     if( 0 == value.length() ) {
-        COND_PRINT(debug, "DBTEnv::getProperty1 %s: null -> %s (default)", name.c_str(), default_value.c_str());
+        COND_PRINT(debug, "env::getProperty1 %s: null -> %s (default)", name.c_str(), default_value.c_str());
         return default_value;
     } else {
-        COND_PRINT(debug, "DBTEnv::getProperty1 %s (default %s): %s", name.c_str(), default_value.c_str(), value.c_str());
+        COND_PRINT(debug, "env::getProperty1 %s (default %s): %s", name.c_str(), default_value.c_str(), value.c_str());
         return value;
     }
 }
 
-bool DBTEnv::getBooleanProperty(const std::string & name, const bool default_value) noexcept {
+bool environment::getBooleanProperty(const std::string & name, const bool default_value) noexcept {
     const std::string value = getProperty(name);
     if( 0 == value.length() ) {
-        COND_PRINT(debug, "DBTEnv::getBooleanProperty %s: null -> %d (default)", name.c_str(), default_value);
+        COND_PRINT(debug, "env::getBooleanProperty %s: null -> %d (default)", name.c_str(), default_value);
         return default_value;
     } else {
         const bool res = "true" == value;
-        COND_PRINT(debug, "DBTEnv::getBooleanProperty %s (default %d): %d/%s", name.c_str(), default_value, res, value.c_str());
+        COND_PRINT(debug, "env::getBooleanProperty %s (default %d): %d/%s", name.c_str(), default_value, res, value.c_str());
         return res;
     }
 }
 
 #include <limits.h>
 
-int32_t DBTEnv::getInt32Property(const std::string & name, const int32_t default_value,
+int32_t environment::getInt32Property(const std::string & name, const int32_t default_value,
                                  const int32_t min_allowed, const int32_t max_allowed) noexcept
 {
     const std::string value = getProperty(name);
     if( 0 == value.length() ) {
-        COND_PRINT(debug, "DBTEnv::getInt32Property %s: null -> %" PRId32 " (default)", name.c_str(), default_value);
+        COND_PRINT(debug, "env::getInt32Property %s: null -> %" PRId32 " (default)", name.c_str(), default_value);
         return default_value;
     } else {
         int32_t res = default_value;
@@ -110,33 +110,33 @@ int32_t DBTEnv::getInt32Property(const std::string & name, const int32_t default
                 if( min_allowed <= res1 && res1 <= max_allowed ) {
                     // matching user value range
                     res = res1;
-                    COND_PRINT(debug, "DBTEnv::getInt32Property %s (default %" PRId32 "): %" PRId32 "/%s",
+                    COND_PRINT(debug, "env::getInt32Property %s (default %" PRId32 "): %" PRId32 "/%s",
                             name.c_str(), default_value, res, value.c_str());
                 } else {
                     // invalid user value range
-                    ERR_PRINT("DBTEnv::getInt32Property %s: %" PRId32 "/%s (invalid user range [% " PRId32 "..%" PRId32 "]) -> %" PRId32 " (default)",
+                    ERR_PRINT("env::getInt32Property %s: %" PRId32 "/%s (invalid user range [% " PRId32 "..%" PRId32 "]) -> %" PRId32 " (default)",
                             name.c_str(), res1, value.c_str(), min_allowed, max_allowed, res);
                 }
             } else {
                 // invalid int32_t range
-                ERR_PRINT("DBTEnv::getInt32Property %s: %" PRIu64 "/%s (invalid int32_t range) -> %" PRId32 " (default)",
+                ERR_PRINT("env::getInt32Property %s: %" PRIu64 "/%s (invalid int32_t range) -> %" PRId32 " (default)",
                         name.c_str(), (uint64_t)res0, value.c_str(), res);
             }
         } else {
             // string value not fully valid
-            ERR_PRINT("DBTEnv::getInt32Property %s: %s (invalid string) -> %" PRId32 " (default)",
+            ERR_PRINT("env::getInt32Property %s: %s (invalid string) -> %" PRId32 " (default)",
                     name.c_str(), value.c_str(), res);
         }
         return res;
     }
 }
 
-uint32_t DBTEnv::getUint32Property(const std::string & name, const uint32_t default_value,
+uint32_t environment::getUint32Property(const std::string & name, const uint32_t default_value,
                                    const uint32_t min_allowed, const uint32_t max_allowed) noexcept
 {
     const std::string value = getProperty(name);
     if( 0 == value.length() ) {
-        COND_PRINT(debug, "DBTEnv::getUint32Property %s: null -> %" PRIu32 " (default)", name.c_str(), default_value);
+        COND_PRINT(debug, "env::getUint32Property %s: null -> %" PRIu32 " (default)", name.c_str(), default_value);
         return default_value;
     } else {
         uint32_t res = default_value;
@@ -150,28 +150,28 @@ uint32_t DBTEnv::getUint32Property(const std::string & name, const uint32_t defa
                 if( min_allowed <= res1 && res1 <= max_allowed ) {
                     // matching user value range
                     res = res1;
-                    COND_PRINT(debug, "DBTEnv::getUint32Property %s (default %" PRIu32 "): %" PRIu32 "/%s",
+                    COND_PRINT(debug, "env::getUint32Property %s (default %" PRIu32 "): %" PRIu32 "/%s",
                             name.c_str(), default_value, res, value.c_str());
                 } else {
                     // invalid user value range
-                    ERR_PRINT("DBTEnv::getUint32Property %s: %" PRIu32 "/%s (invalid user range [% " PRIu32 "..%" PRIu32 "]) -> %" PRIu32 " (default)",
+                    ERR_PRINT("env::getUint32Property %s: %" PRIu32 "/%s (invalid user range [% " PRIu32 "..%" PRIu32 "]) -> %" PRIu32 " (default)",
                             name.c_str(), res1, value.c_str(), min_allowed, max_allowed, res);
                 }
             } else {
                 // invalid uint32_t range
-                ERR_PRINT("DBTEnv::getUint32Property %s: %" PRIu64 "/%s (invalid uint32_t range) -> %" PRIu32 " (default)",
+                ERR_PRINT("env::getUint32Property %s: %" PRIu64 "/%s (invalid uint32_t range) -> %" PRIu32 " (default)",
                         name.c_str(), (uint64_t)res0, value.c_str(), res);
             }
         } else {
             // string value not fully valid
-            ERR_PRINT("DBTEnv::getUint32Property %s: %s (invalid string) -> %" PRIu32 " (default)",
+            ERR_PRINT("env::getUint32Property %s: %s (invalid string) -> %" PRIu32 " (default)",
                     name.c_str(), value.c_str(), res);
         }
         return res;
     }
 }
 
-void DBTEnv::envSet(std::string prefixDomain, std::string basepair) noexcept {
+void environment::envSet(std::string prefixDomain, std::string basepair) noexcept {
     trimInPlace(basepair);
     if( basepair.length() > 0 ) {
         size_t pos = 0, start = 0;
@@ -183,22 +183,22 @@ void DBTEnv::envSet(std::string prefixDomain, std::string basepair) noexcept {
             trimInPlace(value);
             if( name.length() > 0 ) {
                 if( value.length() > 0 ) {
-                    COND_PRINT(debug, "DBTEnv::setProperty %s -> %s (explode)", name.c_str(), value.c_str());
+                    COND_PRINT(debug, "env::setProperty %s -> %s (explode)", name.c_str(), value.c_str());
                     setenv(name.c_str(), value.c_str(), 1 /* overwrite */);
                 } else {
-                    COND_PRINT(debug, "DBTEnv::setProperty %s -> true (explode default-1)", name.c_str());
+                    COND_PRINT(debug, "env::setProperty %s -> true (explode default-1)", name.c_str());
                     setenv(name.c_str(), "true", 1 /* overwrite */);
                 }
             }
         } else {
             const std::string name = prefixDomain+"."+basepair;
-            COND_PRINT(debug, "DBTEnv::setProperty %s -> true (explode default-0)", name.c_str());
+            COND_PRINT(debug, "env::setProperty %s -> true (explode default-0)", name.c_str());
             setenv(name.c_str(), "true", 1 /* overwrite */);
         }
     }
 }
 
-void DBTEnv::envExplodeProperties(std::string prefixDomain, std::string list) noexcept {
+void environment::envExplodeProperties(std::string prefixDomain, std::string list) noexcept {
     size_t pos = 0, start = 0;
     while( (pos = list.find(',', start)) != std::string::npos ) {
         const size_t elem_len = pos-start; // excluding ','
@@ -209,12 +209,12 @@ void DBTEnv::envExplodeProperties(std::string prefixDomain, std::string list) no
     if( elem_len > 0 ) {
         envSet(prefixDomain, list.substr(start, elem_len));
     }
-    COND_PRINT(debug, "DBTEnv::setProperty %s -> true (explode default)", prefixDomain.c_str());
+    COND_PRINT(debug, "env::setProperty %s -> true (explode default)", prefixDomain.c_str());
     setenv(prefixDomain.c_str(), "true", 1 /* overwrite */);
 }
 
-bool DBTEnv::getExplodingProperties(const std::string & prefixDomain) noexcept {
-    std::string value = DBTEnv::getProperty(prefixDomain, s_false);
+bool environment::getExplodingProperties(const std::string & prefixDomain) noexcept {
+    std::string value = environment::getProperty(prefixDomain, s_false);
     if( s_false == value ) {
         return false;
     }
@@ -228,9 +228,9 @@ bool DBTEnv::getExplodingProperties(const std::string & prefixDomain) noexcept {
     return true;
 }
 
-DBTEnv::DBTEnv() noexcept
+environment::environment() noexcept
 : DEBUG( getExplodingProperties("direct_bt.debug") ),
   DEBUG_JNI( getBooleanProperty("direct_bt.debug.jni", false) ),
-  VERBOSE( getExplodingProperties("direct_bt.verbose") || DBTEnv::DEBUG )
+  VERBOSE( getExplodingProperties("direct_bt.verbose") || environment::DEBUG )
 {
 }

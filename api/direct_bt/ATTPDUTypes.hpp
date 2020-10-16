@@ -35,6 +35,8 @@
 #include <mutex>
 #include <atomic>
 
+#include <jau/basic_types.hpp>
+
 #include "UUID.hpp"
 #include "BTTypes.hpp"
 
@@ -120,7 +122,7 @@
  */
 namespace direct_bt {
 
-    class AttException : public RuntimeException {
+    class AttException : public jau::RuntimeException {
         protected:
             AttException(std::string const type, std::string const m, const char* file, int line) noexcept
             : RuntimeException(type, m, file, line) {}
@@ -315,27 +317,27 @@ namespace direct_bt {
             {
                 const Opcode has = getOpcode();
                 if( expected != has ) {
-                    throw AttOpcodeException("Has opcode "+uint8HexString(has, true)+" "+getOpcodeString(has)+
-                                     ", but expected "+uint8HexString(expected, true)+" "+getOpcodeString(expected), E_FILE_LINE);
+                    throw AttOpcodeException("Has opcode "+jau::uint8HexString(has, true)+" "+getOpcodeString(has)+
+                                     ", but expected "+jau::uint8HexString(expected, true)+" "+getOpcodeString(expected), E_FILE_LINE);
                 }
             }
             void checkOpcode(const Opcode exp1, const Opcode exp2) const
             {
                 const Opcode has = getOpcode();
                 if( exp1 != has && exp2 != has ) {
-                    throw AttOpcodeException("Has opcode "+uint8HexString(has, true)+" "+getOpcodeString(has)+
-                                     ", but expected either "+uint8HexString(exp1, true)+" "+getOpcodeString(exp1)+
-                                     " or  "+uint8HexString(exp1, true)+" "+getOpcodeString(exp1), E_FILE_LINE);
+                    throw AttOpcodeException("Has opcode "+jau::uint8HexString(has, true)+" "+getOpcodeString(has)+
+                                     ", but expected either "+jau::uint8HexString(exp1, true)+" "+getOpcodeString(exp1)+
+                                     " or  "+jau::uint8HexString(exp1, true)+" "+getOpcodeString(exp1), E_FILE_LINE);
                 }
             }
 
             virtual std::string baseString() const noexcept {
-                return "opcode="+uint8HexString(getOpcode(), true)+" "+getOpcodeString()+
+                return "opcode="+jau::uint8HexString(getOpcode(), true)+" "+getOpcodeString()+
                         ", size[total="+std::to_string(pdu.getSize())+", param "+std::to_string(getPDUParamSize())+"]";
             }
             virtual std::string valueString() const noexcept {
                 return "size "+std::to_string(getPDUValueSize())+", data "
-                        +bytesHexString(pdu.get_ptr(), getPDUValueOffset(), getPDUValueSize(), true /* lsbFirst */, true /* leading0X */);
+                        +jau::bytesHexString(pdu.get_ptr(), getPDUValueOffset(), getPDUValueSize(), true /* lsbFirst */, true /* leading0X */);
             }
 
         public:
@@ -355,14 +357,14 @@ namespace direct_bt {
 
             /** Persistent memory, w/ ownership ..*/
             AttPDUMsg(const uint8_t* source, const int size)
-                : pdu(source, std::max(1, size)), ts_creation(getCurrentMilliseconds())
+                : pdu(source, std::max(1, size)), ts_creation(jau::getCurrentMilliseconds())
             {
                 pdu.check_range(0, getPDUMinSize());
             }
 
             /** Persistent memory, w/ ownership ..*/
             AttPDUMsg(const Opcode opc, const int size)
-                : pdu(std::max(1, size)), ts_creation(getCurrentMilliseconds())
+                : pdu(std::max(1, size)), ts_creation(jau::getCurrentMilliseconds())
             {
                 pdu.put_uint8_nc(0, opc);
                 pdu.check_range(0, getPDUMinSize());
@@ -571,7 +573,7 @@ namespace direct_bt {
 
             std::string getErrorString() const noexcept {
                 const ErrorCode ec = getErrorCode();
-                return uint8HexString(ec, true) + ": " + getPlainErrorString(ec);
+                return jau::uint8HexString(ec, true) + ": " + getPlainErrorString(ec);
             }
 
             std::string getName() const noexcept override {
@@ -656,7 +658,7 @@ namespace direct_bt {
 
         protected:
             std::string valueString() const noexcept override {
-                return "handle "+uint16HexString(getHandle(), true);
+                return "handle "+jau::uint16HexString(getHandle(), true);
             }
     };
 
@@ -741,7 +743,7 @@ namespace direct_bt {
 
         protected:
             std::string valueString() const noexcept override {
-                return "handle "+uint16HexString(getHandle(), true)+", valueOffset "+uint16HexString(getValueOffset(), true);
+                return "handle "+jau::uint16HexString(getHandle(), true)+", valueOffset "+jau::uint16HexString(getValueOffset(), true);
             }
     };
 
@@ -834,7 +836,7 @@ namespace direct_bt {
 
         protected:
             std::string valueString() const noexcept override {
-                return "handle "+uint16HexString(getHandle(), true)+", data "+view.toString();;
+                return "handle "+jau::uint16HexString(getHandle(), true)+", data "+view.toString();;
             }
     };
 
@@ -906,7 +908,7 @@ namespace direct_bt {
 
         protected:
             std::string valueString() const noexcept override {
-                return "handle "+uint16HexString(getHandle(), true)+", data "+view.toString();;
+                return "handle "+jau::uint16HexString(getHandle(), true)+", data "+view.toString();;
             }
     };
 
@@ -962,7 +964,7 @@ namespace direct_bt {
 
         protected:
             std::string valueString() const noexcept override {
-                return "handle "+uint16HexString(getHandle(), true)+", size "+std::to_string(getPDUValueSize())+", data "+view.toString();
+                return "handle "+jau::uint16HexString(getHandle(), true)+", size "+std::to_string(getPDUValueSize())+", data "+view.toString();
             }
     };
 
@@ -1069,7 +1071,7 @@ namespace direct_bt {
             : AttPDUMsg(groupTypeReq ? ATT_READ_BY_GROUP_TYPE_REQ : ATT_READ_BY_TYPE_REQ, 1+2+2+uuid.getTypeSizeInt())
             {
                 if( uuid.getTypeSize() != uuid_t::TypeSize::UUID16_SZ && uuid.getTypeSize()!= uuid_t::TypeSize::UUID128_SZ ) {
-                    throw IllegalArgumentException("Only UUID16 and UUID128 allowed: "+uuid.toString(), E_FILE_LINE);
+                    throw jau::IllegalArgumentException("Only UUID16 and UUID128 allowed: "+uuid.toString(), E_FILE_LINE);
                 }
                 pdu.put_uint16_nc(1, startHandle);
                 pdu.put_uint16_nc(3, endHandle);
@@ -1097,7 +1099,7 @@ namespace direct_bt {
 
         protected:
             std::string valueString() const noexcept override {
-                return "handle ["+uint16HexString(getStartHandle(), true)+".."+uint16HexString(getEndHandle(), true)+
+                return "handle ["+jau::uint16HexString(getStartHandle(), true)+".."+jau::uint16HexString(getEndHandle(), true)+
                        "], uuid "+getNType()->toString();
             }
     };
@@ -1147,8 +1149,8 @@ namespace direct_bt {
                     int getValueSize() const noexcept { return view.getSize() - 2 /* handle size */; }
 
                     std::string toString() const {
-                        return "handle "+uint16HexString(getHandle(), true)+
-                               ", data "+bytesHexString(getValuePtr(), 0, getValueSize(), true /* lsbFirst */, true /* leading0X */);
+                        return "handle "+jau::uint16HexString(getHandle(), true)+
+                               ", data "+jau::bytesHexString(getValuePtr(), 0, getValueSize(), true /* lsbFirst */, true /* leading0X */);
                     }
             };
 
@@ -1310,8 +1312,8 @@ namespace direct_bt {
         protected:
             std::string elementString(const int idx) const override {
                 Element e = getElement(idx);
-                return "handle ["+uint16HexString(e.getStartHandle(), true)+".."+uint16HexString(e.getEndHandle(), true)+
-                       "], data "+bytesHexString(e.getValuePtr(), 0, e.getValueSize(), true /* lsbFirst */, true /* leading0X */);
+                return "handle ["+jau::uint16HexString(e.getStartHandle(), true)+".."+jau::uint16HexString(e.getEndHandle(), true)+
+                       "], data "+jau::bytesHexString(e.getValuePtr(), 0, e.getValueSize(), true /* lsbFirst */, true /* leading0X */);
             }
     };
 
@@ -1352,7 +1354,7 @@ namespace direct_bt {
 
         protected:
             std::string valueString() const noexcept override {
-                return "handle ["+uint16HexString(getStartHandle(), true)+".."+uint16HexString(getEndHandle(), true)+"]";
+                return "handle ["+jau::uint16HexString(getStartHandle(), true)+".."+jau::uint16HexString(getEndHandle(), true)+"]";
             }
     };
 
@@ -1453,7 +1455,7 @@ namespace direct_bt {
 
             std::string elementString(const int idx) const override {
                 Element e = getElement(idx);
-                return "handle "+uint16HexString(e.handle, true)+
+                return "handle "+jau::uint16HexString(e.handle, true)+
                        ", uuid "+e.uuid.get()->toString();
             }
     };

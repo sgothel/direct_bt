@@ -1,4 +1,7 @@
-include_directories(${PROJECT_SOURCE_DIR}/api)
+include_directories(
+    ${PROJECT_SOURCE_DIR}/jaucpp/include
+    ${PROJECT_SOURCE_DIR}/api
+)
 
 #include_directories(
 #  ${PROJECT_SOURCE_DIR}/api

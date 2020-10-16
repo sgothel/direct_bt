@@ -32,11 +32,23 @@
 #include <cstdint>
 #include <vector>
 
+#include <jau/basic_types.hpp>
+
 #include "OctetTypes.hpp"
 #include "BTAddress.hpp"
 #include "UUID.hpp"
 
 namespace direct_bt {
+
+    class BluetoothException : public jau::RuntimeException {
+        public:
+        BluetoothException(std::string const m, const char* file, int line) noexcept
+        : RuntimeException("BluetoothException", m, file, line) {}
+
+        BluetoothException(const char *m, const char* file, int line) noexcept
+        : RuntimeException("BluetoothException", m, file, line) {}
+    };
+
 
     /**
      * Bluetooth adapter operating mode

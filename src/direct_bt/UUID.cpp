@@ -23,7 +23,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <dbt_debug.hpp>
+#include <jau/debug.hpp>
+
 #include "UUID.hpp"
 
 
@@ -40,7 +41,7 @@ uuid_t::TypeSize uuid_t::toTypeSize(const int size) {
         case TypeSize::UUID32_SZ: return TypeSize::UUID32_SZ;
         case TypeSize::UUID128_SZ: return TypeSize::UUID128_SZ;
     }
-    throw IllegalArgumentException("Given size "+std::to_string(size)+", not matching uuid16_t, uuid32_t or uuid128_t", E_FILE_LINE);
+    throw jau::IllegalArgumentException("Given size "+std::to_string(size)+", not matching uuid16_t, uuid32_t or uuid128_t", E_FILE_LINE);
 }
 
 std::shared_ptr<const uuid_t> uuid_t::create(TypeSize t, uint8_t const * const buffer, int const byte_offset, bool littleEndian) {
@@ -51,7 +52,7 @@ std::shared_ptr<const uuid_t> uuid_t::create(TypeSize t, uint8_t const * const b
     } else if( TypeSize::UUID128_SZ == t ) {
         return std::shared_ptr<const uuid_t>(new uuid128_t(buffer, byte_offset, littleEndian));
     }
-    throw IllegalArgumentException("Unknown Type "+std::to_string(static_cast<int>(t)), E_FILE_LINE);
+    throw jau::IllegalArgumentException("Unknown Type "+std::to_string(static_cast<int>(t)), E_FILE_LINE);
 }
 
 uuid128_t uuid_t::toUUID128(uuid128_t const & base_uuid, int const uuid32_le_octet_index) const noexcept {
@@ -133,19 +134,19 @@ std::string uuid128_t::toString() const noexcept {
     // snprintf uses host data type, in which values are stored,
     // hence no endian conversion
 #if __BYTE_ORDER == __BIG_ENDIAN
-    part0 = get_uint32(value.data,  0);
-    part1 = get_uint16(value.data,  4);
-    part2 = get_uint16(value.data,  6);
-    part3 = get_uint16(value.data,  8);
-    part4 = get_uint32(value.data, 10);
-    part5 = get_uint16(value.data, 14);
+    part0 = jau::get_uint32(value.data,  0);
+    part1 = jau::get_uint16(value.data,  4);
+    part2 = jau::get_uint16(value.data,  6);
+    part3 = jau::get_uint16(value.data,  8);
+    part4 = jau::get_uint32(value.data, 10);
+    part5 = jau::get_uint16(value.data, 14);
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
-    part5 = get_uint16(value.data,  0);
-    part4 = get_uint32(value.data,  2);
-    part3 = get_uint16(value.data,  6);
-    part2 = get_uint16(value.data,  8);
-    part1 = get_uint16(value.data, 10);
-    part0 = get_uint32(value.data, 12);
+    part5 = jau::get_uint16(value.data,  0);
+    part4 = jau::get_uint32(value.data,  2);
+    part3 = jau::get_uint16(value.data,  6);
+    part2 = jau::get_uint16(value.data,  8);
+    part1 = jau::get_uint16(value.data, 10);
+    part0 = jau::get_uint32(value.data, 12);
 #else
 #error "Unexpected __BYTE_ORDER"
 #endif
@@ -167,32 +168,32 @@ uuid128_t::uuid128_t(const std::string str)
         std::string msg("UUID128 string not of length 36 but ");
         msg.append(std::to_string(str.length()));
         msg.append(": "+str);
-        throw IllegalArgumentException(msg, E_FILE_LINE);
+        throw jau::IllegalArgumentException(msg, E_FILE_LINE);
     }
     if ( sscanf(str.c_str(), "%08x-%04hx-%04hx-%04hx-%08x%04hx",
                      &part0, &part1, &part2, &part3, &part4, &part5) != 6 )
     {
         std::string msg("UUID128 string not in format '00000000-0000-1000-8000-00805F9B34FB' but "+str);
-        throw IllegalArgumentException(msg, E_FILE_LINE);
+        throw jau::IllegalArgumentException(msg, E_FILE_LINE);
     }
-    uint128_t value;
+    jau::uint128_t value;
 
     // sscanf provided host data type, in which we store the values,
     // hence no endian conversion
 #if __BYTE_ORDER == __BIG_ENDIAN
-    put_uint32(value.data,  0, part0);
-    put_uint16(value.data,  4, part1);
-    put_uint16(value.data,  6, part2);
-    put_uint16(value.data,  8, part3);
-    put_uint32(value.data, 10, part4);
-    put_uint16(value.data, 14, part5);
+    jau::put_uint32(value.data,  0, part0);
+    jau::put_uint16(value.data,  4, part1);
+    jau::put_uint16(value.data,  6, part2);
+    jau::put_uint16(value.data,  8, part3);
+    jau::put_uint32(value.data, 10, part4);
+    jau::put_uint16(value.data, 14, part5);
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
-    put_uint16(value.data,  0, part5);
-    put_uint32(value.data,  2, part4);
-    put_uint16(value.data,  6, part3);
-    put_uint16(value.data,  8, part2);
-    put_uint16(value.data, 10, part1);
-    put_uint32(value.data, 12, part0);
+    jau::put_uint16(value.data,  0, part5);
+    jau::put_uint32(value.data,  2, part4);
+    jau::put_uint16(value.data,  6, part3);
+    jau::put_uint16(value.data,  8, part2);
+    jau::put_uint16(value.data, 10, part1);
+    jau::put_uint32(value.data, 12, part0);
 #else
 #error "Unexpected __BYTE_ORDER"
 #endif

@@ -32,8 +32,7 @@
 
 #include <algorithm>
 
-// #define VERBOSE_ON 1
-#include <dbt_debug.hpp>
+#include <jau/ringbuffer.hpp>
 
 #include "HCITypes.hpp"
 
@@ -274,11 +273,11 @@ std::string getHCIMetaEventTypeString(const HCIMetaEventType op) noexcept {
 }
 
 std::shared_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept {
-    const HCIPacketType pc = static_cast<HCIPacketType>( get_uint8(buffer, 0) );
+    const HCIPacketType pc = static_cast<HCIPacketType>( jau::get_uint8(buffer, 0) );
     if( HCIPacketType::EVENT != pc ) {
         return nullptr;
     }
-    const HCIEventType ec = static_cast<HCIEventType>( get_uint8(buffer, 1) );
+    const HCIEventType ec = static_cast<HCIEventType>( jau::get_uint8(buffer, 1) );
     HCIEvent *res;
     switch( ec ) {
         case HCIEventType::DISCONN_COMPLETE:
@@ -300,7 +299,7 @@ std::shared_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, int c
 
 std::string HCILocalVersion::toString() noexcept {
     return "LocalVersion[version "+std::to_string(hci_ver)+"."+std::to_string(hci_rev)+
-           ", manuf "+uint16HexString(manufacturer)+", lmp "+std::to_string(lmp_ver)+"."+std::to_string(lmp_subver)+"]";
+           ", manuf "+jau::uint16HexString(manufacturer)+", lmp "+std::to_string(lmp_ver)+"."+std::to_string(lmp_subver)+"]";
 }
 
 } /* namespace direct_bt */

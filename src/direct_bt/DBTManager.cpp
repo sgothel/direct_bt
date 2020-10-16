@@ -35,7 +35,7 @@
 // #define PERF_PRINT_ON 1
 // PERF3_PRINT_ON for close
 // #define PERF3_PRINT_ON 1
-#include <dbt_debug.hpp>
+#include <jau/debug.hpp>
 
 #include "BTIoctl.hpp"
 
@@ -56,21 +56,21 @@ using namespace direct_bt;
 BTMode MgmtEnv::getEnvBTMode() {
     // Environment variable is 'direct_bt.mgmt.btmode' or 'org.tinyb.btmode'
     // Default is BTMode::LE, if non of the above environment variable is set.
-    std::string val = DBTEnv::getProperty("direct_bt.mgmt.btmode");
+    std::string val = jau::environment::getProperty("direct_bt.mgmt.btmode");
     if( val.empty() ) {
-        val = DBTEnv::getProperty("org.tinyb.btmode");
+        val = jau::environment::getProperty("org.tinyb.btmode");
     }
     const BTMode res = direct_bt::getBTMode(val);
     return BTMode::NONE != res ? res : BTMode::LE; // fallback to default LE
 }
 
 MgmtEnv::MgmtEnv() noexcept
-: DEBUG_GLOBAL( DBTEnv::get().DEBUG ),
-  exploding( DBTEnv::getExplodingProperties("direct_bt.mgmt") ),
-  MGMT_READER_THREAD_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.mgmt.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
-  MGMT_COMMAND_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.mgmt.cmd.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
-  MGMT_EVT_RING_CAPACITY( DBTEnv::getInt32Property("direct_bt.mgmt.ringsize", 64, 64 /* min */, 1024 /* max */) ),
-  DEBUG_EVENT( DBTEnv::getBooleanProperty("direct_bt.debug.mgmt.event", false) ),
+: DEBUG_GLOBAL( jau::environment::get().DEBUG ),
+  exploding( jau::environment::getExplodingProperties("direct_bt.mgmt") ),
+  MGMT_READER_THREAD_POLL_TIMEOUT( jau::environment::getInt32Property("direct_bt.mgmt.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
+  MGMT_COMMAND_REPLY_TIMEOUT( jau::environment::getInt32Property("direct_bt.mgmt.cmd.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
+  MGMT_EVT_RING_CAPACITY( jau::environment::getInt32Property("direct_bt.mgmt.ringsize", 64, 64 /* min */, 1024 /* max */) ),
+  DEBUG_EVENT( jau::environment::getBooleanProperty("direct_bt.debug.mgmt.event", false) ),
   DEFAULT_BTMODE( getEnvBTMode() ),
   MGMT_READ_PACKET_MAX_RETRY( MGMT_EVT_RING_CAPACITY )
 {
@@ -358,7 +358,7 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
         }
         const uint8_t *data = res->getData();
         const uint8_t version = data[0];
-        const uint16_t revision = get_uint16(data, 1, true /* littleEndian */);
+        const uint16_t revision = jau::get_uint16(data, 1, true /* littleEndian */);
         WORDY_PRINT("Bluetooth version %d.%d", version, revision);
         if( version < 1 ) {
             ERR_PRINT("Bluetooth version >= 1.0 required");
@@ -374,8 +374,8 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
         }
         if( MgmtEvent::Opcode::CMD_COMPLETE == res->getOpcode() && res->getDataSize() >= 4) {
             const uint8_t *data = res->getData();
-            const uint16_t num_commands = get_uint16(data, 0, true /* littleEndian */);
-            const uint16_t num_events = get_uint16(data, 2, true /* littleEndian */);
+            const uint16_t num_commands = jau::get_uint16(data, 0, true /* littleEndian */);
+            const uint16_t num_events = jau::get_uint16(data, 2, true /* littleEndian */);
             WORDY_PRINT("Bluetooth %d commands, %d events", num_commands, num_events);
 #ifdef VERBOSE_ON
             const int expDataSize = 4 + num_commands * 2 + num_events * 2;
@@ -406,7 +406,7 @@ next1:
             goto fail;
         }
         const uint8_t *data = res->getData();
-        const uint16_t num_adapter = get_uint16(data, 0, true /* littleEndian */);
+        const uint16_t num_adapter = jau::get_uint16(data, 0, true /* littleEndian */);
         WORDY_PRINT("Bluetooth %d adapter", num_adapter);
 
         const int expDataSize = 2 + num_adapter * 2;
@@ -416,7 +416,7 @@ next1:
         }
         adapterInfos.resize(num_adapter, nullptr);
         for(int i=0; ok && i < num_adapter; i++) {
-            const uint16_t dev_id = get_uint16(data, 2+i*2, true /* littleEndian */);
+            const uint16_t dev_id = jau::get_uint16(data, 2+i*2, true /* littleEndian */);
             if( dev_id >= num_adapter ) {
                 ABORT("dev_id %d >= num_adapter %d", dev_id, num_adapter);
             }
@@ -554,7 +554,7 @@ std::shared_ptr<AdapterInfo> DBTManager::findAdapterInfo(const EUI48 &mac) const
 }
 std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const int idx) const {
     if( 0 > idx || idx >= static_cast<int>(adapterInfos.size()) ) {
-        throw IndexOutOfBoundsException(idx, adapterInfos.size(), E_FILE_LINE);
+        throw jau::IndexOutOfBoundsException(idx, adapterInfos.size(), E_FILE_LINE);
     }
     std::shared_ptr<AdapterInfo> adapter = adapterInfos.at(idx);
     return adapter;
@@ -853,84 +853,84 @@ void DBTManager::clearAllMgmtEventCallbacks() noexcept {
 }
 
 bool DBTManager::mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    PLAIN_PRINT("DBTManager::EventCB:ClassOfDeviceChanged: %s", e->toString().c_str());
+    jau::PLAIN_PRINT("DBTManager::EventCB:ClassOfDeviceChanged: %s", e->toString().c_str());
     (void)e;
     return true;
 }
 bool DBTManager::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    PLAIN_PRINT("DBTManager::EventCB:DeviceDiscovering: %s", e->toString().c_str());
+    jau::PLAIN_PRINT("DBTManager::EventCB:DeviceDiscovering: %s", e->toString().c_str());
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    PLAIN_PRINT("DBTManager::EventCB:DeviceFound: %s", e->toString().c_str());
+    jau::PLAIN_PRINT("DBTManager::EventCB:DeviceFound: %s", e->toString().c_str());
     const MgmtEvtDeviceFound &event = *static_cast<const MgmtEvtDeviceFound *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    PLAIN_PRINT("DBTManager::EventCB:DeviceDisconnected: %s", e->toString().c_str());
+    jau::PLAIN_PRINT("DBTManager::EventCB:DeviceDisconnected: %s", e->toString().c_str());
     const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    PLAIN_PRINT("DBTManager::EventCB:DeviceConnected: %s", e->toString().c_str());
+    jau::PLAIN_PRINT("DBTManager::EventCB:DeviceConnected: %s", e->toString().c_str());
     const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    PLAIN_PRINT("DBTManager::EventCB:ConnectFailed: %s", e->toString().c_str());
+    jau::PLAIN_PRINT("DBTManager::EventCB:ConnectFailed: %s", e->toString().c_str());
     const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceBlockedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    PLAIN_PRINT("DBTManager::EventCB:DeviceBlocked: %s", e->toString().c_str());
+    jau::PLAIN_PRINT("DBTManager::EventCB:DeviceBlocked: %s", e->toString().c_str());
     const MgmtEvtDeviceBlocked &event = *static_cast<const MgmtEvtDeviceBlocked *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceUnblockedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    PLAIN_PRINT("DBTManager::EventCB:DeviceUnblocked: %s", e->toString().c_str());
+    jau::PLAIN_PRINT("DBTManager::EventCB:DeviceUnblocked: %s", e->toString().c_str());
     const MgmtEvtDeviceUnblocked &event = *static_cast<const MgmtEvtDeviceUnblocked *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    PLAIN_PRINT("DBTManager::EventCB:DeviceUnpaired: %s", e->toString().c_str());
+    jau::PLAIN_PRINT("DBTManager::EventCB:DeviceUnpaired: %s", e->toString().c_str());
     const MgmtEvtDeviceUnpaired &event = *static_cast<const MgmtEvtDeviceUnpaired *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    PLAIN_PRINT("DBTManager::EventCB:NewConnectionParam: %s", e->toString().c_str());
+    jau::PLAIN_PRINT("DBTManager::EventCB:NewConnectionParam: %s", e->toString().c_str());
     const MgmtEvtNewConnectionParam &event = *static_cast<const MgmtEvtNewConnectionParam *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceWhitelistAddedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    PLAIN_PRINT("DBTManager::EventCB:DeviceWhitelistAdded: %s", e->toString().c_str());
+    jau::PLAIN_PRINT("DBTManager::EventCB:DeviceWhitelistAdded: %s", e->toString().c_str());
     const MgmtEvtDeviceWhitelistAdded &event = *static_cast<const MgmtEvtDeviceWhitelistAdded *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    PLAIN_PRINT("DBTManager::EventCB:DeviceWhitelistRemoved: %s", e->toString().c_str());
+    jau::PLAIN_PRINT("DBTManager::EventCB:DeviceWhitelistRemoved: %s", e->toString().c_str());
     const MgmtEvtDeviceWhitelistRemoved &event = *static_cast<const MgmtEvtDeviceWhitelistRemoved *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvPinCodeRequestCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    PLAIN_PRINT("DBTManager::EventCB:PinCodeRequest: %s", e->toString().c_str());
+    jau::PLAIN_PRINT("DBTManager::EventCB:PinCodeRequest: %s", e->toString().c_str());
     const MgmtEvtPinCodeRequest &event = *static_cast<const MgmtEvtPinCodeRequest *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvUserPasskeyRequestCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    PLAIN_PRINT("DBTManager::EventCB:UserPasskeyRequest: %s", e->toString().c_str());
+    jau::PLAIN_PRINT("DBTManager::EventCB:UserPasskeyRequest: %s", e->toString().c_str());
     const MgmtEvtUserPasskeyRequest &event = *static_cast<const MgmtEvtUserPasskeyRequest *>(e.get());
     (void)event;
     return true;

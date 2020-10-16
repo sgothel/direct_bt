@@ -33,7 +33,7 @@
 #include  <algorithm>
 
 // #define PERF_PRINT_ON 1
-#include <dbt_debug.hpp>
+#include <jau/debug.hpp>
 
 #include "BTIoctl.hpp"
 #include "HCIIoctl.hpp"
@@ -53,10 +53,10 @@ extern "C" {
 using namespace direct_bt;
 
 L2CAPEnv::L2CAPEnv() noexcept
-: exploding( DBTEnv::getExplodingProperties("direct_bt.l2cap") ),
-  L2CAP_READER_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.l2cap.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
-  L2CAP_RESTART_COUNT_ON_ERROR( DBTEnv::getInt32Property("direct_bt.l2cap.restart.count", 5, INT32_MIN /* min */, INT32_MAX /* max */) ), // FIXME: Move to L2CAPComm
-  DEBUG_DATA( DBTEnv::getBooleanProperty("direct_bt.debug.l2cap.data", false) )
+: exploding( jau::environment::getExplodingProperties("direct_bt.l2cap") ),
+  L2CAP_READER_POLL_TIMEOUT( jau::environment::getInt32Property("direct_bt.l2cap.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
+  L2CAP_RESTART_COUNT_ON_ERROR( jau::environment::getInt32Property("direct_bt.l2cap.restart.count", 5, INT32_MIN /* min */, INT32_MAX /* max */) ), // FIXME: Move to L2CAPComm
+  DEBUG_DATA( jau::environment::getBooleanProperty("direct_bt.debug.l2cap.data", false) )
 {
 }
 
@@ -77,9 +77,9 @@ int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, 
     // BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ
     bzero((void *)&a, sizeof(a));
     a.l2_family=AF_BLUETOOTH;
-    a.l2_psm = cpu_to_le(psm);
+    a.l2_psm = jau::cpu_to_le(psm);
     a.l2_bdaddr = adapterAddress;
-    a.l2_cid = cpu_to_le(cid);
+    a.l2_cid = jau::cpu_to_le(cid);
     a.l2_bdaddr_type = pubaddrAdapter ? BDADDR_LE_PUBLIC : BDADDR_LE_RANDOM;
     if ( bind(fd, (struct sockaddr *) &a, sizeof(a)) < 0 ) {
         ERR_PRINT("L2CAPComm::l2cap_open_dev: bind failed");
@@ -127,9 +127,9 @@ L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, cons
     // actual request to connect to remote device
     bzero((void *)&req, sizeof(req));
     req.l2_family = AF_BLUETOOTH;
-    req.l2_psm = cpu_to_le(psm);
+    req.l2_psm = jau::cpu_to_le(psm);
     req.l2_bdaddr = device->getAddress();
-    req.l2_cid = cpu_to_le(cid);
+    req.l2_cid = jau::cpu_to_le(cid);
     req.l2_bdaddr_type = device->getAddressType();
 
     while( !interrupt_flag ) {

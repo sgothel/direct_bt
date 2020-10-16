@@ -23,8 +23,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CLASS_FUNCTION_HPP_
-#define CLASS_FUNCTION_HPP_
+#ifndef JAU_FUNCTION_HPP_
+#define JAU_FUNCTION_HPP_
 
 #include <cstring>
 #include <string>
@@ -33,9 +33,9 @@
 #include <vector>
 #include <functional>
 
-#include "BasicTypes.hpp"
+#include <jau/basic_types.hpp>
 
-namespace direct_bt {
+namespace jau {
 
     /**
      * One goal to _produce_ the member-function type instance
@@ -408,6 +408,6 @@ namespace direct_bt {
         return FunctionDef<R, A...>( new StdInvocationFunc<R, A...>(id) );
     }
 
-} // namespace direct_bt
+} // namespace jau
 
-#endif /* CLASS_FUNCTION_HPP_ */
+#endif /* JAU_FUNCTION_HPP_ */

@@ -32,14 +32,14 @@
 
 #include  <algorithm>
 
-// #define VERBOSE_ON 1
-#include <dbt_debug.hpp>
+#include <jau/debug.hpp>
 
 #include "GATTCharacteristic.hpp"
 #include "GATTHandler.hpp"
 #include "DBTDevice.hpp"
 
 using namespace direct_bt;
+using namespace jau;
 
 #define CHAR_DECL_PROPS_ENUM(X) \
         X(Broadcast,broadcast) \

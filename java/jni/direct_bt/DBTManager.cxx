@@ -26,9 +26,8 @@
 #include "direct_bt_tinyb_DBTManager.h"
 
 // #define VERBOSE_ON 1
-#include <dbt_debug.hpp>
+#include <jau/debug.hpp>
 
-#include "JNIMem.hpp"
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
@@ -37,6 +36,7 @@
 #include "direct_bt/DBTAdapter.hpp"
 
 using namespace direct_bt;
+using namespace jau;
 
 void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj, jboolean unifyUUID128Bit, jint jbtMode)
 {
@@ -46,7 +46,7 @@ void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj, jboolea
         DBTManager *manager = &DBTManager::get(btMode); // special: static singleton
         setInstance<DBTManager>(env, obj, manager);
         java_exception_check_and_throw(env, E_FILE_LINE);
-        manager->setJavaObject( std::shared_ptr<JavaAnonObj>( new JavaGlobalObj(obj, nullptr) ) );
+        manager->setJavaObject( std::shared_ptr<JavaAnon>( new JavaGlobalObj(obj, nullptr) ) );
         JavaGlobalObj::check(manager->getJavaObject(), E_FILE_LINE);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_init: Manager %s", manager->toString().c_str());
     } catch(...) {
@@ -100,7 +100,7 @@ jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject
                     jobject jAdapter = env->NewObject(clazz, clazz_ctor, (jlong)adapter, addr, name);
                     java_exception_check_and_throw(env, E_FILE_LINE);
                     JNIGlobalRef::check(jAdapter, E_FILE_LINE);
-                    std::shared_ptr<JavaAnonObj> jAdapterRef = adapter->getJavaObject(); // GlobalRef
+                    std::shared_ptr<JavaAnon> jAdapterRef = adapter->getJavaObject(); // GlobalRef
                     JavaGlobalObj::check(jAdapterRef, E_FILE_LINE);
                     env->DeleteLocalRef(addr);
                     env->DeleteLocalRef(name);

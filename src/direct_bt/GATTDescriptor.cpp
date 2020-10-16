@@ -23,7 +23,6 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <dbt_debug.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
@@ -33,11 +32,14 @@
 
 #include  <algorithm>
 
+#include <jau/debug.hpp>
+
 #include "GATTDescriptor.hpp"
 #include "GATTHandler.hpp"
 #include "DBTDevice.hpp"
 
 using namespace direct_bt;
+using namespace jau;
 
 const uuid16_t GATTDescriptor::TYPE_EXT_PROP(Type::CHARACTERISTIC_EXTENDED_PROPERTIES);
 const uuid16_t GATTDescriptor::TYPE_USER_DESC(Type::CHARACTERISTIC_USER_DESCRIPTION);

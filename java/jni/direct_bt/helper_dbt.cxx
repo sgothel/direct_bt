@@ -34,18 +34,13 @@ using namespace direct_bt;
 
 DirectBTJNISettings direct_bt::directBTJNISettings;
 
-jclass direct_bt::search_class(JNIEnv *env, JavaUplink &object)
-{
-    return search_class(env, object.get_java_class().c_str());
-}
-
 static std::string jStringEmpty("");
 static std::string jAddressTypePublic("public");
 static std::string jAddressTypeRandom("random");
 
 BDAddressType direct_bt::fromJavaAdressTypeToBDAddressType(JNIEnv *env, jstring jAddressType) {
     if( nullptr != jAddressType ) {
-        std::string saddressType = from_jstring_to_string(env, jAddressType);
+        std::string saddressType = jau::from_jstring_to_string(env, jAddressType);
         if( jAddressTypePublic == saddressType ) {
             return BDAddressType::BDADDR_LE_PUBLIC;
         }
@@ -58,23 +53,13 @@ BDAddressType direct_bt::fromJavaAdressTypeToBDAddressType(JNIEnv *env, jstring 
 jstring direct_bt::fromBDAddressTypeToJavaAddressType(JNIEnv *env, BDAddressType bdAddressType) {
     switch( bdAddressType ) {
         case BDAddressType::BDADDR_LE_PUBLIC:
-            return from_string_to_jstring(env, jAddressTypePublic);
+            return jau::from_string_to_jstring(env, jAddressTypePublic);
         case BDAddressType::BDADDR_LE_RANDOM:
-            return from_string_to_jstring(env, jAddressTypeRandom);
+            return jau::from_string_to_jstring(env, jAddressTypeRandom);
         case BDAddressType::BDADDR_BREDR:
             // fall through intended
         default:
-            return from_string_to_jstring(env, jStringEmpty);
+            return jau::from_string_to_jstring(env, jStringEmpty);
     }
-}
-
-JavaGlobalObj::~JavaGlobalObj() noexcept {
-    jobject obj = javaObjectRef.getObject();
-    if( nullptr == obj || nullptr == mNotifyDeleted ) {
-        return;
-    }
-    JNIEnv *env = *jni_env;
-    env->CallVoidMethod(obj, mNotifyDeleted);
-    java_exception_check_and_throw(env, E_FILE_LINE); // would abort() if thrown
 }
 

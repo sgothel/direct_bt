@@ -151,6 +151,13 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
     // *************************************************
+    template <typename T> class CowList
+    {
+        bool add(T);
+        bool remove(T);
+        int removeAll();
+        int size();
+    };
 
     /**
      * DBTAdapter represents one Bluetooth Controller.
@@ -300,7 +307,7 @@ namespace direct_bt {
              */
             inline void checkValidAdapter() const {
                 if( !isValid() ) {
-                    throw IllegalStateException("Adapter state invalid: "+aptrHexString(this)+", "+toString(), E_FILE_LINE);
+                    throw jau::IllegalStateException("Adapter state invalid: "+jau::aptrHexString(this)+", "+toString(), E_FILE_LINE);
                 }
             }
 

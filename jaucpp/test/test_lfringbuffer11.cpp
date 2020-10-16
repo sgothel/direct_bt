@@ -8,11 +8,9 @@
 
 #include <cppunit.h>
 
-#include <direct_bt/UUID.hpp>
-#include <direct_bt/Ringbuffer.hpp>
-#include <direct_bt/LFRingbuffer.hpp>
+#include <jau/ringbuffer.hpp>
 
-using namespace direct_bt;
+using namespace jau;
 
 class Integer {
     public:
@@ -35,18 +33,17 @@ class Integer {
 std::shared_ptr<Integer> NullInteger = nullptr;
 
 typedef std::shared_ptr<Integer> SharedType;
-typedef Ringbuffer<SharedType> SharedTypeRingbuffer;
-typedef LFRingbuffer<SharedType, nullptr> SharedTypeLFRingbuffer;
+typedef ringbuffer<SharedType, nullptr> SharedTypeRingbuffer;
 
 // Test examples.
 class Cppunit_tests : public Cppunit {
   private:
 
     std::shared_ptr<SharedTypeRingbuffer> createEmpty(int initialCapacity) {
-        return std::shared_ptr<SharedTypeRingbuffer>(new SharedTypeLFRingbuffer(initialCapacity));
+        return std::shared_ptr<SharedTypeRingbuffer>(new SharedTypeRingbuffer(initialCapacity));
     }
     std::shared_ptr<SharedTypeRingbuffer> createFull(const std::vector<std::shared_ptr<Integer>> & source) {
-        return std::shared_ptr<SharedTypeRingbuffer>(new SharedTypeLFRingbuffer(source));
+        return std::shared_ptr<SharedTypeRingbuffer>(new SharedTypeRingbuffer(source));
     }
 
     std::vector<SharedType> createIntArray(const int capacity, const int startValue) {
@@ -57,7 +54,7 @@ class Cppunit_tests : public Cppunit {
         return array;
     }
 
-    void getThreadType01(const std::string msg, std::shared_ptr<Ringbuffer<SharedType>> rb, int len, int startValue) {
+    void getThreadType01(const std::string msg, std::shared_ptr<SharedTypeRingbuffer> rb, int len, int startValue) {
         // std::thread::id this_id = std::this_thread::get_id();
         // pthread_t this_id = pthread_self();
 
@@ -74,7 +71,7 @@ class Cppunit_tests : public Cppunit {
         fprintf(stderr, "%s: Dies / %s\n", msg.c_str(), rb->toString().c_str());
     }
 
-    void putThreadType01(const std::string msg, std::shared_ptr<Ringbuffer<SharedType>> rb, int len, int startValue) {
+    void putThreadType01(const std::string msg, std::shared_ptr<SharedTypeRingbuffer> rb, int len, int startValue) {
         // std::thread::id this_id = std::this_thread::get_id();
         // pthread_t this_id = pthread_self();
 

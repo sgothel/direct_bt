@@ -1,10 +1,10 @@
 /*
- * Author: Petre Eftime <petre.p.eftime@intel.com>
- * Copyright (c) 2016 Intel Corporation.
- *
  * Author: Sven Gothel <sgothel@jausoft.com>
  * Copyright (c) 2020 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
+ *
+ * Author: Petre Eftime <petre.p.eftime@intel.com>
+ * Copyright (c) 2016 Intel Corporation.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -28,10 +28,8 @@
 
 #include <cstdio>
 
-#include "JNIMem.hpp"
-
-#include "dbt_debug.hpp"
-
+#include <jau/debug.hpp>
+#include <jau/jni/jni_mem.hpp>
 
 JavaVM* vm;
 thread_local JNIEnvContainer jni_env;
@@ -69,14 +67,14 @@ void JNIEnvContainer::attach() {
     if( JNI_EDETACHED == envRes ) {
         envRes = vm->AttachCurrentThreadAsDaemon((void**) &newEnv, NULL);
         if( JNI_OK != envRes ) {
-            throw direct_bt::RuntimeException("Attach to VM failed", E_FILE_LINE);
+            throw jau::RuntimeException("Attach to VM failed", E_FILE_LINE);
         }
         env = newEnv;
     } else if( JNI_OK != envRes ) {
-        throw direct_bt::RuntimeException("GetEnv of VM failed", E_FILE_LINE);
+        throw jau::RuntimeException("GetEnv of VM failed", E_FILE_LINE);
     }
     if (env==NULL) {
-        throw direct_bt::RuntimeException("GetEnv of VM is NULL", E_FILE_LINE);
+        throw jau::RuntimeException("GetEnv of VM is NULL", E_FILE_LINE);
     }
     needsDetach = NULL != newEnv;
 }
@@ -99,7 +97,7 @@ JNIGlobalRef::JNIGlobalRef() noexcept {
 
 JNIGlobalRef::JNIGlobalRef(jobject object) {
     if( nullptr == object ) {
-        throw direct_bt::RuntimeException("JNIGlobalRef ctor null jobject", E_FILE_LINE);
+        throw jau::RuntimeException("JNIGlobalRef ctor null jobject", E_FILE_LINE);
     }
     this->object = jni_env->NewGlobalRef(object);
     DBG_JNI_PRINT("JNIGlobalRef::def_ctor %p -> %p", object, this->object);
@@ -107,7 +105,7 @@ JNIGlobalRef::JNIGlobalRef(jobject object) {
 
 JNIGlobalRef::JNIGlobalRef(const JNIGlobalRef &o) {
     if( nullptr == o.object ) {
-        throw direct_bt::RuntimeException("Other JNIGlobalRef jobject is null", E_FILE_LINE);
+        throw jau::RuntimeException("Other JNIGlobalRef jobject is null", E_FILE_LINE);
     }
     object = jni_env->NewGlobalRef(o.object);
     DBG_JNI_PRINT("JNIGlobalRef::copy_ctor %p -> %p", o.object, object);
@@ -126,7 +124,7 @@ JNIGlobalRef& JNIGlobalRef::operator=(const JNIGlobalRef &o) {
         env->DeleteGlobalRef(object);
     }
     if( nullptr == o.object ) {
-        throw direct_bt::RuntimeException("Other JNIGlobalRef jobject is null", E_FILE_LINE);
+        throw jau::RuntimeException("Other JNIGlobalRef jobject is null", E_FILE_LINE);
     }
     object = jni_env->NewGlobalRef(o.object);
     DBG_JNI_PRINT("JNIGlobalRef::copy_assign %p -> %p", o.object, object);

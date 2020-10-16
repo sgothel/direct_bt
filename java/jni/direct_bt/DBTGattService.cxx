@@ -26,9 +26,8 @@
 #include "direct_bt_tinyb_DBTGattService.h"
 
 // #define VERBOSE_ON 1
-#include <dbt_debug.hpp>
+#include <jau/debug.hpp>
 
-#include "JNIMem.hpp"
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
@@ -36,10 +35,11 @@
 #include "direct_bt/DBTAdapter.hpp"
 
 using namespace direct_bt;
+using namespace jau;
 
 jstring Java_direct_1bt_tinyb_DBTGattService_toStringImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTService *nativePtr = getDBTObject<GATTService>(env, obj);
+        GATTService *nativePtr = getJavaUplinkObject<GATTService>(env, obj);
         JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
         return from_string_to_jstring(env, nativePtr->toString());
     } catch(...) {
@@ -64,7 +64,7 @@ static const std::string _characteristicClazzCtorArgs("(JLdirect_bt/tinyb/DBTGat
 
 jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristicsImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTService *service = getDBTObject<GATTService>(env, obj);
+        GATTService *service = getJavaUplinkObject<GATTService>(env, obj);
         JavaGlobalObj::check(service->getJavaObject(), E_FILE_LINE);
 
         std::vector<std::shared_ptr<GATTCharacteristic>> & characteristics = service->characteristicList;
@@ -112,7 +112,7 @@ jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristicsImpl(JNIEnv *env,
                             uuid, characteristic->value_handle, characteristic->clientCharacteristicsConfigIndex);
                     java_exception_check_and_throw(env, E_FILE_LINE);
                     JNIGlobalRef::check(jchar, E_FILE_LINE);
-                    std::shared_ptr<JavaAnonObj> jCharRef = characteristic->getJavaObject(); // GlobalRef
+                    std::shared_ptr<JavaAnon> jCharRef = characteristic->getJavaObject(); // GlobalRef
                     JavaGlobalObj::check(jCharRef, E_FILE_LINE);
                     env->DeleteLocalRef(jproperties);
                     env->DeleteLocalRef(jchar);

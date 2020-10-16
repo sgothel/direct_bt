@@ -33,15 +33,16 @@
 
 #include <pthread.h>
 
-#include <direct_bt/DirectBT.hpp>
+#include <jau/dfa_utf8_decode.hpp>
 
-#include "direct_bt/dfa_utf8_decode.hpp"
+#include <direct_bt/DirectBT.hpp>
 
 extern "C" {
     #include <unistd.h>
 }
 
 using namespace direct_bt;
+using namespace jau;
 
 /**
  * This C++ scanner example uses the Direct-BT fully event driven workflow

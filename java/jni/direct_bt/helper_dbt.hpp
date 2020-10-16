@@ -26,11 +26,8 @@
 #ifndef HELPER_DBT_HPP_
 #define HELPER_DBT_HPP_
 
-#include "JNIMem.hpp"
 #include "helper_base.hpp"
 
-#include "direct_bt/JavaUplink.hpp"
-#include "direct_bt/BasicTypes.hpp"
 #include "direct_bt/BTAddress.hpp"
 
 namespace direct_bt {
@@ -52,133 +49,8 @@ namespace direct_bt {
     };
     extern DirectBTJNISettings directBTJNISettings;
 
-    /**
-     * Implementation for JavaAnonObj,
-     * by simply wrapping a JNIGlobalRef instance.
-     */
-    class JavaGlobalObj : public JavaAnonObj {
-        private:
-            JNIGlobalRef javaObjectRef;
-            jmethodID  mNotifyDeleted;
-
-        public:
-            static inline void check(const std::shared_ptr<JavaAnonObj> & shref, const char* file, int line) {
-                if( nullptr == shref ) {
-                    throw direct_bt::RuntimeException("JavaGlobalObj::check: Null shared-JavaAnonObj", file, line);
-                }
-                const jobject obj = static_cast<const JavaGlobalObj*>(shref.get())->getObject();
-                if( nullptr == obj ) {
-                    throw direct_bt::RuntimeException("JavaGlobalObj::check: Null object", file, line);
-                }
-            }
-            static bool isValid(const std::shared_ptr<JavaAnonObj> & shref) noexcept {
-                if( nullptr == shref ) {
-                    return false;
-                }
-                const jobject obj = static_cast<const JavaGlobalObj*>(shref.get())->getObject();
-                if( nullptr == obj ) {
-                    return false;
-                }
-                return true;
-            }
-            JavaGlobalObj(jobject obj, jmethodID mNotifyDeleted) noexcept
-            : javaObjectRef(obj), mNotifyDeleted(mNotifyDeleted) { }
-
-            JavaGlobalObj(const JavaGlobalObj &o) noexcept = default;
-            JavaGlobalObj(JavaGlobalObj &&o) noexcept = default;
-            JavaGlobalObj& operator=(const JavaGlobalObj &o) noexcept = default;
-            JavaGlobalObj& operator=(JavaGlobalObj &&o) noexcept = default;
-
-            virtual ~JavaGlobalObj() noexcept;
-
-            std::string toString() const noexcept override {
-                const uint64_t ref = (uint64_t)(void*)javaObjectRef.getObject();
-                return "JavaGlobalObj["+uint64HexString(ref, true)+"]";
-            }
-
-            /** Clears the java reference, i.e. nulling it, without deleting the global reference via JNI. */
-            void clear() noexcept override { javaObjectRef.clear(); }
-
-            JNIGlobalRef & getJavaObject() noexcept { return javaObjectRef; }
-
-            /* Provides access to the stored GlobalRef as an jobject. */
-            jobject getObject() const noexcept { return javaObjectRef.getObject(); }
-            /* Provides access to the stored GlobalRef as a jclass. */
-            jclass getClass() const noexcept { return javaObjectRef.getClass(); }
-
-            /* Provides access to the stored GlobalRef as an getJavaObject. */
-            static JNIGlobalRef GetJavaObject(const std::shared_ptr<JavaAnonObj> & shref) noexcept {
-                return static_cast<JavaGlobalObj*>(shref.get())->getJavaObject();
-            }
-            /* Provides access to the stored GlobalRef as an jobject. */
-            static jobject GetObject(const std::shared_ptr<JavaAnonObj> & shref) noexcept {
-                return static_cast<JavaGlobalObj*>(shref.get())->getObject();
-            }
-
-            /* Provides access to the stored GlobalRef as a jclass. */
-            static jclass GetClass(const std::shared_ptr<JavaAnonObj> & shref) noexcept {
-                return static_cast<JavaGlobalObj*>(shref.get())->getClass();
-            }
-    };
-
-    jclass search_class(JNIEnv *env, JavaUplink &object);
-
-    template <typename T>
-    jobject convert_vector_sharedptr_to_jarraylist(JNIEnv *env, std::vector<std::shared_ptr<T>>& array)
-    {
-        unsigned int array_size = array.size();
-
-        jmethodID arraylist_add;
-        jobject result = get_new_arraylist(env, array_size, &arraylist_add);
-
-        if (0 == array_size) {
-            return result;
-        }
-
-        for (unsigned int i = 0; i < array_size; ++i) {
-            std::shared_ptr<T> elem = array[i];
-            std::shared_ptr<JavaAnonObj> objref = elem->getJavaObject();
-            if ( nullptr == objref ) {
-                throw InternalError("JavaUplink element of array has no valid java-object: "+elem->toString(), E_FILE_LINE);
-            }
-            env->CallBooleanMethod(result, arraylist_add, JavaGlobalObj::GetObject(objref));
-        }
-        return result;
-    }
-
     BDAddressType fromJavaAdressTypeToBDAddressType(JNIEnv *env, jstring jAddressType);
     jstring fromBDAddressTypeToJavaAddressType(JNIEnv *env, BDAddressType bdAddressType);
-
-    template <typename T>
-    T *getDBTObject(JNIEnv *env, jobject obj)
-    {
-        jlong instance = env->GetLongField(obj, getInstanceField(env, obj));
-        T *t = reinterpret_cast<T *>(instance);
-        if (t == nullptr) {
-            throw std::runtime_error("Trying to acquire null DBTObject");
-        }
-        t->checkValid();
-        return t;
-    }
-
-    template <typename T>
-    T *getDBTObjectUnchecked(JNIEnv *env, jobject obj)
-    {
-        jlong instance = env->GetLongField(obj, getInstanceField(env, obj));
-        return reinterpret_cast<T *>(instance);
-    }
-
-    template <typename T>
-    void setDBTObject(JNIEnv *env, jobject obj, T *t)
-    {
-        if (t == nullptr) {
-            throw std::runtime_error("Trying to create null DBTObject");
-        }
-        jlong instance = reinterpret_cast<jlong>(t);
-        env->SetLongField(obj, getInstanceField(env, obj), instance);
-    }
-
-
 
 } // namespace direct_bt
 

@@ -25,10 +25,8 @@
 
 #include "direct_bt_tinyb_DBTGattCharacteristic.h"
 
-// #define VERBOSE_ON 1
-#include <dbt_debug.hpp>
+#include <jau/debug.hpp>
 
-#include "JNIMem.hpp"
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
@@ -36,10 +34,11 @@
 #include "direct_bt/DBTAdapter.hpp"
 
 using namespace direct_bt;
+using namespace jau;
 
 jstring Java_direct_1bt_tinyb_DBTGattCharacteristic_toStringImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTCharacteristic *nativePtr = getDBTObject<GATTCharacteristic>(env, obj);
+        GATTCharacteristic *nativePtr = getJavaUplinkObject<GATTCharacteristic>(env, obj);
         JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
         return from_string_to_jstring(env, nativePtr->toString());
     } catch(...) {
@@ -63,7 +62,7 @@ static const std::string _descriptorClazzCtorArgs("(JLdirect_bt/tinyb/DBTGattCha
 
 jobject Java_direct_1bt_tinyb_DBTGattCharacteristic_getDescriptorsImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTCharacteristic *characteristic = getDBTObject<GATTCharacteristic>(env, obj);
+        GATTCharacteristic *characteristic = getJavaUplinkObject<GATTCharacteristic>(env, obj);
         JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
 
         std::vector<GATTDescriptorRef> & descriptorList = characteristic->descriptorList;
@@ -95,7 +94,7 @@ jobject Java_direct_1bt_tinyb_DBTGattCharacteristic_getDescriptorsImpl(JNIEnv *e
                             juuid, (jshort)descriptor->handle, jvalue);
                     java_exception_check_and_throw(env, E_FILE_LINE);
                     JNIGlobalRef::check(jdesc, E_FILE_LINE);
-                    std::shared_ptr<JavaAnonObj> jDescRef = descriptor->getJavaObject(); // GlobalRef
+                    std::shared_ptr<JavaAnon> jDescRef = descriptor->getJavaObject(); // GlobalRef
                     JavaGlobalObj::check(jDescRef, E_FILE_LINE);
                     env->DeleteLocalRef(juuid);
                     env->DeleteLocalRef(jvalue);
@@ -111,7 +110,7 @@ jobject Java_direct_1bt_tinyb_DBTGattCharacteristic_getDescriptorsImpl(JNIEnv *e
 
 jbyteArray Java_direct_1bt_tinyb_DBTGattCharacteristic_readValueImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTCharacteristic *characteristic = getDBTObject<GATTCharacteristic>(env, obj);
+        GATTCharacteristic *characteristic = getJavaUplinkObject<GATTCharacteristic>(env, obj);
         JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
 
         POctets res(GATTHandler::number(GATTHandler::Defaults::MAX_ATT_MTU), 0);
@@ -141,7 +140,7 @@ jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_writeValueImpl(JNIEnv *env,
         if( 0 == value_size ) {
             return JNI_TRUE;
         }
-        GATTCharacteristic *characteristic = getDBTObject<GATTCharacteristic>(env, obj);
+        GATTCharacteristic *characteristic = getJavaUplinkObject<GATTCharacteristic>(env, obj);
         JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
 
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
@@ -171,7 +170,7 @@ jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_writeValueImpl(JNIEnv *env,
 jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_configNotificationIndicationImpl(JNIEnv *env, jobject obj,
                         jboolean enableNotification, jboolean enableIndication, jbooleanArray jEnabledState) {
     try {
-        GATTCharacteristic *characteristic = getDBTObjectUnchecked<GATTCharacteristic>(env, obj);
+        GATTCharacteristic *characteristic = getJavaUplinkObjectUnchecked<GATTCharacteristic>(env, obj);
         if( nullptr == characteristic ) {
             if( !enableNotification && !enableIndication ) {
                 // OK to have native characteristic being shutdown @ disable

@@ -23,7 +23,6 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <dbt_debug.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
@@ -33,8 +32,9 @@
 
 #include  <algorithm>
 
-#include "GATTNumbers.hpp"
+#include <jau/debug.hpp>
 
+#include "GATTNumbers.hpp"
 
 using namespace direct_bt;
 
@@ -381,7 +381,7 @@ std::string GattPeriphalPreferredConnectionParameters::toString() const noexcept
 
 std::string GattGenericAccessSvc::toString() const noexcept {
     std::string pcp(nullptr != prefConnParam ? prefConnParam->toString() : "");
-    return "'"+deviceName+"'[appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+"), "+pcp+"]";
+    return "'"+deviceName+"'[appearance "+jau::uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+"), "+pcp+"]";
 }
 
 GattPnP_ID::GattPnP_ID(const TROOctets &source) noexcept
@@ -398,10 +398,10 @@ std::shared_ptr<GattPnP_ID> GattPnP_ID::get(const TROOctets &source) noexcept {
 }
 
 std::string GattPnP_ID::toString() const noexcept {
-    return "vendor_id[source "+uint8HexString(vendor_id_source, true)+
-            ", id "+uint16HexString(vendor_id, true)+
-            "], product_id "+uint16HexString(product_id, true)+
-            ", product_version "+uint16HexString(product_version, true);
+    return "vendor_id[source "+jau::uint8HexString(vendor_id_source, true)+
+            ", id "+jau::uint16HexString(vendor_id, true)+
+            "], product_id "+jau::uint16HexString(product_id, true)+
+            ", product_version "+jau::uint16HexString(product_version, true);
 }
 
 std::string GattDeviceInformationSvc::toString() const noexcept {

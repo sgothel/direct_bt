@@ -33,9 +33,10 @@
 #include <algorithm>
 
 // #define PERF_PRINT_ON 1
-#include <dbt_debug.hpp>
+#include <jau/debug.hpp>
 
-#include "DBTEnv.hpp"
+#include <jau/environment.hpp>
+#include <jau/basic_algos.hpp>
 
 #include "BTIoctl.hpp"
 
@@ -43,7 +44,6 @@
 #include "HCIComm.hpp"
 #include "HCIHandler.hpp"
 #include "DBTTypes.hpp"
-#include "BasicAlgos.hpp"
 
 extern "C" {
     #include <inttypes.h>
@@ -58,12 +58,12 @@ extern "C" {
 using namespace direct_bt;
 
 HCIEnv::HCIEnv() noexcept
-: exploding( DBTEnv::getExplodingProperties("direct_bt.hci") ),
-  HCI_READER_THREAD_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.hci.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
-  HCI_COMMAND_STATUS_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.hci.cmd.status.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
-  HCI_COMMAND_COMPLETE_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.hci.cmd.complete.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
-  HCI_EVT_RING_CAPACITY( DBTEnv::getInt32Property("direct_bt.hci.ringsize", 64, 64 /* min */, 1024 /* max */) ),
-  DEBUG_EVENT( DBTEnv::getBooleanProperty("direct_bt.debug.hci.event", false) ),
+: exploding( jau::environment::getExplodingProperties("direct_bt.hci") ),
+  HCI_READER_THREAD_POLL_TIMEOUT( jau::environment::getInt32Property("direct_bt.hci.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
+  HCI_COMMAND_STATUS_REPLY_TIMEOUT( jau::environment::getInt32Property("direct_bt.hci.cmd.status.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
+  HCI_COMMAND_COMPLETE_REPLY_TIMEOUT( jau::environment::getInt32Property("direct_bt.hci.cmd.complete.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
+  HCI_EVT_RING_CAPACITY( jau::environment::getInt32Property("direct_bt.hci.ringsize", 64, 64 /* min */, 1024 /* max */) ),
+  DEBUG_EVENT( jau::environment::getBooleanProperty("direct_bt.debug.hci.event", false) ),
   HCI_READ_PACKET_MAX_RETRY( HCI_EVT_RING_CAPACITY )
 {
 }
@@ -83,12 +83,12 @@ HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(std::vector<HCIConnectionR
         if ( conn->equals(address, addrType) ) {
             // reuse same entry
             WORDY_PRINT("HCIHandler::addTrackerConnection: address[%s, %s], handle %s: reuse entry %s",
-               address.toString().c_str(), getBDAddressTypeString(addrType).c_str(), uint16HexString(handle).c_str(), conn->toString().c_str());
+               address.toString().c_str(), getBDAddressTypeString(addrType).c_str(), jau::uint16HexString(handle).c_str(), conn->toString().c_str());
             // Overwrite tracked connection handle with given _valid_ handle only, i.e. non zero!
             if( 0 != handle ) {
                 if( 0 != conn->getHandle() && handle != conn->getHandle() ) {
                     WARN_PRINT("HCIHandler::addTrackerConnection: address[%s, %s], handle %s: reusing entry %s, overwriting non-zero handle",
-                       address.toString().c_str(), getBDAddressTypeString(addrType).c_str(), uint16HexString(handle).c_str(), conn->toString().c_str());
+                       address.toString().c_str(), getBDAddressTypeString(addrType).c_str(), jau::uint16HexString(handle).c_str(), conn->toString().c_str());
                 }
                 conn->setHandle( handle );
             }
@@ -232,13 +232,13 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
             HCIConnectionRef conn = removeTrackerConnection(ev_cc->handle);
             if( nullptr == conn ) {
                 WORDY_PRINT("HCIHandler::translate(reader): DISCONN_COMPLETE: Not tracked handle %s: %s",
-                           uint16HexString(ev_cc->handle).c_str(), ev->toString().c_str());
+                        jau::uint16HexString(ev_cc->handle).c_str(), ev->toString().c_str());
                 return nullptr;
             } else {
                 if( HCIStatusCode::SUCCESS != status ) {
                     // FIXME: Ever occuring? Still sending out essential disconnect event!
                     ERR_PRINT("HCIHandler::translate(reader): DISCONN_COMPLETE: !SUCCESS[%s, %s], %s: %s",
-                            uint8HexString(static_cast<uint8_t>(status)).c_str(), getHCIStatusCodeString(status).c_str(),
+                            jau::uint8HexString(static_cast<uint8_t>(status)).c_str(), getHCIStatusCodeString(status).c_str(),
                             conn->toString().c_str(), ev->toString().c_str());
                 }
                 const HCIStatusCode hciRootReason = static_cast<HCIStatusCode>(ev_cc->reason);
@@ -279,7 +279,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
             std::shared_ptr<HCIEvent> event = HCIEvent::getSpecialized(rbuffer.get_ptr(), len);
             if( nullptr == event ) {
                 // not an event ...
-                ERR_PRINT("HCIHandler-IO RECV Drop (non-event) %s", bytesHexString(rbuffer.get_ptr(), 0, len, true /* lsbFirst*/).c_str());
+                ERR_PRINT("HCIHandler-IO RECV Drop (non-event) %s", jau::bytesHexString(rbuffer.get_ptr(), 0, len, true /* lsbFirst*/).c_str());
                 continue;
             }
 
@@ -302,7 +302,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
             } else if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
                 // issue callbacks for the translated AD events
                 std::vector<std::shared_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
-                for_each_idx(eirlist, [&](std::shared_ptr<EInfoReport> & eir) {
+                jau::for_each_idx(eirlist, [&](std::shared_ptr<EInfoReport> & eir) {
                     // COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (AD EIR) %s", eir->toString().c_str());
                     sendMgmtEvent( std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceFound(dev_id, eir) ) );
                 });
@@ -651,10 +651,10 @@ HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
         bzero(&version, sizeof(version));
     } else {
         version.hci_ver = ev_lv->hci_ver;
-        version.hci_rev = le_to_cpu(ev_lv->hci_rev);
-        version.manufacturer = le_to_cpu(ev_lv->manufacturer);
+        version.hci_rev = jau::le_to_cpu(ev_lv->hci_rev);
+        version.manufacturer = jau::le_to_cpu(ev_lv->manufacturer);
         version.lmp_ver = ev_lv->lmp_ver;
-        version.lmp_subver = le_to_cpu(ev_lv->lmp_subver);
+        version.lmp_subver = jau::le_to_cpu(ev_lv->lmp_subver);
     }
     return status;
 }
@@ -674,8 +674,8 @@ HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
     HCIStructCommand<hci_cp_le_set_scan_param> req0(HCIOpcode::LE_SET_SCAN_PARAM);
     hci_cp_le_set_scan_param * cp = req0.getWStruct();
     cp->type = le_scan_active ? LE_SCAN_ACTIVE : LE_SCAN_PASSIVE;
-    cp->interval = cpu_to_le(le_scan_interval);
-    cp->window = cpu_to_le(le_scan_window);
+    cp->interval = jau::cpu_to_le(le_scan_interval);
+    cp->window = jau::cpu_to_le(le_scan_window);
     cp->own_address_type = static_cast<uint8_t>(own_mac_type);
     cp->filter_policy = filter_policy;
 
@@ -732,18 +732,18 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
 
     HCIStructCommand<hci_cp_le_create_conn> req0(HCIOpcode::LE_CREATE_CONN);
     hci_cp_le_create_conn * cp = req0.getWStruct();
-    cp->scan_interval = cpu_to_le(le_scan_interval);
-    cp->scan_window = cpu_to_le(le_scan_window);
+    cp->scan_interval = jau::cpu_to_le(le_scan_interval);
+    cp->scan_window = jau::cpu_to_le(le_scan_window);
     cp->filter_policy = initiator_filter;
     cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
     cp->peer_addr = peer_bdaddr;
     cp->own_address_type = static_cast<uint8_t>(own_mac_type);
-    cp->conn_interval_min = cpu_to_le(conn_interval_min);
-    cp->conn_interval_max = cpu_to_le(conn_interval_max);
-    cp->conn_latency = cpu_to_le(conn_latency);
-    cp->supervision_timeout = cpu_to_le(supervision_timeout);
-    cp->min_ce_len = cpu_to_le(min_ce_length);
-    cp->max_ce_len = cpu_to_le(max_ce_length);
+    cp->conn_interval_min = jau::cpu_to_le(conn_interval_min);
+    cp->conn_interval_max = jau::cpu_to_le(conn_interval_max);
+    cp->conn_latency = jau::cpu_to_le(conn_latency);
+    cp->supervision_timeout = jau::cpu_to_le(supervision_timeout);
+    cp->min_ce_len = jau::cpu_to_le(min_ce_length);
+    cp->max_ce_len = jau::cpu_to_le(max_ce_length);
 
     BDAddressType bdAddrType = getBDAddressType(peer_mac_type);
 
@@ -784,10 +784,10 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
     HCIStructCommand<hci_cp_create_conn> req0(HCIOpcode::CREATE_CONN);
     hci_cp_create_conn * cp = req0.getWStruct();
     cp->bdaddr = bdaddr;
-    cp->pkt_type = cpu_to_le((uint16_t)(pkt_type & (uint16_t)ACL_PTYPE_MASK)); /* TODO OK excluding SCO_PTYPE_MASK   (HCI_HV1 | HCI_HV2 | HCI_HV3) ? */
+    cp->pkt_type = jau::cpu_to_le((uint16_t)(pkt_type & (uint16_t)ACL_PTYPE_MASK)); /* TODO OK excluding SCO_PTYPE_MASK   (HCI_HV1 | HCI_HV2 | HCI_HV3) ? */
     cp->pscan_rep_mode = 0x02; /* TODO magic? */
     cp->pscan_mode = 0x00; /* TODO magic? */
-    cp->clock_offset = cpu_to_le(clock_offset);
+    cp->clock_offset = jau::cpu_to_le(clock_offset);
     cp->role_switch = role_switch;
 
     HCIConnectionRef disconn = findDisconnect(bdaddr, BDAddressType::BDADDR_BREDR);
@@ -848,7 +848,7 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const EUI48 &pe
     }
     DBG_PRINT("HCIHandler::disconnect: address[%s, %s], handle %s, %s",
                peer_bdaddr.toString().c_str(), getBDAddressTypeString(peer_mac_type).c_str(),
-               uint16HexString(conn_handle).c_str(),
+               jau::uint16HexString(conn_handle).c_str(),
                conn->toString().c_str());
 
     HCIStatusCode status;
@@ -859,7 +859,7 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const EUI48 &pe
     {
         HCIStructCommand<hci_cp_disconnect> req0(HCIOpcode::DISCONNECT);
         hci_cp_disconnect * cp = req0.getWStruct();
-        cp->handle = cpu_to_le(conn_handle);
+        cp->handle = jau::cpu_to_le(conn_handle);
         cp->reason = number(reason);
 
         std::shared_ptr<HCIEvent> ev = processCommandStatus(req0, &status);

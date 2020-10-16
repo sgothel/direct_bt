@@ -29,10 +29,10 @@
 
 #include "tinyb_dbus_DBusDevice.h"
 
-#include "JNIMem.hpp"
 #include "helper_tinyb.hpp"
 
 using namespace tinyb;
+using namespace jau;
 
 jobject Java_tinyb_dbus_DBusDevice_getBluetoothType(JNIEnv *env, jobject obj)
 {

@@ -23,18 +23,19 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef RINGBUFFER_HPP_
-#define RINGBUFFER_HPP_
+#ifndef JAU_RINGBUFFER_IF_HPP_
+#define JAU_RINGBUFFER_IF_HPP_
 
 #include <cstring>
 #include <string>
 #include <memory>
 #include <cstdint>
 
-#include "BasicTypes.hpp"
+#include <vector>
 
-namespace direct_bt {
+#include <jau/basic_types.hpp>
 
+namespace jau {
 
 /**
  * Ring buffer interface, a.k.a circular buffer.
@@ -49,9 +50,9 @@ namespace direct_bt {
  * Synchronization and hence thread safety details belong to the implementation.
  * </p>
  */
-template <class T> class Ringbuffer {
+template <typename T> class ringbuffer_if {
     public:
-        virtual ~Ringbuffer() noexcept {}
+        virtual ~ringbuffer_if() noexcept {}
 
         /** Returns a short string representation incl. size/capacity and internal r/w index (impl. dependent). */
         virtual std::string toString() const noexcept = 0;
@@ -211,6 +212,6 @@ template <class T> class Ringbuffer {
         virtual void recapacity(const int newCapacity) = 0;
 };
 
-} /* namespace direct_bt */
+} /* namespace jau */
 
-#endif /* RINGBUFFER_HPP_ */
+#endif /* JAU_RINGBUFFER_IF_HPP_ */

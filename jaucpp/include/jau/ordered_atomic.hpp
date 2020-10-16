@@ -23,13 +23,13 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef ORDERED_ATOMIC_HPP_
-#define ORDERED_ATOMIC_HPP_
+#ifndef JAU_ORDERED_ATOMIC_HPP_
+#define JAU_ORDERED_ATOMIC_HPP_
 
 #include <atomic>
 #include <memory>
 
-namespace direct_bt {
+namespace jau {
 
 #ifndef CXX_ALWAYS_INLINE
 # define CXX_ALWAYS_INLINE inline __attribute__((__always_inline__))
@@ -213,6 +213,6 @@ template <typename _Tp, std::memory_order _MO> struct ordered_atomic : private s
   /** Relaxed non-SC atomic integral scalar integer. Memory-Model (MM) only guarantees the atomic value, _no_ sequential consistency (SC) between acquire (read) and release (write). */
   typedef ordered_atomic<int, std::memory_order::memory_order_relaxed> relaxed_atomic_int;
 
-} /* namespace direct_bt */
+} /* namespace jau */
 
-#endif /* ORDERED_ATOMIC_HPP_ */
+#endif /* JAU_ORDERED_ATOMIC_HPP_ */

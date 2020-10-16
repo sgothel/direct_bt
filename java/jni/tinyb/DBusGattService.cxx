@@ -32,6 +32,7 @@
 #include "helper_tinyb.hpp"
 
 using namespace tinyb;
+using namespace jau;
 
 jobject Java_tinyb_dbus_DBusGattService_getBluetoothType(JNIEnv *env, jobject obj)
 {

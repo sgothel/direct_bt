@@ -1,10 +1,10 @@
 /*
- * Author: Petre Eftime <petre.p.eftime@intel.com>
- * Copyright (c) 2016 Intel Corporation.
- *
  * Author: Sven Gothel <sgothel@jausoft.com>
  * Copyright (c) 2020 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
+ *
+ * Author: Petre Eftime <petre.p.eftime@intel.com>
+ * Copyright (c) 2016 Intel Corporation.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -26,13 +26,13 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef JNIMEM__HPP_
-#define JNIMEM__HPP_
+#ifndef JAU_JNIMEM__HPP_
+#define JAU_JNIMEM__HPP_
 
 #include <jni.h>
 #include <stdexcept>
 
-#include "BasicTypes.hpp"
+#include <jau/basic_types.hpp>
 
 extern JavaVM* vm;
 
@@ -79,7 +79,7 @@ private:
 public:
     static inline void check(jobject object, const char* file, int line) {
         if( nullptr == object ) {
-            throw direct_bt::RuntimeException("JNIGlobalRef::check: Null jobject", file, line);
+            throw jau::RuntimeException("JNIGlobalRef::check: Null jobject", file, line);
         }
     }
 
@@ -194,5 +194,5 @@ public:
     bool getIsCopy() const { return isCopy; }
 };
 
-#endif /* JNIMEM__HPP_ */
+#endif /* JAU_JNIMEM__HPP_ */
 

@@ -5,9 +5,9 @@
 
 #include <cppunit.h>
 
-#include <direct_bt/FunctionDef.hpp>
+#include <jau/function_def.hpp>
 
-using namespace direct_bt;
+using namespace jau;
 
 // Test examples.
 class Cppunit_tests : public Cppunit {

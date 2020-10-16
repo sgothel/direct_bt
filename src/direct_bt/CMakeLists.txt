@@ -1,4 +1,5 @@
 set (direct_bt_LIB_INCLUDE_DIRS
+  ${PROJECT_SOURCE_DIR}/jaucpp/include
   ${PROJECT_SOURCE_DIR}/api
   ${PROJECT_SOURCE_DIR}/api/direct_bt
   ${PROJECT_SOURCE_DIR}/include
@@ -10,10 +11,10 @@ include_directories(
 )
 
 set (direct_bt_LIB_SRCS
-  ${PROJECT_SOURCE_DIR}/src/direct_bt/dfa_utf8_decode.cpp
-  ${PROJECT_SOURCE_DIR}/src/direct_bt/DBTEnv.cpp
-  ${PROJECT_SOURCE_DIR}/src/direct_bt/dbt_debug.cpp
-  ${PROJECT_SOURCE_DIR}/src/direct_bt/BasicTypes.cpp
+  ${PROJECT_SOURCE_DIR}/jaucpp/src/dfa_utf8_decode.cpp
+  ${PROJECT_SOURCE_DIR}/jaucpp/src/environment.cpp
+  ${PROJECT_SOURCE_DIR}/jaucpp/src/debug.cpp
+  ${PROJECT_SOURCE_DIR}/jaucpp/src/basic_types.cpp
   ${PROJECT_SOURCE_DIR}/src/ieee11073/DataTypes.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/UUID.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/BTTypes.cpp

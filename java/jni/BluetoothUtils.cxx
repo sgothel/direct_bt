@@ -30,10 +30,9 @@
 
 #include <time.h>
 
-#include "JNIMem.hpp"
-#include "helper_base.hpp"
+#include <jau/dfa_utf8_decode.hpp>
 
-#include "direct_bt/dfa_utf8_decode.hpp"
+#include "helper_base.hpp"
 
 static const int64_t NanoPerMilli = 1000000L;
 static const int64_t MilliPerOne = 1000L;
@@ -77,7 +76,7 @@ jstring Java_org_tinyb_BluetoothUtils_decodeUTF8String(JNIEnv *env, jclass clazz
         if( NULL == buffer_ptr ) {
             throw std::invalid_argument("GetPrimitiveArrayCritical(byte array) is null");
         }
-        sres = dfa_utf8_decode(buffer_ptr+offset, size);
+        sres = jau::dfa_utf8_decode(buffer_ptr+offset, size);
     }
-    return from_string_to_jstring(env, sres);
+    return jau::from_string_to_jstring(env, sres);
 }

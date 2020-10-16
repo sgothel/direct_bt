@@ -23,8 +23,11 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef DBT_DEBUG_HPP_
-#define DBT_DEBUG_HPP_
+#ifndef JAU_DEBUG_HPP_
+#define JAU_DEBUG_HPP_
+
+#include <memory>
+#include <vector>
 
 #include <cstdint>
 #include <cinttypes>
@@ -37,11 +40,11 @@ extern "C" {
     #include <errno.h>
 }
 
-#include "DBTEnv.hpp"
+#include <jau/environment.hpp>
 
 // #define PERF_PRINT_ON 1
 
-namespace direct_bt {
+namespace jau {
 
     /**
      * Returns a de-mangled backtrace string separated by newline excluding this function.
@@ -58,27 +61,27 @@ namespace direct_bt {
 
     void DBG_PRINT_impl(const char * format, ...) noexcept;
 
-    /** Use for environment-variable DBTEnv::DEBUG conditional debug messages, prefix '[elapsed_time] Debug: '. */
-    #define DBG_PRINT(...) { if( direct_bt::DBTEnv::get().DEBUG ) { direct_bt::DBG_PRINT_impl(__VA_ARGS__); } }
+    /** Use for environment-variable environment::DEBUG conditional debug messages, prefix '[elapsed_time] Debug: '. */
+    #define DBG_PRINT(...) { if( jau::environment::get().DEBUG ) { jau::DBG_PRINT_impl(__VA_ARGS__); } }
 
-    /** Use for environment-variable DBTEnv::DEBUG_JNI conditional debug messages, prefix '[elapsed_time] Debug: '. */
-    #define DBG_JNI_PRINT(...) { if( direct_bt::DBTEnv::get().DEBUG_JNI ) { direct_bt::DBG_PRINT_impl(__VA_ARGS__); } }
+    /** Use for environment-variable environment::DEBUG_JNI conditional debug messages, prefix '[elapsed_time] Debug: '. */
+    #define DBG_JNI_PRINT(...) { if( jau::environment::get().DEBUG_JNI ) { jau::DBG_PRINT_impl(__VA_ARGS__); } }
 
     void WORDY_PRINT_impl(const char * format, ...) noexcept;
 
     /**
-     * Use for environment-variable DBTEnv::VERBOSE conditional verbose messages, prefix '[elapsed_time] Wordy: '.
+     * Use for environment-variable environment::VERBOSE conditional verbose messages, prefix '[elapsed_time] Wordy: '.
      * <p>
      * 'Wordy' is the shorter English form of the Latin word 'verbosus', from which the word 'verbosity' is sourced.
      * </p>
      */
-    #define WORDY_PRINT(...) { if( direct_bt::DBTEnv::get().VERBOSE ) { direct_bt::WORDY_PRINT_impl(__VA_ARGS__); } }
+    #define WORDY_PRINT(...) { if( jau::environment::get().VERBOSE ) { jau::WORDY_PRINT_impl(__VA_ARGS__); } }
 
 
-    #define PERF_TS_T0_BASE()  const uint64_t _t0 = direct_bt::getCurrentMilliseconds()
+    #define PERF_TS_T0_BASE()  const uint64_t _t0 = jau::getCurrentMilliseconds()
 
-    #define PERF_TS_TD_BASE(m)  { const uint64_t _td = direct_bt::getCurrentMilliseconds() - _t0; \
-                                  fprintf(stderr, "[%'9" PRIu64 "] PERF %s done in %d ms,\n", direct_bt::DBTEnv::getElapsedMillisecond(), (m), (int)_td); }
+    #define PERF_TS_TD_BASE(m)  { const uint64_t _td = jau::getCurrentMilliseconds() - _t0; \
+                                  fprintf(stderr, "[%'9" PRIu64 "] PERF %s done in %d ms,\n", jau::environment::getElapsedMillisecond(), (m), (int)_td); }
     #ifdef PERF_PRINT_ON
         #define PERF_TS_T0() PERF_TS_T0_BASE()
         #define PERF_TS_TD(m) PERF_TS_TD_BASE(m)
@@ -105,7 +108,7 @@ namespace direct_bt {
     void ABORT_impl(const char *func, const char *file, const int line, const char * format, ...) noexcept;
 
     /** Use for unconditional ::abort() call with given messages, prefix '[elapsed_time] ABORT @ FILE:LINE: '. Function also appends last errno and strerror(errno). */
-    #define ABORT(...) { direct_bt::ABORT_impl(__func__, __FILE__, __LINE__, __VA_ARGS__); }
+    #define ABORT(...) { jau::ABORT_impl(__func__, __FILE__, __LINE__, __VA_ARGS__); }
 
     /** Use for unconditional error messages, prefix '[elapsed_time] Error @ file:line: '. Function also appends last errno and strerror(errno). */
     void ERR_PRINTv(const char *func, const char *file, const int line, const char * format, va_list args) noexcept;
@@ -113,10 +116,10 @@ namespace direct_bt {
     void ERR_PRINT_impl(const char *prefix, const bool backtrace, const char *func, const char *file, const int line, const char * format, ...) noexcept;
 
     /** Use for unconditional error messages, prefix '[elapsed_time] Error @ FILE:LINE: '. Function also appends last errno and strerror(errno). */
-    #define ERR_PRINT(...) { direct_bt::ERR_PRINT_impl("Error", true /* backtrace */, __func__, __FILE__, __LINE__, __VA_ARGS__); }
+    #define ERR_PRINT(...) { jau::ERR_PRINT_impl("Error", true /* backtrace */, __func__, __FILE__, __LINE__, __VA_ARGS__); }
 
     /** Use for unconditional interruption messages, prefix '[elapsed_time] Interrupted @ FILE:LINE: '. Function also appends last errno and strerror(errno). */
-    #define IRQ_PRINT(...) { direct_bt::ERR_PRINT_impl("Interrupted", false /* backtrace */, __func__, __FILE__, __LINE__, __VA_ARGS__); }
+    #define IRQ_PRINT(...) { jau::ERR_PRINT_impl("Interrupted", false /* backtrace */, __func__, __FILE__, __LINE__, __VA_ARGS__); }
 
     /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ file:line: ' */
     void WARN_PRINTv(const char *func, const char *file, const int line, const char * format, va_list args) noexcept;
@@ -124,7 +127,7 @@ namespace direct_bt {
     void WARN_PRINT_impl(const char *func, const char *file, const int line, const char * format, ...) noexcept;
 
     /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ FILE:LINE: ' */
-    #define WARN_PRINT(...) { direct_bt::WARN_PRINT_impl(__func__, __FILE__, __LINE__, __VA_ARGS__); }
+    #define WARN_PRINT(...) { jau::WARN_PRINT_impl(__func__, __FILE__, __LINE__, __VA_ARGS__); }
 
     /** Use for unconditional informal messages, prefix '[elapsed_time] Info: '. */
     void INFO_PRINT(const char * format, ...) noexcept;
@@ -136,7 +139,7 @@ namespace direct_bt {
     void COND_PRINT_impl(const char * format, ...) noexcept;
 
     /** Use for conditional plain messages, prefix '[elapsed_time] '. */
-    #define COND_PRINT(C, ...) { if( C ) { direct_bt::COND_PRINT_impl(__VA_ARGS__); } }
+    #define COND_PRINT(C, ...) { if( C ) { jau::COND_PRINT_impl(__VA_ARGS__); } }
 
 
     template<class ListElemType>
@@ -154,6 +157,6 @@ namespace direct_bt {
         }
     }
 
-} // namespace direct_bt
+} // namespace jau
 
-#endif /* DBT_DEBUG_HPP_ */
+#endif /* JAU_DEBUG_HPP_ */

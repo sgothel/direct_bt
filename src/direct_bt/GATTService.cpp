@@ -23,7 +23,6 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <dbt_debug.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
@@ -33,12 +32,15 @@
 
 #include  <algorithm>
 
+#include <jau/debug.hpp>
+
 #include "DBTDevice.hpp"
 #include "GATTHandler.hpp"
 #include "GATTService.hpp"
 #include "GATTNumbers.hpp"
 
 using namespace direct_bt;
+using namespace jau;
 
 std::shared_ptr<GATTHandler> GATTService::getGATTHandlerChecked() const {
     std::shared_ptr<GATTHandler> ref = wbr_handler.lock();

@@ -35,7 +35,8 @@
 #include <mutex>
 #include <atomic>
 
-#include "DBTEnv.hpp"
+#include <jau/environment.hpp>
+
 #include "UUID.hpp"
 #include "BTTypes.hpp"
 
@@ -56,7 +57,7 @@ namespace direct_bt {
      * Also see {@link DBTEnv::getExplodingProperties(const std::string & prefixDomain)}.
      * </p>
      */
-    class L2CAPEnv : public DBTEnvrionment {
+    class L2CAPEnv : public jau::root_environment {
         private:
             L2CAPEnv() noexcept;
 

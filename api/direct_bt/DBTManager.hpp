@@ -35,14 +35,15 @@
 #include <atomic>
 #include <thread>
 
-#include "DBTEnv.hpp"
+#include <jau/environment.hpp>
+#include <jau/ringbuffer.hpp>
+#include <jau/java_uplink.hpp>
+
 #include "BTTypes.hpp"
 #include "BTIoctl.hpp"
 #include "OctetTypes.hpp"
 #include "HCIComm.hpp"
-#include "JavaUplink.hpp"
 #include "MgmtTypes.hpp"
-#include "LFRingbuffer.hpp"
 
 namespace direct_bt {
 
@@ -54,7 +55,7 @@ namespace direct_bt {
      * Also see {@link DBTEnv::getExplodingProperties(const std::string & prefixDomain)}.
      * </p>
      */
-    class MgmtEnv : public DBTEnvrionment {
+    class MgmtEnv : public jau::root_environment {
         friend class DBTManager;
 
         private:
@@ -142,7 +143,7 @@ namespace direct_bt {
      * Controlling Environment variables, see {@link MgmtEnv}.
      * </p>
      */
-    class DBTManager : public JavaUplink {
+    class DBTManager : public jau::JavaUplink {
         public:
             enum Defaults : int32_t {
                 /* BT Core Spec v5.2: Vol 3, Part F 3.2.8: Maximum length of an attribute value. */
@@ -167,7 +168,7 @@ namespace direct_bt {
             POctets rbuffer;
             HCIComm comm;
 
-            LFRingbuffer<std::shared_ptr<MgmtEvent>, nullptr> mgmtEventRing;
+            jau::ringbuffer<std::shared_ptr<MgmtEvent>, nullptr> mgmtEventRing;
             std::atomic<bool> mgmtReaderShallStop;
 
             std::mutex mtx_mgmtReaderLifecycle;

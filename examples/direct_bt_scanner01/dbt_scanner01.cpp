@@ -23,14 +23,18 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <direct_bt/DirectBT.hpp>
 #include <cinttypes>
+
+#include <jau/dfa_utf8_decode.hpp>
+
+#include <direct_bt/DirectBT.hpp>
 
 extern "C" {
     #include <unistd.h>
 }
 
 using namespace direct_bt;
+using namespace jau;
 
 /**
  * This C++ direct_bt scanner example is a TinyB backward compatible and not fully event driven.

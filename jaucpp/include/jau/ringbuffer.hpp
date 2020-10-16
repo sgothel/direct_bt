@@ -23,12 +23,9 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef LFRINGBUFFER_HPP_
-#define LFRINGBUFFER_HPP_
+#ifndef JAU_RINGBUFFER_HPP_
+#define JAU_RINGBUFFER_HPP_
 
-#include <cstring>
-#include <string>
-#include <cstdint>
 #include <atomic>
 #include <memory>
 #include <mutex>
@@ -36,18 +33,19 @@
 #include <chrono>
 #include <algorithm>
 
-#include "dbt_debug.hpp"
+#include <cstring>
+#include <string>
+#include <cstdint>
 
-#include "OrderedAtomic.hpp"
+#include <jau/debug.hpp>
+#include <jau/ordered_atomic.hpp>
+#include <jau/basic_types.hpp>
+#include <jau/ringbuffer_if.hpp>
 
-#include "BasicTypes.hpp"
-
-#include "Ringbuffer.hpp"
-
-namespace direct_bt {
+namespace jau {
 
 /**
- * Simple implementation of {@link Ringbuffer},
+ * Simple implementation of {@link ringbuffer_if},
  * exposing <i>lock-free</i>
  * {@link #get() get*(..)} and {@link #put(Object) put*(..)} methods.
  * <p>
@@ -87,7 +85,7 @@ namespace direct_bt {
  * - std::memory_order <https://en.cppreference.com/w/cpp/atomic/memory_order>
  * </pre>
  */
-template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringbuffer<T> {
+template <typename T, std::nullptr_t nullelem> class ringbuffer : public ringbuffer_if<T> {
     private:
         std::mutex syncRead, syncMultiRead;   // Memory-Model (MM) guaranteed sequential consistency (SC) between acquire and release
         std::mutex syncWrite, syncMultiWrite; // ditto
@@ -107,7 +105,7 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
             delete[] a;
         }
 
-        void cloneFrom(const bool allocArrayAndCapacity, const LFRingbuffer & source) noexcept {
+        void cloneFrom(const bool allocArrayAndCapacity, const ringbuffer & source) noexcept {
             if( allocArrayAndCapacity ) {
                 capacityPlusOne = source.capacityPlusOne;
                 if( nullptr != array ) {
@@ -268,7 +266,7 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
         std::string toString() const noexcept override {
             const std::string es = isEmpty() ? ", empty" : "";
             const std::string fs = isFull() ? ", full" : "";
-            return "LFRingbuffer<?>[size "+std::to_string(size)+" / "+std::to_string(capacityPlusOne-1)+
+            return "ringbuffer<?>[size "+std::to_string(size)+" / "+std::to_string(capacityPlusOne-1)+
                     ", writePos "+std::to_string(writePos)+", readPos "+std::to_string(readPos)+es+fs+"]";
         }
 
@@ -287,7 +285,7 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
          * <pre>
          *  Integer[] source = new Integer[10];
          *  // fill source with content ..
-         *  Ringbuffer<Integer> rb = new LFRingbuffer<Integer>(source);
+         *  ringbuffer<Integer> rb = new ringbuffer<Integer>(source);
          * </pre>
          * </p>
          * <p>
@@ -300,14 +298,14 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
          * @param copyFrom mandatory source array determining ring buffer's net {@link #capacity()} and initial content.
          * @throws IllegalArgumentException if <code>copyFrom</code> is <code>nullptr</code>
          */
-        LFRingbuffer(const std::vector<T> & copyFrom) noexcept
+        ringbuffer(const std::vector<T> & copyFrom) noexcept
         : capacityPlusOne(copyFrom.size() + 1), array(newArray(capacityPlusOne)),
           readPos(0), writePos(0), size(0)
         {
             resetImpl(copyFrom.data(), copyFrom.size());
         }
 
-        LFRingbuffer(const T * copyFrom, const int copyFromSize) noexcept
+        ringbuffer(const T * copyFrom, const int copyFromSize) noexcept
         : capacityPlusOne(copyFromSize + 1), array(newArray(capacityPlusOne)),
           readPos(0), writePos(0), size(0)
         {
@@ -319,7 +317,7 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
          * <p>
          * Example for a 10 element Integer array:
          * <pre>
-         *  Ringbuffer<Integer> rb = new LFRingbuffer<Integer>(10, Integer[].class);
+         *  ringbuffer<Integer> rb = new ringbuffer<Integer>(10, Integer[].class);
          * </pre>
          * </p>
          * <p>
@@ -331,16 +329,16 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
          * @param arrayType the array type of the created empty internal array.
          * @param capacity the initial net capacity of the ring buffer
          */
-        LFRingbuffer(const int capacity) noexcept
+        ringbuffer(const int capacity) noexcept
         : capacityPlusOne(capacity + 1), array(newArray(capacityPlusOne)),
           readPos(0), writePos(0), size(0)
         { }
 
-        ~LFRingbuffer() noexcept {
+        ~ringbuffer() noexcept {
             freeArray(array);
         }
 
-        LFRingbuffer(const LFRingbuffer &_source) noexcept
+        ringbuffer(const ringbuffer &_source) noexcept
         : capacityPlusOne(_source.capacityPlusOne), array(newArray(capacityPlusOne)),
           readPos(0), writePos(0), size(0)
         {
@@ -350,7 +348,7 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
             cloneFrom(false, _source);
         }
 
-        LFRingbuffer& operator=(const LFRingbuffer &_source) noexcept {
+        ringbuffer& operator=(const ringbuffer &_source) noexcept {
             std::unique_lock<std::mutex> lockMultiReadS(_source.syncMultiRead, std::defer_lock); // utilize std::lock(r, w), allowing mixed order waiting on read/write ops
             std::unique_lock<std::mutex> lockMultiWriteS(_source.syncMultiWrite, std::defer_lock); // otherwise RAII-style relinquish via destructor
             std::unique_lock<std::mutex> lockMultiRead(syncMultiRead, std::defer_lock);          // same for *this instance!
@@ -369,8 +367,8 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
             return *this;
         }
 
-        LFRingbuffer(LFRingbuffer &&o) noexcept = default;
-        LFRingbuffer& operator=(LFRingbuffer &&o) noexcept = default;
+        ringbuffer(ringbuffer &&o) noexcept = default;
+        ringbuffer& operator=(ringbuffer &&o) noexcept = default;
 
         int capacity() const noexcept override { return capacityPlusOne-1; }
 
@@ -488,6 +486,6 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
         }
 };
 
-} /* namespace direct_bt */
+} /* namespace jau */
 
-#endif /* LFRINGBUFFER_HPP_ */
+#endif /* JAU_RINGBUFFER_HPP_ */

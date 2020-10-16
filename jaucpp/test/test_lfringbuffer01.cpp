@@ -6,11 +6,9 @@
 
 #include <cppunit.h>
 
-#include <direct_bt/UUID.hpp>
-#include <direct_bt/Ringbuffer.hpp>
-#include <direct_bt/LFRingbuffer.hpp>
+#include <jau/ringbuffer.hpp>
 
-using namespace direct_bt;
+using namespace jau;
 
 class Integer {
     public:
@@ -33,18 +31,17 @@ class Integer {
 std::shared_ptr<Integer> NullInteger = nullptr;
 
 typedef std::shared_ptr<Integer> SharedType;
-typedef Ringbuffer<SharedType> SharedTypeRingbuffer;
-typedef LFRingbuffer<SharedType, nullptr> SharedTypeLFRingbuffer;
+typedef ringbuffer<SharedType, nullptr> SharedTypeRingbuffer;
 
 // Test examples.
 class Cppunit_tests : public Cppunit {
   private:
 
     std::shared_ptr<SharedTypeRingbuffer> createEmpty(int initialCapacity) {
-        return std::shared_ptr<SharedTypeRingbuffer>(new SharedTypeLFRingbuffer(initialCapacity));
+        return std::shared_ptr<SharedTypeRingbuffer>(new SharedTypeRingbuffer(initialCapacity));
     }
     std::shared_ptr<SharedTypeRingbuffer> createFull(const std::vector<std::shared_ptr<Integer>> & source) {
-        return std::shared_ptr<SharedTypeRingbuffer>(new SharedTypeLFRingbuffer(source));
+        return std::shared_ptr<SharedTypeRingbuffer>(new SharedTypeRingbuffer(source));
     }
 
     std::vector<SharedType> createIntArray(const int capacity, const int startValue) {
@@ -55,7 +52,7 @@ class Cppunit_tests : public Cppunit {
         return array;
     }
 
-    void readTestImpl(Ringbuffer<SharedType> &rb, bool clearRef, int capacity, int len, int startValue) {
+    void readTestImpl(SharedTypeRingbuffer &rb, bool clearRef, int capacity, int len, int startValue) {
         (void) clearRef;
 
         int preSize = rb.getSize();
@@ -75,7 +72,7 @@ class Cppunit_tests : public Cppunit {
         CHECKTM("Is full "+rb.toString(), !rb.isFull());
     }
 
-    void writeTestImpl(Ringbuffer<SharedType> &rb, int capacity, int len, int startValue) {
+    void writeTestImpl(SharedTypeRingbuffer &rb, int capacity, int len, int startValue) {
         int preSize = rb.getSize();
 
         CHECKM("Wrong capacity "+rb.toString(), capacity, rb.capacity());
@@ -92,7 +89,7 @@ class Cppunit_tests : public Cppunit {
         CHECKTM("Is empty "+rb.toString(), !rb.isEmpty());
     }
 
-    void moveGetPutImpl(Ringbuffer<SharedType> &rb, int pos) {
+    void moveGetPutImpl(SharedTypeRingbuffer &rb, int pos) {
         CHECKTM("RB is empty "+rb.toString(), !rb.isEmpty());
         for(int i=0; i<pos; i++) {
             CHECKM("MoveFull.get failed "+rb.toString(), i, rb.get()->intValue());
@@ -100,7 +97,7 @@ class Cppunit_tests : public Cppunit {
         }
     }
 
-    void movePutGetImpl(Ringbuffer<SharedType> &rb, int pos) {
+    void movePutGetImpl(SharedTypeRingbuffer &rb, int pos) {
         CHECKTM("RB is full "+rb.toString(), !rb.isFull());
         for(int i=0; i<pos; i++) {
             CHECKTM("MoveEmpty.put failed "+rb.toString(), rb.put( SharedType( new Integer(600+i) ) ) );
@@ -123,7 +120,7 @@ class Cppunit_tests : public Cppunit {
 
     void test02_EmptyWrite() {
         int capacity = 11;
-        std::shared_ptr<Ringbuffer<SharedType>> rb = createEmpty(capacity);
+        std::shared_ptr<SharedTypeRingbuffer> rb = createEmpty(capacity);
         fprintf(stderr, "test01_EmptyWrite: Created / %s\n", rb->toString().c_str());
         CHECKM("Not zero size "+rb->toString(), 0, rb->getSize());
         CHECKTM("Not empty "+rb->toString(), rb->isEmpty());
@@ -141,7 +138,7 @@ class Cppunit_tests : public Cppunit {
     void test03_FullReadReset() {
         int capacity = 11;
         std::vector<SharedType> source = createIntArray(capacity, 0);
-        std::shared_ptr<Ringbuffer<SharedType>> rb = createFull(source);
+        std::shared_ptr<SharedTypeRingbuffer> rb = createFull(source);
         fprintf(stderr, "test01_FullReadReset: Created / %s\n", rb->toString().c_str());
         CHECKTM("Not full "+rb->toString(), rb->isFull());
 
@@ -164,7 +161,7 @@ class Cppunit_tests : public Cppunit {
 
     void test04_EmptyWriteClear() {
         int capacity = 11;
-        std::shared_ptr<Ringbuffer<SharedType>> rb = createEmpty(capacity);
+        std::shared_ptr<SharedTypeRingbuffer> rb = createEmpty(capacity);
         CHECKTM("Not empty "+rb->toString(), rb->isEmpty());
 
         rb->clear();
@@ -189,7 +186,7 @@ class Cppunit_tests : public Cppunit {
     void test05_ReadResetMid01() {
         int capacity = 11;
         std::vector<SharedType> source = createIntArray(capacity, 0);
-        std::shared_ptr<Ringbuffer<SharedType>> rb = createFull(source);
+        std::shared_ptr<SharedTypeRingbuffer> rb = createFull(source);
         CHECKTM("Not full "+rb->toString(), rb->isFull());
 
         rb->reset(source);
@@ -209,7 +206,7 @@ class Cppunit_tests : public Cppunit {
     void test06_ReadResetMid02() {
         int capacity = 11;
         std::vector<SharedType> source = createIntArray(capacity, 0);
-        std::shared_ptr<Ringbuffer<SharedType>> rb = createFull(source);
+        std::shared_ptr<SharedTypeRingbuffer> rb = createFull(source);
         CHECKTM("Not full "+rb->toString(), rb->isFull());
 
         rb->reset(source);
@@ -231,7 +228,7 @@ class Cppunit_tests : public Cppunit {
         int growAmount = 5;
         int grownCapacity = initialCapacity+growAmount;
         std::vector<SharedType> source = createIntArray(initialCapacity, 0);
-        std::shared_ptr<Ringbuffer<SharedType>> rb = createFull(source);
+        std::shared_ptr<SharedTypeRingbuffer> rb = createFull(source);
 
         for(int i=0; i<initialCapacity; i++) {
             SharedType svI = rb->get();

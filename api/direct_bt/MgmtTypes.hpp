@@ -32,6 +32,8 @@
 
 #include <mutex>
 
+#include <jau/function_def.hpp>
+
 #include "BTTypes.hpp"
 #include "BTIoctl.hpp"
 #include "OctetTypes.hpp"
@@ -39,11 +41,9 @@
 
 #include "DBTTypes.hpp"
 
-#include "FunctionDef.hpp"
-
 namespace direct_bt {
 
-    class MgmtException : public RuntimeException {
+    class MgmtException : public jau::RuntimeException {
         protected:
             MgmtException(std::string const type, std::string const m, const char* file, int line) noexcept
             : RuntimeException(type, m, file, line) {}
@@ -185,18 +185,18 @@ namespace direct_bt {
             inline static void checkOpcode(const MgmtOpcode has, const MgmtOpcode min, const MgmtOpcode max)
             {
                 if( has < min || has > max ) {
-                    throw MgmtOpcodeException("Has opcode "+uint16HexString(static_cast<uint16_t>(has))+
-                                     ", not within range ["+uint16HexString(static_cast<uint16_t>(min))+
-                                     ".."+uint16HexString(static_cast<uint16_t>(max))+"]", E_FILE_LINE);
+                    throw MgmtOpcodeException("Has opcode "+jau::uint16HexString(static_cast<uint16_t>(has))+
+                                     ", not within range ["+jau::uint16HexString(static_cast<uint16_t>(min))+
+                                     ".."+jau::uint16HexString(static_cast<uint16_t>(max))+"]", E_FILE_LINE);
                 }
             }
 
             virtual std::string baseString() const noexcept {
-                return "opcode="+uint16HexString(static_cast<uint16_t>(getOpcode()))+" "+getOpcodeString()+", devID "+uint16HexString(getDevID());
+                return "opcode="+jau::uint16HexString(static_cast<uint16_t>(getOpcode()))+" "+getOpcodeString()+", devID "+jau::uint16HexString(getDevID());
             }
             virtual std::string valueString() const noexcept {
                 const int psz = getParamSize();
-                const std::string ps = psz > 0 ? bytesHexString(getParam(), 0, psz, true /* lsbFirst */, true /* leading0X */) : "";
+                const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), 0, psz, true /* lsbFirst */, true /* leading0X */) : "";
                 return "param[size "+std::to_string(getParamSize())+", data "+ps+"], tsz "+std::to_string(getTotalSize());
             }
 
@@ -443,7 +443,7 @@ namespace direct_bt {
             void checkParamIdx(const int idx) const {
                 const int pc = getParamCount();
                 if( 0 > idx || idx >= pc ) {
-                    throw IndexOutOfBoundsException(idx, pc, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsException(idx, pc, E_FILE_LINE);
                 }
             }
 
@@ -565,26 +565,26 @@ namespace direct_bt {
             static void checkOpcode(const Opcode has, const Opcode min, const Opcode max)
             {
                 if( has < min || has > max ) {
-                    throw MgmtOpcodeException("Has evcode "+uint16HexString(static_cast<uint16_t>(has))+
-                                     ", not within range ["+uint16HexString(static_cast<uint16_t>(min))+
-                                     ".."+uint16HexString(static_cast<uint16_t>(max))+"]", E_FILE_LINE);
+                    throw MgmtOpcodeException("Has evcode "+jau::uint16HexString(static_cast<uint16_t>(has))+
+                                     ", not within range ["+jau::uint16HexString(static_cast<uint16_t>(min))+
+                                     ".."+jau::uint16HexString(static_cast<uint16_t>(max))+"]", E_FILE_LINE);
                 }
             }
             static void checkOpcode(const Opcode has, const Opcode exp)
             {
                 if( has != exp ) {
-                    throw MgmtOpcodeException("Has evcode "+uint16HexString(static_cast<uint16_t>(has))+
-                                     ", not matching "+uint16HexString(static_cast<uint16_t>(exp)), E_FILE_LINE);
+                    throw MgmtOpcodeException("Has evcode "+jau::uint16HexString(static_cast<uint16_t>(has))+
+                                     ", not matching "+jau::uint16HexString(static_cast<uint16_t>(exp)), E_FILE_LINE);
                 }
             }
 
             virtual std::string baseString() const {
-                return "opcode="+uint16HexString(static_cast<uint16_t>(getOpcode()))+
-                        " "+getOpcodeString()+", devID "+uint16HexString(getDevID(), true);
+                return "opcode="+jau::uint16HexString(static_cast<uint16_t>(getOpcode()))+
+                        " "+getOpcodeString()+", devID "+jau::uint16HexString(getDevID(), true);
             }
             virtual std::string valueString() const {
                 const int d_sz = getDataSize();
-                const std::string d_str = d_sz > 0 ? bytesHexString(getData(), 0, d_sz, true /* lsbFirst */, true /* leading0X */) : "";
+                const std::string d_str = d_sz > 0 ? jau::bytesHexString(getData(), 0, d_sz, true /* lsbFirst */, true /* leading0X */) : "";
                 return "data[size "+std::to_string(d_sz)+", data "+d_str+"], tsz "+std::to_string(getTotalSize());
             }
 
@@ -600,18 +600,18 @@ namespace direct_bt {
 
             /** Persistent memory, w/ ownership ..*/
             MgmtEvent(const uint8_t* buffer, const int buffer_len, const int exp_param_size)
-            : pdu(buffer, buffer_len), ts_creation(getCurrentMilliseconds())
+            : pdu(buffer, buffer_len), ts_creation(jau::getCurrentMilliseconds())
             {
                 const int paramSize = getParamSize();
                 pdu.check_range(0, MGMT_HEADER_SIZE+paramSize);
                 if( exp_param_size > paramSize ) {
-                    throw IndexOutOfBoundsException(exp_param_size, paramSize, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsException(exp_param_size, paramSize, E_FILE_LINE);
                 }
                 checkOpcode(getOpcode(), Opcode::CMD_COMPLETE, Opcode::PHY_CONFIGURATION_CHANGED);
             }
 
             MgmtEvent(const Opcode opc, const uint16_t dev_id, const uint16_t param_size=0)
-            : pdu(MGMT_HEADER_SIZE+param_size), ts_creation(getCurrentMilliseconds())
+            : pdu(MGMT_HEADER_SIZE+param_size), ts_creation(jau::getCurrentMilliseconds())
             {
                 // checkOpcode(opc, READ_VERSION, SET_BLOCKED_KEYS);
 
@@ -653,9 +653,9 @@ namespace direct_bt {
     {
         protected:
             std::string baseString() const override {
-                return MgmtEvent::baseString()+", req-opcode="+uint16HexString(static_cast<uint16_t>(getReqOpcode()))+
+                return MgmtEvent::baseString()+", req-opcode="+jau::uint16HexString(static_cast<uint16_t>(getReqOpcode()))+
                         " "+getMgmtOpcodeString(getReqOpcode())+
-                       ", status "+uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getMgmtStatusString(getStatus());
+                       ", status "+jau::uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getMgmtStatusString(getStatus());
             }
 
             MgmtEvtCmdComplete(const uint8_t* buffer, const int buffer_len, const int exp_param_size)
@@ -667,7 +667,7 @@ namespace direct_bt {
         public:
 
             static MgmtOpcode getReqOpcode(const uint8_t *data) {
-                return static_cast<MgmtOpcode>( get_uint16(data, MGMT_HEADER_SIZE, true /* littleEndian */) );
+                return static_cast<MgmtOpcode>( jau::get_uint16(data, MGMT_HEADER_SIZE, true /* littleEndian */) );
             }
 
             MgmtEvtCmdComplete(const uint8_t* buffer, const int buffer_len)
@@ -710,9 +710,9 @@ namespace direct_bt {
 
         protected:
             std::string baseString() const override {
-                return MgmtEvent::baseString()+", req-opcode="+uint16HexString(static_cast<uint16_t>(getReqOpcode()))+
+                return MgmtEvent::baseString()+", req-opcode="+jau::uint16HexString(static_cast<uint16_t>(getReqOpcode()))+
                        " "+getMgmtOpcodeString(getReqOpcode())+
-                       ", status "+uint8HexString(static_cast<uint8_t>(getStatus()))+" "+getMgmtStatusString(getStatus());
+                       ", status "+jau::uint8HexString(static_cast<uint8_t>(getStatus()))+" "+getMgmtStatusString(getStatus());
             }
 
         public:
@@ -850,7 +850,7 @@ namespace direct_bt {
                 } else {
                     return MgmtEvent::baseString()+", address="+getAddress().toString()+
                            ", addressType "+getBDAddressTypeString(getAddressType())+
-                           ", rssi "+std::to_string(getRSSI())+", flags="+uint32HexString(getFlags(), true)+
+                           ", rssi "+std::to_string(getRSSI())+", flags="+jau::uint32HexString(getFlags(), true)+
                            ", eir-size "+std::to_string(getEIRSize());
                 }
             }
@@ -903,9 +903,9 @@ namespace direct_bt {
             std::string baseString() const override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", flags="+uint32HexString(getFlags(), true)+
+                       ", flags="+jau::uint32HexString(getFlags(), true)+
                        ", eir-size "+std::to_string(getEIRSize())+
-                       ", hci_handle "+uint16HexString(hci_conn_handle);
+                       ", hci_handle "+jau::uint16HexString(hci_conn_handle);
             }
 
         public:
@@ -950,8 +950,8 @@ namespace direct_bt {
             std::string baseString() const override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", status[mgmt["+uint8HexString(static_cast<uint8_t>(getStatus()))+" ("+getMgmtStatusString(getStatus())+")]"+
-                       ", hci["+uint8HexString(static_cast<uint8_t>(hciStatus))+" ("+getHCIStatusCodeString(hciStatus)+")]]";
+                       ", status[mgmt["+jau::uint8HexString(static_cast<uint8_t>(getStatus()))+" ("+getMgmtStatusString(getStatus())+")]"+
+                       ", hci["+jau::uint8HexString(static_cast<uint8_t>(hciStatus))+" ("+getHCIStatusCodeString(hciStatus)+")]]";
             }
 
         public:
@@ -1020,9 +1020,9 @@ namespace direct_bt {
                 const HCIStatusCode reason2 = getHCIReason();
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", reason[mgmt["+uint8HexString(static_cast<uint8_t>(reason1))+" ("+getDisconnectReasonString(reason1)+")]"+
-                       ", hci["+uint8HexString(static_cast<uint8_t>(reason2))+" ("+getHCIStatusCodeString(reason2)+")]]"+
-                       ", hci_handle "+uint16HexString(hci_conn_handle);
+                       ", reason[mgmt["+jau::uint8HexString(static_cast<uint8_t>(reason1))+" ("+getDisconnectReasonString(reason1)+")]"+
+                       ", hci["+jau::uint8HexString(static_cast<uint8_t>(reason2))+" ("+getHCIStatusCodeString(reason2)+")]]"+
+                       ", hci_handle "+jau::uint16HexString(hci_conn_handle);
             }
 
         public:
@@ -1273,7 +1273,7 @@ namespace direct_bt {
 
     };
 
-    typedef FunctionDef<bool, std::shared_ptr<MgmtEvent>> MgmtEventCallback;
+    typedef jau::FunctionDef<bool, std::shared_ptr<MgmtEvent>> MgmtEventCallback;
     typedef std::vector<MgmtEventCallback> MgmtEventCallbackList;
 
     class MgmtAdapterEventCallback {

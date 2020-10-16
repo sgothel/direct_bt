@@ -23,7 +23,6 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <dbt_debug.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
@@ -32,6 +31,8 @@
 #include <cstdio>
 
 #include  <algorithm>
+
+#include <jau/debug.hpp>
 
 #include "BTTypes.hpp"
 
@@ -153,7 +154,7 @@ std::string EUI48::toString() const {
     const int count = snprintf(&str[0], str.capacity(), "%2.2X:%2.2X:%2.2X:%2.2X:%2.2X:%2.2X",
                                 b[5], b[4], b[3], b[2], b[1], b[0]);
     if( length != count ) {
-        throw direct_bt::InternalError("EUI48 string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);
+        throw jau::InternalError("EUI48 string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);
     }
     return str;
 }
@@ -163,13 +164,13 @@ EUI48::EUI48(const std::string str) {
         std::string msg("EUI48 string not of length 17 but ");
         msg.append(std::to_string(str.length()));
         msg.append(": "+str);
-        throw direct_bt::IllegalArgumentException(msg, E_FILE_LINE);
+        throw jau::IllegalArgumentException(msg, E_FILE_LINE);
     }
     if ( sscanf(str.c_str(), "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
                      &b[5], &b[4], &b[3], &b[2], &b[1], &b[0]) != 6 )
     {
         std::string msg("EUI48 string not in format '00:00:00:00:00:00' but "+str);
-        throw direct_bt::IllegalArgumentException(msg, E_FILE_LINE);
+        throw jau::IllegalArgumentException(msg, E_FILE_LINE);
     }
 
     // sscanf provided host data type, in which we store the values,
@@ -253,7 +254,7 @@ ScanType direct_bt::getScanType(BTMode btMode) {
         case BTMode::LE:
             return ScanType::LE;
         default:
-            throw IllegalArgumentException("Unsupported BTMode "+getBTModeString(btMode), E_FILE_LINE);
+            throw jau::IllegalArgumentException("Unsupported BTMode "+getBTModeString(btMode), E_FILE_LINE);
     }
 }
 
@@ -468,12 +469,12 @@ void EInfoReport::setAddressType(BDAddressType at) noexcept {
 }
 
 void EInfoReport::setName(const uint8_t *buffer, int buffer_len) noexcept {
-    name = get_string(buffer, buffer_len, 30);
+    name = jau::get_string(buffer, buffer_len, 30);
     set(EIRDataType::NAME);
 }
 
 void EInfoReport::setShortName(const uint8_t *buffer, int buffer_len) noexcept {
-    name_short = get_string(buffer, buffer_len, 30);
+    name_short = jau::get_string(buffer, buffer_len, 30);
     set(EIRDataType::NAME_SHORT);
 }
 
@@ -515,14 +516,14 @@ std::string EInfoReport::toString(const bool includeServices) const noexcept {
                     "], name['"+name+"'/'"+name_short+"'], "+eirDataMaskToString()+
                     ", evt-type "+getAD_PDU_TypeString(evt_type)+", rssi "+std::to_string(rssi)+
                     ", tx-power "+std::to_string(tx_power)+
-                    ", dev-class "+uint32HexString(device_class, true)+
-                    ", appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
+                    ", dev-class "+jau::uint32HexString(device_class, true)+
+                    ", appearance "+jau::uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
                     "), hash["+hash.toString()+
                     "], randomizer["+randomizer.toString()+
-                    "], device-id[source "+uint16HexString(did_source, true)+
-                    ", vendor "+uint16HexString(did_vendor, true)+
-                    ", product "+uint16HexString(did_product, true)+
-                    ", version "+uint16HexString(did_version, true)+
+                    "], device-id[source "+jau::uint16HexString(did_source, true)+
+                    ", vendor "+jau::uint16HexString(did_vendor, true)+
+                    ", product "+jau::uint16HexString(did_product, true)+
+                    ", version "+jau::uint16HexString(did_version, true)+
                     "], "+msdstr+"]");
 
     if( includeServices && services.size() > 0 ) {
@@ -661,7 +662,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
             case GAP_T::RND_TRGT_ADDR:
             case GAP_T::GAP_APPEARANCE:
                 if( 2 <= elem_len ) {
-                    setAppearance(static_cast<AppearanceCat>( get_uint16(elem_data, 0, true /* littleEndian */) ));
+                    setAppearance(static_cast<AppearanceCat>( jau::get_uint16(elem_data, 0, true /* littleEndian */) ));
                 }
                 break;
             case GAP_T::SSP_HASH_C192:
@@ -680,7 +681,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                 break;
             case GAP_T::MANUFACTURE_SPECIFIC:
                 if( 2 <= elem_len ) {
-                    const uint16_t company = get_uint16(elem_data, 0, true /* littleEndian */);
+                    const uint16_t company = jau::get_uint16(elem_data, 0, true /* littleEndian */);
                     const int data_size = elem_len-2;
                     setManufactureSpecificData(company, data_size > 0 ? elem_data+2 : nullptr, data_size);
                 }
@@ -709,7 +710,7 @@ std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
     const int segment_count = 6;
     int read_segments = 0;
     int i;
-    const uint64_t timestamp = getCurrentMilliseconds();
+    const uint64_t timestamp = jau::getCurrentMilliseconds();
 
     for(i = 0; i < num_reports && i_octets < limes; i++) {
         ad_reports.push_back(std::shared_ptr<EInfoReport>(new EInfoReport()));

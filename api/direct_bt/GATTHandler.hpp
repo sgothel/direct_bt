@@ -36,13 +36,14 @@
 #include <atomic>
 #include <thread>
 
-#include "DBTEnv.hpp"
+#include <jau/ringbuffer.hpp>
+#include <jau/environment.hpp>
+
 #include "UUID.hpp"
 #include "BTTypes.hpp"
 #include "L2CAPComm.hpp"
 #include "ATTPDUTypes.hpp"
 #include "GATTTypes.hpp"
-#include "LFRingbuffer.hpp"
 
 /**
  * - - - - - - - - - - - - - - -
@@ -63,7 +64,7 @@ namespace direct_bt {
      * Also see {@link DBTEnv::getExplodingProperties(const std::string & prefixDomain)}.
      * </p>
      */
-    class GATTEnv : public DBTEnvrionment {
+    class GATTEnv : public jau::root_environment {
         private:
             GATTEnv() noexcept;
 
@@ -161,7 +162,7 @@ namespace direct_bt {
             std::atomic<bool> is_connected; // reflects state
             std::atomic<bool> has_ioerror;  // reflects state
 
-            LFRingbuffer<std::shared_ptr<const AttPDUMsg>, nullptr> attPDURing;
+            jau::ringbuffer<std::shared_ptr<const AttPDUMsg>, nullptr> attPDURing;
             std::atomic<bool> l2capReaderShallStop;
 
             std::mutex mtx_l2capReaderLifecycle;

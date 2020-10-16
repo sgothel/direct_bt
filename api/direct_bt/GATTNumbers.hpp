@@ -27,8 +27,10 @@
 #define GATT_NUMBERS_HPP_
 
 #include <cstdint>
+
+#include <jau/basic_types.hpp>
+
 #include "UUID.hpp"
-#include "BasicTypes.hpp"
 #include "OctetTypes.hpp"
 #include "BTTypes.hpp"
 #include "ieee11073/DataTypes.hpp"

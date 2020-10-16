@@ -24,8 +24,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef DFA_UTF8_DECODE_HPP_
-#define DFA_UTF8_DECODE_HPP_
+#ifndef JAU_DFA_UTF8_DECODE_HPP_
+#define JAU_DFA_UTF8_DECODE_HPP_
 
 #define DFA_UTF8_ACCEPT 0
 #define DFA_UTF8_REJECT 12
@@ -34,20 +34,22 @@
 #include <cstdint>
 #include <cinttypes>
 
-uint32_t dfa_utf8_decode(uint32_t & state, uint32_t & codep, const uint32_t byte_value);
+namespace jau {
+    uint32_t dfa_utf8_decode(uint32_t & state, uint32_t & codep, const uint32_t byte_value);
 
-/**
- * Returns all valid consecutive UTF-8 characters within buffer
- * in the range up to buffer_size or until EOS.
- * <p>
- * In case a non UTF-8 character has been detected,
- * the content will be cut off and the decoding loop ends.
- * </p>
- * <p>
- * Method utilizes a finite state machine detecting variable length UTF-8 codes.
- * See Bjoern Hoehrmann's site <http://bjoern.hoehrmann.de/utf-8/decoder/dfa/> for details.
- * </p>
- */
-std::string dfa_utf8_decode(const uint8_t *buffer, const size_t buffer_size);
+    /**
+     * Returns all valid consecutive UTF-8 characters within buffer
+     * in the range up to buffer_size or until EOS.
+     * <p>
+     * In case a non UTF-8 character has been detected,
+     * the content will be cut off and the decoding loop ends.
+     * </p>
+     * <p>
+     * Method utilizes a finite state machine detecting variable length UTF-8 codes.
+     * See Bjoern Hoehrmann's site <http://bjoern.hoehrmann.de/utf-8/decoder/dfa/> for details.
+     * </p>
+     */
+    std::string dfa_utf8_decode(const uint8_t *buffer, const size_t buffer_size);
+} /* namespace jau */
 
-#endif /* DFA_UTF8_DECODE_HPP_ */
+#endif /* JAU_DFA_UTF8_DECODE_HPP_ */

@@ -26,9 +26,8 @@
 #include "direct_bt_tinyb_DBTDevice.h"
 
 // #define VERBOSE_ON 1
-#include <dbt_debug.hpp>
+#include <jau/debug.hpp>
 
-#include "JNIMem.hpp"
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
@@ -36,6 +35,7 @@
 #include "direct_bt/DBTAdapter.hpp"
 
 using namespace direct_bt;
+using namespace jau;
 
 static const std::string _notificationReceivedMethodArgs("(Lorg/tinyb/BluetoothGattCharacteristic;[BJ)V");
 static const std::string _indicationReceivedMethodArgs("(Lorg/tinyb/BluetoothGattCharacteristic;[BJZ)V");
@@ -141,7 +141,7 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
 void Java_direct_1bt_tinyb_DBTDevice_initImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -150,7 +150,7 @@ void Java_direct_1bt_tinyb_DBTDevice_initImpl(JNIEnv *env, jobject obj)
 
 jstring Java_direct_1bt_tinyb_DBTDevice_getNameImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *nativePtr = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *nativePtr = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
         return from_string_to_jstring(env, nativePtr->getName());
     } catch(...) {
@@ -161,7 +161,7 @@ jstring Java_direct_1bt_tinyb_DBTDevice_getNameImpl(JNIEnv *env, jobject obj) {
 
 jstring Java_direct_1bt_tinyb_DBTDevice_toStringImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *nativePtr = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *nativePtr = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
         return from_string_to_jstring(env, nativePtr->toString());
     } catch(...) {
@@ -183,7 +183,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_addCharacteristicListener(JNIEnv *env, 
                 return false;
             }
         }
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
         if( nullptr == gatt ) {
@@ -192,7 +192,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_addCharacteristicListener(JNIEnv *env, 
 
         GATTCharacteristic * associatedCharacteristicRef = nullptr;
         if( nullptr != jAssociatedCharacteristic ) {
-            associatedCharacteristicRef = getDBTObject<GATTCharacteristic>(env, jAssociatedCharacteristic);
+            associatedCharacteristicRef = getJavaUplinkObject<GATTCharacteristic>(env, jAssociatedCharacteristic);
         }
 
         std::shared_ptr<GATTCharacteristicListener> l =
@@ -221,7 +221,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_removeCharacteristicListener(JNIEnv *en
         }
         setObjectRef<JNICharacteristicListener>(env, jlistener, nullptr, "nativeInstance");
 
-        DBTDevice *device = getDBTObjectUnchecked<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObjectUnchecked<DBTDevice>(env, obj);
         if( nullptr == device ) {
             // OK to have device being deleted already @ shutdown
             return 0;
@@ -250,7 +250,7 @@ jint Java_direct_1bt_tinyb_DBTDevice_removeAllAssociatedCharacteristicListener(J
         if( nullptr == jAssociatedCharacteristic ) {
             throw IllegalArgumentException("associatedCharacteristic argument is null", E_FILE_LINE);
         }
-        DBTDevice *device = getDBTObjectUnchecked<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObjectUnchecked<DBTDevice>(env, obj);
         if( nullptr == device ) {
             // OK to have device being deleted already @ shutdown
             return 0;
@@ -263,7 +263,7 @@ jint Java_direct_1bt_tinyb_DBTDevice_removeAllAssociatedCharacteristicListener(J
             return 0;
         }
 
-        GATTCharacteristic * associatedCharacteristicRef = getDBTObject<GATTCharacteristic>(env, jAssociatedCharacteristic);
+        GATTCharacteristic * associatedCharacteristicRef = getJavaUplinkObject<GATTCharacteristic>(env, jAssociatedCharacteristic);
         JavaGlobalObj::check(associatedCharacteristicRef->getJavaObject(), E_FILE_LINE);
 
         return gatt->removeAllAssociatedCharacteristicListener(associatedCharacteristicRef);
@@ -275,7 +275,7 @@ jint Java_direct_1bt_tinyb_DBTDevice_removeAllAssociatedCharacteristicListener(J
 
 jint Java_direct_1bt_tinyb_DBTDevice_removeAllCharacteristicListener(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *device = getDBTObjectUnchecked<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObjectUnchecked<DBTDevice>(env, obj);
         if( nullptr == device ) {
             // OK to have device being deleted already @ shutdown
             return 0;
@@ -310,7 +310,7 @@ void Java_direct_1bt_tinyb_DBTDevice_deleteImpl(JNIEnv *env, jobject obj, jlong 
 jbyte Java_direct_1bt_tinyb_DBTDevice_disconnectImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return (jint) number( device->disconnect() );
     } catch(...) {
@@ -322,7 +322,7 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_disconnectImpl(JNIEnv *env, jobject obj)
 jboolean Java_direct_1bt_tinyb_DBTDevice_removeImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         device->remove();
     } catch(...) {
@@ -334,7 +334,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_removeImpl(JNIEnv *env, jobject obj)
 jbyte Java_direct_1bt_tinyb_DBTDevice_connectImpl__(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return (jbyte) number( device->connectDefault() );
     } catch(...) {
@@ -349,7 +349,7 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_connectImpl__SSSSSS(JNIEnv *env, jobject o
                                                           jshort latency, jshort timeout)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         HCIStatusCode res;
         switch( device->addressType ) {
@@ -372,7 +372,7 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_connectImpl__SSSSSS(JNIEnv *env, jobject o
 jbyte Java_direct_1bt_tinyb_DBTDevice_pairImpl(JNIEnv *env, jobject obj, jstring jpasskey)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         const std::string passkey = nullptr != jpasskey ? from_jstring_to_string(env, jpasskey) : std::string();
@@ -387,7 +387,7 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_pairImpl(JNIEnv *env, jobject obj, jstring
 
 jbyteArray Java_direct_1bt_tinyb_DBTDevice_getSupportedPairingModesImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         std::vector<PairingMode> res0 = device->getSupportedPairingModes();
@@ -409,7 +409,7 @@ jbyteArray Java_direct_1bt_tinyb_DBTDevice_getSupportedPairingModesImpl(JNIEnv *
 
 jbyteArray Java_direct_1bt_tinyb_DBTDevice_getRequiredPairingModesImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         std::vector<PairingMode> res0 = device->getRequiredPairingModes();
@@ -437,7 +437,7 @@ static const std::string _serviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTDevice;ZLj
 
 jobject Java_direct_1bt_tinyb_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         std::vector<GATTServiceRef> services = device->getGATTServices(); // implicit GATT connect and discovery if required incl GenericAccess retrieval
@@ -471,7 +471,7 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj
                             juuid, service->startHandle, service->endHandle);
                     java_exception_check_and_throw(env, E_FILE_LINE);
                     JNIGlobalRef::check(jservice, E_FILE_LINE);
-                    std::shared_ptr<JavaAnonObj> jServiceRef = service->getJavaObject(); // GlobalRef
+                    std::shared_ptr<JavaAnon> jServiceRef = service->getJavaObject(); // GlobalRef
                     JavaGlobalObj::check(jServiceRef, E_FILE_LINE);
                     env->DeleteLocalRef(juuid);
                     env->DeleteLocalRef(jservice);
@@ -487,7 +487,7 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj
 jboolean Java_direct_1bt_tinyb_DBTDevice_pingGATTImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         return device->pingGATT() ? JNI_TRUE : JNI_FALSE;
@@ -500,7 +500,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_pingGATTImpl(JNIEnv *env, jobject obj)
 jstring Java_direct_1bt_tinyb_DBTDevice_getIcon(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return nullptr; // FIXME
     } catch(...) {
@@ -512,7 +512,7 @@ jstring Java_direct_1bt_tinyb_DBTDevice_getIcon(JNIEnv *env, jobject obj)
 void Java_direct_1bt_tinyb_DBTDevice_setTrustedImpl(JNIEnv *env, jobject obj, jboolean value)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         (void)value;
         // FIXME
@@ -524,7 +524,7 @@ void Java_direct_1bt_tinyb_DBTDevice_setTrustedImpl(JNIEnv *env, jobject obj, jb
 void Java_direct_1bt_tinyb_DBTDevice_setBlockedImpl(JNIEnv *env, jobject obj, jboolean value)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         (void)value;
         // FIXME
@@ -536,7 +536,7 @@ void Java_direct_1bt_tinyb_DBTDevice_setBlockedImpl(JNIEnv *env, jobject obj, jb
 jboolean JNICALL Java_direct_1bt_tinyb_DBTDevice_getLegacyPairing(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return JNI_FALSE; // FIXME
     } catch(...) {
@@ -548,7 +548,7 @@ jboolean JNICALL Java_direct_1bt_tinyb_DBTDevice_getLegacyPairing(JNIEnv *env, j
 jshort Java_direct_1bt_tinyb_DBTDevice_getRSSI(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return (jshort) device->getRSSI();
     } catch(...) {
@@ -561,7 +561,7 @@ jshort Java_direct_1bt_tinyb_DBTDevice_getRSSI(JNIEnv *env, jobject obj)
 jobjectArray Java_direct_1bt_tinyb_DBTDevice_getUUIDs(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return nullptr; // FIXME
     } catch(...) {
@@ -573,7 +573,7 @@ jobjectArray Java_direct_1bt_tinyb_DBTDevice_getUUIDs(JNIEnv *env, jobject obj)
 jstring Java_direct_1bt_tinyb_DBTDevice_getModalias(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return nullptr; // FIXME
     } catch(...) {
@@ -585,7 +585,7 @@ jstring Java_direct_1bt_tinyb_DBTDevice_getModalias(JNIEnv *env, jobject obj)
 jobject Java_direct_1bt_tinyb_DBTDevice_getManufacturerData(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         std::shared_ptr<ManufactureSpecificData> mdata = device->getManufactureSpecificData();
 
@@ -622,7 +622,7 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getManufacturerData(JNIEnv *env, jobject
 jshort Java_direct_1bt_tinyb_DBTDevice_getTxPower(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return (jshort) device->getTxPower();
     } catch(...) {
@@ -672,17 +672,17 @@ static void disableBlockedNotifications(JNIEnv *env, jobject obj, DBTManager &mg
         setObjectRef(env, obj, funcptr, "blockedNotificationRef"); // clear java ref
         int count;
         if( 1 != ( count = mgmt.removeMgmtEventCallback(MgmtEvent::Opcode::DEVICE_BLOCKED, funcDef) ) ) {
-            throw direct_bt::InternalError(std::string("removeMgmtEventCallback of ")+funcDef.toString()+" not 1 but "+std::to_string(count), E_FILE_LINE);
+            throw InternalError(std::string("removeMgmtEventCallback of ")+funcDef.toString()+" not 1 but "+std::to_string(count), E_FILE_LINE);
         }
         if( 1 != ( count = mgmt.removeMgmtEventCallback(MgmtEvent::Opcode::DEVICE_UNBLOCKED, funcDef) ) ) {
-            throw direct_bt::InternalError(std::string("removeMgmtEventCallback of ")+funcDef.toString()+" not 1 but "+std::to_string(count), E_FILE_LINE);
+            throw InternalError(std::string("removeMgmtEventCallback of ")+funcDef.toString()+" not 1 but "+std::to_string(count), E_FILE_LINE);
         }
     }
 }
 void Java_direct_1bt_tinyb_DBTDevice_disableBlockedNotificationsImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         DBTManager & mgmt = device->getAdapter().getManager();
 
@@ -694,7 +694,7 @@ void Java_direct_1bt_tinyb_DBTDevice_disableBlockedNotificationsImpl(JNIEnv *env
 void Java_direct_1bt_tinyb_DBTDevice_enableBlockedNotificationsImpl(JNIEnv *env, jobject obj, jobject javaCallback)
 {
     try {
-        DBTDevice *device= getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device= getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         DBTAdapter & adapter = device->getAdapter();
         DBTManager & mgmt = adapter.getManager();
@@ -762,14 +762,14 @@ static void disablePairedNotifications(JNIEnv *env, jobject obj, DBTManager &mgm
         setObjectRef(env, obj, funcptr, "pairedNotificationRef"); // clear java ref
         int count;
         if( 1 != ( count = mgmt.removeMgmtEventCallback(MgmtEvent::Opcode::DEVICE_UNPAIRED, funcDef) ) ) {
-            throw direct_bt::InternalError(std::string("removeMgmtEventCallback of ")+funcDef.toString()+" not 1 but "+std::to_string(count), E_FILE_LINE);
+            throw InternalError(std::string("removeMgmtEventCallback of ")+funcDef.toString()+" not 1 but "+std::to_string(count), E_FILE_LINE);
         }
     }
 }
 void Java_direct_1bt_tinyb_DBTDevice_disablePairedNotificationsImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         DBTManager & mgmt = device->getAdapter().getManager();
 
@@ -781,7 +781,7 @@ void Java_direct_1bt_tinyb_DBTDevice_disablePairedNotificationsImpl(JNIEnv *env,
 void Java_direct_1bt_tinyb_DBTDevice_enablePairedNotificationsImpl(JNIEnv *env, jobject obj, jobject javaCallback)
 {
     try {
-        DBTDevice *device= getDBTObject<DBTDevice>(env, obj);
+        DBTDevice *device= getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         DBTAdapter & adapter = device->getAdapter();
         DBTManager & mgmt = adapter.getManager();

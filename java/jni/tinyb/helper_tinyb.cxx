@@ -37,7 +37,7 @@ using namespace tinyb;
 
 jclass tinyb::search_class(JNIEnv *env, BluetoothObject &object)
 {
-    return search_class(env, object.get_java_class().c_str());
+    return jau::search_class(env, object.get_java_class().c_str());
 }
 
 BluetoothType tinyb::from_int_to_btype(int type)

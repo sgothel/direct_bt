@@ -28,10 +28,10 @@
 
 #include "tinyb_dbus_DBusGattDescriptor.h"
 
-#include "JNIMem.hpp"
 #include "helper_tinyb.hpp"
 
 using namespace tinyb;
+using namespace jau;
 
 jobject Java_tinyb_dbus_DBusGattDescriptor_getBluetoothType(JNIEnv *env, jobject obj)
 {

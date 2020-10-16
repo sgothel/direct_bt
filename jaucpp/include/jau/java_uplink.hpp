@@ -23,52 +23,52 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef JAVA_ACCESS_HPP_
-#define JAVA_ACCESS_HPP_
+#ifndef JAU_JAVA_UPLINK_HPP_
+#define JAU_JAVA_UPLINK_HPP_
 
 #include <string>
 #include <memory>
 
-namespace direct_bt {
+#include <jau/basic_types.hpp>
 
-    #define JAVA_DBT_PACKAGE "direct_bt/tinyb/"
+namespace jau {
 
     /**
-     * Pure virtual JavaAnonObj, hiding Java JNI details from API,
+     * Pure virtual JavaAnon, hiding Java JNI details from API,
      * to be implemented by JNI module.
      * <p>
      * One implementation is JavaGlobalObj within the JNI module,
      * wrapping a JNIGlobalRef instance.
      * </p>
      */
-    class JavaAnonObj {
+    class JavaAnon {
         public:
-            virtual ~JavaAnonObj() noexcept { }
-            virtual std::string toString() const noexcept { return "JavaAnonObj[???]"; }
+            virtual ~JavaAnon() noexcept { }
+            virtual std::string toString() const noexcept { return "JavaAnon[???]"; }
 
             /** Clears the java reference, i.e. nulling it, without deleting the global reference via JNI. */
             virtual void clear() noexcept = 0;
     };
 
     /**
-     * Sharing the anonymous Java object (JavaAnonObj),
+     * Sharing the anonymous Java object (JavaAnon),
      * i.e. exposing the Java object uplink to the C++ implementation.
      */
     class JavaUplink {
         private:
-            std::shared_ptr<JavaAnonObj> javaObjectRef;
+            std::shared_ptr<JavaAnon> javaObjectRef;
 
         public:
-            virtual std::string toString() const noexcept { return "JavaUplink["+direct_bt::aptrHexString(this)+"]"; }
+            virtual std::string toString() const noexcept { return "JavaUplink["+jau::aptrHexString(this)+"]"; }
 
             virtual std::string get_java_class() const noexcept = 0;
 
-            std::string javaObjectToString() const noexcept { return nullptr == javaObjectRef ? "JavaAnonObj[null]" : javaObjectRef->toString(); }
+            std::string javaObjectToString() const noexcept { return nullptr == javaObjectRef ? "JavaAnon[null]" : javaObjectRef->toString(); }
 
-            std::shared_ptr<JavaAnonObj> getJavaObject() noexcept { return javaObjectRef; }
+            std::shared_ptr<JavaAnon> getJavaObject() noexcept { return javaObjectRef; }
 
-            /** Assigns a new shared JavaAnonObj reference, replaced item might be deleted via JNI from dtor */
-            void setJavaObject(std::shared_ptr<JavaAnonObj> objRef) noexcept { javaObjectRef = objRef; }
+            /** Assigns a new shared JavaAnon reference, replaced item might be deleted via JNI from dtor */
+            void setJavaObject(std::shared_ptr<JavaAnon> objRef) noexcept { javaObjectRef = objRef; }
 
             /** Clears the java reference, i.e. nulling it, without deleting the global reference via JNI. */
             void clearJavaObject() noexcept {
@@ -77,12 +77,17 @@ namespace direct_bt {
                 }
             }
 
+            /**
+             * Throws an IllegalStateException if isValid() == false
+             */
+            virtual void checkValid() const {}
+
             virtual ~JavaUplink() noexcept {
                 javaObjectRef = nullptr;
             }
     };
 
-} /* namespace direct_bt */
+} /* namespace jau */
 
 
-#endif /* JAVA_ACCESS_HPP_ */
+#endif /* JAU_JAVA_UPLINK_HPP_ */

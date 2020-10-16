@@ -27,8 +27,9 @@
 
 #include "version.h"
 
-#include "JNIMem.hpp"
 #include "helper_base.hpp"
+
+using namespace jau;
 
 jstring Java_org_tinyb_BluetoothFactory_getNativeAPIVersion(JNIEnv *env, jclass clazz)
 {

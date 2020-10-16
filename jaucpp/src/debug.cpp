@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt/dbt_debug.hpp"
+#include <jau/debug.hpp>
 
 #include <cstdarg>
 
@@ -31,9 +31,9 @@
 #include <libunwind.h>
 #include <cxxabi.h>
 
-using namespace direct_bt;
+using namespace jau;
 
-std::string direct_bt::get_backtrace(int skip_frames) noexcept {
+std::string jau::get_backtrace(int skip_frames) noexcept {
     // symbol:
     //  1: _ZN9direct_bt10DBTAdapter14startDiscoveryEbNS_19HCILEOwnAddressTypeEtt + 0x58d @ ip 0x7faa959d6daf, sp 0x7ffe38f301e0
     // de-mangled:
@@ -77,13 +77,13 @@ std::string direct_bt::get_backtrace(int skip_frames) noexcept {
     return out;
 }
 
-void direct_bt::print_backtrace(int skip_frames) noexcept {
+void jau::print_backtrace(int skip_frames) noexcept {
     fprintf(stderr, get_backtrace(skip_frames).c_str());
     fflush(stderr);
 }
 
-void direct_bt::DBG_PRINT_impl(const char * format, ...) noexcept {
-    fprintf(stderr, "[%'9" PRIu64 "] Debug: ", DBTEnv::getElapsedMillisecond());
+void jau::DBG_PRINT_impl(const char * format, ...) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] Debug: ", environment::getElapsedMillisecond());
     va_list args;
     va_start (args, format);
     vfprintf(stderr, format, args);
@@ -92,8 +92,8 @@ void direct_bt::DBG_PRINT_impl(const char * format, ...) noexcept {
     fflush(stderr);
 }
 
-void direct_bt::WORDY_PRINT_impl(const char * format, ...) noexcept {
-    fprintf(stderr, "[%'9" PRIu64 "] Wordy: ", DBTEnv::getElapsedMillisecond());
+void jau::WORDY_PRINT_impl(const char * format, ...) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] Wordy: ", environment::getElapsedMillisecond());
     va_list args;
     va_start (args, format);
     vfprintf(stderr, format, args);
@@ -102,28 +102,28 @@ void direct_bt::WORDY_PRINT_impl(const char * format, ...) noexcept {
     fflush(stderr);
 }
 
-void direct_bt::ABORT_impl(const char *func, const char *file, const int line, const char * format, ...) noexcept {
-    fprintf(stderr, "[%'9" PRIu64 "] ABORT @ %s:%d %s: ", DBTEnv::getElapsedMillisecond(), file, line, func);
+void jau::ABORT_impl(const char *func, const char *file, const int line, const char * format, ...) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] ABORT @ %s:%d %s: ", environment::getElapsedMillisecond(), file, line, func);
     va_list args;
     va_start (args, format);
     vfprintf(stderr, format, args);
     va_end (args);
     fprintf(stderr, "; last errno %d %s\n", errno, strerror(errno));
     fflush(stderr);
-    direct_bt::print_backtrace(2);
+    jau::print_backtrace(2);
     abort();
 }
 
-void direct_bt::ERR_PRINTv(const char *func, const char *file, const int line, const char * format, va_list args) noexcept {
-    fprintf(stderr, "[%'9" PRIu64 "] Error @ %s:%d %s: ", DBTEnv::getElapsedMillisecond(), file, line, func);
+void jau::ERR_PRINTv(const char *func, const char *file, const int line, const char * format, va_list args) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] Error @ %s:%d %s: ", environment::getElapsedMillisecond(), file, line, func);
     vfprintf(stderr, format, args);
     fprintf(stderr, "; last errno %d %s\n", errno, strerror(errno));
     fflush(stderr);
-    direct_bt::print_backtrace(2);
+    jau::print_backtrace(2);
 }
 
-void direct_bt::ERR_PRINT_impl(const char *prefix, const bool backtrace, const char *func, const char *file, const int line, const char * format, ...) noexcept {
-    fprintf(stderr, "[%'9" PRIu64 "] %s @ %s:%d %s: ", DBTEnv::getElapsedMillisecond(), prefix, file, line, func);
+void jau::ERR_PRINT_impl(const char *prefix, const bool backtrace, const char *func, const char *file, const int line, const char * format, ...) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] %s @ %s:%d %s: ", environment::getElapsedMillisecond(), prefix, file, line, func);
     va_list args;
     va_start (args, format);
     vfprintf(stderr, format, args);
@@ -131,19 +131,19 @@ void direct_bt::ERR_PRINT_impl(const char *prefix, const bool backtrace, const c
     fprintf(stderr, "; last errno %d %s\n", errno, strerror(errno));
     fflush(stderr);
     if( backtrace ) {
-        direct_bt::print_backtrace(2);
+        jau::print_backtrace(2);
     }
 }
 
-void direct_bt::WARN_PRINTv(const char *func, const char *file, const int line, const char * format, va_list args) noexcept {
-    fprintf(stderr, "[%'9" PRIu64 "] Warning @ %s:%d %s: ", DBTEnv::getElapsedMillisecond(), file, line, func);
+void jau::WARN_PRINTv(const char *func, const char *file, const int line, const char * format, va_list args) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] Warning @ %s:%d %s: ", environment::getElapsedMillisecond(), file, line, func);
     vfprintf(stderr, format, args);
     fprintf(stderr, "\n");
     fflush(stderr);
 }
 
-void direct_bt::WARN_PRINT_impl(const char *func, const char *file, const int line, const char * format, ...) noexcept {
-    fprintf(stderr, "[%'9" PRIu64 "] Warning @ %s:%d %s: ", DBTEnv::getElapsedMillisecond(), file, line, func);
+void jau::WARN_PRINT_impl(const char *func, const char *file, const int line, const char * format, ...) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] Warning @ %s:%d %s: ", environment::getElapsedMillisecond(), file, line, func);
     va_list args;
     va_start (args, format);
     vfprintf(stderr, format, args);
@@ -152,8 +152,8 @@ void direct_bt::WARN_PRINT_impl(const char *func, const char *file, const int li
     fflush(stderr);
 }
 
-void direct_bt::INFO_PRINT(const char * format, ...) noexcept {
-    fprintf(stderr, "[%'9" PRIu64 "] Info: ", DBTEnv::getElapsedMillisecond());
+void jau::INFO_PRINT(const char * format, ...) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] Info: ", environment::getElapsedMillisecond());
     va_list args;
     va_start (args, format);
     vfprintf(stderr, format, args);
@@ -162,8 +162,8 @@ void direct_bt::INFO_PRINT(const char * format, ...) noexcept {
     fflush(stderr);
 }
 
-void direct_bt::PLAIN_PRINT(const char * format, ...) noexcept {
-    fprintf(stderr, "[%'9" PRIu64 "] ", DBTEnv::getElapsedMillisecond());
+void jau::PLAIN_PRINT(const char * format, ...) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] ", environment::getElapsedMillisecond());
     va_list args;
     va_start (args, format);
     vfprintf(stderr, format, args);
@@ -172,8 +172,8 @@ void direct_bt::PLAIN_PRINT(const char * format, ...) noexcept {
     fflush(stderr);
 }
 
-void direct_bt::COND_PRINT_impl(const char * format, ...) noexcept {
-    fprintf(stderr, "[%'9" PRIu64 "] ", DBTEnv::getElapsedMillisecond());
+void jau::COND_PRINT_impl(const char * format, ...) noexcept {
+    fprintf(stderr, "[%'9" PRIu64 "] ", environment::getElapsedMillisecond());
     va_list args;
     va_start (args, format);
     vfprintf(stderr, format, args);

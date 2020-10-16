@@ -25,7 +25,6 @@
 
 // #include "direct_bt_tinyb_DBTObject.h"
 
-#include "JNIMem.hpp"
 #include "helper_base.hpp"
 
 #include "direct_bt/DBTTypes.hpp"

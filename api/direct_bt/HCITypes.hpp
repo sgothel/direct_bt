@@ -33,6 +33,8 @@
 #include <algorithm>
 #include <mutex>
 
+#include <jau/basic_types.hpp>
+
 #include "BTTypes.hpp"
 #include "BTIoctl.hpp"
 #include "OctetTypes.hpp"
@@ -48,7 +50,7 @@
  */
 namespace direct_bt {
 
-    class HCIException : public RuntimeException {
+    class HCIException : public jau::RuntimeException {
         protected:
             HCIException(std::string const type, std::string const m, const char* file, int line) noexcept
             : RuntimeException(type, m, file, line) {}
@@ -429,7 +431,7 @@ namespace direct_bt {
                     case HCIPacketType::VENDOR:
                         return; // OK
                     default:
-                        throw HCIPacketException("Unsupported packet type "+uint8HexString(number(type)), E_FILE_LINE);
+                        throw HCIPacketException("Unsupported packet type "+jau::uint8HexString(number(type)), E_FILE_LINE);
                 }
             }
 
@@ -438,7 +440,7 @@ namespace direct_bt {
             : pdu(total_packet_size)
             {
                 if( 0 == total_packet_size ) {
-                    throw IndexOutOfBoundsException(1, total_packet_size, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsException(1, total_packet_size, E_FILE_LINE);
                 }
                 pdu.put_uint8_nc(0, number(type));
             }
@@ -448,7 +450,7 @@ namespace direct_bt {
             : pdu(packet_data, total_packet_size)
             {
                 if( 0 == total_packet_size ) {
-                    throw IndexOutOfBoundsException(1, total_packet_size, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsException(1, total_packet_size, E_FILE_LINE);
                 }
                 checkPacketType(getPacketType());
             }
@@ -480,18 +482,18 @@ namespace direct_bt {
             inline static void checkOpcode(const HCIOpcode has, const HCIOpcode min, const HCIOpcode max)
             {
                 if( has < min || has > max ) {
-                    throw HCIOpcodeException("Has opcode "+uint16HexString(number(has))+
-                                     ", not within range ["+uint16HexString(number(min))+
-                                     ".."+uint16HexString(number(max))+"]", E_FILE_LINE);
+                    throw HCIOpcodeException("Has opcode "+jau::uint16HexString(number(has))+
+                                     ", not within range ["+jau::uint16HexString(number(min))+
+                                     ".."+jau::uint16HexString(number(max))+"]", E_FILE_LINE);
                 }
             }
 
             virtual std::string baseString() const noexcept {
-                return "opcode="+uint16HexString(number(getOpcode()))+" "+getOpcodeString();
+                return "opcode="+jau::uint16HexString(number(getOpcode()))+" "+getOpcodeString();
             }
             virtual std::string valueString() const noexcept {
                 const int psz = getParamSize();
-                const std::string ps = psz > 0 ? bytesHexString(getParam(), 0, psz, true /* lsbFirst */, true /* leading0X */) : "";
+                const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), 0, psz, true /* lsbFirst */, true /* leading0X */) : "";
                 return "param[size "+std::to_string(getParamSize())+", data "+ps+"], tsz "+std::to_string(getTotalSize());
             }
 
@@ -590,26 +592,26 @@ namespace direct_bt {
             inline static void checkEventType(const HCIEventType has, const HCIEventType min, const HCIEventType max)
             {
                 if( has < min || has > max ) {
-                    throw HCIOpcodeException("Has evcode "+uint8HexString(number(has))+
-                                     ", not within range ["+uint8HexString(number(min))+
-                                     ".."+uint8HexString(number(max))+"]", E_FILE_LINE);
+                    throw HCIOpcodeException("Has evcode "+jau::uint8HexString(number(has))+
+                                     ", not within range ["+jau::uint8HexString(number(min))+
+                                     ".."+jau::uint8HexString(number(max))+"]", E_FILE_LINE);
                 }
             }
             inline static void checkEventType(const HCIEventType has, const HCIEventType exp)
             {
                 if( has != exp ) {
-                    throw HCIOpcodeException("Has evcode "+uint8HexString(number(has))+
-                                     ", not matching "+uint8HexString(number(exp)), E_FILE_LINE);
+                    throw HCIOpcodeException("Has evcode "+jau::uint8HexString(number(has))+
+                                     ", not matching "+jau::uint8HexString(number(exp)), E_FILE_LINE);
                 }
             }
 
             virtual std::string baseString() const noexcept {
-                return "event="+uint8HexString(number(getEventType()))+" "+getEventTypeString();
+                return "event="+jau::uint8HexString(number(getEventType()))+" "+getEventTypeString();
             }
             virtual std::string valueString() const noexcept {
                 const int d_sz_base = getBaseParamSize();
                 const int d_sz = getParamSize();
-                const std::string d_str = d_sz > 0 ? bytesHexString(getParam(), 0, d_sz, true /* lsbFirst */, true /* leading0X */) : "";
+                const std::string d_str = d_sz > 0 ? jau::bytesHexString(getParam(), 0, d_sz, true /* lsbFirst */, true /* leading0X */) : "";
                 return "data[size "+std::to_string(d_sz)+"/"+std::to_string(d_sz_base)+", data "+d_str+"], tsz "+std::to_string(getTotalSize());
             }
 
@@ -627,19 +629,19 @@ namespace direct_bt {
 
             /** Persistent memory, w/ ownership ..*/
             HCIEvent(const uint8_t* buffer, const int buffer_len, const int exp_param_size)
-            : HCIPacket(buffer, buffer_len), ts_creation(getCurrentMilliseconds())
+            : HCIPacket(buffer, buffer_len), ts_creation(jau::getCurrentMilliseconds())
             {
                 const int baseParamSize = getBaseParamSize();
                 pdu.check_range(0, number(HCIConstU8::EVENT_HDR_SIZE)+baseParamSize);
                 if( exp_param_size > baseParamSize ) {
-                    throw IndexOutOfBoundsException(exp_param_size, baseParamSize, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsException(exp_param_size, baseParamSize, E_FILE_LINE);
                 }
                 checkEventType(getEventType(), HCIEventType::INQUIRY_COMPLETE, HCIEventType::AMP_Receiver_Report);
             }
 
             /** Enabling manual construction of event without given value.  */
             HCIEvent(const HCIEventType evt, const uint16_t param_size=0)
-            : HCIPacket(HCIPacketType::EVENT, number(HCIConstU8::EVENT_HDR_SIZE)+param_size), ts_creation(getCurrentMilliseconds())
+            : HCIPacket(HCIPacketType::EVENT, number(HCIConstU8::EVENT_HDR_SIZE)+param_size), ts_creation(jau::getCurrentMilliseconds())
             {
                 checkEventType(evt, HCIEventType::INQUIRY_COMPLETE, HCIEventType::AMP_Receiver_Report);
                 pdu.put_uint8_nc(1, number(evt));
@@ -728,9 +730,9 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return HCIEvent::baseString()+
-                        ", status "+uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getHCIStatusCodeString(getStatus())+
-                        ", handle "+uint16HexString(getHandle())+
-                        ", reason "+uint8HexString(static_cast<uint8_t>(getReason()), true)+" "+getHCIStatusCodeString(getReason());
+                        ", status "+jau::uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getHCIStatusCodeString(getStatus())+
+                        ", handle "+jau::uint16HexString(getHandle())+
+                        ", reason "+jau::uint8HexString(static_cast<uint8_t>(getReason()), true)+" "+getHCIStatusCodeString(getReason());
             }
 
         public:
@@ -762,7 +764,7 @@ namespace direct_bt {
     {
         protected:
             std::string baseString() const noexcept override {
-                return HCIEvent::baseString()+", opcode="+uint16HexString(static_cast<uint16_t>(getOpcode()))+
+                return HCIEvent::baseString()+", opcode="+jau::uint16HexString(static_cast<uint16_t>(getOpcode()))+
                         " "+getHCIOpcodeString(getOpcode())+
                         ", ncmd "+std::to_string(getNumCommandPackets());
             }
@@ -815,10 +817,10 @@ namespace direct_bt {
     {
         protected:
             std::string baseString() const noexcept override {
-                return HCIEvent::baseString()+", opcode="+uint16HexString(static_cast<uint16_t>(getOpcode()))+
+                return HCIEvent::baseString()+", opcode="+jau::uint16HexString(static_cast<uint16_t>(getOpcode()))+
                         " "+getHCIOpcodeString(getOpcode())+
                         ", ncmd "+std::to_string(getNumCommandPackets())+
-                        ", status "+uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getHCIStatusCodeString(getStatus());
+                        ", status "+jau::uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getHCIStatusCodeString(getStatus());
             }
 
         public:
@@ -861,13 +863,13 @@ namespace direct_bt {
             static void checkMetaType(const HCIMetaEventType has, const HCIMetaEventType exp)
             {
                 if( has != exp ) {
-                    throw HCIOpcodeException("Has meta "+uint8HexString(number(has))+
-                                     ", not matching "+uint8HexString(number(exp)), E_FILE_LINE);
+                    throw HCIOpcodeException("Has meta "+jau::uint8HexString(number(has))+
+                                     ", not matching "+jau::uint8HexString(number(exp)), E_FILE_LINE);
                 }
             }
 
             virtual std::string baseString() const noexcept override {
-                return "event="+uint8HexString(number(getMetaEventType()))+" "+getMetaEventTypeString()+" (le-meta)";
+                return "event="+jau::uint8HexString(number(getMetaEventType()))+" "+getMetaEventTypeString()+" (le-meta)";
             }
 
         public:

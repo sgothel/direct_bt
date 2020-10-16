@@ -23,8 +23,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef DBT_ENV_HPP_
-#define DBT_ENV_HPP_
+#ifndef JAU_ENV_HPP_
+#define JAU_ENV_HPP_
 
 #include <cstdint>
 #include <cinttypes>
@@ -36,28 +36,28 @@ extern "C" {
     #include <errno.h>
 }
 
-#include "BasicTypes.hpp"
+#include <jau/basic_types.hpp>
 
-namespace direct_bt {
+namespace jau {
 
     /**
-     * Base direct_bt environment class,
+     * Base jau environment class,
      * merely to tag all environment settings by inheritance and hence documentation.
      * <p>
-     * See main direct_bt environment {@link DBTEnv} and
-     * {@link DBTEnv::getExplodingProperties(const std::string & prefixDomain)}.
+     * See main environment {@link environment} and
+     * {@link environment::getExplodingProperties(const std::string & prefixDomain)}.
      * </p>
      */
-    class DBTEnvrionment {
+    class root_environment {
     };
 
     /**
-     * Main direct_bt environment class,
+     * Main jau environment class,
      * supporting environment variable access and fetching elapsed time using its stored startup-time.
      */
-    class DBTEnv : public DBTEnvrionment {
+    class environment : public root_environment {
         private:
-            DBTEnv() noexcept;
+            environment() noexcept;
 
             static bool debug;
 
@@ -201,7 +201,7 @@ namespace direct_bt {
              */
             static bool getExplodingProperties(const std::string & prefixDomain) noexcept;
 
-            static DBTEnv& get() noexcept {
+            static environment& get() noexcept {
                 /**
                  * Thread safe starting with C++11 6.7:
                  *
@@ -212,7 +212,7 @@ namespace direct_bt {
                  *
                  * Avoiding non-working double checked locking.
                  */
-                static DBTEnv e;
+                static environment e;
                 return e;
             }
 
@@ -261,7 +261,7 @@ namespace direct_bt {
             const bool VERBOSE;
     };
 
-} // namespace direct_bt
+} // namespace jau
 
-#endif /* DBT_ENV_HPP_ */
+#endif /* JAU_ENV_HPP_ */
 

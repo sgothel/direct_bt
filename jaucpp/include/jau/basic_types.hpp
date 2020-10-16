@@ -23,8 +23,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef BASIC_TYPES_HPP_
-#define BASIC_TYPES_HPP_
+#ifndef JAU_BASIC_TYPES_HPP_
+#define JAU_BASIC_TYPES_HPP_
 
 #include <cstring>
 #include <string>
@@ -37,7 +37,7 @@ extern "C" {
     #include <byteswap.h>
 }
 
-namespace direct_bt {
+namespace jau {
 
     /**
      * Returns current monotonic time in milliseconds.
@@ -113,15 +113,6 @@ namespace direct_bt {
 
         IndexOutOfBoundsException(const int index, const int count, const int length, const char* file, int line) noexcept
         : RuntimeException("IndexOutOfBoundsException", "Index "+std::to_string(index)+", count "+std::to_string(count)+", data length "+std::to_string(length), file, line) {}
-    };
-
-    class BluetoothException : public RuntimeException {
-      public:
-        BluetoothException(std::string const m, const char* file, int line) noexcept
-        : RuntimeException("BluetoothException", m, file, line) {}
-
-        BluetoothException(const char *m, const char* file, int line) noexcept
-        : RuntimeException("BluetoothException", m, file, line) {}
     };
 
     /**
@@ -437,6 +428,6 @@ namespace direct_bt {
     /** trim copy */
     std::string trimCopy(const std::string &s) noexcept;
 
-} // namespace direct_bt
+} // namespace jau
 
-#endif /* BASIC_TYPES_HPP_ */
+#endif /* JAU_BASIC_TYPES_HPP_ */

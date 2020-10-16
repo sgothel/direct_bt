@@ -29,12 +29,13 @@
 #include <mutex>
 #include <atomic>
 
+#include <jau/java_uplink.hpp>
+
 #include "UUID.hpp"
 #include "BTAddress.hpp"
 #include "BTTypes.hpp"
 
-#include "JavaUplink.hpp"
-
+#define JAVA_DBT_PACKAGE "direct_bt/tinyb/"
 #define JAVA_MAIN_PACKAGE "org/tinyb"
 #define JAVA_HCI_PACKAGE "tinyb/hci"
 
@@ -43,7 +44,7 @@ namespace direct_bt {
     class DBTAdapter; // forward
     class DBTDevice; // forward
 
-    class DBTObject : public JavaUplink
+    class DBTObject : public jau::JavaUplink
     {
         protected:
             std::atomic_bool valid;
@@ -76,9 +77,9 @@ namespace direct_bt {
             /**
              * Throws an IllegalStateException if isValid() == false
              */
-            inline void checkValid() const {
+            void checkValid() const override {
                 if( !isValid() ) {
-                    throw IllegalStateException("DBTObject state invalid: "+aptrHexString(this), E_FILE_LINE);
+                    throw jau::IllegalStateException("DBTObject state invalid: "+aptrHexString(this), E_FILE_LINE);
                 }
             }
     };
