@@ -15,6 +15,7 @@ dist*/
 *.swp
 *.swo
 *~
+*.log
 
 # Eclipse files
 #.cproject
