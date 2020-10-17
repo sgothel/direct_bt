@@ -15,7 +15,7 @@ set (GCC_FLAGS_WARNING "-Wall -Wextra -Wformat=2 -Wformat-overflow=2 -Wformat-no
 # debug only
 set (GCC_FLAGS_STACK "-fstack-protector-strong -fstack-check")
 # set (GCC_FLAGS_SANITIZE "-fsanitize=undefined -fsanitize=thread")
-set (GCC_FLAGS_SANITIZE "-fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=undefined -fsanitize=leak")
+set (GCC_FLAGS_SANITIZE "-fsanitize=address -fsanitize-address-use-after-scope -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=undefined -fsanitize=leak")
 # -fsanitize=address cannot be combined with -fsanitize=thread
 # -fsanitize=pointer-compare -fsanitize=pointer-subtract must be combined with -fsanitize=address
 # -fsanitize=thread TSAN's lacks ability to properly handle GCC's atomic macros (like helgrind etc), can't check SC-DRF!
