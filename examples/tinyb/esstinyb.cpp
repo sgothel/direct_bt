@@ -32,6 +32,7 @@
 
 #include <tinyb.hpp>
 #include <tinyb/BluetoothException.hpp>
+#include <jau/basic_types.hpp>
 #include <vector>
 #include <algorithm>
 #include <iostream>
@@ -87,9 +88,10 @@ void data_callback(BluetoothGattCharacteristic &c, std::vector<unsigned char> &d
     // unsigned char *data_c;
     unsigned int size = data.size();
     if (size == 2) {
-        int16_t* raw_data = reinterpret_cast<int16_t*>(data.data());
-        std::cout << "Raw data = " << std::hex << std::setfill('0') << std::setw(4) << *raw_data  << ". ";
-        uint16_t temp = (*raw_data + 50) / 100;
+        jau::packed_t<int16_t>* raw_data = reinterpret_cast<jau::packed_t<int16_t>*>( data.data() );
+        // int16_t* raw_data = reinterpret_cast<int16_t*>(data.data());
+        std::cout << "Raw data = " << std::hex << std::setfill('0') << std::setw(4) << raw_data->store  << ". ";
+        uint16_t temp = (raw_data->store + 50) / 100;
         std::cout << "Temperature = " << std::dec << temp << "C " << std::endl;
     }
 }
