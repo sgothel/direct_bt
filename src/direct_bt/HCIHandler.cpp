@@ -962,16 +962,16 @@ const hci_cmd_event_struct* HCIHandler::getReplyStruct(std::shared_ptr<HCIEvent>
     const hci_cmd_event_struct* res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
 
-    typedef HCIStructCmdCompleteEvt<hci_cmd_event_struct> HCITypeCmdCompleteEvt;
-    HCITypeCmdCompleteEvt * ev_cc = static_cast<HCITypeCmdCompleteEvt*>(event.get());
-    if( ev_cc->isTypeAndSizeValid(evc) ) {
-        *status = ev_cc->getStatus();
-        res = ev_cc->getStruct();
+    typedef HCIStructCmdCompleteEvtWrap<hci_cmd_event_struct> HCITypeCmdCompleteEvtWrap;
+    HCITypeCmdCompleteEvtWrap ev_cc( *event.get() );
+    if( ev_cc.isTypeAndSizeValid(evc) ) {
+        *status = ev_cc.getStatus();
+        res = ev_cc.getStruct();
     } else {
         WARN_PRINT("HCIHandler::getReplyStruct: %s: Type or size mismatch: Status 0x%2.2X (%s), errno %d %s: res %s",
                 getHCIEventTypeString(evc).c_str(),
                 number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
-                ev_cc->toString().c_str());
+                ev_cc.toString().c_str());
     }
     return res;
 }
@@ -982,16 +982,16 @@ const hci_cmd_event_struct* HCIHandler::getMetaReplyStruct(std::shared_ptr<HCIEv
     const hci_cmd_event_struct* res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
 
-    typedef HCIStructCmdCompleteMetaEvt<hci_cmd_event_struct> HCITypeCmdCompleteMetaEvt;
-    HCITypeCmdCompleteMetaEvt * ev_cc = static_cast<HCITypeCmdCompleteMetaEvt*>(event.get());
-    if( ev_cc->isTypeAndSizeValid(mec) ) {
-        *status = ev_cc->getStatus();
-        res = ev_cc->getStruct();
+    typedef HCIStructCmdCompleteMetaEvtWrap<hci_cmd_event_struct> HCITypeCmdCompleteMetaEvtWrap;
+    HCITypeCmdCompleteMetaEvtWrap ev_cc( *static_cast<HCIMetaEvent*>( event.get() ) );
+    if( ev_cc.isTypeAndSizeValid(mec) ) {
+        *status = ev_cc.getStatus();
+        res = ev_cc.getStruct();
     } else {
         WARN_PRINT("HCIHandler::getMetaReplyStruct: %s: Type or size mismatch: Status 0x%2.2X (%s), errno %d %s: res %s",
                   getHCIMetaEventTypeString(mec).c_str(),
                   number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
-                  ev_cc->toString().c_str());
+                  ev_cc.toString().c_str());
     }
     return res;
 }

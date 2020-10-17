@@ -419,6 +419,9 @@ namespace direct_bt {
      */
     class HCIPacket
     {
+        template<typename T> friend class HCIStructCmdCompleteEvtWrap;
+        template<typename T> friend class HCIStructCmdCompleteMetaEvtWrap;
+
         protected:
             POctets pdu;
 
@@ -688,32 +691,25 @@ namespace direct_bt {
      * @tparam hcistruct the template typename, e.g. 'hci_ev_conn_complete' for 'struct hci_ev_conn_complete'
      */
     template<typename hcistruct>
-    class HCIStructCmdCompleteEvt : public HCIEvent
+    class HCIStructCmdCompleteEvtWrap
     {
+        private:
+            HCIEvent &orig;
+
         public:
-            /** Passing through preset buffer of this type */
-            HCIStructCmdCompleteEvt(const uint8_t* buffer, const int buffer_len)
-            : HCIEvent(buffer, buffer_len, sizeof(hcistruct))
+            HCIStructCmdCompleteEvtWrap(HCIEvent & orig)
+            : orig(orig)
             { }
-
-            /** Enabling manual construction of event without given value. */
-            HCIStructCmdCompleteEvt(const HCIEventType ec)
-            : HCIEvent(ec, sizeof(hcistruct))
-            { }
-
-            /** Enabling manual construction of event with given value.  */
-            HCIStructCmdCompleteEvt(const HCIEventType ec, const hcistruct &data)
-            : HCIEvent(ec, (const uint8_t *)(&data), sizeof(hcistruct))
-            { }
+            std::string toString() const noexcept { return orig.toString(); }
 
             bool isTypeAndSizeValid(const HCIEventType ec) const noexcept {
-                return isEvent(ec) &&
-                       pdu.is_range_valid(0, number(HCIConstU8::EVENT_HDR_SIZE)+sizeof(hcistruct));
+                return orig.isEvent(ec) &&
+                       orig.pdu.is_range_valid(0, number(HCIConstU8::EVENT_HDR_SIZE)+sizeof(hcistruct));
             }
-            const hcistruct * getStruct() const noexcept { return (const hcistruct *)(getParam()); }
+            const hcistruct * getStruct() const noexcept { return (const hcistruct *)( orig.getParam() ); }
             HCIStatusCode getStatus() const noexcept { return static_cast<HCIStatusCode>( getStruct()->status ); }
 
-            hcistruct * getWStruct() noexcept { return (hcistruct *)( pdu.get_wptr_nc(number(HCIConstU8::EVENT_HDR_SIZE)) ); }
+            hcistruct * getWStruct() noexcept { return (hcistruct *)( orig.pdu.get_wptr_nc(number(HCIConstU8::EVENT_HDR_SIZE)) ); }
     };
 
 
@@ -908,32 +904,25 @@ namespace direct_bt {
      * @tparam hcistruct the template typename, e.g. 'hci_ev_le_conn_complete' for 'struct hci_ev_le_conn_complete'
      */
     template<typename hcistruct>
-    class HCIStructCmdCompleteMetaEvt : public HCIMetaEvent
+    class HCIStructCmdCompleteMetaEvtWrap
     {
+        private:
+            HCIMetaEvent & orig;
+
         public:
-            /** Passing through preset buffer of this type */
-            HCIStructCmdCompleteMetaEvt(const uint8_t* buffer, const int buffer_len)
-            : HCIMetaEvent(buffer, buffer_len, sizeof(hcistruct))
+            HCIStructCmdCompleteMetaEvtWrap(HCIMetaEvent & orig)
+            : orig(orig)
             { }
-
-            /** Enabling manual construction of event without given value. */
-            HCIStructCmdCompleteMetaEvt(const HCIMetaEventType mc)
-            : HCIMetaEvent(mc, sizeof(hcistruct))
-            { }
-
-            /** Enabling manual construction of event with given value.  */
-            HCIStructCmdCompleteMetaEvt(const HCIMetaEventType mc, const hcistruct &data)
-            : HCIMetaEvent(mc, (const uint8_t *)(&data), sizeof(hcistruct))
-            { }
+            std::string toString() const noexcept { return orig.toString(); }
 
             bool isTypeAndSizeValid(const HCIMetaEventType mc) const noexcept {
-                return isMetaEvent(mc) &&
-                       pdu.is_range_valid(0, number(HCIConstU8::EVENT_HDR_SIZE)+1+sizeof(hcistruct));
+                return orig.isMetaEvent(mc) &&
+                       orig.pdu.is_range_valid(0, number(HCIConstU8::EVENT_HDR_SIZE)+1+sizeof(hcistruct));
             }
-            const hcistruct * getStruct() const noexcept { return (const hcistruct *)( getParam() ); }
+            const hcistruct * getStruct() const noexcept { return (const hcistruct *)( orig.getParam() ); }
             HCIStatusCode getStatus() const noexcept { return static_cast<HCIStatusCode>( getStruct()->status ); }
 
-            // hcistruct * getWStruct() noexcept { return (hcistruct *)( pdu.get_wptr_nc(number(HCIConstU8::EVENT_HDR_SIZE)+1) ); }
+            // hcistruct * getWStruct() noexcept { return (hcistruct *)( orig.pdu.get_wptr_nc(number(HCIConstU8::EVENT_HDR_SIZE)+1) ); }
     };
 
     struct HCILocalVersion {
