@@ -8,13 +8,34 @@ PKG_CHECK_MODULES (GLIB2 REQUIRED glib-2.0>=2.40)
 PKG_CHECK_MODULES (GIO REQUIRED gio-2.0>=2.40)
 PKG_CHECK_MODULES (GIO-UNIX REQUIRED gio-unix-2.0>=2.40)
 
-set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -fno-omit-frame-pointer -DDEBUG")
-set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -Wextra -O3")
+# for all
+set (CC_FLAGS_WARNING "-Wall -Wextra -Werror")
+set (GCC_FLAGS_WARNING "-Wall -Wextra -Wformat=2 -Wformat-overflow=2 -Wformat-nonliteral -Wformat-security -Wformat-signedness -Wformat-y2k -Wnull-dereference -Winit-self -Werror")
 
-IF(CMAKE_COMPILER_IS_GNUCC)
+# debug only
+set (GCC_FLAGS_STACK "-fstack-protector-strong -fstack-check")
+# set (GCC_FLAGS_SANITIZE "-fsanitize=undefined -fsanitize=thread")
+set (GCC_FLAGS_SANITIZE "-fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=undefined -fsanitize=leak")
+# -fsanitize=address cannot be combined with -fsanitize=thread
+# -fsanitize=pointer-compare -fsanitize=pointer-subtract must be combined with -fsanitize=address
+# -fsanitize=thread TSAN's lacks ability to properly handle GCC's atomic macros (like helgrind etc), can't check SC-DRF!
+
+if(CMAKE_COMPILER_IS_GNUCC)
     # shorten __FILE__ string and the like ..
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=/")
-ENDIF(CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS_WARNING} -fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=/")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CC_FLAGS_WARNING}")
+endif(CMAKE_COMPILER_IS_GNUCC)
+
+if(DEBUG)
+    if(CMAKE_COMPILER_IS_GNUCC)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -ggdb -DDEBUG -fno-omit-frame-pointer ${GCC_FLAGS_STACK} ${GCC_FLAGS_SANITIZE}")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -DDEBUG")
+    endif(CMAKE_COMPILER_IS_GNUCC)
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+endif(DEBUG)
 
 # '-latomic' is required using gcc-8 on Raspberry ... to avoid: undefined reference to `__atomic_store_8'
 set(CMAKE_SHARED_LINKER_FLAGS  "${CMAKE_SHARED_LINKER_FLAGS} -latomic")
@@ -86,22 +107,6 @@ set (tinyb_VERSION_STRING "${tinyb_VERSION_MAJOR}.${tinyb_VERSION_MINOR}.${tinyb
 set (CMAKE_SWIG_FLAGS "")
 
 set (tinyb_DOCS_DIR documentation)
-
-IF(WARNINGS)
-    IF(UNIX)
-        IF(CMAKE_COMPILER_IS_GNUCC)
-            ADD_DEFINITIONS(-Wall -Wextra)
-        ENDIF(CMAKE_COMPILER_IS_GNUCC)
-    ENDIF(UNIX)
-ENDIF(WARNINGS)
-
-IF(DEBUG)
-    IF(UNIX)
-        IF(CMAKE_COMPILER_IS_GNUCC)
-            ADD_DEFINITIONS(-g -ggdb)
-        ENDIF(CMAKE_COMPILER_IS_GNUCC)
-    ENDIF(UNIX)
-ENDIF(DEBUG)
 
 find_path (SYSTEM_USR_DIR "stdlib.h")
 include_directories (${SYSTEM_USR_DIR})
