@@ -414,6 +414,7 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 4, Part E HCI: 5.4.4 HCI Event packet
      * </p>
      * <pre>
+        __u8    packet_type;
      * </pre>
      */
     class HCIPacket
