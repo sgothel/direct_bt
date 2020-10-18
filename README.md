@@ -237,7 +237,11 @@ Changing install path from /usr/local to /usr
 ~~~~~~~~~~~~~
 Building debug build:
 ~~~~~~~~~~~~~
--DCMAKE_BUILD_TYPE=DEBUG
+-DDEBUG=ON
+~~~~~~~~~~~~~
+Building debug and instrumentation (sanitizer) build:
+~~~~~~~~~~~~~
+-DDEBUG=ON -DINSTRUMENTATION=ON
 ~~~~~~~~~~~~~
 Using clang instead of gcc:
 ~~~~~~~~~~~~~
@@ -271,14 +275,18 @@ Changes
 
 **2.1.30 Early *Direct-BT* Maturity (Bluetooth LE)**
 
+* TODO
+* Passed GCC all warnings, compile clean
+* Passed GCC sanitizer runtime checks
+* Using extracted *Jau C++ Support Library*, enhanced encapsulation
+* Passed valgrind's memcheck, helgrind and drd validating no memory leak nor data race or deadlock using dbt_scanner10
+* Added native de-mangled backtrace support using *libunwind* and and *abi::__cxa_demangle*
 * Reaching robust implementation state of *Direct-BT*, including recovery from L2CAP transmission breakdown on Raspberry Pi.
 * Resolved race conditions on rapid device discovery and connect, using one thread per device.
 * API documentation with examples
 * Tested on GNU/Linux x86_64, arm32 and arm64 with native and Java examples.
 * Tested on Bluetooth Adapter: Intel, CSR and Raspberry Pi
 * Almost removed non-standard *Linux/BlueZ-Mngr* kernel dependency using the universal HCI protocol, remaining portion configures the adapter.
-* Passed valgrind's memcheck, helgrind and drd validating no memory leak nor data race or deadlock using dbt_scanner10
-* Added native de-mangled backtrace support using *libunwind* and and *abi::__cxa_demangle*
 
 **2.0.0**
 
