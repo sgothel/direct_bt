@@ -195,8 +195,8 @@ namespace direct_bt {
             jau::cow_vector<std::shared_ptr<AdapterStatusListener>> statusListenerList;
             std::mutex mtx_discoveredDevices;
             std::mutex mtx_connectedDevices;
-            std::mutex mtx_sharedDevices; // final mutex of all DBTDevice lifecycle
             std::mutex mtx_discovery;
+            std::recursive_mutex mtx_sharedDevices; // final mutex of all DBTDevice lifecycle; Recursive due to DBTDevice::~DBTDevice()
 
             bool validateDevInfo() noexcept;
 
