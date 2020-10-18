@@ -387,7 +387,7 @@ bool DBTAdapter::removeStatusListener(const AdapterStatusListener * l) {
         throw jau::IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
     const std::lock_guard<std::recursive_mutex> lock(statusListenerList.get_write_mutex());
-    std::shared_ptr<std::vector<std::shared_ptr<AdapterStatusListener>>> snapshot = statusListenerList.get_snapshot();
+    std::shared_ptr<std::vector<std::shared_ptr<AdapterStatusListener>>> snapshot = statusListenerList.copy_store();
     int count = 0;
     for(auto it = snapshot->begin(); it != snapshot->end(); ) {
         if ( **it == *l ) {
@@ -399,7 +399,7 @@ bool DBTAdapter::removeStatusListener(const AdapterStatusListener * l) {
         }
     }
     if( 0 < count ) {
-        statusListenerList.set_store(snapshot);
+        statusListenerList.set_store(std::move(snapshot));
         return true;
     }
     return false;
