@@ -248,7 +248,7 @@ DBTAdapter::~DBTAdapter() noexcept {
         connectedDevices.clear();;
     }
     {
-        const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
+        const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
         sharedDevices.clear();
     }
     DBG_PRINT("DBTAdapter::dtor: XXX");
@@ -271,7 +271,7 @@ void DBTAdapter::poweredOff() noexcept {
 
 void DBTAdapter::printSharedPtrListOfDevices() noexcept {
     {
-        const std::lock_guard<std::recursive_mutex> lock0(mtx_sharedDevices);
+        const std::lock_guard<std::mutex> lock0(mtx_sharedDevices);
         jau::printSharedPtrList("SharedDevices", sharedDevices);
     }
     {
@@ -444,7 +444,7 @@ HCIStatusCode DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAdd
         ERR_PRINT("DBTAdapter::startDiscovery: Adapter not enabled/powered: %s", toString().c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
-    const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     if( ScanType::NONE != currentMetaScanType ) {
         removeDiscoveredDevices();
         if( keepDiscoveringAlive == keepAlive ) {
@@ -495,7 +495,7 @@ void DBTAdapter::startDiscoveryBackground() noexcept {
         ERR_PRINT("DBTAdapter::startDiscoveryBackground: Adapter not enabled/powered: %s", toString().c_str());
         return;
     }
-    const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     if( ScanType::NONE == currentNativeScanType && keepDiscoveringAlive ) { // still?
         // Will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, don't change current scan-type state here
         HCIStatusCode status = hci.le_enable_scan(true /* enable */);
@@ -509,7 +509,7 @@ void DBTAdapter::startDiscoveryBackground() noexcept {
 HCIStatusCode DBTAdapter::stopDiscovery() noexcept {
     // We allow !isEnabled, to utilize method for adjusting discovery state and notifying listeners
     // FIXME: Respect DBTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to stop BREDR, LE or DUAL scanning!
-    const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     /**
      * Need to send mgmtEvDeviceDiscoveringMgmt(..)
      * as manager/hci won't produce such event having temporarily disabled discovery.
@@ -621,7 +621,7 @@ std::vector<std::shared_ptr<DBTDevice>> DBTAdapter::getDiscoveredDevices() const
 }
 
 bool DBTAdapter::addSharedDevice(std::shared_ptr<DBTDevice> const &device) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
     if( nullptr != findDevice(sharedDevices, *device) ) {
         // already shared
         return false;
@@ -631,12 +631,12 @@ bool DBTAdapter::addSharedDevice(std::shared_ptr<DBTDevice> const &device) noexc
 }
 
 std::shared_ptr<DBTDevice> DBTAdapter::getSharedDevice(const DBTDevice & device) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
     return findDevice(sharedDevices, device);
 }
 
 void DBTAdapter::removeSharedDevice(const DBTDevice & device) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = sharedDevices.begin(); it != sharedDevices.end(); ) {
         if ( nullptr != *it && device == **it ) {
             it = sharedDevices.erase(it);
@@ -648,7 +648,7 @@ void DBTAdapter::removeSharedDevice(const DBTDevice & device) noexcept {
 }
 
 std::shared_ptr<DBTDevice> DBTAdapter::findSharedDevice (EUI48 const & mac, const BDAddressType macType) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
     return findDevice(sharedDevices, mac, macType);
 }
 
