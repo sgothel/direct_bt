@@ -231,10 +231,7 @@ DBTAdapter::~DBTAdapter() noexcept {
         int count = mgmt.removeMgmtEventCallback(dev_id);
         DBG_PRINT("DBTAdapter removeMgmtEventCallback(DISCOVERING): %d callbacks", count);
     }
-    {
-        const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
-        statusListenerList.clear();
-    }
+    statusListenerList.clear();
 
     poweredOff();
 
@@ -360,24 +357,18 @@ bool DBTAdapter::removeDeviceFromWhitelist(const EUI48 &address, const BDAddress
     return mgmt.removeDeviceFromWhitelist(dev_id, address, address_type);
 }
 
+static jau::cow_vector<std::shared_ptr<AdapterStatusListener>>::equal_comparator _adapterStatusListenerRefEqComparator =
+        [](const std::shared_ptr<AdapterStatusListener> &a, const std::shared_ptr<AdapterStatusListener> &b) -> bool { return *a == *b; };
+
 bool DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
     checkValidAdapter();
     if( nullptr == l ) {
         throw jau::IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
-    {
-        const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
-        for(auto it = statusListenerList.begin(); it != statusListenerList.end(); ) {
-            if ( **it == *l ) {
-                return false; // already included
-            } else {
-                ++it;
-            }
-        }
-        statusListenerList.push_back(l);
+    const bool added = statusListenerList.push_back_unique(l, _adapterStatusListenerRefEqComparator);
+    if( added ) {
+        sendAdapterSettingsChanged(*l, AdapterSetting::NONE, adapterInfo->getCurrentSettingMask(), jau::getCurrentMilliseconds());
     }
-    sendAdapterSettingsChanged(*l, AdapterSetting::NONE, adapterInfo->getCurrentSettingMask(), jau::getCurrentMilliseconds());
-
     return true;
 }
 
@@ -386,16 +377,8 @@ bool DBTAdapter::removeStatusListener(std::shared_ptr<AdapterStatusListener> l) 
     if( nullptr == l ) {
         throw jau::IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
-    const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
-    for(auto it = statusListenerList.begin(); it != statusListenerList.end(); ) {
-        if ( **it == *l ) {
-            it = statusListenerList.erase(it);
-            return true;
-        } else {
-            ++it;
-        }
-    }
-    return false;
+    const int count = statusListenerList.erase_matching(l, false /* all_matching */, _adapterStatusListenerRefEqComparator);
+    return count > 0;
 }
 
 bool DBTAdapter::removeStatusListener(const AdapterStatusListener * l) {
@@ -403,21 +386,27 @@ bool DBTAdapter::removeStatusListener(const AdapterStatusListener * l) {
     if( nullptr == l ) {
         throw jau::IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
-    const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
-    for(auto it = statusListenerList.begin(); it != statusListenerList.end(); ) {
+    const std::lock_guard<std::recursive_mutex> lock(statusListenerList.get_write_mutex());
+    std::shared_ptr<std::vector<std::shared_ptr<AdapterStatusListener>>> snapshot = statusListenerList.get_snapshot();
+    int count = 0;
+    for(auto it = snapshot->begin(); it != snapshot->end(); ) {
         if ( **it == *l ) {
-            it = statusListenerList.erase(it);
-            return true;
+            it = snapshot->erase(it);
+            count++;
+            break;
         } else {
             ++it;
         }
+    }
+    if( 0 < count ) {
+        statusListenerList.set_store(snapshot);
+        return true;
     }
     return false;
 }
 
 int DBTAdapter::removeAllStatusListener() {
     checkValidAdapter();
-    const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
     int count = statusListenerList.size();
     statusListenerList.clear();
     return count;
@@ -715,7 +704,7 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) noexc
     checkDiscoveryState();
 
     int i=0;
-    jau::for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             l->discoveringChanged(*this, enabled, keepDiscoveringAlive, event.getTimestamp());
         } catch (std::exception &e) {
@@ -763,7 +752,7 @@ void DBTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings, c
             getAdapterSettingMaskString(current_settings).c_str(),
             getAdapterSettingMaskString(changes).c_str(), toString(false).c_str() );
     int i=0;
-    jau::for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             l->adapterSettingsChanged(*this, old_settings, current_settings, changes, timestampMS);
         } catch (std::exception &e) {
@@ -815,7 +804,7 @@ bool DBTAdapter::mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) noexce
 
 void DBTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept {
     int i=0;
-    jau::for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*device) ) {
                 l->deviceUpdated(device, updateMask, timestamp);
@@ -887,7 +876,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept
     device->notifyConnected(event.getHCIHandle());
 
     int i=0;
-    jau::for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*device) ) {
                 if( EIRDataType::NONE != updateMask ) {
@@ -922,7 +911,7 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
         removeConnectedDevice(*device);
 
         int i=0;
-        jau::for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*device) ) {
                     l->deviceDisconnected(device, event.getHCIStatus(), handle, event.getTimestamp());
@@ -960,7 +949,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexc
         removeConnectedDevice(*device);
 
         int i=0;
-        jau::for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*device) ) {
                     l->deviceDisconnected(device, event.getHCIReason(), event.getHCIHandle(), event.getTimestamp());
@@ -1033,7 +1022,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
                 dev->getAddressString().c_str(), eir->toString().c_str());
 
         int i=0;
-        jau::for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*dev) ) {
                     l->deviceFound(dev, eir->getTimestamp());
@@ -1061,7 +1050,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
             dev->getAddressString().c_str(), eir->toString().c_str());
 
     int i=0;
-    jau::for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*dev) ) {
                 l->deviceFound(dev, eir->getTimestamp());

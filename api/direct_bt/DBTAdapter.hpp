@@ -35,6 +35,8 @@
 #include <mutex>
 #include <atomic>
 
+#include <jau/cow_vector.hpp>
+
 #include "DBTTypes.hpp"
 
 #include "DBTDevice.hpp"
@@ -190,11 +192,10 @@ namespace direct_bt {
             std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
             std::vector<std::shared_ptr<DBTDevice>> sharedDevices; // All active shared devices. Final holder of DBTDevice lifecycle!
-            std::vector<std::shared_ptr<AdapterStatusListener>> statusListenerList;
+            jau::cow_vector<std::shared_ptr<AdapterStatusListener>> statusListenerList;
             std::mutex mtx_discoveredDevices;
             std::mutex mtx_connectedDevices;
             std::recursive_mutex mtx_sharedDevices; // Final mutex of all DBTDevice lifecycle!
-            std::recursive_mutex mtx_statusListenerList;
             std::recursive_mutex mtx_discovery;
 
             bool validateDevInfo() noexcept;
