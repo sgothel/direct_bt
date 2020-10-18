@@ -49,8 +49,7 @@ void Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, j
         if( nullptr == mNotifyDeleted ) {
             throw InternalError("DBTNativeDownlink class has no notifyDeleted() method, for "+javaUplink->toString(), E_FILE_LINE);
         }
-        std::shared_ptr<JavaGlobalObj> jobjRef( new JavaGlobalObj(obj, mNotifyDeleted) );
-        javaUplink->setJavaObject( jobjRef );
+        javaUplink->setJavaObject( std::shared_ptr<JavaAnon>( new JavaGlobalObj(obj, mNotifyDeleted) ) );
         JavaGlobalObj::check(javaUplink->getJavaObject(), E_FILE_LINE);
         DBG_JNI_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
     } catch(...) {
@@ -64,7 +63,7 @@ void Java_direct_1bt_tinyb_DBTNativeDownlink_deleteNativeJavaObject(JNIEnv *env,
     try {
         JavaUplink *javaUplink = castInstance<JavaUplink>(nativeInstance);
         DBG_JNI_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_deleteNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
-        javaUplink->setJavaObject(nullptr);
+        javaUplink->setJavaObject();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

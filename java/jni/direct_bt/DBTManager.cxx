@@ -60,7 +60,7 @@ void Java_direct_1bt_tinyb_DBTManager_deleteImpl(JNIEnv *env, jobject obj, jlong
     try {
         DBTManager *manager = castInstance<DBTManager>(nativeInstance); // special: static singleton
         manager->close();
-        manager->setJavaObject(nullptr);
+        manager->setJavaObject();
         (void) manager;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
