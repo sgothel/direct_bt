@@ -501,9 +501,7 @@ HCIStatusCode DBTDevice::pair(const std::string & passkey) {
 }
 
 void DBTDevice::remove() noexcept {
-    WORDY_PRINT("DBTDevice::remove: Start %s", toString(false).c_str());
     adapter.removeDevice(*this);
-    WORDY_PRINT("DBTDevice::remove: End %s", toString(false).c_str());
 }
 
 bool DBTDevice::connectGATT() noexcept {
