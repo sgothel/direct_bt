@@ -273,9 +273,13 @@ make doc
 Changes
 ============
 
-**2.1.30 Early *Direct-BT* Maturity (Bluetooth LE)**
+**2.2.00 *Direct-BT* Maturity (Bluetooth LE)**
 
 * TODO
+
+**2.1.30**
+
+* Use read lock-free jau::cow_vector for all callback-lists, avoiding locks in callback iteration
 * Passed GCC all warnings, compile clean
 * Passed GCC sanitizer runtime checks
 * Using extracted *Jau C++ Support Library*, enhanced encapsulation
