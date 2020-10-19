@@ -178,6 +178,7 @@ namespace direct_bt {
             uint16_t serverMTU;
             std::atomic<uint16_t> usedMTU; // concurrent use in ctor(set), send and l2capReaderThreadImpl
             std::vector<GATTServiceRef> services;
+            std::shared_ptr<GattGenericAccessSvc> genericAccess = nullptr;
 
             bool validateConnected() noexcept;
 
@@ -308,6 +309,14 @@ namespace direct_bt {
              * </p>
              */
             inline std::vector<GATTServiceRef> & getServices() noexcept { return services; }
+
+            /**
+             * Returns the internal kept shared GattGenericAccessSvc instance.
+             * <p>
+             * This instance is created via {@link #discoverCompletePrimaryServices()}.
+             * </p>
+             */
+            inline std::shared_ptr<GattGenericAccessSvc> getGenericAccess() noexcept { return genericAccess; }
 
             /**
              * Discover all primary services _only_.

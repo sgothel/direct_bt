@@ -66,7 +66,6 @@ namespace direct_bt {
             std::shared_ptr<ManufactureSpecificData> advMSD = nullptr;
             std::vector<std::shared_ptr<uuid_t>> advServices;
             std::shared_ptr<GATTHandler> gattHandler = nullptr;
-            std::shared_ptr<GattGenericAccessSvc> gattGenericAccess = nullptr;
             std::recursive_mutex mtx_gattHandler;
             std::recursive_mutex mtx_connect;
             std::recursive_mutex mtx_data;

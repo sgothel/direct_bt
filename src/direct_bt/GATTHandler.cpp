@@ -328,6 +328,7 @@ GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device) noexcept
 GATTHandler::~GATTHandler() noexcept {
     disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
     services.clear();
+    genericAccess = nullptr;
 }
 
 bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause) noexcept {
@@ -497,6 +498,7 @@ std::vector<GATTServiceRef> & GATTHandler::discoverCompletePrimaryServices(std::
             discoverDescriptors(primSrv);
         }
     }
+    genericAccess = getGenericAccess(services);
     return services;
 }
 

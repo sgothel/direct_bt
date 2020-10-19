@@ -553,8 +553,8 @@ std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept 
             return gattServices;
         }
 
-        // discovery success, retrieve and parse GenericAccess
-        gattGenericAccess = gh->getGenericAccess(gattServices);
+        // discovery success, parse GenericAccess
+        std::shared_ptr<GattGenericAccessSvc> gattGenericAccess = gh->getGenericAccess();
         if( nullptr != gattGenericAccess ) {
             const uint64_t ts = jau::getCurrentMilliseconds();
             EIRDataType updateMask = update(*gattGenericAccess, ts);
@@ -603,7 +603,12 @@ bool DBTDevice::pingGATT() noexcept {
 }
 
 std::shared_ptr<GattGenericAccessSvc> DBTDevice::getGATTGenericAccess() {
-    return gattGenericAccess;
+    std::shared_ptr<GATTHandler> gh = getGATTHandler();
+    if( nullptr == gh ) {
+        ERR_PRINT("DBTDevice::getGATTGenericAccess: GATTHandler nullptr");
+        return nullptr;
+    }
+    return gh->getGenericAccess();
 }
 
 bool DBTDevice::addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) {
