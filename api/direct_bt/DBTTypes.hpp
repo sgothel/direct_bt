@@ -66,7 +66,7 @@ namespace direct_bt {
              }
 
         public:
-            virtual std::string toString() const noexcept { return "DBTObject["+aptrHexString(this)+"]"; }
+            virtual std::string toString() const noexcept override { return "DBTObject["+aptrHexString(this)+"]"; }
 
             virtual ~DBTObject() noexcept {
                 valid = false;
