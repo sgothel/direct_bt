@@ -446,8 +446,11 @@ HCIStatusCode DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAdd
                                          const uint16_t le_scan_interval, const uint16_t le_scan_window)
 {
     // FIXME: Respect DBTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
+    // ERR_PRINT("Test");
+    // throw jau::RuntimeException("Test", E_FILE_LINE);
+
     if( !isEnabled() ) {
-        ERR_PRINT("DBTAdapter::startDiscovery: Adapter not enabled/powered: %s", toString().c_str());
+        WARN_PRINT("DBTAdapter::startDiscovery: Adapter not enabled/powered: %s", toString().c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
     const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
@@ -498,7 +501,7 @@ HCIStatusCode DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAdd
 void DBTAdapter::startDiscoveryBackground() noexcept {
     // FIXME: Respect DBTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
     if( !isEnabled() ) {
-        ERR_PRINT("DBTAdapter::startDiscoveryBackground: Adapter not enabled/powered: %s", toString().c_str());
+        WARN_PRINT("DBTAdapter::startDiscoveryBackground: Adapter not enabled/powered: %s", toString().c_str());
         return;
     }
     const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
