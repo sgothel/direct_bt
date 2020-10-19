@@ -9,6 +9,10 @@ PKG_CHECK_MODULES (GIO REQUIRED gio-2.0>=2.40)
 PKG_CHECK_MODULES (GIO-UNIX REQUIRED gio-unix-2.0>=2.40)
 
 # for all
+set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# for all
 set (CC_FLAGS_WARNING "-Wall -Wextra -Werror")
 set (GCC_FLAGS_WARNING_FORMAT "-Wformat=2 -Wformat-overflow=2 -Wformat-nonliteral -Wformat-security -Wformat-signedness -Wformat-y2k")
 set (GCC_FLAGS_WARNING "-Wall -Wextra -Wcast-align=strict -Wnull-dereference -Winit-self ${GCC_FLAGS_WARNING_FORMAT} -Werror")

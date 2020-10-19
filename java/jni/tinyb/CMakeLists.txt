@@ -48,8 +48,6 @@ set_target_properties(
     PROPERTIES
     SOVERSION ${tinyb_VERSION_MAJOR}
     VERSION ${tinyb_VERSION_STRING}
-    CXX_STANDARD 11
-    COMPILE_FLAGS "-Wall -Wextra"
 )
 
 install(TARGETS javatinyb LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})

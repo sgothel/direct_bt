@@ -66,7 +66,6 @@ set_target_properties(
    PROPERTIES
    SOVERSION ${tinyb_VERSION_MAJOR}
    VERSION ${tinyb_VERSION_STRING}
-   CXX_STANDARD 11
 )
 install (FILES ${tinyb_LIB_GLOB_HEADERS} DESTINATION include/)
 install (DIRECTORY ${PROJECT_SOURCE_DIR}/api/tinyb/ DESTINATION include/tinyb)
