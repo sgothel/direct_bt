@@ -135,22 +135,23 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
 }
 
 void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     const int dev_id = event->getDevID();
     MgmtAdapterEventCallbackList & mgmtEventCallbackList = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(event->getOpcode())];
     int invokeCount = 0;
-    for (auto it = mgmtEventCallbackList.begin(); it != mgmtEventCallbackList.end(); ++it) {
-        if( 0 > it->getDevID() || dev_id == it->getDevID() ) {
+
+    jau::for_each_cow(mgmtEventCallbackList, [&](MgmtAdapterEventCallback &cb) {
+        if( 0 > cb.getDevID() || dev_id == cb.getDevID() ) {
             try {
-                it->getCallback().invoke(event);
+                cb.getCallback().invoke(event);
             } catch (std::exception &e) {
                 ERR_PRINT("DBTManager::sendMgmtEvent-CBs %d/%zd: MgmtAdapterEventCallback %s : Caught exception %s",
                         invokeCount+1, mgmtEventCallbackList.size(),
-                        it->toString().c_str(), e.what());
+                        cb.toString().c_str(), e.what());
             }
             invokeCount++;
         }
-    }
+    });
+
     COND_PRINT(env.DEBUG_EVENT, "DBTManager::sendMgmtEvent: Event %s -> %d/%zd callbacks", event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
     (void)invokeCount;
 }
@@ -791,59 +792,41 @@ std::shared_ptr<NameAndShortName> DBTManager::setLocalName(const int dev_id, con
  *
  */
 
+static MgmtAdapterEventCallbackList::equal_comparator _mgmtAdapterEventCallbackEqComp_ID_CB =
+        [](const MgmtAdapterEventCallback &a, const MgmtAdapterEventCallback &b) -> bool { return a == b; };
+
+static MgmtAdapterEventCallbackList::equal_comparator _mgmtAdapterEventCallbackEqComp_CB =
+        [](const MgmtAdapterEventCallback &a, const MgmtAdapterEventCallback &b) -> bool { return a.getCallback() == b.getCallback(); };
+
+static MgmtAdapterEventCallbackList::equal_comparator _mgmtAdapterEventCallbackEqComp_ID =
+        [](const MgmtAdapterEventCallback &a, const MgmtAdapterEventCallback &b) -> bool { return a.getDevID() == b.getDevID(); };
+
 bool DBTManager::addMgmtEventCallback(const int dev_id, const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     if( !isValidMgmtEventCallbackListsIndex(opc) ) {
         ERR_PRINT("Opcode %s >= %d", MgmtEvent::getOpcodeString(opc).c_str(), mgmtAdapterEventCallbackLists.size());
         return false;
     }
     MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
-    for (auto it = l.begin(); it != l.end(); ++it) {
-        if ( it->getDevID() == dev_id && it->getCallback() == cb ) {
-            // already exists for given adapter
-            return true;
-        }
-    }
-    l.push_back( MgmtAdapterEventCallback(dev_id, cb) );
+    /* const bool added = */ l.push_back_unique(MgmtAdapterEventCallback(dev_id, cb), _mgmtAdapterEventCallbackEqComp_ID_CB);
     return true;
 }
 int DBTManager::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     if( !isValidMgmtEventCallbackListsIndex(opc) ) {
         ERR_PRINT("Opcode %s >= %d", MgmtEvent::getOpcodeString(opc).c_str(), mgmtAdapterEventCallbackLists.size());
         return 0;
     }
-
-    int count = 0;
     MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
-    for (auto it = l.begin(); it != l.end(); ) {
-        if ( it->getCallback() == cb ) {
-            it = l.erase(it);
-            count++;
-        } else {
-            ++it;
-        }
-    }
-    return count;
+    return l.erase_matching(MgmtAdapterEventCallback(0, cb), true /* all_matching */, _mgmtAdapterEventCallbackEqComp_CB);
 }
 int DBTManager::removeMgmtEventCallback(const int dev_id) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     int count = 0;
     for(size_t i=0; i<mgmtAdapterEventCallbackLists.size(); i++) {
         MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[i];
-        for (auto it = l.begin(); it != l.end(); ) {
-            if ( it->getDevID() == dev_id ) {
-                it = l.erase(it);
-                count++;
-            } else {
-                ++it;
-            }
-        }
+        count += l.erase_matching(MgmtAdapterEventCallback(dev_id, MgmtEventCallback()), true /* all_matching */, _mgmtAdapterEventCallbackEqComp_ID);
     }
     return count;
 }
 void DBTManager::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     if( !isValidMgmtEventCallbackListsIndex(opc) ) {
         ERR_PRINT("Opcode %s >= %d", MgmtEvent::getOpcodeString(opc).c_str(), mgmtAdapterEventCallbackLists.size());
         return;
@@ -851,7 +834,6 @@ void DBTManager::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept {
     mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)].clear();
 }
 void DBTManager::clearAllMgmtEventCallbacks() noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     for(size_t i=0; i<mgmtAdapterEventCallbackLists.size(); i++) {
         mgmtAdapterEventCallbackLists[i].clear();
     }

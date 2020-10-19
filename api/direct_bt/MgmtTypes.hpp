@@ -1299,6 +1299,9 @@ namespace direct_bt {
             /** MgmtEventCallback reference */
             MgmtEventCallback& getCallback() noexcept { return callback; }
 
+            /** const MgmtEventCallback reference */
+            const MgmtEventCallback& getCallback() const noexcept { return callback; }
+
             bool operator==(const MgmtAdapterEventCallback& rhs) const noexcept
             { return dev_id == rhs.dev_id && callback == rhs.callback; }
 
@@ -1310,7 +1313,7 @@ namespace direct_bt {
             }
     };
 
-    typedef std::vector<MgmtAdapterEventCallback> MgmtAdapterEventCallbackList;
+    typedef jau::cow_vector<MgmtAdapterEventCallback> MgmtAdapterEventCallbackList;
 
 } // namespace direct_bt
 

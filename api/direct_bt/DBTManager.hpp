@@ -182,7 +182,6 @@ namespace direct_bt {
 
             /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
             std::array<MgmtAdapterEventCallbackList, static_cast<uint16_t>(MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT)> mgmtAdapterEventCallbackLists;
-            std::recursive_mutex mtx_callbackLists;
             inline bool isValidMgmtEventCallbackListsIndex(const MgmtEvent::Opcode opc) const noexcept {
                 return static_cast<uint16_t>(opc) < mgmtAdapterEventCallbackLists.size();
             }
