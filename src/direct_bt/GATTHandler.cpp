@@ -269,7 +269,7 @@ void GATTHandler::l2capReaderThreadImpl() {
     }
     {
         const std::lock_guard<std::mutex> lock(mtx_l2capReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        WORDY_PRINT("GATTHandler::reader: Ended. Ring has %d entries flushed", attPDURing.getSize());
+        WORDY_PRINT("GATTHandler::reader: Ended. Ring has %zu entries flushed", attPDURing.getSize());
         attPDURing.clear();
         l2capReaderRunning = false;
         cv_l2capReaderInit.notify_all();

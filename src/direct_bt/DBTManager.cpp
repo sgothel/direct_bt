@@ -125,7 +125,7 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
     }
     {
         const std::lock_guard<std::mutex> lock(mtx_mgmtReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        WORDY_PRINT("DBTManager::reader: Ended. Ring has %d entries flushed", mgmtEventRing.getSize());
+        WORDY_PRINT("DBTManager::reader: Ended. Ring has %zu entries flushed", mgmtEventRing.getSize());
         mgmtEventRing.clear();
         mgmtReaderRunning = false;
         cv_mgmtReaderInit.notify_all();

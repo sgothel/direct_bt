@@ -322,7 +322,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
     }
     {
         const std::lock_guard<std::mutex> lock(mtx_hciReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        WORDY_PRINT("HCIHandler::reader: Ended. Ring has %d entries flushed", hciEventRing.getSize());
+        WORDY_PRINT("HCIHandler::reader: Ended. Ring has %zu entries flushed", hciEventRing.getSize());
         hciEventRing.clear();
         hciReaderRunning = false;
         cv_hciReaderInit.notify_all();
