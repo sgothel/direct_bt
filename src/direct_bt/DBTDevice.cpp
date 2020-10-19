@@ -74,7 +74,6 @@ DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
 
 DBTDevice::~DBTDevice() noexcept {
     DBG_PRINT("DBTDevice::dtor: ... %p %s", this, getAddressString().c_str());
-    remove();
     advServices.clear();
     advMSD = nullptr;
     DBG_PRINT("DBTDevice::dtor: XXX %p %s", this, getAddressString().c_str());

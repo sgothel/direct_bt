@@ -554,7 +554,10 @@ void test(int dev_id) {
             std::this_thread::sleep_for(std::chrono::milliseconds(3000));
         }
     }
-    fprintf(stderr, "****** EOL Adapter's Devices\n");
+    fprintf(stderr, "****** EOL Adapter's Devices - pre close\n");
+    adapter.printSharedPtrListOfDevices();
+    adapter.close();
+    fprintf(stderr, "****** EOL Adapter's Devices - post close\n");
     adapter.printSharedPtrListOfDevices();
 }
 

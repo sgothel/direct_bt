@@ -196,7 +196,7 @@ namespace direct_bt {
             std::mutex mtx_discoveredDevices;
             std::mutex mtx_connectedDevices;
             std::mutex mtx_discovery;
-            std::recursive_mutex mtx_sharedDevices; // final mutex of all DBTDevice lifecycle; Recursive due to DBTDevice::~DBTDevice()
+            std::mutex mtx_sharedDevices; // final mutex of all DBTDevice lifecycle
 
             bool validateDevInfo() noexcept;
 
@@ -295,6 +295,11 @@ namespace direct_bt {
              * Releases this instance.
              */
             ~DBTAdapter() noexcept;
+
+            /**
+             * Closes this instance, usually being called by destructor.
+             */
+            void close() noexcept;
 
             std::string get_java_class() const noexcept override {
                 return java_class();
