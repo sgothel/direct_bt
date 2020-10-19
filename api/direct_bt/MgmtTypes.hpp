@@ -33,6 +33,7 @@
 #include <mutex>
 
 #include <jau/function_def.hpp>
+#include <jau/cow_vector.hpp>
 
 #include "BTTypes.hpp"
 #include "BTIoctl.hpp"
@@ -1274,7 +1275,7 @@ namespace direct_bt {
     };
 
     typedef jau::FunctionDef<bool, std::shared_ptr<MgmtEvent>> MgmtEventCallback;
-    typedef std::vector<MgmtEventCallback> MgmtEventCallbackList;
+    typedef jau::cow_vector<MgmtEventCallback> MgmtEventCallbackList;
 
     class MgmtAdapterEventCallback {
         private:
