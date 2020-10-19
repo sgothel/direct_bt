@@ -195,7 +195,6 @@ namespace direct_bt {
             const uint16_t dev_id;
             POctets rbuffer;
             HCIComm comm;
-            std::recursive_mutex mtx;
             hci_ufilter filter_mask;
             std::atomic<uint32_t> metaev_filter_mask;
             std::atomic<uint64_t> opcbit_filter_mask;
@@ -229,7 +228,7 @@ namespace direct_bt {
 
             std::vector<HCIConnectionRef> connectionList;
             std::vector<HCIConnectionRef> disconnectList;
-            std::recursive_mutex mtx_connectionList;
+            std::mutex mtx_connectionList;
             /**
              * Returns a newly added HCIConnectionRef tracker connection with given parameters, if not existing yet.
              * <p>

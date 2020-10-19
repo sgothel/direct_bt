@@ -76,7 +76,7 @@ struct hci_rp_status {
 
 HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(std::vector<HCIConnectionRef> &list,
                                                       const EUI48 & address, BDAddressType addrType, const uint16_t handle) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     // remove all old entry with given address first
     for (auto it = list.begin(); it != list.end(); ) {
         HCIConnectionRef conn = *it;
@@ -103,7 +103,7 @@ HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(std::vector<HCIConnectionR
 }
 
 HCIConnectionRef HCIHandler::findHCIConnection(std::vector<HCIConnectionRef> &list, const EUI48 & address, BDAddressType addrType) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     const size_t size = list.size();
     for (size_t i = 0; i < size; i++) {
         HCIConnectionRef & e = list[i];
@@ -115,7 +115,7 @@ HCIConnectionRef HCIHandler::findHCIConnection(std::vector<HCIConnectionRef> &li
 }
 
 HCIConnectionRef HCIHandler::findTrackerConnection(const uint16_t handle) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     const size_t size = connectionList.size();
     for (size_t i = 0; i < size; i++) {
         HCIConnectionRef & e = connectionList[i];
@@ -127,7 +127,7 @@ HCIConnectionRef HCIHandler::findTrackerConnection(const uint16_t handle) noexce
 }
 
 HCIConnectionRef HCIHandler::removeTrackerConnection(const HCIConnectionRef conn) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     for (auto it = connectionList.begin(); it != connectionList.end(); ) {
         HCIConnectionRef e = *it;
         if ( *e == *conn ) {
@@ -141,7 +141,7 @@ HCIConnectionRef HCIHandler::removeTrackerConnection(const HCIConnectionRef conn
 }
 
 HCIConnectionRef HCIHandler::removeHCIConnection(std::vector<HCIConnectionRef> &list, const uint16_t handle) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     for (auto it = list.begin(); it != list.end(); ) {
         HCIConnectionRef e = *it;
         if ( e->getHandle() == handle ) {
@@ -155,7 +155,7 @@ HCIConnectionRef HCIHandler::removeHCIConnection(std::vector<HCIConnectionRef> &
 }
 
 void HCIHandler::clearConnectionLists() noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     connectionList.clear();
     disconnectList.clear();
 }
@@ -538,7 +538,7 @@ void HCIHandler::close() noexcept {
         return;
     }
     PERF_TS_T0();
-    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("HCIHandler::close: Start");
     clearAllMgmtEventCallbacks();
     clearConnectionLists();
@@ -576,6 +576,7 @@ void HCIHandler::close() noexcept {
 
 HCIStatusCode HCIHandler::startAdapter() {
     #ifdef __linux__
+        const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
         int res;
         if( ( res = ioctl(comm.getSocketDescriptor(), HCIDEVUP, dev_id) ) < 0 ) {
             if (errno != EALREADY) {
@@ -593,6 +594,7 @@ HCIStatusCode HCIHandler::startAdapter() {
 HCIStatusCode HCIHandler::stopAdapter() {
     HCIStatusCode status;
     #ifdef __linux__
+        const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
         int res;
         if( ( res = ioctl(comm.getSocketDescriptor(), HCIDEVDOWN, dev_id) ) < 0) {
             ERR_PRINT("HCIHandler::stopAdapter(dev_id %d): FAILED: %d", dev_id, res);
@@ -612,6 +614,7 @@ HCIStatusCode HCIHandler::stopAdapter() {
 
 HCIStatusCode HCIHandler::resetAdapter() {
     #ifdef __linux__
+        const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
         if( HCIStatusCode::SUCCESS == stopAdapter() && HCIStatusCode::SUCCESS == startAdapter() ) {
             return HCIStatusCode::SUCCESS;
         }
@@ -622,7 +625,6 @@ HCIStatusCode HCIHandler::resetAdapter() {
 }
 
 HCIStatusCode HCIHandler::reset() noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( !comm.isOpen() ) {
         ERR_PRINT("HCIHandler::reset: device not open");
         return HCIStatusCode::INTERNAL_FAILURE;
@@ -641,6 +643,10 @@ HCIStatusCode HCIHandler::reset() noexcept {
 }
 
 HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
+    if( !comm.isOpen() ) {
+        ERR_PRINT("HCIHandler::getLocalVersion: device not open");
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
     HCICommand req0(HCIOpcode::READ_LOCAL_VERSION, 0);
     const hci_rp_read_local_version * ev_lv;
     HCIStatusCode status;
@@ -662,7 +668,6 @@ HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
                                             const HCILEOwnAddressType own_mac_type,
                                             const uint16_t le_scan_interval, const uint16_t le_scan_window,
                                             const uint8_t filter_policy) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( !comm.isOpen() ) {
         ERR_PRINT("HCIHandler::le_set_scan_param: device not open");
         return HCIStatusCode::INTERNAL_FAILURE;
@@ -685,7 +690,6 @@ HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
 }
 
 HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_dup) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( !comm.isOpen() ) {
         ERR_PRINT("HCIHandler::le_enable_scan: device not open");
         return HCIStatusCode::INTERNAL_FAILURE;
@@ -714,7 +718,6 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
                             const uint16_t le_scan_interval, const uint16_t le_scan_window,
                             const uint16_t conn_interval_min, const uint16_t conn_interval_max,
                             const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( !comm.isOpen() ) {
         ERR_PRINT("HCIHandler::le_create_conn: device not open");
         return HCIStatusCode::INTERNAL_FAILURE;
@@ -775,7 +778,6 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
 HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
                                      const uint16_t pkt_type,
                                      const uint16_t clock_offset, const uint8_t role_switch) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( !comm.isOpen() ) {
         ERR_PRINT("HCIHandler::create_conn: device not open");
         return HCIStatusCode::INTERNAL_FAILURE;
@@ -818,7 +820,6 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
 HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
                                      const HCIStatusCode reason) noexcept
 {
-    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( !comm.isOpen() ) {
         ERR_PRINT("HCIHandler::create_conn: device not open");
         return HCIStatusCode::INTERNAL_FAILURE;
@@ -828,10 +829,9 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const EUI48 &pe
                    peer_bdaddr.toString().c_str(), getBDAddressTypeString(peer_mac_type).c_str());
         return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
     }
-    HCIConnectionRef conn;
     {
-        const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
-        conn = findTrackerConnection(conn_handle);
+        const std::lock_guard<std::mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+        HCIConnectionRef conn = findTrackerConnection(conn_handle);
         if( nullptr == conn ) {
             // disconnect called w/o being connected through this HCIHandler
             conn = addOrUpdateTrackerConnection(peer_bdaddr, peer_mac_type, conn_handle);
@@ -844,11 +844,11 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const EUI48 &pe
                        conn->toString().c_str());
             return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
         }
+        DBG_PRINT("HCIHandler::disconnect: address[%s, %s], handle %s, %s",
+                   peer_bdaddr.toString().c_str(), getBDAddressTypeString(peer_mac_type).c_str(),
+                   jau::uint16HexString(conn_handle).c_str(),
+                   conn->toString().c_str());
     }
-    DBG_PRINT("HCIHandler::disconnect: address[%s, %s], handle %s, %s",
-               peer_bdaddr.toString().c_str(), getBDAddressTypeString(peer_mac_type).c_str(),
-               jau::uint16HexString(conn_handle).c_str(),
-               conn->toString().c_str());
 
     HCIStatusCode status;
 
