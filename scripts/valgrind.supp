@@ -12,14 +12,14 @@
 # ==1175024== Thread #2 was created
 # ==1175024==    by 0x49434C1: direct_bt::DBTManager::DBTManager(direct_bt::BTMode) (DBTManager.cpp:333)
 # ==1175024== Thread #2: Bug in libpthread: write lock granted on mutex/rwlock which is currently wr-held by a different thread
-# ==1175024==    by 0x13283A: _ZN9direct_bt12LFRingbufferISt10shared_ptrINS_9MgmtEventEELDnEE7putImplERKS3_bbi (LFRingbuffer.hpp:240)
+# ==1175024==    by 0x13283A: _ZN9jau10ringbufferISt10shared_ptrINS_9MgmtEventEELDnEE7putImplERKS3_bbi (LFRingbuffer.hpp:240)
 #                    (see below: cpp_unique_lock_cond_wait_002)
 {
-   dbt_lfringbuffer_lock_and_wait_001
+   jau_ringbuffer_lock_and_wait_001
    Helgrind:Misc
    fun:mutex_lock_WRK
    ...
-   fun:*direct_bt*LFRingbuffer*putImpl*
+   fun:*jau*ringbuffer*putImpl*
    ...
    obj:*libdirect_bt.so*
 }
@@ -29,7 +29,7 @@
 #
 # ==1175024== Thread #1 is the program's root thread
 # ==1175024== Thread #2 unlocked lock at 0x13F628 currently held by thread #1
-# ==1175024==    by 0x132913: _ZN9direct_bt12LFRingbufferISt10shared_ptrINS_9MgmtEventEELDnEE7putImplERKS3_bbi (LFRingbuffer.hpp:240)
+# ==1175024==    by 0x132913: _ZN9jau10ringbufferISt10shared_ptrINS_9MgmtEventEELDnEE7putImplERKS3_bbi (LFRingbuffer.hpp:240)
 #            {
 # 240            std::unique_lock<std::mutex> lockRead(syncRead); // SC-DRF w/ getImpl via same lock
 #                size++;
@@ -38,7 +38,7 @@
 #            }
 
 # ==1175024==  Lock at 0x13F628 was first observed
-# ==1175024==    by 0x131EDC: _ZN9direct_bt12LFRingbufferISt10shared_ptrINS_9MgmtEventEELDnEE7getImplEbbi (LFRingbuffer.hpp:181)
+# ==1175024==    by 0x131EDC: _ZN9jau10ringbufferISt10shared_ptrINS_9MgmtEventEELDnEE7getImplEbbi (LFRingbuffer.hpp:181)
 #                    if( blocking ) {
 # 181                    std::unique_lock<std::mutex> lockRead(syncRead); // SC-DRF w/ putImpl via same lock
 #                        while( localReadPos == writePos ) {
@@ -47,11 +47,11 @@
 #                        }
 #                    }
 {
-   dbt_lfringbuffer_lock_and_wait_002
+   jau_ringbuffer_lock_and_wait_002
    Helgrind:UnlockForeign
    fun:mutex_unlock_WRK
    ...
-   fun:*direct_bt*LFRingbuffer*putImpl*
+   fun:*jau*ringbuffer*putImpl*
    ...
    obj:*libdirect_bt.so*
 }
@@ -64,18 +64,18 @@
 # ==1175024== Locks held: 3, at addresses 0x13F480 0x13F650 0x13F7B0
 # ==1175024==    at 0x131D90: std::__shared_ptr<direct_bt::MgmtEvent, (__gnu_cxx::_Lock_policy)2>::__shared_ptr(std::__shared_ptr<direct_bt::MgmtEvent, (__gnu_cxx::_Lock_policy)2> const&) (shared_ptr_base.h:1181)
 # ==1175024==    by 0x131DDA: std::shared_ptr<direct_bt::MgmtEvent>::shared_ptr(std::shared_ptr<direct_bt::MgmtEvent> const&) (shared_ptr.h:149)
-# ==1175024==    by 0x1320B0: _ZN9direct_bt12LFRingbufferISt10shared_ptrINS_9MgmtEventEELDnEE7getImplEbbi (LFRingbuffer.hpp:198)
+# ==1175024==    by 0x1320B0: _ZN9jau10ringbufferISt10shared_ptrINS_9MgmtEventEELDnEE7getImplEbbi (LFRingbuffer.hpp:198)
 #
 # ==1175024== This conflicts with a previous write of size 8 by thread #2
 # ==1175024== Locks held: 1, at address 0x13F6A0
 # ==1175024==    at 0x130E6D: std::__shared_ptr<direct_bt::MgmtEvent, (__gnu_cxx::_Lock_policy)2>::operator=(std::__shared_ptr<direct_bt::MgmtEvent, (__gnu_cxx::_Lock_policy)2> const&) (shared_ptr_base.h:1182)
 # ==1175024==    by 0x130EB4: std::shared_ptr<direct_bt::MgmtEvent>::operator=(std::shared_ptr<direct_bt::MgmtEvent> const&) (shared_ptr.h:358)
-# ==1175024==    by 0x13281D: _ZN9direct_bt12LFRingbufferISt10shared_ptrINS_9MgmtEventEELDnEE7putImplERKS3_bbi (LFRingbuffer.hpp:237)
+# ==1175024==    by 0x13281D: _ZN9jau10ringbufferISt10shared_ptrINS_9MgmtEventEELDnEE7putImplERKS3_bbi (LFRingbuffer.hpp:237)
 {
-   dbt_lfringbuffer_sc_drf_atomic_001
+   jau_ringbuffer_sc_drf_atomic_001
    Helgrind:Race
    ...
-   fun:*direct_bt*LFRingbuffer*getImpl*
+   fun:*jau*ringbuffer*getImpl*
    ...
    obj:*libdirect_bt.so*
 }
@@ -92,23 +92,23 @@
 # ==1175024==    at 0x4839E3F: operator new(unsigned long) (vg_replace_malloc.c:342)
 # ==1175024==    by 0x493C244: direct_bt::MgmtEvent::getSpecialized(unsigned char const*, int) (MgmtTypes.cpp:243)
 {
-   dbt_lfringbuffer_sc_drf_atomic_011
+   jau_ringbuffer_sc_drf_atomic_011
    Helgrind:Race
    ...
-   fun:*direct_bt*DBTManager*sendWithReply*
+   fun:*jau*DBTManager*sendWithReply*
    ...
    obj:*libdirect_bt.so*
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_012
+   jau_ringbuffer_sc_drf_atomic_012
    Helgrind:Race
    ...
-   fun:_ZN9direct_bt10DBTManagerC1ENS_6BTModeE
+   fun:*direct_bt*DBTManager*BTMode*
    ...
 #  obj:*libdirect_bt.so*
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_013
+   jau_ringbuffer_sc_drf_atomic_013
    Helgrind:Race
    ...
    fun:_ZN9direct_bt9MgmtEventD1Ev
@@ -116,7 +116,7 @@
    obj:*libdirect_bt.so*
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_014
+   jau_ringbuffer_sc_drf_atomic_014
    Helgrind:Race
    ...
 #   fun:*direct_bt*MgmtEvtCmdComplete*getStatus*
@@ -130,7 +130,7 @@
 # GATTHandler
 #
 {
-   dbt_lfringbuffer_sc_drf_atomic_021
+   jau_ringbuffer_sc_drf_atomic_021
    Helgrind:Race
    ...
    fun:*direct_bt*GATTHandler*sendWithReply*
@@ -138,7 +138,7 @@
    obj:*libdirect_bt.so*
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_022
+   jau_ringbuffer_sc_drf_atomic_022
    Helgrind:Race
    ...
    fun:_ZN9direct_bt11GATTHandlerC1ERKSt10shared_ptrINS_9DBTDeviceEE
@@ -146,7 +146,7 @@
 #  obj:*libdirect_bt.so*
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_023
+   jau_ringbuffer_sc_drf_atomic_023
    Helgrind:Race
    ...
 #   fun:*direct_bt*GATTHandler*discoverPrimaryServices*
@@ -156,7 +156,7 @@
    obj:*libdirect_bt.so*
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_024
+   jau_ringbuffer_sc_drf_atomic_024
    Helgrind:Race
    ...
    fun:_ZN9direct_bt9AttPDUMsgD1Ev
@@ -164,7 +164,7 @@
    obj:*libdirect_bt.so*
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_025
+   jau_ringbuffer_sc_drf_atomic_025
    Helgrind:Race
    ...
    fun:*direct_bt*GATTHandler*readValue*
@@ -172,7 +172,7 @@
    obj:*libdirect_bt.so*
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_026
+   jau_ringbuffer_sc_drf_atomic_026
    Helgrind:Race
    ...
    fun:*direct_bt*GATTHandler*writeValue*
@@ -185,7 +185,7 @@
 # HCIHandler
 #
 {
-   dbt_lfringbuffer_sc_drf_atomic_031
+   jau_ringbuffer_sc_drf_atomic_031
    Helgrind:Race
    ...
    fun:*direct_bt*HCIHandler*getNextReply*
@@ -193,7 +193,7 @@
    obj:*libdirect_bt.so*
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_032
+   jau_ringbuffer_sc_drf_atomic_032
    Helgrind:Race
    ...
    fun:*direct_bt*HCIHandler*sendWithCmdCompleteReply*
@@ -201,15 +201,15 @@
    obj:*libdirect_bt.so*
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_033
+   jau_ringbuffer_sc_drf_atomic_033
    Helgrind:Race
    ...
-   fun:_ZN9direct_bt10HCIHandlerC1ENS_6BTModeEt
+   fun:*direct_bt*HCIHandler*BTMode*
    ...
    obj:*libdirect_bt.so*
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_034
+   jau_ringbuffer_sc_drf_atomic_034
    Helgrind:Race
    ...
    fun:_ZN9direct_bt9HCIPacketD1Ev
@@ -217,7 +217,7 @@
    obj:*libdirect_bt.so*
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_035
+   jau_ringbuffer_sc_drf_atomic_035
    Helgrind:Race
    ...
    fun:_ZNSt10shared_ptrIN9direct_bt8HCIEventEED1Ev
@@ -225,7 +225,7 @@
    obj:*libdirect_bt.so*
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_036
+   jau_ringbuffer_sc_drf_atomic_036
    Helgrind:Race
    ...
    fun:*direct_bt*HCIHandler*processCommandComplete*
@@ -233,7 +233,7 @@
    obj:*libdirect_bt.so*
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_037
+   jau_ringbuffer_sc_drf_atomic_037
    Helgrind:Race
    ...
    fun:*direct_bt*HCIHandler*processCommandStatus*
@@ -241,42 +241,65 @@
    obj:*libdirect_bt.so*
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_038
+   jau_ringbuffer_sc_drf_atomic_038
    Helgrind:Race
    ...
-   fun:*direct_bt*HCIEvent*le_set_scan_param*
+   fun:*direct_bt*HCIHandler*le_set_scan_param*
    ...
    obj:*libdirect_bt.so*
 }
+{
+   jau_ringbuffer_sc_drf_atomic_039
+   Helgrind:Race
+   ...
+   fun:*direct_bt*HCIHandler*getLocalVersion*
+   ...
+   obj:*libdirect_bt.so*
+}
+{
+   jau_cow_vector_sc_drf_atomic_041
+   Helgrind:Race
+   ...
+   fun:*jau*cow_vector*clear*
+   ...
+}
+{
+   jau_cow_vector_sc_drf_atomic_042
+   Helgrind:Race
+   ...
+   fun:fun:*direct_bt*AdapterStatusListenerEED1Ev
+   ...
+}
+
 
 #
 # DRD
 #
 
 {
-   dbt_lfringbuffer_lock_and_wait_001
+   jau_ringbuffer_lock_and_wait_001
    drd:CondErr
    ...
-   fun:*direct_bt*LFRingbuffer*putImpl*
+   fun:*jau*ringbuffer*putImpl*
    ...
 }
 {
-   dbt_lfringbuffer_lock_and_wait_002
+   jau_ringbuffer_lock_and_wait_002
    drd:MutexErr
    ...
-   fun:*direct_bt*LFRingbuffer*putImpl*
+   fun:*jau*ringbuffer*putImpl*
    ...
 }
 {
-   dbt_lfringbuffer_lock_and_wait_002
+   jau_ringbuffer_lock_and_wait_002
    drd:CondErr
    ...
-   fun:_ZN9direct_bt12LFRingbufferISt10shared_ptrIKNS_9AttPDUMsgEELDnEED1Ev
+   fun:_ZN9jau10ringbufferISt10shared_ptrIKNS_9AttPDUMsgEELDnEED1Ev
    ...
 }
 
 {
-   dbt_lfringbuffer_lock_and_wait_021
+   jau_ringbuffer_lock_and_wait_021
    drd:MutexErr
    ...
    fun:_ZNSt15_Sp_counted_ptrIPN9direct_bt11GATTHandlerELN9__gnu_cxx12_Lock_policyE2EE10_M_disposeEv
@@ -284,21 +307,21 @@
 }
 
 {
-   dbt_lfringbuffer_lock_and_wait_031
+   jau_ringbuffer_lock_and_wait_031
    drd:CondErr
    ...
-   fun:_ZN9direct_bt12LFRingbufferISt10shared_ptrINS_8HCIEventEELDnEED1Ev
+   fun:_ZN9jau10ringbufferISt10shared_ptrINS_8HCIEventEELDnEED1Ev
    ...
 }
 {
-   dbt_lfringbuffer_lock_and_wait_031
+   jau_ringbuffer_lock_and_wait_031
    drd:CondErr
    ...
-   fun:_ZN9direct_bt12LFRingbufferISt10shared_ptrINS_9MgmtEventEELDnEED1Ev
+   fun:_ZN9jau10ringbufferISt10shared_ptrINS_9MgmtEventEELDnEED1Ev
    ...
 }
 {
-   dbt_lfringbuffer_lock_and_wait_032
+   jau_ringbuffer_lock_and_wait_032
    drd:MutexErr
    ...
    fun:_ZNSt15_Sp_counted_ptrIPN9direct_bt10HCIHandlerELN9__gnu_cxx12_Lock_policyE2EE10_M_disposeEv
@@ -306,43 +329,43 @@
 }
 
 {
-   dbt_lfringbuffer_sc_drf_atomic_001
+   jau_ringbuffer_sc_drf_atomic_001
    drd:MutexErr
    ...
-   fun:*direct_bt*LFRingbuffer*getImpl*
+   fun:*jau*ringbuffer*getImpl*
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_001
+   jau_ringbuffer_sc_drf_atomic_001
    drd:ConflictingAccess
    ...
-   fun:*direct_bt*LFRingbuffer*getImpl*
+   fun:*jau*ringbuffer*getImpl*
    ...
 }
 
 {
-   dbt_lfringbuffer_sc_drf_atomic_011
+   jau_ringbuffer_sc_drf_atomic_011
    drd:ConflictingAccess
    ...
    fun:*direct_bt*DBTManager*sendWithReply*
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_012
+   jau_ringbuffer_sc_drf_atomic_012
    drd:ConflictingAccess
    ...
-   fun:_ZN9direct_bt10DBTManagerC1ENS_6BTModeE
+   fun:*direct_bt*DBTManager*get*BTMode*
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_013
+   jau_ringbuffer_sc_drf_atomic_013
    drd:ConflictingAccess
    ...
    fun:_ZN9direct_bt9MgmtEventD1Ev
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_014
+   jau_ringbuffer_sc_drf_atomic_014
    drd:ConflictingAccess
    ...
 #   fun:*direct_bt*MgmtEvtCmdComplete*getStatus*
@@ -351,7 +374,7 @@
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_015
+   jau_ringbuffer_sc_drf_atomic_015
    drd:ConflictingAccess
    ...
    fun:*direct_bt*MgmtEvent*getOpcode*
@@ -359,21 +382,21 @@
 }
 
 {
-   dbt_lfringbuffer_sc_drf_atomic_021
+   jau_ringbuffer_sc_drf_atomic_021
    drd:ConflictingAccess
    ...
    fun:*direct_bt*GATTHandler*sendWithReply*
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_022
+   jau_ringbuffer_sc_drf_atomic_022
    drd:ConflictingAccess
    ...
    fun:_ZN9direct_bt11GATTHandlerC1ERKSt10shared_ptrINS_9DBTDeviceEE
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_023
+   jau_ringbuffer_sc_drf_atomic_023
    drd:ConflictingAccess
    ...
 #   fun:*direct_bt*GATTHandler*discoverPrimaryServices*
@@ -382,21 +405,21 @@
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_024
+   jau_ringbuffer_sc_drf_atomic_024
    drd:ConflictingAccess
    ...
    fun:_ZN9direct_bt9AttPDUMsgD1Ev
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_025
+   jau_ringbuffer_sc_drf_atomic_025
    drd:ConflictingAccess
    ...
    fun:*direct_bt*GATTHandler*readValue*
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_026
+   jau_ringbuffer_sc_drf_atomic_026
    drd:ConflictingAccess
    ...
    fun:*direct_bt*GATTHandler*writeValue*
@@ -405,59 +428,80 @@
 
 
 {
-   dbt_lfringbuffer_sc_drf_atomic_031
+   jau_ringbuffer_sc_drf_atomic_031
    drd:ConflictingAccess
    ...
    fun:*direct_bt*HCIHandler*getNextReply*
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_032
+   jau_ringbuffer_sc_drf_atomic_032
    drd:ConflictingAccess
    ...
    fun:*direct_bt*HCIHandler*sendWithCmdCompleteReply*
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_033
+   jau_ringbuffer_sc_drf_atomic_033
    drd:ConflictingAccess
    ...
-   fun:_ZN9direct_bt10HCIHandlerC1ENS_6BTModeEt
+   fun:*direct_bt*HCIHandler*BTMode*
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_034
+   jau_ringbuffer_sc_drf_atomic_034
    drd:ConflictingAccess
    ...
    fun:_ZN9direct_bt9HCIPacketD1Ev
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_035
+   jau_ringbuffer_sc_drf_atomic_035
    drd:ConflictingAccess
    ...
    fun:_ZNSt10shared_ptrIN9direct_bt8HCIEventEED1Ev
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_036
+   jau_ringbuffer_sc_drf_atomic_036
    drd:ConflictingAccess
    ...
    fun:*direct_bt*HCIHandler*processCommandComplete*
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_037
+   jau_ringbuffer_sc_drf_atomic_037
    drd:ConflictingAccess
    ...
    fun:*direct_bt*HCIHandler*processCommandStatus*
    ...
 }
 {
-   dbt_lfringbuffer_sc_drf_atomic_038
+   jau_ringbuffer_sc_drf_atomic_038
    drd:ConflictingAccess
    ...
-   fun:*direct_bt*HCIEvent*le_set_scan_param*
+   fun:*direct_bt*HCIHandler*le_set_scan_param*
+   ...
+}
+{
+   jau_ringbuffer_sc_drf_atomic_039
+   drd:ConflictingAccess
+   ...
+   fun:*direct_bt*HCIHandler*getLocalVersion*
+   ...
+}
+{
+   jau_cow_vector_sc_drf_atomic_041
+   drd:ConflictingAccess
+   ...
+   fun:*jau*cow_vector*clear*
+   ...
+}
+{
+   jau_cow_vector_sc_drf_atomic_042
+   drd:ConflictingAccess
+   ...
+   fun:fun:*direct_bt*AdapterStatusListenerEED1Ev
    ...
 }
 
