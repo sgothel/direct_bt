@@ -100,7 +100,7 @@ namespace direct_bt {
             int8_t max_tx_power;
 
         public:
-            static size_t minimumDataSize() noexcept { return 6 + 1 + 1 + 1 + 1; }
+            static jau::nsize_t minimumDataSize() noexcept { return 6 + 1 + 1 + 1 + 1; }
 
             ConnectionInfo(const EUI48 &address_, BDAddressType addressType_, int8_t rssi_, int8_t tx_power_, int8_t max_tx_power_) noexcept
             : address(address_), addressType(addressType_), rssi(rssi_), tx_power(tx_power_), max_tx_power(max_tx_power_) {}

@@ -84,10 +84,10 @@ namespace direct_bt {
             inline std::recursive_mutex & mutex_write() noexcept { return mtx_write; }
 
             /** Generic read w/ own timeoutMS, w/o locking suitable for a unique ringbuffer sink. */
-            ssize_t read(uint8_t* buffer, const size_t capacity, const int32_t timeoutMS) noexcept;
+            jau::snsize_t read(uint8_t* buffer, const jau::nsize_t capacity, const int32_t timeoutMS) noexcept;
 
             /** Generic write, locking {@link #mutex_write()}. */
-            ssize_t write(const uint8_t* buffer, const size_t size) noexcept;
+            jau::snsize_t write(const uint8_t* buffer, const jau::nsize_t size) noexcept;
 
         private:
             static inline void setu32_bit(int nr, void *addr) noexcept

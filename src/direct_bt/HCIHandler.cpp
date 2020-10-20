@@ -260,7 +260,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
     }
 
     while( !hciReaderShallStop ) {
-        ssize_t len;
+        jau::snsize_t len;
         if( !comm.isOpen() ) {
             // not open
             ERR_PRINT("HCIHandler::reader: Not connected");
@@ -270,10 +270,10 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
 
         len = comm.read(rbuffer.get_wptr(), rbuffer.getSize(), env.HCI_READER_THREAD_POLL_TIMEOUT);
         if( 0 < len ) {
-            const size_t len2 = static_cast<size_t>(len);
-            const size_t paramSize = len2 >= number(HCIConstSizeT::EVENT_HDR_SIZE) ? rbuffer.get_uint8_nc(2) : 0;
+            const jau::nsize_t len2 = static_cast<jau::nsize_t>(len);
+            const jau::nsize_t paramSize = len2 >= number(HCIConstSizeT::EVENT_HDR_SIZE) ? rbuffer.get_uint8_nc(2) : 0;
             if( len2 < number(HCIConstSizeT::EVENT_HDR_SIZE) + paramSize ) {
-                WARN_PRINT("HCIHandler::reader: length mismatch %zu < EVENT_HDR_SIZE(%zu) + %zu",
+                WARN_PRINT("HCIHandler::reader: length mismatch %u < EVENT_HDR_SIZE(%u) + %u",
                         len2, number(HCIConstSizeT::EVENT_HDR_SIZE), paramSize);
                 continue; // discard data
             }

@@ -197,7 +197,7 @@ namespace direct_bt {
     }
     std::string getHCIStatusCodeString(const HCIStatusCode ec) noexcept;
 
-    enum class HCIConstSizeT : size_t {
+    enum class HCIConstSizeT : jau::nsize_t {
         /** HCIPacketType::COMMAND header size including HCIPacketType */
         COMMAND_HDR_SIZE  = 1+3,
         /** HCIPacketType::ACLDATA header size including HCIPacketType */
@@ -209,8 +209,8 @@ namespace direct_bt {
         /** Total packet size, guaranteed to be handled by adapter. */
         PACKET_MAX_SIZE   = 255
     };
-    constexpr size_t number(const HCIConstSizeT rhs) noexcept {
-        return static_cast<size_t>(rhs);
+    constexpr jau::nsize_t number(const HCIConstSizeT rhs) noexcept {
+        return static_cast<jau::nsize_t>(rhs);
     }
 
     enum class HCIPacketType : uint8_t {
@@ -440,7 +440,7 @@ namespace direct_bt {
             }
 
         public:
-            HCIPacket(const HCIPacketType type, const size_t total_packet_size)
+            HCIPacket(const HCIPacketType type, const jau::nsize_t total_packet_size)
             : pdu(total_packet_size)
             {
                 if( 0 == total_packet_size ) {
@@ -450,7 +450,7 @@ namespace direct_bt {
             }
 
             /** Persistent memory, w/ ownership ..*/
-            HCIPacket(const uint8_t *packet_data, const size_t total_packet_size)
+            HCIPacket(const uint8_t *packet_data, const jau::nsize_t total_packet_size)
             : pdu(packet_data, total_packet_size)
             {
                 if( 0 == total_packet_size ) {
@@ -461,7 +461,7 @@ namespace direct_bt {
 
             virtual ~HCIPacket() noexcept {}
 
-            inline size_t getTotalSize() const noexcept { return pdu.getSize(); }
+            inline jau::nsize_t getTotalSize() const noexcept { return pdu.getSize(); }
 
             /** Return the underlying octets read only */
             TROOctets & getPDU() noexcept { return pdu; }
@@ -496,7 +496,7 @@ namespace direct_bt {
                 return "opcode="+jau::uint16HexString(number(getOpcode()))+" "+getOpcodeString();
             }
             virtual std::string valueString() const noexcept {
-                const size_t psz = getParamSize();
+                const jau::nsize_t psz = getParamSize();
                 const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), 0, psz, true /* lsbFirst */, true /* leading0X */) : "";
                 return "param[size "+std::to_string(getParamSize())+", data "+ps+"], tsz "+std::to_string(getTotalSize());
             }
@@ -504,7 +504,7 @@ namespace direct_bt {
         public:
 
             /** Enabling manual construction of command without given value. */
-            HCICommand(const HCIOpcode opc, const size_t param_size)
+            HCICommand(const HCIOpcode opc, const jau::nsize_t param_size)
             : HCIPacket(HCIPacketType::COMMAND, number(HCIConstSizeT::COMMAND_HDR_SIZE)+param_size)
             {
                 checkOpcode(opc, HCIOpcode::SPECIAL, HCIOpcode::LE_START_ENC);
@@ -514,7 +514,7 @@ namespace direct_bt {
             }
 
             /** Enabling manual construction of command with given value.  */
-            HCICommand(const HCIOpcode opc, const uint8_t* param, const size_t param_size)
+            HCICommand(const HCIOpcode opc, const uint8_t* param, const jau::nsize_t param_size)
             : HCICommand(opc, param_size)
             {
                 if( param_size > 0 ) {
@@ -526,7 +526,7 @@ namespace direct_bt {
 
             HCIOpcode getOpcode() const noexcept { return static_cast<HCIOpcode>( pdu.get_uint16_nc(1) ); }
             std::string getOpcodeString() const noexcept { return getHCIOpcodeString(getOpcode()); }
-            size_t getParamSize() const noexcept { return pdu.get_uint8_nc(3); }
+            jau::nsize_t getParamSize() const noexcept { return pdu.get_uint8_nc(3); }
             const uint8_t* getParam() const noexcept { return pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)); }
 
             std::string toString() const noexcept {
@@ -613,13 +613,13 @@ namespace direct_bt {
                 return "event="+jau::uint8HexString(number(getEventType()))+" "+getEventTypeString();
             }
             virtual std::string valueString() const noexcept {
-                const size_t d_sz_base = getBaseParamSize();
-                const size_t d_sz = getParamSize();
+                const jau::nsize_t d_sz_base = getBaseParamSize();
+                const jau::nsize_t d_sz = getParamSize();
                 const std::string d_str = d_sz > 0 ? jau::bytesHexString(getParam(), 0, d_sz, true /* lsbFirst */, true /* leading0X */) : "";
                 return "data[size "+std::to_string(d_sz)+"/"+std::to_string(d_sz_base)+", data "+d_str+"], tsz "+std::to_string(getTotalSize());
             }
 
-            size_t getBaseParamSize() const noexcept { return pdu.get_uint8_nc(2); }
+            jau::nsize_t getBaseParamSize() const noexcept { return pdu.get_uint8_nc(2); }
 
         public:
 
@@ -629,13 +629,13 @@ namespace direct_bt {
              * Returned memory reference is managed by caller (delete etc)
              * </p>
              */
-            static std::shared_ptr<HCIEvent> getSpecialized(const uint8_t * buffer, size_t const buffer_size) noexcept;
+            static std::shared_ptr<HCIEvent> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
 
             /** Persistent memory, w/ ownership ..*/
-            HCIEvent(const uint8_t* buffer, const size_t buffer_len, const size_t exp_param_size)
+            HCIEvent(const uint8_t* buffer, const jau::nsize_t buffer_len, const jau::nsize_t exp_param_size)
             : HCIPacket(buffer, buffer_len), ts_creation(jau::getCurrentMilliseconds())
             {
-                const size_t baseParamSize = getBaseParamSize();
+                const jau::nsize_t baseParamSize = getBaseParamSize();
                 pdu.check_range(0, number(HCIConstSizeT::EVENT_HDR_SIZE)+baseParamSize);
                 if( exp_param_size > baseParamSize ) {
                     throw jau::IndexOutOfBoundsException(exp_param_size, baseParamSize, E_FILE_LINE);
@@ -644,7 +644,7 @@ namespace direct_bt {
             }
 
             /** Enabling manual construction of event without given value.  */
-            HCIEvent(const HCIEventType evt, const size_t param_size=0)
+            HCIEvent(const HCIEventType evt, const jau::nsize_t param_size=0)
             : HCIPacket(HCIPacketType::EVENT, number(HCIConstSizeT::EVENT_HDR_SIZE)+param_size), ts_creation(jau::getCurrentMilliseconds())
             {
                 checkEventType(evt, HCIEventType::INQUIRY_COMPLETE, HCIEventType::AMP_Receiver_Report);
@@ -653,7 +653,7 @@ namespace direct_bt {
             }
 
             /** Enabling manual construction of event with given value.  */
-            HCIEvent(const HCIEventType evt, const uint8_t* param, const size_t param_size)
+            HCIEvent(const HCIEventType evt, const uint8_t* param, const jau::nsize_t param_size)
             : HCIEvent(evt, param_size)
             {
                 if( param_size > 0 ) {
@@ -676,7 +676,7 @@ namespace direct_bt {
             std::string getMetaEventTypeString() const noexcept { return getHCIMetaEventTypeString(getMetaEventType()); }
             bool isMetaEvent(HCIMetaEventType t) const noexcept { return t == getMetaEventType(); }
 
-            virtual size_t getParamSize() const noexcept { return getBaseParamSize(); }
+            virtual jau::nsize_t getParamSize() const noexcept { return getBaseParamSize(); }
             virtual const uint8_t* getParam() const noexcept { return pdu.get_ptr_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)); }
 
             virtual bool validate(const HCICommand & cmd) const noexcept { (void)cmd; return true; }
@@ -733,7 +733,7 @@ namespace direct_bt {
             }
 
         public:
-            HCIDisconnectionCompleteEvent(const uint8_t* buffer, const size_t buffer_len)
+            HCIDisconnectionCompleteEvent(const uint8_t* buffer, const jau::nsize_t buffer_len)
             : HCIEvent(buffer, buffer_len, 4)
             {
                 checkEventType(getEventType(), HCIEventType::DISCONN_COMPLETE);
@@ -767,7 +767,7 @@ namespace direct_bt {
             }
 
         public:
-            HCICommandCompleteEvent(const uint8_t* buffer, const size_t buffer_len)
+            HCICommandCompleteEvent(const uint8_t* buffer, const jau::nsize_t buffer_len)
             : HCIEvent(buffer, buffer_len, 3)
             {
                 checkEventType(getEventType(), HCIEventType::CMD_COMPLETE);
@@ -786,10 +786,10 @@ namespace direct_bt {
              */
             HCIOpcode getOpcode() const noexcept { return static_cast<HCIOpcode>( pdu.get_uint16_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)+1) ); }
 
-            size_t getReturnParamSize() const noexcept { return getParamSize() - 3; }
+            jau::nsize_t getReturnParamSize() const noexcept { return getParamSize() - 3; }
             const uint8_t* getReturnParam() const { return pdu.get_ptr(number(HCIConstSizeT::EVENT_HDR_SIZE)+3); }
-            HCIStatusCode getReturnStatus(const size_t returnParamOffset=0) const {
-                const size_t returnParamSize = getReturnParamSize();
+            HCIStatusCode getReturnStatus(const jau::nsize_t returnParamOffset=0) const {
+                const jau::nsize_t returnParamSize = getReturnParamSize();
                 if( returnParamSize < returnParamOffset + 1 /* status size */ ) {
                     return HCIStatusCode::UNKNOWN;
                 }
@@ -821,7 +821,7 @@ namespace direct_bt {
             }
 
         public:
-            HCICommandStatusEvent(const uint8_t* buffer, const size_t buffer_len)
+            HCICommandStatusEvent(const uint8_t* buffer, const jau::nsize_t buffer_len)
             : HCIEvent(buffer, buffer_len, 4)
             {
                 checkEventType(getEventType(), HCIEventType::CMD_STATUS);
@@ -871,21 +871,21 @@ namespace direct_bt {
 
         public:
             /** Passing through preset buffer of this type */
-            HCIMetaEvent(const uint8_t* buffer, const size_t buffer_len, const size_t exp_meta_param_size)
+            HCIMetaEvent(const uint8_t* buffer, const jau::nsize_t buffer_len, const jau::nsize_t exp_meta_param_size)
             : HCIEvent(buffer, buffer_len, 1+exp_meta_param_size)
             {
                 checkEventType(getEventType(), HCIEventType::LE_META);
             }
 
             /** Enabling manual construction of event without given value. */
-            HCIMetaEvent(const HCIMetaEventType mc, const size_t meta_param_size)
+            HCIMetaEvent(const HCIMetaEventType mc, const jau::nsize_t meta_param_size)
             : HCIEvent(HCIEventType::LE_META, 1+meta_param_size)
             {
                 pdu.put_uint8_nc(number(HCIConstSizeT::EVENT_HDR_SIZE), number(mc));
             }
 
             /** Enabling manual construction of event with given value.  */
-            HCIMetaEvent(const HCIMetaEventType mc, const uint8_t * meta_param, const size_t meta_param_size)
+            HCIMetaEvent(const HCIMetaEventType mc, const uint8_t * meta_param, const jau::nsize_t meta_param_size)
             : HCIMetaEvent(mc, meta_param_size)
             {
                 if( meta_param_size > 0 ) {
@@ -895,7 +895,7 @@ namespace direct_bt {
 
             HCIMetaEventType getMetaEventType() const noexcept override { return static_cast<HCIMetaEventType>( pdu.get_uint8_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)) ); }
 
-            size_t getParamSize() const noexcept override { return HCIEvent::getParamSize()-1; }
+            jau::nsize_t getParamSize() const noexcept override { return HCIEvent::getParamSize()-1; }
             const uint8_t* getParam() const noexcept override { return HCIEvent::getParam()+1; }
     };
 

@@ -52,11 +52,11 @@ extern uuid128_t BT_BASE_UUID;
 class uuid_t {
 public:
     /** Underlying integer value present octet count */
-    enum class TypeSize : int {
+    enum class TypeSize : jau::nsize_t {
         UUID16_SZ=2, UUID32_SZ=4, UUID128_SZ=16
     };
-    static constexpr size_t number(const TypeSize rhs) noexcept {
-        return static_cast<size_t>(rhs);
+    static constexpr jau::nsize_t number(const TypeSize rhs) noexcept {
+        return static_cast<jau::nsize_t>(rhs);
     }
 
 private:
@@ -66,8 +66,8 @@ protected:
     uuid_t(TypeSize const type_) : type(type_) {}
 
 public:
-    static TypeSize toTypeSize(const int size);
-    static std::shared_ptr<const uuid_t> create(TypeSize const t, uint8_t const * const buffer, int const byte_offset, bool const littleEndian);
+    static TypeSize toTypeSize(const jau::nsize_t size);
+    static std::shared_ptr<const uuid_t> create(TypeSize const t, uint8_t const * const buffer, jau::nsize_t const byte_offset, bool const littleEndian);
 
     virtual ~uuid_t() noexcept {}
 
@@ -86,13 +86,13 @@ public:
     { return !(*this == o); }
 
     TypeSize getTypeSize() const noexcept { return type; }
-    size_t getTypeSizeInt() const noexcept { return uuid_t::number(type); }
+    jau::nsize_t getTypeSizeInt() const noexcept { return uuid_t::number(type); }
 
-    uuid128_t toUUID128(uuid128_t const & base_uuid=BT_BASE_UUID, int const uuid32_le_octet_index=12) const noexcept;
+    uuid128_t toUUID128(uuid128_t const & base_uuid=BT_BASE_UUID, jau::nsize_t const uuid32_le_octet_index=12) const noexcept;
     /** returns the pointer to the uuid data of size getTypeSize() */
     virtual const uint8_t * data() const noexcept { return nullptr; }
     virtual std::string toString() const noexcept { return ""; }
-    virtual std::string toUUID128String(uuid128_t const & base_uuid=BT_BASE_UUID, int const le_octet_index=12) const noexcept;
+    virtual std::string toUUID128String(uuid128_t const & base_uuid=BT_BASE_UUID, jau::nsize_t const le_octet_index=12) const noexcept;
 };
 
 class uuid16_t : public uuid_t {
@@ -102,7 +102,7 @@ public:
     uuid16_t(uint16_t const v) noexcept
     : uuid_t(TypeSize::UUID16_SZ), value(v) { }
 
-    uuid16_t(uint8_t const * const buffer, int const byte_offset, bool const littleEndian) noexcept
+    uuid16_t(uint8_t const * const buffer, jau::nsize_t const byte_offset, bool const littleEndian) noexcept
     : uuid_t(TypeSize::UUID16_SZ), value(jau::get_uint16(buffer, byte_offset, littleEndian)) { }
 
     uuid16_t(const uuid16_t &o) noexcept = default;
@@ -119,7 +119,7 @@ public:
 
     const uint8_t * data() const noexcept override { return static_cast<uint8_t*>(static_cast<void*>(const_cast<uint16_t*>(&value))); }
     std::string toString() const noexcept override;
-    std::string toUUID128String(uuid128_t const & base_uuid=BT_BASE_UUID, int const le_octet_index=12) const noexcept override;
+    std::string toUUID128String(uuid128_t const & base_uuid=BT_BASE_UUID, jau::nsize_t const le_octet_index=12) const noexcept override;
 };
 
 class uuid32_t : public uuid_t {
@@ -129,7 +129,7 @@ public:
     uuid32_t(uint32_t const v) noexcept
     : uuid_t(TypeSize::UUID32_SZ), value(v) {}
 
-    uuid32_t(uint8_t const * const buffer, int const byte_offset, bool const littleEndian) noexcept
+    uuid32_t(uint8_t const * const buffer, jau::nsize_t const byte_offset, bool const littleEndian) noexcept
     : uuid_t(TypeSize::UUID32_SZ), value(jau::get_uint32(buffer, byte_offset, littleEndian)) { }
 
     uuid32_t(const uuid32_t &o) noexcept = default;
@@ -146,7 +146,7 @@ public:
 
     const uint8_t * data() const noexcept override { return static_cast<uint8_t*>(static_cast<void*>(const_cast<uint32_t*>(&value))); }
     std::string toString() const noexcept override;
-    std::string toUUID128String(uuid128_t const & base_uuid=BT_BASE_UUID, int const le_octet_index=12) const noexcept override;
+    std::string toUUID128String(uuid128_t const & base_uuid=BT_BASE_UUID, jau::nsize_t const le_octet_index=12) const noexcept override;
 };
 
 class uuid128_t : public uuid_t {
@@ -160,12 +160,12 @@ public:
 
     uuid128_t(const std::string str);
 
-    uuid128_t(uint8_t const * const buffer, int const byte_offset, bool const littleEndian) noexcept
+    uuid128_t(uint8_t const * const buffer, jau::nsize_t const byte_offset, bool const littleEndian) noexcept
     : uuid_t(TypeSize::UUID128_SZ), value(jau::get_uint128(buffer, byte_offset, littleEndian)) { }
 
-    uuid128_t(uuid16_t const & uuid16, uuid128_t const & base_uuid=BT_BASE_UUID, int const uuid16_le_octet_index=12) noexcept;
+    uuid128_t(uuid16_t const & uuid16, uuid128_t const & base_uuid=BT_BASE_UUID, jau::nsize_t const uuid16_le_octet_index=12) noexcept;
 
-    uuid128_t(uuid32_t const & uuid32, uuid128_t const & base_uuid=BT_BASE_UUID, int const uuid32_le_octet_index=12) noexcept;
+    uuid128_t(uuid32_t const & uuid32, uuid128_t const & base_uuid=BT_BASE_UUID, jau::nsize_t const uuid32_le_octet_index=12) noexcept;
 
     uuid128_t(const uuid128_t &o) noexcept = default;
     uuid128_t(uuid128_t &&o) noexcept = default;
@@ -181,14 +181,14 @@ public:
 
     const uint8_t * data() const noexcept override { return value.data; }
     std::string toString() const noexcept override;
-    std::string toUUID128String(uuid128_t const & base_uuid=BT_BASE_UUID, int const le_octet_index=12) const noexcept override {
+    std::string toUUID128String(uuid128_t const & base_uuid=BT_BASE_UUID, jau::nsize_t const le_octet_index=12) const noexcept override {
         (void)base_uuid;
         (void)le_octet_index;
         return toString();
     }
 };
 
-inline void put_uuid(uint8_t * buffer, int const byte_offset, const uuid_t &v) noexcept
+inline void put_uuid(uint8_t * buffer, jau::nsize_t const byte_offset, const uuid_t &v) noexcept
 {
     switch(v.getTypeSize()) {
         case uuid_t::TypeSize::UUID16_SZ:
@@ -202,7 +202,7 @@ inline void put_uuid(uint8_t * buffer, int const byte_offset, const uuid_t &v) n
             break;
     }
 }
-inline void put_uuid(uint8_t * buffer, int const byte_offset, const uuid_t &v, bool littleEndian) noexcept
+inline void put_uuid(uint8_t * buffer, jau::nsize_t const byte_offset, const uuid_t &v, bool littleEndian) noexcept
 {
     switch(v.getTypeSize()) {
         case uuid_t::TypeSize::UUID16_SZ:
@@ -217,27 +217,27 @@ inline void put_uuid(uint8_t * buffer, int const byte_offset, const uuid_t &v, b
     }
 }
 
-inline uuid16_t get_uuid16(uint8_t const * buffer, int const byte_offset) noexcept
+inline uuid16_t get_uuid16(uint8_t const * buffer, jau::nsize_t const byte_offset) noexcept
 {
     return uuid16_t(jau::get_uint16(buffer, byte_offset));
 }
-inline uuid16_t get_uuid16(uint8_t const * buffer, int const byte_offset, bool littleEndian) noexcept
+inline uuid16_t get_uuid16(uint8_t const * buffer, jau::nsize_t const byte_offset, bool littleEndian) noexcept
 {
     return uuid16_t(jau::get_uint16(buffer, byte_offset, littleEndian));
 }
-inline uuid32_t get_uuid32(uint8_t const * buffer, int const byte_offset) noexcept
+inline uuid32_t get_uuid32(uint8_t const * buffer, jau::nsize_t const byte_offset) noexcept
 {
     return uuid32_t(jau::get_uint32(buffer, byte_offset));
 }
-inline uuid32_t get_uuid32(uint8_t const * buffer, int const byte_offset, bool littleEndian) noexcept
+inline uuid32_t get_uuid32(uint8_t const * buffer, jau::nsize_t const byte_offset, bool littleEndian) noexcept
 {
     return uuid32_t(jau::get_uint32(buffer, byte_offset, littleEndian));
 }
-inline uuid128_t get_uuid128(uint8_t const * buffer, int const byte_offset) noexcept
+inline uuid128_t get_uuid128(uint8_t const * buffer, jau::nsize_t const byte_offset) noexcept
 {
     return uuid128_t(jau::get_uint128(buffer, byte_offset));
 }
-inline uuid128_t get_uuid128(uint8_t const * buffer, int const byte_offset, bool littleEndian) noexcept
+inline uuid128_t get_uuid128(uint8_t const * buffer, jau::nsize_t const byte_offset, bool littleEndian) noexcept
 {
     return uuid128_t(jau::get_uint128(buffer, byte_offset, littleEndian));
 }

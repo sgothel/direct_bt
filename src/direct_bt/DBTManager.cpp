@@ -89,7 +89,7 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
     }
 
     while( !mgmtReaderShallStop ) {
-        ssize_t len;
+        jau::snsize_t len;
         if( !comm.isOpen() ) {
             // not open
             ERR_PRINT("DBTManager::reader: Not connected");
@@ -99,10 +99,10 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
 
         len = comm.read(rbuffer.get_wptr(), rbuffer.getSize(), env.MGMT_READER_THREAD_POLL_TIMEOUT);
         if( 0 < len ) {
-            const size_t len2 = static_cast<size_t>(len);
-            const size_t paramSize = len2 >= MGMT_HEADER_SIZE ? rbuffer.get_uint16_nc(4) : 0;
+            const jau::nsize_t len2 = static_cast<jau::nsize_t>(len);
+            const jau::nsize_t paramSize = len2 >= MGMT_HEADER_SIZE ? rbuffer.get_uint16_nc(4) : 0;
             if( len2 < MGMT_HEADER_SIZE + paramSize ) {
-                WARN_PRINT("DBTManager::reader: length mismatch %zu < MGMT_HEADER_SIZE(%zu) + %zu", len2, MGMT_HEADER_SIZE, paramSize);
+                WARN_PRINT("DBTManager::reader: length mismatch %zu < MGMT_HEADER_SIZE(%u) + %u", len2, MGMT_HEADER_SIZE, paramSize);
                 continue; // discard data
             }
             std::shared_ptr<MgmtEvent> event = MgmtEvent::getSpecialized(rbuffer.get_ptr(), len2);
@@ -411,7 +411,7 @@ next1:
         const uint16_t num_adapter = jau::get_uint16(data, 0, true /* littleEndian */);
         WORDY_PRINT("Bluetooth %d adapter", num_adapter);
 
-        const size_t expDataSize = 2 + num_adapter * 2;
+        const jau::nsize_t expDataSize = 2 + num_adapter * 2;
         if( res->getDataSize() < expDataSize ) {
             ERR_PRINT("Insufficient data for %d adapter indices: res %s", num_adapter, res->toString().c_str());
             goto fail;

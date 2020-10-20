@@ -230,7 +230,7 @@ std::string MgmtEvent::getOpcodeString(const Opcode opc) noexcept {
     return "Unknown Opcode";
 }
 
-std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, size_t const buffer_size) noexcept {
+std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
     const MgmtEvent::Opcode opc = static_cast<MgmtEvent::Opcode>( jau::get_uint16(buffer, 0, true /* littleEndian */) );
     MgmtEvent * res;
     switch( opc ) {
@@ -287,7 +287,7 @@ std::shared_ptr<ConnectionInfo> MgmtEvtCmdComplete::toConnectionInfo() const noe
         ERR_PRINT("No Success: %s", toString().c_str());
         return nullptr;
     }
-    const size_t min_size = ConnectionInfo::minimumDataSize();
+    const jau::nsize_t min_size = ConnectionInfo::minimumDataSize();
     if( getDataSize() <  min_size ) {
         ERR_PRINT("Data size < %d: %s", min_size, toString().c_str());
         return nullptr;
@@ -311,7 +311,7 @@ std::shared_ptr<NameAndShortName> MgmtEvtCmdComplete::toNameAndShortName() const
         ERR_PRINT("No Success: %s", toString().c_str());
         return nullptr;
     }
-    const size_t min_size = MgmtEvtLocalNameChanged::namesDataSize();
+    const jau::nsize_t min_size = MgmtEvtLocalNameChanged::namesDataSize();
     if( getDataSize() <  min_size ) {
         ERR_PRINT("Data size < %d: %s", min_size, toString().c_str());
         return nullptr;

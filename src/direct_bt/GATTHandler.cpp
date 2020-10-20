@@ -198,7 +198,7 @@ void GATTHandler::l2capReaderThreadImpl() {
     }
 
     while( !l2capReaderShallStop ) {
-        ssize_t len;
+        jau::snsize_t len;
         if( !validateConnected() ) {
             ERR_PRINT("GATTHandler::reader: Invalid IO state -> Stop");
             l2capReaderShallStop = true;
@@ -207,7 +207,7 @@ void GATTHandler::l2capReaderThreadImpl() {
 
         len = l2cap.read(rbuffer.get_wptr(), rbuffer.getSize());
         if( 0 < len ) {
-            std::shared_ptr<const AttPDUMsg> attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), static_cast<size_t>(len));
+            std::shared_ptr<const AttPDUMsg> attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), static_cast<jau::nsize_t>(len));
             const AttPDUMsg::Opcode opc = attPDU->getOpcode();
 
             if( AttPDUMsg::Opcode::ATT_HANDLE_VALUE_NTF == opc ) {
@@ -262,7 +262,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 attPDURing.putBlocking( attPDU );
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
-            IRQ_PRINT("GATTHandler::reader: l2cap read error -> Stop; l2cap.read %zd", len);
+            IRQ_PRINT("GATTHandler::reader: l2cap read error -> Stop; l2cap.read %d", len);
             l2capReaderShallStop = true;
             has_ioerror = true;
         }
