@@ -16,6 +16,7 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CC_FLAGS_WARNING "-Wall -Wextra -Werror")
 set (GCC_FLAGS_WARNING_FORMAT "-Wformat=2 -Wformat-overflow=2 -Wformat-nonliteral -Wformat-security -Wformat-signedness -Wformat-y2k")
 set (GCC_FLAGS_WARNING "-Wall -Wextra -Wshadow -Wtype-limits -Wsign-compare -Wcast-align=strict -Wnull-dereference -Winit-self ${GCC_FLAGS_WARNING_FORMAT} -Werror")
+set (GCC_FLAGS_WARNING_NO_ERROR "-Wno-error=array-bounds")
 
 # too pedantic, but nice to check once in a while
 # set (DISABLED_CC_FLAGS_WARNING "-Wsign-conversion")
@@ -30,7 +31,7 @@ set (GCC_FLAGS_SANITIZE "-fsanitize-address-use-after-scope -fsanitize=address -
 
 if(CMAKE_COMPILER_IS_GNUCC)
     # shorten __FILE__ string and the like ..
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS_WARNING} -fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=/")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS_WARNING} ${GCC_FLAGS_WARNING_NO_ERROR} -fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=/")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CC_FLAGS_WARNING}")
 endif(CMAKE_COMPILER_IS_GNUCC)
