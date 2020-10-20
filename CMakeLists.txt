@@ -15,7 +15,10 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 # for all
 set (CC_FLAGS_WARNING "-Wall -Wextra -Werror")
 set (GCC_FLAGS_WARNING_FORMAT "-Wformat=2 -Wformat-overflow=2 -Wformat-nonliteral -Wformat-security -Wformat-signedness -Wformat-y2k")
-set (GCC_FLAGS_WARNING "-Wall -Wextra -Wcast-align=strict -Wnull-dereference -Winit-self ${GCC_FLAGS_WARNING_FORMAT} -Werror")
+set (GCC_FLAGS_WARNING "-Wall -Wextra -Wshadow -Wtype-limits -Wsign-compare -Wcast-align=strict -Wnull-dereference -Winit-self ${GCC_FLAGS_WARNING_FORMAT} -Werror")
+
+# too pedantic, but nice to check once in a while
+# set (DISABLED_CC_FLAGS_WARNING "-Wsign-conversion")
 
 # debug only
 set (GCC_FLAGS_STACK "-fstack-protector-strong -fstack-check")
