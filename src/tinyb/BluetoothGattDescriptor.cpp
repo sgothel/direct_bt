@@ -73,19 +73,19 @@ BluetoothType BluetoothGattDescriptor::get_bluetooth_type() const
     return BluetoothType::GATT_DESCRIPTOR;
 }
 
-BluetoothGattDescriptor::BluetoothGattDescriptor(GattDescriptor1 *object)
+BluetoothGattDescriptor::BluetoothGattDescriptor(GattDescriptor1 *object_)
 {
-    this->object = object;
-    g_object_ref(object);
+    this->object = object_;
+    g_object_ref(object_);
 
-    g_signal_connect(G_DBUS_PROXY(object), "g-properties-changed",
+    g_signal_connect(G_DBUS_PROXY(object_), "g-properties-changed",
         G_CALLBACK(BluetoothNotificationHandler::on_properties_changed_descriptor), this);
     valid = true;
 }
 
-BluetoothGattDescriptor::BluetoothGattDescriptor(const BluetoothGattDescriptor &object)
+BluetoothGattDescriptor::BluetoothGattDescriptor(const BluetoothGattDescriptor &object_)
 {
-    BluetoothGattDescriptor(object.object);
+    BluetoothGattDescriptor(object_.object);
 }
 
 BluetoothGattDescriptor::~BluetoothGattDescriptor()

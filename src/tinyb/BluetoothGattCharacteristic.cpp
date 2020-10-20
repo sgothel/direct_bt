@@ -74,18 +74,18 @@ BluetoothType BluetoothGattCharacteristic::get_bluetooth_type() const
     return BluetoothType::GATT_CHARACTERISTIC;
 }
 
-BluetoothGattCharacteristic::BluetoothGattCharacteristic(GattCharacteristic1 *object)
+BluetoothGattCharacteristic::BluetoothGattCharacteristic(GattCharacteristic1 *object_)
 {
-    this->object = object;
-    g_object_ref(object);
+    this->object = object_;
+    g_object_ref(object_);
 
-    g_signal_connect(G_DBUS_PROXY(object), "g-properties-changed",
+    g_signal_connect(G_DBUS_PROXY(object_), "g-properties-changed",
         G_CALLBACK(BluetoothNotificationHandler::on_properties_changed_characteristic), this);
 }
 
-BluetoothGattCharacteristic::BluetoothGattCharacteristic(const BluetoothGattCharacteristic &object)
+BluetoothGattCharacteristic::BluetoothGattCharacteristic(const BluetoothGattCharacteristic &object_)
 {
-    BluetoothGattCharacteristic(object.object);
+    BluetoothGattCharacteristic(object_.object);
 
 }
 
@@ -310,9 +310,9 @@ std::vector<std::unique_ptr<BluetoothGattDescriptor>> BluetoothGattCharacteristi
     GList *l, *objects = g_dbus_object_manager_get_objects(gdbus_manager);
 
     for (l = objects; l != NULL; l = l->next) {
-        Object *object = OBJECT(l->data);
+        Object *object2 = OBJECT(l->data);
 
-        auto p = BluetoothGattDescriptor::make(object,
+        auto p = BluetoothGattDescriptor::make(object2,
             BluetoothType::GATT_DESCRIPTOR, NULL, NULL, this);
         if (p != nullptr)
             vector.push_back(std::move(p));

@@ -87,22 +87,22 @@ void BluetoothNotificationHandler::on_properties_changed_device(GDBusProxy *prox
             if (mfg_callback != nullptr && g_ascii_strncasecmp(key, "manufacturerdata", 16) == 0) {
                 std::map<uint16_t, std::vector<uint8_t>> new_value;
 
-                GVariantIter *iter;
-                g_variant_get (value, "a{qv}", &iter);
+                GVariantIter *iter_;
+                g_variant_get (value, "a{qv}", &iter_);
 
                 GVariant *array;
-                uint16_t key;
+                uint16_t key_;
                 uint8_t val;
 
-                while (g_variant_iter_loop(iter, "{qv}", &key, &array)) {
+                while (g_variant_iter_loop(iter_, "{qv}", &key_, &array)) {
                     GVariantIter it_array;
                     g_variant_iter_init(&it_array, array);
                     while(g_variant_iter_loop(&it_array, "y", &val)) {
-                        new_value[key].push_back(val);
+                        new_value[key_].push_back(val);
                     }
                 }
 
-                g_variant_iter_free(iter);
+                g_variant_iter_free(iter_);
                 mfg_callback(new_value);
                 continue;
             }
@@ -110,22 +110,22 @@ void BluetoothNotificationHandler::on_properties_changed_device(GDBusProxy *prox
             if (service_callback != nullptr && g_ascii_strncasecmp(key, "servicedata", 11) == 0) {
                 std::map<std::string, std::vector<uint8_t>> new_value;
 
-                GVariantIter *iter;
-                g_variant_get (value, "a{sv}", &iter);
+                GVariantIter *iter_;
+                g_variant_get (value, "a{sv}", &iter_);
 
                 GVariant *array;
-                const char* key;
+                const char* key_;
                 uint8_t val;
 
-                while (g_variant_iter_loop(iter, "{sv}", &key, &array)) {
+                while (g_variant_iter_loop(iter_, "{sv}", &key_, &array)) {
                     GVariantIter it_array;
                     g_variant_iter_init(&it_array, array);
                     while(g_variant_iter_loop(&it_array, "y", &val)) {
-                        new_value[key].push_back(val);
+                        new_value[key_].push_back(val);
                     }
                 }
 
-                g_variant_iter_free(iter);
+                g_variant_iter_free(iter_);
                 service_callback(new_value);
                 continue;
             }
@@ -163,19 +163,19 @@ BluetoothType BluetoothDevice::get_bluetooth_type() const
     return BluetoothType::DEVICE;
 }
 
-BluetoothDevice::BluetoothDevice(Device1 *object)
+BluetoothDevice::BluetoothDevice(Device1 *object_)
 {
-    this->object = object;
-    g_object_ref(object);
+    this->object = object_;
+    g_object_ref(object_);
 
-    g_signal_connect(G_DBUS_PROXY(object), "g-properties-changed",
+    g_signal_connect(G_DBUS_PROXY(object_), "g-properties-changed",
         G_CALLBACK(BluetoothNotificationHandler::on_properties_changed_device), this);
     valid = true;
 }
 
-BluetoothDevice::BluetoothDevice(const BluetoothDevice &object)
+BluetoothDevice::BluetoothDevice(const BluetoothDevice &object_)
 {
-    BluetoothDevice(object.object);
+    BluetoothDevice(object_.object);
 }
 
 BluetoothDevice::~BluetoothDevice()
@@ -218,9 +218,9 @@ std::vector<std::unique_ptr<BluetoothGattService>> BluetoothDevice::get_services
     GList *l, *objects = g_dbus_object_manager_get_objects(gdbus_manager);
 
     for (l = objects; l != NULL; l = l->next) {
-        Object *object = OBJECT(l->data);
+        Object *object2 = OBJECT(l->data);
 
-        auto p = BluetoothGattService::make(object,
+        auto p = BluetoothGattService::make(object2,
             BluetoothType::GATT_SERVICE, NULL, NULL, this);
         if (p != nullptr)
             vector.push_back(std::move(p));

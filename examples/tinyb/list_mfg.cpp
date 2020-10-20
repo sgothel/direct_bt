@@ -96,9 +96,9 @@ int main(int argc, char **argv)
 
             if (!mfg.empty()) {
                 std::cout << "MFG" << std::endl;
-                for(auto it: mfg) {
-                    std::cout << "\t" << it.first << " = [ ";
-                    for (auto arr_it: it.second) {
+                for(auto it2: mfg) {
+                    std::cout << "\t" << it2.first << " = [ ";
+                    for (auto arr_it: it2.second) {
                         std::cout << (int) arr_it << ", ";
                     }
                     std::cout << "]" << std::endl;
@@ -109,9 +109,9 @@ int main(int argc, char **argv)
 
             if (!service_data.empty()) {
                 std::cout << "Service Data" << std::endl;
-                for(auto it: service_data) {
-                    std::cout << "\t" << it.first << " = [ ";
-                    for (auto arr_it: it.second) {
+                for(auto it2: service_data) {
+                    std::cout << "\t" << it2.first << " = [ ";
+                    for (auto arr_it: it2.second) {
                         std::cout << (int) arr_it << ", ";
                     }
                     std::cout << "]" << std::endl;

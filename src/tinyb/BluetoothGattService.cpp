@@ -51,15 +51,15 @@ BluetoothType BluetoothGattService::get_bluetooth_type() const
     return BluetoothType::GATT_SERVICE;
 }
 
-BluetoothGattService::BluetoothGattService(GattService1 *object)
+BluetoothGattService::BluetoothGattService(GattService1 *object_)
 {
-    this->object = object;
-    g_object_ref(object);
+    this->object = object_;
+    g_object_ref(object_);
 }
 
-BluetoothGattService::BluetoothGattService(const BluetoothGattService &object)
+BluetoothGattService::BluetoothGattService(const BluetoothGattService &object_)
 {
-    BluetoothGattService(object.object);
+    BluetoothGattService(object_.object);
 }
 
 BluetoothGattService::~BluetoothGattService()
@@ -134,9 +134,9 @@ std::vector<std::unique_ptr<BluetoothGattCharacteristic>> BluetoothGattService::
     GList *l, *objects = g_dbus_object_manager_get_objects(gdbus_manager);
 
     for (l = objects; l != NULL; l = l->next) {
-        Object *object = OBJECT(l->data);
+        Object *object2 = OBJECT(l->data);
 
-        auto p = BluetoothGattCharacteristic::make(object,
+        auto p = BluetoothGattCharacteristic::make(object2,
             BluetoothType::GATT_CHARACTERISTIC, NULL, NULL, this);
         if (p != nullptr)
             vector.push_back(std::move(p));

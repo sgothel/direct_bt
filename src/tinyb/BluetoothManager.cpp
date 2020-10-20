@@ -248,18 +248,18 @@ void BluetoothManager::handle_event(BluetoothType type, std::string *name,
 static gpointer init_manager_thread(void *data)
 {
     GMainLoop *loop;
-    GDBusObjectManager *gdbus_manager = (GDBusObjectManager *) data;
+    GDBusObjectManager *_gdbus_manager = (GDBusObjectManager *) data;
 
     g_main_context_push_thread_default(manager_context);
 
     loop = g_main_loop_new(manager_context, FALSE);
 
-    g_signal_connect(gdbus_manager,
+    g_signal_connect(_gdbus_manager,
         "interface-added",
          G_CALLBACK(BluetoothEventManager::on_interface_added),
          NULL);
 
-    g_signal_connect(gdbus_manager,
+    g_signal_connect(_gdbus_manager,
         "object-added",
          G_CALLBACK(BluetoothEventManager::on_object_added),
          NULL);

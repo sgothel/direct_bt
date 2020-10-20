@@ -103,19 +103,19 @@ BluetoothType BluetoothAdapter::get_bluetooth_type() const
     return BluetoothType::ADAPTER;
 }
 
-BluetoothAdapter::BluetoothAdapter(Adapter1 *object)
+BluetoothAdapter::BluetoothAdapter(Adapter1 *object_)
 {
-    this->object = object;
-    g_object_ref(object);
+    this->object = object_;
+    g_object_ref(object_);
 
-    g_signal_connect(G_DBUS_PROXY(object), "g-properties-changed",
+    g_signal_connect(G_DBUS_PROXY(object_), "g-properties-changed",
         G_CALLBACK(BluetoothNotificationHandler::on_properties_changed_adapter), this);
     valid = true;
 }
 
-BluetoothAdapter::BluetoothAdapter(const BluetoothAdapter &object)
+BluetoothAdapter::BluetoothAdapter(const BluetoothAdapter &object_)
 {
-    BluetoothAdapter(object.object);
+    BluetoothAdapter(object_.object);
 }
 
 BluetoothAdapter *BluetoothAdapter::clone() const
@@ -158,9 +158,9 @@ std::vector<std::unique_ptr<BluetoothDevice>> BluetoothAdapter::get_devices()
     GList *l, *objects = g_dbus_object_manager_get_objects(gdbus_manager);
 
     for (l = objects; l != NULL; l = l->next) {
-        Object *object = OBJECT(l->data);
+        Object *object2 = OBJECT(l->data);
 
-        auto p = BluetoothDevice::make(object,
+        auto p = BluetoothDevice::make(object2,
             BluetoothType::DEVICE, NULL, NULL, this);
         if (p != nullptr)
             vector.push_back(std::move(p));
