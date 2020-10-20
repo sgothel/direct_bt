@@ -55,8 +55,8 @@ public:
     enum class TypeSize : int {
         UUID16_SZ=2, UUID32_SZ=4, UUID128_SZ=16
     };
-    static constexpr int number(const TypeSize rhs) noexcept {
-        return static_cast<int>(rhs);
+    static constexpr size_t number(const TypeSize rhs) noexcept {
+        return static_cast<size_t>(rhs);
     }
 
 private:
@@ -86,7 +86,7 @@ public:
     { return !(*this == o); }
 
     TypeSize getTypeSize() const noexcept { return type; }
-    int getTypeSizeInt() const noexcept { return uuid_t::number(type); }
+    size_t getTypeSizeInt() const noexcept { return uuid_t::number(type); }
 
     uuid128_t toUUID128(uuid128_t const & base_uuid=BT_BASE_UUID, int const uuid32_le_octet_index=12) const noexcept;
     /** returns the pointer to the uuid data of size getTypeSize() */

@@ -165,10 +165,10 @@ namespace direct_bt {
             std::recursive_mutex & mutex_write() { return mtx_write; }
 
             /** Generic read, w/o locking suitable for a unique ringbuffer sink. Using L2CAPEnv::L2CAP_READER_POLL_TIMEOUT.*/
-            int read(uint8_t* buffer, const int capacity);
+            ssize_t read(uint8_t* buffer, const size_t capacity);
 
             /** Generic write, locking {@link #mutex_write()}. */
-            int write(const uint8_t *buffer, const int length);
+            ssize_t write(const uint8_t *buffer, const size_t length);
     };
 
 } // namespace direct_bt

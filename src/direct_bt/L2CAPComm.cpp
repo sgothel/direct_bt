@@ -215,14 +215,14 @@ bool L2CAPComm::disconnect() noexcept {
     return true;
 }
 
-int L2CAPComm::read(uint8_t* buffer, const int capacity) {
+ssize_t L2CAPComm::read(uint8_t* buffer, const size_t capacity) {
     const int32_t timeoutMS = env.L2CAP_READER_POLL_TIMEOUT;
-    int len = 0;
-    int err_res = 0;
+    ssize_t len = 0;
+    ssize_t err_res = 0;
 
     tid_read = pthread_self(); // temporary safe tid to allow interruption
 
-    if( 0 > socket_descriptor || 0 > capacity ) {
+    if( 0 > socket_descriptor ) {
         err_res = -1; // invalid socket_descriptor or capacity
         goto errout;
     }
@@ -280,12 +280,12 @@ errout:
     return err_res;
 }
 
-int L2CAPComm::write(const uint8_t * buffer, const int length) {
+ssize_t L2CAPComm::write(const uint8_t * buffer, const size_t length) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
-    int len = 0;
-    int err_res = 0;
+    ssize_t len = 0;
+    ssize_t err_res = 0;
 
-    if( 0 > socket_descriptor || 0 > length ) {
+    if( 0 > socket_descriptor ) {
         err_res = -1; // invalid socket_descriptor or capacity
         goto errout;
     }

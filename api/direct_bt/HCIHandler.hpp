@@ -182,8 +182,8 @@ namespace direct_bt {
      */
     class HCIHandler {
         public:
-            enum Defaults : int32_t {
-                HCI_MAX_MTU = static_cast<uint8_t>(HCIConstU8::PACKET_MAX_SIZE)
+            enum DefaultsSizeT : size_t {
+                HCI_MAX_MTU = static_cast<size_t>(HCIConstSizeT::PACKET_MAX_SIZE)
             };
 
             static const pid_t pidSelf;

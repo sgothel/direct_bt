@@ -60,12 +60,12 @@ namespace direct_bt {
     {
         private:
             /** Used memory size <= capacity, maybe zero. */
-            int _size;
+            size_t _size;
             /** Non-null memory pointer. Actual capacity known by owner. */
             uint8_t * _data;
 
         protected:
-            static inline void checkPtr(uint8_t *d, int s) {
+            static inline void checkPtr(uint8_t *d, size_t s) {
                 if( nullptr == d && 0 < s ) {
                     throw jau::IllegalArgumentException("TROOctets::setData: nullptr with size "+std::to_string(s)+" > 0", E_FILE_LINE);
                 }
@@ -77,14 +77,14 @@ namespace direct_bt {
              * @param d a non nullptr memory, otherwise throws exception
              * @param s used memory size, may be zero
              */
-            inline void setData(uint8_t *d, int s) {
+            inline void setData(uint8_t *d, size_t s) {
                 TRACE_PRINT("POctets setData: %d bytes @ %p -> %d bytes @ %p",
                         _size, _data, s, d);
                 checkPtr(d, s);
                 _size = s;
                 _data = d;
             }
-            inline void setSize(int s) noexcept { _size = s; }
+            inline void setSize(size_t s) noexcept { _size = s; }
 
         public:
             /**
@@ -92,7 +92,7 @@ namespace direct_bt {
              * @param source a non nullptr memory, otherwise throws exception. Actual capacity known by owner.
              * @param len readable size of the memory, may be zero
              */
-            TROOctets(const uint8_t *source, const int len)
+            TROOctets(const uint8_t *source, const size_t len)
             : _size( len ), _data( const_cast<uint8_t *>(source) ) {
                 checkPtr(_data, _size);
             }
@@ -104,102 +104,102 @@ namespace direct_bt {
 
             virtual ~TROOctets() noexcept {}
 
-            inline void check_range(const int i, const int count, const char *file, int line) const {
-                if( 0 > i || i+count > _size ) {
+            inline void check_range(const size_t i, const size_t count, const char *file, int line) const {
+                if( i+count > _size ) {
                     throw jau::IndexOutOfBoundsException(i, count, _size, file, line);
                 }
             }
             #define check_range(I,C) check_range((I), (C), E_FILE_LINE)
 
-            inline bool is_range_valid(const int i, const int count) const noexcept {
-                return 0 <= i && i+count <= _size;
+            inline bool is_range_valid(const size_t i, const size_t count) const noexcept {
+                return i+count <= _size;
             }
 
             /** Returns the used memory size for read and write operations, may be zero. */
-            inline int getSize() const noexcept { return _size; }
+            inline size_t getSize() const noexcept { return _size; }
 
-            uint8_t get_uint8(const int i) const {
+            uint8_t get_uint8(const size_t i) const {
                 check_range(i, 1);
                 return _data[i];
             }
-            inline uint8_t get_uint8_nc(const int i) const noexcept {
+            inline uint8_t get_uint8_nc(const size_t i) const noexcept {
                 return _data[i];
             }
 
-            int8_t get_int8(const int i) const {
+            int8_t get_int8(const size_t i) const {
                 check_range(i, 1);
                 return jau::get_int8(_data, i);
             }
-            inline int8_t get_int8_nc(const int i) const noexcept {
+            inline int8_t get_int8_nc(const size_t i) const noexcept {
                 return jau::get_int8(_data, i);
             }
 
-            uint16_t get_uint16(const int i) const {
+            uint16_t get_uint16(const size_t i) const {
                 check_range(i, 2);
                 return jau::get_uint16(_data, i, true /* littleEndian */);
             }
-            inline uint16_t get_uint16_nc(const int i) const noexcept {
+            inline uint16_t get_uint16_nc(const size_t i) const noexcept {
                 return jau::get_uint16(_data, i, true /* littleEndian */);
             }
 
-            uint32_t get_uint32(const int i) const {
+            uint32_t get_uint32(const size_t i) const {
                 check_range(i, 4);
                 return jau::get_uint32(_data, i, true /* littleEndian */);
             }
-            inline uint32_t get_uint32_nc(const int i) const noexcept {
+            inline uint32_t get_uint32_nc(const size_t i) const noexcept {
                 return jau::get_uint32(_data, i, true /* littleEndian */);
             }
 
-            EUI48 get_eui48(const int i) const {
+            EUI48 get_eui48(const size_t i) const {
                 check_range(i, sizeof(EUI48));
                 return EUI48(_data+i);
             }
-            inline EUI48 get_eui48_nc(const int i) const noexcept {
+            inline EUI48 get_eui48_nc(const size_t i) const noexcept {
                 return EUI48(_data+i);
             }
 
             /** Assumes a null terminated string */
-            std::string get_string(const int i) const {
+            std::string get_string(const size_t i) const {
                 check_range(i, 1); // minimum size
                 return std::string( (const char*)(_data+i) );
             }
             /** Assumes a null terminated string */
-            inline std::string get_string_nc(const int i) const noexcept {
+            inline std::string get_string_nc(const size_t i) const noexcept {
                 return std::string( (const char*)(_data+i) );
             }
 
             /** Assumes a string with defined length, not necessarily null terminated */
-            std::string get_string(const int i, const int length) const {
+            std::string get_string(const size_t i, const size_t length) const {
                 check_range(i, length);
                 return std::string( (const char*)(_data+i), length );
             }
 
-            uuid16_t get_uuid16(const int i) const {
+            uuid16_t get_uuid16(const size_t i) const {
                 return uuid16_t(get_uint16(i));
             }
-            inline uuid16_t get_uuid16_nc(const int i) const noexcept {
+            inline uuid16_t get_uuid16_nc(const size_t i) const noexcept {
                 return uuid16_t(get_uint16_nc(i));
             }
 
-            uuid128_t get_uuid128(const int i) const {
+            uuid128_t get_uuid128(const size_t i) const {
                 check_range(i, uuid_t::number(uuid_t::TypeSize::UUID128_SZ));
                 return uuid128_t(jau::get_uint128(_data, i, true /* littleEndian */));
             }
-            inline uuid128_t get_uuid128_nc(const int i) const noexcept {
+            inline uuid128_t get_uuid128_nc(const size_t i) const noexcept {
                 return uuid128_t(jau::get_uint128(_data, i, true /* littleEndian */));
             }
 
-            std::shared_ptr<const uuid_t> get_uuid(const int i, const uuid_t::TypeSize tsize) const {
+            std::shared_ptr<const uuid_t> get_uuid(const size_t i, const uuid_t::TypeSize tsize) const {
                 check_range(i, uuid_t::number(tsize));
                 return uuid_t::create(tsize, _data, i, true /* littleEndian */);
             }
 
             inline uint8_t const * get_ptr() const noexcept { return _data; }
-            uint8_t const * get_ptr(const int i) const {
+            uint8_t const * get_ptr(const size_t i) const {
                 check_range(i, 1);
                 return _data + i;
             }
-            inline uint8_t const * get_ptr_nc(const int i) const noexcept {
+            inline uint8_t const * get_ptr_nc(const size_t i) const noexcept {
                 return _data + i;
             }
 
@@ -225,7 +225,7 @@ namespace direct_bt {
     {
         public:
             /** Transient passthrough r/w memory, w/o ownership ..*/
-            TOctets(uint8_t *source, const int len)
+            TOctets(uint8_t *source, const size_t len)
             : TROOctets(source, len) {}
 
             TOctets(const TOctets &o) noexcept = default;
@@ -235,78 +235,86 @@ namespace direct_bt {
 
             virtual ~TOctets() noexcept override {}
 
-            void put_uint8(const int i, const uint8_t v) {
+            void put_int8(const size_t i, const int8_t v) {
                 check_range(i, 1);
-                data()[i] = v;;
+                data()[i] = static_cast<uint8_t>(v);
             }
-            void put_uint8_nc(const int i, const uint8_t v) noexcept {
-                data()[i] = v;;
+            void put_int8_nc(const size_t i, const int8_t v) noexcept {
+                data()[i] = static_cast<uint8_t>(v);
             }
 
-            void put_uint16(const int i, const uint16_t v) {
+            void put_uint8(const size_t i, const uint8_t v) {
+                check_range(i, 1);
+                data()[i] = v;
+            }
+            void put_uint8_nc(const size_t i, const uint8_t v) noexcept {
+                data()[i] = v;
+            }
+
+            void put_uint16(const size_t i, const uint16_t v) {
                 check_range(i, 2);
                 jau::put_uint16(data(), i, v, true /* littleEndian */);
             }
-            void put_uint16_nc(const int i, const uint16_t v) noexcept {
+            void put_uint16_nc(const size_t i, const uint16_t v) noexcept {
                 jau::put_uint16(data(), i, v, true /* littleEndian */);
             }
 
-            void put_uint32(const int i, const uint32_t v) {
+            void put_uint32(const size_t i, const uint32_t v) {
                 check_range(i, 4);
                 jau::put_uint32(data(), i, v, true /* littleEndian */);
             }
-            void put_uint32_nc(const int i, const uint32_t v) noexcept {
+            void put_uint32_nc(const size_t i, const uint32_t v) noexcept {
                 jau::put_uint32(data(), i, v, true /* littleEndian */);
             }
 
-            void put_eui48(const int i, const EUI48 & v) {
+            void put_eui48(const size_t i, const EUI48 & v) {
                 check_range(i, sizeof(v.b));
                 memcpy(data() + i, v.b, sizeof(v.b));
             }
-            void put_eui48_nc(const int i, const EUI48 & v) noexcept {
+            void put_eui48_nc(const size_t i, const EUI48 & v) noexcept {
                 memcpy(data() + i, v.b, sizeof(v.b));
             }
 
-            void put_octets(const int i, const TROOctets & v) {
+            void put_octets(const size_t i, const TROOctets & v) {
                 check_range(i, v.getSize());
                 memcpy(data() + i, v.get_ptr(), v.getSize());
             }
-            void put_octets_nc(const int i, const TROOctets & v) noexcept {
+            void put_octets_nc(const size_t i, const TROOctets & v) noexcept {
                 memcpy(data() + i, v.get_ptr(), v.getSize());
             }
 
-            void put_string(const int i, const std::string & v, const int max_len, const bool includeEOS) {
-                const int size1 = v.size() + ( includeEOS ? 1 : 0 );
-                const int size = std::min(size1, max_len);
+            void put_string(const size_t i, const std::string & v, const size_t max_len, const bool includeEOS) {
+                const size_t size1 = v.size() + ( includeEOS ? 1 : 0 );
+                const size_t size = std::min(size1, max_len);
                 check_range(i, size);
                 memcpy(data() + i, v.c_str(), size);
                 if( size < size1 && includeEOS ) {
                     *(data() + i + size - 1) = 0; // ensure EOS
                 }
             }
-            void put_string_nc(const int i, const std::string & v, const int max_len, const bool includeEOS) noexcept {
-                const int size1 = v.size() + ( includeEOS ? 1 : 0 );
-                const int size = std::min(size1, max_len);
+            void put_string_nc(const size_t i, const std::string & v, const size_t max_len, const bool includeEOS) noexcept {
+                const size_t size1 = v.size() + ( includeEOS ? 1 : 0 );
+                const size_t size = std::min(size1, max_len);
                 memcpy(data() + i, v.c_str(), size);
                 if( size < size1 && includeEOS ) {
                     *(data() + i + size - 1) = 0; // ensure EOS
                 }
             }
 
-            void put_uuid(const int i, const uuid_t & v) {
+            void put_uuid(const size_t i, const uuid_t & v) {
                 check_range(i, v.getTypeSizeInt());
                 direct_bt::put_uuid(data(), i, v, true /* littleEndian */);
             }
-            void put_uuid_nc(const int i, const uuid_t & v) noexcept {
+            void put_uuid_nc(const size_t i, const uuid_t & v) noexcept {
                 direct_bt::put_uuid(data(), i, v, true /* littleEndian */);
             }
 
             inline uint8_t * get_wptr() noexcept { return data(); }
-            uint8_t * get_wptr(const int i) {
+            uint8_t * get_wptr(const size_t i) {
                 check_range(i, 1);
                 return data() + i;
             }
-            uint8_t * get_wptr_nc(const int i) noexcept {
+            uint8_t * get_wptr_nc(const size_t i) noexcept {
                 return data() + i;
             }
 
@@ -319,40 +327,40 @@ namespace direct_bt {
     {
         private:
             const TOctets & parent;
-            int const offset;
-            int const size;
+            size_t const offset;
+            size_t const size;
 
         public:
-            TOctetSlice(const TOctets &buffer, const int offset, const int len)
-            : parent(buffer), offset(offset), size(len)
+            TOctetSlice(const TOctets &buffer_, const size_t offset_, const size_t size_)
+            : parent(buffer_), offset(offset_), size(size_)
             {
-                if( offset+size > buffer.getSize() ) {
-                    throw jau::IndexOutOfBoundsException(offset, size, buffer.getSize(), E_FILE_LINE);
+                if( offset_+size > buffer_.getSize() ) {
+                    throw jau::IndexOutOfBoundsException(offset_, size, buffer_.getSize(), E_FILE_LINE);
                 }
             }
 
-            int getSize() const noexcept { return size; }
-            int getOffset() const noexcept { return offset; }
+            size_t getSize() const noexcept { return size; }
+            size_t getOffset() const noexcept { return offset; }
             const TOctets& getParent() const noexcept { return parent; }
 
-            uint8_t get_uint8(const int i) const {
+            uint8_t get_uint8(const size_t i) const {
                 return parent.get_uint8(offset+i);
             }
-            inline uint8_t get_uint8_nc(const int i) const noexcept {
+            inline uint8_t get_uint8_nc(const size_t i) const noexcept {
                 return parent.get_uint8_nc(offset+i);
             }
 
-            uint16_t get_uint16(const int i) const {
+            uint16_t get_uint16(const size_t i) const {
                 return parent.get_uint16(offset+i);
             }
-            inline uint16_t get_uint16_nc(const int i) const noexcept {
+            inline uint16_t get_uint16_nc(const size_t i) const noexcept {
                 return parent.get_uint16_nc(offset+i);
             }
 
-            uint8_t const * get_ptr(const int i) const {
+            uint8_t const * get_ptr(const size_t i) const {
                 return parent.get_ptr(offset+i);
             }
-            inline uint8_t const * get_ptr_nc(const int i) const noexcept {
+            inline uint8_t const * get_ptr_nc(const size_t i) const noexcept {
                 return parent.get_ptr_nc(offset+i);
             }
 
@@ -370,7 +378,7 @@ namespace direct_bt {
     class POctets : public TOctets
     {
         private:
-            int capacity;
+            size_t capacity;
 
             void freeData() {
                 uint8_t * ptr = data();
@@ -380,7 +388,7 @@ namespace direct_bt {
                 } // else: zero sized POctets w/ nullptr are supported
             }
 
-            static uint8_t * allocData(const int size) {
+            static uint8_t * allocData(const size_t size) {
                 if( size <= 0 ) {
                     return nullptr;
                 }
@@ -393,7 +401,7 @@ namespace direct_bt {
 
         public:
             /** Returns the memory capacity, never zero, greater or equal {@link #getSize()}. */
-            inline int getCapacity() const noexcept { return capacity; }
+            inline size_t getCapacity() const noexcept { return capacity; }
 
             /** Intentional zero sized POctets instance. */
             POctets()
@@ -403,17 +411,17 @@ namespace direct_bt {
             }
 
             /** Takes ownership (malloc and copy, free) ..*/
-            POctets(const uint8_t *_source, const int _size)
-            : TOctets( allocData(_size), _size),
-              capacity( _size )
+            POctets(const uint8_t *_source, const size_t size_)
+            : TOctets( allocData(size_), size_),
+              capacity( size_ )
             {
-                std::memcpy(data(), _source, _size);
+                std::memcpy(data(), _source, size_);
                 TRACE_PRINT("POctets ctor1: %p", data());
             }
 
             /** New buffer (malloc, free) */
-            POctets(const int _capacity, const int _size)
-            : TOctets( allocData(_capacity), _size),
+            POctets(const size_t _capacity, const size_t size_)
+            : TOctets( allocData(_capacity), size_),
               capacity( _capacity )
             {
                 if( capacity < getSize() ) {
@@ -423,7 +431,7 @@ namespace direct_bt {
             }
 
             /** New buffer (malloc, free) */
-            POctets(const int size)
+            POctets(const size_t size)
             : POctets(size, size)
             {
                 TRACE_PRINT("POctets ctor3: %p", data());
@@ -516,7 +524,7 @@ namespace direct_bt {
                 return *this;
             }
 
-            POctets & resize(const int newSize, const int newCapacity) {
+            POctets & resize(const size_t newSize, const size_t newCapacity) {
                 if( newCapacity < newSize ) {
                     throw jau::IllegalArgumentException("newCapacity "+std::to_string(newCapacity)+" < newSize "+std::to_string(newSize), E_FILE_LINE);
                 }
@@ -534,7 +542,7 @@ namespace direct_bt {
                 return *this;
             }
 
-            POctets & resize(const int newSize) {
+            POctets & resize(const size_t newSize) {
                 if( capacity < newSize ) {
                     throw jau::IllegalArgumentException("capacity "+std::to_string(capacity)+" < newSize "+std::to_string(newSize), E_FILE_LINE);
                 }
@@ -542,7 +550,7 @@ namespace direct_bt {
                 return *this;
             }
 
-            POctets & recapacity(const int newCapacity) {
+            POctets & recapacity(const size_t newCapacity) {
                 if( newCapacity < getSize() ) {
                     throw jau::IllegalArgumentException("newCapacity "+std::to_string(newCapacity)+" < size "+std::to_string(getSize()), E_FILE_LINE);
                 }
@@ -562,7 +570,7 @@ namespace direct_bt {
 
             POctets & operator+=(const TROOctets &b) {
                 if( 0 < b.getSize() ) {
-                    const int newSize = getSize() + b.getSize();
+                    const size_t newSize = getSize() + b.getSize();
                     if( capacity < newSize ) {
                         recapacity( newSize );
                     }
@@ -573,7 +581,7 @@ namespace direct_bt {
             }
             POctets & operator+=(const TOctetSlice &b) {
                 if( 0 < b.getSize() ) {
-                    const int newSize = getSize() + b.getSize();
+                    const size_t newSize = getSize() + b.getSize();
                     if( capacity < newSize ) {
                         recapacity( newSize );
                     }

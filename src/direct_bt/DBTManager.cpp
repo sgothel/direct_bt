@@ -89,7 +89,7 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
     }
 
     while( !mgmtReaderShallStop ) {
-        int len;
+        ssize_t len;
         if( !comm.isOpen() ) {
             // not open
             ERR_PRINT("DBTManager::reader: Not connected");
@@ -99,12 +99,13 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
 
         len = comm.read(rbuffer.get_wptr(), rbuffer.getSize(), env.MGMT_READER_THREAD_POLL_TIMEOUT);
         if( 0 < len ) {
-            const uint16_t paramSize = len >= MGMT_HEADER_SIZE ? rbuffer.get_uint16_nc(4) : 0;
-            if( len < MGMT_HEADER_SIZE + paramSize ) {
-                WARN_PRINT("DBTManager::reader: length mismatch %d < MGMT_HEADER_SIZE(%d) + %d", len, MGMT_HEADER_SIZE, paramSize);
+            const size_t len2 = static_cast<size_t>(len);
+            const size_t paramSize = len2 >= MGMT_HEADER_SIZE ? rbuffer.get_uint16_nc(4) : 0;
+            if( len2 < MGMT_HEADER_SIZE + paramSize ) {
+                WARN_PRINT("DBTManager::reader: length mismatch %zu < MGMT_HEADER_SIZE(%zu) + %zu", len2, MGMT_HEADER_SIZE, paramSize);
                 continue; // discard data
             }
-            std::shared_ptr<MgmtEvent> event = MgmtEvent::getSpecialized(rbuffer.get_ptr(), len);
+            std::shared_ptr<MgmtEvent> event = MgmtEvent::getSpecialized(rbuffer.get_ptr(), len2);
             const MgmtEvent::Opcode opc = event->getOpcode();
             if( MgmtEvent::Opcode::CMD_COMPLETE == opc || MgmtEvent::Opcode::CMD_STATUS == opc ) {
                 COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV (CMD) %s", event->toString().c_str());
@@ -410,7 +411,7 @@ next1:
         const uint16_t num_adapter = jau::get_uint16(data, 0, true /* littleEndian */);
         WORDY_PRINT("Bluetooth %d adapter", num_adapter);
 
-        const int expDataSize = 2 + num_adapter * 2;
+        const size_t expDataSize = 2 + num_adapter * 2;
         if( res->getDataSize() < expDataSize ) {
             ERR_PRINT("Insufficient data for %d adapter indices: res %s", num_adapter, res->toString().c_str());
             goto fail;

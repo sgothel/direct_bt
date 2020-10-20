@@ -138,9 +138,9 @@ void HCIComm::close() noexcept {
     DBG_PRINT("HCIComm::close: End: dd %d", socket_descriptor.load());
 }
 
-int HCIComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS) noexcept {
-    int len = 0;
-    if( 0 > socket_descriptor || 0 > capacity ) {
+ssize_t HCIComm::read(uint8_t* buffer, const size_t capacity, const int32_t timeoutMS) noexcept {
+    ssize_t len = 0;
+    if( 0 > socket_descriptor ) {
         goto errout;
     }
     if( 0 == capacity ) {
@@ -180,10 +180,10 @@ errout:
     return -1;
 }
 
-int HCIComm::write(const uint8_t* buffer, const int size) noexcept {
+ssize_t HCIComm::write(const uint8_t* buffer, const size_t size) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
-    int len = 0;
-    if( 0 > socket_descriptor || 0 > size ) {
+    ssize_t len = 0;
+    if( 0 > socket_descriptor ) {
         goto errout;
     }
     if( 0 == size ) {

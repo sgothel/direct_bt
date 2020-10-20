@@ -198,7 +198,7 @@ void GATTHandler::l2capReaderThreadImpl() {
     }
 
     while( !l2capReaderShallStop ) {
-        int len;
+        ssize_t len;
         if( !validateConnected() ) {
             ERR_PRINT("GATTHandler::reader: Invalid IO state -> Stop");
             l2capReaderShallStop = true;
@@ -207,7 +207,7 @@ void GATTHandler::l2capReaderThreadImpl() {
 
         len = l2cap.read(rbuffer.get_wptr(), rbuffer.getSize());
         if( 0 < len ) {
-            std::shared_ptr<const AttPDUMsg> attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), len);
+            std::shared_ptr<const AttPDUMsg> attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), static_cast<size_t>(len));
             const AttPDUMsg::Opcode opc = attPDU->getOpcode();
 
             if( AttPDUMsg::Opcode::ATT_HANDLE_VALUE_NTF == opc ) {
@@ -262,7 +262,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 attPDURing.putBlocking( attPDU );
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
-            IRQ_PRINT("GATTHandler::reader: l2cap read error -> Stop; l2cap.read %d", len);
+            IRQ_PRINT("GATTHandler::reader: l2cap read error -> Stop; l2cap.read %zd", len);
             l2capReaderShallStop = true;
             has_ioerror = true;
         }
@@ -414,15 +414,15 @@ void GATTHandler::send(const AttPDUMsg & msg) {
     }
 
     // Thread safe l2cap.write(..) operation..
-    const int res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.getSize());
+    const ssize_t res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.getSize());
     if( 0 > res ) {
         IRQ_PRINT("GATTHandler::send: l2cap write error -> disconnect: %s to %s", msg.toString().c_str(), deviceString.c_str());
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
         throw BluetoothException("GATTHandler::send: l2cap write error: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
-    if( res != msg.pdu.getSize() ) {
-        ERR_PRINT("GATTHandler::send: l2cap write count error, %d != %d: %s -> disconnect: %s",
+    if( static_cast<size_t>(res) != msg.pdu.getSize() ) {
+        ERR_PRINT("GATTHandler::send: l2cap write count error, %zd != %zu: %s -> disconnect: %s",
                 res, msg.pdu.getSize(), msg.toString().c_str(), deviceString.c_str());
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
@@ -982,8 +982,8 @@ bool GATTHandler::ping() {
         std::vector<GATTCharacteristicRef> & genericAccessCharDeclList = services.at(i)->characteristicList;
         POctets value(32, 0);
 
-        for(size_t i=0; isOK && i<genericAccessCharDeclList.size(); i++) {
-            const GATTCharacteristic & charDecl = *genericAccessCharDeclList.at(i);
+        for(size_t j=0; isOK && j<genericAccessCharDeclList.size(); j++) {
+            const GATTCharacteristic & charDecl = *genericAccessCharDeclList.at(j);
             std::shared_ptr<GATTService> service = charDecl.getServiceUnchecked();
             if( nullptr == service || _GENERIC_ACCESS != *(service->type) ) {
                 continue;

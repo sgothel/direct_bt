@@ -115,7 +115,7 @@ std::string AttErrorRsp::getPlainErrorString(const ErrorCode errorCode) noexcept
     return "Error Reserved for future use";
 }
 
-std::shared_ptr<const AttPDUMsg> AttPDUMsg::getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept {
+std::shared_ptr<const AttPDUMsg> AttPDUMsg::getSpecialized(const uint8_t * buffer, size_t const buffer_size) noexcept {
     const uint8_t opc = *buffer;
     const AttPDUMsg * res;
     switch( opc ) {

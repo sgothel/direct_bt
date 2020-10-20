@@ -84,23 +84,23 @@ namespace direct_bt {
             inline std::recursive_mutex & mutex_write() noexcept { return mtx_write; }
 
             /** Generic read w/ own timeoutMS, w/o locking suitable for a unique ringbuffer sink. */
-            int read(uint8_t* buffer, const int capacity, const int32_t timeoutMS) noexcept;
+            ssize_t read(uint8_t* buffer, const size_t capacity, const int32_t timeoutMS) noexcept;
 
             /** Generic write, locking {@link #mutex_write()}. */
-            int write(const uint8_t* buffer, const int size) noexcept;
+            ssize_t write(const uint8_t* buffer, const size_t size) noexcept;
 
         private:
-            static inline void set_bit(int nr, void *addr) noexcept
+            static inline void setu32_bit(int nr, void *addr) noexcept
             {
                 *((uint32_t *) addr + (nr >> 5)) |= (1 << (nr & 31));
             }
 
-            static inline void clear_bit(int nr, void *addr) noexcept
+            static inline void clearu32_bit(int nr, void *addr) noexcept
             {
                 *((uint32_t *) addr + (nr >> 5)) &= ~(1 << (nr & 31));
             }
 
-            static inline int test_bit(int nr, void *addr) noexcept
+            static inline int testu32_bit(int nr, void *addr) noexcept
             {
                 return *((uint32_t *) addr + (nr >> 5)) & (1 << (nr & 31));
             }
@@ -112,15 +112,15 @@ namespace direct_bt {
             }
             static inline void filter_set_ptype(int t, hci_ufilter *f) noexcept
             {
-                set_bit((t == HCI_VENDOR_PKT) ? 0 : (t & HCI_FLT_TYPE_BITS), &f->type_mask);
+                setu32_bit((t == HCI_VENDOR_PKT) ? 0 : (t & HCI_FLT_TYPE_BITS), &f->type_mask);
             }
             static inline void filter_clear_ptype(int t, hci_ufilter *f) noexcept
             {
-                clear_bit((t == HCI_VENDOR_PKT) ? 0 : (t & HCI_FLT_TYPE_BITS), &f->type_mask);
+                clearu32_bit((t == HCI_VENDOR_PKT) ? 0 : (t & HCI_FLT_TYPE_BITS), &f->type_mask);
             }
             static inline int filter_test_ptype(int t, hci_ufilter *f) noexcept
             {
-                return test_bit((t == HCI_VENDOR_PKT) ? 0 : (t & HCI_FLT_TYPE_BITS), &f->type_mask);
+                return testu32_bit((t == HCI_VENDOR_PKT) ? 0 : (t & HCI_FLT_TYPE_BITS), &f->type_mask);
             }
             static inline void filter_all_ptypes(hci_ufilter *f) noexcept
             {
@@ -128,21 +128,21 @@ namespace direct_bt {
             }
             static inline void filter_set_event(int e, hci_ufilter *f) noexcept
             {
-                set_bit((e & HCI_FLT_EVENT_BITS), &f->event_mask);
+                setu32_bit((e & HCI_FLT_EVENT_BITS), &f->event_mask);
             }
             static inline void filter_clear_event(int e, hci_ufilter *f) noexcept
             {
-                clear_bit((e & HCI_FLT_EVENT_BITS), &f->event_mask);
+                clearu32_bit((e & HCI_FLT_EVENT_BITS), &f->event_mask);
             }
             static inline int filter_test_event(int e, hci_ufilter *f) noexcept
             {
-                return test_bit((e & HCI_FLT_EVENT_BITS), &f->event_mask);
+                return testu32_bit((e & HCI_FLT_EVENT_BITS), &f->event_mask);
             }
             static inline void filter_all_events(hci_ufilter *f) noexcept
             {
                 memset((void *) f->event_mask, 0xff, sizeof(f->event_mask));
             }
-            static inline void filter_set_opcode(int opcode, hci_ufilter *f) noexcept
+            static inline void filter_set_opcode(uint16_t opcode, hci_ufilter *f) noexcept
             {
                 f->opcode = opcode;
             }
@@ -150,7 +150,7 @@ namespace direct_bt {
             {
                 f->opcode = 0;
             }
-            static inline int filter_test_opcode(int opcode, hci_ufilter *f) noexcept
+            static inline int filter_test_opcode(uint16_t opcode, hci_ufilter *f) noexcept
             {
                 return (f->opcode == opcode);
             }

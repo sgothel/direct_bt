@@ -112,7 +112,7 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
 
     void notificationReceived(GATTCharacteristicRef charDecl, std::shared_ptr<TROOctets> charValue, const uint64_t timestamp) override {
         const std::shared_ptr<DBTDevice> dev = charDecl->getDeviceChecked();
-        const int64_t tR = getCurrentMilliseconds();
+        const uint64_t tR = getCurrentMilliseconds();
         fprintf(stderr, "****** GATT Notify (td %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
                 (tR-timestamp), (tR-dev->ts_creation), dev->toString().c_str());
         if( nullptr != charDecl ) {
@@ -126,7 +126,7 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
                             const bool confirmationSent) override
     {
         const std::shared_ptr<DBTDevice> dev = charDecl->getDeviceChecked();
-        const int64_t tR = getCurrentMilliseconds();
+        const uint64_t tR = getCurrentMilliseconds();
         fprintf(stderr, "****** GATT Indication (confirmed %d, td(msg %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
                 confirmationSent, (tR-timestamp), (tR-dev->ts_creation), dev->toString().c_str());
         if( nullptr != charDecl ) {
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
 
     adapter.addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
 
-    const int64_t t0 = getCurrentMilliseconds();
+    const uint64_t t0 = getCurrentMilliseconds();
 
     while( ok && ( forever || !foundDevice ) ) {
         ok = HCIStatusCode::SUCCESS == adapter.startDiscovery(true /* keepAlive */);

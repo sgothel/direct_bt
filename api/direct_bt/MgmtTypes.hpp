@@ -68,7 +68,7 @@ namespace direct_bt {
     };
 
 
-    enum MgmtConst : int {
+    enum MgmtSizeConst : size_t {
         MGMT_HEADER_SIZE       = 6
     };
 
@@ -196,7 +196,7 @@ namespace direct_bt {
                 return "opcode="+jau::uint16HexString(static_cast<uint16_t>(getOpcode()))+" "+getOpcodeString()+", devID "+jau::uint16HexString(getDevID());
             }
             virtual std::string valueString() const noexcept {
-                const int psz = getParamSize();
+                const size_t psz = getParamSize();
                 const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), 0, psz, true /* lsbFirst */, true /* leading0X */) : "";
                 return "param[size "+std::to_string(getParamSize())+", data "+ps+"], tsz "+std::to_string(getTotalSize());
             }
@@ -221,7 +221,7 @@ namespace direct_bt {
             }
             virtual ~MgmtCommand() noexcept {}
 
-            int getTotalSize() const noexcept { return pdu.getSize(); }
+            size_t getTotalSize() const noexcept { return pdu.getSize(); }
 
             /** Return the underlying octets read only */
             TROOctets & getPDU() noexcept { return pdu; }
@@ -441,18 +441,18 @@ namespace direct_bt {
     class MgmtLoadConnParamCmd : public MgmtCommand
     {
         private:
-            void checkParamIdx(const int idx) const {
-                const int pc = getParamCount();
-                if( 0 > idx || idx >= pc ) {
+            void checkParamIdx(const size_t idx) const {
+                const size_t pc = getParamCount();
+                if( idx >= pc ) {
                     throw jau::IndexOutOfBoundsException(idx, pc, E_FILE_LINE);
                 }
             }
 
         protected:
             std::string valueString() const noexcept override {
-                const int paramCount = getParamCount();
+                const size_t paramCount = getParamCount();
                 std::string ps = "count "+std::to_string(paramCount)+": ";
-                for(int i=0; i<paramCount; i++) {
+                for(size_t i=0; i<paramCount; i++) {
                     if( 0 < i ) {
                         ps.append(", ");
                     }
@@ -467,7 +467,7 @@ namespace direct_bt {
             MgmtLoadConnParamCmd(const uint16_t dev_id, const MgmtConnParam & connParam)
             : MgmtCommand(MgmtOpcode::LOAD_CONN_PARAM, dev_id, 2 + 15)
             {
-                int offset = MGMT_HEADER_SIZE;
+                size_t offset = MGMT_HEADER_SIZE;
                 pdu.put_uint16_nc(offset, 1); offset+= 2;
 
                 pdu.put_eui48_nc(offset, connParam.address); offset+=6;
@@ -481,7 +481,7 @@ namespace direct_bt {
             MgmtLoadConnParamCmd(const uint16_t dev_id, std::vector<std::shared_ptr<MgmtConnParam>> connParams)
             : MgmtCommand(MgmtOpcode::LOAD_CONN_PARAM, dev_id, 2 + connParams.size() * 15)
             {
-                int offset = MGMT_HEADER_SIZE;
+                size_t offset = MGMT_HEADER_SIZE;
                 pdu.put_uint16_nc(offset, connParams.size()); offset+= 2;
 
                 for(auto it = connParams.begin(); it != connParams.end(); ++it) {
@@ -497,12 +497,12 @@ namespace direct_bt {
             }
             uint16_t getParamCount() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE); }
 
-            const EUI48 getAddress(int idx) const { checkParamIdx(idx); return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE + 2 + 15*idx)); } // mgmt_addr_info
-            BDAddressType getAddressType(int idx) const { checkParamIdx(idx); return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE + 2 + 15*idx + 6)); } // mgmt_addr_info
-            uint16_t getMinInterval(int idx) const { checkParamIdx(idx); return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1); }
-            uint16_t getMaxInterval(int idx) const { checkParamIdx(idx); return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1 + 2); }
-            uint16_t getLatency(int idx) const { checkParamIdx(idx); return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1 + 2 + 2); }
-            uint16_t getTimeout(int idx) const { checkParamIdx(idx); return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1 + 2 + 2 + 2); }
+            const EUI48 getAddress(size_t idx) const { checkParamIdx(idx); return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE + 2 + 15*idx)); } // mgmt_addr_info
+            BDAddressType getAddressType(size_t idx) const { checkParamIdx(idx); return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE + 2 + 15*idx + 6)); } // mgmt_addr_info
+            uint16_t getMinInterval(size_t idx) const { checkParamIdx(idx); return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1); }
+            uint16_t getMaxInterval(size_t idx) const { checkParamIdx(idx); return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1 + 2); }
+            uint16_t getLatency(size_t idx) const { checkParamIdx(idx); return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1 + 2 + 2); }
+            uint16_t getTimeout(size_t idx) const { checkParamIdx(idx); return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1 + 2 + 2 + 2); }
     };
 
     /**
@@ -584,7 +584,7 @@ namespace direct_bt {
                         " "+getOpcodeString()+", devID "+jau::uint16HexString(getDevID(), true);
             }
             virtual std::string valueString() const {
-                const int d_sz = getDataSize();
+                const size_t d_sz = getDataSize();
                 const std::string d_str = d_sz > 0 ? jau::bytesHexString(getData(), 0, d_sz, true /* lsbFirst */, true /* leading0X */) : "";
                 return "data[size "+std::to_string(d_sz)+", data "+d_str+"], tsz "+std::to_string(getTotalSize());
             }
@@ -597,13 +597,13 @@ namespace direct_bt {
              * Returned memory reference is managed by caller (delete etc)
              * </p>
              */
-            static std::shared_ptr<MgmtEvent> getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept;
+            static std::shared_ptr<MgmtEvent> getSpecialized(const uint8_t * buffer, size_t const buffer_size) noexcept;
 
             /** Persistent memory, w/ ownership ..*/
-            MgmtEvent(const uint8_t* buffer, const int buffer_len, const int exp_param_size)
+            MgmtEvent(const uint8_t* buffer, const size_t buffer_len, const size_t exp_param_size)
             : pdu(buffer, buffer_len), ts_creation(jau::getCurrentMilliseconds())
             {
-                const int paramSize = getParamSize();
+                const size_t paramSize = getParamSize();
                 pdu.check_range(0, MGMT_HEADER_SIZE+paramSize);
                 if( exp_param_size > paramSize ) {
                     throw jau::IndexOutOfBoundsException(exp_param_size, paramSize, E_FILE_LINE);
@@ -629,7 +629,7 @@ namespace direct_bt {
             }
             virtual ~MgmtEvent() noexcept {}
 
-            int getTotalSize() const noexcept { return pdu.getSize(); }
+            size_t getTotalSize() const noexcept { return pdu.getSize(); }
 
             uint64_t getTimestamp() const noexcept { return ts_creation; }
             Opcode getOpcode() const noexcept { return static_cast<Opcode>( pdu.get_uint16_nc(0) ); }
@@ -637,8 +637,8 @@ namespace direct_bt {
             uint16_t getDevID() const noexcept { return pdu.get_uint16_nc(2); }
             uint16_t getParamSize() const noexcept { return pdu.get_uint16_nc(4); }
 
-            virtual int getDataOffset() const noexcept { return MGMT_HEADER_SIZE; }
-            virtual int getDataSize() const noexcept { return getParamSize(); }
+            virtual size_t getDataOffset() const noexcept { return MGMT_HEADER_SIZE; }
+            virtual size_t getDataSize() const noexcept { return getParamSize(); }
             virtual const uint8_t* getData() const noexcept { return getDataSize()>0 ? pdu.get_ptr_nc(getDataOffset()) : nullptr; }
 
             virtual bool validate(const MgmtCommand &req) const noexcept {
@@ -659,7 +659,7 @@ namespace direct_bt {
                        ", status "+jau::uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getMgmtStatusString(getStatus());
             }
 
-            MgmtEvtCmdComplete(const uint8_t* buffer, const int buffer_len, const int exp_param_size)
+            MgmtEvtCmdComplete(const uint8_t* buffer, const size_t buffer_len, const size_t exp_param_size)
             : MgmtEvent(buffer, buffer_len, 3+exp_param_size)
             {
                 checkOpcode(getOpcode(), Opcode::CMD_COMPLETE);
@@ -671,7 +671,7 @@ namespace direct_bt {
                 return static_cast<MgmtOpcode>( jau::get_uint16(data, MGMT_HEADER_SIZE, true /* littleEndian */) );
             }
 
-            MgmtEvtCmdComplete(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtCmdComplete(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvent(buffer, buffer_len, 3)
             {
                 checkOpcode(getOpcode(), Opcode::CMD_COMPLETE);
@@ -682,8 +682,8 @@ namespace direct_bt {
             MgmtOpcode getReqOpcode() const noexcept { return static_cast<MgmtOpcode>( pdu.get_uint16_nc(MGMT_HEADER_SIZE) ); }
             MgmtStatus getStatus() const noexcept { return static_cast<MgmtStatus>( pdu.get_uint8_nc(MGMT_HEADER_SIZE+2) ); }
 
-            int getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+3; }
-            int getDataSize() const noexcept override { return getParamSize()-3; }
+            size_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+3; }
+            size_t getDataSize() const noexcept override { return getParamSize()-3; }
             const uint8_t* getData() const noexcept override { return getDataSize()>0 ? pdu.get_ptr_nc(getDataOffset()) : nullptr; }
 
             bool validate(const MgmtCommand &req) const noexcept override {
@@ -717,7 +717,7 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtCmdStatus(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtCmdStatus(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvent(buffer, buffer_len, 3)
             {
                 checkOpcode(getOpcode(), Opcode::CMD_STATUS);
@@ -725,8 +725,8 @@ namespace direct_bt {
             MgmtOpcode getReqOpcode() const noexcept { return static_cast<MgmtOpcode>( pdu.get_uint16_nc(MGMT_HEADER_SIZE) ); }
             MgmtStatus getStatus() const noexcept { return static_cast<MgmtStatus>( pdu.get_uint8_nc(MGMT_HEADER_SIZE+2) ); }
 
-            int getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+3; }
-            int getDataSize() const noexcept override { return 0; }
+            size_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+3; }
+            size_t getDataSize() const noexcept override { return 0; }
             const uint8_t* getData() const noexcept override { return nullptr; }
 
             bool validate(const MgmtCommand &req) const noexcept override {
@@ -745,7 +745,7 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtDiscovering(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtDiscovering(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvent(buffer, buffer_len, 2)
             {
                 checkOpcode(getOpcode(), Opcode::DISCOVERING);
@@ -761,8 +761,8 @@ namespace direct_bt {
             ScanType getScanType() const noexcept { return static_cast<ScanType>( pdu.get_uint8_nc(MGMT_HEADER_SIZE) ); }
             bool getEnabled() const noexcept { return 0 != pdu.get_uint8_nc(MGMT_HEADER_SIZE+1); }
 
-            int getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+2; }
-            int getDataSize() const noexcept override { return 0; }
+            size_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+2; }
+            size_t getDataSize() const noexcept override { return 0; }
             const uint8_t* getData() const noexcept override { return nullptr; }
     };
 
@@ -779,15 +779,15 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtNewSettings(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtNewSettings(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvent(buffer, buffer_len, 4)
             {
                 checkOpcode(getOpcode(), Opcode::NEW_SETTINGS);
             }
             AdapterSetting getSettings() const noexcept { return static_cast<AdapterSetting>( pdu.get_uint32_nc(MGMT_HEADER_SIZE) ); }
 
-            int getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+4; }
-            int getDataSize() const noexcept override { return getParamSize()-4; }
+            size_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+4; }
+            size_t getDataSize() const noexcept override { return getParamSize()-4; }
             const uint8_t* getData() const noexcept override { return getDataSize()>0 ? pdu.get_ptr_nc(getDataOffset()) : nullptr; }
     };
 
@@ -813,7 +813,7 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtNewConnectionParam(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtNewConnectionParam(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvent(buffer, buffer_len, 16)
             {
                 checkOpcode(getOpcode(), Opcode::NEW_CONN_PARAM);
@@ -827,8 +827,8 @@ namespace direct_bt {
             uint16_t getLatency() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE+12); }
             uint16_t getTimeout() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE+14); }
 
-            int getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+16; }
-            int getDataSize() const noexcept override { return getParamSize()-16; }
+            size_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+16; }
+            size_t getDataSize() const noexcept override { return getParamSize()-16; }
             const uint8_t* getData() const noexcept override { return getDataSize()>0 ? pdu.get_ptr_nc(getDataOffset()) : nullptr; }
     };
 
@@ -857,7 +857,7 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtDeviceFound(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtDeviceFound(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvent(buffer, buffer_len, 14)
             {
                 checkOpcode(getOpcode(), Opcode::DEVICE_FOUND);
@@ -868,7 +868,7 @@ namespace direct_bt {
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, eir->getAddress());
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, eir->getAddressType());
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, eir->getRSSI());
+                pdu.put_int8_nc(MGMT_HEADER_SIZE+6+1, eir->getRSSI());
                 pdu.put_uint32_nc(MGMT_HEADER_SIZE+6+1+1, eir->getFlags()); // EIR flags only 8bit, Mgmt uses 32bit?
                 pdu.put_uint16_nc(MGMT_HEADER_SIZE+6+1+1+4, 0); // eir_len
                 eireport = eir;
@@ -884,8 +884,8 @@ namespace direct_bt {
             uint32_t getFlags() const noexcept { return pdu.get_uint32_nc(MGMT_HEADER_SIZE+8); }
             uint16_t getEIRSize() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE+12); }
 
-            int getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+14; }
-            int getDataSize() const noexcept override { return getParamSize()-14; }
+            size_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+14; }
+            size_t getDataSize() const noexcept override { return getParamSize()-14; }
             const uint8_t* getData() const noexcept override { return getDataSize()>0 ? pdu.get_ptr_nc(getDataOffset()) : nullptr; }
     };
 
@@ -910,13 +910,13 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtDeviceConnected(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtDeviceConnected(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvent(buffer, buffer_len, 13), hci_conn_handle(0xffff)
             {
                 checkOpcode(getOpcode(), Opcode::DEVICE_CONNECTED);
             }
-            MgmtEvtDeviceConnected(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint16_t hci_conn_handle)
-            : MgmtEvent(Opcode::DEVICE_CONNECTED, dev_id, 6+1+4+2), hci_conn_handle(hci_conn_handle)
+            MgmtEvtDeviceConnected(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint16_t hci_conn_handle_)
+            : MgmtEvent(Opcode::DEVICE_CONNECTED, dev_id, 6+1+4+2), hci_conn_handle(hci_conn_handle_)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
@@ -933,8 +933,8 @@ namespace direct_bt {
             uint32_t getFlags() const noexcept { return pdu.get_uint32_nc(MGMT_HEADER_SIZE+7); }
             uint16_t getEIRSize() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE+11); }
 
-            int getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+13; }
-            int getDataSize() const noexcept override { return getParamSize()-13; }
+            size_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+13; }
+            size_t getDataSize() const noexcept override { return getParamSize()-13; }
             const uint8_t* getData() const noexcept override { return getDataSize()>0 ? pdu.get_ptr_nc(getDataOffset()) : nullptr; }
     };
 
@@ -956,7 +956,7 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtDeviceConnectFailed(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtDeviceConnectFailed(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvent(buffer, buffer_len, 8), hciStatus(HCIStatusCode::UNKNOWN)
             {
                 checkOpcode(getOpcode(), Opcode::CONNECT_FAILED);
@@ -976,8 +976,8 @@ namespace direct_bt {
             /** Return the root reason in non reduced HCIStatusCode space, if available. Otherwise this value will be HCIStatusCode::UNKNOWN. */
             HCIStatusCode getHCIStatus() const noexcept { return hciStatus; }
 
-            int getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+8; }
-            int getDataSize() const noexcept override { return getParamSize()-8; }
+            size_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+8; }
+            size_t getDataSize() const noexcept override { return getParamSize()-8; }
             const uint8_t* getData() const noexcept override { return getDataSize()>0 ? pdu.get_ptr_nc(getDataOffset()) : nullptr; }
     };
 
@@ -1027,16 +1027,16 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtDeviceDisconnected(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtDeviceDisconnected(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvent(buffer, buffer_len, 8), hciReason(HCIStatusCode::UNKNOWN), hci_conn_handle(0xffff)
             {
                 checkOpcode(getOpcode(), Opcode::DEVICE_DISCONNECTED);
             }
             MgmtEvtDeviceDisconnected(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType,
-                                      HCIStatusCode hciReason, const uint16_t hci_conn_handle)
-            : MgmtEvent(Opcode::DEVICE_DISCONNECTED, dev_id, 6+1+1), hciReason(hciReason), hci_conn_handle(hci_conn_handle)
+                                      HCIStatusCode hciReason_, const uint16_t hci_conn_handle_)
+            : MgmtEvent(Opcode::DEVICE_DISCONNECTED, dev_id, 6+1+1), hciReason(hciReason_), hci_conn_handle(hci_conn_handle_)
             {
-                DisconnectReason disconnectReason = getDisconnectReason(hciReason);
+                DisconnectReason disconnectReason = getDisconnectReason(hciReason_);
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, static_cast<uint8_t>(disconnectReason));
@@ -1058,8 +1058,8 @@ namespace direct_bt {
             /** Returns the disconnected HCI connection handle, assuming creation occurred via HCIHandler */
             uint16_t getHCIHandle() const noexcept { return hci_conn_handle; }
 
-            int getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+8; }
-            int getDataSize() const noexcept override { return getParamSize()-8; }
+            size_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+8; }
+            size_t getDataSize() const noexcept override { return getParamSize()-8; }
             const uint8_t* getData() const noexcept override { return getDataSize()>0 ? pdu.get_ptr_nc(getDataOffset()) : nullptr; }
     };
 
@@ -1079,7 +1079,7 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtPinCodeRequest(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtPinCodeRequest(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvent(buffer, buffer_len, 8)
             {
                 checkOpcode(getOpcode(), Opcode::PIN_CODE_REQUEST);
@@ -1089,8 +1089,8 @@ namespace direct_bt {
 
             uint8_t getSecure() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+7); }
 
-            int getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+8; }
-            int getDataSize() const noexcept override { return getParamSize()-8; }
+            size_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+8; }
+            size_t getDataSize() const noexcept override { return getParamSize()-8; }
             const uint8_t* getData() const noexcept override { return getDataSize()>0 ? pdu.get_ptr_nc(getDataOffset()) : nullptr; }
     };
 
@@ -1110,7 +1110,7 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtDeviceWhitelistAdded(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtDeviceWhitelistAdded(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvent(buffer, buffer_len, 8)
             {
                 checkOpcode(getOpcode(), Opcode::DEVICE_WHITELIST_ADDED);
@@ -1120,8 +1120,8 @@ namespace direct_bt {
 
             uint8_t getAction() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+7); }
 
-            int getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+8; }
-            int getDataSize() const noexcept override { return getParamSize()-8; }
+            size_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+8; }
+            size_t getDataSize() const noexcept override { return getParamSize()-8; }
             const uint8_t* getData() const noexcept override { return getDataSize()>0 ? pdu.get_ptr_nc(getDataOffset()) : nullptr; }
     };
 
@@ -1137,7 +1137,7 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtAdressInfoMeta(const Opcode opc, const uint8_t* buffer, const int buffer_len)
+            MgmtEvtAdressInfoMeta(const Opcode opc, const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvent(buffer, buffer_len, 7)
             {
                 checkOpcode(getOpcode(), opc);
@@ -1148,8 +1148,8 @@ namespace direct_bt {
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
 
-            int getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+7; }
-            int getDataSize() const noexcept override { return getParamSize()-7; }
+            size_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+7; }
+            size_t getDataSize() const noexcept override { return getParamSize()-7; }
             const uint8_t* getData() const noexcept override { return getDataSize()>0 ? pdu.get_ptr_nc(getDataOffset()) : nullptr; }
     };
 
@@ -1159,7 +1159,7 @@ namespace direct_bt {
     class MgmtEvtDeviceWhitelistRemoved : public MgmtEvtAdressInfoMeta
     {
         public:
-            MgmtEvtDeviceWhitelistRemoved(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtDeviceWhitelistRemoved(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvtAdressInfoMeta(Opcode::DEVICE_WHITELIST_REMOVED, buffer, buffer_len)
             { }
     };
@@ -1170,7 +1170,7 @@ namespace direct_bt {
     class MgmtEvtDeviceUnpaired : public MgmtEvtAdressInfoMeta
     {
         public:
-            MgmtEvtDeviceUnpaired(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtDeviceUnpaired(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvtAdressInfoMeta(Opcode::DEVICE_UNPAIRED, buffer, buffer_len)
             { }
     };
@@ -1181,7 +1181,7 @@ namespace direct_bt {
     class MgmtEvtDeviceBlocked : public MgmtEvtAdressInfoMeta
     {
         public:
-            MgmtEvtDeviceBlocked(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtDeviceBlocked(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvtAdressInfoMeta(Opcode::DEVICE_BLOCKED, buffer, buffer_len)
             { }
     };
@@ -1192,7 +1192,7 @@ namespace direct_bt {
     class MgmtEvtDeviceUnblocked : public MgmtEvtAdressInfoMeta
     {
         public:
-            MgmtEvtDeviceUnblocked(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtDeviceUnblocked(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvtAdressInfoMeta(Opcode::DEVICE_UNBLOCKED, buffer, buffer_len)
             { }
     };
@@ -1203,7 +1203,7 @@ namespace direct_bt {
     class MgmtEvtUserPasskeyRequest: public MgmtEvtAdressInfoMeta
     {
         public:
-            MgmtEvtUserPasskeyRequest(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtUserPasskeyRequest(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvtAdressInfoMeta(Opcode::USER_PASSKEY_REQUEST, buffer, buffer_len)
             { }
     };
@@ -1220,10 +1220,10 @@ namespace direct_bt {
             }
 
         public:
-            static int namesDataSize() noexcept { return MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH; }
-            static int getRequiredTotalSize() noexcept { return MGMT_HEADER_SIZE + namesDataSize(); }
+            static size_t namesDataSize() noexcept { return MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH; }
+            static size_t getRequiredTotalSize() noexcept { return MGMT_HEADER_SIZE + namesDataSize(); }
 
-            MgmtEvtLocalNameChanged(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtLocalNameChanged(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvent(buffer, buffer_len, namesDataSize())
             {
                 checkOpcode(getOpcode(), Opcode::LOCAL_NAME_CHANGED);
@@ -1252,10 +1252,10 @@ namespace direct_bt {
             }
 
         public:
-            static int infoDataSize() noexcept { return 20 + MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH; }
-            static int getRequiredTotalSize() noexcept { return MGMT_HEADER_SIZE + 3 + infoDataSize(); }
+            static size_t infoDataSize() noexcept { return 20 + MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH; }
+            static size_t getRequiredTotalSize() noexcept { return MGMT_HEADER_SIZE + 3 + infoDataSize(); }
 
-            MgmtEvtAdapterInfo(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtAdapterInfo(const uint8_t* buffer, const size_t buffer_len)
             : MgmtEvtCmdComplete(buffer, buffer_len, infoDataSize())
             { }
 

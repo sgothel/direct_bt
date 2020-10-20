@@ -260,7 +260,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
     }
 
     while( !hciReaderShallStop ) {
-        int len;
+        ssize_t len;
         if( !comm.isOpen() ) {
             // not open
             ERR_PRINT("HCIHandler::reader: Not connected");
@@ -270,16 +270,17 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
 
         len = comm.read(rbuffer.get_wptr(), rbuffer.getSize(), env.HCI_READER_THREAD_POLL_TIMEOUT);
         if( 0 < len ) {
-            const uint16_t paramSize = len >= number(HCIConstU8::EVENT_HDR_SIZE) ? rbuffer.get_uint8_nc(2) : 0;
-            if( len < number(HCIConstU8::EVENT_HDR_SIZE) + paramSize ) {
-                WARN_PRINT("HCIHandler::reader: length mismatch %d < EVENT_HDR_SIZE(%d) + %d",
-                        len, number(HCIConstU8::EVENT_HDR_SIZE), paramSize);
+            const size_t len2 = static_cast<size_t>(len);
+            const size_t paramSize = len2 >= number(HCIConstSizeT::EVENT_HDR_SIZE) ? rbuffer.get_uint8_nc(2) : 0;
+            if( len2 < number(HCIConstSizeT::EVENT_HDR_SIZE) + paramSize ) {
+                WARN_PRINT("HCIHandler::reader: length mismatch %zu < EVENT_HDR_SIZE(%zu) + %zu",
+                        len2, number(HCIConstSizeT::EVENT_HDR_SIZE), paramSize);
                 continue; // discard data
             }
-            std::shared_ptr<HCIEvent> event = HCIEvent::getSpecialized(rbuffer.get_ptr(), len);
+            std::shared_ptr<HCIEvent> event = HCIEvent::getSpecialized(rbuffer.get_ptr(), len2);
             if( nullptr == event ) {
                 // not an event ...
-                ERR_PRINT("HCIHandler-IO RECV Drop (non-event) %s", jau::bytesHexString(rbuffer.get_ptr(), 0, len, true /* lsbFirst*/).c_str());
+                ERR_PRINT("HCIHandler-IO RECV Drop (non-event) %s", jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str());
                 continue;
             }
 

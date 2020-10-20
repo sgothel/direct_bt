@@ -444,7 +444,7 @@ namespace direct_bt {
         POctets data;
 
         ManufactureSpecificData(uint16_t const company) noexcept;
-        ManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) noexcept;
+        ManufactureSpecificData(uint16_t const company, uint8_t const * const data, size_t const data_len) noexcept;
 
         std::string toString() const noexcept;
     };
@@ -578,7 +578,7 @@ namespace direct_bt {
          * https://www.bluetooth.com/specifications/archived-specifications/
          * </p>
          */
-        static std::vector<std::shared_ptr<EInfoReport>> read_ad_reports(uint8_t const * data, uint8_t const data_length) noexcept;
+        static std::vector<std::shared_ptr<EInfoReport>> read_ad_reports(uint8_t const * data, size_t const data_length) noexcept;
 
         /**
          * Reads the Extended Inquiry Response (EIR) or Advertising Data (AD) segments

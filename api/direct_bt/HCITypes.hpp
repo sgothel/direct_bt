@@ -197,7 +197,7 @@ namespace direct_bt {
     }
     std::string getHCIStatusCodeString(const HCIStatusCode ec) noexcept;
 
-    enum class HCIConstU8 : uint8_t {
+    enum class HCIConstSizeT : size_t {
         /** HCIPacketType::COMMAND header size including HCIPacketType */
         COMMAND_HDR_SIZE  = 1+3,
         /** HCIPacketType::ACLDATA header size including HCIPacketType */
@@ -209,8 +209,8 @@ namespace direct_bt {
         /** Total packet size, guaranteed to be handled by adapter. */
         PACKET_MAX_SIZE   = 255
     };
-    constexpr uint8_t number(const HCIConstU8 rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
+    constexpr size_t number(const HCIConstSizeT rhs) noexcept {
+        return static_cast<size_t>(rhs);
     }
 
     enum class HCIPacketType : uint8_t {
@@ -440,7 +440,7 @@ namespace direct_bt {
             }
 
         public:
-            HCIPacket(const HCIPacketType type, const uint8_t total_packet_size)
+            HCIPacket(const HCIPacketType type, const size_t total_packet_size)
             : pdu(total_packet_size)
             {
                 if( 0 == total_packet_size ) {
@@ -450,7 +450,7 @@ namespace direct_bt {
             }
 
             /** Persistent memory, w/ ownership ..*/
-            HCIPacket(const uint8_t *packet_data, const uint8_t total_packet_size)
+            HCIPacket(const uint8_t *packet_data, const size_t total_packet_size)
             : pdu(packet_data, total_packet_size)
             {
                 if( 0 == total_packet_size ) {
@@ -461,7 +461,7 @@ namespace direct_bt {
 
             virtual ~HCIPacket() noexcept {}
 
-            inline int getTotalSize() const noexcept { return pdu.getSize(); }
+            inline size_t getTotalSize() const noexcept { return pdu.getSize(); }
 
             /** Return the underlying octets read only */
             TROOctets & getPDU() noexcept { return pdu; }
@@ -496,7 +496,7 @@ namespace direct_bt {
                 return "opcode="+jau::uint16HexString(number(getOpcode()))+" "+getOpcodeString();
             }
             virtual std::string valueString() const noexcept {
-                const int psz = getParamSize();
+                const size_t psz = getParamSize();
                 const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), 0, psz, true /* lsbFirst */, true /* leading0X */) : "";
                 return "param[size "+std::to_string(getParamSize())+", data "+ps+"], tsz "+std::to_string(getTotalSize());
             }
@@ -504,8 +504,8 @@ namespace direct_bt {
         public:
 
             /** Enabling manual construction of command without given value. */
-            HCICommand(const HCIOpcode opc, const uint8_t param_size)
-            : HCIPacket(HCIPacketType::COMMAND, number(HCIConstU8::COMMAND_HDR_SIZE)+param_size)
+            HCICommand(const HCIOpcode opc, const size_t param_size)
+            : HCIPacket(HCIPacketType::COMMAND, number(HCIConstSizeT::COMMAND_HDR_SIZE)+param_size)
             {
                 checkOpcode(opc, HCIOpcode::SPECIAL, HCIOpcode::LE_START_ENC);
 
@@ -514,11 +514,11 @@ namespace direct_bt {
             }
 
             /** Enabling manual construction of command with given value.  */
-            HCICommand(const HCIOpcode opc, const uint8_t* param, const uint16_t param_size)
+            HCICommand(const HCIOpcode opc, const uint8_t* param, const size_t param_size)
             : HCICommand(opc, param_size)
             {
                 if( param_size > 0 ) {
-                    memcpy(pdu.get_wptr_nc(number(HCIConstU8::COMMAND_HDR_SIZE)), param, param_size);
+                    memcpy(pdu.get_wptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)), param, param_size);
                 }
             }
 
@@ -526,8 +526,8 @@ namespace direct_bt {
 
             HCIOpcode getOpcode() const noexcept { return static_cast<HCIOpcode>( pdu.get_uint16_nc(1) ); }
             std::string getOpcodeString() const noexcept { return getHCIOpcodeString(getOpcode()); }
-            uint8_t getParamSize() const noexcept { return pdu.get_uint8_nc(3); }
-            const uint8_t* getParam() const noexcept { return pdu.get_ptr_nc(number(HCIConstU8::COMMAND_HDR_SIZE)); }
+            size_t getParamSize() const noexcept { return pdu.get_uint8_nc(3); }
+            const uint8_t* getParam() const noexcept { return pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)); }
 
             std::string toString() const noexcept {
                 return "HCICommand["+baseString()+", "+valueString()+"]";
@@ -548,8 +548,8 @@ namespace direct_bt {
             HCIDisconnectCmd(const uint16_t handle, HCIStatusCode reason)
             : HCICommand(HCIOpcode::DISCONNECT, 3)
             {
-                pdu.put_uint16_nc(number(HCIConstU8::COMMAND_HDR_SIZE),handle);
-                pdu.put_uint8_nc(number(HCIConstU8::COMMAND_HDR_SIZE)+2, number(reason));
+                pdu.put_uint16_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE),handle);
+                pdu.put_uint8_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)+2, number(reason));
             }
     };
 
@@ -575,7 +575,7 @@ namespace direct_bt {
             { }
 
             const hcistruct * getStruct() const noexcept { return (const hcistruct *)(getParam()); }
-            hcistruct * getWStruct() noexcept { return (hcistruct *)( pdu.get_wptr_nc( number(HCIConstU8::COMMAND_HDR_SIZE) ) ); }
+            hcistruct * getWStruct() noexcept { return (hcistruct *)( pdu.get_wptr_nc( number(HCIConstSizeT::COMMAND_HDR_SIZE) ) ); }
     };
 
     /**
@@ -613,13 +613,13 @@ namespace direct_bt {
                 return "event="+jau::uint8HexString(number(getEventType()))+" "+getEventTypeString();
             }
             virtual std::string valueString() const noexcept {
-                const int d_sz_base = getBaseParamSize();
-                const int d_sz = getParamSize();
+                const size_t d_sz_base = getBaseParamSize();
+                const size_t d_sz = getParamSize();
                 const std::string d_str = d_sz > 0 ? jau::bytesHexString(getParam(), 0, d_sz, true /* lsbFirst */, true /* leading0X */) : "";
                 return "data[size "+std::to_string(d_sz)+"/"+std::to_string(d_sz_base)+", data "+d_str+"], tsz "+std::to_string(getTotalSize());
             }
 
-            uint8_t getBaseParamSize() const noexcept { return pdu.get_uint8_nc(2); }
+            size_t getBaseParamSize() const noexcept { return pdu.get_uint8_nc(2); }
 
         public:
 
@@ -629,14 +629,14 @@ namespace direct_bt {
              * Returned memory reference is managed by caller (delete etc)
              * </p>
              */
-            static std::shared_ptr<HCIEvent> getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept;
+            static std::shared_ptr<HCIEvent> getSpecialized(const uint8_t * buffer, size_t const buffer_size) noexcept;
 
             /** Persistent memory, w/ ownership ..*/
-            HCIEvent(const uint8_t* buffer, const int buffer_len, const int exp_param_size)
+            HCIEvent(const uint8_t* buffer, const size_t buffer_len, const size_t exp_param_size)
             : HCIPacket(buffer, buffer_len), ts_creation(jau::getCurrentMilliseconds())
             {
-                const int baseParamSize = getBaseParamSize();
-                pdu.check_range(0, number(HCIConstU8::EVENT_HDR_SIZE)+baseParamSize);
+                const size_t baseParamSize = getBaseParamSize();
+                pdu.check_range(0, number(HCIConstSizeT::EVENT_HDR_SIZE)+baseParamSize);
                 if( exp_param_size > baseParamSize ) {
                     throw jau::IndexOutOfBoundsException(exp_param_size, baseParamSize, E_FILE_LINE);
                 }
@@ -644,8 +644,8 @@ namespace direct_bt {
             }
 
             /** Enabling manual construction of event without given value.  */
-            HCIEvent(const HCIEventType evt, const uint16_t param_size=0)
-            : HCIPacket(HCIPacketType::EVENT, number(HCIConstU8::EVENT_HDR_SIZE)+param_size), ts_creation(jau::getCurrentMilliseconds())
+            HCIEvent(const HCIEventType evt, const size_t param_size=0)
+            : HCIPacket(HCIPacketType::EVENT, number(HCIConstSizeT::EVENT_HDR_SIZE)+param_size), ts_creation(jau::getCurrentMilliseconds())
             {
                 checkEventType(evt, HCIEventType::INQUIRY_COMPLETE, HCIEventType::AMP_Receiver_Report);
                 pdu.put_uint8_nc(1, number(evt));
@@ -653,11 +653,11 @@ namespace direct_bt {
             }
 
             /** Enabling manual construction of event with given value.  */
-            HCIEvent(const HCIEventType evt, const uint8_t* param, const uint16_t param_size)
+            HCIEvent(const HCIEventType evt, const uint8_t* param, const size_t param_size)
             : HCIEvent(evt, param_size)
             {
                 if( param_size > 0 ) {
-                    memcpy(pdu.get_wptr_nc(number(HCIConstU8::EVENT_HDR_SIZE)), param, param_size);
+                    memcpy(pdu.get_wptr_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)), param, param_size);
                 }
             }
 
@@ -676,8 +676,8 @@ namespace direct_bt {
             std::string getMetaEventTypeString() const noexcept { return getHCIMetaEventTypeString(getMetaEventType()); }
             bool isMetaEvent(HCIMetaEventType t) const noexcept { return t == getMetaEventType(); }
 
-            virtual uint8_t getParamSize() const noexcept { return getBaseParamSize(); }
-            virtual const uint8_t* getParam() const noexcept { return pdu.get_ptr_nc(number(HCIConstU8::EVENT_HDR_SIZE)); }
+            virtual size_t getParamSize() const noexcept { return getBaseParamSize(); }
+            virtual const uint8_t* getParam() const noexcept { return pdu.get_ptr_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)); }
 
             virtual bool validate(const HCICommand & cmd) const noexcept { (void)cmd; return true; }
 
@@ -697,19 +697,19 @@ namespace direct_bt {
             HCIEvent &orig;
 
         public:
-            HCIStructCmdCompleteEvtWrap(HCIEvent & orig)
-            : orig(orig)
+            HCIStructCmdCompleteEvtWrap(HCIEvent & orig_)
+            : orig(orig_)
             { }
             std::string toString() const noexcept { return orig.toString(); }
 
             bool isTypeAndSizeValid(const HCIEventType ec) const noexcept {
                 return orig.isEvent(ec) &&
-                       orig.pdu.is_range_valid(0, number(HCIConstU8::EVENT_HDR_SIZE)+sizeof(hcistruct));
+                       orig.pdu.is_range_valid(0, number(HCIConstSizeT::EVENT_HDR_SIZE)+sizeof(hcistruct));
             }
             const hcistruct * getStruct() const noexcept { return (const hcistruct *)( orig.getParam() ); }
             HCIStatusCode getStatus() const noexcept { return static_cast<HCIStatusCode>( getStruct()->status ); }
 
-            hcistruct * getWStruct() noexcept { return (hcistruct *)( orig.pdu.get_wptr_nc(number(HCIConstU8::EVENT_HDR_SIZE)) ); }
+            hcistruct * getWStruct() noexcept { return (hcistruct *)( orig.pdu.get_wptr_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)) ); }
     };
 
 
@@ -733,15 +733,15 @@ namespace direct_bt {
             }
 
         public:
-            HCIDisconnectionCompleteEvent(const uint8_t* buffer, const int buffer_len)
+            HCIDisconnectionCompleteEvent(const uint8_t* buffer, const size_t buffer_len)
             : HCIEvent(buffer, buffer_len, 4)
             {
                 checkEventType(getEventType(), HCIEventType::DISCONN_COMPLETE);
             }
 
-            HCIStatusCode getStatus() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(number(HCIConstU8::EVENT_HDR_SIZE)) ); }
-            uint16_t getHandle() const noexcept { return pdu.get_uint16_nc(number(HCIConstU8::EVENT_HDR_SIZE)+1); }
-            HCIStatusCode getReason() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(number(HCIConstU8::EVENT_HDR_SIZE)+3) ); }
+            HCIStatusCode getStatus() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)) ); }
+            uint16_t getHandle() const noexcept { return pdu.get_uint16_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)+1); }
+            HCIStatusCode getReason() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)+3) ); }
 
             bool validate(const HCICommand & cmd) const noexcept override {
                 return cmd.getOpcode() == HCIOpcode::DISCONNECT;
@@ -767,7 +767,7 @@ namespace direct_bt {
             }
 
         public:
-            HCICommandCompleteEvent(const uint8_t* buffer, const int buffer_len)
+            HCICommandCompleteEvent(const uint8_t* buffer, const size_t buffer_len)
             : HCIEvent(buffer, buffer_len, 3)
             {
                 checkEventType(getEventType(), HCIEventType::CMD_COMPLETE);
@@ -779,21 +779,21 @@ namespace direct_bt {
              * Range: 0 to 255
              * </p>
              */
-            uint8_t getNumCommandPackets() const noexcept { return pdu.get_uint8_nc(number(HCIConstU8::EVENT_HDR_SIZE)+0); }
+            uint8_t getNumCommandPackets() const noexcept { return pdu.get_uint8_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)+0); }
 
             /**
              * The associated command
              */
-            HCIOpcode getOpcode() const noexcept { return static_cast<HCIOpcode>( pdu.get_uint16_nc(number(HCIConstU8::EVENT_HDR_SIZE)+1) ); }
+            HCIOpcode getOpcode() const noexcept { return static_cast<HCIOpcode>( pdu.get_uint16_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)+1) ); }
 
-            uint8_t getReturnParamSize() const noexcept { return getParamSize() - 3; }
-            const uint8_t* getReturnParam() const { return pdu.get_ptr(number(HCIConstU8::EVENT_HDR_SIZE)+3); }
-            HCIStatusCode getReturnStatus(const int returnParamOffset=0) const {
-                const uint8_t returnParamSize = getReturnParamSize();
+            size_t getReturnParamSize() const noexcept { return getParamSize() - 3; }
+            const uint8_t* getReturnParam() const { return pdu.get_ptr(number(HCIConstSizeT::EVENT_HDR_SIZE)+3); }
+            HCIStatusCode getReturnStatus(const size_t returnParamOffset=0) const {
+                const size_t returnParamSize = getReturnParamSize();
                 if( returnParamSize < returnParamOffset + 1 /* status size */ ) {
                     return HCIStatusCode::UNKNOWN;
                 }
-                return static_cast<HCIStatusCode>( pdu.get_uint8(number(HCIConstU8::EVENT_HDR_SIZE) + 3 + returnParamOffset) );
+                return static_cast<HCIStatusCode>( pdu.get_uint8(number(HCIConstSizeT::EVENT_HDR_SIZE) + 3 + returnParamOffset) );
             }
 
             bool validate(const HCICommand & cmd) const noexcept override {
@@ -821,13 +821,13 @@ namespace direct_bt {
             }
 
         public:
-            HCICommandStatusEvent(const uint8_t* buffer, const int buffer_len)
+            HCICommandStatusEvent(const uint8_t* buffer, const size_t buffer_len)
             : HCIEvent(buffer, buffer_len, 4)
             {
                 checkEventType(getEventType(), HCIEventType::CMD_STATUS);
             }
 
-            HCIStatusCode getStatus() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(number(HCIConstU8::EVENT_HDR_SIZE)) ); }
+            HCIStatusCode getStatus() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)) ); }
 
             /**
              * The Number of HCI Command packets which are allowed to be sent to the Controller from the Host.
@@ -835,12 +835,12 @@ namespace direct_bt {
              * Range: 0 to 255
              * </p>
              */
-            uint8_t getNumCommandPackets() const noexcept { return pdu.get_uint8_nc(number(HCIConstU8::EVENT_HDR_SIZE)+1); }
+            uint8_t getNumCommandPackets() const noexcept { return pdu.get_uint8_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)+1); }
 
             /**
              * The associated command
              */
-            HCIOpcode getOpcode() const noexcept { return static_cast<HCIOpcode>( pdu.get_uint16_nc(number(HCIConstU8::EVENT_HDR_SIZE)+1+1) ); }
+            HCIOpcode getOpcode() const noexcept { return static_cast<HCIOpcode>( pdu.get_uint16_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)+1+1) ); }
 
             bool validate(const HCICommand & cmd) const noexcept override {
                 return cmd.getOpcode() == getOpcode();
@@ -871,31 +871,31 @@ namespace direct_bt {
 
         public:
             /** Passing through preset buffer of this type */
-            HCIMetaEvent(const uint8_t* buffer, const int buffer_len, const int exp_meta_param_size)
+            HCIMetaEvent(const uint8_t* buffer, const size_t buffer_len, const size_t exp_meta_param_size)
             : HCIEvent(buffer, buffer_len, 1+exp_meta_param_size)
             {
                 checkEventType(getEventType(), HCIEventType::LE_META);
             }
 
             /** Enabling manual construction of event without given value. */
-            HCIMetaEvent(const HCIMetaEventType mc, const int meta_param_size)
+            HCIMetaEvent(const HCIMetaEventType mc, const size_t meta_param_size)
             : HCIEvent(HCIEventType::LE_META, 1+meta_param_size)
             {
-                pdu.put_uint8_nc(number(HCIConstU8::EVENT_HDR_SIZE), number(mc));
+                pdu.put_uint8_nc(number(HCIConstSizeT::EVENT_HDR_SIZE), number(mc));
             }
 
             /** Enabling manual construction of event with given value.  */
-            HCIMetaEvent(const HCIMetaEventType mc, const uint8_t * meta_param, const int meta_param_size)
+            HCIMetaEvent(const HCIMetaEventType mc, const uint8_t * meta_param, const size_t meta_param_size)
             : HCIMetaEvent(mc, meta_param_size)
             {
                 if( meta_param_size > 0 ) {
-                    memcpy(pdu.get_wptr_nc(number(HCIConstU8::EVENT_HDR_SIZE)+1), meta_param, meta_param_size);
+                    memcpy(pdu.get_wptr_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)+1), meta_param, meta_param_size);
                 }
             }
 
-            HCIMetaEventType getMetaEventType() const noexcept override { return static_cast<HCIMetaEventType>( pdu.get_uint8_nc(number(HCIConstU8::EVENT_HDR_SIZE)) ); }
+            HCIMetaEventType getMetaEventType() const noexcept override { return static_cast<HCIMetaEventType>( pdu.get_uint8_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)) ); }
 
-            uint8_t getParamSize() const noexcept override { return HCIEvent::getParamSize()-1; }
+            size_t getParamSize() const noexcept override { return HCIEvent::getParamSize()-1; }
             const uint8_t* getParam() const noexcept override { return HCIEvent::getParam()+1; }
     };
 
@@ -910,14 +910,14 @@ namespace direct_bt {
             HCIMetaEvent & orig;
 
         public:
-            HCIStructCmdCompleteMetaEvtWrap(HCIMetaEvent & orig)
-            : orig(orig)
+            HCIStructCmdCompleteMetaEvtWrap(HCIMetaEvent & orig_)
+            : orig(orig_)
             { }
             std::string toString() const noexcept { return orig.toString(); }
 
             bool isTypeAndSizeValid(const HCIMetaEventType mc) const noexcept {
                 return orig.isMetaEvent(mc) &&
-                       orig.pdu.is_range_valid(0, number(HCIConstU8::EVENT_HDR_SIZE)+1+sizeof(hcistruct));
+                       orig.pdu.is_range_valid(0, number(HCIConstSizeT::EVENT_HDR_SIZE)+1+sizeof(hcistruct));
             }
             const hcistruct * getStruct() const noexcept { return (const hcistruct *)( orig.getParam() ); }
             HCIStatusCode getStatus() const noexcept { return static_cast<HCIStatusCode>( getStruct()->status ); }

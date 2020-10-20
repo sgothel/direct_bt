@@ -272,7 +272,7 @@ std::string getHCIMetaEventTypeString(const HCIMetaEventType op) noexcept {
     return "Unknown HCIMetaType";
 }
 
-std::shared_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, int const buffer_size) noexcept {
+std::shared_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, size_t const buffer_size) noexcept {
     const HCIPacketType pc = static_cast<HCIPacketType>( jau::get_uint8(buffer, 0) );
     if( HCIPacketType::EVENT != pc ) {
         return nullptr;

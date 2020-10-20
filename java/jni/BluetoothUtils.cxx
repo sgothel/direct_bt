@@ -76,7 +76,7 @@ jstring Java_org_tinyb_BluetoothUtils_decodeUTF8String(JNIEnv *env, jclass clazz
         if( NULL == buffer_ptr ) {
             throw std::invalid_argument("GetPrimitiveArrayCritical(byte array) is null");
         }
-        sres = jau::dfa_utf8_decode(buffer_ptr+offset, size);
+        sres = jau::dfa_utf8_decode(buffer_ptr+offset, static_cast<size_t>(size));
     }
     return jau::from_string_to_jstring(env, sres);
 }

@@ -696,20 +696,20 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
     return count;
 }
 
-std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t const * data, uint8_t const data_length) noexcept {
-    int const num_reports = (int) data[0];
+std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t const * data, size_t const data_length) noexcept {
+    size_t const num_reports = (size_t) data[0];
     std::vector<std::shared_ptr<EInfoReport>> ad_reports;
 
-    if( 0 >= num_reports || num_reports > 0x19 ) {
+    if( 0 == num_reports || num_reports > 0x19 ) {
         DBG_PRINT("AD-Reports: Invalid reports count: %d", num_reports);
         return ad_reports;
     }
     uint8_t const *limes = data + data_length;
     uint8_t const *i_octets = data + 1;
     uint8_t ad_data_len[0x19];
-    const int segment_count = 6;
-    int read_segments = 0;
-    int i;
+    const size_t segment_count = 6;
+    size_t read_segments = 0;
+    size_t i;
     const uint64_t timestamp = jau::getCurrentMilliseconds();
 
     for(i = 0; i < num_reports && i_octets < limes; i++) {
@@ -742,10 +742,10 @@ std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         i_octets++;
         read_segments++;
     }
-    const int bytes_left = limes - i_octets;
+    const size_t bytes_left = static_cast<size_t>(limes - i_octets);
 
     if( segment_count != read_segments ) {
-        WARN_PRINT("AD-Reports: Incomplete %d reports within %d bytes: Segment read %d < %d, data-ptr %d bytes to limes\n",
+        WARN_PRINT("AD-Reports: Incomplete %zu reports within %zu bytes: Segment read %zu < %zu, data-ptr %zu bytes to limes\n",
                 num_reports, data_length, read_segments, segment_count, bytes_left);
     }
     return ad_reports;

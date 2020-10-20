@@ -347,7 +347,7 @@ const GattCharacteristicSpec * direct_bt::findGattCharSpec(const uint16_t uuid16
 /********************************************************/
 
 std::string direct_bt::GattNameToString(const TROOctets &v) noexcept {
-	const int str_len = v.getSize();
+	const size_t str_len = v.getSize();
 	if( 0 == str_len ) {
 	    return std::string(); // empty
 	}
@@ -364,7 +364,7 @@ GattPeriphalPreferredConnectionParameters::GattPeriphalPreferredConnectionParame
 }
 
 std::shared_ptr<GattPeriphalPreferredConnectionParameters> GattPeriphalPreferredConnectionParameters::get(const TROOctets &source) noexcept {
-    const int reqSize = 8;
+    const size_t reqSize = 8;
     if( source.getSize() < reqSize ) {
         ERR_PRINT("GattPeriphalPreferredConnectionParameters: Insufficient data, less than %d bytes in %s", reqSize, source.toString().c_str());
         return nullptr;
@@ -389,7 +389,7 @@ GattPnP_ID::GattPnP_ID(const TROOctets &source) noexcept
   product_id(source.get_uint16(3)), product_version(source.get_uint16(5)) {}
 
 std::shared_ptr<GattPnP_ID> GattPnP_ID::get(const TROOctets &source) noexcept {
-    const int reqSize = 7;
+    const size_t reqSize = 7;
     if( source.getSize() < reqSize ) {
         ERR_PRINT("GattPnP_ID: Insufficient data, less than %d bytes in %s", reqSize, source.toString().c_str());
         return nullptr;
@@ -412,8 +412,8 @@ std::string GattDeviceInformationSvc::toString() const noexcept {
 }
 
 std::shared_ptr<GattTemperatureMeasurement> GattTemperatureMeasurement::get(const TROOctets &source) noexcept {
-    const int size = source.getSize();
-    int reqSize = 1 + 4; // max size = 13
+    const size_t size = source.getSize();
+    size_t reqSize = 1 + 4; // max size = 13
     if( reqSize > size ) {
         // min size: flags + temperatureValue
         ERR_PRINT("GattTemperatureMeasurement: Insufficient data, less than %d bytes in %s", reqSize, source.toString().c_str());
