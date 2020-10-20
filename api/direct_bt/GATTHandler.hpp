@@ -163,7 +163,7 @@ namespace direct_bt {
             std::atomic<bool> is_connected; // reflects state
             std::atomic<bool> has_ioerror;  // reflects state
 
-            jau::ringbuffer<std::shared_ptr<const AttPDUMsg>, nullptr> attPDURing;
+            jau::ringbuffer<std::shared_ptr<const AttPDUMsg>, nullptr, jau::nsize_t> attPDURing;
             std::atomic<bool> l2capReaderShallStop;
 
             std::mutex mtx_l2capReaderLifecycle;

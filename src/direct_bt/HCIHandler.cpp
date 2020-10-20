@@ -295,9 +295,9 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
             {
                 COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (CMD) %s", event->toString().c_str());
                 if( hciEventRing.isFull() ) {
-                    const int dropCount = hciEventRing.capacity()/4;
+                    const jau::nsize_t dropCount = hciEventRing.capacity()/4;
                     hciEventRing.drop(dropCount);
-                    WARN_PRINT("HCIHandler-IO RECV Drop (%d oldest elements of %d capacity, ring full)", dropCount, hciEventRing.capacity());
+                    WARN_PRINT("HCIHandler-IO RECV Drop (%u oldest elements of %u capacity, ring full)", dropCount, hciEventRing.capacity());
                 }
                 hciEventRing.putBlocking( event );
             } else if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
@@ -323,7 +323,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
     }
     {
         const std::lock_guard<std::mutex> lock(mtx_hciReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        WORDY_PRINT("HCIHandler::reader: Ended. Ring has %zu entries flushed", hciEventRing.getSize());
+        WORDY_PRINT("HCIHandler::reader: Ended. Ring has %u entries flushed", hciEventRing.getSize());
         hciEventRing.clear();
         hciReaderRunning = false;
         cv_hciReaderInit.notify_all();

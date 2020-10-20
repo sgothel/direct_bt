@@ -110,9 +110,9 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
             if( MgmtEvent::Opcode::CMD_COMPLETE == opc || MgmtEvent::Opcode::CMD_STATUS == opc ) {
                 COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV (CMD) %s", event->toString().c_str());
                 if( mgmtEventRing.isFull() ) {
-                    const int dropCount = mgmtEventRing.capacity()/4;
+                    const jau::nsize_t dropCount = mgmtEventRing.capacity()/4;
                     mgmtEventRing.drop(dropCount);
-                    WARN_PRINT("DBTManager-IO RECV Drop (%d oldest elements of %d capacity, ring full)", dropCount, mgmtEventRing.capacity());
+                    WARN_PRINT("DBTManager-IO RECV Drop (%u oldest elements of %u capacity, ring full)", dropCount, mgmtEventRing.capacity());
                 }
                 mgmtEventRing.putBlocking( event );
             } else {
@@ -126,7 +126,7 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
     }
     {
         const std::lock_guard<std::mutex> lock(mtx_mgmtReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        WORDY_PRINT("DBTManager::reader: Ended. Ring has %zu entries flushed", mgmtEventRing.getSize());
+        WORDY_PRINT("DBTManager::reader: Ended. Ring has %u entries flushed", mgmtEventRing.getSize());
         mgmtEventRing.clear();
         mgmtReaderRunning = false;
         cv_mgmtReaderInit.notify_all();
