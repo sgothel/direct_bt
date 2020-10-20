@@ -319,8 +319,8 @@ BluetoothManager::BluetoothManager() : event_list()
 
 BluetoothManager *BluetoothManager::get_bluetooth_manager()
 {
-    static BluetoothManager bluetooth_manager;
-    return &bluetooth_manager;
+    static BluetoothManager bluetooth_manager_;
+    return &bluetooth_manager_;
 }
 
 BluetoothManager::BluetoothManager(const BluetoothManager &)
