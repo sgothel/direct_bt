@@ -771,7 +771,7 @@ std::shared_ptr<ConnectionInfo> DBTManager::getConnectionInfo(const int dev_id, 
 }
 
 std::shared_ptr<NameAndShortName> DBTManager::setLocalName(const int dev_id, const std::string & name, const std::string & short_name) noexcept {
-    MgmtSetLocalNameCmd req (dev_id, name, short_name);
+    MgmtSetLocalNameCmd req (static_cast<uint16_t>(dev_id), name, short_name);
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
@@ -779,7 +779,7 @@ std::shared_ptr<NameAndShortName> DBTManager::setLocalName(const int dev_id, con
             std::shared_ptr<NameAndShortName> result = res1.toNameAndShortName();
 
             // explicit LocalNameChanged event
-            MgmtEvtLocalNameChanged * e = new MgmtEvtLocalNameChanged(dev_id, result->getName(), result->getShortName());
+            MgmtEvtLocalNameChanged * e = new MgmtEvtLocalNameChanged(static_cast<uint16_t>(dev_id), result->getName(), result->getShortName());
             sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
             return result;
         }

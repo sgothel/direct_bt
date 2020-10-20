@@ -473,7 +473,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist__Ljava_lang_Strin
         EUI48 address(saddress);
         const BDAddressType addressType = static_cast<BDAddressType>( jaddressType );
         const HCIWhitelistConnectType ctype = static_cast<HCIWhitelistConnectType>( jctype );
-        return adapter->addDeviceToWhitelist(address, addressType, ctype, min_interval, max_interval, latency, timeout);
+        return adapter->addDeviceToWhitelist(address, addressType, ctype, (uint16_t)min_interval, (uint16_t)max_interval, (uint16_t)latency, (uint16_t)timeout);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
