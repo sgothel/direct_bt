@@ -74,31 +74,31 @@ jobject Java_direct_1bt_tinyb_DBTGattCharacteristic_getDescriptorsImpl(JNIEnv *e
         //                   final String type_uuid, final short handle, final byte[] value)
 
         std::function<jobject(JNIEnv*, jclass, jmethodID, GATTDescriptor *)> ctor_desc =
-                [](JNIEnv *env, jclass clazz, jmethodID clazz_ctor, GATTDescriptor *descriptor)->jobject {
+                [](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, GATTDescriptor *descriptor)->jobject {
                     // prepare adapter ctor
-                    std::shared_ptr<GATTCharacteristic> characteristic = descriptor->getCharacteristicChecked();
-                    JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
-                    jobject jcharacteristic = JavaGlobalObj::GetObject(characteristic->getJavaObject());
+                    std::shared_ptr<GATTCharacteristic> _characteristic = descriptor->getCharacteristicChecked();
+                    JavaGlobalObj::check(_characteristic->getJavaObject(), E_FILE_LINE);
+                    jobject jcharacteristic = JavaGlobalObj::GetObject(_characteristic->getJavaObject());
 
-                    const jstring juuid = from_string_to_jstring(env,
+                    const jstring juuid = from_string_to_jstring(env_,
                             directBTJNISettings.getUnifyUUID128Bit() ? descriptor->type->toUUID128String() :
                                                                        descriptor->type->toString());
-                    java_exception_check_and_throw(env, E_FILE_LINE);
+                    java_exception_check_and_throw(env_, E_FILE_LINE);
 
                     const size_t value_size = descriptor->value.getSize();
-                    jbyteArray jvalue = env->NewByteArray((jsize)value_size);
-                    env->SetByteArrayRegion(jvalue, 0, (jsize)value_size, (const jbyte *)descriptor->value.get_ptr());
-                    java_exception_check_and_throw(env, E_FILE_LINE);
+                    jbyteArray jval = env_->NewByteArray((jsize)value_size);
+                    env_->SetByteArrayRegion(jval, 0, (jsize)value_size, (const jbyte *)descriptor->value.get_ptr());
+                    java_exception_check_and_throw(env_, E_FILE_LINE);
 
-                    jobject jdesc = env->NewObject(clazz, clazz_ctor, (jlong)descriptor, jcharacteristic,
-                            juuid, (jshort)descriptor->handle, jvalue);
-                    java_exception_check_and_throw(env, E_FILE_LINE);
+                    jobject jdesc = env_->NewObject(clazz, clazz_ctor, (jlong)descriptor, jcharacteristic,
+                            juuid, (jshort)descriptor->handle, jval);
+                    java_exception_check_and_throw(env_, E_FILE_LINE);
                     JNIGlobalRef::check(jdesc, E_FILE_LINE);
                     std::shared_ptr<JavaAnon> jDescRef = descriptor->getJavaObject(); // GlobalRef
                     JavaGlobalObj::check(jDescRef, E_FILE_LINE);
-                    env->DeleteLocalRef(juuid);
-                    env->DeleteLocalRef(jvalue);
-                    env->DeleteLocalRef(jdesc);
+                    env_->DeleteLocalRef(juuid);
+                    env_->DeleteLocalRef(jval);
+                    env_->DeleteLocalRef(jdesc);
                     return JavaGlobalObj::GetObject(jDescRef);
                 };
         return convert_vector_sharedptr_to_jarraylist<GATTDescriptor>(env, descriptorList, _descriptorClazzCtorArgs.c_str(), ctor_desc);
@@ -131,12 +131,12 @@ jbyteArray Java_direct_1bt_tinyb_DBTGattCharacteristic_readValueImpl(JNIEnv *env
     return nullptr;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_writeValueImpl(JNIEnv *env, jobject obj, jbyteArray jvalue, jboolean withResponse) {
+jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_writeValueImpl(JNIEnv *env, jobject obj, jbyteArray jval, jboolean withResponse) {
     try {
-        if( nullptr == jvalue ) {
+        if( nullptr == jval ) {
             throw IllegalArgumentException("byte array null", E_FILE_LINE);
         }
-        const int value_size = env->GetArrayLength(jvalue);
+        const int value_size = env->GetArrayLength(jval);
         if( 0 == value_size ) {
             return JNI_TRUE;
         }
@@ -144,7 +144,7 @@ jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_writeValueImpl(JNIEnv *env,
         JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
 
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
-        uint8_t * value_ptr = criticalArray.get(jvalue, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+        uint8_t * value_ptr = criticalArray.get(jval, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == value_ptr ) {
             throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }

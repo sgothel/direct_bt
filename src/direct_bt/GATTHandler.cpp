@@ -475,8 +475,8 @@ GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_
     return findCharacterisicsByValueHandle(charValueHandle, services);
 }
 
-GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle, std::vector<GATTServiceRef> &services) noexcept {
-    for(auto it = services.begin(); it != services.end(); it++) {
+GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle, std::vector<GATTServiceRef> &services_) noexcept {
+    for(auto it = services_.begin(); it != services_.end(); it++) {
         GATTCharacteristicRef decl = findCharacterisicsByValueHandle(charValueHandle, *it);
         if( nullptr != decl ) {
             return decl;

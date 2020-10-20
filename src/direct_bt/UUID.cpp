@@ -176,7 +176,6 @@ uuid128_t::uuid128_t(const std::string str)
         std::string msg("UUID128 string not in format '00000000-0000-1000-8000-00805F9B34FB' but "+str);
         throw jau::IllegalArgumentException(msg, E_FILE_LINE);
     }
-    jau::uint128_t value;
 
     // sscanf provided host data type, in which we store the values,
     // hence no endian conversion

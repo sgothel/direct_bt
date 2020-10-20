@@ -370,12 +370,12 @@ static std::string bt_compidtostr(const uint16_t companyid) noexcept {
     return std::to_string(companyid);
 }
 
-ManufactureSpecificData::ManufactureSpecificData(uint16_t const company) noexcept
-: company(company), companyName(std::string(bt_compidtostr(company))), data(/* intentional zero sized */) {
+ManufactureSpecificData::ManufactureSpecificData(uint16_t const company_) noexcept
+: company(company_), companyName(std::string(bt_compidtostr(company_))), data(/* intentional zero sized */) {
 }
 
-ManufactureSpecificData::ManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) noexcept
-: company(company), companyName(std::string(bt_compidtostr(company))), data(data, data_len) {
+ManufactureSpecificData::ManufactureSpecificData(uint16_t const company_, uint8_t const * const data_, size_t const data_len) noexcept
+: company(company_), companyName(std::string(bt_compidtostr(company_))), data(data_, data_len) {
 }
 
 std::string ManufactureSpecificData::toString() const noexcept {
@@ -487,8 +487,8 @@ void EInfoReport::setManufactureSpecificData(uint16_t const company, uint8_t con
     set(EIRDataType::MANUF_DATA);
 }
 
-void EInfoReport::setDeviceID(const uint16_t source, const uint16_t vendor, const uint16_t product, const uint16_t version) noexcept {
-    did_source = source;
+void EInfoReport::setDeviceID(const uint16_t source_, const uint16_t vendor, const uint16_t product, const uint16_t version) noexcept {
+    did_source = source_;
     did_vendor = vendor;
     did_product = product;
     did_version = version;

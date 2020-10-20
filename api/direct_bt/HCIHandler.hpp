@@ -62,8 +62,8 @@ namespace direct_bt {
             uint16_t handle; // mutable
 
         public:
-            HCIConnection(const EUI48 &address, const BDAddressType addressType, const uint16_t handle)
-            : address(address), addressType(addressType), handle(handle) {}
+            HCIConnection(const EUI48 &address_, const BDAddressType addressType_, const uint16_t handle_)
+            : address(address_), addressType(addressType_), handle(handle_) {}
 
             HCIConnection(const HCIConnection &o) = default;
             HCIConnection(HCIConnection &&o) = default;

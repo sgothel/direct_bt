@@ -63,7 +63,7 @@ private:
     TypeSize type;
 
 protected:
-    uuid_t(TypeSize const type) : type(type) {}
+    uuid_t(TypeSize const type_) : type(type_) {}
 
 public:
     static TypeSize toTypeSize(const int size);

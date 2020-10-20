@@ -80,12 +80,12 @@ jbyteArray Java_direct_1bt_tinyb_DBTGattDescriptor_readValueImpl(JNIEnv *env, jo
     return nullptr;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTGattDescriptor_writeValueImpl(JNIEnv *env, jobject obj, jbyteArray jvalue) {
+jboolean Java_direct_1bt_tinyb_DBTGattDescriptor_writeValueImpl(JNIEnv *env, jobject obj, jbyteArray jval) {
     try {
-        if( nullptr == jvalue ) {
+        if( nullptr == jval ) {
             throw IllegalArgumentException("byte array null", E_FILE_LINE);
         }
-        const int value_size = env->GetArrayLength(jvalue);
+        const size_t value_size = (size_t)env->GetArrayLength(jval);
         if( 0 == value_size ) {
             return JNI_TRUE;
         }
@@ -93,7 +93,7 @@ jboolean Java_direct_1bt_tinyb_DBTGattDescriptor_writeValueImpl(JNIEnv *env, job
         JavaGlobalObj::check(descriptor->getJavaObject(), E_FILE_LINE);
 
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
-        uint8_t * value_ptr = criticalArray.get(jvalue, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+        uint8_t * value_ptr = criticalArray.get(jval, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == value_ptr ) {
             throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }

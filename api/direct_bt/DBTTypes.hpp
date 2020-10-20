@@ -102,8 +102,8 @@ namespace direct_bt {
         public:
             static size_t minimumDataSize() noexcept { return 6 + 1 + 1 + 1 + 1; }
 
-            ConnectionInfo(const EUI48 &address, BDAddressType addressType, int8_t rssi, int8_t tx_power, int8_t max_tx_power) noexcept
-            : address(address), addressType(addressType), rssi(rssi), tx_power(tx_power), max_tx_power(max_tx_power) {}
+            ConnectionInfo(const EUI48 &address_, BDAddressType addressType_, int8_t rssi_, int8_t tx_power_, int8_t max_tx_power_) noexcept
+            : address(address_), addressType(addressType_), rssi(rssi_), tx_power(tx_power_), max_tx_power(max_tx_power_) {}
 
             const EUI48 getAddress() const noexcept { return address; }
             BDAddressType getAddressType() const noexcept { return addressType; }
@@ -135,8 +135,8 @@ namespace direct_bt {
             NameAndShortName() noexcept
             : name(), short_name() {}
 
-            NameAndShortName(const std::string & name, const std::string & short_name) noexcept
-            : name(name), short_name(short_name) {}
+            NameAndShortName(const std::string & name_, const std::string & short_name_) noexcept
+            : name(name_), short_name(short_name_) {}
 
             std::string getName() const noexcept { return name; }
             std::string getShortName() const noexcept { return short_name; }
@@ -226,14 +226,14 @@ namespace direct_bt {
             void setShortName(const std::string v) noexcept { short_name = v; }
 
         public:
-            AdapterInfo(const int dev_id, const EUI48 & address,
-                        const uint8_t version, const uint16_t manufacturer,
-                        const AdapterSetting supported_setting, const AdapterSetting current_setting,
-                        const uint32_t dev_class, const std::string & name, const std::string & short_name) noexcept
-            : dev_id(dev_id), address(address), version(version),
-              manufacturer(manufacturer), supported_setting(supported_setting),
-              current_setting(current_setting), dev_class(dev_class),
-              name(name), short_name(short_name)
+            AdapterInfo(const int dev_id_, const EUI48 & address_,
+                        const uint8_t version_, const uint16_t manufacturer_,
+                        const AdapterSetting supported_setting_, const AdapterSetting current_setting_,
+                        const uint32_t dev_class_, const std::string & name_, const std::string & short_name_) noexcept
+            : dev_id(dev_id_), address(address_), version(version_),
+              manufacturer(manufacturer_), supported_setting(supported_setting_),
+              current_setting(current_setting_), dev_class(dev_class_),
+              name(name_), short_name(short_name_)
             { }
 
             bool isSettingMaskSupported(const AdapterSetting setting) const noexcept {

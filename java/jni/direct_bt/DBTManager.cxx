@@ -92,19 +92,19 @@ jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject
             adapters.push_back(std::move(adapter));
         }
         std::function<jobject(JNIEnv*, jclass, jmethodID, DBTAdapter*)> ctor_adapter =
-                [](JNIEnv *env, jclass clazz, jmethodID clazz_ctor, DBTAdapter* adapter)->jobject {
+                [](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, DBTAdapter* adapter)->jobject {
                     // prepare adapter ctor
-                    const jstring addr = from_string_to_jstring(env, adapter->getAddressString());
-                    const jstring name = from_string_to_jstring(env, adapter->getName());
-                    java_exception_check_and_throw(env, E_FILE_LINE);
-                    jobject jAdapter = env->NewObject(clazz, clazz_ctor, (jlong)adapter, addr, name);
-                    java_exception_check_and_throw(env, E_FILE_LINE);
+                    const jstring addr = from_string_to_jstring(env_, adapter->getAddressString());
+                    const jstring name = from_string_to_jstring(env_, adapter->getName());
+                    java_exception_check_and_throw(env_, E_FILE_LINE);
+                    jobject jAdapter = env_->NewObject(clazz, clazz_ctor, (jlong)adapter, addr, name);
+                    java_exception_check_and_throw(env_, E_FILE_LINE);
                     JNIGlobalRef::check(jAdapter, E_FILE_LINE);
                     std::shared_ptr<JavaAnon> jAdapterRef = adapter->getJavaObject(); // GlobalRef
                     JavaGlobalObj::check(jAdapterRef, E_FILE_LINE);
-                    env->DeleteLocalRef(addr);
-                    env->DeleteLocalRef(name);
-                    env->DeleteLocalRef(jAdapter);
+                    env_->DeleteLocalRef(addr);
+                    env_->DeleteLocalRef(name);
+                    env_->DeleteLocalRef(jAdapter);
 
                     DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl: New Adapter %p %s", adapter, adapter->toString().c_str());
                     return JavaGlobalObj::GetObject(jAdapterRef);

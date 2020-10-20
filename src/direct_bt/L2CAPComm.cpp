@@ -105,10 +105,10 @@ int L2CAPComm::l2cap_close_dev(int dd)
 // *************************************************
 // *************************************************
 
-L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid)
+L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device_, const uint16_t psm_, const uint16_t cid_)
 : env(L2CAPEnv::get()),
-  device(device), deviceString(device->getAddressString()), psm(psm), cid(cid),
-  socket_descriptor( l2cap_open_dev(device->getAdapter().getAddress(), psm, cid, true /* pubaddrAdptr */) ),
+  device(device_), deviceString(device_->getAddressString()), psm(psm_), cid(cid_),
+  socket_descriptor( l2cap_open_dev(device_->getAdapter().getAddress(), psm_, cid_, true /* pubaddrAdptr */) ),
   is_connected(true), has_ioerror(false), interrupt_flag(false), tid_connect(0), tid_read(0)
 {
     /** BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ */
@@ -117,7 +117,7 @@ L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, cons
     int to_retry_count=0; // ETIMEDOUT retry count
 
     DBG_PRINT("L2CAPComm::ctor: Start Connect: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
-              getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid, true);
+              getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm_, cid_, true);
 
     if( 0 > socket_descriptor ) {
         goto failure; // open failed
@@ -127,10 +127,10 @@ L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, cons
     // actual request to connect to remote device
     bzero((void *)&req, sizeof(req));
     req.l2_family = AF_BLUETOOTH;
-    req.l2_psm = jau::cpu_to_le(psm);
-    req.l2_bdaddr = device->getAddress();
-    req.l2_cid = jau::cpu_to_le(cid);
-    req.l2_bdaddr_type = device->getAddressType();
+    req.l2_psm = jau::cpu_to_le(psm_);
+    req.l2_bdaddr = device_->getAddress();
+    req.l2_cid = jau::cpu_to_le(cid_);
+    req.l2_bdaddr_type = device_->getAddressType();
 
     while( !interrupt_flag ) {
         // blocking

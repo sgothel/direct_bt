@@ -116,9 +116,9 @@ namespace direct_bt {
             /* Characteristics Descriptor's Value */
             POctets value;
 
-            GATTDescriptor(const GATTCharacteristicRef & characteristic, const std::shared_ptr<const uuid_t> & type,
-                           const uint16_t handle) noexcept
-            : wbr_characteristic(characteristic), type(type), handle(handle), value(/* intentional zero sized */) {}
+            GATTDescriptor(const GATTCharacteristicRef & characteristic, const std::shared_ptr<const uuid_t> & type_,
+                           const uint16_t handle_) noexcept
+            : wbr_characteristic(characteristic), type(type_), handle(handle_), value(/* intentional zero sized */) {}
 
             std::string get_java_class() const noexcept override {
                 return java_class();

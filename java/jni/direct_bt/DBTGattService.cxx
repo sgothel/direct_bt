@@ -76,46 +76,46 @@ jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristicsImpl(JNIEnv *env,
         //                       final int clientCharacteristicsConfigIndex)
 
         std::function<jobject(JNIEnv*, jclass, jmethodID, GATTCharacteristic *)> ctor_char =
-                [](JNIEnv *env, jclass clazz, jmethodID clazz_ctor, GATTCharacteristic *characteristic)->jobject {
+                [](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, GATTCharacteristic *characteristic)->jobject {
                     // prepare adapter ctor
-                    std::shared_ptr<GATTService> service = characteristic->getServiceChecked();
-                    JavaGlobalObj::check(service->getJavaObject(), E_FILE_LINE);
-                    jobject jservice = JavaGlobalObj::GetObject(service->getJavaObject());
+                    std::shared_ptr<GATTService> _service = characteristic->getServiceChecked();
+                    JavaGlobalObj::check(_service->getJavaObject(), E_FILE_LINE);
+                    jobject jservice = JavaGlobalObj::GetObject(_service->getJavaObject());
 
                     std::vector<std::unique_ptr<std::string>> props = GATTCharacteristic::getPropertiesStringList(characteristic->properties);
-                    unsigned int props_size = props.size();
+                    size_t props_size = props.size();
 
                     jobjectArray jproperties;
                     {
-                        jclass string_class = search_class(env, "java/lang/String");
-                        jproperties = env->NewObjectArray(props_size, string_class, 0);
-                        java_exception_check_and_throw(env, E_FILE_LINE);
-                        env->DeleteLocalRef(string_class);
+                        jclass string_class = search_class(env_, "java/lang/String");
+                        jproperties = env_->NewObjectArray((jsize)props_size, string_class, 0);
+                        java_exception_check_and_throw(env_, E_FILE_LINE);
+                        env_->DeleteLocalRef(string_class);
                     }
-                    for (unsigned int i = 0; i < props_size; ++i) {
-                        jobject elem = from_string_to_jstring(env, *props[i].get());
-                        env->SetObjectArrayElement(jproperties, i, elem);
-                        env->DeleteLocalRef(elem);
+                    for (size_t i = 0; i < props_size; ++i) {
+                        jobject elem = from_string_to_jstring(env_, *props[i].get());
+                        env_->SetObjectArrayElement(jproperties, (jsize)i, elem);
+                        env_->DeleteLocalRef(elem);
                     }
-                    java_exception_check_and_throw(env, E_FILE_LINE);
+                    java_exception_check_and_throw(env_, E_FILE_LINE);
 
                     const bool hasNotify = characteristic->hasProperties(GATTCharacteristic::PropertyBitVal::Notify);
                     const bool hasIndicate = characteristic->hasProperties(GATTCharacteristic::PropertyBitVal::Indicate);
 
-                    const jstring uuid = from_string_to_jstring(env,
+                    const jstring uuid = from_string_to_jstring(env_,
                             directBTJNISettings.getUnifyUUID128Bit() ? characteristic->value_type->toUUID128String() :
                                                                        characteristic->value_type->toString());
-                    java_exception_check_and_throw(env, E_FILE_LINE);
+                    java_exception_check_and_throw(env_, E_FILE_LINE);
 
-                    jobject jchar = env->NewObject(clazz, clazz_ctor, (jlong)characteristic, jservice,
+                    jobject jcharVal = env_->NewObject(clazz, clazz_ctor, (jlong)characteristic, jservice,
                             characteristic->handle, jproperties, hasNotify, hasIndicate,
                             uuid, characteristic->value_handle, characteristic->clientCharacteristicsConfigIndex);
-                    java_exception_check_and_throw(env, E_FILE_LINE);
-                    JNIGlobalRef::check(jchar, E_FILE_LINE);
+                    java_exception_check_and_throw(env_, E_FILE_LINE);
+                    JNIGlobalRef::check(jcharVal, E_FILE_LINE);
                     std::shared_ptr<JavaAnon> jCharRef = characteristic->getJavaObject(); // GlobalRef
                     JavaGlobalObj::check(jCharRef, E_FILE_LINE);
-                    env->DeleteLocalRef(jproperties);
-                    env->DeleteLocalRef(jchar);
+                    env_->DeleteLocalRef(jproperties);
+                    env_->DeleteLocalRef(jcharVal);
                     return JavaGlobalObj::GetObject(jCharRef);
                 };
         return convert_vector_sharedptr_to_jarraylist<GATTCharacteristic>(env, characteristics, _characteristicClazzCtorArgs.c_str(), ctor_char);

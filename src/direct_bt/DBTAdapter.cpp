@@ -718,10 +718,10 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) noexc
     jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             l->discoveringChanged(*this, enabled, keepDiscoveringAlive, event.getTimestamp());
-        } catch (std::exception &e) {
+        } catch (std::exception &except) {
             ERR_PRINT("DBTAdapter::EventCB:DeviceDiscovering-CBs %d/%zd: %s of %s: Caught exception %s",
                     i+1, statusListenerList.size(),
-                    l->toString().c_str(), toString().c_str(), e.what());
+                    l->toString().c_str(), toString().c_str(), except.what());
         }
         i++;
     });
@@ -897,10 +897,10 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept
                     l->deviceConnected(device, event.getHCIHandle(), event.getTimestamp());
                 }
             }
-        } catch (std::exception &e) {
+        } catch (std::exception &except) {
             ERR_PRINT("DBTAdapter::EventHCI:DeviceConnected-CBs %d/%zd: %s of %s: Caught exception %s",
                     i+1, statusListenerList.size(),
-                    l->toString().c_str(), device->toString().c_str(), e.what());
+                    l->toString().c_str(), device->toString().c_str(), except.what());
         }
         i++;
     });
@@ -927,10 +927,10 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
                 if( l->matchDevice(*device) ) {
                     l->deviceDisconnected(device, event.getHCIStatus(), handle, event.getTimestamp());
                 }
-            } catch (std::exception &e) {
+            } catch (std::exception &except) {
                 ERR_PRINT("DBTAdapter::EventHCI:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",
                         i+1, statusListenerList.size(),
-                        l->toString().c_str(), device->toString().c_str(), e.what());
+                        l->toString().c_str(), device->toString().c_str(), except.what());
             }
             i++;
         });
@@ -965,10 +965,10 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexc
                 if( l->matchDevice(*device) ) {
                     l->deviceDisconnected(device, event.getHCIReason(), event.getHCIHandle(), event.getTimestamp());
                 }
-            } catch (std::exception &e) {
+            } catch (std::exception &except) {
                 ERR_PRINT("DBTAdapter::EventHCI:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",
                         i+1, statusListenerList.size(),
-                        l->toString().c_str(), device->toString().c_str(), e.what());
+                        l->toString().c_str(), device->toString().c_str(), except.what());
             }
             i++;
         });
@@ -1038,10 +1038,10 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
                 if( l->matchDevice(*dev) ) {
                     l->deviceFound(dev, eir->getTimestamp());
                 }
-            } catch (std::exception &e) {
+            } catch (std::exception &except) {
                 ERR_PRINT("DBTAdapter::EventCB:DeviceFound: %d/%zd: %s of %s: Caught exception %s",
                         i+1, statusListenerList.size(),
-                        l->toString().c_str(), dev->toString().c_str(), e.what());
+                        l->toString().c_str(), dev->toString().c_str(), except.what());
             }
             i++;
         });
@@ -1066,10 +1066,10 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
             if( l->matchDevice(*dev) ) {
                 l->deviceFound(dev, eir->getTimestamp());
             }
-        } catch (std::exception &e) {
+        } catch (std::exception &except) {
             ERR_PRINT("DBTAdapter::EventCB:DeviceFound-CBs %d/%zd: %s of %s: Caught exception %s",
                     i+1, statusListenerList.size(),
-                    l->toString().c_str(), dev->toString().c_str(), e.what());
+                    l->toString().c_str(), dev->toString().c_str(), except.what());
         }
         i++;
     });

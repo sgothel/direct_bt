@@ -272,9 +272,9 @@ class GattGenericAccessSvc {
 		/** Characteristic: Optional [Read: Mandatory; Write: Excluded; ...]*/
 		const std::shared_ptr<GattPeriphalPreferredConnectionParameters> prefConnParam;
 
-		GattGenericAccessSvc(const std::string & deviceName, const AppearanceCat appearance,
-		                     const std::shared_ptr<GattPeriphalPreferredConnectionParameters> & prefConnParam) noexcept
-		: deviceName(deviceName), appearance(appearance), prefConnParam(prefConnParam) {}
+		GattGenericAccessSvc(const std::string & deviceName_, const AppearanceCat appearance_,
+		                     const std::shared_ptr<GattPeriphalPreferredConnectionParameters> & prefConnParam_) noexcept
+		: deviceName(deviceName_), appearance(appearance_), prefConnParam(prefConnParam_) {}
 
 		std::string toString() const noexcept;
 };
@@ -298,8 +298,8 @@ struct GattPnP_ID {
 
     GattPnP_ID(const TROOctets &source) noexcept;
 
-    GattPnP_ID(const uint8_t vendor_id_source, const uint16_t vendor_id, const uint16_t product_id, const uint16_t product_version) noexcept
-    : vendor_id_source(vendor_id_source), vendor_id(vendor_id), product_id(product_id), product_version(product_version) {}
+    GattPnP_ID(const uint8_t vendor_id_source_, const uint16_t vendor_id_, const uint16_t product_id_, const uint16_t product_version_) noexcept
+    : vendor_id_source(vendor_id_source_), vendor_id(vendor_id_), product_id(product_id_), product_version(product_version_) {}
 
     std::string toString() const noexcept;
 };
@@ -331,12 +331,12 @@ class GattDeviceInformationSvc {
         /** Optional */
         const std::shared_ptr<GattPnP_ID> pnpID;
 
-        GattDeviceInformationSvc(const POctets &systemID, const std::string &modelNumber, const std::string &serialNumber,
-                          const std::string &firmwareRevision, const std::string &hardwareRevision, const std::string &softwareRevision,
-                          const std::string &manufacturer, const POctets &regulatoryCertDataList, const std::shared_ptr<GattPnP_ID> &pnpID) noexcept
-        : systemID(systemID), modelNumber(modelNumber), serialNumber(serialNumber), firmwareRevision(firmwareRevision),
-          hardwareRevision(hardwareRevision), softwareRevision(softwareRevision), manufacturer(manufacturer),
-          regulatoryCertDataList(regulatoryCertDataList), pnpID(pnpID) {}
+        GattDeviceInformationSvc(const POctets &systemID_, const std::string &modelNumber_, const std::string &serialNumber_,
+                          const std::string &firmwareRevision_, const std::string &hardwareRevision_, const std::string &softwareRevision_,
+                          const std::string &manufacturer_, const POctets &regulatoryCertDataList_, const std::shared_ptr<GattPnP_ID> &pnpID_) noexcept
+        : systemID(systemID_), modelNumber(modelNumber_), serialNumber(serialNumber_), firmwareRevision(firmwareRevision_),
+          hardwareRevision(hardwareRevision_), softwareRevision(softwareRevision_), manufacturer(manufacturer_),
+          regulatoryCertDataList(regulatoryCertDataList_), pnpID(pnpID_) {}
 
         std::string toString() const noexcept;
 };
@@ -376,9 +376,9 @@ class GattTemperatureMeasurement {
             return get(o);
         }
 
-        GattTemperatureMeasurement(const uint8_t flags, const float temperatureValue,
-                                            const ieee11073::AbsoluteTime &timestamp, const uint8_t temperature_type) noexcept
-        : flags(flags), temperatureValue(temperatureValue), timestamp(timestamp), temperature_type(temperature_type) {}
+        GattTemperatureMeasurement(const uint8_t flags_, const float temperatureValue_,
+                                   const ieee11073::AbsoluteTime &timestamp_, const uint8_t temperature_type_) noexcept
+        : flags(flags_), temperatureValue(temperatureValue_), timestamp(timestamp_), temperature_type(temperature_type_) {}
 
         bool isFahrenheit() const noexcept { return 0 != ( flags & Bits::IS_TEMP_FAHRENHEIT ); }
         bool hasTimestamp() const noexcept { return 0 != ( flags & Bits::HAS_TIMESTAMP ); }

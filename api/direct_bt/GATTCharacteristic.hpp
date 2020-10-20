@@ -143,10 +143,10 @@ namespace direct_bt {
             /* Optional Client Characteristic Configuration index within descriptorList */
             int clientCharacteristicsConfigIndex = -1;
 
-            GATTCharacteristic(const GATTServiceRef & service, const uint16_t service_handle, const uint16_t handle,
-                                   const PropertyBitVal properties, const uint16_t value_handle, std::shared_ptr<const uuid_t> value_type) noexcept
-            : wbr_service(service), service_handle(service_handle), handle(handle),
-              properties(properties), value_handle(value_handle), value_type(value_type) {}
+            GATTCharacteristic(const GATTServiceRef & service_, const uint16_t service_handle_, const uint16_t handle_,
+                               const PropertyBitVal properties_, const uint16_t value_handle_, std::shared_ptr<const uuid_t> value_type_) noexcept
+            : wbr_service(service_), service_handle(service_handle_), handle(handle_),
+              properties(properties_), value_handle(value_handle_), value_type(value_type_) {}
 
             std::string get_java_class() const noexcept override {
                 return java_class();
@@ -178,7 +178,7 @@ namespace direct_bt {
                 if( 0 > clientCharacteristicsConfigIndex ) {
                     return nullptr;
                 }
-                return descriptorList.at(clientCharacteristicsConfigIndex); // abort if out of bounds
+                return descriptorList.at(static_cast<size_t>(clientCharacteristicsConfigIndex)); // abort if out of bounds
             }
 
             /**

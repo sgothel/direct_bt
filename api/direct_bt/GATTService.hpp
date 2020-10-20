@@ -96,9 +96,9 @@ namespace direct_bt {
             /** List of Characteristic Declarations as shared reference */
             std::vector<GATTCharacteristicRef> characteristicList;
 
-            GATTService(const std::shared_ptr<GATTHandler> &handler, const bool isPrimary,
-                        const uint16_t startHandle, const uint16_t endHandle, std::shared_ptr<const uuid_t> type) noexcept
-            : wbr_handler(handler), isPrimary(isPrimary), startHandle(startHandle), endHandle(endHandle), type(type), characteristicList() {
+            GATTService(const std::shared_ptr<GATTHandler> &handler_, const bool isPrimary_,
+                        const uint16_t startHandle_, const uint16_t endHandle_, std::shared_ptr<const uuid_t> type_) noexcept
+            : wbr_handler(handler_), isPrimary(isPrimary_), startHandle(startHandle_), endHandle(endHandle_), type(type_), characteristicList() {
                 characteristicList.reserve(10);
             }
 
