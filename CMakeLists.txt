@@ -23,8 +23,9 @@ set (GCC_FLAGS_WARNING_NO_ERROR "-Wno-error=array-bounds")
 
 # debug only
 set (GCC_FLAGS_STACK "-fstack-protector-strong -fstack-check")
-# set (GCC_FLAGS_SANITIZE "-fsanitize-address-use-after-scope -fsanitize=undefined -fsanitize=thread")
-set (GCC_FLAGS_SANITIZE "-fsanitize-address-use-after-scope -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=undefined -fsanitize=leak")
+set (GCC_FLAGS_SANITIZE_ALLLEAK "-fsanitize-address-use-after-scope -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=undefined -fsanitize=leak")
+set (GCC_FLAGS_SANITIZE_UNDEFINED "-fsanitize=undefined")
+set (GCC_FLAGS_SANITIZE_THREAD "-fsanitize-address-use-after-scope -fsanitize=undefined -fsanitize=thread")
 # -fsanitize=address cannot be combined with -fsanitize=thread
 # -fsanitize=pointer-compare -fsanitize=pointer-subtract must be combined with -fsanitize=address
 # -fsanitize=thread TSAN's lacks ability to properly handle GCC's atomic macros (like helgrind etc), can't check SC-DRF!
@@ -44,7 +45,15 @@ if(DEBUG)
     endif(CMAKE_COMPILER_IS_GNUCC)
     if(INSTRUMENTATION)
         if(CMAKE_COMPILER_IS_GNUCC)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS_SANITIZE}")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS_SANITIZE_ALLLEAK}")
+        endif(CMAKE_COMPILER_IS_GNUCC)
+    elseif(INSTRUMENTATION_UNDEFINED)
+        if(CMAKE_COMPILER_IS_GNUCC)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS_SANITIZE_UNDEFINED}")
+        endif(CMAKE_COMPILER_IS_GNUCC)
+    elseif(INSTRUMENTATION_THREAD)
+        if(CMAKE_COMPILER_IS_GNUCC)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS_SANITIZE_THREAD}")
         endif(CMAKE_COMPILER_IS_GNUCC)
     endif(INSTRUMENTATION)
 else()
