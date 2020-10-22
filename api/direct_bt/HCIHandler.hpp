@@ -135,6 +135,19 @@ namespace direct_bt {
             const int32_t HCI_COMMAND_COMPLETE_REPLY_TIMEOUT;
 
             /**
+             * Poll period for certain HCI commands actively waiting for clearance, defaults to 125ms.
+             * <p>
+             * Used for LE_Create_Connection or Create_Connection
+             * when waiting for any pending connection commands or the addressed device's disconnect command to been completed
+             * up to HCI_COMMAND_COMPLETE_REPLY_TIMEOUT.
+             * </p>
+             * <p>
+             * Environment variable is 'direct_bt.hci.cmd.complete.timeout'.
+             * </p>
+             */
+            const int32_t HCI_COMMAND_POLL_PERIOD;
+
+            /**
              * Small ringbuffer capacity for synchronized commands, defaults to 64 messages.
              * <p>
              * Environment variable is 'direct_bt.hci.ringsize'.
@@ -221,14 +234,16 @@ namespace direct_bt {
             pthread_t hciReaderThreadId;
             bool hciReaderRunning;
 
-            std::recursive_mutex mtx_sendReply; // for sendWith*Reply, process*Command, ..
+            std::recursive_mutex mtx_sendReply; // for sendWith*Reply, process*Command, ..; Recurses from many..
 
             std::atomic<bool> allowClose;
             std::atomic<BTMode> btMode;
 
+            std::atomic<ScanType> currentScanType;
+
             std::vector<HCIConnectionRef> connectionList;
-            std::vector<HCIConnectionRef> disconnectList;
-            std::mutex mtx_connectionList;
+            std::vector<HCIConnectionRef> disconnectCmdList;
+            std::recursive_mutex mtx_connectionList; // Recurses from disconnect -> findTrackerConnection, addOrUpdateTrackerConnection
             /**
              * Returns a newly added HCIConnectionRef tracker connection with given parameters, if not existing yet.
              * <p>
@@ -246,27 +261,28 @@ namespace direct_bt {
             HCIConnectionRef addOrUpdateTrackerConnection(const EUI48 & address, BDAddressType addrType, const uint16_t handle) noexcept {
                 return addOrUpdateHCIConnection(connectionList, address, addrType, handle);
             }
-            HCIConnectionRef addOrUpdateDisconnect(const EUI48 & address, BDAddressType addrType, const uint16_t handle) noexcept {
-                return addOrUpdateHCIConnection(disconnectList, address, addrType, handle);
+            HCIConnectionRef addOrUpdateDisconnectCmd(const EUI48 & address, BDAddressType addrType, const uint16_t handle) noexcept {
+                return addOrUpdateHCIConnection(disconnectCmdList, address, addrType, handle);
             }
 
             HCIConnectionRef findHCIConnection(std::vector<HCIConnectionRef> &list, const EUI48 & address, BDAddressType addrType) noexcept;
             HCIConnectionRef findTrackerConnection(const EUI48 & address, BDAddressType addrType) noexcept {
                 return findHCIConnection(connectionList, address, addrType);
             }
-            HCIConnectionRef findDisconnect(const EUI48 & address, BDAddressType addrType) noexcept {
-                return findHCIConnection(disconnectList, address, addrType);
+            HCIConnectionRef findDisconnectCmd(const EUI48 & address, BDAddressType addrType) noexcept {
+                return findHCIConnection(disconnectCmdList, address, addrType);
             }
 
             HCIConnectionRef findTrackerConnection(const uint16_t handle) noexcept;
             HCIConnectionRef removeTrackerConnection(const HCIConnectionRef conn) noexcept;
+            int countPendingTrackerConnections() noexcept;
 
             HCIConnectionRef removeHCIConnection(std::vector<HCIConnectionRef> &list, const uint16_t handle) noexcept;
             HCIConnectionRef removeTrackerConnection(const uint16_t handle) noexcept {
                 return removeHCIConnection(connectionList, handle);
             }
-            HCIConnectionRef removeDisconnect(const uint16_t handle) noexcept {
-                return removeHCIConnection(disconnectList, handle);
+            HCIConnectionRef removeDisconnectCmd(const uint16_t handle) noexcept {
+                return removeHCIConnection(disconnectCmdList, handle);
             }
 
             void clearConnectionLists() noexcept;
@@ -283,13 +299,15 @@ namespace direct_bt {
 
             bool sendCommand(HCICommand &req) noexcept;
             std::shared_ptr<HCIEvent> getNextReply(HCICommand &req, int32_t & retryCount, const int32_t replyTimeoutMS) noexcept;
-
-            std::shared_ptr<HCIEvent> sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) noexcept;
+            std::shared_ptr<HCIEvent> getNextCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) noexcept;
 
             std::shared_ptr<HCIEvent> processCommandStatus(HCICommand &req, HCIStatusCode *status) noexcept;
 
             template<typename hci_cmd_event_struct>
             std::shared_ptr<HCIEvent> processCommandComplete(HCICommand &req,
+                                                             const hci_cmd_event_struct **res, HCIStatusCode *status) noexcept;
+            template<typename hci_cmd_event_struct>
+            std::shared_ptr<HCIEvent> receiveCommandComplete(HCICommand &req,
                                                              const hci_cmd_event_struct **res, HCIStatusCode *status) noexcept;
 
             template<typename hci_cmd_event_struct>
@@ -315,12 +333,14 @@ namespace direct_bt {
 
             inline void setBTMode(const BTMode mode) noexcept { btMode = mode; }
 
-            /** Returns true if this mgmt instance is open and hence valid, otherwise false */
+            /** Returns true if this mgmt instance is open, connected and hence valid, otherwise false */
             bool isOpen() const noexcept {
-                return comm.isOpen();
+                return true == allowClose.load() && comm.isOpen();
             }
 
-            std::string toString() const noexcept { return "HCIHandler[BTMode "+getBTModeString(btMode)+", dev_id "+std::to_string(dev_id)+"]"; }
+            ScanType getCurrentScanType() const noexcept { return currentScanType.load(); }
+
+            std::string toString() const noexcept;
 
             /**
              * Bring up this adapter into a POWERED functional state.
@@ -365,21 +385,22 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.10 LE Set Scan Parameters command
              * BT Core Spec v5.2: Vol 6 LE, Part B Link Layer: 4.4.3 Scanning State
              * </p>
-             * Should not be called while scanning is active.
              * <p>
              * Scan parameters control advertising (AD) Protocol Data Unit (PDU) delivery behavior.
              * </p>
+             * <p>
+             * Should not be called while LE scanning is active, otherwise HCIStatusCode::COMMAND_DISALLOWED will be returned.
+             * </p>
              *
-             * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
              * @param own_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
              * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
              * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
              * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
+             * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
              */
-            HCIStatusCode le_set_scan_param(const bool le_scan_active=false,
-                                            const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
+            HCIStatusCode le_set_scan_param(const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
                                             const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
-                                            const uint8_t filter_policy=0x00) noexcept;
+                                            const uint8_t filter_policy=0x00, const bool le_scan_active=false) noexcept;
 
             /**
              * Starts or stops LE scanning.
@@ -390,6 +411,34 @@ namespace direct_bt {
              * @param filter_dup true to filter out duplicate AD PDUs (default), otherwise all will be reported.
              */
             HCIStatusCode le_enable_scan(const bool enable, const bool filter_dup=true) noexcept;
+
+            /**
+             * Start LE scanning, i.e. performs le_set_scan_param() and le_enable_scan() in one atomic operation.
+             * <p>
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.10 LE Set Scan Parameters command
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.11 LE Set Scan Enable command
+             * </p>
+             * <p>
+             * Scan parameters control advertising (AD) Protocol Data Unit (PDU) delivery behavior.
+             * </p>
+             * <p>
+             * Should not be called while LE scanning is active, otherwise HCIStatusCode::COMMAND_DISALLOWED will be returned.
+             * </p>
+             * <p>
+             * Method will report errors.
+             * </p>
+             *
+             * @param filter_dup true to filter out duplicate AD PDUs (default), otherwise all will be reported.
+             * @param own_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
+             * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
+             * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
+             * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
+             * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
+             */
+            HCIStatusCode le_start_scan(const bool filter_dup=true,
+                                        const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
+                                        const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
+                                        const uint8_t filter_policy=0x00, const bool le_scan_active=false) noexcept;
 
             /**
              * Establish a connection to the given LE peer.
@@ -406,7 +455,20 @@ namespace direct_bt {
              * <br>
              * To detect a link loss one can also send a regular ping to check whether the peripheral is still responding, see GATTHandler::ping().
              * </p>
-             *
+             * <p>
+             * Implementation tries to mitigate HCIStatusCode::COMMAND_DISALLOWED failure due to any pending connection commands,
+             * waiting actively up to HCIEnv::HCI_COMMAND_COMPLETE_REPLY_TIMEOUT, testing every HCIEnv::HCI_COMMAND_POLL_PERIOD if resolved.<br>
+             * <br>
+             * In case of no resolution, i.e. another HCI_LE_Create_Connection command is pending,
+             * HCIStatusCode::COMMAND_DISALLOWED will be returned by the underlying HCI host implementation.
+             * </p>
+             * <p>
+             * Implementation tries to mitigate HCIStatusCode::CONNECTION_ALREADY_EXISTS failure due to a specific pending disconnect command,
+             * waiting actively up to HCIEnv::HCI_COMMAND_COMPLETE_REPLY_TIMEOUT, testing every HCIEnv::HCI_COMMAND_POLL_PERIOD if resolved.<br>
+             * <br>
+             * In case of no resolution, i.e. the connection persists,
+             * HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned by the underlying HCI host implementation.
+             * </p>
              * @param peer_bdaddr
              * @param peer_mac_type
              * @param own_mac_type
@@ -429,6 +491,20 @@ namespace direct_bt {
              * Establish a connection to the given BREDR (non LE).
              * <p>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.5 Create Connection command
+             * </p>
+             * <p>
+             * Implementation tries to mitigate HCIStatusCode::COMMAND_DISALLOWED failure due to any pending connection commands,
+             * waiting actively up to HCIEnv::HCI_COMMAND_COMPLETE_REPLY_TIMEOUT, testing every HCIEnv::HCI_COMMAND_POLL_PERIOD if resolved.<br>
+             * <br>
+             * In case of no resolution, i.e. another HCI_Create_Connection command is pending,
+             * HCIStatusCode::COMMAND_DISALLOWED will be returned by the underlying HCI host implementation.
+             * </p>
+             * <p>
+             * Implementation tries to mitigate HCIStatusCode::CONNECTION_ALREADY_EXISTS failure due to a specific pending disconnect command,
+             * waiting actively up to HCIEnv::HCI_COMMAND_COMPLETE_REPLY_TIMEOUT, testing every HCIEnv::HCI_COMMAND_POLL_PERIOD if resolved.<br>
+             * <br>
+             * In case of no resolution, i.e. the connection persists,
+             * HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned by the underlying HCI host implementation.
              * </p>
              */
             HCIStatusCode create_conn(const EUI48 &bdaddr,
@@ -503,7 +579,6 @@ namespace direct_bt {
              * FIXME: TODO
              * static bool generateIRK(uint8_t *buffer, int size);
              */
-
     };
 
 } // namespace direct_bt

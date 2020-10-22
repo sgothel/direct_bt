@@ -788,13 +788,6 @@ namespace direct_bt {
 
             jau::nsize_t getReturnParamSize() const noexcept { return getParamSize() - 3; }
             const uint8_t* getReturnParam() const { return pdu.get_ptr(number(HCIConstSizeT::EVENT_HDR_SIZE)+3); }
-            HCIStatusCode getReturnStatus(const jau::nsize_t returnParamOffset=0) const {
-                const jau::nsize_t returnParamSize = getReturnParamSize();
-                if( returnParamSize < returnParamOffset + 1 /* status size */ ) {
-                    return HCIStatusCode::UNKNOWN;
-                }
-                return static_cast<HCIStatusCode>( pdu.get_uint8(number(HCIConstSizeT::EVENT_HDR_SIZE) + 3 + returnParamOffset) );
-            }
 
             bool validate(const HCICommand & cmd) const noexcept override {
                 return cmd.getOpcode() == getOpcode();
