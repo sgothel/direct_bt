@@ -123,6 +123,31 @@ namespace direct_bt {
     constexpr uint8_t number(const ScanType rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
+    constexpr ScanType operator ~(const ScanType val) noexcept {
+        return static_cast<ScanType> ( ~static_cast<uint8_t>(val) );
+    }
+    constexpr ScanType operator ^(const ScanType lhs, const ScanType rhs) noexcept {
+        return static_cast<ScanType> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
+    }
+    constexpr ScanType operator |(const ScanType lhs, const ScanType rhs) noexcept {
+        return static_cast<ScanType> ( static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs) );
+    }
+    constexpr ScanType operator &(const ScanType lhs, const ScanType rhs) noexcept {
+        return static_cast<ScanType> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
+    }
+    constexpr bool operator ==(const ScanType lhs, const ScanType rhs) noexcept {
+        return static_cast<uint8_t>(lhs) == static_cast<uint8_t>(rhs);
+    }
+    constexpr bool operator !=(const ScanType lhs, const ScanType rhs) noexcept {
+        return !( lhs == rhs );
+    }
+    constexpr ScanType changeScanType(const ScanType current, const bool enable, const ScanType enableChanged) noexcept {
+        return enable ? ( current | enableChanged ) : ( current & ~enableChanged );
+    }
+    constexpr bool hasScanType(const ScanType current, const ScanType test) noexcept {
+        return test == ( current & test );
+    }
+
     std::string getScanTypeString(const ScanType v) noexcept;
 
     ScanType getScanType(BTMode btMode);
