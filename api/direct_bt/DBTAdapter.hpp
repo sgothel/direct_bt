@@ -186,7 +186,6 @@ namespace direct_bt {
             std::atomic<BTMode> btMode = BTMode::NONE;
             NameAndShortName localName;
             std::atomic<ScanType> currentMetaScanType; // = ScanType::NONE
-            std::atomic<ScanType> currentNativeScanType; // = ScanType::NONE
             std::atomic<bool> keepDiscoveringAlive; //  = false;
 
             std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
@@ -541,7 +540,7 @@ namespace direct_bt {
              * Returns the adapter's native discovering state. It can be modified through startDiscovery(..) and stopDiscovery().
              */
             ScanType getNativeDiscoveringScanType() const noexcept{
-                return currentNativeScanType;
+                return hci.getCurrentScanType();
             }
 
             /**
