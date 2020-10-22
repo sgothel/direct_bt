@@ -125,6 +125,13 @@
    ...
    obj:*libdirect_bt.so*
 }
+{
+   jau_ringbuffer_sc_drf_atomic_015
+   Helgrind:Race
+   ...
+   fun:*direct_bt*DBTManager*close*
+   ...
+}
 
 #
 # GATTHandler
@@ -260,17 +267,30 @@
    jau_cow_vector_sc_drf_atomic_041
    Helgrind:Race
    ...
-   fun:*jau*cow_vector*clear*
+   fun:*jau*cow_vector*
    ...
 }
 {
    jau_cow_vector_sc_drf_atomic_042
    Helgrind:Race
    ...
-   fun:fun:*direct_bt*AdapterStatusListenerEED1Ev
+   fun:*direct_bt*AdapterStatusListenerEED1Ev
    ...
 }
-
+{
+   jau_cow_vector_sc_drf_atomic_043
+   Helgrind:Race
+   ...
+   fun:*direct_bt*GATTCharacteristicListenerEED1Ev
+   ...
+}
+{
+   jau_cow_vector_sc_drf_atomic_043
+   Helgrind:Race
+   ...
+   fun:*jau*FunctionDef*shared_ptr*
+   ...
+}
 
 #
 # DRD
@@ -378,6 +398,13 @@
    drd:ConflictingAccess
    ...
    fun:*direct_bt*MgmtEvent*getOpcode*
+   ...
+}
+{
+   jau_ringbuffer_sc_drf_atomic_016
+   drd:ConflictingAccess
+   ...
+   fun:*direct_bt*DBTManager*close*
    ...
 }
 
@@ -494,14 +521,28 @@
    jau_cow_vector_sc_drf_atomic_041
    drd:ConflictingAccess
    ...
-   fun:*jau*cow_vector*clear*
+   fun:*jau*cow_vector*
    ...
 }
 {
    jau_cow_vector_sc_drf_atomic_042
    drd:ConflictingAccess
    ...
-   fun:fun:*direct_bt*AdapterStatusListenerEED1Ev
+   fun:*direct_bt*AdapterStatusListenerEED1Ev
+   ...
+}
+{
+   jau_cow_vector_sc_drf_atomic_043
+   drd:ConflictingAccess
+   ...
+   fun:*direct_bt*GATTCharacteristicListenerEED1Ev
+   ...
+}
+{
+   jau_cow_vector_sc_drf_atomic_043
+   drd:ConflictingAccess
+   ...
+   fun:*jau*FunctionDef*shared_ptr*
    ...
 }
 
