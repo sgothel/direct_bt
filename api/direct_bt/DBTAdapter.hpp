@@ -94,6 +94,10 @@ namespace direct_bt {
 
             /**
              * DBTAdapter's discovery state has changed, i.e. enabled or disabled.
+             * <p>
+             * FIXME: Method shall include the enabled/disabled ScanType plus the current overall ScanType state.
+             * For now, we only report LE discovery state.
+             * </p>
              * @param adapter the adapter which discovering state has changed.
              * @param enabled the new discovery state
              * @param keepAlive if {@code true}, the discovery will be re-enabled if disabled by the underlying Bluetooth implementation.
@@ -186,7 +190,7 @@ namespace direct_bt {
             std::atomic<BTMode> btMode = BTMode::NONE;
             NameAndShortName localName;
             std::atomic<ScanType> currentMetaScanType; // = ScanType::NONE
-            std::atomic<bool> keepDiscoveringAlive; //  = false;
+            std::atomic<bool> keep_le_scan_alive; //  = false;
 
             std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
@@ -247,6 +251,8 @@ namespace direct_bt {
             bool mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
+
+            bool mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const bool hciSourced) noexcept;
 
             void startDiscoveryBackground() noexcept;
             void checkDiscoveryState() noexcept;
@@ -530,21 +536,32 @@ namespace direct_bt {
             HCIStatusCode stopDiscovery() noexcept;
 
             /**
-             * Returns the meta discovering state. It can be modified through startDiscovery(..) and stopDiscovery().
+             * Returns the current meta discovering ScanType. It can be modified through startDiscovery(..) and stopDiscovery().
+             * <p>
+             * Note that if startDiscovery(..) has been issued with keepAlive==true,
+             * the meta ScanType will still keep the desired ScanType enabled
+             * even if it has been temporarily disabled.
+             * </p>
+             * @see startDiscovery()
+             * @see stopDiscovery()
              */
-            ScanType getDiscoveringScanType() const noexcept {
+            ScanType getCurrentScanType() const noexcept {
                 return currentMetaScanType;
             }
 
             /**
-             * Returns the adapter's native discovering state. It can be modified through startDiscovery(..) and stopDiscovery().
+             * Returns the adapter's current native discovering ScanType. It can be modified through startDiscovery(..) and stopDiscovery().
+             * @see startDiscovery()
+             * @see stopDiscovery()
              */
-            ScanType getNativeDiscoveringScanType() const noexcept{
+            ScanType getCurrentNativeScanType() const noexcept{
                 return hci.getCurrentScanType();
             }
 
             /**
              * Returns the meta discovering state. It can be modified through startDiscovery(..) and stopDiscovery().
+             * @see startDiscovery()
+             * @see stopDiscovery()
              */
             bool getDiscovering() const noexcept {
                 return ScanType::NONE != currentMetaScanType;

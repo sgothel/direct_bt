@@ -339,6 +339,7 @@ namespace direct_bt {
             }
 
             ScanType getCurrentScanType() const noexcept { return currentScanType.load(); }
+            void setCurrentScanType(const ScanType v) noexcept { currentScanType = v; }
 
             std::string toString() const noexcept;
 

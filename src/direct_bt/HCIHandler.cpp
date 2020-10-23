@@ -757,10 +757,7 @@ HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_du
 
     if( HCIStatusCode::SUCCESS == status ) {
         currentScanType = nextScanType;
-        // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
-        std::thread bg(&HCIHandler::sendMgmtEvent, this, std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, enable) ) ); // @suppress("Invalid arguments")
-        bg.detach();
-        // sendMgmtEvent(std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, enable) ) );
+        sendMgmtEvent(std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, enable) ) );
     }
     return status;
 }

@@ -132,7 +132,7 @@ std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (EUI48 const & mac, c
 
 bool DBTAdapter::validateDevInfo() noexcept {
     currentMetaScanType = ScanType::NONE;
-    keepDiscoveringAlive = false;
+    keep_le_scan_alive = false;
 
     if( 0 > dev_id ) {
         ERR_PRINT("DBTAdapter::validateDevInfo: Invalid negative dev_id %d", dev_id);
@@ -230,7 +230,7 @@ DBTAdapter::~DBTAdapter() noexcept {
 
 void DBTAdapter::close() noexcept {
     DBG_PRINT("DBTAdapter::close: ... %p %s", this, toString().c_str());
-    keepDiscoveringAlive = false;
+    keep_le_scan_alive = false;
     // mute all listener first
     {
         int count = mgmt.removeMgmtEventCallback(dev_id);
@@ -261,13 +261,14 @@ void DBTAdapter::close() noexcept {
 
 void DBTAdapter::poweredOff() noexcept {
     DBG_PRINT("DBTAdapter::poweredOff: ... %p %s", this, toString(false).c_str());
-    keepDiscoveringAlive = false;
+    keep_le_scan_alive = false;
 
     // Removes all device references from the lists: connectedDevices, discoveredDevices, sharedDevices
     stopDiscovery();
     disconnectAllDevices();
     removeDiscoveredDevices();
 
+    hci.setCurrentScanType(ScanType::NONE);
     currentMetaScanType = ScanType::NONE;
 
     DBG_PRINT("DBTAdapter::poweredOff: XXX");
@@ -418,9 +419,10 @@ int DBTAdapter::removeAllStatusListener() {
 
 void DBTAdapter::checkDiscoveryState() noexcept {
     const ScanType currentNativeScanType = hci.getCurrentScanType();
-    if( keepDiscoveringAlive == false ) {
-        if( currentMetaScanType != currentNativeScanType ) {
-            std::string msg("Invalid DiscoveryState: keepAlive "+std::to_string(keepDiscoveringAlive.load())+
+    // Check LE scan state
+    if( keep_le_scan_alive == false ) {
+        if( hasScanType(currentMetaScanType, ScanType::LE) != hasScanType(currentNativeScanType, ScanType::LE) ) {
+            std::string msg("Invalid DiscoveryState: keepAlive "+std::to_string(keep_le_scan_alive.load())+
                     ", currentScanType*[native "+
                     getScanTypeString(currentNativeScanType)+" != meta "+
                     getScanTypeString(currentMetaScanType)+"]");
@@ -428,8 +430,8 @@ void DBTAdapter::checkDiscoveryState() noexcept {
             // ABORT?
         }
     } else {
-        if( currentMetaScanType == ScanType::NONE && currentNativeScanType != ScanType::NONE ) {
-            std::string msg("Invalid DiscoveryState: keepAlive "+std::to_string(keepDiscoveringAlive.load())+
+        if( !hasScanType(currentMetaScanType, ScanType::LE) && hasScanType(currentNativeScanType, ScanType::LE) ) {
+            std::string msg("Invalid DiscoveryState: keepAlive "+std::to_string(keep_le_scan_alive.load())+
                     ", currentScanType*[native "+
                     getScanTypeString(currentNativeScanType)+", meta "+
                     getScanTypeString(currentMetaScanType)+"]");
@@ -454,39 +456,36 @@ HCIStatusCode DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAdd
 
     const ScanType currentNativeScanType = hci.getCurrentScanType();
 
-    if( ScanType::NONE != currentMetaScanType ) {
+    if( hasScanType(currentNativeScanType, ScanType::LE) ) {
         removeDiscoveredDevices();
-        if( keepDiscoveringAlive == keepAlive ) {
+        if( keep_le_scan_alive == keepAlive ) {
             DBG_PRINT("DBTAdapter::startDiscovery: Already discovering, unchanged keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
-                    keepDiscoveringAlive.load(), keepAlive,
+                    keep_le_scan_alive.load(), keepAlive,
                     getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str());
         } else {
             DBG_PRINT("DBTAdapter::startDiscovery: Already discovering, changed keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
-                    keepDiscoveringAlive.load(), keepAlive,
+                    keep_le_scan_alive.load(), keepAlive,
                     getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str());
-            keepDiscoveringAlive = keepAlive;
+            keep_le_scan_alive = keepAlive;
         }
         checkDiscoveryState();
         return HCIStatusCode::SUCCESS;
     }
 
     DBG_PRINT("DBTAdapter::startDiscovery: Start: keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
-            keepDiscoveringAlive.load(), keepAlive,
+            keep_le_scan_alive.load(), keepAlive,
             getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str());
 
     removeDiscoveredDevices();
-    keepDiscoveringAlive = keepAlive;
+    keep_le_scan_alive = keepAlive;
 
-    // Will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately in new thread, don't change current scan-type state here
+    // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
     const HCIStatusCode status = hci.le_start_scan(true /* filter_dup */, own_mac_type, le_scan_interval, le_scan_window);
-    if( HCIStatusCode::SUCCESS == status ) {
-        currentMetaScanType = changeScanType(currentMetaScanType, true, ScanType::LE);
-    } else {
-        ERR_PRINT("DBTAdapter::startDiscovery: le_start_scan failed: %s", getHCIStatusCodeString(status).c_str());
-    }
+
     DBG_PRINT("DBTAdapter::startDiscovery: End: Result %s, keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
-            getHCIStatusCodeString(status).c_str(), keepDiscoveringAlive.load(), keepAlive,
+            getHCIStatusCodeString(status).c_str(), keep_le_scan_alive.load(), keepAlive,
             getScanTypeString(hci.getCurrentScanType()).c_str(), getScanTypeString(currentMetaScanType).c_str());
+
     checkDiscoveryState();
 
     return status;
@@ -499,12 +498,10 @@ void DBTAdapter::startDiscoveryBackground() noexcept {
         return;
     }
     const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
-    if( ScanType::NONE == hci.getCurrentScanType() && keepDiscoveringAlive ) { // still?
-        // Will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, don't change current scan-type state here
+    if( !hasScanType(hci.getCurrentScanType(), ScanType::LE) && keep_le_scan_alive ) { // still?
+        // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
         const HCIStatusCode status = hci.le_enable_scan(true /* enable */);
-        if( HCIStatusCode::SUCCESS == status ) {
-            currentMetaScanType = changeScanType(currentMetaScanType, true, ScanType::LE);
-        } else {
+        if( HCIStatusCode::SUCCESS != status ) {
             ERR_PRINT("DBTAdapter::startDiscoveryBackground: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
         }
         checkDiscoveryState();
@@ -531,19 +528,19 @@ HCIStatusCode DBTAdapter::stopDiscovery() noexcept {
      * [4] current -> [5] post stopDiscovery == sendEvent
      */
     const ScanType currentNativeScanType = hci.getCurrentScanType();
-    const bool discoveryTempDisabled = ScanType::NONE != currentMetaScanType &&    // true
-                                       ScanType::NONE == currentNativeScanType &&  // false
-                                       keepDiscoveringAlive;                       // true
+    const bool le_scan_temp_disabled = hasScanType(currentMetaScanType, ScanType::LE) &&    // true
+                                       !hasScanType(currentNativeScanType, ScanType::LE) && // false
+                                       keep_le_scan_alive;                                  // true
 
-    DBG_PRINT("DBTAdapter::stopDiscovery: Start: keepAlive %d, currentScanType[native %s, meta %s], discoveryTempDisabled %d ...",
-            keepDiscoveringAlive.load(),
+    DBG_PRINT("DBTAdapter::stopDiscovery: Start: keepAlive %d, currentScanType[native %s, meta %s], le_scan_temp_disabled %d ...",
+            keep_le_scan_alive.load(),
             getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str(),
-            discoveryTempDisabled);
+            le_scan_temp_disabled);
 
-    keepDiscoveringAlive = false;
-    if( ScanType::NONE == currentMetaScanType ) {
+    keep_le_scan_alive = false;
+    if( !hasScanType(currentMetaScanType, ScanType::LE) ) {
         DBG_PRINT("DBTAdapter::stopDiscovery: Already disabled, keepAlive %d, currentScanType[native %s, meta %s] ...",
-                keepDiscoveringAlive.load(),
+                keep_le_scan_alive.load(),
                 getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str());
         checkDiscoveryState();
         return HCIStatusCode::SUCCESS;
@@ -556,32 +553,29 @@ HCIStatusCode DBTAdapter::stopDiscovery() noexcept {
         goto exit;
     }
 
-    if( discoveryTempDisabled ) {
+    if( le_scan_temp_disabled ) {
         // meta state transition [4] -> [5], w/o native disabling
-        currentMetaScanType = changeScanType(currentMetaScanType, false, ScanType::LE);
+        // Will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType
+        // currentMetaScanType = changeScanType(currentMetaScanType, false, ScanType::LE);
         status = HCIStatusCode::SUCCESS; // send event: discoveryTempDisabled
     } else {
-        // Actual disabling discovery
+        // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
         status = hci.le_enable_scan(false /* enable */);
-        if( HCIStatusCode::SUCCESS == status ) {
-            currentMetaScanType = changeScanType(currentMetaScanType, false, ScanType::LE);
-        } else {
+        if( HCIStatusCode::SUCCESS != status ) {
             ERR_PRINT("DBTAdapter::stopDiscovery: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
         }
     }
 
 exit:
-    if( discoveryTempDisabled || HCIStatusCode::SUCCESS != status ) {
+    if( le_scan_temp_disabled || HCIStatusCode::SUCCESS != status ) {
         // In case of discoveryTempDisabled, power-off, le_enable_scane failure
         // or already closed HCIHandler, send the event directly.
-        // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
-        std::thread bg(&DBTAdapter::mgmtEvDeviceDiscoveringHCI, this, std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, false) ) ); // @suppress("Invalid arguments")
-        bg.detach();
-        // mgmtEvDeviceDiscoveringHCI( std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, false) ) );
+        mgmtEvDeviceDiscoveringHCI( std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, false) ) );
     }
-    DBG_PRINT("DBTAdapter::stopDiscovery: End: Result %s, keepAlive %d, currentScanType[native %s, meta %s], discoveryTempDisabled %d ...",
-            getHCIStatusCodeString(status).c_str(), keepDiscoveringAlive.load(),
-            getScanTypeString(hci.getCurrentScanType()).c_str(), getScanTypeString(currentMetaScanType).c_str(), discoveryTempDisabled);
+    DBG_PRINT("DBTAdapter::stopDiscovery: End: Result %s, keepAlive %d, currentScanType[native %s, meta %s], le_scan_temp_disabled %d ...",
+            getHCIStatusCodeString(status).c_str(), keep_le_scan_alive.load(),
+            getScanTypeString(hci.getCurrentScanType()).c_str(), getScanTypeString(currentMetaScanType).c_str(), le_scan_temp_disabled);
+
     checkDiscoveryState();
 
     return status;
@@ -692,41 +686,70 @@ std::string DBTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
 // *************************************************
 
 bool DBTAdapter::mgmtEvDeviceDiscoveringHCI(std::shared_ptr<MgmtEvent> e) noexcept {
-    return mgmtEvDeviceDiscoveringMgmt(e);
+    return mgmtEvDeviceDiscoveringAny(e, true /* hciSourced */ );
 }
 
 bool DBTAdapter::mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
+    return mgmtEvDeviceDiscoveringAny(e, false /* hciSourced */ );
+}
+
+bool DBTAdapter::mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const bool hciSourced) noexcept {
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
     const ScanType eventScanType = event.getScanType();
     const bool eventEnabled = event.getEnabled();
-    const ScanType currentNativeScanType = hci.getCurrentScanType();
+    ScanType currentNativeScanType = hci.getCurrentScanType();
 
-    // also catches case where discovery changes w/o user interaction [start/stop]Discovery(..)
+    // FIXME: Respect DBTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
+    //
+    // Also catches case where discovery changes w/o user interaction [start/stop]Discovery(..)
+    // if sourced from mgmt channel (!hciSourced)
+
+    ScanType nextMetaScanType;
     if( eventEnabled ) {
-       currentMetaScanType = changeScanType(currentMetaScanType, true, eventScanType);
-    } else if( !keepDiscoveringAlive ) {
-       currentMetaScanType = changeScanType(currentMetaScanType, false, eventScanType);
+        nextMetaScanType = changeScanType(currentMetaScanType, true, eventScanType);
+    } else if( !keep_le_scan_alive ) {
+        nextMetaScanType = changeScanType(currentMetaScanType, false, eventScanType);
     }
 
-    COND_PRINT(debug_event, "DBTAdapter::EventCB:DeviceDiscovering(dev_id %d, keepDiscoveringAlive %d, currentScanType[native %s, meta %s]): %s",
-        dev_id, keepDiscoveringAlive.load(),
-        getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str(),
-        event.toString().c_str());
+    if( !hciSourced ) {
+        // update HCIHandler's currentNativeScanType from other source
+        const ScanType nextNativeScanType = changeScanType(currentNativeScanType, eventEnabled, eventScanType);
+        DBG_PRINT("DBTAdapter::DeviceDiscovering: dev_id %d, keepDiscoveringAlive %d: scanType[native %s -> %s, meta %s -> %s]): %s - HCI Updated",
+            dev_id, keep_le_scan_alive.load(),
+            getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(nextNativeScanType).c_str(),
+            getScanTypeString(currentMetaScanType).c_str(), getScanTypeString(nextMetaScanType).c_str(),
+            event.toString().c_str());
+        currentNativeScanType = nextNativeScanType;
+        hci.setCurrentScanType(currentNativeScanType);
+    } else {
+        DBG_PRINT("DBTAdapter::DeviceDiscovering: dev_id %d, keepDiscoveringAlive %d: scanType[native %s, meta %s -> %s]): %s - HCI Event",
+            dev_id, keep_le_scan_alive.load(),
+            getScanTypeString(currentNativeScanType).c_str(),
+            getScanTypeString(currentMetaScanType).c_str(), getScanTypeString(nextMetaScanType).c_str(),
+            event.toString().c_str());
+    }
+    currentMetaScanType = nextMetaScanType;
 
     checkDiscoveryState();
 
-    int i=0;
-    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
-        try {
-            l->discoveringChanged(*this, eventEnabled, keepDiscoveringAlive, event.getTimestamp());
-        } catch (std::exception &except) {
-            ERR_PRINT("DBTAdapter::EventCB:DeviceDiscovering-CBs %d/%zd: %s of %s: Caught exception %s",
-                    i+1, statusListenerList.size(),
-                    l->toString().c_str(), toString().c_str(), except.what());
-        }
-        i++;
-    });
-    if( ScanType::NONE == currentNativeScanType && keepDiscoveringAlive ) {
+    // FIXME: AdapterStatusListener::discoveringChanged(..)
+    //        Method shall include the enabled/disabled ScanType plus the current overall ScanType state.
+    //        For now, we only report LE discovery state.
+    if( hasScanType(eventScanType, ScanType::LE) ) { // only report LE-scan changes for now
+        int i=0;
+        jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+            try {
+                l->discoveringChanged(*this, eventEnabled, keep_le_scan_alive, event.getTimestamp());
+            } catch (std::exception &except) {
+                ERR_PRINT("DBTAdapter::EventCB:DeviceDiscovering-CBs %d/%zd: %s of %s: Caught exception %s",
+                        i+1, statusListenerList.size(),
+                        l->toString().c_str(), toString().c_str(), except.what());
+            }
+            i++;
+        });
+    }
+
+    if( !hasScanType(currentNativeScanType, ScanType::LE) && keep_le_scan_alive ) {
         std::thread bg(&DBTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
         bg.detach();
     }
