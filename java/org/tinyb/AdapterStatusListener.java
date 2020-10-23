@@ -63,7 +63,7 @@ public abstract class AdapterStatusListener {
      *        see {@link BluetoothAdapter#addStatusListener(AdapterStatusListener, BluetoothDevice) addStatusListener(..)}.
      * @param newmask the new settings mask
      * @param changedmask the changes settings mask
-     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
      */
     public void adapterSettingsChanged(final BluetoothAdapter adapter,
                                        final AdapterSettings oldmask, final AdapterSettings newmask,
@@ -76,14 +76,14 @@ public abstract class AdapterStatusListener {
      * @param changedType denotes the changed {@link ScanType}
      * @param changedEnabled denotes whether the changed {@link ScanType} has been enabled or disabled
      * @param keepAlive if {@code true}, the denoted changed {@link ScanType} will be re-enabled if disabled by the underlying Bluetooth implementation.
-     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
      */
     public void discoveringChanged(final BluetoothAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final boolean keepAlive, final long timestamp) { }
 
     /**
      * A {@link BluetoothDevice} has been newly discovered.
      * @param device the found device
-     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
      */
     public void deviceFound(final BluetoothDevice device, final long timestamp) { }
 
@@ -91,7 +91,7 @@ public abstract class AdapterStatusListener {
      * An already discovered {@link BluetoothDevice} has been updated.
      * @param device the updated device
      * @param updateMask the update mask of changed data
-     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
      */
     public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) { }
 
@@ -99,7 +99,7 @@ public abstract class AdapterStatusListener {
      * {@link BluetoothDevice} got connected.
      * @param device the device which has been connected, holding the new connection handle.
      * @param handle the new connection handle, which has been assigned to the device already
-     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
      */
     public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) { }
 
@@ -108,7 +108,7 @@ public abstract class AdapterStatusListener {
      * @param device the device which has been disconnected with zeroed connection handle.
      * @param reason the {@link HCIStatusCode} reason for disconnection
      * @param handle the disconnected connection handle, which has been unassigned from the device already
-     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
      */
     public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) { }
 };

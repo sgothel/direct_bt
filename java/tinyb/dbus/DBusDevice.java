@@ -283,7 +283,7 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     private DBusDevice(final long instance)
     {
         super(instance);
-        ts_creation = BluetoothUtils.getCurrentMilliseconds();
+        ts_creation = BluetoothUtils.currentTimeMillis();
     }
     final long ts_creation;
 

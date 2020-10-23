@@ -25,23 +25,26 @@
 package org.tinyb;
 
 public class BluetoothUtils {
-
-    /**
-     * Returns module startup time t0 in monotonic time in milliseconds.
-     */
-    public static long getStartupTimeMilliseconds() { return BluetoothFactory.getStartupTimeMilliseconds(); }
+    private static long t0;
+    static {
+        t0 = startupTimeMillisImpl();
+    }
+    private static native long startupTimeMillisImpl();
 
     /**
      * Returns current monotonic time in milliseconds.
      */
-    public static native long getCurrentMilliseconds();
+    public static native long currentTimeMillis();
 
     /**
-     * Returns current elapsed monotonic time in milliseconds since module startup, see {@link #getStartupTimeMilliseconds()}.
+     * Returns the startup time in monotonic time in milliseconds of the native module.
      */
-    public static long getElapsedMillisecond() {
-        return getCurrentMilliseconds() - BluetoothFactory.getStartupTimeMilliseconds();
-    }
+    public static long startupTimeMillis() { return t0; }
+
+    /**
+     * Returns current elapsed monotonic time in milliseconds since module startup, see {@link #startupTimeMillis()}.
+     */
+    public static long elapsedTimeMillis() { return currentTimeMillis() - t0; }
 
     /**
      * Returns a hex string representation

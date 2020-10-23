@@ -208,7 +208,7 @@ public class ScannerTinyB01 {
         };
         adapter.addStatusListener(statusListener, null);
 
-        final long timestamp_t0 = BluetoothUtils.getCurrentMilliseconds();
+        final long timestamp_t0 = BluetoothUtils.currentTimeMillis();
 
         adapter.enableDiscoverableNotifications(new BooleanNotification("Discoverable", timestamp_t0));
 
@@ -224,7 +224,7 @@ public class ScannerTinyB01 {
                 loop++;
                 System.err.println("****** Loop "+loop);
 
-                final long t0 = BluetoothUtils.getCurrentMilliseconds();
+                final long t0 = BluetoothUtils.currentTimeMillis();
 
                 final HCIStatusCode discoveryStatus = adapter.startDiscovery(true);
 
@@ -239,7 +239,7 @@ public class ScannerTinyB01 {
                         boolean timeout = false;
                         while( !timeout && null == matchingDiscoveredDeviceBucket[0] ) {
                             matchingDiscoveredDeviceBucket.wait(t0_discovery);
-                            final long tn = BluetoothUtils.getCurrentMilliseconds();
+                            final long tn = BluetoothUtils.currentTimeMillis();
                             timeout = ( tn - t0 ) > t0_discovery;
                         }
                         sensor = matchingDiscoveredDeviceBucket[0];
@@ -250,7 +250,7 @@ public class ScannerTinyB01 {
                     while( null == sensor && !timeout ) {
                         sensor = adapter.find(null, waitForDevice, t0_discovery);
                         if( null == sensor ) {
-                            final long tn = BluetoothUtils.getCurrentMilliseconds();
+                            final long tn = BluetoothUtils.currentTimeMillis();
                             timeout = ( tn - t0 ) > t0_discovery;
                             Thread.sleep(60);
                         }
@@ -267,13 +267,13 @@ public class ScannerTinyB01 {
                             }
                         }
                         if( null == sensor ) {
-                            final long tn = BluetoothUtils.getCurrentMilliseconds();
+                            final long tn = BluetoothUtils.currentTimeMillis();
                             timeout = ( tn - t0 ) > t0_discovery;
                             Thread.sleep(60);
                         }
                     }
                 }
-                final long t1 = BluetoothUtils.getCurrentMilliseconds();
+                final long t1 = BluetoothUtils.currentTimeMillis();
                 if (sensor == null) {
                     System.err.println("No sensor found within "+(t1-t0)+" ms");
                     continue; // forever loop
@@ -288,22 +288,22 @@ public class ScannerTinyB01 {
                 sensor.enableConnectedNotifications(connectedNotification);
                 sensor.enableServicesResolvedNotifications(servicesResolvedNotification);
 
-                final long t2 = BluetoothUtils.getCurrentMilliseconds();
+                final long t2 = BluetoothUtils.currentTimeMillis();
                 final long t3;
                 HCIStatusCode res;
                 if ( ( res = sensor.connect() ) == HCIStatusCode.SUCCESS ) {
-                    t3 = BluetoothUtils.getCurrentMilliseconds();
+                    t3 = BluetoothUtils.currentTimeMillis();
                     System.err.println("Sensor connect issued: "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
                     System.err.println("Sensor connectedNotification: "+connectedNotification.getValue());
                 } else {
-                    t3 = BluetoothUtils.getCurrentMilliseconds();
+                    t3 = BluetoothUtils.currentTimeMillis();
                     System.out.println("connect command failed, res "+res+": "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
                     // we tolerate the failed immediate connect, as it might happen at a later time
                 }
 
                 synchronized( servicesResolvedNotification ) {
                     while( !servicesResolvedNotification.getValue() ) {
-                        final long tn = BluetoothUtils.getCurrentMilliseconds();
+                        final long tn = BluetoothUtils.currentTimeMillis();
                         if( tn - t3 > TO_CONNECT_AND_RESOLVE ) {
                             break;
                         }
@@ -312,10 +312,10 @@ public class ScannerTinyB01 {
                 }
                 final long t4;
                 if ( servicesResolvedNotification.getValue() ) {
-                    t4 = BluetoothUtils.getCurrentMilliseconds();
+                    t4 = BluetoothUtils.currentTimeMillis();
                     System.err.println("Sensor servicesResolved: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
                 } else {
-                    t4 = BluetoothUtils.getCurrentMilliseconds();
+                    t4 = BluetoothUtils.currentTimeMillis();
                     System.out.println("Sensor service not resolved: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
                     System.exit(-1);
                 }
@@ -427,7 +427,7 @@ public class ScannerTinyB01 {
         @Override
         public void run(final Boolean v) {
             synchronized(this) {
-                final long t1 = BluetoothUtils.getCurrentMilliseconds();
+                final long t1 = BluetoothUtils.currentTimeMillis();
                 this.v = v.booleanValue();
                 System.out.println("###### "+name+": "+v+" in td "+(t1-t0)+" ms!");
                 this.notifyAll();

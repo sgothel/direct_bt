@@ -31,8 +31,10 @@
 #include <time.h>
 
 #include <jau/dfa_utf8_decode.hpp>
+#include <jau/environment.hpp>
 
 #include "helper_base.hpp"
+
 
 static const int64_t NanoPerMilli = 1000000L;
 static const int64_t MilliPerOne = 1000L;
@@ -45,7 +47,7 @@ static const int64_t MilliPerOne = 1000L;
  * clock_gettime seems to be well supported at least on kernel >= 4.4.
  * Only bfin and sh are missing, while ia64 seems to be complicated.
  */
-jlong Java_org_tinyb_BluetoothUtils_getCurrentMilliseconds(JNIEnv *env, jclass clazz) {
+jlong Java_org_tinyb_BluetoothUtils_currentTimeMillis(JNIEnv *env, jclass clazz) {
     (void)env;
     (void)clazz;
 
@@ -53,6 +55,13 @@ jlong Java_org_tinyb_BluetoothUtils_getCurrentMilliseconds(JNIEnv *env, jclass c
     clock_gettime(CLOCK_MONOTONIC, &t);
     int64_t res = t.tv_sec * MilliPerOne + t.tv_nsec / NanoPerMilli;
     return (jlong)res;
+}
+
+jlong Java_org_tinyb_BluetoothUtils_startupTimeMillisImpl(JNIEnv *env, jclass clazz) {
+    (void)env;
+    (void)clazz;
+
+    return jau::environment::startupTimeMilliseconds;
 }
 
 jstring Java_org_tinyb_BluetoothUtils_decodeUTF8String(JNIEnv *env, jclass clazz, jbyteArray jbuffer, jint offset, jint size) {

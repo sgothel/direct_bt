@@ -294,7 +294,7 @@ public interface BluetoothDevice extends BluetoothObject
      * Returns the timestamp in monotonic milliseconds when this device instance has been created,
      * either via its initial discovery or its initial direct connection.
      *
-     * @see BluetoothUtils#getCurrentMilliseconds()
+     * @see BluetoothUtils#currentTimeMillis()
      * @since 2.0.0
      */
     long getCreationTimestamp();
@@ -303,7 +303,7 @@ public interface BluetoothDevice extends BluetoothObject
      * Returns the timestamp in monotonic milliseconds when this device instance has
      * discovered or connected directly the last time.
      *
-     * @see BluetoothUtils#getCurrentMilliseconds()
+     * @see BluetoothUtils#currentTimeMillis()
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus, returns {@link #getCreationTimestamp()}
      */
@@ -313,7 +313,7 @@ public interface BluetoothDevice extends BluetoothObject
      * Returns the timestamp in monotonic milliseconds when this device instance underlying data
      * has been updated the last time.
      *
-     * @see BluetoothUtils#getCurrentMilliseconds()
+     * @see BluetoothUtils#currentTimeMillis()
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus, returns {@link #getCreationTimestamp()}
      */

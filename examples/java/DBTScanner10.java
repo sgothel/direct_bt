@@ -93,14 +93,14 @@ public class DBTScanner10 {
 
     static void printf(final String format, final Object... args) {
         final Object[] args2 = new Object[args.length+1];
-        args2[0] = BluetoothUtils.getElapsedMillisecond();
+        args2[0] = BluetoothUtils.elapsedTimeMillis();
         System.arraycopy(args, 0, args2, 1, args.length);
         System.err.printf("[%,9d] "+format, args2);
         // System.err.printf("[%,9d] ", BluetoothUtils.getElapsedMillisecond());
         // System.err.printf(format, args);
     }
     static void println(final String msg) {
-        System.err.printf("[%,9d] %s%s", BluetoothUtils.getElapsedMillisecond(), msg, System.lineSeparator());
+        System.err.printf("[%,9d] %s%s", BluetoothUtils.elapsedTimeMillis(), msg, System.lineSeparator());
     }
 
 
@@ -159,7 +159,7 @@ public class DBTScanner10 {
             {
                 println("****** FOUND__-0: Connecting "+device.toString());
                 {
-                    final long td = BluetoothUtils.getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
+                    final long td = BluetoothUtils.currentTimeMillis() - timestamp_t0; // adapter-init -> now
                     println("PERF: adapter-init -> FOUND__-0 " + td + " ms");
                 }
                 final Thread deviceConnectTask = new Thread( new Runnable() {
@@ -195,7 +195,7 @@ public class DBTScanner10 {
                 connectionCount.incrementAndGet();
                 println("****** CONNECTED-0: Processing["+connectionCount.get()+"] "+device.toString());
                 {
-                    final long td = BluetoothUtils.getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
+                    final long td = BluetoothUtils.currentTimeMillis() - timestamp_t0; // adapter-init -> now
                     println("PERF: adapter-init -> CONNECTED-0 " + td + " ms");
                 }
                 final Thread deviceProcessingTask = new Thread( new Runnable() {
@@ -300,7 +300,7 @@ public class DBTScanner10 {
             println("****** Processing Device: stopDiscovery result "+r);
         }
 
-        final long t1 = BluetoothUtils.getCurrentMilliseconds();
+        final long t1 = BluetoothUtils.currentTimeMillis();
         boolean success = false;
 
         // Secure Pairing
@@ -336,7 +336,7 @@ public class DBTScanner10 {
                 // And it is an error case nonetheless ;-)
                 throw new RuntimeException("Processing Device: getServices() failed " + device.toString());
             }
-            final long t5 = BluetoothUtils.getCurrentMilliseconds();
+            final long t5 = BluetoothUtils.currentTimeMillis();
             if( !QUIET ) {
                 final long td01 = t1 - timestamp_t0; // adapter-init -> processing-start
                 final long td15 = t5 - t1; // get-gatt-services
@@ -547,7 +547,7 @@ public class DBTScanner10 {
             }
         }
 
-        timestamp_t0 = BluetoothUtils.getCurrentMilliseconds();
+        timestamp_t0 = BluetoothUtils.currentTimeMillis();
 
         adapter.addStatusListener(statusListener, null);
         adapter.enableDiscoverableNotifications(new BooleanNotification("Discoverable", timestamp_t0));
@@ -729,7 +729,7 @@ public class DBTScanner10 {
         @Override
         public void run(final Boolean v) {
             synchronized(this) {
-                final long t1 = BluetoothUtils.getCurrentMilliseconds();
+                final long t1 = BluetoothUtils.currentTimeMillis();
                 this.v = v.booleanValue();
                 System.out.println("###### "+name+": "+v+" in td "+(t1-t0)+" ms!");
                 this.notifyAll();
