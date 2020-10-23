@@ -263,8 +263,9 @@ void DBTAdapter::poweredOff() noexcept {
     DBG_PRINT("DBTAdapter::poweredOff: ... %p %s", this, toString(false).c_str());
     keep_le_scan_alive = false;
 
-    // Removes all device references from the lists: connectedDevices, discoveredDevices, sharedDevices
     stopDiscovery();
+
+    // Removes all device references from the lists: connectedDevices, discoveredDevices, sharedDevices
     disconnectAllDevices();
     removeDiscoveredDevices();
 
@@ -450,7 +451,7 @@ HCIStatusCode DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAdd
 
     if( !isEnabled() ) {
         WARN_PRINT("DBTAdapter::startDiscovery: Adapter not enabled/powered: %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+        return HCIStatusCode::UNSPECIFIED_ERROR;
     }
     const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
 
@@ -547,9 +548,16 @@ HCIStatusCode DBTAdapter::stopDiscovery() noexcept {
     }
 
     HCIStatusCode status;
+    if( !isPowered() ) {
+        WARN_PRINT("DBTAdapter::stopDiscovery: Powered off: %s", toString().c_str());
+        hci.setCurrentScanType(ScanType::NONE);
+        currentMetaScanType = ScanType::NONE;
+        status = HCIStatusCode::UNSPECIFIED_ERROR;
+        goto exit;
+    }
     if( !hci.isOpen() ) {
         ERR_PRINT("DBTAdapter::stopDiscovery: HCI closed: %s", toString().c_str());
-        status = HCIStatusCode::INTERNAL_FAILURE;
+        status = HCIStatusCode::UNSPECIFIED_ERROR;
         goto exit;
     }
 

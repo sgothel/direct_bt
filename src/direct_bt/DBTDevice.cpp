@@ -450,9 +450,14 @@ HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
         goto exit;
     }
 
+    if( !adapter.isPowered() ) {
+        WARN_PRINT("DBTDevice::disconnect: Powered off: %s", toString().c_str());
+        res = HCIStatusCode::UNSPECIFIED_ERROR; // powered-off
+        goto exit;
+    }
     if( !hci.isOpen() ) {
-        ERR_PRINT("DBTDevice::disconnect: Skip disconnect: HCI closed: %s", toString().c_str());
-        res = HCIStatusCode::UNSPECIFIED_ERROR; // powered-off?
+        ERR_PRINT("DBTDevice::disconnect: HCI closed: %s", toString().c_str());
+        res = HCIStatusCode::UNSPECIFIED_ERROR;
         goto exit;
     }
 
