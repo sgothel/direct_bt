@@ -44,6 +44,7 @@ import org.tinyb.BluetoothUtils;
 import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
+import org.tinyb.ScanType;
 
 /**
  * This Java scanner example is a TinyB backward compatible and not fully event driven.
@@ -167,8 +168,8 @@ public class ScannerTinyB01 {
             }
 
             @Override
-            public void discoveringChanged(final BluetoothAdapter adapter, final boolean enabled, final boolean keepAlive, final long timestamp) {
-                System.err.println("****** DISCOVERING: enabled "+enabled+", keepAlive "+keepAlive+" on "+adapter);
+            public void discoveringChanged(final BluetoothAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final boolean keepAlive, final long timestamp) {
+                System.err.println("****** DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", keepAlive "+keepAlive+"] on "+adapter);
                 System.err.println("Status Adapter:");
                 System.err.println(adapter.toString());
             }

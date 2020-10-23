@@ -72,11 +72,13 @@ public abstract class AdapterStatusListener {
     /**
      * {@link BluetoothAdapter}'s discovery state has changed, i.e. enabled or disabled.
      * @param adapter the adapter which discovering state has changed.
-     * @param enabled the new discovery state
-     * @param keepAlive if {@code true}, the discovery will be re-enabled if disabled by the underlying Bluetooth implementation.
+     * @param currentMeta the current meta {@link ScanType}
+     * @param changedType denotes the changed {@link ScanType}
+     * @param changedEnabled denotes whether the changed {@link ScanType} has been enabled or disabled
+     * @param keepAlive if {@code true}, the denoted changed {@link ScanType} will be re-enabled if disabled by the underlying Bluetooth implementation.
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
      */
-    public void discoveringChanged(final BluetoothAdapter adapter, final boolean enabled, final boolean keepAlive, final long timestamp) { }
+    public void discoveringChanged(final BluetoothAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final boolean keepAlive, final long timestamp) { }
 
     /**
      * A {@link BluetoothDevice} has been newly discovered.

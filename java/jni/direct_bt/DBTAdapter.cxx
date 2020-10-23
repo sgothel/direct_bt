@@ -41,10 +41,12 @@ static const std::string _eirDataTypeSetClassName("org/tinyb/EIRDataTypeSet");
 static const std::string _eirDataTypeSetClazzCtorArgs("(I)V");
 static const std::string _hciStatusCodeClassName("org/tinyb/HCIStatusCode");
 static const std::string _hciStatusCodeClazzGetArgs("(B)Lorg/tinyb/HCIStatusCode;");
+static const std::string _scanTypeClassName("org/tinyb/ScanType");
+static const std::string _scanTypeClazzGetArgs("(B)Lorg/tinyb/ScanType;");
 static const std::string _deviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTAdapter;Ljava/lang/String;IILjava/lang/String;J)V");
 
 static const std::string _adapterSettingsChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;J)V");
-static const std::string _discoveringChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;ZZJ)V");
+static const std::string _discoveringChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/ScanType;Lorg/tinyb/ScanType;ZZJ)V");
 static const std::string _deviceFoundMethodArgs("(Lorg/tinyb/BluetoothDevice;J)V");
 static const std::string _deviceUpdatedMethodArgs("(Lorg/tinyb/BluetoothDevice;Lorg/tinyb/EIRDataTypeSet;J)V");
 static const std::string _deviceConnectedMethodArgs("(Lorg/tinyb/BluetoothDevice;SJ)V");
@@ -61,7 +63,8 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             public void adapterSettingsChanged(final BluetoothAdapter adapter,
                                                final AdapterSettings oldmask, final AdapterSettings newmask,
                                                final AdapterSettings changedmask, final long timestamp) { }
-            public void discoveringChanged(final BluetoothAdapter adapter, final boolean enabled, final boolean keepAlive, final long timestamp) { }
+            public void discoveringChanged(final BluetoothAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled,
+                                           final boolean keepAlive, final long timestamp) { }
             public void deviceFound(final BluetoothDevice device, final long timestamp) { }
             public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) { }
             public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) { }
@@ -77,8 +80,10 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     jmethodID adapterSettingsClazzCtor;
     JNIGlobalRef eirDataTypeSetClazzRef;
     jmethodID eirDataTypeSetClazzCtor;
-    JNIGlobalRef hciErrorCodeClazzRef;
-    jmethodID hciErrorCodeClazzGet;
+    JNIGlobalRef hciStatusCodeClazzRef;
+    jmethodID hciStatusCodeClazzGet;
+    JNIGlobalRef scanTypeClazzRef;
+    jmethodID scanTypeClazzGet;
     JNIGlobalRef deviceClazzRef;
     jmethodID deviceClazzCtor;
     jfieldID deviceClazzTSLastDiscoveryField;
@@ -143,20 +148,36 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             throw jau::InternalError("EIRDataType ctor not found: "+_eirDataTypeSetClassName+".<init>"+_eirDataTypeSetClazzCtorArgs, E_FILE_LINE);
         }
 
-        // hciErrorCodeClazzRef, hciErrorCodeClazzGet
+        // hciStatusCodeClazzRef, hciStatusCodeClazzGet
         {
             jclass hciErrorCodeClazz = jau::search_class(env, _hciStatusCodeClassName.c_str());
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             if( nullptr == hciErrorCodeClazz ) {
                 throw jau::InternalError("DBTDevice::java_class not found: "+_hciStatusCodeClassName, E_FILE_LINE);
             }
-            hciErrorCodeClazzRef = JNIGlobalRef(hciErrorCodeClazz);
+            hciStatusCodeClazzRef = JNIGlobalRef(hciErrorCodeClazz);
             env->DeleteLocalRef(hciErrorCodeClazz);
         }
-        hciErrorCodeClazzGet = jau::search_method(env, hciErrorCodeClazzRef.getClass(), "get", _hciStatusCodeClazzGetArgs.c_str(), true);
+        hciStatusCodeClazzGet = jau::search_method(env, hciStatusCodeClazzRef.getClass(), "get", _hciStatusCodeClazzGetArgs.c_str(), true);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == hciErrorCodeClazzGet ) {
-            throw jau::InternalError("EIRDataType ctor not found: "+_hciStatusCodeClassName+".get"+_hciStatusCodeClazzGetArgs, E_FILE_LINE);
+        if( nullptr == hciStatusCodeClazzGet ) {
+            throw jau::InternalError("Static method not found: "+_hciStatusCodeClassName+".get"+_hciStatusCodeClazzGetArgs, E_FILE_LINE);
+        }
+
+        // scanTypeClazzRef, scanTypeClazzGet
+        {
+            jclass scanTypeClazz = jau::search_class(env, _scanTypeClassName.c_str());
+            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            if( nullptr == scanTypeClazz ) {
+                throw jau::InternalError("DBTDevice::java_class not found: "+_scanTypeClassName, E_FILE_LINE);
+            }
+            scanTypeClazzRef = JNIGlobalRef(scanTypeClazz);
+            env->DeleteLocalRef(scanTypeClazz);
+        }
+        scanTypeClazzGet = jau::search_method(env, scanTypeClazzRef.getClass(), "get", _scanTypeClazzGetArgs.c_str(), true);
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == scanTypeClazzGet ) {
+            throw jau::InternalError("Static method not found: "+_scanTypeClassName+".get"+_scanTypeClazzGetArgs, E_FILE_LINE);
         }
 
         // deviceClazzRef, deviceClazzCtor
@@ -253,11 +274,20 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->DeleteLocalRef(adapterSettingChanged);
     }
 
-    void discoveringChanged(DBTAdapter &a, const bool enabled, const bool keepAlive, const uint64_t timestamp) override {
+    void discoveringChanged(DBTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         (void)a;
+
+        jobject jcurrentMeta = env->CallStaticObjectMethod(scanTypeClazzRef.getClass(), scanTypeClazzGet, (jbyte)number(currentMeta));
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        JNIGlobalRef::check(jcurrentMeta, E_FILE_LINE);
+
+        jobject jchangedType = env->CallStaticObjectMethod(scanTypeClazzRef.getClass(), scanTypeClazzGet, (jbyte)number(changedType));
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        JNIGlobalRef::check(jchangedType, E_FILE_LINE);
+
         env->CallVoidMethod(listenerObjRef.getObject(), mDiscoveringChanged, jau::JavaGlobalObj::GetObject(adapterObjRef),
-                            (jboolean)enabled, (jboolean)keepAlive, (jlong)timestamp);
+                            jcurrentMeta, jchangedType, (jboolean)changedEnabled, (jboolean)keepAlive, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
 
@@ -355,7 +385,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
 
-        jobject hciErrorCode = env->CallStaticObjectMethod(hciErrorCodeClazzRef.getClass(), hciErrorCodeClazzGet, (jbyte)static_cast<uint8_t>(reason));
+        jobject hciErrorCode = env->CallStaticObjectMethod(hciStatusCodeClazzRef.getClass(), hciStatusCodeClazzGet, (jbyte)static_cast<uint8_t>(reason));
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         JNIGlobalRef::check(hciErrorCode, E_FILE_LINE);
 

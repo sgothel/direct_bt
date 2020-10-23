@@ -740,22 +740,17 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const 
 
     checkDiscoveryState();
 
-    // FIXME: AdapterStatusListener::discoveringChanged(..)
-    //        Method shall include the enabled/disabled ScanType plus the current overall ScanType state.
-    //        For now, we only report LE discovery state.
-    if( hasScanType(eventScanType, ScanType::LE) ) { // only report LE-scan changes for now
-        int i=0;
-        jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
-            try {
-                l->discoveringChanged(*this, eventEnabled, keep_le_scan_alive, event.getTimestamp());
-            } catch (std::exception &except) {
-                ERR_PRINT("DBTAdapter::EventCB:DeviceDiscovering-CBs %d/%zd: %s of %s: Caught exception %s",
-                        i+1, statusListenerList.size(),
-                        l->toString().c_str(), toString().c_str(), except.what());
-            }
-            i++;
-        });
-    }
+    int i=0;
+    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        try {
+            l->discoveringChanged(*this, currentMetaScanType, eventScanType, eventEnabled, keep_le_scan_alive, event.getTimestamp());
+        } catch (std::exception &except) {
+            ERR_PRINT("DBTAdapter::EventCB:DeviceDiscovering-CBs %d/%zd: %s of %s: Caught exception %s",
+                    i+1, statusListenerList.size(),
+                    l->toString().c_str(), toString().c_str(), except.what());
+        }
+        i++;
+    });
 
     if( !hasScanType(currentNativeScanType, ScanType::LE) && keep_le_scan_alive ) {
         std::thread bg(&DBTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")

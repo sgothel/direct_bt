@@ -94,16 +94,16 @@ namespace direct_bt {
 
             /**
              * DBTAdapter's discovery state has changed, i.e. enabled or disabled.
-             * <p>
-             * FIXME: Method shall include the enabled/disabled ScanType plus the current overall ScanType state.
-             * For now, we only report LE discovery state.
-             * </p>
              * @param adapter the adapter which discovering state has changed.
-             * @param enabled the new discovery state
-             * @param keepAlive if {@code true}, the discovery will be re-enabled if disabled by the underlying Bluetooth implementation.
+             * @param currentMeta the current meta ScanType
+             * @param changedType denotes the changed ScanType
+             * @param changedEnabled denotes whether the changed ScanType has been enabled or disabled
+             * @param keepAlive if {@code true}, the denoted changed ScanType will be re-enabled if disabled by the underlying Bluetooth implementation.
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             *
+             * changeScanType(const ScanType current, const bool enable, const ScanType enableChanged) noexcept {
              */
-            virtual void discoveringChanged(DBTAdapter &adapter, const bool enabled, const bool keepAlive, const uint64_t timestamp) = 0;
+            virtual void discoveringChanged(DBTAdapter &adapter, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) = 0;
 
             /**
              * A DBTDevice has been newly discovered.

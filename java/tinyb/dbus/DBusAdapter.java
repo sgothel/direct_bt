@@ -43,6 +43,7 @@ import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.HCIWhitelistConnectType;
+import org.tinyb.ScanType;
 import org.tinyb.TransportType;
 
 public class DBusAdapter extends DBusObject implements BluetoothAdapter
@@ -192,6 +193,10 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     @Override
     public native boolean setPairableTimeout(long value);
 
+    @Override
+    public final ScanType getCurrentScanType() {
+        return getDiscovering() ? ScanType.LE : ScanType.NONE;
+    }
     @Override
     public native boolean getDiscovering();
 

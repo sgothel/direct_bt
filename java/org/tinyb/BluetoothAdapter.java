@@ -380,12 +380,29 @@ public interface BluetoothAdapter extends BluetoothObject
     public boolean setPairableTimeout(long value);
 
     /**
+     * Returns the current meta discovering {@link ScanType}.
+     * It can be modified through {@link #startDiscovery(boolean)} and {@link #stopDiscovery()}.
+     * <p>
+     * Note that if {@link #startDiscovery(boolean)} has been issued with keepAlive==true,
+     * the meta {@link ScanType} will still keep the desired {@link ScanType} enabled
+     * even if it has been temporarily disabled.
+     * </p>
+     * @see #startDiscovery(boolean)
+     * @see #stopDiscovery()
+     * @since 2.0.0
+     */
+    public ScanType getCurrentScanType();
+
+    /**
      * Returns the meta discovering state (of the adapter).
      * It can be modified through
      * start_discovery/stop_discovery functions.
      * @return The discovering state of the adapter.
+     * @deprecated since 2.0.0, use {@link #getCurrentScanType()}.
+     * @see #getCurrentScanType()
      * @see #startDiscovery(boolean)
      */
+    @Deprecated
     public boolean getDiscovering();
 
     /**

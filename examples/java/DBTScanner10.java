@@ -53,6 +53,7 @@ import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.HCIWhitelistConnectType;
 import org.tinyb.PairingMode;
+import org.tinyb.ScanType;
 
 import direct_bt.tinyb.DBTManager;
 
@@ -134,8 +135,8 @@ public class DBTScanner10 {
         }
 
         @Override
-        public void discoveringChanged(final BluetoothAdapter adapter, final boolean enabled, final boolean keepAlive, final long timestamp) {
-            println("****** DISCOVERING: enabled "+enabled+", keepAlive "+keepAlive+" on "+adapter);
+        public void discoveringChanged(final BluetoothAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final boolean keepAlive, final long timestamp) {
+            println("****** DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", keepAlive "+keepAlive+"] on "+adapter);
         }
 
         @Override

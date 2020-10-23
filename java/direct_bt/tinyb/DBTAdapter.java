@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.tinyb.AdapterSettings;
 import org.tinyb.BluetoothAdapter;
@@ -48,6 +49,7 @@ import org.tinyb.BluetoothType;
 import org.tinyb.EIRDataTypeSet;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.HCIWhitelistConnectType;
+import org.tinyb.ScanType;
 import org.tinyb.AdapterStatusListener;
 import org.tinyb.TransportType;
 
@@ -74,7 +76,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private final AtomicBoolean isPairable = new AtomicBoolean(false); // AdapterSettings
     private BluetoothNotification<Boolean> userPoweredNotificationCB = null;
 
-    private final AtomicBoolean isDiscovering = new AtomicBoolean(false); // AdapterStatusListener and powerdOff
+    private final AtomicReference<ScanType> currentMetaScanType = new AtomicReference<ScanType>(ScanType.NONE); // AdapterStatusListener and powerdOff
     private BluetoothNotification<Boolean> userDiscoveringNotificationCB = null;
 
     private final List<BluetoothDevice> discoveredDevices = new ArrayList<BluetoothDevice>();
@@ -122,7 +124,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     private final void poweredOff() {
         isPowered.set(false);
-        isDiscovering.set(false);
+        currentMetaScanType.set(ScanType.NONE);
     }
 
     @Override
@@ -251,26 +253,31 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     }
 
     @Override
-    public boolean getDiscovering() {
-        return isDiscovering.get();
+    public final ScanType getCurrentScanType() {
+        return currentMetaScanType.get();
     }
 
     @Override
-    public void enableDiscoveringNotifications(final BluetoothNotification<Boolean> callback) {
+    public final boolean getDiscovering() {
+        return ScanType.NONE != currentMetaScanType.get();
+    }
+
+    @Override
+    public final void enableDiscoveringNotifications(final BluetoothNotification<Boolean> callback) {
         synchronized(userCallbackLock) {
             userDiscoveringNotificationCB = callback;
         }
     }
 
     @Override
-    public void disableDiscoveringNotifications() {
+    public final void disableDiscoveringNotifications() {
         synchronized(userCallbackLock) {
             userDiscoveringNotificationCB = null;
         }
     }
 
     @Override
-    public boolean getPairable() { return isPairable.get(); }
+    public final boolean getPairable() { return isPairable.get(); }
 
     @Override
     public void enablePairableNotifications(final BluetoothNotification<Boolean> callback) {
@@ -480,18 +487,18 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             }
         }
         @Override
-        public void discoveringChanged(final BluetoothAdapter adapter, final boolean enabled, final boolean keepAlive, final long timestamp) {
+        public void discoveringChanged(final BluetoothAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final boolean keepAlive, final long timestamp) {
             if( DEBUG ) {
-                System.err.println("Adapter.StatusListener.DISCOVERING: enabled "+enabled+", keepAlive "+keepAlive+" on "+adapter);
+                System.err.println("Adapter.StatusListener.DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", keepAlive "+keepAlive+"] on "+adapter);
             }
-            if( !enabled && keepAlive ) {
-                // Don't update isDiscovering:=false and don't notify user IF keepAlive!
-                return;
-            }
-            if( isDiscovering.compareAndSet(!enabled, enabled) ) {
+            // meta ignores changes on temp disabled discovery
+            final boolean has_le_changed = currentMetaScanType.get().hasScanType(ScanType.LE) != currentMeta.hasScanType(ScanType.LE);
+            currentMetaScanType.set(currentMeta);
+
+            if( changedType.hasScanType(ScanType.LE) && has_le_changed ) {
                 synchronized(userCallbackLock) {
                     if( null != userDiscoveringNotificationCB ) {
-                        userDiscoveringNotificationCB.run(enabled);
+                        userDiscoveringNotificationCB.run(changedEnabled);
                     }
                 }
             }
