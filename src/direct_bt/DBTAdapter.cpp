@@ -714,9 +714,16 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const 
 
     ScanType nextMetaScanType;
     if( eventEnabled ) {
+        // enabled eventScanType
         nextMetaScanType = changeScanType(currentMetaScanType, eventScanType, true);
-    } else if( !keep_le_scan_alive ) {
-        nextMetaScanType = changeScanType(currentMetaScanType, eventScanType, false);
+    } else {
+        // disabled eventScanType
+        if( hasScanType(eventScanType, ScanType::LE) && keep_le_scan_alive ) {
+            // Unchanged meta for disabled-LE && keep_le_scan_alive
+            nextMetaScanType = currentMetaScanType;
+        } else {
+            nextMetaScanType = changeScanType(currentMetaScanType, eventScanType, false);
+        }
     }
 
     if( !hciSourced ) {
