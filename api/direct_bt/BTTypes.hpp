@@ -141,11 +141,11 @@ namespace direct_bt {
     constexpr bool operator !=(const ScanType lhs, const ScanType rhs) noexcept {
         return !( lhs == rhs );
     }
-    constexpr ScanType changeScanType(const ScanType current, const bool enable, const ScanType enableChanged) noexcept {
-        return enable ? ( current | enableChanged ) : ( current & ~enableChanged );
+    constexpr ScanType changeScanType(const ScanType current, const ScanType changeType, const bool changeEnable) noexcept {
+        return changeEnable ? ( current | changeType ) : ( current & ~changeType );
     }
-    constexpr bool hasScanType(const ScanType current, const ScanType test) noexcept {
-        return test == ( current & test );
+    constexpr bool hasScanType(const ScanType current, const ScanType testType) noexcept {
+        return testType == ( current & testType );
     }
 
     std::string getScanTypeString(const ScanType v) noexcept;

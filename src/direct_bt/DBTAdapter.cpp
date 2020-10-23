@@ -714,14 +714,14 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const 
 
     ScanType nextMetaScanType;
     if( eventEnabled ) {
-        nextMetaScanType = changeScanType(currentMetaScanType, true, eventScanType);
+        nextMetaScanType = changeScanType(currentMetaScanType, eventScanType, true);
     } else if( !keep_le_scan_alive ) {
-        nextMetaScanType = changeScanType(currentMetaScanType, false, eventScanType);
+        nextMetaScanType = changeScanType(currentMetaScanType, eventScanType, false);
     }
 
     if( !hciSourced ) {
         // update HCIHandler's currentNativeScanType from other source
-        const ScanType nextNativeScanType = changeScanType(currentNativeScanType, eventEnabled, eventScanType);
+        const ScanType nextNativeScanType = changeScanType(currentNativeScanType, eventScanType, eventEnabled);
         DBG_PRINT("DBTAdapter::DeviceDiscovering: dev_id %d, keepDiscoveringAlive %d: scanType[native %s -> %s, meta %s -> %s]): %s - HCI Updated",
             dev_id, keep_le_scan_alive.load(),
             getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(nextNativeScanType).c_str(),

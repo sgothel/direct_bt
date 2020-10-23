@@ -736,7 +736,7 @@ HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_du
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
-    ScanType nextScanType = changeScanType(currentScanType, enable, ScanType::LE);
+    ScanType nextScanType = changeScanType(currentScanType, ScanType::LE, enable);
     DBG_PRINT("HCI Enable Scan: enable %s -> %s, filter_dup %d - %s",
             getScanTypeString(currentScanType).c_str(), getScanTypeString(nextScanType).c_str(), filter_dup, toString().c_str());
 
