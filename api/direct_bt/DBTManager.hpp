@@ -38,6 +38,7 @@
 #include <jau/environment.hpp>
 #include <jau/ringbuffer.hpp>
 #include <jau/java_uplink.hpp>
+#include <jau/cow_vector.hpp>
 
 #include "BTTypes.hpp"
 #include "BTIoctl.hpp"
@@ -186,7 +187,7 @@ namespace direct_bt {
                 return static_cast<uint16_t>(opc) < mgmtAdapterEventCallbackLists.size();
             }
 
-            std::vector<std::shared_ptr<AdapterInfo>> adapterInfos;
+            jau::cow_vector<std::shared_ptr<AdapterInfo>> adapterInfos;
             void mgmtReaderThreadImpl() noexcept;
 
             /**
@@ -272,12 +273,7 @@ namespace direct_bt {
             /** retrieve information gathered at startup */
 
             /**
-             * Returns list of AdapterInfo with index == dev_id.
-             */
-            const std::vector<std::shared_ptr<AdapterInfo>> getAdapterInfos() const noexcept { return adapterInfos; }
-
-            /**
-             * Returns number of AdapterInfo with index == dev_id.
+             * Returns AdapterInfo count in list
              */
             int getAdapterCount() const noexcept { return adapterInfos.size(); }
 
@@ -292,12 +288,21 @@ namespace direct_bt {
             std::shared_ptr<AdapterInfo> findAdapterInfo(const EUI48 &mac) const noexcept;
 
             /**
-             * Returns the AdapterInfo (index == dev_id) with the given index.
-             * <p>
-             * Throws IndexOutOfBoundsException if index is > adapter count.
-             * </p>
+             * Returns the AdapterInfo with the given dev_id, or nullptr if not found.
              */
             std::shared_ptr<AdapterInfo> getAdapterInfo(const uint16_t dev_id) const noexcept;
+
+            /**
+             * Adds the given AdapterInfo if representing a new dev_id.
+             * @return true if newly added dev_id, otherwise false if dev_id already exists.
+             */
+            bool addAdapterInfo(std::shared_ptr<AdapterInfo> ai) noexcept;
+
+            /**
+             * Removes the AdapterInfo with the given dev_id
+             * @return the removed instance or nullptr if not found.
+             */
+            std::shared_ptr<AdapterInfo> removeAdapterInfo(const uint16_t dev_id) noexcept;
 
             /**
              * Returns the current BTMode of given adapter dev_idx or BTMode::NONE if dev_id adapter is not available.

@@ -148,6 +148,13 @@ bool DBTAdapter::validateDevInfo() noexcept {
     }
 
     adapterInfo = mgmt.getAdapterInfo(dev_id);
+    if( nullptr == adapterInfo ) {
+        // fill in a dummy AdapterInfo for the sake of de-referencing throughout this adapter instance
+        adapterInfo = std::shared_ptr<AdapterInfo>( new AdapterInfo(dev_id, EUI48_ANY_DEVICE, 0, 0,
+                                AdapterSetting::NONE, AdapterSetting::NONE, 0, "invalid", "invalid"));
+        ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: Not existent: %s", dev_id, adapterInfo->toString().c_str());
+        return false;
+    }
 
     btMode = adapterInfo->getCurrentBTMode();
     if( BTMode::NONE == btMode ) {

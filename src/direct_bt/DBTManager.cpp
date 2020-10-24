@@ -416,24 +416,23 @@ next1:
             ERR_PRINT("Insufficient data for %d adapter indices: res %s", num_adapter, res->toString().c_str());
             goto fail;
         }
-        adapterInfos.resize(num_adapter, nullptr);
-        for(int i=0; ok && i < num_adapter; i++) {
-            const uint16_t dev_id = jau::get_uint16(data, 2+i*2, true /* littleEndian */);
-            if( dev_id >= num_adapter ) {
-                ABORT("dev_id %d >= num_adapter %d", dev_id, num_adapter);
+        {
+            // Not required: CTOR: const std::lock_guard<std::recursive_mutex> lock(adapterInfos.get_write_mutex());
+            std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+
+            for(int i=0; ok && i < num_adapter; i++) {
+                const uint16_t dev_id = jau::get_uint16(data, 2+i*2, true /* littleEndian */);
+                std::shared_ptr<AdapterInfo> adapterInfo = initAdapter(dev_id, defaultBTMode);
+                if( nullptr != adapterInfo ) {
+                    snapshot->push_back(adapterInfo);
+                    DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: %s", i, num_adapter, dev_id, adapterInfo->toString().c_str());
+                    ok = true;
+                } else {
+                    DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: FAILED", i, num_adapter, dev_id);
+                    ok = false;
+                }
             }
-            if( adapterInfos[dev_id] != nullptr ) {
-                ABORT("adapters[dev_id=%d] != nullptr: %s", dev_id, adapterInfos[dev_id]->toString().c_str());
-            }
-            std::shared_ptr<AdapterInfo> adapterInfo = initAdapter(dev_id, defaultBTMode);
-            adapterInfos[dev_id] = adapterInfo;
-            if( nullptr != adapterInfo ) {
-                DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: %s", i, num_adapter, dev_id, adapterInfo->toString().c_str());
-                ok = true;
-            } else {
-                DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: FAILED", i, num_adapter, dev_id);
-                ok = false;
-            }
+            // Not required: CTOR: adapterInfos.set_store(std::move(snapshot));
         }
     }
 
@@ -483,9 +482,9 @@ void DBTManager::close() noexcept {
     removeAllDevicesFromWhitelist();
     clearAllMgmtEventCallbacks();
 
-    for (auto it = adapterInfos.begin(); it != adapterInfos.end(); it++) {
-        shutdownAdapter((*it)->dev_id);
-    }
+    jau::for_each_cow(adapterInfos, [&](std::shared_ptr<AdapterInfo> & a) {
+        shutdownAdapter(a->dev_id);
+    });
     adapterInfos.clear();
 
     // Interrupt DBTManager's HCIComm::read(..), avoiding prolonged hang
@@ -533,52 +532,62 @@ void DBTManager::close() noexcept {
 }
 
 int DBTManager::findAdapterInfoDevId(const EUI48 &mac) const noexcept {
-    auto begin = adapterInfos.begin();
-    auto it = std::find_if(begin, adapterInfos.end(), [&](std::shared_ptr<AdapterInfo> const& p) {
+    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+    auto begin = snapshot->begin();
+    auto it = std::find_if(begin, snapshot->end(), [&](std::shared_ptr<AdapterInfo> const& p) -> bool {
         return p->address == mac;
     });
-    if ( it == std::end(adapterInfos) ) {
+    if ( it == std::end(*snapshot) ) {
         return -1;
     } else {
-        return std::distance(begin, it);
+        return (*it)->dev_id;
     }
 }
 std::shared_ptr<AdapterInfo> DBTManager::findAdapterInfo(const EUI48 &mac) const noexcept {
-    auto begin = adapterInfos.begin();
-    auto it = std::find_if(begin, adapterInfos.end(), [&](std::shared_ptr<AdapterInfo> const& p) {
+    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+    auto begin = snapshot->begin();
+    auto it = std::find_if(begin, snapshot->end(), [&](std::shared_ptr<AdapterInfo> const& p) -> bool {
         return p->address == mac;
     });
-    if ( it == std::end(adapterInfos) ) {
+    if ( it == std::end(*snapshot) ) {
         return nullptr;
     } else {
         return *it;
     }
 }
 std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const uint16_t dev_id) const noexcept {
-    if( 0 > idx || idx >= static_cast<int>(adapterInfos.size()) ) {
-        throw jau::IndexOutOfBoundsException(idx, adapterInfos.size(), E_FILE_LINE);
+    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+    auto begin = snapshot->begin();
+    auto it = std::find_if(begin, snapshot->end(), [&](std::shared_ptr<AdapterInfo> const& p) -> bool {
+        return p->dev_id == dev_id;
+    });
+    if ( it == std::end(*snapshot) ) {
+        return nullptr;
+    } else {
+        return *it;
     }
-    std::shared_ptr<AdapterInfo> adapter = adapterInfos.at(idx);
-    return adapter;
 }
 
 BTMode DBTManager::getCurrentBTMode(uint16_t dev_id) const noexcept {
-    if( 0 > dev_id || dev_id >= static_cast<int>(adapterInfos.size()) ) {
-        ERR_PRINT("dev_id %d out of bounds [0..%d[", dev_id, static_cast<int>(adapterInfos.size()));
+    std::shared_ptr<AdapterInfo> ai = getAdapterInfo(dev_id);
+    if( nullptr == ai ) {
+        ERR_PRINT("dev_id %d not found", dev_id);
         return BTMode::NONE;
     }
-    return adapterInfos.at(dev_id)->getCurrentBTMode();
+    return ai->getCurrentBTMode();
 }
 
 std::shared_ptr<AdapterInfo> DBTManager::getDefaultAdapterInfo() const noexcept {
-    auto begin = adapterInfos.begin();
-    auto it = std::find_if(begin, adapterInfos.end(), [&](std::shared_ptr<AdapterInfo> const& p) {
+    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+    auto begin = snapshot->begin();
+    auto it = std::find_if(begin, snapshot->end(), [](std::shared_ptr<AdapterInfo> const& p) -> bool {
         return p->isCurrentSettingBitSet(AdapterSetting::POWERED);
     });
-    if ( it != std::end(adapterInfos) ) {
-        return *it; // the 1st POWERED adapter
+    if ( it == std::end(*snapshot) ) {
+        return nullptr;
+    } else {
+        return *it;
     }
-    return adapterInfos.size() > 0 ? getAdapterInfo(0) : nullptr; // first adapter or nullptr, if none.
 }
 
 int DBTManager::getDefaultAdapterDevId() const noexcept {
@@ -695,9 +704,9 @@ int DBTManager::removeAllDevicesFromWhitelist() noexcept {
     int count = whitelist.size();
     DBG_PRINT("DBTManager::removeAllDevicesFromWhitelist.B: Start %d elements", count);
     whitelist.clear();
-    for (auto it = adapterInfos.begin(); it != adapterInfos.end(); it++) {
-        removeDeviceFromWhitelist((*it)->dev_id, EUI48_ANY_DEVICE, BDAddressType::BDADDR_BREDR); // flush whitelist!
-    }
+    jau::for_each_cow(adapterInfos, [&](std::shared_ptr<AdapterInfo> & a) {
+        removeDeviceFromWhitelist(a->dev_id, EUI48_ANY_DEVICE, BDAddressType::BDADDR_BREDR); // flush whitelist!
+    });
 #endif
 
     DBG_PRINT("DBTManager::removeAllDevicesFromWhitelist: End: Removed %d elements, remaining %zd elements",
@@ -840,6 +849,27 @@ void DBTManager::clearAllMgmtEventCallbacks() noexcept {
     }
 }
 
+void DBTManager::processAdapterAdded(const uint16_t dev_id) noexcept {
+    std::shared_ptr<AdapterInfo> ai = initAdapter(dev_id, defaultBTMode);
+    if( nullptr != ai ) {
+        const bool added = addAdapterInfo(ai);
+        jau::PLAIN_PRINT("DBTManager::Adapter[%d] Added %d: %s", dev_id, added, ai->toString().c_str());
+    } else {
+        jau::PLAIN_PRINT("DBTManager::Adapter[%d] Added 0: Init failed", dev_id);
+    }
+}
+bool DBTManager::mgmtEvAdapterAddedCB(std::shared_ptr<MgmtEvent> e) noexcept {
+    jau::PLAIN_PRINT("DBTManager:mgmt:AdapterAdded: %s", e->toString().c_str());
+    std::thread adapterAddedThread(&DBTManager::processAdapterAdded, this, e->getDevID()); // @suppress("Invalid arguments")
+    adapterAddedThread.detach();
+    return true;
+}
+bool DBTManager::mgmtEvAdapterRemovedCB(std::shared_ptr<MgmtEvent> e) noexcept {
+    jau::PLAIN_PRINT("DBTManager:mgmt:AdapterRemoved: Start %s", e->toString().c_str());
+    std::shared_ptr<AdapterInfo> ai = removeAdapterInfo(e->getDevID());
+    jau::PLAIN_PRINT("DBTManager:mgmt:AdapterRemoved: End: Removed %s", (nullptr != ai ? ai->toString().c_str() : "none"));
+    return true;
+}
 bool DBTManager::mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) noexcept {
     jau::PLAIN_PRINT("DBTManager:mgmt:ClassOfDeviceChanged: %s", e->toString().c_str());
     (void)e;
