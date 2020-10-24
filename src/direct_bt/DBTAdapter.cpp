@@ -702,6 +702,7 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) noexc
 }
 
 bool DBTAdapter::mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const bool hciSourced) noexcept {
+    const std::string srctkn = hciSourced ? "hci" : "mgmt";
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
     const ScanType eventScanType = event.getScanType();
     const bool eventEnabled = event.getEnabled();
@@ -729,16 +730,16 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const 
     if( !hciSourced ) {
         // update HCIHandler's currentNativeScanType from other source
         const ScanType nextNativeScanType = changeScanType(currentNativeScanType, eventScanType, eventEnabled);
-        DBG_PRINT("DBTAdapter::DeviceDiscovering: dev_id %d, keepDiscoveringAlive %d: scanType[native %s -> %s, meta %s -> %s]): %s - HCI Updated",
-            dev_id, keep_le_scan_alive.load(),
+        DBG_PRINT("DBTAdapter:%s:DeviceDiscovering: dev_id %d, keepDiscoveringAlive %d: scanType[native %s -> %s, meta %s -> %s]): %s",
+            srctkn.c_str(), dev_id, keep_le_scan_alive.load(),
             getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(nextNativeScanType).c_str(),
             getScanTypeString(currentMetaScanType).c_str(), getScanTypeString(nextMetaScanType).c_str(),
             event.toString().c_str());
         currentNativeScanType = nextNativeScanType;
         hci.setCurrentScanType(currentNativeScanType);
     } else {
-        DBG_PRINT("DBTAdapter::DeviceDiscovering: dev_id %d, keepDiscoveringAlive %d: scanType[native %s, meta %s -> %s]): %s - HCI Event",
-            dev_id, keep_le_scan_alive.load(),
+        DBG_PRINT("DBTAdapter:%s:DeviceDiscovering: dev_id %d, keepDiscoveringAlive %d: scanType[native %s, meta %s -> %s]): %s",
+            srctkn.c_str(), dev_id, keep_le_scan_alive.load(),
             getScanTypeString(currentNativeScanType).c_str(),
             getScanTypeString(currentMetaScanType).c_str(), getScanTypeString(nextMetaScanType).c_str(),
             event.toString().c_str());
@@ -752,8 +753,8 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const 
         try {
             l->discoveringChanged(*this, currentMetaScanType, eventScanType, eventEnabled, keep_le_scan_alive, event.getTimestamp());
         } catch (std::exception &except) {
-            ERR_PRINT("DBTAdapter::EventCB:DeviceDiscovering-CBs %d/%zd: %s of %s: Caught exception %s",
-                    i+1, statusListenerList.size(),
+            ERR_PRINT("DBTAdapter:%s:DeviceDiscovering-CBs %d/%zd: %s of %s: Caught exception %s",
+                    srctkn.c_str(), i+1, statusListenerList.size(),
                     l->toString().c_str(), toString().c_str(), except.what());
         }
         i++;
@@ -767,7 +768,7 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const 
 }
 
 bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    COND_PRINT(debug_event, "DBTAdapter::EventCB:NewSettings: %s", e->toString().c_str());
+    COND_PRINT(debug_event, "DBTAdapter:mgmt:NewSettings: %s", e->toString().c_str());
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(e.get());
     const AdapterSetting old_settings = adapterInfo->getCurrentSettingMask();
     const AdapterSetting new_settings = adapterInfo->setCurrentSettingMask(event.getSettings());
@@ -827,7 +828,7 @@ void DBTAdapter::sendAdapterSettingsChanged(AdapterStatusListener & asl,
 }
 
 bool DBTAdapter::mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    COND_PRINT(debug_event, "DBTAdapter::EventCB:LocalNameChanged: %s", e->toString().c_str());
+    COND_PRINT(debug_event, "DBTAdapter:mgmt:LocalNameChanged: %s", e->toString().c_str());
     const MgmtEvtLocalNameChanged &event = *static_cast<const MgmtEvtLocalNameChanged *>(e.get());
     std::string old_name = localName.getName();
     std::string old_shortName = localName.getShortName();
@@ -839,7 +840,7 @@ bool DBTAdapter::mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) noexce
     if( shortNameChanged ) {
         localName.setShortName(event.getShortName());
     }
-    COND_PRINT(debug_event, "DBTAdapter::EventCB:LocalNameChanged: Local name: %d: '%s' -> '%s'; short_name: %d: '%s' -> '%s'",
+    COND_PRINT(debug_event, "DBTAdapter:mgmt:LocalNameChanged: Local name: %d: '%s' -> '%s'; short_name: %d: '%s' -> '%s'",
             nameChanged, old_name.c_str(), localName.getName().c_str(),
             shortNameChanged, old_shortName.c_str(), localName.getShortName().c_str());
     (void)nameChanged;
@@ -864,7 +865,7 @@ void DBTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice>
 }
 
 bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
-    COND_PRINT(debug_event, "DBTAdapter::EventCB:DeviceConnected(dev_id %d): %s", dev_id, e->toString().c_str());
+    COND_PRINT(debug_event, "DBTAdapter:hci:DeviceConnected(dev_id %d): %s", dev_id, e->toString().c_str());
     const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(e.get());
     EInfoReport ad_report;
     {
@@ -1015,14 +1016,14 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexc
 }
 
 bool DBTAdapter::mgmtEvDeviceDisconnectedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    COND_PRINT(debug_event, "DBTAdapter::EventCB:DeviceDisconnected: %s", e->toString().c_str());
+    COND_PRINT(debug_event, "DBTAdapter:mgmt:DeviceDisconnected: %s", e->toString().c_str());
     const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
     (void)event;
     return true;
 }
 
 bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
-    COND_PRINT(debug_event, "DBTAdapter::EventCB:DeviceFound(dev_id %d): %s", dev_id, e->toString().c_str());
+    COND_PRINT(debug_event, "DBTAdapter:hci:DeviceFound(dev_id %d): %s", dev_id, e->toString().c_str());
     const MgmtEvtDeviceFound &deviceFoundEvent = *static_cast<const MgmtEvtDeviceFound *>(e.get());
 
     std::shared_ptr<EInfoReport> eir = deviceFoundEvent.getEIR();
@@ -1044,7 +1045,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
         // drop existing device
         //
         EIRDataType updateMask = dev->update(*eir);
-        COND_PRINT(debug_event, "DBTAdapter::EventCB:DeviceFound: Drop already discovered %s, %s",
+        COND_PRINT(debug_event, "DBTAdapter:hci:DeviceFound: Drop already discovered %s, %s",
                 dev->getAddressString().c_str(), eir->toString().c_str());
         if( EIRDataType::NONE != updateMask ) {
             sendDeviceUpdated("DiscoveredDeviceFound", dev, eir->getTimestamp(), updateMask);
@@ -1063,7 +1064,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
         EIRDataType updateMask = dev->update(*eir);
         addDiscoveredDevice(dev); // re-add to discovered devices!
         dev->ts_last_discovery = eir->getTimestamp();
-        COND_PRINT(debug_event, "DBTAdapter::EventCB:DeviceFound: Use already shared %s, %s",
+        COND_PRINT(debug_event, "DBTAdapter:hci:DeviceFound: Use already shared %s, %s",
                 dev->getAddressString().c_str(), eir->toString().c_str());
 
         int i=0;
@@ -1073,7 +1074,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
                     l->deviceFound(dev, eir->getTimestamp());
                 }
             } catch (std::exception &except) {
-                ERR_PRINT("DBTAdapter::EventCB:DeviceFound: %d/%zd: %s of %s: Caught exception %s",
+                ERR_PRINT("DBTAdapter:hci:DeviceFound: %d/%zd: %s of %s: Caught exception %s",
                         i+1, statusListenerList.size(),
                         l->toString().c_str(), dev->toString().c_str(), except.what());
             }
@@ -1091,7 +1092,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
     dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, *eir));
     addDiscoveredDevice(dev);
     addSharedDevice(dev);
-    COND_PRINT(debug_event, "DBTAdapter::EventCB:DeviceFound: Use new %s, %s",
+    COND_PRINT(debug_event, "DBTAdapter:hci:DeviceFound: Use new %s, %s",
             dev->getAddressString().c_str(), eir->toString().c_str());
 
     int i=0;
@@ -1101,7 +1102,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
                 l->deviceFound(dev, eir->getTimestamp());
             }
         } catch (std::exception &except) {
-            ERR_PRINT("DBTAdapter::EventCB:DeviceFound-CBs %d/%zd: %s of %s: Caught exception %s",
+            ERR_PRINT("DBTAdapter:hci:DeviceFound-CBs %d/%zd: %s of %s: Caught exception %s",
                     i+1, statusListenerList.size(),
                     l->toString().c_str(), dev->toString().c_str(), except.what());
         }
