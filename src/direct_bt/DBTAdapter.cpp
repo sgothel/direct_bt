@@ -186,7 +186,7 @@ bool DBTAdapter::validateDevInfo() noexcept {
         return false;
     }
 
-#ifdef VERBOSE_ON
+#if 0
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedMgmt));
 #endif
 
@@ -596,6 +596,8 @@ exit:
     return status;
 }
 
+// *************************************************
+
 std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (EUI48 const & mac, const BDAddressType macType) noexcept {
     const std::lock_guard<std::mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     return findDevice(discoveredDevices, mac, macType);
@@ -684,7 +686,8 @@ std::string DBTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
     std::string out("Adapter[BTMode "+getBTModeString(btMode)+", "+getAddressString()+", '"+getName()+"', id "+std::to_string(dev_id)+
                     ", curSettings"+getAdapterSettingMaskString(adapterInfo->getCurrentSettingMask())+
                     ", scanType[native "+getScanTypeString(hci.getCurrentScanType())+", meta "+getScanTypeString(currentMetaScanType)+"]"
-                    ", "+javaObjectToString()+"]");
+                    ", valid "+std::to_string(isValid())+", open[mgmt, "+std::to_string(mgmt.isOpen())+", hci "+std::to_string(hci.isOpen())+
+                    "], "+javaObjectToString()+"]");
     std::vector<std::shared_ptr<DBTDevice>> devices = getDiscoveredDevices();
     if( includeDiscoveredDevices && devices.size() > 0 ) {
         out.append("\n");
@@ -696,6 +699,62 @@ std::string DBTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
         }
     }
     return out;
+}
+
+// *************************************************
+
+void DBTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings, const AdapterSetting current_settings,
+                                            const uint64_t timestampMS) noexcept
+{
+    AdapterSetting changes = getAdapterSettingMaskDiff(current_settings, old_settings);
+    COND_PRINT(debug_event, "DBTAdapter::sendAdapterSettingsChanged: %s -> %s, changes %s: %s",
+            getAdapterSettingMaskString(old_settings).c_str(),
+            getAdapterSettingMaskString(current_settings).c_str(),
+            getAdapterSettingMaskString(changes).c_str(), toString(false).c_str() );
+    int i=0;
+    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        try {
+            l->adapterSettingsChanged(*this, old_settings, current_settings, changes, timestampMS);
+        } catch (std::exception &e) {
+            ERR_PRINT("DBTAdapter:CB:NewSettings-CBs %d/%zd: %s of %s: Caught exception %s",
+                    i+1, statusListenerList.size(),
+                    l->toString().c_str(), toString(false).c_str(), e.what());
+        }
+        i++;
+    });
+}
+
+void DBTAdapter::sendAdapterSettingsChanged(AdapterStatusListener & asl,
+                                const AdapterSetting old_settings, const AdapterSetting current_settings,
+                                const uint64_t timestampMS) noexcept
+{
+    AdapterSetting changes = getAdapterSettingMaskDiff(current_settings, old_settings);
+    COND_PRINT(debug_event, "DBTAdapter::sendAdapterSettingsChanged: %s -> %s, changes %s: %s",
+            getAdapterSettingMaskString(old_settings).c_str(),
+            getAdapterSettingMaskString(current_settings).c_str(),
+            getAdapterSettingMaskString(changes).c_str(), toString(false).c_str() );
+    try {
+        asl.adapterSettingsChanged(*this, old_settings, current_settings, changes, timestampMS);
+    } catch (std::exception &e) {
+        ERR_PRINT("DBTAdapter::sendAdapterSettingsChanged-CB: %s of %s: Caught exception %s",
+                asl.toString().c_str(), toString(false).c_str(), e.what());
+    }
+}
+
+void DBTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept {
+    int i=0;
+    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        try {
+            if( l->matchDevice(*device) ) {
+                l->deviceUpdated(device, updateMask, timestamp);
+            }
+        } catch (std::exception &e) {
+            ERR_PRINT("DBTAdapter::sendDeviceUpdated-CBs (%s) %d/%zd: %s of %s: Caught exception %s",
+                    cause.c_str(), i+1, statusListenerList.size(),
+                    l->toString().c_str(), device->toString().c_str(), e.what());
+        }
+        i++;
+    });
 }
 
 // *************************************************
@@ -796,44 +855,6 @@ bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
     return true;
 }
 
-void DBTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings, const AdapterSetting current_settings,
-                                            const uint64_t timestampMS) noexcept
-{
-    AdapterSetting changes = getAdapterSettingMaskDiff(current_settings, old_settings);
-    COND_PRINT(debug_event, "DBTAdapter::sendAdapterSettingsChanged: %s -> %s, changes %s: %s",
-            getAdapterSettingMaskString(old_settings).c_str(),
-            getAdapterSettingMaskString(current_settings).c_str(),
-            getAdapterSettingMaskString(changes).c_str(), toString(false).c_str() );
-    int i=0;
-    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
-        try {
-            l->adapterSettingsChanged(*this, old_settings, current_settings, changes, timestampMS);
-        } catch (std::exception &e) {
-            ERR_PRINT("DBTAdapter::EventCB:NewSettings-CBs %d/%zd: %s of %s: Caught exception %s",
-                    i+1, statusListenerList.size(),
-                    l->toString().c_str(), toString(false).c_str(), e.what());
-        }
-        i++;
-    });
-}
-
-void DBTAdapter::sendAdapterSettingsChanged(AdapterStatusListener & asl,
-                                const AdapterSetting old_settings, const AdapterSetting current_settings,
-                                const uint64_t timestampMS) noexcept
-{
-    AdapterSetting changes = getAdapterSettingMaskDiff(current_settings, old_settings);
-    COND_PRINT(debug_event, "DBTAdapter::sendAdapterSettingsChanged: %s -> %s, changes %s: %s",
-            getAdapterSettingMaskString(old_settings).c_str(),
-            getAdapterSettingMaskString(current_settings).c_str(),
-            getAdapterSettingMaskString(changes).c_str(), toString(false).c_str() );
-    try {
-        asl.adapterSettingsChanged(*this, old_settings, current_settings, changes, timestampMS);
-    } catch (std::exception &e) {
-        ERR_PRINT("DBTAdapter::sendAdapterSettingsChanged-CB: %s of %s: Caught exception %s",
-                asl.toString().c_str(), toString(false).c_str(), e.what());
-    }
-}
-
 bool DBTAdapter::mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
     COND_PRINT(debug_event, "DBTAdapter:mgmt:LocalNameChanged: %s", e->toString().c_str());
     const MgmtEvtLocalNameChanged &event = *static_cast<const MgmtEvtLocalNameChanged *>(e.get());
@@ -853,22 +874,6 @@ bool DBTAdapter::mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) noexce
     (void)nameChanged;
     (void)shortNameChanged;
     return true;
-}
-
-void DBTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept {
-    int i=0;
-    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
-        try {
-            if( l->matchDevice(*device) ) {
-                l->deviceUpdated(device, updateMask, timestamp);
-            }
-        } catch (std::exception &e) {
-            ERR_PRINT("DBTAdapter::sendDeviceUpdated-CBs (%s) %d/%zd: %s of %s: Caught exception %s",
-                    cause.c_str(), i+1, statusListenerList.size(),
-                    l->toString().c_str(), device->toString().c_str(), e.what());
-        }
-        i++;
-    });
 }
 
 bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
