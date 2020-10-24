@@ -198,7 +198,7 @@ bool DBTAdapter::validateDevInfo() noexcept {
 DBTAdapter::DBTAdapter() noexcept
 : debug_event(jau::environment::getBooleanProperty("direct_bt.debug.adapter.event", false)),
   mgmt( DBTManager::get(BTMode::NONE /* use env default */) ),
-  dev_id( mgmt.getDefaultAdapterIdx() ),
+  dev_id( mgmt.getDefaultAdapterDevId() ),
   hci( dev_id )
 {
     valid = validateDevInfo();
@@ -207,7 +207,7 @@ DBTAdapter::DBTAdapter() noexcept
 DBTAdapter::DBTAdapter(EUI48 &mac) noexcept
 : debug_event(jau::environment::getBooleanProperty("direct_bt.debug.adapter.event", false)),
   mgmt( DBTManager::get(BTMode::NONE /* use env default */) ),
-  dev_id( mgmt.findAdapterInfoIdx(mac) ),
+  dev_id( mgmt.findAdapterInfoDevId(mac) ),
   hci( dev_id )
 {
     valid = validateDevInfo();
@@ -216,7 +216,7 @@ DBTAdapter::DBTAdapter(EUI48 &mac) noexcept
 DBTAdapter::DBTAdapter(const int _dev_id) noexcept
 : debug_event(jau::environment::getBooleanProperty("direct_bt.debug.adapter.event", false)),
   mgmt( DBTManager::get(BTMode::NONE /* use env default */) ),
-  dev_id( 0 <= _dev_id ? _dev_id : mgmt.getDefaultAdapterIdx() ),
+  dev_id( 0 <= _dev_id ? _dev_id : mgmt.getDefaultAdapterDevId() ),
   hci( dev_id )
 {
     valid = validateDevInfo();

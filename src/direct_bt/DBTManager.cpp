@@ -532,7 +532,7 @@ void DBTManager::close() noexcept {
     DBG_PRINT("DBTManager::close: End");
 }
 
-int DBTManager::findAdapterInfoIdx(const EUI48 &mac) const noexcept {
+int DBTManager::findAdapterInfoDevId(const EUI48 &mac) const noexcept {
     auto begin = adapterInfos.begin();
     auto it = std::find_if(begin, adapterInfos.end(), [&](std::shared_ptr<AdapterInfo> const& p) {
         return p->address == mac;
@@ -581,7 +581,7 @@ std::shared_ptr<AdapterInfo> DBTManager::getDefaultAdapterInfo() const noexcept 
     return adapterInfos.size() > 0 ? getAdapterInfo(0) : nullptr; // first adapter or nullptr, if none.
 }
 
-int DBTManager::getDefaultAdapterIdx() const noexcept {
+int DBTManager::getDefaultAdapterDevId() const noexcept {
     std::shared_ptr<AdapterInfo> ai = getDefaultAdapterInfo();
     if( nullptr == ai ) {
         return -1;

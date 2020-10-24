@@ -282,11 +282,12 @@ namespace direct_bt {
             int getAdapterCount() const noexcept { return adapterInfos.size(); }
 
             /**
-             * Returns the AdapterInfo index (== dev_id) with the given address or -1 if not found.
+             * Returns the AdapterInfo dev_id with the given address or -1 if not found.
              */
-            int findAdapterInfoIdx(const EUI48 &mac) const noexcept;
+            int findAdapterInfoDevId(const EUI48 &mac) const noexcept;
+
             /**
-             * Returns the AdapterInfo (index == dev_id) with the given address or nullptr if not found.
+             * Returns the AdapterInfo with the given address or nullptr if not found.
              */
             std::shared_ptr<AdapterInfo> findAdapterInfo(const EUI48 &mac) const noexcept;
 
@@ -321,7 +322,7 @@ namespace direct_bt {
              * or function returns -1 if no adapter is available.
              * </p>
              */
-            int getDefaultAdapterIdx() const noexcept;
+            int getDefaultAdapterDevId() const noexcept;
 
             bool setMode(const uint16_t dev_id, const MgmtOpcode opc, const uint8_t mode) noexcept;
 
