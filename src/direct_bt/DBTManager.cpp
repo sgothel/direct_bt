@@ -136,7 +136,7 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
 }
 
 void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept {
-    const int dev_id = event->getDevID();
+    const uint16_t dev_id = event->getDevID();
     MgmtAdapterEventCallbackList & mgmtEventCallbackList = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(event->getOpcode())];
     int invokeCount = 0;
 
@@ -439,20 +439,20 @@ next1:
 
     if( ok ) {
         if( env.DEBUG_EVENT ) {
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, bindMemberFunc(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTManager::mgmtEvDeviceFoundCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceDisconnectedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceConnectedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::CONNECT_FAILED, bindMemberFunc(this, &DBTManager::mgmtEvConnectFailedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_BLOCKED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceBlockedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNBLOCKED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceUnblockedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNPAIRED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceUnpairedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CONN_PARAM, bindMemberFunc(this, &DBTManager::mgmtEvNewConnectionParamCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhitelistAddedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhilelistRemovedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::PIN_CODE_REQUEST, bindMemberFunc(this, &DBTManager::mgmtEvPinCodeRequestCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, bindMemberFunc(this, &DBTManager::mgmtEvUserPasskeyRequestCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, jau::bindMemberFunc(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceFoundCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceDisconnectedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_CONNECTED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceConnectedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::CONNECT_FAILED, jau::bindMemberFunc(this, &DBTManager::mgmtEvConnectFailedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_BLOCKED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceBlockedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNBLOCKED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceUnblockedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceUnpairedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CONN_PARAM, jau::bindMemberFunc(this, &DBTManager::mgmtEvNewConnectionParamCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhitelistAddedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhilelistRemovedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bindMemberFunc(this, &DBTManager::mgmtEvPinCodeRequestCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bindMemberFunc(this, &DBTManager::mgmtEvUserPasskeyRequestCB));
         }
         PERF_TS_TD("DBTManager::open.ok");
         return;
@@ -554,7 +554,7 @@ std::shared_ptr<AdapterInfo> DBTManager::findAdapterInfo(const EUI48 &mac) const
         return *it;
     }
 }
-std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const int idx) const {
+std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const uint16_t dev_id) const noexcept {
     if( 0 > idx || idx >= static_cast<int>(adapterInfos.size()) ) {
         throw jau::IndexOutOfBoundsException(idx, adapterInfos.size(), E_FILE_LINE);
     }
@@ -562,7 +562,7 @@ std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const int idx) const {
     return adapter;
 }
 
-BTMode DBTManager::getCurrentBTMode(int dev_id) const noexcept {
+BTMode DBTManager::getCurrentBTMode(uint16_t dev_id) const noexcept {
     if( 0 > dev_id || dev_id >= static_cast<int>(adapterInfos.size()) ) {
         ERR_PRINT("dev_id %d out of bounds [0..%d[", dev_id, static_cast<int>(adapterInfos.size()));
         return BTMode::NONE;
@@ -589,7 +589,7 @@ int DBTManager::getDefaultAdapterIdx() const noexcept {
     return ai->dev_id;
 }
 
-bool DBTManager::setMode(const int dev_id, const MgmtOpcode opc, const uint8_t mode) noexcept {
+bool DBTManager::setMode(const uint16_t dev_id, const MgmtOpcode opc, const uint8_t mode) noexcept {
     MgmtUint8Cmd req(opc, dev_id, mode);
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res ) {
@@ -604,11 +604,11 @@ bool DBTManager::setMode(const int dev_id, const MgmtOpcode opc, const uint8_t m
     return false;
 }
 
-ScanType DBTManager::startDiscovery(const int dev_id, const BTMode btMode) noexcept {
+ScanType DBTManager::startDiscovery(const uint16_t dev_id, const BTMode btMode) noexcept {
     return startDiscovery(dev_id, getScanType(btMode));
 }
 
-ScanType DBTManager::startDiscovery(const int dev_id, const ScanType scanType) noexcept {
+ScanType DBTManager::startDiscovery(const uint16_t dev_id, const ScanType scanType) noexcept {
     MgmtUint8Cmd req(MgmtOpcode::START_DISCOVERY, dev_id, number(scanType));
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     ScanType type = ScanType::NONE;
@@ -625,7 +625,7 @@ ScanType DBTManager::startDiscovery(const int dev_id, const ScanType scanType) n
     }
     return type;
 }
-bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) noexcept {
+bool DBTManager::stopDiscovery(const uint16_t dev_id, const ScanType type) noexcept {
     MgmtUint8Cmd req(MgmtOpcode::STOP_DISCOVERY, dev_id, number(type));
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -635,7 +635,7 @@ bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) noexcept {
     return false;
 }
 
-bool DBTManager::uploadConnParam(const int dev_id, const EUI48 &address, const BDAddressType address_type,
+bool DBTManager::uploadConnParam(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type,
                                  const uint16_t conn_min_interval, const uint16_t conn_max_interval,
                                  const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
     MgmtConnParam connParam{ address, address_type, conn_min_interval, conn_max_interval, conn_latency, supervision_timeout };
@@ -648,7 +648,7 @@ bool DBTManager::uploadConnParam(const int dev_id, const EUI48 &address, const B
     return false;
 }
 
-bool DBTManager::isDeviceWhitelisted(const int dev_id, const EUI48 &address) noexcept {
+bool DBTManager::isDeviceWhitelisted(const uint16_t dev_id, const EUI48 &address) noexcept {
     for(auto it = whitelist.begin(); it != whitelist.end(); ) {
         std::shared_ptr<WhitelistElem> wle = *it;
         if( wle->dev_id == dev_id && wle->address == address ) {
@@ -660,7 +660,7 @@ bool DBTManager::isDeviceWhitelisted(const int dev_id, const EUI48 &address) noe
     return false;
 }
 
-bool DBTManager::addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype) noexcept {
+bool DBTManager::addDeviceToWhitelist(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype) noexcept {
     MgmtAddDeviceToWhitelistCmd req(dev_id, address, address_type, ctype);
 
     // Check if already exist in our local whitelist first, reject if so ..
@@ -705,7 +705,7 @@ int DBTManager::removeAllDevicesFromWhitelist() noexcept {
     return count;
 }
 
-bool DBTManager::removeDeviceFromWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type) noexcept {
+bool DBTManager::removeDeviceFromWhitelist(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type) noexcept {
     // Remove from our local whitelist first
     {
         for(auto it = whitelist.begin(); it != whitelist.end(); ) {
@@ -731,7 +731,7 @@ bool DBTManager::removeDeviceFromWhitelist(const int dev_id, const EUI48 &addres
 }
 
 bool DBTManager::disconnect(const bool ioErrorCause,
-                            const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
+                            const uint16_t dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
                             const HCIStatusCode reason) noexcept {
     bool bres = false;
 
@@ -757,7 +757,7 @@ bool DBTManager::disconnect(const bool ioErrorCause,
     return bres;
 }
 
-std::shared_ptr<ConnectionInfo> DBTManager::getConnectionInfo(const int dev_id, const EUI48 &address, const BDAddressType address_type) noexcept {
+std::shared_ptr<ConnectionInfo> DBTManager::getConnectionInfo(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type) noexcept {
     MgmtGetConnectionInfoCmd req(dev_id, address, address_type);
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -770,7 +770,7 @@ std::shared_ptr<ConnectionInfo> DBTManager::getConnectionInfo(const int dev_id, 
     return nullptr;
 }
 
-std::shared_ptr<NameAndShortName> DBTManager::setLocalName(const int dev_id, const std::string & name, const std::string & short_name) noexcept {
+std::shared_ptr<NameAndShortName> DBTManager::setLocalName(const uint16_t dev_id, const std::string & name, const std::string & short_name) noexcept {
     MgmtSetLocalNameCmd req (static_cast<uint16_t>(dev_id), name, short_name);
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {

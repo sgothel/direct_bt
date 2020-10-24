@@ -156,7 +156,7 @@ namespace direct_bt {
             static std::mutex mtx_singleton;
 
             struct WhitelistElem {
-                int dev_id;
+                uint16_t dev_id;
                 EUI48 address;
                 BDAddressType address_type;
                 HCIWhitelistConnectType ctype;
@@ -296,12 +296,12 @@ namespace direct_bt {
              * Throws IndexOutOfBoundsException if index is > adapter count.
              * </p>
              */
-            std::shared_ptr<AdapterInfo> getAdapterInfo(const int idx) const;
+            std::shared_ptr<AdapterInfo> getAdapterInfo(const uint16_t dev_id) const noexcept;
 
             /**
              * Returns the current BTMode of given adapter dev_idx or BTMode::NONE if dev_id adapter is not available.
              */
-            BTMode getCurrentBTMode(int dev_id) const noexcept;
+            BTMode getCurrentBTMode(uint16_t dev_id) const noexcept;
 
             /**
              * Returns the default AdapterInfo.
@@ -323,14 +323,14 @@ namespace direct_bt {
              */
             int getDefaultAdapterIdx() const noexcept;
 
-            bool setMode(const int dev_id, const MgmtOpcode opc, const uint8_t mode) noexcept;
+            bool setMode(const uint16_t dev_id, const MgmtOpcode opc, const uint8_t mode) noexcept;
 
             /** Start discovery on given adapter dev_id with a ScanType matching the given BTMode. Returns set ScanType. */
-            ScanType startDiscovery(const int dev_id, const BTMode btMode) noexcept;
+            ScanType startDiscovery(const uint16_t dev_id, const BTMode btMode) noexcept;
             /** Start discovery on given adapter dev_id with given ScanType. Returns set ScanType. */
-            ScanType startDiscovery(const int dev_id, const ScanType type) noexcept;
+            ScanType startDiscovery(const uint16_t dev_id, const ScanType type) noexcept;
             /** Stop discovery on given adapter dev_id. */
-            bool stopDiscovery(const int dev_id, const ScanType type) noexcept;
+            bool stopDiscovery(const uint16_t dev_id, const ScanType type) noexcept;
 
             /**
              * Uploads given connection parameter for given device to the kernel.
@@ -344,14 +344,14 @@ namespace direct_bt {
              * @param supervision_timeout in units of 10ms, default value >= 10 x conn_interval_max, we use HCIConstInt::LE_CONN_MIN_TIMEOUT_MS minimum; Value range [0xA-0x0C80] for [100ms - 32s].
              * @return
              */
-            bool uploadConnParam(const int dev_id, const EUI48 &address, const BDAddressType address_type,
+            bool uploadConnParam(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type,
                                  const uint16_t conn_interval_min=12, const uint16_t conn_interval_max=12,
                                  const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 15)) noexcept;
 
             /**
              * Returns true, if the adapter's device is already whitelisted.
              */
-            bool isDeviceWhitelisted(const int dev_id, const EUI48 &address) noexcept;
+            bool isDeviceWhitelisted(const uint16_t dev_id, const EUI48 &address) noexcept;
 
             /**
              * Add the given device to the adapter's autoconnect whitelist.
@@ -362,20 +362,20 @@ namespace direct_bt {
              * Method will reject duplicate devices, in which case it should be removed first.
              * </p>
              */
-            bool addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype) noexcept;
+            bool addDeviceToWhitelist(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype) noexcept;
 
             /** Remove the given device from the adapter's autoconnect whitelist. */
-            bool removeDeviceFromWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type) noexcept;
+            bool removeDeviceFromWhitelist(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type) noexcept;
 
             /** Remove all previously added devices from the autoconnect whitelist. Returns number of removed devices. */
             int removeAllDevicesFromWhitelist() noexcept;
 
             bool disconnect(const bool ioErrorCause,
-                            const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
+                            const uint16_t dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
                             const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
 
-            std::shared_ptr<ConnectionInfo> getConnectionInfo(const int dev_id, const EUI48 &address, const BDAddressType address_type) noexcept;
-            std::shared_ptr<NameAndShortName> setLocalName(const int dev_id, const std::string & name, const std::string & short_name) noexcept;
+            std::shared_ptr<ConnectionInfo> getConnectionInfo(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type) noexcept;
+            std::shared_ptr<NameAndShortName> setLocalName(const uint16_t dev_id, const std::string & name, const std::string & short_name) noexcept;
 
             /** MgmtEventCallback handling  */
 
