@@ -1131,12 +1131,12 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
 }
 
 bool DBTAdapter::mgmtEvAdapterAddedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    jau::PLAIN_PRINT("DBTAdapter:mgmt:AdapterAdded: %s on %s", e->toString().c_str(), toString(false).c_str());
+    DBG_PRINT("DBTAdapter:mgmt:AdapterAdded: %s on %s", e->toString().c_str(), toString(false).c_str());
     return true;
 }
 
 bool DBTAdapter::mgmtEvAdapterRemovedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    jau::PLAIN_PRINT("DBTAdapter:mgmt:AdapterRemoved: %s on %s", e->toString().c_str(), toString(false).c_str());
+    DBG_PRINT("DBTAdapter:mgmt:AdapterRemoved: %s on %s", e->toString().c_str(), toString(false).c_str());
     // Adapter has been powered off, close connections and cleanup off-thread.
     std::thread bg(&DBTAdapter::close, this); // @suppress("Invalid arguments")
     bg.detach();
