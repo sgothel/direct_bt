@@ -208,6 +208,8 @@ namespace direct_bt {
             std::shared_ptr<AdapterInfo> initAdapter(const uint16_t dev_id, const BTMode btMode) noexcept;
             void shutdownAdapter(const uint16_t dev_id) noexcept;
 
+            void processAdapterAdded(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvAdapterRemovedCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) noexcept;

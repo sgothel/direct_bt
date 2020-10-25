@@ -267,7 +267,12 @@ std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau
         case MgmtEvent::Opcode::DEVICE_UNPAIRED:
             res = new MgmtEvtDeviceUnpaired(buffer, buffer_size); break;
         case MgmtEvent::Opcode::LOCAL_NAME_CHANGED:
-            res = new MgmtEvtLocalNameChanged(buffer, buffer_size); break;
+            res = new MgmtEvtLocalNameChanged(buffer, buffer_size);
+            break;
+        case MgmtEvent::Opcode::INDEX_ADDED:
+            [[fallthrough]];
+        case MgmtEvent::Opcode::INDEX_REMOVED:
+            [[fallthrough]];
         default:
             res = new MgmtEvent(buffer, buffer_size, 0); break;
     }

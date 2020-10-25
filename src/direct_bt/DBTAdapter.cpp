@@ -131,29 +131,28 @@ std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (EUI48 const & mac, c
 // *************************************************
 
 bool DBTAdapter::validateDevInfo() noexcept {
+    bool ok = false;
     currentMetaScanType = ScanType::NONE;
     keep_le_scan_alive = false;
 
     if( 0 > dev_id ) {
         ERR_PRINT("DBTAdapter::validateDevInfo: Invalid negative dev_id %d", dev_id);
-        return false;
+        goto errout0;
     }
     if( !mgmt.isOpen() ) {
         ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: Manager not open", dev_id);
-        return false;
+        goto errout0;
     }
     if( !hci.isOpen() ) {
         ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: HCIHandler closed", dev_id);
-        return false;
+        goto errout0;
     }
 
     adapterInfo = mgmt.getAdapterInfo(dev_id);
     if( nullptr == adapterInfo ) {
         // fill in a dummy AdapterInfo for the sake of de-referencing throughout this adapter instance
-        adapterInfo = std::shared_ptr<AdapterInfo>( new AdapterInfo(dev_id, EUI48_ANY_DEVICE, 0, 0,
-                                AdapterSetting::NONE, AdapterSetting::NONE, 0, "invalid", "invalid"));
-        ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: Not existent: %s", dev_id, adapterInfo->toString().c_str());
-        return false;
+        ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: Not existent", dev_id);
+        goto errout0;
     }
     old_settings = adapterInfo->getCurrentSettingMask();
 
@@ -178,7 +177,10 @@ bool DBTAdapter::validateDevInfo() noexcept {
     } else {
         WORDY_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: Not POWERED: %s", dev_id, adapterInfo->toString().c_str());
     }
-    bool ok = true;
+    ok = true;
+    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::INDEX_ADDED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvAdapterAddedMgmt));
+    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::INDEX_REMOVED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvAdapterRemovedMgmt));
+
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvNewSettingsMgmt)) && ok;
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvLocalNameChangedMgmt)) && ok;
@@ -201,6 +203,11 @@ bool DBTAdapter::validateDevInfo() noexcept {
         return false; // dtor local HCIHandler w/ closing
     }
     return true;
+
+errout0:
+    adapterInfo = std::shared_ptr<AdapterInfo>( new AdapterInfo(dev_id, EUI48_ANY_DEVICE, 0, 0,
+                            AdapterSetting::NONE, AdapterSetting::NONE, 0, "invalid", "invalid"));
+    return false;
 }
 
 DBTAdapter::DBTAdapter() noexcept
@@ -265,6 +272,7 @@ void DBTAdapter::close() noexcept {
         const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
         sharedDevices.clear();
     }
+    valid = false;
     DBG_PRINT("DBTAdapter::close: XXX");
 }
 
@@ -1121,3 +1129,17 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
 
     return true;
 }
+
+bool DBTAdapter::mgmtEvAdapterAddedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
+    jau::PLAIN_PRINT("DBTAdapter:mgmt:AdapterAdded: %s on %s", e->toString().c_str(), toString(false).c_str());
+    return true;
+}
+
+bool DBTAdapter::mgmtEvAdapterRemovedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
+    jau::PLAIN_PRINT("DBTAdapter:mgmt:AdapterRemoved: %s on %s", e->toString().c_str(), toString(false).c_str());
+    // Adapter has been powered off, close connections and cleanup off-thread.
+    std::thread bg(&DBTAdapter::close, this); // @suppress("Invalid arguments")
+    bg.detach();
+    return true;
+}
+

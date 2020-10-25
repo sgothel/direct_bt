@@ -248,8 +248,10 @@ namespace direct_bt {
             void removeSharedDevice(const DBTDevice & device) noexcept;
             std::shared_ptr<DBTDevice> findSharedDevice (EUI48 const & mac, const BDAddressType macType) noexcept;
 
-            bool mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvAdapterAddedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvAdapterRemovedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceDisconnectedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;

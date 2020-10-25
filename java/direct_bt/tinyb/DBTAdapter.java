@@ -121,6 +121,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
         poweredOff();
 
+        // notify manager that this instance is gone for good
+        ((DBTManager)DBTManager.getManager()).removeAdapterCB(dev_id, 0x0100 /* custom opc */);
+
         super.close();
     }
 

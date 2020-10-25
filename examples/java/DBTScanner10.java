@@ -525,29 +525,27 @@ public class DBTScanner10 {
         return HCIStatusCode.SUCCESS == status;
     }
 
-    public void runTest(final BluetoothManager manager) {
-        final BluetoothAdapter adapter;
-        {
-            final List<BluetoothAdapter> adapters = manager.getAdapters();
-            for(int i=0; i < adapters.size(); i++) {
-                println("Adapter["+i+"]: "+adapters.get(i));
-            }
-            if( adapters.size() <= dev_id ) {
-                println("No adapter dev_id "+dev_id+" available, adapter count "+adapters.size());
-                System.exit(-1);
-            }
-            if( 0 > dev_id ) {
-                adapter = manager.getDefaultAdapter();
-            } else {
-                adapter = adapters.get(dev_id);
-            }
-            if( !adapter.isEnabled() ) {
-                println("Adapter not enabled: device "+adapter.getName()+", address "+adapter.getAddress()+": "+adapter.toString());
-                System.exit(-1);
+    private BluetoothAdapter createAdapter(final BluetoothManager mngr, final int dev_id0) {
+        BluetoothAdapter adapter;
+        if( 0 > dev_id0 ) {
+            adapter = mngr.getDefaultAdapter();
+        } else {
+            adapter = mngr.getAdapter(dev_id0);
+            if( !adapter.isPowered() ) {
+                adapter = mngr.getDefaultAdapter();
             }
         }
+        final int dev_id = null != adapter ? adapter.getDevID() : -1;
+        if( 0 > dev_id ) {
+            println("Adapter not available (1): Request "+dev_id0+", deduced "+dev_id);
+            return null;
+        }
 
-        timestamp_t0 = BluetoothUtils.currentTimeMillis();
+        if( !adapter.isPowered() ) { // should have been covered above
+            println("Adapter not powered (2): "+adapter.toString());
+            return null;
+        }
+        println("Using adapter: "+adapter.toString());
 
         adapter.addStatusListener(statusListener, null);
         adapter.enableDiscoverableNotifications(new BooleanNotification("Discoverable", timestamp_t0));
@@ -558,8 +556,6 @@ public class DBTScanner10 {
 
         adapter.enablePoweredNotifications(new BooleanNotification("Powered", timestamp_t0));
 
-        boolean done = false;
-
         if( USE_WHITELIST ) {
             for(final Iterator<String> wliter = whitelist.iterator(); wliter.hasNext(); ) {
                 final String addr = wliter.next();
@@ -568,9 +564,17 @@ public class DBTScanner10 {
             }
         } else {
             if( !startDiscovery(adapter, "kick-off") ) {
-                done = true;
             }
         }
+        return adapter;
+    }
+
+    public void runTest(final BluetoothManager manager) {
+        BluetoothAdapter adapter = createAdapter(manager, dev_id);
+
+        timestamp_t0 = BluetoothUtils.currentTimeMillis();
+
+        boolean done = false;
 
         while( !done ) {
             if( 0 == MULTI_MEASUREMENTS.get() ||
@@ -583,8 +587,21 @@ public class DBTScanner10 {
                 println("****** DevicesProcessed "+Arrays.toString(devicesProcessed.toArray()));
                 done = true;
             } else {
+                // validate existing adapter
+                if( null != adapter ) {
+                    if( !adapter.isValid() /* || !adapter.isPowered() */ ) {
+                        // In case of removed adapter, not just powered-off (soft-reset)
+                        // We could also close adapter on !isPowered() here, but its not required - adapter operational.
+                        adapter.close();
+                        adapter = null; // purge
+                    }
+                }
+                // re-create adapter if required
+                if( null == adapter ) {
+                    adapter = createAdapter(manager, dev_id);
+                }
                 try {
-                    Thread.sleep(3000);
+                    Thread.sleep(2000);
                 } catch (final InterruptedException e) {
                     e.printStackTrace();
                 }

@@ -30,6 +30,7 @@ import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.tinyb.BluetoothAdapter;
 import org.tinyb.BluetoothDevice;
@@ -64,7 +65,6 @@ public class DBTManager implements BluetoothManager
                                 } }, "DBTManager_ShutdownHook" ) ) ;
                 return null;
             } } ) ;
-
     }
 
     private static synchronized void shutdownImpl(final boolean _isJVMShuttingDown) {
@@ -150,7 +150,7 @@ public class DBTManager implements BluetoothManager
     public static void setUnifyUUID128Bit(final boolean v) { unifyUUID128Bit=v; }
 
     private long nativeInstance;
-    private final List<BluetoothAdapter> adapters = new ArrayList<BluetoothAdapter>();
+    private final List<BluetoothAdapter> adapters = new CopyOnWriteArrayList<BluetoothAdapter>();
     private final Settings settings;
 
     @Override
@@ -278,6 +278,50 @@ public class DBTManager implements BluetoothManager
     public boolean getDiscovering() throws BluetoothException { return getDefaultAdapter().getDiscovering(); }
 
     private native List<BluetoothAdapter> getAdapterListImpl();
+    private native BluetoothAdapter getAdapterImpl(int dev_id);
+
+    /** callback from native adapter remove */
+    /* pp */ final void removeAdapterCB(final int dev_id, final int opc_reason) {
+        for( int i=0; i<adapters.size(); i++) {
+            final BluetoothAdapter a = adapters.get(i);
+            if( dev_id == a.getDevID() ) {
+                adapters.remove(i);
+                if( DEBUG ) {
+                    System.err.println("DBTManager.removeAdapterCB[dev_id "+dev_id+", opc 0x"+Integer.toHexString(opc_reason)+
+                            "]: removed "+a.toString()+", size "+adapters.size());
+                }
+                return;
+            }
+        }
+        if( DEBUG ) {
+            System.err.println("DBTManager.removeAdapterCB[dev_id "+dev_id+", opc 0x"+Integer.toHexString(opc_reason)+
+                    "]: not found, size "+adapters.size());
+        }
+    }
+    /** callback from native adapter add or POWERED on */
+    private final void updatedAdapterCB(final int dev_id, final int opc_reason) {
+        final BluetoothAdapter preInstance = getAdapter(dev_id);
+        if( null != preInstance ) {
+            if( DEBUG ) {
+                System.err.println("DBTManager.updatedAdapterCB[dev_id "+dev_id+", opc 0x"+Integer.toHexString(opc_reason)+
+                        "]: existing "+preInstance.toString()+", size "+adapters.size());
+            }
+            return;
+        }
+        final BluetoothAdapter newInstance = getAdapterImpl(dev_id);
+        if( null == newInstance ) {
+            if( DEBUG ) {
+                System.err.println("DBTManager.updatedAdapterCB[dev_id "+dev_id+", opc 0x"+Integer.toHexString(opc_reason)+
+                        "]: Adapter not found, size "+adapters.size());
+            }
+            return;
+        }
+        final boolean added = adapters.add(newInstance);
+        if( DEBUG ) {
+            System.err.println("DBTManager.updatedAdapterCB[dev_id "+dev_id+", opc 0x"+Integer.toHexString(opc_reason)+
+                    "]: added "+added+": new "+newInstance.toString()+", size "+adapters.size());
+        }
+    }
 
     private native void initImpl(final boolean unifyUUID128Bit, final int btMode) throws BluetoothException;
     private native void deleteImpl(long nativeInstance);

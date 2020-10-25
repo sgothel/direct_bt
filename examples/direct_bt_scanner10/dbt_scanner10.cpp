@@ -506,40 +506,54 @@ static bool startDiscovery(DBTAdapter *a, std::string msg) {
     return HCIStatusCode::SUCCESS == status;
 }
 
+static std::shared_ptr<DBTAdapter> createAdapter(const int dev_id0) {
+    // pre-validate dev_id availability
+    int dev_id;
+    DBTManager & mngr = DBTManager::get(BTMode::LE);
+    if( 0 > dev_id0 ) {
+        dev_id = mngr.getDefaultAdapterDevID();
+    } else if( nullptr != mngr.getAdapterInfo(dev_id0) ) {
+        dev_id = dev_id0;
+    } else {
+        dev_id = -1;
+    }
+    if( 0 > dev_id ) {
+        fprintf(stderr, "Adapter not available (1): Request %d, deduced %d\n", dev_id0, dev_id);
+        return nullptr;
+    }
+
+    std::shared_ptr<DBTAdapter> adapter(new DBTAdapter(dev_id)); // given dev_id >= 0 or default adapter (1st powered)
+    if( !adapter->hasDevId() ) {
+        fprintf(stderr, "Adapter not available (2): %d\n", dev_id); // should have been covered above
+        return nullptr;
+    }
+    if( !adapter->isPowered() ) { // should have been covered above
+        fprintf(stderr, "Adapter not powered (2): %s\n", adapter->toString().c_str());
+        return nullptr;
+    }
+    fprintf(stderr, "Using adapter: %s\n", adapter->toString().c_str());
+
+    adapter->addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
+
+    if( USE_WHITELIST ) {
+        for (auto it = WHITELIST.begin(); it != WHITELIST.end(); ++it) {
+            bool res = adapter->addDeviceToWhitelist(*it, BDAddressType::BDADDR_LE_PUBLIC, HCIWhitelistConnectType::HCI_AUTO_CONN_ALWAYS);
+            fprintf(stderr, "Added to WHITELIST: res %d, address %s\n", res, it->toString().c_str());
+        }
+    } else {
+        if( !startDiscovery(adapter.get(), "kick-off") ) {
+            return nullptr;
+        }
+    }
+    return adapter;
+}
+
 void test(int dev_id) {
     bool done = false;
 
     timestamp_t0 = getCurrentMilliseconds();
 
-    DBTAdapter adapter(dev_id); // given dev_id >= 0 or default adapter (1st powered)
-    if( !adapter.hasDevId() ) {
-        fprintf(stderr, "Default adapter not available.\n");
-        exit(1);
-    }
-    if( !adapter.isValid() ) {
-        fprintf(stderr, "Adapter invalid.\n");
-        exit(1);
-    }
-    if( !adapter.isEnabled() ) {
-        fprintf(stderr, "Adapter not enabled: device %s, address %s: %s\n",
-                adapter.getName().c_str(), adapter.getAddressString().c_str(), adapter.toString().c_str());
-        exit(1);
-    }
-    fprintf(stderr, "Using adapter: device %s, address %s: %s\n",
-        adapter.getName().c_str(), adapter.getAddressString().c_str(), adapter.toString().c_str());
-
-    adapter.addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
-
-    if( USE_WHITELIST ) {
-        for (auto it = WHITELIST.begin(); it != WHITELIST.end(); ++it) {
-            bool res = adapter.addDeviceToWhitelist(*it, BDAddressType::BDADDR_LE_PUBLIC, HCIWhitelistConnectType::HCI_AUTO_CONN_ALWAYS);
-            fprintf(stderr, "Added to WHITELIST: res %d, address %s\n", res, it->toString().c_str());
-        }
-    } else {
-        if( !startDiscovery(&adapter, "kick-off") ) {
-            done = true;
-        }
-    }
+    std::shared_ptr<DBTAdapter> adapter = createAdapter(dev_id);
 
     while( !done ) {
         if( 0 == MULTI_MEASUREMENTS ||
@@ -552,14 +566,29 @@ void test(int dev_id) {
             printDevicesProcessed("****** DevicesProcessed ");
             done = true;
         } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+            // validate existing adapter
+            if( nullptr != adapter ) {
+                if( !adapter->isValid() /* || !adapter->isPowered() */ ) {
+                    // In case of removed adapter, not just powered-off (soft-reset)
+                    // We could also close adapter on !isPowered() here, but its not required - adapter operational.
+                    adapter->close();
+                    adapter = nullptr; // purge
+                }
+            }
+            // re-create adapter if required
+            if( nullptr == adapter ) {
+                adapter = createAdapter(dev_id);
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         }
     }
-    fprintf(stderr, "****** EOL Adapter's Devices - pre close\n");
-    adapter.printSharedPtrListOfDevices();
-    adapter.close();
-    fprintf(stderr, "****** EOL Adapter's Devices - post close\n");
-    adapter.printSharedPtrListOfDevices();
+    fprintf(stderr, "****** EOL Adapter's Devices - pre close: %s\n", adapter->toString().c_str());
+    if( nullptr != adapter ) {
+        adapter->printSharedPtrListOfDevices();
+        adapter->close();
+        fprintf(stderr, "****** EOL Adapter's Devices - post close\n");
+        adapter->printSharedPtrListOfDevices();
+    }
 }
 
 #include <cstdio>

@@ -115,6 +115,10 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
                     WARN_PRINT("DBTManager-IO RECV Drop (%u oldest elements of %u capacity, ring full)", dropCount, mgmtEventRing.capacity());
                 }
                 mgmtEventRing.putBlocking( event );
+            } else if( MgmtEvent::Opcode::INDEX_ADDED == opc ) {
+                COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV (ADD) %s", event->toString().c_str());
+                std::thread adapterAddedThread(&DBTManager::processAdapterAdded, this, event); // @suppress("Invalid arguments")
+                adapterAddedThread.detach();
             } else {
                 // issue a callback
                 COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV (CB) %s", event->toString().c_str());
@@ -391,10 +395,6 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
     }
 
 next1:
-    // Register to add/remove adapter optionally:
-    // MgmtEvent::INDEX_ADDED, MgmtConst::INDEX_NONE;
-    // MgmtEvent::INDEX_REMOVED, MgmtConst::INDEX_NONE;
-
     // Mandatory
     {
         MgmtCommand req0(MgmtOpcode::READ_INDEX_LIST, MgmtConstU16::MGMT_INDEX_NONE);
@@ -432,27 +432,25 @@ next1:
             // Not required: CTOR: adapterInfos.set_store(std::move(snapshot));
         }
     }
+
+    addMgmtEventCallback(-1, MgmtEvent::Opcode::INDEX_REMOVED, jau::bindMemberFunc(this, &DBTManager::mgmtEvAdapterRemovedCB));
     addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_SETTINGS,  jau::bindMemberFunc(this, &DBTManager::mgmtEvNewSettingsCB));
 
-    if( ok ) {
-        if( env.DEBUG_EVENT ) {
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, jau::bindMemberFunc(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceFoundCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceDisconnectedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_CONNECTED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceConnectedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::CONNECT_FAILED, jau::bindMemberFunc(this, &DBTManager::mgmtEvConnectFailedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_BLOCKED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceBlockedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNBLOCKED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceUnblockedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceUnpairedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CONN_PARAM, jau::bindMemberFunc(this, &DBTManager::mgmtEvNewConnectionParamCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhitelistAddedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhilelistRemovedCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bindMemberFunc(this, &DBTManager::mgmtEvPinCodeRequestCB));
-            addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bindMemberFunc(this, &DBTManager::mgmtEvUserPasskeyRequestCB));
-        }
-        PERF_TS_TD("DBTManager::open.ok");
-        return;
+    if( env.DEBUG_EVENT ) {
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, jau::bindMemberFunc(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceFoundCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceDisconnectedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_CONNECTED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceConnectedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::CONNECT_FAILED, jau::bindMemberFunc(this, &DBTManager::mgmtEvConnectFailedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_BLOCKED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceBlockedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNBLOCKED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceUnblockedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceUnpairedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CONN_PARAM, jau::bindMemberFunc(this, &DBTManager::mgmtEvNewConnectionParamCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhitelistAddedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhilelistRemovedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bindMemberFunc(this, &DBTManager::mgmtEvPinCodeRequestCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bindMemberFunc(this, &DBTManager::mgmtEvUserPasskeyRequestCB));
     }
     PERF_TS_TD("DBTManager::ctor.ok");
     DBG_PRINT("DBTManager::ctor: OK");
@@ -568,6 +566,39 @@ std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const uint16_t dev_id) c
     } else {
         return *it;
     }
+}
+bool DBTManager::addAdapterInfo(std::shared_ptr<AdapterInfo> ai) noexcept {
+    const std::lock_guard<std::recursive_mutex> lock(adapterInfos.get_write_mutex());
+    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+
+    auto begin = snapshot->begin();
+    auto it = std::find_if(begin, snapshot->end(), [&](std::shared_ptr<AdapterInfo> const& p) -> bool {
+        return p->dev_id == ai->dev_id;
+    });
+    if ( it != std::end(*snapshot) ) {
+        // already existing
+        return false;
+    }
+    snapshot->push_back(ai);
+    adapterInfos.set_store(std::move(snapshot));
+    return true;
+}
+std::shared_ptr<AdapterInfo> DBTManager::removeAdapterInfo(const uint16_t dev_id) noexcept {
+    const std::lock_guard<std::recursive_mutex> lock(adapterInfos.get_write_mutex());
+    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+
+    for(auto it = snapshot->begin(); it != snapshot->end(); ) {
+        std::shared_ptr<AdapterInfo> & ai = *it;
+        if( ai->dev_id == dev_id ) {
+            std::shared_ptr<AdapterInfo> res = ai;
+            it = snapshot->erase(it);
+            adapterInfos.set_store(std::move(snapshot));
+            return res;
+        } else {
+            ++it;
+        }
+    }
+    return nullptr;
 }
 
 BTMode DBTManager::getCurrentBTMode(uint16_t dev_id) const noexcept {
@@ -857,25 +888,21 @@ void DBTManager::clearAllMgmtEventCallbacks() noexcept {
     }
 }
 
-void DBTManager::processAdapterAdded(const uint16_t dev_id) noexcept {
+void DBTManager::processAdapterAdded(std::shared_ptr<MgmtEvent> e) noexcept {
+    const uint16_t dev_id = e->getDevID();
     std::shared_ptr<AdapterInfo> ai = initAdapter(dev_id, defaultBTMode);
     if( nullptr != ai ) {
         const bool added = addAdapterInfo(ai);
-        jau::PLAIN_PRINT("DBTManager::Adapter[%d] Added %d: %s", dev_id, added, ai->toString().c_str());
+        DBG_PRINT("DBTManager::Adapter[%d] Added %d: %s", dev_id, added, ai->toString().c_str());
+        sendMgmtEvent(e);
     } else {
-        jau::PLAIN_PRINT("DBTManager::Adapter[%d] Added 0: Init failed", dev_id);
+        DBG_PRINT("DBTManager::Adapter[%d] Added 0: Init failed", dev_id);
     }
 }
-bool DBTManager::mgmtEvAdapterAddedCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    jau::PLAIN_PRINT("DBTManager:mgmt:AdapterAdded: %s", e->toString().c_str());
-    std::thread adapterAddedThread(&DBTManager::processAdapterAdded, this, e->getDevID()); // @suppress("Invalid arguments")
-    adapterAddedThread.detach();
-    return true;
-}
 bool DBTManager::mgmtEvAdapterRemovedCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    jau::PLAIN_PRINT("DBTManager:mgmt:AdapterRemoved: Start %s", e->toString().c_str());
+    DBG_PRINT("DBTManager:mgmt:AdapterRemoved: Start %s", e->toString().c_str());
     std::shared_ptr<AdapterInfo> ai = removeAdapterInfo(e->getDevID());
-    jau::PLAIN_PRINT("DBTManager:mgmt:AdapterRemoved: End: Removed %s", (nullptr != ai ? ai->toString().c_str() : "none"));
+    DBG_PRINT("DBTManager:mgmt:AdapterRemoved: End: Removed %s", (nullptr != ai ? ai->toString().c_str() : "none"));
     return true;
 }
 bool DBTManager::mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) noexcept {
