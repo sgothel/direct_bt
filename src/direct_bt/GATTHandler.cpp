@@ -124,11 +124,11 @@ bool GATTHandler::removeCharacteristicListener(const GATTCharacteristicListener 
         return false;
     }
     const std::lock_guard<std::recursive_mutex> lock(characteristicListenerList.get_write_mutex());
-    std::shared_ptr<std::vector<std::shared_ptr<GATTCharacteristicListener>>> snapshot = characteristicListenerList.copy_store();
+    std::shared_ptr<std::vector<std::shared_ptr<GATTCharacteristicListener>>> store = characteristicListenerList.copy_store();
     int count = 0;
-    for(auto it = snapshot->begin(); it != snapshot->end(); ) {
+    for(auto it = store->begin(); it != store->end(); ) {
         if ( **it == *l ) {
-            it = snapshot->erase(it);
+            it = store->erase(it);
             count++;
             break;
         } else {
@@ -136,7 +136,7 @@ bool GATTHandler::removeCharacteristicListener(const GATTCharacteristicListener 
         }
     }
     if( 0 < count ) {
-        characteristicListenerList.set_store(std::move(snapshot));
+        characteristicListenerList.set_store(std::move(store));
         return true;
     }
     return false;
@@ -156,11 +156,11 @@ int GATTHandler::removeAllAssociatedCharacteristicListener(const GATTCharacteris
         return false;
     }
     const std::lock_guard<std::recursive_mutex> lock(characteristicListenerList.get_write_mutex());
-    std::shared_ptr<std::vector<std::shared_ptr<GATTCharacteristicListener>>> snapshot = characteristicListenerList.copy_store();
+    std::shared_ptr<std::vector<std::shared_ptr<GATTCharacteristicListener>>> store = characteristicListenerList.copy_store();
     int count = 0;
-    for(auto it = snapshot->begin(); it != snapshot->end(); ) {
+    for(auto it = store->begin(); it != store->end(); ) {
         if ( (*it)->match(*associatedCharacteristic) ) {
-            it = snapshot->erase(it);
+            it = store->erase(it);
             count++;
             break;
         } else {
@@ -168,7 +168,7 @@ int GATTHandler::removeAllAssociatedCharacteristicListener(const GATTCharacteris
         }
     }
     if( 0 < count ) {
-        characteristicListenerList.set_store(std::move(snapshot));
+        characteristicListenerList.set_store(std::move(store));
         return true;
     }
     return false;

@@ -569,30 +569,30 @@ std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const uint16_t dev_id) c
 }
 bool DBTManager::addAdapterInfo(std::shared_ptr<AdapterInfo> ai) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(adapterInfos.get_write_mutex());
-    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> store = adapterInfos.copy_store();
 
-    auto begin = snapshot->begin();
-    auto it = std::find_if(begin, snapshot->end(), [&](std::shared_ptr<AdapterInfo> const& p) -> bool {
+    auto begin = store->begin();
+    auto it = std::find_if(begin, store->end(), [&](std::shared_ptr<AdapterInfo> const& p) -> bool {
         return p->dev_id == ai->dev_id;
     });
-    if ( it != std::end(*snapshot) ) {
+    if ( it != std::end(*store) ) {
         // already existing
         return false;
     }
-    snapshot->push_back(ai);
-    adapterInfos.set_store(std::move(snapshot));
+    store->push_back(ai);
+    adapterInfos.set_store(std::move(store));
     return true;
 }
 std::shared_ptr<AdapterInfo> DBTManager::removeAdapterInfo(const uint16_t dev_id) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(adapterInfos.get_write_mutex());
-    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> store = adapterInfos.copy_store();
 
-    for(auto it = snapshot->begin(); it != snapshot->end(); ) {
+    for(auto it = store->begin(); it != store->end(); ) {
         std::shared_ptr<AdapterInfo> & ai = *it;
         if( ai->dev_id == dev_id ) {
             std::shared_ptr<AdapterInfo> res = ai;
-            it = snapshot->erase(it);
-            adapterInfos.set_store(std::move(snapshot));
+            it = store->erase(it);
+            adapterInfos.set_store(std::move(store));
             return res;
         } else {
             ++it;
