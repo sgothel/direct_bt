@@ -180,7 +180,7 @@ jlong Java_tinyb_dbus_DBusAdapter_getBluetoothClass(JNIEnv *env, jobject obj)
     return 0;
 }
 
-jboolean Java_tinyb_dbus_DBusAdapter_getPowered(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusAdapter_getPoweredState(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);

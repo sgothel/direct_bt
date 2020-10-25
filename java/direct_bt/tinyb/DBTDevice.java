@@ -92,9 +92,6 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     final AdapterStatusListener statusListener = new AdapterStatusListener() {
         @Override
         public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
-            if( DEBUG ) {
-                System.err.println("Device.StatusListener.UPDATED: "+updateMask+" of "+device);
-            }
             final boolean nameUpdated = updateMask.isSet( EIRDataTypeSet.DataType.NAME );
             final boolean rssiUpdated = updateMask.isSet( EIRDataTypeSet.DataType.RSSI );
             final boolean mdUpdated = updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA );

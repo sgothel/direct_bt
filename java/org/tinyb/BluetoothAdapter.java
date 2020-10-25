@@ -208,6 +208,17 @@ public interface BluetoothAdapter extends BluetoothObject
       */
     public String getName();
 
+    /**
+     * Returns the BluetoothAdapter's internal temporary device id
+     * <p>
+     * The internal device id is constant across the adapter lifecycle,
+     * but may change after its destruction.
+     * </p>
+     * @since 2.0.0
+     * @implNote Not implemented on tinyb.dbus
+     */
+    public int getDevID();
+
     /** Returns the friendly name of this adapter.
       * @return The friendly name of this adapter, or NULL if not set.
       */
@@ -222,20 +233,46 @@ public interface BluetoothAdapter extends BluetoothObject
       */
     public long getBluetoothClass();
 
+
     /**
-     * Returns whether this adapter is enabled and usable.
-     * <p>
-     * An inactive adapter could be blocked or rfkill'ed.
-     * </p>
-     * @return {@code true} if this adapter is enabled and usable, otherwise {@code false}.
+     * Returns whether the adapter is valid, plugged in and powered.
+     * @return true if {@link #isValid()}, HCI channel open and {@link AdapterSettings.SettingType#POWERED POWERED} state is set.
+     * @see #isSuspended()
+     * @see #isValid()
      * @since 2.0.0
      */
-    public boolean isEnabled();
+    public boolean isPowered();
 
-    /** Returns the power state the adapter.
-      * @return The power state of the adapter.
-      */
-    public boolean getPowered();
+    /**
+     * Returns whether the adapter is suspended, i.e. valid and plugged in, but not powered.
+     * @return true if {@link #isValid()}, HCI channel open and {@link AdapterSettings.SettingType#POWERED POWERED} state is not set.
+     * @see #isPowered()
+     * @see #isValid()
+     */
+    public boolean isSuspended();
+
+    /**
+     * Returns whether the adapter is valid, i.e. reference is valid, plugged in and generally operational,
+     * but not necessarily {@link #isPowered()}.
+     * @return true if this adapter references are valid and hadn't been {@link #close()}'ed
+     * @see #isPowered()
+     * @see #isSuspended()
+     * @since 2.0.0
+     */
+    public boolean isValid();
+
+    /**
+     * Returns the power state the adapter.
+     * <p>
+     * Consider using {@link #isPowered()}
+     * </p>
+     * @return The power state of the adapter.
+     * @since 2.0.0 Renamed from getPowered() to getPoweredState()
+     * @see #isPowered()
+     * @see #isSuspended()
+     * @see #isValid()
+     */
+    public boolean getPoweredState();
 
     /**
      * Enables notifications for the powered property and calls run function of the

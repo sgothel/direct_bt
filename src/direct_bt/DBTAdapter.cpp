@@ -164,7 +164,7 @@ bool DBTAdapter::validateDevInfo() noexcept {
     }
     hci.setBTMode(btMode);
 
-    if( isPowered() ) {
+    if( adapterInfo->isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
         HCILocalVersion version;
         HCIStatusCode status = hci.getLocalVersion(version);
         if( HCIStatusCode::SUCCESS != status ) {
@@ -206,7 +206,7 @@ bool DBTAdapter::validateDevInfo() noexcept {
 DBTAdapter::DBTAdapter() noexcept
 : debug_event(jau::environment::getBooleanProperty("direct_bt.debug.adapter.event", false)),
   mgmt( DBTManager::get(BTMode::NONE /* use env default */) ),
-  dev_id( mgmt.getDefaultAdapterDevId() ),
+  dev_id( mgmt.getDefaultAdapterDevID() ),
   hci( dev_id )
 {
     valid = validateDevInfo();
@@ -224,7 +224,7 @@ DBTAdapter::DBTAdapter(EUI48 &mac) noexcept
 DBTAdapter::DBTAdapter(const int _dev_id) noexcept
 : debug_event(jau::environment::getBooleanProperty("direct_bt.debug.adapter.event", false)),
   mgmt( DBTManager::get(BTMode::NONE /* use env default */) ),
-  dev_id( 0 <= _dev_id ? _dev_id : mgmt.getDefaultAdapterDevId() ),
+  dev_id( 0 <= _dev_id ? _dev_id : mgmt.getDefaultAdapterDevID() ),
   hci( dev_id )
 {
     valid = validateDevInfo();
@@ -239,10 +239,11 @@ DBTAdapter::~DBTAdapter() noexcept {
 void DBTAdapter::close() noexcept {
     DBG_PRINT("DBTAdapter::close: ... %p %s", this, toString().c_str());
     keep_le_scan_alive = false;
+
     // mute all listener first
     {
         int count = mgmt.removeMgmtEventCallback(dev_id);
-        DBG_PRINT("DBTAdapter removeMgmtEventCallback(DISCOVERING): %d callbacks", count);
+        DBG_PRINT("DBTAdapter::close removeMgmtEventCallback: %d callbacks", count);
     }
     statusListenerList.clear();
 
@@ -350,8 +351,8 @@ bool DBTAdapter::isDeviceWhitelisted(const EUI48 &address) noexcept {
 bool DBTAdapter::addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype,
                                       const uint16_t conn_interval_min, const uint16_t conn_interval_max,
                                       const uint16_t conn_latency, const uint16_t timeout) {
-    if( !isEnabled() ) {
-        ERR_PRINT("DBTAdapter::startDiscovery: Adapter not enabled/powered: %s", toString().c_str());
+    if( !isPowered() ) {
+        ERR_PRINT("DBTAdapter::startDiscovery: Adapter not powered: %s", toString().c_str());
         return false;
     }
     if( mgmt.isDeviceWhitelisted(dev_id, address) ) {
@@ -367,7 +368,6 @@ bool DBTAdapter::addDeviceToWhitelist(const EUI48 &address, const BDAddressType 
 }
 
 bool DBTAdapter::removeDeviceFromWhitelist(const EUI48 &address, const BDAddressType address_type) {
-    checkValidAdapter();
     return mgmt.removeDeviceFromWhitelist(dev_id, address, address_type);
 }
 
@@ -375,7 +375,6 @@ static jau::cow_vector<std::shared_ptr<AdapterStatusListener>>::equal_comparator
         [](const std::shared_ptr<AdapterStatusListener> &a, const std::shared_ptr<AdapterStatusListener> &b) -> bool { return *a == *b; };
 
 bool DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
-    checkValidAdapter();
     if( nullptr == l ) {
         throw jau::IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
@@ -387,7 +386,6 @@ bool DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
 }
 
 bool DBTAdapter::removeStatusListener(std::shared_ptr<AdapterStatusListener> l) {
-    checkValidAdapter();
     if( nullptr == l ) {
         throw jau::IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
@@ -396,7 +394,6 @@ bool DBTAdapter::removeStatusListener(std::shared_ptr<AdapterStatusListener> l) 
 }
 
 bool DBTAdapter::removeStatusListener(const AdapterStatusListener * l) {
-    checkValidAdapter();
     if( nullptr == l ) {
         throw jau::IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
@@ -420,7 +417,6 @@ bool DBTAdapter::removeStatusListener(const AdapterStatusListener * l) {
 }
 
 int DBTAdapter::removeAllStatusListener() {
-    checkValidAdapter();
     int count = statusListenerList.size();
     statusListenerList.clear();
     return count;
@@ -457,8 +453,8 @@ HCIStatusCode DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAdd
     // ERR_PRINT("Test");
     // throw jau::RuntimeException("Test", E_FILE_LINE);
 
-    if( !isEnabled() ) {
-        WARN_PRINT("DBTAdapter::startDiscovery: Adapter not enabled/powered: %s", toString().c_str());
+    if( !isPowered() ) {
+        WARN_PRINT("DBTAdapter::startDiscovery: Adapter not powered: %s", toString().c_str());
         return HCIStatusCode::UNSPECIFIED_ERROR;
     }
     const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
@@ -502,8 +498,8 @@ HCIStatusCode DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAdd
 
 void DBTAdapter::startDiscoveryBackground() noexcept {
     // FIXME: Respect DBTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
-    if( !isEnabled() ) {
-        WARN_PRINT("DBTAdapter::startDiscoveryBackground: Adapter not enabled/powered: %s", toString().c_str());
+    if( !isPowered() ) {
+        WARN_PRINT("DBTAdapter::startDiscoveryBackground: Adapter not powered: %s", toString().c_str());
         return;
     }
     const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
@@ -556,7 +552,7 @@ HCIStatusCode DBTAdapter::stopDiscovery() noexcept {
     }
 
     HCIStatusCode status;
-    if( !isPowered() ) {
+    if( !adapterInfo->isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
         WARN_PRINT("DBTAdapter::stopDiscovery: Powered off: %s", toString().c_str());
         hci.setCurrentScanType(ScanType::NONE);
         currentMetaScanType = ScanType::NONE;

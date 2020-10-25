@@ -68,9 +68,13 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     }
 
     @Override
-    public boolean isEnabled() {
-        return true; // FIXME
-    }
+    public boolean isPowered() { return isValid() && getPoweredState(); }
+
+    @Override
+    public final boolean isSuspended() { return isValid() && !getPoweredState(); }
+
+    @Override
+    public final boolean isValid() { return super.isValid(); }
 
     @Override
     public boolean isDeviceWhitelisted(final String address) {
@@ -131,6 +135,9 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     public native String getName();
 
     @Override
+    public int getDevID() { return 0; } // FIXME
+
+    @Override
     public native String getAlias();
 
     @Override
@@ -140,7 +147,7 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     public native long getBluetoothClass();
 
     @Override
-    public native boolean getPowered();
+    public native boolean getPoweredState();
 
     @Override
     public native void enablePoweredNotifications(BluetoothNotification<Boolean> callback);

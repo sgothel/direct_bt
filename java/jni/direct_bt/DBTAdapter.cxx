@@ -563,11 +563,33 @@ void Java_direct_1bt_tinyb_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj, jlong
     }
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_isEnabled(JNIEnv *env, jobject obj)
+jboolean Java_direct_1bt_tinyb_DBTAdapter_isPoweredImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
-        return adapter->isEnabled();
+        return adapter->isPowered();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
+jboolean Java_direct_1bt_tinyb_DBTAdapter_isSuspendedImpl(JNIEnv *env, jobject obj)
+{
+    try {
+        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        return adapter->isSuspended();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
+jboolean Java_direct_1bt_tinyb_DBTAdapter_isValidImpl(JNIEnv *env, jobject obj)
+{
+    try {
+        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        return adapter->isValid();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

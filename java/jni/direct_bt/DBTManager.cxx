@@ -67,7 +67,24 @@ void Java_direct_1bt_tinyb_DBTManager_deleteImpl(JNIEnv *env, jobject obj, jlong
     }
 }
 
-static const std::string _adapterClazzCtorArgs("(JLjava/lang/String;Ljava/lang/String;)V");
+static const std::string _adapterClazzCtorArgs("(JLjava/lang/String;Ljava/lang/String;I)V");
+static jobject _createJavaAdapter(JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, DBTAdapter* adapter) {
+    // prepare adapter ctor
+    const jstring addr = from_string_to_jstring(env_, adapter->getAddressString());
+    const jstring name = from_string_to_jstring(env_, adapter->getName());
+    java_exception_check_and_throw(env_, E_FILE_LINE);
+    jobject jAdapter = env_->NewObject(clazz, clazz_ctor, (jlong)adapter, addr, name, adapter->dev_id);
+    java_exception_check_and_throw(env_, E_FILE_LINE);
+    JNIGlobalRef::check(jAdapter, E_FILE_LINE);
+    std::shared_ptr<JavaAnon> jAdapterRef = adapter->getJavaObject(); // GlobalRef
+    JavaGlobalObj::check(jAdapterRef, E_FILE_LINE);
+    env_->DeleteLocalRef(addr);
+    env_->DeleteLocalRef(name);
+    env_->DeleteLocalRef(jAdapter);
+
+    DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_createJavaAdapter: New Adapter %p %s", adapter, adapter->toString().c_str());
+    return JavaGlobalObj::GetObject(jAdapterRef);
+};
 
 jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject obj)
 {
@@ -75,41 +92,26 @@ jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject
         DBTManager *manager = getInstance<DBTManager>(env, obj);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl: Manager %s", manager->toString().c_str());
 
-        // index == dev_id
         std::vector<std::unique_ptr<DBTAdapter>> adapters;
         const int adapterCount = manager->getAdapterCount();
-        for(int idx = 0; idx < adapterCount; idx++) {
-            std::unique_ptr<DBTAdapter> adapter(new DBTAdapter( idx ) );
+        for(int dev_id = 0; dev_id < adapterCount; dev_id++) {
+            if( nullptr == manager->getAdapterInfo(dev_id) ) {
+                ERR_PRINT("DBTManager::getAdapterListImpl: Adapter dev_id %d: Not found", dev_id);
+                continue;
+            }
+            std::unique_ptr<DBTAdapter> adapter(new DBTAdapter( dev_id ) );
             if( !adapter->isValid() ) {
-                throw BluetoothException("Invalid adapter @ idx "+std::to_string( idx ), E_FILE_LINE);
+                throw BluetoothException("Invalid adapter @ dev_id "+std::to_string( dev_id ), E_FILE_LINE);
             }
             if( !adapter->hasDevId() ) {
-                throw BluetoothException("Invalid adapter dev-id @ idx "+std::to_string( idx ), E_FILE_LINE);
+                throw BluetoothException("Invalid adapter dev-id @ dev_id "+std::to_string( dev_id ), E_FILE_LINE);
             }
-            if( idx != adapter->dev_id ) { // just make sure idx == dev_id
-                throw BluetoothException("Invalid adapter dev-id "+std::to_string( adapter->dev_id )+" != index "+std::to_string( idx ), E_FILE_LINE);
+            if( dev_id != adapter->dev_id ) { // just make sure idx == dev_id
+                throw BluetoothException("Invalid adapter dev-id "+std::to_string( adapter->dev_id )+" != dev_id "+std::to_string( dev_id ), E_FILE_LINE);
             }
             adapters.push_back(std::move(adapter));
         }
-        std::function<jobject(JNIEnv*, jclass, jmethodID, DBTAdapter*)> ctor_adapter =
-                [](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, DBTAdapter* adapter)->jobject {
-                    // prepare adapter ctor
-                    const jstring addr = from_string_to_jstring(env_, adapter->getAddressString());
-                    const jstring name = from_string_to_jstring(env_, adapter->getName());
-                    java_exception_check_and_throw(env_, E_FILE_LINE);
-                    jobject jAdapter = env_->NewObject(clazz, clazz_ctor, (jlong)adapter, addr, name);
-                    java_exception_check_and_throw(env_, E_FILE_LINE);
-                    JNIGlobalRef::check(jAdapter, E_FILE_LINE);
-                    std::shared_ptr<JavaAnon> jAdapterRef = adapter->getJavaObject(); // GlobalRef
-                    JavaGlobalObj::check(jAdapterRef, E_FILE_LINE);
-                    env_->DeleteLocalRef(addr);
-                    env_->DeleteLocalRef(name);
-                    env_->DeleteLocalRef(jAdapter);
-
-                    DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl: New Adapter %p %s", adapter, adapter->toString().c_str());
-                    return JavaGlobalObj::GetObject(jAdapterRef);
-                };
-        return convert_vector_uniqueptr_to_jarraylist<DBTAdapter>(env, adapters, _adapterClazzCtorArgs.c_str(), ctor_adapter);
+        return convert_vector_uniqueptr_to_jarraylist<DBTAdapter>(env, adapters, _adapterClazzCtorArgs.c_str(), _createJavaAdapter);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

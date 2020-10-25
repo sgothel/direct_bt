@@ -51,7 +51,6 @@ public class DBTManager implements BluetoothManager
     private static volatile boolean isJVMShuttingDown = false;
     private static final List<Runnable> userShutdownHooks = new ArrayList<Runnable>();
     private static boolean unifyUUID128Bit = true;
-    private static final int DefaultAdapterIndex;
 
     static {
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
@@ -65,10 +64,6 @@ public class DBTManager implements BluetoothManager
                                 } }, "DBTManager_ShutdownHook" ) ) ;
                 return null;
             } } ) ;
-        {
-            final String v = System.getProperty("org.tinyb.default_adapter", "-1");
-            DefaultAdapterIndex = Integer.valueOf(v);
-        }
 
     }
 
@@ -156,7 +151,6 @@ public class DBTManager implements BluetoothManager
 
     private long nativeInstance;
     private final List<BluetoothAdapter> adapters = new ArrayList<BluetoothAdapter>();
-    private int defaultAdapterIndex = 0;
     private final Settings settings;
 
     @Override
@@ -210,6 +204,17 @@ public class DBTManager implements BluetoothManager
     public List<BluetoothAdapter> getAdapters() { return adapters; }
 
     @Override
+    public BluetoothAdapter getAdapter(final int dev_id) {
+        for( int i=0; i<adapters.size(); i++) {
+            final BluetoothAdapter a = adapters.get(i);
+            if( dev_id == a.getDevID() ) {
+                return a;
+            }
+        }
+        return null;
+    }
+
+    @Override
     public List<BluetoothDevice> getDevices() { return getDefaultAdapter().getDevices(); }
 
     /**
@@ -245,17 +250,19 @@ public class DBTManager implements BluetoothManager
 
     @Override
     public boolean setDefaultAdapter(final BluetoothAdapter adapter) {
-        final int idx = adapters.indexOf(adapter);
-        if( 0 <= idx ) {
-            defaultAdapterIndex = idx;
-            return true;
-        }
         return false;
     }
 
-
     @Override
-    public BluetoothAdapter getDefaultAdapter() { return adapters.get(defaultAdapterIndex); }
+    public BluetoothAdapter getDefaultAdapter() {
+        for( int i=0; i<adapters.size(); i++) {
+            final BluetoothAdapter a = adapters.get(i);
+            if( a.isPowered() ) {
+                return a;
+            }
+        }
+        return null;
+    }
 
     @Override
     public boolean startDiscovery() throws BluetoothException { return HCIStatusCode.SUCCESS == startDiscovery(true); }
@@ -266,6 +273,7 @@ public class DBTManager implements BluetoothManager
     @Override
     public HCIStatusCode stopDiscovery() throws BluetoothException { return getDefaultAdapter().stopDiscovery(); }
 
+    @SuppressWarnings("deprecation")
     @Override
     public boolean getDiscovering() throws BluetoothException { return getDefaultAdapter().getDiscovering(); }
 
@@ -280,24 +288,6 @@ public class DBTManager implements BluetoothManager
             adapters.addAll(getAdapterListImpl());
         } catch (final BluetoothException be) {
             be.printStackTrace();
-        }
-        boolean isDefaultAdapterEnabled = false;
-        if( 0 <= DefaultAdapterIndex &&
-            adapters.size() > DefaultAdapterIndex
-          )
-        {
-            // User chosen default adapter index, ignoring enabled state
-            defaultAdapterIndex = DefaultAdapterIndex;
-            isDefaultAdapterEnabled = adapters.get(defaultAdapterIndex).isEnabled();
-        } else {
-            // Seek 1st enabled default adapter
-            for( int i=0; i<adapters.size(); i++) {
-                if( adapters.get(i).isEnabled() ) {
-                    defaultAdapterIndex = i;
-                    isDefaultAdapterEnabled = true;
-                    break; // done
-                }
-            }
         }
         final boolean supCharValCacheNotify;
         {
@@ -323,8 +313,6 @@ public class DBTManager implements BluetoothManager
             }
         };
         System.err.println("DBTManager: Using "+settings.toString());
-        System.err.println("DBTManager: Using default adapter index "+defaultAdapterIndex+", user choice "+DefaultAdapterIndex+", isEnabled "+isDefaultAdapterEnabled);
-        System.err.println("DBTManager: Using default adapter "+adapters.get(defaultAdapterIndex).toString());
     }
 
     /** Returns an instance of BluetoothManager, to be used instead of constructor.

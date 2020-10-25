@@ -1281,12 +1281,14 @@ namespace direct_bt {
         private:
             /** Unique adapter index filter or <code>-1</code> to listen for all adapter. */
             int dev_id;
+            /** Documented the related callback Opcode . */
+            MgmtEvent::Opcode opc;
             /** MgmtEventCallback instance */
             MgmtEventCallback callback;
 
         public:
-            MgmtAdapterEventCallback(int _dev_id, const MgmtEventCallback & _callback) noexcept
-            : dev_id(_dev_id), callback(_callback) {}
+            MgmtAdapterEventCallback(const int _dev_id, const MgmtEvent::Opcode _opc, const MgmtEventCallback & _callback) noexcept
+            : dev_id(_dev_id), opc(_opc), callback(_callback) {}
 
             MgmtAdapterEventCallback(const MgmtAdapterEventCallback &o) noexcept = default;
             MgmtAdapterEventCallback(MgmtAdapterEventCallback &&o) noexcept = default;
@@ -1309,7 +1311,7 @@ namespace direct_bt {
             { return !(*this == rhs); }
 
             std::string toString() const {
-                return "MgmtAdapterEventCallback[dev_id "+std::to_string(dev_id)+", "+callback.toString()+"]";
+                return "MgmtAdapterEventCallback[dev_id "+std::to_string(dev_id)+", "+MgmtEvent::getOpcodeString(opc)+", "+callback.toString()+"]";
             }
     };
 

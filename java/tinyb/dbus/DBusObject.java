@@ -80,6 +80,8 @@ public class DBusObject implements BluetoothObject
         return objectPath.hashCode();
     }
 
+    protected synchronized boolean isValid() { return isValid; }
+
     @Override
     public synchronized void close() {
         if (!isValid)

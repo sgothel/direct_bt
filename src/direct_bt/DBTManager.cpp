@@ -346,7 +346,6 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
 
     PERF_TS_T0();
 
-    bool ok = true;
     // Mandatory
     {
         MgmtCommand req0(MgmtOpcode::READ_VERSION, MgmtConstU16::MGMT_INDEX_NONE);
@@ -420,16 +419,14 @@ next1:
             // Not required: CTOR: const std::lock_guard<std::recursive_mutex> lock(adapterInfos.get_write_mutex());
             std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
 
-            for(int i=0; ok && i < num_adapter; i++) {
+            for(int i=0; i < num_adapter; i++) {
                 const uint16_t dev_id = jau::get_uint16(data, 2+i*2, true /* littleEndian */);
                 std::shared_ptr<AdapterInfo> adapterInfo = initAdapter(dev_id, defaultBTMode);
                 if( nullptr != adapterInfo ) {
                     snapshot->push_back(adapterInfo);
                     DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: %s", i, num_adapter, dev_id, adapterInfo->toString().c_str());
-                    ok = true;
                 } else {
                     DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: FAILED", i, num_adapter, dev_id);
-                    ok = false;
                 }
             }
             // Not required: CTOR: adapterInfos.set_store(std::move(snapshot));
@@ -457,10 +454,14 @@ next1:
         PERF_TS_TD("DBTManager::open.ok");
         return;
     }
+    PERF_TS_TD("DBTManager::ctor.ok");
+    DBG_PRINT("DBTManager::ctor: OK");
+    return;
 
 fail:
     close();
-    PERF_TS_TD("DBTManager::open.fail");
+    PERF_TS_TD("DBTManager::ctor.fail");
+    DBG_PRINT("DBTManager::ctor: FAIL");
     return;
 }
 
@@ -591,7 +592,7 @@ std::shared_ptr<AdapterInfo> DBTManager::getDefaultAdapterInfo() const noexcept 
     }
 }
 
-int DBTManager::getDefaultAdapterDevId() const noexcept {
+int DBTManager::getDefaultAdapterDevID() const noexcept {
     std::shared_ptr<AdapterInfo> ai = getDefaultAdapterInfo();
     if( nullptr == ai ) {
         return -1;
@@ -818,7 +819,7 @@ bool DBTManager::addMgmtEventCallback(const int dev_id, const MgmtEvent::Opcode 
         return false;
     }
     MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
-    /* const bool added = */ l.push_back_unique(MgmtAdapterEventCallback(dev_id, cb), _mgmtAdapterEventCallbackEqComp_ID_CB);
+    /* const bool added = */ l.push_back_unique(MgmtAdapterEventCallback(dev_id, opc, cb), _mgmtAdapterEventCallbackEqComp_ID_CB);
     return true;
 }
 int DBTManager::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
@@ -827,13 +828,19 @@ int DBTManager::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtE
         return 0;
     }
     MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
-    return l.erase_matching(MgmtAdapterEventCallback(0, cb), true /* all_matching */, _mgmtAdapterEventCallbackEqComp_CB);
+    return l.erase_matching( MgmtAdapterEventCallback( 0, MgmtEvent::Opcode::INVALID, cb ),
+                               true /* all_matching */, _mgmtAdapterEventCallbackEqComp_CB);
 }
 int DBTManager::removeMgmtEventCallback(const int dev_id) noexcept {
+    if( 0 > dev_id ) {
+        // skip dev_id -1 case, use clearAllMgmtEventCallbacks() here
+        return 0;
+    }
     int count = 0;
     for(size_t i=0; i<mgmtAdapterEventCallbackLists.size(); i++) {
         MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[i];
-        count += l.erase_matching(MgmtAdapterEventCallback(dev_id, MgmtEventCallback()), true /* all_matching */, _mgmtAdapterEventCallbackEqComp_ID);
+        count += l.erase_matching( MgmtAdapterEventCallback( dev_id, MgmtEvent::Opcode::INVALID, MgmtEventCallback() ),
+                                     true /* all_matching */, _mgmtAdapterEventCallbackEqComp_ID);
     }
     return count;
 }

@@ -192,6 +192,18 @@ public interface BluetoothManager
       */
     public List<BluetoothAdapter> getAdapters();
 
+    /**
+     * Returns the BluetoothAdapter matching the given dev_id or null if not found.
+     * <p>
+     * The adapters internal device id is constant across the adapter lifecycle,
+     * but may change after its destruction.
+     * </p>
+     * @param dev_id the internal temporary adapter device id
+     * @since 2.0.0
+     * @implNote Not implemented on tinyb.dbus
+     */
+    public BluetoothAdapter getAdapter(final int dev_id);
+
     /** Returns a list of discovered BluetoothDevices
       * @return A list of discovered BluetoothDevices
       */
@@ -202,17 +214,24 @@ public interface BluetoothManager
       */
     public List<BluetoothGattService> getServices();
 
-    /** Sets a default adapter to use for discovery.
-      * @return TRUE if the device was set
-      */
+    /**
+     * Sets a default adapter to use for discovery.
+     * @return TRUE if the device was set
+     * @implNote not implemented for direct_bt.tinyb
+     */
     public boolean setDefaultAdapter(BluetoothAdapter adapter);
 
-    /** Gets the default adapter to use for discovery.
-      * <p>
-      * System default is the last detected adapter at initialisation.
-      * </p>
-      * @return the used default adapter
-      */
+    /**
+     * Gets the default adapter to use for discovery.
+     * <p>
+     * <i>direct_bt.tinyb</i>: The default adapter is either the first {@link BluetoothAdapter#isPowered() powered} {@link BluetoothAdapter},
+     * or function returns nullptr if none is enabled.
+     * </p>
+     * <p>
+     * <i>tinyb.dbus</i>: System default is the last detected adapter at initialization.
+     * </p>
+     * @return the used default adapter
+     */
     public BluetoothAdapter getDefaultAdapter();
 
     /** Turns on device discovery on the default adapter if it is disabled.

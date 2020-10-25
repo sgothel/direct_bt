@@ -313,9 +313,8 @@ namespace direct_bt {
             /**
              * Returns the default AdapterInfo.
              * <p>
-             * The default adapter is either the first POWERED adapter,
-             * or the one with index == dev_id == 0,
-             * or nullptr if no adapter is available.
+             * The default adapter is either the first AdapterSetting::POWERED adapter,
+             * or function returns nullptr if none is AdapterSetting::POWERED.
              * </p>
              */
             std::shared_ptr<AdapterInfo> getDefaultAdapterInfo() const noexcept;
@@ -323,12 +322,11 @@ namespace direct_bt {
             /**
              * Returns the default adapter dev_id (index).
              * <p>
-             * The default adapter is either the first POWERED adapter,
-             * or the one with index == dev_id == 0,
-             * or function returns -1 if no adapter is available.
+             * The default adapter is either the first AdapterSetting::POWERED adapter,
+             * or function returns -1 if none is AdapterSetting::POWERED.
              * </p>
              */
-            int getDefaultAdapterDevId() const noexcept;
+            int getDefaultAdapterDevID() const noexcept;
 
             bool setMode(const uint16_t dev_id, const MgmtOpcode opc, const uint8_t mode) noexcept;
 

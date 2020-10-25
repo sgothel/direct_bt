@@ -615,12 +615,6 @@ public class DBTScanner10 {
                 System.setProperty("direct_bt.hci", args[++i]);
             } else if( arg.equals("-dbt_mgmt") && args.length > (i+1) ) {
                 System.setProperty("direct_bt.mgmt", args[++i]);
-            } else if( arg.equals("-default_dev_id") && args.length > (i+1) ) {
-                final int default_dev_id = Integer.valueOf(args[++i]).intValue();
-                if( 0 <= default_dev_id ) {
-                    System.setProperty("org.tinyb.default_adapter", String.valueOf(default_dev_id));
-                    System.err.println("Setting 'org.tinyb.default_adapter' to "+default_dev_id);
-                }
             } else if( arg.equals("-btmode") && args.length > (i+1) ) {
                 final BTMode btmode = BTMode.get(args[++i]);
                 System.setProperty("org.tinyb.btmode", btmode.toString());

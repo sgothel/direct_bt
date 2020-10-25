@@ -181,6 +181,12 @@ namespace direct_bt {
             DBTManager& mgmt;
 
         public:
+            /**
+             * Adapter's internal temporary device id.
+             * <p>
+             * The internal device id is constant across the adapter lifecycle,
+             * but may change after its destruction.
+             */
             const int dev_id;
 
         private:
@@ -303,7 +309,10 @@ namespace direct_bt {
             ~DBTAdapter() noexcept;
 
             /**
-             * Closes this instance, usually being called by destructor.
+             * Closes this instance, usually being called by destructor or when this adapter is being removed.
+             * <p>
+             * Renders this adapter's DBTAdapter#isValid() state to false.
+             * </p>
              */
             void close() noexcept;
 
@@ -314,27 +323,37 @@ namespace direct_bt {
                 return std::string(JAVA_DBT_PACKAGE "DBTAdapter");
             }
 
-            /**
-             * Throws an IllegalStateException if isValid() == false
-             */
-            inline void checkValidAdapter() const {
-                if( !isValid() ) {
-                    throw jau::IllegalStateException("Adapter state invalid: "+jau::aptrHexString(this)+", "+toString(), E_FILE_LINE);
-                }
-            }
-
             bool hasDevId() const noexcept { return 0 <= dev_id; }
 
             /**
-             * Returns true if the device is powered.
+             * Returns whether the adapter is valid, plugged in and powered.
+             * @return true if DBTAdapter::isValid(), HCIHandler::isOpen() and AdapterSetting::POWERED state is set.
+             * @see #isSuspended()
+             * @see #isValid()
              */
-            bool isPowered() noexcept { return adapterInfo->isCurrentSettingBitSet(AdapterSetting::POWERED); }
+            bool isPowered() const noexcept {
+                return isValid() && hci.isOpen() && adapterInfo->isCurrentSettingBitSet(AdapterSetting::POWERED);
+            }
 
             /**
-             * Returns true if DBTAdapter::isValid() and HCIHandler::isOpen() and DBTAdapter::isPowered().
+             * Returns whether the adapter is suspended, i.e. valid and plugged in, but not powered.
+             * @return true if DBTAdapter::isValid(), HCIHandler::isOpen() and AdapterSetting::POWERED state is not set.
+             * @see #isPowered()
+             * @see #isValid()
              */
-            bool isEnabled() noexcept {
-                return isValid() && hci.isOpen() && isPowered();
+            bool isSuspended() const noexcept {
+                return isValid() && hci.isOpen() && !adapterInfo->isCurrentSettingBitSet(AdapterSetting::POWERED);
+            }
+
+            /**
+             * Returns whether the adapter is valid, i.e. reference is valid, plugged in and generally operational,
+             * but not necessarily DBTAdapter::isPowered() powered.
+             * @return true if this adapter references are valid and hasn't been DBTAdapter::close() 'ed
+             * @see #isPowered()
+             * @see #isSuspended()
+             */
+            bool isValid() const noexcept {
+                return DBTObject::isValid();
             }
 
             EUI48 const & getAddress() const noexcept { return adapterInfo->address; }

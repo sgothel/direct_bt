@@ -62,6 +62,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     private final String address;
     private final String name;
+    private final int dev_id;
 
     private final Object discoveryLock = new Object();
     private final Object discoveredDevicesLock = new Object();
@@ -69,7 +70,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     private final AtomicBoolean isClosing = new AtomicBoolean(false);
 
-    private final AtomicBoolean isPowered = new AtomicBoolean(false); // AdapterSettings
+    private final AtomicBoolean powered_state = new AtomicBoolean(false); // AdapterSettings
     private BluetoothNotification<Boolean> userPairableNotificationCB = null;
     private final AtomicBoolean isDiscoverable = new AtomicBoolean(false); // AdapterSettings
     private BluetoothNotification<Boolean> userDiscoverableNotificationCB = null;
@@ -81,11 +82,12 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     private final List<BluetoothDevice> discoveredDevices = new ArrayList<BluetoothDevice>();
 
-    /* pp */ DBTAdapter(final long nativeInstance, final String address, final String name)
+    /* pp */ DBTAdapter(final long nativeInstance, final String address, final String name, final int dev_id)
     {
         super(nativeInstance, compHash(address, name));
         this.address = address;
         this.name = name;
+        this.dev_id = dev_id;
         addStatusListener(this.statusListener, null);
     }
 
@@ -123,7 +125,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     }
 
     private final void poweredOff() {
-        isPowered.set(false);
+        powered_state.set(false);
         currentMetaScanType.set(ScanType.NONE);
     }
 
@@ -142,6 +144,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     @Override
     public String getName() { return name; }
+
+    @Override
+    public int getDevID() { return dev_id; }
 
     @Override
     public BluetoothType getBluetoothType() { return class_type(); }
@@ -217,9 +222,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
 
     /* Java callbacks */
-
-    @Override
-    public boolean getPowered() { return isPowered.get(); }
 
     @Override
     public void enablePoweredNotifications(final BluetoothNotification<Boolean> callback) {
@@ -332,7 +334,19 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public native boolean setPairable(boolean value);
 
     @Override
-    public native boolean isEnabled();
+    public boolean getPoweredState() { return powered_state.get(); }
+
+    @Override
+    public final boolean isPowered() { return isValid() && isPoweredImpl(); }
+    public native boolean isPoweredImpl();
+
+    @Override
+    public final boolean isSuspended() { return isValid() && isSuspendedImpl(); }
+    public native boolean isSuspendedImpl();
+
+    @Override
+    public final boolean isValid() { return super.isValid() && isValidImpl(); }
+    public native boolean isValidImpl();
 
     /* internal */
 
@@ -447,14 +461,14 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
                 }
             }
             if( initialSetting ) {
-                isPowered.set( newmask.isSet(AdapterSettings.SettingType.POWERED) );
+                powered_state.set( newmask.isSet(AdapterSettings.SettingType.POWERED) );
                 isDiscoverable.set( newmask.isSet(AdapterSettings.SettingType.DISCOVERABLE) );
                 isPairable.set( newmask.isSet(AdapterSettings.SettingType.BONDABLE) );
                 return;
             }
             if( changedmask.isSet(AdapterSettings.SettingType.POWERED) ) {
                 final boolean _isPowered = newmask.isSet(AdapterSettings.SettingType.POWERED);
-                if( isPowered.compareAndSet(!_isPowered, _isPowered) ) {
+                if( powered_state.compareAndSet(!_isPowered, _isPowered) ) {
                     if( !_isPowered ) {
                         poweredOff();
                     }
@@ -515,7 +529,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
         @Override
         public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
-            if( DEBUG ) {
+            final boolean rssiUpdated = updateMask.isSet( EIRDataTypeSet.DataType.RSSI );
+            final boolean mdUpdated = updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA );
+            if( DEBUG && !rssiUpdated && !mdUpdated) {
                 System.err.println("Adapter.StatusListener.UPDATED: "+updateMask+" of "+device+" on "+device.getAdapter());
             }
             // nop on discoveredDevices

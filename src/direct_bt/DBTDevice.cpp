@@ -261,8 +261,10 @@ HCIStatusCode DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_w
                                    uint16_t conn_latency, uint16_t supervision_timeout)
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
-    adapter.checkValid();
-
+    if( !adapter.isPowered() ) {
+        WARN_PRINT("DBTDevice::connectLE: Adapter not powered: %s", adapter.toString().c_str());
+        return HCIStatusCode::UNSPECIFIED_ERROR;
+    }
     HCILEOwnAddressType hci_own_mac_type;
     HCILEPeerAddressType hci_peer_mac_type;
 
@@ -339,7 +341,10 @@ HCIStatusCode DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_w
 HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch)
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
-    adapter.checkValid();
+    if( !adapter.isPowered() ) {
+        WARN_PRINT("DBTDevice::connectBREDR: Adapter not powered: %s", adapter.toString().c_str());
+        return HCIStatusCode::UNSPECIFIED_ERROR;
+    }
 
     if( isConnected ) {
         ERR_PRINT("DBTDevice::connectBREDR: Already connected: %s", toString().c_str());
@@ -451,13 +456,8 @@ HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
     }
 
     if( !adapter.isPowered() ) {
-        WARN_PRINT("DBTDevice::disconnect: Powered off: %s", toString().c_str());
+        WARN_PRINT("DBTDevice::disconnect: Adapter not powered: %s", toString().c_str());
         res = HCIStatusCode::UNSPECIFIED_ERROR; // powered-off
-        goto exit;
-    }
-    if( !hci.isOpen() ) {
-        ERR_PRINT("DBTDevice::disconnect: HCI closed: %s", toString().c_str());
-        res = HCIStatusCode::UNSPECIFIED_ERROR;
         goto exit;
     }
 

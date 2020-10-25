@@ -46,7 +46,7 @@ public abstract class DBTNativeDownlink
         initNativeJavaObject(nativeInstance);
     }
 
-    protected final boolean isValid() { return isValid.get(); }
+    protected boolean isValid() { return isValid.get(); }
 
     @Override
     protected void finalize()

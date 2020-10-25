@@ -48,22 +48,8 @@ namespace direct_bt {
     {
         protected:
             std::atomic_bool valid;
-            std::mutex lk;
 
             DBTObject() noexcept : valid(true) {}
-
-            bool lock() noexcept {
-                 if (valid) {
-                     lk.lock();
-                     return true;
-                 } else {
-                     return false;
-                 }
-             }
-
-             void unlock() noexcept {
-                 lk.unlock();
-             }
 
         public:
             virtual std::string toString() const noexcept override { return "DBTObject["+aptrHexString(this)+"]"; }
@@ -72,16 +58,10 @@ namespace direct_bt {
                 valid = false;
             }
 
-            inline bool isValid() const noexcept { return valid.load(); }
-
             /**
-             * Throws an IllegalStateException if isValid() == false
+             * Returns whether the object's reference is valid and in a general operational state.
              */
-            void checkValid() const override {
-                if( !isValid() ) {
-                    throw jau::IllegalStateException("DBTObject state invalid: "+aptrHexString(this), E_FILE_LINE);
-                }
-            }
+            inline bool isValid() const noexcept { return valid.load(); }
     };
 
     /**

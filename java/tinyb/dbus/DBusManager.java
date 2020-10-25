@@ -95,6 +95,9 @@ public class DBusManager implements BluetoothManager
     public native List<BluetoothAdapter> getAdapters();
 
     @Override
+    public BluetoothAdapter getAdapter(final int dev_id) { return null; } // FIXME
+
+    @Override
     public native List<BluetoothDevice> getDevices();
 
     @Override
