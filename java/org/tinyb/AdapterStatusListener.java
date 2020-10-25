@@ -54,7 +54,16 @@ package org.tinyb;
  */
 public abstract class AdapterStatusListener {
     @SuppressWarnings("unused")
-    private long nativeInstance;
+    private volatile long nativeInstance;
+
+    /**
+     * Called from native JNIAdapterStatusListener dtor
+     * i.e. native instance destructed in native land.
+     */
+    @SuppressWarnings("unused")
+    private final void notifyDeleted() {
+        nativeInstance = 0;
+    }
 
     /**
      * {@link BluetoothAdapter} setting(s) changed.

@@ -89,7 +89,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     jfieldID deviceClazzTSLastDiscoveryField;
     jfieldID deviceClazzTSLastUpdateField;
     jfieldID deviceClazzConnectionHandleField;
-    JNIGlobalRef listenerObjRef;
+    jau::JavaGlobalObj listenerObjRef;
     jmethodID  mAdapterSettingsChanged = nullptr;
     jmethodID  mDiscoveringChanged = nullptr;
     jmethodID  mDeviceFound = nullptr;
@@ -104,17 +104,17 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         return "JNIAdapterStatusListener[this "+jau::aptrHexString(this)+", iname "+std::to_string(iname)+", devMatchAddr "+devMatchAddr+"]";
     }
 
-    JNIAdapterStatusListener(JNIEnv *env, DBTAdapter *adapter, jobject statusListener, const DBTDevice * _deviceMatchRef)
-    : iname(iname_next.fetch_add(1)), deviceMatchRef(_deviceMatchRef), listenerObjRef(statusListener)
+    ~JNIAdapterStatusListener() override {
+        // listenerObjRef dtor will call notifyDelete and clears the nativeInstance handle
+    }
+
+    JNIAdapterStatusListener(JNIEnv *env, DBTAdapter *adapter,
+                             jclass listenerClazz, jobject statusListenerObj, jmethodID  statusListenerNotifyDeleted,
+                             const DBTDevice * _deviceMatchRef)
+    : iname(iname_next.fetch_add(1)), deviceMatchRef(_deviceMatchRef), listenerObjRef(statusListenerObj, statusListenerNotifyDeleted)
     {
         adapterObjRef = adapter->getJavaObject();
         jau::JavaGlobalObj::check(adapterObjRef, E_FILE_LINE);
-
-        jclass listenerClazz = jau::search_class(env, listenerObjRef.getObject());
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == listenerClazz ) {
-            throw jau::InternalError("AdapterStatusListener not found", E_FILE_LINE);
-        }
 
         // adapterSettingsClazzRef, adapterSettingsClazzCtor
         {
@@ -422,8 +422,22 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(JNIEnv *env, jobject
             jau::JavaGlobalObj::check(deviceMatchRef->getJavaObject(), E_FILE_LINE);
         }
 
+        jclass listenerClazz = jau::search_class(env, statusListener);
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == listenerClazz ) {
+            throw jau::InternalError("AdapterStatusListener not found", E_FILE_LINE);
+        }
+        jmethodID  mStatusListenerNotifyDeleted = jau::search_method(env, listenerClazz, "notifyDeleted", "()V", false);
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == mStatusListenerNotifyDeleted ) {
+            throw jau::InternalError("AdapterStatusListener class has no notifyDeleted() method", E_FILE_LINE);
+        }
+
         std::shared_ptr<AdapterStatusListener> l =
-                std::shared_ptr<AdapterStatusListener>( new JNIAdapterStatusListener(env, adapter, statusListener, deviceMatchRef) );
+                std::shared_ptr<AdapterStatusListener>( new JNIAdapterStatusListener(env, adapter,
+                        listenerClazz, statusListener, mStatusListenerNotifyDeleted, deviceMatchRef) );
+
+        env->DeleteLocalRef(listenerClazz);
 
         jau::setInstance(env, statusListener, l.get());
         if( adapter->addStatusListener( l ) ) {
@@ -447,7 +461,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_removeStatusListenerImpl(JNIEnv *env, 
         }
         JNIAdapterStatusListener * pre = jau::getInstanceUnchecked<JNIAdapterStatusListener>(env, statusListener);
         if( nullptr == pre ) {
-            DBG_PRINT("statusListener's nativeInstance is null, not in use");
+            DBG_PRINT("JNIAdapterStatusListener::removeStatusListener: statusListener's nativeInstance is null, not in use");
             return false;
         }
         jau::clearInstance(env, statusListener);
@@ -458,6 +472,13 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_removeStatusListenerImpl(JNIEnv *env, 
         if( ! adapter->removeStatusListener( pre ) ) {
             WARN_PRINT("Failed to remove statusListener with nativeInstance: %p at %s", pre, adapter->toString().c_str());
             return false;
+        }
+        {
+            JNIAdapterStatusListener * post = jau::getInstanceUnchecked<JNIAdapterStatusListener>(env, statusListener);
+            if( nullptr != post ) {
+                ERR_PRINT("JNIAdapterStatusListener::removeStatusListener: statusListener's nativeInstance not null post native removal");
+                return false;
+            }
         }
         return true;
     } catch(...) {
