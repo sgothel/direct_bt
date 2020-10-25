@@ -38,6 +38,7 @@ import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothType;
 import org.tinyb.HCIStatusCode;
+import org.tinyb.BluetoothManager.ChangedAdapterSetListener;
 
 public class DBusManager implements BluetoothManager
 {
@@ -173,4 +174,10 @@ public class DBusManager implements BluetoothManager
     public void shutdown() {
         delete();
     }
+
+    @Override
+    public final void addChangedAdapterSetListener(final ChangedAdapterSetListener l) {} // FIXME
+
+    @Override
+    public final int removeChangedAdapterSetListener(final ChangedAdapterSetListener l) { return 0; } // FIXME
 }

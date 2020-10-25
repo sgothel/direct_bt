@@ -11,6 +11,10 @@
 # ../scripts/run-dbt_scanner10.sh -wait -wl C0:26:DA:01:DA:B1 2>&1 | tee ~/scanner-h01-dbt10.log
 # ../scripts/run-dbt_scanner10.sh -wait 2>&1 | tee ~/scanner-h01-dbt10.log
 #
+# To do a BT adapter removal/add via software, assuming the device is '1-4' (Bus 1.Port 4):
+#   echo '1-4' > /sys/bus/usb/drivers/usb/unbind 
+#   echo '1-4' > /sys/bus/usb/drivers/usb/bind 
+
 
 sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`

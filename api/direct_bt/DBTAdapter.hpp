@@ -280,7 +280,7 @@ namespace direct_bt {
              * Using the default adapter device
              * <p>
              * The default adapter is either the first POWERED adapter,
-             * or the one with index == dev_id == 0.
+             * or none - in which case this instance !isValid()
              * </p>
              */
             DBTAdapter() noexcept;
@@ -297,7 +297,7 @@ namespace direct_bt {
              * or the default adapter device if dev_id < 0.
              * <p>
              * The default adapter is either the first POWERED adapter,
-             * or the one with index == dev_id == 0.
+             * or none - in which case this instance !isValid().
              * </p>
              *
              * @param[in] dev_id an already identified HCI device id

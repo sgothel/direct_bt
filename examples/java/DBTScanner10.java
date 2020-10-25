@@ -30,7 +30,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.tinyb.AdapterSettings;
 import org.tinyb.BluetoothAdapter;
@@ -54,6 +57,7 @@ import org.tinyb.HCIStatusCode;
 import org.tinyb.HCIWhitelistConnectType;
 import org.tinyb.PairingMode;
 import org.tinyb.ScanType;
+import org.tinyb.BluetoothManager.ChangedAdapterSetListener;
 
 import direct_bt.tinyb.DBTManager;
 
@@ -86,8 +90,6 @@ public class DBTScanner10 {
 
     boolean SHOW_UPDATE_EVENTS = false;
     boolean QUIET = false;
-
-    int dev_id = -1; // use default
 
     int shutdownTest = 0;
 
@@ -525,25 +527,10 @@ public class DBTScanner10 {
         return HCIStatusCode.SUCCESS == status;
     }
 
-    private BluetoothAdapter createAdapter(final BluetoothManager mngr, final int dev_id0) {
-        BluetoothAdapter adapter;
-        if( 0 > dev_id0 ) {
-            adapter = mngr.getDefaultAdapter();
-        } else {
-            adapter = mngr.getAdapter(dev_id0);
-            if( !adapter.isPowered() ) {
-                adapter = mngr.getDefaultAdapter();
-            }
-        }
-        final int dev_id = null != adapter ? adapter.getDevID() : -1;
-        if( 0 > dev_id ) {
-            println("Adapter not available (1): Request "+dev_id0+", deduced "+dev_id);
-            return null;
-        }
-
+    private boolean initAdapter(final BluetoothAdapter adapter) {
         if( !adapter.isPowered() ) { // should have been covered above
             println("Adapter not powered (2): "+adapter.toString());
-            return null;
+            return false;
         }
         println("Using adapter: "+adapter.toString());
 
@@ -564,17 +551,70 @@ public class DBTScanner10 {
             }
         } else {
             if( !startDiscovery(adapter, "kick-off") ) {
+                return false;
             }
         }
-        return adapter;
+        return true;
     }
 
-    public void runTest(final BluetoothManager manager) {
-        BluetoothAdapter adapter = createAdapter(manager, dev_id);
+    private final List<BluetoothAdapter> adapters = new CopyOnWriteArrayList<BluetoothAdapter>();
 
+    @SuppressWarnings("unused")
+    private BluetoothAdapter getAdapter(final int dev_id) {
+        for( int i=0; i<adapters.size(); i++) {
+            final BluetoothAdapter a = adapters.get(i);
+            if( dev_id == a.getDevID() ) {
+                return a;
+            }
+        }
+        return null;
+    }
+
+    private int removeAdapter(final int dev_id) {
+        // Using removeIf allows performing test on all object and remove within one write-lock cycle
+        final int count[] = { 0 };
+        adapters.removeIf(new Predicate<BluetoothAdapter>() {
+            @Override
+            public boolean test(final BluetoothAdapter t) {
+                if( dev_id == t.getDevID() ) {
+                    count[0]++;
+                    return true;
+                }
+                return false;
+            }
+        });
+        return count[0];
+    }
+
+    private final BluetoothManager.ChangedAdapterSetListener myChangedAdapterSetListener =
+            new BluetoothManager.ChangedAdapterSetListener() {
+                @Override
+                public void adapterAdded(final BluetoothAdapter adapter) {
+                    if( adapter.isPowered() ) {
+                        if( initAdapter( adapter ) ) {
+                            adapters.add(adapter);
+                            println("****** Adapter ADDED__: NewInit " + adapter);
+                        } else {
+                            println("****** Adapter ADDED__: Failed_ " + adapter);
+                        }
+                    } else {
+                        println("****** Adapter ADDED__: Ignored " + adapter);
+                    }
+                }
+
+                @Override
+                public void adapterRemoved(final BluetoothAdapter adapter) {
+                    final int count = removeAdapter(adapter.getDevID());
+                    println("****** Adapter REMOVED: count "+count+", " + adapter);
+                }
+    };
+
+    public void runTest(final BluetoothManager manager) {
         timestamp_t0 = BluetoothUtils.currentTimeMillis();
 
         boolean done = false;
+
+        manager.addChangedAdapterSetListener(myChangedAdapterSetListener);
 
         while( !done ) {
             if( 0 == MULTI_MEASUREMENTS.get() ||
@@ -587,25 +627,25 @@ public class DBTScanner10 {
                 println("****** DevicesProcessed "+Arrays.toString(devicesProcessed.toArray()));
                 done = true;
             } else {
-                // validate existing adapter
-                if( null != adapter ) {
-                    if( !adapter.isValid() /* || !adapter.isPowered() */ ) {
-                        // In case of removed adapter, not just powered-off (soft-reset)
-                        // We could also close adapter on !isPowered() here, but its not required - adapter operational.
-                        adapter.close();
-                        adapter = null; // purge
-                    }
-                }
-                // re-create adapter if required
-                if( null == adapter ) {
-                    adapter = createAdapter(manager, dev_id);
-                }
                 try {
                     Thread.sleep(2000);
                 } catch (final InterruptedException e) {
                     e.printStackTrace();
                 }
             }
+        }
+
+        adapters.forEach(new Consumer<BluetoothAdapter>() {
+            @Override
+            public void accept(final BluetoothAdapter a) {
+                println("****** EOL Adapter's Devices - pre_ close: " + a);
+                a.close();
+                println("****** EOL Adapter's Devices - post close: " + a);
+            } } );
+
+        {
+            final int count = manager.removeChangedAdapterSetListener(myChangedAdapterSetListener);
+            println("****** EOL Removed ChangedAdapterSetCallback " + count);
         }
 
         // All implicit via destructor or shutdown hook!
@@ -663,8 +703,6 @@ public class DBTScanner10 {
                     test.SHOW_UPDATE_EVENTS = true;
                 } else if( arg.equals("-quiet") ) {
                     test.QUIET = true;
-                } else if( arg.equals("-dev_id") && args.length > (i+1) ) {
-                    test.dev_id = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-shutdown") && args.length > (i+1) ) {
                     test.shutdownTest = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-mac") && args.length > (i+1) ) {
@@ -690,7 +728,7 @@ public class DBTScanner10 {
                     test.RESET_ADAPTER_EACH_CONN = Integer.valueOf(args[++i]).intValue();
                 }
             }
-            println("Run with '[-default_dev_id <adapter-index>] [-dev_id <adapter-index>] [-btmode LE|BREDR|DUAL] "+
+            println("Run with '[-btmode LE|BREDR|DUAL] "+
                     "[-bluetoothManager <BluetoothManager-Implementation-Class-Name>] "+
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] (-char <uuid>)* [-show_update_events] [-quiet]  "+
                     "[-resetEachCon connectionCount] "+
@@ -714,7 +752,6 @@ public class DBTScanner10 {
         println("SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
         println("QUIET "+test.QUIET);
 
-        println("dev_id "+test.dev_id);
         println("waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));
         println("characteristicList: "+Arrays.toString(test.charIdentifierList.toArray()));
 

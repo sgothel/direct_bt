@@ -75,6 +75,27 @@ public interface BluetoothManager
         String toString();
     }
 
+
+    /**
+     * Event listener to receive change events regarding the system's {@link BluetoothAdapter} set,
+     * e.g. about a removed or added {@link BluetoothAdapter} due to user interaction or 'cold reset'.
+     * @since 2.0.0
+     * @implNote Not implemented on tinyb.dbus
+     */
+    public static interface ChangedAdapterSetListener {
+        /**
+         * {@link BluetoothAdapter} was added to the system.
+         * @param adapter the newly added {@link BluetoothAdapter} to the system
+         */
+        void adapterAdded(final BluetoothAdapter adapter);
+
+        /**
+         * {@link BluetoothAdapter} was removed from the system.
+         * @param adapter the removed {@link BluetoothAdapter} from the system
+         */
+        void adapterRemoved(final BluetoothAdapter adapter);
+    }
+
     /**
      * Returns this implmentation's {@link Settings}.
      */
@@ -267,6 +288,26 @@ public interface BluetoothManager
       * @return TRUE if discovery is running
       */
     public boolean getDiscovering() throws BluetoothException;
+
+    /**
+     * Add the given {@link ChangedAdapterSetListener} to this manager.
+     * <p>
+     * When a new callback is added, all available adapter's will be reported as added,
+     * this allows a fully event driven workflow.
+     * </p>
+     * @since 2.0.0
+     * @implNote Not implemented on tinyb.dbus
+     */
+    void addChangedAdapterSetListener(final ChangedAdapterSetListener l);
+
+    /**
+     * Remove the given {@link ChangedAdapterSetListener} from this manager.
+     * @param l the to be removed element
+     * @return the number of removed elements
+     * @since 2.0.0
+     * @implNote Not implemented on tinyb.dbus
+     */
+    int removeChangedAdapterSetListener(final ChangedAdapterSetListener l);
 
     /**
      * Release the native memory associated with this object and all related Bluetooth resources.

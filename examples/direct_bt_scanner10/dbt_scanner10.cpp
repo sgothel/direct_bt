@@ -506,16 +506,20 @@ static bool startDiscovery(DBTAdapter *a, std::string msg) {
     return HCIStatusCode::SUCCESS == status;
 }
 
-static std::shared_ptr<DBTAdapter> createAdapter(const int dev_id0) {
+static std::shared_ptr<DBTAdapter> createAdapter(const int dev_id0, const bool validate_dev_id) {
     // pre-validate dev_id availability
     int dev_id;
-    DBTManager & mngr = DBTManager::get(BTMode::LE);
-    if( 0 > dev_id0 ) {
-        dev_id = mngr.getDefaultAdapterDevID();
-    } else if( nullptr != mngr.getAdapterInfo(dev_id0) ) {
-        dev_id = dev_id0;
+    if( validate_dev_id ) {
+        DBTManager & mngr = DBTManager::get(BTMode::LE);
+        if( 0 > dev_id0 ) {
+            dev_id = mngr.getDefaultAdapterDevID();
+        } else if( nullptr != mngr.getAdapterInfo(dev_id0) ) {
+            dev_id = dev_id0;
+        } else {
+            dev_id = -1;
+        }
     } else {
-        dev_id = -1;
+        dev_id = dev_id0;
     }
     if( 0 > dev_id ) {
         fprintf(stderr, "Adapter not available (1): Request %d, deduced %d\n", dev_id0, dev_id);
@@ -531,7 +535,6 @@ static std::shared_ptr<DBTAdapter> createAdapter(const int dev_id0) {
         fprintf(stderr, "Adapter not powered (2): %s\n", adapter->toString().c_str());
         return nullptr;
     }
-    fprintf(stderr, "Using adapter: %s\n", adapter->toString().c_str());
 
     adapter->addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
 
@@ -548,12 +551,68 @@ static std::shared_ptr<DBTAdapter> createAdapter(const int dev_id0) {
     return adapter;
 }
 
-void test(int dev_id) {
+static jau::cow_vector<std::shared_ptr<DBTAdapter>> adapterList;
+
+static std::shared_ptr<DBTAdapter> getAdapter(const uint16_t dev_id) {
+    std::shared_ptr<std::vector<std::shared_ptr<DBTAdapter>>> snapshot = adapterList.get_snapshot();
+    auto begin = snapshot->begin();
+    auto it = std::find_if(begin, snapshot->end(), [&](std::shared_ptr<DBTAdapter> const& p) -> bool {
+        return p->dev_id == dev_id;
+    });
+    if ( it == std::end(*snapshot) ) {
+        return nullptr;
+    } else {
+        return *it;
+    }
+}
+static int removeAdapter(const uint16_t dev_id) {
+    const std::lock_guard<std::recursive_mutex> lock(adapterList.get_write_mutex());
+    std::shared_ptr<std::vector<std::shared_ptr<DBTAdapter>>> store = adapterList.copy_store();
+    int count = 0;
+    for(auto it = store->begin(); it != store->end(); ) {
+        if ( (*it)->dev_id == dev_id ) {
+            it = store->erase(it);
+            count++;
+        } else {
+            ++it;
+        }
+    }
+    if( 0 < count ) {
+        adapterList.set_store(std::move(store));
+    }
+    return count;
+}
+
+static bool myChangedAdapterSetFunc(const bool added, const AdapterInfo& adapterInfo) {
+    if( added ) {
+        std::shared_ptr<DBTAdapter> pre = getAdapter(adapterInfo.dev_id);
+        if( nullptr != pre ) {
+            fprintf(stderr, "****** Adapter ADDED__: Not new %s\n", pre->toString().c_str());
+        } else {
+            if( adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
+                std::shared_ptr<DBTAdapter> adapter = createAdapter(adapterInfo.dev_id, false /* validate_dev_id */);
+                if( nullptr != adapter ) {
+                    adapterList.push_back(adapter);
+                    fprintf(stderr, "****** Adapter ADDED__: Created %s\n", adapter->toString().c_str());
+                }
+            } else {
+                fprintf(stderr, "****** Adapter ADDED__: Ignored %s\n", adapterInfo.toString().c_str());
+            }
+        }
+    } else {
+        const int count = removeAdapter(adapterInfo.dev_id);
+        fprintf(stderr, "****** Adapter REMOVED: count %d, %s\n", count, adapterInfo.toString().c_str());
+    }
+    return true;
+}
+
+void test() {
     bool done = false;
 
     timestamp_t0 = getCurrentMilliseconds();
 
-    std::shared_ptr<DBTAdapter> adapter = createAdapter(dev_id);
+    DBTManager & mngr = DBTManager::get(BTMode::LE);
+    mngr.addChangedAdapterSetCallback(myChangedAdapterSetFunc);
 
     while( !done ) {
         if( 0 == MULTI_MEASUREMENTS ||
@@ -566,28 +625,22 @@ void test(int dev_id) {
             printDevicesProcessed("****** DevicesProcessed ");
             done = true;
         } else {
-            // validate existing adapter
-            if( nullptr != adapter ) {
-                if( !adapter->isValid() /* || !adapter->isPowered() */ ) {
-                    // In case of removed adapter, not just powered-off (soft-reset)
-                    // We could also close adapter on !isPowered() here, but its not required - adapter operational.
-                    adapter->close();
-                    adapter = nullptr; // purge
-                }
-            }
-            // re-create adapter if required
-            if( nullptr == adapter ) {
-                adapter = createAdapter(dev_id);
-            }
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         }
     }
-    fprintf(stderr, "****** EOL Adapter's Devices - pre close: %s\n", adapter->toString().c_str());
-    if( nullptr != adapter ) {
+
+    jau::for_each_cow(adapterList, [](std::shared_ptr<DBTAdapter>& adapter) {
+        fprintf(stderr, "****** EOL Adapter's Devices - pre close: %s\n", adapter->toString().c_str());
         adapter->printSharedPtrListOfDevices();
         adapter->close();
         fprintf(stderr, "****** EOL Adapter's Devices - post close\n");
         adapter->printSharedPtrListOfDevices();
+    });
+    fprintf(stderr, "****** EOL Adapter's Devices - post close all\n");
+
+    {
+        int count = mngr.removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
+        fprintf(stderr, "****** EOL Removed ChangedAdapterSetCallback %d\n", count);
     }
 }
 
@@ -595,7 +648,6 @@ void test(int dev_id) {
 
 int main(int argc, char *argv[])
 {
-    int dev_id = -1; // default
     BTMode btMode = BTMode::NONE;
     bool waitForEnter=false;
 
@@ -612,8 +664,6 @@ int main(int argc, char *argv[])
             setenv("direct_bt.hci", argv[++i], 1 /* overwrite */);
         } else if( !strcmp("-dbt_mgmt", argv[i]) && argc > (i+1) ) {
             setenv("direct_bt.mgmt", argv[++i], 1 /* overwrite */);
-        } else if( !strcmp("-dev_id", argv[i]) && argc > (i+1) ) {
-            dev_id = atoi(argv[++i]);
         } else if( !strcmp("-btmode", argv[i]) && argc > (i+1) ) {
             btMode = getBTMode(argv[++i]);
             if( BTMode::NONE != btMode ) {
@@ -650,7 +700,7 @@ int main(int argc, char *argv[])
     }
     fprintf(stderr, "pid %d\n", getpid());
 
-    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-btmode LE|BREDR|DUAL] "
+    fprintf(stderr, "Run with '[-btmode LE|BREDR|DUAL] "
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "
                     "[-resetEachCon connectionCount] "
                     "(-mac <device_address>)* (-wl <device_address>)* "
@@ -670,7 +720,6 @@ int main(int argc, char *argv[])
     fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
     fprintf(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
     fprintf(stderr, "QUIET %d\n", QUIET);
-    fprintf(stderr, "dev_id %d\n", dev_id);
     fprintf(stderr, "btmode %s\n", getBTModeString(btMode).c_str());
 
     printList( "waitForDevice: ", waitForDevices);
@@ -680,7 +729,7 @@ int main(int argc, char *argv[])
         getchar();
     }
     fprintf(stderr, "****** TEST start\n");
-    test(dev_id);
+    test();
     fprintf(stderr, "****** TEST end\n");
     if( true ) {
         // Just for testing purpose, i.e. triggering DBTManager::close() within the test controlled app,

@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.tinyb.BluetoothAdapter;
 import org.tinyb.BluetoothDevice;
@@ -43,6 +45,7 @@ import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothType;
 import org.tinyb.HCIStatusCode;
+import org.tinyb.BluetoothManager.ChangedAdapterSetListener;
 
 public class DBTManager implements BluetoothManager
 {
@@ -151,6 +154,8 @@ public class DBTManager implements BluetoothManager
 
     private long nativeInstance;
     private final List<BluetoothAdapter> adapters = new CopyOnWriteArrayList<BluetoothAdapter>();
+    private final List<ChangedAdapterSetListener> changedAdapterSetListenerList = new CopyOnWriteArrayList<ChangedAdapterSetListener>();
+
     private final Settings settings;
 
     @Override
@@ -277,6 +282,39 @@ public class DBTManager implements BluetoothManager
     @Override
     public boolean getDiscovering() throws BluetoothException { return getDefaultAdapter().getDiscovering(); }
 
+    @Override
+    public final void addChangedAdapterSetListener(final ChangedAdapterSetListener l) {
+        changedAdapterSetListenerList.add(l);
+
+        adapters.forEach(new Consumer<BluetoothAdapter>() {
+            @Override
+            public void accept(final BluetoothAdapter adapter) {
+                changedAdapterSetListenerList.forEach(new Consumer<ChangedAdapterSetListener>() {
+                    @Override
+                    public void accept(final ChangedAdapterSetListener t) {
+                        t.adapterAdded(adapter);
+                    } } );
+            }
+        });
+    }
+
+    @Override
+    public final int removeChangedAdapterSetListener(final ChangedAdapterSetListener l) {
+        // Using removeIf allows performing test on all object and remove within one write-lock cycle
+        final int count[] = { 0 };
+        changedAdapterSetListenerList.removeIf(new Predicate<ChangedAdapterSetListener>() {
+            @Override
+            public boolean test(final ChangedAdapterSetListener t) {
+                if( t.equals(l) ) {
+                    count[0]++;
+                    return true;
+                }
+                return false;
+            }
+        });
+        return count[0];
+    }
+
     private native List<BluetoothAdapter> getAdapterListImpl();
     private native BluetoothAdapter getAdapterImpl(int dev_id);
 
@@ -289,6 +327,14 @@ public class DBTManager implements BluetoothManager
                 if( DEBUG ) {
                     System.err.println("DBTManager.removeAdapterCB[dev_id "+dev_id+", opc 0x"+Integer.toHexString(opc_reason)+
                             "]: removed "+a.toString()+", size "+adapters.size());
+                }
+                if( 0x0005 == opc_reason ) {
+                    // MgmtEvent::Opcode::INDEX_REMOVED = 0x0005
+                    changedAdapterSetListenerList.forEach(new Consumer<ChangedAdapterSetListener>() {
+                        @Override
+                        public void accept(final ChangedAdapterSetListener t) {
+                            t.adapterRemoved(a);
+                        } } );
                 }
                 return;
             }
@@ -320,6 +366,14 @@ public class DBTManager implements BluetoothManager
         if( DEBUG ) {
             System.err.println("DBTManager.updatedAdapterCB[dev_id "+dev_id+", opc 0x"+Integer.toHexString(opc_reason)+
                     "]: added "+added+": new "+newInstance.toString()+", size "+adapters.size());
+        }
+        if( added && 0x0004 == opc_reason ) {
+            // MgmtEvent::Opcode::INDEX_ADDED = 0x0004
+            changedAdapterSetListenerList.forEach(new Consumer<ChangedAdapterSetListener>() {
+                @Override
+                public void accept(final ChangedAdapterSetListener t) {
+                    t.adapterAdded(newInstance);
+                } } );
         }
     }
 

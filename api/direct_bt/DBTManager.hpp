@@ -136,6 +136,57 @@ namespace direct_bt {
     };
 
     /**
+     * Callback function to receive change events regarding the system's adapter set,
+     * e.g. about a removed or added adapter due to user interaction or 'cold reset'.
+     * <p>
+     * When a new callback is added, all available adapter's will be reported as added,
+     * this allows a fully event driven workflow.
+     * </p>
+     * <p>
+     * Note that the 'adapter added' callback, i.e. 'added==true',
+     * is performed on a dedicated thread allowing the user to perform complex operations.
+     * </p>
+     * <p>
+     * User shall not perform complex operations on the 'adapter removed' callback,
+     * i.e. 'added==false'.
+     * </p>
+     *
+     * @param added true if adapter was newly added, otherwise removed from system
+     * @param adapterInfo the adapter's AdapterInfo, inclusive the dev_id
+     * @return ignored
+     * @see ChangedAdapterSetCallback
+     * @see DBTManager::addChangedAdapterSetCallback()
+     * @see DBTManager::removeChangedAdapterSetCallback()
+     */
+    typedef bool (*ChangedAdapterSetFunc)(bool added, const AdapterInfo& adapterInfo);
+
+    /**
+     * Callback jau::FunctionDef to receive change events regarding the system's adapter set,
+     * e.g. about a removed or added adapter due to user interaction or 'cold reset'.
+     * <p>
+     * When a new callback is added, all available adapter's will be reported as added,
+     * this allows a fully event driven workflow.
+     * </p>
+     * <p>
+     * Note that the 'adapter added' callback, i.e. 'added==true',
+     * is performed on a dedicated thread allowing the user to perform complex operations.
+     * </p>
+     * <p>
+     * User shall not perform complex operations on the 'adapter removed' callback,
+     * i.e. 'added==false'.
+     * </p>
+     *
+     * @param added true if adapter was newly added, otherwise removed from system
+     * @param adapterInfo the adapter's AdapterInfo, inclusive the dev_id
+     * @return ignored
+     * @see ChangedAdapterSetFunc
+     * @see DBTManager::addChangedAdapterSetCallback()
+     * @see DBTManager::removeChangedAdapterSetCallback()
+     */
+    typedef jau::FunctionDef<bool, bool, const AdapterInfo&> ChangedAdapterSetCallback;
+    typedef jau::cow_vector<ChangedAdapterSetCallback> ChangedAdapterSetCallbackList;
+
+    /**
      * A thread safe singleton handler of the Linux Kernel's BlueZ manager control channel.
      * <p>
      * Implementation utilizes a lock free ringbuffer receiving data within its separate thread.
@@ -187,6 +238,8 @@ namespace direct_bt {
                 return static_cast<uint16_t>(opc) < mgmtAdapterEventCallbackLists.size();
             }
 
+            ChangedAdapterSetCallbackList mgmtChangedAdapterSetCallbackList;
+
             jau::cow_vector<std::shared_ptr<AdapterInfo>> adapterInfos;
             void mgmtReaderThreadImpl() noexcept;
 
@@ -225,6 +278,18 @@ namespace direct_bt {
             bool mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvPinCodeRequestCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvUserPasskeyRequestCB(std::shared_ptr<MgmtEvent> e) noexcept;
+
+            /**
+             * Adds the given AdapterInfo if representing a new dev_id.
+             * @return true if newly added dev_id, otherwise false if dev_id already exists.
+             */
+            bool addAdapterInfo(std::shared_ptr<AdapterInfo> ai) noexcept;
+
+            /**
+             * Removes the AdapterInfo with the given dev_id
+             * @return the removed instance or nullptr if not found.
+             */
+            std::shared_ptr<AdapterInfo> removeAdapterInfo(const uint16_t dev_id) noexcept;
 
         public:
             /**
@@ -294,18 +359,6 @@ namespace direct_bt {
              * Returns the AdapterInfo with the given dev_id, or nullptr if not found.
              */
             std::shared_ptr<AdapterInfo> getAdapterInfo(const uint16_t dev_id) const noexcept;
-
-            /**
-             * Adds the given AdapterInfo if representing a new dev_id.
-             * @return true if newly added dev_id, otherwise false if dev_id already exists.
-             */
-            bool addAdapterInfo(std::shared_ptr<AdapterInfo> ai) noexcept;
-
-            /**
-             * Removes the AdapterInfo with the given dev_id
-             * @return the removed instance or nullptr if not found.
-             */
-            std::shared_ptr<AdapterInfo> removeAdapterInfo(const uint16_t dev_id) noexcept;
 
             /**
              * Returns the current BTMode of given adapter dev_idx or BTMode::NONE if dev_id adapter is not available.
@@ -410,6 +463,56 @@ namespace direct_bt {
 
             /** Manually send a MgmtEvent to all of its listeners. */
             void sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept;
+
+            /** ChangedAdapterSetCallback handling */
+
+            /**
+             * Adds the given ChangedAdapterSetCallback to this manager.
+             * <p>
+             * When a new callback is added, all available adapter's will be reported as added,
+             * this allows a fully event driven workflow.
+             * </p>
+             * <p>
+             * Note that the 'adapter added' callback, i.e. 'added==true',
+             * is performed on a dedicated thread allowing the user to perform complex operations.
+             * </p>
+             * <p>
+             * User shall not perform complex operations on the 'adapter removed' callback,
+             * i.e. 'added==false'.
+             * </p>
+             */
+            void addChangedAdapterSetCallback(const ChangedAdapterSetCallback & l);
+
+            /**
+             * Remove the given ChangedAdapterSetCallback from this manager.
+             * @param l the to be removed element
+             * @return the number of removed elements
+             */
+            int removeChangedAdapterSetCallback(const ChangedAdapterSetCallback & l);
+
+            /**
+             * Adds the given ChangedAdapterSetFunc to this manager.
+             * <p>
+             * When a new callback is added, all available adapter's will be reported as added,
+             * this allows a fully event driven workflow.
+             * </p>
+             * <p>
+             * Note that the 'adapter added' callback, i.e. 'added==true',
+             * is performed on a dedicated thread allowing the user to perform complex operations.
+             * </p>
+             * <p>
+             * User shall not perform complex operations on the 'adapter removed' callback,
+             * i.e. 'added==false'.
+             * </p>
+             */
+            void addChangedAdapterSetCallback(ChangedAdapterSetFunc f);
+
+            /**
+             * Remove the given ChangedAdapterSetFunc from this manager.
+             * @param l the to be removed element
+             * @return the number of removed elements
+             */
+            int removeChangedAdapterSetCallback(ChangedAdapterSetFunc f);
     };
 
 } // namespace direct_bt
