@@ -220,7 +220,7 @@ namespace direct_bt {
                 return setting == ( setting & supported_setting );
             }
             AdapterSetting getCurrentSettingMask() const noexcept { return current_setting; }
-            bool isCurrentSettingBitSet(const AdapterSetting bit) noexcept { return AdapterSetting::NONE != ( current_setting & bit ); }
+            bool isCurrentSettingBitSet(const AdapterSetting bit) const noexcept { return AdapterSetting::NONE != ( current_setting & bit ); }
 
             /** Map {@link #getCurrentSettingMask()} to {@link BTMode} */
             BTMode getCurrentBTMode() const noexcept { return getAdapterSettingsBTMode(current_setting); }
@@ -230,7 +230,7 @@ namespace direct_bt {
             std::string getShortName() const noexcept { return short_name; }
 
             std::string toString() const noexcept {
-                return "Adapter[id "+std::to_string(dev_id)+", address "+address.toString()+", version "+std::to_string(version)+
+                return "AdapterInfo[id "+std::to_string(dev_id)+", address "+address.toString()+", version "+std::to_string(version)+
                         ", manuf "+std::to_string(manufacturer)+
                         ", settings[sup "+getAdapterSettingMaskString(supported_setting)+", cur "+getAdapterSettingMaskString(current_setting)+
                         "], name '"+name+"', shortName '"+short_name+"']";
