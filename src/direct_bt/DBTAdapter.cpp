@@ -248,7 +248,7 @@ void DBTAdapter::close() noexcept {
     keep_le_scan_alive = false;
 
     // mute all listener first
-    {
+    if( isValid() ) {
         int count = mgmt.removeMgmtEventCallback(dev_id);
         DBG_PRINT("DBTAdapter::close removeMgmtEventCallback: %d callbacks", count);
     }
