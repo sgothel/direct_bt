@@ -155,6 +155,7 @@ bool DBTAdapter::validateDevInfo() noexcept {
         ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: Not existent: %s", dev_id, adapterInfo->toString().c_str());
         return false;
     }
+    old_settings = adapterInfo->getCurrentSettingMask();
 
     btMode = adapterInfo->getCurrentBTMode();
     if( BTMode::NONE == btMode ) {
@@ -703,18 +704,18 @@ std::string DBTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
 
 // *************************************************
 
-void DBTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings, const AdapterSetting current_settings,
+void DBTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings_, const AdapterSetting current_settings,
                                             const uint64_t timestampMS) noexcept
 {
-    AdapterSetting changes = getAdapterSettingMaskDiff(current_settings, old_settings);
+    AdapterSetting changes = getAdapterSettingMaskDiff(current_settings, old_settings_);
     COND_PRINT(debug_event, "DBTAdapter::sendAdapterSettingsChanged: %s -> %s, changes %s: %s",
-            getAdapterSettingMaskString(old_settings).c_str(),
+            getAdapterSettingMaskString(old_settings_).c_str(),
             getAdapterSettingMaskString(current_settings).c_str(),
             getAdapterSettingMaskString(changes).c_str(), toString(false).c_str() );
     int i=0;
     jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
-            l->adapterSettingsChanged(*this, old_settings, current_settings, changes, timestampMS);
+            l->adapterSettingsChanged(*this, old_settings_, current_settings, changes, timestampMS);
         } catch (std::exception &e) {
             ERR_PRINT("DBTAdapter:CB:NewSettings-CBs %d/%zd: %s of %s: Caught exception %s",
                     i+1, statusListenerList.size(),
@@ -725,16 +726,16 @@ void DBTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings, c
 }
 
 void DBTAdapter::sendAdapterSettingsChanged(AdapterStatusListener & asl,
-                                const AdapterSetting old_settings, const AdapterSetting current_settings,
+                                const AdapterSetting old_settings_, const AdapterSetting current_settings,
                                 const uint64_t timestampMS) noexcept
 {
-    AdapterSetting changes = getAdapterSettingMaskDiff(current_settings, old_settings);
+    AdapterSetting changes = getAdapterSettingMaskDiff(current_settings, old_settings_);
     COND_PRINT(debug_event, "DBTAdapter::sendAdapterSettingsChanged: %s -> %s, changes %s: %s",
-            getAdapterSettingMaskString(old_settings).c_str(),
+            getAdapterSettingMaskString(old_settings_).c_str(),
             getAdapterSettingMaskString(current_settings).c_str(),
             getAdapterSettingMaskString(changes).c_str(), toString(false).c_str() );
     try {
-        asl.adapterSettingsChanged(*this, old_settings, current_settings, changes, timestampMS);
+        asl.adapterSettingsChanged(*this, old_settings_, current_settings, changes, timestampMS);
     } catch (std::exception &e) {
         ERR_PRINT("DBTAdapter::sendAdapterSettingsChanged-CB: %s of %s: Caught exception %s",
                 asl.toString().c_str(), toString(false).c_str(), e.what());
@@ -836,8 +837,7 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const 
 bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
     COND_PRINT(debug_event, "DBTAdapter:mgmt:NewSettings: %s", e->toString().c_str());
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(e.get());
-    const AdapterSetting old_settings = adapterInfo->getCurrentSettingMask();
-    const AdapterSetting new_settings = adapterInfo->setCurrentSettingMask(event.getSettings());
+    const AdapterSetting new_settings = adapterInfo->setCurrentSettingMask(event.getSettings()); // probably done by mgmt callback already
     {
         const BTMode _btMode = getAdapterSettingsBTMode(new_settings);
         if( BTMode::NONE != _btMode ) {
@@ -846,7 +846,9 @@ bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
     }
     sendAdapterSettingsChanged(old_settings, new_settings, event.getTimestamp());
 
-    if( !isPowered() ) {
+    old_settings = new_settings;
+
+    if( !isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED) ) {
         // Adapter has been powered off, close connections and cleanup off-thread.
         std::thread bg(&DBTAdapter::poweredOff, this); // @suppress("Invalid arguments")
         bg.detach();

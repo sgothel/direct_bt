@@ -435,6 +435,7 @@ next1:
             // Not required: CTOR: adapterInfos.set_store(std::move(snapshot));
         }
     }
+    addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_SETTINGS,  jau::bindMemberFunc(this, &DBTManager::mgmtEvNewSettingsCB));
 
     if( ok ) {
         if( env.DEBUG_EVENT ) {
@@ -870,6 +871,26 @@ bool DBTManager::mgmtEvAdapterRemovedCB(std::shared_ptr<MgmtEvent> e) noexcept {
     jau::PLAIN_PRINT("DBTManager:mgmt:AdapterRemoved: End: Removed %s", (nullptr != ai ? ai->toString().c_str() : "none"));
     return true;
 }
+bool DBTManager::mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) noexcept {
+    const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(e.get());
+    std::shared_ptr<AdapterInfo> adapterInfo = getAdapterInfo(event.getDevID());
+    if( nullptr != adapterInfo ) {
+        const AdapterSetting old_settings = adapterInfo->getCurrentSettingMask();
+        const AdapterSetting new_settings = adapterInfo->setCurrentSettingMask(event.getSettings());
+        DBG_PRINT("DBTManager:mgmt:NewSettings: Adapter[%d] %s -> %s - %s",
+                event.getDevID(),
+                getAdapterSettingMaskString(old_settings).c_str(),
+                getAdapterSettingMaskString(new_settings).c_str(),
+                e->toString().c_str());
+    } else {
+        DBG_PRINT("DBTManager:mgmt:NewSettings: Adapter[%d] %s -> adapter not present - %s",
+                event.getDevID(),
+                getAdapterSettingMaskString(event.getSettings()).c_str(),
+                e->toString().c_str());
+    }
+    return true;
+}
+
 bool DBTManager::mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) noexcept {
     jau::PLAIN_PRINT("DBTManager:mgmt:ClassOfDeviceChanged: %s", e->toString().c_str());
     (void)e;

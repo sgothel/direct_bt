@@ -186,6 +186,7 @@ namespace direct_bt {
         private:
             HCIHandler hci;
 
+            std::atomic<AdapterSetting> old_settings;
             std::shared_ptr<AdapterInfo> adapterInfo;
             std::atomic<BTMode> btMode = BTMode::NONE;
             NameAndShortName localName;
@@ -257,10 +258,10 @@ namespace direct_bt {
             void startDiscoveryBackground() noexcept;
             void checkDiscoveryState() noexcept;
 
-            void sendAdapterSettingsChanged(const AdapterSetting old_settings, const AdapterSetting current_settings,
+            void sendAdapterSettingsChanged(const AdapterSetting old_settings_, const AdapterSetting current_settings,
                                             const uint64_t timestampMS) noexcept;
             void sendAdapterSettingsChanged(AdapterStatusListener & asl,
-                                            const AdapterSetting old_settings, const AdapterSetting current_settings,
+                                            const AdapterSetting old_settings_, const AdapterSetting current_settings,
                                             const uint64_t timestampMS) noexcept;
 
             void sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept;
