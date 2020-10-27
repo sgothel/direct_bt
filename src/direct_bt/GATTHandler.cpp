@@ -196,6 +196,10 @@ void GATTHandler::l2capReaderThreadImpl() {
         DBG_PRINT("GATTHandler::reader Started");
         cv_l2capReaderInit.notify_all();
     }
+    thread_local jau::call_on_release thread_cleanup([&]() {
+        DBG_PRINT("GATTHandler::l2capReaderThreadCleanup: l2capReaderRunning %d -> 0", l2capReaderRunning.load());
+        l2capReaderRunning = false;
+    });
 
     while( !l2capReaderShallStop ) {
         jau::snsize_t len;
@@ -370,7 +374,7 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
         l2capReaderThreadId = 0;
         const bool is_l2capReader = tid_l2capReader == tid_self;
         DBG_PRINT("GATTHandler.disconnect: l2capReader[running %d, shallStop %d, isReader %d, tid %p)",
-                  l2capReaderRunning, l2capReaderShallStop.load(), is_l2capReader, (void*)tid_l2capReader);
+                  l2capReaderRunning.load(), l2capReaderShallStop.load(), is_l2capReader, (void*)tid_l2capReader);
         if( l2capReaderRunning ) {
             l2capReaderShallStop = true;
             if( !is_l2capReader && 0 != tid_l2capReader ) {

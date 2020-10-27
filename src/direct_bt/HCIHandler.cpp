@@ -274,6 +274,10 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
         DBG_PRINT("HCIHandler::reader: Started - %s", toString().c_str());
         cv_hciReaderInit.notify_all();
     }
+    thread_local jau::call_on_release thread_cleanup([&]() {
+        DBG_PRINT("HCIHandler::hciReaderThreadCleanup: hciReaderRunning %d -> 0", hciReaderRunning.load());
+        hciReaderRunning = false;
+    });
 
     while( !hciReaderShallStop ) {
         jau::snsize_t len;
@@ -571,7 +575,7 @@ void HCIHandler::close() noexcept {
         hciReaderThreadId = 0;
         const bool is_reader = tid_reader == tid_self;
         DBG_PRINT("HCIHandler::close: hciReader[running %d, shallStop %d, isReader %d, tid %p) - %s",
-                hciReaderRunning, hciReaderShallStop.load(), is_reader, (void*)tid_reader, toString().c_str());
+                hciReaderRunning.load(), hciReaderShallStop.load(), is_reader, (void*)tid_reader, toString().c_str());
         if( hciReaderRunning ) {
             hciReaderShallStop = true;
             if( !is_reader && 0 != tid_reader ) {

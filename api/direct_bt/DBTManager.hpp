@@ -213,16 +213,16 @@ namespace direct_bt {
             HCIComm comm;
 
             jau::ringbuffer<std::shared_ptr<MgmtEvent>, nullptr, jau::nsize_t> mgmtEventRing;
-            std::atomic<bool> mgmtReaderShallStop;
+            jau::sc_atomic_bool mgmtReaderShallStop;
 
             std::mutex mtx_mgmtReaderLifecycle;
             std::condition_variable cv_mgmtReaderInit;
             pthread_t mgmtReaderThreadId;
-            bool mgmtReaderRunning;
+            jau::relaxed_atomic_bool mgmtReaderRunning;
 
             std::recursive_mutex mtx_sendReply; // for sendWithReply
 
-            std::atomic<bool> allowClose;
+            jau::sc_atomic_bool allowClose;
 
             /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
             std::array<MgmtAdapterEventCallbackList, static_cast<uint16_t>(MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT)> mgmtAdapterEventCallbackLists;

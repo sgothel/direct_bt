@@ -160,16 +160,16 @@ namespace direct_bt {
             POctets rbuffer;
 
             L2CAPComm l2cap;
-            std::atomic<bool> is_connected; // reflects state
-            std::atomic<bool> has_ioerror;  // reflects state
+            jau::sc_atomic_bool is_connected; // reflects state
+            jau::relaxed_atomic_bool has_ioerror;  // reflects state
 
             jau::ringbuffer<std::shared_ptr<const AttPDUMsg>, nullptr, jau::nsize_t> attPDURing;
-            std::atomic<bool> l2capReaderShallStop;
+            jau::sc_atomic_bool l2capReaderShallStop;
 
             std::mutex mtx_l2capReaderLifecycle;
             std::condition_variable cv_l2capReaderInit;
             pthread_t l2capReaderThreadId;
-            bool l2capReaderRunning;
+            jau::relaxed_atomic_bool l2capReaderRunning;
 
             /** send immediate confirmation of indication events from device, defaults to true. */
             jau::relaxed_atomic_bool sendIndicationConfirmation = true;

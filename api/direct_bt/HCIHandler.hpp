@@ -227,16 +227,16 @@ namespace direct_bt {
             inline static void filter_set_opcbit(HCIOpcodeBit opcbit, uint64_t &mask) noexcept { jau::set_bit_uint64(number(opcbit), mask); }
 
             jau::ringbuffer<std::shared_ptr<HCIEvent>, nullptr, jau::nsize_t> hciEventRing;
-            std::atomic<bool> hciReaderShallStop;
+            jau::sc_atomic_bool hciReaderShallStop;
 
             std::mutex mtx_hciReaderLifecycle;
             std::condition_variable cv_hciReaderInit;
             pthread_t hciReaderThreadId;
-            bool hciReaderRunning;
+            jau::relaxed_atomic_bool hciReaderRunning;
 
             std::recursive_mutex mtx_sendReply; // for sendWith*Reply, process*Command, ..; Recurses from many..
 
-            std::atomic<bool> allowClose;
+            jau::sc_atomic_bool allowClose;
             std::atomic<BTMode> btMode;
 
             std::atomic<ScanType> currentScanType;

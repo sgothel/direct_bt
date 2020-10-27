@@ -37,6 +37,8 @@
 // #define PERF3_PRINT_ON 1
 #include <jau/debug.hpp>
 
+#include <jau/basic_algos.hpp>
+
 #include "BTIoctl.hpp"
 
 #include "DBTManager.hpp"
@@ -87,6 +89,10 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
         DBG_PRINT("DBTManager::reader: Started");
         cv_mgmtReaderInit.notify_all();
     }
+    thread_local jau::call_on_release thread_cleanup([&]() {
+        DBG_PRINT("DBTManager::mgmtReaderThreadCleanup: mgmtReaderRunning %d -> 0", mgmtReaderRunning.load());
+        mgmtReaderRunning = false;
+    });
 
     while( !mgmtReaderShallStop ) {
         jau::snsize_t len;
@@ -502,7 +508,7 @@ void DBTManager::close() noexcept {
         mgmtReaderThreadId = 0;
         const bool is_reader = tid_reader == tid_self;
         DBG_PRINT("DBTManager::close: mgmtReader[running %d, shallStop %d, isReader %d, tid %p)",
-                mgmtReaderRunning, mgmtReaderShallStop.load(), is_reader, (void*)tid_reader);
+                mgmtReaderRunning.load(), mgmtReaderShallStop.load(), is_reader, (void*)tid_reader);
         if( mgmtReaderRunning ) {
             mgmtReaderShallStop = true;
             if( !is_reader && 0 != tid_reader ) {
