@@ -796,10 +796,18 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
                             const uint16_t le_scan_interval, const uint16_t le_scan_window,
                             const uint16_t conn_interval_min, const uint16_t conn_interval_max,
                             const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
+    /**
+     * As we rely on consistent 'pending tracker connections',
+     * i.e. avoid a race condition on issuing connections via this command,
+     * we need to synchronize this method.
+     */
+    const std::lock_guard<std::mutex> lock(mtx_connect_cmd); // RAII-style acquire and relinquish via destructor
+
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::le_create_conn: Not connected %s", toString().c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
+
     const uint16_t min_ce_length = 0x0000;
     const uint16_t max_ce_length = 0x0000;
     const uint8_t initiator_filter = 0x00; // whitelist not used but peer_bdaddr*
@@ -876,10 +884,18 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
 HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
                                      const uint16_t pkt_type,
                                      const uint16_t clock_offset, const uint8_t role_switch) noexcept {
+    /**
+     * As we rely on consistent 'pending tracker connections',
+     * i.e. avoid a race condition on issuing connections via this command,
+     * we need to synchronize this method.
+     */
+    const std::lock_guard<std::mutex> lock(mtx_connect_cmd); // RAII-style acquire and relinquish via destructor
+
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::create_conn: Not connected %s", toString().c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
+
     HCIStructCommand<hci_cp_create_conn> req0(HCIOpcode::CREATE_CONN);
     hci_cp_create_conn * cp = req0.getWStruct();
     cp->bdaddr = bdaddr;

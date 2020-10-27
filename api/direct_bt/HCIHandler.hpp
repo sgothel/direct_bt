@@ -244,6 +244,10 @@ namespace direct_bt {
             std::vector<HCIConnectionRef> connectionList;
             std::vector<HCIConnectionRef> disconnectCmdList;
             std::recursive_mutex mtx_connectionList; // Recurses from disconnect -> findTrackerConnection, addOrUpdateTrackerConnection
+
+            /** Exclusive [le] connection command (status + pending completed) one at a time */
+            std::mutex mtx_connect_cmd;
+
             /**
              * Returns a newly added HCIConnectionRef tracker connection with given parameters, if not existing yet.
              * <p>
