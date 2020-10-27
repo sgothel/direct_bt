@@ -73,7 +73,7 @@ using namespace direct_bt;
         X(ATT_HANDLE_VALUE_CFM) \
         X(ATT_SIGNED_WRITE_CMD)
 
-#define CASE_TO_STRING(V) case V: return #V;
+#define CASE_TO_STRING(V) case Opcode::V: return #V;
 
 std::string AttPDUMsg::getOpcodeString(const Opcode opc) noexcept {
     switch(opc) {
@@ -85,72 +85,72 @@ std::string AttPDUMsg::getOpcodeString(const Opcode opc) noexcept {
 
 std::string AttErrorRsp::getPlainErrorString(const ErrorCode errorCode) noexcept {
     switch(errorCode) {
-        case INVALID_HANDLE: return "Invalid Handle";
-        case NO_READ_PERM: return "Read Not Permitted";
-        case NO_WRITE_PERM: return "Write Not Permitted";
-        case INVALID_PDU: return "Invalid PDU";
-        case INSUFF_AUTHENTICATION: return "Insufficient Authentication";
-        case UNSUPPORTED_REQUEST: return "Request Not Supported";
-        case INVALID_OFFSET: return "Invalid Offset";
-        case INSUFF_AUTHORIZATION: return "Insufficient Authorization";
-        case PREPARE_QUEUE_FULL: return "Prepare Queue Full";
-        case ATTRIBUTE_NOT_FOUND: return "Attribute Not Found";
-        case ATTRIBUTE_NOT_LONG: return "Attribute Not Long";
-        case INSUFF_ENCRYPTION_KEY_SIZE: return "Insufficient Encryption Key Size";
-        case INVALID_ATTRIBUTE_VALUE_LEN: return "Invalid Attribute Value Length";
-        case UNLIKELY_ERROR: return "Unlikely Error";
-        case INSUFF_ENCRYPTION: return "Insufficient Encryption";
-        case UNSUPPORTED_GROUP_TYPE: return "Unsupported Group Type";
-        case INSUFFICIENT_RESOURCES: return "Insufficient Resources";
-        case DB_OUT_OF_SYNC: return "Database Out Of Sync";
-        case FORBIDDEN_VALUE: return "Value Not Allowed";
+        case ErrorCode::INVALID_HANDLE: return "Invalid Handle";
+        case ErrorCode::NO_READ_PERM: return "Read Not Permitted";
+        case ErrorCode::NO_WRITE_PERM: return "Write Not Permitted";
+        case ErrorCode::INVALID_PDU: return "Invalid PDU";
+        case ErrorCode::INSUFF_AUTHENTICATION: return "Insufficient Authentication";
+        case ErrorCode::UNSUPPORTED_REQUEST: return "Request Not Supported";
+        case ErrorCode::INVALID_OFFSET: return "Invalid Offset";
+        case ErrorCode::INSUFF_AUTHORIZATION: return "Insufficient Authorization";
+        case ErrorCode::PREPARE_QUEUE_FULL: return "Prepare Queue Full";
+        case ErrorCode::ATTRIBUTE_NOT_FOUND: return "Attribute Not Found";
+        case ErrorCode::ATTRIBUTE_NOT_LONG: return "Attribute Not Long";
+        case ErrorCode::INSUFF_ENCRYPTION_KEY_SIZE: return "Insufficient Encryption Key Size";
+        case ErrorCode::INVALID_ATTRIBUTE_VALUE_LEN: return "Invalid Attribute Value Length";
+        case ErrorCode::UNLIKELY_ERROR: return "Unlikely Error";
+        case ErrorCode::INSUFF_ENCRYPTION: return "Insufficient Encryption";
+        case ErrorCode::UNSUPPORTED_GROUP_TYPE: return "Unsupported Group Type";
+        case ErrorCode::INSUFFICIENT_RESOURCES: return "Insufficient Resources";
+        case ErrorCode::DB_OUT_OF_SYNC: return "Database Out Of Sync";
+        case ErrorCode::FORBIDDEN_VALUE: return "Value Not Allowed";
         default: ; // fall through intended
     }
-    if( 0x80 <= errorCode && errorCode <= 0x9F ) {
+    if( 0x80 <= number(errorCode) && number(errorCode) <= 0x9F ) {
         return "Application Error";
     }
-    if( 0xE0 <= errorCode /* && errorCode <= 0xFF */ ) {
+    if( 0xE0 <= number(errorCode) /* && number(errorCode) <= 0xFF */ ) {
         return "Common Profile and Services Error";
     }
     return "Error Reserved for future use";
 }
 
 std::shared_ptr<const AttPDUMsg> AttPDUMsg::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
-    const uint8_t opc = *buffer;
+    const AttPDUMsg::Opcode opc = static_cast<AttPDUMsg::Opcode>(*buffer);
     const AttPDUMsg * res;
     switch( opc ) {
-        case ATT_PDU_UNDEFINED: res = new AttPDUUndefined(buffer, buffer_size); break;
-        case ATT_ERROR_RSP: res = new AttErrorRsp(buffer, buffer_size); break;
-        case ATT_EXCHANGE_MTU_REQ: res = new AttExchangeMTU(buffer, buffer_size); break;
-        case ATT_EXCHANGE_MTU_RSP: res = new AttExchangeMTU(buffer, buffer_size); break;
-        case ATT_FIND_INFORMATION_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_FIND_INFORMATION_RSP: res = new AttFindInfoRsp(buffer, buffer_size); break;
-        case ATT_FIND_BY_TYPE_VALUE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_FIND_BY_TYPE_VALUE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_READ_BY_TYPE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_READ_BY_TYPE_RSP: res = new AttReadByTypeRsp(buffer, buffer_size); break;
-        case ATT_READ_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_READ_RSP: res = new AttReadRsp(buffer, buffer_size); break;
-        case ATT_READ_BLOB_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_READ_BLOB_RSP: res = new AttReadBlobRsp(buffer, buffer_size); break;
-        case ATT_READ_MULTIPLE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_READ_MULTIPLE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_READ_BY_GROUP_TYPE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_READ_BY_GROUP_TYPE_RSP: res = new AttReadByGroupTypeRsp(buffer, buffer_size); break;
-        case ATT_WRITE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_WRITE_RSP: res = new AttWriteRsp(buffer, buffer_size); break;
-        case ATT_WRITE_CMD: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_PREPARE_WRITE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_PREPARE_WRITE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_EXECUTE_WRITE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_EXECUTE_WRITE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_READ_MULTIPLE_VARIABLE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_READ_MULTIPLE_VARIABLE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_MULTIPLE_HANDLE_VALUE_NTF: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_HANDLE_VALUE_NTF: res = new AttHandleValueRcv(buffer, buffer_size); break;
-        case ATT_HANDLE_VALUE_IND: res = new AttHandleValueRcv(buffer, buffer_size); break;
-        case ATT_HANDLE_VALUE_CFM: res = new AttPDUMsg(buffer, buffer_size); break;
-        case ATT_SIGNED_WRITE_CMD: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_PDU_UNDEFINED: res = new AttPDUUndefined(buffer, buffer_size); break;
+        case Opcode::ATT_ERROR_RSP: res = new AttErrorRsp(buffer, buffer_size); break;
+        case Opcode::ATT_EXCHANGE_MTU_REQ: res = new AttExchangeMTU(buffer, buffer_size); break;
+        case Opcode::ATT_EXCHANGE_MTU_RSP: res = new AttExchangeMTU(buffer, buffer_size); break;
+        case Opcode::ATT_FIND_INFORMATION_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_FIND_INFORMATION_RSP: res = new AttFindInfoRsp(buffer, buffer_size); break;
+        case Opcode::ATT_FIND_BY_TYPE_VALUE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_FIND_BY_TYPE_VALUE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_READ_BY_TYPE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_READ_BY_TYPE_RSP: res = new AttReadByTypeRsp(buffer, buffer_size); break;
+        case Opcode::ATT_READ_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_READ_RSP: res = new AttReadRsp(buffer, buffer_size); break;
+        case Opcode::ATT_READ_BLOB_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_READ_BLOB_RSP: res = new AttReadBlobRsp(buffer, buffer_size); break;
+        case Opcode::ATT_READ_MULTIPLE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_READ_MULTIPLE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_READ_BY_GROUP_TYPE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_READ_BY_GROUP_TYPE_RSP: res = new AttReadByGroupTypeRsp(buffer, buffer_size); break;
+        case Opcode::ATT_WRITE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_WRITE_RSP: res = new AttWriteRsp(buffer, buffer_size); break;
+        case Opcode::ATT_WRITE_CMD: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_PREPARE_WRITE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_PREPARE_WRITE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_EXECUTE_WRITE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_EXECUTE_WRITE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_READ_MULTIPLE_VARIABLE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_READ_MULTIPLE_VARIABLE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_MULTIPLE_HANDLE_VALUE_NTF: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_HANDLE_VALUE_NTF: res = new AttHandleValueRcv(buffer, buffer_size); break;
+        case Opcode::ATT_HANDLE_VALUE_IND: res = new AttHandleValueRcv(buffer, buffer_size); break;
+        case Opcode::ATT_HANDLE_VALUE_CFM: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::ATT_SIGNED_WRITE_CMD: res = new AttPDUMsg(buffer, buffer_size); break;
         default: res = new AttPDUMsg(buffer, buffer_size); break;
     }
     return std::shared_ptr<const AttPDUMsg>(res);

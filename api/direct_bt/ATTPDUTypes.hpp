@@ -267,7 +267,7 @@ namespace direct_bt {
     {
         public:
             /** ATT Opcode Summary Vol 3, Part F 3.4.8 */
-            enum Opcode : uint8_t {
+            enum class Opcode : uint8_t {
                 ATT_PDU_UNDEFINED               = 0x00, // our own pseudo opcode, indicating no ATT PDU message
 
                 ATT_METHOD_MASK                 = 0x3F, // bits 0 .. 5
@@ -309,30 +309,40 @@ namespace direct_bt {
 
                 ATT_SIGNED_WRITE_CMD            = ATT_WRITE_REQ + ATT_COMMAND_FLAG + ATT_AUTH_SIGNATURE_FLAG // = 0xD2
             };
-
+            static constexpr uint8_t number(const Opcode rhs) noexcept {
+                return static_cast<uint8_t>(rhs);
+            }
             static std::string getOpcodeString(const Opcode opc) noexcept;
+
+        private:
+            static constexpr Opcode bit_and(const Opcode lhs, const Opcode rhs) noexcept {
+                return static_cast<Opcode> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
+            }
+            static constexpr bool bit_test(const Opcode lhs, const Opcode rhs) noexcept {
+                return 0 != ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
+            }
 
         protected:
             void checkOpcode(const Opcode expected) const
             {
                 const Opcode has = getOpcode();
                 if( expected != has ) {
-                    throw AttOpcodeException("Has opcode "+jau::uint8HexString(has, true)+" "+getOpcodeString(has)+
-                                     ", but expected "+jau::uint8HexString(expected, true)+" "+getOpcodeString(expected), E_FILE_LINE);
+                    throw AttOpcodeException("Has opcode "+jau::uint8HexString(number(has), true)+" "+getOpcodeString(has)+
+                                     ", but expected "+jau::uint8HexString(number(expected), true)+" "+getOpcodeString(expected), E_FILE_LINE);
                 }
             }
             void checkOpcode(const Opcode exp1, const Opcode exp2) const
             {
                 const Opcode has = getOpcode();
                 if( exp1 != has && exp2 != has ) {
-                    throw AttOpcodeException("Has opcode "+jau::uint8HexString(has, true)+" "+getOpcodeString(has)+
-                                     ", but expected either "+jau::uint8HexString(exp1, true)+" "+getOpcodeString(exp1)+
-                                     " or  "+jau::uint8HexString(exp1, true)+" "+getOpcodeString(exp1), E_FILE_LINE);
+                    throw AttOpcodeException("Has opcode "+jau::uint8HexString(number(has), true)+" "+getOpcodeString(has)+
+                                     ", but expected either "+jau::uint8HexString(number(exp1), true)+" "+getOpcodeString(exp1)+
+                                     " or  "+jau::uint8HexString(number(exp1), true)+" "+getOpcodeString(exp1), E_FILE_LINE);
                 }
             }
 
             virtual std::string baseString() const noexcept {
-                return "opcode="+jau::uint8HexString(getOpcode(), true)+" "+getOpcodeString()+
+                return "opcode="+jau::uint8HexString(number(getOpcode()), true)+" "+getOpcodeString()+
                         ", size[total="+std::to_string(pdu.getSize())+", param "+std::to_string(getPDUParamSize())+"]";
             }
             virtual std::string valueString() const noexcept {
@@ -366,7 +376,7 @@ namespace direct_bt {
             AttPDUMsg(const Opcode opc, const jau::nsize_t size)
                 : pdu(std::max<jau::nsize_t>(1, size)), ts_creation(jau::getCurrentMilliseconds())
             {
-                pdu.put_uint8_nc(0, opc);
+                pdu.put_uint8_nc(0, number(opc));
                 pdu.check_range(0, getPDUMinSize());
             }
 
@@ -385,17 +395,17 @@ namespace direct_bt {
 
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
             Opcode getOpMethod() const noexcept {
-                return static_cast<Opcode>(getOpcode() & ATT_METHOD_MASK);
+                return bit_and(getOpcode(), Opcode::ATT_METHOD_MASK);
             }
 
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
             bool getOpCommandFlag() const noexcept {
-                return static_cast<Opcode>(getOpcode() & ATT_COMMAND_FLAG);
+                return bit_test(getOpcode(), Opcode::ATT_COMMAND_FLAG);
             }
 
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
             bool getOpAuthSigFlag() const noexcept {
-                return static_cast<Opcode>(getOpcode() & ATT_AUTH_SIGNATURE_FLAG);
+                return bit_test(getOpcode(), Opcode::ATT_AUTH_SIGNATURE_FLAG);
             }
 
             /**
@@ -508,7 +518,7 @@ namespace direct_bt {
     {
         public:
             AttPDUUndefined(const uint8_t* source, const jau::nsize_t length) : AttPDUMsg(source, length) {
-                checkOpcode(ATT_PDU_UNDEFINED);
+                checkOpcode(Opcode::ATT_PDU_UNDEFINED);
             }
 
             /** opcode */
@@ -528,7 +538,7 @@ namespace direct_bt {
     class AttErrorRsp: public AttPDUMsg
     {
         public:
-            enum ErrorCode : uint8_t {
+            enum class ErrorCode : uint8_t {
                 INVALID_HANDLE              = 0x01,
                 NO_READ_PERM                = 0x02,
                 NO_WRITE_PERM               = 0x03,
@@ -549,11 +559,13 @@ namespace direct_bt {
                 DB_OUT_OF_SYNC              = 0x12,
                 FORBIDDEN_VALUE             = 0x13
             };
-
+            static constexpr uint8_t number(const ErrorCode rhs) noexcept {
+                return static_cast<uint8_t>(rhs);
+            }
             static std::string getPlainErrorString(const ErrorCode errorCode) noexcept;
 
             AttErrorRsp(const uint8_t* source, const jau::nsize_t length) : AttPDUMsg(source, length) {
-                checkOpcode(ATT_ERROR_RSP);
+                checkOpcode(Opcode::ATT_ERROR_RSP);
             }
 
             /** opcode + reqOpcodeCause + handleCause + errorCode */
@@ -573,7 +585,7 @@ namespace direct_bt {
 
             std::string getErrorString() const noexcept {
                 const ErrorCode ec = getErrorCode();
-                return jau::uint8HexString(ec, true) + ": " + getPlainErrorString(ec);
+                return jau::uint8HexString(number(ec), true) + ": " + getPlainErrorString(ec);
             }
 
             std::string getName() const noexcept override {
@@ -600,11 +612,11 @@ namespace direct_bt {
     {
         public:
             AttExchangeMTU(const uint8_t* source, const jau::nsize_t length) : AttPDUMsg(source, length) {
-                checkOpcode(ATT_EXCHANGE_MTU_RSP);
+                checkOpcode(Opcode::ATT_EXCHANGE_MTU_RSP);
             }
 
             AttExchangeMTU(const uint16_t mtuSize)
-            : AttPDUMsg(ATT_EXCHANGE_MTU_REQ, 1+2)
+            : AttPDUMsg(Opcode::ATT_EXCHANGE_MTU_REQ, 1+2)
             {
                 pdu.put_uint16_nc(1, mtuSize);
             }
@@ -640,7 +652,7 @@ namespace direct_bt {
     {
         public:
             AttReadReq(const uint16_t handle)
-            : AttPDUMsg(ATT_READ_REQ, 1+2)
+            : AttPDUMsg(Opcode::ATT_READ_REQ, 1+2)
             {
                 pdu.put_uint16_nc(1, handle);
             }
@@ -686,7 +698,7 @@ namespace direct_bt {
 
             AttReadRsp(const uint8_t* source, const jau::nsize_t length)
             : AttPDUMsg(source, length), view(pdu, getPDUValueOffset(), getPDUValueSize()) {
-                checkOpcode(ATT_READ_RSP);
+                checkOpcode(Opcode::ATT_READ_RSP);
             }
 
             /** opcode */
@@ -720,7 +732,7 @@ namespace direct_bt {
     {
         public:
             AttReadBlobReq(const uint16_t handle, const uint16_t value_offset)
-            : AttPDUMsg(ATT_READ_BLOB_REQ, 1+2+2)
+            : AttPDUMsg(Opcode::ATT_READ_BLOB_REQ, 1+2+2)
             {
                 pdu.put_uint16_nc(1, handle);
                 pdu.put_uint16_nc(3, value_offset);
@@ -771,7 +783,7 @@ namespace direct_bt {
 
             AttReadBlobRsp(const uint8_t* source, const jau::nsize_t length)
             : AttPDUMsg(source, length), view(pdu, getPDUValueOffset(), getPDUValueSize()) {
-                checkOpcode(ATT_READ_BLOB_RSP);
+                checkOpcode(Opcode::ATT_READ_BLOB_RSP);
             }
 
             /** opcode */
@@ -811,7 +823,7 @@ namespace direct_bt {
 
         public:
             AttWriteReq(const uint16_t handle, const TROOctets & value)
-            : AttPDUMsg(ATT_WRITE_REQ, 1+2+value.getSize()), view(pdu, getPDUValueOffset(), getPDUValueSize())
+            : AttPDUMsg(Opcode::ATT_WRITE_REQ, 1+2+value.getSize()), view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16_nc(1, handle);
                 for(jau::nsize_t i=0; i<value.getSize(); i++) {
@@ -855,7 +867,7 @@ namespace direct_bt {
         public:
             AttWriteRsp(const uint8_t* source, const jau::nsize_t length)
             : AttPDUMsg(source, length) {
-                checkOpcode(ATT_WRITE_RSP);
+                checkOpcode(Opcode::ATT_WRITE_RSP);
             }
 
             /** opcode */
@@ -883,7 +895,7 @@ namespace direct_bt {
 
         public:
             AttWriteCmd(const uint16_t handle, const TROOctets & value)
-            : AttPDUMsg(ATT_WRITE_CMD, 1+2+value.getSize()), view(pdu, getPDUValueOffset(), getPDUValueSize())
+            : AttPDUMsg(Opcode::ATT_WRITE_CMD, 1+2+value.getSize()), view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16_nc(1, handle);
                 for(jau::nsize_t i=0; i<value.getSize(); i++) {
@@ -936,7 +948,7 @@ namespace direct_bt {
         public:
             AttHandleValueRcv(const uint8_t* source, const jau::nsize_t length)
             : AttPDUMsg(source, length), view(pdu, getPDUValueOffset(), getPDUValueSize()) {
-                checkOpcode(ATT_HANDLE_VALUE_NTF, ATT_HANDLE_VALUE_IND);
+                checkOpcode(Opcode::ATT_HANDLE_VALUE_NTF, Opcode::ATT_HANDLE_VALUE_IND);
             }
 
             /** opcode + handle */
@@ -951,11 +963,11 @@ namespace direct_bt {
             TOctetSlice const & getValue() const noexcept { return view; }
 
             bool isNotification() const noexcept {
-                return ATT_HANDLE_VALUE_NTF == getOpcode();
+                return Opcode::ATT_HANDLE_VALUE_NTF == getOpcode();
             }
 
             bool isIndication() const noexcept {
-                return ATT_HANDLE_VALUE_IND == getOpcode();
+                return Opcode::ATT_HANDLE_VALUE_IND == getOpcode();
             }
 
             std::string getName() const noexcept override {
@@ -982,7 +994,7 @@ namespace direct_bt {
     {
         public:
             AttHandleValueCfm()
-            : AttPDUMsg(ATT_HANDLE_VALUE_CFM, 1)
+            : AttPDUMsg(Opcode::ATT_HANDLE_VALUE_CFM, 1)
             {
             }
 
@@ -1068,7 +1080,7 @@ namespace direct_bt {
 
         public:
             AttReadByNTypeReq(const bool groupTypeReq, const uint16_t startHandle, const uint16_t endHandle, const uuid_t & uuid)
-            : AttPDUMsg(groupTypeReq ? ATT_READ_BY_GROUP_TYPE_REQ : ATT_READ_BY_TYPE_REQ, 1+2+2+uuid.getTypeSizeInt())
+            : AttPDUMsg(groupTypeReq ? Opcode::ATT_READ_BY_GROUP_TYPE_REQ : Opcode::ATT_READ_BY_TYPE_REQ, 1+2+2+uuid.getTypeSizeInt())
             {
                 if( uuid.getTypeSize() != uuid_t::TypeSize::UUID16_SZ && uuid.getTypeSize()!= uuid_t::TypeSize::UUID128_SZ ) {
                     throw jau::IllegalArgumentException("Only UUID16 and UUID128 allowed: "+uuid.toString(), E_FILE_LINE);
@@ -1157,7 +1169,7 @@ namespace direct_bt {
             AttReadByTypeRsp(const uint8_t* source, const jau::nsize_t length)
             : AttElementList(source, length)
             {
-                checkOpcode(ATT_READ_BY_TYPE_RSP);
+                checkOpcode(Opcode::ATT_READ_BY_TYPE_RSP);
 
                 if( getPDUValueSize() % getElementTotalSize() != 0 ) {
                     throw AttValueException("PDUReadByTypeRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
@@ -1259,7 +1271,7 @@ namespace direct_bt {
             AttReadByGroupTypeRsp(const uint8_t* source, const jau::nsize_t length)
             : AttElementList(source, length)
             {
-                checkOpcode(ATT_READ_BY_GROUP_TYPE_RSP);
+                checkOpcode(Opcode::ATT_READ_BY_GROUP_TYPE_RSP);
 
                 if( getPDUValueSize() % getElementTotalSize() != 0 ) {
                     throw AttValueException("PDUReadByGroupTypeRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
@@ -1331,7 +1343,7 @@ namespace direct_bt {
     {
         public:
             AttFindInfoReq(const uint16_t startHandle, const uint16_t endHandle)
-            : AttPDUMsg(ATT_FIND_INFORMATION_REQ, 1+2+2)
+            : AttPDUMsg(Opcode::ATT_FIND_INFORMATION_REQ, 1+2+2)
             {
                 pdu.put_uint16_nc(1, startHandle);
                 pdu.put_uint16_nc(3, endHandle);
@@ -1405,7 +1417,7 @@ namespace direct_bt {
             };
 
             AttFindInfoRsp(const uint8_t* source, const jau::nsize_t length) : AttElementList(source, length) {
-                checkOpcode(ATT_FIND_INFORMATION_RSP);
+                checkOpcode(Opcode::ATT_FIND_INFORMATION_RSP);
                 if( getPDUValueSize() % getElementTotalSize() != 0 ) {
                     throw AttValueException("PDUFindInfoRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
                             " not multiple of element-size "+std::to_string(getElementTotalSize()), E_FILE_LINE);
