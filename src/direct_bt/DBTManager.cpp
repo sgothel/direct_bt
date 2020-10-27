@@ -119,6 +119,10 @@ void DBTManager::mgmtReaderThreadImpl() noexcept {
                 COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV (ADD) %s", event->toString().c_str());
                 std::thread adapterAddedThread(&DBTManager::processAdapterAdded, this, event); // @suppress("Invalid arguments")
                 adapterAddedThread.detach();
+            } else if( MgmtEvent::Opcode::INDEX_REMOVED == opc ) {
+                COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV (REM) %s", event->toString().c_str());
+                std::thread adapterRemovedThread(&DBTManager::processAdapterRemoved, this, event); // @suppress("Invalid arguments")
+                adapterRemovedThread.detach();
             } else {
                 // issue a callback
                 COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV (CB) %s", event->toString().c_str());
@@ -433,7 +437,6 @@ next1:
         }
     }
 
-    addMgmtEventCallback(-1, MgmtEvent::Opcode::INDEX_REMOVED, jau::bindMemberFunc(this, &DBTManager::mgmtEvAdapterRemovedCB));
     addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_SETTINGS,  jau::bindMemberFunc(this, &DBTManager::mgmtEvNewSettingsCB));
 
     if( env.DEBUG_EVENT ) {
@@ -894,23 +897,31 @@ void DBTManager::processAdapterAdded(std::shared_ptr<MgmtEvent> e) noexcept {
     std::shared_ptr<AdapterInfo> ai = initAdapter(dev_id, defaultBTMode);
     if( nullptr != ai ) {
         const bool added = addAdapterInfo(ai);
-        DBG_PRINT("DBTManager::Adapter[%d] Added %d: %s", dev_id, added, ai->toString().c_str());
+        DBG_PRINT("DBTManager::Adapter[%d] Added: Start %s, added %d", dev_id, ai->toString().c_str(), added);
         sendMgmtEvent(e);
+        DBG_PRINT("DBTManager::Adapter[%d] Added: User_ %s", dev_id, ai->toString().c_str());
         jau::for_each_cow(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
            cb.invoke(true /* added */, *ai);
         });
+        DBG_PRINT("DBTManager::Adapter[%d] Added: End__ %s", dev_id, ai->toString().c_str());
     } else {
-        DBG_PRINT("DBTManager::Adapter[%d] Added 0: Init failed", dev_id);
+        DBG_PRINT("DBTManager::Adapter[%d] Added: InitAI failed", dev_id);
     }
 }
-bool DBTManager::mgmtEvAdapterRemovedCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    DBG_PRINT("DBTManager:mgmt:AdapterRemoved: Start %s", e->toString().c_str());
-    std::shared_ptr<AdapterInfo> ai = removeAdapterInfo(e->getDevID());
-    jau::for_each_cow(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
-       cb.invoke(false /* added */, *ai);
-    });
-    DBG_PRINT("DBTManager:mgmt:AdapterRemoved: End: Removed %s", (nullptr != ai ? ai->toString().c_str() : "none"));
-    return true;
+void DBTManager::processAdapterRemoved(std::shared_ptr<MgmtEvent> e) noexcept {
+    const uint16_t dev_id = e->getDevID();
+    std::shared_ptr<AdapterInfo> ai = removeAdapterInfo(dev_id);
+    if( nullptr != ai ) {
+        DBG_PRINT("DBTManager::Adapter[%d] Removed: Start: %s", dev_id, ai->toString().c_str());
+        sendMgmtEvent(e);
+        DBG_PRINT("DBTManager::Adapter[%d] Removed: User_: %s", dev_id, ai->toString().c_str());
+        jau::for_each_cow(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
+           cb.invoke(false /* added */, *ai);
+        });
+        DBG_PRINT("DBTManager::Adapter[%d] Removed: End__: %s", dev_id, ai->toString().c_str());
+    } else {
+        DBG_PRINT("DBTManager::Adapter[%d] Removed: RemoveAI failed", dev_id);
+    }
 }
 bool DBTManager::mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) noexcept {
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(e.get());

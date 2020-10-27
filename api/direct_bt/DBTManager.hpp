@@ -137,18 +137,14 @@ namespace direct_bt {
 
     /**
      * Callback function to receive change events regarding the system's adapter set,
-     * e.g. about a removed or added adapter due to user interaction or 'cold reset'.
+     * e.g. a removed or added adapter due to user interaction or 'cold reset'.
      * <p>
      * When a new callback is added, all available adapter's will be reported as added,
      * this allows a fully event driven workflow.
      * </p>
      * <p>
-     * Note that the 'adapter added' callback, i.e. 'added==true',
-     * is performed on a dedicated thread allowing the user to perform complex operations.
-     * </p>
-     * <p>
-     * User shall not perform complex operations on the 'adapter removed' callback,
-     * i.e. 'added==false'.
+     * The callback is performed on a dedicated thread,
+     * allowing the user to perform complex operations.
      * </p>
      *
      * @param added true if adapter was newly added, otherwise removed from system
@@ -162,18 +158,14 @@ namespace direct_bt {
 
     /**
      * Callback jau::FunctionDef to receive change events regarding the system's adapter set,
-     * e.g. about a removed or added adapter due to user interaction or 'cold reset'.
+     * e.g. a removed or added adapter due to user interaction or 'cold reset'.
      * <p>
      * When a new callback is added, all available adapter's will be reported as added,
      * this allows a fully event driven workflow.
      * </p>
      * <p>
-     * Note that the 'adapter added' callback, i.e. 'added==true',
-     * is performed on a dedicated thread allowing the user to perform complex operations.
-     * </p>
-     * <p>
-     * User shall not perform complex operations on the 'adapter removed' callback,
-     * i.e. 'added==false'.
+     * The callback is performed on a dedicated thread,
+     * allowing the user to perform complex operations.
      * </p>
      *
      * @param added true if adapter was newly added, otherwise removed from system
@@ -262,7 +254,7 @@ namespace direct_bt {
             void shutdownAdapter(const uint16_t dev_id) noexcept;
 
             void processAdapterAdded(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvAdapterRemovedCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            void processAdapterRemoved(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) noexcept;
@@ -473,12 +465,8 @@ namespace direct_bt {
              * this allows a fully event driven workflow.
              * </p>
              * <p>
-             * Note that the 'adapter added' callback, i.e. 'added==true',
-             * is performed on a dedicated thread allowing the user to perform complex operations.
-             * </p>
-             * <p>
-             * User shall not perform complex operations on the 'adapter removed' callback,
-             * i.e. 'added==false'.
+             * The callback is performed on a dedicated thread,
+             * allowing the user to perform complex operations.
              * </p>
              */
             void addChangedAdapterSetCallback(const ChangedAdapterSetCallback & l);
@@ -497,12 +485,8 @@ namespace direct_bt {
              * this allows a fully event driven workflow.
              * </p>
              * <p>
-             * Note that the 'adapter added' callback, i.e. 'added==true',
-             * is performed on a dedicated thread allowing the user to perform complex operations.
-             * </p>
-             * <p>
-             * User shall not perform complex operations on the 'adapter removed' callback,
-             * i.e. 'added==false'.
+             * The callback is performed on a dedicated thread,
+             * allowing the user to perform complex operations.
              * </p>
              */
             void addChangedAdapterSetCallback(ChangedAdapterSetFunc f);

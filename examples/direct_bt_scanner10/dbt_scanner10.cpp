@@ -565,22 +565,21 @@ static std::shared_ptr<DBTAdapter> getAdapter(const uint16_t dev_id) {
         return *it;
     }
 }
-static int removeAdapter(const uint16_t dev_id) {
+static std::shared_ptr<DBTAdapter> removeAdapter(const uint16_t dev_id) {
+    std::shared_ptr<DBTAdapter> res = nullptr;
     const std::lock_guard<std::recursive_mutex> lock(adapterList.get_write_mutex());
     std::shared_ptr<std::vector<std::shared_ptr<DBTAdapter>>> store = adapterList.copy_store();
-    int count = 0;
     for(auto it = store->begin(); it != store->end(); ) {
         if ( (*it)->dev_id == dev_id ) {
+            res = *it;
             it = store->erase(it);
-            count++;
+            adapterList.set_store(std::move(store));
+            return res;
         } else {
             ++it;
         }
     }
-    if( 0 < count ) {
-        adapterList.set_store(std::move(store));
-    }
-    return count;
+    return nullptr;
 }
 
 static bool myChangedAdapterSetFunc(const bool added, const AdapterInfo& adapterInfo) {
@@ -600,8 +599,13 @@ static bool myChangedAdapterSetFunc(const bool added, const AdapterInfo& adapter
             }
         }
     } else {
-        const int count = removeAdapter(adapterInfo.dev_id);
-        fprintf(stderr, "****** Adapter REMOVED: count %d, %s\n", count, adapterInfo.toString().c_str());
+        std::shared_ptr<DBTAdapter> removed = removeAdapter(adapterInfo.dev_id);
+        if( nullptr != removed ) {
+            fprintf(stderr, "****** Adapter REMOVED: %s\n", removed->toString().c_str());
+            removed->close();
+        } else {
+            fprintf(stderr, "****** Adapter REMOVED: Not found %s\n", adapterInfo.toString().c_str());
+        }
     }
     return true;
 }

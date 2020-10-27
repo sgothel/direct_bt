@@ -206,12 +206,12 @@ public class DBTManager implements BluetoothManager
     { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
-    public List<BluetoothAdapter> getAdapters() { return adapters; }
+    public List<BluetoothAdapter> getAdapters() { return new ArrayList<BluetoothAdapter>(adapters); }
 
     @Override
     public BluetoothAdapter getAdapter(final int dev_id) {
-        for( int i=0; i<adapters.size(); i++) {
-            final BluetoothAdapter a = adapters.get(i);
+        for(final Iterator<BluetoothAdapter> iter = adapters.iterator(); iter.hasNext(); ) {
+            final BluetoothAdapter a = iter.next();
             if( dev_id == a.getDevID() ) {
                 return a;
             }
@@ -260,8 +260,8 @@ public class DBTManager implements BluetoothManager
 
     @Override
     public BluetoothAdapter getDefaultAdapter() {
-        for( int i=0; i<adapters.size(); i++) {
-            final BluetoothAdapter a = adapters.get(i);
+        for(final Iterator<BluetoothAdapter> iter = adapters.iterator(); iter.hasNext(); ) {
+            final BluetoothAdapter a = iter.next();
             if( a.isPowered() ) {
                 return a;
             }
@@ -320,28 +320,39 @@ public class DBTManager implements BluetoothManager
 
     /** callback from native adapter remove */
     /* pp */ final void removeAdapterCB(final int dev_id, final int opc_reason) {
-        for( int i=0; i<adapters.size(); i++) {
-            final BluetoothAdapter a = adapters.get(i);
-            if( dev_id == a.getDevID() ) {
-                adapters.remove(i);
-                if( DEBUG ) {
-                    System.err.println("DBTManager.removeAdapterCB[dev_id "+dev_id+", opc 0x"+Integer.toHexString(opc_reason)+
-                            "]: removed "+a.toString()+", size "+adapters.size());
+        final BluetoothAdapter[] removed = { null };
+        final int count[] = { 0 };
+        adapters.removeIf(new Predicate<BluetoothAdapter>() {
+            @Override
+            public boolean test(final BluetoothAdapter a) {
+                if( 0 == count[0] && dev_id == a.getDevID() ) {
+                    removed[0] = a;
+                    count[0]++;
+                    return true;
+                } else {
+                    return false;
                 }
-                if( 0x0005 == opc_reason ) {
-                    // MgmtEvent::Opcode::INDEX_REMOVED = 0x0005
-                    changedAdapterSetListenerList.forEach(new Consumer<ChangedAdapterSetListener>() {
-                        @Override
-                        public void accept(final ChangedAdapterSetListener t) {
-                            t.adapterRemoved(a);
-                        } } );
-                }
-                return;
             }
+        });
+        if( null != removed[0] ) {
+            if( DEBUG ) {
+                System.err.println("DBTManager.removeAdapterCB[dev_id "+dev_id+", opc 0x"+Integer.toHexString(opc_reason)+
+                        "]: removing "+removed[0].toString());
+            }
+            if( 0x0005 == opc_reason ) {
+                // MgmtEvent::Opcode::INDEX_REMOVED = 0x0005
+                changedAdapterSetListenerList.forEach(new Consumer<ChangedAdapterSetListener>() {
+                    @Override
+                    public void accept(final ChangedAdapterSetListener t) {
+                        t.adapterRemoved( removed[0] );
+                    } } );
+            }
+            removed[0].close(); // issuing dtor on native DBTAdapter
+            removed[0] = null;
         }
         if( DEBUG ) {
             System.err.println("DBTManager.removeAdapterCB[dev_id "+dev_id+", opc 0x"+Integer.toHexString(opc_reason)+
-                    "]: not found, size "+adapters.size());
+                    "]: removed "+count[0]+" adapter, size "+adapters.size());
         }
     }
     /** callback from native adapter add or POWERED on */
@@ -483,8 +494,11 @@ public class DBTManager implements BluetoothManager
             }
             return null; // no adapter
         }
-        for(int devIdx = adapters.size() - 1; devIdx >= 0; devIdx-- ) {
-            final DBTAdapter adapter = (DBTAdapter) adapters.get(devIdx);
+        for(final Iterator<BluetoothAdapter> iter = adapters.iterator(); iter.hasNext(); ) {
+            final DBTAdapter adapter = (DBTAdapter) iter.next();
+            if( !adapter.isValid() ) {
+                continue;
+            }
             if( ( anyType || adapterType ) ) {
                 if( null != name && null != identifier &&
                     adapter.getName().equals(name) &&

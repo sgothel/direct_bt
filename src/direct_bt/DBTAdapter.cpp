@@ -178,9 +178,6 @@ bool DBTAdapter::validateDevInfo() noexcept {
         WORDY_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: Not POWERED: %s", dev_id, adapterInfo->toString().c_str());
     }
     ok = true;
-    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::INDEX_ADDED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvAdapterAddedMgmt));
-    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::INDEX_REMOVED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvAdapterRemovedMgmt));
-
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvNewSettingsMgmt)) && ok;
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvLocalNameChangedMgmt)) && ok;
@@ -238,17 +235,26 @@ DBTAdapter::DBTAdapter(const int _dev_id) noexcept
 }
 
 DBTAdapter::~DBTAdapter() noexcept {
+    if( !isValid() ) {
+        DBG_PRINT("DBTAdapter::dtor: dev_id %d, invalid, %p", dev_id, this);
+        return;
+    }
     DBG_PRINT("DBTAdapter::dtor: ... %p %s", this, toString().c_str());
     close();
     DBG_PRINT("DBTAdapter::dtor: XXX");
 }
 
 void DBTAdapter::close() noexcept {
+    if( !isValid() ) {
+        // Native user app could have destroyed this instance already from
+        DBG_PRINT("DBTAdapter::close: dev_id %d, invalid, %p", dev_id, this);
+        return;
+    }
     DBG_PRINT("DBTAdapter::close: ... %p %s", this, toString().c_str());
     keep_le_scan_alive = false;
 
     // mute all listener first
-    if( isValid() ) {
+    {
         int count = mgmt.removeMgmtEventCallback(dev_id);
         DBG_PRINT("DBTAdapter::close removeMgmtEventCallback: %d callbacks", count);
     }
@@ -277,6 +283,10 @@ void DBTAdapter::close() noexcept {
 }
 
 void DBTAdapter::poweredOff() noexcept {
+    if( !isValid() ) {
+        DBG_PRINT("DBTAdapter::poweredOff: dev_id %d, invalid, %p", dev_id, this);
+        return;
+    }
     DBG_PRINT("DBTAdapter::poweredOff: ... %p %s", this, toString(false).c_str());
     keep_le_scan_alive = false;
 
@@ -1129,17 +1139,3 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
 
     return true;
 }
-
-bool DBTAdapter::mgmtEvAdapterAddedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    DBG_PRINT("DBTAdapter:mgmt:AdapterAdded: %s on %s", e->toString().c_str(), toString(false).c_str());
-    return true;
-}
-
-bool DBTAdapter::mgmtEvAdapterRemovedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    DBG_PRINT("DBTAdapter:mgmt:AdapterRemoved: %s on %s", e->toString().c_str(), toString(false).c_str());
-    // Adapter has been powered off, close connections and cleanup off-thread.
-    std::thread bg(&DBTAdapter::close, this); // @suppress("Invalid arguments")
-    bg.detach();
-    return true;
-}
-

@@ -78,9 +78,19 @@ public interface BluetoothManager
 
     /**
      * Event listener to receive change events regarding the system's {@link BluetoothAdapter} set,
-     * e.g. about a removed or added {@link BluetoothAdapter} due to user interaction or 'cold reset'.
+     * e.g. a removed or added {@link BluetoothAdapter} due to user interaction or 'cold reset'.
+     * <p>
+     * When a new callback is added, all available adapter's will be reported as added,
+     * this allows a fully event driven workflow.
+     * </p>
+     * <p>
+     * The callback is performed on a dedicated thread,
+     * allowing the user to perform complex operations.
+     * </p>
      * @since 2.0.0
      * @implNote Not implemented on tinyb.dbus
+     * @see BluetoothManager#addChangedAdapterSetListener(ChangedAdapterSetListener)
+     * @see BluetoothManager#removeChangedAdapterSetListener(ChangedAdapterSetListener)
      */
     public static interface ChangedAdapterSetListener {
         /**
@@ -294,6 +304,10 @@ public interface BluetoothManager
      * <p>
      * When a new callback is added, all available adapter's will be reported as added,
      * this allows a fully event driven workflow.
+     * </p>
+     * <p>
+     * The callback is performed on a dedicated thread,
+     * allowing the user to perform complex operations.
      * </p>
      * @since 2.0.0
      * @implNote Not implemented on tinyb.dbus
