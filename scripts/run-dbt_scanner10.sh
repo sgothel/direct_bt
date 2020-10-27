@@ -14,7 +14,17 @@
 # To do a BT adapter removal/add via software, assuming the device is '1-4' (Bus 1.Port 4):
 #   echo '1-4' > /sys/bus/usb/drivers/usb/unbind 
 #   echo '1-4' > /sys/bus/usb/drivers/usb/bind 
-
+#
+# Non root (we use the capsh solution here):
+#
+#   setcap -v 'cap_net_raw,cap_net_admin+eip' bin/dbt_scanner10
+#   setcap -v 'cap_net_raw,cap_net_admin+eip' /usr/bin/strace
+#   setcap 'cap_sys_ptrace+eip' /usr/bin/gdb
+#
+#   sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
+#      --keep=1 --user=nobody --addamb=cap_net_raw,cap_net_admin+eip \
+#      -- -c "YOUR FANCY direct_bt STUFF"
+#
 
 sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`
@@ -53,6 +63,8 @@ export LC_MEASUREMENT=en_US.UTF-8
 # export VALGRIND="valgrind --tool=callgrind --instr-atstart=yes --collect-atstart=yes --collect-systime=yes --combine-dumps=yes --separate-threads=no --callgrind-out-file=$callgrindoutfile --log-file=$valgrindlogfile"
 
 runit() {
+    ulimit -c unlimited
+
     echo COMMANDLINE $0 $*
     echo VALGRIND $VALGRIND
     echo logbasename $logbasename
@@ -62,9 +74,13 @@ runit() {
     echo direct_bt_debug $direct_bt_debug
     echo direct_bt_verbose $direct_bt_verbose
 
-    #LD_LIBRARY_PATH=`pwd`/lib strace bin/dbt_scanner10 $*
     echo LD_LIBRARY_PATH=`pwd`/lib $VALGRIND bin/dbt_scanner10 $*
-    LD_LIBRARY_PATH=`pwd`/lib $VALGRIND bin/dbt_scanner10 $*
+
+    #LD_LIBRARY_PATH=`pwd`/lib $VALGRIND bin/dbt_scanner10 $*
+
+    sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
+        --keep=1 --user=nobody --addamb=cap_net_raw,cap_net_admin+eip \
+        -- -c "LD_LIBRARY_PATH=`pwd`/lib $VALGRIND bin/dbt_scanner10 $*"
 }
 
 runit $* 2>&1 | tee $logfile

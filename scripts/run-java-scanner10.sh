@@ -10,6 +10,20 @@
 # ../scripts/run-java-scanner10.sh -wait -wl C0:26:DA:01:DA:B1 2>&1 | tee ~/scanner-h01-java10.log
 # ../scripts/run-java-scanner10.sh -wait 2>&1 | tee ~/scanner-h01-java10.log
 #
+# To do a BT adapter removal/add via software, assuming the device is '1-4' (Bus 1.Port 4):
+#   echo '1-4' > /sys/bus/usb/drivers/usb/unbind 
+#   echo '1-4' > /sys/bus/usb/drivers/usb/bind 
+#
+# Non root (we use the capsh solution here):
+#
+#   setcap -v 'cap_net_raw,cap_net_admin+eip' bin/dbt_scanner10
+#   setcap -v 'cap_net_raw,cap_net_admin+eip' /usr/bin/strace
+#   setcap 'cap_sys_ptrace+eip' /usr/bin/gdb
+#
+#   sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
+#      --keep=1 --user=nobody --addamb=cap_net_raw,cap_net_admin+eip \
+#      -- -c "YOUR FANCY direct_bt STUFF"
+#
 
 sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`
@@ -60,7 +74,12 @@ runit() {
     echo direct_bt_debug $direct_bt_debug
     echo direct_bt_verbose $direct_bt_verbose
 
-    $VALGRIND $JAVA_CMD -cp lib/java/tinyb2.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
+    # $VALGRIND $JAVA_CMD -cp lib/java/tinyb2.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
+
+    sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
+        --keep=1 --user=nobody --addamb=cap_net_raw,cap_net_admin+eip \
+        -- -c "$VALGRIND $JAVA_CMD -cp lib/java/tinyb2.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*"
+
 }
 
 runit $* 2>&1 | tee $logfile

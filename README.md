@@ -58,6 +58,9 @@ Some more elaboration on the implementation and its status
 > [1] *Linux/BlueZ-Mngr* is still used for adapter configuration and shall be removed to support universal platforms,
 > implementing the Bluetooth host-side protocols.
 
+
+**Direct-BT System Preparations**
+
 Since *Direct-BT* is not using a 3rd party Bluetooth client library or daemon/service,
 they should be disabled to allow operation without any interference.
 To disable the *BlueZ* D-Bus userspace daemon *bluetoothd* via systemd, 
@@ -69,7 +72,49 @@ systemctl disable bluetooth
 systemctl mask bluetooth
 ```
 
+**Direct-BT Non-Root Usage**
+
+Since *Direct-BT* requires root permissions to certain Bluetooth network device facilities,
+non-root users requires to be granted such permissions.
+
+For GNU/Linux, there permissions are called [capabilities](https://linux.die.net/man/7/capabilities).
+The following capabilites are required 
+
+- *CAP_NET_RAW* (Raw HCI access)
+- *CAP_NET_ADMIN* (Additional raw HCI access plus (re-)setting the adapter etc)
+
+Either root gives the application to the binary file itself via [setcap](https://linux.die.net/man/8/setcap)
+
+```
+setcap -v 'cap_net_raw,cap_net_admin+eip' dist-amd64/bin/dbt_scanner10
+```
+
+or via [capsh](https://linux.die.net/man/1/capsh) to start the program
+
+```
+sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
+   --keep=1 --user=nobody --addamb=cap_net_raw,cap_net_admin+eip \
+   -- -c "YOUR FANCY direct_bt STUFF"
+```
+
+Notable here is that *capsh* needs to be invoked by root to hand over the capabilities
+and to pass over the *cap_net_raw,cap_net_admin+eip* via *--addamb=...*
+it also needs *cap_setpcap,cap_setuid,cap_setgid+ep* beforehand.
+
+The *capsh* method is now being utilized in
+
+- [scripts/run-dbt_scanner10.sh](https://jausoft.com/cgit/direct_bt.git/tree/scripts/run-dbt_scanner10.sh)
+- [scripts/run-java-scanner10.sh](https://jausoft.com/cgit/direct_bt.git/tree/scripts/run-java-scanner10.sh)
+
+See *Examples* below ...
+
+
+**Direct-BT Sponsorship**
+
 *Direct-BT* is the new implementation as provided by [Zafena ICT](https://ict.zafena.se) and [Gothel Software](https://jausoft.com/).
+
+If you like to utilize *Direct-BT* in a commercial setting, 
+please contact us to setup a potential support contract.
 
 
 TinyB
