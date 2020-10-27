@@ -466,6 +466,19 @@ uint16_t GATTHandler::exchangeMTUImpl(const uint16_t clientMaxMTU, const int32_t
         const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
         mtu = p->getMTUSize();
         DBG_PRINT("GATT MTU recv: %u, %s from %s", mtu, pdu->toString().c_str(), deviceString.c_str());
+    } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ATT_ERROR_RSP ) {
+        /**
+         * If the ATT_ERROR_RSP PDU is sent by the server
+         * with the error code set to 'Request Not Supported',
+         * the Attribute Opcode is not supported and the default MTU shall be used.
+         */
+        const AttErrorRsp * p = static_cast<const AttErrorRsp *>(pdu.get());
+        if( AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST == p->getErrorCode() ) {
+            mtu = number(Defaults::MIN_ATT_MTU); // OK by spec: Use default MTU
+            DBG_PRINT("GATT MTU handled error -> ATT_MTU %u, %s from %s", mtu, pdu->toString().c_str(), deviceString.c_str());
+        } else {
+            ERR_PRINT("GATT MTU unexpected error %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
+        }
     } else {
         ERR_PRINT("GATT MTU unexpected reply %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
     }
