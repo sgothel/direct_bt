@@ -25,6 +25,8 @@
 #      -- -c "YOUR FANCY direct_bt STUFF"
 #
 
+username=nobody
+
 sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`
 bname=`basename $0 .sh`
@@ -77,8 +79,8 @@ runit() {
     # $VALGRIND $JAVA_CMD -cp lib/java/tinyb2.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
 
     sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
-        --keep=1 --user=nobody --addamb=cap_net_raw,cap_net_admin+eip \
-        -- -c "$VALGRIND $JAVA_CMD -cp lib/java/tinyb2.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*"
+        --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
+        -- -c "ulimit -c unlimited; $VALGRIND $JAVA_CMD -cp lib/java/tinyb2.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*"
 
 }
 

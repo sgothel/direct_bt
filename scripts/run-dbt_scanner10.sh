@@ -26,6 +26,8 @@
 #      -- -c "YOUR FANCY direct_bt STUFF"
 #
 
+username=nobody
+
 sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`
 bname=`basename $0 .sh`
@@ -79,8 +81,8 @@ runit() {
     #LD_LIBRARY_PATH=`pwd`/lib $VALGRIND bin/dbt_scanner10 $*
 
     sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
-        --keep=1 --user=nobody --addamb=cap_net_raw,cap_net_admin+eip \
-        -- -c "LD_LIBRARY_PATH=`pwd`/lib $VALGRIND bin/dbt_scanner10 $*"
+        --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
+        -- -c "ulimit -c unlimited; LD_LIBRARY_PATH=`pwd`/lib $VALGRIND bin/dbt_scanner10 $*"
 }
 
 runit $* 2>&1 | tee $logfile
