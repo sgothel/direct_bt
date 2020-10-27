@@ -458,13 +458,16 @@ uint16_t GATTHandler::exchangeMTUImpl(const uint16_t clientMaxMTU, const int32_t
     PERF_TS_T0();
 
     uint16_t mtu = 0;
-    DBG_PRINT("GATT send: %s", req.toString().c_str());
+    DBG_PRINT("GATT MTU send: %s to %s", req.toString().c_str(), deviceString.c_str());
 
     std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, timeout); // valid reply or exception
 
     if( pdu->getOpcode() == AttPDUMsg::ATT_EXCHANGE_MTU_RSP ) {
         const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
         mtu = p->getMTUSize();
+        DBG_PRINT("GATT MTU recv: %u, %s from %s", mtu, pdu->toString().c_str(), deviceString.c_str());
+    } else {
+        ERR_PRINT("GATT MTU unexpected reply %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
     }
     PERF_TS_TD("GATT exchangeMTU");
 
