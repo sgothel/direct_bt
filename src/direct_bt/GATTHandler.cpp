@@ -214,7 +214,7 @@ void GATTHandler::l2capReaderThreadImpl() {
             std::shared_ptr<const AttPDUMsg> attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), static_cast<jau::nsize_t>(len));
             const AttPDUMsg::Opcode opc = attPDU->getOpcode();
 
-            if( AttPDUMsg::Opcode::ATT_HANDLE_VALUE_NTF == opc ) {
+            if( AttPDUMsg::Opcode::HANDLE_VALUE_NTF == opc ) {
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
                 COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: NTF: %s, listener %zd", a->toString().c_str(), characteristicListenerList.size());
                 GATTCharacteristicRef decl = findCharacterisicsByValueHandle(a->getHandle());
@@ -233,7 +233,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                     }
                     i++;
                 });
-            } else if( AttPDUMsg::Opcode::ATT_HANDLE_VALUE_IND == opc ) {
+            } else if( AttPDUMsg::Opcode::HANDLE_VALUE_IND == opc ) {
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
                 COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: IND: %s, sendIndicationConfirmation %d, listener %zd",
                         a->toString().c_str(), sendIndicationConfirmation.load(), characteristicListenerList.size());
@@ -259,7 +259,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                     }
                     i++;
                 });
-            } else if( AttPDUMsg::Opcode::ATT_MULTIPLE_HANDLE_VALUE_NTF == opc ) {
+            } else if( AttPDUMsg::Opcode::MULTIPLE_HANDLE_VALUE_NTF == opc ) {
                 // FIXME TODO ..
                 ERR_PRINT("GATTHandler::reader: MULTI-NTF not implemented: %s", attPDU->toString().c_str());
             } else {
@@ -466,11 +466,11 @@ uint16_t GATTHandler::exchangeMTUImpl(const uint16_t clientMaxMTU, const int32_t
 
     std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, timeout); // valid reply or exception
 
-    if( pdu->getOpcode() == AttPDUMsg::Opcode::ATT_EXCHANGE_MTU_RSP ) {
+    if( pdu->getOpcode() == AttPDUMsg::Opcode::EXCHANGE_MTU_RSP ) {
         const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
         mtu = p->getMTUSize();
         DBG_PRINT("GATT MTU recv: %u, %s from %s", mtu, pdu->toString().c_str(), deviceString.c_str());
-    } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ATT_ERROR_RSP ) {
+    } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ERROR_RSP ) {
         /**
          * If the ATT_ERROR_RSP PDU is sent by the server
          * with the error code set to 'Request Not Supported',
@@ -559,7 +559,7 @@ bool GATTHandler::discoverPrimaryServices(std::shared_ptr<GATTHandler> shared_th
         std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT); // valid reply or exception
         COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discover recv: %s on %s", pdu->toString().c_str(), deviceString.c_str());
 
-        if( pdu->getOpcode() == AttPDUMsg::Opcode::ATT_READ_BY_GROUP_TYPE_RSP ) {
+        if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_BY_GROUP_TYPE_RSP ) {
             const AttReadByGroupTypeRsp * p = static_cast<const AttReadByGroupTypeRsp*>(pdu.get());
             const int count = p->getElementCount();
 
@@ -580,7 +580,7 @@ bool GATTHandler::discoverPrimaryServices(std::shared_ptr<GATTHandler> shared_th
             } else {
                 done = true; // OK by spec: End of communication
             }
-        } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ATT_ERROR_RSP ) {
+        } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ERROR_RSP ) {
             done = true; // OK by spec: End of communication
         } else {
             ERR_PRINT("GATT discoverPrimary unexpected reply %s, req %s from %s",
@@ -619,7 +619,7 @@ bool GATTHandler::discoverCharacteristics(GATTServiceRef & service) {
         std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT); // valid reply or exception
         COND_PRINT(env.DEBUG_DATA, "GATT C discover recv: %s from %s", pdu->toString().c_str(), deviceString.c_str());
 
-        if( pdu->getOpcode() == AttPDUMsg::Opcode::ATT_READ_BY_TYPE_RSP ) {
+        if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_BY_TYPE_RSP ) {
             const AttReadByTypeRsp * p = static_cast<const AttReadByTypeRsp*>(pdu.get());
             const int e_count = p->getElementCount();
 
@@ -644,7 +644,7 @@ bool GATTHandler::discoverCharacteristics(GATTServiceRef & service) {
             } else {
                 done = true; // OK by spec: End of communication
             }
-        } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ATT_ERROR_RSP ) {
+        } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ERROR_RSP ) {
             done = true; // OK by spec: End of communication
         } else {
             ERR_PRINT("GATT discoverCharacteristics unexpected reply %s, req %s within service%s from %s",
@@ -691,7 +691,7 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
             std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT); // valid reply or exception
             COND_PRINT(env.DEBUG_DATA, "GATT CD discover recv: %s from ", pdu->toString().c_str(), deviceString.c_str());
 
-            if( pdu->getOpcode() == AttPDUMsg::Opcode::ATT_FIND_INFORMATION_RSP ) {
+            if( pdu->getOpcode() == AttPDUMsg::Opcode::FIND_INFORMATION_RSP ) {
                 const AttFindInfoRsp * p = static_cast<const AttFindInfoRsp*>(pdu.get());
                 const int e_count = p->getElementCount();
 
@@ -729,7 +729,7 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
                 } else {
                     done = true; // OK by spec: End of communication
                 }
-            } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ATT_ERROR_RSP ) {
+            } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ERROR_RSP ) {
                 done = true; // OK by spec: End of communication
             } else {
                 ERR_PRINT("GATT discoverDescriptors unexpected reply %s; req %s within char%s from %s",
@@ -789,7 +789,7 @@ bool GATTHandler::readValue(const uint16_t handle, POctets & res, int expectedLe
         pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT); // valid reply or exception
 
         COND_PRINT(env.DEBUG_DATA, "GATT RV recv: %s from %s", pdu->toString().c_str(), deviceString.c_str());
-        if( pdu->getOpcode() == AttPDUMsg::Opcode::ATT_READ_RSP ) {
+        if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_RSP ) {
             const AttReadRsp * p = static_cast<const AttReadRsp*>(pdu.get());
             const TOctetSlice & v = p->getValue();
             res += v;
@@ -797,7 +797,7 @@ bool GATTHandler::readValue(const uint16_t handle, POctets & res, int expectedLe
             if( p->getPDUValueSize() < p->getMaxPDUValueSize(usedMTU) ) {
                 done = true; // No full ATT_MTU PDU used - end of communication
             }
-        } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ATT_READ_BLOB_RSP ) {
+        } else if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_BLOB_RSP ) {
             const AttReadBlobRsp * p = static_cast<const AttReadBlobRsp*>(pdu.get());
             const TOctetSlice & v = p->getValue();
             if( 0 == v.getSize() ) {
@@ -809,7 +809,7 @@ bool GATTHandler::readValue(const uint16_t handle, POctets & res, int expectedLe
                     done = true; // No full ATT_MTU PDU used - end of communication
                 }
             }
-        } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ATT_ERROR_RSP ) {
+        } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ERROR_RSP ) {
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value
              *
@@ -896,10 +896,10 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
     std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_WRITE_COMMAND_REPLY_TIMEOUT); // valid reply or exception
     COND_PRINT(env.DEBUG_DATA, "GATT WV recv: %s from %s", pdu->toString().c_str(), deviceString.c_str());
 
-    if( pdu->getOpcode() == AttPDUMsg::Opcode::ATT_WRITE_RSP ) {
+    if( pdu->getOpcode() == AttPDUMsg::Opcode::WRITE_RSP ) {
         // OK
         res = true;
-    } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ATT_ERROR_RSP ) {
+    } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ERROR_RSP ) {
         ERR_PRINT("GATT writeValue unexpected error %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
     } else {
         ERR_PRINT("GATT writeValue unexpected reply %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());

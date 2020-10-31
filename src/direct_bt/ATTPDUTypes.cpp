@@ -40,38 +40,38 @@
 using namespace direct_bt;
 
 #define OPCODE_ENUM(X) \
-        X(ATT_PDU_UNDEFINED) \
-        X(ATT_ERROR_RSP) \
-        X(ATT_EXCHANGE_MTU_REQ) \
-        X(ATT_EXCHANGE_MTU_RSP) \
-        X(ATT_FIND_INFORMATION_REQ) \
-        X(ATT_FIND_INFORMATION_RSP) \
-        X(ATT_FIND_BY_TYPE_VALUE_REQ) \
-        X(ATT_FIND_BY_TYPE_VALUE_RSP) \
-        X(ATT_READ_BY_TYPE_REQ) \
-        X(ATT_READ_BY_TYPE_RSP) \
-        X(ATT_READ_REQ) \
-        X(ATT_READ_RSP) \
-        X(ATT_READ_BLOB_REQ) \
-        X(ATT_READ_BLOB_RSP) \
-        X(ATT_READ_MULTIPLE_REQ) \
-        X(ATT_READ_MULTIPLE_RSP) \
-        X(ATT_READ_BY_GROUP_TYPE_REQ) \
-        X(ATT_READ_BY_GROUP_TYPE_RSP) \
-        X(ATT_WRITE_REQ) \
-        X(ATT_WRITE_RSP) \
-        X(ATT_WRITE_CMD) \
-        X(ATT_PREPARE_WRITE_REQ) \
-        X(ATT_PREPARE_WRITE_RSP) \
-        X(ATT_EXECUTE_WRITE_REQ) \
-        X(ATT_EXECUTE_WRITE_RSP) \
-        X(ATT_READ_MULTIPLE_VARIABLE_REQ) \
-        X(ATT_READ_MULTIPLE_VARIABLE_RSP) \
-        X(ATT_MULTIPLE_HANDLE_VALUE_NTF) \
-        X(ATT_HANDLE_VALUE_NTF) \
-        X(ATT_HANDLE_VALUE_IND) \
-        X(ATT_HANDLE_VALUE_CFM) \
-        X(ATT_SIGNED_WRITE_CMD)
+        X(PDU_UNDEFINED) \
+        X(ERROR_RSP) \
+        X(EXCHANGE_MTU_REQ) \
+        X(EXCHANGE_MTU_RSP) \
+        X(FIND_INFORMATION_REQ) \
+        X(FIND_INFORMATION_RSP) \
+        X(FIND_BY_TYPE_VALUE_REQ) \
+        X(FIND_BY_TYPE_VALUE_RSP) \
+        X(READ_BY_TYPE_REQ) \
+        X(READ_BY_TYPE_RSP) \
+        X(READ_REQ) \
+        X(READ_RSP) \
+        X(READ_BLOB_REQ) \
+        X(READ_BLOB_RSP) \
+        X(READ_MULTIPLE_REQ) \
+        X(READ_MULTIPLE_RSP) \
+        X(READ_BY_GROUP_TYPE_REQ) \
+        X(READ_BY_GROUP_TYPE_RSP) \
+        X(WRITE_REQ) \
+        X(WRITE_RSP) \
+        X(WRITE_CMD) \
+        X(PREPARE_WRITE_REQ) \
+        X(PREPARE_WRITE_RSP) \
+        X(EXECUTE_WRITE_REQ) \
+        X(EXECUTE_WRITE_RSP) \
+        X(READ_MULTIPLE_VARIABLE_REQ) \
+        X(READ_MULTIPLE_VARIABLE_RSP) \
+        X(MULTIPLE_HANDLE_VALUE_NTF) \
+        X(HANDLE_VALUE_NTF) \
+        X(HANDLE_VALUE_IND) \
+        X(HANDLE_VALUE_CFM) \
+        X(SIGNED_WRITE_CMD)
 
 #define CASE_TO_STRING(V) case Opcode::V: return #V;
 
@@ -119,38 +119,38 @@ std::shared_ptr<const AttPDUMsg> AttPDUMsg::getSpecialized(const uint8_t * buffe
     const AttPDUMsg::Opcode opc = static_cast<AttPDUMsg::Opcode>(*buffer);
     const AttPDUMsg * res;
     switch( opc ) {
-        case Opcode::ATT_PDU_UNDEFINED: res = new AttPDUUndefined(buffer, buffer_size); break;
-        case Opcode::ATT_ERROR_RSP: res = new AttErrorRsp(buffer, buffer_size); break;
-        case Opcode::ATT_EXCHANGE_MTU_REQ: res = new AttExchangeMTU(buffer, buffer_size); break;
-        case Opcode::ATT_EXCHANGE_MTU_RSP: res = new AttExchangeMTU(buffer, buffer_size); break;
-        case Opcode::ATT_FIND_INFORMATION_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_FIND_INFORMATION_RSP: res = new AttFindInfoRsp(buffer, buffer_size); break;
-        case Opcode::ATT_FIND_BY_TYPE_VALUE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_FIND_BY_TYPE_VALUE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_READ_BY_TYPE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_READ_BY_TYPE_RSP: res = new AttReadByTypeRsp(buffer, buffer_size); break;
-        case Opcode::ATT_READ_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_READ_RSP: res = new AttReadRsp(buffer, buffer_size); break;
-        case Opcode::ATT_READ_BLOB_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_READ_BLOB_RSP: res = new AttReadBlobRsp(buffer, buffer_size); break;
-        case Opcode::ATT_READ_MULTIPLE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_READ_MULTIPLE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_READ_BY_GROUP_TYPE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_READ_BY_GROUP_TYPE_RSP: res = new AttReadByGroupTypeRsp(buffer, buffer_size); break;
-        case Opcode::ATT_WRITE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_WRITE_RSP: res = new AttWriteRsp(buffer, buffer_size); break;
-        case Opcode::ATT_WRITE_CMD: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_PREPARE_WRITE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_PREPARE_WRITE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_EXECUTE_WRITE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_EXECUTE_WRITE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_READ_MULTIPLE_VARIABLE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_READ_MULTIPLE_VARIABLE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_MULTIPLE_HANDLE_VALUE_NTF: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_HANDLE_VALUE_NTF: res = new AttHandleValueRcv(buffer, buffer_size); break;
-        case Opcode::ATT_HANDLE_VALUE_IND: res = new AttHandleValueRcv(buffer, buffer_size); break;
-        case Opcode::ATT_HANDLE_VALUE_CFM: res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::ATT_SIGNED_WRITE_CMD: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::PDU_UNDEFINED: res = new AttPDUUndefined(buffer, buffer_size); break;
+        case Opcode::ERROR_RSP: res = new AttErrorRsp(buffer, buffer_size); break;
+        case Opcode::EXCHANGE_MTU_REQ: res = new AttExchangeMTU(buffer, buffer_size); break;
+        case Opcode::EXCHANGE_MTU_RSP: res = new AttExchangeMTU(buffer, buffer_size); break;
+        case Opcode::FIND_INFORMATION_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::FIND_INFORMATION_RSP: res = new AttFindInfoRsp(buffer, buffer_size); break;
+        case Opcode::FIND_BY_TYPE_VALUE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::FIND_BY_TYPE_VALUE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::READ_BY_TYPE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::READ_BY_TYPE_RSP: res = new AttReadByTypeRsp(buffer, buffer_size); break;
+        case Opcode::READ_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::READ_RSP: res = new AttReadRsp(buffer, buffer_size); break;
+        case Opcode::READ_BLOB_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::READ_BLOB_RSP: res = new AttReadBlobRsp(buffer, buffer_size); break;
+        case Opcode::READ_MULTIPLE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::READ_MULTIPLE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::READ_BY_GROUP_TYPE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::READ_BY_GROUP_TYPE_RSP: res = new AttReadByGroupTypeRsp(buffer, buffer_size); break;
+        case Opcode::WRITE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::WRITE_RSP: res = new AttWriteRsp(buffer, buffer_size); break;
+        case Opcode::WRITE_CMD: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::PREPARE_WRITE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::PREPARE_WRITE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::EXECUTE_WRITE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::EXECUTE_WRITE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::READ_MULTIPLE_VARIABLE_REQ: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::READ_MULTIPLE_VARIABLE_RSP: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::MULTIPLE_HANDLE_VALUE_NTF: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::HANDLE_VALUE_NTF: res = new AttHandleValueRcv(buffer, buffer_size); break;
+        case Opcode::HANDLE_VALUE_IND: res = new AttHandleValueRcv(buffer, buffer_size); break;
+        case Opcode::HANDLE_VALUE_CFM: res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::SIGNED_WRITE_CMD: res = new AttPDUMsg(buffer, buffer_size); break;
         default: res = new AttPDUMsg(buffer, buffer_size); break;
     }
     return std::shared_ptr<const AttPDUMsg>(res);

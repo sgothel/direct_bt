@@ -268,46 +268,46 @@ namespace direct_bt {
         public:
             /** ATT Opcode Summary Vol 3, Part F 3.4.8 */
             enum class Opcode : uint8_t {
-                ATT_PDU_UNDEFINED               = 0x00, // our own pseudo opcode, indicating no ATT PDU message
+                PDU_UNDEFINED               = 0x00, // our own pseudo opcode, indicating no ATT PDU message
 
-                ATT_METHOD_MASK                 = 0x3F, // bits 0 .. 5
-                ATT_COMMAND_FLAG                = 0x40, // bit 6 (counting from 0)
-                ATT_AUTH_SIGNATURE_FLAG         = 0x80, // bit 7 (counting from 0)
+                METHOD_MASK                 = 0x3F, // bits 0 .. 5
+                COMMAND_FLAG                = 0x40, // bit 6 (counting from 0)
+                AUTH_SIGNATURE_FLAG         = 0x80, // bit 7 (counting from 0)
 
-                ATT_ERROR_RSP                   = 0x01,
-                ATT_EXCHANGE_MTU_REQ            = 0x02,
-                ATT_EXCHANGE_MTU_RSP            = 0x03,
-                ATT_FIND_INFORMATION_REQ        = 0x04,
-                ATT_FIND_INFORMATION_RSP        = 0x05,
-                ATT_FIND_BY_TYPE_VALUE_REQ      = 0x06,
-                ATT_FIND_BY_TYPE_VALUE_RSP      = 0x07,
-                ATT_READ_BY_TYPE_REQ            = 0x08,
-                ATT_READ_BY_TYPE_RSP            = 0x09,
-                ATT_READ_REQ                    = 0x0A,
-                ATT_READ_RSP                    = 0x0B,
-                ATT_READ_BLOB_REQ               = 0x0C,
-                ATT_READ_BLOB_RSP               = 0x0D,
-                ATT_READ_MULTIPLE_REQ           = 0x0E,
-                ATT_READ_MULTIPLE_RSP           = 0x0F,
-                ATT_READ_BY_GROUP_TYPE_REQ      = 0x10,
-                ATT_READ_BY_GROUP_TYPE_RSP      = 0x11,
-                ATT_WRITE_REQ                   = 0x12,
-                ATT_WRITE_RSP                   = 0x13,
-                ATT_WRITE_CMD                   = ATT_WRITE_REQ + ATT_COMMAND_FLAG, // = 0x52
-                ATT_PREPARE_WRITE_REQ           = 0x16,
-                ATT_PREPARE_WRITE_RSP           = 0x17,
-                ATT_EXECUTE_WRITE_REQ           = 0x18,
-                ATT_EXECUTE_WRITE_RSP           = 0x19,
+                ERROR_RSP                   = 0x01,
+                EXCHANGE_MTU_REQ            = 0x02,
+                EXCHANGE_MTU_RSP            = 0x03,
+                FIND_INFORMATION_REQ        = 0x04,
+                FIND_INFORMATION_RSP        = 0x05,
+                FIND_BY_TYPE_VALUE_REQ      = 0x06,
+                FIND_BY_TYPE_VALUE_RSP      = 0x07,
+                READ_BY_TYPE_REQ            = 0x08,
+                READ_BY_TYPE_RSP            = 0x09,
+                READ_REQ                    = 0x0A,
+                READ_RSP                    = 0x0B,
+                READ_BLOB_REQ               = 0x0C,
+                READ_BLOB_RSP               = 0x0D,
+                READ_MULTIPLE_REQ           = 0x0E,
+                READ_MULTIPLE_RSP           = 0x0F,
+                READ_BY_GROUP_TYPE_REQ      = 0x10,
+                READ_BY_GROUP_TYPE_RSP      = 0x11,
+                WRITE_REQ                   = 0x12,
+                WRITE_RSP                   = 0x13,
+                WRITE_CMD                   = WRITE_REQ + COMMAND_FLAG, // = 0x52
+                PREPARE_WRITE_REQ           = 0x16,
+                PREPARE_WRITE_RSP           = 0x17,
+                EXECUTE_WRITE_REQ           = 0x18,
+                EXECUTE_WRITE_RSP           = 0x19,
 
-                ATT_READ_MULTIPLE_VARIABLE_REQ  = 0x20,
-                ATT_READ_MULTIPLE_VARIABLE_RSP  = 0x21,
-                ATT_MULTIPLE_HANDLE_VALUE_NTF   = 0x23,
+                READ_MULTIPLE_VARIABLE_REQ  = 0x20,
+                READ_MULTIPLE_VARIABLE_RSP  = 0x21,
+                MULTIPLE_HANDLE_VALUE_NTF   = 0x23,
 
-                ATT_HANDLE_VALUE_NTF            = 0x1B,
-                ATT_HANDLE_VALUE_IND            = 0x1D,
-                ATT_HANDLE_VALUE_CFM            = 0x1E,
+                HANDLE_VALUE_NTF            = 0x1B,
+                HANDLE_VALUE_IND            = 0x1D,
+                HANDLE_VALUE_CFM            = 0x1E,
 
-                ATT_SIGNED_WRITE_CMD            = ATT_WRITE_REQ + ATT_COMMAND_FLAG + ATT_AUTH_SIGNATURE_FLAG // = 0xD2
+                SIGNED_WRITE_CMD            = WRITE_REQ + COMMAND_FLAG + AUTH_SIGNATURE_FLAG // = 0xD2
             };
             static constexpr uint8_t number(const Opcode rhs) noexcept {
                 return static_cast<uint8_t>(rhs);
@@ -395,17 +395,17 @@ namespace direct_bt {
 
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
             Opcode getOpMethod() const noexcept {
-                return bit_and(getOpcode(), Opcode::ATT_METHOD_MASK);
+                return bit_and(getOpcode(), Opcode::METHOD_MASK);
             }
 
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
             bool getOpCommandFlag() const noexcept {
-                return bit_test(getOpcode(), Opcode::ATT_COMMAND_FLAG);
+                return bit_test(getOpcode(), Opcode::COMMAND_FLAG);
             }
 
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
             bool getOpAuthSigFlag() const noexcept {
-                return bit_test(getOpcode(), Opcode::ATT_AUTH_SIGNATURE_FLAG);
+                return bit_test(getOpcode(), Opcode::AUTH_SIGNATURE_FLAG);
             }
 
             /**
@@ -518,7 +518,7 @@ namespace direct_bt {
     {
         public:
             AttPDUUndefined(const uint8_t* source, const jau::nsize_t length) : AttPDUMsg(source, length) {
-                checkOpcode(Opcode::ATT_PDU_UNDEFINED);
+                checkOpcode(Opcode::PDU_UNDEFINED);
             }
 
             /** opcode */
@@ -565,7 +565,7 @@ namespace direct_bt {
             static std::string getPlainErrorString(const ErrorCode errorCode) noexcept;
 
             AttErrorRsp(const uint8_t* source, const jau::nsize_t length) : AttPDUMsg(source, length) {
-                checkOpcode(Opcode::ATT_ERROR_RSP);
+                checkOpcode(Opcode::ERROR_RSP);
             }
 
             /** opcode + reqOpcodeCause + handleCause + errorCode */
@@ -612,11 +612,11 @@ namespace direct_bt {
     {
         public:
             AttExchangeMTU(const uint8_t* source, const jau::nsize_t length) : AttPDUMsg(source, length) {
-                checkOpcode(Opcode::ATT_EXCHANGE_MTU_RSP);
+                checkOpcode(Opcode::EXCHANGE_MTU_RSP);
             }
 
             AttExchangeMTU(const uint16_t mtuSize)
-            : AttPDUMsg(Opcode::ATT_EXCHANGE_MTU_REQ, 1+2)
+            : AttPDUMsg(Opcode::EXCHANGE_MTU_REQ, 1+2)
             {
                 pdu.put_uint16_nc(1, mtuSize);
             }
@@ -652,7 +652,7 @@ namespace direct_bt {
     {
         public:
             AttReadReq(const uint16_t handle)
-            : AttPDUMsg(Opcode::ATT_READ_REQ, 1+2)
+            : AttPDUMsg(Opcode::READ_REQ, 1+2)
             {
                 pdu.put_uint16_nc(1, handle);
             }
@@ -698,7 +698,7 @@ namespace direct_bt {
 
             AttReadRsp(const uint8_t* source, const jau::nsize_t length)
             : AttPDUMsg(source, length), view(pdu, getPDUValueOffset(), getPDUValueSize()) {
-                checkOpcode(Opcode::ATT_READ_RSP);
+                checkOpcode(Opcode::READ_RSP);
             }
 
             /** opcode */
@@ -732,7 +732,7 @@ namespace direct_bt {
     {
         public:
             AttReadBlobReq(const uint16_t handle, const uint16_t value_offset)
-            : AttPDUMsg(Opcode::ATT_READ_BLOB_REQ, 1+2+2)
+            : AttPDUMsg(Opcode::READ_BLOB_REQ, 1+2+2)
             {
                 pdu.put_uint16_nc(1, handle);
                 pdu.put_uint16_nc(3, value_offset);
@@ -783,7 +783,7 @@ namespace direct_bt {
 
             AttReadBlobRsp(const uint8_t* source, const jau::nsize_t length)
             : AttPDUMsg(source, length), view(pdu, getPDUValueOffset(), getPDUValueSize()) {
-                checkOpcode(Opcode::ATT_READ_BLOB_RSP);
+                checkOpcode(Opcode::READ_BLOB_RSP);
             }
 
             /** opcode */
@@ -823,7 +823,7 @@ namespace direct_bt {
 
         public:
             AttWriteReq(const uint16_t handle, const TROOctets & value)
-            : AttPDUMsg(Opcode::ATT_WRITE_REQ, 1+2+value.getSize()), view(pdu, getPDUValueOffset(), getPDUValueSize())
+            : AttPDUMsg(Opcode::WRITE_REQ, 1+2+value.getSize()), view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16_nc(1, handle);
                 for(jau::nsize_t i=0; i<value.getSize(); i++) {
@@ -867,7 +867,7 @@ namespace direct_bt {
         public:
             AttWriteRsp(const uint8_t* source, const jau::nsize_t length)
             : AttPDUMsg(source, length) {
-                checkOpcode(Opcode::ATT_WRITE_RSP);
+                checkOpcode(Opcode::WRITE_RSP);
             }
 
             /** opcode */
@@ -895,7 +895,7 @@ namespace direct_bt {
 
         public:
             AttWriteCmd(const uint16_t handle, const TROOctets & value)
-            : AttPDUMsg(Opcode::ATT_WRITE_CMD, 1+2+value.getSize()), view(pdu, getPDUValueOffset(), getPDUValueSize())
+            : AttPDUMsg(Opcode::WRITE_CMD, 1+2+value.getSize()), view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16_nc(1, handle);
                 for(jau::nsize_t i=0; i<value.getSize(); i++) {
@@ -948,7 +948,7 @@ namespace direct_bt {
         public:
             AttHandleValueRcv(const uint8_t* source, const jau::nsize_t length)
             : AttPDUMsg(source, length), view(pdu, getPDUValueOffset(), getPDUValueSize()) {
-                checkOpcode(Opcode::ATT_HANDLE_VALUE_NTF, Opcode::ATT_HANDLE_VALUE_IND);
+                checkOpcode(Opcode::HANDLE_VALUE_NTF, Opcode::HANDLE_VALUE_IND);
             }
 
             /** opcode + handle */
@@ -963,11 +963,11 @@ namespace direct_bt {
             TOctetSlice const & getValue() const noexcept { return view; }
 
             bool isNotification() const noexcept {
-                return Opcode::ATT_HANDLE_VALUE_NTF == getOpcode();
+                return Opcode::HANDLE_VALUE_NTF == getOpcode();
             }
 
             bool isIndication() const noexcept {
-                return Opcode::ATT_HANDLE_VALUE_IND == getOpcode();
+                return Opcode::HANDLE_VALUE_IND == getOpcode();
             }
 
             std::string getName() const noexcept override {
@@ -994,7 +994,7 @@ namespace direct_bt {
     {
         public:
             AttHandleValueCfm()
-            : AttPDUMsg(Opcode::ATT_HANDLE_VALUE_CFM, 1)
+            : AttPDUMsg(Opcode::HANDLE_VALUE_CFM, 1)
             {
             }
 
@@ -1080,7 +1080,7 @@ namespace direct_bt {
 
         public:
             AttReadByNTypeReq(const bool groupTypeReq, const uint16_t startHandle, const uint16_t endHandle, const uuid_t & uuid)
-            : AttPDUMsg(groupTypeReq ? Opcode::ATT_READ_BY_GROUP_TYPE_REQ : Opcode::ATT_READ_BY_TYPE_REQ, 1+2+2+uuid.getTypeSizeInt())
+            : AttPDUMsg(groupTypeReq ? Opcode::READ_BY_GROUP_TYPE_REQ : Opcode::READ_BY_TYPE_REQ, 1+2+2+uuid.getTypeSizeInt())
             {
                 if( uuid.getTypeSize() != uuid_t::TypeSize::UUID16_SZ && uuid.getTypeSize()!= uuid_t::TypeSize::UUID128_SZ ) {
                     throw jau::IllegalArgumentException("Only UUID16 and UUID128 allowed: "+uuid.toString(), E_FILE_LINE);
@@ -1169,7 +1169,7 @@ namespace direct_bt {
             AttReadByTypeRsp(const uint8_t* source, const jau::nsize_t length)
             : AttElementList(source, length)
             {
-                checkOpcode(Opcode::ATT_READ_BY_TYPE_RSP);
+                checkOpcode(Opcode::READ_BY_TYPE_RSP);
 
                 if( getPDUValueSize() % getElementTotalSize() != 0 ) {
                     throw AttValueException("PDUReadByTypeRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
@@ -1271,7 +1271,7 @@ namespace direct_bt {
             AttReadByGroupTypeRsp(const uint8_t* source, const jau::nsize_t length)
             : AttElementList(source, length)
             {
-                checkOpcode(Opcode::ATT_READ_BY_GROUP_TYPE_RSP);
+                checkOpcode(Opcode::READ_BY_GROUP_TYPE_RSP);
 
                 if( getPDUValueSize() % getElementTotalSize() != 0 ) {
                     throw AttValueException("PDUReadByGroupTypeRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
@@ -1343,7 +1343,7 @@ namespace direct_bt {
     {
         public:
             AttFindInfoReq(const uint16_t startHandle, const uint16_t endHandle)
-            : AttPDUMsg(Opcode::ATT_FIND_INFORMATION_REQ, 1+2+2)
+            : AttPDUMsg(Opcode::FIND_INFORMATION_REQ, 1+2+2)
             {
                 pdu.put_uint16_nc(1, startHandle);
                 pdu.put_uint16_nc(3, endHandle);
@@ -1417,7 +1417,7 @@ namespace direct_bt {
             };
 
             AttFindInfoRsp(const uint8_t* source, const jau::nsize_t length) : AttElementList(source, length) {
-                checkOpcode(Opcode::ATT_FIND_INFORMATION_RSP);
+                checkOpcode(Opcode::FIND_INFORMATION_RSP);
                 if( getPDUValueSize() % getElementTotalSize() != 0 ) {
                     throw AttValueException("PDUFindInfoRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
                             " not multiple of element-size "+std::to_string(getElementTotalSize()), E_FILE_LINE);
