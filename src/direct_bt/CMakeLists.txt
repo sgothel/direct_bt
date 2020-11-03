@@ -22,6 +22,7 @@ set (direct_bt_LIB_SRCS
   ${PROJECT_SOURCE_DIR}/src/direct_bt/HCITypes.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/HCIHandler.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/L2CAPComm.cpp
+  ${PROJECT_SOURCE_DIR}/src/direct_bt/SMPTypes.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/MgmtTypes.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/DBTManager.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/DBTTypes.cpp
