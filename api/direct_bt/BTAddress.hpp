@@ -157,12 +157,12 @@ namespace direct_bt {
     struct __attribute__((packed)) EUI48 {
         uint8_t b[6]; // == sizeof(EUI48)
 
-        EUI48() noexcept { bzero(b, sizeof(EUI48)); }
+        constexpr EUI48() noexcept : b{0}  { }
         EUI48(const uint8_t * b) noexcept;
         EUI48(const std::string mac);
-        EUI48(const EUI48 &o) noexcept = default;
+        constexpr EUI48(const EUI48 &o) noexcept = default;
         EUI48(EUI48 &&o) noexcept = default;
-        EUI48& operator=(const EUI48 &o) noexcept = default;
+        constexpr EUI48& operator=(const EUI48 &o) noexcept = default;
         EUI48& operator=(EUI48 &&o) noexcept = default;
 
         BLERandomAddressType getBLERandomAddressType(const BDAddressType addressType) const noexcept;

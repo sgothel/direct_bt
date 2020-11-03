@@ -158,6 +158,38 @@ namespace direct_bt {
                 return EUI48(_data+i);
             }
 
+            uint64_t get_uint64(const jau::nsize_t i) const {
+                check_range(i, 8);
+                return jau::get_uint64(_data, i, true /* littleEndian */);
+            }
+            inline uint64_t get_uint64_nc(const jau::nsize_t i) const noexcept {
+                return jau::get_uint64(_data, i, true /* littleEndian */);
+            }
+
+            jau::uint128_t get_uint128(const jau::nsize_t i) const {
+                check_range(i, 8);
+                return jau::get_uint128(_data, i, true /* littleEndian */);
+            }
+            inline jau::uint128_t get_uint128_nc(const jau::nsize_t i) const noexcept {
+                return jau::get_uint128(_data, i, true /* littleEndian */);
+            }
+
+            jau::uint192_t get_uint192(const jau::nsize_t i) const {
+                check_range(i, 8);
+                return jau::get_uint192(_data, i, true /* littleEndian */);
+            }
+            inline jau::uint192_t get_uint192_nc(const jau::nsize_t i) const noexcept {
+                return jau::get_uint192(_data, i, true /* littleEndian */);
+            }
+
+            jau::uint256_t get_uint256(const jau::nsize_t i) const {
+                check_range(i, 8);
+                return jau::get_uint256(_data, i, true /* littleEndian */);
+            }
+            inline jau::uint256_t get_uint256_nc(const jau::nsize_t i) const noexcept {
+                return jau::get_uint256(_data, i, true /* littleEndian */);
+            }
+
             /** Assumes a null terminated string */
             std::string get_string(const jau::nsize_t i) const {
                 check_range(i, 1); // minimum size
@@ -273,6 +305,38 @@ namespace direct_bt {
             }
             void put_eui48_nc(const jau::nsize_t i, const EUI48 & v) noexcept {
                 memcpy(data() + i, v.b, sizeof(v.b));
+            }
+
+            void put_uint64(const jau::nsize_t i, const uint64_t & v) {
+                check_range(i, 8);
+                jau::put_uint64(data(), i, v, true /* littleEndian */);
+            }
+            void put_uint64_nc(const jau::nsize_t i, const uint64_t & v) noexcept {
+                jau::put_uint64(data(), i, v, true /* littleEndian */);
+            }
+
+            void put_uint128(const jau::nsize_t i, const jau::uint128_t & v) {
+                check_range(i, 8);
+                jau::put_uint128(data(), i, v, true /* littleEndian */);
+            }
+            void put_uint128_nc(const jau::nsize_t i, const jau::uint128_t & v) noexcept {
+                jau::put_uint128(data(), i, v, true /* littleEndian */);
+            }
+
+            void put_uint192(const jau::nsize_t i, const jau::uint192_t & v) {
+                check_range(i, 8);
+                jau::put_uint192(data(), i, v, true /* littleEndian */);
+            }
+            void put_uint192_nc(const jau::nsize_t i, const jau::uint192_t & v) noexcept {
+                jau::put_uint192(data(), i, v, true /* littleEndian */);
+            }
+
+            void put_uint256(const jau::nsize_t i, const jau::uint256_t & v) {
+                check_range(i, 8);
+                jau::put_uint256(data(), i, v, true /* littleEndian */);
+            }
+            void put_uint256_nc(const jau::nsize_t i, const jau::uint256_t & v) noexcept {
+                jau::put_uint256(data(), i, v, true /* littleEndian */);
             }
 
             void put_octets(const jau::nsize_t i, const TROOctets & v) {
