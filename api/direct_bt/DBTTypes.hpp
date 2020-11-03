@@ -126,6 +126,12 @@ namespace direct_bt {
             }
     };
 
+    /**
+     * Adapter Setting Bits.
+     * <p>
+     * Used to denote specific bits or as a bit-mask.
+     * </p>
+     */
     enum class AdapterSetting : uint32_t {
         NONE               =          0,
         POWERED            = 0x00000001,
