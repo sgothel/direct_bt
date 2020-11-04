@@ -157,13 +157,6 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
     // *************************************************
-    template <typename T> class CowList
-    {
-        bool add(T);
-        bool remove(T);
-        int removeAll();
-        int size();
-    };
 
     /**
      * DBTAdapter represents one Bluetooth Controller.
