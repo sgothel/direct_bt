@@ -93,7 +93,7 @@ std::string direct_bt::getSMPAuthReqMaskString(const SMPAuthReqs mask) noexcept 
 
 #define CASE_TO_STRING1(V) case Opcode::V: return #V;
 
-std::string SMPMsg::getOpcodeString(const Opcode opc) noexcept {
+std::string SMPPDUMsg::getOpcodeString(const Opcode opc) noexcept {
     switch(opc) {
         OPCODE_ENUM(CASE_TO_STRING1)
         default: ; // fall through intended

@@ -40,7 +40,7 @@
 /**
  * - - - - - - - - - - - - - - -
  *
- * Module SMPTypes:
+ * SMPTypes.hpp Module for SMPPDUMsg Types, SMPAuthReqs etc:
  *
  * - BT Core Spec v5.2: Vol 3, Part H Security Manager Specification (SM): 2 Security Manager (SM)
  * - BT Core Spec v5.2: Vol 3, Part H Security Manager Specification (SM): 3 Security Manager Protocol (SMP)
@@ -97,6 +97,7 @@ namespace direct_bt {
      * SMP Pairing Response Vol 3, Part H (SM): 3.5.2
      * SMP Security Request Vol 3, Part H (SM): 3.6.7
      * </pre>
+     *
      * Layout LSB -> MSB
      * <pre>
      * uint8_t bonding_flags : 2, mitm : 1, sc : 1, keypress : 1, ct2 : 1, rfu : 2;
@@ -157,7 +158,11 @@ namespace direct_bt {
     std::string getSMPAuthReqMaskString(const SMPAuthReqs mask) noexcept;
 
     /**
+     * Handles the Security Manager Protocol (SMP) using Protocol Data Unit (PDU)
+     * encoded messages over L2CAP channel.
+     * <p>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.3 Command Format
+     * </p>
      * <p>
      * Message format between both devices, negotiating security details.
      * </p>
@@ -165,8 +170,9 @@ namespace direct_bt {
      * Vol 3 (Host), Part H Security Manager Specification (SM): 1.2.1 Bit and byte ordering conventions<br>
      * Little-Endian: Multiple-octet fields shall be transmitted with the least significant octet first.
      * </p>
+     * @see SMPAuthReqs
      */
-    class SMPMsg
+    class SMPPDUMsg
     {
         public:
             /** SMP Command Codes Vol 3, Part H (SM): 3.3 */
@@ -236,29 +242,29 @@ namespace direct_bt {
              * Returned memory reference is managed by caller (delete etc)
              * </p>
              */
-            static std::shared_ptr<const SMPMsg> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
+            static std::shared_ptr<const SMPPDUMsg> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
 
             /** Persistent memory, w/ ownership ..*/
-            SMPMsg(const uint8_t* source, const jau::nsize_t size)
+            SMPPDUMsg(const uint8_t* source, const jau::nsize_t size)
                 : pdu(source, std::max<jau::nsize_t>(1, size)), ts_creation(jau::getCurrentMilliseconds())
             {
                 pdu.check_range(0, getDataOffset()+getDataSize());
             }
 
             /** Persistent memory, w/ ownership ..*/
-            SMPMsg(const Opcode opc, const jau::nsize_t size)
+            SMPPDUMsg(const Opcode opc, const jau::nsize_t size)
                 : pdu(std::max<jau::nsize_t>(1, size)), ts_creation(jau::getCurrentMilliseconds())
             {
                 pdu.put_uint8_nc(0, number(opc));
                 pdu.check_range(0, getDataOffset()+getDataSize());
             }
 
-            SMPMsg(const SMPMsg &o) noexcept = default;
-            SMPMsg(SMPMsg &&o) noexcept = default;
-            SMPMsg& operator=(const SMPMsg &o) noexcept = delete; // const ts_creation
-            SMPMsg& operator=(SMPMsg &&o) noexcept = delete; // const ts_creation
+            SMPPDUMsg(const SMPPDUMsg &o) noexcept = default;
+            SMPPDUMsg(SMPPDUMsg &&o) noexcept = default;
+            SMPPDUMsg& operator=(const SMPPDUMsg &o) noexcept = delete; // const ts_creation
+            SMPPDUMsg& operator=(SMPPDUMsg &&o) noexcept = delete; // const ts_creation
 
-            virtual ~SMPMsg() noexcept {}
+            virtual ~SMPPDUMsg() noexcept {}
 
             /** SMP Command Codes Vol 3, Part H (SM): 3.3 */
             inline Opcode getOpcode() const noexcept {
@@ -277,7 +283,7 @@ namespace direct_bt {
              * according to the specific packet.
              * </p>
              *
-             * @see SMPMsg::getDataSize()
+             * @see SMPPDUMsg::getDataSize()
              */
             jau::nsize_t getPDUParamSize() const noexcept {
                 return pdu.getSize() - 1 /* opcode */;
@@ -287,7 +293,7 @@ namespace direct_bt {
              * Returns the required data size according to the specified packet,
              * which should be within 0-22 or 64 octets.
              *
-             * @see SMPMsg::getPDUParamSize()
+             * @see SMPPDUMsg::getPDUParamSize()
              */
             virtual jau::nsize_t getDataSize() const noexcept {
                 return getPDUParamSize();
@@ -302,7 +308,7 @@ namespace direct_bt {
             constexpr jau::nsize_t getDataOffset() const noexcept { return 1; /* default: opcode */ }
 
             virtual std::string getName() const noexcept {
-                return "SMPMsg";
+                return "SMPPDUMsg";
             }
 
             virtual std::string toString() const noexcept{
@@ -317,9 +323,9 @@ namespace direct_bt {
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.5 Pairing Methods
      * Vol 3 (Host), Part H (SM): 2 (SM), 2.3 Pairing Methods
      * </pre>
-     * <p>
+     *
      * Opcode::PAIRING_REQUEST or Opcode::PAIRING_RESPONSE
-     * </p>
+     *
      * <pre>
      * [uint8_t opcode]
      * uint8_t io_capability
@@ -362,7 +368,7 @@ namespace direct_bt {
      * are defined in Vol 3, Part C (GAP): 14.2 BRD/EDR/LE security aspects - Collision Handling.
      * </p>
      */
-    class SMPPairingMsg : public SMPMsg
+    class SMPPairingMsg : public SMPPDUMsg
     {
         public:
             /**
@@ -466,7 +472,7 @@ namespace direct_bt {
 
         public:
             SMPPairingMsg(const bool request_, const uint8_t* source, const jau::nsize_t length)
-            : SMPMsg(source, length),
+            : SMPPDUMsg(source, length),
               request(request_),
               authReqMask(static_cast<SMPAuthReqs>( pdu.get_uint8_nc(3) )),
               initiator_key_dist(static_cast<KeyDistFormat>(pdu.get_uint8_nc(5))),
@@ -480,7 +486,7 @@ namespace direct_bt {
                           const SMPAuthReqs auth_req_mask, const uint8_t maxEncKeySize,
                           const KeyDistFormat initiator_key_dist_,
                           const KeyDistFormat responder_key_dist_)
-            : SMPMsg(request_? Opcode::PAIRING_REQUEST : Opcode::PAIRING_RESPONSE, 1+6),
+            : SMPPDUMsg(request_? Opcode::PAIRING_REQUEST : Opcode::PAIRING_RESPONSE, 1+6),
               request(request_),
               authReqMask(auth_req_mask), initiator_key_dist(initiator_key_dist_), responder_key_dist(responder_key_dist_)
             {
@@ -594,17 +600,16 @@ namespace direct_bt {
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.5 Pairing Methods
      * </pre>
-     * <p>
+     *
      * Opcode::PAIRING_CONFIRM
-     * </p>
+     *
      * <pre>
      * [uint8_t opcode]
      * jau::uint128_t confirm_value
      * </pre>
-     * <p>
+     *
      * Used following a successful Pairing Feature Exchange to start
      * STK Generation for LE legacy pairing and LTK Generation for LE Secure Connections pairing.
-     * </p>
      * <p>
      * Command is used by both devices to send the confirm value to the peer device,<br>
      * see Vol 3, Part H, 2.3.5.5 SM - Pairing algo - LE legacy pairing phase 2 and<br>
@@ -619,17 +624,17 @@ namespace direct_bt {
      * after it has received a Pairing Confirm command from the initiating device.
      * </p>
      */
-    class SMPPairConfMsg : public SMPMsg
+    class SMPPairConfMsg : public SMPPDUMsg
     {
         public:
             SMPPairConfMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPMsg(source, length)
+            : SMPPDUMsg(source, length)
             {
                 checkOpcode(Opcode::PAIRING_CONFIRM);
             }
 
             SMPPairConfMsg(const jau::uint128_t & confirm_value)
-            : SMPMsg(Opcode::PAIRING_CONFIRM, 1+16)
+            : SMPPDUMsg(Opcode::PAIRING_CONFIRM, 1+16)
             {
                 pdu.put_uint128_nc(1, confirm_value);
             }
@@ -668,17 +673,16 @@ namespace direct_bt {
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.5 Pairing Methods
      * </pre>
-     * <p>
+     *
      * Opcode::PAIRING_RANDOM
-     * </p>
+     *
      * <pre>
      * [uint8_t opcode]
      * jau::uint128_t random_value
      * </pre>
-     * <p>
+     *
      * Used by the initiating and responding device to send the
      * random number used to calculate the Confirm value sent in the Pairing Confirm command.
-     * </p>
      * <p>
      * The initiating device sends a Pairing Random command
      * after it has received a Pairing Confirm command from the responding device.
@@ -710,17 +714,17 @@ namespace direct_bt {
      * the initiating device shall respond with the Pairing Failed command.
      * </p>
      */
-    class SMPPairRandMsg : public SMPMsg
+    class SMPPairRandMsg : public SMPPDUMsg
     {
         public:
             SMPPairRandMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPMsg(source, length)
+            : SMPPDUMsg(source, length)
             {
                 checkOpcode(Opcode::PAIRING_RANDOM);
             }
 
             SMPPairRandMsg(const jau::uint128_t & random_value)
-            : SMPMsg(Opcode::PAIRING_RANDOM, 1+16)
+            : SMPPDUMsg(Opcode::PAIRING_RANDOM, 1+16)
             {
                 pdu.put_uint128_nc(1, random_value);
             }
@@ -758,15 +762,15 @@ namespace direct_bt {
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.5 Pairing Methods
      * </pre>
-     * <p>
+     *
      * Opcode::PAIRING_FAILED
-     * </p>
+     *
      * <pre>
      * [uint8_t opcode]
      * uint8_t reason_code
      * </pre>
      */
-    class SMPPairFailedMsg: public SMPMsg
+    class SMPPairFailedMsg: public SMPPDUMsg
     {
         public:
             enum class ReasonCode : uint8_t {
@@ -791,12 +795,12 @@ namespace direct_bt {
             }
             static std::string getPlainReasonString(const ReasonCode reasonCode) noexcept;
 
-            SMPPairFailedMsg(const uint8_t* source, const jau::nsize_t length) : SMPMsg(source, length) {
+            SMPPairFailedMsg(const uint8_t* source, const jau::nsize_t length) : SMPPDUMsg(source, length) {
                 checkOpcode(Opcode::PAIRING_FAILED);
             }
 
             SMPPairFailedMsg(const ReasonCode rc)
-            : SMPMsg(Opcode::PAIRING_FAILED, 1+1)
+            : SMPPDUMsg(Opcode::PAIRING_FAILED, 1+1)
             {
                 pdu.put_uint8_nc(1, number(rc));
             }
@@ -826,31 +830,30 @@ namespace direct_bt {
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.5 Pairing Methods
      * </pre>
-     * <p>
+     *
      * Opcode::PAIRING_PUBLIC_KEY
-     * </p>
+     *
      * <pre>
      * [uint8_t opcode]
      * jau::uint256_t public_key_x_value
      * jau::uint256_t public_key_y_value
      * </pre>
-     * <p>
+     *
      * Message is used to transfer the device’s local public key (X and Y coordinates) to the remote device.<br>
      * This message is used by both the initiator and responder.<br>
      * This PDU is only used for LE Secure Connections.
-     * </p>
      */
-    class SMPPairPubKeyMsg : public SMPMsg
+    class SMPPairPubKeyMsg : public SMPPDUMsg
     {
         public:
             SMPPairPubKeyMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPMsg(source, length)
+            : SMPPDUMsg(source, length)
             {
                 checkOpcode(Opcode::PAIRING_PUBLIC_KEY);
             }
 
             SMPPairPubKeyMsg(const jau::uint256_t & pub_key_x, const jau::uint256_t & pub_key_y)
-            : SMPMsg(Opcode::PAIRING_PUBLIC_KEY, 1+32+32)
+            : SMPPDUMsg(Opcode::PAIRING_PUBLIC_KEY, 1+32+32)
             {
                 pdu.put_uint256_nc(1, pub_key_x);
                 pdu.put_uint256_nc(1+32, pub_key_y);
@@ -880,30 +883,29 @@ namespace direct_bt {
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.5 Pairing Methods
      * </pre>
-     * <p>
+     *
      * Opcode::PAIRING_DHKEY_CHECK
-     * </p>
+     *
      * <pre>
      * [uint8_t opcode]
      * jau::uint128_t dhkey_check_values
      * </pre>
-     * <p>
+     *
      * Message is used to transmit the 128-bit DHKey Check values (Ea/Eb) generated using f6.<br>
      * This message is used by both initiator and responder.<br>
      * This PDU is only used for LE Secure Connections.
-     * </p>
      */
-    class SMPPairDHKeyCheckMsg : public SMPMsg
+    class SMPPairDHKeyCheckMsg : public SMPPDUMsg
     {
         public:
             SMPPairDHKeyCheckMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPMsg(source, length)
+            : SMPPDUMsg(source, length)
             {
                 checkOpcode(Opcode::PAIRING_DHKEY_CHECK);
             }
 
             SMPPairDHKeyCheckMsg(const jau::uint128_t & dhkey_check_values)
-            : SMPMsg(Opcode::PAIRING_DHKEY_CHECK, 1+16)
+            : SMPPDUMsg(Opcode::PAIRING_DHKEY_CHECK, 1+16)
             {
                 pdu.put_uint128_nc(1, dhkey_check_values);
             }
@@ -932,19 +934,18 @@ namespace direct_bt {
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.5 Pairing Methods
      * </pre>
-     * <p>
+     *
      * Opcode::PAIRING_KEYPRESS_NOTIFICATION
-     * </p>
+     *
      * <pre>
      * [uint8_t opcode]
      * uint8_t notification_type
      * </pre>
-     * <p>
+     *
      * Message is used during the Passkey Entry protocol by a device with KeyboardOnly IO capabilities
      * to inform the remote device when keys have been entered or erased.
-     * </p>
      */
-    class SMPPasskeyNotification: public SMPMsg
+    class SMPPasskeyNotification: public SMPPDUMsg
     {
         public:
             enum class TypeCode : uint8_t {
@@ -959,12 +960,12 @@ namespace direct_bt {
             }
             static std::string getTypeCodeString(const TypeCode tc) noexcept;
 
-            SMPPasskeyNotification(const uint8_t* source, const jau::nsize_t length) : SMPMsg(source, length) {
+            SMPPasskeyNotification(const uint8_t* source, const jau::nsize_t length) : SMPPDUMsg(source, length) {
                 checkOpcode(Opcode::PAIRING_KEYPRESS_NOTIFICATION);
             }
 
             SMPPasskeyNotification(const TypeCode tc)
-            : SMPMsg(Opcode::PAIRING_KEYPRESS_NOTIFICATION, 1+1)
+            : SMPPDUMsg(Opcode::PAIRING_KEYPRESS_NOTIFICATION, 1+1)
             {
                 pdu.put_uint8_nc(1, number(tc));
             }
@@ -993,32 +994,31 @@ namespace direct_bt {
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6 SECURITY IN BLUETOOTH LOW ENERGY
      * </pre>
-     * <p>
+     *
      * Opcode::ENCRYPTION_INFORMATION
-     * </p>
+     *
      * <pre>
      * [uint8_t opcode]
      * jau::uint128_t long_term_key
      * </pre>
-     * <p>
+     *
      * Message is used in the LE legacy pairing Transport Specific Key Distribution
      * to distribute LTK that is used when encrypting future connections.
-     * </p>
      * <p>
      * The message shall only be sent when the link has been encrypted or re-encrypted using the generated STK.
      * </p>
      */
-    class SMPEncInfoMsg : public SMPMsg
+    class SMPEncInfoMsg : public SMPPDUMsg
     {
         public:
             SMPEncInfoMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPMsg(source, length)
+            : SMPPDUMsg(source, length)
             {
                 checkOpcode(Opcode::ENCRYPTION_INFORMATION);
             }
 
             SMPEncInfoMsg(const jau::uint128_t & long_term_key)
-            : SMPMsg(Opcode::ENCRYPTION_INFORMATION, 1+16)
+            : SMPPDUMsg(Opcode::ENCRYPTION_INFORMATION, 1+16)
             {
                 pdu.put_uint128_nc(1, long_term_key);
             }
@@ -1051,33 +1051,33 @@ namespace direct_bt {
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6 SECURITY IN BLUETOOTH LOW ENERGY
      * </pre>
-     * <p>
+     *
      * Opcode::MASTER_IDENTIFICATION
-     * </p>
+     *
      * <pre>
      * [uint8_t opcode]
      * uint16_t ediv
      * uint64_t rand
      * </pre>
-     * <p>
+     *
      * Message is used in the LE legacy pairing Transport Specific Key Distribution phase
      * to distribute EDIV and Rand which are used when encrypting future connections.
-     * </p>
+     *
      * <p>
      * The message shall only be sent when the link has been encrypted or re-encrypted using the generated STK.
      * </p>
      */
-    class SMPMasterIdentMsg : public SMPMsg
+    class SMPMasterIdentMsg : public SMPPDUMsg
     {
         public:
             SMPMasterIdentMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPMsg(source, length)
+            : SMPPDUMsg(source, length)
             {
                 checkOpcode(Opcode::MASTER_IDENTIFICATION);
             }
 
             SMPMasterIdentMsg(const uint16_t ediv, const uint64_t & rand)
-            : SMPMsg(Opcode::MASTER_IDENTIFICATION, 1+2+8)
+            : SMPPDUMsg(Opcode::MASTER_IDENTIFICATION, 1+2+8)
             {
                 pdu.put_uint16_nc(1, ediv);
                 pdu.put_uint64_nc(1+2, rand);
@@ -1118,31 +1118,30 @@ namespace direct_bt {
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6 SECURITY IN BLUETOOTH LOW ENERGY
      * </pre>
-     * <p>
+     *
      * Opcode::IDENTITY_INFORMATION
-     * </p>
+     *
      * <pre>
      * [uint8_t opcode]
      * jau::uint128_t identity_resolving_key
      * </pre>
-     * <p>
+     *
      * Message is used in the Transport Specific Key Distribution phase to distribute IRK.
-     * </p>
      * <p>
      * The message shall only shall only be sent when the link has been encrypted or re-encrypted using the generated key.
      * </p>
      */
-    class SMPIdentInfoMsg : public SMPMsg
+    class SMPIdentInfoMsg : public SMPPDUMsg
     {
         public:
             SMPIdentInfoMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPMsg(source, length)
+            : SMPPDUMsg(source, length)
             {
                 checkOpcode(Opcode::IDENTITY_INFORMATION);
             }
 
             SMPIdentInfoMsg(const jau::uint128_t & identity_resolving_key)
-            : SMPMsg(Opcode::IDENTITY_INFORMATION, 1+16)
+            : SMPPDUMsg(Opcode::IDENTITY_INFORMATION, 1+16)
             {
                 pdu.put_uint128_nc(1, identity_resolving_key);
             }
@@ -1176,33 +1175,32 @@ namespace direct_bt {
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6 SECURITY IN BLUETOOTH LOW ENERGY
      * </pre>
-     * <p>
+     *
      * Opcode::IDENTITY_ADDRESS_INFORMATION
-     * </p>
+     *
      * <pre>
      * [uint8_t opcode]
      * uint8_t address_type (0x01 static random, 0x00 public)
      * EUI48   address
      * </pre>
-     * <p>
+     *
      * Message is used in the Transport Specific Key Distribution phase
      * to distribute its public device address or static random address.
-     * </p>
      * <p>
      * The message shall only be sent when the link has been encrypted or re-encrypted using the generated key.
      * </p>
      */
-    class SMPIdentAddrInfoMsg : public SMPMsg
+    class SMPIdentAddrInfoMsg : public SMPPDUMsg
     {
         public:
             SMPIdentAddrInfoMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPMsg(source, length)
+            : SMPPDUMsg(source, length)
             {
                 checkOpcode(Opcode::IDENTITY_ADDRESS_INFORMATION);
             }
 
             SMPIdentAddrInfoMsg(const bool addrIsStaticRandom, const EUI48 & addr)
-            : SMPMsg(Opcode::IDENTITY_ADDRESS_INFORMATION, 1+1+6)
+            : SMPPDUMsg(Opcode::IDENTITY_ADDRESS_INFORMATION, 1+1+6)
             {
                 pdu.put_uint8_nc(1, addrIsStaticRandom ? 0x01 : 0x00);
                 pdu.put_eui48_nc(1+1, addr);
@@ -1238,31 +1236,30 @@ namespace direct_bt {
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6 SECURITY IN BLUETOOTH LOW ENERGY
      * </pre>
-     * <p>
+     *
      * Opcode::SIGNING_INFORMATION
-     * </p>
+     *
      * <pre>
      * [uint8_t opcode]
      * jau::uint128_t signature_key
      * </pre>
-     * <p>
+     *
      * Message is used  in the Transport Specific Key Distribution to distribute the CSRK which a device uses to sign data.
-     * </p>
      * <p>
      * The message shall only shall only be sent when the link has been encrypted or re-encrypted using the generated key.
      * </p>
      */
-    class SMPSignInfoMsg : public SMPMsg
+    class SMPSignInfoMsg : public SMPPDUMsg
     {
         public:
             SMPSignInfoMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPMsg(source, length)
+            : SMPPDUMsg(source, length)
             {
                 checkOpcode(Opcode::SIGNING_INFORMATION);
             }
 
             SMPSignInfoMsg(const jau::uint128_t & signature_key)
-            : SMPMsg(Opcode::SIGNING_INFORMATION, 1+16)
+            : SMPPDUMsg(Opcode::SIGNING_INFORMATION, 1+16)
             {
                 pdu.put_uint128_nc(1, signature_key);
             }
@@ -1295,32 +1292,31 @@ namespace direct_bt {
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6 SECURITY IN BLUETOOTH LOW ENERGY
      * </pre>
-     * <p>
+     *
      * Opcode::SECURITY_REQUEST
-     * </p>
+     *
      * <pre>
      * [uint8_t opcode]
      * uint8_t auth_req_mask
      * </pre>
-     * <p>
+     *
      * Message is used by the slave to request that the master initiates security with the requested security properties,<br>
      * see Vol 3 (Host), Part H (SM): 2 (SM), 2.4 SECURITY IN BLUETOOTH LOW ENERGY, 2.4.6 Slave Security Request
-     * </p>
      */
-    class SMPSecurityReqMsg : public SMPMsg
+    class SMPSecurityReqMsg : public SMPPDUMsg
     {
         private:
             SMPAuthReqs authReqMask;
         public:
             SMPSecurityReqMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPMsg(source, length),
+            : SMPPDUMsg(source, length),
               authReqMask(static_cast<SMPAuthReqs>( pdu.get_uint8_nc(1) ))
             {
                 checkOpcode(Opcode::SECURITY_REQUEST);
             }
 
             SMPSecurityReqMsg(const SMPAuthReqs auth_req_mask)
-            : SMPMsg(Opcode::SECURITY_REQUEST, 1+1), authReqMask(auth_req_mask)
+            : SMPPDUMsg(Opcode::SECURITY_REQUEST, 1+1), authReqMask(auth_req_mask)
             {
                 pdu.put_uint8_nc(1, direct_bt::number(authReqMask));
             }
