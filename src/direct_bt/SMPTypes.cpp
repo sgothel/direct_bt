@@ -202,3 +202,26 @@ std::string SMPPasskeyNotification::getTypeCodeString(const TypeCode tc) noexcep
     }
     return "Unknown TypeCode";
 }
+
+std::shared_ptr<const SMPPDUMsg> SMPPDUMsg::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
+    const SMPPDUMsg::Opcode opc = static_cast<SMPPDUMsg::Opcode>(*buffer);
+    const SMPPDUMsg * res;
+    switch( opc ) {
+        case Opcode::PAIRING_REQUEST:               res = new SMPPairingMsg(true /* request */, buffer, buffer_size); break;
+        case Opcode::PAIRING_RESPONSE:              res = new SMPPairingMsg(false /* request */, buffer, buffer_size); break;
+        case Opcode::PAIRING_CONFIRM:               res = new SMPPairConfMsg(buffer, buffer_size); break;
+        case Opcode::PAIRING_RANDOM:                res = new SMPPairRandMsg(buffer, buffer_size); break;
+        case Opcode::PAIRING_FAILED:                res = new SMPPairFailedMsg(buffer, buffer_size); break;
+        case Opcode::ENCRYPTION_INFORMATION:        res = new SMPEncInfoMsg(buffer, buffer_size); break;
+        case Opcode::MASTER_IDENTIFICATION:         res = new SMPMasterIdentMsg(buffer, buffer_size); break;
+        case Opcode::IDENTITY_INFORMATION:          res = new SMPIdentInfoMsg(buffer, buffer_size); break;
+        case Opcode::IDENTITY_ADDRESS_INFORMATION:  res = new SMPIdentAddrInfoMsg(buffer, buffer_size); break;
+        case Opcode::SIGNING_INFORMATION:           res = new SMPSignInfoMsg(buffer, buffer_size); break;
+        case Opcode::SECURITY_REQUEST:              res = new SMPSecurityReqMsg(buffer, buffer_size); break;
+        case Opcode::PAIRING_PUBLIC_KEY:            res = new SMPPairPubKeyMsg(buffer, buffer_size); break;
+        case Opcode::PAIRING_DHKEY_CHECK:           res = new SMPPairDHKeyCheckMsg(buffer, buffer_size); break;
+        case Opcode::PAIRING_KEYPRESS_NOTIFICATION: res = new SMPPasskeyNotification(buffer, buffer_size); break;
+        default:                                    res = new SMPPDUMsg(buffer, buffer_size); break;
+    }
+    return std::shared_ptr<const SMPPDUMsg>(res);
+}
