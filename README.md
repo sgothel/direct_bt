@@ -25,7 +25,7 @@ Direct-BT
 offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
 
 *Direct-BT* supports a fully event driven workflow from device discovery to GATT programming,
-using its platform agnostic HCI and GATT/L2CAP client-side protocol implementation.
+using its platform agnostic HCI, GATT, SMP and L2CAP client-side protocol implementation.
 
 [AdapterStatusListener](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1AdapterStatusListener.html) 
 allows listening to adapter changes and device discovery and
@@ -48,15 +48,17 @@ Some more elaboration on the implementation and its status
 > The host-side of HCI, L2CAP etc is usually implemented within the OS, e.g. *Linux/BlueZ* Kernel.
 > These layers communicate with the actual BT controller and the user application, acting as the middleman.
 > 
-> *Direct-BT* offers packet types and handler facilities for HCI, L2CAP, ATT-PDU and GATT (as well to *Linux/BlueZ-Mngr[1]*)
+> *Direct-BT* offers packet types and handler facilities for HCI, L2CAP, ATT-PDU and GATT (as well to *Linux/BlueZ-Mngr*)
 > to communicate with these universal host-side Bluetooth layers and hence to reach-out to devices.
 > 
-> Currently only the master/client mode is supported to work with BT devices, as well as LE w/o *LE Secure Connections*.
+> Currently only the master/client mode is supported to work with LE BT devices.
 > 
-> Work on *LE Secure Connections* is in progress and BREDR (non LE, or classic mode) is planned and prepared for.
+> Work on *LE Secure Connections* and *LE legacy pairing* is in progress, while BREDR support is planned and prepared for.
 >
-> [1] *Linux/BlueZ-Mngr* is still used for adapter configuration and shall be removed to support universal platforms,
-> implementing the Bluetooth host-side protocols.
+
+To support other platforms than Linux/BlueZ, we will have to
+* move specified HCI host features used in DBTManager to HCIHandler - and -
+* add specialization for each new platform using their non-platform-agnostic features.
 
 
 **Direct-BT System Preparations**
@@ -209,9 +211,6 @@ The following **Bluetooth Adapter** were tested
 * Intel Bluemoon Bluetooth Adapter
 * CSR Bluetooth Adapter (CSR8510,..)
 * Raspberry Pi Bluetooth Adapter (BCM43455 on 3+, 4)
-
-After we have resolved the last Linux/Bluez dependency in DBTManager for BT adapter configuration,
-we should be capable working on other systems than GNU/Linux.
 
 
 Build Status
