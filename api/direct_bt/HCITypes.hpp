@@ -43,7 +43,7 @@
 /**
  * - - - - - - - - - - - - - - -
  *
- * Module HCITypes:
+ * HCITypes.hpp Module for HCIPacket Types, HCIStatusCode etc:
  *
  * - BT Core Spec v5.2: Vol 4, Part E Host Controller Interface (HCI): 7 HCI commands and events
  *

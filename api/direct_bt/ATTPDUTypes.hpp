@@ -47,24 +47,28 @@
  * offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
  *
  * Direct-BT supports a fully event driven workflow from device discovery to GATT programming,
- * using its platform agnostic HCI and GATT/L2CAP client-side protocol implementation.
+ * using its platform agnostic HCI, GATT, SMP and L2CAP client-side protocol implementation.
  *
  * Direct-BT implements the following layers
- * - DBTManager for adapter configuration
+ * - DBTManager for adapter configuration and adapter add/removal notifications (ChangedAdapterSetFunc())
  *   - Using *BlueZ Kernel Manager Control Channel*
- * - *HCI Handling* via HCIHandler implementing connect/disconnect w/ tracking, device discovery, etc
+ * - *HCI Handling* via HCIHandler using HCIPacket implementing connect/disconnect w/ tracking, device discovery, etc
  * - *ATT PDU* AttPDUMsg via L2CAP for low level packet communication
  * - *GATT Support* via GATTHandler using AttPDUMsg over L2CAPComm, providing
  *   -  GATTService
  *   -  GATTCharacteristic
  *   -  GATTDescriptor
+ * - *SMP PDU* SMPPDUMsg via L2CAP for Security Manager Protocol (SMP) communication
+ * - *SM Support* via SMHandler using SMPPDUMsg over L2CAPComm, providing
+ *   - LE Secure Connections
+ *   - LE legacy pairing
  *
- * DBTManager still utilizes the *BlueZ Kernel Manager Control Channel*
- * adapter configuration for adapter configuration.
+ * DBTManager utilizes the *BlueZ Kernel Manager Control Channel*
+ * for adapter configuration and adapter add/removal notifications (ChangedAdapterSetFunc()).
  *
- * To remove potential side-effects and this last non-standard Linux/BlueZ dependency,
- * we will have DBTManager using direct HCI programming via HCIHandler
- * for the remaining functionality.
+ * To support other platforms than Linux/BlueZ, we will have to
+ * - Move specified HCI host features used in DBTManager to HCIHandler - and -
+ * - Add specialization for each new platform using their non-platform-agnostic features.
  *
  * - - - - - - - - - - - - - - -
  *
@@ -79,7 +83,7 @@
  *
  * Object lifecycle with all instances and marked weak back-references to their owner
  * - DBTManager singleton instance for all
- * - DBTAdapter ownership by user
+ * - DBTAdapter ownership by user (C++) and BluetoothManager (Java)
  *   - DBTDevice ownership by DBTAdapter
  *     - GATTHandler ownership by DBTDevice, with weak DBTDevice back-reference
  *       - GATTService ownership by GATTHandler, with weak GATTHandler back-reference
@@ -116,7 +120,7 @@
  *
  * - - - - - - - - - - - - - - -
  *
- * Module ATTPDUTypes:
+ * ATTPDUTypes.hpp Module for ATTPDUMsg Types:
  *
  * - BT Core Spec v5.2: Vol 3, Part F Attribute Protocol (ATT)
  */
@@ -145,8 +149,6 @@ namespace direct_bt {
     };
 
     /**
-     * ATT PDU Overview
-     * ================
      * Handles the Attribute Protocol (ATT) using Protocol Data Unit (PDU)
      * encoded messages over L2CAP channel.
      * <p>

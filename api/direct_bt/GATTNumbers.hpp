@@ -38,7 +38,8 @@
 /**
  * - - - - - - - - - - - - - - -
  *
- * Higher level GATT values for services and so forth:
+ * GATTNumbers.hpp Module for Higher level GATT value and service types like GattServiceType, GattCharacteristicType,
+ * GattCharacteristicProperty, GattRequirementSpec .. and finally GattServiceCharacteristic.
  *
  * - https://www.bluetooth.com/specifications/gatt/services/
  *
