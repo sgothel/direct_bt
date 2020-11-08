@@ -53,20 +53,17 @@ extern "C" {
 
 #include "GATTHandler.hpp"
 
-#include "HCIComm.hpp"
-#include "DBTTypes.hpp"
 #include "DBTDevice.hpp"
 
 using namespace direct_bt;
-using namespace jau;
 
 GATTEnv::GATTEnv() noexcept
-: exploding( environment::getExplodingProperties("direct_bt.gatt") ),
-  GATT_READ_COMMAND_REPLY_TIMEOUT( environment::getInt32Property("direct_bt.gatt.cmd.read.timeout", 500, 250 /* min */, INT32_MAX /* max */) ),
-  GATT_WRITE_COMMAND_REPLY_TIMEOUT(  environment::getInt32Property("direct_bt.gatt.cmd.write.timeout", 500, 250 /* min */, INT32_MAX /* max */) ),
-  GATT_INITIAL_COMMAND_REPLY_TIMEOUT( environment::getInt32Property("direct_bt.gatt.cmd.init.timeout", 2500, 2000 /* min */, INT32_MAX /* max */) ),
-  ATTPDU_RING_CAPACITY( environment::getInt32Property("direct_bt.gatt.ringsize", 128, 64 /* min */, 1024 /* max */) ),
-  DEBUG_DATA( environment::getBooleanProperty("direct_bt.debug.gatt.data", false) )
+: exploding( jau::environment::getExplodingProperties("direct_bt.gatt") ),
+  GATT_READ_COMMAND_REPLY_TIMEOUT( jau::environment::getInt32Property("direct_bt.gatt.cmd.read.timeout", 500, 250 /* min */, INT32_MAX /* max */) ),
+  GATT_WRITE_COMMAND_REPLY_TIMEOUT(  jau::environment::getInt32Property("direct_bt.gatt.cmd.write.timeout", 500, 250 /* min */, INT32_MAX /* max */) ),
+  GATT_INITIAL_COMMAND_REPLY_TIMEOUT( jau::environment::getInt32Property("direct_bt.gatt.cmd.init.timeout", 2500, 2000 /* min */, INT32_MAX /* max */) ),
+  ATTPDU_RING_CAPACITY( jau::environment::getInt32Property("direct_bt.gatt.ringsize", 128, 64 /* min */, 1024 /* max */) ),
+  DEBUG_DATA( jau::environment::getBooleanProperty("direct_bt.debug.gatt.data", false) )
 {
 }
 
@@ -75,7 +72,7 @@ GATTEnv::GATTEnv() noexcept
 std::shared_ptr<DBTDevice> GATTHandler::getDeviceChecked() const {
     std::shared_ptr<DBTDevice> ref = wbr_device.lock();
     if( nullptr == ref ) {
-        throw IllegalStateException("GATTHandler's device already destructed: "+deviceString, E_FILE_LINE);
+        throw jau::IllegalStateException("GATTHandler's device already destructed: "+deviceString, E_FILE_LINE);
     }
     return ref;
 }
@@ -104,7 +101,7 @@ static jau::cow_vector<std::shared_ptr<GATTCharacteristicListener>>::equal_compa
 
 bool GATTHandler::addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) {
     if( nullptr == l ) {
-        throw IllegalArgumentException("GATTEventListener ref is null", E_FILE_LINE);
+        throw jau::IllegalArgumentException("GATTEventListener ref is null", E_FILE_LINE);
     }
     return characteristicListenerList.push_back_unique(l, _characteristicListenerRefEqComparator);
 }
@@ -229,7 +226,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                     } catch (std::exception &e) {
                         ERR_PRINT("GATTHandler::notificationReceived-CBs %d/%zd: GATTCharacteristicListener %s: Caught exception %s",
                                 i+1, characteristicListenerList.size(),
-                                aptrHexString((void*)l.get()).c_str(), e.what());
+                                jau::aptrHexString((void*)l.get()).c_str(), e.what());
                     }
                     i++;
                 });
@@ -255,7 +252,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                     } catch (std::exception &e) {
                         ERR_PRINT("GATTHandler::indicationReceived-CBs %d/%zd: GATTCharacteristicListener %s, cfmSent %d: Caught exception %s",
                                 i+1, characteristicListenerList.size(),
-                                aptrHexString((void*)l.get()).c_str(), cfmSent, e.what());
+                                jau::aptrHexString((void*)l.get()).c_str(), cfmSent, e.what());
                     }
                     i++;
                 });
@@ -410,10 +407,10 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
 
 void GATTHandler::send(const AttPDUMsg & msg) {
     if( !validateConnected() ) {
-        throw IllegalStateException("GATTHandler::send: Invalid IO State: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
+        throw jau::IllegalStateException("GATTHandler::send: Invalid IO State: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     if( msg.pdu.getSize() > usedMTU ) {
-        throw IllegalArgumentException("clientMaxMTU "+std::to_string(msg.pdu.getSize())+" > usedMTU "+std::to_string(usedMTU)+
+        throw jau::IllegalArgumentException("clientMaxMTU "+std::to_string(msg.pdu.getSize())+" > usedMTU "+std::to_string(usedMTU)+
                                        " to "+deviceString, E_FILE_LINE);
     }
 
@@ -455,7 +452,7 @@ uint16_t GATTHandler::exchangeMTUImpl(const uint16_t clientMaxMTU, const int32_t
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.3.1 Exchange MTU (Server configuration)
      */
     if( clientMaxMTU > number(Defaults::MAX_ATT_MTU) ) {
-        throw IllegalArgumentException("clientMaxMTU "+std::to_string(clientMaxMTU)+" > ClientMaxMTU "+std::to_string(number(Defaults::MAX_ATT_MTU)), E_FILE_LINE);
+        throw jau::IllegalArgumentException("clientMaxMTU "+std::to_string(clientMaxMTU)+" > ClientMaxMTU "+std::to_string(number(Defaults::MAX_ATT_MTU)), E_FILE_LINE);
     }
     const AttExchangeMTU req(clientMaxMTU);
     // called by ctor only, no locking: const std::lock_guard<std::recursive_mutex> lock(mtx_command);
@@ -535,7 +532,8 @@ bool GATTHandler::discoverPrimaryServices(std::shared_ptr<GATTHandler> shared_th
         // validate shared_this first!
         GATTHandler *given_this = shared_this.get();
         if( given_this != this ) {
-            throw IllegalArgumentException("Given shared GATTHandler reference "+aptrHexString(given_this)+" not matching this "+aptrHexString(this), E_FILE_LINE);
+            throw jau::IllegalArgumentException("Given shared GATTHandler reference "+
+                    jau::aptrHexString(given_this)+" not matching this "+jau::aptrHexString(this), E_FILE_LINE);
         }
     }
     /***
@@ -704,8 +702,8 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
                     std::shared_ptr<GATTDescriptor> cd( new GATTDescriptor(charDecl, cd_uuid, cd_handle) );
                     if( cd_handle <= charDecl->value_handle || cd_handle > cd_handle_end ) { // should never happen!
                         ERR_PRINT("GATT discoverDescriptors CD handle %s not in range ]%s..%s]: descr%s within char%s on %s",
-                                uint16HexString(cd_handle).c_str(),
-                                uint16HexString(charDecl->value_handle).c_str(), uint16HexString(cd_handle_end).c_str(),
+                                jau::uint16HexString(cd_handle).c_str(),
+                                jau::uint16HexString(charDecl->value_handle).c_str(), jau::uint16HexString(cd_handle_end).c_str(),
                                 cd->toString().c_str(), charDecl->toString().c_str(), deviceString.c_str());
                         done = true;
                         break;
@@ -771,7 +769,7 @@ bool GATTHandler::readValue(const uint16_t handle, POctets & res, int expectedLe
     bool done=false;
     int offset=0;
 
-    COND_PRINT(env.DEBUG_DATA, "GATTHandler::readValue expLen %d, handle %s from %s", expectedLength, uint16HexString(handle).c_str(), deviceString.c_str());
+    COND_PRINT(env.DEBUG_DATA, "GATTHandler::readValue expLen %d, handle %s from %s", expectedLength, jau::uint16HexString(handle).c_str(), deviceString.c_str());
 
     while(!done) {
         if( 0 < expectedLength && expectedLength <= offset ) {
@@ -910,7 +908,7 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
 
 bool GATTHandler::configNotificationIndication(GATTDescriptor & cccd, const bool enableNotification, const bool enableIndication) {
     if( !cccd.isClientCharacteristicConfiguration() ) {
-        throw IllegalArgumentException("Not a ClientCharacteristicConfiguration: "+cccd.toString(), E_FILE_LINE);
+        throw jau::IllegalArgumentException("Not a ClientCharacteristicConfiguration: "+cccd.toString(), E_FILE_LINE);
     }
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration */
     const uint16_t ccc_value = enableNotification | ( enableIndication << 1 );
@@ -1018,9 +1016,9 @@ bool GATTHandler::ping() {
         }
     }
     if( isOK ) {
-        INFO_PRINT("GATTHandler::pingGATT: No GENERIC_ACCESS Service with APPEARANCE Characteristic available -> disconnect");
+        jau::INFO_PRINT("GATTHandler::pingGATT: No GENERIC_ACCESS Service with APPEARANCE Characteristic available -> disconnect");
     } else {
-        INFO_PRINT("GATTHandler::pingGATT: Read error -> disconnect");
+        jau::INFO_PRINT("GATTHandler::pingGATT: Read error -> disconnect");
     }
     disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
     return false;
