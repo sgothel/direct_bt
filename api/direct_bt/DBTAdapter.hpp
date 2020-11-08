@@ -296,6 +296,9 @@ namespace direct_bt {
              */
             DBTAdapter(const int dev_id) noexcept;
 
+            DBTAdapter(const DBTAdapter&) = delete;
+            void operator=(const DBTAdapter&) = delete;
+
             /**
              * Releases this instance.
              */

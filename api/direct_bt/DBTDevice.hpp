@@ -112,6 +112,9 @@ namespace direct_bt {
             const BDAddressType addressType;
             const BLERandomAddressType leRandomAddressType;
 
+            DBTDevice(const DBTDevice&) = delete;
+            void operator=(const DBTDevice&) = delete;
+
             /**
              * Releases this instance after calling {@link #remove()}.
              */
