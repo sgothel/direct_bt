@@ -241,6 +241,9 @@ namespace direct_bt {
              */
             GATTHandler(const std::shared_ptr<DBTDevice> & device) noexcept;
 
+            GATTHandler(const GATTHandler&) = delete;
+            void operator=(const GATTHandler&) = delete;
+
             /** Destructor closing this instance including L2CAP channel, see {@link #disconnect()}. */
             ~GATTHandler() noexcept;
 

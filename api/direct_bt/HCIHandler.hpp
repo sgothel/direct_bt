@@ -320,11 +320,11 @@ namespace direct_bt {
             template<typename hci_cmd_event_struct>
             const hci_cmd_event_struct* getMetaReplyStruct(std::shared_ptr<HCIEvent> event, HCIMetaEventType mec, HCIStatusCode *status) noexcept;
 
-            HCIHandler(const HCIHandler&) = delete;
-            void operator=(const HCIHandler&) = delete;
-
         public:
             HCIHandler(const uint16_t dev_id, const BTMode btMode=BTMode::NONE) noexcept;
+
+            HCIHandler(const HCIHandler&) = delete;
+            void operator=(const HCIHandler&) = delete;
 
             /**
              * Releases this instance after issuing {@link #close()}.

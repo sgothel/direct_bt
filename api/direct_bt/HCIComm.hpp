@@ -67,6 +67,9 @@ namespace direct_bt {
             /** Constructing a newly opened HCI communication channel instance */
             HCIComm(const uint16_t dev_id, const uint16_t channel) noexcept;
 
+            HCIComm(const HCIComm&) = delete;
+            void operator=(const HCIComm&) = delete;
+
             /**
              * Releases this instance after issuing {@link #close()}.
              */
