@@ -60,7 +60,7 @@ L2CAPEnv::L2CAPEnv() noexcept
 {
 }
 
-int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const bool pubaddrAdapter) {
+int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const BDAddressType addrType) {
     sockaddr_l2 a;
     int fd, err;
 
@@ -80,7 +80,7 @@ int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, 
     a.l2_psm = jau::cpu_to_le(psm);
     a.l2_bdaddr = adapterAddress;
     a.l2_cid = jau::cpu_to_le(cid);
-    a.l2_bdaddr_type = pubaddrAdapter ? ::number(BDAddressType::BDADDR_LE_PUBLIC) : ::number(BDAddressType::BDADDR_LE_RANDOM);
+    a.l2_bdaddr_type = ::number(addrType);
     if ( bind(fd, (struct sockaddr *) &a, sizeof(a)) < 0 ) {
         ERR_PRINT("L2CAPComm::l2cap_open_dev: bind failed");
         goto failed;
@@ -108,7 +108,7 @@ int L2CAPComm::l2cap_close_dev(int dd)
 L2CAPComm::L2CAPComm(const DBTDevice& device, const uint16_t psm_, const uint16_t cid_)
 : env(L2CAPEnv::get()),
   deviceString(device.getAddressString()), psm(psm_), cid(cid_),
-  socket_descriptor( l2cap_open_dev(device.getAdapter().getAddress(), psm_, cid_, true /* pubaddrAdptr */) ),
+  socket_descriptor( l2cap_open_dev(device.getAdapter().getAddress(), psm_, cid_, BDAddressType::BDADDR_LE_PUBLIC) ),
   is_connected(true), has_ioerror(false), interrupt_flag(false), tid_connect(0), tid_read(0)
 {
     /** BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ */

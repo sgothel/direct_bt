@@ -123,7 +123,7 @@ namespace direct_bt {
             }
 
         private:
-            static int l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const bool pubaddr);
+            static int l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const BDAddressType addrType);
             static int l2cap_close_dev(int dd);
 
             const L2CAPEnv & env;
