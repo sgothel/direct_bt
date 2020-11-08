@@ -46,6 +46,15 @@
 #include "SMPTypes.hpp"
 
 /**
+ * Linux/BlueZ prohibits access to the existing SMP implementation via L2CAP (socket).
+ */
+#ifdef __linux__
+    #define SMP_SUPPORTED_BY_OS 0
+#else
+    #define SMP_SUPPORTED_BY_OS 1
+#endif
+
+/**
  * - - - - - - - - - - - - - - -
  *
  * SMPHandler.hpp Module for SMPHandler using SMPPDUMsg types

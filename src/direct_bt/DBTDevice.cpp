@@ -507,6 +507,7 @@ void DBTDevice::remove() noexcept {
 }
 
 void DBTDevice::disconnectSMP(int caller) noexcept {
+  #if SMP_SUPPORTED_BY_OS
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_smpHandler);
     if( nullptr != smpHandler ) {
         DBG_PRINT("DBTDevice::disconnectSMP: start (has smpHandler, caller %d)", caller);
@@ -516,16 +517,20 @@ void DBTDevice::disconnectSMP(int caller) noexcept {
     }
     smpHandler = nullptr;
     DBG_PRINT("DBTDevice::disconnectSMP: end");
+  #else
+    (void)caller;
+  #endif
 }
 
 bool DBTDevice::connectSMP() noexcept {
+  #if SMP_SUPPORTED_BY_OS
     if( !isConnected || !allowDisconnect) {
         ERR_PRINT("DBTDevice::connectSMP: Device not connected: %s", toString().c_str());
         return false;
     }
 
     if( !SMPHandler::IS_SUPPORTED_BY_OS ) {
-        ERR_PRINT("DBTDevice::connectSMP: SMP Not supported by OS: %s", toString().c_str());
+        DBG_PRINT("DBTDevice::connectSMP: SMP Not supported by OS (1): %s", toString().c_str());
         return false;
     }
 
@@ -551,6 +556,10 @@ bool DBTDevice::connectSMP() noexcept {
     }
     smpHandler->addSMPSecurityReqCallback(jau::bindMemberFunc(this, &DBTDevice::smpSecurityReqCallback));
     return true;
+  #else
+    DBG_PRINT("DBTDevice::connectSMP: SMP Not supported by OS (0): %s", toString().c_str());
+    return false;
+  #endif
 }
 
 bool DBTDevice::smpSecurityReqCallback(std::shared_ptr<const SMPPDUMsg> msg) {

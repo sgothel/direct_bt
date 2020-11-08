@@ -66,9 +66,11 @@ namespace direct_bt {
             std::atomic<uint16_t> hciConnHandle;
             std::shared_ptr<ManufactureSpecificData> advMSD = nullptr;
             std::vector<std::shared_ptr<uuid_t>> advServices;
+#if SMP_SUPPORTED_BY_OS
             std::shared_ptr<SMPHandler> smpHandler = nullptr;
-            std::shared_ptr<GATTHandler> gattHandler = nullptr;
             std::recursive_mutex mtx_smpHandler;
+#endif
+            std::shared_ptr<GATTHandler> gattHandler = nullptr;
             std::recursive_mutex mtx_gattHandler;
             std::recursive_mutex mtx_connect;
             std::recursive_mutex mtx_data;
