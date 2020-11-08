@@ -87,9 +87,9 @@ namespace direct_bt {
      * If above result is smaller than the given min_result_ms, min_result_ms/10 will be returned.
      * @param conn_latency the connection latency
      * @param conn_interval_max_ms the maximum connection interval in [ms]
-     * @param multiplier recommendation is 6, we use 10 as default for safety.
      * @param min_result_ms the minimum resulting supervisor timeout, defaults to HCIConstInt::LE_CONN_MIN_TIMEOUT_MS.
      *        If above formula results in a smaller value, min_result_ms/10 will be returned.
+     * @param multiplier recommendation is 6, we use 10 as default for safety.
      * @return the resulting supervising timeout in 1/10 [ms], suitable for the HCIHandler::le_create_conn() command.
      */
     constexpr int32_t getHCIConnSupervisorTimeout(const uint16_t conn_latency, const uint16_t conn_interval_max_ms,

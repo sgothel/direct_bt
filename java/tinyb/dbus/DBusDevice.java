@@ -92,9 +92,9 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     private native boolean connectImpl() throws BluetoothException;
 
     @Override
-    public HCIStatusCode connect(final short interval, final short window,
-                                 final short min_interval, final short max_interval,
-                                 final short latency, final short timeout) {
+    public HCIStatusCode connectLE(final short interval, final short window,
+                                   final short min_interval, final short max_interval,
+                                   final short latency, final short timeout) {
         return connect(); // FIXME connection params ...
     }
 

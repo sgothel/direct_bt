@@ -331,7 +331,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_removeImpl(JNIEnv *env, jobject obj)
     return JNI_TRUE;
 }
 
-jbyte Java_direct_1bt_tinyb_DBTDevice_connectImpl__(JNIEnv *env, jobject obj)
+jbyte Java_direct_1bt_tinyb_DBTDevice_connectDefaultImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
@@ -343,25 +343,28 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_connectImpl__(JNIEnv *env, jobject obj)
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
-jbyte Java_direct_1bt_tinyb_DBTDevice_connectImpl__SSSSSS(JNIEnv *env, jobject obj,
-                                                          jshort interval, jshort window,
-                                                          jshort min_interval, jshort max_interval,
-                                                          jshort latency, jshort timeout)
+jbyte Java_direct_1bt_tinyb_DBTDevice_connectLEImpl0(JNIEnv *env, jobject obj)
 {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        HCIStatusCode res;
-        switch( device->addressType ) {
-            case BDAddressType::BDADDR_LE_PUBLIC:
-                /* fall through intended */
-            case BDAddressType::BDADDR_LE_RANDOM:
-                res = device->connectLE(interval, window, min_interval, max_interval, latency, timeout);
-                break;
-            default:
-                res = device->connectDefault();
-                break;
-        }
+        HCIStatusCode res = device->connectLE();
+        return (jbyte) number(res);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+}
+
+jbyte Java_direct_1bt_tinyb_DBTDevice_connectLEImpl1(JNIEnv *env, jobject obj,
+                                                     jshort interval, jshort window,
+                                                     jshort min_interval, jshort max_interval,
+                                                     jshort latency, jshort timeout)
+{
+    try {
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+        HCIStatusCode res = device->connectLE(interval, window, min_interval, max_interval, latency, timeout);
         return (jbyte) number(res);
     } catch(...) {
         rethrow_and_raise_java_exception(env);

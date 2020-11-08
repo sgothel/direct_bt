@@ -118,7 +118,7 @@ public interface BluetoothDevice extends BluetoothObject
      * flagged as auto-connectable.
      * </p>
      * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
-     * @see #connect(short, short, short, short, short, short)
+     * @see #connectLE(short, short, short, short, short, short)
      * @since 2.1.0 change API, i.e. return value from boolean to HCIStatusCode in favor of <i>direct_bt</i>
      */
     HCIStatusCode connect() throws BluetoothException;
@@ -141,6 +141,9 @@ public interface BluetoothDevice extends BluetoothObject
      * The device is tracked by the managing adapter.
      * </p>
      * <p>
+     * Default parameter are used if {@code -1} has been passed for any of the arguments.
+     * </p>
+     * <p>
      * Default parameter values are chosen for using public address resolution
      * and usual connection latency, interval etc.
      * </p>
@@ -148,21 +151,21 @@ public interface BluetoothDevice extends BluetoothObject
      * Set window to the same value as the interval, enables continuous scanning.
      * </p>
      *
-     * @param le_scan_interval in units of 0.625ms, default value 48 for 30ms, min value 4 for 2.5ms -> 0x4000 for 10.24s
-     * @param le_scan_window in units of 0.625ms, default value 48 for 30ms,  min value 4 for 2.5ms -> 0x4000 for 10.24s. Shall be <= le_scan_interval
-     * @param conn_interval_min in units of 1.25ms, default value 15 for 19.75ms
-     * @param conn_interval_max in units of 1.25ms, default value 15 for 19.75ms
-     * @param conn_latency slave latency in units of connection events, default value 0
-     * @param supervision_timeout in units of 10ms, default value 1000 for 10000ms or 10s.
+     * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
+     * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
+     * @param conn_interval_min in units of 1.25ms, default value 12 for 15ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]
+     * @param conn_interval_max in units of 1.25ms, default value 12 for 15ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]
+     * @param conn_latency slave latency in units of connection events, default value 0; Value range [0 .. 0x01F3].
+     * @param supervision_timeout in units of 10ms, default value >= 10 x conn_interval_max, we use 500 ms minimum; Value range [0xA-0x0C80] for [100ms - 32s].
      * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
-     *
+     * @see BluetoothUtils#getHCIConnSupervisorTimeout(int, int, int, int)
      * @see #connect()
      * @since 2.1.0 change API, i.e. return value from boolean to HCIStatusCode in favor of <i>direct_bt</i>
      * @implNote not implemented in <b>tinyb.dbus</b>
      */
-    HCIStatusCode connect(final short le_scan_interval, final short le_scan_window,
-                          final short conn_interval_min, final short conn_interval_max,
-                          final short conn_latency, final short timeout);
+    HCIStatusCode connectLE(final short le_scan_interval, final short le_scan_window,
+                            final short conn_interval_min, final short conn_interval_max,
+                            final short conn_latency, final short supervision_timeout);
 
 
     /** Connects a specific profile available on the device, given by UUID
@@ -184,7 +187,7 @@ public interface BluetoothDevice extends BluetoothObject
      * </p>
      * @return TRUE if the device connected and paired
      * @implNote secure pairing with JustWorks method on direct_bt.tinyb,
-     *           but device must be {@link #connect(short, short, short, short, short, short)} before.
+     *           but device must be {@link #connectLE(short, short, short, short, short, short)} before.
      *           Use {@link #pair(int[])}
      */
     boolean pair() throws BluetoothException;
@@ -192,7 +195,7 @@ public interface BluetoothDevice extends BluetoothObject
     /**
      * The device is securely paired with PasskeyEntry or JustWorks.
      * <p>
-     * The device must be {@link #connect(short, short, short, short, short, short) connected}
+     * The device must be {@link #connectLE(short, short, short, short, short, short) connected}
      * before pairing.
      * </p>
      * <p>
@@ -210,7 +213,7 @@ public interface BluetoothDevice extends BluetoothObject
     /**
      * Returns a vector of supported PairingMode by the device.
      * <p>
-     * The device must be {@link #connect(short, short, short, short, short, short) connected}
+     * The device must be {@link #connectLE(short, short, short, short, short, short) connected}
      * before querying this status. FIXME?
      * </p>
      * @return list of supported PairingMode, empty if pairing is not supported.
@@ -222,7 +225,7 @@ public interface BluetoothDevice extends BluetoothObject
     /**
      * Returns a vector of required PairingMode by the device.
      * <p>
-     * The device must be {@link #connect(short, short, short, short, short, short) connected}
+     * The device must be {@link #connectLE(short, short, short, short, short, short) connected}
      * before querying this status. FIXME?
      * </p>
      * @return list of required PairingMode, empty if pairing is not required.

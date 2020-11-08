@@ -47,6 +47,27 @@ public class BluetoothUtils {
     public static long elapsedTimeMillis() { return currentTimeMillis() - t0; }
 
     /**
+     * Defining the supervising timeout for LE connections to be a multiple of the maximum connection interval as follows:
+     * <pre>
+     *  ( 1 + conn_latency ) * conn_interval_max_ms * max(2, multiplier) [ms]
+     * </pre>
+     * If above result is smaller than the given min_result_ms, min_result_ms/10 will be returned.
+     * @param conn_latency the connection latency
+     * @param conn_interval_max_ms the maximum connection interval in [ms]
+     * @param min_result_ms the minimum resulting supervisor timeout, defaults to 500ms.
+     *        If above formula results in a smaller value, min_result_ms/10 will be returned.
+     * @param multiplier recommendation is 6, we use 10 as default for safety.
+     * @return the resulting supervising timeout in 1/10 [ms], suitable for the {@link BluetoothDevice#connectLE(short, short, short, short, short, short)}.
+     * @see BluetoothDevice#connectLE(short, short, short, short, short, short)
+     */
+    public static int getHCIConnSupervisorTimeout(final int conn_latency, final int conn_interval_max_ms,
+                                                  final int min_result_ms, final int multiplier) {
+        return Math.max(min_result_ms,
+                        ( 1 + conn_latency ) * conn_interval_max_ms * Math.max(2, multiplier)
+                       ) / 10;
+    }
+
+    /**
      * Returns a hex string representation
      *
      * @param bytes the byte array to represent

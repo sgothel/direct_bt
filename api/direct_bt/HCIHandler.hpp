@@ -486,11 +486,11 @@ namespace direct_bt {
              * @return
              */
             HCIStatusCode le_create_conn(const EUI48 &peer_bdaddr,
-                                        const HCILEPeerAddressType peer_mac_type=HCILEPeerAddressType::PUBLIC,
-                                        const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
-                                        const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
-                                        const uint16_t conn_interval_min=12, const uint16_t conn_interval_max=12,
-                                        const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 15)) noexcept;
+                                         const HCILEPeerAddressType peer_mac_type=HCILEPeerAddressType::PUBLIC,
+                                         const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
+                                         const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
+                                         const uint16_t conn_interval_min=12, const uint16_t conn_interval_max=12,
+                                         const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 15)) noexcept;
 
             /**
              * Establish a connection to the given BREDR (non LE).
