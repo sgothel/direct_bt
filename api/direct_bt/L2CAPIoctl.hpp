@@ -119,7 +119,7 @@ extern "C" {
 /**
  * L2CAP socket address
  * <p>
- * BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ
+ * BT Core Spec v5.2: Vol 3, Part A: 4.2 L2CAP_CONNECTION_REQ
  * </p>
  */
 struct sockaddr_l2 {
