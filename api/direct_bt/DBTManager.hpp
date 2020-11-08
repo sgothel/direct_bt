@@ -246,6 +246,7 @@ namespace direct_bt {
              * @param btMode default {@link BTMode} when initializing new adapter. If BTMode::NONE given, MgmtEnv::DEFAULT_BTMODE is being used.
              */
             DBTManager(const BTMode defaultBTMode) noexcept;
+
             DBTManager(const DBTManager&) = delete;
             void operator=(const DBTManager&) = delete;
 
@@ -451,7 +452,7 @@ namespace direct_bt {
             /** Removes all MgmtEventCallbacks from the to the named MgmtEvent::Opcode list. */
             void clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept;
             /** Removes all MgmtEventCallbacks from all MgmtEvent::Opcode lists. */
-            void clearAllMgmtEventCallbacks() noexcept;
+            void clearAllCallbacks() noexcept;
 
             /** Manually send a MgmtEvent to all of its listeners. */
             void sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept;

@@ -479,7 +479,7 @@ void DBTManager::close() noexcept {
         // not open
         DBG_PRINT("DBTManager::close: Not open");
         whitelist.clear();
-        clearAllMgmtEventCallbacks();
+        clearAllCallbacks();
         adapterInfos.clear();
         comm.close();
         return;
@@ -489,7 +489,7 @@ void DBTManager::close() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("DBTManager::close: Start");
     removeAllDevicesFromWhitelist();
-    clearAllMgmtEventCallbacks();
+    clearAllCallbacks();
 
     jau::for_each_cow(adapterInfos, [&](std::shared_ptr<AdapterInfo> & a) {
         shutdownAdapter(a->dev_id);
@@ -891,7 +891,7 @@ void DBTManager::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept {
     }
     mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)].clear();
 }
-void DBTManager::clearAllMgmtEventCallbacks() noexcept {
+void DBTManager::clearAllCallbacks() noexcept {
     for(size_t i=0; i<mgmtAdapterEventCallbackLists.size(); i++) {
         mgmtAdapterEventCallbackLists[i].clear();
     }
