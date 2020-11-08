@@ -1043,6 +1043,12 @@ static ChangedAdapterSetCallbackList::equal_comparator _changedAdapterSetCallbac
 
 void DBTManager::addChangedAdapterSetCallback(const ChangedAdapterSetCallback & l) {
     mgmtChangedAdapterSetCallbackList.push_back(l);
+
+    jau::for_each_cow(adapterInfos, [&](std::shared_ptr<AdapterInfo>& ai) {
+        jau::for_each_cow(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
+           cb.invoke(true /* added */, *ai);
+        });
+    });
 }
 int DBTManager::removeChangedAdapterSetCallback(const ChangedAdapterSetCallback & l) {
     return mgmtChangedAdapterSetCallbackList.erase_matching(l, true /* all_matching */, _changedAdapterSetCallbackEqComp);
@@ -1053,12 +1059,6 @@ void DBTManager::addChangedAdapterSetCallback(ChangedAdapterSetFunc f) {
             ChangedAdapterSetCallback(
                     jau::bindPlainFunc<bool, bool, const AdapterInfo&>(f)
             ) );
-
-    jau::for_each_cow(adapterInfos, [&](std::shared_ptr<AdapterInfo>& ai) {
-        jau::for_each_cow(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
-           cb.invoke(true /* added */, *ai);
-        });
-    });
 }
 int DBTManager::removeChangedAdapterSetCallback(ChangedAdapterSetFunc f) {
     ChangedAdapterSetCallback l( jau::bindPlainFunc<bool, bool, const AdapterInfo&>(f) );
