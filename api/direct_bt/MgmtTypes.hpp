@@ -264,7 +264,7 @@ namespace direct_bt {
             : MgmtCommand(MgmtOpcode::DISCONNECT, dev_id, 6+1)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, number(addressType));
             }
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -286,7 +286,7 @@ namespace direct_bt {
             : MgmtCommand(MgmtOpcode::GET_CONN_INFO, dev_id, 6+1)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, number(addressType));
             }
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -312,7 +312,7 @@ namespace direct_bt {
             : MgmtCommand(MgmtOpcode::PIN_CODE_REPLY, dev_id, 6+1+1+16)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, number(addressType));
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+7, pin_len);
                 pdu.put_octets_nc(MGMT_HEADER_SIZE+8, pin_code);
             }
@@ -338,7 +338,7 @@ namespace direct_bt {
             : MgmtCommand(MgmtOpcode::PIN_CODE_NEG_REPLY, dev_id, 6+1)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, number(addressType));
             }
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -362,7 +362,7 @@ namespace direct_bt {
             : MgmtCommand(MgmtOpcode::ADD_DEVICE_WHITELIST, dev_id, 6+1+1)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, number(addressType));
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, number(ctype));
             }
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
@@ -386,7 +386,7 @@ namespace direct_bt {
             : MgmtCommand(MgmtOpcode::REMOVE_DEVICE_WHITELIST, dev_id, 6+1)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, number(addressType));
             }
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -867,7 +867,7 @@ namespace direct_bt {
             : MgmtEvent(Opcode::DEVICE_FOUND, dev_id, 6+1+1+4+2+0)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, eir->getAddress());
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, eir->getAddressType());
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, number(eir->getAddressType()));
                 pdu.put_int8_nc(MGMT_HEADER_SIZE+6+1, eir->getRSSI());
                 pdu.put_uint32_nc(MGMT_HEADER_SIZE+6+1+1, eir->getFlags()); // EIR flags only 8bit, Mgmt uses 32bit?
                 pdu.put_uint16_nc(MGMT_HEADER_SIZE+6+1+1+4, 0); // eir_len
@@ -919,7 +919,7 @@ namespace direct_bt {
             : MgmtEvent(Opcode::DEVICE_CONNECTED, dev_id, 6+1+4+2), hci_conn_handle(hci_conn_handle_)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, number(addressType));
                 pdu.put_uint32_nc(MGMT_HEADER_SIZE+6+1, 0); // flags
                 pdu.put_uint16_nc(MGMT_HEADER_SIZE+6+1+4, 0); // eir-len
             }
@@ -965,7 +965,7 @@ namespace direct_bt {
             : MgmtEvent(Opcode::CONNECT_FAILED, dev_id, 6+1+1), hciStatus(status)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, number(addressType));
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, static_cast<uint8_t>(MgmtStatus::CONNECT_FAILED));
             }
             const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
@@ -1038,7 +1038,7 @@ namespace direct_bt {
             {
                 DisconnectReason disconnectReason = getDisconnectReason(hciReason_);
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, number(addressType));
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, static_cast<uint8_t>(disconnectReason));
             }
 

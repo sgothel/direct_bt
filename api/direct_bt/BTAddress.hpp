@@ -44,7 +44,7 @@ namespace direct_bt {
      * 3) BT random address used as BD_ADDR on the LE physical channel is defined in Vol 3, Part C 10.8
      * </pre>
      */
-    enum BDAddressType : uint8_t {
+    enum class BDAddressType : uint8_t {
         /** Bluetooth BREDR address */
         BDADDR_BREDR      = 0x00,
         /** Bluetooth LE public address */
@@ -54,14 +54,18 @@ namespace direct_bt {
         /** Undefined */
         BDADDR_UNDEFINED  = 0xff
     };
-
+    constexpr uint8_t number(const BDAddressType rhs) noexcept {
+        return static_cast<uint8_t>(rhs);
+    }
     std::string getBDAddressTypeString(const BDAddressType type) noexcept;
 
     /**
      * Returns true if the given BDAddressType is a LE address type.
      * @param type given BDAddressType
      */
-    constexpr bool isLEAddressType(const BDAddressType type) noexcept { return BDADDR_LE_PUBLIC == type || BDADDR_LE_RANDOM == type; }
+    constexpr bool isLEAddressType(const BDAddressType type) noexcept {
+        return BDAddressType::BDADDR_LE_PUBLIC == type || BDAddressType::BDADDR_LE_RANDOM == type;
+    }
 
     /**
      * Returns true if the given BDAddressType is a BREDR address type.

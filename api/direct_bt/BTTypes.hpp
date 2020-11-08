@@ -116,8 +116,8 @@ namespace direct_bt {
      */
     enum class ScanType : uint8_t {
         NONE  = 0,
-        BREDR = 1 << BDAddressType::BDADDR_BREDR,
-        LE    = ( 1 << BDAddressType::BDADDR_LE_PUBLIC ) | ( 1 << BDAddressType::BDADDR_LE_RANDOM ),
+        BREDR = 1 << number(BDAddressType::BDADDR_BREDR),
+        LE    = ( 1 << number(BDAddressType::BDADDR_LE_PUBLIC) ) | ( 1 << number(BDAddressType::BDADDR_LE_RANDOM) ),
         DUAL  = BREDR | LE
     };
     constexpr uint8_t number(const ScanType rhs) noexcept {

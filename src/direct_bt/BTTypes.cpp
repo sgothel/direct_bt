@@ -44,15 +44,15 @@ using namespace direct_bt;
 BDAddressType direct_bt::getBDAddressType(const HCILEPeerAddressType hciPeerAddrType) noexcept {
     switch(hciPeerAddrType) {
         case HCILEPeerAddressType::PUBLIC:
-            return BDADDR_LE_PUBLIC;
+            return BDAddressType::BDADDR_LE_PUBLIC;
         case HCILEPeerAddressType::RANDOM:
             [[fallthrough]];
         case HCILEPeerAddressType::PUBLIC_IDENTITY:
             [[fallthrough]];
         case HCILEPeerAddressType::RANDOM_STATIC_IDENTITY:
-            return BDADDR_LE_RANDOM;
+            return BDAddressType::BDADDR_LE_RANDOM;
         default:
-            return BDADDR_UNDEFINED;
+            return BDAddressType::BDADDR_UNDEFINED;
     }
 }
 
@@ -74,15 +74,15 @@ std::string direct_bt::getHCILEPeerAddressTypeString(const HCILEPeerAddressType 
 BDAddressType direct_bt::getBDAddressType(const HCILEOwnAddressType hciOwnAddrType) noexcept {
     switch(hciOwnAddrType) {
         case HCILEOwnAddressType::PUBLIC:
-            return BDADDR_LE_PUBLIC;
+            return BDAddressType::BDADDR_LE_PUBLIC;
         case HCILEOwnAddressType::RANDOM:
             [[fallthrough]];
         case HCILEOwnAddressType::RESOLVABLE_OR_PUBLIC:
             [[fallthrough]];
         case HCILEOwnAddressType::RESOLVABLE_OR_RANDOM:
-            return BDADDR_LE_RANDOM;
+            return BDAddressType::BDADDR_LE_RANDOM;
         default:
-            return BDADDR_UNDEFINED;
+            return BDAddressType::BDADDR_UNDEFINED;
     }
 }
 
@@ -103,14 +103,14 @@ std::string direct_bt::getHCILEOwnAddressTypeString(const HCILEOwnAddressType ty
 
 
 #define CHAR_DECL_BDADDRESSTYPE_ENUM(X) \
-        X(BDADDR_BREDR) \
-        X(BDADDR_LE_PUBLIC) \
-        X(BDADDR_LE_RANDOM) \
-        X(BDADDR_UNDEFINED)
+        X(BDAddressType,BDADDR_BREDR) \
+        X(BDAddressType,BDADDR_LE_PUBLIC) \
+        X(BDAddressType,BDADDR_LE_RANDOM) \
+        X(BDAddressType,BDADDR_UNDEFINED)
 
 std::string direct_bt::getBDAddressTypeString(const BDAddressType type) noexcept {
     switch(type) {
-        CHAR_DECL_BDADDRESSTYPE_ENUM(CASE_TO_STRING)
+        CHAR_DECL_BDADDRESSTYPE_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
     }
     return "Unknown BDAddressType";

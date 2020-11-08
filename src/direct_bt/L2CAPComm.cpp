@@ -80,7 +80,7 @@ int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, 
     a.l2_psm = jau::cpu_to_le(psm);
     a.l2_bdaddr = adapterAddress;
     a.l2_cid = jau::cpu_to_le(cid);
-    a.l2_bdaddr_type = pubaddrAdapter ? BDADDR_LE_PUBLIC : BDADDR_LE_RANDOM;
+    a.l2_bdaddr_type = pubaddrAdapter ? ::number(BDAddressType::BDADDR_LE_PUBLIC) : ::number(BDAddressType::BDADDR_LE_RANDOM);
     if ( bind(fd, (struct sockaddr *) &a, sizeof(a)) < 0 ) {
         ERR_PRINT("L2CAPComm::l2cap_open_dev: bind failed");
         goto failed;
@@ -130,7 +130,7 @@ L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device_, const uint16_t psm_, co
     req.l2_psm = jau::cpu_to_le(psm_);
     req.l2_bdaddr = device_->getAddress();
     req.l2_cid = jau::cpu_to_le(cid_);
-    req.l2_bdaddr_type = device_->getAddressType();
+    req.l2_bdaddr_type = ::number(device_->getAddressType());
 
     while( !interrupt_flag ) {
         // blocking
