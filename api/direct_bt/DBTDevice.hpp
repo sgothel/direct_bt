@@ -39,6 +39,7 @@
 #include "HCIIoctl.hpp"
 #include "HCIComm.hpp"
 
+#include "SMPHandler.hpp"
 #include "GATTHandler.hpp"
 
 namespace direct_bt {
@@ -65,12 +66,15 @@ namespace direct_bt {
             std::atomic<uint16_t> hciConnHandle;
             std::shared_ptr<ManufactureSpecificData> advMSD = nullptr;
             std::vector<std::shared_ptr<uuid_t>> advServices;
+            std::shared_ptr<SMPHandler> smpHandler = nullptr;
             std::shared_ptr<GATTHandler> gattHandler = nullptr;
+            std::recursive_mutex mtx_smpHandler;
             std::recursive_mutex mtx_gattHandler;
             std::recursive_mutex mtx_connect;
             std::recursive_mutex mtx_data;
             std::atomic<bool> isConnected;
             std::atomic<bool> allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
+
             DBTDevice(DBTAdapter & adapter, EInfoReport const & r);
 
             /** Add advertised service (GAP discovery) */
@@ -92,7 +96,7 @@ namespace direct_bt {
             /**
              * Returns a newly established GATT connection.
              * <p>
-             * Will be performed after connectLE(..) via notifyConnected().
+             * Will be performed after connectLE(..) via notifyConnected(), processNotifyConnectedOffThread().
              * </p>
              * <p>
              * The GATTHandler is managed by this device instance and closed via disconnectGATT().
@@ -104,6 +108,30 @@ namespace direct_bt {
              * Will be performed within disconnect() and notifyDisconnected().
              */
             void disconnectGATT(int caller) noexcept;
+
+            /**
+             * Returns a newly established SMP host connection.
+             * <p>
+             * Will be performed after connectLE(..) via notifyConnected(), processNotifyConnectedOffThread().
+             * </p>
+             * <p>
+             * The SMPHandler is managed by this device instance and closed via disconnectSMP().
+             * </p>
+             */
+            bool connectSMP() noexcept;
+
+            /**
+             * Will be performed within disconnect() and notifyDisconnected().
+             */
+            void disconnectSMP(int caller) noexcept;
+
+            /**
+             * Will be performed after connectLE(..) via notifyConnected(),
+             * issuing connectSMP() and connectGATT() off thread.
+             */
+            void processNotifyConnectedOffThread();
+
+            bool smpSecurityReqCallback(std::shared_ptr<const SMPPDUMsg> msg);
 
         public:
             const uint64_t ts_creation;

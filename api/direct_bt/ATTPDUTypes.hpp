@@ -59,7 +59,7 @@
  *   -  GATTCharacteristic
  *   -  GATTDescriptor
  * - *SMP PDU* SMPPDUMsg via L2CAP for Security Manager Protocol (SMP) communication
- * - *SM Support* via SMHandler using SMPPDUMsg over L2CAPComm, providing
+ * - *SMP Support* via SMPHandler using SMPPDUMsg over L2CAPComm, providing (Not yet supported by Linux/BlueZ)
  *   - LE Secure Connections
  *   - LE legacy pairing
  *
@@ -67,7 +67,7 @@
  * for adapter configuration and adapter add/removal notifications (ChangedAdapterSetFunc()).
  *
  * To support other platforms than Linux/BlueZ, we will have to
- * - Move specified HCI host features used in DBTManager to HCIHandler - and -
+ * - Move specified HCI host features used in DBTManager to HCIHandler, SMPHandler,..  - and -
  * - Add specialization for each new platform using their non-platform-agnostic features.
  *
  * - - - - - - - - - - - - - - -

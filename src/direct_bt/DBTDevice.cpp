@@ -392,9 +392,17 @@ void DBTDevice::notifyConnected(const uint16_t handle) noexcept {
     isConnected = true;
     hciConnHandle = handle;
     if( isLEAddressType() ) {
-        std::thread bg(&DBTDevice::connectGATT, this); // @suppress("Invalid arguments")
+        std::thread bg(&DBTDevice::processNotifyConnectedOffThread, this); // @suppress("Invalid arguments")
         bg.detach();
     }
+}
+
+void DBTDevice::processNotifyConnectedOffThread() {
+    DBG_PRINT("DBTDevice::processNotifyConnectedOffThread: %s", toString().c_str());
+    bool res0 = connectSMP();
+    bool res1 = connectGATT();
+    DBG_PRINT("DBTDevice::processNotifyConnectedOffThread: connect[SMP %d, GATT %d], %s",
+            res0, res1, toString().c_str());
 }
 
 void DBTDevice::notifyDisconnected() noexcept {
@@ -405,18 +413,7 @@ void DBTDevice::notifyDisconnected() noexcept {
     isConnected = false;
     hciConnHandle = 0;
     disconnectGATT(1);
-}
-
-void DBTDevice::disconnectGATT(int caller) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_gattHandler);
-    if( nullptr != gattHandler ) {
-        DBG_PRINT("DBTDevice::disconnectGATT: start (has gattHandler, caller %d)", caller);
-        gattHandler->disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
-    } else {
-        DBG_PRINT("DBTDevice::disconnectGATT: start (nil gattHandler, caller %d)", caller);
-    }
-    gattHandler = nullptr;
-    DBG_PRINT("DBTDevice::disconnectGATT: end");
+    disconnectSMP(1);
 }
 
 HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
@@ -435,9 +432,10 @@ HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
         return HCIStatusCode::SUCCESS;
     }
 
-    // Disconnect GATT before device, keeping reversed initialization order intact if possible.
+    // Disconnect GATT and SMP before device, keeping reversed initialization order intact if possible.
     // This outside mtx_connect, keeping same mutex lock order intact as well
     disconnectGATT(0);
+    disconnectSMP(0);
 
     // Lock to avoid other threads connecting while disconnecting
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
@@ -506,6 +504,70 @@ HCIStatusCode DBTDevice::pair(const std::string & passkey) {
 
 void DBTDevice::remove() noexcept {
     adapter.removeDevice(*this);
+}
+
+void DBTDevice::disconnectSMP(int caller) noexcept {
+    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_smpHandler);
+    if( nullptr != smpHandler ) {
+        DBG_PRINT("DBTDevice::disconnectSMP: start (has smpHandler, caller %d)", caller);
+        smpHandler->disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
+    } else {
+        DBG_PRINT("DBTDevice::disconnectSMP: start (nil smpHandler, caller %d)", caller);
+    }
+    smpHandler = nullptr;
+    DBG_PRINT("DBTDevice::disconnectSMP: end");
+}
+
+bool DBTDevice::connectSMP() noexcept {
+    if( !isConnected || !allowDisconnect) {
+        ERR_PRINT("DBTDevice::connectSMP: Device not connected: %s", toString().c_str());
+        return false;
+    }
+
+    if( !SMPHandler::IS_SUPPORTED_BY_OS ) {
+        ERR_PRINT("DBTDevice::connectSMP: SMP Not supported by OS: %s", toString().c_str());
+        return false;
+    }
+
+    std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
+    if( nullptr == sharedInstance ) {
+        ERR_PRINT("DBTDevice::connectSMP: Device unknown to adapter and not tracked: %s", toString().c_str());
+        return false;
+    }
+
+    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_gattHandler);
+    if( nullptr != smpHandler ) {
+        if( smpHandler->isConnected() ) {
+            return true;
+        }
+        smpHandler = nullptr;
+    }
+
+    smpHandler = std::shared_ptr<SMPHandler>(new SMPHandler(sharedInstance));
+    if( !smpHandler->isConnected() ) {
+        ERR_PRINT("DBTDevice::connectSMP: Connection failed");
+        smpHandler = nullptr;
+        return false;
+    }
+    smpHandler->addSMPSecurityReqCallback(jau::bindMemberFunc(this, &DBTDevice::smpSecurityReqCallback));
+    return true;
+}
+
+bool DBTDevice::smpSecurityReqCallback(std::shared_ptr<const SMPPDUMsg> msg) {
+    DBG_PRINT("DBTDevice:smp:SecurityReq: %s", msg->toString().c_str());
+    return true;
+}
+
+void DBTDevice::disconnectGATT(int caller) noexcept {
+    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_gattHandler);
+    if( nullptr != gattHandler ) {
+        DBG_PRINT("DBTDevice::disconnectGATT: start (has gattHandler, caller %d)", caller);
+        gattHandler->disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
+    } else {
+        DBG_PRINT("DBTDevice::disconnectGATT: start (nil gattHandler, caller %d)", caller);
+    }
+    gattHandler = nullptr;
+    DBG_PRINT("DBTDevice::disconnectGATT: end");
 }
 
 bool DBTDevice::connectGATT() noexcept {

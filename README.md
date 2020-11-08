@@ -57,7 +57,7 @@ Some more elaboration on the implementation and its status
 >
 
 To support other platforms than Linux/BlueZ, we will have to
-* move specified HCI host features used in DBTManager to HCIHandler - and -
+* move specified HCI host features used in DBTManager to HCIHandler, SMPHandler,.. - and -
 * add specialization for each new platform using their non-platform-agnostic features.
 
 
