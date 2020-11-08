@@ -105,10 +105,10 @@ int L2CAPComm::l2cap_close_dev(int dd)
 // *************************************************
 // *************************************************
 
-L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device_, const uint16_t psm_, const uint16_t cid_)
+L2CAPComm::L2CAPComm(const DBTDevice& device, const uint16_t psm_, const uint16_t cid_)
 : env(L2CAPEnv::get()),
-  device(device_), deviceString(device_->getAddressString()), psm(psm_), cid(cid_),
-  socket_descriptor( l2cap_open_dev(device_->getAdapter().getAddress(), psm_, cid_, true /* pubaddrAdptr */) ),
+  deviceString(device.getAddressString()), psm(psm_), cid(cid_),
+  socket_descriptor( l2cap_open_dev(device.getAdapter().getAddress(), psm_, cid_, true /* pubaddrAdptr */) ),
   is_connected(true), has_ioerror(false), interrupt_flag(false), tid_connect(0), tid_read(0)
 {
     /** BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ */
@@ -128,9 +128,9 @@ L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device_, const uint16_t psm_, co
     bzero((void *)&req, sizeof(req));
     req.l2_family = AF_BLUETOOTH;
     req.l2_psm = jau::cpu_to_le(psm_);
-    req.l2_bdaddr = device_->getAddress();
+    req.l2_bdaddr = device.getAddress();
     req.l2_cid = jau::cpu_to_le(cid_);
-    req.l2_bdaddr_type = ::number(device_->getAddressType());
+    req.l2_bdaddr_type = ::number(device.getAddressType());
 
     while( !interrupt_flag ) {
         // blocking

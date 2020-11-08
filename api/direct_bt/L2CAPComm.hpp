@@ -129,7 +129,6 @@ namespace direct_bt {
             const L2CAPEnv & env;
 
             std::recursive_mutex mtx_write;
-            std::shared_ptr<DBTDevice> device;
             const std::string deviceString;
             const uint16_t psm;
             const uint16_t cid;
@@ -147,12 +146,13 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ
              * </p>
              */
-            L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid);
+            L2CAPComm(const DBTDevice& device, const uint16_t psm, const uint16_t cid);
+
+            L2CAPComm(const L2CAPComm&) = delete;
+            void operator=(const L2CAPComm&) = delete;
 
             /** Destructor closing the L2CAP channel, see {@link #disconnect()}. */
             ~L2CAPComm() noexcept { disconnect(); }
-
-            std::shared_ptr<DBTDevice> getDevice() { return device; }
 
             bool isConnected() const { return is_connected; }
             bool hasIOError() const { return has_ioerror; }
