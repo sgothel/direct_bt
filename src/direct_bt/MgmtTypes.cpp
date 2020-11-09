@@ -271,6 +271,10 @@ std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau
             res = new MgmtEvtNewSettings(buffer, buffer_size); break;
         case MgmtEvent::Opcode::LOCAL_NAME_CHANGED:
             res = new MgmtEvtLocalNameChanged(buffer, buffer_size); break;
+        case Opcode::NEW_LINK_KEY:
+            res = new MgmtEvtNewLinkKey(buffer, buffer_size); break;
+        case Opcode::NEW_LONG_TERM_KEY:
+            res = new MgmtEvtNewLongTermKey(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_CONNECTED:
             res = new MgmtEvtDeviceConnected(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_DISCONNECTED:
@@ -279,6 +283,8 @@ std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau
             res = new MgmtEvtDeviceConnectFailed(buffer, buffer_size); break;
         case MgmtEvent::Opcode::PIN_CODE_REQUEST:
             res = new MgmtEvtPinCodeRequest(buffer, buffer_size); break;
+        case Opcode::AUTH_FAILED:
+            res = new MgmtEvtAuthFailed(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_FOUND:
             res = new MgmtEvtDeviceFound(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DISCOVERING:

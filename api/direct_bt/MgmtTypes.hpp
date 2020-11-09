@@ -937,8 +937,97 @@ namespace direct_bt {
             std::shared_ptr<NameAndShortName> toNameAndShortName() const noexcept;
     };
 
-    // FIXME NEW_LINK_KEY
-    // FIXME NEW_LONG_TERM_KEY
+    /**
+     * uint8_t store_hint,
+     * key {
+     *   mgmt_addr_info { EUI48, uint8_t type },
+     *   uint8_t key_type,
+     *   uint128_t value
+     *   uint8_t pin_length,
+     * }
+     */
+    class MgmtEvtNewLinkKey : public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", storeHint "+jau::uint8HexString(getStoreHint())+
+                       ", key[address["+getAddress().toString()+", "+getBDAddressTypeString(getAddressType())+
+                       "], type "+jau::uint8HexString(getKeyType())+
+                       ", value "+jau::uint128HexString(getValue())+
+                       ", pinLen "+jau::uint8HexString(getPinLength())+
+                       "]";
+            }
+
+        public:
+            MgmtEvtNewLinkKey(const uint8_t* buffer, const jau::nsize_t buffer_len)
+            : MgmtEvent(buffer, buffer_len, 1+6+1+1+16+1)
+            {
+                checkOpcode(getOpcode(), Opcode::NEW_LINK_KEY);
+            }
+
+            uint8_t getStoreHint() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE); }
+
+            const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE+1)); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+1+6)); } // mgmt_addr_info
+
+            uint8_t getKeyType() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+1+6+1); }
+            jau::uint128_t getValue() const noexcept { return pdu.get_uint128_nc(MGMT_HEADER_SIZE+1+6+1+1); }
+            uint8_t getPinLength() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+1+6+1+1+16); }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+6+1+1+16+1; }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+    };
+
+    /**
+     * uint8_t store_hint,
+     * key {
+     *   mgmt_addr_info { EUI48, uint8_t type },
+     *   uint8_t key_type,
+     *   uint8_t master,
+     *   uint8_t encryption_size,
+     *   uint16_t encryption_diversifier,
+     *   uint64_t random_number,
+     *   uint128_t value
+     * }
+     */
+    class MgmtEvtNewLongTermKey : public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", storeHint "+jau::uint8HexString(getStoreHint())+
+                       ", key[address["+getAddress().toString()+", "+getBDAddressTypeString(getAddressType())+
+                       "], type "+jau::uint8HexString(getKeyType())+", master "+jau::uint8HexString(getMaster())+
+                       ", encSize "+jau::uint8HexString(getEncryptionSize())+
+                       ", encDivs "+jau::uint16HexString(getEncryptionDiversifier())+
+                       ", random "+jau::uint64HexString(getRandomNumber())+
+                       ", value "+jau::uint128HexString(getValue())+
+                       "]";
+            }
+
+        public:
+            MgmtEvtNewLongTermKey(const uint8_t* buffer, const jau::nsize_t buffer_len)
+            : MgmtEvent(buffer, buffer_len, 1+6+1+1+1+2+8+16)
+            {
+                checkOpcode(getOpcode(), Opcode::NEW_LONG_TERM_KEY);
+            }
+
+            uint8_t getStoreHint() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE); }
+
+            const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE+1)); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+1+6)); } // mgmt_addr_info
+
+            uint8_t getKeyType() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+1+6+1); }
+            uint8_t getMaster() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+1+6+1+1); }
+            uint8_t getEncryptionSize() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+1+6+1+1+1); }
+            uint16_t getEncryptionDiversifier() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE+1+6+1+1+1+1); }
+            uint64_t getRandomNumber() const noexcept { return pdu.get_uint64_nc(MGMT_HEADER_SIZE+1+6+1+1+1+1+2); }
+            jau::uint128_t getValue() const noexcept { return pdu.get_uint128_nc(MGMT_HEADER_SIZE+1+6+1+1+1+1+2+8); }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+6+1+1+1+1+2+8; }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+    };
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
@@ -1158,7 +1247,34 @@ namespace direct_bt {
             { }
     };
 
-    // FIXME AUTH_FAILED                = 0x0011,
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     * uint8_t status
+     */
+    class MgmtEvtAuthFailed: public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", address["+getAddress().toString()+
+                       ", "+getBDAddressTypeString(getAddressType())+
+                       "], status "+getMgmtStatusString(getStatus());
+            }
+        public:
+            MgmtEvtAuthFailed(const uint8_t* buffer, const jau::nsize_t buffer_len)
+            : MgmtEvent(buffer, buffer_len, 6+1+1)
+            {
+                checkOpcode(getOpcode(), Opcode::AUTH_FAILED);
+            }
+
+            const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+
+            MgmtStatus getStatus() const noexcept { return static_cast<MgmtStatus>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1)); }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+7; }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+    };
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },

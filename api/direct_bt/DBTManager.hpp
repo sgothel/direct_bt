@@ -258,6 +258,13 @@ namespace direct_bt {
             void processAdapterRemoved(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvControllerErrorCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvNewLinkKeyCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvNewLongTermKeyCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvPinCodeRequestCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvAuthFailedCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvUserPasskeyRequestCB(std::shared_ptr<MgmtEvent> e) noexcept;
+
             bool mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) noexcept;
@@ -266,12 +273,9 @@ namespace direct_bt {
             bool mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceBlockedCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceUnblockedCB(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceWhitelistAddedCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvPinCodeRequestCB(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvUserPasskeyRequestCB(std::shared_ptr<MgmtEvent> e) noexcept;
 
             /**
              * Adds the given AdapterInfo if representing a new dev_id.
