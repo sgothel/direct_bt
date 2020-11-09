@@ -257,6 +257,7 @@ namespace direct_bt {
             void processAdapterAdded(std::shared_ptr<MgmtEvent> e) noexcept;
             void processAdapterRemoved(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvControllerErrorCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) noexcept;
@@ -376,7 +377,8 @@ namespace direct_bt {
              */
             int getDefaultAdapterDevID() const noexcept;
 
-            bool setMode(const uint16_t dev_id, const MgmtOpcode opc, const uint8_t mode) noexcept;
+            bool setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, const uint8_t mode, AdapterSetting& current_settings) noexcept;
+            MgmtStatus setDiscoverable(const uint16_t dev_id, const uint8_t state, const uint16_t timeout, AdapterSetting& current_settings) noexcept;
 
             /** Start discovery on given adapter dev_id with a ScanType matching the given BTMode. Returns set ScanType. */
             ScanType startDiscovery(const uint16_t dev_id, const BTMode btMode) noexcept;

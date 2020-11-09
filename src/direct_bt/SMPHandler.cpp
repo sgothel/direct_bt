@@ -65,11 +65,10 @@ SMPEnv::SMPEnv() noexcept
 {
 }
 
-#ifdef __linux__
-    // Linux/BlueZ prohibits access to the existing SMP implementation via L2CAP (socket).
-    bool SMPHandler::IS_SUPPORTED_BY_OS = false;
-#else
+#if SMP_SUPPORTED_BY_OS
     bool SMPHandler::IS_SUPPORTED_BY_OS = true;
+#else
+    bool SMPHandler::IS_SUPPORTED_BY_OS = false;
 #endif
 
 std::shared_ptr<DBTDevice> SMPHandler::getDeviceChecked() const {

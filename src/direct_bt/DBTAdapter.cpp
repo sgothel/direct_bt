@@ -322,15 +322,18 @@ std::shared_ptr<NameAndShortName> DBTAdapter::setLocalName(const std::string &na
 }
 
 bool DBTAdapter::setDiscoverable(bool value) noexcept {
-    return mgmt.setMode(dev_id, MgmtOpcode::SET_DISCOVERABLE, value ? 1 : 0);
+    AdapterSetting current_settings;
+    return MgmtStatus::SUCCESS == mgmt.setDiscoverable(dev_id, value ? 0x01 : 0x00, 10 /* timeout seconds */, current_settings);
 }
 
 bool DBTAdapter::setBondable(bool value) noexcept {
-    return mgmt.setMode(dev_id, MgmtOpcode::SET_BONDABLE, value ? 1 : 0);
+    AdapterSetting current_settings;
+    return mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, value ? 1 : 0, current_settings);
 }
 
 bool DBTAdapter::setPowered(bool value) noexcept {
-    return mgmt.setMode(dev_id, MgmtOpcode::SET_POWERED, value ? 1 : 0);
+    AdapterSetting current_settings;
+    return mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, value ? 1 : 0, current_settings);
 }
 
 HCIStatusCode DBTAdapter::reset() noexcept {

@@ -163,11 +163,24 @@ std::string direct_bt::getMgmtStatusString(const MgmtStatus opc) noexcept {
     X(SET_APPEARANCE) \
     X(GET_PHY_CONFIGURATION) \
     X(SET_PHY_CONFIGURATION) \
-    X(SET_BLOCKED_KEYS)
+    X(SET_BLOCKED_KEYS) \
+    X(SET_WIDEBAND_SPEECH) \
+    X(READ_SECURITY_INFO) \
+    X(READ_EXP_FEATURES_INFO) \
+    X(SET_EXP_FEATURE) \
+    X(READ_DEF_SYSTEM_CONFIG) \
+    X(SET_DEF_SYSTEM_CONFIG) \
+    X(READ_DEF_RUNTIME_CONFIG) \
+    X(SET_DEF_RUNTIME_CONFIG) \
+    X(GET_DEVICE_FLAGS) \
+    X(SET_DEVICE_FLAGS) \
+    X(READ_ADV_MONITOR_FEATURES) \
+    X(ADD_ADV_PATTERNS_MONITOR) \
+    X(REMOVE_ADV_MONITOR)
 
-#define MGMT_OPCODE_CASE_TO_STRING(V) case MgmtOpcode::V: return #V;
+#define MGMT_OPCODE_CASE_TO_STRING(V) case MgmtCommand::Opcode::V: return #V;
 
-std::string direct_bt::getMgmtOpcodeString(const MgmtOpcode op) noexcept {
+std::string MgmtCommand::getOpcodeString(const Opcode op) noexcept {
     switch(op) {
         MGMT_OPCODE_ENUM(MGMT_OPCODE_CASE_TO_STRING)
         default: ; // fall through intended
@@ -218,7 +231,11 @@ std::string direct_bt::getMgmtOpcodeString(const MgmtOpcode op) noexcept {
     X(ADVERTISING_ADDED) \
     X(ADVERTISING_REMOVED) \
     X(EXT_INFO_CHANGED) \
-    X(PHY_CONFIGURATION_CHANGED)
+    X(PHY_CONFIGURATION_CHANGED) \
+    X(EXP_FEATURE_CHANGED) \
+    X(DEVICE_FLAGS_CHANGED) \
+    X(ADV_MONITOR_ADDED) \
+    X(ADV_MONITOR_REMOVED)
 
 #define MGMT_EV_OPCODE_CASE_TO_STRING(V) case MgmtEvent::Opcode::V: return #V;
 
@@ -236,7 +253,7 @@ std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau
     switch( opc ) {
         case MgmtEvent::Opcode::CMD_COMPLETE:
             if( buffer_size >= MgmtEvtAdapterInfo::getRequiredTotalSize() &&
-                MgmtOpcode::READ_INFO == MgmtEvtCmdComplete::getReqOpcode(buffer) ) {
+                MgmtCommand::Opcode::READ_INFO == MgmtEvtCmdComplete::getCmdOpcode(buffer) ) {
                 res = new MgmtEvtAdapterInfo(buffer, buffer_size);
             } else {
                 res = new MgmtEvtCmdComplete(buffer, buffer_size);
@@ -244,35 +261,36 @@ std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau
             break;
         case MgmtEvent::Opcode::CMD_STATUS:
             res = new MgmtEvtCmdStatus(buffer, buffer_size); break;
-        case MgmtEvent::Opcode::DISCOVERING:
-            res = new MgmtEvtDiscovering(buffer, buffer_size); break;
+        case MgmtEvent::Opcode::CONTROLLER_ERROR:
+            res = new MgmtEvtControllerError(buffer, buffer_size); break;
+        case MgmtEvent::Opcode::INDEX_ADDED:
+            res = new MgmtEvent(buffer, buffer_size, 0); break;
+        case MgmtEvent::Opcode::INDEX_REMOVED:
+            res = new MgmtEvent(buffer, buffer_size, 0); break;
         case MgmtEvent::Opcode::NEW_SETTINGS:
             res = new MgmtEvtNewSettings(buffer, buffer_size); break;
-        case MgmtEvent::Opcode::NEW_CONN_PARAM:
-            res = new MgmtEvtNewConnectionParam(buffer, buffer_size); break;
-        case MgmtEvent::Opcode::DEVICE_FOUND:
-            res = new MgmtEvtDeviceFound(buffer, buffer_size); break;
+        case MgmtEvent::Opcode::LOCAL_NAME_CHANGED:
+            res = new MgmtEvtLocalNameChanged(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_CONNECTED:
             res = new MgmtEvtDeviceConnected(buffer, buffer_size); break;
-        case MgmtEvent::Opcode::CONNECT_FAILED:
-            res = new MgmtEvtDeviceConnectFailed(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_DISCONNECTED:
             res = new MgmtEvtDeviceDisconnected(buffer, buffer_size); break;
+        case MgmtEvent::Opcode::CONNECT_FAILED:
+            res = new MgmtEvtDeviceConnectFailed(buffer, buffer_size); break;
         case MgmtEvent::Opcode::PIN_CODE_REQUEST:
             res = new MgmtEvtPinCodeRequest(buffer, buffer_size); break;
+        case MgmtEvent::Opcode::DEVICE_FOUND:
+            res = new MgmtEvtDeviceFound(buffer, buffer_size); break;
+        case MgmtEvent::Opcode::DISCOVERING:
+            res = new MgmtEvtDiscovering(buffer, buffer_size); break;
+        case MgmtEvent::Opcode::DEVICE_UNPAIRED:
+            res = new MgmtEvtDeviceUnpaired(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED:
             res = new MgmtEvtDeviceWhitelistAdded(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED:
             res = new MgmtEvtDeviceWhitelistRemoved(buffer, buffer_size); break;
-        case MgmtEvent::Opcode::DEVICE_UNPAIRED:
-            res = new MgmtEvtDeviceUnpaired(buffer, buffer_size); break;
-        case MgmtEvent::Opcode::LOCAL_NAME_CHANGED:
-            res = new MgmtEvtLocalNameChanged(buffer, buffer_size);
-            break;
-        case MgmtEvent::Opcode::INDEX_ADDED:
-            [[fallthrough]];
-        case MgmtEvent::Opcode::INDEX_REMOVED:
-            [[fallthrough]];
+        case MgmtEvent::Opcode::NEW_CONN_PARAM:
+            res = new MgmtEvtNewConnectionParam(buffer, buffer_size); break;
         default:
             res = new MgmtEvent(buffer, buffer_size, 0); break;
     }
@@ -283,8 +301,49 @@ std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau
 // *************************************************
 // *************************************************
 
+AdapterSetting MgmtEvtCmdComplete::getCurrentSettings() const noexcept {
+    if( 4 != getDataSize() ) {
+        return AdapterSetting::NONE;
+    }
+    MgmtCommand::Opcode cmd = getCmdOpcode();
+    switch(cmd) {
+        case MgmtCommand::Opcode::SET_POWERED:
+            [[fallthrough]];
+        case MgmtCommand::Opcode::SET_DISCOVERABLE:
+            [[fallthrough]];
+        case MgmtCommand::Opcode::SET_CONNECTABLE:
+            [[fallthrough]];
+        case MgmtCommand::Opcode::SET_FAST_CONNECTABLE:
+            [[fallthrough]];
+        case MgmtCommand::Opcode::SET_BONDABLE:
+            [[fallthrough]];
+        case MgmtCommand::Opcode::SET_LINK_SECURITY:
+            [[fallthrough]];
+        case MgmtCommand::Opcode::SET_SSP:
+            [[fallthrough]];
+        case MgmtCommand::Opcode::SET_HS:
+            [[fallthrough]];
+        case MgmtCommand::Opcode::SET_LE:
+            [[fallthrough]];
+        case MgmtCommand::Opcode::SET_ADVERTISING:
+            [[fallthrough]];
+        case MgmtCommand::Opcode::SET_BREDR:
+            [[fallthrough]];
+        case MgmtCommand::Opcode::SET_STATIC_ADDRESS:
+            [[fallthrough]];
+        case MgmtCommand::Opcode::SET_SECURE_CONN:
+            [[fallthrough]];
+        case MgmtCommand::Opcode::SET_DEBUG_KEYS:
+            [[fallthrough]];
+        case MgmtCommand::Opcode::SET_PRIVACY:
+            return static_cast<AdapterSetting>( pdu.get_uint32_nc(getDataOffset()) );
+        default:
+            return AdapterSetting::NONE;
+    }
+}
+
 std::shared_ptr<ConnectionInfo> MgmtEvtCmdComplete::toConnectionInfo() const noexcept {
-    if( MgmtOpcode::GET_CONN_INFO != getReqOpcode() ) {
+    if( MgmtCommand::Opcode::GET_CONN_INFO != getCmdOpcode() ) {
         ERR_PRINT("Not a GET_CONN_INFO reply: %s", toString().c_str());
         return nullptr;
     }
@@ -308,7 +367,7 @@ std::shared_ptr<ConnectionInfo> MgmtEvtCmdComplete::toConnectionInfo() const noe
 }
 
 std::shared_ptr<NameAndShortName> MgmtEvtCmdComplete::toNameAndShortName() const noexcept {
-    if( MgmtOpcode::SET_LOCAL_NAME != getReqOpcode() ) {
+    if( MgmtCommand::Opcode::SET_LOCAL_NAME != getCmdOpcode() ) {
         ERR_PRINT("Not a SET_LOCAL_NAME reply: %s", toString().c_str());
         return nullptr;
     }

@@ -46,6 +46,8 @@
 #include "HCIComm.hpp"
 #include "DBTTypes.hpp"
 
+#include "SMPHandler.hpp"
+
 extern "C" {
     #include <inttypes.h>
     #include <unistd.h>
@@ -232,22 +234,10 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) noexcept 
     return nullptr;
 }
 
-void DBTManager::setAdapterMode(const uint16_t dev_id, const uint8_t ssp, const uint8_t bredr, const uint8_t le) noexcept {
-    bool res;
-    res = setMode(dev_id, MgmtOpcode::SET_SSP, ssp);
-    DBG_PRINT("setAdapterMode[%d]: SET_SSP(%d): result %d", dev_id, ssp, res);
-
-    res = setMode(dev_id, MgmtOpcode::SET_BREDR, bredr);
-    DBG_PRINT("setAdapterMode[%d]: SET_BREDR(%d): result %d", dev_id, bredr, res);
-
-    res = setMode(dev_id, MgmtOpcode::SET_LE, le);
-    DBG_PRINT("setAdapterMode[%d]: SET_LE(%d): result %d", dev_id, le, res);
-}
-
 std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) noexcept {
     std::shared_ptr<AdapterInfo> adapterInfo = nullptr;
-    bool powered;
-    MgmtCommand req0(MgmtOpcode::READ_INFO, dev_id);
+    AdapterSetting current_settings;
+    MgmtCommand req0(MgmtCommand::Opcode::READ_INFO, dev_id);
     {
         std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
@@ -264,35 +254,50 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
         }
     }
     DBG_PRINT("initAdapter[%d, BTMode %s]: Start: %s", dev_id, getBTModeString(btMode).c_str(), adapterInfo->toString().c_str());
+    current_settings = adapterInfo->getCurrentSettingMask();
 
     switch ( btMode ) {
         case BTMode::DUAL:
-            setAdapterMode(dev_id, 1 /* ssp */, 1 /* bredr */, 1 /* le */);
+            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 1, current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_BREDR, 1, current_settings);
+            setDiscoverable(dev_id, 0, 0, current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_LE, 1, current_settings);
+#if USE_LINUX_BT_SECURITY
+            setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 1, current_settings);
+#endif
             break;
         case BTMode::BREDR:
-            setAdapterMode(dev_id, 1 /* ssp */, 1 /* bredr */, 0 /* le */);
+            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 1, current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_BREDR, 1, current_settings);
+            setDiscoverable(dev_id, 0, 0, current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_LE, 0, current_settings);
             break;
         case BTMode::NONE:
             [[fallthrough]]; // map NONE -> LE
         case BTMode::LE:
-            setAdapterMode(dev_id, 0 /* ssp */, 0 /* bredr */, 1 /* le */);
+            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_BREDR, 0, current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_LE, 1, current_settings);
+#if USE_LINUX_BT_SECURITY
+            setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 1, current_settings);
+#endif
             break;
     }
 
-    setMode(dev_id, MgmtOpcode::SET_CONNECTABLE, 0);
-    setMode(dev_id, MgmtOpcode::SET_FAST_CONNECTABLE, 0);
+    setMode(dev_id, MgmtCommand::Opcode::SET_CONNECTABLE, 0, current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_FAST_CONNECTABLE, 0, current_settings);
 
     removeDeviceFromWhitelist(dev_id, EUI48_ANY_DEVICE, BDAddressType::BDADDR_BREDR); // flush whitelist!
 
-    powered = setMode(dev_id, MgmtOpcode::SET_POWERED, 1);
-    DBG_PRINT("setAdapterMode[%d]: SET_POWERED(1): result %d", dev_id, powered);
+    setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 1, current_settings);
 
     /**
      * Update AdapterSettings post settings
      */
-    {
+    if( AdapterSetting::NONE != current_settings ) {
+        adapterInfo->setCurrentSettingMask(current_settings);
+    } else {
         adapterInfo = nullptr; // flush
-
         std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto fail;
@@ -314,10 +319,12 @@ fail:
 }
 
 void DBTManager::shutdownAdapter(const uint16_t dev_id) noexcept {
-    setMode(dev_id, MgmtOpcode::SET_CONNECTABLE, 0);
-    setMode(dev_id, MgmtOpcode::SET_FAST_CONNECTABLE, 0);
-    setMode(dev_id, MgmtOpcode::SET_DISCOVERABLE, 0);
-    setMode(dev_id, MgmtOpcode::SET_POWERED, 0);
+    AdapterSetting current_settings;
+    setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 0, current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_CONNECTABLE, 0, current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_FAST_CONNECTABLE, 0, current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 0, current_settings);
 }
 
 DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
@@ -362,7 +369,7 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
 
     // Mandatory
     {
-        MgmtCommand req0(MgmtOpcode::READ_VERSION, MgmtConstU16::MGMT_INDEX_NONE);
+        MgmtCommand req0(MgmtCommand::Opcode::READ_VERSION, MgmtConstU16::MGMT_INDEX_NONE);
         std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto fail;
@@ -382,7 +389,7 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
     }
     // Optional
     {
-        MgmtCommand req0(MgmtOpcode::READ_COMMANDS, MgmtConstU16::MGMT_INDEX_NONE);
+        MgmtCommand req0(MgmtCommand::Opcode::READ_COMMANDS, MgmtConstU16::MGMT_INDEX_NONE);
         std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto next1;
@@ -396,7 +403,7 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
             const int expDataSize = 4 + num_commands * 2 + num_events * 2;
             if( res->getDataSize() >= expDataSize ) {
                 for(int i=0; i< num_commands; i++) {
-                    const MgmtOpcode op = static_cast<MgmtOpcode>( get_uint16(data, 4+i*2, true /* littleEndian */) );
+                    const MgmtCommand::Opcode op = static_cast<MgmtCommand::Opcode>( get_uint16(data, 4+i*2, true /* littleEndian */) );
                     DBG_PRINT("kernel op %d: %s", i, getMgmtOpcodeString(op).c_str());
                 }
             }
@@ -407,7 +414,7 @@ DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
 next1:
     // Mandatory
     {
-        MgmtCommand req0(MgmtOpcode::READ_INDEX_LIST, MgmtConstU16::MGMT_INDEX_NONE);
+        MgmtCommand req0(MgmtCommand::Opcode::READ_INDEX_LIST, MgmtConstU16::MGMT_INDEX_NONE);
         std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto fail;
@@ -444,6 +451,7 @@ next1:
     }
 
     addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_SETTINGS,  jau::bindMemberFunc(this, &DBTManager::mgmtEvNewSettingsCB));
+    addMgmtEventCallback(-1, MgmtEvent::Opcode::CONTROLLER_ERROR, jau::bindMemberFunc(this, &DBTManager::mgmtEvControllerErrorCB));
 
     if( env.DEBUG_EVENT ) {
         addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, jau::bindMemberFunc(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
@@ -640,19 +648,55 @@ int DBTManager::getDefaultAdapterDevID() const noexcept {
     return ai->dev_id;
 }
 
-bool DBTManager::setMode(const uint16_t dev_id, const MgmtOpcode opc, const uint8_t mode) noexcept {
+bool DBTManager::setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, const uint8_t mode, AdapterSetting& current_settings) noexcept {
     MgmtUint8Cmd req(opc, dev_id, mode);
-    std::shared_ptr<MgmtEvent> res = sendWithReply(req);
-    if( nullptr != res ) {
-        if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-            const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-            return MgmtStatus::SUCCESS == res1.getStatus();
-        } else if( res->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
-            const MgmtEvtCmdStatus &res1 = *static_cast<const MgmtEvtCmdStatus *>(res.get());
-            return MgmtStatus::SUCCESS == res1.getStatus();
+    std::shared_ptr<MgmtEvent> reply = sendWithReply(req);
+    MgmtStatus res;
+    if( nullptr != reply ) {
+        if( reply->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            const MgmtEvtCmdComplete &reply1 = *static_cast<const MgmtEvtCmdComplete *>(reply.get());
+            res = reply1.getStatus();
+            if( MgmtStatus::SUCCESS == res ) {
+                current_settings = reply1.getCurrentSettings();
+            }
+        } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
+            const MgmtEvtCmdStatus &reply1 = *static_cast<const MgmtEvtCmdStatus *>(reply.get());
+            res = reply1.getStatus();
+        } else {
+            res = MgmtStatus::UNKNOWN_COMMAND;
         }
+    } else {
+        res = MgmtStatus::TIMEOUT;
     }
-    return false;
+    DBG_PRINT("DBTManager::setMode[%d, %s]: %s, result %s %s", dev_id,
+            MgmtCommand::getOpcodeString(opc).c_str(), jau::uint8HexString(mode).c_str(),
+            getMgmtStatusString(res).c_str(), getAdapterSettingMaskString(current_settings).c_str());
+    return MgmtStatus::SUCCESS == res;
+}
+
+MgmtStatus DBTManager::setDiscoverable(const uint16_t dev_id, const uint8_t state, const uint16_t timeout_sec, AdapterSetting& current_settings) noexcept {
+    MgmtSetDiscoverableCmd req(dev_id, state, timeout_sec);
+    std::shared_ptr<MgmtEvent> reply = sendWithReply(req);
+    MgmtStatus res;
+    if( nullptr != reply ) {
+        if( reply->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            const MgmtEvtCmdComplete &reply1 = *static_cast<const MgmtEvtCmdComplete *>(reply.get());
+            res = reply1.getStatus();
+            if( MgmtStatus::SUCCESS == res ) {
+                current_settings = reply1.getCurrentSettings();
+            }
+        } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
+            const MgmtEvtCmdStatus &reply1 = *static_cast<const MgmtEvtCmdStatus *>(reply.get());
+            res = reply1.getStatus();
+        } else {
+            res = MgmtStatus::UNKNOWN_COMMAND;
+        }
+    } else {
+        res = MgmtStatus::TIMEOUT;
+    }
+    DBG_PRINT("DBTManager::setDiscoverable[%d]: %s, result %s %s", dev_id,
+            req.toString().c_str(), getMgmtStatusString(res).c_str(), getAdapterSettingMaskString(current_settings).c_str());
+    return res;
 }
 
 ScanType DBTManager::startDiscovery(const uint16_t dev_id, const BTMode btMode) noexcept {
@@ -660,7 +704,7 @@ ScanType DBTManager::startDiscovery(const uint16_t dev_id, const BTMode btMode) 
 }
 
 ScanType DBTManager::startDiscovery(const uint16_t dev_id, const ScanType scanType) noexcept {
-    MgmtUint8Cmd req(MgmtOpcode::START_DISCOVERY, dev_id, number(scanType));
+    MgmtUint8Cmd req(MgmtCommand::Opcode::START_DISCOVERY, dev_id, number(scanType));
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     ScanType type = ScanType::NONE;
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -677,7 +721,7 @@ ScanType DBTManager::startDiscovery(const uint16_t dev_id, const ScanType scanTy
     return type;
 }
 bool DBTManager::stopDiscovery(const uint16_t dev_id, const ScanType type) noexcept {
-    MgmtUint8Cmd req(MgmtOpcode::STOP_DISCOVERY, dev_id, number(type));
+    MgmtUint8Cmd req(MgmtCommand::Opcode::STOP_DISCOVERY, dev_id, number(type));
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
@@ -946,6 +990,12 @@ bool DBTManager::mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) noexcept {
                 getAdapterSettingMaskString(event.getSettings()).c_str(),
                 e->toString().c_str());
     }
+    return true;
+}
+
+bool DBTManager::mgmtEvControllerErrorCB(std::shared_ptr<MgmtEvent> e) noexcept {
+    DBG_PRINT("DBTManager:mgmt:ControllerError: %s", e->toString().c_str());
+    (void)e;
     return true;
 }
 
