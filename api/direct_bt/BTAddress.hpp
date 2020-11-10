@@ -30,6 +30,8 @@
 #include <string>
 #include <cstdint>
 
+#include <jau/packed_attribute.hpp>
+
 namespace direct_bt {
 
     /**
@@ -158,7 +160,7 @@ namespace direct_bt {
      * declaration is not within our *direct_bt* namespace.
      * </p>
      */
-    struct __attribute__((packed)) EUI48 {
+    __pack ( struct EUI48 {
         uint8_t b[6]; // == sizeof(EUI48)
 
         constexpr EUI48() noexcept : b{0}  { }
@@ -171,7 +173,7 @@ namespace direct_bt {
 
         BLERandomAddressType getBLERandomAddressType(const BDAddressType addressType) const noexcept;
         std::string toString() const;
-    };
+    } );
 
     inline bool operator<(const EUI48& lhs, const EUI48& rhs) noexcept
     { return memcmp(&lhs, &rhs, sizeof(EUI48))<0; }

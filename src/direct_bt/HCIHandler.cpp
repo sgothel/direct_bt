@@ -37,6 +37,7 @@
 
 #include <jau/environment.hpp>
 #include <jau/basic_algos.hpp>
+#include <jau/packed_attribute.hpp>
 
 #include "BTIoctl.hpp"
 
@@ -71,9 +72,9 @@ HCIEnv::HCIEnv() noexcept
 
 const pid_t HCIHandler::pidSelf = getpid();
 
-struct hci_rp_status {
+__pack( struct hci_rp_status {
     __u8    status;
-} __packed;
+} );
 
 HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(std::vector<HCIConnectionRef> &list,
                                                       const EUI48 & address, BDAddressType addrType, const uint16_t handle) noexcept {

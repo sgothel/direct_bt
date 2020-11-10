@@ -34,6 +34,7 @@
 
 #include <jau/function_def.hpp>
 #include <jau/cow_vector.hpp>
+#include <jau/packed_attribute.hpp>
 
 #include "BTTypes.hpp"
 #include "BTIoctl.hpp"
@@ -348,6 +349,49 @@ namespace direct_bt {
 
     // FIXME LOAD_LINK_KEYS          = 0x0012,
     // FIXME LOAD_LONG_TERM_KEYS     = 0x0013,
+    /**
+     * Used for MgmtLoadLinkKeyCmd and MgmtEvtNewLinkKey
+     */
+    __pack( struct MgmtLinkKey {
+        EUI48 address;
+        BDAddressType address_type;
+        uint8_t key_type;
+        jau::uint128_t value;
+        uint8_t pin_length;
+
+        std::string toString() const noexcept {
+            return "LK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
+                   "], type "+jau::uint8HexString(key_type)+
+                   ", value "+jau::uint128HexString(value)+
+                   ", pinLen "+jau::uint8HexString(pin_length)+
+                   "]";
+        }
+    } );
+
+    /**
+     * Used for MgmtLoadLongTermKeyCmd and MgmtEvtNewLongTermKey
+     */
+    __pack( struct MgmtLongTermKey {
+        EUI48 address;
+        BDAddressType address_type;
+        uint8_t key_type;
+        uint8_t master;
+        uint8_t encryption_size;
+        uint16_t encryption_diversifier;
+        uint64_t random_number;
+        jau::uint128_t value;
+
+        std::string toString() const noexcept {
+            return "LTK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
+                   "], type "+jau::uint8HexString(key_type)+", master "+jau::uint8HexString(master)+
+                   ", encSize "+jau::uint8HexString(encryption_size)+
+                   ", encDivs "+jau::uint16HexString(encryption_diversifier)+
+                   ", random "+jau::uint64HexString(random_number)+
+                   ", value "+jau::uint128HexString(value)+
+                   "]";
+        }
+    } );
+
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
@@ -372,6 +416,21 @@ namespace direct_bt {
     };
 
     // FIXME LOAD_IRKS               = 0x0030,
+    /**
+     * Used for MgmtLoadIdentityResolvingKeyCmd and MgmtEvtNewIdentityResolvingKey
+     */
+    __pack( struct MgmtIdentityResolvingKey {
+        EUI48 address;
+        BDAddressType address_type;
+        jau::uint128_t value;
+
+        std::string toString() const noexcept {
+            return "IRK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
+                   "], value "+jau::uint128HexString(value)+
+                   "]";
+        }
+    } );
+
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
@@ -507,14 +566,23 @@ namespace direct_bt {
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
     };
 
-    struct MgmtConnParam {
+    /**
+     * Used in MgmtLoadConnParamCmd and MgmtEvtNewConnectionParam
+     */
+    __pack( struct MgmtConnParam {
         EUI48 address;
-        uint8_t address_type;
+        BDAddressType address_type;
         uint16_t min_interval;
         uint16_t max_interval;
         uint16_t latency;
         uint16_t supervision_timeout;
-    } __packed;
+
+        std::string toString() const noexcept {
+            return "ConnParam[address "+address.toString()+", addressType "+getBDAddressTypeString(address_type)+
+                        ", interval["+std::to_string(min_interval)+".."+std::to_string(max_interval)+
+                        "], latency "+std::to_string(latency)+", timeout "+std::to_string(supervision_timeout)+"]";
+        }
+    } );
 
     /**
      * uint16_t param_count                       2
@@ -548,53 +616,37 @@ namespace direct_bt {
                     if( 0 < i ) {
                         ps.append(", ");
                     }
-                    ps.append( "[address "+getAddress(i).toString()+", addressType "+getBDAddressTypeString(getAddressType(i))+
-                                ", interval["+std::to_string(getMinInterval(i))+".."+std::to_string(getMaxInterval(i))
-                                +"], latency "+std::to_string(getLatency(i))+", timeout "+std::to_string(getTimeout(i))+"]");
+                    ps.append( getConnParam(i).toString() );
                 }
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
             }
 
         public:
             MgmtLoadConnParamCmd(const uint16_t dev_id, const MgmtConnParam & connParam)
-            : MgmtCommand(Opcode::LOAD_CONN_PARAM, dev_id, 2 + 15)
+            : MgmtCommand(Opcode::LOAD_CONN_PARAM, dev_id, 2 + sizeof(MgmtConnParam))
             {
-                jau::nsize_t offset = MGMT_HEADER_SIZE;
-                pdu.put_uint16_nc(offset, 1); offset+= 2;
-
-                pdu.put_eui48_nc(offset, connParam.address); offset+=6;
-                pdu.put_uint8_nc(offset, connParam.address_type); offset+=1;
-                pdu.put_uint16_nc(offset, connParam.min_interval); offset+=2;
-                pdu.put_uint16_nc(offset, connParam.max_interval); offset+=2;
-                pdu.put_uint16_nc(offset, connParam.latency); offset+=2;
-                pdu.put_uint16_nc(offset, connParam.supervision_timeout); offset+=2;
+                pdu.put_uint16_nc(MGMT_HEADER_SIZE, 1);
+                memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE+2), &connParam, sizeof(MgmtConnParam));
             }
 
-            MgmtLoadConnParamCmd(const uint16_t dev_id, std::vector<std::shared_ptr<MgmtConnParam>> connParams)
-            : MgmtCommand(Opcode::LOAD_CONN_PARAM, dev_id, 2 + connParams.size() * 15)
+            MgmtLoadConnParamCmd(const uint16_t dev_id, const std::vector<MgmtConnParam> &connParams)
+            : MgmtCommand(Opcode::LOAD_CONN_PARAM, dev_id, 2 + connParams.size() * sizeof(MgmtConnParam))
             {
                 jau::nsize_t offset = MGMT_HEADER_SIZE;
                 pdu.put_uint16_nc(offset, connParams.size()); offset+= 2;
 
-                for(auto it = connParams.begin(); it != connParams.end(); ++it) {
-                    std::shared_ptr<MgmtConnParam> connParam = *it;
-
-                    pdu.put_eui48_nc(offset, connParam->address); offset+=6;
-                    pdu.put_uint8_nc(offset, connParam->address_type); offset+=1;
-                    pdu.put_uint16_nc(offset, connParam->min_interval); offset+=2;
-                    pdu.put_uint16_nc(offset, connParam->max_interval); offset+=2;
-                    pdu.put_uint16_nc(offset, connParam->latency); offset+=2;
-                    pdu.put_uint16_nc(offset, connParam->supervision_timeout); offset+=2;
+                for(auto it = connParams.begin(); it != connParams.end(); ++it, offset+=sizeof(MgmtConnParam)) {
+                    const MgmtConnParam& connParam = *it;
+                    memcpy(pdu.get_wptr_nc(offset), &connParam, sizeof(MgmtConnParam));
                 }
             }
+
             uint16_t getParamCount() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE); }
 
-            const EUI48 getAddress(jau::nsize_t idx) const { checkParamIdx(idx); return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE + 2 + 15*idx)); } // mgmt_addr_info
-            BDAddressType getAddressType(jau::nsize_t idx) const { checkParamIdx(idx); return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE + 2 + 15*idx + 6)); } // mgmt_addr_info
-            uint16_t getMinInterval(jau::nsize_t idx) const { checkParamIdx(idx); return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1); }
-            uint16_t getMaxInterval(jau::nsize_t idx) const { checkParamIdx(idx); return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1 + 2); }
-            uint16_t getLatency(jau::nsize_t idx) const { checkParamIdx(idx); return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1 + 2 + 2); }
-            uint16_t getTimeout(jau::nsize_t idx) const { checkParamIdx(idx); return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1 + 2 + 2 + 2); }
+            const MgmtConnParam& getConnParam(jau::nsize_t idx) const {
+                checkParamIdx(idx);
+                return *reinterpret_cast<const MgmtConnParam *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 2 + sizeof(MgmtConnParam)*idx) );
+            }
     };
 
     /**
@@ -939,92 +991,60 @@ namespace direct_bt {
 
     /**
      * uint8_t store_hint,
-     * key {
-     *   mgmt_addr_info { EUI48, uint8_t type },
-     *   uint8_t key_type,
-     *   uint128_t value
-     *   uint8_t pin_length,
-     * }
+     * MgmtLinkKey key
      */
     class MgmtEvtNewLinkKey : public MgmtEvent
     {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", storeHint "+jau::uint8HexString(getStoreHint())+
-                       ", key[address["+getAddress().toString()+", "+getBDAddressTypeString(getAddressType())+
-                       "], type "+jau::uint8HexString(getKeyType())+
-                       ", value "+jau::uint128HexString(getValue())+
-                       ", pinLen "+jau::uint8HexString(getPinLength())+
-                       "]";
+                       ", "+getLinkKey().toString();
             }
 
         public:
             MgmtEvtNewLinkKey(const uint8_t* buffer, const jau::nsize_t buffer_len)
-            : MgmtEvent(buffer, buffer_len, 1+6+1+1+16+1)
+            : MgmtEvent(buffer, buffer_len, 1+sizeof(MgmtLinkKey))
             {
                 checkOpcode(getOpcode(), Opcode::NEW_LINK_KEY);
             }
 
             uint8_t getStoreHint() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE); }
 
-            const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE+1)); } // mgmt_addr_info
-            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+1+6)); } // mgmt_addr_info
+            const MgmtLinkKey& getLinkKey() const {
+                return *reinterpret_cast<const MgmtLinkKey *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1) );
+            }
 
-            uint8_t getKeyType() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+1+6+1); }
-            jau::uint128_t getValue() const noexcept { return pdu.get_uint128_nc(MGMT_HEADER_SIZE+1+6+1+1); }
-            uint8_t getPinLength() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+1+6+1+1+16); }
-
-            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+6+1+1+16+1; }
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+sizeof(MgmtLinkKey); }
             jau::nsize_t getDataSize() const noexcept override { return 0; }
             const uint8_t* getData() const noexcept override { return nullptr; }
     };
 
     /**
      * uint8_t store_hint,
-     * key {
-     *   mgmt_addr_info { EUI48, uint8_t type },
-     *   uint8_t key_type,
-     *   uint8_t master,
-     *   uint8_t encryption_size,
-     *   uint16_t encryption_diversifier,
-     *   uint64_t random_number,
-     *   uint128_t value
-     * }
+     * MgmtLongTermKey key
      */
     class MgmtEvtNewLongTermKey : public MgmtEvent
     {
         protected:
             std::string baseString() const noexcept override {
-                return MgmtEvent::baseString()+", storeHint "+jau::uint8HexString(getStoreHint())+
-                       ", key[address["+getAddress().toString()+", "+getBDAddressTypeString(getAddressType())+
-                       "], type "+jau::uint8HexString(getKeyType())+", master "+jau::uint8HexString(getMaster())+
-                       ", encSize "+jau::uint8HexString(getEncryptionSize())+
-                       ", encDivs "+jau::uint16HexString(getEncryptionDiversifier())+
-                       ", random "+jau::uint64HexString(getRandomNumber())+
-                       ", value "+jau::uint128HexString(getValue())+
-                       "]";
+                return MgmtEvent::baseString()+", store "+jau::uint8HexString(getStoreHint())+
+                       ", "+getLongTermKey().toString();
             }
 
         public:
             MgmtEvtNewLongTermKey(const uint8_t* buffer, const jau::nsize_t buffer_len)
-            : MgmtEvent(buffer, buffer_len, 1+6+1+1+1+2+8+16)
+            : MgmtEvent(buffer, buffer_len, 1+sizeof(MgmtLongTermKey))
             {
                 checkOpcode(getOpcode(), Opcode::NEW_LONG_TERM_KEY);
             }
 
             uint8_t getStoreHint() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE); }
 
-            const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE+1)); } // mgmt_addr_info
-            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+1+6)); } // mgmt_addr_info
+            const MgmtLongTermKey& getLongTermKey() const {
+                return *reinterpret_cast<const MgmtLongTermKey *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1) );
+            }
 
-            uint8_t getKeyType() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+1+6+1); }
-            uint8_t getMaster() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+1+6+1+1); }
-            uint8_t getEncryptionSize() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+1+6+1+1+1); }
-            uint16_t getEncryptionDiversifier() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE+1+6+1+1+1+1); }
-            uint64_t getRandomNumber() const noexcept { return pdu.get_uint64_nc(MGMT_HEADER_SIZE+1+6+1+1+1+1+2); }
-            jau::uint128_t getValue() const noexcept { return pdu.get_uint128_nc(MGMT_HEADER_SIZE+1+6+1+1+1+1+2+8); }
-
-            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+6+1+1+1+1+2+8; }
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+sizeof(MgmtLongTermKey); }
             jau::nsize_t getDataSize() const noexcept override { return 0; }
             const uint8_t* getData() const noexcept override { return nullptr; }
     };
@@ -1445,12 +1465,8 @@ namespace direct_bt {
     };
 
     /**
-     * mgmt_addr_info { EUI48, uint8_t type },
      * int8_t store_hint,
-     * uint16_t min_interval;
-     * uint16_t max_interval;
-     * uint16_t latency,
-     * uint16_t timeout,
+     * MgmtConnParam connParam
      */
     class MgmtEvtNewConnectionParam : public MgmtEvent
     {
@@ -1458,27 +1474,23 @@ namespace direct_bt {
 
         protected:
             std::string baseString() const noexcept override {
-                return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                       ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", store-hint "+std::to_string(getStoreHint())+
-                       ", interval["+std::to_string(getMinInterval())+".."+std::to_string(getMaxInterval())+
-                       "], latency "+std::to_string(getLatency())+", timeout "+std::to_string(getTimeout());
+                return MgmtEvent::baseString()+
+                       ", store "+jau::uint8HexString(getStoreHint())+
+                       ", "+getConnParam().toString();
             }
 
         public:
             MgmtEvtNewConnectionParam(const uint8_t* buffer, const jau::nsize_t buffer_len)
-            : MgmtEvent(buffer, buffer_len, 16)
+            : MgmtEvent(buffer, buffer_len, 1 + sizeof(MgmtConnParam))
             {
                 checkOpcode(getOpcode(), Opcode::NEW_CONN_PARAM);
             }
-            const EUI48 getAddress() const noexcept { return EUI48(pdu.get_ptr_nc(MGMT_HEADER_SIZE)); } // mgmt_addr_info
-            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
 
-            int8_t getStoreHint() const noexcept { return pdu.get_int8_nc(MGMT_HEADER_SIZE+7); }
-            uint16_t getMinInterval() const noexcept { return pdu.get_uint32_nc(MGMT_HEADER_SIZE+8); }
-            uint16_t getMaxInterval() const noexcept { return pdu.get_uint32_nc(MGMT_HEADER_SIZE+10); }
-            uint16_t getLatency() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE+12); }
-            uint16_t getTimeout() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE+14); }
+            uint8_t getStoreHint() const noexcept { return pdu.get_int8_nc(MGMT_HEADER_SIZE); }
+
+            const MgmtConnParam& getConnParam() const {
+                return *reinterpret_cast<const MgmtConnParam *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE+1) );
+            }
 
             jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+16; }
             jau::nsize_t getDataSize() const noexcept override { return getParamSize()-16; }

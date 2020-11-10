@@ -26,6 +26,8 @@
 #ifndef LINUX_KERNEL_TYPES_HPP_
 #define LINUX_KERNEL_TYPES_HPP_
 
+#include <jau/packed_attribute.hpp>
+
 #include "BTAddress.hpp"
 
 /* <sys/param.h> defines __u64 _le64 and _be64 on aarch64 */
@@ -50,6 +52,5 @@ typedef uint64_t __be64;
 #endif
 
 typedef direct_bt::EUI48 bdaddr_t;
-#define __packed __attribute__ ((packed))
 
 #endif /* LINUX_KERNEL_TYPES_HPP_ */
