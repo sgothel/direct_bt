@@ -257,6 +257,7 @@ namespace direct_bt {
             void processAdapterAdded(std::shared_ptr<MgmtEvent> e) noexcept;
             void processAdapterRemoved(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEventAnyCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvControllerErrorCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvNewLinkKeyCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvNewLongTermKeyCB(std::shared_ptr<MgmtEvent> e) noexcept;
@@ -435,6 +436,9 @@ namespace direct_bt {
 
             std::shared_ptr<ConnectionInfo> getConnectionInfo(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type) noexcept;
             std::shared_ptr<NameAndShortName> setLocalName(const uint16_t dev_id, const std::string & name, const std::string & short_name) noexcept;
+
+            MgmtStatus uploadLinkKey(const uint16_t dev_id, const bool debug_keys, const MgmtLinkKey &key) noexcept;
+            MgmtStatus uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKey &key) noexcept;
 
             /** MgmtEventCallback handling  */
 

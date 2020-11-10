@@ -291,6 +291,8 @@ std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau
             res = new MgmtEvtDiscovering(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_UNPAIRED:
             res = new MgmtEvtDeviceUnpaired(buffer, buffer_size); break;
+        case Opcode::NEW_IRK:
+            res = new MgmtEvtNewIdentityResolvingKey(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED:
             res = new MgmtEvtDeviceWhitelistAdded(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED:

@@ -192,7 +192,7 @@ namespace direct_bt {
                 SET_STATIC_ADDRESS      = 0x002B,
                 SET_SCAN_PARAMS         = 0x002C,
                 SET_SECURE_CONN         = 0x002D, // uint8_t 0x00 disabled, 0x01 enables mixed, 0x02 enables only mode; Core Spec >= 4.1
-                SET_DEBUG_KEYS          = 0x002E, // uint8_t 0x00 disabled, 0x01 transient, 0x02 persistent
+                SET_DEBUG_KEYS          = 0x002E, // uint8_t 0x00 disabled, 0x01 transient, 0x02 transient w/ controller mode
                 SET_PRIVACY             = 0x002F,
                 LOAD_IRKS               = 0x0030,
                 GET_CONN_INFO           = 0x0031,
@@ -347,8 +347,6 @@ namespace direct_bt {
             const std::string getShortName() const noexcept { return pdu.get_string_nc(MGMT_HEADER_SIZE + MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
     };
 
-    // FIXME LOAD_LINK_KEYS          = 0x0012,
-    // FIXME LOAD_LONG_TERM_KEYS     = 0x0013,
     /**
      * Used for MgmtLoadLinkKeyCmd and MgmtEvtNewLinkKey
      */
@@ -367,6 +365,66 @@ namespace direct_bt {
                    "]";
         }
     } );
+
+    /**
+     * uint8_t debug_keys,
+     * uint16_t key_count,
+     * MgmtLinkKey keys[key_count]
+     */
+    class MgmtLoadLinkKeyCmd : public MgmtCommand
+    {
+        private:
+            void checkParamIdx(const jau::nsize_t idx) const {
+                const jau::nsize_t kc = getKeyCount();
+                if( idx >= kc ) {
+                    throw jau::IndexOutOfBoundsException(idx, kc, E_FILE_LINE);
+                }
+            }
+
+        protected:
+            std::string valueString() const noexcept override {
+                const jau::nsize_t keyCount = getKeyCount();
+                std::string ps = "count "+std::to_string(keyCount)+": ";
+                for(jau::nsize_t i=0; i<keyCount; i++) {
+                    if( 0 < i ) {
+                        ps.append(", ");
+                    }
+                    ps.append( getLinkKey(i).toString() );
+                }
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
+        public:
+            MgmtLoadLinkKeyCmd(const uint16_t dev_id, const bool debug_keys, const MgmtLinkKey & key)
+            : MgmtCommand(Opcode::LOAD_LINK_KEYS, dev_id, 1 + 2 + sizeof(MgmtLinkKey))
+            {
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE, debug_keys ? 0x01 : 0x00);
+                pdu.put_uint16_nc(MGMT_HEADER_SIZE+1, 1);
+                memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE+1+2), &key, sizeof(MgmtLinkKey));
+            }
+
+            MgmtLoadLinkKeyCmd(const uint16_t dev_id, const bool debug_keys, const std::vector<MgmtLinkKey> &keys)
+            : MgmtCommand(Opcode::LOAD_LINK_KEYS, dev_id, 1 + 2 + keys.size() * sizeof(MgmtLinkKey))
+            {
+                jau::nsize_t offset = MGMT_HEADER_SIZE;
+                pdu.put_uint8_nc(offset, debug_keys ? 0x01 : 0x00); offset+= 1;
+                pdu.put_uint16_nc(offset, keys.size()); offset+= 2;
+
+                for(auto it = keys.begin(); it != keys.end(); ++it, offset+=sizeof(MgmtLinkKey)) {
+                    const MgmtLinkKey& key = *it;
+                    memcpy(pdu.get_wptr_nc(offset), &key, sizeof(MgmtLinkKey));
+                }
+            }
+
+            bool getDebugKeys() const noexcept { return 0 != pdu.get_uint8_nc(MGMT_HEADER_SIZE); }
+
+            uint16_t getKeyCount() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE+1); }
+
+            const MgmtLinkKey& getLinkKey(jau::nsize_t idx) const {
+                checkParamIdx(idx);
+                return *reinterpret_cast<const MgmtLinkKey *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 2 + sizeof(MgmtLinkKey)*idx) );
+            }
+    };
 
     /**
      * Used for MgmtLoadLongTermKeyCmd and MgmtEvtNewLongTermKey
@@ -392,6 +450,59 @@ namespace direct_bt {
         }
     } );
 
+    /**
+     * uint16_t key_count
+     * MgmtLongTermKey keys[key_count]
+     */
+    class MgmtLoadLongTermKeyCmd : public MgmtCommand
+    {
+        private:
+            void checkParamIdx(const jau::nsize_t idx) const {
+                const jau::nsize_t kc = getKeyCount();
+                if( idx >= kc ) {
+                    throw jau::IndexOutOfBoundsException(idx, kc, E_FILE_LINE);
+                }
+            }
+
+        protected:
+            std::string valueString() const noexcept override {
+                const jau::nsize_t keyCount = getKeyCount();
+                std::string ps = "count "+std::to_string(keyCount)+": ";
+                for(jau::nsize_t i=0; i<keyCount; i++) {
+                    if( 0 < i ) {
+                        ps.append(", ");
+                    }
+                    ps.append( getLongTermKey(i).toString() );
+                }
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
+        public:
+            MgmtLoadLongTermKeyCmd(const uint16_t dev_id, const MgmtLongTermKey & key)
+            : MgmtCommand(Opcode::LOAD_LONG_TERM_KEYS, dev_id, 2 + sizeof(MgmtLongTermKey))
+            {
+                pdu.put_uint16_nc(MGMT_HEADER_SIZE, 1);
+                memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE+2), &key, sizeof(MgmtLongTermKey));
+            }
+
+            MgmtLoadLongTermKeyCmd(const uint16_t dev_id, const std::vector<MgmtLongTermKey> &keys)
+            : MgmtCommand(Opcode::LOAD_LONG_TERM_KEYS, dev_id, 2 + keys.size() * sizeof(MgmtLongTermKey))
+            {
+                jau::nsize_t offset = MGMT_HEADER_SIZE;
+                pdu.put_uint16_nc(offset, keys.size()); offset+= 2;
+
+                for(auto it = keys.begin(); it != keys.end(); ++it, offset+=sizeof(MgmtLongTermKey)) {
+                    const MgmtLongTermKey& key = *it;
+                    memcpy(pdu.get_wptr_nc(offset), &key, sizeof(MgmtLongTermKey));
+                }
+            }
+            uint16_t getKeyCount() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE); }
+
+            const MgmtLongTermKey& getLongTermKey(jau::nsize_t idx) const {
+                checkParamIdx(idx);
+                return *reinterpret_cast<const MgmtLongTermKey *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 2 + sizeof(MgmtLongTermKey)*idx) );
+            }
+    };
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
@@ -415,7 +526,6 @@ namespace direct_bt {
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
     };
 
-    // FIXME LOAD_IRKS               = 0x0030,
     /**
      * Used for MgmtLoadIdentityResolvingKeyCmd and MgmtEvtNewIdentityResolvingKey
      */
@@ -431,6 +541,59 @@ namespace direct_bt {
         }
     } );
 
+    /**
+     * uint16_t key_count
+     * MgmtIdentityResolvingKey keys[key_count]
+     */
+    class MgmtLoadIdentityResolvingKeyCmd : public MgmtCommand
+    {
+        private:
+            void checkParamIdx(const jau::nsize_t idx) const {
+                const jau::nsize_t kc = getKeyCount();
+                if( idx >= kc ) {
+                    throw jau::IndexOutOfBoundsException(idx, kc, E_FILE_LINE);
+                }
+            }
+
+        protected:
+            std::string valueString() const noexcept override {
+                const jau::nsize_t keyCount = getKeyCount();
+                std::string ps = "count "+std::to_string(keyCount)+": ";
+                for(jau::nsize_t i=0; i<keyCount; i++) {
+                    if( 0 < i ) {
+                        ps.append(", ");
+                    }
+                    ps.append( getIdentityResolvingKey(i).toString() );
+                }
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
+        public:
+            MgmtLoadIdentityResolvingKeyCmd(const uint16_t dev_id, const MgmtIdentityResolvingKey & key)
+            : MgmtCommand(Opcode::LOAD_IRKS, dev_id, 2 + sizeof(MgmtIdentityResolvingKey))
+            {
+                pdu.put_uint16_nc(MGMT_HEADER_SIZE, 1);
+                memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE+2), &key, sizeof(MgmtIdentityResolvingKey));
+            }
+
+            MgmtLoadIdentityResolvingKeyCmd(const uint16_t dev_id, const std::vector<MgmtIdentityResolvingKey> &keys)
+            : MgmtCommand(Opcode::LOAD_IRKS, dev_id, 2 + keys.size() * sizeof(MgmtIdentityResolvingKey))
+            {
+                jau::nsize_t offset = MGMT_HEADER_SIZE;
+                pdu.put_uint16_nc(offset, keys.size()); offset+= 2;
+
+                for(auto it = keys.begin(); it != keys.end(); ++it, offset+=sizeof(MgmtIdentityResolvingKey)) {
+                    const MgmtIdentityResolvingKey& key = *it;
+                    memcpy(pdu.get_wptr_nc(offset), &key, sizeof(MgmtIdentityResolvingKey));
+                }
+            }
+            uint16_t getKeyCount() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE); }
+
+            const MgmtIdentityResolvingKey& getIdentityResolvingKey(jau::nsize_t idx) const {
+                checkParamIdx(idx);
+                return *reinterpret_cast<const MgmtIdentityResolvingKey *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 2 + sizeof(MgmtIdentityResolvingKey)*idx) );
+            }
+    };
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
@@ -1419,7 +1582,41 @@ namespace direct_bt {
     };
 
     // FIXME PASSKEY_NOTIFY             = 0x0017,
-    // FIXME NEW_IRK                    = 0x0018,
+
+    /**
+     * uint8_t store_hint,
+     * EUI48 random_address;
+     * MgmtIdentityResolvingKey key
+     */
+    class MgmtEvtNewIdentityResolvingKey : public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", store "+jau::uint8HexString(getStoreHint())+
+                       ", rnd_address "+getRandomAddress().toString()+
+                       +", "+getIdentityResolvingKey().toString();
+            }
+
+        public:
+            MgmtEvtNewIdentityResolvingKey(const uint8_t* buffer, const jau::nsize_t buffer_len)
+            : MgmtEvent(buffer, buffer_len, 1+6+sizeof(MgmtIdentityResolvingKey))
+            {
+                checkOpcode(getOpcode(), Opcode::NEW_IRK);
+            }
+
+            uint8_t getStoreHint() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE); }
+
+            const EUI48& getRandomAddress() const { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1) ); }
+
+            const MgmtIdentityResolvingKey& getIdentityResolvingKey() const {
+                return *reinterpret_cast<const MgmtIdentityResolvingKey *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1 + 6) );
+            }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+sizeof(MgmtIdentityResolvingKey); }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+    };
+
     // FIXME NEW_CSRK                   = 0x0019,
 
     /**
