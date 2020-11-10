@@ -120,10 +120,15 @@ struct bt_security {
 	__u8 level;
 	__u8 key_size;
 };
+/** Only for BR/EDR special cases, like SDP */
 #define BT_SECURITY_SDP		0
+/** No encryption and no authentication. */
 #define BT_SECURITY_LOW		1
+/** Encryption and no authentication (no MITM). */
 #define BT_SECURITY_MEDIUM	2
+/** Encryption and authentication (MITM). */
 #define BT_SECURITY_HIGH	3
+/** Authenticated Secure Connections */
 #define BT_SECURITY_FIPS	4
 
 #define BT_DEFER_SETUP	7
