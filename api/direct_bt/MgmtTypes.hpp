@@ -143,21 +143,6 @@ namespace direct_bt {
             virtual std::string toString() const noexcept = 0;
     };
 
-    /**
-     * Value for MgmtCommand::Opcode::SET_IO_CAPABILITY
-     */
-    enum class MgmtIOCapability : uint8_t {
-        DisplayOnly     = 0x00,/**< DisplayOnly */
-        DisplayYesNo    = 0x01,/**< DisplayYesNo */
-        KeyboardOnly    = 0x02,/**< KeyboardOnly */
-        NoInputNoOutput = 0x03,/**< NoInputNoOutput */
-        KeyboardDisplay = 0x04 /**< KeyboardDisplay */
-    };
-    constexpr uint8_t number(const MgmtIOCapability rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
-    std::string getMgmtIOCapabilityString(const MgmtIOCapability op) noexcept;
-
     class MgmtCommand : public MgmtMsg
     {
         public:
@@ -185,7 +170,7 @@ namespace direct_bt {
                 GET_CONNECTIONS         = 0x0015,
                 PIN_CODE_REPLY          = 0x0016,
                 PIN_CODE_NEG_REPLY      = 0x0017,
-                SET_IO_CAPABILITY       = 0x0018, // MgmtIOCapability value
+                SET_IO_CAPABILITY       = 0x0018, // SMPPairingMsg::IOCapability value
                 PAIR_DEVICE             = 0x0019,
                 CANCEL_PAIR_DEVICE      = 0x001A,
                 UNPAIR_DEVICE           = 0x001B,

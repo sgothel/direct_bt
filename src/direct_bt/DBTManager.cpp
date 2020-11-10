@@ -235,8 +235,8 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) noexcept 
 }
 
 std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) noexcept {
-    // const MgmtIOCapability iocap { MgmtIOCapability::KeyboardDisplay };
-    const MgmtIOCapability iocap { MgmtIOCapability::DisplayOnly };
+    // const SMPPairingMsg::IOCapability iocap { SMPPairingMsg::IOCapability::KEYBOARD_DISPLAY };
+    const SMPPairingMsg::IOCapability iocap { SMPPairingMsg::IOCapability::DISPLAY_ONLY };
     std::shared_ptr<AdapterInfo> adapterInfo = nullptr;
     AdapterSetting current_settings;
     MgmtCommand req0(MgmtCommand::Opcode::READ_INFO, dev_id);
@@ -264,8 +264,6 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
             setDiscoverable(dev_id, 0, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_LE, 1, current_settings);
 #if USE_LINUX_BT_SECURITY
-            // setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, 1, current_settings);
-            setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, number(iocap), current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 1, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 1, current_settings);
 #endif
@@ -275,8 +273,6 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
             setDiscoverable(dev_id, 0, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_LE, 0, current_settings);
 #if USE_LINUX_BT_SECURITY
-            // setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, 1, current_settings);
-            setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, number(iocap), current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 1, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
 #endif
@@ -287,13 +283,17 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
             setMode(dev_id, MgmtCommand::Opcode::SET_BREDR, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_LE, 1, current_settings);
 #if USE_LINUX_BT_SECURITY
-            // setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, 1, current_settings);
-            setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, number(iocap), current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 1, current_settings);
 #endif
             break;
     }
+
+#if USE_LINUX_BT_SECURITY
+    setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, 0, current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, SMPPairingMsg::number(iocap), current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 1, current_settings); // required for pairing
+#endif
 
     setMode(dev_id, MgmtCommand::Opcode::SET_CONNECTABLE, 0, current_settings);
     setMode(dev_id, MgmtCommand::Opcode::SET_FAST_CONNECTABLE, 0, current_settings);
@@ -338,7 +338,7 @@ void DBTManager::shutdownAdapter(const uint16_t dev_id) noexcept {
     setMode(dev_id, MgmtCommand::Opcode::SET_FAST_CONNECTABLE, 0, current_settings);
 
     setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, 0, current_settings);
-    setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, number(MgmtIOCapability::DisplayOnly), current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, SMPPairingMsg::number(SMPPairingMsg::IOCapability::DISPLAY_ONLY), current_settings);
     setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings);
     setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
 }
