@@ -89,6 +89,21 @@ std::string direct_bt::getMgmtStatusString(const MgmtStatus opc) noexcept {
     return "Unknown Status";
 }
 
+#define MGMT_IOCAP_ENUM(X) \
+    X(MgmtIOCapability,DisplayOnly) \
+    X(MgmtIOCapability,DisplayYesNo) \
+    X(MgmtIOCapability,KeyboardOnly) \
+    X(MgmtIOCapability,NoInputNoOutput) \
+    X(MgmtIOCapability,KeyboardDisplay)
+
+std::string direct_bt::getMgmtIOCapabilityString(const MgmtIOCapability op) noexcept {
+    switch(op) {
+        MGMT_IOCAP_ENUM(CASE2_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown MgmtIOCapability";
+}
+
 // *************************************************
 // *************************************************
 // *************************************************
