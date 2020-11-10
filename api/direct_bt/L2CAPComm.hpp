@@ -155,6 +155,10 @@ namespace direct_bt {
             ~L2CAPComm() noexcept { disconnect(); }
 
             bool isConnected() const { return is_connected; }
+
+            /** Return this L2CAP socket descriptor. */
+            inline int getSocketDescriptor() const noexcept { return socket_descriptor; }
+
             bool hasIOError() const { return has_ioerror; }
             std::string getStateString() const { return getStateString(is_connected, has_ioerror); }
 

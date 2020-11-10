@@ -80,7 +80,7 @@ namespace direct_bt {
 
             bool isOpen() const noexcept { return 0 <= socket_descriptor; }
 
-            /** Return this HCI socket descriptor, for multithreading access use {@link #dd()}. */
+            /** Return this HCI socket descriptor. */
             inline int getSocketDescriptor() const noexcept { return socket_descriptor; }
 
             /** Return the recursive write mutex for multithreading access. */
