@@ -309,9 +309,9 @@ std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau
 // *************************************************
 // *************************************************
 
-AdapterSetting MgmtEvtCmdComplete::getCurrentSettings() const noexcept {
+bool MgmtEvtCmdComplete::getCurrentSettings(AdapterSetting& current_settings) const noexcept {
     if( 4 != getDataSize() ) {
-        return AdapterSetting::NONE;
+        return false;
     }
     MgmtCommand::Opcode cmd = getCmdOpcode();
     switch(cmd) {
@@ -344,9 +344,10 @@ AdapterSetting MgmtEvtCmdComplete::getCurrentSettings() const noexcept {
         case MgmtCommand::Opcode::SET_DEBUG_KEYS:
             [[fallthrough]];
         case MgmtCommand::Opcode::SET_PRIVACY:
-            return static_cast<AdapterSetting>( pdu.get_uint32_nc(getDataOffset()) );
+            current_settings = static_cast<AdapterSetting>( pdu.get_uint32_nc(getDataOffset()) );
+            return true;
         default:
-            return AdapterSetting::NONE;
+            return false;
     }
 }
 

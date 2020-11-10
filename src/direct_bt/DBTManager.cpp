@@ -667,7 +667,7 @@ bool DBTManager::setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, c
             const MgmtEvtCmdComplete &reply1 = *static_cast<const MgmtEvtCmdComplete *>(reply.get());
             res = reply1.getStatus();
             if( MgmtStatus::SUCCESS == res ) {
-                current_settings = reply1.getCurrentSettings();
+                reply1.getCurrentSettings(current_settings);
             }
         } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
             const MgmtEvtCmdStatus &reply1 = *static_cast<const MgmtEvtCmdStatus *>(reply.get());
@@ -693,7 +693,7 @@ MgmtStatus DBTManager::setDiscoverable(const uint16_t dev_id, const uint8_t stat
             const MgmtEvtCmdComplete &reply1 = *static_cast<const MgmtEvtCmdComplete *>(reply.get());
             res = reply1.getStatus();
             if( MgmtStatus::SUCCESS == res ) {
-                current_settings = reply1.getCurrentSettings();
+                reply1.getCurrentSettings(current_settings);
             }
         } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
             const MgmtEvtCmdStatus &reply1 = *static_cast<const MgmtEvtCmdStatus *>(reply.get());

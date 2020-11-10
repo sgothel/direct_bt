@@ -1027,7 +1027,7 @@ namespace direct_bt {
             /**
              * Returns AdapterSetting if getCmdOpcode() expects a single 4-octet AdapterSetting and hence getDataSize() == 4.
              */
-            AdapterSetting getCurrentSettings() const noexcept;
+            bool getCurrentSettings(AdapterSetting& current_settings) const noexcept;
 
             /**
              * Convert this instance into ConnectionInfo
