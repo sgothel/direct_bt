@@ -437,6 +437,8 @@ namespace direct_bt {
             std::shared_ptr<ConnectionInfo> getConnectionInfo(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type) noexcept;
             std::shared_ptr<NameAndShortName> setLocalName(const uint16_t dev_id, const std::string & name, const std::string & short_name) noexcept;
 
+            /** Security commands */
+
             MgmtStatus uploadLinkKey(const uint16_t dev_id, const bool debug_keys, const MgmtLinkKey &key) noexcept;
             MgmtStatus uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKey &key) noexcept;
 

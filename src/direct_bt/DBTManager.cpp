@@ -235,6 +235,8 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) noexcept 
 }
 
 std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) noexcept {
+    // const MgmtIOCapability iocap { MgmtIOCapability::KeyboardDisplay };
+    const MgmtIOCapability iocap { MgmtIOCapability::DisplayOnly };
     std::shared_ptr<AdapterInfo> adapterInfo = nullptr;
     AdapterSetting current_settings;
     MgmtCommand req0(MgmtCommand::Opcode::READ_INFO, dev_id);
@@ -258,27 +260,36 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
 
     switch ( btMode ) {
         case BTMode::DUAL:
-            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 1, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_BREDR, 1, current_settings);
             setDiscoverable(dev_id, 0, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_LE, 1, current_settings);
 #if USE_LINUX_BT_SECURITY
+            // setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, 1, current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, number(iocap), current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 1, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 1, current_settings);
 #endif
             break;
         case BTMode::BREDR:
-            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 1, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_BREDR, 1, current_settings);
             setDiscoverable(dev_id, 0, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_LE, 0, current_settings);
+#if USE_LINUX_BT_SECURITY
+            // setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, 1, current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, number(iocap), current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 1, current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
+#endif
             break;
         case BTMode::NONE:
             [[fallthrough]]; // map NONE -> LE
         case BTMode::LE:
-            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_BREDR, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_LE, 1, current_settings);
 #if USE_LINUX_BT_SECURITY
+            // setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, 1, current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, number(iocap), current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 1, current_settings);
 #endif
             break;
@@ -320,11 +331,16 @@ fail:
 
 void DBTManager::shutdownAdapter(const uint16_t dev_id) noexcept {
     AdapterSetting current_settings;
-    setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 0, current_settings);
+
     setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 0, current_settings);
     setMode(dev_id, MgmtCommand::Opcode::SET_CONNECTABLE, 0, current_settings);
     setMode(dev_id, MgmtCommand::Opcode::SET_FAST_CONNECTABLE, 0, current_settings);
-    setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 0, current_settings);
+
+    setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, 0, current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, number(MgmtIOCapability::DisplayOnly), current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
 }
 
 DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
