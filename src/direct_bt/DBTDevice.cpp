@@ -554,17 +554,11 @@ bool DBTDevice::connectSMP() noexcept {
         smpHandler = nullptr;
         return false;
     }
-    smpHandler->addSMPSecurityReqCallback(jau::bindMemberFunc(this, &DBTDevice::smpSecurityReqCallback));
     return true;
   #else
     DBG_PRINT("DBTDevice::connectSMP: SMP Not supported by OS (0): %s", toString().c_str());
     return false;
   #endif
-}
-
-bool DBTDevice::smpSecurityReqCallback(std::shared_ptr<const SMPPDUMsg> msg) {
-    DBG_PRINT("DBTDevice:smp:SecurityReq: %s", msg->toString().c_str());
-    return true;
 }
 
 void DBTDevice::disconnectGATT(int caller) noexcept {

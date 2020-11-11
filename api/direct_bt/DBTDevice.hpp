@@ -133,8 +133,6 @@ namespace direct_bt {
              */
             void processNotifyConnectedOffThread();
 
-            bool smpSecurityReqCallback(std::shared_ptr<const SMPPDUMsg> msg);
-
         public:
             const uint64_t ts_creation;
             /** Device mac address */

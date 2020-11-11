@@ -292,15 +292,53 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
         len = comm.read(rbuffer.get_wptr(), rbuffer.getSize(), env.HCI_READER_THREAD_POLL_TIMEOUT);
         if( 0 < len ) {
             const jau::nsize_t len2 = static_cast<jau::nsize_t>(len);
-            const jau::nsize_t paramSize = len2 >= number(HCIConstSizeT::EVENT_HDR_SIZE) ? rbuffer.get_uint8_nc(2) : 0;
-            if( len2 < number(HCIConstSizeT::EVENT_HDR_SIZE) + paramSize ) {
-                WARN_PRINT("HCIHandler::reader: length mismatch %u < EVENT_HDR_SIZE(%u) + %u - %s",
-                        len2, number(HCIConstSizeT::EVENT_HDR_SIZE), paramSize, toString().c_str());
-                continue; // discard data
+            const HCIPacketType pc = static_cast<HCIPacketType>( rbuffer.get_uint8_nc(0) );
+
+            if( HCIPacketType::ACLDATA == pc ) {
+                std::shared_ptr<HCIACLData> acldata = HCIACLData::getSpecialized(rbuffer.get_ptr(), len2);
+                if( nullptr == acldata ) {
+                    // not valid acl-data ...
+                    WARN_PRINT("HCIHandler-IO RECV Drop (non-acl-data) %s - %s",
+                            jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
+                    continue;
+                }
+                HCIACLData::l2cap_frame l2cap = acldata->getL2CAPFrame();
+                std::shared_ptr<const SMPPDUMsg> smpPDU = l2cap.getSMPPDUMsg();
+                if( nullptr != smpPDU ) {
+                    const SMPPDUMsg::Opcode opc = smpPDU->getOpcode();
+
+                    if( SMPPDUMsg::Opcode::SECURITY_REQUEST == opc ) {
+                        const uint16_t conn_handle = l2cap.handle;
+                        HCIConnectionRef conn = findTrackerConnection(conn_handle);
+
+                        if( nullptr != conn ) {
+                            COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (ACL.SMP) %s for %s",
+                                    smpPDU->toString().c_str(), conn->toString().c_str());
+                            jau::for_each_cow(smpSecurityReqCallbackList, [&](HCISMPSecurityReqCallback &cb) {
+                               cb.invoke(conn->getAddress(), conn->getAddressType(), conn->getHandle(), smpPDU);
+                            });
+                        } else {
+                            WARN_PRINT("HCIHandler-IO RECV Drop (ACL.SMP): Not tracked conn_handle %s: %s",
+                                    jau::uint16HexString(conn_handle), conn->toString().c_str());
+                        }
+                    } else {
+                        COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV Drop (ACL.SMP) %s", smpPDU->toString().c_str());
+                    }
+                } else {
+                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV Drop (ACL.L2CAP): %s", l2cap.toString().c_str());
+                }
+                continue;
             }
+            if( HCIPacketType::EVENT != pc ) {
+                WARN_PRINT("HCIHandler-IO RECV Drop (not event, nor acl-data) %s - %s",
+                        jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
+                continue;
+            }
+
+            // EVENT
             std::shared_ptr<HCIEvent> event = HCIEvent::getSpecialized(rbuffer.get_ptr(), len2);
             if( nullptr == event ) {
-                // not an event ...
+                // not a valid event ...
                 ERR_PRINT("HCIHandler-IO RECV Drop (non-event) %s - %s",
                         jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
                 continue;
@@ -482,6 +520,23 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
 
     PERF_TS_T0();
 
+#if 0
+    {
+        int opt = 1;
+        if (setsockopt(comm.getSocketDescriptor(), SOL_SOCKET, SO_TIMESTAMP, &opt, sizeof(opt)) < 0) {
+            ERR_PRINT("HCIHandler::ctor: setsockopt SO_TIMESTAMP %s", toString().c_str());
+            goto fail;
+        }
+
+        if (setsockopt(comm.getSocketDescriptor(), SOL_SOCKET, SO_PASSCRED, &opt, sizeof(opt)) < 0) {
+            ERR_PRINT("HCIHandler::ctor: setsockopt SO_PASSCRED %s", toString().c_str());
+            goto fail;
+        }
+    }
+#endif
+
+#define FILTER_ALL_EVENTS 0
+
     // Mandatory socket filter (not adapter filter!)
     {
 #if 0
@@ -496,9 +551,13 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         }
 #endif
         HCIComm::filter_clear(&filter_mask);
-        HCIComm::filter_set_ptype(number(HCIPacketType::EVENT),  &filter_mask); // only EVENTs
+        HCIComm::filter_set_ptype(number(HCIPacketType::EVENT),  &filter_mask); // EVENTs
+        HCIComm::filter_set_ptype(number(HCIPacketType::ACLDATA),  &filter_mask); // SMP via ACL DATA
+
         // Setup generic filter mask for all events, this is also required for
-        // HCIComm::filter_all_events(&filter_mask); // all events
+#if FILTER_ALL_EVENTS
+        HCIComm::filter_all_events(&filter_mask); // all events
+#else
         HCIComm::filter_set_event(number(HCIEventType::CONN_COMPLETE), &filter_mask);
         HCIComm::filter_set_event(number(HCIEventType::DISCONN_COMPLETE), &filter_mask);
         HCIComm::filter_set_event(number(HCIEventType::CMD_COMPLETE), &filter_mask);
@@ -507,25 +566,31 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         HCIComm::filter_set_event(number(HCIEventType::LE_META), &filter_mask);
         // HCIComm::filter_set_event(number(HCIEventType::DISCONN_PHY_LINK_COMPLETE), &filter_mask);
         // HCIComm::filter_set_event(number(HCIEventType::DISCONN_LOGICAL_LINK_COMPLETE), &filter_mask);
+#endif
         HCIComm::filter_set_opcode(0, &filter_mask); // all opcode
 
         if (setsockopt(comm.getSocketDescriptor(), SOL_HCI, HCI_FILTER, &filter_mask, sizeof(filter_mask)) < 0) {
-            ERR_PRINT("HCIHandler::ctor: setsockopt %s", toString().c_str());
+            ERR_PRINT("HCIHandler::ctor: setsockopt HCI_FILTER %s", toString().c_str());
             goto fail;
         }
     }
     // Mandatory own LE_META filter
     {
         uint32_t mask = 0;
-        // filter_all_metaevs(mask);
+#if FILTER_ALL_EVENTS
+        filter_all_metaevs(mask);
+#else
         filter_set_metaev(HCIMetaEventType::LE_CONN_COMPLETE, mask);
         filter_set_metaev(HCIMetaEventType::LE_ADVERTISING_REPORT, mask);
+#endif
         filter_put_metaevs(mask);
     }
     // Mandatory own HCIOpcodeBit/HCIOpcode filter
     {
         uint64_t mask = 0;
-        // filter_all_opcbit(mask);
+#if FILTER_ALL_EVENTS
+        filter_all_opcbit(mask);
+#else
         filter_set_opcbit(HCIOpcodeBit::CREATE_CONN, mask);
         filter_set_opcbit(HCIOpcodeBit::DISCONNECT, mask);
         filter_set_opcbit(HCIOpcodeBit::RESET, mask);
@@ -533,6 +598,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         filter_set_opcbit(HCIOpcodeBit::LE_SET_SCAN_PARAM, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_SET_SCAN_ENABLE, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_CREATE_CONN, mask);
+#endif
         filter_put_opcbit(mask);
     }
 
@@ -553,7 +619,7 @@ void HCIHandler::close() noexcept {
     if( !allowClose.compare_exchange_strong(expConn, false) ) {
         // not open
         DBG_PRINT("HCIHandler::close: Not connected %s", toString().c_str());
-        clearAllMgmtEventCallbacks();
+        clearAllCallbacks();
         clearConnectionLists();
         comm.close();
         return;
@@ -561,7 +627,7 @@ void HCIHandler::close() noexcept {
     PERF_TS_T0();
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("HCIHandler::close: Start %s", toString().c_str());
-    clearAllMgmtEventCallbacks();
+    clearAllCallbacks();
     clearConnectionLists();
 
     // Interrupt HCIHandler's HCIComm::read(..), avoiding prolonged hang
@@ -1187,8 +1253,26 @@ void HCIHandler::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept {
     }
     mgmtEventCallbackLists[static_cast<uint16_t>(opc)].clear();
 }
-void HCIHandler::clearAllMgmtEventCallbacks() noexcept {
+void HCIHandler::clearAllCallbacks() noexcept {
     for(size_t i=0; i<mgmtEventCallbackLists.size(); i++) {
         mgmtEventCallbackLists[i].clear();
     }
+    smpSecurityReqCallbackList.clear();
 }
+
+/**
+ * SMPSecurityReqCallback handling
+ */
+
+static HCISMPSecurityReqCallbackList::equal_comparator _changedHCISMPSecurityReqCallbackEqComp =
+        [](const HCISMPSecurityReqCallback& a, const HCISMPSecurityReqCallback& b) -> bool { return a == b; };
+
+
+void HCIHandler::addSMPSecurityReqCallback(const HCISMPSecurityReqCallback & l) {
+    smpSecurityReqCallbackList.push_back(l);
+}
+int HCIHandler::removeSMPSecurityReqCallback(const HCISMPSecurityReqCallback & l) {
+    return smpSecurityReqCallbackList.erase_matching(l, true /* all_matching */, _changedHCISMPSecurityReqCallbackEqComp);
+}
+
+

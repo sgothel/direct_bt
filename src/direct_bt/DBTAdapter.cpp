@@ -199,6 +199,8 @@ bool DBTAdapter::validateDevInfo() noexcept {
         ERR_PRINT("Could not add all required MgmtEventCallbacks to HCIHandler: %s of %s", hci.toString().c_str(), toString().c_str());
         return false; // dtor local HCIHandler w/ closing
     }
+    hci.addSMPSecurityReqCallback(jau::bindMemberFunc(this, &DBTAdapter::smpSecurityReqCallback));
+
     return true;
 
 errout0:
@@ -1142,3 +1144,11 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
 
     return true;
 }
+
+bool DBTAdapter::smpSecurityReqCallback(const EUI48& address, BDAddressType addressType, uint16_t handle, std::shared_ptr<const SMPPDUMsg> msg) noexcept {
+    DBG_PRINT("DBTAdapter:smp:SecurityReq: %s for address[%s, %s], handle %s",
+            msg->toString().c_str(), address.toString().c_str(), getBDAddressTypeString(addressType).c_str(), jau::uint16HexString(handle).c_str());
+    return true;
+}
+
+

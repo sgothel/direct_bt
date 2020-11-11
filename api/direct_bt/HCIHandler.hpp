@@ -147,6 +147,10 @@ namespace direct_bt {
             }
     };
 
+    typedef jau::FunctionDef<bool, const EUI48& /* address */, BDAddressType /* addressType */,
+                                   uint16_t /* handle */, std::shared_ptr<const SMPPDUMsg>> HCISMPSecurityReqCallback;
+    typedef jau::cow_vector<HCISMPSecurityReqCallback> HCISMPSecurityReqCallbackList;
+
     /**
      * A thread safe singleton handler of the HCI control channel to one controller (BT adapter)
      * <p>
@@ -296,6 +300,8 @@ namespace direct_bt {
             inline bool isValidMgmtEventCallbackListsIndex(const MgmtEvent::Opcode opc) const noexcept {
                 return static_cast<uint16_t>(opc) < mgmtEventCallbackLists.size();
             }
+
+            HCISMPSecurityReqCallbackList smpSecurityReqCallbackList;
 
             std::shared_ptr<MgmtEvent> translate(std::shared_ptr<HCIEvent> ev) noexcept;
 
@@ -539,8 +545,12 @@ namespace direct_bt {
             int removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept;
             /** Removes all MgmtEventCallbacks from the to the named MgmtEvent::Opcode list. */
             void clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept;
-            /** Removes all MgmtEventCallbacks from all MgmtEvent::Opcode lists. */
-            void clearAllMgmtEventCallbacks() noexcept;
+
+            void addSMPSecurityReqCallback(const HCISMPSecurityReqCallback & l);
+            int removeSMPSecurityReqCallback(const HCISMPSecurityReqCallback & l);
+
+            /** Removes all MgmtEventCallbacks from all MgmtEvent::Opcode lists and all SMPSecurityReqCallbacks. */
+            void clearAllCallbacks() noexcept;
 
             /** Manually send a MgmtEvent to all of its listeners. */
             void sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept;

@@ -40,6 +40,8 @@
 #include "OctetTypes.hpp"
 #include "HCIIoctl.hpp"
 
+#include "SMPTypes.hpp"
+
 /**
  * - - - - - - - - - - - - - - -
  *
@@ -576,6 +578,117 @@ namespace direct_bt {
 
             const hcistruct * getStruct() const noexcept { return (const hcistruct *)(getParam()); }
             hcistruct * getWStruct() noexcept { return (hcistruct *)( pdu.get_wptr_nc( number(HCIConstSizeT::COMMAND_HDR_SIZE) ) ); }
+    };
+
+    /**
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 5.4.2 HCI ACL Data packets
+     * <p>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7 Events
+     * </p>
+     * <p>
+     * ACL Data allows us to receive SMPPDUMsg inside an HCIACLData::l2cap_frame
+     * via HCIACLData::getL2CAPFrame() and HCIACLData::l2cap_frame::getSMPPDUMsg().
+     * </p>
+     * <pre>
+     *  uint16_t  handle;
+     *  uint16_t  len;
+     *  uint8_t   data[len];
+     * </pre>
+     */
+    class HCIACLData : public HCIPacket
+    {
+        public:
+            /**
+             * Representing ACL Datas' L2CAP Frame
+             * <p>
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 5.4.2 HCI ACL Data packets
+             * </p>
+             */
+            struct l2cap_frame {
+                /** The connection handle */
+                const uint16_t handle;
+                /**
+                 * The Packet_Boundary_Flag
+                 * <p>
+                 * BT Core Spec v5.2: Vol 4, Part E HCI: 5.4.2 HCI ACL Data packets
+                 * </p>
+                 * <pre>
+                 * - 0b00 Start of a non-automatically-flushable PDU from Host to Controller.
+                 * - 0b01 Continuing fragment
+                 * - 0b10 Start of an automatically flushable PDU.
+                 * - 0b11 A complete L2CAP PDU. Automatically flushable.
+                 * </pre>
+                 */
+                const uint8_t pb_flag;
+                /** The Broadcast_Flag */
+                const uint8_t bc_flag;
+                const uint16_t cid;
+                const uint16_t psm;
+                const uint16_t len;
+                const uint8_t * data;
+
+                bool isSMP() const noexcept { return L2CAP_CID_SMP == cid || L2CAP_CID_SMP_BREDR == cid; }
+
+                std::shared_ptr<const SMPPDUMsg> getSMPPDUMsg() const noexcept {
+                    if( 0 < len && isSMP() ) {
+                        return SMPPDUMsg::getSpecialized(data, len);
+                    }
+                    return nullptr;
+                }
+
+                std::string toString() const noexcept {
+                    return "l2cap[handle "+jau::uint16HexString(handle)+", flags[pb "+jau::uint8HexString(pb_flag)+", bc "+jau::uint8HexString(bc_flag)+
+                            "], cid "+jau::uint8HexString(cid)+
+                            ", psm "+jau::uint8HexString(psm)+", len "+std::to_string(len)+
+                            ", data "+ jau::bytesHexString(data, 0, len, true /* lsbFirst */, true /* leading0X */) +"]";
+                }
+            };
+
+            /**
+             * Return a newly created specialized instance pointer to base class.
+             * <p>
+             * Returned memory reference is managed by caller (delete etc)
+             * </p>
+             */
+            static std::shared_ptr<HCIACLData> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
+
+            /**
+             * Returns the handle.
+             */
+            static uint16_t get_handle(const uint16_t handle_and_flags) { return static_cast<uint16_t>(handle_and_flags & 0x0fff); }
+
+            /**
+             * Returns the Packet_Boundary_Flag.
+             */
+            static uint8_t get_pbflag(const uint16_t handle_and_flags) { return static_cast<uint8_t>( ( handle_and_flags >> 12 ) & 0b11 ); }
+
+            /**
+             * Returns the Broadcast_Flag.
+             */
+            static uint8_t get_bcflag(const uint16_t handle_and_flags) { return static_cast<uint8_t>( ( handle_and_flags >> 14 ) & 0b11 ); }
+
+            /** Persistent memory, w/ ownership ..*/
+            HCIACLData(const uint8_t* buffer, const jau::nsize_t buffer_len)
+            : HCIPacket(buffer, buffer_len)
+            {
+                const jau::nsize_t baseParamSize = getParamSize();
+                pdu.check_range(0, number(HCIConstSizeT::ACL_HDR_SIZE)+baseParamSize);
+            }
+
+            uint16_t getHandleAndFlags() const noexcept { return pdu.get_uint16_nc(1); }
+            jau::nsize_t getParamSize() const noexcept { return pdu.get_uint16_nc(3); }
+            const uint8_t* getParam() const noexcept { return pdu.get_ptr_nc(number(HCIConstSizeT::ACL_HDR_SIZE)); }
+
+            l2cap_frame getL2CAPFrame() const noexcept;
+
+            std::string toString() const noexcept {
+                l2cap_frame l2cap = getL2CAPFrame();
+                std::shared_ptr<const SMPPDUMsg> smpMsg = l2cap.getSMPPDUMsg();
+                if( nullptr == smpMsg ) {
+                    return "ACLData[size "+std::to_string(getParamSize())+", data "+l2cap.toString()+", tsz "+std::to_string(getTotalSize())+"]";
+                }
+                return "ACLData[size "+std::to_string(getParamSize())+", data "+l2cap.toString()+", "+smpMsg->toString()+", tsz "+std::to_string(getTotalSize())+"]";
+            }
     };
 
     /**

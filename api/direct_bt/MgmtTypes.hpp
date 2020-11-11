@@ -669,10 +669,10 @@ namespace direct_bt {
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
     };
 
-    // FIXME SET_IO_CAPABILITY       = 0x0018,
     // FIXME PAIR_DEVICE             = 0x0019,
     // FIXME CANCEL_PAIR_DEVICE      = 0x001A,
     // FIXME UNPAIR_DEVICE           = 0x001B,
+
     // FIXME USER_CONFIRM_REPLY      = 0x001C,
     // FIXME USER_CONFIRM_NEG_REPLY  = 0x001D,
     // FIXME USER_PASSKEY_REPLY      = 0x001E,

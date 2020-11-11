@@ -277,6 +277,13 @@ std::shared_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, jau::
     if( HCIPacketType::EVENT != pc ) {
         return nullptr;
     }
+    const jau::nsize_t paramSize = buffer_size >= number(HCIConstSizeT::EVENT_HDR_SIZE) ? jau::get_uint8(buffer, 2) : 0;
+    if( buffer_size < number(HCIConstSizeT::EVENT_HDR_SIZE) + paramSize ) {
+        WARN_PRINT("HCIEvent::getSpecialized: length mismatch %u < EVENT_HDR_SIZE(%u) + %u",
+                buffer_size, number(HCIConstSizeT::EVENT_HDR_SIZE), paramSize);
+        return nullptr;
+    }
+
     const HCIEventType ec = static_cast<HCIEventType>( jau::get_uint8(buffer, 1) );
     HCIEvent *res;
     switch( ec ) {
@@ -300,6 +307,66 @@ std::shared_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, jau::
 std::string HCILocalVersion::toString() noexcept {
     return "LocalVersion[version "+std::to_string(hci_ver)+"."+std::to_string(hci_rev)+
            ", manuf "+jau::uint16HexString(manufacturer)+", lmp "+std::to_string(lmp_ver)+"."+std::to_string(lmp_subver)+"]";
+}
+
+std::shared_ptr<HCIACLData> HCIACLData::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
+    const HCIPacketType pc = static_cast<HCIPacketType>( jau::get_uint8(buffer, 0) );
+    if( HCIPacketType::ACLDATA != pc ) {
+        return nullptr;
+    }
+    const jau::nsize_t paramSize = buffer_size >= number(HCIConstSizeT::ACL_HDR_SIZE) ? jau::get_uint16(buffer, 3) : 0;
+    if( buffer_size < number(HCIConstSizeT::ACL_HDR_SIZE) + paramSize ) {
+        WARN_PRINT("HCIACLData::getSpecialized: length mismatch %u < ACL_HDR_SIZE(%u) + %u",
+                buffer_size, number(HCIConstSizeT::ACL_HDR_SIZE), paramSize);
+        return nullptr;
+    }
+
+    return std::shared_ptr<HCIACLData>(new HCIACLData(buffer, buffer_size));
+}
+
+__pack ( struct l2cap_hdr {
+    uint16_t len;
+    uint16_t cid;
+} );
+
+HCIACLData::l2cap_frame HCIACLData::getL2CAPFrame() const noexcept {
+    const uint16_t h_f = getHandleAndFlags();
+    uint16_t size = static_cast<uint16_t>(getParamSize());
+    const uint8_t * data = getParam();
+    const uint16_t handle = get_handle(h_f);
+    const uint8_t pb_flag = get_pbflag(h_f);
+    const uint8_t bc_flag = get_bcflag(h_f);
+    const l2cap_hdr* hdr = reinterpret_cast<const l2cap_hdr*>(data);
+
+    switch( pb_flag ) {
+        case 0b00: // Start of a non-automatically-flushable PDU from Host to Controller.
+            [[fallthrough]];
+        case 0b10: // Start of an automatically flushable PDU.
+            [[fallthrough]];
+        case 0b11: // A complete L2CAP PDU. Automatically flushable.
+        {
+            if( size < sizeof(*hdr) ) {
+                WARN_PRINT("l2cap frame-size %d < hdr-size %z, handle ", size, sizeof(*hdr), handle);
+                return l2cap_frame { handle, pb_flag, bc_flag, 0, 0, 0, nullptr };
+            }
+            const uint16_t len = jau::le_to_cpu(hdr->len);
+            const uint16_t cid = jau::le_to_cpu(hdr->cid);
+            data += sizeof(*hdr);
+            size -= sizeof(*hdr);
+            if( len <= size ) { // tolerate frame size > len, cutting-off excess octets
+                return l2cap_frame { handle, pb_flag, bc_flag, cid, 0, len, data };
+            } else {
+                WARN_PRINT("l2cap frame-size %d < l2cap-size %d, handle ", size, len, handle);
+                return l2cap_frame { handle, pb_flag, bc_flag, 0, 0, 0, nullptr };
+            }
+        } break;
+
+        case 0b01: // Continuing fragment
+            [[fallthrough]];
+        default: // not supported
+            WARN_PRINT("l2cap frame flag 0x%2.2x not supported, handle %d, packet-size %d", pb_flag, handle, size);
+            return l2cap_frame { handle, pb_flag, bc_flag, 0, 0, 0, nullptr };
+    }
 }
 
 } /* namespace direct_bt */
