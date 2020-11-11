@@ -655,17 +655,17 @@ namespace direct_bt {
             /**
              * Returns the handle.
              */
-            static uint16_t get_handle(const uint16_t handle_and_flags) { return static_cast<uint16_t>(handle_and_flags & 0x0fff); }
+            constexpr static uint16_t get_handle(const uint16_t handle_and_flags) noexcept { return static_cast<uint16_t>(handle_and_flags & 0x0fff); }
 
             /**
              * Returns the Packet_Boundary_Flag.
              */
-            static uint8_t get_pbflag(const uint16_t handle_and_flags) { return static_cast<uint8_t>( ( handle_and_flags >> 12 ) & 0b11 ); }
+            constexpr static uint8_t get_pbflag(const uint16_t handle_and_flags) noexcept { return static_cast<uint8_t>( ( handle_and_flags >> 12 ) & 0b11 ); }
 
             /**
              * Returns the Broadcast_Flag.
              */
-            static uint8_t get_bcflag(const uint16_t handle_and_flags) { return static_cast<uint8_t>( ( handle_and_flags >> 14 ) & 0b11 ); }
+            constexpr static uint8_t get_bcflag(const uint16_t handle_and_flags) noexcept { return static_cast<uint8_t>( ( handle_and_flags >> 14 ) & 0b11 ); }
 
             /** Persistent memory, w/ ownership ..*/
             HCIACLData(const uint8_t* buffer, const jau::nsize_t buffer_len)
