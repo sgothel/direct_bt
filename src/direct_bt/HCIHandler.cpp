@@ -76,7 +76,7 @@ __pack( struct hci_rp_status {
     __u8    status;
 } );
 
-HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(std::vector<HCIConnectionRef> &list,
+HCIHandler::HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(std::vector<HCIConnectionRef> &list,
                                                       const EUI48 & address, BDAddressType addrType, const uint16_t handle) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     // remove all old entry with given address first
@@ -106,7 +106,7 @@ HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(std::vector<HCIConnectionR
     return res;
 }
 
-HCIConnectionRef HCIHandler::findHCIConnection(std::vector<HCIConnectionRef> &list, const EUI48 & address, BDAddressType addrType) noexcept {
+HCIHandler::HCIConnectionRef HCIHandler::findHCIConnection(std::vector<HCIConnectionRef> &list, const EUI48 & address, BDAddressType addrType) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     const size_t size = list.size();
     for (size_t i = 0; i < size; i++) {
@@ -118,7 +118,7 @@ HCIConnectionRef HCIHandler::findHCIConnection(std::vector<HCIConnectionRef> &li
     return nullptr;
 }
 
-HCIConnectionRef HCIHandler::findTrackerConnection(const uint16_t handle) noexcept {
+HCIHandler::HCIConnectionRef HCIHandler::findTrackerConnection(const uint16_t handle) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     const size_t size = connectionList.size();
     for (size_t i = 0; i < size; i++) {
@@ -130,7 +130,7 @@ HCIConnectionRef HCIHandler::findTrackerConnection(const uint16_t handle) noexce
     return nullptr;
 }
 
-HCIConnectionRef HCIHandler::removeTrackerConnection(const HCIConnectionRef conn) noexcept {
+HCIHandler::HCIConnectionRef HCIHandler::removeTrackerConnection(const HCIConnectionRef conn) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     for (auto it = connectionList.begin(); it != connectionList.end(); ) {
         HCIConnectionRef e = *it;
@@ -154,7 +154,7 @@ int HCIHandler::countPendingTrackerConnections() noexcept {
     }
     return count;
 }
-HCIConnectionRef HCIHandler::removeHCIConnection(std::vector<HCIConnectionRef> &list, const uint16_t handle) noexcept {
+HCIHandler::HCIConnectionRef HCIHandler::removeHCIConnection(std::vector<HCIConnectionRef> &list, const uint16_t handle) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     for (auto it = list.begin(); it != list.end(); ) {
         HCIConnectionRef e = *it;

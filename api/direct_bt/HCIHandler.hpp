@@ -55,43 +55,6 @@
  */
 namespace direct_bt {
 
-    class HCIConnection {
-        private:
-            EUI48 address; // immutable
-            BDAddressType addressType; // immutable
-            uint16_t handle; // mutable
-
-        public:
-            HCIConnection(const EUI48 &address_, const BDAddressType addressType_, const uint16_t handle_)
-            : address(address_), addressType(addressType_), handle(handle_) {}
-
-            HCIConnection(const HCIConnection &o) = default;
-            HCIConnection(HCIConnection &&o) = default;
-            HCIConnection& operator=(const HCIConnection &o) = default;
-            HCIConnection& operator=(HCIConnection &&o) = default;
-
-            const EUI48 & getAddress() const { return address; }
-            BDAddressType getAddressType() const { return addressType; }
-            uint16_t getHandle() const { return handle; }
-
-            void setHandle(uint16_t newHandle) { handle = newHandle; }
-
-            bool equals(const EUI48 & otherAddress, const BDAddressType otherAddressType) const
-            { return address == otherAddress && addressType == otherAddressType; }
-
-            bool operator==(const HCIConnection& rhs) const
-            { return address == rhs.address && addressType == rhs.addressType; }
-
-            bool operator!=(const HCIConnection& rhs) const
-            { return !(*this == rhs); }
-
-            std::string toString() const {
-                return "HCIConnection[handle "+jau::uint16HexString(handle)+
-                       ", address="+address.toString()+", addressType "+getBDAddressTypeString(addressType)+"]";
-            }
-    };
-    typedef std::shared_ptr<HCIConnection> HCIConnectionRef;
-
     class HCIHandler; // forward
 
     /**
@@ -202,6 +165,43 @@ namespace direct_bt {
             static const pid_t pidSelf;
 
         private:
+            class HCIConnection {
+                private:
+                    EUI48 address; // immutable
+                    BDAddressType addressType; // immutable
+                    uint16_t handle; // mutable
+
+                public:
+                    HCIConnection(const EUI48 &address_, const BDAddressType addressType_, const uint16_t handle_)
+                    : address(address_), addressType(addressType_), handle(handle_) {}
+
+                    HCIConnection(const HCIConnection &o) = default;
+                    HCIConnection(HCIConnection &&o) = default;
+                    HCIConnection& operator=(const HCIConnection &o) = default;
+                    HCIConnection& operator=(HCIConnection &&o) = default;
+
+                    const EUI48 & getAddress() const { return address; }
+                    BDAddressType getAddressType() const { return addressType; }
+                    uint16_t getHandle() const { return handle; }
+
+                    void setHandle(uint16_t newHandle) { handle = newHandle; }
+
+                    bool equals(const EUI48 & otherAddress, const BDAddressType otherAddressType) const
+                    { return address == otherAddress && addressType == otherAddressType; }
+
+                    bool operator==(const HCIConnection& rhs) const
+                    { return address == rhs.address && addressType == rhs.addressType; }
+
+                    bool operator!=(const HCIConnection& rhs) const
+                    { return !(*this == rhs); }
+
+                    std::string toString() const {
+                        return "HCIConnection[handle "+jau::uint16HexString(handle)+
+                               ", address="+address.toString()+", addressType "+getBDAddressTypeString(addressType)+"]";
+                    }
+            };
+            typedef std::shared_ptr<HCIConnection> HCIConnectionRef;
+
             static MgmtEvent::Opcode translate(HCIEventType evt, HCIMetaEventType met) noexcept;
 
             const HCIEnv & env;
