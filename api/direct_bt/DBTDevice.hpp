@@ -94,6 +94,7 @@ namespace direct_bt {
 
             void notifyDisconnected() noexcept;
             void notifyConnected(const uint16_t handle) noexcept;
+            void notifySMPMsg(std::shared_ptr<const SMPPDUMsg> msg) noexcept;
 
             /**
              * Returns a newly established GATT connection.

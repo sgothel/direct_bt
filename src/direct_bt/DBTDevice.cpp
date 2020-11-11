@@ -138,7 +138,7 @@ std::string DBTDevice::toString(bool includeDiscoveredServices) const noexcept {
     std::string msdstr = nullptr != advMSD ? advMSD->toString() : "MSD[null]";
     std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+leaddrtype+"], name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
-            "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", "+jau::uint16HexString(hciConnHandle)+"], rssi "+std::to_string(getRSSI())+
+            "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", handle "+jau::uint16HexString(hciConnHandle)+"], rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+
             ", appearance "+jau::uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
             "), "+msdstr+", "+javaObjectToString()+"]");
@@ -395,6 +395,10 @@ void DBTDevice::notifyConnected(const uint16_t handle) noexcept {
         std::thread bg(&DBTDevice::processNotifyConnectedOffThread, this); // @suppress("Invalid arguments")
         bg.detach();
     }
+}
+
+void DBTDevice::notifySMPMsg(std::shared_ptr<const SMPPDUMsg> msg) noexcept {
+    DBG_PRINT("DBTDevice::notifySMPMsg: %s, %s", msg->toString().c_str(), toString().c_str());
 }
 
 void DBTDevice::processNotifyConnectedOffThread() {

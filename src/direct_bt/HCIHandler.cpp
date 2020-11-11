@@ -305,24 +305,18 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                 HCIACLData::l2cap_frame l2cap = acldata->getL2CAPFrame();
                 std::shared_ptr<const SMPPDUMsg> smpPDU = l2cap.getSMPPDUMsg();
                 if( nullptr != smpPDU ) {
-                    const SMPPDUMsg::Opcode opc = smpPDU->getOpcode();
+                    const uint16_t conn_handle = l2cap.handle;
+                    HCIConnectionRef conn = findTrackerConnection(conn_handle);
 
-                    if( SMPPDUMsg::Opcode::SECURITY_REQUEST == opc ) {
-                        const uint16_t conn_handle = l2cap.handle;
-                        HCIConnectionRef conn = findTrackerConnection(conn_handle);
-
-                        if( nullptr != conn ) {
-                            COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (ACL.SMP) %s for %s",
-                                    smpPDU->toString().c_str(), conn->toString().c_str());
-                            jau::for_each_cow(smpSecurityReqCallbackList, [&](HCISMPSecurityReqCallback &cb) {
-                               cb.invoke(conn->getAddress(), conn->getAddressType(), conn->getHandle(), smpPDU);
-                            });
-                        } else {
-                            WARN_PRINT("HCIHandler-IO RECV Drop (ACL.SMP): Not tracked conn_handle %s: %s",
-                                    jau::uint16HexString(conn_handle), conn->toString().c_str());
-                        }
+                    if( nullptr != conn ) {
+                        COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (ACL.SMP) %s for %s",
+                                smpPDU->toString().c_str(), conn->toString().c_str());
+                        jau::for_each_cow(hciSMPMsgCallbackList, [&](HCISMPMsgCallback &cb) {
+                           cb.invoke(conn->getAddress(), conn->getAddressType(), conn->getHandle(), smpPDU);
+                        });
                     } else {
-                        COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV Drop (ACL.SMP) %s", smpPDU->toString().c_str());
+                        WARN_PRINT("HCIHandler-IO RECV Drop (ACL.SMP): Not tracked conn_handle %s: %s",
+                                jau::uint16HexString(conn_handle), conn->toString().c_str());
                     }
                 } else {
                     COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV Drop (ACL.L2CAP): %s", l2cap.toString().c_str());
@@ -1257,22 +1251,22 @@ void HCIHandler::clearAllCallbacks() noexcept {
     for(size_t i=0; i<mgmtEventCallbackLists.size(); i++) {
         mgmtEventCallbackLists[i].clear();
     }
-    smpSecurityReqCallbackList.clear();
+    hciSMPMsgCallbackList.clear();
 }
 
 /**
- * SMPSecurityReqCallback handling
+ * SMPMsgCallback handling
  */
 
-static HCISMPSecurityReqCallbackList::equal_comparator _changedHCISMPSecurityReqCallbackEqComp =
-        [](const HCISMPSecurityReqCallback& a, const HCISMPSecurityReqCallback& b) -> bool { return a == b; };
+static HCISMPMsgCallbackList::equal_comparator _changedHCISMPMsgCallbackEqComp =
+        [](const HCISMPMsgCallback& a, const HCISMPMsgCallback& b) -> bool { return a == b; };
 
 
-void HCIHandler::addSMPSecurityReqCallback(const HCISMPSecurityReqCallback & l) {
-    smpSecurityReqCallbackList.push_back(l);
+void HCIHandler::addSMPMsgCallback(const HCISMPMsgCallback & l) {
+    hciSMPMsgCallbackList.push_back(l);
 }
-int HCIHandler::removeSMPSecurityReqCallback(const HCISMPSecurityReqCallback & l) {
-    return smpSecurityReqCallbackList.erase_matching(l, true /* all_matching */, _changedHCISMPSecurityReqCallbackEqComp);
+int HCIHandler::removeSMPMsgCallback(const HCISMPMsgCallback & l) {
+    return hciSMPMsgCallbackList.erase_matching(l, true /* all_matching */, _changedHCISMPMsgCallbackEqComp);
 }
 
 

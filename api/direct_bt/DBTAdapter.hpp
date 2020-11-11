@@ -254,7 +254,7 @@ namespace direct_bt {
 
             bool mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const bool hciSourced) noexcept;
 
-            bool smpSecurityReqCallback(const EUI48& address, BDAddressType addressType, uint16_t handle, std::shared_ptr<const SMPPDUMsg> msg) noexcept;
+            bool hciSMPMsgCallback(const EUI48& address, BDAddressType addressType, uint16_t handle, std::shared_ptr<const SMPPDUMsg> msg) noexcept;
 
             void startDiscoveryBackground() noexcept;
             void checkDiscoveryState() noexcept;
