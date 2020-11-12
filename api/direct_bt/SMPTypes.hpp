@@ -36,6 +36,7 @@
 #include <jau/basic_types.hpp>
 
 #include "OctetTypes.hpp"
+#include "BTTypes.hpp"
 
 /**
  * - - - - - - - - - - - - - - -
@@ -89,6 +90,59 @@ namespace direct_bt {
         return static_cast<uint16_t>(rhs);
     }
 
+
+    /**
+     * SMP Pairing Process state definition
+     * <pre>
+     * Vol 3, Part H (SM): APPENDIX C MESSAGE SEQUENCE CHARTS
+     * </pre>
+     * @see PairingMode
+     */
+    enum class SMPPairingState : uint8_t {
+        /** No pairing in process. Current PairingMode shall be PairingMode::NONE. */
+        NONE                        = 0,
+
+        /** Pairing failed. Current PairingMode shall be PairingMode::NONE. */
+        FAILED                      = 1,
+
+        /**
+         * Phase 0: Pairing requested by responding (slave)  device via SMPSecurityReqMsg.<br>
+         * Signals initiating (host) device to start the Pairing Feature Exchange.<br>
+         * Current PairingMode shall be PairingMode::NEGOTIATING.
+         */
+        REQUESTED_BY_RESPONDER      = 2,
+
+        /**
+         * Phase 1: Pairing requested by initiating (master) device via SMPPairingMsg.<br>
+         * Starts the Pairing Feature Exchange.<br>
+         * Current PairingMode shall be PairingMode::NEGOTIATING.
+         */
+        FEATURE_EXCHANGE_STARTED    = 3,
+
+        /**
+         * Phase 1: Pairing responded by responding (slave)  device via SMPPairingMsg.<br>
+         * Completes the Pairing Feature Exchange. Optional user input shall be given for Phase 2.<br>
+         * Current PairingMode shall be set to a definitive value.
+         */
+        FEATURE_EXCHANGE_COMPLETED  = 4,
+
+        /** Phase 2: Authentication (MITM) PASSKEY expected, see PairingMode::PASSKEY_ENTRY */
+        PASSKEY_EXPECTED            = 5,
+        /** Phase 2: Authentication (MITM) Numeric Comparison Reply expected, see PairingMode::NUMERIC_COMPARISON */
+        NUMERIC_REPLY_EXPECTED      = 6,
+        /** Phase 2: Authentication (MITM) OOB data expected, see PairingMode::OUT_OF_BAND */
+        OOB_EXPECTED                = 7,
+
+        /** Phase 2: Pairing process started by SMPPairConfirmMsg or SMPPairPubKeyMsg (LE Secure Connection) exchange between initiating (master) and responding (slave) device. */
+        PROCESS_STARTED             = 8,
+
+        /**
+         * Phase 2: Pairing process is completed by responding (slave) device sending SMPPairRandMsg.<br>
+         * The link is assumed to be encrypted from here on.
+         */
+        PROCESS_COMPLETED           = 9
+    };
+    std::string getSMPPairingStateString(const SMPPairingState state) noexcept;
 
     /**
      * Vol 3, Part H, 2.3.2 IO capabilities
@@ -219,6 +273,26 @@ namespace direct_bt {
     }
     std::string getSMPAuthReqBitString(const SMPAuthReqs bit) noexcept;
     std::string getSMPAuthReqMaskString(const SMPAuthReqs mask) noexcept;
+
+    /**
+     * Returns the PairingMode derived from the given SMPAuthReqs
+     * <pre>
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.1 Security Properties
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.6.2 Authentication stage 1 – Just Works or Numeric Comparison
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.6.3 Authentication stage 1 – Passkey Entry
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.6.4 Authentication stage 1 – Out of Band
+     * </pre>
+     */
+    PairingMode getBestPairingMode(const SMPAuthReqs mask, const SMPIOCapability ioCap, const SMPOOBDataFlag oobFlag) noexcept;
+
+    /**
+     * Returns a list of complying PairingMode derived from the given SMPAuthReqs
+     * <pre>
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.1 Security Properties
+     * </pre>
+     */
+    std::vector<PairingMode> getComplyingPairingModes(const SMPAuthReqs mask) noexcept;
 
     /**
      * Handles the Security Manager Protocol (SMP) using Protocol Data Unit (PDU)

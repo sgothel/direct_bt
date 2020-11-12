@@ -36,6 +36,29 @@
 
 using namespace direct_bt;
 
+#define PAIRSTATE_ENUM(X) \
+        X(NONE) \
+        X(FAILED) \
+        X(REQUESTED_BY_RESPONDER) \
+        X(FEATURE_EXCHANGE_STARTED) \
+        X(FEATURE_EXCHANGE_COMPLETED) \
+        X(PASSKEY_EXPECTED) \
+        X(NUMERIC_REPLY_EXPECTED) \
+        X(OOB_EXPECTED) \
+        X(PROCESS_STARTED) \
+        X(PROCESS_COMPLETED)
+
+#define CASE_TO_STRING_PAIRSTATE(V) case SMPPairingState::V: return #V;
+
+std::string direct_bt::getSMPPairingStateString(const SMPPairingState state) noexcept {
+    switch(state) {
+        PAIRSTATE_ENUM(CASE_TO_STRING_PAIRSTATE)
+        default: ; // fall through intended
+    }
+    return "Unknown SMP PairingState";
+}
+
+
 #define AUTHREQ_ENUM(X) \
     X(NONE) \
     X(BONDING) \
@@ -73,6 +96,57 @@ std::string direct_bt::getSMPAuthReqMaskString(const SMPAuthReqs mask) noexcept 
     return out;
 }
 
+PairingMode direct_bt::getBestPairingMode(const SMPAuthReqs mask, const SMPIOCapability ioCap, const SMPOOBDataFlag oobFlag) noexcept {
+    // BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.1 Security Properties
+    // BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.6
+
+    // Authenticated MITM
+    if( SMPAuthReqs::NONE != ( mask & SMPAuthReqs::MITM ) ) {
+        // One of:
+        // - PairingMode::PASSKEY_ENTRY best
+        // - PairingMode::NUMERIC_COMPARISON good
+        // - PairingMode::OUT_OF_BAND good, depending on the OOB data
+        if( SMPOOBDataFlag::OOB_AUTH_DATA_REMOTE_PRESENT == oobFlag ) {
+            return PairingMode::OUT_OF_BAND;
+        }
+        switch( ioCap ) {
+            case SMPIOCapability::KEYBOARD_DISPLAY:
+                return PairingMode::PASSKEY_ENTRY;
+
+            case SMPIOCapability::DISPLAY_YES_NO:
+                return PairingMode::NUMERIC_COMPARISON;
+
+            case SMPIOCapability::DISPLAY_ONLY:
+                [[fallthrough]];
+            case SMPIOCapability::KEYBOARD_ONLY:
+                [[fallthrough]];
+            case SMPIOCapability::NO_INPUT_NO_OUTPUT:
+                [[fallthrough]];
+            default:
+                // impossible to comply
+                return PairingMode::NONE;
+        }
+    }
+    // Unauthenticated pairing
+    return PairingMode::JUST_WORKS;
+}
+
+std::vector<PairingMode> direct_bt::getComplyingPairingModes(const SMPAuthReqs mask) noexcept {
+    // BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.1 Security Properties
+    // BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.6
+    std::vector<PairingMode> res;
+
+    // Authenticated MITM
+    if( SMPAuthReqs::NONE != ( mask & SMPAuthReqs::MITM ) ) {
+        res.push_back(PairingMode::PASSKEY_ENTRY);
+        res.push_back(PairingMode::NUMERIC_COMPARISON);
+        res.push_back(PairingMode::OUT_OF_BAND);
+        return res;
+    }
+    // Unauthenticated pairing
+    res.push_back(PairingMode::JUST_WORKS);
+    return res;
+}
 
 #define OPCODE_ENUM(X) \
         X(UNDEFINED) \
