@@ -121,9 +121,17 @@ namespace direct_bt {
     /**
      * SMP Authentication Requirements Bits, denotes specific bits or whole protocol uint8_t bit-mask.
      * <pre>
-     * SMP Pairing Request Vol 3, Part H (SM): 3.5.1
-     * SMP Pairing Response Vol 3, Part H (SM): 3.5.2
-     * SMP Security Request Vol 3, Part H (SM): 3.6.7
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 3.5.1 SMP Pairing Request
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 3.5.2 SMP Pairing Response
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 3.6.7 SMP Security Request
+     *
+     * BT Core Spec v5.2: Vol 1, Part A, 5.4 LE SECURITY
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.1 Security Properties
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.6.2 Authentication stage 1 – Just Works or Numeric Comparison
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.6.3 Authentication stage 1 – Passkey Entry
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.6.4 Authentication stage 1 – Out of Band
+     *
      * </pre>
      *
      * Layout LSB -> MSB
@@ -143,6 +151,18 @@ namespace direct_bt {
          * A device sets the MITM flag to one to request an Authenticated security property
          * for the STK when using LE legacy pairing
          * and the LTK when using LE Secure Connections.
+         * <p>
+         * MITM protection can be secured by the following authenticated PairingMode
+         * <pre>
+         * - PairingMode::PASSKEY_ENTRY best
+         * - PairingMode::NUMERIC_COMPARISON good
+         * - PairingMode::OUT_OF_BAND good, depending on the OOB data
+         * </pre>
+         * </p>
+         * <p>
+         * Unauthenticated PairingMode::JUST_WORKS gives no MITM protection.
+         * </p>
+         * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.1 Security Properties
          */
         MITM                        = 0b00000100,
         /**
@@ -176,11 +196,26 @@ namespace direct_bt {
         /** Reserved for future use */
         RFU_2                       = 0b10000000
     };
+    constexpr SMPAuthReqs operator ^(const SMPAuthReqs lhs, const SMPAuthReqs rhs) noexcept {
+        return static_cast<SMPAuthReqs> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
+    }
+    constexpr SMPAuthReqs operator |(const SMPAuthReqs lhs, const SMPAuthReqs rhs) noexcept {
+        return static_cast<SMPAuthReqs> ( static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs) );
+    }
+    constexpr SMPAuthReqs operator &(const SMPAuthReqs lhs, const SMPAuthReqs rhs) noexcept {
+        return static_cast<SMPAuthReqs> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
+    }
+    constexpr bool operator ==(const SMPAuthReqs lhs, const SMPAuthReqs rhs) noexcept {
+        return static_cast<uint8_t>(lhs) == static_cast<uint8_t>(rhs);
+    }
+    constexpr bool operator !=(const SMPAuthReqs lhs, const SMPAuthReqs rhs) noexcept {
+        return !( lhs == rhs );
+    }
     constexpr uint8_t number(const SMPAuthReqs rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
     constexpr bool isSMPAuthReqBitSet(const SMPAuthReqs mask, const SMPAuthReqs bit) noexcept {
-        return 0 != ( static_cast<uint8_t>(mask) & static_cast<uint8_t>(bit) );
+        return SMPAuthReqs::NONE != ( mask & bit );
     }
     std::string getSMPAuthReqBitString(const SMPAuthReqs bit) noexcept;
     std::string getSMPAuthReqMaskString(const SMPAuthReqs mask) noexcept;
