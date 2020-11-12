@@ -58,6 +58,32 @@ std::string direct_bt::getSMPPairingStateString(const SMPPairingState state) noe
     return "Unknown SMP PairingState";
 }
 
+#define IOCAP_ENUM(X) \
+        X(DISPLAY_ONLY) \
+        X(DISPLAY_YES_NO) \
+        X(KEYBOARD_ONLY) \
+        X(NO_INPUT_NO_OUTPUT) \
+        X(KEYBOARD_DISPLAY)
+
+#define CASE_TO_STRING_IOCAP(V) case SMPIOCapability::V: return #V;
+
+std::string direct_bt::getSMPIOCapabilityString(const SMPIOCapability ioc) noexcept {
+    switch(ioc) {
+        IOCAP_ENUM(CASE_TO_STRING_IOCAP)
+        default: ; // fall through intended
+    }
+    return "Unknown SMP IOCapability";
+}
+
+std::string direct_bt::getSMPOOBDataFlagString(const SMPOOBDataFlag v) noexcept {
+    switch(v) {
+        case SMPOOBDataFlag::OOB_AUTH_DATA_NOT_PRESENT: return "OOB_AUTH_DATA_NOT_PRESENT";
+        case SMPOOBDataFlag::OOB_AUTH_DATA_REMOTE_PRESENT: return "OOB_AUTH_DATA_REMOTE_PRESENT";
+        default: ; // fall through intended
+    }
+    return "Unknown SMP OOBDataFlag";
+}
+
 
 #define AUTHREQ_ENUM(X) \
     X(NONE) \
@@ -195,32 +221,6 @@ std::string SMPPairFailedMsg::getPlainReasonString(const ReasonCode reasonCode) 
         default: ; // fall through intended
     }
     return "Reason reserved for future use";
-}
-
-#define IOCAP_ENUM(X) \
-        X(DISPLAY_ONLY) \
-        X(DISPLAY_YES_NO) \
-        X(KEYBOARD_ONLY) \
-        X(NO_INPUT_NO_OUTPUT) \
-        X(KEYBOARD_DISPLAY)
-
-#define CASE_TO_STRING_IOCAP(V) case SMPIOCapability::V: return #V;
-
-std::string direct_bt::getSMPIOCapabilityString(const SMPIOCapability ioc) noexcept {
-    switch(ioc) {
-        IOCAP_ENUM(CASE_TO_STRING_IOCAP)
-        default: ; // fall through intended
-    }
-    return "Unknown SMP IOCapability";
-}
-
-std::string direct_bt::getSMPOOBDataFlagString(const SMPOOBDataFlag v) noexcept {
-    switch(v) {
-        case SMPOOBDataFlag::OOB_AUTH_DATA_NOT_PRESENT: return "OOB_AUTH_DATA_NOT_PRESENT";
-        case SMPOOBDataFlag::OOB_AUTH_DATA_REMOTE_PRESENT: return "OOB_AUTH_DATA_REMOTE_PRESENT";
-        default: ; // fall through intended
-    }
-    return "Unknown SMP OOBDataFlag";
 }
 
 #define KEYDISTFMT_ENUM(X) \
