@@ -221,6 +221,7 @@ BTMode direct_bt::getBTMode(const std::string & value) noexcept {
 std::string direct_bt::getPairingModeString(const PairingMode v) noexcept {
     switch(v) {
         case PairingMode::NONE: return "NONE";
+        case PairingMode::NEGOTIATING: return "NEGOTIATING";
         case PairingMode::JUST_WORKS: return "JUST_WORKS";
         case PairingMode::PASSKEY_ENTRY: return "PASSKEY_ENTRY";
         case PairingMode::NUMERIC_COMPARISON: return "NUMERIC_COMPARISON";

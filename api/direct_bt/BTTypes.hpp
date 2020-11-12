@@ -81,18 +81,21 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 1, Part A, 5 Security Overview
      * BT Core Spec v5.2: Vol 1, Part A, 5.4 LE SECURITY
      * </pre>
+     * @see SMPPairingState
      */
     enum class PairingMode : uint8_t {
         /** No pairing mode, implying no secure connections, no encryption and no MITM protection. */
         NONE               = 0,
+        /** Pairing mode in negotiating, i.e. Pairing Feature Exchange in progress. */
+        NEGOTIATING        = 1,
         /** Just Works. Random key exchange with encryption but no MITM protection. */
-        JUST_WORKS         = 1,
+        JUST_WORKS         = 2,
         /** Passkey Entry. A known digit sequence (PIN) must be given as a secret to be validated on the device. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
-        PASSKEY_ENTRY      = 2,
+        PASSKEY_ENTRY      = 3,
         /** Visual numeric comparison of digit sequence (PIN) shown on both devices, peripheral and host, to be answered. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
-        NUMERIC_COMPARISON = 3,
+        NUMERIC_COMPARISON = 4,
         /** Utilizing a second factor secret to be used as a secret, e.g. NFC field. Random key exchange with additional secret (2FA) and encryption and potential MITM protection. */
-        OUT_OF_BAND        = 4
+        OUT_OF_BAND        = 5
     };
     constexpr uint8_t number(const PairingMode rhs) noexcept {
         return static_cast<uint8_t>(rhs);
