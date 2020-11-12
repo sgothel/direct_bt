@@ -47,11 +47,11 @@ using namespace direct_bt;
     X(RFU_1) \
     X(RFU_2)
 
-#define CASE_TO_STRING0(V) case SMPAuthReqs::V: return #V;
+#define CASE_TO_STRING_AUTHREQ(V) case SMPAuthReqs::V: return #V;
 
 std::string direct_bt::getSMPAuthReqBitString(const SMPAuthReqs bit) noexcept {
     switch(bit) {
-        AUTHREQ_ENUM(CASE_TO_STRING0)
+        AUTHREQ_ENUM(CASE_TO_STRING_AUTHREQ)
         default: ; // fall through intended
     }
     return "Unknown AuthRequirements bit";
@@ -91,14 +91,14 @@ std::string direct_bt::getSMPAuthReqMaskString(const SMPAuthReqs mask) noexcept 
         X(PAIRING_DHKEY_CHECK) \
         X(PAIRING_KEYPRESS_NOTIFICATION)
 
-#define CASE_TO_STRING1(V) case Opcode::V: return #V;
+#define CASE_TO_STRING_OPCODE(V) case Opcode::V: return #V;
 
 std::string SMPPDUMsg::getOpcodeString(const Opcode opc) noexcept {
     switch(opc) {
-        OPCODE_ENUM(CASE_TO_STRING1)
+        OPCODE_ENUM(CASE_TO_STRING_OPCODE)
         default: ; // fall through intended
     }
-    return "Unknown Opcode";
+    return "Unknown SMP Opcode";
 }
 
 std::string SMPPairFailedMsg::getPlainReasonString(const ReasonCode reasonCode) noexcept {
@@ -130,23 +130,23 @@ std::string SMPPairFailedMsg::getPlainReasonString(const ReasonCode reasonCode) 
         X(NO_INPUT_NO_OUTPUT) \
         X(KEYBOARD_DISPLAY)
 
-#define CASE_TO_STRING2(V) case IOCapability::V: return #V;
+#define CASE_TO_STRING_IOCAP(V) case SMPIOCapability::V: return #V;
 
-std::string SMPPairingMsg::getIOCapabilityString(const IOCapability ioc) noexcept {
+std::string direct_bt::getSMPIOCapabilityString(const SMPIOCapability ioc) noexcept {
     switch(ioc) {
-        IOCAP_ENUM(CASE_TO_STRING2)
+        IOCAP_ENUM(CASE_TO_STRING_IOCAP)
         default: ; // fall through intended
     }
-    return "Unknown IOCapability";
+    return "Unknown SMP IOCapability";
 }
 
-std::string SMPPairingMsg::getOOBDataFlagString(const OOBDataFlag v) noexcept {
+std::string direct_bt::getSMPOOBDataFlagString(const SMPOOBDataFlag v) noexcept {
     switch(v) {
-        case OOBDataFlag::OOB_AUTH_DATA_NOT_PRESENT: return "OOB_AUTH_DATA_NOT_PRESENT";
-        case OOBDataFlag::OOB_AUTH_DATA_REMOTE_PRESENT: return "OOB_AUTH_DATA_REMOTE_PRESENT";
+        case SMPOOBDataFlag::OOB_AUTH_DATA_NOT_PRESENT: return "OOB_AUTH_DATA_NOT_PRESENT";
+        case SMPOOBDataFlag::OOB_AUTH_DATA_REMOTE_PRESENT: return "OOB_AUTH_DATA_REMOTE_PRESENT";
         default: ; // fall through intended
     }
-    return "Unknown OOBDataFlag";
+    return "Unknown SMP OOBDataFlag";
 }
 
 #define KEYDISTFMT_ENUM(X) \
@@ -160,14 +160,14 @@ std::string SMPPairingMsg::getOOBDataFlagString(const OOBDataFlag v) noexcept {
     X(RFU_3) \
     X(RFU_4)
 
-#define CASE_TO_STRING3(V) case KeyDistFormat::V: return #V;
+#define CASE_TO_STRING_KEYDISTFMT(V) case KeyDistFormat::V: return #V;
 
 std::string SMPPairingMsg::getKeyDistFormatBitString(const KeyDistFormat bit) noexcept {
     switch(bit) {
-        KEYDISTFMT_ENUM(CASE_TO_STRING3)
+        KEYDISTFMT_ENUM(CASE_TO_STRING_KEYDISTFMT)
         default: ; // fall through intended
     }
-    return "Unknown KeyDistributionFormat bit";
+    return "Unknown SMP KeyDistributionFormat bit";
 }
 
 std::string SMPPairingMsg::getKeyDistFormatMaskString(const KeyDistFormat mask) noexcept {
@@ -193,11 +193,11 @@ std::string SMPPairingMsg::getKeyDistFormatMaskString(const KeyDistFormat mask) 
     X(PASSKEY_CLEARED) \
     X(PASSKEY_ENTRY_COMPLETED)
 
-#define CASE_TO_STRING4(V) case TypeCode::V: return #V;
+#define CASE_TO_STRING_TYPECODE(V) case TypeCode::V: return #V;
 
 std::string SMPPasskeyNotification::getTypeCodeString(const TypeCode tc) noexcept {
     switch(tc) {
-        TYPECODE_ENUM(CASE_TO_STRING4)
+        TYPECODE_ENUM(CASE_TO_STRING_TYPECODE)
         default: ; // fall through intended
     }
     return "Unknown TypeCode";
@@ -209,7 +209,7 @@ std::shared_ptr<const SMPPDUMsg> SMPPDUMsg::getSpecialized(const uint8_t * buffe
     switch( opc ) {
         case Opcode::PAIRING_REQUEST:               res = new SMPPairingMsg(true /* request */, buffer, buffer_size); break;
         case Opcode::PAIRING_RESPONSE:              res = new SMPPairingMsg(false /* request */, buffer, buffer_size); break;
-        case Opcode::PAIRING_CONFIRM:               res = new SMPPairConfMsg(buffer, buffer_size); break;
+        case Opcode::PAIRING_CONFIRM:               res = new SMPPairConfirmMsg(buffer, buffer_size); break;
         case Opcode::PAIRING_RANDOM:                res = new SMPPairRandMsg(buffer, buffer_size); break;
         case Opcode::PAIRING_FAILED:                res = new SMPPairFailedMsg(buffer, buffer_size); break;
         case Opcode::ENCRYPTION_INFORMATION:        res = new SMPEncInfoMsg(buffer, buffer_size); break;

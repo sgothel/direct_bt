@@ -91,6 +91,34 @@ namespace direct_bt {
 
 
     /**
+     * Vol 3, Part H, 2.3.2 IO capabilities
+     */
+    enum class SMPIOCapability : uint8_t {
+        DISPLAY_ONLY                = 0x00,/**< DISPLAY_ONLY */
+        DISPLAY_YES_NO              = 0x01,/**< DISPLAY_YES_NO */
+        KEYBOARD_ONLY               = 0x02,/**< KEYBOARD_ONLY */
+        NO_INPUT_NO_OUTPUT          = 0x03,/**< NO_INPUT_NO_OUTPUT */
+        KEYBOARD_DISPLAY            = 0x04 /**< KEYBOARD_DISPLAY */
+    };
+    constexpr uint8_t number(const SMPIOCapability rhs) noexcept {
+        return static_cast<uint8_t>(rhs);
+    }
+    std::string getSMPIOCapabilityString(const SMPIOCapability ioc) noexcept;
+
+    /**
+     * Vol 3, Part H, 2.3.3 OOB authentication data
+     *
+     */
+    enum class SMPOOBDataFlag : uint8_t {
+        OOB_AUTH_DATA_NOT_PRESENT    = 0x00,/**< OOB_AUTH_DATA_NOT_PRESENT */
+        OOB_AUTH_DATA_REMOTE_PRESENT = 0x01 /**< OOB_AUTH_DATA_REMOTE_PRESENT */
+    };
+    constexpr uint8_t number(const SMPOOBDataFlag rhs) noexcept {
+        return static_cast<uint8_t>(rhs);
+    }
+    std::string getSMPOOBDataFlagString(const SMPOOBDataFlag v) noexcept;
+
+    /**
      * SMP Authentication Requirements Bits, denotes specific bits or whole protocol uint8_t bit-mask.
      * <pre>
      * SMP Pairing Request Vol 3, Part H (SM): 3.5.1
@@ -372,34 +400,6 @@ namespace direct_bt {
     {
         public:
             /**
-             * Vol 3, Part H, 2.3.2 IO capabilities
-             */
-            enum class IOCapability : uint8_t {
-                DISPLAY_ONLY                = 0x00,/**< DISPLAY_ONLY */
-                DISPLAY_YES_NO              = 0x01,/**< DISPLAY_YES_NO */
-                KEYBOARD_ONLY               = 0x02,/**< KEYBOARD_ONLY */
-                NO_INPUT_NO_OUTPUT          = 0x03,/**< NO_INPUT_NO_OUTPUT */
-                KEYBOARD_DISPLAY            = 0x04 /**< KEYBOARD_DISPLAY */
-            };
-            static constexpr uint8_t number(const IOCapability rhs) noexcept {
-                return static_cast<uint8_t>(rhs);
-            }
-            static std::string getIOCapabilityString(const IOCapability ioc) noexcept;
-
-            /**
-             * Vol 3, Part H, 2.3.3 OOB authentication data
-             *
-             */
-            enum class OOBDataFlag : uint8_t {
-                OOB_AUTH_DATA_NOT_PRESENT    = 0x00,/**< OOB_AUTH_DATA_NOT_PRESENT */
-                OOB_AUTH_DATA_REMOTE_PRESENT = 0x01 /**< OOB_AUTH_DATA_REMOTE_PRESENT */
-            };
-            static constexpr uint8_t number(const OOBDataFlag rhs) noexcept {
-                return static_cast<uint8_t>(rhs);
-            }
-            static std::string getOOBDataFlagString(const OOBDataFlag v) noexcept;
-
-            /**
              * LE Key Distribution format, indicates keys distributed in the Transport Specific Key Distribution phase.
              * <pre>
              * Field format and usage: Vol 3, Part H, 3.6.1 SMP - LE Security - Key distribution and generation.
@@ -429,7 +429,7 @@ namespace direct_bt {
                 ENC_KEY                     = 0b00000001,
                 /**
                  * Indicates that the device shall distribute IRK using the Identity Information command
-                 * followed by its public device or statuc random address using Identity Address Information.
+                 * followed by its public device or status random address using Identity Address Information.
                  */
                 ID_KEY                      = 0b00000010,
                 /**
@@ -482,7 +482,7 @@ namespace direct_bt {
             }
 
             SMPPairingMsg(const bool request_,
-                          const IOCapability ioc, const OOBDataFlag odf,
+                          const SMPIOCapability ioc, const SMPOOBDataFlag odf,
                           const SMPAuthReqs auth_req_mask, const uint8_t maxEncKeySize,
                           const KeyDistFormat initiator_key_dist_,
                           const KeyDistFormat responder_key_dist_)
@@ -490,8 +490,8 @@ namespace direct_bt {
               request(request_),
               authReqMask(auth_req_mask), initiator_key_dist(initiator_key_dist_), responder_key_dist(responder_key_dist_)
             {
-                pdu.put_uint8_nc(1, number(ioc));
-                pdu.put_uint8_nc(2, number(odf));
+                pdu.put_uint8_nc(1, direct_bt::number(ioc));
+                pdu.put_uint8_nc(2, direct_bt::number(odf));
                 pdu.put_uint8_nc(3, direct_bt::number(authReqMask));
                 pdu.put_uint8_nc(4, maxEncKeySize);
                 pdu.put_uint8_nc(5, number(initiator_key_dist));
@@ -509,8 +509,8 @@ namespace direct_bt {
              * </pre>
              * @see IOCapability
              */
-            IOCapability getIOCapability() const noexcept {
-                return static_cast<IOCapability>(pdu.get_uint8_nc(1));
+            SMPIOCapability getIOCapability() const noexcept {
+                return static_cast<SMPIOCapability>(pdu.get_uint8_nc(1));
             }
 
             /**
@@ -520,8 +520,8 @@ namespace direct_bt {
              * </pre>
              * @see OOBDataFlag
              */
-            OOBDataFlag getOOBDataFlag() const noexcept {
-                return static_cast<OOBDataFlag>(pdu.get_uint8_nc(2));
+            SMPOOBDataFlag getOOBDataFlag() const noexcept {
+                return static_cast<SMPOOBDataFlag>(pdu.get_uint8_nc(2));
             }
 
             /**
@@ -580,13 +580,13 @@ namespace direct_bt {
             }
 
             std::string getName() const noexcept override {
-                return request ? "SMPPairReq" : "SMPPairRes";
+                return "SMPPairingMsg";
             }
 
         protected:
             std::string valueString() const noexcept override {
-                return "iocap "+getIOCapabilityString(getIOCapability())+
-                       ", oob "+getOOBDataFlagString(getOOBDataFlag())+
+                return "iocap "+getSMPIOCapabilityString(getIOCapability())+
+                       ", oob "+getSMPOOBDataFlagString(getOOBDataFlag())+
                        ", auth_req "+getSMPAuthReqMaskString(getAuthReqMask())+
                        ", max_keysz "+std::to_string(getMaxEncryptionKeySize())+
                        ", key_dist[init "+getKeyDistFormatMaskString(getInitiatorKeyDistribution())+
@@ -624,16 +624,16 @@ namespace direct_bt {
      * after it has received a Pairing Confirm command from the initiating device.
      * </p>
      */
-    class SMPPairConfMsg : public SMPPDUMsg
+    class SMPPairConfirmMsg : public SMPPDUMsg
     {
         public:
-            SMPPairConfMsg(const uint8_t* source, const jau::nsize_t length)
+            SMPPairConfirmMsg(const uint8_t* source, const jau::nsize_t length)
             : SMPPDUMsg(source, length)
             {
                 checkOpcode(Opcode::PAIRING_CONFIRM);
             }
 
-            SMPPairConfMsg(const jau::uint128_t & confirm_value)
+            SMPPairConfirmMsg(const jau::uint128_t & confirm_value)
             : SMPPDUMsg(Opcode::PAIRING_CONFIRM, 1+16)
             {
                 pdu.put_uint128_nc(1, confirm_value);
@@ -659,7 +659,7 @@ namespace direct_bt {
             jau::uint128_t getConfirmValuePtr() const noexcept { return pdu.get_uint128_nc(1); }
 
             std::string getName() const noexcept override {
-                return "SMPPairConf";
+                return "SMPPairConfirm";
             }
 
         protected:
