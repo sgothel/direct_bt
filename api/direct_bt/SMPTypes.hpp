@@ -129,7 +129,7 @@ namespace direct_bt {
         /** Phase 2: Authentication (MITM) PASSKEY expected, see PairingMode::PASSKEY_ENTRY */
         PASSKEY_EXPECTED            = 5,
         /** Phase 2: Authentication (MITM) Numeric Comparison Reply expected, see PairingMode::NUMERIC_COMPARISON */
-        NUMERIC_REPLY_EXPECTED      = 6,
+        NUMERIC_COMPARISON_EXPECTED = 6,
         /** Phase 2: Authentication (MITM) OOB data expected, see PairingMode::OUT_OF_BAND */
         OOB_EXPECTED                = 7,
 
@@ -275,8 +275,11 @@ namespace direct_bt {
     std::string getSMPAuthReqMaskString(const SMPAuthReqs mask) noexcept;
 
     /**
-     * Returns the PairingMode derived from the given SMPAuthReqs
+     * Returns the PairingMode derived from both devices' sets of SMPAuthReqs, SMPIOCapability and SMPOOBDataFlag
      * <pre>
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.6 (STK, le_sc_all_supported==false)
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.7 (LTK, le_sc_all_supported==true)
+     *
      * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.1 Security Properties
      * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method
      * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.6.2 Authentication stage 1 – Just Works or Numeric Comparison
@@ -284,15 +287,18 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.6.4 Authentication stage 1 – Out of Band
      * </pre>
      */
-    PairingMode getBestPairingMode(const SMPAuthReqs mask, const SMPIOCapability ioCap, const SMPOOBDataFlag oobFlag) noexcept;
+    PairingMode getPairingMode(const bool le_sc_pairing,
+                               const SMPAuthReqs authReqs_init, const SMPIOCapability ioCap_init, const SMPOOBDataFlag oobFlag_init,
+                               const SMPAuthReqs authReqs_resp, const SMPIOCapability ioCap_resp, const SMPOOBDataFlag oobFlag_resp) noexcept;
 
     /**
-     * Returns a list of complying PairingMode derived from the given SMPAuthReqs
+     * Returns the PairingMode derived from both devices' SMPIOCapability
      * <pre>
-     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.1 Security Properties
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.8
      * </pre>
      */
-    std::vector<PairingMode> getComplyingPairingModes(const SMPAuthReqs mask) noexcept;
+    PairingMode getPairingMode(const bool le_sc_pairing,
+                               const SMPIOCapability ioCap_init, const SMPIOCapability ioCap_resp) noexcept;
 
     /**
      * Handles the Security Manager Protocol (SMP) using Protocol Data Unit (PDU)
