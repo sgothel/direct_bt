@@ -129,6 +129,18 @@ namespace direct_bt {
             virtual void deviceConnected(std::shared_ptr<DBTDevice> device, const uint16_t handle, const uint64_t timestamp) = 0;
 
             /**
+             * An already connected DBTDevice's SMPPairingState has changed.
+             * <p>
+             * If currentMode == PairingMode::NONE, the device is not paired, otherwise it is paired using the given PairingMode.
+             * </p>
+             * @param device the device which PairingMode has been changed.
+             * @param state the current SMPPairingState of the connected device, see DBTDevice::getCurrentPairingState()
+             * @param mode the current PairingMode of the connected device, see DBTDevice::getCurrentPairingMode()
+             * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             */
+            virtual void devicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) = 0;
+
+            /**
              * DBTDevice got disconnected
              * @param device the device which has been disconnected with zeroed connection handle.
              * @param reason the HCIStatusCode reason for disconnection
@@ -224,6 +236,7 @@ namespace direct_bt {
                                                       uint16_t min_interval, uint16_t max_interval,
                                                       uint16_t latency, uint16_t supervision_timeout);
             friend HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch);
+            friend void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;
             friend std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept;
 
             bool addConnectedDevice(const std::shared_ptr<DBTDevice> & device) noexcept;
@@ -254,7 +267,18 @@ namespace direct_bt {
 
             bool mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const bool hciSourced) noexcept;
 
-            bool hciSMPMsgCallback(const EUI48& address, BDAddressType addressType, uint16_t handle, std::shared_ptr<const SMPPDUMsg> msg) noexcept;
+            bool mgmtEvPinCodeRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvUserConfirmRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvUserPasskeyRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvAuthFailedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvDeviceUnpairedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
+
+            bool updatePairingStateAndMode(std::shared_ptr<DBTDevice> device,
+                                           const SMPPairingState old_pstate, const SMPPairingState new_pstate,
+                                           const PairingMode old_pmode, const PairingMode new_pmode, uint64_t timestamp) noexcept;
+            bool hciSMPMsgCallback(const EUI48& address, BDAddressType addressType,
+                                   std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;
+            bool sendDevicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept;
 
             void startDiscoveryBackground() noexcept;
             void checkDiscoveryState() noexcept;

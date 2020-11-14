@@ -181,6 +181,12 @@ bool DBTAdapter::validateDevInfo() noexcept {
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvNewSettingsMgmt)) && ok;
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvLocalNameChangedMgmt)) && ok;
+    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvPinCodeRequestMgmt));
+    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_CONFIRM_REQUEST, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvUserConfirmRequestMgmt));
+    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvUserPasskeyRequestMgmt));
+    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::AUTH_FAILED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvAuthFailedMgmt));
+    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceUnpairedMgmt));
+
     if( !ok ) {
         ERR_PRINT("Could not add all required MgmtEventCallbacks to DBTManager: %s", toString().c_str());
         return false;
@@ -195,6 +201,7 @@ bool DBTAdapter::validateDevInfo() noexcept {
     ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvConnectFailedHCI)) && ok;
     ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedHCI)) && ok;
     ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceFoundHCI)) && ok;
+
     if( !ok ) {
         ERR_PRINT("Could not add all required MgmtEventCallbacks to HCIHandler: %s of %s", hci.toString().c_str(), toString().c_str());
         return false; // dtor local HCIHandler w/ closing
@@ -1145,22 +1152,141 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
     return true;
 }
 
-bool DBTAdapter::hciSMPMsgCallback(const EUI48& address, BDAddressType addressType, uint16_t connectionHandle, std::shared_ptr<const SMPPDUMsg> msg) noexcept {
-    std::shared_ptr<DBTDevice> device = findConnectedDevice(address, addressType);
-    if( nullptr != device ) {
-        if( device->getConnectionHandle() != connectionHandle ) {
-            WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: ConnHandle mismatch address[%s, %s], connHandle %s, %s\n    -> %s",
-                    dev_id, address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
-                    jau::uint16HexString(connectionHandle).c_str(), msg->toString().c_str(), device->toString().c_str());
-        } else {
-            device->notifySMPMsg(msg);
-        }
-    } else {
-        WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s], connHandle %s, %s",
-                dev_id, address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
-                jau::uint16HexString(connectionHandle).c_str(), msg->toString().c_str());
+bool DBTAdapter::mgmtEvDeviceUnpairedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
+    const MgmtEvtDeviceUnpaired &event = *static_cast<const MgmtEvtDeviceUnpaired *>(e.get());
+    DBG_PRINT("DBTAdapter:mgmt:DeviceUnpaired: %s", event.toString().c_str());
+    return true;
+}
+bool DBTAdapter::mgmtEvPinCodeRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
+    const MgmtEvtPinCodeRequest &event = *static_cast<const MgmtEvtPinCodeRequest *>(e.get());
+    DBG_PRINT("DBTAdapter:mgmt:PinCodeRequest: %s", event.toString().c_str());
+    return true;
+}
+bool DBTAdapter::mgmtEvAuthFailedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
+    const MgmtEvtAuthFailed &event = *static_cast<const MgmtEvtAuthFailed *>(e.get());
+
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr == device ) {
+        WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s], %s",
+                dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),
+                event.toString().c_str());
+        return true;
     }
+    const SMPPairingState old_pstate  = device->getCurrentPairingState();
+    const PairingMode old_pmode = device->getCurrentPairingMode();
+
+    const SMPPairingState pstate  = SMPPairingState::FAILED;
+    const PairingMode pmode = old_pmode;
+
+    DBG_PRINT("DBTAdapter:mgmt:SMP: dev_id %d: address[%s, %s]: state %s -> %s, mode %s -> %s, %s",
+        dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),
+        getSMPPairingStateString(old_pstate).c_str(), getSMPPairingStateString(pstate).c_str(),
+        getPairingModeString(old_pmode).c_str(), getPairingModeString(pmode).c_str(),
+        event.toString().c_str());
+
+    return updatePairingStateAndMode(device, old_pstate, pstate, old_pmode, pmode, e->getTimestamp());
+}
+bool DBTAdapter::mgmtEvUserConfirmRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
+    const MgmtEvtUserConfirmRequest &event = *static_cast<const MgmtEvtUserConfirmRequest *>(e.get());
+
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr == device ) {
+        WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s], %s",
+                dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),
+                event.toString().c_str());
+        return true;
+    }
+    // FIXME: Pass confirm_hint and value
+    const SMPPairingState old_pstate  = device->getCurrentPairingState();
+    const PairingMode old_pmode = device->getCurrentPairingMode();
+
+    const SMPPairingState pstate  = SMPPairingState::NUMERIC_COMPARISON_EXPECTED;
+    const PairingMode pmode = old_pmode;
+
+    DBG_PRINT("DBTAdapter:mgmt:SMP: dev_id %d: address[%s, %s]: state %s -> %s, mode %s -> %s, %s",
+        dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),
+        getSMPPairingStateString(old_pstate).c_str(), getSMPPairingStateString(pstate).c_str(),
+        getPairingModeString(old_pmode).c_str(), getPairingModeString(pmode).c_str(),
+        event.toString().c_str());
+
+    return updatePairingStateAndMode(device, old_pstate, pstate, old_pmode, pmode, e->getTimestamp());
+}
+bool DBTAdapter::mgmtEvUserPasskeyRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
+    const MgmtEvtUserPasskeyRequest &event = *static_cast<const MgmtEvtUserPasskeyRequest *>(e.get());
+
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr == device ) {
+        WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s], %s",
+                dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),
+                event.toString().c_str());
+        return true;
+    }
+    const SMPPairingState old_pstate  = device->getCurrentPairingState();
+    const PairingMode old_pmode = device->getCurrentPairingMode();
+
+    const SMPPairingState pstate  = SMPPairingState::PASSKEY_EXPECTED;
+    const PairingMode pmode = old_pmode;
+
+    DBG_PRINT("DBTAdapter:mgmt:SMP: dev_id %d: address[%s, %s]: state %s -> %s, mode %s -> %s, %s",
+        dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),
+        getSMPPairingStateString(old_pstate).c_str(), getSMPPairingStateString(pstate).c_str(),
+        getPairingModeString(old_pmode).c_str(), getPairingModeString(pmode).c_str(),
+        event.toString().c_str());
+
+    return updatePairingStateAndMode(device, old_pstate, pstate, old_pmode, pmode, e->getTimestamp());
+}
+
+bool DBTAdapter::updatePairingStateAndMode(std::shared_ptr<DBTDevice> device,
+        const SMPPairingState old_pstate, const SMPPairingState new_pstate,
+        const PairingMode old_pmode, const PairingMode new_pmode, uint64_t timestamp) noexcept
+{
+    if( old_pstate == new_pstate /* && old_pmode == new_pmode */ ) {
+        WORDY_PRINT("DBTAdapter::updatePairingStateAndMode: dev_id %d: Unchanged: state %s, mode %s, %s", dev_id,
+                getSMPPairingStateString(old_pstate).c_str(),
+                getPairingModeString(old_pmode).c_str(),
+                device->toString().c_str());
+        return true;
+    }
+    device->updatePairingStateAndMode(new_pstate, new_pmode);
+    return sendDevicePairingState(device, new_pstate, new_pmode, timestamp);
+}
+
+bool DBTAdapter::hciSMPMsgCallback(const EUI48& address, BDAddressType addressType,
+                                   std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept {
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(address, addressType);
+    if( nullptr == device ) {
+        WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s]: %s, %s",
+                dev_id, address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
+                msg->toString().c_str(), source.toString().c_str());
+        return true;
+    }
+    if( device->getConnectionHandle() != source.handle ) {
+        WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: ConnHandle mismatch address[%s, %s]: %s, %s\n    -> %s",
+                dev_id, address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
+                msg->toString().c_str(), source.toString().c_str(), device->toString().c_str());
+        return true;
+    }
+
+    device->hciSMPMsgCallback(device, msg, source);
+
     return true;
 }
 
+bool DBTAdapter::sendDevicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept
+{
+    int i=0;
+    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        try {
+            if( l->matchDevice(*device) ) {
+                l->devicePairingState(device, state, mode, timestamp);
+            }
+        } catch (std::exception &except) {
+            ERR_PRINT("DBTAdapter::sendDevicePairingState: %d/%zd: %s of %s: Caught exception %s",
+                    i+1, statusListenerList.size(),
+                    l->toString().c_str(), device->toString().c_str(), except.what());
+        }
+        i++;
+    });
+    return true;
+}
 

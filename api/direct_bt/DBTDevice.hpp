@@ -77,6 +77,19 @@ namespace direct_bt {
             std::atomic<bool> isConnected;
             std::atomic<bool> allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
 
+            struct PairingData {
+                SMPPairingState state;
+                PairingMode     mode;
+                uint32_t        passkey;
+                SMPAuthReqs     authReqs_init, authReqs_resp;
+                SMPIOCapability ioCap_init,    ioCap_resp;
+                SMPOOBDataFlag  oobFlag_init,  oobFlag_resp;
+                uint8_t         maxEncsz_init, maxEncsz_resp;
+            };
+            PairingData pairing_data;
+            std::mutex mtx_pairing;
+
+
             DBTDevice(DBTAdapter & adapter, EInfoReport const & r);
 
             /** Add advertised service (GAP discovery) */
@@ -94,7 +107,6 @@ namespace direct_bt {
 
             void notifyDisconnected() noexcept;
             void notifyConnected(const uint16_t handle) noexcept;
-            void notifySMPMsg(std::shared_ptr<const SMPPDUMsg> msg) noexcept;
 
             /**
              * Returns a newly established GATT connection.
@@ -106,6 +118,13 @@ namespace direct_bt {
              * </p>
              */
             bool connectGATT() noexcept;
+
+            void updatePairingStateAndMode(SMPPairingState state, PairingMode mode) noexcept;
+
+            /**
+             * Forwarded from HCIHandler -> DBTAdapter -> this DBTDevice
+             */
+            void hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;
 
             /**
              * Will be performed within disconnect() and notifyDisconnected().
@@ -127,6 +146,8 @@ namespace direct_bt {
              * Will be performed within disconnect() and notifyDisconnected().
              */
             void disconnectSMP(int caller) noexcept;
+
+            void clearSMPStates() noexcept;
 
             /**
              * Will be performed after connectLE(..) via notifyConnected(),
@@ -377,38 +398,93 @@ namespace direct_bt {
             HCIStatusCode disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
 
             /**
-             * The device is securely paired with PasskeyEntry or JustWorks.
+             * Method sets the given passkey entry, see PairingMode::PASSKEY_ENTRY.
              * <p>
-             * The device must be connected before pairing, see connectDefault().
-             * </p>
+             * Call this method if the device shall be securely paired with PairingMode::PASSKEY_ENTRY,
+             * when notified via AdapterStatusListener::devicePairingState().
              * <p>
-             * If passkey is an empty string, JustWorks method is being used, otherwise PasskeyEntry.
+             * If returning HCIStatusCode::SUCCESS, caller shall continue listening to AdapterStatusListener::devicePairingState()
+             * to wait for either SMPPairingState::PROCESS_COMPLETED or SMPPairingState::FAILED.
              * </p>
-             * @param passkey optional secret used for PasskeyEntry method.
-             *        Will be encrypted before sending to counterparty.
-             *        Can be an empty string, in which case JustWork method is used.
+             * @param passkey used for PairingMode::PASSKEY_ENTRY method.
+             *        Will be encrypted before sending to counter-party.
              *
              * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
+             * @see PairingMode
+             * @see SMPPairingState
+             * @see AdapterStatusListener::devicePairingState()
+             * @see setPairingPasskey()
+             * @see setPairingNumericComparison()
+             * @see getCurrentPairingMode()
+             * @see getCurrentPairingState()
              */
-            HCIStatusCode pair(const std::string & passkey);
+            HCIStatusCode setPairingPasskey(const uint32_t passkey) noexcept;
+
+            HCIStatusCode setPairingPasskeyNegative() noexcept;
+
+            uint32_t getPairingPasskey() const noexcept;
 
             /**
-             * Returns a vector of supported PairingMode by the device.
+             * Method sets the numeric comparison result, see PairingMode::NUMERIC_COMPARISON.
              * <p>
-             * The device must be connected before querying this status, see connectDefault(). FIXME?
+             * Call this method if the device shall be securely paired with PairingMode::NUMERIC_COMPARISON,
+             * when notified via AdapterStatusListener::devicePairingState().
+             * <p>
+             * If returning HCIStatusCode::SUCCESS, caller shall continue listening to AdapterStatusListener::devicePairingState()
+             * to wait for either SMPPairingState::PROCESS_COMPLETED or SMPPairingState::FAILED.
              * </p>
-             * @return vector of supported PairingMode, empty if pairing is not supported.
+             * @param equal used for PairingMode::NUMERIC_COMPARISON method.
+             *        Will be encrypted before sending to counter-party.
+             *
+             * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
+             * @see PairingMode
+             * @see SMPPairingState
+             * @see AdapterStatusListener::devicePairingState()
+             * @see setPairingPasskey()
+             * @see setPairingNumericComparison()
+             * @see getCurrentPairingMode()
+             * @see getCurrentPairingState()
              */
-            std::vector<PairingMode> getSupportedPairingModes();
+            HCIStatusCode setPairingNumericComparison(const bool equal) noexcept;
 
             /**
-             * Returns a vector of required PairingMode by the device.
+             * Returns the current PairingMode used by the device.
              * <p>
-             * The device must be connected before querying this status, see connectDefault(). FIXME?
+             * If the device is not paired, the current mode is PairingMode::NONE.
              * </p>
-             * @return vector of required PairingMode, empty if pairing is not required.
+             * <p>
+             * If the Pairing Feature Exchange is completed, i.e. SMPPairingState::FEATURE_EXCHANGE_COMPLETED,
+             * as notified by AdapterStatusListener::devicePairingState(),
+             * the current mode reflects the currently used PairingMode.
+             * </p>
+             * <p>
+             * In case the Pairing Feature Exchange is in progress, the current mode is PairingMode::NEGOTIATING.
+             * </p>
+             * @return current PairingMode.
+             * @see PairingMode
+             * @see SMPPairingState
+             * @see AdapterStatusListener::devicePairingState()
+             * @see setPairingPasskey()
+             * @see setPairingNumericComparison()
+             * @see getCurrentPairingMode()
+             * @see getCurrentPairingState()
              */
-            std::vector<PairingMode> getRequiredPairingModes();
+            PairingMode getCurrentPairingMode() const noexcept;
+
+            /**
+             * Returns the current SMPPairingState.
+             * <p>
+             * If the device is not paired, the current state is SMPPairingState::NONE.
+             * </p>
+             * @see PairingMode
+             * @see SMPPairingState
+             * @see AdapterStatusListener::devicePairingState()
+             * @see setPairingPasskey()
+             * @see setPairingNumericComparison()
+             * @see getCurrentPairingMode()
+             * @see getCurrentPairingState()
+             */
+            SMPPairingState getCurrentPairingState() const noexcept;
 
             /**
              * Disconnects this device via disconnect(..) if getConnected()==true

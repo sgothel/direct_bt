@@ -397,10 +397,6 @@ void DBTDevice::notifyConnected(const uint16_t handle) noexcept {
     }
 }
 
-void DBTDevice::notifySMPMsg(std::shared_ptr<const SMPPDUMsg> msg) noexcept {
-    DBG_PRINT("DBTDevice::notifySMPMsg: %s, %s", msg->toString().c_str(), toString().c_str());
-}
-
 void DBTDevice::processNotifyConnectedOffThread() {
     DBG_PRINT("DBTDevice::processNotifyConnectedOffThread: %s", toString().c_str());
     bool res0 = connectSMP();
@@ -491,18 +487,172 @@ exit:
     return res;
 }
 
-std::vector<PairingMode> DBTDevice::getSupportedPairingModes() {
-    std::vector<PairingMode> pairingModes; // FIXME: Implement LE Secure Connections
-    return pairingModes;
+PairingMode DBTDevice::getCurrentPairingMode() const noexcept {
+    const std::lock_guard<std::mutex> lock(const_cast<DBTDevice*>(this)->mtx_pairing); // RAII-style acquire and relinquish via destructor
+    return pairing_data.mode;
 }
 
-std::vector<PairingMode> DBTDevice::getRequiredPairingModes() {
-    std::vector<PairingMode> pairingModes; // FIXME: Implement LE Secure Connections
-    return pairingModes;
+SMPPairingState DBTDevice::getCurrentPairingState() const noexcept {
+    const std::lock_guard<std::mutex> lock(const_cast<DBTDevice*>(this)->mtx_pairing); // RAII-style acquire and relinquish via destructor
+    return pairing_data.state;
 }
 
-HCIStatusCode DBTDevice::pair(const std::string & passkey) {
-    (void) passkey;
+void DBTDevice::updatePairingStateAndMode(SMPPairingState state, PairingMode mode) noexcept {
+    const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    pairing_data.mode = mode;
+    pairing_data.state = state;
+}
+
+void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept {
+    const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+
+    const SMPPairingState old_pstate = pairing_data.state;
+    const PairingMode old_pmode = pairing_data.mode;
+
+    SMPPairingState pstate = old_pstate;
+    PairingMode pmode = old_pmode;
+
+    const SMPPDUMsg::Opcode opc = msg->getOpcode();
+
+    switch( opc ) {
+        case SMPPDUMsg::Opcode::PAIRING_FAILED:
+            pmode = PairingMode::NONE;
+            pstate = SMPPairingState::FAILED;
+            break;
+
+        case SMPPDUMsg::Opcode::SECURITY_REQUEST:
+            pmode = PairingMode::NEGOTIATING;
+            pstate = SMPPairingState::REQUESTED_BY_RESPONDER;
+            break;
+
+        case SMPPDUMsg::Opcode::PAIRING_REQUEST:
+            if( HCIACLData::l2cap_frame::PBFlag::START_NON_AUTOFLUSH_HOST == source.pb_flag ) { // from initiator (master)
+                const SMPPairingMsg & msg1 = *static_cast<const SMPPairingMsg *>( msg.get() );
+                pairing_data.authReqs_init = msg1.getAuthReqMask();
+                pairing_data.ioCap_init    = msg1.getIOCapability();
+                pairing_data.oobFlag_init  = msg1.getOOBDataFlag();
+                pairing_data.maxEncsz_init = msg1.getMaxEncryptionKeySize();
+                pmode = PairingMode::NEGOTIATING;
+                pstate = SMPPairingState::FEATURE_EXCHANGE_STARTED;
+            }
+            break;
+
+        case SMPPDUMsg::Opcode::PAIRING_RESPONSE: {
+            if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) { // from responder (slave)
+                const SMPPairingMsg & msg1 = *static_cast<const SMPPairingMsg *>( msg.get() );
+                pairing_data.authReqs_resp = msg1.getAuthReqMask();
+                pairing_data.ioCap_resp    = msg1.getIOCapability();
+                pairing_data.oobFlag_resp  = msg1.getOOBDataFlag();
+                pairing_data.maxEncsz_resp = msg1.getMaxEncryptionKeySize();
+
+                const bool le_sc_pairing = isSMPAuthReqBitSet( pairing_data.authReqs_init, SMPAuthReqs::LE_SECURE_CONNECTIONS ) &&
+                                           isSMPAuthReqBitSet( pairing_data.authReqs_resp, SMPAuthReqs::LE_SECURE_CONNECTIONS );
+
+                pmode = getPairingMode(le_sc_pairing,
+                                       pairing_data.authReqs_init, pairing_data.ioCap_init, pairing_data.oobFlag_init,
+                                       pairing_data.authReqs_resp, pairing_data.ioCap_resp, pairing_data.oobFlag_resp);
+
+                pstate = SMPPairingState::FEATURE_EXCHANGE_COMPLETED;
+
+                DBG_PRINT("");
+                DBG_PRINT("DBTDevice:hci:SMP: address[%s, %s]: Concluded %s, Mode %s, using LE_Secure_Connections %d:",
+                    address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
+                    getSMPPairingStateString(pstate).c_str(), getPairingModeString(pmode).c_str(), le_sc_pairing);
+                DBG_PRINT("- oob:   init %s", getSMPOOBDataFlagString(pairing_data.oobFlag_init).c_str());
+                DBG_PRINT("- oob:   resp %s", getSMPOOBDataFlagString(pairing_data.oobFlag_resp).c_str());
+                DBG_PRINT("");
+                DBG_PRINT("- auth:  init %s", getSMPAuthReqMaskString(pairing_data.authReqs_init).c_str());
+                DBG_PRINT("- auth:  resp %s", getSMPAuthReqMaskString(pairing_data.authReqs_resp).c_str());
+                DBG_PRINT("");
+                DBG_PRINT("- iocap: init %s", getSMPIOCapabilityString(pairing_data.ioCap_init).c_str());
+                DBG_PRINT("- iocap: resp %s", getSMPIOCapabilityString(pairing_data.ioCap_resp).c_str());
+                DBG_PRINT("");
+                DBG_PRINT("- encsz: init %d", (int)pairing_data.maxEncsz_init);
+                DBG_PRINT("- encsz: resp %d", (int)pairing_data.maxEncsz_resp);
+            }
+        } break;
+
+        case SMPPDUMsg::Opcode::PAIRING_CONFIRM:
+            [[fallthrough]];
+        case SMPPDUMsg::Opcode::PAIRING_PUBLIC_KEY:
+            pmode = old_pmode;
+            pstate = SMPPairingState::PROCESS_STARTED;
+            break;
+
+        case SMPPDUMsg::Opcode::PAIRING_RANDOM:
+            if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) { // from responder (slave)
+                pmode = old_pmode;
+                pstate = SMPPairingState::PROCESS_COMPLETED;
+            }
+            break;
+        default:
+            WORDY_PRINT("DBTDevice:hci:SMP: Unhandled: address[%s, %s]: %s, %s",
+                    address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
+                    msg->toString().c_str(), source.toString().c_str());
+            return;
+    }
+
+    if( old_pstate == pstate /* && old_pmode == pmode */ ) {
+        WORDY_PRINT("DBTDevice::hci:SMP: Unchanged: state %s, mode %s, %s, %s, %s",
+                getSMPPairingStateString(old_pstate).c_str(),
+                getPairingModeString(old_pmode).c_str(),
+                msg->toString().c_str(), source.toString().c_str(), toString().c_str());
+        return;
+    }
+
+    DBG_PRINT("DBTDevice:hci:SMP: address[%s, %s]: state %s -> %s, mode %s -> %s, %s, %s",
+        address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
+        getSMPPairingStateString(old_pstate).c_str(), getSMPPairingStateString(pstate).c_str(),
+        getPairingModeString(old_pmode).c_str(), getPairingModeString(pmode).c_str(),
+        msg->toString().c_str(), source.toString().c_str());
+
+    pairing_data.mode = pmode;
+    pairing_data.state = pstate;
+
+    adapter.sendDevicePairingState(sthis, pstate, pmode, msg->ts_creation);
+}
+
+HCIStatusCode DBTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
+    const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+
+    pairing_data.passkey = passkey;
+    if( SMPPairingState::PASSKEY_EXPECTED == pairing_data.state ) {
+        DBTManager& mngr = adapter.getManager();
+        MgmtStatus res = mngr.userPasskeyReply(adapter.dev_id, address, addressType, passkey);
+        DBG_PRINT("DBTDevice:mgmt:SMP: PASSKEY '%d', state %s, result %s",
+            passkey, getSMPPairingStateString(pairing_data.state).c_str(), getMgmtStatusString(res).c_str());
+        return HCIStatusCode::SUCCESS;
+    } else {
+        DBG_PRINT("DBTDevice:mgmt:SMP: PASSKEY '%d', state %s, SKIPPED (wrong state)",
+            passkey, getSMPPairingStateString(pairing_data.state).c_str());
+        return HCIStatusCode::UNKNOWN;
+    }
+}
+
+HCIStatusCode DBTDevice::setPairingPasskeyNegative() noexcept {
+    const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+
+    pairing_data.passkey = 0;
+    if( SMPPairingState::PASSKEY_EXPECTED == pairing_data.state ) {
+        DBTManager& mngr = adapter.getManager();
+        MgmtStatus res = mngr.userPasskeyNegativeReply(adapter.dev_id, address, addressType);
+        DBG_PRINT("DBTDevice:mgmt:SMP: PASSKEY NEGATIVE, state %s, result %s",
+            getSMPPairingStateString(pairing_data.state).c_str(), getMgmtStatusString(res).c_str());
+        return HCIStatusCode::SUCCESS;
+    } else {
+        DBG_PRINT("DBTDevice:mgmt:SMP: PASSKEY NEGATIVE, state %s, SKIPPED (wrong state)",
+            getSMPPairingStateString(pairing_data.state).c_str());
+        return HCIStatusCode::UNKNOWN;
+    }
+}
+
+uint32_t DBTDevice::getPairingPasskey() const noexcept {
+    const std::lock_guard<std::mutex> lock(const_cast<DBTDevice*>(this)->mtx_pairing); // RAII-style acquire and relinquish via destructor
+    return pairing_data.passkey;
+}
+
+HCIStatusCode DBTDevice::setPairingNumericComparison(const bool equal) noexcept {
+    (void) equal;
     return HCIStatusCode::INTERNAL_FAILURE; // FIXME: Implement LE Secure Connections
 }
 
@@ -510,7 +660,26 @@ void DBTDevice::remove() noexcept {
     adapter.removeDevice(*this);
 }
 
+void DBTDevice::clearSMPStates() noexcept {
+    const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+
+    pairing_data.mode = PairingMode::NONE;
+    pairing_data.state = SMPPairingState::NONE;
+
+    pairing_data.authReqs_resp = SMPAuthReqs::NONE;
+    pairing_data.ioCap_resp    = SMPIOCapability::NO_INPUT_NO_OUTPUT;
+    pairing_data.oobFlag_resp  = SMPOOBDataFlag::OOB_AUTH_DATA_NOT_PRESENT;
+    pairing_data.maxEncsz_resp = 0;
+
+    pairing_data.authReqs_init = SMPAuthReqs::NONE;
+    pairing_data.ioCap_init    = SMPIOCapability::NO_INPUT_NO_OUTPUT;
+    pairing_data.oobFlag_init  = SMPOOBDataFlag::OOB_AUTH_DATA_NOT_PRESENT;
+    pairing_data.maxEncsz_init = 0;
+}
+
 void DBTDevice::disconnectSMP(int caller) noexcept {
+  clearSMPStates();
+
   #if SMP_SUPPORTED_BY_OS
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_smpHandler);
     if( nullptr != smpHandler ) {
@@ -527,6 +696,8 @@ void DBTDevice::disconnectSMP(int caller) noexcept {
 }
 
 bool DBTDevice::connectSMP() noexcept {
+  clearSMPStates();
+
   #if SMP_SUPPORTED_BY_OS
     if( !isConnected || !allowDisconnect) {
         ERR_PRINT("DBTDevice::connectSMP: Device not connected: %s", toString().c_str());

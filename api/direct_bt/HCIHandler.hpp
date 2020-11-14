@@ -148,7 +148,7 @@ namespace direct_bt {
     };
 
     typedef jau::FunctionDef<bool, const EUI48& /* address */, BDAddressType /* addressType */,
-                                   uint16_t /* connectionHandle */, std::shared_ptr<const SMPPDUMsg>> HCISMPMsgCallback;
+                                   std::shared_ptr<const SMPPDUMsg>, const HCIACLData::l2cap_frame& /* source */> HCISMPMsgCallback;
     typedef jau::cow_vector<HCISMPMsgCallback> HCISMPMsgCallbackList;
 
     /**

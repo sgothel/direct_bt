@@ -305,18 +305,17 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                 HCIACLData::l2cap_frame l2cap = acldata->getL2CAPFrame();
                 std::shared_ptr<const SMPPDUMsg> smpPDU = l2cap.getSMPPDUMsg();
                 if( nullptr != smpPDU ) {
-                    const uint16_t conn_handle = l2cap.handle;
-                    HCIConnectionRef conn = findTrackerConnection(conn_handle);
+                    HCIConnectionRef conn = findTrackerConnection(l2cap.handle);
 
                     if( nullptr != conn ) {
                         COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (ACL.SMP) %s for %s",
                                 smpPDU->toString().c_str(), conn->toString().c_str());
                         jau::for_each_cow(hciSMPMsgCallbackList, [&](HCISMPMsgCallback &cb) {
-                           cb.invoke(conn->getAddress(), conn->getAddressType(), conn->getHandle(), smpPDU);
+                           cb.invoke(conn->getAddress(), conn->getAddressType(), smpPDU, l2cap);
                         });
                     } else {
                         WARN_PRINT("HCIHandler-IO RECV Drop (ACL.SMP): Not tracked conn_handle %s: %s",
-                                jau::uint16HexString(conn_handle), conn->toString().c_str());
+                                jau::uint16HexString(l2cap.handle), conn->toString().c_str());
                     }
                 } else {
                     COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV Drop (ACL.L2CAP): %s", l2cap.toString().c_str());
