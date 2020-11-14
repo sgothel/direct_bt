@@ -264,6 +264,7 @@ namespace direct_bt {
             bool mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvPinCodeRequestCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvAuthFailedCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvUserConfirmRequestCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvUserPasskeyRequestCB(std::shared_ptr<MgmtEvent> e) noexcept;
 
             bool mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) noexcept;
@@ -441,6 +442,8 @@ namespace direct_bt {
 
             MgmtStatus uploadLinkKey(const uint16_t dev_id, const bool debug_keys, const MgmtLinkKey &key) noexcept;
             MgmtStatus uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKey &key) noexcept;
+            MgmtStatus userPasskeyReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint32_t passkey) noexcept;
+            MgmtStatus userPasskeyNegativeReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType) noexcept;
 
             /** MgmtEventCallback handling  */
 

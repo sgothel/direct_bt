@@ -790,6 +790,28 @@ MgmtStatus DBTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLongTe
     return MgmtStatus::TIMEOUT;
 }
 
+MgmtStatus DBTManager::userPasskeyReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint32_t passkey) noexcept {
+    MgmtUserPasskeyReplyCmd cmd(dev_id, address, addressType, passkey);
+    std::shared_ptr<MgmtEvent> res = sendWithReply(cmd);
+    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+        // FIXME: Analyze address + addressType result?
+        return res1.getStatus();
+    }
+    return MgmtStatus::TIMEOUT;
+}
+
+MgmtStatus DBTManager::userPasskeyNegativeReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType) noexcept {
+    MgmtUserPasskeyNegativeReplyCmd cmd(dev_id, address, addressType);
+    std::shared_ptr<MgmtEvent> res = sendWithReply(cmd);
+    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+        // FIXME: Analyze address + addressType result?
+        return res1.getStatus();
+    }
+    return MgmtStatus::TIMEOUT;
+}
+
 bool DBTManager::isDeviceWhitelisted(const uint16_t dev_id, const EUI48 &address) noexcept {
     for(auto it = whitelist.begin(); it != whitelist.end(); ) {
         std::shared_ptr<WhitelistElem> wle = *it;
@@ -1077,6 +1099,13 @@ bool DBTManager::mgmtEvAuthFailedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
     DBG_PRINT("DBTManager:mgmt:AuthFailed: %s", event.toString().c_str());
     return true;
 }
+
+bool DBTManager::mgmtEvUserConfirmRequestCB(std::shared_ptr<MgmtEvent> e) noexcept {
+    const MgmtEvtUserConfirmRequest &event = *static_cast<const MgmtEvtUserConfirmRequest *>(e.get());
+    DBG_PRINT("DBTManager:mgmt:UserConfirmRequest: %s", event.toString().c_str());
+    return true;
+}
+
 bool DBTManager::mgmtEvUserPasskeyRequestCB(std::shared_ptr<MgmtEvent> e) noexcept {
     const MgmtEvtUserPasskeyRequest &event = *static_cast<const MgmtEvtUserPasskeyRequest *>(e.get());
     DBG_PRINT("DBTManager:mgmt:UserPasskeyRequest: %s", event.toString().c_str());

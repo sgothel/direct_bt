@@ -283,6 +283,10 @@ std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau
             res = new MgmtEvtDeviceConnectFailed(buffer, buffer_size); break;
         case MgmtEvent::Opcode::PIN_CODE_REQUEST:
             res = new MgmtEvtPinCodeRequest(buffer, buffer_size); break;
+        case MgmtEvent::Opcode::USER_CONFIRM_REQUEST:
+            res = new MgmtEvtUserConfirmRequest(buffer, buffer_size); break;
+        case MgmtEvent::Opcode::USER_PASSKEY_REQUEST:
+            res = new MgmtEvtUserPasskeyRequest(buffer, buffer_size); break;
         case Opcode::AUTH_FAILED:
             res = new MgmtEvtAuthFailed(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_FOUND:

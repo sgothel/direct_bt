@@ -675,8 +675,56 @@ namespace direct_bt {
 
     // FIXME USER_CONFIRM_REPLY      = 0x001C,
     // FIXME USER_CONFIRM_NEG_REPLY  = 0x001D,
-    // FIXME USER_PASSKEY_REPLY      = 0x001E,
-    // FIXME USER_PASSKEY_NEG_REPLY  = 0x001F,
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     * uint32_t passkey
+     */
+    class MgmtUserPasskeyReplyCmd : public MgmtCommand
+    {
+        protected:
+            std::string valueString() const noexcept override {
+                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
+                                       ", passkey "+jau::uint16HexString(getPasskey());
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
+        public:
+            MgmtUserPasskeyReplyCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint32_t passkey)
+            : MgmtCommand(Opcode::USER_PASSKEY_REPLY, dev_id, 6+1+4)
+            {
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_uint32_nc(MGMT_HEADER_SIZE+6+1, passkey);
+            }
+            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+            uint32_t getPasskey() const noexcept { return pdu.get_uint32_nc(MGMT_HEADER_SIZE+6+1); }
+    };
+
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     */
+    class MgmtUserPasskeyNegativeReplyCmd : public MgmtCommand
+    {
+        protected:
+            std::string valueString() const noexcept override {
+                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType());
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
+        public:
+            MgmtUserPasskeyNegativeReplyCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
+            : MgmtCommand(Opcode::USER_PASSKEY_NEG_REPLY, dev_id, 6+1)
+            {
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+            }
+            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+    };
+
     // TODO READ_LOCAL_OOB_DATA     = 0x0020,
     // TODO ADD_REMOTE_OOB_DATA     = 0x0021,
     // TODO REMOVE_REMOTE_OOB_DATA  = 0x0022,
@@ -1417,7 +1465,37 @@ namespace direct_bt {
             const uint8_t* getData() const noexcept override { return getDataSize()>0 ? pdu.get_ptr_nc(getDataOffset()) : nullptr; }
     };
 
-    // FIXME USER_CONFIRM_REQUEST       = 0x000F,
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     * uint8_t confirm_hint
+     * uint32_t value
+     */
+    class MgmtEvtUserConfirmRequest: public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", address["+getAddress().toString()+
+                       ", "+getBDAddressTypeString(getAddressType())+
+                       "], confirm_hint "+jau::uint8HexString(getConfirmHint())+", value "+jau::uint32HexString(getValue());
+            }
+
+        public:
+            MgmtEvtUserConfirmRequest(const uint8_t* buffer, const jau::nsize_t buffer_len)
+            : MgmtEvent(buffer, buffer_len, 6+1+1+4)
+            {
+                checkOpcode(getOpcode(), Opcode::USER_CONFIRM_REQUEST);
+            }
+
+            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+
+            uint8_t getConfirmHint() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1); }
+            uint32_t getValue() const noexcept { return pdu.get_uint32_nc(MGMT_HEADER_SIZE+6+1+1); }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+6+1+1+4; }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+    };
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
