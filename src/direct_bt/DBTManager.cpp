@@ -235,8 +235,14 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) noexcept 
 }
 
 std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) noexcept {
-    const SMPIOCapability iocap { SMPIOCapability::KEYBOARD_DISPLAY };
-    // const uint8_t debug_keys = 1;
+    /**
+     * We weight on PairingMode::PASSKEY_ENTRY. FIXME: Have it configurable!
+     *
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.8
+     *
+     * See SMPTypes.cpp: getPairingMode(const bool le_sc_pairing, const SMPIOCapability ioCap_init, const SMPIOCapability ioCap_resp) noexcept
+     */
+    const SMPIOCapability iocap { SMPIOCapability::KEYBOARD_ONLY }; // Mostly PairingMode::PASSKEY_ENTRY
     const uint8_t debug_keys = 0;
     std::shared_ptr<AdapterInfo> adapterInfo = nullptr;
     AdapterSetting current_settings;
