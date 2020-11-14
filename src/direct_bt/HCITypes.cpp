@@ -309,6 +309,16 @@ std::string HCILocalVersion::toString() noexcept {
            ", manuf "+jau::uint16HexString(manufacturer)+", lmp "+std::to_string(lmp_ver)+"."+std::to_string(lmp_subver)+"]";
 }
 
+std::string HCIACLData::l2cap_frame::getPBFlagString(const PBFlag v) noexcept {
+    switch( v ) {
+        case HCIACLData::l2cap_frame::PBFlag::START_NON_AUTOFLUSH_HOST: return "START_NON_AUTOFLUSH_HOST";
+        case HCIACLData::l2cap_frame::PBFlag::CONTINUING_FRAGMENT:      return "CONTINUING_FRAGMENT";
+        case HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH:          return "START_AUTOFLUSH";
+        case HCIACLData::l2cap_frame::PBFlag::COMPLETE_L2CAP_AUTOFLUSH: return "COMPLETE_L2CAP_AUTOFLUSH";
+        default:                                                        return "Unknown PBFlag";
+    }
+}
+
 std::shared_ptr<HCIACLData> HCIACLData::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
     const HCIPacketType pc = static_cast<HCIPacketType>( jau::get_uint8(buffer, 0) );
     if( HCIPacketType::ACLDATA != pc ) {
@@ -334,16 +344,16 @@ HCIACLData::l2cap_frame HCIACLData::getL2CAPFrame() const noexcept {
     uint16_t size = static_cast<uint16_t>(getParamSize());
     const uint8_t * data = getParam();
     const uint16_t handle = get_handle(h_f);
-    const uint8_t pb_flag = get_pbflag(h_f);
+    const HCIACLData::l2cap_frame::PBFlag pb_flag { get_pbflag(h_f) };
     const uint8_t bc_flag = get_bcflag(h_f);
     const l2cap_hdr* hdr = reinterpret_cast<const l2cap_hdr*>(data);
 
     switch( pb_flag ) {
-        case 0b00: // Start of a non-automatically-flushable PDU from Host to Controller.
+        case HCIACLData::l2cap_frame::PBFlag::START_NON_AUTOFLUSH_HOST:
             [[fallthrough]];
-        case 0b10: // Start of an automatically flushable PDU.
+        case HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH:
             [[fallthrough]];
-        case 0b11: // A complete L2CAP PDU. Automatically flushable.
+        case HCIACLData::l2cap_frame::PBFlag::COMPLETE_L2CAP_AUTOFLUSH:
         {
             if( size < sizeof(*hdr) ) {
                 WARN_PRINT("l2cap frame-size %d < hdr-size %z, handle ", size, sizeof(*hdr), handle);
@@ -361,7 +371,7 @@ HCIACLData::l2cap_frame HCIACLData::getL2CAPFrame() const noexcept {
             }
         } break;
 
-        case 0b01: // Continuing fragment
+        case HCIACLData::l2cap_frame::PBFlag::CONTINUING_FRAGMENT:
             [[fallthrough]];
         default: // not supported
             WARN_PRINT("l2cap frame flag 0x%2.2x not supported, handle %d, packet-size %d", pb_flag, handle, size);

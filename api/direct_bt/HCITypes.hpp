@@ -605,21 +605,28 @@ namespace direct_bt {
              * </p>
              */
             struct l2cap_frame {
-                /** The connection handle */
-                const uint16_t handle;
                 /**
                  * The Packet_Boundary_Flag
                  * <p>
                  * BT Core Spec v5.2: Vol 4, Part E HCI: 5.4.2 HCI ACL Data packets
                  * </p>
-                 * <pre>
-                 * - 0b00 Start of a non-automatically-flushable PDU from Host to Controller.
-                 * - 0b01 Continuing fragment
-                 * - 0b10 Start of an automatically flushable PDU.
-                 * - 0b11 A complete L2CAP PDU. Automatically flushable.
-                 * </pre>
                  */
-                const uint8_t pb_flag;
+                enum class PBFlag : uint8_t {
+                    /** 0b00: Start of a non-automatically-flushable PDU from Host to Controller. Value 0b00. */
+                    START_NON_AUTOFLUSH_HOST      =  0b00,
+                    /** 0b01: Continuing fragment. Value 0b01. */
+                    CONTINUING_FRAGMENT           =  0b01,
+                    /** 0b10: Start of an automatically flushable PDU. Value 0b10. */
+                    START_AUTOFLUSH               =  0b10,
+                    /** A complete L2CAP PDU. Automatically flushable. Value 0b11.*/
+                    COMPLETE_L2CAP_AUTOFLUSH      =  0b11,
+                };
+                static constexpr uint8_t number(const PBFlag v) noexcept { return static_cast<uint8_t>(v); }
+                static std::string getPBFlagString(const PBFlag v) noexcept;
+
+                /** The connection handle */
+                const uint16_t handle;
+                const PBFlag pb_flag;
                 /** The Broadcast_Flag */
                 const uint8_t bc_flag;
                 const uint16_t cid;
@@ -637,7 +644,7 @@ namespace direct_bt {
                 }
 
                 std::string toString() const noexcept {
-                    return "l2cap[handle "+jau::uint16HexString(handle)+", flags[pb "+jau::uint8HexString(pb_flag)+", bc "+jau::uint8HexString(bc_flag)+
+                    return "l2cap[handle "+jau::uint16HexString(handle)+", flags[pb "+getPBFlagString(pb_flag)+", bc "+jau::uint8HexString(bc_flag)+
                             "], cid "+jau::uint8HexString(cid)+
                             ", psm "+jau::uint8HexString(psm)+", len "+std::to_string(len)+
                             ", data "+ jau::bytesHexString(data, 0, len, true /* lsbFirst */, true /* leading0X */) +"]";
@@ -682,12 +689,7 @@ namespace direct_bt {
             l2cap_frame getL2CAPFrame() const noexcept;
 
             std::string toString() const noexcept {
-                l2cap_frame l2cap = getL2CAPFrame();
-                std::shared_ptr<const SMPPDUMsg> smpMsg = l2cap.getSMPPDUMsg();
-                if( nullptr == smpMsg ) {
-                    return "ACLData[size "+std::to_string(getParamSize())+", data "+l2cap.toString()+", tsz "+std::to_string(getTotalSize())+"]";
-                }
-                return "ACLData[size "+std::to_string(getParamSize())+", data "+l2cap.toString()+", "+smpMsg->toString()+", tsz "+std::to_string(getTotalSize())+"]";
+                return "ACLData[size "+std::to_string(getParamSize())+", data "+getL2CAPFrame().toString()+", tsz "+std::to_string(getTotalSize())+"]";
             }
     };
 
