@@ -56,6 +56,7 @@ import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.HCIWhitelistConnectType;
 import org.tinyb.PairingMode;
+import org.tinyb.SMPPairingState;
 import org.tinyb.ScanType;
 import org.tinyb.BluetoothManager.ChangedAdapterSetListener;
 
@@ -215,6 +216,11 @@ public class DBTScanner10 {
         }
 
         @Override
+        public void devicePairingState(final BluetoothDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {
+            println("****** PAIRING_STATE: state "+state+", mode "+mode+": "+device);
+        }
+
+        @Override
         public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
             println("****** DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
 
@@ -304,29 +310,6 @@ public class DBTScanner10 {
 
         final long t1 = BluetoothUtils.currentTimeMillis();
         boolean success = false;
-
-        // Secure Pairing
-        {
-            final List<PairingMode> spm = device.getSupportedPairingModes();
-            if( !QUIET ) {
-                println("Supported Secure Pairing Modes: " + spm.toString());
-            }
-
-            final List<PairingMode> rpm = device.getRequiredPairingModes();
-            if( !QUIET ) {
-                println("Required Secure Pairing Modes: " + rpm.toString());
-            }
-
-            if( spm.contains(PairingMode.JUST_WORKS) ) {
-                final HCIStatusCode res = device.pair(null); // empty for JustWorks
-                println("Secure Pairing Just Works result " + res + " of " + device);
-            } else if( spm.contains(PairingMode.PASSKEY_ENTRY) ) {
-                final HCIStatusCode res = device.pair("111111"); // PasskeyEntry
-                println("Secure Pairing Passkey Entry result " + res + " of " + device);
-            } else if( !QUIET ) {
-                println("Secure Pairing JUST_WORKS or PASSKEY_ENTRY not supported, but " + spm.toString() + " on " + device);
-            }
-        }
 
         //
         // GATT Service Processing

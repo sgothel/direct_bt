@@ -189,50 +189,105 @@ public interface BluetoothDevice extends BluetoothObject
      * @implNote secure pairing with JustWorks method on direct_bt.tinyb,
      *           but device must be {@link #connectLE(short, short, short, short, short, short)} before.
      *           Use {@link #pair(int[])}
+     * @implNote not implemented in direct_bt.tinyb
      */
     boolean pair() throws BluetoothException;
 
     /**
-     * The device is securely paired with PasskeyEntry or JustWorks.
+     * Method sets the given passkey entry, see {@link PairingMode#PASSKEY_ENTRY}.
      * <p>
-     * The device must be {@link #connectLE(short, short, short, short, short, short) connected}
-     * before pairing.
-     * </p>
+     * Call this method if the device shall be securely paired with {@link PairingMode#PASSKEY_ENTRY},
+     * when notified via {@link AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long) devicePairingState}.
      * <p>
-     * If passkey is null or an empty string, JustWorks method is being used, otherwise PasskeyEntry.
+     * If returning {@link HCIStatusCode#SUCCESS}, caller shall continue listening to
+     * {@link AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long) devicePairingState}
+     * to wait for either {@link SMPPairingState#PROCESS_COMPLETED} or {@link SMPPairingState#FAILED}.
      * </p>
-     * @param passkey the optional secret used for secure PasskeyEntry method.
-     *        Will be encrypted before sending to counterparty.
-     *        Can be null or an empty string, in which case JustWork method is used.
+     * @param passkey used for {@link PairingMode#PASSKEY_ENTRY} method.
+     *        Will be encrypted before sending to counter-party.
+     *
      * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
+     * @see PairingMode
+     * @see SMPPairingState
+     * @see AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long)
+     * @see #setPairingPasskey(String)
+     * @see #setPairingNumericComparison(boolean)
+     * @see #getCurrentPairingMode()
+     * @see #getCurrentPairingState()
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
      */
-    HCIStatusCode pair(final String passkey) throws BluetoothException;
+    HCIStatusCode setPairingPasskey(final int passkey);
 
     /**
-     * Returns a vector of supported PairingMode by the device.
+     * Method sets the numeric comparison result, see {@link PairingMode#NUMERIC_COMPARISON}.
      * <p>
-     * The device must be {@link #connectLE(short, short, short, short, short, short) connected}
-     * before querying this status. FIXME?
+     * Call this method if the device shall be securely paired with {@link PairingMode#NUMERIC_COMPARISON},
+     * when notified via {@link AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long) devicePairingState}.
+     * <p>
+     * If returning {@link HCIStatusCode#SUCCESS}, caller shall continue listening to
+     * {@link AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long) devicePairingState}
+     * to wait for either {@link SMPPairingState#PROCESS_COMPLETED} or {@link SMPPairingState#FAILED}.
      * </p>
-     * @return list of supported PairingMode, empty if pairing is not supported.
+     * @param equal used for {@link PairingMode#NUMERIC_COMPARISON} method.
+     *        Will be encrypted before sending to counter-party.
+     *
+     * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
+     * @see PairingMode
+     * @see SMPPairingState
+     * @see AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long)
+     * @see #setPairingPasskey(String)
+     * @see #setPairingNumericComparison(boolean)
+     * @see #getCurrentPairingMode()
+     * @see #getCurrentPairingState()
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
      */
-    List<PairingMode> getSupportedPairingModes() throws BluetoothException;
+    HCIStatusCode setPairingNumericComparison(final boolean equal);
 
     /**
-     * Returns a vector of required PairingMode by the device.
+     * Returns the current {@link PairingMode} used by the device.
      * <p>
-     * The device must be {@link #connectLE(short, short, short, short, short, short) connected}
-     * before querying this status. FIXME?
+     * If the device is not paired, the current mode is {@link PairingMode#NONE}.
      * </p>
-     * @return list of required PairingMode, empty if pairing is not required.
+     * <p>
+     * If the Pairing Feature Exchange is completed, i.e. {@link SMPPairingState#FEATURE_EXCHANGE_COMPLETED}
+     * as notified by
+     * {@link AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long) devicePairingState}
+     * the current mode reflects the currently used {@link PairingMode}.
+     * </p>
+     * <p>
+     * In case the Pairing Feature Exchange is in progress, the current mode is {@link PairingMode#NEGOTIATING}.
+     * </p>
+     * @return current PairingMode.
+     * @see PairingMode
+     * @see SMPPairingState
+     * @see AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long)
+     * @see #setPairingPasskey(String)
+     * @see #setPairingNumericComparison(boolean)
+     * @see #getCurrentPairingMode()
+     * @see #getCurrentPairingState()
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
      */
-    List<PairingMode> getRequiredPairingModes() throws BluetoothException;
+    PairingMode getCurrentPairingMode();
+
+    /**
+     * Returns the current {@link SMPPairingState}.
+     * <p>
+     * If the device is not paired, the current state is {@link SMPPairingState#NONE}.
+     * </p>
+     * @see PairingMode
+     * @see SMPPairingState
+     * @see AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long)
+     * @see #setPairingPasskey(String)
+     * @see #setPairingNumericComparison(boolean)
+     * @see #getCurrentPairingMode()
+     * @see #getCurrentPairingState()
+     * @since 2.1.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    SMPPairingState getCurrentPairingState();
 
     /**
      * Remove this device from the system (like an unpair).

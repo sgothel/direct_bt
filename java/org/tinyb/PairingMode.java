@@ -33,19 +33,22 @@ package org.tinyb;
  * <p>
  * See {@link #get(int)} for its native integer mapping.
  * </p>
+ * @see SMPPairingState
  * @since 2.1.0
  */
 public enum PairingMode {
     /** No pairing mode, implying no secure connections, no encryption and no MITM protection. */
     NONE               ((byte)0),
+    /** Pairing mode in negotiating, i.e. Pairing Feature Exchange in progress. */
+    NEGOTIATING        ((byte)1),
     /** Just Works. Random key exchange with encryption but no MITM protection. */
-    JUST_WORKS         ((byte)1),
+    JUST_WORKS         ((byte)2),
     /** Passkey Entry. A known digit sequence (PIN) must be given as a secret to be validated on the device. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
-    PASSKEY_ENTRY      ((byte)2),
+    PASSKEY_ENTRY      ((byte)3),
     /** Visual numeric comparison of digit sequence (PIN) shown on both devices, peripheral and host, to be answered. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
-    NUMERIC_COMPARISON ((byte)3),
+    NUMERIC_COMPARISON ((byte)4),
     /** Utilizing a second factor secret to be used as a secret, e.g. NFC field. Random key exchange with additional secret (2FA) and encryption and potential MITM protection. */
-    OUT_OF_BAND        ((byte)4);
+    OUT_OF_BAND        ((byte)5);
 
     public final byte value;
 
@@ -71,10 +74,11 @@ public enum PairingMode {
      */
     public static PairingMode get(final byte value) {
         switch(value) {
-            case (byte) 0x01: return JUST_WORKS;
-            case (byte) 0x02: return PASSKEY_ENTRY;
-            case (byte) 0x03: return NUMERIC_COMPARISON;
-            case (byte) 0x04: return OUT_OF_BAND;
+            case (byte) 0x01: return NEGOTIATING;
+            case (byte) 0x02: return JUST_WORKS;
+            case (byte) 0x03: return PASSKEY_ENTRY;
+            case (byte) 0x04: return NUMERIC_COMPARISON;
+            case (byte) 0x05: return OUT_OF_BAND;
             default: return NONE;
         }
     }

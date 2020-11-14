@@ -43,6 +43,10 @@ static const std::string _hciStatusCodeClassName("org/tinyb/HCIStatusCode");
 static const std::string _hciStatusCodeClazzGetArgs("(B)Lorg/tinyb/HCIStatusCode;");
 static const std::string _scanTypeClassName("org/tinyb/ScanType");
 static const std::string _scanTypeClazzGetArgs("(B)Lorg/tinyb/ScanType;");
+static const std::string _pairingModeClassName("org/tinyb/PairingMode");
+static const std::string _pairingModeClazzGetArgs("(B)Lorg/tinyb/PairingMode;");
+static const std::string _pairingStateClassName("org/tinyb/SMPPairingState");
+static const std::string _pairingStateClazzGetArgs("(B)Lorg/tinyb/SMPPairingState;");
 static const std::string _deviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTAdapter;Ljava/lang/String;IILjava/lang/String;J)V");
 
 static const std::string _adapterSettingsChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;J)V");
@@ -50,6 +54,7 @@ static const std::string _discoveringChangedMethodArgs("(Lorg/tinyb/BluetoothAda
 static const std::string _deviceFoundMethodArgs("(Lorg/tinyb/BluetoothDevice;J)V");
 static const std::string _deviceUpdatedMethodArgs("(Lorg/tinyb/BluetoothDevice;Lorg/tinyb/EIRDataTypeSet;J)V");
 static const std::string _deviceConnectedMethodArgs("(Lorg/tinyb/BluetoothDevice;SJ)V");
+static const std::string _devicePairingStateMethodArgs("(Lorg/tinyb/BluetoothDevice;Lorg/tinyb/SMPPairingState;Lorg/tinyb/PairingMode;J)V");
 static const std::string _deviceDisconnectedMethodArgs("(Lorg/tinyb/BluetoothDevice;Lorg/tinyb/HCIStatusCode;SJ)V");
 
 class JNIAdapterStatusListener : public AdapterStatusListener {
@@ -68,6 +73,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             public void deviceFound(final BluetoothDevice device, final long timestamp) { }
             public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) { }
             public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) { }
+            public void devicePairingState(final BluetoothDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {}
             public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) { }
 
         };
@@ -84,6 +90,11 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     jmethodID hciStatusCodeClazzGet;
     JNIGlobalRef scanTypeClazzRef;
     jmethodID scanTypeClazzGet;
+    JNIGlobalRef pairingModeClazzRef;
+    jmethodID pairingModeClazzGet;
+    JNIGlobalRef pairingStateClazzRef;
+    jmethodID pairingStateClazzGet;
+
     JNIGlobalRef deviceClazzRef;
     jmethodID deviceClazzCtor;
     jfieldID deviceClazzTSLastDiscoveryField;
@@ -95,6 +106,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     jmethodID  mDeviceFound = nullptr;
     jmethodID  mDeviceUpdated = nullptr;
     jmethodID  mDeviceConnected= nullptr;
+    jmethodID  mDevicePairingState= nullptr;
     jmethodID  mDeviceDisconnected = nullptr;
 
   public:
@@ -180,6 +192,38 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             throw jau::InternalError("Static method not found: "+_scanTypeClassName+".get"+_scanTypeClazzGetArgs, E_FILE_LINE);
         }
 
+        // pairingModeClazzRef, pairingModeClazzGet
+        {
+            jclass pairingModeClazz = jau::search_class(env, _pairingModeClassName.c_str());
+            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            if( nullptr == pairingModeClazz ) {
+                throw jau::InternalError("DBTDevice::java_class not found: "+_pairingModeClassName, E_FILE_LINE);
+            }
+            pairingModeClazzRef = JNIGlobalRef(pairingModeClazz);
+            env->DeleteLocalRef(pairingModeClazz);
+        }
+        pairingModeClazzGet = jau::search_method(env, pairingModeClazzRef.getClass(), "get", _pairingModeClazzGetArgs.c_str(), true);
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == pairingModeClazzGet ) {
+            throw jau::InternalError("Static method not found: "+_pairingModeClassName+".get"+_pairingModeClazzGetArgs, E_FILE_LINE);
+        }
+
+        // pairingStateClazzRef, pairingStateClazzGet
+        {
+            jclass pairingStateClazz = jau::search_class(env, _pairingStateClassName.c_str());
+            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            if( nullptr == pairingStateClazz ) {
+                throw jau::InternalError("DBTDevice::java_class not found: "+_pairingStateClassName, E_FILE_LINE);
+            }
+            pairingStateClazzRef = JNIGlobalRef(pairingStateClazz);
+            env->DeleteLocalRef(pairingStateClazz);
+        }
+        pairingStateClazzGet = jau::search_method(env, pairingStateClazzRef.getClass(), "get", _pairingStateClazzGetArgs.c_str(), true);
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == pairingStateClazzGet ) {
+            throw jau::InternalError("Static method not found: "+_pairingStateClassName+".get"+_pairingStateClazzGetArgs, E_FILE_LINE);
+        }
+
         // deviceClazzRef, deviceClazzCtor
         {
             jclass deviceClazz = jau::search_class(env, DBTDevice::java_class().c_str());
@@ -235,6 +279,11 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mDeviceConnected ) {
             throw jau::InternalError("AdapterStatusListener has no deviceConnected"+_deviceConnectedMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+        }
+        mDevicePairingState = jau::search_method(env, listenerClazz, "devicePairingState", _devicePairingStateMethodArgs.c_str(), false);
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == mDevicePairingState ) {
+            throw jau::InternalError("AdapterStatusListener has no devicePairingState"+_devicePairingStateMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
         mDeviceDisconnected = jau::search_method(env, listenerClazz, "deviceDisconnected", _deviceDisconnectedMethodArgs.c_str(), false);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
@@ -374,6 +423,26 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
 
         env->CallVoidMethod(listenerObjRef.getObject(), mDeviceConnected, jdevice, (jshort)handle, (jlong)timestamp);
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+    }
+    void devicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+        JNIEnv *env = *jni_env;
+
+        std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
+        jau::JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
+        jobject jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef);
+        env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+
+        jobject jstate = env->CallStaticObjectMethod(pairingStateClazzRef.getClass(), pairingStateClazzGet, static_cast<uint8_t>(state));
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        JNIGlobalRef::check(jstate, E_FILE_LINE);
+
+        jobject jmode = env->CallStaticObjectMethod(pairingModeClazzRef.getClass(), pairingModeClazzGet, static_cast<uint8_t>(mode));
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        JNIGlobalRef::check(jmode, E_FILE_LINE);
+
+        env->CallVoidMethod(listenerObjRef.getObject(), mDevicePairingState, jdevice, jstate, jmode, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
     void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {

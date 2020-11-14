@@ -113,6 +113,18 @@ public abstract class AdapterStatusListener {
     public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) { }
 
     /**
+     * An already connected {@link BluetoothDevice}'s {@link SMPPairingState} has changed.
+     * <p>
+     * If currentMode == {@link PairingMode#NONE}, the device is not paired, otherwise it is paired using the given {@link PairingMode}.
+     * </p>
+     * @param device the device which {@link PairingMode} has been changed.
+     * @param state the current {@link SMPPairingState} of the connected device, see DBTDevice::getCurrentPairingState()
+     * @param mode the current {@link PairingMode} of the connected device, see DBTDevice::getCurrentPairingMode()
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
+     */
+    public void devicePairingState(final BluetoothDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {}
+
+    /**
      * {@link BluetoothDevice} got disconnected.
      * @param device the device which has been disconnected with zeroed connection handle.
      * @param reason the {@link HCIStatusCode} reason for disconnection

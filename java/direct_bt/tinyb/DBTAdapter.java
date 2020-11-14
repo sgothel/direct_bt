@@ -49,6 +49,8 @@ import org.tinyb.BluetoothType;
 import org.tinyb.EIRDataTypeSet;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.HCIWhitelistConnectType;
+import org.tinyb.PairingMode;
+import org.tinyb.SMPPairingState;
 import org.tinyb.ScanType;
 import org.tinyb.AdapterStatusListener;
 import org.tinyb.TransportType;
@@ -526,7 +528,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         @Override
         public void deviceFound(final BluetoothDevice device, final long timestamp) {
             if( DEBUG ) {
-                System.err.println("Adapter.StatusListener.FOUND: "+device+" on "+device.getAdapter());
+                System.err.println("Adapter.FOUND: "+device+" on "+device.getAdapter());
             }
             synchronized(discoveredDevicesLock) {
                 discoveredDevices.add(device);
@@ -538,7 +540,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             final boolean rssiUpdated = updateMask.isSet( EIRDataTypeSet.DataType.RSSI );
             final boolean mdUpdated = updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA );
             if( DEBUG && !rssiUpdated && !mdUpdated) {
-                System.err.println("Adapter.StatusListener.UPDATED: "+updateMask+" of "+device+" on "+device.getAdapter());
+                System.err.println("Adapter.UPDATED: "+updateMask+" of "+device+" on "+device.getAdapter());
             }
             // nop on discoveredDevices
         }
@@ -546,14 +548,21 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         @Override
         public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) {
             if( DEBUG ) {
-                System.err.println("Adapter.StatusListener.CONNECTED: "+device+" on "+device.getAdapter());
+                System.err.println("Adapter.CONNECTED: "+device+" on "+device.getAdapter());
+            }
+        }
+
+        @Override
+        public void devicePairingState(final BluetoothDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {
+            if( DEBUG ) {
+                System.err.println("Adapter.PAIRING_STATE: state "+state+", mode "+mode+": "+device);
             }
         }
 
         @Override
         public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
             if( DEBUG ) {
-                System.err.println("Adapter.StatusListener.DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
+                System.err.println("Adapter.DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
             }
         }
     };

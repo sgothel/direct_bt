@@ -73,6 +73,8 @@ static bool QUIET = false;
 
 static std::vector<EUI48> waitForDevices;
 
+static uint32_t pairing_passkey = 0;
+
 static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device);
 
 static void processConnectedDevice(std::shared_ptr<DBTDevice> device);
@@ -214,10 +216,28 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
+    void devicePairing(std::shared_ptr<DBTDevice> device) {
+        fprintf(stderr, "****** Pairing[%d] %s\n", connectionCount.load(), device->toString(true).c_str());
+        std::thread dc(devicePairingImpl, device); // @suppress("Invalid arguments")
+        dc.detach();
+    }
+    static void devicePairingImpl(std::shared_ptr<DBTDevice> device) {
+        device->setPairingPasskey(pairing_passkey);
+        // device->setPairingPasskeyNegative();
+    }
+
+    void deviceProcessing(std::shared_ptr<DBTDevice> device) {
+        fprintf(stderr, "****** Processing[%d] %s\n", connectionCount.load(), device->toString(true).c_str());
+        addToDevicesProcessing(device->getAddress());
+        std::thread dc(::processConnectedDevice, device); // @suppress("Invalid arguments")
+        dc.detach();
+    }
+
     void deviceConnected(std::shared_ptr<DBTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
         (void)handle;
         (void)timestamp;
 
+#if 0
         if( !isDeviceProcessing( device->getAddress() ) &&
             ( waitForDevices.empty() ||
               ( contains(waitForDevices, device->getAddress()) &&
@@ -228,17 +248,41 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         {
             connectionCount++;
             fprintf(stderr, "****** CONNECTED-0: Processing[%d] %s\n", connectionCount.load(), device->toString(true).c_str());
-            {
-                const uint64_t td = getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
-                fprintf(stderr, "PERF: adapter-init -> CONNECTED-0  %" PRIu64 " ms\n", td);
-            }
             addToDevicesProcessing(device->getAddress());
             std::thread dc(::processConnectedDevice, device); // @suppress("Invalid arguments")
             dc.detach();
         } else {
             fprintf(stderr, "****** CONNECTED-1: NOP %s\n", device->toString(true).c_str());
         }
+#else
+        (void) device;
+        // deviceProcessing(device);
+#endif
     }
+
+    void devicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+        fprintf(stderr, "****** PAIRING STATE: state %s, mode %s, %s\n",
+            getSMPPairingStateString(state).c_str(), getPairingModeString(mode).c_str(), device->toString().c_str());
+        (void)timestamp;
+        switch( state ) {
+            case SMPPairingState::NONE:
+                deviceProcessing(device);
+                break;
+            case SMPPairingState::PASSKEY_EXPECTED:
+                devicePairing(device);
+                break;
+            case SMPPairingState::PROCESS_COMPLETED:
+                deviceProcessing(device);
+                break;
+            case SMPPairingState::FAILED:
+                [[fallthrough]];
+            case SMPPairingState::FEATURE_EXCHANGE_COMPLETED:
+                [[fallthrough]];
+            default: // nop
+                break;
+        }
+    }
+
     void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         fprintf(stderr, "****** DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
                 static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
@@ -324,34 +368,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
     const uint64_t t1 = getCurrentMilliseconds();
     bool success = false;
 
-    // Secure Pairing
-    {
-        std::vector<PairingMode> spm = device->getSupportedPairingModes();
-        if( !QUIET ) {
-            fprintf(stderr, "Supported Secure Pairing Modes: ");
-            std::for_each(spm.begin(), spm.end(), [](PairingMode pm) { fprintf(stderr, "%s, ", getPairingModeString(pm).c_str()); } );
-            fprintf(stderr, "\n");
-        }
-
-        std::vector<PairingMode> rpm = device->getRequiredPairingModes();
-        if( !QUIET ) {
-            fprintf(stderr, "Required Secure Pairing Modes: ");
-            std::for_each(rpm.begin(), rpm.end(), [](PairingMode pm) { fprintf(stderr, "%s, ", getPairingModeString(pm).c_str()); } );
-            fprintf(stderr, "\n");
-        }
-
-        if( spm.end() != std::find (spm.begin(), spm.end(), PairingMode::JUST_WORKS) ) {
-            const std::vector<int> passkey; // empty for JustWorks
-            HCIStatusCode res = device->pair(""); // empty for JustWorks
-            fprintf(stderr, "Secure Pairing Just Works result %s of %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
-        } else if( spm.end() != std::find (spm.begin(), spm.end(), PairingMode::PASSKEY_ENTRY) ) {
-            HCIStatusCode res = device->pair("111111"); // PasskeyEntry
-            fprintf(stderr, "Secure Pairing Passkey Entry result %s of %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
-        } else if( !QUIET ) {
-            fprintf(stderr, "Secure Pairing JUST_WORKS or PASSKEY_ENTRY not supported %s\n", device->toString().c_str());
-        }
-    }
-
+#if 1
     //
     // GATT Service Processing
     //
@@ -360,7 +377,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
         device->getAdapter().printSharedPtrListOfDevices();
     }
     try {
-        std::vector<GATTServiceRef> primServices = device->getGATTServices(); // implicit GATT connect...
+        std::vector<GATTServiceRef> primServices = device->getGATTServices();
         if( 0 == primServices.size() ) {
             fprintf(stderr, "****** Processing Device: getServices() failed %s\n", device->toString().c_str());
             goto exit;
@@ -455,6 +472,8 @@ exit:
     if( !QUIET ) {
         device->getAdapter().printSharedPtrListOfDevices();
     }
+
+#endif
 
     fprintf(stderr, "****** Processing Device: End: Success %d on %s; devInProc %zu\n",
             success, device->toString().c_str(), getDeviceProcessingCount());
@@ -688,6 +707,8 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Whitelist + %s\n", wlmac.toString().c_str());
             WHITELIST.push_back( wlmac );
             USE_WHITELIST = true;
+        } else if( !strcmp("-passkey", argv[i]) && argc > (i+1) ) {
+            pairing_passkey = atoi(argv[++i]);
         } else if( !strcmp("-disconnect", argv[i]) ) {
             KEEP_CONNECTED = false;
         } else if( !strcmp("-enableGATTPing", argv[i]) ) {
@@ -708,6 +729,7 @@ int main(int argc, char *argv[])
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "
                     "[-resetEachCon connectionCount] "
                     "(-mac <device_address>)* (-wl <device_address>)* "
+                    "[-passkey <digits>]"
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,...] "
@@ -725,6 +747,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
     fprintf(stderr, "QUIET %d\n", QUIET);
     fprintf(stderr, "btmode %s\n", getBTModeString(btMode).c_str());
+    fprintf(stderr, "passkey %u\n", pairing_passkey);
 
     printList( "waitForDevice: ", waitForDevices);
 

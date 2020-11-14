@@ -89,6 +89,11 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)handle;
         (void)timestamp;
     }
+    void devicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+        fprintf(stderr, "****** PAIRING STATE: state %s, mode %s, %s\n",
+            getSMPPairingStateString(state).c_str(), getPairingModeString(mode).c_str(), device->toString().c_str());
+        (void)timestamp;
+    }
     void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         fprintf(stderr, "****** DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
                 static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),

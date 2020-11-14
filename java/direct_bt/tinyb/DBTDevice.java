@@ -46,6 +46,7 @@ import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.PairingMode;
+import org.tinyb.SMPPairingState;
 
 public class DBTDevice extends DBTObject implements BluetoothDevice
 {
@@ -328,44 +329,32 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     @Override
     public final boolean pair() throws BluetoothException {
-        return HCIStatusCode.SUCCESS == pair(null);
+        return false;
     }
 
     @Override
-    public HCIStatusCode pair(final String passkey) throws BluetoothException {
-        if( !getConnected() ) {
-            throw new IllegalStateException("Device must be connected first: "+toString());
-        }
-        final HCIStatusCode res = HCIStatusCode.get( pairImpl(passkey) );
-
-        // Secure Pairing (paired == true) has no explicit notification
-        devicePaired( HCIStatusCode.SUCCESS == res );
-
-        return res;
+    public HCIStatusCode setPairingPasskey(final int passkey) {
+        return HCIStatusCode.get( setPairingPasskeyImpl(passkey) );
     }
-    private native byte pairImpl(final String passkey) throws BluetoothException;
+    private native byte setPairingPasskeyImpl(final int passkey) throws BluetoothException;
 
     @Override
-    public final List<PairingMode> getSupportedPairingModes() throws BluetoothException {
-        final byte[] res0 = getSupportedPairingModesImpl();
-        final ArrayList<PairingMode> res1 = new ArrayList<PairingMode>(res0.length);
-        for(int i=0; i<res0.length; i++) {
-            res1.add( PairingMode.get(res0[i]) );
-        }
-        return res1;
+    public HCIStatusCode setPairingNumericComparison(final boolean equal) {
+        return HCIStatusCode.get( setPairingNumericComparisonImpl(equal) );
     }
-    private native byte[] getSupportedPairingModesImpl() throws BluetoothException;
+    private native byte setPairingNumericComparisonImpl(final boolean equal);
 
     @Override
-    public final List<PairingMode> getRequiredPairingModes() throws BluetoothException {
-        final byte[] res0 = getRequiredPairingModesImpl();
-        final ArrayList<PairingMode> res1 = new ArrayList<PairingMode>(res0.length);
-        for(int i=0; i<res0.length; i++) {
-            res1.add( PairingMode.get(res0[i]) );
-        }
-        return res1;
+    public PairingMode getCurrentPairingMode() {
+        return PairingMode.get( getCurrentPairingModeImpl() );
     }
-    private native byte[] getRequiredPairingModesImpl() throws BluetoothException;
+    private native byte getCurrentPairingModeImpl();
+
+    @Override
+    public SMPPairingState getCurrentPairingState() {
+        return SMPPairingState.get( getCurrentPairingStateImpl() );
+    }
+    private native byte getCurrentPairingStateImpl();
 
     @Override
     public final boolean cancelPairing() throws BluetoothException {
@@ -809,5 +798,4 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             return null;
         }
     }
-
 }

@@ -372,64 +372,53 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_connectLEImpl1(JNIEnv *env, jobject obj,
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
-jbyte Java_direct_1bt_tinyb_DBTDevice_pairImpl(JNIEnv *env, jobject obj, jstring jpasskey)
-{
+jbyte Java_direct_1bt_tinyb_DBTDevice_getCurrentPairingModeImpl(JNIEnv *env, jobject obj) {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        const std::string passkey = nullptr != jpasskey ? from_jstring_to_string(env, jpasskey) : std::string();
-        HCIStatusCode res = device->pair(passkey);
-        return (jbyte) number(res);
-
+        return number( device->getCurrentPairingMode() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+    return number( PairingMode::NONE );
 }
 
-jbyteArray Java_direct_1bt_tinyb_DBTDevice_getSupportedPairingModesImpl(JNIEnv *env, jobject obj) {
+jbyte Java_direct_1bt_tinyb_DBTDevice_getCurrentPairingStateImpl(JNIEnv *env, jobject obj) {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        std::vector<PairingMode> res0 = device->getSupportedPairingModes();
-        const size_t value_size = res0.size();
-
-        uint8_t res1[value_size];
-        for(size_t i=0; i < value_size; i++) {
-            res1[i] = number(res0[i]);
-        }
-        jbyteArray jres = env->NewByteArray((jsize)value_size);
-        env->SetByteArrayRegion(jres, 0, (jsize)value_size, (const jbyte *)res1);
-        java_exception_check_and_throw(env, E_FILE_LINE);
-        return jres;
+        return static_cast<uint8_t>( device->getCurrentPairingState() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return JNI_FALSE;
+    return static_cast<uint8_t>( SMPPairingState::NONE );
 }
 
-jbyteArray Java_direct_1bt_tinyb_DBTDevice_getRequiredPairingModesImpl(JNIEnv *env, jobject obj) {
+jbyte Java_direct_1bt_tinyb_DBTDevice_setPairingPasskey(JNIEnv *env, jobject obj, jint jpasskey) noexcept {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        std::vector<PairingMode> res0 = device->getRequiredPairingModes();
-        const size_t value_size = res0.size();
-
-        uint8_t res1[value_size];
-        for(size_t i=0; i < value_size; i++) {
-            res1[i] = number(res0[i]);
-        }
-        jbyteArray jres = env->NewByteArray((jsize)value_size);
-        env->SetByteArrayRegion(jres, 0, (jsize)value_size, (const jbyte *)res1);
-        java_exception_check_and_throw(env, E_FILE_LINE);
-        return jres;
+        // const std::string passkey = nullptr != jpasskey ? from_jstring_to_string(env, jpasskey) : std::string();
+        return number( device->setPairingPasskey(jpasskey) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return JNI_FALSE;
+    return static_cast<uint8_t>( HCIStatusCode::INTERNAL_FAILURE );
+}
+
+jbyte Java_direct_1bt_tinyb_DBTDevice_setPairingNumericComparison(JNIEnv *env, jobject obj, jboolean jequal) noexcept {
+    try {
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        return number( device->setPairingNumericComparison( JNI_TRUE == jequal ? true : false ) );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return static_cast<uint8_t>( HCIStatusCode::INTERNAL_FAILURE );
 }
 
 //

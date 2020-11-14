@@ -28,7 +28,6 @@
 
 package tinyb.dbus;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +44,7 @@ import org.tinyb.BluetoothUtils;
 import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.PairingMode;
+import org.tinyb.SMPPairingState;
 
 public class DBusDevice extends DBusObject implements BluetoothDevice
 {
@@ -108,17 +108,16 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native boolean pair() throws BluetoothException;
 
     @Override
-    public HCIStatusCode pair(final String passkey) throws BluetoothException { return HCIStatusCode.INTERNAL_FAILURE; }
+    public HCIStatusCode setPairingPasskey(final int passkey) { return HCIStatusCode.INTERNAL_FAILURE; }
 
     @Override
-    public final List<PairingMode> getSupportedPairingModes() throws BluetoothException {
-        return new ArrayList<PairingMode>(0);
-    }
+    public HCIStatusCode setPairingNumericComparison(final boolean equal) { return HCIStatusCode.INTERNAL_FAILURE; }
 
     @Override
-    public final List<PairingMode> getRequiredPairingModes() throws BluetoothException {
-        return new ArrayList<PairingMode>(0);
-    }
+    public PairingMode getCurrentPairingMode() { return PairingMode.NONE; }
+
+    @Override
+    public SMPPairingState getCurrentPairingState() { return SMPPairingState.NONE; }
 
     @Override
     public native boolean remove() throws BluetoothException;
