@@ -53,6 +53,7 @@ extern "C" {
 #include "SMPHandler.hpp"
 
 #include "DBTDevice.hpp"
+#include "DBTAdapter.hpp"
 
 using namespace direct_bt;
 
@@ -80,7 +81,7 @@ std::shared_ptr<DBTDevice> SMPHandler::getDeviceChecked() const {
 }
 
 bool SMPHandler::validateConnected() noexcept {
-    bool l2capIsConnected = l2cap.isConnected();
+    bool l2capIsConnected = l2cap.isOpen();
     bool l2capHasIOError = l2cap.hasIOError();
 
     if( has_ioerror || l2capHasIOError ) {
@@ -157,8 +158,8 @@ void SMPHandler::l2capReaderThreadImpl() {
 SMPHandler::SMPHandler(const std::shared_ptr<DBTDevice> &device) noexcept
 : env(SMPEnv::get()),
   wbr_device(device), deviceString(device->getAddressString()), rbuffer(number(Defaults::SMP_MTU_BUFFER_SZ)),
-  l2cap(*device, L2CAP_PSM_UNDEF, L2CAP_CID_SMP),
-  is_connected(true), has_ioerror(false),
+  l2cap(device->getAdapter().getAddress(), L2CAP_PSM_UNDEF, L2CAP_CID_SMP),
+  is_connected(l2cap.open(*device)), has_ioerror(false),
   smpPDURing(env.SMPPDU_RING_CAPACITY), l2capReaderShallStop(false),
   l2capReaderThreadId(0), l2capReaderRunning(false),
   mtu(number(Defaults::MIN_SMP_MTU))
@@ -203,7 +204,7 @@ bool SMPHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause
     PERF3_TS_T0();
     // Interrupt SM's L2CAP::connect(..) and L2CAP::read(..), avoiding prolonged hang
     // and pull all underlying l2cap read operations!
-    l2cap.disconnect();
+    l2cap.close();
 
     // Avoid disconnect re-entry -> potential deadlock
     bool expConn = true; // C++11, exp as value since C++20

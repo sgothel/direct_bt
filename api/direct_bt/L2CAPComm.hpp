@@ -119,7 +119,7 @@ namespace direct_bt {
             static constexpr int number(const Defaults d) { return static_cast<int>(d); }
 
             static std::string getStateString(bool isConnected, bool hasIOError) {
-                return "State[connected "+std::to_string(isConnected)+", ioError "+std::to_string(hasIOError)+"]";
+                return "State[open "+std::to_string(isConnected)+", ioError "+std::to_string(hasIOError)+"]";
             }
 
         private:
@@ -127,13 +127,16 @@ namespace direct_bt {
             static int l2cap_close_dev(int dd);
 
             const L2CAPEnv & env;
-
-            std::recursive_mutex mtx_write;
-            const std::string deviceString;
+            const EUI48 adapterAddress;
             const uint16_t psm;
             const uint16_t cid;
+
+            std::recursive_mutex mtx_write;
+            std::string deviceString;
+            EUI48 deviceAddress;
+            BDAddressType deviceAddressType;
             std::atomic<int> socket_descriptor; // the l2cap socket
-            std::atomic<bool> is_connected; // reflects state
+            std::atomic<bool> is_open; // reflects state
             std::atomic<bool> has_ioerror;  // reflects state
             std::atomic<bool> interrupt_flag; // for forced disconnect
             std::atomic<pthread_t> tid_connect;
@@ -141,29 +144,35 @@ namespace direct_bt {
 
         public:
             /**
-             * Constructing a newly opened and connected L2CAP channel instance.
-             * <p>
-             * BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ
-             * </p>
+             * Constructing a non connected L2CAP channel instance for the pre-defined PSM and CID.
              */
-            L2CAPComm(const DBTDevice& device, const uint16_t psm, const uint16_t cid);
+            L2CAPComm(const EUI48& adapterAddress, const uint16_t psm, const uint16_t cid);
 
             L2CAPComm(const L2CAPComm&) = delete;
             void operator=(const L2CAPComm&) = delete;
 
             /** Destructor closing the L2CAP channel, see {@link #disconnect()}. */
-            ~L2CAPComm() noexcept { disconnect(); }
+            ~L2CAPComm() noexcept { close(); }
 
-            bool isConnected() const { return is_connected; }
+            /**
+             * Opens and connects the L2CAP channel, locking {@link #mutex_write()}.
+             * <p>
+             * BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ
+             * </p>
+             * @return true if already open or successfully opened the channel, otherwise false
+             */
+            bool open(const DBTDevice& device);
+
+            bool isOpen() const { return is_open; }
 
             /** Return this L2CAP socket descriptor. */
             inline int getSocketDescriptor() const noexcept { return socket_descriptor; }
 
             bool hasIOError() const { return has_ioerror; }
-            std::string getStateString() const { return getStateString(is_connected, has_ioerror); }
+            std::string getStateString() const { return getStateString(is_open, has_ioerror); }
 
             /** Closing the L2CAP channel, locking {@link #mutex_write()}. */
-            bool disconnect() noexcept;
+            bool close() noexcept;
 
             /** Return the recursive write mutex for multithreading access. */
             std::recursive_mutex & mutex_write() { return mtx_write; }

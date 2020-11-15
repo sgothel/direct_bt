@@ -154,12 +154,12 @@ namespace direct_bt {
 
             /** GATTHandle's device weak back-reference */
             std::weak_ptr<DBTDevice> wbr_device;
+            L2CAPComm& l2cap;
 
             const std::string deviceString;
             std::recursive_mutex mtx_command;
             POctets rbuffer;
 
-            L2CAPComm l2cap;
             jau::sc_atomic_bool is_connected; // reflects state
             jau::relaxed_atomic_bool has_ioerror;  // reflects state
 
@@ -239,7 +239,7 @@ namespace direct_bt {
              * See getServerMTU() and getUsedMTU(), the latter is in use.
              * </p>
              */
-            GATTHandler(const std::shared_ptr<DBTDevice> & device) noexcept;
+            GATTHandler(const std::shared_ptr<DBTDevice> & device, L2CAPComm& l2cap_att) noexcept;
 
             GATTHandler(const GATTHandler&) = delete;
             void operator=(const GATTHandler&) = delete;

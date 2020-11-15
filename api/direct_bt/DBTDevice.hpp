@@ -57,13 +57,15 @@ namespace direct_bt {
 
         private:
             DBTAdapter & adapter;
+            L2CAPComm l2cap_att;
             uint64_t ts_last_discovery;
             uint64_t ts_last_update;
             std::string name;
             int8_t rssi = 127; // The core spec defines 127 as the "not available" value
             int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
             AppearanceCat appearance = AppearanceCat::UNKNOWN;
-            std::atomic<uint16_t> hciConnHandle;
+            jau::relaxed_atomic_uint16 hciConnHandle;
+            jau::ordered_atomic<LEFeatures, std::memory_order_relaxed> le_features;
             std::shared_ptr<ManufactureSpecificData> advMSD = nullptr;
             std::vector<std::shared_ptr<uuid_t>> advServices;
 #if SMP_SUPPORTED_BY_OS
@@ -106,6 +108,7 @@ namespace direct_bt {
 
             void notifyDisconnected() noexcept;
             void notifyConnected(const uint16_t handle) noexcept;
+            void notifyLEFeatures(const LEFeatures features) noexcept;
 
             /**
              * Returns a newly established GATT connection.
@@ -150,9 +153,9 @@ namespace direct_bt {
 
             /**
              * Will be performed after connectLE(..) via notifyConnected(),
-             * issuing connectSMP() and connectGATT() off thread.
+             * issuing connectSMP() off thread.
              */
-            void processNotifyConnectedOffThread();
+            void processNotifyConnected();
 
         public:
             const uint64_t ts_creation;

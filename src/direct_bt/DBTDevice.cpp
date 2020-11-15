@@ -43,7 +43,9 @@
 using namespace direct_bt;
 
 DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
-: adapter(a), ts_creation(r.getTimestamp()),
+: adapter(a),
+  l2cap_att(adapter.getAddress(), L2CAP_PSM_UNDEF, L2CAP_CID_ATT),
+  ts_creation(r.getTimestamp()),
   address(r.getAddress()), addressType(r.getAddressType()),
   leRandomAddressType(address.getBLERandomAddressType(addressType))
 {
@@ -388,18 +390,36 @@ void DBTDevice::notifyConnected(const uint16_t handle) noexcept {
     // coming from connected callback, update state and spawn-off connectGATT in background if appropriate (LE)
     DBG_PRINT("DBTDevice::notifyConnected: handle %s -> %s, %s",
               jau::uint16HexString(hciConnHandle).c_str(), jau::uint16HexString(handle).c_str(), toString().c_str());
+    clearSMPStates();
     allowDisconnect = true;
     isConnected = true;
     hciConnHandle = handle;
     if( isLEAddressType() ) {
-        std::thread bg(&DBTDevice::processNotifyConnectedOffThread, this); // @suppress("Invalid arguments")
-        bg.detach();
+        if( !l2cap_att.open(*this) ) {
+            DBG_PRINT("DBTDevice::notifyConnected: l2cap ATT open failed (-> disconnect): %s", toString().c_str());
+            std::thread dc(&DBTDevice::disconnect, this, HCIStatusCode::INTERNAL_FAILURE); // @suppress("Invalid arguments")
+            dc.detach();
+        } else {
+            #if SMP_SUPPORTED_BY_OS
+                std::thread bg(&DBTDevice::processNotifyConnected, this); // @suppress("Invalid arguments")
+                bg.detach();
+            #endif
+        }
     }
 }
 
-void DBTDevice::processNotifyConnectedOffThread() {
-    DBG_PRINT("DBTDevice::processNotifyConnectedOffThread: %s", toString().c_str());
+void DBTDevice::notifyLEFeatures(const LEFeatures features) noexcept {
+    DBG_PRINT("DBTDevice::notifyLEFeatures: LE_Encryption %d, %s",
+            isLEFeaturesBitSet(features, LEFeatures::LE_Encryption), toString().c_str());
+    le_features = features;
+}
+
+void DBTDevice::processNotifyConnected() {
+    DBG_PRINT("DBTDevice::processNotifyConnected: %s", toString().c_str());
     bool res0 = connectSMP();
+    DBG_PRINT("DBTDevice::processNotifyConnected: connect[SMP %d], %s", res0, toString().c_str());
+}
+
     bool res1 = connectGATT();
     DBG_PRINT("DBTDevice::processNotifyConnectedOffThread: connect[SMP %d, GATT %d], %s",
             res0, res1, toString().c_str());
@@ -409,11 +429,13 @@ void DBTDevice::notifyDisconnected() noexcept {
     // coming from disconnect callback, ensure cleaning up!
     DBG_PRINT("DBTDevice::notifyDisconnected: handle %s -> zero, %s",
               jau::uint16HexString(hciConnHandle).c_str(), toString().c_str());
+    clearSMPStates();
     allowDisconnect = false;
     isConnected = false;
     hciConnHandle = 0;
     disconnectGATT(1);
     disconnectSMP(1);
+    l2cap_att.close();
 }
 
 HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
@@ -733,6 +755,10 @@ bool DBTDevice::connectGATT() noexcept {
         ERR_PRINT("DBTDevice::connectGATT: Device not connected: %s", toString().c_str());
         return false;
     }
+    if( !l2cap_att.isOpen() ) {
+        ERR_PRINT("DBTDevice::connectGATT: L2CAP not open: %s", toString().c_str());
+        return false;
+    }
 
     std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
     if( nullptr == sharedInstance ) {
@@ -748,7 +774,7 @@ bool DBTDevice::connectGATT() noexcept {
         gattHandler = nullptr;
     }
 
-    gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sharedInstance));
+    gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sharedInstance, l2cap_att));
     if( !gattHandler->isConnected() ) {
         ERR_PRINT("DBTDevice::connectGATT: Connection failed");
         gattHandler = nullptr;

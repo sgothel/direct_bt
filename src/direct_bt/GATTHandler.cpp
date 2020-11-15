@@ -55,6 +55,9 @@ extern "C" {
 
 #include "DBTDevice.hpp"
 
+#include "DBTManager.hpp"
+#include "DBTAdapter.hpp"
+
 using namespace direct_bt;
 
 GATTEnv::GATTEnv() noexcept
@@ -78,7 +81,7 @@ std::shared_ptr<DBTDevice> GATTHandler::getDeviceChecked() const {
 }
 
 bool GATTHandler::validateConnected() noexcept {
-    bool l2capIsConnected = l2cap.isConnected();
+    bool l2capIsConnected = l2cap.isOpen();
     bool l2capHasIOError = l2cap.hasIOError();
 
     if( has_ioerror || l2capHasIOError ) {
@@ -278,11 +281,13 @@ void GATTHandler::l2capReaderThreadImpl() {
     disconnect(true /* disconnectDevice */, has_ioerror);
 }
 
-GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device) noexcept
+GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device, L2CAPComm& l2cap_att) noexcept
 : env(GATTEnv::get()),
-  wbr_device(device), deviceString(device->getAddressString()), rbuffer(number(Defaults::MAX_ATT_MTU)),
-  l2cap(*device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT),
-  is_connected(true), has_ioerror(false),
+  wbr_device(device),
+  l2cap(l2cap_att),
+  deviceString(device->getAddressString()),
+  rbuffer(number(Defaults::MAX_ATT_MTU)),
+  is_connected(l2cap.isOpen()), has_ioerror(false),
   attPDURing(env.ATTPDU_RING_CAPACITY), l2capReaderShallStop(false),
   l2capReaderThreadId(0), l2capReaderRunning(false),
   serverMTU(number(Defaults::MIN_ATT_MTU)), usedMTU(number(Defaults::MIN_ATT_MTU))
@@ -344,7 +349,7 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
     PERF3_TS_T0();
     // Interrupt GATT's L2CAP::connect(..) and L2CAP::read(..), avoiding prolonged hang
     // and pull all underlying l2cap read operations!
-    l2cap.disconnect();
+    l2cap.close();
 
     // Avoid disconnect re-entry -> potential deadlock
     bool expConn = true; // C++11, exp as value since C++20
