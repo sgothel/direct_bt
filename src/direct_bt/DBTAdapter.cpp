@@ -201,6 +201,7 @@ bool DBTAdapter::validateDevInfo() noexcept {
     ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvConnectFailedHCI)) && ok;
     ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedHCI)) && ok;
     ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceFoundHCI)) && ok;
+    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::LE_REMOTE_USER_FEATURES, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvLERemoteUserFeaturesHCI)) && ok;
 
     if( !ok ) {
         ERR_PRINT("Could not add all required MgmtEventCallbacks to HCIHandler: %s of %s", hci.toString().c_str(), toString().c_str());
@@ -1017,6 +1018,23 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
     return true;
 }
 
+bool DBTAdapter::mgmtEvLERemoteUserFeaturesHCI(std::shared_ptr<MgmtEvent> e) noexcept {
+    const MgmtEvtLERemoteUserFeatures &event = *static_cast<const MgmtEvtLERemoteUserFeatures *>(e.get());
+
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr != device ) {
+        COND_PRINT(debug_event, "DBTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): %s, %s",
+            dev_id, event.toString().c_str(), device->toString().c_str());
+
+        device->notifyLEFeatures(event.getFeatures());
+
+    } else {
+        WORDY_PRINT("DBTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): Device not tracked: %s",
+            dev_id, event.toString().c_str());
+    }
+    return true;
+}
+
 bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
     const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
 
@@ -1172,19 +1190,10 @@ bool DBTAdapter::mgmtEvAuthFailedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
                 event.toString().c_str());
         return true;
     }
-    const SMPPairingState old_pstate  = device->getCurrentPairingState();
-    const PairingMode old_pmode = device->getCurrentPairingMode();
-
-    const SMPPairingState pstate  = SMPPairingState::FAILED;
-    const PairingMode pmode = old_pmode;
-
-    DBG_PRINT("DBTAdapter:mgmt:SMP: dev_id %d: address[%s, %s]: state %s -> %s, mode %s -> %s, %s",
+    DBG_PRINT("DBTAdapter:mgmt:SMP: dev_id %d: address[%s, %s]: %s",
         dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),
-        getSMPPairingStateString(old_pstate).c_str(), getSMPPairingStateString(pstate).c_str(),
-        getPairingModeString(old_pmode).c_str(), getPairingModeString(pmode).c_str(),
         event.toString().c_str());
-
-    return updatePairingStateAndMode(device, old_pstate, pstate, old_pmode, pmode, e->getTimestamp());
+    return true;
 }
 bool DBTAdapter::mgmtEvUserConfirmRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
     const MgmtEvtUserConfirmRequest &event = *static_cast<const MgmtEvtUserConfirmRequest *>(e.get());
@@ -1197,19 +1206,15 @@ bool DBTAdapter::mgmtEvUserConfirmRequestMgmt(std::shared_ptr<MgmtEvent> e) noex
         return true;
     }
     // FIXME: Pass confirm_hint and value
-    const SMPPairingState old_pstate  = device->getCurrentPairingState();
-    const PairingMode old_pmode = device->getCurrentPairingMode();
-
     const SMPPairingState pstate  = SMPPairingState::NUMERIC_COMPARISON_EXPECTED;
-    const PairingMode pmode = old_pmode;
 
-    DBG_PRINT("DBTAdapter:mgmt:SMP: dev_id %d: address[%s, %s]: state %s -> %s, mode %s -> %s, %s",
+    DBG_PRINT("DBTAdapter:mgmt:SMP: dev_id %d: address[%s, %s]: state %s, %s",
         dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),
-        getSMPPairingStateString(old_pstate).c_str(), getSMPPairingStateString(pstate).c_str(),
-        getPairingModeString(old_pmode).c_str(), getPairingModeString(pmode).c_str(),
+        getSMPPairingStateString(pstate).c_str(),
         event.toString().c_str());
 
-    return updatePairingStateAndMode(device, old_pstate, pstate, old_pmode, pmode, e->getTimestamp());
+    updatePairingState(device, pstate, e->getTimestamp());
+    return true;
 }
 bool DBTAdapter::mgmtEvUserPasskeyRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
     const MgmtEvtUserPasskeyRequest &event = *static_cast<const MgmtEvtUserPasskeyRequest *>(e.get());
@@ -1221,34 +1226,27 @@ bool DBTAdapter::mgmtEvUserPasskeyRequestMgmt(std::shared_ptr<MgmtEvent> e) noex
                 event.toString().c_str());
         return true;
     }
-    const SMPPairingState old_pstate  = device->getCurrentPairingState();
-    const PairingMode old_pmode = device->getCurrentPairingMode();
-
     const SMPPairingState pstate  = SMPPairingState::PASSKEY_EXPECTED;
-    const PairingMode pmode = old_pmode;
 
-    DBG_PRINT("DBTAdapter:mgmt:SMP: dev_id %d: address[%s, %s]: state %s -> %s, mode %s -> %s, %s",
+    DBG_PRINT("DBTAdapter:mgmt:SMP: dev_id %d: address[%s, %s]: state %s, %s",
         dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),
-        getSMPPairingStateString(old_pstate).c_str(), getSMPPairingStateString(pstate).c_str(),
-        getPairingModeString(old_pmode).c_str(), getPairingModeString(pmode).c_str(),
+        getSMPPairingStateString(pstate).c_str(),
         event.toString().c_str());
 
-    return updatePairingStateAndMode(device, old_pstate, pstate, old_pmode, pmode, e->getTimestamp());
+    updatePairingState(device, pstate, e->getTimestamp());
+    return true;
 }
 
-bool DBTAdapter::updatePairingStateAndMode(std::shared_ptr<DBTDevice> device,
-        const SMPPairingState old_pstate, const SMPPairingState new_pstate,
-        const PairingMode old_pmode, const PairingMode new_pmode, uint64_t timestamp) noexcept
+void DBTAdapter::updatePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState pstate, uint64_t timestamp) noexcept
 {
-    if( old_pstate == new_pstate /* && old_pmode == new_pmode */ ) {
-        WORDY_PRINT("DBTAdapter::updatePairingStateAndMode: dev_id %d: Unchanged: state %s, mode %s, %s", dev_id,
-                getSMPPairingStateString(old_pstate).c_str(),
-                getPairingModeString(old_pmode).c_str(),
+    PairingMode pmode;
+    if( device->updatePairingState_locked(pstate, pmode) ) {
+        sendDevicePairingState(device, pstate, pmode, timestamp);
+    } else {
+        WORDY_PRINT("DBTAdapter::updatePairingState: dev_id %d: Unchanged: state %s, %s", dev_id,
+                getSMPPairingStateString(pstate).c_str(),
                 device->toString().c_str());
-        return true;
     }
-    device->updatePairingStateAndMode(new_pstate, new_pmode);
-    return sendDevicePairingState(device, new_pstate, new_pmode, timestamp);
 }
 
 bool DBTAdapter::hciSMPMsgCallback(const EUI48& address, BDAddressType addressType,
@@ -1272,7 +1270,7 @@ bool DBTAdapter::hciSMPMsgCallback(const EUI48& address, BDAddressType addressTy
     return true;
 }
 
-bool DBTAdapter::sendDevicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept
+void DBTAdapter::sendDevicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept
 {
     int i=0;
     jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
@@ -1287,6 +1285,20 @@ bool DBTAdapter::sendDevicePairingState(std::shared_ptr<DBTDevice> device, const
         }
         i++;
     });
-    return true;
 }
 
+void DBTAdapter::sendDeviceReady(std::shared_ptr<DBTDevice> device, uint64_t timestamp) noexcept {
+    int i=0;
+    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        try {
+            if( l->matchDevice(*device) ) {
+                l->deviceReady(device, timestamp);
+            }
+        } catch (std::exception &except) {
+            ERR_PRINT("DBTAdapter::sendDeviceReady: %d/%zd: %s of %s: Caught exception %s",
+                    i+1, statusListenerList.size(),
+                    l->toString().c_str(), device->toString().c_str(), except.what());
+        }
+        i++;
+    });
+}

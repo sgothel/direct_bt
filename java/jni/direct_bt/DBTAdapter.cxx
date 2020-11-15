@@ -445,6 +445,11 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->CallVoidMethod(listenerObjRef.getObject(), mDevicePairingState, jdevice, jstate, jmode, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
+    void deviceReady(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+        (void)device;
+        (void)timestamp;
+        // FIXME: JAVA
+    }
     void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
 

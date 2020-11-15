@@ -121,7 +121,7 @@ namespace direct_bt {
              */
             bool connectGATT() noexcept;
 
-            void updatePairingStateAndMode(SMPPairingState state, PairingMode mode) noexcept;
+            bool updatePairingState_locked(SMPPairingState state, PairingMode& current_mode) noexcept;
 
             /**
              * Forwarded from HCIHandler -> DBTAdapter -> this DBTDevice
@@ -156,6 +156,12 @@ namespace direct_bt {
              * issuing connectSMP() off thread.
              */
             void processNotifyConnected();
+
+            /**
+             * Will be performed after connectLE(..) via notifyConnected() or after pairing via hciSMPMsgCallback(..),
+             * issuing connectGATT() off thread.
+             */
+            void processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint64_t timestamp);
 
         public:
             const uint64_t ts_creation;

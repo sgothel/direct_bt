@@ -57,7 +57,7 @@ static uint64_t timestamp_t0;
 
 
 static int RESET_ADAPTER_EACH_CONN = 0;
-static std::atomic<int> connectionCount = 0;
+static std::atomic<int> deviceReadyCount = 0;
 
 static std::atomic<int> MULTI_MEASUREMENTS = 8;
 
@@ -216,48 +216,10 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
-    void devicePairing(std::shared_ptr<DBTDevice> device) {
-        fprintf(stderr, "****** Pairing[%d] %s\n", connectionCount.load(), device->toString(true).c_str());
-        std::thread dc(devicePairingImpl, device); // @suppress("Invalid arguments")
-        dc.detach();
-    }
-    static void devicePairingImpl(std::shared_ptr<DBTDevice> device) {
-        device->setPairingPasskey(pairing_passkey);
-        // device->setPairingPasskeyNegative();
-    }
-
-    void deviceProcessing(std::shared_ptr<DBTDevice> device) {
-        fprintf(stderr, "****** Processing[%d] %s\n", connectionCount.load(), device->toString(true).c_str());
-        addToDevicesProcessing(device->getAddress());
-        std::thread dc(::processConnectedDevice, device); // @suppress("Invalid arguments")
-        dc.detach();
-    }
-
     void deviceConnected(std::shared_ptr<DBTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
+        fprintf(stderr, "****** CONNECTED: %s\n", device->toString(true).c_str());
         (void)handle;
         (void)timestamp;
-
-#if 0
-        if( !isDeviceProcessing( device->getAddress() ) &&
-            ( waitForDevices.empty() ||
-              ( contains(waitForDevices, device->getAddress()) &&
-                ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(device->getAddress()) )
-              )
-            )
-          )
-        {
-            connectionCount++;
-            fprintf(stderr, "****** CONNECTED-0: Processing[%d] %s\n", connectionCount.load(), device->toString(true).c_str());
-            addToDevicesProcessing(device->getAddress());
-            std::thread dc(::processConnectedDevice, device); // @suppress("Invalid arguments")
-            dc.detach();
-        } else {
-            fprintf(stderr, "****** CONNECTED-1: NOP %s\n", device->toString(true).c_str());
-        }
-#else
-        (void) device;
-        // deviceProcessing(device);
-#endif
     }
 
     void devicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
@@ -266,20 +228,61 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
         switch( state ) {
             case SMPPairingState::NONE:
-                deviceProcessing(device);
-                break;
-            case SMPPairingState::PASSKEY_EXPECTED:
-                devicePairing(device);
-                break;
-            case SMPPairingState::PROCESS_COMPLETED:
-                deviceProcessing(device);
+                // next: deviceReady(..)
                 break;
             case SMPPairingState::FAILED:
-                [[fallthrough]];
+                // next: deviceReady() or deviceDisconnected(..)
+                break;
+            case SMPPairingState::REQUESTED_BY_RESPONDER:
+                // next: FEATURE_EXCHANGE_STARTED
+                break;
+            case SMPPairingState::FEATURE_EXCHANGE_STARTED:
+                // next: FEATURE_EXCHANGE_COMPLETED
+                break;
             case SMPPairingState::FEATURE_EXCHANGE_COMPLETED:
-                [[fallthrough]];
+                // next: PASSKEY_EXPECTED... or PROCESS_STARTED
+                break;
+            case SMPPairingState::PASSKEY_EXPECTED: {
+                std::thread dc(&DBTDevice::setPairingPasskey, device, pairing_passkey); // @suppress("Invalid arguments")
+                dc.detach();
+                // next: PROCESS_STARTED or FAILED
+              } break;
+            case SMPPairingState::NUMERIC_COMPARISON_EXPECTED: {
+                std::thread dc(&DBTDevice::setPairingNumericComparison, device, true); // @suppress("Invalid arguments")
+                dc.detach();
+                // next: PROCESS_STARTED or FAILED
+              } break;
+            case SMPPairingState::OOB_EXPECTED:
+                // FIXME: ABORT
+                break;
+            case SMPPairingState::PROCESS_STARTED:
+                // next: PROCESS_COMPLETED or FAILED
+                break;
+            case SMPPairingState::PROCESS_COMPLETED:
+                // next: deviceReady(..)
+                break;
             default: // nop
                 break;
+        }
+    }
+
+    void deviceReady(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+        (void)timestamp;
+        if( !isDeviceProcessing( device->getAddress() ) &&
+            ( waitForDevices.empty() ||
+              ( contains(waitForDevices, device->getAddress()) &&
+                ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(device->getAddress()) )
+              )
+            )
+          )
+        {
+            deviceReadyCount++;
+            fprintf(stderr, "****** READY-0: Processing[%d] %s\n", deviceReadyCount.load(), device->toString(true).c_str());
+            addToDevicesProcessing(device->getAddress());
+            std::thread dc(::processConnectedDevice, device); // @suppress("Invalid arguments")
+            dc.detach();
+        } else {
+            fprintf(stderr, "****** READY-1: NOP %s\n", device->toString(true).c_str());
         }
     }
 
@@ -295,7 +298,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         } else {
             removeFromDevicesProcessing(device->getAddress());
         }
-        if( 0 < RESET_ADAPTER_EACH_CONN && 0 == connectionCount % RESET_ADAPTER_EACH_CONN ) {
+        if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount % RESET_ADAPTER_EACH_CONN ) {
             std::thread dc(::resetAdapter, &device->getAdapter(), 1); // @suppress("Invalid arguments")
             dc.detach();
         }
@@ -487,7 +490,7 @@ exit:
 
         device->remove();
 
-        if( 0 < RESET_ADAPTER_EACH_CONN && 0 == connectionCount % RESET_ADAPTER_EACH_CONN ) {
+        if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount % RESET_ADAPTER_EACH_CONN ) {
             resetAdapter(&device->getAdapter(), 2);
         } else if( !USE_WHITELIST && 0 == getDeviceProcessingCount() ) {
             startDiscovery(&device->getAdapter(), "post-processing-2");
@@ -529,7 +532,7 @@ static std::shared_ptr<DBTAdapter> createAdapter(const int dev_id0, const bool v
     // pre-validate dev_id availability
     int dev_id;
     if( validate_dev_id ) {
-        DBTManager & mngr = DBTManager::get(BTMode::LE);
+        DBTManager & mngr = DBTManager::get();
         if( 0 > dev_id0 ) {
             dev_id = mngr.getDefaultAdapterDevID();
         } else if( nullptr != mngr.getAdapterInfo(dev_id0) ) {
@@ -634,7 +637,7 @@ void test() {
 
     timestamp_t0 = getCurrentMilliseconds();
 
-    DBTManager & mngr = DBTManager::get(BTMode::LE);
+    DBTManager & mngr = DBTManager::get();
     mngr.addChangedAdapterSetCallback(myChangedAdapterSetFunc);
 
     while( !done ) {
@@ -671,7 +674,7 @@ void test() {
 
 int main(int argc, char *argv[])
 {
-    BTMode btMode = BTMode::NONE;
+    BTMode btMode = BTMode::DUAL;
     bool waitForEnter=false;
 
     for(int i=1; i<argc; i++) {
@@ -762,7 +765,7 @@ int main(int argc, char *argv[])
         // Just for testing purpose, i.e. triggering DBTManager::close() within the test controlled app,
         // instead of program shutdown.
         fprintf(stderr, "****** Manager close start\n");
-        DBTManager & mngr = DBTManager::get(BTMode::NONE); // already existing
+        DBTManager & mngr = DBTManager::get(); // already existing
         mngr.close();
         fprintf(stderr, "****** Manager close end\n");
     }

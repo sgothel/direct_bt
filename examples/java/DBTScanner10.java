@@ -221,6 +221,11 @@ public class DBTScanner10 {
         }
 
         @Override
+        public void deviceReady(final BluetoothDevice device, final long timestamp) {
+            println("****** READY: "+device);
+        }
+
+        @Override
         public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
             println("****** DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
 

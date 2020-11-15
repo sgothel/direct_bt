@@ -125,6 +125,13 @@ public abstract class AdapterStatusListener {
     public void devicePairingState(final BluetoothDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {}
 
     /**
+     * {@link BluetoothDevice} is ready for user (GATT) processing, i.e. already connected and optionally paired.
+     * @param device the device ready to use
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+     */
+    public void deviceReady(final BluetoothDevice device, final long timestamp) {}
+
+    /**
      * {@link BluetoothDevice} got disconnected.
      * @param device the device which has been disconnected with zeroed connection handle.
      * @param reason the {@link HCIStatusCode} reason for disconnection
