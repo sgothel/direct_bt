@@ -65,7 +65,7 @@ BTMode MgmtEnv::getEnvBTMode() {
         val = jau::environment::getProperty("org.tinyb.btmode");
     }
     const BTMode res = direct_bt::getBTMode(val);
-    return BTMode::NONE != res ? res : BTMode::LE; // fallback to default LE
+    return BTMode::NONE != res ? res : BTMode::DUAL; // fallback to default DUAL
 }
 
 MgmtEnv::MgmtEnv() noexcept

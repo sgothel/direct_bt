@@ -109,7 +109,7 @@ namespace direct_bt {
              * Environment variable is 'direct_bt.mgmt.btmode' first, then try 'org.tinyb.btmode'.
              * </p>
              * <p>
-             * Default is BTMode::LE, if non of the above environment variable is set.
+             * Default is BTMode::DUAL, if non of the above environment variable is set.
              * </p>
              */
             const BTMode DEFAULT_BTMODE;
@@ -297,11 +297,10 @@ namespace direct_bt {
              * <p>
              * First call will open and initialize the bluetooth kernel.
              * </p>
-             * @param btMode default {@link BTMode} when initializing new adapter. If BTMode::NONE given, MgmtEnv::DEFAULT_BTMODE is being used.
+             * @param btMode default {@link BTMode} when initializing new adapter. If BTMode::NONE given (default), MgmtEnv::DEFAULT_BTMODE is being used.
              * @return singleton instance.
              */
-            static DBTManager& get(const BTMode defaultBTMode) {
-                const std::lock_guard<std::mutex> lock(mtx_singleton); // ensure thread safety
+            static DBTManager& get(const BTMode defaultBTMode=BTMode::NONE) {
                 /**
                  * Thread safe starting with C++11 6.7:
                  *
