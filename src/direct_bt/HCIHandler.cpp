@@ -206,14 +206,38 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
                 }
                 const HCILEPeerAddressType hciAddrType = static_cast<HCILEPeerAddressType>(ev_cc->bdaddr_type);
                 const BDAddressType addrType = getBDAddressType(hciAddrType);
-                HCIConnectionRef conn = addOrUpdateTrackerConnection(ev_cc->bdaddr, addrType, ev_cc->handle);
+                const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
+                const HCIConnectionRef conn = addOrUpdateTrackerConnection(ev_cc->bdaddr, addrType, handle);
                 if( HCIStatusCode::SUCCESS == status ) {
-                    return std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceConnected(dev_id, ev_cc->bdaddr, addrType, ev_cc->handle) );
+                    return std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceConnected(dev_id, ev_cc->bdaddr, addrType, handle) );
                 } else {
                     std::shared_ptr<MgmtEvent> res( new MgmtEvtDeviceConnectFailed(dev_id, ev_cc->bdaddr, addrType, status) );
                     removeTrackerConnection(conn);
                     return res;
                 }
+            }
+            case HCIMetaEventType::LE_REMOTE_FEAT_COMPLETE: {
+                HCIStatusCode status;
+                const hci_ev_le_remote_feat_complete * ev_cc = getMetaReplyStruct<hci_ev_le_remote_feat_complete>(ev, mevt, &status);
+                if( nullptr == ev_cc ) {
+                    ERR_PRINT("HCIHandler::translate(reader): LE_REMOTE_FEAT_COMPLETE: Null reply-struct: %s - %s",
+                            ev->toString().c_str(), toString().c_str());
+                    return nullptr;
+                }
+                const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
+                const LEFeatures features = static_cast<LEFeatures>(jau::get_uint64(ev_cc->features, 0, true /* littleEndian */));
+                const HCIConnectionRef conn = findTrackerConnection(handle);
+                if( nullptr == conn ) {
+                    WARN_PRINT("HCIHandler::translate(reader): LE_REMOTE_FEAT_COMPLETE: Not tracked conn_handle %s: %s",
+                            jau::uint16HexString(handle), conn->toString().c_str());
+                    return nullptr;
+                }
+                if( HCIStatusCode::SUCCESS != status ) {
+                    WARN_PRINT("HCIHandler::translate(reader): LE_REMOTE_FEAT_COMPLETE: Failed: Status %s, Handle %s: %s",
+                            getHCIStatusCodeString(status).c_str(), jau::uint16HexString(handle), conn->toString().c_str());
+                    return nullptr;
+                }
+                return std::shared_ptr<MgmtEvent>( new MgmtEvtLERemoteUserFeatures(dev_id, conn->getAddress(), conn->getAddressType(), features) );
             }
             default:
                 return nullptr;
@@ -575,6 +599,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
 #else
         filter_set_metaev(HCIMetaEventType::LE_CONN_COMPLETE, mask);
         filter_set_metaev(HCIMetaEventType::LE_ADVERTISING_REPORT, mask);
+        filter_set_metaev(HCIMetaEventType::LE_REMOTE_FEAT_COMPLETE, mask);
 #endif
         filter_put_metaevs(mask);
     }

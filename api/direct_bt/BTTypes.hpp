@@ -76,6 +76,39 @@ namespace direct_bt {
     BTMode getBTMode(const std::string & value) noexcept;
 
     /**
+     * LE Link Layer Feature Set
+     * <pre>
+     * BT Core Spec v5.2: Vol 6, Part B, 4.6 (LE) Features Support
+     * </pre>
+     */
+    enum class LEFeatures : uint64_t {
+        NONE                    =                                                                  0,/**< NONE */
+        LE_Encryption           = 0b0000000000000000000000000000000000000000000000000000000000000001,/**< LE_Encryption */
+        Conn_Param_Request_Proc = 0b0000000000000000000000000000000000000000000000000000000000000010 /**< Conn_Param_Request_Proc */
+    };
+    constexpr uint64_t number(const LEFeatures rhs) noexcept {
+        return static_cast<uint64_t>(rhs);
+    }
+    constexpr LEFeatures operator ^(const LEFeatures lhs, const LEFeatures rhs) noexcept {
+        return static_cast<LEFeatures> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
+    }
+    constexpr LEFeatures operator |(const LEFeatures lhs, const LEFeatures rhs) noexcept {
+        return static_cast<LEFeatures> ( static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs) );
+    }
+    constexpr LEFeatures operator &(const LEFeatures lhs, const LEFeatures rhs) noexcept {
+        return static_cast<LEFeatures> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
+    }
+    constexpr bool operator ==(const LEFeatures lhs, const LEFeatures rhs) noexcept {
+        return static_cast<uint8_t>(lhs) == static_cast<uint8_t>(rhs);
+    }
+    constexpr bool operator !=(const LEFeatures lhs, const LEFeatures rhs) noexcept {
+        return !( lhs == rhs );
+    }
+    constexpr bool isLEFeaturesBitSet(const LEFeatures mask, const LEFeatures bit) noexcept {
+        return LEFeatures::NONE != ( mask & bit );
+    }
+
+    /**
      * Bluetooth secure pairing mode
      * <pre>
      * BT Core Spec v5.2: Vol 1, Part A, 5 Security Overview
