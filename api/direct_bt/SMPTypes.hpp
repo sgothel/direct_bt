@@ -126,11 +126,11 @@ namespace direct_bt {
          */
         FEATURE_EXCHANGE_COMPLETED  = 4,
 
-        /** Phase 2: Authentication (MITM) PASSKEY expected, see PairingMode::PASSKEY_ENTRY */
+        /** Phase 2: Authentication (MITM) PASSKEY expected now, see PairingMode::PASSKEY_ENTRY */
         PASSKEY_EXPECTED            = 5,
-        /** Phase 2: Authentication (MITM) Numeric Comparison Reply expected, see PairingMode::NUMERIC_COMPARISON */
+        /** Phase 2: Authentication (MITM) Numeric Comparison Reply expected now, see PairingMode::NUMERIC_COMPARISON */
         NUMERIC_COMPARISON_EXPECTED = 6,
-        /** Phase 2: Authentication (MITM) OOB data expected, see PairingMode::OUT_OF_BAND */
+        /** Phase 2: Authentication (MITM) OOB data expected now, see PairingMode::OUT_OF_BAND */
         OOB_EXPECTED                = 7,
 
         /** Phase 2: Pairing process started by SMPPairConfirmMsg or SMPPairPubKeyMsg (LE Secure Connection) exchange between initiating (master) and responding (slave) device. */
@@ -200,7 +200,7 @@ namespace direct_bt {
          */
         BONDING                     = 0b00000001,
         /** Reserved for future use */
-        BONDING_RESERVED            = 0b00000010,
+        BONDING_RFU                 = 0b00000010,
         /**
          * A device sets the MITM flag to one to request an Authenticated security property
          * for the STK when using LE legacy pairing
@@ -226,7 +226,7 @@ namespace direct_bt {
          * then LE Secure Connections pairing shall be used,
          * otherwise LE Legacy pairing shall be used.
          */
-        LE_SECURE_CONNECTIONS       = 0b00001000,
+        SECURE_CONNECTIONS          = 0b00001000,
         /**
          * The keypress field is used only in the Passkey Entry
          * protocol and shall be ignored in other protocols.

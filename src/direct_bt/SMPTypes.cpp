@@ -85,38 +85,62 @@ std::string direct_bt::getSMPOOBDataFlagString(const SMPOOBDataFlag v) noexcept 
 }
 
 
-#define AUTHREQ_ENUM(X) \
-    X(NONE) \
-    X(BONDING) \
-    X(BONDING_RESERVED) \
-    X(MITM) \
-    X(LE_SECURE_CONNECTIONS) \
-    X(KEYPRESS) \
-    X(CT2_H7_FUNC_SUPPORT) \
-    X(RFU_1) \
-    X(RFU_2)
-
-#define CASE_TO_STRING_AUTHREQ(V) case SMPAuthReqs::V: return #V;
-
 std::string direct_bt::getSMPAuthReqBitString(const SMPAuthReqs bit) noexcept {
     switch(bit) {
-        AUTHREQ_ENUM(CASE_TO_STRING_AUTHREQ)
+        case SMPAuthReqs::NONE:                return "none";
+        case SMPAuthReqs::BONDING:             return "Bonding";
+        case SMPAuthReqs::BONDING_RFU:         return "Bonding_RFU";
+        case SMPAuthReqs::MITM:                return "MITM";
+        case SMPAuthReqs::SECURE_CONNECTIONS:  return "SC";
+        case SMPAuthReqs::KEYPRESS:            return "Keypresses";
+        case SMPAuthReqs::CT2_H7_FUNC_SUPPORT: return "CT2_H7";
+        case SMPAuthReqs::RFU_1:               return "RFU_1";
+        case SMPAuthReqs::RFU_2:               return "RFU_2";
         default: ; // fall through intended
     }
     return "Unknown AuthRequirements bit";
 }
 
 std::string direct_bt::getSMPAuthReqMaskString(const SMPAuthReqs mask) noexcept {
-    const uint8_t one = 1;
-    bool has_pre = false;
     std::string out("[");
-    for(int i=0; i<8; i++) {
-        const uint8_t settingBit = one << i;
-        if( 0 != ( static_cast<uint8_t>(mask) & settingBit ) ) {
-            if( has_pre ) { out.append(", "); }
-            out.append( getSMPAuthReqBitString( static_cast<SMPAuthReqs>(settingBit) ) );
-            has_pre = true;
-        }
+    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::BONDING) ) {
+        out.append("Bonding");
+    } else {
+        out.append("No bonding");
+    }
+    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::BONDING_RFU) ) {
+        out.append(", ");
+        out.append("Bonding Reserved");
+    }
+    out.append(", ");
+    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::MITM) ) {
+        out.append("MITM");
+    } else {
+        out.append("No MITM");
+    }
+    out.append(", ");
+    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::SECURE_CONNECTIONS) ) {
+        out.append("SC");
+    } else {
+        out.append("Legacy");
+    }
+    out.append(", ");
+    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::KEYPRESS) ) {
+        out.append("Keypresses");
+    } else {
+        out.append("No keypresses");
+    }
+    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::CT2_H7_FUNC_SUPPORT) ) {
+        out.append(", ");
+        out.append("CT2_H7");
+    }
+    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::RFU_1) ) {
+        out.append(", ");
+        out.append("RFU_1");
+    }
+    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::RFU_2) ) {
+        out.append(", ");
+        out.append("RFU_2");
     }
     out.append("]");
     return out;
