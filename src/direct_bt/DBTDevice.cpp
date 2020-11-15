@@ -487,16 +487,6 @@ exit:
     return res;
 }
 
-PairingMode DBTDevice::getCurrentPairingMode() const noexcept {
-    const std::lock_guard<std::mutex> lock(const_cast<DBTDevice*>(this)->mtx_pairing); // RAII-style acquire and relinquish via destructor
-    return pairing_data.mode;
-}
-
-SMPPairingState DBTDevice::getCurrentPairingState() const noexcept {
-    const std::lock_guard<std::mutex> lock(const_cast<DBTDevice*>(this)->mtx_pairing); // RAII-style acquire and relinquish via destructor
-    return pairing_data.state;
-}
-
 void DBTDevice::updatePairingStateAndMode(SMPPairingState state, PairingMode mode) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     pairing_data.mode = mode;
@@ -615,7 +605,6 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
 HCIStatusCode DBTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
-    pairing_data.passkey = passkey;
     if( SMPPairingState::PASSKEY_EXPECTED == pairing_data.state ) {
         DBTManager& mngr = adapter.getManager();
         MgmtStatus res = mngr.userPasskeyReply(adapter.dev_id, address, addressType, passkey);
@@ -632,7 +621,6 @@ HCIStatusCode DBTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
 HCIStatusCode DBTDevice::setPairingPasskeyNegative() noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
-    pairing_data.passkey = 0;
     if( SMPPairingState::PASSKEY_EXPECTED == pairing_data.state ) {
         DBTManager& mngr = adapter.getManager();
         MgmtStatus res = mngr.userPasskeyNegativeReply(adapter.dev_id, address, addressType);
@@ -646,10 +634,6 @@ HCIStatusCode DBTDevice::setPairingPasskeyNegative() noexcept {
     }
 }
 
-uint32_t DBTDevice::getPairingPasskey() const noexcept {
-    const std::lock_guard<std::mutex> lock(const_cast<DBTDevice*>(this)->mtx_pairing); // RAII-style acquire and relinquish via destructor
-    return pairing_data.passkey;
-}
 
 HCIStatusCode DBTDevice::setPairingNumericComparison(const bool equal) noexcept {
     (void) equal;
@@ -678,8 +662,6 @@ void DBTDevice::clearSMPStates() noexcept {
 }
 
 void DBTDevice::disconnectSMP(int caller) noexcept {
-  clearSMPStates();
-
   #if SMP_SUPPORTED_BY_OS
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_smpHandler);
     if( nullptr != smpHandler ) {
@@ -696,8 +678,6 @@ void DBTDevice::disconnectSMP(int caller) noexcept {
 }
 
 bool DBTDevice::connectSMP() noexcept {
-  clearSMPStates();
-
   #if SMP_SUPPORTED_BY_OS
     if( !isConnected || !allowDisconnect) {
         ERR_PRINT("DBTDevice::connectSMP: Device not connected: %s", toString().c_str());

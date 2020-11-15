@@ -78,9 +78,8 @@ namespace direct_bt {
             std::atomic<bool> allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
 
             struct PairingData {
-                SMPPairingState state;
-                PairingMode     mode;
-                uint32_t        passkey;
+                jau::ordered_atomic<SMPPairingState, std::memory_order_relaxed> state;
+                jau::ordered_atomic<PairingMode, std::memory_order_relaxed> mode;
                 SMPAuthReqs     authReqs_init, authReqs_resp;
                 SMPIOCapability ioCap_init,    ioCap_resp;
                 SMPOOBDataFlag  oobFlag_init,  oobFlag_resp;
@@ -415,14 +414,12 @@ namespace direct_bt {
              * @see AdapterStatusListener::devicePairingState()
              * @see setPairingPasskey()
              * @see setPairingNumericComparison()
-             * @see getCurrentPairingMode()
-             * @see getCurrentPairingState()
+             * @see getPairingMode()
+             * @see getPairingState()
              */
             HCIStatusCode setPairingPasskey(const uint32_t passkey) noexcept;
 
             HCIStatusCode setPairingPasskeyNegative() noexcept;
-
-            uint32_t getPairingPasskey() const noexcept;
 
             /**
              * Method sets the numeric comparison result, see PairingMode::NUMERIC_COMPARISON.
@@ -442,8 +439,8 @@ namespace direct_bt {
              * @see AdapterStatusListener::devicePairingState()
              * @see setPairingPasskey()
              * @see setPairingNumericComparison()
-             * @see getCurrentPairingMode()
-             * @see getCurrentPairingState()
+             * @see getPairingMode()
+             * @see getPairingState()
              */
             HCIStatusCode setPairingNumericComparison(const bool equal) noexcept;
 
@@ -466,10 +463,10 @@ namespace direct_bt {
              * @see AdapterStatusListener::devicePairingState()
              * @see setPairingPasskey()
              * @see setPairingNumericComparison()
-             * @see getCurrentPairingMode()
-             * @see getCurrentPairingState()
+             * @see getPairingMode()
+             * @see getPairingState()
              */
-            PairingMode getCurrentPairingMode() const noexcept;
+            PairingMode getPairingMode() const noexcept { return pairing_data.mode; }
 
             /**
              * Returns the current SMPPairingState.
@@ -481,10 +478,10 @@ namespace direct_bt {
              * @see AdapterStatusListener::devicePairingState()
              * @see setPairingPasskey()
              * @see setPairingNumericComparison()
-             * @see getCurrentPairingMode()
-             * @see getCurrentPairingState()
+             * @see getPairingMode()
+             * @see getPairingState()
              */
-            SMPPairingState getCurrentPairingState() const noexcept;
+            SMPPairingState getPairingState() const noexcept { return pairing_data.state; }
 
             /**
              * Disconnects this device via disconnect(..) if getConnected()==true
