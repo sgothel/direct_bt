@@ -244,6 +244,9 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
      */
     const SMPIOCapability iocap { SMPIOCapability::KEYBOARD_ONLY }; // Mostly PairingMode::PASSKEY_ENTRY
     const uint8_t debug_keys = 0;
+    const uint8_t ssp_on_param = 0x01; // SET_SSP 0x00 disabled, 0x01 enable Secure Simple Pairing. SSP only available for BREDR >= 2.1 not single-mode LE.
+    const uint8_t sc_on_param = 0x01; // SET_SECURE_CONN 0x00 disabled, 0x01 enables SC mixed, 0x02 enables SC only mode
+
     std::shared_ptr<AdapterInfo> adapterInfo = nullptr;
     AdapterSetting current_settings;
     MgmtCommand req0(MgmtCommand::Opcode::READ_INFO, dev_id);
@@ -265,14 +268,16 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
     DBG_PRINT("initAdapter[%d, BTMode %s]: Start: %s", dev_id, getBTModeString(btMode).c_str(), adapterInfo->toString().c_str());
     current_settings = adapterInfo->getCurrentSettingMask();
 
+    setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 0, current_settings);
+
     switch ( btMode ) {
         case BTMode::DUAL:
             setMode(dev_id, MgmtCommand::Opcode::SET_BREDR, 1, current_settings);
             setDiscoverable(dev_id, 0, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_LE, 1, current_settings);
 #if USE_LINUX_BT_SECURITY
-            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 1, current_settings);
-            setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 1, current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, sc_on_param, current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, ssp_on_param, current_settings);
 #endif
             break;
         case BTMode::BREDR:
@@ -280,8 +285,8 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
             setDiscoverable(dev_id, 0, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_LE, 0, current_settings);
 #if USE_LINUX_BT_SECURITY
-            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 1, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, ssp_on_param, current_settings);
 #endif
             break;
         case BTMode::NONE:
@@ -290,8 +295,8 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
             setMode(dev_id, MgmtCommand::Opcode::SET_BREDR, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_LE, 1, current_settings);
 #if USE_LINUX_BT_SECURITY
-            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings);
-            setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 1, current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, sc_on_param, current_settings);
+            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings); // SSP not available in LE single mode
 #endif
             break;
     }
