@@ -732,6 +732,25 @@ MgmtStatus DBTManager::setDiscoverable(const uint16_t dev_id, const uint8_t stat
     return res;
 }
 
+bool DBTManager::setL2CAPSecurity(int l2cap_att_socket, uint8_t sec_level) {
+#if USE_LINUX_BT_SECURITY
+    struct bt_security bt_sec;
+    int result;
+
+    bzero(&bt_sec, sizeof(bt_sec));
+    bt_sec.level = sec_level;
+    result = setsockopt(l2cap_att_socket, SOL_BLUETOOTH, BT_SECURITY, &bt_sec, sizeof(bt_sec));
+    if (result != 0) {
+        ERR_PRINT("Setting L2CAP security level failed");
+        return false;
+    }
+    return true;
+#else
+    (void) l2cap_att_socket;
+    return false;
+#endif
+}
+
 ScanType DBTManager::startDiscovery(const uint16_t dev_id, const BTMode btMode) noexcept {
     return startDiscovery(dev_id, getScanType(btMode));
 }
@@ -810,6 +829,23 @@ MgmtStatus DBTManager::userPasskeyReply(const uint16_t dev_id, const EUI48 &addr
 MgmtStatus DBTManager::userPasskeyNegativeReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType) noexcept {
     MgmtUserPasskeyNegativeReplyCmd cmd(dev_id, address, addressType);
     std::shared_ptr<MgmtEvent> res = sendWithReply(cmd);
+    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+        // FIXME: Analyze address + addressType result?
+        return res1.getStatus();
+    }
+    return MgmtStatus::TIMEOUT;
+}
+
+MgmtStatus DBTManager::userConfirmReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const bool positive) noexcept {
+    std::shared_ptr<MgmtEvent> res;
+    if( positive ) {
+        MgmtUserConfirmReplyCmd cmd(dev_id, address, addressType);
+        res = sendWithReply(cmd);
+    } else {
+        MgmtUserConfirmNegativeReplyCmd cmd(dev_id, address, addressType);
+        res = sendWithReply(cmd);
+    }
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         // FIXME: Analyze address + addressType result?
