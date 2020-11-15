@@ -372,24 +372,24 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_connectLEImpl1(JNIEnv *env, jobject obj,
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
-jbyte Java_direct_1bt_tinyb_DBTDevice_getCurrentPairingModeImpl(JNIEnv *env, jobject obj) {
+jbyte Java_direct_1bt_tinyb_DBTDevice_getPairingModeImpl(JNIEnv *env, jobject obj) {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        return number( device->getCurrentPairingMode() );
+        return number( device->getPairingMode() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
     return number( PairingMode::NONE );
 }
 
-jbyte Java_direct_1bt_tinyb_DBTDevice_getCurrentPairingStateImpl(JNIEnv *env, jobject obj) {
+jbyte Java_direct_1bt_tinyb_DBTDevice_getPairingStateImpl(JNIEnv *env, jobject obj) {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        return static_cast<uint8_t>( device->getCurrentPairingState() );
+        return static_cast<uint8_t>( device->getPairingState() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

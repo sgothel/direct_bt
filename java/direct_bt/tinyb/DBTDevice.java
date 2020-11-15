@@ -345,16 +345,16 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     private native byte setPairingNumericComparisonImpl(final boolean equal);
 
     @Override
-    public PairingMode getCurrentPairingMode() {
-        return PairingMode.get( getCurrentPairingModeImpl() );
+    public PairingMode getPairingMode() {
+        return PairingMode.get( getPairingModeImpl() );
     }
-    private native byte getCurrentPairingModeImpl();
+    private native byte getPairingModeImpl();
 
     @Override
-    public SMPPairingState getCurrentPairingState() {
-        return SMPPairingState.get( getCurrentPairingStateImpl() );
+    public SMPPairingState getPairingState() {
+        return SMPPairingState.get( getPairingStateImpl() );
     }
-    private native byte getCurrentPairingStateImpl();
+    private native byte getPairingStateImpl();
 
     @Override
     public final boolean cancelPairing() throws BluetoothException {

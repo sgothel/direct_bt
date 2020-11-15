@@ -212,8 +212,8 @@ public interface BluetoothDevice extends BluetoothObject
      * @see AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long)
      * @see #setPairingPasskey(String)
      * @see #setPairingNumericComparison(boolean)
-     * @see #getCurrentPairingMode()
-     * @see #getCurrentPairingState()
+     * @see #getPairingMode()
+     * @see #getPairingState()
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
      */
@@ -238,8 +238,8 @@ public interface BluetoothDevice extends BluetoothObject
      * @see AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long)
      * @see #setPairingPasskey(String)
      * @see #setPairingNumericComparison(boolean)
-     * @see #getCurrentPairingMode()
-     * @see #getCurrentPairingState()
+     * @see #getPairingMode()
+     * @see #getPairingState()
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
      */
@@ -265,12 +265,12 @@ public interface BluetoothDevice extends BluetoothObject
      * @see AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long)
      * @see #setPairingPasskey(String)
      * @see #setPairingNumericComparison(boolean)
-     * @see #getCurrentPairingMode()
-     * @see #getCurrentPairingState()
+     * @see #getPairingMode()
+     * @see #getPairingState()
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
      */
-    PairingMode getCurrentPairingMode();
+    PairingMode getPairingMode();
 
     /**
      * Returns the current {@link SMPPairingState}.
@@ -282,12 +282,12 @@ public interface BluetoothDevice extends BluetoothObject
      * @see AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long)
      * @see #setPairingPasskey(String)
      * @see #setPairingNumericComparison(boolean)
-     * @see #getCurrentPairingMode()
-     * @see #getCurrentPairingState()
+     * @see #getPairingMode()
+     * @see #getPairingState()
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
      */
-    SMPPairingState getCurrentPairingState();
+    SMPPairingState getPairingState();
 
     /**
      * Remove this device from the system (like an unpair).

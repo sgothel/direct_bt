@@ -114,10 +114,10 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public HCIStatusCode setPairingNumericComparison(final boolean equal) { return HCIStatusCode.INTERNAL_FAILURE; }
 
     @Override
-    public PairingMode getCurrentPairingMode() { return PairingMode.NONE; }
+    public PairingMode getPairingMode() { return PairingMode.NONE; }
 
     @Override
-    public SMPPairingState getCurrentPairingState() { return SMPPairingState.NONE; }
+    public SMPPairingState getPairingState() { return SMPPairingState.NONE; }
 
     @Override
     public native boolean remove() throws BluetoothException;
