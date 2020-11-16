@@ -423,7 +423,7 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
             sec_level = 0;
         }
         const bool l2cap_res = l2cap_att.open(*this);
-        const bool l2capsec_res = l2cap_res && l2cap_att.setBTSecurityLevel(sec_level);
+        const bool l2capsec_res = l2cap_res && l2cap_att.setBTSecurityLevel(sec_level); // initiates hciSMPMsgCallback() if sec_level > 0
 #if SMP_SUPPORTED_BY_OS
         const bool smp_res = connectSMP();
 #else
@@ -434,7 +434,7 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
         if( !l2cap_res ) {
             disconnect(HCIStatusCode::INTERNAL_FAILURE);
         } else if( 0 == sec_level ) {
-            // No security and hence no SMP dialogue, i.e. hciSMPMsgCallback:
+            // No security and hence no SMP dialogue, i.e. hciSMPMsgCallback():
             processDeviceReady(sthis, jau::getCurrentMilliseconds());
         }
     }
