@@ -449,90 +449,6 @@ void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint6
     }
 }
 
-void DBTDevice::notifyDisconnected() noexcept {
-    // coming from disconnect callback, ensure cleaning up!
-    DBG_PRINT("DBTDevice::notifyDisconnected: handle %s -> zero, %s",
-              jau::uint16HexString(hciConnHandle).c_str(), toString().c_str());
-    clearSMPStates();
-    allowDisconnect = false;
-    isConnected = false;
-    hciConnHandle = 0;
-    disconnectGATT(1);
-    disconnectSMP(1);
-    l2cap_att.close();
-}
-
-HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
-    // Avoid disconnect re-entry lock-free
-    bool expConn = true; // C++11, exp as value since C++20
-    if( !allowDisconnect.compare_exchange_strong(expConn, false) ) {
-        // Not connected or disconnect already in process.
-        DBG_PRINT("DBTDevice::disconnect: Not connected: isConnected %d/%d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
-                allowDisconnect.load(), isConnected.load(),
-                static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
-                (nullptr != gattHandler), jau::uint16HexString(hciConnHandle).c_str());
-        return HCIStatusCode::CONNECTION_TERMINATED_BY_LOCAL_HOST;
-    }
-    if( !isConnected ) { // should not happen
-        WARN_PRINT("DBTDevice::disconnect: allowConnect true -> false, but !isConnected on %s", toString(false).c_str());
-        return HCIStatusCode::SUCCESS;
-    }
-
-    // Disconnect GATT and SMP before device, keeping reversed initialization order intact if possible.
-    // This outside mtx_connect, keeping same mutex lock order intact as well
-    disconnectGATT(0);
-    disconnectSMP(0);
-
-    // Lock to avoid other threads connecting while disconnecting
-    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
-
-    WORDY_PRINT("DBTDevice::disconnect: Start: isConnected %d/%d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
-            allowDisconnect.load(), isConnected.load(),
-            static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
-            (nullptr != gattHandler), jau::uint16HexString(hciConnHandle).c_str());
-
-    HCIHandler &hci = adapter.getHCI();
-    HCIStatusCode res = HCIStatusCode::SUCCESS;
-
-    if( 0 == hciConnHandle ) {
-        res = HCIStatusCode::UNSPECIFIED_ERROR;
-        goto exit;
-    }
-
-    if( !adapter.isPowered() ) {
-        WARN_PRINT("DBTDevice::disconnect: Adapter not powered: %s", toString().c_str());
-        res = HCIStatusCode::UNSPECIFIED_ERROR; // powered-off
-        goto exit;
-    }
-
-    res = hci.disconnect(hciConnHandle.load(), address, addressType, reason);
-    if( HCIStatusCode::SUCCESS != res ) {
-        ERR_PRINT("DBTDevice::disconnect: status %s, handle 0x%X, isConnected %d/%d: errno %d %s on %s",
-                getHCIStatusCodeString(res).c_str(), hciConnHandle.load(),
-                allowDisconnect.load(), isConnected.load(),
-                errno, strerror(errno),
-                toString(false).c_str());
-    }
-
-exit:
-    if( HCIStatusCode::SUCCESS != res ) {
-        // In case of an already pulled or disconnected HCIHandler (e.g. power-off)
-        // or in case the hci->disconnect() itself fails,
-        // send the DISCONN_COMPLETE event directly.
-        // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
-        std::thread bg(&DBTAdapter::mgmtEvDeviceDisconnectedHCI, &adapter, std::shared_ptr<MgmtEvent>( // @suppress("Invalid arguments")
-                 new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load()) ) );
-        bg.detach();
-        // adapter.mgmtEvDeviceDisconnectedHCI( std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load()) ) );
-    }
-    WORDY_PRINT("DBTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d on %s",
-            getHCIStatusCodeString(res).c_str(), hciConnHandle.load(),
-            allowDisconnect.load(), isConnected.load(),
-            toString(false).c_str());
-
-    return res;
-}
-
 bool DBTDevice::updatePairingState_locked(SMPPairingState state, PairingMode& current_mode) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     current_mode = pairing_data.mode;
@@ -718,10 +634,6 @@ HCIStatusCode DBTDevice::setPairingNumericComparison(const bool positive) noexce
             positive, getSMPPairingStateString(pairing_data.state).c_str());
         return HCIStatusCode::UNKNOWN;
     }
-}
-
-void DBTDevice::remove() noexcept {
-    adapter.removeDevice(*this);
 }
 
 void DBTDevice::clearSMPStates() noexcept {
@@ -952,4 +864,92 @@ int DBTDevice::removeAllCharacteristicListener() noexcept {
         return 0;
     }
     return gatt->removeAllCharacteristicListener();
+}
+
+void DBTDevice::notifyDisconnected() noexcept {
+    // coming from disconnect callback, ensure cleaning up!
+    DBG_PRINT("DBTDevice::notifyDisconnected: handle %s -> zero, %s",
+              jau::uint16HexString(hciConnHandle).c_str(), toString().c_str());
+    clearSMPStates();
+    allowDisconnect = false;
+    isConnected = false;
+    hciConnHandle = 0;
+    disconnectGATT(1);
+    disconnectSMP(1);
+    l2cap_att.close();
+}
+
+HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
+    // Avoid disconnect re-entry lock-free
+    bool expConn = true; // C++11, exp as value since C++20
+    if( !allowDisconnect.compare_exchange_strong(expConn, false) ) {
+        // Not connected or disconnect already in process.
+        DBG_PRINT("DBTDevice::disconnect: Not connected: isConnected %d/%d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
+                allowDisconnect.load(), isConnected.load(),
+                static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
+                (nullptr != gattHandler), jau::uint16HexString(hciConnHandle).c_str());
+        return HCIStatusCode::CONNECTION_TERMINATED_BY_LOCAL_HOST;
+    }
+    if( !isConnected ) { // should not happen
+        WARN_PRINT("DBTDevice::disconnect: allowConnect true -> false, but !isConnected on %s", toString(false).c_str());
+        return HCIStatusCode::SUCCESS;
+    }
+
+    // Disconnect GATT and SMP before device, keeping reversed initialization order intact if possible.
+    // This outside mtx_connect, keeping same mutex lock order intact as well
+    disconnectGATT(0);
+    disconnectSMP(0);
+
+    // Lock to avoid other threads connecting while disconnecting
+    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
+
+    WORDY_PRINT("DBTDevice::disconnect: Start: isConnected %d/%d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
+            allowDisconnect.load(), isConnected.load(),
+            static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
+            (nullptr != gattHandler), jau::uint16HexString(hciConnHandle).c_str());
+
+    HCIHandler &hci = adapter.getHCI();
+    HCIStatusCode res = HCIStatusCode::SUCCESS;
+
+    if( 0 == hciConnHandle ) {
+        res = HCIStatusCode::UNSPECIFIED_ERROR;
+        goto exit;
+    }
+
+    if( !adapter.isPowered() ) {
+        WARN_PRINT("DBTDevice::disconnect: Adapter not powered: %s", toString().c_str());
+        res = HCIStatusCode::UNSPECIFIED_ERROR; // powered-off
+        goto exit;
+    }
+
+    res = hci.disconnect(hciConnHandle.load(), address, addressType, reason);
+    if( HCIStatusCode::SUCCESS != res ) {
+        ERR_PRINT("DBTDevice::disconnect: status %s, handle 0x%X, isConnected %d/%d: errno %d %s on %s",
+                getHCIStatusCodeString(res).c_str(), hciConnHandle.load(),
+                allowDisconnect.load(), isConnected.load(),
+                errno, strerror(errno),
+                toString(false).c_str());
+    }
+
+exit:
+    if( HCIStatusCode::SUCCESS != res ) {
+        // In case of an already pulled or disconnected HCIHandler (e.g. power-off)
+        // or in case the hci->disconnect() itself fails,
+        // send the DISCONN_COMPLETE event directly.
+        // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
+        std::thread bg(&DBTAdapter::mgmtEvDeviceDisconnectedHCI, &adapter, std::shared_ptr<MgmtEvent>( // @suppress("Invalid arguments")
+                 new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load()) ) );
+        bg.detach();
+        // adapter.mgmtEvDeviceDisconnectedHCI( std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load()) ) );
+    }
+    WORDY_PRINT("DBTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d on %s",
+            getHCIStatusCodeString(res).c_str(), hciConnHandle.load(),
+            allowDisconnect.load(), isConnected.load(),
+            toString(false).c_str());
+
+    return res;
+}
+
+void DBTDevice::remove() noexcept {
+    adapter.removeDevice(*this);
 }
