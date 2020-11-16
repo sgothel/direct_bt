@@ -220,30 +220,16 @@ BTMode direct_bt::getBTMode(const std::string & value) noexcept {
 
 std::string direct_bt::getPairingModeString(const PairingMode v) noexcept {
     switch(v) {
-        case PairingMode::NONE: return "NONE";
-        case PairingMode::NEGOTIATING: return "NEGOTIATING";
-        case PairingMode::JUST_WORKS: return "JUST_WORKS";
-        case PairingMode::PASSKEY_ENTRY: return "PASSKEY_ENTRY";
-        case PairingMode::NUMERIC_COMPARISON: return "NUMERIC_COMPARISON";
-        case PairingMode::OUT_OF_BAND: return "OUT_OF_BAND";
+        case PairingMode::NONE:                return "NONE";
+        case PairingMode::NEGOTIATING:         return "NEGOTIATING";
+        case PairingMode::JUST_WORKS:          return "JUST_WORKS";
+        case PairingMode::PASSKEY_ENTRY_ini:   return "PASSKEY_ini";
+        case PairingMode::PASSKEY_ENTRY_res:   return "PASSKEY_res";
+        case PairingMode::NUMERIC_COMPARE_ini: return "NUMCOMP_ini";
+        case PairingMode::NUMERIC_COMPARE_res: return "NUMCOMP_res";
+        case PairingMode::OUT_OF_BAND:         return "OUT_OF_BAND";
     }
     return "Unknown PairingMode";
-}
-
-PairingMode direct_bt::getPairingMode(const std::string & value) noexcept {
-    if( "JUST_WORKS" == value ) {
-        return PairingMode::JUST_WORKS;
-    }
-    if( "PASSKEY_ENTRY" == value ) {
-        return PairingMode::PASSKEY_ENTRY;
-    }
-    if( "NUMERIC_COMPARISON" == value ) {
-        return PairingMode::NUMERIC_COMPARISON;
-    }
-    if( "OUT_OF_BAND" == value ) {
-        return PairingMode::OUT_OF_BAND;
-    }
-    return PairingMode::NONE;
 }
 
 ScanType direct_bt::getScanType(BTMode btMode) {

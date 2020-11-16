@@ -118,29 +118,26 @@ namespace direct_bt {
      */
     enum class PairingMode : uint8_t {
         /** No pairing mode, implying no secure connections, no encryption and no MITM protection. */
-        NONE               = 0,
+        NONE                = 0,
         /** Pairing mode in negotiating, i.e. Pairing Feature Exchange in progress. */
-        NEGOTIATING        = 1,
+        NEGOTIATING         = 1,
         /** Just Works. Random key exchange with encryption but no MITM protection. */
-        JUST_WORKS         = 2,
-        /** Passkey Entry. A known digit sequence (PIN) must be given as a secret to be validated on the device. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
-        PASSKEY_ENTRY      = 3,
-        /** Visual numeric comparison of digit sequence (PIN) shown on both devices, peripheral and host, to be answered. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
-        NUMERIC_COMPARISON = 4,
+        JUST_WORKS          = 2,
+        /** Passkey Entry input by initiator. Responder produces and display artifact. A known digit sequence (PIN) must be given as a secret to be validated on the device. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
+        PASSKEY_ENTRY_ini   = 3,
+        /** Passkey Entry input by responder. Initiator produces and display artifact. A known digit sequence (PIN) must be given as a secret to be validated on the device. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
+        PASSKEY_ENTRY_res   = 4,
+        /** Visual comparison of digit sequence (PIN) input by initiator, shown on both devices. Responder produces and display artifact. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
+        NUMERIC_COMPARE_ini = 5,
+        /** Visual comparison of digit sequence (PIN) input by responder, shown on both devices. Initiator produces and displays artifact. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
+        NUMERIC_COMPARE_res = 6,
         /** Utilizing a second factor secret to be used as a secret, e.g. NFC field. Random key exchange with additional secret (2FA) and encryption and potential MITM protection. */
-        OUT_OF_BAND        = 5
+        OUT_OF_BAND         = 7
     };
     constexpr uint8_t number(const PairingMode rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
     std::string getPairingModeString(const PairingMode v) noexcept;
-
-    /**
-     * Maps the specified name to a constant of PairingMode.
-     * @param name the string name to be mapped to a constant of this enum type.
-     * @return the corresponding constant of this enum type, using {@link PairingMode#NONE} if not supported.
-     */
-    PairingMode getPairingMode(const std::string & value) noexcept;
 
     /**
      * Meta ScanType as derived from BTMode,

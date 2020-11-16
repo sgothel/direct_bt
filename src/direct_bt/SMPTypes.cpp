@@ -147,8 +147,8 @@ std::string direct_bt::getSMPAuthReqMaskString(const SMPAuthReqs mask) noexcept 
 }
 
 PairingMode direct_bt::getPairingMode(const bool le_sc_pairing,
-                                      const SMPAuthReqs authReqs_init, const SMPIOCapability ioCap_init, const SMPOOBDataFlag oobFlag_init,
-                                      const SMPAuthReqs authReqs_resp, const SMPIOCapability ioCap_resp, const SMPOOBDataFlag oobFlag_resp) noexcept
+                                      const SMPAuthReqs authReqs_ini, const SMPIOCapability ioCap_ini, const SMPOOBDataFlag oobFlag_ini,
+                                      const SMPAuthReqs authReqs_res, const SMPIOCapability ioCap_res, const SMPOOBDataFlag oobFlag_res) noexcept
 {
     // BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.1 Security Properties
 
@@ -157,17 +157,17 @@ PairingMode direct_bt::getPairingMode(const bool le_sc_pairing,
         // LE Secure Connections is _NOT_ supported by both devices.
 
         // Authenticated via OOB, if both support OOB
-        if( SMPOOBDataFlag::OOB_AUTH_DATA_REMOTE_PRESENT == oobFlag_init &&
-            SMPOOBDataFlag::OOB_AUTH_DATA_REMOTE_PRESENT == oobFlag_resp )
+        if( SMPOOBDataFlag::OOB_AUTH_DATA_REMOTE_PRESENT == oobFlag_ini &&
+            SMPOOBDataFlag::OOB_AUTH_DATA_REMOTE_PRESENT == oobFlag_res )
         {
             return PairingMode::OUT_OF_BAND;
         }
 
         // Authenticated via IOCapabilities, if any of them has requested MITM
-        if( isSMPAuthReqBitSet( authReqs_init, SMPAuthReqs::MITM ) ||
-            isSMPAuthReqBitSet( authReqs_resp, SMPAuthReqs::MITM ) )
+        if( isSMPAuthReqBitSet( authReqs_ini, SMPAuthReqs::MITM ) ||
+            isSMPAuthReqBitSet( authReqs_res, SMPAuthReqs::MITM ) )
         {
-            return getPairingMode(le_sc_pairing, ioCap_init, ioCap_resp);
+            return getPairingMode(le_sc_pairing, ioCap_ini, ioCap_res);
         }
 
         // Unauthenticated pairing
@@ -178,17 +178,17 @@ PairingMode direct_bt::getPairingMode(const bool le_sc_pairing,
         // LE Secure Connections is supported by both devices.
 
         // Authenticated via OOB, if any of them supports OOB
-        if( SMPOOBDataFlag::OOB_AUTH_DATA_REMOTE_PRESENT == oobFlag_init ||
-            SMPOOBDataFlag::OOB_AUTH_DATA_REMOTE_PRESENT == oobFlag_resp )
+        if( SMPOOBDataFlag::OOB_AUTH_DATA_REMOTE_PRESENT == oobFlag_ini ||
+            SMPOOBDataFlag::OOB_AUTH_DATA_REMOTE_PRESENT == oobFlag_res )
         {
             return PairingMode::OUT_OF_BAND;
         }
 
         // Authenticated via IOCapabilities, if any of them has requested MITM
-        if( isSMPAuthReqBitSet( authReqs_init, SMPAuthReqs::MITM ) ||
-            isSMPAuthReqBitSet( authReqs_resp, SMPAuthReqs::MITM ) )
+        if( isSMPAuthReqBitSet( authReqs_ini, SMPAuthReqs::MITM ) ||
+            isSMPAuthReqBitSet( authReqs_res, SMPAuthReqs::MITM ) )
         {
-            return getPairingMode(le_sc_pairing, ioCap_init, ioCap_resp);
+            return getPairingMode(le_sc_pairing, ioCap_ini, ioCap_res);
         }
 
         // Unauthenticated pairing
@@ -196,57 +196,63 @@ PairingMode direct_bt::getPairingMode(const bool le_sc_pairing,
     }
 }
 
+/**
+ * Mapping SMPIOCapability from initiator and responder to PairingMode.
+ *
+ * Notable, the following is deduced from
+ * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.8
+ * and differs a little from BlueZ smp.c implementation.
+ *
+ * Index values, using SMPIOCapabilities as follows:
+        DISPLAY_ONLY                = 0x00,
+        DISPLAY_YES_NO              = 0x01,
+        KEYBOARD_ONLY               = 0x02,
+        NO_INPUT_NO_OUTPUT          = 0x03,
+        KEYBOARD_DISPLAY            = 0x04
+ *
+ */
+#define PM_JUST__WORKS PairingMode::JUST_WORKS
+#define PM_PASSKEY_INI PairingMode::PASSKEY_ENTRY_ini   // Passkey Entry input by initiator. Responder produces and display artifact.
+#define PM_PASSKEY_RES PairingMode::PASSKEY_ENTRY_res   // Passkey Entry input by responder. Initiator produces and display artifact.
+#define PM_PASSKEY_ALL PairingMode::PASSKEY_ENTRY_ini   // Passkey Entry input by initiator and responder. Using input from initiator!
+#define PM_NUMCOMP_INI PairingMode::NUMERIC_COMPARE_ini // Comparison of PIN input by initiator. Responder produces and display artifact.
+#define PM_NUMCOMP_RES PairingMode::NUMERIC_COMPARE_res // Comparison of PIN input by responder. Initiator produces and display artifact.
+#define PM_NUMCOMP_ANY PairingMode::NUMERIC_COMPARE_ini // Comparison of PIN input by any device. Using input from initiator!
+
+static const PairingMode legacy_pairing[5 /* ioCap_res */][5 /* ioCap_ini */] = {
+ /* Responder / Initiator     DISPLAY_ONLY    DISPLAY_YES_NO  KEYBOARD_ONLY   NO_INPUT_NO_OUT KEYBOARD_DISPLAY */
+ /* Res: DISPLAY_ONLY */    { PM_JUST__WORKS, PM_JUST__WORKS, PM_PASSKEY_INI, PM_JUST__WORKS, PM_PASSKEY_INI },
+ /* Res: DISPLAY_YES_NO */  { PM_JUST__WORKS, PM_JUST__WORKS, PM_PASSKEY_INI, PM_JUST__WORKS, PM_PASSKEY_INI },
+ /* Res: KEYBOARD_ONLY */   { PM_PASSKEY_RES, PM_PASSKEY_RES, PM_PASSKEY_ALL, PM_JUST__WORKS, PM_PASSKEY_RES },
+ /* Res: NO_INPUT_NO_OUTP */{ PM_JUST__WORKS, PM_JUST__WORKS, PM_JUST__WORKS, PM_JUST__WORKS, PM_JUST__WORKS },
+ /* Res: KEYBOARD_DISPLAY */{ PM_PASSKEY_RES, PM_PASSKEY_RES, PM_PASSKEY_INI, PM_JUST__WORKS, PM_PASSKEY_RES },
+};
+static const PairingMode seccon_pairing[5 /* ioCap_res */][5 /* ioCap_ini */] = {
+ /* Responder / Initiator     DISPLAY_ONLY    DISPLAY_YES_NO  KEYBOARD_ONLY   NO_INPUT_NO_OUT KEYBOARD_DISPLAY */
+ /* Res: DISPLAY_ONLY */    { PM_JUST__WORKS, PM_JUST__WORKS, PM_PASSKEY_INI, PM_JUST__WORKS, PM_PASSKEY_INI },
+ /* Res: DISPLAY_YES_NO */  { PM_JUST__WORKS, PM_NUMCOMP_ANY, PM_PASSKEY_INI, PM_JUST__WORKS, PM_NUMCOMP_ANY },
+ /* Res: KEYBOARD_ONLY */   { PM_PASSKEY_RES, PM_PASSKEY_RES, PM_PASSKEY_ALL, PM_JUST__WORKS, PM_PASSKEY_RES },
+ /* Res: NO_INPUT_NO_OUTP */{ PM_JUST__WORKS, PM_JUST__WORKS, PM_JUST__WORKS, PM_JUST__WORKS, PM_JUST__WORKS },
+ /* Res: KEYBOARD_DISPLAY */{ PM_PASSKEY_RES, PM_NUMCOMP_ANY, PM_PASSKEY_INI, PM_JUST__WORKS, PM_NUMCOMP_ANY },
+};
+
 PairingMode direct_bt::getPairingMode(const bool le_sc_pairing,
-                                      const SMPIOCapability ioCap_init, const SMPIOCapability ioCap_resp) noexcept
+                                      const SMPIOCapability ioCap_ini, const SMPIOCapability ioCap_res) noexcept
 {
     // BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.8
-
-    if( ioCap_init == SMPIOCapability::DISPLAY_ONLY ) {
-        switch( ioCap_resp ) {
-            case SMPIOCapability::DISPLAY_ONLY:       return PairingMode::JUST_WORKS;
-            case SMPIOCapability::DISPLAY_YES_NO:     return PairingMode::JUST_WORKS;
-            case SMPIOCapability::KEYBOARD_ONLY:      return PairingMode::PASSKEY_ENTRY;
-            case SMPIOCapability::NO_INPUT_NO_OUTPUT: return PairingMode::JUST_WORKS;
-            case SMPIOCapability::KEYBOARD_DISPLAY:   return PairingMode::PASSKEY_ENTRY;
-        }
-    } else
-    if( ioCap_init == SMPIOCapability::DISPLAY_YES_NO ) {
-        switch( ioCap_resp ) {
-            case SMPIOCapability::DISPLAY_ONLY:       return PairingMode::JUST_WORKS;
-            case SMPIOCapability::DISPLAY_YES_NO:     return le_sc_pairing ? PairingMode::NUMERIC_COMPARISON : PairingMode::JUST_WORKS;
-            case SMPIOCapability::KEYBOARD_ONLY:      return PairingMode::PASSKEY_ENTRY;
-            case SMPIOCapability::NO_INPUT_NO_OUTPUT: return PairingMode::JUST_WORKS;
-            case SMPIOCapability::KEYBOARD_DISPLAY:   return le_sc_pairing ? PairingMode::NUMERIC_COMPARISON : PairingMode::PASSKEY_ENTRY;
-        }
-    } else
-    if( ioCap_init == SMPIOCapability::KEYBOARD_ONLY ) {
-        switch( ioCap_resp ) {
-            case SMPIOCapability::DISPLAY_ONLY:       return PairingMode::PASSKEY_ENTRY;
-            case SMPIOCapability::DISPLAY_YES_NO:     return PairingMode::PASSKEY_ENTRY;
-            case SMPIOCapability::KEYBOARD_ONLY:      return PairingMode::PASSKEY_ENTRY;
-            case SMPIOCapability::NO_INPUT_NO_OUTPUT: return PairingMode::JUST_WORKS;
-            case SMPIOCapability::KEYBOARD_DISPLAY:   return PairingMode::PASSKEY_ENTRY;
-        }
-    } else
-    if( ioCap_init == SMPIOCapability::NO_INPUT_NO_OUTPUT ) {
-        switch( ioCap_resp ) {
-            case SMPIOCapability::DISPLAY_ONLY:       return PairingMode::JUST_WORKS;
-            case SMPIOCapability::DISPLAY_YES_NO:     return PairingMode::JUST_WORKS;
-            case SMPIOCapability::KEYBOARD_ONLY:      return PairingMode::JUST_WORKS;
-            case SMPIOCapability::NO_INPUT_NO_OUTPUT: return PairingMode::JUST_WORKS;
-            case SMPIOCapability::KEYBOARD_DISPLAY:   return PairingMode::JUST_WORKS;
-        }
-    } else
-    if( ioCap_init == SMPIOCapability::KEYBOARD_DISPLAY ) {
-        switch( ioCap_resp ) {
-            case SMPIOCapability::DISPLAY_ONLY:       return PairingMode::PASSKEY_ENTRY;
-            case SMPIOCapability::DISPLAY_YES_NO:     return le_sc_pairing ? PairingMode::NUMERIC_COMPARISON : PairingMode::PASSKEY_ENTRY;
-            case SMPIOCapability::KEYBOARD_ONLY:      return PairingMode::PASSKEY_ENTRY;
-            case SMPIOCapability::NO_INPUT_NO_OUTPUT: return PairingMode::JUST_WORKS;
-            case SMPIOCapability::KEYBOARD_DISPLAY:   return le_sc_pairing ? PairingMode::NUMERIC_COMPARISON : PairingMode::PASSKEY_ENTRY;
-        }
+    const uint8_t ioCap_ini_int = number(ioCap_ini);
+    const uint8_t ioCap_res_int = number(ioCap_res);
+    if( ioCap_ini_int > 5) {
+        ABORT("Invalid ioCap_init %s, %d", getSMPIOCapabilityString(ioCap_ini).c_str(), ioCap_ini_int);
     }
-    return PairingMode::JUST_WORKS;
+    if( ioCap_res_int > 5) {
+        ABORT("Invalid ioCap_resp %s, %d", getSMPIOCapabilityString(ioCap_res).c_str(), ioCap_res_int);
+    }
+    if( le_sc_pairing ) {
+        return seccon_pairing[ioCap_res_int][ioCap_ini_int];
+    } else {
+        return legacy_pairing[ioCap_res_int][ioCap_ini_int];
+    }
 }
 
 

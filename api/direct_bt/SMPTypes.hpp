@@ -148,11 +148,11 @@ namespace direct_bt {
      * Vol 3, Part H, 2.3.2 IO capabilities
      */
     enum class SMPIOCapability : uint8_t {
-        DISPLAY_ONLY                = 0x00,/**< DISPLAY_ONLY */
-        DISPLAY_YES_NO              = 0x01,/**< DISPLAY_YES_NO */
-        KEYBOARD_ONLY               = 0x02,/**< KEYBOARD_ONLY */
-        NO_INPUT_NO_OUTPUT          = 0x03,/**< NO_INPUT_NO_OUTPUT */
-        KEYBOARD_DISPLAY            = 0x04 /**< KEYBOARD_DISPLAY */
+        DISPLAY_ONLY                = 0x00,
+        DISPLAY_YES_NO              = 0x01,
+        KEYBOARD_ONLY               = 0x02,
+        NO_INPUT_NO_OUTPUT          = 0x03,
+        KEYBOARD_DISPLAY            = 0x04
     };
     constexpr uint8_t number(const SMPIOCapability rhs) noexcept {
         return static_cast<uint8_t>(rhs);
@@ -286,19 +286,33 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.6.3 Authentication stage 1 – Passkey Entry
      * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.6.4 Authentication stage 1 – Out of Band
      * </pre>
+     *
+     * @param le_sc_pairing true if both devices support Secure Connections pairing, otherwise false for legacy pairing.
+     * @param authReqs_ini SMPAuthReqs of initiator
+     * @param ioCap_ini SMPIOCapability of initiator
+     * @param oobFlag_ini SMPOOBDataFlag of initiator
+     * @param authReqs_res SMPAuthReqs of responder
+     * @param ioCap_res SMPIOCapability of responder
+     * @param oobFlag_res SMPOOBDataFlag of responder
+     * @return resulting PairingMode
      */
     PairingMode getPairingMode(const bool le_sc_pairing,
-                               const SMPAuthReqs authReqs_init, const SMPIOCapability ioCap_init, const SMPOOBDataFlag oobFlag_init,
-                               const SMPAuthReqs authReqs_resp, const SMPIOCapability ioCap_resp, const SMPOOBDataFlag oobFlag_resp) noexcept;
+                               const SMPAuthReqs authReqs_ini, const SMPIOCapability ioCap_ini, const SMPOOBDataFlag oobFlag_ini,
+                               const SMPAuthReqs authReqs_res, const SMPIOCapability ioCap_res, const SMPOOBDataFlag oobFlag_res) noexcept;
 
     /**
      * Returns the PairingMode derived from both devices' SMPIOCapability
      * <pre>
      * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.8
      * </pre>
+     *
+     * @param le_sc_pairing true if both devices support Secure Connections pairing, otherwise false for legacy pairing.
+     * @param ioCap_ini SMPIOCapability of initiator
+     * @param ioCap_res SMPIOCapability of responder
+     * @return resulting PairingMode
      */
     PairingMode getPairingMode(const bool le_sc_pairing,
-                               const SMPIOCapability ioCap_init, const SMPIOCapability ioCap_resp) noexcept;
+                               const SMPIOCapability ioCap_ini, const SMPIOCapability ioCap_res) noexcept;
 
     /**
      * Handles the Security Manager Protocol (SMP) using Protocol Data Unit (PDU)
