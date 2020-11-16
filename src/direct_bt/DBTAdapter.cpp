@@ -411,7 +411,7 @@ bool DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
     }
     const bool added = statusListenerList.push_back_unique(l, _adapterStatusListenerRefEqComparator);
     if( added ) {
-        sendAdapterSettingsChanged(*l, AdapterSetting::NONE, adapterInfo->getCurrentSettingMask(), jau::getCurrentMilliseconds());
+        sendAdapterSettingsInitial(*l, jau::getCurrentMilliseconds());
     }
     return true;
 }
@@ -752,17 +752,13 @@ void DBTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings_, 
     });
 }
 
-void DBTAdapter::sendAdapterSettingsChanged(AdapterStatusListener & asl,
-                                const AdapterSetting old_settings_, const AdapterSetting current_settings,
-                                const uint64_t timestampMS) noexcept
+void DBTAdapter::sendAdapterSettingsInitial(AdapterStatusListener & asl, const uint64_t timestampMS) noexcept
 {
-    AdapterSetting changes = getAdapterSettingMaskDiff(current_settings, old_settings_);
-    COND_PRINT(debug_event, "DBTAdapter::sendAdapterSettingsChanged: %s -> %s, changes %s: %s",
-            getAdapterSettingMaskString(old_settings_).c_str(),
-            getAdapterSettingMaskString(current_settings).c_str(),
-            getAdapterSettingMaskString(changes).c_str(), toString(false).c_str() );
+    const AdapterSetting current_settings = adapterInfo->getCurrentSettingMask();
+    COND_PRINT(debug_event, "DBTAdapter::sendAdapterSettingsInitial: NONE -> %s, changes NONE: %s",
+            getAdapterSettingMaskString(current_settings).c_str(), toString(false).c_str() );
     try {
-        asl.adapterSettingsChanged(*this, old_settings_, current_settings, changes, timestampMS);
+        asl.adapterSettingsChanged(*this, AdapterSetting::NONE, current_settings, AdapterSetting::NONE, timestampMS);
     } catch (std::exception &e) {
         ERR_PRINT("DBTAdapter::sendAdapterSettingsChanged-CB: %s of %s: Caught exception %s",
                 asl.toString().c_str(), toString(false).c_str(), e.what());

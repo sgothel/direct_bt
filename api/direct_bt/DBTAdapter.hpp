@@ -86,7 +86,7 @@ namespace direct_bt {
              * @param adapter the adapter which settings have changed.
              * @param oldmask the previous settings mask. AdapterSetting::NONE indicates the initial setting notification, see DBTAdapter::addStatusListener().
              * @param newmask the new settings mask
-             * @param changedmask the changes settings mask
+             * @param changedmask the changes settings mask. AdapterSetting::NONE indicates the initial setting notification, see DBTAdapter::addStatusListener().
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
             virtual void adapterSettingsChanged(DBTAdapter &adapter, const AdapterSetting oldmask, const AdapterSetting newmask,
@@ -288,11 +288,9 @@ namespace direct_bt {
             void startDiscoveryBackground() noexcept;
             void checkDiscoveryState() noexcept;
 
-            void sendAdapterSettingsChanged(const AdapterSetting old_settings_, const AdapterSetting current_settings,
+            void sendAdapterSettingsChanged(const AdapterSetting old_settings_, const AdapterSetting current_settings, AdapterSetting changes,
                                             const uint64_t timestampMS) noexcept;
-            void sendAdapterSettingsChanged(AdapterStatusListener & asl,
-                                            const AdapterSetting old_settings_, const AdapterSetting current_settings,
-                                            const uint64_t timestampMS) noexcept;
+            void sendAdapterSettingsInitial(AdapterStatusListener & asl, const uint64_t timestampMS) noexcept;
 
             void sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept;
 
@@ -502,7 +500,7 @@ namespace direct_bt {
              * <p>
              * The newly added AdapterStatusListener will receive an initial
              * AdapterStatusListener::adapterSettingsChanged(..) event,
-             * passing an empty AdapterSetting::NONE oldMask and current AdapterSetting newMask. <br>
+             * passing an empty AdapterSetting::NONE oldMask and changedMask, as well as current AdapterSetting newMask. <br>
              * This allows the receiver to be aware of this adapter's current settings.
              * </p>
              */

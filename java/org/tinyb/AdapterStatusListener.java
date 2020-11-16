@@ -71,7 +71,8 @@ public abstract class AdapterStatusListener {
      * @param oldmask the previous settings mask. {@link AdapterSettings#isEmpty()} indicates the initial setting notification,
      *        see {@link BluetoothAdapter#addStatusListener(AdapterStatusListener, BluetoothDevice) addStatusListener(..)}.
      * @param newmask the new settings mask
-     * @param changedmask the changes settings mask
+     * @param changedmask the changes settings mask. {@link AdapterSettings#isEmpty()} indicates the initial setting notification,
+     *        see {@link BluetoothAdapter#addStatusListener(AdapterStatusListener, BluetoothDevice) addStatusListener(..)}.
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
      */
     public void adapterSettingsChanged(final BluetoothAdapter adapter,
