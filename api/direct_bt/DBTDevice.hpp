@@ -82,6 +82,7 @@ namespace direct_bt {
             struct PairingData {
                 jau::ordered_atomic<SMPPairingState, std::memory_order_relaxed> state;
                 jau::ordered_atomic<PairingMode, std::memory_order_relaxed> mode;
+                jau::relaxed_atomic_bool res_requested_sec;
                 SMPAuthReqs     authReqs_init, authReqs_resp;
                 SMPIOCapability ioCap_init,    ioCap_resp;
                 SMPOOBDataFlag  oobFlag_init,  oobFlag_resp;
@@ -152,10 +153,13 @@ namespace direct_bt {
             void clearSMPStates() noexcept;
 
             /**
-             * Will be performed after connectLE(..) via notifyConnected(),
-             * issuing connectSMP() off thread.
+             * Setup L2CAP channel connection to device incl. optional security encryption level off-thread.
+             * <p>
+             * Will be performed after connectLE(..), i.e. notifyConnected() and notifyLEFeatures(),
+             * initiated by the latter.
+             * </p>
              */
-            void processNotifyConnected();
+            void processL2CAPSetup();
 
             /**
              * Will be performed after connectLE(..) via notifyConnected() or after pairing via hciSMPMsgCallback(..),

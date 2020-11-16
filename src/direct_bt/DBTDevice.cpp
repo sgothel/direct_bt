@@ -404,22 +404,20 @@ void DBTDevice::notifyLEFeatures(const LEFeatures features) noexcept {
     le_features = features;
 
     if( isLEAddressType() && !l2cap_att.isOpen() ) {
-        std::thread bg(&DBTDevice::processNotifyConnected, this); // @suppress("Invalid arguments")
+        std::thread bg(&DBTDevice::processL2CAPSetup, this); // @suppress("Invalid arguments")
         bg.detach();
     }
 }
 
-void DBTDevice::processNotifyConnected() {
+void DBTDevice::processL2CAPSetup() {
     DBG_PRINT("DBTDevice::processNotifyConnected: %s", toString().c_str());
     if( isLEAddressType() && !l2cap_att.isOpen() ) {
-        const bool has_LE_Encryption = isLEFeaturesBitSet(le_features, LEFeatures::LE_Encryption);
+        const bool responderLikesEncryption = pairing_data.res_requested_sec || isLEFeaturesBitSet(le_features, LEFeatures::LE_Encryption);
         uint8_t sec_level;
-        if( has_LE_Encryption && adapter.hasSecureConnections() ) {
+        if( responderLikesEncryption && adapter.hasSecureConnections() ) {
             sec_level = BT_SECURITY_FIPS; // 4
-            // sec_level = BT_SECURITY_HIGH; // 3
-        } else if( has_LE_Encryption ) {
+        } else if( responderLikesEncryption ) {
             sec_level = BT_SECURITY_HIGH; // 3
-            // sec_level = BT_SECURITY_MEDIUM; // 2
         } else {
             sec_level = 0;
         }
@@ -558,6 +556,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
         case SMPPDUMsg::Opcode::PAIRING_FAILED: {
             pmode = PairingMode::NONE;
             pstate = SMPPairingState::FAILED;
+            pairing_data.res_requested_sec = false;
 
             // After a failed encryption/authentication, we try without security!
             bool res_l2cap_close = l2cap_att.close();
@@ -570,6 +569,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
         case SMPPDUMsg::Opcode::SECURITY_REQUEST:
             pmode = PairingMode::NEGOTIATING;
             pstate = SMPPairingState::REQUESTED_BY_RESPONDER;
+            pairing_data.res_requested_sec = true;
             break;
 
         case SMPPDUMsg::Opcode::PAIRING_REQUEST:
@@ -725,6 +725,7 @@ void DBTDevice::clearSMPStates() noexcept {
 
     pairing_data.mode = PairingMode::NONE;
     pairing_data.state = SMPPairingState::NONE;
+    pairing_data.res_requested_sec = false;
 
     pairing_data.authReqs_resp = SMPAuthReqs::NONE;
     pairing_data.ioCap_resp    = SMPIOCapability::NO_INPUT_NO_OUTPUT;
