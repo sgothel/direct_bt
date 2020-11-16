@@ -242,10 +242,10 @@ PairingMode direct_bt::getPairingMode(const bool le_sc_pairing,
     // BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.8
     const uint8_t ioCap_ini_int = number(ioCap_ini);
     const uint8_t ioCap_res_int = number(ioCap_res);
-    if( ioCap_ini_int > 5) {
+    if( ioCap_ini_int > 4) {
         ABORT("Invalid ioCap_init %s, %d", getSMPIOCapabilityString(ioCap_ini).c_str(), ioCap_ini_int);
     }
-    if( ioCap_res_int > 5) {
+    if( ioCap_res_int > 4) {
         ABORT("Invalid ioCap_resp %s, %d", getSMPIOCapabilityString(ioCap_res).c_str(), ioCap_res_int);
     }
     if( le_sc_pairing ) {
