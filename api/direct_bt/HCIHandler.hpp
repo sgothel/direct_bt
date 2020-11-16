@@ -293,8 +293,6 @@ namespace direct_bt {
                 return removeHCIConnection(disconnectCmdList, handle);
             }
 
-            void clearConnectionLists() noexcept;
-
             /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
             std::array<MgmtEventCallbackList, static_cast<uint16_t>(MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT)> mgmtEventCallbackLists;
             inline bool isValidMgmtEventCallbackListsIndex(const MgmtEvent::Opcode opc) const noexcept {
@@ -530,6 +528,12 @@ namespace direct_bt {
              */
             HCIStatusCode disconnect(const uint16_t conn_handle, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
                                      const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION) noexcept;
+
+            /**
+             * Clear all internal states, i.e. connection and disconnect lists.
+             */
+            void clearAllStates() noexcept;
+
 
             /** MgmtEventCallback handling  */
 

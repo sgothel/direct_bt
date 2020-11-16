@@ -168,7 +168,7 @@ HCIHandler::HCIConnectionRef HCIHandler::removeHCIConnection(std::vector<HCIConn
     return nullptr;
 }
 
-void HCIHandler::clearConnectionLists() noexcept {
+void HCIHandler::clearAllStates() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     connectionList.clear();
     disconnectCmdList.clear();
@@ -638,7 +638,7 @@ void HCIHandler::close() noexcept {
         // not open
         DBG_PRINT("HCIHandler::close: Not connected %s", toString().c_str());
         clearAllCallbacks();
-        clearConnectionLists();
+        clearAllStates();
         comm.close();
         return;
     }
@@ -646,7 +646,7 @@ void HCIHandler::close() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("HCIHandler::close: Start %s", toString().c_str());
     clearAllCallbacks();
-    clearConnectionLists();
+    clearAllStates();
 
     // Interrupt HCIHandler's HCIComm::read(..), avoiding prolonged hang
     // and pull all underlying hci read operations!
@@ -725,7 +725,7 @@ HCIStatusCode HCIHandler::stopAdapter() {
         status = HCIStatusCode::INTERNAL_FAILURE;
     #endif
     if( HCIStatusCode::SUCCESS == status ) {
-        clearConnectionLists();
+        clearAllStates();
     }
     return status;
 }
@@ -761,7 +761,7 @@ HCIStatusCode HCIHandler::reset() noexcept {
         return HCIStatusCode::INTERNAL_TIMEOUT; // timeout
     }
     if( HCIStatusCode::SUCCESS == status ) {
-        clearConnectionLists();
+        clearAllStates();
     }
     return status;
 }
