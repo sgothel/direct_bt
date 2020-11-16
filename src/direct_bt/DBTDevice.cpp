@@ -396,56 +396,46 @@ void DBTDevice::notifyConnected(const uint16_t handle) noexcept {
     allowDisconnect = true;
     isConnected = true;
     hciConnHandle = handle;
-    if( isLEAddressType() ) {
-        if( !l2cap_att.open(*this) ) {
-            DBG_PRINT("DBTDevice::notifyConnected: l2cap ATT open failed (-> disconnect): %s", toString().c_str());
-            std::thread dc(&DBTDevice::disconnect, this, HCIStatusCode::INTERNAL_FAILURE); // @suppress("Invalid arguments")
-            dc.detach();
-        } else {
-            #if USE_LINUX_BT_SECURITY
-                // Per L2CAP connection switch: Adapter SC. Device LE_Encryption feature coming in too late!
-                const bool le_encryption = true ; // isLEFeaturesBitSet(le_features, LEFeatures::LE_Encryption);
-                uint8_t sec_level;
-                if( le_encryption ) {
-                    if( adapter.hasSecureConnections() ) {
-                        sec_level = BT_SECURITY_FIPS; // 4
-                        // sec_level = BT_SECURITY_HIGH; // 3
-                    } else {
-                        sec_level = BT_SECURITY_HIGH; // 3
-                        // sec_level = BT_SECURITY_MEDIUM; // 2
-                    }
-                } else {
-                    // just don't set ..
-                    // sec_level = BT_SECURITY_LOW; // 1
-                    sec_level = 0; // skip
-                }
-                if( 0 < sec_level ) {
-                    bool res = adapter.getManager().setL2CAPSecurity(l2cap_att.getSocketDescriptor(), sec_level);
-                    DBG_PRINT("DBTDevice::notifyConnected: LE_Encryption %d: l2cap ATT set BT_SECURITY: sec_level %u: result %d",
-                            le_encryption, sec_level, res);
-                } else {
-                    DBG_PRINT("DBTDevice::notifyConnected: LE_Encryption %d: l2cap ATT set BT_SECURITY: sec_level %u: SKIPPED",
-                            le_encryption, sec_level);
-                }
-            #endif
-            #if SMP_SUPPORTED_BY_OS
-                std::thread bg(&DBTDevice::processNotifyConnected, this); // @suppress("Invalid arguments")
-                bg.detach();
-            #endif
-        }
-    }
 }
 
 void DBTDevice::notifyLEFeatures(const LEFeatures features) noexcept {
     DBG_PRINT("DBTDevice::notifyLEFeatures: LE_Encryption %d, %s",
             isLEFeaturesBitSet(features, LEFeatures::LE_Encryption), toString().c_str());
     le_features = features;
+
+    if( isLEAddressType() && !l2cap_att.isOpen() ) {
+        std::thread bg(&DBTDevice::processNotifyConnected, this); // @suppress("Invalid arguments")
+        bg.detach();
+    }
 }
 
 void DBTDevice::processNotifyConnected() {
     DBG_PRINT("DBTDevice::processNotifyConnected: %s", toString().c_str());
-    bool res0 = connectSMP();
-    DBG_PRINT("DBTDevice::processNotifyConnected: connect[SMP %d], %s", res0, toString().c_str());
+    if( isLEAddressType() && !l2cap_att.isOpen() ) {
+        const bool has_LE_Encryption = isLEFeaturesBitSet(le_features, LEFeatures::LE_Encryption);
+        uint8_t sec_level;
+        if( has_LE_Encryption && adapter.hasSecureConnections() ) {
+            sec_level = BT_SECURITY_FIPS; // 4
+            // sec_level = BT_SECURITY_HIGH; // 3
+        } else if( has_LE_Encryption ) {
+            sec_level = BT_SECURITY_HIGH; // 3
+            // sec_level = BT_SECURITY_MEDIUM; // 2
+        } else {
+            sec_level = 0;
+        }
+        const bool l2cap_res = l2cap_att.open(*this);
+        const bool l2capsec_res = l2cap_res && l2cap_att.setBTSecurityLevel(sec_level);
+#if SMP_SUPPORTED_BY_OS
+        const bool smp_res = connectSMP();
+#else
+        const bool smp_res = false;
+#endif
+        DBG_PRINT("DBTDevice::processNotifyConnected: connect[SMP %d, l2cap[%d, sec %d]], %s",
+                smp_res, l2cap_res, l2capsec_res, toString().c_str());
+        if( !l2cap_res ) {
+            disconnect(HCIStatusCode::INTERNAL_FAILURE);
+        }
+    }
 }
 
 void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint64_t timestamp) {
@@ -574,7 +564,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
             bool res_l2cap_open = l2cap_att.open(*this);
             DBG_PRINT("DBTDevice:hci:SMP: l2cap ATT reopen: close %d, open %d", res_l2cap_close, res_l2cap_open);
 
-            is_device_ready = true;
+            is_device_ready = res_l2cap_open;
           } break;
 
         case SMPPDUMsg::Opcode::SECURITY_REQUEST:

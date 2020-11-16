@@ -159,11 +159,16 @@ namespace direct_bt {
              * <p>
              * BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ
              * </p>
-             * @return true if already open or successfully opened the channel, otherwise false
+             *
+             * @param device the remote device to establish this L2CAP connection
+             * @return true if connection has been established, otherwise false
              */
             bool open(const DBTDevice& device);
 
             bool isOpen() const { return is_open; }
+
+            /** Closing the L2CAP channel, locking {@link #mutex_write()}. */
+            bool close() noexcept;
 
             /** Return this L2CAP socket descriptor. */
             inline int getSocketDescriptor() const noexcept { return socket_descriptor; }
@@ -171,11 +176,16 @@ namespace direct_bt {
             bool hasIOError() const { return has_ioerror; }
             std::string getStateString() const { return getStateString(is_open, has_ioerror); }
 
-            /** Closing the L2CAP channel, locking {@link #mutex_write()}. */
-            bool close() noexcept;
-
             /** Return the recursive write mutex for multithreading access. */
             std::recursive_mutex & mutex_write() { return mtx_write; }
+
+            /**
+             * If not 0, sets the BlueZ's L2CAP socket BT_SECURITY sec_level, determining the SMP security mode per connection.
+             *
+             * @param sec_level BT_SECURITY_LOW, BT_SECURITY_MEDIUM, BT_SECURITY_HIGH or BT_SECURITY_FIPS. 0 leads to not set security level.
+             * @return true if successful, otherwise false
+             */
+            bool setBTSecurityLevel(const uint8_t sec_level);
 
             /** Generic read, w/o locking suitable for a unique ringbuffer sink. Using L2CAPEnv::L2CAP_READER_POLL_TIMEOUT.*/
             jau::snsize_t read(uint8_t* buffer, const jau::nsize_t capacity);

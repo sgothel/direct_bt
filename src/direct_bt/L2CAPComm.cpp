@@ -117,11 +117,12 @@ L2CAPComm::L2CAPComm(const EUI48& adapterAddress_, const uint16_t psm_, const ui
 { }
 
 bool L2CAPComm::open(const DBTDevice& device) {
+
     bool expOpen = false; // C++11, exp as value since C++20
     if( !is_open.compare_exchange_strong(expOpen, true) ) {
         DBG_PRINT("L2CAPComm::open: Already open: %s, dd %d, %s, psm %u, cid %u",
                   getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid);
-        return true;
+        return false;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
 
@@ -142,6 +143,7 @@ bool L2CAPComm::open(const DBTDevice& device) {
     if( 0 > socket_descriptor ) {
         goto failure; // open failed
     }
+
     tid_connect = pthread_self(); // temporary safe tid to allow interruption
 
     // actual request to connect to remote device
@@ -192,14 +194,14 @@ failure:
 bool L2CAPComm::close() noexcept {
     bool expOpen = true; // C++11, exp as value since C++20
     if( !is_open.compare_exchange_strong(expOpen, false) ) {
-        DBG_PRINT("L2CAPComm::open: Not connected: %s, dd %d, %s, psm %u, cid %u",
+        DBG_PRINT("L2CAPComm::close: Not connected: %s, dd %d, %s, psm %u, cid %u",
                   getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid);
-        return false;
+        return true;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
 
     has_ioerror = false;
-    DBG_PRINT("L2CAPComm::open: Start: %s, dd %d, %s, psm %u, cid %u",
+    DBG_PRINT("L2CAPComm::close: Start: %s, dd %d, %s, psm %u, cid %u",
               getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid);
     PERF_TS_T0();
 
@@ -215,7 +217,7 @@ bool L2CAPComm::close() noexcept {
         if( 0 != _tid_read && tid_self != _tid_read ) {
             int kerr;
             if( 0 != ( kerr = pthread_kill(_tid_read, SIGALRM) ) ) {
-                ERR_PRINT("L2CAPComm::open: pthread_kill read %p FAILED: %d", (void*)_tid_read, kerr);
+                ERR_PRINT("L2CAPComm::close: pthread_kill read %p FAILED: %d", (void*)_tid_read, kerr);
             }
         }
         // interrupt connect(..) and , avoiding prolonged hang
@@ -223,7 +225,7 @@ bool L2CAPComm::close() noexcept {
         if( 0 != _tid_connect && _tid_read != _tid_connect && tid_self != _tid_connect ) {
             int kerr;
             if( 0 != ( kerr = pthread_kill(_tid_connect, SIGALRM) ) ) {
-                ERR_PRINT("L2CAPComm::open: pthread_kill connect %p FAILED: %d", (void*)_tid_connect, kerr);
+                ERR_PRINT("L2CAPComm::close: pthread_kill connect %p FAILED: %d", (void*)_tid_connect, kerr);
             }
         }
     }
@@ -231,8 +233,38 @@ bool L2CAPComm::close() noexcept {
     l2cap_close_dev(socket_descriptor);
     socket_descriptor = -1;
     interrupt_flag = false;
-    PERF_TS_TD("L2CAPComm::open");
-    DBG_PRINT("L2CAPComm::open: End: dd %d", socket_descriptor.load());
+    PERF_TS_TD("L2CAPComm::close");
+    DBG_PRINT("L2CAPComm::close: End: dd %d", socket_descriptor.load());
+    return true;
+}
+
+bool L2CAPComm::setBTSecurityLevel(const uint8_t sec_level) {
+    if( !is_open ) {
+        DBG_PRINT("L2CAPComm::setBTSecurityLevel: Not connected: %s, dd %d, %s, psm %u, cid %u",
+                  getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid);
+        return false;
+    }
+    const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
+
+    if( 0 < sec_level ) {
+        #if USE_LINUX_BT_SECURITY
+            struct bt_security bt_sec;
+            int result;
+
+            bzero(&bt_sec, sizeof(bt_sec));
+            bt_sec.level = sec_level;
+            result = setsockopt(socket_descriptor, SOL_BLUETOOTH, BT_SECURITY, &bt_sec, sizeof(bt_sec));
+            if (result != 0) {
+                ERR_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %u failed", sec_level);
+                return false;
+            } else {
+                DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %u", sec_level);
+            }
+        #else
+            DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %u: Not implemented", sec_level);
+            return false;
+        #endif
+    }
     return true;
 }
 

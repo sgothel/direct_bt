@@ -439,13 +439,6 @@ namespace direct_bt {
 
             /** Security commands */
 
-            /**
-             * Setting the BlueZ's L2CAP socket BT_SECURITY sec_level, determining the SMP security mode per connection!
-             * @param l2cap_att_socket
-             * @param sec_level BT_SECURITY_LOW, BT_SECURITY_MEDIUM, BT_SECURITY_HIGH or BT_SECURITY_FIPS
-             * @return true if successful, otherwise false
-             */
-            bool setL2CAPSecurity(int l2cap_att_socket, uint8_t sec_level);
             MgmtStatus uploadLinkKey(const uint16_t dev_id, const bool debug_keys, const MgmtLinkKey &key) noexcept;
             MgmtStatus uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKey &key) noexcept;
             MgmtStatus userPasskeyReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint32_t passkey) noexcept;
