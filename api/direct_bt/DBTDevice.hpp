@@ -108,8 +108,35 @@ namespace direct_bt {
             EIRDataType update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept;
 
             void notifyDisconnected() noexcept;
-            void notifyConnected(const uint16_t handle) noexcept;
-            void notifyLEFeatures(const LEFeatures features) noexcept;
+            void notifyConnected(std::shared_ptr<DBTDevice> sthis, const uint16_t handle) noexcept;
+            void notifyLEFeatures(std::shared_ptr<DBTDevice> sthis, const LEFeatures features) noexcept;
+
+            /**
+             * Setup L2CAP channel connection to device incl. optional security encryption level off-thread.
+             * <p>
+             * Will be performed after connectLE(..), i.e. notifyConnected() and notifyLEFeatures(),
+             * initiated by the latter.
+             * </p>
+             */
+            void processL2CAPSetup(std::shared_ptr<DBTDevice> sthis);
+
+            /**
+             * Forwarded from HCIHandler -> DBTAdapter -> this DBTDevice
+             * <p>
+             * Will be initiated by processL2CAPSetup()'s security_level setup after connectLE(..), i.e. notifyConnected() and notifyLEFeatures().
+             * </p>
+             */
+            void hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;
+
+            /**
+             * Setup GATT via connectGATT() off-thread.
+             * <p>
+             * <p>
+             * Will be performed after connectLE(..), i.e. notifyConnected() and notifyLEFeatures().<br>
+             * Called from either processL2CAPSetup() w/o security or with SMP security readiness from hciSMPMsgCallback().
+             * </p>
+             */
+            void processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint64_t timestamp);
 
             /**
              * Returns a newly established GATT connection.
@@ -120,14 +147,9 @@ namespace direct_bt {
              * The GATTHandler is managed by this device instance and closed via disconnectGATT().
              * </p>
              */
-            bool connectGATT() noexcept;
+            bool connectGATT(std::shared_ptr<DBTDevice> sthis) noexcept;
 
-            bool updatePairingState_locked(SMPPairingState state, PairingMode& current_mode) noexcept;
-
-            /**
-             * Forwarded from HCIHandler -> DBTAdapter -> this DBTDevice
-             */
-            void hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;
+            bool updatePairingState_locked(const SMPPairingState state, PairingMode& current_mode) noexcept;
 
             /**
              * Will be performed within disconnect() and notifyDisconnected().
@@ -151,21 +173,6 @@ namespace direct_bt {
             void disconnectSMP(int caller) noexcept;
 
             void clearSMPStates() noexcept;
-
-            /**
-             * Setup L2CAP channel connection to device incl. optional security encryption level off-thread.
-             * <p>
-             * Will be performed after connectLE(..), i.e. notifyConnected() and notifyLEFeatures(),
-             * initiated by the latter.
-             * </p>
-             */
-            void processL2CAPSetup();
-
-            /**
-             * Will be performed after connectLE(..) via notifyConnected() or after pairing via hciSMPMsgCallback(..),
-             * issuing connectGATT() off thread.
-             */
-            void processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint64_t timestamp);
 
         public:
             const uint64_t ts_creation;

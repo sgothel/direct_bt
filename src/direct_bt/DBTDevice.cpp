@@ -388,7 +388,7 @@ HCIStatusCode DBTDevice::connectDefault()
     }
 }
 
-void DBTDevice::notifyConnected(const uint16_t handle) noexcept {
+void DBTDevice::notifyConnected(std::shared_ptr<DBTDevice> sthis, const uint16_t handle) noexcept {
     // coming from connected callback, update state and spawn-off connectGATT in background if appropriate (LE)
     DBG_PRINT("DBTDevice::notifyConnected: handle %s -> %s, %s",
               jau::uint16HexString(hciConnHandle).c_str(), jau::uint16HexString(handle).c_str(), toString().c_str());
@@ -396,21 +396,22 @@ void DBTDevice::notifyConnected(const uint16_t handle) noexcept {
     allowDisconnect = true;
     isConnected = true;
     hciConnHandle = handle;
+    (void)sthis; // not used yet
 }
 
-void DBTDevice::notifyLEFeatures(const LEFeatures features) noexcept {
+void DBTDevice::notifyLEFeatures(std::shared_ptr<DBTDevice> sthis, const LEFeatures features) noexcept {
     DBG_PRINT("DBTDevice::notifyLEFeatures: LE_Encryption %d, %s",
             isLEFeaturesBitSet(features, LEFeatures::LE_Encryption), toString().c_str());
     le_features = features;
 
     if( isLEAddressType() && !l2cap_att.isOpen() ) {
-        std::thread bg(&DBTDevice::processL2CAPSetup, this); // @suppress("Invalid arguments")
+        std::thread bg(&DBTDevice::processL2CAPSetup, this, sthis); // @suppress("Invalid arguments")
         bg.detach();
     }
 }
 
-void DBTDevice::processL2CAPSetup() {
-    DBG_PRINT("DBTDevice::processNotifyConnected: %s", toString().c_str());
+void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
+    DBG_PRINT("DBTDevice::processL2CAPSetup: %s", toString().c_str());
     if( isLEAddressType() && !l2cap_att.isOpen() ) {
         const bool responderLikesEncryption = pairing_data.res_requested_sec || isLEFeaturesBitSet(le_features, LEFeatures::LE_Encryption);
         uint8_t sec_level;
@@ -428,17 +429,20 @@ void DBTDevice::processL2CAPSetup() {
 #else
         const bool smp_res = false;
 #endif
-        DBG_PRINT("DBTDevice::processNotifyConnected: connect[SMP %d, l2cap[%d, sec %d]], %s",
-                smp_res, l2cap_res, l2capsec_res, toString().c_str());
+        DBG_PRINT("DBTDevice::processL2CAPSetup: connect[SMP %d, l2cap[%d, sec(%u) %d]], %s",
+                smp_res, l2cap_res, sec_level, l2capsec_res, toString().c_str());
         if( !l2cap_res ) {
             disconnect(HCIStatusCode::INTERNAL_FAILURE);
+        } else if( 0 == sec_level ) {
+            // No security and hence no SMP dialogue, i.e. hciSMPMsgCallback:
+            processDeviceReady(sthis, jau::getCurrentMilliseconds());
         }
     }
 }
 
 void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint64_t timestamp) {
     DBG_PRINT("DBTDevice::processDeviceReady: %s", toString().c_str());
-    bool res1 = connectGATT();
+    bool res1 = connectGATT(sthis);
     DBG_PRINT("DBTDevice::processDeviceReady: ready[GATT %d], %s", res1, toString().c_str());
     if( res1 ) {
         adapter.sendDeviceReady(sthis, timestamp);
@@ -805,19 +809,13 @@ void DBTDevice::disconnectGATT(int caller) noexcept {
     DBG_PRINT("DBTDevice::disconnectGATT: end");
 }
 
-bool DBTDevice::connectGATT() noexcept {
+bool DBTDevice::connectGATT(std::shared_ptr<DBTDevice> sthis) noexcept {
     if( !isConnected || !allowDisconnect) {
         ERR_PRINT("DBTDevice::connectGATT: Device not connected: %s", toString().c_str());
         return false;
     }
     if( !l2cap_att.isOpen() ) {
         ERR_PRINT("DBTDevice::connectGATT: L2CAP not open: %s", toString().c_str());
-        return false;
-    }
-
-    std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
-    if( nullptr == sharedInstance ) {
-        ERR_PRINT("DBTDevice::connectGATT: Device unknown to adapter and not tracked: %s", toString().c_str());
         return false;
     }
 
@@ -829,7 +827,7 @@ bool DBTDevice::connectGATT() noexcept {
         gattHandler = nullptr;
     }
 
-    gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sharedInstance, l2cap_att));
+    gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sthis, l2cap_att));
     if( !gattHandler->isConnected() ) {
         ERR_PRINT("DBTDevice::connectGATT: Connection failed");
         gattHandler = nullptr;

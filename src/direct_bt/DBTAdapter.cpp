@@ -970,7 +970,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept
             device->toString().c_str());
     }
 
-    device->notifyConnected(event.getHCIHandle());
+    device->notifyConnected(device, event.getHCIHandle());
 
     int i=0;
     jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
@@ -1036,7 +1036,7 @@ bool DBTAdapter::mgmtEvLERemoteUserFeaturesHCI(std::shared_ptr<MgmtEvent> e) noe
         COND_PRINT(debug_event, "DBTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): %s, %s",
             dev_id, event.toString().c_str(), device->toString().c_str());
 
-        device->notifyLEFeatures(event.getFeatures());
+        device->notifyLEFeatures(device, event.getFeatures());
 
     } else {
         WORDY_PRINT("DBTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): Device not tracked: %s",
