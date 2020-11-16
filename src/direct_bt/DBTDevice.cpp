@@ -468,7 +468,6 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
     SMPPairingState pstate = old_pstate;
     PairingMode pmode = old_pmode;
     bool is_device_ready = false;
-    bool do_disconnect = false;
 
     const SMPPDUMsg::Opcode opc = msg->getOpcode();
 
@@ -581,9 +580,6 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
 
     if( is_device_ready ) {
         std::thread dc(&DBTDevice::processDeviceReady, this, sthis, msg->ts_creation); // @suppress("Invalid arguments")
-        dc.detach();
-    } else if( do_disconnect ) {
-        std::thread dc(&DBTDevice::disconnect, this, HCIStatusCode::AUTHENTICATION_FAILURE); // @suppress("Invalid arguments")
         dc.detach();
     }
 }
