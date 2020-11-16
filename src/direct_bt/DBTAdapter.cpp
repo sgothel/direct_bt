@@ -731,14 +731,9 @@ std::string DBTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
 
 // *************************************************
 
-void DBTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings_, const AdapterSetting current_settings,
+void DBTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings_, const AdapterSetting current_settings, AdapterSetting changes,
                                             const uint64_t timestampMS) noexcept
 {
-    AdapterSetting changes = getAdapterSettingMaskDiff(current_settings, old_settings_);
-    COND_PRINT(debug_event, "DBTAdapter::sendAdapterSettingsChanged: %s -> %s, changes %s: %s",
-            getAdapterSettingMaskString(old_settings_).c_str(),
-            getAdapterSettingMaskString(current_settings).c_str(),
-            getAdapterSettingMaskString(changes).c_str(), toString(false).c_str() );
     int i=0;
     jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
@@ -867,11 +862,30 @@ bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
             btMode = _btMode;
         }
     }
-    sendAdapterSettingsChanged(old_settings, new_settings, event.getTimestamp());
+    const AdapterSetting old_settings_ = old_settings;
+
+    const AdapterSetting changes = getAdapterSettingMaskDiff(new_settings, old_settings_);
+
+    const bool justPoweredOn = isAdapterSettingBitSet(changes, AdapterSetting::POWERED) &&
+                               isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED);
+
+    const bool justPoweredOff = isAdapterSettingBitSet(changes, AdapterSetting::POWERED) &&
+                                !isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED);
 
     old_settings = new_settings;
 
-    if( !isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED) ) {
+    COND_PRINT(debug_event, "DBTAdapter::mgmt:NewSettings: %s -> %s, changes %s: %s",
+            getAdapterSettingMaskString(old_settings_).c_str(),
+            getAdapterSettingMaskString(new_settings).c_str(),
+            getAdapterSettingMaskString(changes).c_str(), toString(false).c_str() );
+
+    if( justPoweredOn ) {
+        // Adapter has been powered on, ensure all hci states are reset.
+        hci.clearAllStates();
+    }
+    sendAdapterSettingsChanged(old_settings_, new_settings, changes, event.getTimestamp());
+
+    if( justPoweredOff ) {
         // Adapter has been powered off, close connections and cleanup off-thread.
         std::thread bg(&DBTAdapter::poweredOff, this); // @suppress("Invalid arguments")
         bg.detach();
