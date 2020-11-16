@@ -55,6 +55,7 @@ static const std::string _deviceFoundMethodArgs("(Lorg/tinyb/BluetoothDevice;J)V
 static const std::string _deviceUpdatedMethodArgs("(Lorg/tinyb/BluetoothDevice;Lorg/tinyb/EIRDataTypeSet;J)V");
 static const std::string _deviceConnectedMethodArgs("(Lorg/tinyb/BluetoothDevice;SJ)V");
 static const std::string _devicePairingStateMethodArgs("(Lorg/tinyb/BluetoothDevice;Lorg/tinyb/SMPPairingState;Lorg/tinyb/PairingMode;J)V");
+static const std::string _deviceReadyMethodArgs("(Lorg/tinyb/BluetoothDevice;J)V");
 static const std::string _deviceDisconnectedMethodArgs("(Lorg/tinyb/BluetoothDevice;Lorg/tinyb/HCIStatusCode;SJ)V");
 
 class JNIAdapterStatusListener : public AdapterStatusListener {
@@ -74,6 +75,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) { }
             public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) { }
             public void devicePairingState(final BluetoothDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {}
+            public void deviceReady(final BluetoothDevice device, final long timestamp) {}
             public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) { }
 
         };
@@ -107,6 +109,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     jmethodID  mDeviceUpdated = nullptr;
     jmethodID  mDeviceConnected= nullptr;
     jmethodID  mDevicePairingState= nullptr;
+    jmethodID  mDeviceReady = nullptr;
     jmethodID  mDeviceDisconnected = nullptr;
 
   public:
@@ -285,6 +288,11 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         if( nullptr == mDevicePairingState ) {
             throw jau::InternalError("AdapterStatusListener has no devicePairingState"+_devicePairingStateMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
+        mDeviceReady = jau::search_method(env, listenerClazz, "deviceReady", _deviceReadyMethodArgs.c_str(), false);
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == mDeviceReady ) {
+            throw jau::InternalError("AdapterStatusListener has no deviceReady"+_deviceReadyMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+        }
         mDeviceDisconnected = jau::search_method(env, listenerClazz, "deviceDisconnected", _deviceDisconnectedMethodArgs.c_str(), false);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mDeviceDisconnected ) {
@@ -446,9 +454,16 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
     void deviceReady(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
-        (void)device;
-        (void)timestamp;
-        // FIXME: JAVA
+        JNIEnv *env = *jni_env;
+
+        std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
+        jau::JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
+        jobject jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef);
+        env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+
+        env->CallVoidMethod(listenerObjRef.getObject(), mDeviceReady, jdevice, (jlong)timestamp);
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
     void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
@@ -464,8 +479,6 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         JNIGlobalRef::check(hciErrorCode, E_FILE_LINE);
 
         env->SetShortField(jdevice, deviceClazzConnectionHandleField, (jshort)0); // zero out, disconnected
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
 
         env->CallVoidMethod(listenerObjRef.getObject(), mDeviceDisconnected, jdevice, hciErrorCode, (jshort)handle, (jlong)timestamp);
