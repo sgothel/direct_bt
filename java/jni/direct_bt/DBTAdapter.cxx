@@ -381,9 +381,11 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     }
 
     void deviceUpdated(std::shared_ptr<DBTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
-        JNIEnv *env = *jni_env;
         std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
-        jau::JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
+        if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
+            return; // java device has been pulled
+        }
+        JNIEnv *env = *jni_env;
         env->SetLongField(jau::JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSLastUpdateField, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
 
@@ -434,10 +436,12 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
     void devicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+        std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
+        if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
+            return; // java device has been pulled
+        }
         JNIEnv *env = *jni_env;
 
-        std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
-        jau::JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
         jobject jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef);
         env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
@@ -454,10 +458,12 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
     void deviceReady(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+        std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
+        if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
+            return; // java device has been pulled
+        }
         JNIEnv *env = *jni_env;
 
-        std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
-        jau::JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
         jobject jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef);
         env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
@@ -466,10 +472,12 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
     void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
+        std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
+        if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
+            return; // java device has been pulled
+        }
         JNIEnv *env = *jni_env;
 
-        std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
-        jau::JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
         jobject jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef);
         env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
