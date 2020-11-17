@@ -699,6 +699,8 @@ bool DBTDevice::connectSMP(std::shared_ptr<DBTDevice> sthis, const uint8_t sec_l
     return smpHandler->establishSecurity(sec_level);
   #else
     DBG_PRINT("DBTDevice::connectSMP: SMP Not supported by OS (0): %s", toString().c_str());
+    (void)sthis;
+    (void)sec_level;
     return false;
   #endif
 }

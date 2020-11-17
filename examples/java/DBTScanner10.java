@@ -143,7 +143,7 @@ public class DBTScanner10 {
                 newmask.isSet(AdapterSettings.SettingType.POWERED) )
             {
 
-                executeOffThread( () -> { startDiscovery(adapter, "powered-on"); }, 
+                executeOffThread( () -> { startDiscovery(adapter, "powered-on"); },
                                   "DBT-StartDiscovery-"+adapter.getAddress(), true /* detach */);
             }
         }
@@ -235,9 +235,7 @@ public class DBTScanner10 {
             }
             if( 0 < RESET_ADAPTER_EACH_CONN && 0 == connectionCount.get() % RESET_ADAPTER_EACH_CONN ) {
                 executeOffThread( () -> { resetAdapter(device.getAdapter(), 1); },
-                                  "DBT-Reset-"+device.getAdapter().getAddress() );
-                adapterResetTask.setDaemon(true); // detach thread
-                adapterResetTask.start();
+                                  "DBT-Reset-"+device.getAdapter().getAddress(), true /* detach */ );
             }
         }
     };
