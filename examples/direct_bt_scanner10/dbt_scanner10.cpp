@@ -247,7 +247,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 dc.detach();
                 // next: PROCESS_STARTED or FAILED
               } break;
-            case SMPPairingState::NUMERIC_COMPARISON_EXPECTED: {
+            case SMPPairingState::NUMERIC_COMPARE_EXPECTED: {
                 std::thread dc(&DBTDevice::setPairingNumericComparison, device, true); // @suppress("Invalid arguments")
                 dc.detach();
                 // next: PROCESS_STARTED or FAILED

@@ -134,6 +134,8 @@ namespace direct_bt {
              * @param state the current SMPPairingState of the connected device, see DBTDevice::getCurrentPairingState()
              * @param mode the current PairingMode of the connected device, see DBTDevice::getCurrentPairingMode()
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             * @see DBTDevice::setPairingPasskey()
+             * @see DBTDevice::setPairingNumericComparison()
              */
             virtual void devicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) = 0;
 

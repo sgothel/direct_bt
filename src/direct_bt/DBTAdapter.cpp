@@ -1216,7 +1216,7 @@ bool DBTAdapter::mgmtEvUserConfirmRequestMgmt(std::shared_ptr<MgmtEvent> e) noex
         return true;
     }
     // FIXME: Pass confirm_hint and value
-    const SMPPairingState pstate  = SMPPairingState::NUMERIC_COMPARISON_EXPECTED;
+    const SMPPairingState pstate  = SMPPairingState::NUMERIC_COMPARE_EXPECTED;
 
     DBG_PRINT("DBTAdapter:mgmt:SMP: dev_id %d: address[%s, %s]: state %s, %s",
         dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),

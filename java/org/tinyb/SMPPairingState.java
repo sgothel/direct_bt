@@ -63,10 +63,10 @@ public enum SMPPairingState {
      */
     FEATURE_EXCHANGE_COMPLETED((byte)4),
 
-    /** Phase 2: Authentication (MITM) PASSKEY expected, see {@link PairingMode#PASSKEY_ENTRY} */
+    /** Phase 2: Authentication (MITM) PASSKEY expected, see {@link PairingMode#PASSKEY_ENTRY_ini} */
     PASSKEY_EXPECTED((byte)5),
-    /** Phase 2: Authentication (MITM) Numeric Comparison Reply expected, see {@link PairingMode#NUMERIC_COMPARISON} */
-    NUMERIC_COMPARISON_EXPECTED((byte)6),
+    /** Phase 2: Authentication (MITM) Numeric Comparison Reply expected, see {@link PairingMode#NUMERIC_COMPARE_ini} */
+    NUMERIC_COMPARE_EXPECTED((byte)6),
     /** Phase 2: Authentication (MITM) OOB data expected, see {@link PairingMode#OUT_OF_BAND} */
     OOB_EXPECTED((byte)7),
 
@@ -108,7 +108,7 @@ public enum SMPPairingState {
             case (byte) 0x03: return FEATURE_EXCHANGE_STARTED;
             case (byte) 0x04: return FEATURE_EXCHANGE_COMPLETED;
             case (byte) 0x05: return PASSKEY_EXPECTED;
-            case (byte) 0x06: return NUMERIC_COMPARISON_EXPECTED;
+            case (byte) 0x06: return NUMERIC_COMPARE_EXPECTED;
             case (byte) 0x07: return OOB_EXPECTED;
             case (byte) 0x08: return PROCESS_STARTED;
             case (byte) 0x09: return PROCESS_COMPLETED;

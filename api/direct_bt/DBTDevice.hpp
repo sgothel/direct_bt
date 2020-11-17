@@ -424,15 +424,13 @@ namespace direct_bt {
             HCIStatusCode disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
 
             /**
-             * Method sets the given passkey entry, see PairingMode::PASSKEY_ENTRY.
+             * Method sets the given passkey entry, see PairingMode::PASSKEY_ENTRY_ini.
              * <p>
-             * Call this method if the device shall be securely paired with PairingMode::PASSKEY_ENTRY,
-             * when notified via AdapterStatusListener::devicePairingState().
-             * <p>
-             * If returning HCIStatusCode::SUCCESS, caller shall continue listening to AdapterStatusListener::devicePairingState()
-             * to wait for either SMPPairingState::PROCESS_COMPLETED or SMPPairingState::FAILED.
+             * Call this method if the device shall be securely paired with PairingMode::PASSKEY_ENTRY_ini,
+             * i.e. when notified via AdapterStatusListener::devicePairingState() in state SMPPairingState::PASSKEY_EXPECTED.
              * </p>
-             * @param passkey used for PairingMode::PASSKEY_ENTRY method.
+             *
+             * @param passkey used for PairingMode::PASSKEY_ENTRY_ini method.
              *        Will be encrypted before sending to counter-party.
              *
              * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
@@ -449,15 +447,13 @@ namespace direct_bt {
             HCIStatusCode setPairingPasskeyNegative() noexcept;
 
             /**
-             * Method sets the numeric comparison result, see PairingMode::NUMERIC_COMPARISON.
+             * Method sets the numeric comparison result, see PairingMode::NUMERIC_COMPARE_ini.
              * <p>
-             * Call this method if the device shall be securely paired with PairingMode::NUMERIC_COMPARISON,
-             * when notified via AdapterStatusListener::devicePairingState().
-             * <p>
-             * If returning HCIStatusCode::SUCCESS, caller shall continue listening to AdapterStatusListener::devicePairingState()
-             * to wait for either SMPPairingState::PROCESS_COMPLETED or SMPPairingState::FAILED.
+             * Call this method if the device shall be securely paired with PairingMode::NUMERIC_COMPARE_ini,
+             * i.e. when notified via AdapterStatusListener::devicePairingState() in state SMPPairingState::NUMERIC_COMPARE_EXPECTED.
              * </p>
-             * @param equal used for PairingMode::NUMERIC_COMPARISON method.
+             *
+             * @param equal used for PairingMode::NUMERIC_COMPARE_ini method.
              *        Will be encrypted before sending to counter-party.
              *
              * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.

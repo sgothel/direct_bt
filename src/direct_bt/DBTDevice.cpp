@@ -619,7 +619,7 @@ HCIStatusCode DBTDevice::setPairingPasskeyNegative() noexcept {
 HCIStatusCode DBTDevice::setPairingNumericComparison(const bool positive) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
-    if( SMPPairingState::NUMERIC_COMPARISON_EXPECTED == pairing_data.state ) {
+    if( SMPPairingState::NUMERIC_COMPARE_EXPECTED == pairing_data.state ) {
         DBTManager& mngr = adapter.getManager();
         MgmtStatus res = mngr.userConfirmReply(adapter.dev_id, address, addressType, positive);
         DBG_PRINT("DBTDevice:mgmt:SMP: CONFIRM '%d', state %s, result %s",

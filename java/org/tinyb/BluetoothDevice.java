@@ -194,23 +194,21 @@ public interface BluetoothDevice extends BluetoothObject
     boolean pair() throws BluetoothException;
 
     /**
-     * Method sets the given passkey entry, see {@link PairingMode#PASSKEY_ENTRY}.
+     * Method sets the given passkey entry, see {@link PairingMode#PASSKEY_ENTRY_ini}.
      * <p>
-     * Call this method if the device shall be securely paired with {@link PairingMode#PASSKEY_ENTRY},
-     * when notified via {@link AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long) devicePairingState}.
-     * <p>
-     * If returning {@link HCIStatusCode#SUCCESS}, caller shall continue listening to
-     * {@link AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long) devicePairingState}
-     * to wait for either {@link SMPPairingState#PROCESS_COMPLETED} or {@link SMPPairingState#FAILED}.
+     * Call this method if the device shall be securely paired with {@link PairingMode#PASSKEY_ENTRY_ini},
+     * i.e. when notified via {@link AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long) devicePairingState}
+     * in state {@link SMPPairingState#PASSKEY_EXPECTED}.
      * </p>
-     * @param passkey used for {@link PairingMode#PASSKEY_ENTRY} method.
+     *
+     * @param passkey used for {@link PairingMode#PASSKEY_ENTRY_ini} method.
      *        Will be encrypted before sending to counter-party.
      *
      * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
      * @see PairingMode
      * @see SMPPairingState
      * @see AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long)
-     * @see #setPairingPasskey(String)
+     * @see #setPairingPasskey(int)
      * @see #setPairingNumericComparison(boolean)
      * @see #getPairingMode()
      * @see #getPairingState()
@@ -220,23 +218,21 @@ public interface BluetoothDevice extends BluetoothObject
     HCIStatusCode setPairingPasskey(final int passkey);
 
     /**
-     * Method sets the numeric comparison result, see {@link PairingMode#NUMERIC_COMPARISON}.
+     * Method sets the numeric comparison result, see {@link PairingMode#NUMERIC_COMPARE_ini}.
      * <p>
-     * Call this method if the device shall be securely paired with {@link PairingMode#NUMERIC_COMPARISON},
-     * when notified via {@link AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long) devicePairingState}.
-     * <p>
-     * If returning {@link HCIStatusCode#SUCCESS}, caller shall continue listening to
-     * {@link AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long) devicePairingState}
-     * to wait for either {@link SMPPairingState#PROCESS_COMPLETED} or {@link SMPPairingState#FAILED}.
+     * Call this method if the device shall be securely paired with {@link PairingMode#NUMERIC_COMPARE_ini},
+     * i.e. when notified via {@link AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long) devicePairingState}
+     * in state {@link SMPPairingState#NUMERIC_COMPARE_EXPECTED}.
      * </p>
-     * @param equal used for {@link PairingMode#NUMERIC_COMPARISON} method.
+     *
+     * @param equal used for {@link PairingMode#NUMERIC_COMPARE_ini} method.
      *        Will be encrypted before sending to counter-party.
      *
      * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
      * @see PairingMode
      * @see SMPPairingState
      * @see AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long)
-     * @see #setPairingPasskey(String)
+     * @see #setPairingPasskey(int)
      * @see #setPairingNumericComparison(boolean)
      * @see #getPairingMode()
      * @see #getPairingState()
@@ -263,7 +259,7 @@ public interface BluetoothDevice extends BluetoothObject
      * @see PairingMode
      * @see SMPPairingState
      * @see AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long)
-     * @see #setPairingPasskey(String)
+     * @see #setPairingPasskey(int)
      * @see #setPairingNumericComparison(boolean)
      * @see #getPairingMode()
      * @see #getPairingState()
@@ -280,7 +276,7 @@ public interface BluetoothDevice extends BluetoothObject
      * @see PairingMode
      * @see SMPPairingState
      * @see AdapterStatusListener#devicePairingState(BluetoothDevice, SMPPairingState, PairingMode, long)
-     * @see #setPairingPasskey(String)
+     * @see #setPairingPasskey(int)
      * @see #setPairingNumericComparison(boolean)
      * @see #getPairingMode()
      * @see #getPairingState()

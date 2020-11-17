@@ -126,10 +126,10 @@ namespace direct_bt {
          */
         FEATURE_EXCHANGE_COMPLETED  = 4,
 
-        /** Phase 2: Authentication (MITM) PASSKEY expected now, see PairingMode::PASSKEY_ENTRY */
+        /** Phase 2: Authentication (MITM) PASSKEY expected now, see PairingMode::PASSKEY_ENTRY_ini */
         PASSKEY_EXPECTED            = 5,
-        /** Phase 2: Authentication (MITM) Numeric Comparison Reply expected now, see PairingMode::NUMERIC_COMPARISON */
-        NUMERIC_COMPARISON_EXPECTED = 6,
+        /** Phase 2: Authentication (MITM) Numeric Comparison Reply expected now, see PairingMode::NUMERIC_COMPARE_ini */
+        NUMERIC_COMPARE_EXPECTED    = 6,
         /** Phase 2: Authentication (MITM) OOB data expected now, see PairingMode::OUT_OF_BAND */
         OOB_EXPECTED                = 7,
 
