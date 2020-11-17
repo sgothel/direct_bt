@@ -200,6 +200,12 @@ SMPHandler::~SMPHandler() noexcept {
     clearAllCallbacks();
 }
 
+bool SMPHandler::establishSecurity(const uint8_t sec_level) {
+    // FIXME: Start negotiating security!
+    // FIXME: Return true only if security has been established (encryption and optionally authentication)
+    return false;
+}
+
 bool SMPHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause) noexcept {
     PERF3_TS_T0();
     // Interrupt SM's L2CAP::connect(..) and L2CAP::read(..), avoiding prolonged hang

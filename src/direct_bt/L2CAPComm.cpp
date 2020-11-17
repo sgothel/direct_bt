@@ -246,7 +246,7 @@ bool L2CAPComm::setBTSecurityLevel(const uint8_t sec_level) {
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
 
-    if( 0 < sec_level ) {
+    if( BT_SECURITY_LOW < sec_level ) {
         #if USE_LINUX_BT_SECURITY
             struct bt_security bt_sec;
             int result;

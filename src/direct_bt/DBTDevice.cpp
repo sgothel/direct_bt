@@ -423,17 +423,17 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
             sec_level = 0;
         }
         const bool l2cap_open = l2cap_att.open(*this);
-        const bool l2cap_sec = l2cap_open && l2cap_att.setBTSecurityLevel(sec_level); // initiates hciSMPMsgCallback() if sec_level > 0
+        const bool l2cap_sec = l2cap_open && l2cap_att.setBTSecurityLevel(sec_level); // initiates hciSMPMsgCallback() if sec_level > BT_SECURITY_LOW
 #if SMP_SUPPORTED_BY_OS
-        const bool smp_res = connectSMP();
+        const bool smp_sec = connectSMP(sthis, sec_level);
 #else
-        const bool smp_res = false;
+        const bool smp_sec = false;
 #endif
-        DBG_PRINT("DBTDevice::processL2CAPSetup: connect[SMP %d, l2cap[open: %d, sec %u: %d]], %s",
-                smp_res, l2cap_open, sec_level, l2cap_sec, toString().c_str());
+        DBG_PRINT("DBTDevice::processL2CAPSetup: sec_level %u, connect[SMP %d, l2cap[open %d, sec %d]], %s",
+                sec_level, smp_sec, l2cap_open, l2cap_sec, toString().c_str());
         if( !l2cap_open ) {
             disconnect(HCIStatusCode::INTERNAL_FAILURE);
-        } else if( !l2cap_sec ) {
+        } else if( !l2cap_sec && !smp_sec ) {
             // No security and hence no SMP dialogue, i.e. hciSMPMsgCallback():
             processDeviceReady(sthis, jau::getCurrentMilliseconds());
         }
@@ -666,39 +666,37 @@ void DBTDevice::disconnectSMP(int caller) noexcept {
   #endif
 }
 
-bool DBTDevice::connectSMP() noexcept {
+bool DBTDevice::connectSMP(std::shared_ptr<DBTDevice> sthis, const uint8_t sec_level) noexcept {
   #if SMP_SUPPORTED_BY_OS
     if( !isConnected || !allowDisconnect) {
-        ERR_PRINT("DBTDevice::connectSMP: Device not connected: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectSMP(%u): Device not connected: %s", sec_level, toString().c_str());
         return false;
     }
 
     if( !SMPHandler::IS_SUPPORTED_BY_OS ) {
-        DBG_PRINT("DBTDevice::connectSMP: SMP Not supported by OS (1): %s", toString().c_str());
+        DBG_PRINT("DBTDevice::connectSMP(%u): SMP Not supported by OS (1): %s", sec_level, toString().c_str());
         return false;
     }
 
-    std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
-    if( nullptr == sharedInstance ) {
-        ERR_PRINT("DBTDevice::connectSMP: Device unknown to adapter and not tracked: %s", toString().c_str());
+    if( BT_SECURITY_LOW >= sec_level ) {
         return false;
     }
 
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_gattHandler);
     if( nullptr != smpHandler ) {
         if( smpHandler->isConnected() ) {
-            return true;
+            return smpHandler->establishSecurity(sec_level);
         }
         smpHandler = nullptr;
     }
 
-    smpHandler = std::shared_ptr<SMPHandler>(new SMPHandler(sharedInstance));
+    smpHandler = std::shared_ptr<SMPHandler>(new SMPHandler(sthis));
     if( !smpHandler->isConnected() ) {
         ERR_PRINT("DBTDevice::connectSMP: Connection failed");
         smpHandler = nullptr;
         return false;
     }
-    return true;
+    return smpHandler->establishSecurity(sec_level);
   #else
     DBG_PRINT("DBTDevice::connectSMP: SMP Not supported by OS (0): %s", toString().c_str());
     return false;

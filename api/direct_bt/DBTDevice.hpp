@@ -121,6 +121,24 @@ namespace direct_bt {
             void processL2CAPSetup(std::shared_ptr<DBTDevice> sthis);
 
             /**
+             * Established SMP host connection and security for L2CAP connection if sec_level > BT_SECURITY_LOW.
+             * <p>
+             * Will be performed after connectLE(..), i.e. notifyConnected() and notifyLEFeatures().<br>
+             * Called from processL2CAPSetup, if supported.
+             * </p>
+             * <p>
+             * If sec_level > BT_SECURITY_LOW, sets the BlueZ's L2CAP socket BT_SECURITY sec_level, determining the SMP security mode per connection.
+             * </p>
+             * <p>
+             * The SMPHandler is managed by this device instance and closed via disconnectSMP().
+             * </p>
+             *
+             * @param sec_level BT_SECURITY_LOW, BT_SECURITY_MEDIUM, BT_SECURITY_HIGH or BT_SECURITY_FIPS. sec_level <= BT_SECURITY_LOW leads to not set security level.
+             * @return true if a security level > BT_SECURITY_LOW has been set successfully, false if no security level has been set or if it failed.
+             */
+            bool connectSMP(std::shared_ptr<DBTDevice> sthis, const uint8_t sec_level) noexcept;
+
+            /**
              * Forwarded from HCIHandler -> DBTAdapter -> this DBTDevice
              * <p>
              * Will be initiated by processL2CAPSetup()'s security_level setup after connectLE(..), i.e. notifyConnected() and notifyLEFeatures().
@@ -155,17 +173,6 @@ namespace direct_bt {
              * Will be performed within disconnect() and notifyDisconnected().
              */
             void disconnectGATT(int caller) noexcept;
-
-            /**
-             * Returns a newly established SMP host connection.
-             * <p>
-             * Will be performed after connectLE(..) via notifyConnected(), processNotifyConnectedOffThread().
-             * </p>
-             * <p>
-             * The SMPHandler is managed by this device instance and closed via disconnectSMP().
-             * </p>
-             */
-            bool connectSMP() noexcept;
 
             /**
              * Will be performed within disconnect() and notifyDisconnected().

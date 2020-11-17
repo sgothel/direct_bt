@@ -216,6 +216,14 @@ namespace direct_bt {
             std::string getStateString() const noexcept { return L2CAPComm::getStateString(is_connected, has_ioerror); }
 
             /**
+             * If sec_level > BT_SECURITY_LOW, establish security level per L2CAP connection.
+             *
+             * @param sec_level BT_SECURITY_LOW, BT_SECURITY_MEDIUM, BT_SECURITY_HIGH or BT_SECURITY_FIPS. sec_level <= BT_SECURITY_LOW leads to not set security level.
+             * @return true if a security level > BT_SECURITY_LOW has been set successfully, false if no security level has been set or if it failed.
+             */
+            bool establishSecurity(const uint8_t sec_level);
+
+            /**
              * Disconnect this GATTHandler and optionally the associated device
              * @param disconnectDevice if true, associated device will also be disconnected, otherwise not.
              * @param ioErrorCause if true, reason for disconnection is an IO error
