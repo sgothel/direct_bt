@@ -106,6 +106,22 @@ public class DBTScanner10 {
         System.err.printf("[%,9d] %s%s", BluetoothUtils.elapsedTimeMillis(), msg, System.lineSeparator());
     }
 
+    static void executeOffThread(final Runnable runobj, final String threadName, final boolean detach) {
+        final Thread t = new Thread( runobj, threadName );
+        if( detach ) {
+            t.setDaemon(true); // detach thread
+        }
+        t.start();
+    }
+    static void execute(final Runnable task, final boolean offThread) {
+        if( offThread ) {
+            final Thread t = new Thread(task);
+            t.setDaemon(true);
+            t.start();
+        } else {
+            task.run();
+        }
+    }
 
     Collection<String> devicesInProcessing = Collections.synchronizedCollection(new ArrayList<>());
     Collection<String> devicesProcessed = Collections.synchronizedCollection(new ArrayList<>());
@@ -126,14 +142,9 @@ public class DBTScanner10 {
                 changedmask.isSet(AdapterSettings.SettingType.POWERED) &&
                 newmask.isSet(AdapterSettings.SettingType.POWERED) )
             {
-                final Thread startDisoveryTask = new Thread( new Runnable() {
-                    @Override
-                    public void run() {
-                        startDiscovery(adapter, "powered-on");
-                    }
-                }, "DBT-StartDiscovery-"+adapter.getAddress());
-                startDisoveryTask.setDaemon(true); // detach thread
-                startDisoveryTask.start();
+
+                executeOffThread( () -> { startDiscovery(adapter, "powered-on"); }, 
+                                  "DBT-StartDiscovery-"+adapter.getAddress(), true /* detach */);
             }
         }
 
@@ -165,14 +176,8 @@ public class DBTScanner10 {
                     final long td = BluetoothUtils.currentTimeMillis() - timestamp_t0; // adapter-init -> now
                     println("PERF: adapter-init -> FOUND__-0 " + td + " ms");
                 }
-                final Thread deviceConnectTask = new Thread( new Runnable() {
-                    @Override
-                    public void run() {
-                        connectDiscoveredDevice(device);
-                    }
-                }, "DBT-Connect-"+device.getAddress());
-                deviceConnectTask.setDaemon(true); // detach thread
-                deviceConnectTask.start();
+                executeOffThread( () -> { connectDiscoveredDevice(device); },
+                                  "DBT-Connect-"+device.getAddress(), true /* detach */);
             } else {
                 println("****** FOUND__-1: NOP "+device.toString());
             }
@@ -201,15 +206,9 @@ public class DBTScanner10 {
                     final long td = BluetoothUtils.currentTimeMillis() - timestamp_t0; // adapter-init -> now
                     println("PERF: adapter-init -> CONNECTED-0 " + td + " ms");
                 }
-                final Thread deviceProcessingTask = new Thread( new Runnable() {
-                    @Override
-                    public void run() {
-                        processConnectedDevice(device);
-                    }
-                }, "DBT-Process-"+device.getAddress());
                 devicesInProcessing.add(device.getAddress());
-                deviceProcessingTask.setDaemon(true); // detach thread
-                deviceProcessingTask.start();
+                executeOffThread( () -> { processConnectedDevice(device); },
+                                  "DBT-Process-"+device.getAddress(), true /* detach */);
             } else {
                 println("****** CONNECTED-1: NOP " + device.toString());
             }
@@ -230,24 +229,13 @@ public class DBTScanner10 {
             println("****** DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
 
             if( REMOVE_DEVICE ) {
-                final Thread deviceRemoverProcessingTask = new Thread( new Runnable() {
-                    @Override
-                    public void run() {
-                        removeDevice(device);
-                    }
-                }, "DBT-Remove-"+device.getAddress());
-                deviceRemoverProcessingTask.setDaemon(true); // detach thread
-                deviceRemoverProcessingTask.start();
+                executeOffThread( () -> { removeDevice(device); }, "DBT-Remove-"+device.getAddress(), true /* detach */);
             } else {
                 devicesInProcessing.remove(device.getAddress());
             }
             if( 0 < RESET_ADAPTER_EACH_CONN && 0 == connectionCount.get() % RESET_ADAPTER_EACH_CONN ) {
-                final Thread adapterResetTask = new Thread( new Runnable() {
-                    @Override
-                    public void run() {
-                        resetAdapter(device.getAdapter(), 1);
-                    }
-                }, "DBT-Reset-"+device.getAdapter().getAddress());
+                executeOffThread( () -> { resetAdapter(device.getAdapter(), 1); },
+                                  "DBT-Reset-"+device.getAdapter().getAddress() );
                 adapterResetTask.setDaemon(true); // detach thread
                 adapterResetTask.start();
             }
@@ -272,15 +260,6 @@ public class DBTScanner10 {
         }
     }
 
-    void execute(final Runnable task, final boolean offThread) {
-        if( offThread ) {
-            final Thread t = new Thread(task);
-            t.setDaemon(true);
-            t.start();
-        } else {
-            task.run();
-        }
-    }
     void shutdownTest() {
         switch( shutdownTest ) {
             case 1:
