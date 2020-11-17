@@ -74,11 +74,12 @@ public class DBTScanner10 {
     static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
 
     final List<String> waitForDevices = new ArrayList<String>();
+    int pairing_passkey = 0;
 
     long timestamp_t0;
 
     int RESET_ADAPTER_EACH_CONN = 0;
-    AtomicInteger connectionCount = new AtomicInteger(0);
+    AtomicInteger deviceReadyCount = new AtomicInteger(0);
 
     AtomicInteger MULTI_MEASUREMENTS = new AtomicInteger(8);
     boolean KEEP_CONNECTED = true;
@@ -192,6 +193,52 @@ public class DBTScanner10 {
 
         @Override
         public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) {
+            println("****** CONNECTED-0: "+device.toString());
+        }
+
+        @Override
+        public void devicePairingState(final BluetoothDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {
+            println("****** PAIRING_STATE: state "+state+", mode "+mode+": "+device);
+            switch( state ) {
+                case NONE:
+                    // next: deviceReady(..)
+                    break;
+                case FAILED:
+                    // next: deviceReady() or deviceDisconnected(..)
+                    break;
+                case REQUESTED_BY_RESPONDER:
+                    // next: FEATURE_EXCHANGE_STARTED
+                    break;
+                case FEATURE_EXCHANGE_STARTED:
+                    // next: FEATURE_EXCHANGE_COMPLETED
+                    break;
+                case FEATURE_EXCHANGE_COMPLETED:
+                    // next: PASSKEY_EXPECTED... or PROCESS_STARTED
+                    break;
+                case PASSKEY_EXPECTED: {
+                    executeOffThread( () -> { device.setPairingPasskey(pairing_passkey); }, "DBT-SetPasskey-"+device.getAddress(), true /* detach */);
+                    // next: PROCESS_STARTED or FAILED
+                  } break;
+                case NUMERIC_COMPARE_EXPECTED: {
+                    executeOffThread( () -> { device.setPairingNumericComparison(true); }, "DBT-SetNumericComp-"+device.getAddress(), true /* detach */);
+                    // next: PROCESS_STARTED or FAILED
+                  } break;
+                case OOB_EXPECTED:
+                    // FIXME: ABORT
+                    break;
+                case PROCESS_STARTED:
+                    // next: PROCESS_COMPLETED or FAILED
+                    break;
+                case PROCESS_COMPLETED:
+                    // next: deviceReady(..)
+                    break;
+                default: // nop
+                    break;
+            }
+        }
+
+        @Override
+        public void deviceReady(final BluetoothDevice device, final long timestamp) {
             if( !devicesInProcessing.contains( device.getAddress() ) &&
                 ( waitForDevices.isEmpty() ||
                   ( waitForDevices.contains( device.getAddress() ) &&
@@ -200,28 +247,18 @@ public class DBTScanner10 {
                 )
               )
             {
-                connectionCount.incrementAndGet();
-                println("****** CONNECTED-0: Processing["+connectionCount.get()+"] "+device.toString());
+                deviceReadyCount.incrementAndGet();
+                println("****** READY-0: Processing["+deviceReadyCount.get()+"] "+device.toString());
                 {
                     final long td = BluetoothUtils.currentTimeMillis() - timestamp_t0; // adapter-init -> now
-                    println("PERF: adapter-init -> CONNECTED-0 " + td + " ms");
+                    println("PERF: adapter-init -> READY-0 " + td + " ms");
                 }
                 devicesInProcessing.add(device.getAddress());
                 executeOffThread( () -> { processConnectedDevice(device); },
                                   "DBT-Process-"+device.getAddress(), true /* detach */);
             } else {
-                println("****** CONNECTED-1: NOP " + device.toString());
+                println("****** READY-1: NOP " + device.toString());
             }
-        }
-
-        @Override
-        public void devicePairingState(final BluetoothDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {
-            println("****** PAIRING_STATE: state "+state+", mode "+mode+": "+device);
-        }
-
-        @Override
-        public void deviceReady(final BluetoothDevice device, final long timestamp) {
-            println("****** READY: "+device);
         }
 
         @Override
@@ -233,7 +270,7 @@ public class DBTScanner10 {
             } else {
                 devicesInProcessing.remove(device.getAddress());
             }
-            if( 0 < RESET_ADAPTER_EACH_CONN && 0 == connectionCount.get() % RESET_ADAPTER_EACH_CONN ) {
+            if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount.get() % RESET_ADAPTER_EACH_CONN ) {
                 executeOffThread( () -> { resetAdapter(device.getAdapter(), 1); },
                                   "DBT-Reset-"+device.getAdapter().getAddress(), true /* detach */ );
             }
@@ -454,7 +491,7 @@ public class DBTScanner10 {
 
             device.remove();
 
-            if( 0 < RESET_ADAPTER_EACH_CONN && 0 == connectionCount.get() % RESET_ADAPTER_EACH_CONN ) {
+            if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount.get() % RESET_ADAPTER_EACH_CONN ) {
                 resetAdapter(device.getAdapter(), 2);
             } else if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
                 startDiscovery(device.getAdapter(), "post-processing-2");
@@ -677,6 +714,8 @@ public class DBTScanner10 {
                     println("Whitelist + "+addr);
                     test.whitelist.add(addr);
                     test.USE_WHITELIST = true;
+                } else if( arg.equals("-passkey") && args.length > (i+1) ) {
+                    test.pairing_passkey = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-char") && args.length > (i+1) ) {
                     test.charIdentifierList.add(args[++i]);
                 } else if( arg.equals("-disconnect") ) {
@@ -698,6 +737,7 @@ public class DBTScanner10 {
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] (-char <uuid>)* [-show_update_events] [-quiet]  "+
                     "[-resetEachCon connectionCount] "+
                     "(-mac <device_address>)* (-wl <device_address>)* "+
+                    "[-passkey <digits>]" +
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "+
@@ -716,6 +756,7 @@ public class DBTScanner10 {
         println("USE_WHITELIST "+test.USE_WHITELIST);
         println("SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
         println("QUIET "+test.QUIET);
+        println("passkey "+test.pairing_passkey);
 
         println("waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));
         println("characteristicList: "+Arrays.toString(test.charIdentifierList.toArray()));
