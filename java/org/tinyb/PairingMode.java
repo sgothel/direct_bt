@@ -38,17 +38,21 @@ package org.tinyb;
  */
 public enum PairingMode {
     /** No pairing mode, implying no secure connections, no encryption and no MITM protection. */
-    NONE               ((byte)0),
+    NONE                ((byte)0),
     /** Pairing mode in negotiating, i.e. Pairing Feature Exchange in progress. */
-    NEGOTIATING        ((byte)1),
+    NEGOTIATING         ((byte)1),
     /** Just Works. Random key exchange with encryption but no MITM protection. */
-    JUST_WORKS         ((byte)2),
-    /** Passkey Entry. A known digit sequence (PIN) must be given as a secret to be validated on the device. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
-    PASSKEY_ENTRY      ((byte)3),
-    /** Visual numeric comparison of digit sequence (PIN) shown on both devices, peripheral and host, to be answered. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
-    NUMERIC_COMPARISON ((byte)4),
+    JUST_WORKS          ((byte)2),
+    /** Passkey Entry input by initiator. Responder produces and display artifact. A known digit sequence (PIN) must be given as a secret to be validated on the device. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
+    PASSKEY_ENTRY_ini   ((byte)3),
+    /** Passkey Entry input by responder. Initiator produces and display artifact. A known digit sequence (PIN) must be given as a secret to be validated on the device. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
+    PASSKEY_ENTRY_res   ((byte)4),
+    /** Visual comparison of digit sequence (PIN) input by initiator, shown on both devices. Responder produces and display artifact. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
+    NUMERIC_COMPARE_ini ((byte)5),
+    /** Visual comparison of digit sequence (PIN) input by responder, shown on both devices. Initiator produces and displays artifact. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
+    NUMERIC_COMPARE_res ((byte)6),
     /** Utilizing a second factor secret to be used as a secret, e.g. NFC field. Random key exchange with additional secret (2FA) and encryption and potential MITM protection. */
-    OUT_OF_BAND        ((byte)5);
+    OUT_OF_BAND         ((byte)7);
 
     public final byte value;
 
@@ -76,9 +80,11 @@ public enum PairingMode {
         switch(value) {
             case (byte) 0x01: return NEGOTIATING;
             case (byte) 0x02: return JUST_WORKS;
-            case (byte) 0x03: return PASSKEY_ENTRY;
-            case (byte) 0x04: return NUMERIC_COMPARISON;
-            case (byte) 0x05: return OUT_OF_BAND;
+            case (byte) 0x03: return PASSKEY_ENTRY_ini;
+            case (byte) 0x04: return PASSKEY_ENTRY_res;
+            case (byte) 0x05: return NUMERIC_COMPARE_ini;
+            case (byte) 0x06: return NUMERIC_COMPARE_res;
+            case (byte) 0x07: return OUT_OF_BAND;
             default: return NONE;
         }
     }
