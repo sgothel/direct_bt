@@ -453,7 +453,8 @@ bool DBTDevice::updatePairingState_locked(SMPPairingState state, PairingMode& cu
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     PairingMode mode = pairing_data.mode;
     if( pairing_data.state != state ) {
-        // Potentially force update PairingMode by forced state change
+        // Potentially force update PairingMode by forced state change, assuming being the initiator.
+        // FIXME: Initiator and responder role might need more specific determination and documentation.
         switch( state ) {
             case SMPPairingState::PASSKEY_EXPECTED:
                 mode = PairingMode::PASSKEY_ENTRY_ini;
