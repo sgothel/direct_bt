@@ -1301,8 +1301,11 @@ void DBTAdapter::sendDeviceReady(std::shared_ptr<DBTDevice> device, uint64_t tim
     int i=0;
     jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
-            if( l->matchDevice(*device) ) {
-                l->deviceReady(device, timestamp);
+            // Only issue if valid && received connected confirmation (HCI) && not have called disconnect yet.
+            if( device->isValid() && device->getConnected() && device->allowDisconnect ) {
+                if( l->matchDevice(*device) ) {
+                    l->deviceReady(device, timestamp);
+                }
             }
         } catch (std::exception &except) {
             ERR_PRINT("DBTAdapter::sendDeviceReady: %d/%zd: %s of %s: Caught exception %s",
