@@ -396,20 +396,20 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_getPairingStateImpl(JNIEnv *env, jobject o
     return static_cast<uint8_t>( SMPPairingState::NONE );
 }
 
-jbyte Java_direct_1bt_tinyb_DBTDevice_setPairingPasskey(JNIEnv *env, jobject obj, jint jpasskey) noexcept {
+jbyte Java_direct_1bt_tinyb_DBTDevice_setPairingPasskeyImpl(JNIEnv *env, jobject obj, jint jpasskey) {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         // const std::string passkey = nullptr != jpasskey ? from_jstring_to_string(env, jpasskey) : std::string();
-        return number( device->setPairingPasskey(jpasskey) );
+        return number( device->setPairingPasskey( static_cast<uint32_t>(jpasskey) ) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
     return static_cast<uint8_t>( HCIStatusCode::INTERNAL_FAILURE );
 }
 
-jbyte Java_direct_1bt_tinyb_DBTDevice_setPairingNumericComparison(JNIEnv *env, jobject obj, jboolean jequal) noexcept {
+jbyte Java_direct_1bt_tinyb_DBTDevice_setPairingNumericComparisonImpl(JNIEnv *env, jobject obj, jboolean jequal) {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
