@@ -254,18 +254,17 @@ bool L2CAPComm::setBTSecurityLevel(const uint8_t sec_level) {
             bzero(&bt_sec, sizeof(bt_sec));
             bt_sec.level = sec_level;
             result = setsockopt(socket_descriptor, SOL_BLUETOOTH, BT_SECURITY, &bt_sec, sizeof(bt_sec));
-            if (result != 0) {
-                ERR_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %u failed", sec_level);
-                return false;
+            if ( 0 == result ) {
+                DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %u, success", sec_level);
+                return true;
             } else {
-                DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %u", sec_level);
+                ERR_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %u, failed", sec_level);
             }
         #else
-            DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %u: Not implemented", sec_level);
-            return false;
+            DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %u, not implemented", sec_level);
         #endif
     }
-    return true;
+    return false;
 }
 
 jau::snsize_t L2CAPComm::read(uint8_t* buffer, const jau::nsize_t capacity) {
