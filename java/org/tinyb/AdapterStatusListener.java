@@ -126,7 +126,7 @@ public abstract class AdapterStatusListener {
     public void devicePairingState(final BluetoothDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {}
 
     /**
-     * {@link BluetoothDevice} is ready for user (GATT) processing, i.e. already connected and optionally paired.
+     * {@link BluetoothDevice} is ready for user (GATT) processing, i.e. already connected, optionally paired and ATT MTU size negotiated via connected GATT.
      * @param device the device ready to use
      * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
      */

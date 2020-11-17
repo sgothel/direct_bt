@@ -138,7 +138,7 @@ namespace direct_bt {
             virtual void devicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) = 0;
 
             /**
-             * DBTDevice is ready for user (GATT) processing, i.e. already connected and optionally paired.
+             * DBTDevice is ready for user (GATT) processing, i.e. already connected, optionally paired and ATT MTU size negotiated via connected GATT.
              * @param device the device ready to use
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
