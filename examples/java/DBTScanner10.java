@@ -254,8 +254,7 @@ public class DBTScanner10 {
                     println("PERF: adapter-init -> READY-0 " + td + " ms");
                 }
                 devicesInProcessing.add(device.getAddress());
-                executeOffThread( () -> { processConnectedDevice(device); },
-                                  "DBT-Process-"+device.getAddress(), true /* detach */);
+                processConnectedDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
             } else {
                 println("****** READY-1: NOP " + device.toString());
             }

@@ -279,8 +279,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             deviceReadyCount++;
             fprintf(stderr, "****** READY-0: Processing[%d] %s\n", deviceReadyCount.load(), device->toString(true).c_str());
             addToDevicesProcessing(device->getAddress());
-            std::thread dc(::processConnectedDevice, device); // @suppress("Invalid arguments")
-            dc.detach();
+            processConnectedDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
         } else {
             fprintf(stderr, "****** READY-1: NOP %s\n", device->toString(true).c_str());
         }

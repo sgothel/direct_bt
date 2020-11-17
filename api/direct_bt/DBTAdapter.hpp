@@ -52,7 +52,8 @@ namespace direct_bt {
      * {@link DBTAdapter} status listener for {@link DBTDevice} discovery events: Added, updated and removed;
      * as well as for certain {@link DBTAdapter} events.
      * <p>
-     * User implementations shall return as early as possible to avoid blocking the event-handler thread.<br>
+     * User implementations shall return as early as possible to avoid blocking the event-handler thread,
+     * if not specified within the methods otherwise (see AdapterStatusListener::deviceReady()).<br>
      * Especially complex mutable operations on DBTDevice or DBTAdapter should be issued off-thread!
      * </p>
      * <p>
@@ -141,6 +142,9 @@ namespace direct_bt {
 
             /**
              * DBTDevice is ready for user (GATT) processing, i.e. already connected, optionally paired and ATT MTU size negotiated via connected GATT.
+             * <p>
+             * Method is being called from a dedicated native thread, hence restrictions on method duration and complex mutable operations don't apply here.
+             * </p>
              * @param device the device ready to use
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
