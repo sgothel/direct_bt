@@ -451,11 +451,28 @@ void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint6
 
 bool DBTDevice::updatePairingState_locked(SMPPairingState state, PairingMode& current_mode) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    current_mode = pairing_data.mode;
+    PairingMode mode = pairing_data.mode;
     if( pairing_data.state != state ) {
+        // Potentially force update PairingMode by forced state change
+        switch( state ) {
+            case SMPPairingState::PASSKEY_EXPECTED:
+                mode = PairingMode::PASSKEY_ENTRY_ini;
+                break;
+            case SMPPairingState::NUMERIC_COMPARE_EXPECTED:
+                mode = PairingMode::NUMERIC_COMPARE_ini;
+                break;
+            case SMPPairingState::OOB_EXPECTED:
+                mode = PairingMode::OUT_OF_BAND;
+                break;
+            default: // nop
+                break;
+        }
+        pairing_data.mode = mode;
         pairing_data.state = state;
+        current_mode = mode;
         return true;
     }
+    current_mode = mode;
     return false;
 }
 
