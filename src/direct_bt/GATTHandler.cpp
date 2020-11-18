@@ -483,7 +483,7 @@ uint16_t GATTHandler::exchangeMTUImpl(const uint16_t clientMaxMTU, const int32_t
             mtu = number(Defaults::MIN_ATT_MTU); // OK by spec: Use default MTU
             DBG_PRINT("GATT MTU handled error -> ATT_MTU %u, %s from %s", mtu, pdu->toString().c_str(), deviceString.c_str());
         } else {
-            ERR_PRINT("GATT MTU unexpected error %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
+            WORDY_PRINT("GATT MTU unexpected error %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
         }
     } else {
         ERR_PRINT("GATT MTU unexpected reply %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
@@ -715,8 +715,8 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
 
                     }
                     if( !readDescriptorValue(*cd, 0) ) {
-                        ERR_PRINT("GATT discoverDescriptors readDescriptorValue failed: req %s, descr%s within char%s on %s",
-                                req.toString().c_str(), cd->toString().c_str(), charDecl->toString().c_str(), deviceString.c_str());
+                        WORDY_PRINT("GATT discoverDescriptors readDescriptorValue failed: req %s, descr%s within char%s on %s",
+                                   req.toString().c_str(), cd->toString().c_str(), charDecl->toString().c_str(), deviceString.c_str());
                         done = true;
                         break;
                     }
@@ -750,8 +750,8 @@ bool GATTHandler::readDescriptorValue(GATTDescriptor & desc, int expectedLength)
     COND_PRINT(env.DEBUG_DATA, "GATTHandler::readDescriptorValue expLen %d, desc %s", expectedLength, desc.toString().c_str());
     const bool res = readValue(desc.handle, desc.value, expectedLength);
     if( !res ) {
-        ERR_PRINT("GATT readDescriptorValue error on desc%s within char%s from %s",
-                desc.toString().c_str(), desc.getCharacteristicChecked()->toString().c_str(), deviceString.c_str());
+        WORDY_PRINT("GATT readDescriptorValue error on desc%s within char%s from %s",
+                   desc.toString().c_str(), desc.getCharacteristicChecked()->toString().c_str(), deviceString.c_str());
     }
     return res;
 }
@@ -760,7 +760,7 @@ bool GATTHandler::readCharacteristicValue(const GATTCharacteristic & decl, POcte
     COND_PRINT(env.DEBUG_DATA, "GATTHandler::readCharacteristicValue expLen %d, decl %s", expectedLength, decl.toString().c_str());
     const bool res = readValue(decl.value_handle, resValue, expectedLength);
     if( !res ) {
-        ERR_PRINT("GATT readCharacteristicValue error on char%s from %s", decl.toString().c_str(), deviceString.c_str());
+        WORDY_PRINT("GATT readCharacteristicValue error on char%s from %s", decl.toString().c_str(), deviceString.c_str());
     }
     return res;
 }
@@ -825,7 +825,7 @@ bool GATTHandler::readValue(const uint16_t handle, POctets & res, int expectedLe
             if( AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_LONG == p->getErrorCode() ) {
                 done = true; // OK by spec: No more data - end of communication
             } else {
-                ERR_PRINT("GATT readValue unexpected error %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
+                WORDY_PRINT("GATT readValue unexpected error %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
                 done = true;
             }
         } else {
@@ -846,8 +846,8 @@ bool GATTHandler::writeDescriptorValue(const GATTDescriptor & cd) {
     COND_PRINT(env.DEBUG_DATA, "GATTHandler::writeDesccriptorValue desc %s", cd.toString().c_str());
     const bool res = writeValue(cd.handle, cd.value, true);
     if( !res ) {
-        ERR_PRINT("GATT writeDescriptorValue error on desc%s within char%s from %s",
-                cd.toString().c_str(), cd.getCharacteristicChecked()->toString().c_str(), deviceString.c_str());
+        WORDY_PRINT("GATT writeDescriptorValue error on desc%s within char%s from %s",
+                   cd.toString().c_str(), cd.getCharacteristicChecked()->toString().c_str(), deviceString.c_str());
     }
     return res;
 }
@@ -857,7 +857,7 @@ bool GATTHandler::writeCharacteristicValue(const GATTCharacteristic & c, const T
     COND_PRINT(env.DEBUG_DATA, "GATTHandler::writeCharacteristicValue desc %s, value %s", c.toString().c_str(), value.toString().c_str());
     const bool res = writeValue(c.value_handle, value, true);
     if( !res ) {
-        ERR_PRINT("GATT writeCharacteristicValue error on char%s from %s", c.toString().c_str(), deviceString.c_str());
+        WORDY_PRINT("GATT writeCharacteristicValue error on char%s from %s", c.toString().c_str(), deviceString.c_str());
     }
     return res;
 }
@@ -903,7 +903,7 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
         // OK
         res = true;
     } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ERROR_RSP ) {
-        ERR_PRINT("GATT writeValue unexpected error %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
+        WORDY_PRINT("GATT writeValue unexpected error %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
     } else {
         ERR_PRINT("GATT writeValue unexpected reply %s; req %s from %s", pdu->toString().c_str(), req.toString().c_str(), deviceString.c_str());
     }
