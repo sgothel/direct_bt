@@ -42,6 +42,7 @@ import org.tinyb.BluetoothDevice;
 import org.tinyb.AdapterStatusListener;
 import org.tinyb.BLERandomAddressType;
 import org.tinyb.BTMode;
+import org.tinyb.BTSecurityLevel;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothGattCharacteristic;
@@ -74,7 +75,10 @@ public class DBTScanner10 {
     static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
 
     final List<String> waitForDevices = new ArrayList<String>();
-    int pairing_passkey = 0;
+
+    static final int NO_PASSKEY = 0xffffffff;
+    int pairing_passkey = NO_PASSKEY;
+    BTSecurityLevel sec_level = BTSecurityLevel.UNSET;
 
     long timestamp_t0;
 
@@ -216,7 +220,9 @@ public class DBTScanner10 {
                     // next: PASSKEY_EXPECTED... or PROCESS_STARTED
                     break;
                 case PASSKEY_EXPECTED: {
-                    executeOffThread( () -> { device.setPairingPasskey(pairing_passkey); }, "DBT-SetPasskey-"+device.getAddress(), true /* detach */);
+                    if( pairing_passkey != NO_PASSKEY ) {
+                        executeOffThread( () -> { device.setPairingPasskey(pairing_passkey); }, "DBT-SetPasskey-"+device.getAddress(), true /* detach */);
+                    }
                     // next: PROCESS_STARTED or FAILED
                   } break;
                 case NUMERIC_COMPARE_EXPECTED: {
@@ -281,6 +287,9 @@ public class DBTScanner10 {
         {
             final HCIStatusCode r = device.getAdapter().stopDiscovery();
             println("****** Connecting Device: stopDiscovery result "+r);
+        }
+        if( BTSecurityLevel.UNSET.value < sec_level.value ) {
+            device.setSecurityLevel(sec_level);
         }
         HCIStatusCode res;
         if( !USE_WHITELIST ) {
@@ -715,6 +724,8 @@ public class DBTScanner10 {
                     test.USE_WHITELIST = true;
                 } else if( arg.equals("-passkey") && args.length > (i+1) ) {
                     test.pairing_passkey = Integer.valueOf(args[++i]).intValue();
+                } else if( arg.equals("-seclevel") && args.length > (i+1) ) {
+                    test.sec_level = BTSecurityLevel.get( (byte)Integer.valueOf(args[++i]).intValue() );
                 } else if( arg.equals("-char") && args.length > (i+1) ) {
                     test.charIdentifierList.add(args[++i]);
                 } else if( arg.equals("-disconnect") ) {
@@ -736,7 +747,7 @@ public class DBTScanner10 {
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] (-char <uuid>)* [-show_update_events] [-quiet]  "+
                     "[-resetEachCon connectionCount] "+
                     "(-mac <device_address>)* (-wl <device_address>)* "+
-                    "[-passkey <digits>]" +
+                    "[-passkey <digits>]  [-seclevel <int>]" +
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "+
@@ -756,6 +767,7 @@ public class DBTScanner10 {
         println("SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
         println("QUIET "+test.QUIET);
         println("passkey "+test.pairing_passkey);
+        println("seclevel "+test.sec_level);
 
         println("waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));
         println("characteristicList: "+Arrays.toString(test.charIdentifierList.toArray()));

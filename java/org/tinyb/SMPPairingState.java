@@ -30,7 +30,7 @@ package org.tinyb;
  * Vol 3, Part H (SM): APPENDIX C MESSAGE SEQUENCE CHARTS
  * </pre>
  * <p>
- * See {@link #get(int)} for its native integer mapping.
+ * See {@link #get(byte)} for its native integer mapping.
  * </p>
  * @see PairingMode
  * @since 2.1.0

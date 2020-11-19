@@ -194,6 +194,20 @@ public interface BluetoothDevice extends BluetoothObject
     boolean pair() throws BluetoothException;
 
     /**
+     * Set the overriding security level used at device connection.
+     * @since 2.1.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    void setSecurityLevel(final BTSecurityLevel sec_level);
+
+    /**
+     * Return the currently set security level.
+     * @since 2.1.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    BTSecurityLevel getCurrentSecurityLevel();
+
+    /**
      * Method sets the given passkey entry, see {@link PairingMode#PASSKEY_ENTRY_ini}.
      * <p>
      * Call this method if the device shall be securely paired with {@link PairingMode#PASSKEY_ENTRY_ini},

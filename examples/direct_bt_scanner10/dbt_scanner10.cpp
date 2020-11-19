@@ -743,7 +743,7 @@ int main(int argc, char *argv[])
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "
                     "[-resetEachCon connectionCount] "
                     "(-mac <device_address>)* (-wl <device_address>)* "
-                    "[-passkey <digits>]"
+                    "[-passkey <digits>] [-seclevel <int>]"
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,...] "

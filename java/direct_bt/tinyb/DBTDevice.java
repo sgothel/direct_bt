@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.tinyb.AdapterStatusListener;
 import org.tinyb.BLERandomAddressType;
+import org.tinyb.BTSecurityLevel;
 import org.tinyb.BluetoothAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
@@ -331,6 +332,18 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public final boolean pair() throws BluetoothException {
         return false;
     }
+
+    @Override
+    public final void setSecurityLevel(final BTSecurityLevel sec_level) {
+        setSecurityLevelImpl(sec_level.value);
+    }
+    private final native void setSecurityLevelImpl(final byte sec_level);
+
+    @Override
+    public final BTSecurityLevel getCurrentSecurityLevel() {
+        return BTSecurityLevel.get( getCurrentSecurityLevelImpl() );
+    }
+    private final native byte getCurrentSecurityLevelImpl();
 
     @Override
     public HCIStatusCode setPairingPasskey(final int passkey) {

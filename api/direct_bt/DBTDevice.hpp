@@ -425,6 +425,16 @@ namespace direct_bt {
             HCIStatusCode disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
 
             /**
+             * Set the overriding security level used at device connection.
+             */
+            void setSecurityLevel(const BTSecurityLevel sec_level) noexcept { pairing_data.sec_level_user = sec_level; }
+
+            /**
+             * Return the currently set security level.
+             */
+            BTSecurityLevel getCurrentSecurityLevel() const noexcept { return pairing_data.sec_level; }
+
+            /**
              * Method sets the given passkey entry, see PairingMode::PASSKEY_ENTRY_ini.
              * <p>
              * Call this method if the device shall be securely paired with PairingMode::PASSKEY_ENTRY_ini,
@@ -446,16 +456,6 @@ namespace direct_bt {
             HCIStatusCode setPairingPasskey(const uint32_t passkey) noexcept;
 
             HCIStatusCode setPairingPasskeyNegative() noexcept;
-
-            /**
-             * Set the overriding security level used at device connection.
-             */
-            void setSecurityLevel(const BTSecurityLevel sec_level) noexcept { pairing_data.sec_level_user = sec_level; }
-
-            /**
-             * Return the currently set security level.
-             */
-            BTSecurityLevel getCurrentSecurityLevel() const noexcept { return pairing_data.sec_level; }
 
             /**
              * Method sets the numeric comparison result, see PairingMode::NUMERIC_COMPARE_ini.

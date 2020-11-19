@@ -31,7 +31,7 @@ package org.tinyb;
  * BT Core Spec v5.2: Vol 1, Part A, 5.4 LE SECURITY
  * </pre>
  * <p>
- * See {@link #get(int)} for its native integer mapping.
+ * See {@link #get(byte)} for its native integer mapping.
  * </p>
  * @see SMPPairingState
  * @since 2.1.0

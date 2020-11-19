@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.tinyb.BLERandomAddressType;
+import org.tinyb.BTSecurityLevel;
 import org.tinyb.BluetoothAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
@@ -106,6 +107,12 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
 
     @Override
     public native boolean pair() throws BluetoothException;
+
+    @Override
+    public final void setSecurityLevel(final BTSecurityLevel sec_level) { } // FIXME
+
+    @Override
+    public final BTSecurityLevel getCurrentSecurityLevel() { return BTSecurityLevel.UNSET; } // FIXME
 
     @Override
     public HCIStatusCode setPairingPasskey(final int passkey) { return HCIStatusCode.INTERNAL_FAILURE; }

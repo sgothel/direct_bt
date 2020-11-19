@@ -378,6 +378,30 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_connectLEImpl1(JNIEnv *env, jobject obj,
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
+
+void Java_direct_1bt_tinyb_DBTDevice_setSecurityLevelImpl(JNIEnv *env, jobject obj, jbyte jsec_level) {
+    try {
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        device->setSecurityLevel( getBTSecurityLevel( static_cast<uint8_t>(jsec_level) ) );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
+jbyte Java_direct_1bt_tinyb_DBTDevice_getCurrentSecurityLevelImpl(JNIEnv *env, jobject obj) {
+    try {
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        return number( device->getCurrentSecurityLevel() );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return number( BTSecurityLevel::UNSET );
+}
+
 jbyte Java_direct_1bt_tinyb_DBTDevice_getPairingModeImpl(JNIEnv *env, jobject obj) {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
