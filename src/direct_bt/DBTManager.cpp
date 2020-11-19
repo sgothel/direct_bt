@@ -242,10 +242,12 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
      *
      * See SMPTypes.cpp: getPairingMode(const bool le_sc_pairing, const SMPIOCapability ioCap_init, const SMPIOCapability ioCap_resp) noexcept
      */
+#if USE_LINUX_BT_SECURITY
     const SMPIOCapability iocap { SMPIOCapability::KEYBOARD_ONLY }; // Mostly PairingMode::PASSKEY_ENTRY
     const uint8_t debug_keys = 0;
     const uint8_t ssp_on_param = 0x01; // SET_SSP 0x00 disabled, 0x01 enable Secure Simple Pairing. SSP only available for BREDR >= 2.1 not single-mode LE.
     const uint8_t sc_on_param = 0x01; // SET_SECURE_CONN 0x00 disabled, 0x01 enables SC mixed, 0x02 enables SC only mode
+#endif
 
     std::shared_ptr<AdapterInfo> adapterInfo = nullptr;
     AdapterSetting current_settings;
@@ -305,6 +307,11 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
     setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, debug_keys, current_settings);
     setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(iocap), current_settings);
     setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 1, current_settings); // required for pairing
+#else
+    setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, 0, current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 0, current_settings);
 #endif
 
     setMode(dev_id, MgmtCommand::Opcode::SET_CONNECTABLE, 0, current_settings);
