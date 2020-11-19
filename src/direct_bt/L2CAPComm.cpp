@@ -238,7 +238,7 @@ bool L2CAPComm::close() noexcept {
     return true;
 }
 
-bool L2CAPComm::setBTSecurityLevel(const uint8_t sec_level) {
+bool L2CAPComm::setBTSecurityLevel(const BTSecurityLevel sec_level) {
     if( !is_open ) {
         DBG_PRINT("L2CAPComm::setBTSecurityLevel: Not connected: %s, dd %d, %s, psm %u, cid %u",
                   getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid);
@@ -246,22 +246,22 @@ bool L2CAPComm::setBTSecurityLevel(const uint8_t sec_level) {
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
 
-    if( BT_SECURITY_LOW < sec_level ) {
+    if( BTSecurityLevel::NONE < sec_level ) {
         #if USE_LINUX_BT_SECURITY
             struct bt_security bt_sec;
             int result;
 
             bzero(&bt_sec, sizeof(bt_sec));
-            bt_sec.level = sec_level;
+            bt_sec.level = direct_bt::number(sec_level);
             result = setsockopt(socket_descriptor, SOL_BLUETOOTH, BT_SECURITY, &bt_sec, sizeof(bt_sec));
             if ( 0 == result ) {
-                DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %u, success", sec_level);
+                DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %s, success", getBTSecurityLevelString(sec_level).c_str());
                 return true;
             } else {
-                ERR_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %u, failed", sec_level);
+                ERR_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %s, failed", getBTSecurityLevelString(sec_level).c_str());
             }
         #else
-            DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %u, not implemented", sec_level);
+            DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %s, not implemented", getBTSecurityLevelString(sec_level).c_str());
         #endif
     }
     return false;

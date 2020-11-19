@@ -90,16 +90,16 @@ namespace direct_bt {
         return static_cast<uint64_t>(rhs);
     }
     constexpr LEFeatures operator ^(const LEFeatures lhs, const LEFeatures rhs) noexcept {
-        return static_cast<LEFeatures> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
+        return static_cast<LEFeatures> ( number(lhs) ^ number(rhs) );
     }
     constexpr LEFeatures operator |(const LEFeatures lhs, const LEFeatures rhs) noexcept {
-        return static_cast<LEFeatures> ( static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs) );
+        return static_cast<LEFeatures> ( number(lhs) | number(rhs) );
     }
     constexpr LEFeatures operator &(const LEFeatures lhs, const LEFeatures rhs) noexcept {
-        return static_cast<LEFeatures> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
+        return static_cast<LEFeatures> ( number(lhs) & number(rhs) );
     }
     constexpr bool operator ==(const LEFeatures lhs, const LEFeatures rhs) noexcept {
-        return static_cast<uint8_t>(lhs) == static_cast<uint8_t>(rhs);
+        return number(lhs) == number(rhs);
     }
     constexpr bool operator !=(const LEFeatures lhs, const LEFeatures rhs) noexcept {
         return !( lhs == rhs );
@@ -107,6 +107,54 @@ namespace direct_bt {
     constexpr bool isLEFeaturesBitSet(const LEFeatures mask, const LEFeatures bit) noexcept {
         return LEFeatures::NONE != ( mask & bit );
     }
+
+    /**
+     * Bluetooth Security Level.
+     * <p>
+     * This BTSecurityLevel is natively compatible
+     * with Linux/BlueZ's BT_SECURITY values 1-4.
+     * </p>
+     */
+    enum class BTSecurityLevel : uint8_t {
+        /** Security Level not set. */
+        UNSET         = 0,       /**< UNSET */
+        /** No encryption and no authentication. Also known as BT_SECURITY_LOW 1. */
+        NONE          = 1,       /**< NONE */
+        /** Encryption and no authentication (no MITM). Also known as BT_SECURITY_MEDIUM 2. */
+        ENC_ONLY      = 2,       /**< ENC_ONLY */
+        /** Encryption and authentication (MITM). Also known as BT_SECURITY_HIGH 3. */
+        ENC_AUTH      = 3,       /**< ENC_AUTH */
+        /** Authenticated Secure Connections. Also known as BT_SECURITY_FIPS 4. */
+        ENC_AUTH_FIPS = 4        /**< ENC_AUTH_FIPS */
+    };
+    constexpr uint8_t number(const BTSecurityLevel rhs) noexcept {
+        return static_cast<uint8_t>(rhs);
+    }
+    constexpr bool operator ==(const BTSecurityLevel lhs, const BTSecurityLevel rhs) noexcept {
+        return number(lhs) == number(rhs);
+    }
+    constexpr bool operator !=(const BTSecurityLevel lhs, const BTSecurityLevel rhs) noexcept {
+        return !( lhs == rhs );
+    }
+    constexpr bool operator <(const BTSecurityLevel lhs, const BTSecurityLevel rhs) noexcept {
+        return number(lhs) < number(rhs);
+    }
+    constexpr bool operator <=(const BTSecurityLevel lhs, const BTSecurityLevel rhs) noexcept {
+        return number(lhs) <= number(rhs);
+    }
+    constexpr bool operator >(const BTSecurityLevel lhs, const BTSecurityLevel rhs) noexcept {
+        return number(lhs) > number(rhs);
+    }
+    constexpr bool operator >=(const BTSecurityLevel lhs, const BTSecurityLevel rhs) noexcept {
+        return number(lhs) >= number(rhs);
+    }
+    constexpr BTSecurityLevel getBTSecurityLevel(const uint8_t v) noexcept {
+        if( 1 <= v && v <= 4 ) {
+            return static_cast<BTSecurityLevel>(v);
+        }
+        return BTSecurityLevel::UNSET;
+    }
+    std::string getBTSecurityLevelString(const BTSecurityLevel v) noexcept;
 
     /**
      * Bluetooth secure pairing mode
@@ -157,19 +205,19 @@ namespace direct_bt {
         return static_cast<uint8_t>(rhs);
     }
     constexpr ScanType operator ~(const ScanType val) noexcept {
-        return static_cast<ScanType> ( ~static_cast<uint8_t>(val) );
+        return static_cast<ScanType> ( ~number(val) );
     }
     constexpr ScanType operator ^(const ScanType lhs, const ScanType rhs) noexcept {
-        return static_cast<ScanType> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
+        return static_cast<ScanType> ( number(lhs) ^ number(rhs) );
     }
     constexpr ScanType operator |(const ScanType lhs, const ScanType rhs) noexcept {
-        return static_cast<ScanType> ( static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs) );
+        return static_cast<ScanType> ( number(lhs) | number(rhs) );
     }
     constexpr ScanType operator &(const ScanType lhs, const ScanType rhs) noexcept {
-        return static_cast<ScanType> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
+        return static_cast<ScanType> ( number(lhs) & number(rhs) );
     }
     constexpr bool operator ==(const ScanType lhs, const ScanType rhs) noexcept {
-        return static_cast<uint8_t>(lhs) == static_cast<uint8_t>(rhs);
+        return number(lhs) == number(rhs);
     }
     constexpr bool operator !=(const ScanType lhs, const ScanType rhs) noexcept {
         return !( lhs == rhs );

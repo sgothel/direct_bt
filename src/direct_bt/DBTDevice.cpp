@@ -414,13 +414,18 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
     DBG_PRINT("DBTDevice::processL2CAPSetup: %s", toString().c_str());
     if( isLEAddressType() && !l2cap_att.isOpen() ) {
         const bool responderLikesEncryption = pairing_data.res_requested_sec || isLEFeaturesBitSet(le_features, LEFeatures::LE_Encryption);
-        uint8_t sec_level;
-        if( responderLikesEncryption && adapter.hasSecureConnections() ) {
-            sec_level = BT_SECURITY_FIPS; // 4
-        } else if( responderLikesEncryption ) {
-            sec_level = BT_SECURITY_HIGH; // 3
+        const BTSecurityLevel sec_level_user = pairing_data.sec_level_user;
+        BTSecurityLevel sec_level = pairing_data.sec_level;
+        if( BTSecurityLevel::UNSET != sec_level_user ) {
+            sec_level = sec_level_user;
         } else {
-            sec_level = 0;
+            if( responderLikesEncryption && adapter.hasSecureConnections() ) {
+                sec_level = BTSecurityLevel::ENC_AUTH_FIPS;
+            } else if( responderLikesEncryption ) {
+                sec_level = BTSecurityLevel::ENC_AUTH;
+            } else {
+                sec_level = BTSecurityLevel::NONE;
+            }
         }
         const bool l2cap_open = l2cap_att.open(*this);
         const bool l2cap_sec = l2cap_open && l2cap_att.setBTSecurityLevel(sec_level); // initiates hciSMPMsgCallback() if sec_level > BT_SECURITY_LOW
@@ -429,13 +434,16 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
 #else
         const bool smp_sec = false;
 #endif
-        DBG_PRINT("DBTDevice::processL2CAPSetup: sec_level %u, connect[SMP %d, l2cap[open %d, sec %d]], %s",
-                sec_level, smp_sec, l2cap_open, l2cap_sec, toString().c_str());
+        DBG_PRINT("DBTDevice::processL2CAPSetup: sec_level %s, connect[smp %d, l2cap[open %d, sec %d]], %s",
+                getBTSecurityLevelString(sec_level).c_str(), smp_sec, l2cap_open, l2cap_sec, toString().c_str());
         if( !l2cap_open ) {
             disconnect(HCIStatusCode::INTERNAL_FAILURE);
         } else if( !l2cap_sec && !smp_sec ) {
             // No security and hence no SMP dialogue, i.e. hciSMPMsgCallback():
+            pairing_data.sec_level = BTSecurityLevel::NONE;
             processDeviceReady(sthis, jau::getCurrentMilliseconds());
+        } else {
+            pairing_data.sec_level = sec_level;
         }
     }
 }
@@ -496,11 +504,18 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
             pairing_data.res_requested_sec = false;
 
             // After a failed encryption/authentication, we try without security!
-            bool res_l2cap_close = l2cap_att.close();
-            bool res_l2cap_open = l2cap_att.open(*this);
-            DBG_PRINT("DBTDevice:hci:SMP: l2cap ATT reopen: close %d, open %d", res_l2cap_close, res_l2cap_open);
+            BTSecurityLevel sec_level = pairing_data.sec_level;
+            if( BTSecurityLevel::NONE < sec_level ) {
+                sec_level = BTSecurityLevel::NONE;
+                pairing_data.sec_level = sec_level;
+            }
+            const bool l2cap_close = l2cap_att.close();
+            const bool l2cap_open = l2cap_att.open(*this);
+            is_device_ready = l2cap_open;
 
-            is_device_ready = res_l2cap_open;
+            DBG_PRINT("DBTDevice:hci:SMP: l2cap ATT reopen: ready %d, sec_level %s, l2cap[close %d, open %d], %s",
+                    is_device_ready, getBTSecurityLevelString(sec_level).c_str(), l2cap_close, l2cap_open, toString().c_str());
+
           } break;
 
         case SMPPDUMsg::Opcode::SECURITY_REQUEST:
@@ -653,6 +668,7 @@ HCIStatusCode DBTDevice::setPairingNumericComparison(const bool positive) noexce
 void DBTDevice::clearSMPStates() noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
+    pairing_data.sec_level = BTSecurityLevel::UNSET;
     pairing_data.mode = PairingMode::NONE;
     pairing_data.state = SMPPairingState::NONE;
     pairing_data.res_requested_sec = false;
@@ -684,7 +700,7 @@ void DBTDevice::disconnectSMP(int caller) noexcept {
   #endif
 }
 
-bool DBTDevice::connectSMP(std::shared_ptr<DBTDevice> sthis, const uint8_t sec_level) noexcept {
+bool DBTDevice::connectSMP(std::shared_ptr<DBTDevice> sthis, const BTSecurityLevel sec_level) noexcept {
   #if SMP_SUPPORTED_BY_OS
     if( !isConnected || !allowDisconnect) {
         ERR_PRINT("DBTDevice::connectSMP(%u): Device not connected: %s", sec_level, toString().c_str());
@@ -696,7 +712,7 @@ bool DBTDevice::connectSMP(std::shared_ptr<DBTDevice> sthis, const uint8_t sec_l
         return false;
     }
 
-    if( BT_SECURITY_LOW >= sec_level ) {
+    if( BTSecurityLevel::NONE >= sec_level ) {
         return false;
     }
 

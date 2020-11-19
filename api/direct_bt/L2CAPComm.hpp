@@ -180,12 +180,15 @@ namespace direct_bt {
             std::recursive_mutex & mutex_write() { return mtx_write; }
 
             /**
-             * If sec_level > BT_SECURITY_LOW, sets the BlueZ's L2CAP socket BT_SECURITY sec_level, determining the SMP security mode per connection.
+             * If sec_level > BTSecurityLevel::NONE, sets the BlueZ's L2CAP socket BT_SECURITY sec_level, determining the SMP security mode per connection.
+             * <p>
+             * To unset security, the L2CAP socket should be closed and opened again.
+             * </p>
              *
-             * @param sec_level BT_SECURITY_LOW, BT_SECURITY_MEDIUM, BT_SECURITY_HIGH or BT_SECURITY_FIPS. sec_level <= BT_SECURITY_LOW leads to not set security level.
-             * @return true if a security level > BT_SECURITY_LOW has been set successfully, false if no security level has been set or if it failed.
+             * @param sec_level sec_level <= BTSecurityLevel::NONE will not set security level and returns false.
+             * @return true if a security level > BTSecurityLevel::NONE has been set successfully, false if no security level has been set or if it failed.
              */
-            bool setBTSecurityLevel(const uint8_t sec_level);
+            bool setBTSecurityLevel(const BTSecurityLevel sec_level);
 
             /** Generic read, w/o locking suitable for a unique ringbuffer sink. Using L2CAPEnv::L2CAP_READER_POLL_TIMEOUT.*/
             jau::snsize_t read(uint8_t* buffer, const jau::nsize_t capacity);

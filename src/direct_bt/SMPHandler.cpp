@@ -200,7 +200,7 @@ SMPHandler::~SMPHandler() noexcept {
     clearAllCallbacks();
 }
 
-bool SMPHandler::establishSecurity(const uint8_t sec_level) {
+bool SMPHandler::establishSecurity(const BTSecurityLevel sec_level) {
     // FIXME: Start negotiating security!
     // FIXME: Return true only if security has been established (encryption and optionally authentication)
     (void)sec_level;

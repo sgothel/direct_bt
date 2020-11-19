@@ -73,7 +73,9 @@ static bool QUIET = false;
 
 static std::vector<EUI48> waitForDevices;
 
-static uint32_t pairing_passkey = 0;
+const static uint32_t NO_PASSKEY = 0xffffffffU;
+static uint32_t pairing_passkey = NO_PASSKEY;
+static BTSecurityLevel sec_level = BTSecurityLevel::UNSET;
 
 static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device);
 
@@ -243,8 +245,13 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 // next: PASSKEY_EXPECTED... or PROCESS_STARTED
                 break;
             case SMPPairingState::PASSKEY_EXPECTED: {
-                std::thread dc(&DBTDevice::setPairingPasskey, device, pairing_passkey); // @suppress("Invalid arguments")
-                dc.detach();
+                if( pairing_passkey != NO_PASSKEY ) {
+                    std::thread dc(&DBTDevice::setPairingPasskey, device, pairing_passkey); // @suppress("Invalid arguments")
+                    dc.detach();
+                } /* else {
+                    std::thread dc(&DBTDevice::setPairingPasskeyNegative, device); // @suppress("Invalid arguments")
+                    dc.detach();
+                } */
                 // next: PROCESS_STARTED or FAILED
               } break;
             case SMPPairingState::NUMERIC_COMPARE_EXPECTED: {
@@ -352,6 +359,9 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
 static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
     fprintf(stderr, "****** Connecting Device: Start %s\n", device->toString().c_str());
     device->getAdapter().stopDiscovery();
+    if( BTSecurityLevel::UNSET < sec_level ) {
+        device->setSecurityLevel(sec_level);
+    }
     HCIStatusCode res;
     if( !USE_WHITELIST ) {
         res = device->connectDefault();
@@ -711,6 +721,8 @@ int main(int argc, char *argv[])
             USE_WHITELIST = true;
         } else if( !strcmp("-passkey", argv[i]) && argc > (i+1) ) {
             pairing_passkey = atoi(argv[++i]);
+        } else if( !strcmp("-seclevel", argv[i]) && argc > (i+1) ) {
+            sec_level = getBTSecurityLevel(atoi(argv[++i]));
         } else if( !strcmp("-disconnect", argv[i]) ) {
             KEEP_CONNECTED = false;
         } else if( !strcmp("-enableGATTPing", argv[i]) ) {
@@ -750,6 +762,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "QUIET %d\n", QUIET);
     fprintf(stderr, "btmode %s\n", getBTModeString(btMode).c_str());
     fprintf(stderr, "passkey %u\n", pairing_passkey);
+    fprintf(stderr, "seclevel %s\n", getBTSecurityLevelString(sec_level).c_str());
 
     printList( "waitForDevice: ", waitForDevices);
 

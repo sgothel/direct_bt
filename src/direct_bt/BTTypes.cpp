@@ -218,6 +218,17 @@ BTMode direct_bt::getBTMode(const std::string & value) noexcept {
     return BTMode::NONE;
 }
 
+std::string direct_bt::getBTSecurityLevelString(const BTSecurityLevel v) noexcept {
+    switch(v) {
+        case BTSecurityLevel::UNSET:         return "UNSET";
+        case BTSecurityLevel::NONE:          return "NONE";
+        case BTSecurityLevel::ENC_ONLY:      return "ENC_ONLY";
+        case BTSecurityLevel::ENC_AUTH:      return "ENC_AUTH";
+        case BTSecurityLevel::ENC_AUTH_FIPS: return "ENC_AUTH_FIPS";
+    }
+    return "Unknown BTSecurityLevel";
+}
+
 std::string direct_bt::getPairingModeString(const PairingMode v) noexcept {
     switch(v) {
         case PairingMode::NONE:                return "NONE";
