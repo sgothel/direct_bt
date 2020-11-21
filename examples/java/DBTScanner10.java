@@ -91,8 +91,9 @@ public class DBTScanner10 {
     boolean REMOVE_DEVICE = true;
     boolean USE_WHITELIST = false;
     final List<String> whitelist = new ArrayList<String>();
-    final List<String> charIdentifierList = new ArrayList<String>();
-    final List<String> charValueList = new ArrayList<String>();
+
+    String charIdentifier = null;
+    int charValue = 0;
 
     boolean SHOW_UPDATE_EVENTS = false;
     boolean QUIET = false;
@@ -364,10 +365,10 @@ public class DBTScanner10 {
             {
                 // WIP: Implement a simple Characteristic ping-pong writeValue <-> notify transmission for stress testing.
                 final BluetoothManager manager = device.getAdapter().getManager();
-                for(final String characteristic : charIdentifierList) {
+                if( null != charIdentifier ) {
                     final BluetoothGattCharacteristic char2 = (BluetoothGattCharacteristic)
-                            manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, device);
-                    println("Char UUID "+characteristic);
+                            manager.find(BluetoothType.GATT_CHARACTERISTIC, null, charIdentifier, device);
+                    println("Char UUID "+charIdentifier);
                     println("  over device : "+char2);
                     if( null != char2 ) {
                         final GATTCharacteristicListener charPingPongListener = new GATTCharacteristicListener(null) {
@@ -386,11 +387,16 @@ public class DBTScanner10 {
                             }
                         };
                         final boolean enabledState[] = { false, false };
-                        final boolean addedCharPingPongListenerRes =
-                                char2.addCharacteristicListener(charPingPongListener, enabledState);
-                          BluetoothGattService.addCharacteristicListenerToAll(device, primServices, charPingPongListener);
+                        final boolean addedCharPingPongListenerRes = char2.addCharacteristicListener(charPingPongListener, enabledState);
                         if( !QUIET ) {
                             println("Added CharPingPongListenerRes: "+addedCharPingPongListenerRes+", enabledState "+Arrays.toString(enabledState));
+                        }
+                        if( addedCharPingPongListenerRes ) {
+                            final byte[] cmd = { (byte)charValue }; // request device model
+                            final boolean wres = char2.writeValue(cmd, false /* withResponse */);
+                            if( !QUIET ) {
+                                println("Write response: "+wres);
+                            }
                         }
                     }
                 }
@@ -426,7 +432,7 @@ public class DBTScanner10 {
                 for(final Iterator<BluetoothGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
                     final BluetoothGattService primService = srvIter.next();
                     if( !QUIET ) {
-                        printf("  [%02d] Service %s\n", i, primService.toString());
+                        printf("  [%02d] Service %s, uuid %s\n", i, primService.toString(), primService.getUUID());
                         printf("  [%02d] Service Characteristics\n", i);
                     }
                     int j=0;
@@ -434,7 +440,7 @@ public class DBTScanner10 {
                     for(final Iterator<BluetoothGattCharacteristic> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
                         final BluetoothGattCharacteristic serviceChar = charIter.next();
                         if( !QUIET ) {
-                            printf("  [%02d.%02d] CharDef: %s\n", i, j, serviceChar.toString());
+                            printf("  [%02d.%02d] CharDef: %s, uuid %s\n", i, j, serviceChar.toString(), serviceChar.getUUID());
                         }
                         final List<String> properties = Arrays.asList(serviceChar.getFlags());
                         if( properties.contains("read") ) {
@@ -450,7 +456,7 @@ public class DBTScanner10 {
                         for(final Iterator<BluetoothGattDescriptor> descIter = charDescList.iterator(); descIter.hasNext(); k++) {
                             final BluetoothGattDescriptor charDesc = descIter.next();
                             if( !QUIET ) {
-                                printf("  [%02d.%02d.%02d] Desc: %s\n", i, j, k, charDesc.toString());
+                                printf("  [%02d.%02d.%02d] Desc: %s, uuid %s\n", i, j, k, charDesc.toString(), charDesc.getUUID());
                             }
                         }
                     }
@@ -726,8 +732,10 @@ public class DBTScanner10 {
                     test.pairing_passkey = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-seclevel") && args.length > (i+1) ) {
                     test.sec_level = BTSecurityLevel.get( (byte)Integer.valueOf(args[++i]).intValue() );
-                } else if( arg.equals("-char") && args.length > (i+1) ) {
-                    test.charIdentifierList.add(args[++i]);
+                } else if( arg.equals("-charid") && args.length > (i+1) ) {
+                    test.charIdentifier = args[++i];
+                } else if( arg.equals("-charval") && args.length > (i+1) ) {
+                    test.charValue = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-disconnect") ) {
                     test.KEEP_CONNECTED = false;
                 } else if( arg.equals("-enableGATTPing") ) {
@@ -744,10 +752,11 @@ public class DBTScanner10 {
             }
             println("Run with '[-btmode LE|BREDR|DUAL] "+
                     "[-bluetoothManager <BluetoothManager-Implementation-Class-Name>] "+
-                    "[-disconnect] [-enableGATTPing] [-count <number>] [-single] (-char <uuid>)* [-show_update_events] [-quiet]  "+
+                    "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet]  "+
                     "[-resetEachCon connectionCount] "+
                     "(-mac <device_address>)* (-wl <device_address>)* "+
                     "[-passkey <digits>]  [-seclevel <int>]" +
+                    "[-charid <uuid>] [-charval <byte-val>]"+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "+
@@ -768,9 +777,10 @@ public class DBTScanner10 {
         println("QUIET "+test.QUIET);
         println("passkey "+test.pairing_passkey);
         println("seclevel "+test.sec_level);
+        println("characteristic-id: "+test.charIdentifier);
+        println("characteristic-value: "+test.charValue);
 
         println("waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));
-        println("characteristicList: "+Arrays.toString(test.charIdentifierList.toArray()));
 
         if( waitForEnter ) {
             println("Press ENTER to continue\n");

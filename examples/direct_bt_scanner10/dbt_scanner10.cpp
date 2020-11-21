@@ -68,6 +68,9 @@ static bool REMOVE_DEVICE = true;
 static bool USE_WHITELIST = false;
 static std::vector<EUI48> WHITELIST;
 
+static std::string charIdentifier = nullptr;
+static int charValue = 0;
+
 static bool SHOW_UPDATE_EVENTS = false;
 static bool QUIET = false;
 
@@ -324,7 +327,7 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
     MyGATTEventListener(const GATTCharacteristic * characteristicMatch)
     : AssociatedGATTCharacteristicListener(characteristicMatch) {}
 
-    void notificationReceived(GATTCharacteristicRef charDecl, std::shared_ptr<TROOctets> charValue, const uint64_t timestamp) override {
+    void notificationReceived(GATTCharacteristicRef charDecl, std::shared_ptr<TROOctets> char_value, const uint64_t timestamp) override {
         const std::shared_ptr<DBTDevice> dev = charDecl->getDeviceChecked();
         const uint64_t tR = getCurrentMilliseconds();
         fprintf(stderr, "****** GATT Notify (td %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
@@ -332,11 +335,11 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
         if( nullptr != charDecl ) {
             fprintf(stderr, "****** decl %s\n", charDecl->toString().c_str());
         }
-        fprintf(stderr, "****** rawv %s\n", charValue->toString().c_str());
+        fprintf(stderr, "****** rawv %s\n", char_value->toString().c_str());
     }
 
     void indicationReceived(GATTCharacteristicRef charDecl,
-                            std::shared_ptr<TROOctets> charValue, const uint64_t timestamp,
+                            std::shared_ptr<TROOctets> char_value, const uint64_t timestamp,
                             const bool confirmationSent) override
     {
         const std::shared_ptr<DBTDevice> dev = charDecl->getDeviceChecked();
@@ -346,13 +349,13 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
         if( nullptr != charDecl ) {
             fprintf(stderr, "****** decl %s\n", charDecl->toString().c_str());
             if( _TEMPERATURE_MEASUREMENT == *charDecl->value_type ) {
-                std::shared_ptr<GattTemperatureMeasurement> temp = GattTemperatureMeasurement::get(*charValue);
+                std::shared_ptr<GattTemperatureMeasurement> temp = GattTemperatureMeasurement::get(*char_value);
                 if( nullptr != temp ) {
                     fprintf(stderr, "****** valu %s\n", temp->toString().c_str());
                 }
             }
         }
-        fprintf(stderr, "****** rawv %s\n", charValue->toString().c_str());
+        fprintf(stderr, "****** rawv %s\n", char_value->toString().c_str());
     }
 };
 
@@ -409,6 +412,35 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
                             "PERF:  adapter-init to gatt-complete %" PRIu64 " ms\n\n",
                             td01, td15, tdc5, (tdc5 - td15), td05);
         }
+#if 0
+        {
+            // WIP: Implement a simple Characteristic ping-pong writeValue <-> notify transmission for stress testing.
+            DBTManager & manager = device->getAdapter().getManager();
+            if( nullptr != charIdentifier ) {
+                GATTCharacteristic * char2 = (GATTCharacteristic*) nullptr;
+                        // manager.find(BluetoothType.GATT_CHARACTERISTIC, null, charIdentifier, device);
+                fprintf(stderr, "Char UUID %s\n", charIdentifier.c_str());
+                fprintf(stderr, "  over device : %s\n", char2->toString().c_str());
+                if( nullptr != char2 ) {
+                    bool cccdEnableResult[2];
+                    bool cccdRet = char2->addCharacteristicListener( std::shared_ptr<GATTCharacteristicListener>( new MyGATTEventListener(char2) ),
+                                                                          cccdEnableResult );
+                    if( !QUIET ) {
+                        fprintf(stderr, "Added CharPingPongListenerRes Notification(%d), Indication(%d): Result %d\n",
+                                cccdEnableResult[0], cccdEnableResult[1], cccdRet);
+                    }
+                    if( cccdRet ) {
+                        uint8_t cmd[] { (uint8_t)charValue }; // request device model
+                        bool wres = char2->writeValueNoResp(cmd);
+                        if( !QUIET ) {
+                            fprintf(stderr, "Write response: "+wres);
+                        }
+                    }
+                }
+            }
+        }
+#endif
+
         std::shared_ptr<GattGenericAccessSvc> ga = device->getGATTGenericAccess();
         if( nullptr != ga && !QUIET ) {
             fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
@@ -723,6 +755,10 @@ int main(int argc, char *argv[])
             pairing_passkey = atoi(argv[++i]);
         } else if( !strcmp("-seclevel", argv[i]) && argc > (i+1) ) {
             sec_level = getBTSecurityLevel(atoi(argv[++i]));
+        } else if( !strcmp("-charid", argv[i]) && argc > (i+1) ) {
+            charIdentifier = std::string(argv[++i]);
+        } else if( !strcmp("-charval", argv[i]) && argc > (i+1) ) {
+            charValue = atoi(argv[++i]);
         } else if( !strcmp("-disconnect", argv[i]) ) {
             KEEP_CONNECTED = false;
         } else if( !strcmp("-enableGATTPing", argv[i]) ) {
@@ -744,6 +780,7 @@ int main(int argc, char *argv[])
                     "[-resetEachCon connectionCount] "
                     "(-mac <device_address>)* (-wl <device_address>)* "
                     "[-passkey <digits>] [-seclevel <int>]"
+                    "[-charid <uuid>] [-charval <byte-val>]"
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,...] "
@@ -763,6 +800,8 @@ int main(int argc, char *argv[])
     fprintf(stderr, "btmode %s\n", getBTModeString(btMode).c_str());
     fprintf(stderr, "passkey %u\n", pairing_passkey);
     fprintf(stderr, "seclevel %s\n", getBTSecurityLevelString(sec_level).c_str());
+    fprintf(stderr, "characteristic-id: %s\n", charIdentifier.c_str());
+    fprintf(stderr, "characteristic-value: %d\n", charValue);
 
     printList( "waitForDevice: ", waitForDevices);
 
