@@ -116,15 +116,15 @@ namespace direct_bt {
      * </p>
      */
     enum class BTSecurityLevel : uint8_t {
-        /** Security Level not set. */
+        /** Security Level not set, value 0. */
         UNSET         = 0,
-        /** No encryption and no authentication. Also known as BT_SECURITY_LOW 1. */
+        /** No encryption and no authentication. Also known as BT_SECURITY_LOW, value 1. */
         NONE          = 1,
-        /** Encryption and no authentication (no MITM). Also known as BT_SECURITY_MEDIUM 2. */
+        /** Encryption and no authentication (no MITM). Also known as BT_SECURITY_MEDIUM, value 2. */
         ENC_ONLY      = 2,
-        /** Encryption and authentication (MITM). Also known as BT_SECURITY_HIGH 3. */
+        /** Encryption and authentication (MITM). Also known as BT_SECURITY_HIGH, value 3. */
         ENC_AUTH      = 3,
-        /** Authenticated Secure Connections. Also known as BT_SECURITY_FIPS 4. */
+        /** Authenticated Secure Connections. Also known as BT_SECURITY_FIPS, value 4. */
         ENC_AUTH_FIPS = 4
     };
     constexpr uint8_t number(const BTSecurityLevel rhs) noexcept {
