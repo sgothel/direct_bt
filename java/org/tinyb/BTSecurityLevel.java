@@ -36,15 +36,15 @@ package org.tinyb;
  * @since 2.1.0
  */
 public enum BTSecurityLevel {
-    /** Security Level not set. */
+    /** Security Level not set, value 0. */
     UNSET         ((byte)0),
-    /** No encryption and no authentication. Also known as BT_SECURITY_LOW 1. */
+    /** No encryption and no authentication. Also known as BT_SECURITY_LOW, value 1. */
     NONE          ((byte)1),
-    /** Encryption and no authentication (no MITM). Also known as BT_SECURITY_MEDIUM 2. */
+    /** Encryption and no authentication (no MITM). Also known as BT_SECURITY_MEDIUM, value 2. */
     ENC_ONLY      ((byte)2),
-    /** Encryption and authentication (MITM). Also known as BT_SECURITY_HIGH 3. */
+    /** Encryption and authentication (MITM). Also known as BT_SECURITY_HIGH, value 3. */
     ENC_AUTH      ((byte)3),
-    /** Authenticated Secure Connections. Also known as BT_SECURITY_FIPS 4. */
+    /** Authenticated Secure Connections. Also known as BT_SECURITY_FIPS, value 4. */
     ENC_AUTH_FIPS ((byte)4);
 
     public final byte value;
