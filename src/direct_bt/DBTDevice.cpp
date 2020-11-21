@@ -142,7 +142,7 @@ std::string DBTDevice::toString(bool includeDiscoveredServices) const noexcept {
     std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+leaddrtype+"], name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
             "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", handle "+jau::uint16HexString(hciConnHandle)+
-            "], pairing "+getPairingModeString(pairing_data.mode).c_str()+", rssi "+std::to_string(getRSSI())+
+            "], security "+getBTSecurityLevelString(pairing_data.sec_level).c_str()+", pairing "+getPairingModeString(pairing_data.mode).c_str()+", rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+
             ", appearance "+jau::uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
             "), "+msdstr+", "+javaObjectToString()+"]");
