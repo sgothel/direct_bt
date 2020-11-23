@@ -172,6 +172,7 @@ void HCIHandler::clearAllStates() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     connectionList.clear();
     disconnectCmdList.clear();
+    currentScanType = ScanType::NONE;
 }
 
 MgmtEvent::Opcode HCIHandler::translate(HCIEventType evt, HCIMetaEventType met) noexcept {
