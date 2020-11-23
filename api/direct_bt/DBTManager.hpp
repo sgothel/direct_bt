@@ -30,6 +30,7 @@
 #include <string>
 #include <cstdint>
 #include <array>
+#include <vector>
 
 #include <mutex>
 #include <atomic>
@@ -209,6 +210,9 @@ namespace direct_bt {
 
             const MgmtEnv & env;
             const BTMode defaultBTMode;
+            /** Default initialization with SMPIOCapability::KEYBOARD_ONLY for PairingMode::PASSKEY_ENTRY. */
+            const SMPIOCapability defaultIOCapability;
+
             POctets rbuffer;
             HCIComm comm;
 
@@ -233,6 +237,14 @@ namespace direct_bt {
             ChangedAdapterSetCallbackList mgmtChangedAdapterSetCallbackList;
 
             jau::cow_vector<std::shared_ptr<AdapterInfo>> adapterInfos;
+
+            /**
+             * Using defaultIOCapability on added AdapterInfo.
+             * Sharing same dev_id <-> index mapping of adapterInfos using findAdapterInfoIndex().
+             * Piggy back reusing adapterInfos.get_write_mutex().
+             */
+            std::vector<SMPIOCapability> adapterIOCapability;
+
             void mgmtReaderThreadImpl() noexcept;
 
             /**
@@ -278,6 +290,8 @@ namespace direct_bt {
             bool mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceWhitelistAddedCB(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e) noexcept;
+
+            int findAdapterInfoIndex(const uint16_t dev_id) const noexcept;
 
             /**
              * Adds the given AdapterInfo if representing a new dev_id.
@@ -381,6 +395,9 @@ namespace direct_bt {
              * </p>
              */
             int getDefaultAdapterDevID() const noexcept;
+
+            bool setIOCapability(const uint16_t dev_id, const SMPIOCapability io_cap, SMPIOCapability& pre_io_cap) noexcept;
+            SMPIOCapability getIOCapability(const uint16_t dev_id) const noexcept;
 
             bool setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, const uint8_t mode, AdapterSetting& current_settings) noexcept;
             MgmtStatus setDiscoverable(const uint16_t dev_id, const uint8_t state, const uint16_t timeout, AdapterSetting& current_settings) noexcept;

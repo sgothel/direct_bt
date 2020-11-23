@@ -243,7 +243,6 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
      * See SMPTypes.cpp: getPairingMode(const bool le_sc_pairing, const SMPIOCapability ioCap_init, const SMPIOCapability ioCap_resp) noexcept
      */
 #if USE_LINUX_BT_SECURITY
-    const SMPIOCapability iocap { SMPIOCapability::KEYBOARD_ONLY }; // Mostly PairingMode::PASSKEY_ENTRY
     const uint8_t debug_keys = 0;
     const uint8_t ssp_on_param = 0x01; // SET_SSP 0x00 disabled, 0x01 enable Secure Simple Pairing. SSP only available for BREDR >= 2.1 not single-mode LE.
     const uint8_t sc_on_param = 0x01; // SET_SECURE_CONN 0x00 disabled, 0x01 enables SC mixed, 0x02 enables SC only mode
@@ -305,7 +304,7 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
 
 #if USE_LINUX_BT_SECURITY
     setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, debug_keys, current_settings);
-    setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(iocap), current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(defaultIOCapability), current_settings);
     setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 1, current_settings); // required for pairing
 #else
     setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
@@ -365,6 +364,11 @@ void DBTManager::shutdownAdapter(const uint16_t dev_id) noexcept {
 DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
 : env(MgmtEnv::get()),
   defaultBTMode(BTMode::NONE != _defaultBTMode ? _defaultBTMode : env.DEFAULT_BTMODE),
+#if USE_LINUX_BT_SECURITY
+  defaultIOCapability(SMPIOCapability::KEYBOARD_ONLY),
+#else
+  defaultIOCapability(SMPIOCapability::UNSET),
+#endif
   rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
   mgmtEventRing(env.MGMT_EVT_RING_CAPACITY), mgmtReaderShallStop(false),
   mgmtReaderThreadId(0), mgmtReaderRunning(false),
@@ -469,6 +473,7 @@ next1:
         }
         {
             // Not required: CTOR: const std::lock_guard<std::recursive_mutex> lock(adapterInfos.get_write_mutex());
+            // Not required: CTOR: std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> store = adapterInfos.copy_store();
             std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
 
             for(int i=0; i < num_adapter; i++) {
@@ -476,6 +481,7 @@ next1:
                 std::shared_ptr<AdapterInfo> adapterInfo = initAdapter(dev_id, defaultBTMode);
                 if( nullptr != adapterInfo ) {
                     snapshot->push_back(adapterInfo);
+                    adapterIOCapability.push_back(defaultIOCapability);
                     DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: %s", i, num_adapter, dev_id, adapterInfo->toString().c_str());
                 } else {
                     DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: FAILED", i, num_adapter, dev_id);
@@ -534,6 +540,7 @@ void DBTManager::close() noexcept {
         whitelist.clear();
         clearAllCallbacks();
         adapterInfos.clear();
+        adapterIOCapability.clear();
         comm.close();
         return;
     }
@@ -593,6 +600,18 @@ void DBTManager::close() noexcept {
     DBG_PRINT("DBTManager::close: End");
 }
 
+int DBTManager::findAdapterInfoIndex(const uint16_t dev_id) const noexcept {
+    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+    auto begin = snapshot->begin();
+    auto it = std::find_if(begin, snapshot->end(), [&](std::shared_ptr<AdapterInfo> const& p) -> bool {
+        return p->dev_id == dev_id;
+    });
+    if ( it == std::end(*snapshot) ) {
+        return -1;
+    } else {
+        return it - begin;
+    }
+}
 int DBTManager::findAdapterInfoDevId(const EUI48 &mac) const noexcept {
     std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
     auto begin = snapshot->begin();
@@ -643,6 +662,7 @@ bool DBTManager::addAdapterInfo(std::shared_ptr<AdapterInfo> ai) noexcept {
     }
     store->push_back(ai);
     adapterInfos.set_store(std::move(store));
+    adapterIOCapability.push_back(defaultIOCapability);
     return true;
 }
 std::shared_ptr<AdapterInfo> DBTManager::removeAdapterInfo(const uint16_t dev_id) noexcept {
@@ -652,6 +672,7 @@ std::shared_ptr<AdapterInfo> DBTManager::removeAdapterInfo(const uint16_t dev_id
     for(auto it = store->begin(); it != store->end(); ) {
         std::shared_ptr<AdapterInfo> & ai = *it;
         if( ai->dev_id == dev_id ) {
+            adapterIOCapability.erase( adapterIOCapability.begin() + ( it - store->begin() ) );
             std::shared_ptr<AdapterInfo> res = ai;
             it = store->erase(it);
             adapterInfos.set_store(std::move(store));
@@ -691,6 +712,34 @@ int DBTManager::getDefaultAdapterDevID() const noexcept {
         return -1;
     }
     return ai->dev_id;
+}
+
+bool DBTManager::setIOCapability(const uint16_t dev_id, const SMPIOCapability io_cap, SMPIOCapability& pre_io_cap) noexcept {
+    if( SMPIOCapability::UNSET != io_cap ) {
+#if USE_LINUX_BT_SECURITY
+        const std::lock_guard<std::recursive_mutex> lock( adapterInfos.get_write_mutex() );
+        const int index = findAdapterInfoIndex(dev_id);
+        if( 0 <= index ) {
+            const SMPIOCapability o = adapterIOCapability.at(index);
+            AdapterSetting current_settings { AdapterSetting::NONE }; // throw away return value, unchanged on SET_IO_CAPABILITY
+            if( setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(io_cap), current_settings) ) {
+                adapterIOCapability.at(index) = io_cap;
+                pre_io_cap = o;
+                return true;
+            }
+        }
+#endif
+    }
+    return false;
+}
+
+SMPIOCapability DBTManager::getIOCapability(const uint16_t dev_id) const noexcept {
+    const std::lock_guard<std::recursive_mutex> lock( const_cast<DBTManager *>(this)->adapterInfos.get_write_mutex() );
+    const int index = findAdapterInfoIndex(dev_id);
+    if( 0 <= index ) {
+        return adapterIOCapability.at(index);
+    }
+    return SMPIOCapability::UNSET;
 }
 
 bool DBTManager::setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, const uint8_t mode, AdapterSetting& current_settings) noexcept {
