@@ -860,51 +860,53 @@ namespace direct_bt {
     {
         public:
             enum class Opcode : uint16_t {
-                INVALID                    = 0x0000,
-                CMD_COMPLETE               = 0x0001,
-                CMD_STATUS                 = 0x0002,
-                CONTROLLER_ERROR           = 0x0003,
-                INDEX_ADDED                = 0x0004,
-                INDEX_REMOVED              = 0x0005,
-                NEW_SETTINGS               = 0x0006,
-                CLASS_OF_DEV_CHANGED       = 0x0007,
-                LOCAL_NAME_CHANGED         = 0x0008,
-                NEW_LINK_KEY               = 0x0009,
-                NEW_LONG_TERM_KEY          = 0x000A,
-                DEVICE_CONNECTED           = 0x000B,
-                DEVICE_DISCONNECTED        = 0x000C,
-                CONNECT_FAILED             = 0x000D,
-                PIN_CODE_REQUEST           = 0x000E,
-                USER_CONFIRM_REQUEST       = 0x000F,
-                USER_PASSKEY_REQUEST       = 0x0010,
-                AUTH_FAILED                = 0x0011,
-                DEVICE_FOUND               = 0x0012,
-                DISCOVERING                = 0x0013,
-                DEVICE_BLOCKED             = 0x0014,
-                DEVICE_UNBLOCKED           = 0x0015,
-                DEVICE_UNPAIRED            = 0x0016,
-                PASSKEY_NOTIFY             = 0x0017,
-                NEW_IRK                    = 0x0018,
-                NEW_CSRK                   = 0x0019,
-                DEVICE_WHITELIST_ADDED     = 0x001A,
-                DEVICE_WHITELIST_REMOVED   = 0x001B,
-                NEW_CONN_PARAM             = 0x001C,
-                UNCONF_INDEX_ADDED         = 0x001D,
-                UNCONF_INDEX_REMOVED       = 0x001E,
-                NEW_CONFIG_OPTIONS         = 0x001F,
-                EXT_INDEX_ADDED            = 0x0020,
-                EXT_INDEX_REMOVED          = 0x0021,
-                LOCAL_OOB_DATA_UPDATED     = 0x0022,
-                ADVERTISING_ADDED          = 0x0023,
-                ADVERTISING_REMOVED        = 0x0024,
-                EXT_INFO_CHANGED           = 0x0025,
-                PHY_CONFIGURATION_CHANGED  = 0x0026, // linux >= 4.19
-                EXP_FEATURE_CHANGED        = 0x0027, // linux >= 5.8
-                DEVICE_FLAGS_CHANGED       = 0x002a,
-                ADV_MONITOR_ADDED          = 0x002b,
-                ADV_MONITOR_REMOVED        = 0x002c,
-                LE_REMOTE_USER_FEATURES    = 0x002d, // direct_bt extension HCIHandler -> listener
-                MGMT_EVENT_TYPE_COUNT      = 0x002e
+                INVALID                      = 0x0000,
+                CMD_COMPLETE                 = 0x0001,
+                CMD_STATUS                   = 0x0002,
+                CONTROLLER_ERROR             = 0x0003,
+                INDEX_ADDED                  = 0x0004,
+                INDEX_REMOVED                = 0x0005,
+                NEW_SETTINGS                 = 0x0006,
+                CLASS_OF_DEV_CHANGED         = 0x0007,
+                LOCAL_NAME_CHANGED           = 0x0008,
+                NEW_LINK_KEY                 = 0x0009,
+                NEW_LONG_TERM_KEY            = 0x000A,
+                DEVICE_CONNECTED             = 0x000B,
+                DEVICE_DISCONNECTED          = 0x000C,
+                CONNECT_FAILED               = 0x000D,
+                PIN_CODE_REQUEST             = 0x000E,
+                USER_CONFIRM_REQUEST         = 0x000F,
+                USER_PASSKEY_REQUEST         = 0x0010,
+                AUTH_FAILED                  = 0x0011,
+                DEVICE_FOUND                 = 0x0012,
+                DISCOVERING                  = 0x0013,
+                DEVICE_BLOCKED               = 0x0014,
+                DEVICE_UNBLOCKED             = 0x0015,
+                DEVICE_UNPAIRED              = 0x0016,
+                PASSKEY_NOTIFY               = 0x0017,
+                NEW_IRK                      = 0x0018,
+                NEW_CSRK                     = 0x0019,
+                DEVICE_WHITELIST_ADDED       = 0x001A,
+                DEVICE_WHITELIST_REMOVED     = 0x001B,
+                NEW_CONN_PARAM               = 0x001C,
+                UNCONF_INDEX_ADDED           = 0x001D,
+                UNCONF_INDEX_REMOVED         = 0x001E,
+                NEW_CONFIG_OPTIONS           = 0x001F,
+                EXT_INDEX_ADDED              = 0x0020,
+                EXT_INDEX_REMOVED            = 0x0021,
+                LOCAL_OOB_DATA_UPDATED       = 0x0022,
+                ADVERTISING_ADDED            = 0x0023,
+                ADVERTISING_REMOVED          = 0x0024,
+                EXT_INFO_CHANGED             = 0x0025,
+                PHY_CONFIGURATION_CHANGED    = 0x0026, // linux >= 4.19
+                EXP_FEATURE_CHANGED          = 0x0027, // linux >= 5.8
+                DEVICE_FLAGS_CHANGED         = 0x002a,
+                ADV_MONITOR_ADDED            = 0x002b,
+                ADV_MONITOR_REMOVED          = 0x002c,
+                HCI_ENC_CHANGED              = 0x002d, // direct_bt extension HCIHandler -> listener
+                HCI_ENC_KEY_REFRESH_COMPLETE = 0x002e, // direct_bt extension HCIHandler -> listener
+                HCI_LE_REMOTE_USR_FEATURES   = 0x002f, // direct_bt extension HCIHandler -> listener
+                MGMT_EVENT_TYPE_COUNT        = 0x0030
             };
             static constexpr uint16_t number(const Opcode rhs) noexcept {
                 return static_cast<uint16_t>(rhs);
@@ -1778,12 +1780,90 @@ namespace direct_bt {
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
+     * HCIStatusCode status (1 Octet)
+     * uint8_t enc_enabled (1 Octet)
+     * <p>
+     * This is a Direct_BT extension for HCI.
+     * </p>
+     * <pre>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.8 ENCRYPT_CHANGE
+     * </pre>
+     */
+    class MgmtEvtHCIEncryptionChanged : public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                       ", addressType "+getBDAddressTypeString(getAddressType())+
+                       ", status "+getHCIStatusCodeString(getHCIStatus())+
+                       ", enabled "+jau::uint8HexString(getEncEnabled());
+            }
+
+        public:
+            MgmtEvtHCIEncryptionChanged(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const HCIStatusCode hci_status, uint8_t hci_enc_enabled)
+            : MgmtEvent(Opcode::HCI_ENC_CHANGED, dev_id, 6+1+1+1)
+            {
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(hci_status));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1+1, hci_enc_enabled);
+            }
+
+            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+            HCIStatusCode getHCIStatus() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1) ); }
+            uint8_t getEncEnabled() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1+1); }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+2+1; }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     * HCIStatusCode status (1 Octet)
+     * <p>
+     * This is a Direct_BT extension for HCI.
+     * </p>
+     * <pre>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.39 ENCRYPT_KEY_REFRESH_COMPLETE
+     * </pre>
+     */
+    class MgmtEvtHCIEncryptionKeyRefreshComplete : public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                       ", addressType "+getBDAddressTypeString(getAddressType())+
+                       ", status "+getHCIStatusCodeString(getHCIStatus());
+            }
+
+        public:
+            MgmtEvtHCIEncryptionKeyRefreshComplete(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const HCIStatusCode hci_status)
+            : MgmtEvent(Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, dev_id, 6+1+1)
+            {
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(hci_status));
+            }
+
+            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+            HCIStatusCode getHCIStatus() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1) ); }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+2+1; }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
      * uint64_t features (8 Octets)
      * <p>
-     * This is a Direct_BT extension.
+     * This is a Direct_BT extension for HCI.
      * </p>
      */
-    class MgmtEvtLERemoteUserFeatures : public MgmtEvent
+    class MgmtEvtHCILERemoteUserFeatures : public MgmtEvent
     {
         protected:
             std::string baseString() const noexcept override {
@@ -1793,8 +1873,8 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtLERemoteUserFeatures(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const LEFeatures features_)
-            : MgmtEvent(Opcode::LE_REMOTE_USER_FEATURES, dev_id, 6+1+8)
+            MgmtEvtHCILERemoteUserFeatures(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const LEFeatures features_)
+            : MgmtEvent(Opcode::HCI_LE_REMOTE_USR_FEATURES, dev_id, 6+1+8)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));

@@ -271,11 +271,13 @@ namespace direct_bt {
         LINK_KEY_NOTIFY                 = 0x18,
         CLOCK_OFFSET                    = 0x1c,
         PKT_TYPE_CHANGE                 = 0x1d,
+        ENCRYPT_KEY_REFRESH_COMPLETE    = 0x30,
+        IO_CAPABILITY_REQUEST           = 0x31,
+        IO_CAPABILITY_RESPONSE          = 0x32,
+        LE_META                         = 0x3e,
         DISCONN_PHY_LINK_COMPLETE       = 0x42,
         DISCONN_LOGICAL_LINK_COMPLETE   = 0x46,
-        LE_META                         = 0x3e,
         AMP_Receiver_Report             = 0x4b
-
         // etc etc - incomplete
     };
     constexpr uint8_t number(const HCIEventType rhs) noexcept {
@@ -344,6 +346,8 @@ namespace direct_bt {
         SPECIAL                     = 0x0000,/**< SPECIAL */
         CREATE_CONN                 = 0x0405,
         DISCONNECT                  = 0x0406,
+        IO_CAPABILITY_REQ_REPLY     = 0x042b,
+        IO_CAPABILITY_REQ_NEG_REPLY = 0x0434,
         SET_EVENT_MASK              = 0x0C01,/**< SET_EVENT_MASK */
         RESET                       = 0x0C03,
         READ_LOCAL_VERSION          = 0x1001,
@@ -366,7 +370,7 @@ namespace direct_bt {
         LE_DEL_FROM_WHITE_LIST      = 0x2012,
         LE_CONN_UPDATE              = 0x2013,
         LE_READ_REMOTE_FEATURES     = 0x2016,
-        LE_START_ENC                = 0x2019
+        LE_ENABLE_ENC               = 0x2019
         // etc etc - incomplete
     };
     constexpr uint16_t number(const HCIOpcode rhs) noexcept {
@@ -378,8 +382,10 @@ namespace direct_bt {
         SPECIAL                     =  0,
         CREATE_CONN                 =  3,
         DISCONNECT                  =  4,
-        SET_EVENT_MASK              =  6,
-        RESET                       =  7,
+        IO_CAPABILITY_REQ_REPLY     =  5,
+        IO_CAPABILITY_REQ_NEG_REPLY =  6,
+        SET_EVENT_MASK              =  7,
+        RESET                       =  8,
         READ_LOCAL_VERSION          = 10,
         LE_SET_EVENT_MASK           = 20,
         LE_READ_BUFFER_SIZE         = 21,
@@ -400,7 +406,7 @@ namespace direct_bt {
         LE_DEL_FROM_WHITE_LIST      = 36,
         LE_CONN_UPDATE              = 37,
         LE_READ_REMOTE_FEATURES     = 38,
-        LE_START_ENC                = 39
+        LE_ENABLE_ENC                = 39
         // etc etc - incomplete
     };
     constexpr uint8_t number(const HCIOpcodeBit rhs) noexcept {
@@ -509,7 +515,7 @@ namespace direct_bt {
             HCICommand(const HCIOpcode opc, const jau::nsize_t param_size)
             : HCIPacket(HCIPacketType::COMMAND, number(HCIConstSizeT::COMMAND_HDR_SIZE)+param_size)
             {
-                checkOpcode(opc, HCIOpcode::SPECIAL, HCIOpcode::LE_START_ENC);
+                checkOpcode(opc, HCIOpcode::SPECIAL, HCIOpcode::LE_ENABLE_ENC);
 
                 pdu.put_uint16_nc(1, static_cast<uint16_t>(opc));
                 pdu.put_uint8_nc(3, param_size);

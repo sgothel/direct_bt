@@ -236,7 +236,9 @@ std::string MgmtCommand::getOpcodeString(const Opcode op) noexcept {
     X(DEVICE_FLAGS_CHANGED) \
     X(ADV_MONITOR_ADDED) \
     X(ADV_MONITOR_REMOVED) \
-    X(LE_REMOTE_USER_FEATURES)
+    X(HCI_ENC_CHANGED) \
+    X(HCI_ENC_KEY_REFRESH_COMPLETE) \
+    X(HCI_LE_REMOTE_USR_FEATURES)
 
 #define MGMT_EV_OPCODE_CASE_TO_STRING(V) case MgmtEvent::Opcode::V: return #V;
 

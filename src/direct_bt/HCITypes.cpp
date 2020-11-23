@@ -152,6 +152,8 @@ std::string getHCIOGFString(const HCIOGF op) noexcept {
     X(SPECIAL) \
     X(CREATE_CONN) \
     X(DISCONNECT) \
+    X(IO_CAPABILITY_REQ_REPLY) \
+    X(IO_CAPABILITY_REQ_NEG_REPLY) \
     X(SET_EVENT_MASK) \
     X(RESET) \
     X(READ_LOCAL_VERSION) \
@@ -174,7 +176,7 @@ std::string getHCIOGFString(const HCIOGF op) noexcept {
     X(LE_DEL_FROM_WHITE_LIST) \
     X(LE_CONN_UPDATE) \
     X(LE_READ_REMOTE_FEATURES) \
-    X(LE_START_ENC)
+    X(LE_ENABLE_ENC)
 
 #define HCI_OPCODE_CASE_TO_STRING(V) case HCIOpcode::V: return #V;
 
@@ -211,9 +213,13 @@ std::string getHCIOpcodeString(const HCIOpcode op) noexcept {
     X(LINK_KEY_NOTIFY) \
     X(CLOCK_OFFSET) \
     X(PKT_TYPE_CHANGE) \
+    X(ENCRYPT_KEY_REFRESH_COMPLETE) \
+    X(IO_CAPABILITY_REQUEST) \
+    X(IO_CAPABILITY_RESPONSE) \
+    X(LE_META) \
     X(DISCONN_PHY_LINK_COMPLETE) \
     X(DISCONN_LOGICAL_LINK_COMPLETE) \
-    X(LE_META)
+    X(AMP_Receiver_Report)
 
 #define HCI_EVENTTYPE_CASE_TO_STRING(V) case HCIEventType::V: return #V;
 

@@ -161,6 +161,7 @@ namespace direct_bt {
      * <pre>
      * BT Core Spec v5.2: Vol 1, Part A, 5 Security Overview
      * BT Core Spec v5.2: Vol 1, Part A, 5.4 LE SECURITY
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.8
      * </pre>
      * @see SMPPairingState
      */

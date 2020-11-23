@@ -237,7 +237,7 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
                             getHCIStatusCodeString(status).c_str(), jau::uint16HexString(handle), conn->toString().c_str());
                     return nullptr;
                 }
-                return std::shared_ptr<MgmtEvent>( new MgmtEvtLERemoteUserFeatures(dev_id, conn->getAddress(), conn->getAddressType(), features) );
+                return std::shared_ptr<MgmtEvent>( new MgmtEvtHCILERemoteUserFeatures(dev_id, conn->getAddress(), conn->getAddressType(), features) );
             }
             default:
                 return nullptr;
@@ -286,6 +286,43 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
                 return std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(dev_id, conn->getAddress(), conn->getAddressType(), hciRootReason, conn->getHandle()) );
             }
         }
+        case HCIEventType::ENCRYPT_CHANGE: {
+            HCIStatusCode status;
+            const hci_ev_encrypt_change * ev_cc = getReplyStruct<hci_ev_encrypt_change>(ev, evt, &status);
+            if( nullptr == ev_cc ) {
+                ERR_PRINT("HCIHandler::translate(reader): ENCRYPT_CHANGE: Null reply-struct: %s - %s",
+                        ev->toString().c_str(), toString().c_str());
+                return nullptr;
+            }
+            const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
+            const HCIConnectionRef conn = findTrackerConnection(handle);
+            if( nullptr == conn ) {
+                WARN_PRINT("HCIHandler::translate(reader): ENCRYPT_CHANGE: Not tracked conn_handle %s: %s",
+                        jau::uint16HexString(handle), conn->toString().c_str());
+                return nullptr;
+            }
+            return std::shared_ptr<MgmtEvent>( new MgmtEvtHCIEncryptionChanged(dev_id, conn->getAddress(), conn->getAddressType(), status, ev_cc->encrypt) );
+        }
+        case HCIEventType::ENCRYPT_KEY_REFRESH_COMPLETE: {
+            HCIStatusCode status;
+            const hci_ev_key_refresh_complete * ev_cc = getReplyStruct<hci_ev_key_refresh_complete>(ev, evt, &status);
+            if( nullptr == ev_cc ) {
+                ERR_PRINT("HCIHandler::translate(reader): ENCRYPT_KEY_REFRESH_COMPLETE: Null reply-struct: %s - %s",
+                        ev->toString().c_str(), toString().c_str());
+                return nullptr;
+            }
+            const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
+            const HCIConnectionRef conn = findTrackerConnection(handle);
+            if( nullptr == conn ) {
+                WARN_PRINT("HCIHandler::translate(reader): ENCRYPT_KEY_REFRESH_COMPLETE: Not tracked conn_handle %s: %s",
+                        jau::uint16HexString(handle), conn->toString().c_str());
+                return nullptr;
+            }
+            return std::shared_ptr<MgmtEvent>( new MgmtEvtHCIEncryptionKeyRefreshComplete(dev_id, conn->getAddress(), conn->getAddressType(), status) );
+        }
+        // TODO: AUTH_COMPLETE
+        // 7.7.6 AUTH_COMPLETE 0x06
+
         default:
             return nullptr;
     }
@@ -568,6 +605,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         }
 #endif
         HCIComm::filter_clear(&filter_mask);
+        // HCIComm::filter_set_ptype(number(HCIPacketType::COMMAND), &filter_mask); // COMMANDs
         HCIComm::filter_set_ptype(number(HCIPacketType::EVENT),  &filter_mask); // EVENTs
         HCIComm::filter_set_ptype(number(HCIPacketType::ACLDATA),  &filter_mask); // SMP via ACL DATA
 
@@ -577,9 +615,14 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
 #else
         HCIComm::filter_set_event(number(HCIEventType::CONN_COMPLETE), &filter_mask);
         HCIComm::filter_set_event(number(HCIEventType::DISCONN_COMPLETE), &filter_mask);
+        HCIComm::filter_set_event(number(HCIEventType::AUTH_COMPLETE), &filter_mask);
+        HCIComm::filter_set_event(number(HCIEventType::ENCRYPT_CHANGE), &filter_mask);
         HCIComm::filter_set_event(number(HCIEventType::CMD_COMPLETE), &filter_mask);
         HCIComm::filter_set_event(number(HCIEventType::CMD_STATUS), &filter_mask);
         HCIComm::filter_set_event(number(HCIEventType::HARDWARE_ERROR), &filter_mask);
+        HCIComm::filter_set_event(number(HCIEventType::ENCRYPT_KEY_REFRESH_COMPLETE), &filter_mask);
+        // HCIComm::filter_set_event(number(HCIEventType::IO_CAPABILITY_REQUEST), &filter_mask);
+        // HCIComm::filter_set_event(number(HCIEventType::IO_CAPABILITY_RESPONSE), &filter_mask);
         HCIComm::filter_set_event(number(HCIEventType::LE_META), &filter_mask);
         // HCIComm::filter_set_event(number(HCIEventType::DISCONN_PHY_LINK_COMPLETE), &filter_mask);
         // HCIComm::filter_set_event(number(HCIEventType::DISCONN_LOGICAL_LINK_COMPLETE), &filter_mask);
@@ -611,11 +654,14 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
 #else
         filter_set_opcbit(HCIOpcodeBit::CREATE_CONN, mask);
         filter_set_opcbit(HCIOpcodeBit::DISCONNECT, mask);
+        // filter_set_opcbit(HCIOpcodeBit::IO_CAPABILITY_REQ_REPLY, mask);
+        // filter_set_opcbit(HCIOpcodeBit::IO_CAPABILITY_REQ_NEG_REPLY, mask);
         filter_set_opcbit(HCIOpcodeBit::RESET, mask);
         filter_set_opcbit(HCIOpcodeBit::READ_LOCAL_VERSION, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_SET_SCAN_PARAM, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_SET_SCAN_ENABLE, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_CREATE_CONN, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_ENABLE_ENC, mask);
 #endif
         filter_put_opcbit(mask);
     }
