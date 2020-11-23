@@ -143,7 +143,7 @@ namespace direct_bt {
             std::atomic<pthread_t> tid_read;
 
             bool setBTSecurityLevelImpl(const BTSecurityLevel sec_level);
-            bool getBTSecurityLevelImpl(BTSecurityLevel& sec_level);
+            BTSecurityLevel getBTSecurityLevelImpl();
 
         public:
             /**
@@ -197,10 +197,9 @@ namespace direct_bt {
             /**
              * Fetches the current BlueZ's L2CAP socket BT_SECURITY sec_level.
              *
-             * @param sec_level return value reference written to if method returns true
-             * @return true if successful with result written to sec_level, otherwise false.
+             * @return BTSecurityLevel  sec_level value, BTSecurityLevel::UNSET if failure
              */
-            bool getBTSecurityLevel(BTSecurityLevel& sec_level);
+            BTSecurityLevel getBTSecurityLevel();
 
             /** Generic read, w/o locking suitable for a unique ringbuffer sink. Using L2CAPEnv::L2CAP_READER_POLL_TIMEOUT.*/
             jau::snsize_t read(uint8_t* buffer, const jau::nsize_t capacity);

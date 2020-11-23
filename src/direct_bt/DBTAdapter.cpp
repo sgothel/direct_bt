@@ -1292,9 +1292,7 @@ bool DBTAdapter::mgmtEvAuthFailedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
                 event.toString().c_str());
         return true;
     }
-    DBG_PRINT("DBTAdapter:mgmt:SMP: dev_id %d: address[%s, %s]: %s",
-        dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),
-        event.toString().c_str());
+    device->updatePairingState(device, SMPPairingState::FAILED, e);
     return true;
 }
 bool DBTAdapter::mgmtEvUserConfirmRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept {

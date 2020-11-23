@@ -415,9 +415,7 @@ void DBTDevice::notifyLEFeatures(std::shared_ptr<DBTDevice> sthis, const LEFeatu
 }
 
 void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
-    // FIXME: Deadlocks SMP process while @ l2cap_att.setBTSecurityLevel() -> SMP + **MGMT::PASSKEY_REQ** -> l2cap_att.connect()-completion,
-    // i.e. l2cap_att.setBTSecurityLevel() (or its connect() process security callbacks.
-    // const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     (void)sthis;
     DBG_PRINT("DBTDevice::processL2CAPSetup: Start %s", toString(false).c_str());
     if( isLEAddressType() && !l2cap_att.isOpen() ) {
@@ -474,7 +472,7 @@ bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, SMPPairingS
     PairingMode mode = pairing_data.mode;
     bool is_device_ready = false;
 
-    DBG_PRINT("DBTDevice::updatePairingState.0: state %s -> %s, %s, %s",
+    DBG_PRINT("DBTDevice::updatePairingState.0: Start state %s -> %s, %s, %s",
         getSMPPairingStateString(pairing_data.state).c_str(), getSMPPairingStateString(state).c_str(),
         evt->toString().c_str(), toString(false).c_str());
 
@@ -482,6 +480,10 @@ bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, SMPPairingS
         // Potentially force update PairingMode by forced state change, assuming being the initiator.
         // FIXME: Initiator and responder role might need more specific determination and documentation.
         switch( state ) {
+            case SMPPairingState::FAILED: {
+                // ignore here, let hciSMPMsgCallback() handle auth failure.
+                state = pairing_data.state;
+            } break;
             case SMPPairingState::PASSKEY_EXPECTED:
                 mode = PairingMode::PASSKEY_ENTRY_ini;
                 break;
@@ -504,7 +506,7 @@ bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, SMPPairingS
             default: // nop
                 break;
         }
-        DBG_PRINT("DBTDevice::updatePairingState.1: state %s -> %s, mode %s -> %s, ready %d",
+        DBG_PRINT("DBTDevice::updatePairingState.2: state %s -> %s, mode %s -> %s, ready %d",
             getSMPPairingStateString(pairing_data.state).c_str(), getSMPPairingStateString(state).c_str(),
             getPairingModeString(pairing_data.mode).c_str(), getPairingModeString(mode).c_str(), is_device_ready);
     }
@@ -519,10 +521,10 @@ bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, SMPPairingS
             std::thread dc(&DBTDevice::processDeviceReady, this, sthis, evt->getTimestamp()); // @suppress("Invalid arguments")
             dc.detach();
         }
-        DBG_PRINT("DBTDevice::updatePairingState.2: Complete: state %s", getSMPPairingStateString(state).c_str());
+        DBG_PRINT("DBTDevice::updatePairingState.3: End Complete: state %s", getSMPPairingStateString(state).c_str());
         return true;
     } else {
-        DBG_PRINT("DBTDevice::updatePairingState.3: Unchanged: state %s", getSMPPairingStateString(state).c_str());
+        DBG_PRINT("DBTDevice::updatePairingState.4: End Unchanged: state %s", getSMPPairingStateString(state).c_str());
     }
     return false;
 }
@@ -539,29 +541,24 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
 
     const SMPPDUMsg::Opcode opc = msg->getOpcode();
 
+    DBG_PRINT("DBTDevice:hci:SMP.0: Start %s, %s, %s",
+            msg->toString().c_str(), source.toString().c_str(), toString(false).c_str());
+
     switch( opc ) {
         case SMPPDUMsg::Opcode::PAIRING_FAILED: {
-#if 0
             pmode = PairingMode::NONE;
             pstate = SMPPairingState::FAILED;
             pairing_data.res_requested_sec = false;
 
             // After a failed encryption/authentication, we try without security!
-            BTSecurityLevel sec_level = pairing_data.sec_level;
-            if( BTSecurityLevel::NONE < sec_level ) {
-                sec_level = BTSecurityLevel::NONE;
-                pairing_data.sec_level = sec_level;
-            }
+            const BTSecurityLevel sec_level = BTSecurityLevel::NONE;
+            pairing_data.sec_level_conn = sec_level;
             const bool l2cap_close = l2cap_att.close();
             const bool l2cap_open = l2cap_att.open(*this, sec_level);
             is_device_ready = l2cap_open;
 
-            DBG_PRINT("DBTDevice:hci:SMP: l2cap ATT reopen: ready %d, sec_level %s, l2cap[close %d, open %d], %s",
-                    is_device_ready, getBTSecurityLevelString(sec_level).c_str(), l2cap_close, l2cap_open, toString(false).c_str());
-#else
-            pstate = SMPPairingState::FAILED;
-#endif
-
+            DBG_PRINT("DBTDevice:hci:SMP.1: l2cap ATT reopen: ready %d, sec_level %s, l2cap[close %d, open %d]",
+                    is_device_ready, getBTSecurityLevelString(sec_level).c_str(), l2cap_close, l2cap_open);
           } break;
 
         case SMPPDUMsg::Opcode::SECURITY_REQUEST:
@@ -600,7 +597,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
                 pstate = SMPPairingState::FEATURE_EXCHANGE_COMPLETED;
 
                 DBG_PRINT("");
-                DBG_PRINT("DBTDevice:hci:SMP: address[%s, %s]: State %s, Mode %s, using SC %d:",
+                DBG_PRINT("DBTDevice:hci:SMP.2: address[%s, %s]: State %s, Mode %s, using SC %d:",
                     address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
                     getSMPPairingStateString(pstate).c_str(), getPairingModeString(pmode).c_str(), le_sc_pairing);
                 DBG_PRINT("- oob:   init %s", getSMPOOBDataFlagString(pairing_data.oobFlag_init).c_str());
@@ -632,26 +629,24 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
             }
             break;
         default:
-            WORDY_PRINT("DBTDevice:hci:SMP: Unhandled: address[%s, %s]: %s, %s",
+            WORDY_PRINT("DBTDevice:hci:SMP.3: Unhandled: address[%s, %s]: %s, %s",
                     address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
                     msg->toString().c_str(), source.toString().c_str());
             return;
     }
 
     if( old_pstate == pstate /* && old_pmode == pmode */ ) {
-        WORDY_PRINT("DBTDevice::hci:SMP: Unchanged: state %s, mode %s, %s, %s, %s",
+        WORDY_PRINT("DBTDevice::hci:SMP.4: Unchanged: state %s, mode %s",
                 getSMPPairingStateString(old_pstate).c_str(),
-                getPairingModeString(old_pmode).c_str(),
-                msg->toString().c_str(), source.toString().c_str(), toString(false).c_str());
+                getPairingModeString(old_pmode).c_str());
         return;
     }
 
-    DBG_PRINT("DBTDevice:hci:SMP: address[%s, %s]: state %s -> %s, mode %s -> %s, ready %d, %s, %s",
+    DBG_PRINT("DBTDevice:hci:SMP.5: address[%s, %s]: state %s -> %s, mode %s -> %s, ready %d",
         address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
         getSMPPairingStateString(old_pstate).c_str(), getSMPPairingStateString(pstate).c_str(),
         getPairingModeString(old_pmode).c_str(), getPairingModeString(pmode).c_str(),
-        is_device_ready,
-        msg->toString().c_str(), source.toString().c_str());
+        is_device_ready);
 
     pairing_data.mode = pmode;
     pairing_data.state = pstate;
@@ -662,6 +657,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
         std::thread dc(&DBTDevice::processDeviceReady, this, sthis, msg->ts_creation); // @suppress("Invalid arguments")
         dc.detach();
     }
+    DBG_PRINT("DBTDevice:hci:SMP.6: End %s", toString(false).c_str());
 }
 
 bool DBTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level, const bool blocking) noexcept {

@@ -117,6 +117,14 @@ L2CAPComm::L2CAPComm(const EUI48& adapterAddress_, const uint16_t psm_, const ui
 { }
 
 
+/**
+ * Setting BT_SECURITY within open() after bind() and before connect()
+ * causes BlueZ/Kernel to immediately process SMP, leading to a potential deadlock.
+ *
+ * Hence we set BT_SECURITY after connect() within open().
+ */
+#define SET_BT_SECURITY_POST_CONNECT 1
+
 bool L2CAPComm::open(const DBTDevice& device, const BTSecurityLevel sec_level) {
 
     bool expOpen = false; // C++11, exp as value since C++20
@@ -145,12 +153,14 @@ bool L2CAPComm::open(const DBTDevice& device, const BTSecurityLevel sec_level) {
         goto failure; // open failed
     }
 
-#if USE_LINUX_BT_SECURITY
-    if( BTSecurityLevel::UNSET < sec_level ) {
-        if( !setBTSecurityLevelImpl(sec_level) ) {
-            goto failure; // sec_level failed
+#if !SET_BT_SECURITY_POST_CONNECT
+    #if USE_LINUX_BT_SECURITY
+        if( BTSecurityLevel::UNSET < sec_level ) {
+            if( !setBTSecurityLevelImpl(sec_level) ) {
+                goto failure; // sec_level failed
+            }
         }
-    }
+    #endif
 #endif
 
     tid_connect = pthread_self(); // temporary safe tid to allow interruption
@@ -191,6 +201,17 @@ bool L2CAPComm::open(const DBTDevice& device, const BTSecurityLevel sec_level) {
     }
     // success
     tid_connect = 0;
+
+#if SET_BT_SECURITY_POST_CONNECT
+    #if USE_LINUX_BT_SECURITY
+        if( BTSecurityLevel::UNSET < sec_level ) {
+            if( !setBTSecurityLevelImpl(sec_level) ) {
+                goto failure; // sec_level failed
+            }
+        }
+    #endif
+#endif
+
     return true;
 
 failure:
@@ -268,21 +289,24 @@ bool L2CAPComm::setBTSecurityLevelImpl(const BTSecurityLevel sec_level) {
     struct bt_security bt_sec;
     int result;
 
-    BTSecurityLevel old_sec_level = BTSecurityLevel::UNSET;
-    if( jau::environment::get().debug ) {
-        getBTSecurityLevelImpl(old_sec_level);
-    }
-    bzero(&bt_sec, sizeof(bt_sec));
-    bt_sec.level = direct_bt::number(sec_level);
-    result = setsockopt(socket_descriptor, SOL_BLUETOOTH, BT_SECURITY, &bt_sec, sizeof(bt_sec));
-    if ( 0 == result ) {
-        DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %s -> %s, success",
+    BTSecurityLevel old_sec_level = getBTSecurityLevelImpl();
+    if( old_sec_level != sec_level ) {
+        bzero(&bt_sec, sizeof(bt_sec));
+        bt_sec.level = direct_bt::number(sec_level);
+        result = setsockopt(socket_descriptor, SOL_BLUETOOTH, BT_SECURITY, &bt_sec, sizeof(bt_sec));
+        if ( 0 == result ) {
+            DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %s -> %s, success",
+                    getBTSecurityLevelString(old_sec_level).c_str(), getBTSecurityLevelString(sec_level).c_str());
+            return true;
+        } else {
+            ERR_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %s -> %s, failed",
+                    getBTSecurityLevelString(old_sec_level).c_str(), getBTSecurityLevelString(sec_level).c_str());
+            return false;
+        }
+    } else {
+        DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %s == %s, success (ignored)",
                 getBTSecurityLevelString(old_sec_level).c_str(), getBTSecurityLevelString(sec_level).c_str());
         return true;
-    } else {
-        ERR_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %s -> %s, failed",
-                getBTSecurityLevelString(old_sec_level).c_str(), getBTSecurityLevelString(sec_level).c_str());
-        return false;
     }
 #else
     DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %s, not implemented", getBTSecurityLevelString(sec_level).c_str());
@@ -290,18 +314,19 @@ bool L2CAPComm::setBTSecurityLevelImpl(const BTSecurityLevel sec_level) {
 #endif
 }
 
-bool L2CAPComm::getBTSecurityLevel(BTSecurityLevel & sec_level) {
+BTSecurityLevel L2CAPComm::getBTSecurityLevel() {
     if( !is_open ) {
         DBG_PRINT("L2CAPComm::getBTSecurityLevel: Not connected: %s, dd %d, %s, psm %u, cid %u",
                   getStateString().c_str(), socket_descriptor.load(), deviceString.c_str(), psm, cid);
-        return false;
+        return BTSecurityLevel::UNSET;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
 
-    return getBTSecurityLevelImpl(sec_level);
+    return getBTSecurityLevelImpl();
 }
 
-bool L2CAPComm::getBTSecurityLevelImpl(BTSecurityLevel & sec_level) {
+BTSecurityLevel L2CAPComm::getBTSecurityLevelImpl() {
+    BTSecurityLevel sec_level = BTSecurityLevel::UNSET;
 #if USE_LINUX_BT_SECURITY
     struct bt_security bt_sec;
     socklen_t optlen = sizeof(bt_sec);
@@ -313,20 +338,17 @@ bool L2CAPComm::getBTSecurityLevelImpl(BTSecurityLevel & sec_level) {
         if( optlen == sizeof(bt_sec) ) {
             sec_level = static_cast<BTSecurityLevel>(bt_sec.level);
             DBG_PRINT("L2CAPComm::getBTSecurityLevel: sec_level %s, success", getBTSecurityLevelString(sec_level).c_str());
-            return true;
         } else {
             ERR_PRINT("L2CAPComm::getBTSecurityLevel: sec_level %s, failed. Returned size %zd != %zd ",
                     getBTSecurityLevelString(sec_level).c_str(), optlen, sizeof(bt_sec));
-            return false;
         }
     } else {
         ERR_PRINT("L2CAPComm::getBTSecurityLevel: sec_level %s, failed. Result %d", getBTSecurityLevelString(sec_level).c_str(), result);
-        return false;
     }
 #else
     DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %s, not implemented", getBTSecurityLevelString(sec_level).c_str());
-    return false;
 #endif
+    return sec_level;
 }
 
 jau::snsize_t L2CAPComm::read(uint8_t* buffer, const jau::nsize_t capacity) {
