@@ -148,12 +148,25 @@ namespace direct_bt {
      * Vol 3, Part H, 2.3.2 IO capabilities
      */
     enum class SMPIOCapability : uint8_t {
+        /** Display output only, value 0. */
         DISPLAY_ONLY                = 0x00,
+        /** Display output and boolean confirmation input keys only, value 1. */
         DISPLAY_YES_NO              = 0x01,
+        /** Keyboard input only, value 2. */
         KEYBOARD_ONLY               = 0x02,
+        /** No input not output, value 3. */
         NO_INPUT_NO_OUTPUT          = 0x03,
-        KEYBOARD_DISPLAY            = 0x04
+        /** Display output and keyboard input, value 4. */
+        KEYBOARD_DISPLAY            = 0x04,
+        /** Denoting unset value, i.e. not defined. */
+        UNSET                       = 0xFF,
     };
+    constexpr SMPIOCapability getSMPIOCapability(const uint8_t v) noexcept {
+        if( v <= 4 ) {
+            return static_cast<SMPIOCapability>(v);
+        }
+        return SMPIOCapability::UNSET;
+    }
     constexpr uint8_t number(const SMPIOCapability rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }

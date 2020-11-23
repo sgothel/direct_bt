@@ -63,7 +63,8 @@ std::string direct_bt::getSMPPairingStateString(const SMPPairingState state) noe
         X(DISPLAY_YES_NO) \
         X(KEYBOARD_ONLY) \
         X(NO_INPUT_NO_OUTPUT) \
-        X(KEYBOARD_DISPLAY)
+        X(KEYBOARD_DISPLAY) \
+        X(UNSET)
 
 #define CASE_TO_STRING_IOCAP(V) case SMPIOCapability::V: return #V;
 
