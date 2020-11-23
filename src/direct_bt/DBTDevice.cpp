@@ -55,22 +55,22 @@ DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
     isConnected = false;
     allowDisconnect = false;
     if( !r.isSet(EIRDataType::BDADDR) ) {
-        throw jau::IllegalArgumentException("Address not set: "+r.toString(), E_FILE_LINE);
+        throw jau::IllegalArgumentException("Address not set: "+r.toString(false), E_FILE_LINE);
     }
     if( !r.isSet(EIRDataType::BDADDR_TYPE) ) {
-        throw jau::IllegalArgumentException("AddressType not set: "+r.toString(), E_FILE_LINE);
+        throw jau::IllegalArgumentException("AddressType not set: "+r.toString(false), E_FILE_LINE);
     }
     update(r);
 
     if( BDAddressType::BDADDR_LE_RANDOM == addressType ) {
         if( BLERandomAddressType::UNDEFINED == leRandomAddressType ) {
             throw jau::IllegalArgumentException("BDADDR_LE_RANDOM: Invalid BLERandomAddressType "+
-                    getBLERandomAddressTypeString(leRandomAddressType)+": "+toString(), E_FILE_LINE);
+                    getBLERandomAddressTypeString(leRandomAddressType)+": "+toString(false), E_FILE_LINE);
         }
     } else {
         if( BLERandomAddressType::UNDEFINED != leRandomAddressType ) {
             throw jau::IllegalArgumentException("Not BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+
-                    getBLERandomAddressTypeString(leRandomAddressType)+": "+toString(), E_FILE_LINE);
+                    getBLERandomAddressTypeString(leRandomAddressType)+": "+toString(false), E_FILE_LINE);
         }
     }
 }
@@ -168,13 +168,13 @@ EIRDataType DBTDevice::update(EInfoReport const & data) noexcept {
     if( data.isSet(EIRDataType::BDADDR) ) {
         if( data.getAddress() != this->address ) {
             WARN_PRINT("DBTDevice::update:: BDADDR update not supported: %s for %s",
-                    data.toString().c_str(), this->toString().c_str());
+                    data.toString().c_str(), this->toString(false).c_str());
         }
     }
     if( data.isSet(EIRDataType::BDADDR_TYPE) ) {
         if( data.getAddressType() != this->addressType ) {
             WARN_PRINT("DBTDevice::update:: BDADDR_TYPE update not supported: %s for %s",
-                    data.toString().c_str(), this->toString().c_str());
+                    data.toString().c_str(), this->toString(false).c_str());
         }
     }
     if( data.isSet(EIRDataType::NAME) ) {
@@ -251,7 +251,7 @@ std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() noexcept {
         if( EIRDataType::NONE != updateMask ) {
             std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
             if( nullptr == sharedInstance ) {
-                ERR_PRINT("DBTDevice::getConnectionInfo: Device unknown to adapter and not tracked: %s", toString().c_str());
+                ERR_PRINT("DBTDevice::getConnectionInfo: Device unknown to adapter and not tracked: %s", toString(false).c_str());
             } else {
                 adapter.sendDeviceUpdated("getConnectionInfo", sharedInstance, jau::getCurrentMilliseconds(), updateMask);
             }
@@ -283,13 +283,13 @@ HCIStatusCode DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_w
                         hci_peer_mac_type = HCILEPeerAddressType::RANDOM;
                         hci_own_mac_type = HCILEOwnAddressType::RANDOM;
                         ERR_PRINT("LE Random address type '%s' not supported yet: %s",
-                                getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString().c_str());
+                                getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString(false).c_str());
                         return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
                     case BLERandomAddressType::RESOLVABLE_PRIVAT:
                         hci_peer_mac_type = HCILEPeerAddressType::PUBLIC_IDENTITY;
                         hci_own_mac_type = HCILEOwnAddressType::RESOLVABLE_OR_PUBLIC;
                         ERR_PRINT("LE Random address type '%s' not supported yet: %s",
-                                getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString().c_str());
+                                getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString(false).c_str());
                         return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
                     case BLERandomAddressType::STATIC_PUBLIC:
                         // FIXME: This only works for a static random address not changing at all,
@@ -300,25 +300,25 @@ HCIStatusCode DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_w
                         break;
                     default: {
                         ERR_PRINT("Can't connectLE to LE Random address type '%s': %s",
-                                getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString().c_str());
+                                getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString(false).c_str());
                         return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
                     }
                 }
             } break;
         default: {
-                ERR_PRINT("Can't connectLE to address type '%s': %s", getBDAddressTypeString(addressType).c_str(), toString().c_str());
+                ERR_PRINT("Can't connectLE to address type '%s': %s", getBDAddressTypeString(addressType).c_str(), toString(false).c_str());
                 return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
             }
     }
 
     if( isConnected ) {
-        ERR_PRINT("DBTDevice::connectLE: Already connected: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectLE: Already connected: %s", toString(false).c_str());
         return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
     }
 
     HCIHandler &hci = adapter.getHCI();
     if( !hci.isOpen() ) {
-        ERR_PRINT("DBTDevice::connectLE: HCI closed: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectLE: HCI closed: %s", toString(false).c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
     HCIStatusCode status = hci.le_create_conn(address,
@@ -331,13 +331,13 @@ HCIStatusCode DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_w
                 static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno),
                 getHCILEPeerAddressTypeString(hci_peer_mac_type).c_str(),
                 getHCILEOwnAddressTypeString(hci_own_mac_type).c_str(),
-                toString().c_str());
+                toString(false).c_str());
     } else if ( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("DBTDevice::connectLE: Could not create connection: status 0x%2.2X (%s), errno %d %s, hci-atype[peer %s, own %s] on %s",
                 static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno),
                 getHCILEPeerAddressTypeString(hci_peer_mac_type).c_str(),
                 getHCILEOwnAddressTypeString(hci_own_mac_type).c_str(),
-                toString().c_str());
+                toString(false).c_str());
     }
     return status;
 }
@@ -351,24 +351,24 @@ HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t cl
     }
 
     if( isConnected ) {
-        ERR_PRINT("DBTDevice::connectBREDR: Already connected: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectBREDR: Already connected: %s", toString(false).c_str());
         return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
     }
     if( !isBREDRAddressType() ) {
-        ERR_PRINT("DBTDevice::connectBREDR: Not a BDADDR_BREDR address: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectBREDR: Not a BDADDR_BREDR address: %s", toString(false).c_str());
         return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
     }
 
     HCIHandler &hci = adapter.getHCI();
     if( !hci.isOpen() ) {
-        ERR_PRINT("DBTDevice::connectBREDR: HCI closed: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectBREDR: HCI closed: %s", toString(false).c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
     HCIStatusCode status = hci.create_conn(address, pkt_type, clock_offset, role_switch);
     allowDisconnect = true;
     if ( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("DBTDevice::connectBREDR: Could not create connection: status 0x%2.2X (%s), errno %d %s on %s",
-                static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
+                static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno), toString(false).c_str());
     }
     return status;
 }
@@ -383,7 +383,7 @@ HCIStatusCode DBTDevice::connectDefault()
         case BDAddressType::BDADDR_BREDR:
             return connectBREDR();
         default:
-            ERR_PRINT("DBTDevice::connectDefault: Not a valid address type: %s", toString().c_str());
+            ERR_PRINT("DBTDevice::connectDefault: Not a valid address type: %s", toString(false).c_str());
             return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
     }
 }
@@ -401,7 +401,7 @@ void DBTDevice::notifyConnected(std::shared_ptr<DBTDevice> sthis, const uint16_t
 
 void DBTDevice::notifyLEFeatures(std::shared_ptr<DBTDevice> sthis, const LEFeatures features) noexcept {
     DBG_PRINT("DBTDevice::notifyLEFeatures: LE_Encryption %d, %s",
-            isLEFeaturesBitSet(features, LEFeatures::LE_Encryption), toString().c_str());
+            isLEFeaturesBitSet(features, LEFeatures::LE_Encryption), toString(false).c_str());
     le_features = features;
 
     if( isLEAddressType() && !l2cap_att.isOpen() ) {
@@ -449,9 +449,9 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
 }
 
 void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint64_t timestamp) {
-    DBG_PRINT("DBTDevice::processDeviceReady: %s", toString().c_str());
+    DBG_PRINT("DBTDevice::processDeviceReady: %s", toString(false).c_str());
     bool res1 = connectGATT(sthis);
-    DBG_PRINT("DBTDevice::processDeviceReady: ready[GATT %d], %s", res1, toString().c_str());
+    DBG_PRINT("DBTDevice::processDeviceReady: ready[GATT %d], %s", res1, toString(false).c_str());
     if( res1 ) {
         adapter.sendDeviceReady(sthis, timestamp);
     }
@@ -514,7 +514,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
             is_device_ready = l2cap_open;
 
             DBG_PRINT("DBTDevice:hci:SMP: l2cap ATT reopen: ready %d, sec_level %s, l2cap[close %d, open %d], %s",
-                    is_device_ready, getBTSecurityLevelString(sec_level).c_str(), l2cap_close, l2cap_open, toString().c_str());
+                    is_device_ready, getBTSecurityLevelString(sec_level).c_str(), l2cap_close, l2cap_open, toString(false).c_str());
 
           } break;
 
@@ -596,7 +596,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
         WORDY_PRINT("DBTDevice::hci:SMP: Unchanged: state %s, mode %s, %s, %s, %s",
                 getSMPPairingStateString(old_pstate).c_str(),
                 getPairingModeString(old_pmode).c_str(),
-                msg->toString().c_str(), source.toString().c_str(), toString().c_str());
+                msg->toString().c_str(), source.toString().c_str(), toString(false).c_str());
         return;
     }
 
@@ -703,12 +703,12 @@ void DBTDevice::disconnectSMP(int caller) noexcept {
 bool DBTDevice::connectSMP(std::shared_ptr<DBTDevice> sthis, const BTSecurityLevel sec_level) noexcept {
   #if SMP_SUPPORTED_BY_OS
     if( !isConnected || !allowDisconnect) {
-        ERR_PRINT("DBTDevice::connectSMP(%u): Device not connected: %s", sec_level, toString().c_str());
+        ERR_PRINT("DBTDevice::connectSMP(%u): Device not connected: %s", sec_level, toString(false).c_str());
         return false;
     }
 
     if( !SMPHandler::IS_SUPPORTED_BY_OS ) {
-        DBG_PRINT("DBTDevice::connectSMP(%u): SMP Not supported by OS (1): %s", sec_level, toString().c_str());
+        DBG_PRINT("DBTDevice::connectSMP(%u): SMP Not supported by OS (1): %s", sec_level, toString(false).c_str());
         return false;
     }
 
@@ -732,7 +732,7 @@ bool DBTDevice::connectSMP(std::shared_ptr<DBTDevice> sthis, const BTSecurityLev
     }
     return smpHandler->establishSecurity(sec_level);
   #else
-    DBG_PRINT("DBTDevice::connectSMP: SMP Not supported by OS (0): %s", toString().c_str());
+    DBG_PRINT("DBTDevice::connectSMP: SMP Not supported by OS (0): %s", toString(false).c_str());
     (void)sthis;
     (void)sec_level;
     return false;
@@ -753,11 +753,11 @@ void DBTDevice::disconnectGATT(int caller) noexcept {
 
 bool DBTDevice::connectGATT(std::shared_ptr<DBTDevice> sthis) noexcept {
     if( !isConnected || !allowDisconnect) {
-        ERR_PRINT("DBTDevice::connectGATT: Device not connected: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectGATT: Device not connected: %s", toString(false).c_str());
         return false;
     }
     if( !l2cap_att.isOpen() ) {
-        ERR_PRINT("DBTDevice::connectGATT: L2CAP not open: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectGATT: L2CAP not open: %s", toString(false).c_str());
         return false;
     }
 
@@ -805,18 +805,18 @@ std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept 
             const uint64_t ts = jau::getCurrentMilliseconds();
             EIRDataType updateMask = update(*gattGenericAccess, ts);
             DBG_PRINT("DBTDevice::getGATTServices: updated %s:\n    %s\n    -> %s",
-                getEIRDataMaskString(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
+                getEIRDataMaskString(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString(false).c_str());
             if( EIRDataType::NONE != updateMask ) {
                 std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
                 if( nullptr == sharedInstance ) {
-                    ERR_PRINT("DBTDevice::getGATTServices: Device unknown to adapter and not tracked: %s", toString().c_str());
+                    ERR_PRINT("DBTDevice::getGATTServices: Device unknown to adapter and not tracked: %s", toString(false).c_str());
                 } else {
                     adapter.sendDeviceUpdated("getGATTServices", sharedInstance, ts, updateMask);
                 }
             }
         }
     } catch (std::exception &e) {
-        WARN_PRINT("DBTDevice::getGATTServices: Caught exception: '%s' on %s", e.what(), toString().c_str());
+        WARN_PRINT("DBTDevice::getGATTServices: Caught exception: '%s' on %s", e.what(), toString(false).c_str());
     }
     return gattServices;
 }
@@ -836,14 +836,14 @@ std::shared_ptr<GATTService> DBTDevice::findGATTService(std::shared_ptr<uuid_t> 
 bool DBTDevice::pingGATT() noexcept {
     std::shared_ptr<GATTHandler> gh = getGATTHandler();
     if( nullptr == gh || !gh->isConnected() ) {
-        jau::INFO_PRINT("DBTDevice::pingGATT: GATTHandler not connected -> disconnected on %s", toString().c_str());
+        jau::INFO_PRINT("DBTDevice::pingGATT: GATTHandler not connected -> disconnected on %s", toString(false).c_str());
         disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
         return false;
     }
     try {
         return gh->ping();
     } catch (std::exception &e) {
-        IRQ_PRINT("DBTDevice::pingGATT: Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());
+        IRQ_PRINT("DBTDevice::pingGATT: Potential disconnect, exception: '%s' on %s", e.what(), toString(false).c_str());
     }
     return false;
 }
@@ -861,7 +861,7 @@ bool DBTDevice::addCharacteristicListener(std::shared_ptr<GATTCharacteristicList
     std::shared_ptr<GATTHandler> gatt = getGATTHandler();
     if( nullptr == gatt ) {
         throw jau::IllegalStateException("Device's GATTHandle not connected: "+
-                toString(), E_FILE_LINE);
+                toString(false), E_FILE_LINE);
     }
     return gatt->addCharacteristicListener(l);
 }
@@ -870,7 +870,7 @@ bool DBTDevice::removeCharacteristicListener(std::shared_ptr<GATTCharacteristicL
     std::shared_ptr<GATTHandler> gatt = getGATTHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
-        DBG_PRINT("Device's GATTHandle not connected: %s", toString().c_str());
+        DBG_PRINT("Device's GATTHandle not connected: %s", toString(false).c_str());
         return false;
     }
     return gatt->removeCharacteristicListener(l);
@@ -880,7 +880,7 @@ int DBTDevice::removeAllAssociatedCharacteristicListener(std::shared_ptr<GATTCha
     std::shared_ptr<GATTHandler> gatt = getGATTHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
-        DBG_PRINT("Device's GATTHandle not connected: %s", toString().c_str());
+        DBG_PRINT("Device's GATTHandle not connected: %s", toString(false).c_str());
         return false;
     }
     return gatt->removeAllAssociatedCharacteristicListener( associatedCharacteristic );
@@ -890,7 +890,7 @@ int DBTDevice::removeAllCharacteristicListener() noexcept {
     std::shared_ptr<GATTHandler> gatt = getGATTHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
-        DBG_PRINT("Device's GATTHandle not connected: %s", toString().c_str());
+        DBG_PRINT("Device's GATTHandle not connected: %s", toString(false).c_str());
         return 0;
     }
     return gatt->removeAllCharacteristicListener();
@@ -899,7 +899,7 @@ int DBTDevice::removeAllCharacteristicListener() noexcept {
 void DBTDevice::notifyDisconnected() noexcept {
     // coming from disconnect callback, ensure cleaning up!
     DBG_PRINT("DBTDevice::notifyDisconnected: handle %s -> zero, %s",
-              jau::uint16HexString(hciConnHandle).c_str(), toString().c_str());
+              jau::uint16HexString(hciConnHandle).c_str(), toString(false).c_str());
     clearSMPStates();
     allowDisconnect = false;
     isConnected = false;
@@ -947,7 +947,7 @@ HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
     }
 
     if( !adapter.isPowered() ) {
-        WARN_PRINT("DBTDevice::disconnect: Adapter not powered: %s", toString().c_str());
+        WARN_PRINT("DBTDevice::disconnect: Adapter not powered: %s", toString(false).c_str());
         res = HCIStatusCode::UNSPECIFIED_ERROR; // powered-off
         goto exit;
     }
