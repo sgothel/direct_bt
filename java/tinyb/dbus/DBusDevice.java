@@ -45,6 +45,7 @@ import org.tinyb.BluetoothUtils;
 import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.PairingMode;
+import org.tinyb.SMPIOCapability;
 import org.tinyb.SMPPairingState;
 
 public class DBusDevice extends DBusObject implements BluetoothDevice
@@ -109,10 +110,19 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native boolean pair() throws BluetoothException;
 
     @Override
-    public final void setSecurityLevel(final BTSecurityLevel sec_level) { } // FIXME
+    public final boolean setConnSecurityLevel(final BTSecurityLevel sec_level, final boolean blocking) { return false; } // FIXME
 
     @Override
-    public final BTSecurityLevel getCurrentSecurityLevel() { return BTSecurityLevel.UNSET; } // FIXME
+    public final BTSecurityLevel getConnSecurityLevel() { return BTSecurityLevel.UNSET; } // FIXME
+
+    @Override
+    public final boolean setConnIOCapability(final SMPIOCapability io_cap, final boolean blocking) { return false; } // FIXME
+
+    @Override
+    public final boolean setConnSecurity(final BTSecurityLevel sec_level, final SMPIOCapability io_cap, final boolean blocking) { return false; } // FIXME
+
+    @Override
+    public final SMPIOCapability getConnIOCapability() { return SMPIOCapability.UNSET; } // FIXME
 
     @Override
     public HCIStatusCode setPairingPasskey(final int passkey) { return HCIStatusCode.INTERNAL_FAILURE; }

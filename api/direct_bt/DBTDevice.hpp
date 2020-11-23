@@ -39,6 +39,7 @@
 #include "HCIIoctl.hpp"
 #include "HCIComm.hpp"
 
+#include "MgmtTypes.hpp"
 #include "SMPHandler.hpp"
 #include "GATTHandler.hpp"
 
@@ -80,10 +81,14 @@ namespace direct_bt {
             std::atomic<bool> allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
 
             struct PairingData {
-                jau::ordered_atomic<BTSecurityLevel, std::memory_order_relaxed> sec_level=BTSecurityLevel::UNSET, sec_level_user=BTSecurityLevel::UNSET;
+                jau::ordered_atomic<SMPIOCapability, std::memory_order_relaxed> ioCap_conn=SMPIOCapability::UNSET;
+                jau::ordered_atomic<BTSecurityLevel, std::memory_order_relaxed> sec_level_conn=BTSecurityLevel::UNSET;
+                jau::ordered_atomic<BTSecurityLevel, std::memory_order_relaxed> sec_level_user=BTSecurityLevel::UNSET;
+
                 jau::ordered_atomic<SMPPairingState, std::memory_order_relaxed> state;
                 jau::ordered_atomic<PairingMode, std::memory_order_relaxed> mode;
                 jau::relaxed_atomic_bool res_requested_sec;
+
                 SMPAuthReqs     authReqs_init, authReqs_resp;
                 SMPIOCapability ioCap_init,    ioCap_resp;
                 SMPOOBDataFlag  oobFlag_init,  oobFlag_resp;
@@ -109,7 +114,7 @@ namespace direct_bt {
             EIRDataType update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept;
 
             void notifyDisconnected() noexcept;
-            void notifyConnected(std::shared_ptr<DBTDevice> sthis, const uint16_t handle) noexcept;
+            void notifyConnected(std::shared_ptr<DBTDevice> sthis, const uint16_t handle, const SMPIOCapability io_cap) noexcept;
             void notifyLEFeatures(std::shared_ptr<DBTDevice> sthis, const LEFeatures features) noexcept;
 
             /**
@@ -168,7 +173,7 @@ namespace direct_bt {
              */
             bool connectGATT(std::shared_ptr<DBTDevice> sthis) noexcept;
 
-            bool updatePairingState_locked(const SMPPairingState state, PairingMode& current_mode) noexcept;
+            bool updatePairingState(std::shared_ptr<DBTDevice> sthis, SMPPairingState state, std::shared_ptr<MgmtEvent> evt) noexcept;
 
             /**
              * Will be performed within disconnect() and notifyDisconnected().
@@ -425,14 +430,66 @@ namespace direct_bt {
             HCIStatusCode disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
 
             /**
-             * Set the overriding security level used at device connection.
+             * Set the BTSecurityLevel used to connect to this device.
+             * <p>
+             * Method returns false if this device has already being connected,
+             * or DBTDevice::connectLE() or DBTDevice::connectBREDR() has been issued already.
+             * </p>
+             * <p>
+             * To ensure consistent no authentication setup,<br>
+             * implementation will set SMPIOCapability::NO_INPUT_NO_OUTPUT if sec_level <= BTSecurityLevel::ENC_ONLY<br>
+             * and DBTDevice::setConnIOCapability() not used.
+             * </p>
+             * @param sec_level BTSecurityLevel to be applied
+             * @param blocking if true, blocks until previous SMPIOCapability setting is completed,
+             *        i.e. until connection has been completed or failed.
+             *        Otherwise returns immediately with false if previous connection result is still pending.
+             * @return
              */
-            void setSecurityLevel(const BTSecurityLevel sec_level) noexcept { pairing_data.sec_level_user = sec_level; }
+            bool setConnSecurityLevel(const BTSecurityLevel sec_level, const bool blocking) noexcept;
 
             /**
-             * Return the currently set security level.
+             * Return the BTSecurityLevel, determined when connection is established.
              */
-            BTSecurityLevel getCurrentSecurityLevel() const noexcept { return pairing_data.sec_level; }
+            BTSecurityLevel getConnSecurityLevel() const noexcept { return pairing_data.sec_level_conn; }
+
+            /**
+             * Sets the given SMPIOCapability used to connect to this device.
+             * <p>
+             * Method returns false if operation fails, this device has already being connected,
+             * or DBTDevice::connectLE() or DBTDevice::connectBREDR() has been issued already.
+             * </p>
+             * <p>
+             * The SMPIOCapability value will be reset to its previous value when connection is completed or failed.
+             * </p>
+             * @param io_cap SMPIOCapability to be applied
+             * @param blocking if true, blocks until previous SMPIOCapability setting is completed,
+             *        i.e. until connection has been completed or failed.
+             *        Otherwise returns immediately with false if previous connection result is still pending.
+             */
+            bool setConnIOCapability(const SMPIOCapability io_cap, const bool blocking=true) noexcept;
+
+            /**
+             * Sets the given BTSecurityLevel and SMPIOCapability used to connect to this device.
+             * <p>
+             * Method returns false if operation fails, this device has already being connected,
+             * or DBTDevice::connectLE() or DBTDevice::connectBREDR() has been issued already.
+             * </p>
+             * <p>
+             * The SMPIOCapability value will be reset to its previous value when connection is completed or failed.
+             * </p>
+             * @param sec_level BTSecurityLevel to be applied
+             * @param io_cap SMPIOCapability to be applied
+             * @param blocking if true, blocks until previous SMPIOCapability setting is completed,
+             *        i.e. until connection has been completed or failed.
+             *        Otherwise returns immediately with false if previous connection result is still pending.
+             */
+            bool setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap, const bool blocking=true) noexcept;
+
+            /**
+             * Return the set SMPIOCapability value, determined when connection is established.
+             */
+            SMPIOCapability getConnIOCapability() const noexcept { return pairing_data.ioCap_conn; }
 
             /**
              * Method sets the given passkey entry, see PairingMode::PASSKEY_ENTRY_ini.

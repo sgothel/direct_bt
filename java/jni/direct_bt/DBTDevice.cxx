@@ -379,27 +379,66 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_connectLEImpl1(JNIEnv *env, jobject obj,
 }
 
 
-void Java_direct_1bt_tinyb_DBTDevice_setSecurityLevelImpl(JNIEnv *env, jobject obj, jbyte jsec_level) {
+jboolean Java_direct_1bt_tinyb_DBTDevice_setConnSecurityLevelImpl(JNIEnv *env, jobject obj, jbyte jsec_level, jboolean jblocking) {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        device->setSecurityLevel( getBTSecurityLevel( static_cast<uint8_t>(jsec_level) ) );
+        return device->setConnSecurityLevel( getBTSecurityLevel( static_cast<uint8_t>(jsec_level) ), JNI_TRUE == jblocking );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
+    return JNI_FALSE;
 }
 
-jbyte Java_direct_1bt_tinyb_DBTDevice_getCurrentSecurityLevelImpl(JNIEnv *env, jobject obj) {
+jbyte Java_direct_1bt_tinyb_DBTDevice_getConnSecurityLevelImpl(JNIEnv *env, jobject obj) {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        return number( device->getCurrentSecurityLevel() );
+        return number( device->getConnSecurityLevel() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
     return number( BTSecurityLevel::UNSET );
+}
+
+jboolean Java_direct_1bt_tinyb_DBTDevice_setConnIOCapabilityImpl(JNIEnv *env, jobject obj, jbyte jio_cap, jboolean jblocking) {
+    try {
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        return device->setConnIOCapability( getSMPIOCapability( static_cast<uint8_t>(jio_cap) ), JNI_TRUE == jblocking );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
+jboolean Java_direct_1bt_tinyb_DBTDevice_setConnSecurityImpl(JNIEnv *env, jobject obj, jbyte jsec_level, jbyte jio_cap, jboolean jblocking) {
+    try {
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        return device->setConnSecurity( getBTSecurityLevel( static_cast<uint8_t>(jsec_level) ),
+                                        getSMPIOCapability( static_cast<uint8_t>(jio_cap) ),
+                                        JNI_TRUE == jblocking );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
+jbyte Java_direct_1bt_tinyb_DBTDevice_getConnIOCapabilityImpl(JNIEnv *env, jobject obj) {
+    try {
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        return number( device->getConnIOCapability() );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return number( SMPIOCapability::UNSET );
 }
 
 jbyte Java_direct_1bt_tinyb_DBTDevice_getPairingModeImpl(JNIEnv *env, jobject obj) {

@@ -79,6 +79,7 @@ static std::vector<EUI48> waitForDevices;
 const static uint32_t NO_PASSKEY = 0xffffffffU;
 static uint32_t pairing_passkey = NO_PASSKEY;
 static BTSecurityLevel sec_level = BTSecurityLevel::UNSET;
+static SMPIOCapability io_capabilities = SMPIOCapability::UNSET;
 
 static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device);
 
@@ -362,9 +363,15 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
 static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
     fprintf(stderr, "****** Connecting Device: Start %s\n", device->toString().c_str());
     device->getAdapter().stopDiscovery();
-    if( BTSecurityLevel::UNSET < sec_level ) {
-        device->setSecurityLevel(sec_level);
+
+    if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_capabilities ) {
+        device->setConnSecurity(sec_level, io_capabilities, true /* blocking */);
+    } else if( BTSecurityLevel::UNSET < sec_level ) {
+        device->setConnSecurityLevel(sec_level, true /* blocking */);
+    } else if( SMPIOCapability::UNSET != io_capabilities ) {
+        device->setConnIOCapability(io_capabilities, true /* blocking */);
     }
+
     HCIStatusCode res;
     if( !USE_WHITELIST ) {
         res = device->connectDefault();
@@ -755,6 +762,8 @@ int main(int argc, char *argv[])
             pairing_passkey = atoi(argv[++i]);
         } else if( !strcmp("-seclevel", argv[i]) && argc > (i+1) ) {
             sec_level = getBTSecurityLevel(atoi(argv[++i]));
+        } else if( !strcmp("-iocap", argv[i]) && argc > (i+1) ) {
+            io_capabilities = getSMPIOCapability(atoi(argv[++i]));
         } else if( !strcmp("-charid", argv[i]) && argc > (i+1) ) {
             charIdentifier = std::string(argv[++i]);
         } else if( !strcmp("-charval", argv[i]) && argc > (i+1) ) {
@@ -779,7 +788,7 @@ int main(int argc, char *argv[])
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "
                     "[-resetEachCon connectionCount] "
                     "(-mac <device_address>)* (-wl <device_address>)* "
-                    "[-passkey <digits>] [-seclevel <int>]"
+                    "[-seclevel <int>] [-iocap <int>] [-passkey <digits>]"
                     "[-charid <uuid>] [-charval <byte-val>]"
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "

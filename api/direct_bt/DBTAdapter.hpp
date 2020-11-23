@@ -214,6 +214,9 @@ namespace direct_bt {
             std::atomic<ScanType> currentMetaScanType; // = ScanType::NONE
             std::atomic<bool> keep_le_scan_alive; //  = false;
 
+            jau::ordered_atomic<SMPIOCapability, std::memory_order_relaxed> io_capability_defaultval = SMPIOCapability::UNSET;
+            std::atomic<const DBTDevice *>                                  io_capability_device_ptr = nullptr;
+
             std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
             std::vector<std::shared_ptr<DBTDevice>> sharedDevices; // All active shared devices. Final holder of DBTDevice lifecycle!
@@ -246,9 +249,29 @@ namespace direct_bt {
                                                       uint16_t min_interval, uint16_t max_interval,
                                                       uint16_t latency, uint16_t supervision_timeout);
             friend HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch);
+            friend bool DBTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level, const bool blocking) noexcept;
+            friend bool DBTDevice::setConnIOCapability(const SMPIOCapability io_cap, const bool blocking) noexcept;
+            friend bool DBTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap, const bool blocking) noexcept;
+            friend void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis);
+            friend bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, SMPPairingState state, std::shared_ptr<MgmtEvent> evt) noexcept;
             friend void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;
             friend void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint64_t timestamp);
             friend std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept;
+
+            /**
+             * Sets the given SMPIOCapability for the next DBTDevice::connectLE() or DBTDevice::connectBREDR().
+             * <p>
+             * The SMPIOCapability value will be reset to its previous value when connection is completed or failed.
+             * </p>
+             * @param io_cap SMPIOCapability to be applied
+             * @param blocking if true, blocks until previous setting is completed,
+             *        i.e. until connection has been completed or failed.
+             *        Otherwise returns immediately with false if previous connection result is still pending.
+             */
+            bool setConnIOCapability(const DBTDevice & device, const SMPIOCapability io_cap, const bool blocking) noexcept;
+            bool resetConnIOCapability(const DBTDevice & device) noexcept;
+            bool resetConnIOCapability(const DBTDevice & device, SMPIOCapability& pre_io_cap) noexcept;
+            bool isConnIOCapabilitySet() const noexcept { return nullptr != io_capability_device_ptr; }
 
             bool addConnectedDevice(const std::shared_ptr<DBTDevice> & device) noexcept;
             bool removeConnectedDevice(const DBTDevice & device) noexcept;
@@ -274,8 +297,11 @@ namespace direct_bt {
             bool mgmtEvDeviceDiscoveringHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvLERemoteUserFeaturesHCI(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvHCILERemoteUserFeaturesHCI(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvHCIEncryptionChangedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvHCIEncryptionKeyRefreshCompleteHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
+
 
             bool mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const bool hciSourced) noexcept;
 
@@ -285,7 +311,6 @@ namespace direct_bt {
             bool mgmtEvAuthFailedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceUnpairedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
 
-            void updatePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState pstate, uint64_t timestamp) noexcept;
             bool hciSMPMsgCallback(const EUI48& address, BDAddressType addressType,
                                    std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;
             void sendDevicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept;

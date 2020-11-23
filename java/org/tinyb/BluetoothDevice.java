@@ -194,18 +194,76 @@ public interface BluetoothDevice extends BluetoothObject
     boolean pair() throws BluetoothException;
 
     /**
-     * Set the overriding security level used at device connection.
+     * Set the {@link BTSecurityLevel} used to connect to this device.
+     * <p>
+     * Method returns false if this device has already being connected,
+     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connect()} has been issued already.
+     * </p>
+     * <p>
+     * To ensure consistent no authentication setup,<br>
+     * implementation will set {@link SMPIOCapability#NO_INPUT_NO_OUTPUT} if sec_level <= {@link BTSecurityLevel#ENC_ONLY}<br>
+     * and {@link #setConnIOCapability(SMPIOCapability, boolean)} not used.
+     * </p>
+     * @param sec_level {@link BTSecurityLevel} to be applied
+     * @param blocking if true, blocks until previous {@link SMPIOCapability} setting is completed,
+     *        i.e. until connection has been completed or failed.
+     *        Otherwise returns immediately with false if previous connection result is still pending.
+     * @return
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
      */
-    void setSecurityLevel(final BTSecurityLevel sec_level);
+    boolean setConnSecurityLevel(final BTSecurityLevel sec_level, boolean blocking);
 
     /**
-     * Return the currently set security level.
+     * Return the {@link BTSecurityLevel}, determined when connection is established.
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
      */
-    BTSecurityLevel getCurrentSecurityLevel();
+    BTSecurityLevel getConnSecurityLevel();
+
+    /**
+     * Sets the given {@link SMPIOCapability} used to connect to this device.
+     * <p>
+     * Method returns false if operation fails, this device has already being connected,
+     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connect()} has been issued already.
+     * </p>
+     * <p>
+     * The {@link SMPIOCapability} value will be reset to its previous value when connection is completed or failed.
+     * </p>
+     * @param io_cap {@link SMPIOCapability} to be applied
+     * @param blocking if true, blocks until previous {@link SMPIOCapability} setting is completed,
+     *        i.e. until connection has been completed or failed.
+     *        Otherwise returns immediately with false if previous connection result is still pending.
+     * @since 2.1.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    boolean setConnIOCapability(final SMPIOCapability io_cap, final boolean blocking);
+
+    /**
+     * Sets the given {@link BTSecurityLevel} and {@link SMPIOCapability} used to connect to this device.
+     * <p>
+     * Method returns false if operation fails, this device has already being connected,
+     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connect()} has been issued already.
+     * </p>
+     * <p>
+     * The {@link SMPIOCapability} value will be reset to its previous value when connection is completed or failed.
+     * </p>
+     * @param sec_level {@link BTSecurityLevel} to be applied
+     * @param io_cap {@link SMPIOCapability} to be applied
+     * @param blocking if true, blocks until previous {@link SMPIOCapability} setting is completed,
+     *        i.e. until connection has been completed or failed.
+     *        Otherwise returns immediately with false if previous connection result is still pending.
+     * @since 2.1.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    boolean setConnSecurity(final BTSecurityLevel sec_level, final SMPIOCapability io_cap, final boolean blocking);
+
+    /**
+     * Return the {@link SMPIOCapability} value, determined when connection is established.
+     * @since 2.1.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    SMPIOCapability getConnIOCapability();
 
     /**
      * Method sets the given passkey entry, see {@link PairingMode#PASSKEY_ENTRY_ini}.

@@ -201,7 +201,9 @@ bool DBTAdapter::validateDevInfo() noexcept {
     ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvConnectFailedHCI)) && ok;
     ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedHCI)) && ok;
     ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceFoundHCI)) && ok;
-    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::LE_REMOTE_USER_FEATURES, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvLERemoteUserFeaturesHCI)) && ok;
+    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_REMOTE_USR_FEATURES, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvHCILERemoteUserFeaturesHCI)) && ok;
+    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_CHANGED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvHCIEncryptionChangedHCI)) && ok;
+    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI)) && ok;
 
     if( !ok ) {
         ERR_PRINT("Could not add all required MgmtEventCallbacks to HCIHandler: %s of %s", hci.toString().c_str(), toString().c_str());
@@ -309,6 +311,12 @@ void DBTAdapter::poweredOff() noexcept {
     hci.setCurrentScanType(ScanType::NONE);
     currentMetaScanType = ScanType::NONE;
 
+    // ensure all hci states are reset.
+    hci.clearAllStates();
+
+    io_capability_defaultval = SMPIOCapability::UNSET;
+    io_capability_device_ptr = nullptr;
+
     DBG_PRINT("DBTAdapter::poweredOff: XXX");
 }
 
@@ -332,18 +340,72 @@ std::shared_ptr<NameAndShortName> DBTAdapter::setLocalName(const std::string &na
 }
 
 bool DBTAdapter::setDiscoverable(bool value) noexcept {
-    AdapterSetting current_settings;
+    AdapterSetting current_settings { AdapterSetting::NONE } ;
     return MgmtStatus::SUCCESS == mgmt.setDiscoverable(dev_id, value ? 0x01 : 0x00, 10 /* timeout seconds */, current_settings);
 }
 
 bool DBTAdapter::setBondable(bool value) noexcept {
-    AdapterSetting current_settings;
+    AdapterSetting current_settings { AdapterSetting::NONE } ;
     return mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, value ? 1 : 0, current_settings);
 }
 
 bool DBTAdapter::setPowered(bool value) noexcept {
-    AdapterSetting current_settings;
+    AdapterSetting current_settings { AdapterSetting::NONE } ;
     return mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, value ? 1 : 0, current_settings);
+}
+
+bool DBTAdapter::setConnIOCapability(const DBTDevice & device, const SMPIOCapability io_cap, const bool blocking) noexcept {
+    const DBTDevice * exp_null_device = nullptr; // C++11, exp as value since C++20
+    const uint32_t timeout_ms = 10000; // FIXME: Configurable?
+    const uint32_t poll_period_ms = 125;
+    uint32_t td = 0;
+    while( !io_capability_device_ptr.compare_exchange_strong(exp_null_device, &device) ) {
+        if( blocking ) {
+            if( timeout_ms <= td ) {
+                return false;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(poll_period_ms));
+            td += poll_period_ms;
+        } else {
+            return false;
+        }
+    }
+    SMPIOCapability o;
+    const bool res = mgmt.setIOCapability(dev_id, io_cap, o);
+    DBG_PRINT("DBTAdapter::setConnIOCapability: result %d: %s -> %s, %s",
+        res, getSMPIOCapabilityString(o).c_str(), getSMPIOCapabilityString(io_cap).c_str(),
+        device.toString(false).c_str());
+    if( res ) {
+        io_capability_defaultval  = o;
+        return true;
+    } else {
+        io_capability_device_ptr = nullptr;
+        return false;
+    }
+}
+
+bool DBTAdapter::resetConnIOCapability(const DBTDevice & device) noexcept {
+    SMPIOCapability pre_io_cap { SMPIOCapability::UNSET };
+    return resetConnIOCapability(device, pre_io_cap);
+}
+
+bool DBTAdapter::resetConnIOCapability(const DBTDevice & device, SMPIOCapability& pre_io_cap) noexcept {
+    if( nullptr != io_capability_device_ptr && device == *io_capability_device_ptr ) {
+        const SMPIOCapability v = io_capability_defaultval;
+        io_capability_defaultval  = SMPIOCapability::UNSET;
+        io_capability_device_ptr = nullptr;
+        SMPIOCapability o;
+        const bool res = mgmt.setIOCapability(dev_id, v, o);
+        DBG_PRINT("DBTAdapter::resetConnIOCapability: result %d: %s -> %s, %s",
+            res, getSMPIOCapabilityString(o).c_str(), getSMPIOCapabilityString(v).c_str(),
+            device.toString(false).c_str());
+        if( res ) {
+            pre_io_cap = o;
+        }
+        return res;
+    } else {
+        return false;
+    }
 }
 
 HCIStatusCode DBTAdapter::reset() noexcept {
@@ -704,6 +766,7 @@ void DBTAdapter::removeDevice(DBTDevice & device) noexcept {
     WORDY_PRINT("DBTAdapter::removeDevice: Start %s", toString(false).c_str());
     const HCIStatusCode status = device.disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
     WORDY_PRINT("DBTAdapter::removeDevice: disconnect %s, %s", getHCIStatusCodeString(status).c_str(), toString(false).c_str());
+    resetConnIOCapability(device);
     removeConnectedDevice(device); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
     removeDiscoveredDevice(device); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
     WORDY_PRINT("DBTAdapter::removeDevice: End %s", toString(false).c_str());
@@ -947,6 +1010,8 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept
         new_connect = 3;
     }
 
+    const SMPIOCapability io_cap_conn = mgmt.getIOCapability(dev_id);
+
     EIRDataType updateMask = device->update(ad_report);
     if( addConnectedDevice(device) ) { // track device, if not done yet
         if( 0 == new_connect ) {
@@ -970,7 +1035,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept
             device->toString().c_str());
     }
 
-    device->notifyConnected(device, event.getHCIHandle());
+    device->notifyConnected(device, event.getHCIHandle(), io_cap_conn);
 
     int i=0;
     jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
@@ -1004,6 +1069,7 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
             dev_id, event.toString().c_str(), jau::uint16HexString(handle).c_str(),
             device->toString().c_str());
 
+        resetConnIOCapability(*device);
         device->notifyDisconnected();
         removeConnectedDevice(*device);
 
@@ -1028,8 +1094,8 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
     return true;
 }
 
-bool DBTAdapter::mgmtEvLERemoteUserFeaturesHCI(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtLERemoteUserFeatures &event = *static_cast<const MgmtEvtLERemoteUserFeatures *>(e.get());
+bool DBTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(std::shared_ptr<MgmtEvent> e) noexcept {
+    const MgmtEvtHCILERemoteUserFeatures &event = *static_cast<const MgmtEvtHCILERemoteUserFeatures *>(e.get());
 
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
@@ -1040,6 +1106,31 @@ bool DBTAdapter::mgmtEvLERemoteUserFeaturesHCI(std::shared_ptr<MgmtEvent> e) noe
 
     } else {
         WORDY_PRINT("DBTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): Device not tracked: %s",
+            dev_id, event.toString().c_str());
+    }
+    return true;
+}
+
+bool DBTAdapter::mgmtEvHCIEncryptionChangedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
+    const MgmtEvtHCIEncryptionChanged &event = *static_cast<const MgmtEvtHCIEncryptionChanged *>(e.get());
+
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr != device ) {
+        device->updatePairingState(device, SMPPairingState::PROCESS_COMPLETED, e);
+    } else {
+        WORDY_PRINT("DBTAdapter::EventHCI:EncryptionChanged(dev_id %d): Device not tracked: %s",
+            dev_id, event.toString().c_str());
+    }
+    return true;
+}
+bool DBTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI(std::shared_ptr<MgmtEvent> e) noexcept {
+    const MgmtEvtHCIEncryptionKeyRefreshComplete &event = *static_cast<const MgmtEvtHCIEncryptionKeyRefreshComplete *>(e.get());
+
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr != device ) {
+        device->updatePairingState(device, SMPPairingState::PROCESS_COMPLETED, e);
+    } else {
+        WORDY_PRINT("DBTAdapter::EventHCI:EncryptionKeyRefreshComplete(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
     return true;
@@ -1059,6 +1150,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexc
             dev_id, event.toString().c_str(), jau::uint16HexString(event.getHCIHandle()).c_str(),
             device->toString().c_str());
 
+        resetConnIOCapability(*device);
         device->notifyDisconnected();
         removeConnectedDevice(*device);
 
@@ -1215,15 +1307,8 @@ bool DBTAdapter::mgmtEvUserConfirmRequestMgmt(std::shared_ptr<MgmtEvent> e) noex
                 event.toString().c_str());
         return true;
     }
-    // FIXME: Pass confirm_hint and value
-    const SMPPairingState pstate  = SMPPairingState::NUMERIC_COMPARE_EXPECTED;
-
-    DBG_PRINT("DBTAdapter:mgmt:SMP: dev_id %d: address[%s, %s]: state %s, %s",
-        dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),
-        getSMPPairingStateString(pstate).c_str(),
-        event.toString().c_str());
-
-    updatePairingState(device, pstate, e->getTimestamp());
+    // FIXME: Pass confirm_hint and value?
+    device->updatePairingState(device, SMPPairingState::NUMERIC_COMPARE_EXPECTED, e);
     return true;
 }
 bool DBTAdapter::mgmtEvUserPasskeyRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
@@ -1236,27 +1321,8 @@ bool DBTAdapter::mgmtEvUserPasskeyRequestMgmt(std::shared_ptr<MgmtEvent> e) noex
                 event.toString().c_str());
         return true;
     }
-    const SMPPairingState pstate  = SMPPairingState::PASSKEY_EXPECTED;
-
-    DBG_PRINT("DBTAdapter:mgmt:SMP: dev_id %d: address[%s, %s]: state %s, %s",
-        dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),
-        getSMPPairingStateString(pstate).c_str(),
-        event.toString().c_str());
-
-    updatePairingState(device, pstate, e->getTimestamp());
+    device->updatePairingState(device, SMPPairingState::PASSKEY_EXPECTED, e);
     return true;
-}
-
-void DBTAdapter::updatePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState pstate, uint64_t timestamp) noexcept
-{
-    PairingMode pmode;
-    if( device->updatePairingState_locked(pstate, pmode) ) {
-        sendDevicePairingState(device, pstate, pmode, timestamp);
-    } else {
-        WORDY_PRINT("DBTAdapter::updatePairingState: dev_id %d: Unchanged: state %s, %s", dev_id,
-                getSMPPairingStateString(pstate).c_str(),
-                device->toString().c_str());
-    }
 }
 
 bool DBTAdapter::hciSMPMsgCallback(const EUI48& address, BDAddressType addressType,

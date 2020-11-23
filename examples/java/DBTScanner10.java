@@ -57,6 +57,7 @@ import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.HCIWhitelistConnectType;
 import org.tinyb.PairingMode;
+import org.tinyb.SMPIOCapability;
 import org.tinyb.SMPPairingState;
 import org.tinyb.ScanType;
 import org.tinyb.BluetoothManager.ChangedAdapterSetListener;
@@ -79,6 +80,7 @@ public class DBTScanner10 {
     static final int NO_PASSKEY = 0xffffffff;
     int pairing_passkey = NO_PASSKEY;
     BTSecurityLevel sec_level = BTSecurityLevel.UNSET;
+    SMPIOCapability io_capabilities = SMPIOCapability.UNSET;
 
     long timestamp_t0;
 
@@ -289,9 +291,15 @@ public class DBTScanner10 {
             final HCIStatusCode r = device.getAdapter().stopDiscovery();
             println("****** Connecting Device: stopDiscovery result "+r);
         }
-        if( BTSecurityLevel.UNSET.value < sec_level.value ) {
-            device.setSecurityLevel(sec_level);
+
+        if( BTSecurityLevel.UNSET.value < sec_level.value && SMPIOCapability.UNSET.value != io_capabilities.value ) {
+            device.setConnSecurity(sec_level, io_capabilities, true /* blocking */);
+        } else if( BTSecurityLevel.UNSET.value < sec_level.value ) {
+            device.setConnSecurityLevel(sec_level, true /* blocking */);
+        } else if( SMPIOCapability.UNSET.value != io_capabilities.value ) {
+            device.setConnIOCapability(io_capabilities, true /* blocking */);
         }
+
         HCIStatusCode res;
         if( !USE_WHITELIST ) {
             res = device.connect();
@@ -732,6 +740,8 @@ public class DBTScanner10 {
                     test.pairing_passkey = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-seclevel") && args.length > (i+1) ) {
                     test.sec_level = BTSecurityLevel.get( (byte)Integer.valueOf(args[++i]).intValue() );
+                } else if( arg.equals("-iocap") && args.length > (i+1) ) {
+                    test.io_capabilities = SMPIOCapability.get( (byte)Integer.valueOf(args[++i]).intValue() );
                 } else if( arg.equals("-charid") && args.length > (i+1) ) {
                     test.charIdentifier = args[++i];
                 } else if( arg.equals("-charval") && args.length > (i+1) ) {
@@ -755,7 +765,7 @@ public class DBTScanner10 {
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet]  "+
                     "[-resetEachCon connectionCount] "+
                     "(-mac <device_address>)* (-wl <device_address>)* "+
-                    "[-passkey <digits>]  [-seclevel <int>]" +
+                    "[-seclevel <int>] [-iocap <int>] [-passkey <digits>]" +
                     "[-charid <uuid>] [-charval <byte-val>]"+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
