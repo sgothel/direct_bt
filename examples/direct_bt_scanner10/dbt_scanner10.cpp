@@ -68,7 +68,7 @@ static bool REMOVE_DEVICE = true;
 static bool USE_WHITELIST = false;
 static std::vector<EUI48> WHITELIST;
 
-static std::string charIdentifier = nullptr;
+static std::string charIdentifier = "";
 static int charValue = 0;
 
 static bool SHOW_UPDATE_EVENTS = false;
@@ -423,7 +423,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
         {
             // WIP: Implement a simple Characteristic ping-pong writeValue <-> notify transmission for stress testing.
             DBTManager & manager = device->getAdapter().getManager();
-            if( nullptr != charIdentifier ) {
+            if( nullptr != charIdentifier && charIdentifier.length() > 0 ) {
                 GATTCharacteristic * char2 = (GATTCharacteristic*) nullptr;
                         // manager.find(BluetoothType.GATT_CHARACTERISTIC, null, charIdentifier, device);
                 fprintf(stderr, "Char UUID %s\n", charIdentifier.c_str());
@@ -788,8 +788,8 @@ int main(int argc, char *argv[])
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "
                     "[-resetEachCon connectionCount] "
                     "(-mac <device_address>)* (-wl <device_address>)* "
-                    "[-seclevel <int>] [-iocap <int>] [-passkey <digits>]"
-                    "[-charid <uuid>] [-charval <byte-val>]"
+                    "[-seclevel <int>] [-iocap <int>] [-passkey <digits>] "
+                    "[-charid <uuid>] [-charval <byte-val>] "
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,...] "
@@ -809,6 +809,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "btmode %s\n", getBTModeString(btMode).c_str());
     fprintf(stderr, "passkey %u\n", pairing_passkey);
     fprintf(stderr, "seclevel %s\n", getBTSecurityLevelString(sec_level).c_str());
+    fprintf(stderr, "iocap %s\n", getSMPIOCapabilityString(io_capabilities).c_str());
     fprintf(stderr, "characteristic-id: %s\n", charIdentifier.c_str());
     fprintf(stderr, "characteristic-value: %d\n", charValue);
 

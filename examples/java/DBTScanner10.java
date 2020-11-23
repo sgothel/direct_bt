@@ -373,7 +373,7 @@ public class DBTScanner10 {
             {
                 // WIP: Implement a simple Characteristic ping-pong writeValue <-> notify transmission for stress testing.
                 final BluetoothManager manager = device.getAdapter().getManager();
-                if( null != charIdentifier ) {
+                if( null != charIdentifier && charIdentifier.length() > 0 ) {
                     final BluetoothGattCharacteristic char2 = (BluetoothGattCharacteristic)
                             manager.find(BluetoothType.GATT_CHARACTERISTIC, null, charIdentifier, device);
                     println("Char UUID "+charIdentifier);
@@ -762,11 +762,11 @@ public class DBTScanner10 {
             }
             println("Run with '[-btmode LE|BREDR|DUAL] "+
                     "[-bluetoothManager <BluetoothManager-Implementation-Class-Name>] "+
-                    "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet]  "+
+                    "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "+
                     "[-resetEachCon connectionCount] "+
                     "(-mac <device_address>)* (-wl <device_address>)* "+
-                    "[-seclevel <int>] [-iocap <int>] [-passkey <digits>]" +
-                    "[-charid <uuid>] [-charval <byte-val>]"+
+                    "[-seclevel <int>] [-iocap <int>] [-passkey <digits>] " +
+                    "[-charid <uuid>] [-charval <byte-val>] "+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "+
@@ -787,6 +787,7 @@ public class DBTScanner10 {
         println("QUIET "+test.QUIET);
         println("passkey "+test.pairing_passkey);
         println("seclevel "+test.sec_level);
+        println("iocap "+test.io_capabilities);
         println("characteristic-id: "+test.charIdentifier);
         println("characteristic-value: "+test.charValue);
 
