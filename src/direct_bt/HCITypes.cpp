@@ -362,7 +362,7 @@ HCIACLData::l2cap_frame HCIACLData::getL2CAPFrame() const noexcept {
         case HCIACLData::l2cap_frame::PBFlag::COMPLETE_L2CAP_AUTOFLUSH:
         {
             if( size < sizeof(*hdr) ) {
-                WARN_PRINT("l2cap frame-size %d < hdr-size %z, handle ", size, sizeof(*hdr), handle);
+                DBG_PRINT("l2cap DROP frame-size %d < hdr-size %z, handle ", size, sizeof(*hdr), handle);
                 return l2cap_frame { handle, pb_flag, bc_flag, 0, 0, 0, nullptr };
             }
             const uint16_t len = jau::le_to_cpu(hdr->len);
@@ -372,7 +372,7 @@ HCIACLData::l2cap_frame HCIACLData::getL2CAPFrame() const noexcept {
             if( len <= size ) { // tolerate frame size > len, cutting-off excess octets
                 return l2cap_frame { handle, pb_flag, bc_flag, cid, 0, len, data };
             } else {
-                WARN_PRINT("l2cap frame-size %d < l2cap-size %d, handle ", size, len, handle);
+                DBG_PRINT("l2cap DROP frame-size %d < l2cap-size %d, handle ", size, len, handle);
                 return l2cap_frame { handle, pb_flag, bc_flag, 0, 0, 0, nullptr };
             }
         } break;
@@ -380,7 +380,7 @@ HCIACLData::l2cap_frame HCIACLData::getL2CAPFrame() const noexcept {
         case HCIACLData::l2cap_frame::PBFlag::CONTINUING_FRAGMENT:
             [[fallthrough]];
         default: // not supported
-            WARN_PRINT("l2cap frame flag 0x%2.2x not supported, handle %d, packet-size %d", pb_flag, handle, size);
+            DBG_PRINT("l2cap DROP frame flag 0x%2.2x not supported, handle %d, packet-size %d", pb_flag, handle, size);
             return l2cap_frame { handle, pb_flag, bc_flag, 0, 0, 0, nullptr };
     }
 }
