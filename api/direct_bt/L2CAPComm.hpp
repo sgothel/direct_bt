@@ -142,6 +142,9 @@ namespace direct_bt {
             std::atomic<pthread_t> tid_connect;
             std::atomic<pthread_t> tid_read;
 
+            bool setBTSecurityLevelImpl(const BTSecurityLevel sec_level);
+            bool getBTSecurityLevelImpl(BTSecurityLevel& sec_level);
+
         public:
             /**
              * Constructing a non connected L2CAP channel instance for the pre-defined PSM and CID.
@@ -161,9 +164,10 @@ namespace direct_bt {
              * </p>
              *
              * @param device the remote device to establish this L2CAP connection
+             * @param sec_level sec_level < BTSecurityLevel::NONE will not set security level
              * @return true if connection has been established, otherwise false
              */
-            bool open(const DBTDevice& device);
+            bool open(const DBTDevice& device, const BTSecurityLevel sec_level=BTSecurityLevel::NONE);
 
             bool isOpen() const { return is_open; }
 
@@ -180,15 +184,23 @@ namespace direct_bt {
             std::recursive_mutex & mutex_write() { return mtx_write; }
 
             /**
-             * If sec_level > BTSecurityLevel::NONE, sets the BlueZ's L2CAP socket BT_SECURITY sec_level, determining the SMP security mode per connection.
+             * If sec_level > BTSecurityLevel::UNSET, sets the BlueZ's L2CAP socket BT_SECURITY sec_level, determining the SMP security mode per connection.
              * <p>
              * To unset security, the L2CAP socket should be closed and opened again.
              * </p>
              *
-             * @param sec_level sec_level <= BTSecurityLevel::NONE will not set security level and returns false.
-             * @return true if a security level > BTSecurityLevel::NONE has been set successfully, false if no security level has been set or if it failed.
+             * @param sec_level sec_level < BTSecurityLevel::NONE will not set security level and returns false.
+             * @return true if a security level > BTSecurityLevel::UNSET has been set successfully, false if no security level has been set or if it failed.
              */
             bool setBTSecurityLevel(const BTSecurityLevel sec_level);
+
+            /**
+             * Fetches the current BlueZ's L2CAP socket BT_SECURITY sec_level.
+             *
+             * @param sec_level return value reference written to if method returns true
+             * @return true if successful with result written to sec_level, otherwise false.
+             */
+            bool getBTSecurityLevel(BTSecurityLevel& sec_level);
 
             /** Generic read, w/o locking suitable for a unique ringbuffer sink. Using L2CAPEnv::L2CAP_READER_POLL_TIMEOUT.*/
             jau::snsize_t read(uint8_t* buffer, const jau::nsize_t capacity);

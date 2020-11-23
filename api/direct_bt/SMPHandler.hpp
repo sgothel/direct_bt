@@ -216,10 +216,10 @@ namespace direct_bt {
             std::string getStateString() const noexcept { return L2CAPComm::getStateString(is_connected, has_ioerror); }
 
             /**
-             * If sec_level > BTSecurityLevel::NONE, establish security level per L2CAP connection.
+             * If sec_level > BTSecurityLevel::UNSET, change security level per L2CAP connection.
              *
-             * @param sec_level sec_level <= BTSecurityLevel::NONE will not set security level and returns false.
-             * @return true if a security level > BTSecurityLevel::NONE has been set successfully, false if no security level has been set or if it failed.
+             * @param sec_level sec_level < BTSecurityLevel::NONE will not set security level and returns false.
+             * @return true if a security level > BTSecurityLevel::UNSET has been set successfully, false if no security level has been set or if it failed.
              */
             bool establishSecurity(const BTSecurityLevel sec_level);
 
