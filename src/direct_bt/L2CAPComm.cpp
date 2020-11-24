@@ -121,6 +121,9 @@ L2CAPComm::L2CAPComm(const EUI48& adapterAddress_, const uint16_t psm_, const ui
  * Setting BT_SECURITY within open() after bind() and before connect()
  * causes BlueZ/Kernel to immediately process SMP, leading to a potential deadlock.
  *
+ * Here we experience, setting security level before connect()
+ * will block the thread within connect(), potentially a mutex used in the SMP procedure.
+ *
  * Hence we set BT_SECURITY after connect() within open().
  */
 #define SET_BT_SECURITY_POST_CONNECT 1
@@ -135,6 +138,21 @@ bool L2CAPComm::open(const DBTDevice& device, const BTSecurityLevel sec_level) {
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
 
+    /**
+     * bt_io_connect ( create_io ) with source address
+     * - fd = socket(.._)
+     * - bind(fd, ..)
+     * - l2cap_set
+     * -- set imtu, omtu, mode
+     * -- l2cap_set_master
+     * -- l2cap_set_flushable
+     * -- set_priority
+     * -- set_sec_level
+     * --- setsockopt(.. BT_SECURITY ..)
+     *
+     * - l2cap_connect with destination address
+     * -- connect(fd, ..)
+     */
     deviceString = device.getAddressString();
     deviceAddress = device.getAddress();
     deviceAddressType = device.getAddressType();
