@@ -51,7 +51,7 @@
  *
  * Direct-BT implements the following layers
  * - DBTManager for adapter configuration and adapter add/removal notifications (ChangedAdapterSetFunc())
- *   - Using *BlueZ Kernel Manager Control Channel*
+ *   - Using *BlueZ Kernel Manager Control Channel* via MgmtMsg communication.
  * - *HCI Handling* via HCIHandler using HCIPacket implementing connect/disconnect w/ tracking, device discovery, etc
  * - *ATT PDU* AttPDUMsg via L2CAP for low level packet communication
  * - *GATT Support* via GATTHandler using AttPDUMsg over L2CAPComm, providing
@@ -63,8 +63,8 @@
  *   - LE Secure Connections
  *   - LE legacy pairing
  * - On Linux/BlueZ, LE Secure Connections and LE legacy pairing is supported using
- *   - BTSecurityLevel setting via DBTDevice/L2CAPComm per connection and
- *   - SMPIOCapability via DBTManager (per adapter) and DBTDevice (per connection)
+ *   - ::BTSecurityLevel setting via DBTDevice / L2CAPComm per connection and
+ *   - ::SMPIOCapability via DBTManager (per adapter) and DBTDevice (per connection)
  *   - SMPPDUMsg SMP event tracking over HCI/ACL/L2CAP, observing operations
  *
  * DBTManager utilizes the *BlueZ Kernel Manager Control Channel*

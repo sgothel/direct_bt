@@ -184,20 +184,20 @@ namespace direct_bt {
             std::recursive_mutex & mutex_write() { return mtx_write; }
 
             /**
-             * If sec_level > BTSecurityLevel::UNSET, sets the BlueZ's L2CAP socket BT_SECURITY sec_level, determining the SMP security mode per connection.
+             * If sec_level > ::BTSecurityLevel::UNSET, sets the BlueZ's L2CAP socket BT_SECURITY sec_level, determining the SMP security mode per connection.
              * <p>
              * To unset security, the L2CAP socket should be closed and opened again.
              * </p>
              *
-             * @param sec_level sec_level < BTSecurityLevel::NONE will not set security level and returns false.
-             * @return true if a security level > BTSecurityLevel::UNSET has been set successfully, false if no security level has been set or if it failed.
+             * @param sec_level sec_level < ::BTSecurityLevel::NONE will not set security level and returns false.
+             * @return true if a security level > ::BTSecurityLevel::UNSET has been set successfully, false if no security level has been set or if it failed.
              */
             bool setBTSecurityLevel(const BTSecurityLevel sec_level);
 
             /**
              * Fetches the current BlueZ's L2CAP socket BT_SECURITY sec_level.
              *
-             * @return BTSecurityLevel  sec_level value, BTSecurityLevel::UNSET if failure
+             * @return ::BTSecurityLevel  sec_level value, ::BTSecurityLevel::UNSET if failure
              */
             BTSecurityLevel getBTSecurityLevel();
 

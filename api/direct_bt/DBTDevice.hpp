@@ -430,18 +430,18 @@ namespace direct_bt {
             HCIStatusCode disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
 
             /**
-             * Set the BTSecurityLevel used to connect to this device.
+             * Set the ::BTSecurityLevel used to connect to this device.
              * <p>
              * Method returns false if this device has already being connected,
              * or DBTDevice::connectLE() or DBTDevice::connectBREDR() has been issued already.
              * </p>
              * <p>
              * To ensure consistent no authentication setup,<br>
-             * implementation will set SMPIOCapability::NO_INPUT_NO_OUTPUT if sec_level <= BTSecurityLevel::ENC_ONLY<br>
-             * and DBTDevice::setConnIOCapability() not used.
+             * implementation will set ::SMPIOCapability::NO_INPUT_NO_OUTPUT if sec_level <= ::BTSecurityLevel::ENC_ONLY<br>
+             * and DBTDevice::setConnIOCapability() has not been used.
              * </p>
-             * @param sec_level BTSecurityLevel to be applied
-             * @param blocking if true, blocks until previous SMPIOCapability setting is completed,
+             * @param sec_level ::BTSecurityLevel to be applied
+             * @param blocking if true, blocks until previous ::SMPIOCapability setting is completed,
              *        i.e. until connection has been completed or failed.
              *        Otherwise returns immediately with false if previous connection result is still pending.
              * @return
@@ -449,59 +449,59 @@ namespace direct_bt {
             bool setConnSecurityLevel(const BTSecurityLevel sec_level, const bool blocking) noexcept;
 
             /**
-             * Return the BTSecurityLevel, determined when connection is established.
+             * Return the ::BTSecurityLevel, determined when connection is established.
              */
             BTSecurityLevel getConnSecurityLevel() const noexcept { return pairing_data.sec_level_conn; }
 
             /**
-             * Sets the given SMPIOCapability used to connect to this device.
+             * Sets the given ::SMPIOCapability used to connect to this device.
              * <p>
              * Method returns false if operation fails, this device has already being connected,
              * or DBTDevice::connectLE() or DBTDevice::connectBREDR() has been issued already.
              * </p>
              * <p>
-             * The SMPIOCapability value will be reset to its previous value when connection is completed or failed.
+             * The ::SMPIOCapability value will be reset for the adapter to its previous value when connection is completed or failed.
              * </p>
-             * @param io_cap SMPIOCapability to be applied
-             * @param blocking if true, blocks until previous SMPIOCapability setting is completed,
+             * @param io_cap ::SMPIOCapability to be applied
+             * @param blocking if true, blocks until previous ::SMPIOCapability setting is completed,
              *        i.e. until connection has been completed or failed.
              *        Otherwise returns immediately with false if previous connection result is still pending.
              */
             bool setConnIOCapability(const SMPIOCapability io_cap, const bool blocking=true) noexcept;
 
             /**
-             * Sets the given BTSecurityLevel and SMPIOCapability used to connect to this device.
+             * Sets the given ::BTSecurityLevel and ::SMPIOCapability used to connect to this device.
              * <p>
              * Method returns false if operation fails, this device has already being connected,
              * or DBTDevice::connectLE() or DBTDevice::connectBREDR() has been issued already.
              * </p>
              * <p>
-             * The SMPIOCapability value will be reset to its previous value when connection is completed or failed.
+             * The ::SMPIOCapability value will be reset for the adapter to its previous value when connection is completed or failed.
              * </p>
-             * @param sec_level BTSecurityLevel to be applied
-             * @param io_cap SMPIOCapability to be applied
-             * @param blocking if true, blocks until previous SMPIOCapability setting is completed,
+             * @param sec_level ::BTSecurityLevel to be applied
+             * @param io_cap ::SMPIOCapability to be applied
+             * @param blocking if true, blocks until previous ::SMPIOCapability setting is completed,
              *        i.e. until connection has been completed or failed.
              *        Otherwise returns immediately with false if previous connection result is still pending.
              */
             bool setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap, const bool blocking=true) noexcept;
 
             /**
-             * Return the set SMPIOCapability value, determined when connection is established.
+             * Return the set ::SMPIOCapability value, determined when connection is established.
              */
             SMPIOCapability getConnIOCapability() const noexcept { return pairing_data.ioCap_conn; }
 
             /**
-             * Method sets the given passkey entry, see PairingMode::PASSKEY_ENTRY_ini.
+             * Method sets the given passkey entry, see ::PairingMode::PASSKEY_ENTRY_ini.
              * <p>
-             * Call this method if the device shall be securely paired with PairingMode::PASSKEY_ENTRY_ini,
-             * i.e. when notified via AdapterStatusListener::devicePairingState() in state SMPPairingState::PASSKEY_EXPECTED.
+             * Call this method if the device shall be securely paired with ::PairingMode::PASSKEY_ENTRY_ini,
+             * i.e. when notified via AdapterStatusListener::devicePairingState() in state ::SMPPairingState::PASSKEY_EXPECTED.
              * </p>
              *
-             * @param passkey used for PairingMode::PASSKEY_ENTRY_ini method.
+             * @param passkey used for ::PairingMode::PASSKEY_ENTRY_ini method.
              *        Will be encrypted before sending to counter-party.
              *
-             * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
+             * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise ::HCIStatusCode may disclose reason for rejection.
              * @see PairingMode
              * @see SMPPairingState
              * @see AdapterStatusListener::devicePairingState()
@@ -515,16 +515,16 @@ namespace direct_bt {
             HCIStatusCode setPairingPasskeyNegative() noexcept;
 
             /**
-             * Method sets the numeric comparison result, see PairingMode::NUMERIC_COMPARE_ini.
+             * Method sets the numeric comparison result, see ::PairingMode::NUMERIC_COMPARE_ini.
              * <p>
-             * Call this method if the device shall be securely paired with PairingMode::NUMERIC_COMPARE_ini,
-             * i.e. when notified via AdapterStatusListener::devicePairingState() in state SMPPairingState::NUMERIC_COMPARE_EXPECTED.
+             * Call this method if the device shall be securely paired with ::PairingMode::NUMERIC_COMPARE_ini,
+             * i.e. when notified via AdapterStatusListener::devicePairingState() in state ::SMPPairingState::NUMERIC_COMPARE_EXPECTED.
              * </p>
              *
-             * @param equal used for PairingMode::NUMERIC_COMPARE_ini method.
+             * @param equal used for ::PairingMode::NUMERIC_COMPARE_ini method.
              *        Will be encrypted before sending to counter-party.
              *
-             * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
+             * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise ::HCIStatusCode may disclose reason for rejection.
              * @see PairingMode
              * @see SMPPairingState
              * @see AdapterStatusListener::devicePairingState()
@@ -536,19 +536,19 @@ namespace direct_bt {
             HCIStatusCode setPairingNumericComparison(const bool equal) noexcept;
 
             /**
-             * Returns the current PairingMode used by the device.
+             * Returns the current ::PairingMode used by the device.
              * <p>
-             * If the device is not paired, the current mode is PairingMode::NONE.
+             * If the device is not paired, the current mode is ::PairingMode::NONE.
              * </p>
              * <p>
-             * If the Pairing Feature Exchange is completed, i.e. SMPPairingState::FEATURE_EXCHANGE_COMPLETED,
+             * If the Pairing Feature Exchange is completed, i.e. ::SMPPairingState::FEATURE_EXCHANGE_COMPLETED,
              * as notified by AdapterStatusListener::devicePairingState(),
              * the current mode reflects the currently used PairingMode.
              * </p>
              * <p>
-             * In case the Pairing Feature Exchange is in progress, the current mode is PairingMode::NEGOTIATING.
+             * In case the Pairing Feature Exchange is in progress, the current mode is ::PairingMode::NEGOTIATING.
              * </p>
-             * @return current PairingMode.
+             * @return current ::PairingMode.
              * @see PairingMode
              * @see SMPPairingState
              * @see AdapterStatusListener::devicePairingState()
@@ -560,9 +560,9 @@ namespace direct_bt {
             PairingMode getPairingMode() const noexcept { return pairing_data.mode; }
 
             /**
-             * Returns the current SMPPairingState.
+             * Returns the current ::SMPPairingState.
              * <p>
-             * If the device is not paired, the current state is SMPPairingState::NONE.
+             * If the device is not paired, the current state is ::SMPPairingState::NONE.
              * </p>
              * @see PairingMode
              * @see SMPPairingState
