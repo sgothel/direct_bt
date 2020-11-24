@@ -249,9 +249,9 @@ namespace direct_bt {
                                                       uint16_t min_interval, uint16_t max_interval,
                                                       uint16_t latency, uint16_t supervision_timeout);
             friend HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch);
-            friend bool DBTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level, const bool blocking) noexcept;
-            friend bool DBTDevice::setConnIOCapability(const SMPIOCapability io_cap, const bool blocking) noexcept;
-            friend bool DBTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap, const bool blocking) noexcept;
+            friend bool DBTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept;
+            friend bool DBTDevice::setConnIOCapability(const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept;
+            friend bool DBTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept;
             friend void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis);
             friend bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, SMPPairingState state, std::shared_ptr<MgmtEvent> evt) noexcept;
             friend void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;
@@ -261,14 +261,19 @@ namespace direct_bt {
             /**
              * Sets the given SMPIOCapability for the next DBTDevice::connectLE() or DBTDevice::connectBREDR().
              * <p>
-             * The SMPIOCapability value will be reset to its previous value when connection is completed or failed.
+             * The ::SMPIOCapability value will be reset to its previous value when connection is completed or failed.
              * </p>
-             * @param io_cap SMPIOCapability to be applied
-             * @param blocking if true, blocks until previous setting is completed,
+             * <p>
+             * A value of ::SMPIOCapability::UNSET will be ignored and method returns immediately.
+             * </p>
+             * @param[in] io_cap ::SMPIOCapability to be applied
+             * @param[in,out] blocking if true, blocks until previous setting is completed,
              *        i.e. until connection has been completed or failed.
              *        Otherwise returns immediately with false if previous connection result is still pending.
+             *        On return, this parameter will be set to true if failure was caused by blocking or timeout, otherwise set to false.
+             * @param[out] pre_io_cap return the previous set ::SMPIOCapability value if successful
              */
-            bool setConnIOCapability(const DBTDevice & device, const SMPIOCapability io_cap, const bool blocking) noexcept;
+            bool setConnIOCapability(const DBTDevice & device, const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept;
             bool resetConnIOCapability(const DBTDevice & device) noexcept;
             bool resetConnIOCapability(const DBTDevice & device, SMPIOCapability& pre_io_cap) noexcept;
             bool isConnIOCapabilitySet() const noexcept { return nullptr != io_capability_device_ptr; }

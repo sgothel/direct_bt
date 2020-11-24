@@ -110,7 +110,7 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native boolean pair() throws BluetoothException;
 
     @Override
-    public final boolean setConnSecurityLevel(final BTSecurityLevel sec_level, final boolean blocking) { return false; } // FIXME
+    public final boolean setConnSecurityLevel(final BTSecurityLevel sec_level) { return false; } // FIXME
 
     @Override
     public final BTSecurityLevel getConnSecurityLevel() { return BTSecurityLevel.UNSET; } // FIXME

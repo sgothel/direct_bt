@@ -379,12 +379,12 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_connectLEImpl1(JNIEnv *env, jobject obj,
 }
 
 
-jboolean Java_direct_1bt_tinyb_DBTDevice_setConnSecurityLevelImpl(JNIEnv *env, jobject obj, jbyte jsec_level, jboolean jblocking) {
+jboolean Java_direct_1bt_tinyb_DBTDevice_setConnSecurityLevelImpl(JNIEnv *env, jobject obj, jbyte jsec_level) {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        return device->setConnSecurityLevel( getBTSecurityLevel( static_cast<uint8_t>(jsec_level) ), JNI_TRUE == jblocking );
+        return device->setConnSecurityLevel( getBTSecurityLevel( static_cast<uint8_t>(jsec_level) ));
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

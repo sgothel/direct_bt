@@ -354,7 +354,11 @@ bool DBTAdapter::setPowered(bool value) noexcept {
     return mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, value ? 1 : 0, current_settings);
 }
 
-bool DBTAdapter::setConnIOCapability(const DBTDevice & device, const SMPIOCapability io_cap, const bool blocking) noexcept {
+bool DBTAdapter::setConnIOCapability(const DBTDevice & device, const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept {
+    if( SMPIOCapability::UNSET == io_cap ) {
+        blocking = false;
+        return false;
+    }
     const DBTDevice * exp_null_device = nullptr; // C++11, exp as value since C++20
     const uint32_t timeout_ms = 10000; // FIXME: Configurable?
     const uint32_t poll_period_ms = 125;
@@ -362,21 +366,20 @@ bool DBTAdapter::setConnIOCapability(const DBTDevice & device, const SMPIOCapabi
     while( !io_capability_device_ptr.compare_exchange_strong(exp_null_device, &device) ) {
         if( blocking ) {
             if( timeout_ms <= td ) {
+                blocking = true;
                 return false;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(poll_period_ms));
             td += poll_period_ms;
         } else {
+            blocking = true;
             return false;
         }
     }
-    SMPIOCapability o;
-    const bool res = mgmt.setIOCapability(dev_id, io_cap, o);
-    DBG_PRINT("DBTAdapter::setConnIOCapability: result %d: %s -> %s, %s",
-        res, getSMPIOCapabilityString(o).c_str(), getSMPIOCapabilityString(io_cap).c_str(),
-        device.toString(false).c_str());
+    blocking = false;
+    const bool res = mgmt.setIOCapability(dev_id, io_cap, pre_io_cap);
     if( res ) {
-        io_capability_defaultval  = o;
+        io_capability_defaultval  = pre_io_cap;
         return true;
     } else {
         io_capability_device_ptr = nullptr;

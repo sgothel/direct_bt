@@ -77,7 +77,7 @@ public class DBTScanner10 {
 
     final List<String> waitForDevices = new ArrayList<String>();
 
-    static final int NO_PASSKEY = 0xffffffff;
+    static final int NO_PASSKEY = -1;
     int pairing_passkey = NO_PASSKEY;
     BTSecurityLevel sec_level = BTSecurityLevel.UNSET;
     SMPIOCapability io_capabilities = SMPIOCapability.UNSET;
@@ -295,7 +295,11 @@ public class DBTScanner10 {
         if( BTSecurityLevel.UNSET.value < sec_level.value && SMPIOCapability.UNSET.value != io_capabilities.value ) {
             device.setConnSecurity(sec_level, io_capabilities, true /* blocking */);
         } else if( BTSecurityLevel.UNSET.value < sec_level.value ) {
-            device.setConnSecurityLevel(sec_level, true /* blocking */);
+            if( BTSecurityLevel.ENC_ONLY.value >= sec_level.value ) {
+                device.setConnSecurity(sec_level, SMPIOCapability.NO_INPUT_NO_OUTPUT, true /* blocking */);
+            } else {
+                device.setConnSecurityLevel(sec_level);
+            }
         } else if( SMPIOCapability.UNSET.value != io_capabilities.value ) {
             device.setConnIOCapability(io_capabilities, true /* blocking */);
         }

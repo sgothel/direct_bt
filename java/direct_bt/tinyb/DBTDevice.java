@@ -335,10 +335,10 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     }
 
     @Override
-    public final boolean  setConnSecurityLevel(final BTSecurityLevel sec_level, final boolean blocking) {
-        return setConnSecurityLevelImpl(sec_level.value, blocking);
+    public final boolean  setConnSecurityLevel(final BTSecurityLevel sec_level) {
+        return setConnSecurityLevelImpl(sec_level.value);
     }
-    private final native boolean setConnSecurityLevelImpl(final byte sec_level, final boolean blocking);
+    private final native boolean setConnSecurityLevelImpl(final byte sec_level);
 
     @Override
     public final BTSecurityLevel getConnSecurityLevel() {

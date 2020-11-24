@@ -76,8 +76,8 @@ static bool QUIET = false;
 
 static std::vector<EUI48> waitForDevices;
 
-const static uint32_t NO_PASSKEY = 0xffffffffU;
-static uint32_t pairing_passkey = NO_PASSKEY;
+const static int NO_PASSKEY = -1;
+static int pairing_passkey = NO_PASSKEY;
 static BTSecurityLevel sec_level = BTSecurityLevel::UNSET;
 static SMPIOCapability io_capabilities = SMPIOCapability::UNSET;
 
@@ -250,7 +250,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 break;
             case SMPPairingState::PASSKEY_EXPECTED: {
                 if( pairing_passkey != NO_PASSKEY ) {
-                    std::thread dc(&DBTDevice::setPairingPasskey, device, pairing_passkey); // @suppress("Invalid arguments")
+                    std::thread dc(&DBTDevice::setPairingPasskey, device, static_cast<uint32_t>(pairing_passkey)); // @suppress("Invalid arguments")
                     dc.detach();
                 } /* else {
                     std::thread dc(&DBTDevice::setPairingPasskeyNegative, device); // @suppress("Invalid arguments")
@@ -367,7 +367,11 @@ static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
     if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_capabilities ) {
         device->setConnSecurity(sec_level, io_capabilities, true /* blocking */);
     } else if( BTSecurityLevel::UNSET < sec_level ) {
-        device->setConnSecurityLevel(sec_level, true /* blocking */);
+        if( BTSecurityLevel::ENC_ONLY >= sec_level ) {
+            device->setConnSecurity(sec_level, SMPIOCapability::NO_INPUT_NO_OUTPUT, true /* blocking */);
+        } else {
+            device->setConnSecurityLevel(sec_level);
+        }
     } else if( SMPIOCapability::UNSET != io_capabilities ) {
         device->setConnIOCapability(io_capabilities, true /* blocking */);
     }
@@ -807,7 +811,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
     fprintf(stderr, "QUIET %d\n", QUIET);
     fprintf(stderr, "btmode %s\n", getBTModeString(btMode).c_str());
-    fprintf(stderr, "passkey %u\n", pairing_passkey);
+    fprintf(stderr, "passkey %d\n", pairing_passkey);
     fprintf(stderr, "seclevel %s\n", getBTSecurityLevelString(sec_level).c_str());
     fprintf(stderr, "iocap %s\n", getSMPIOCapabilityString(io_capabilities).c_str());
     fprintf(stderr, "characteristic-id: %s\n", charIdentifier.c_str());

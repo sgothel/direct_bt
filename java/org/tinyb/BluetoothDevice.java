@@ -194,74 +194,107 @@ public interface BluetoothDevice extends BluetoothObject
     boolean pair() throws BluetoothException;
 
     /**
-     * Set the {@link BTSecurityLevel} used to connect to this device.
+     * Set the {@link BTSecurityLevel} used to connect to this device on the upcoming connection.
      * <p>
-     * Method returns false if this device has already being connected,
+     * Method returns false if {@link BTSecurityLevel#UNSET} has been given,
+     * operation fails, this device has already being connected,
      * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connect()} has been issued already.
      * </p>
      * <p>
-     * To ensure consistent no authentication setup,<br>
-     * implementation will set {@link SMPIOCapability#NO_INPUT_NO_OUTPUT} if sec_level <= {@link BTSecurityLevel#ENC_ONLY}<br>
-     * and {@link #setConnIOCapability(SMPIOCapability, boolean)} not used.
+     * To ensure a consistent authentication setup,
+     * it is advised to set {@link SMPIOCapability#NO_INPUT_NO_OUTPUT} for sec_level <= {@link BTSecurityLevel#ENC_ONLY}
+     * using {@link #setConnSecurity(BTSecurityLevel, SMPIOCapability, boolean) setConnSecurity(..)}
+     * as well as an IO capable {@link SMPIOCapability} value
+     * for {@link BTSecurityLevel#ENC_AUTH} or {@link BTSecurityLevel#ENC_AUTH_FIPS}.
      * </p>
-     * @param sec_level {@link BTSecurityLevel} to be applied
-     * @param blocking if true, blocks until previous {@link SMPIOCapability} setting is completed,
-     *        i.e. until connection has been completed or failed.
-     *        Otherwise returns immediately with false if previous connection result is still pending.
+     * @param sec_level {@link BTSecurityLevel} to be applied, {@link BTSecurityLevel#UNSET} will be ignored and method fails.
      * @return
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
+     * @see BTSecurityLevel
+     * @see SMPIOCapability
+     * @see #getConnSecurityLevel()
+     * @see #setConnIOCapability(SMPIOCapability, boolean)
+     * @see #getConnIOCapability()
+     * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability, boolean)
      */
-    boolean setConnSecurityLevel(final BTSecurityLevel sec_level, boolean blocking);
+    boolean setConnSecurityLevel(final BTSecurityLevel sec_level);
 
     /**
-     * Return the {@link BTSecurityLevel}, determined when connection is established.
+     * Return the {@link BTSecurityLevel}, determined when the connection is established.
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
+     * @see BTSecurityLevel
+     * @see SMPIOCapability
+     * @see #setConnSecurityLevel(BTSecurityLevel)
+     * @see #setConnIOCapability(SMPIOCapability, boolean)
+     * @see #getConnIOCapability()
+     * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability, boolean)
      */
     BTSecurityLevel getConnSecurityLevel();
 
     /**
-     * Sets the given {@link SMPIOCapability} used to connect to this device.
+     * Sets the given {@link SMPIOCapability} used to connect to this device temporarily for the adapter.
      * <p>
-     * Method returns false if operation fails, this device has already being connected,
+     * Method returns false if {@link SMPIOCapability#UNSET} has been given,
+     * operation fails, this device has already being connected,
      * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connect()} has been issued already.
      * </p>
      * <p>
-     * The {@link SMPIOCapability} value will be reset to its previous value when connection is completed or failed.
+     * The {@link SMPIOCapability} value will be reset for the adapter to its previous value when connection is completed or failed.
      * </p>
-     * @param io_cap {@link SMPIOCapability} to be applied
+     * @param io_cap {@link SMPIOCapability} to be applied, {@link SMPIOCapability#UNSET} will be ignored and method fails.
      * @param blocking if true, blocks until previous {@link SMPIOCapability} setting is completed,
      *        i.e. until connection has been completed or failed.
-     *        Otherwise returns immediately with false if previous connection result is still pending.
+     *        Otherwise returns immediately with false if previous connection result is still pending on the adapter.
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
+     * @see BTSecurityLevel
+     * @see SMPIOCapability
+     * @see #setConnSecurityLevel(BTSecurityLevel)
+     * @see #getConnSecurityLevel()
+     * @see #getConnIOCapability()
+     * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability, boolean)
      */
     boolean setConnIOCapability(final SMPIOCapability io_cap, final boolean blocking);
 
     /**
-     * Sets the given {@link BTSecurityLevel} and {@link SMPIOCapability} used to connect to this device.
+     * Sets the given {@link BTSecurityLevel} (on the upcoming connection) and {@link SMPIOCapability} (temporarily for the adapter)
+     * used to connect to this device if successful, otherwise method doesn't change either value.
      * <p>
-     * Method returns false if operation fails, this device has already being connected,
+     * Method returns false if {@link BTSecurityLevel#UNSET} or {@link SMPIOCapability#UNSET} has been given,
+     * operation fails, this device has already being connected,
      * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connect()} has been issued already.
      * </p>
      * <p>
-     * The {@link SMPIOCapability} value will be reset to its previous value when connection is completed or failed.
+     * The {@link SMPIOCapability} value will be reset for the adapter to its previous value when connection is completed or failed.
      * </p>
-     * @param sec_level {@link BTSecurityLevel} to be applied
-     * @param io_cap {@link SMPIOCapability} to be applied
+     * @param sec_level {@link BTSecurityLevel} to be applied, {@link BTSecurityLevel#UNSET} will be ignored and method fails.
+     * @param io_cap {@link SMPIOCapability} to be applied, {@link SMPIOCapability#UNSET} will be ignored and method fails.
      * @param blocking if true, blocks until previous {@link SMPIOCapability} setting is completed,
      *        i.e. until connection has been completed or failed.
-     *        Otherwise returns immediately with false if previous connection result is still pending.
+     *        Otherwise returns immediately with false if previous connection result is still pending on the adapter.
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
+     * @see BTSecurityLevel
+     * @see SMPIOCapability
+     * @see #setConnSecurityLevel(BTSecurityLevel)
+     * @see #getConnSecurityLevel()
+     * @see #setConnIOCapability(SMPIOCapability, boolean)
+     * @see #getConnIOCapability()
      */
     boolean setConnSecurity(final BTSecurityLevel sec_level, final SMPIOCapability io_cap, final boolean blocking);
 
     /**
-     * Return the {@link SMPIOCapability} value, determined when connection is established.
+     * Return the {@link SMPIOCapability} value, determined when the connection is established.
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
+     * @see BTSecurityLevel
+     * @see SMPIOCapability
+     * @see #setConnSecurityLevel(BTSecurityLevel)
+     * @see #getConnSecurityLevel()
+     * @see #setConnIOCapability(SMPIOCapability, boolean)
+     * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability, boolean)
      */
     SMPIOCapability getConnIOCapability();
 
