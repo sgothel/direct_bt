@@ -25,7 +25,7 @@ Direct-BT
 offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
 
 *Direct-BT* supports a fully event driven workflow from device discovery to GATT programming,
-using its platform agnostic HCI, GATT, SMP and L2CAP client-side protocol implementation.
+using its platform agnostic HCI, L2CAP, SMP and GATT client-side protocol implementation.
 
 [AdapterStatusListener](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1AdapterStatusListener.html) 
 allows listening to adapter changes and device discovery and
@@ -48,12 +48,15 @@ Some more elaboration on the implementation and its status
 > The host-side of HCI, L2CAP etc is usually implemented within the OS, e.g. *Linux/BlueZ* Kernel.
 > These layers communicate with the actual BT controller and the user application, acting as the middleman.
 > 
-> *Direct-BT* offers packet types and handler facilities for HCI, L2CAP, ATT-PDU and GATT (as well to *Linux/BlueZ-Mngr*)
+> *Direct-BT* offers packet types and handler facilities for HCI, L2CAP, SMP, ATT-PDU and GATT (as well to *Linux/BlueZ-Mngr*)
 > to communicate with these universal host-side Bluetooth layers and hence to reach-out to devices.
 > 
 > Currently only the master/client mode is supported to work with LE BT devices.
 > 
-> Work on *LE Secure Connections* and *LE legacy pairing* is in progress, while BREDR support is planned and prepared for.
+> *LE Secure Connections* and *LE legacy pairing* is supported on *Linux/BlueZ*,
+> exposing BTSecurityLevel and SMPIOCapability setup per connection.
+>
+> BREDR support is planned and prepared for.
 >
 
 To support other platforms than Linux/BlueZ, we will have to
@@ -320,6 +323,13 @@ Changes
 **2.2.00 *Direct-BT* Maturity (Bluetooth LE)**
 
 * TODO
+
+**2.1.33**
+
+* Added AdapterStatusListener callback methods devicePairingState(..) and deviceReady(..), supporting security/pairing. 
+* Added support for *LE Secure Connections* and *LE legacy pairing* utilizing SMP and BlueZ/Kernel features.
+* Exposing BTSecurityLevel and SMPIOCapability for connection oriented security setup on BlueZ/Kernel, see DBTDevice and BluetoothDevice.
+* Covering SMP over L2CAP messaging via SMPPDUMsg types and retrieval via HCI/ACL/L2CAP on BlueZ/Kernel
 
 **2.1.30**
 

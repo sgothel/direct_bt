@@ -62,6 +62,10 @@
  * - *SMP Support* via SMPHandler using SMPPDUMsg over L2CAPComm, providing (Not yet supported by Linux/BlueZ)
  *   - LE Secure Connections
  *   - LE legacy pairing
+ * - On Linux/BlueZ, LE Secure Connections and LE legacy pairing is supported using
+ *   - BTSecurityLevel setting via DBTDevice/L2CAPComm per connection and
+ *   - SMPIOCapability via DBTManager (per adapter) and DBTDevice (per connection)
+ *   - SMPPDUMsg SMP event tracking over HCI/ACL/L2CAP, observing operations
  *
  * DBTManager utilizes the *BlueZ Kernel Manager Control Channel*
  * for adapter configuration and adapter add/removal notifications (ChangedAdapterSetFunc()).
