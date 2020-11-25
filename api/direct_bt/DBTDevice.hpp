@@ -178,14 +178,14 @@ namespace direct_bt {
             /**
              * Will be performed within disconnect() and notifyDisconnected().
              */
-            void disconnectGATT(int caller) noexcept;
+            void disconnectGATT(const int caller) noexcept;
 
             /**
              * Will be performed within disconnect() and notifyDisconnected().
              */
-            void disconnectSMP(int caller) noexcept;
+            void disconnectSMP(const int caller) noexcept;
 
-            void clearSMPStates() noexcept;
+            void clearSMPStates(const bool connected) noexcept;
 
         public:
             const uint64_t ts_creation;

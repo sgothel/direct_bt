@@ -395,7 +395,7 @@ void DBTDevice::notifyConnected(std::shared_ptr<DBTDevice> sthis, const uint16_t
               jau::uint16HexString(hciConnHandle).c_str(), jau::uint16HexString(handle).c_str(),
               getSMPIOCapabilityString(pairing_data.ioCap_conn).c_str(), getSMPIOCapabilityString(io_cap).c_str(),
               toString(false).c_str());
-    clearSMPStates();
+    clearSMPStates(true /* connected */);
     allowDisconnect = true;
     isConnected = true;
     hciConnHandle = handle;
@@ -421,11 +421,11 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
     if( isLEAddressType() && !l2cap_att.isOpen() ) {
         const bool responderLikesEncryption = pairing_data.res_requested_sec || isLEFeaturesBitSet(le_features, LEFeatures::LE_Encryption);
         const BTSecurityLevel sec_level_user = pairing_data.sec_level_user;
-        const SMPIOCapability io_cap = pairing_data.ioCap_conn;
+        const SMPIOCapability io_cap_conn = pairing_data.ioCap_conn;
         BTSecurityLevel sec_level { BTSecurityLevel::UNSET };
         if( BTSecurityLevel::UNSET != sec_level_user ) {
             sec_level = sec_level_user;
-        } else if( SMPIOCapability::NO_INPUT_NO_OUTPUT == io_cap ) {
+        } else if( SMPIOCapability::NO_INPUT_NO_OUTPUT == io_cap_conn ) {
             sec_level = BTSecurityLevel::ENC_ONLY; // no auth w/o I/O
         } else {
             if( responderLikesEncryption && adapter.hasSecureConnections() ) {
@@ -437,6 +437,11 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
             }
         }
         pairing_data.sec_level_conn = sec_level;
+        DBG_PRINT("DBTDevice::processL2CAPSetup: sec_level_user %s, io_cap_conn %s -> sec_level %s",
+                getBTSecurityLevelString(sec_level_user).c_str(),
+                getSMPIOCapabilityString(io_cap_conn).c_str(),
+                getBTSecurityLevelString(sec_level).c_str());
+
         const bool l2cap_open = l2cap_att.open(*this, sec_level); // initiates hciSMPMsgCallback() if sec_level > BT_SECURITY_LOW
         const bool l2cap_auth = l2cap_open && BTSecurityLevel::ENC_ONLY < sec_level;
 #if SMP_SUPPORTED_BY_OS
@@ -444,9 +449,8 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
 #else
         const bool smp_auth = false;
 #endif
-        DBG_PRINT("DBTDevice::processL2CAPSetup: lvl %s, io %s, connect[smp auth %d, l2cap[open %d, auth %d]]",
-                getBTSecurityLevelString(sec_level).c_str(), getSMPIOCapabilityString(io_cap).c_str(),
-                smp_auth, l2cap_open, l2cap_auth);
+        DBG_PRINT("DBTDevice::processL2CAPSetup: lvl %s, connect[smp auth %d, l2cap[open %d, auth %d]]",
+                getBTSecurityLevelString(sec_level).c_str(), smp_auth, l2cap_open, l2cap_auth);
 
         adapter.resetConnIOCapability(*this);
 
@@ -788,12 +792,15 @@ HCIStatusCode DBTDevice::setPairingNumericComparison(const bool positive) noexce
     }
 }
 
-void DBTDevice::clearSMPStates() noexcept {
+void DBTDevice::clearSMPStates(const bool connected) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
-    pairing_data.ioCap_conn=SMPIOCapability::UNSET;
+    if( !connected ) {
+        // needs to survive connected, or will be set right @ connected
+        pairing_data.ioCap_conn = SMPIOCapability::UNSET;
+        pairing_data.sec_level_user = BTSecurityLevel::UNSET;
+    }
     pairing_data.sec_level_conn = BTSecurityLevel::UNSET;
-    pairing_data.sec_level_user = BTSecurityLevel::UNSET;
 
     pairing_data.state = SMPPairingState::NONE;
     pairing_data.mode = PairingMode::NONE;
@@ -810,7 +817,7 @@ void DBTDevice::clearSMPStates() noexcept {
     pairing_data.maxEncsz_init = 0;
 }
 
-void DBTDevice::disconnectSMP(int caller) noexcept {
+void DBTDevice::disconnectSMP(const int caller) noexcept {
   #if SMP_SUPPORTED_BY_OS
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_smpHandler);
     if( nullptr != smpHandler ) {
@@ -865,7 +872,7 @@ bool DBTDevice::connectSMP(std::shared_ptr<DBTDevice> sthis, const BTSecurityLev
   #endif
 }
 
-void DBTDevice::disconnectGATT(int caller) noexcept {
+void DBTDevice::disconnectGATT(const int caller) noexcept {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_gattHandler);
     if( nullptr != gattHandler ) {
         DBG_PRINT("DBTDevice::disconnectGATT: start (has gattHandler, caller %d)", caller);
@@ -1026,7 +1033,7 @@ void DBTDevice::notifyDisconnected() noexcept {
     // coming from disconnect callback, ensure cleaning up!
     DBG_PRINT("DBTDevice::notifyDisconnected: handle %s -> zero, %s",
               jau::uint16HexString(hciConnHandle).c_str(), toString(false).c_str());
-    clearSMPStates();
+    clearSMPStates(false /* connected */);
     allowDisconnect = false;
     isConnected = false;
     hciConnHandle = 0;
@@ -1107,6 +1114,6 @@ exit:
 }
 
 void DBTDevice::remove() noexcept {
-    clearSMPStates();
+    clearSMPStates(false /* connected */);
     adapter.removeDevice(*this);
 }
