@@ -492,33 +492,36 @@ next1:
     }
 
     addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_SETTINGS,  jau::bindMemberFunc(this, &DBTManager::mgmtEvNewSettingsCB));
-    addMgmtEventCallback(-1, MgmtEvent::Opcode::CONTROLLER_ERROR, jau::bindMemberFunc(this, &DBTManager::mgmtEvControllerErrorCB));
-    addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_LINK_KEY, jau::bindMemberFunc(this, &DBTManager::mgmtEvNewLinkKeyCB));
-    addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bindMemberFunc(this, &DBTManager::mgmtEvNewLongTermKeyCB));
-    addMgmtEventCallback(-1, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bindMemberFunc(this, &DBTManager::mgmtEvPinCodeRequestCB));
-    addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_CONFIRM_REQUEST, jau::bindMemberFunc(this, &DBTManager::mgmtEvUserConfirmRequestCB));
-    addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bindMemberFunc(this, &DBTManager::mgmtEvUserPasskeyRequestCB));
-    addMgmtEventCallback(-1, MgmtEvent::Opcode::AUTH_FAILED, jau::bindMemberFunc(this, &DBTManager::mgmtEvAuthFailedCB));
-    addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceUnpairedCB));
-    addMgmtEventCallback(-1, MgmtEvent::Opcode::PASSKEY_NOTIFY, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
-    addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_IRK, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
-    addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CSRK, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
-    addMgmtEventCallback(-1, MgmtEvent::Opcode::LOCAL_OOB_DATA_UPDATED, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
-    addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CSRK, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
 
+    if( jau::environment::get().debug ) {
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::CONTROLLER_ERROR, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_LINK_KEY, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_CONNECTED, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::CONNECT_FAILED, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_CONFIRM_REQUEST, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::AUTH_FAILED, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_BLOCKED, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNBLOCKED, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::PASSKEY_NOTIFY, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_IRK, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CSRK, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CONN_PARAM, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
 
-    if( env.DEBUG_EVENT ) {
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, jau::bindMemberFunc(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceFoundCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceDisconnectedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_CONNECTED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceConnectedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::CONNECT_FAILED, jau::bindMemberFunc(this, &DBTManager::mgmtEvConnectFailedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_BLOCKED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceBlockedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNBLOCKED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceUnblockedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CONN_PARAM, jau::bindMemberFunc(this, &DBTManager::mgmtEvNewConnectionParamCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhitelistAddedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, jau::bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhilelistRemovedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::LOCAL_OOB_DATA_UPDATED, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::HCI_ENC_CHANGED, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::HCI_LE_REMOTE_USR_FEATURES, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
     }
     PERF_TS_TD("DBTManager::ctor.ok");
     DBG_PRINT("DBTManager::ctor: OK");
@@ -1148,117 +1151,6 @@ bool DBTManager::mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) noexcept {
 bool DBTManager::mgmtEventAnyCB(std::shared_ptr<MgmtEvent> e) noexcept {
     DBG_PRINT("DBTManager:mgmt:Any: %s", e->toString().c_str());
     (void)e;
-    return true;
-}
-
-bool DBTManager::mgmtEvControllerErrorCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtControllerError &event = *static_cast<const MgmtEvtControllerError *>(e.get());
-    DBG_PRINT("DBTManager:mgmt:ControllerError: %s", event.toString().c_str());
-    return true;
-}
-
-bool DBTManager::mgmtEvNewLinkKeyCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtNewLinkKey &event = *static_cast<const MgmtEvtNewLinkKey *>(e.get());
-    DBG_PRINT("DBTManager:mgmt:NewLinkKey: %s", event.toString().c_str());
-    return true;
-
-}
-bool DBTManager::mgmtEvNewLongTermKeyCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtNewLongTermKey &event = *static_cast<const MgmtEvtNewLongTermKey *>(e.get());
-    DBG_PRINT("DBTManager:mgmt:NewLongTermKey: %s", event.toString().c_str());
-    return true;
-}
-bool DBTManager::mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    const MgmtEvtDeviceUnpaired &event = *static_cast<const MgmtEvtDeviceUnpaired *>(e.get());
-    DBG_PRINT("DBTManager:mgmt:DeviceUnpaired: %s", event.toString().c_str());
-    return true;
-}
-bool DBTManager::mgmtEvPinCodeRequestCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    const MgmtEvtPinCodeRequest &event = *static_cast<const MgmtEvtPinCodeRequest *>(e.get());
-    DBG_PRINT("DBTManager:mgmt:PinCodeRequest: %s", event.toString().c_str());
-    return true;
-}
-bool DBTManager::mgmtEvAuthFailedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    const MgmtEvtAuthFailed &event = *static_cast<const MgmtEvtAuthFailed *>(e.get());
-    DBG_PRINT("DBTManager:mgmt:AuthFailed: %s", event.toString().c_str());
-    return true;
-}
-
-bool DBTManager::mgmtEvUserConfirmRequestCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtUserConfirmRequest &event = *static_cast<const MgmtEvtUserConfirmRequest *>(e.get());
-    DBG_PRINT("DBTManager:mgmt:UserConfirmRequest: %s", event.toString().c_str());
-    return true;
-}
-
-bool DBTManager::mgmtEvUserPasskeyRequestCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtUserPasskeyRequest &event = *static_cast<const MgmtEvtUserPasskeyRequest *>(e.get());
-    DBG_PRINT("DBTManager:mgmt:UserPasskeyRequest: %s", event.toString().c_str());
-    return true;
-}
-
-bool DBTManager::mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    DBG_PRINT("DBTManager:mgmt:ClassOfDeviceChanged: %s", e->toString().c_str());
-    (void)e;
-    return true;
-}
-bool DBTManager::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    DBG_PRINT("DBTManager:mgmt:DeviceDiscovering: %s", e->toString().c_str());
-    const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
-    (void)event;
-    return true;
-}
-bool DBTManager::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    DBG_PRINT("DBTManager:mgmt:DeviceFound: %s", e->toString().c_str());
-    const MgmtEvtDeviceFound &event = *static_cast<const MgmtEvtDeviceFound *>(e.get());
-    (void)event;
-    return true;
-}
-bool DBTManager::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) noexcept {
-    DBG_PRINT("DBTManager:mgmt:DeviceDisconnected: %s", e->toString().c_str());
-    const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
-    (void)event;
-    return true;
-}
-bool DBTManager::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    DBG_PRINT("DBTManager:mgmt:DeviceConnected: %s", e->toString().c_str());
-    const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(e.get());
-    (void)event;
-    return true;
-}
-bool DBTManager::mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    DBG_PRINT("DBTManager:mgmt:ConnectFailed: %s", e->toString().c_str());
-    const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(e.get());
-    (void)event;
-    return true;
-}
-bool DBTManager::mgmtEvDeviceBlockedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    DBG_PRINT("DBTManager:mgmt:DeviceBlocked: %s", e->toString().c_str());
-    const MgmtEvtDeviceBlocked &event = *static_cast<const MgmtEvtDeviceBlocked *>(e.get());
-    (void)event;
-    return true;
-}
-bool DBTManager::mgmtEvDeviceUnblockedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    DBG_PRINT("DBTManager:mgmt:DeviceUnblocked: %s", e->toString().c_str());
-    const MgmtEvtDeviceUnblocked &event = *static_cast<const MgmtEvtDeviceUnblocked *>(e.get());
-    (void)event;
-    return true;
-}
-bool DBTManager::mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    DBG_PRINT("DBTManager:mgmt:NewConnectionParam: %s", e->toString().c_str());
-    const MgmtEvtNewConnectionParam &event = *static_cast<const MgmtEvtNewConnectionParam *>(e.get());
-    (void)event;
-    return true;
-}
-bool DBTManager::mgmtEvDeviceWhitelistAddedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    DBG_PRINT("DBTManager:mgmt:DeviceWhitelistAdded: %s", e->toString().c_str());
-    const MgmtEvtDeviceWhitelistAdded &event = *static_cast<const MgmtEvtDeviceWhitelistAdded *>(e.get());
-    (void)event;
-    return true;
-}
-bool DBTManager::mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e) noexcept  {
-    DBG_PRINT("DBTManager:mgmt:DeviceWhitelistRemoved: %s", e->toString().c_str());
-    const MgmtEvtDeviceWhitelistRemoved &event = *static_cast<const MgmtEvtDeviceWhitelistRemoved *>(e.get());
-    (void)event;
     return true;
 }
 
