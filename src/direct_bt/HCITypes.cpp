@@ -117,6 +117,24 @@ namespace direct_bt {
         X(LIMIT_REACHED) \
         X(OPERATION_CANCELLED_BY_HOST) \
         X(PACKET_TOO_LONG) \
+        X(FAILED) \
+        X(CONNECT_FAILED) \
+        X(AUTH_FAILED) \
+        X(NOT_PAIRED) \
+        X(NO_RESOURCES) \
+        X(TIMEOUT) \
+        X(ALREADY_CONNECTED) \
+        X(BUSY) \
+        X(REJECTED) \
+        X(NOT_SUPPORTED) \
+        X(INVALID_PARAMS) \
+        X(DISCONNECTED) \
+        X(NOT_POWERED) \
+        X(CANCELLED) \
+        X(INVALID_INDEX) \
+        X(RFKILLED) \
+        X(ALREADY_PAIRED) \
+        X(PERMISSION_DENIED) \
         X(INTERNAL_TIMEOUT) \
         X(INTERNAL_FAILURE) \
         X(UNKNOWN)

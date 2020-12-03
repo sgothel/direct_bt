@@ -97,6 +97,7 @@ namespace direct_bt {
         PERMISSION_DENIED   = 0x14
     };
     std::string getMgmtStatusString(const MgmtStatus opc) noexcept;
+    HCIStatusCode getHCIStatusCode(const MgmtStatus mstatus) noexcept;
 
     enum MgmtOption : uint32_t {
         EXTERNAL_CONFIG     = 0x00000001,

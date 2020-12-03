@@ -463,3 +463,31 @@ HCIStatusCode MgmtEvtDeviceDisconnected::getHCIReason(DisconnectReason mgmtReaso
             return HCIStatusCode::UNKNOWN;
     }
 }
+
+HCIStatusCode direct_bt::getHCIStatusCode(const MgmtStatus mstatus) noexcept {
+    switch(mstatus) {
+        case MgmtStatus::SUCCESS:           return HCIStatusCode::SUCCESS;
+        case MgmtStatus::UNKNOWN_COMMAND:   return HCIStatusCode::UNKNOWN_HCI_COMMAND;
+        case MgmtStatus::NOT_CONNECTED:     return HCIStatusCode::UNKNOWN_CONNECTION_IDENTIFIER;
+        case MgmtStatus::FAILED:            return HCIStatusCode::FAILED;
+        case MgmtStatus::CONNECT_FAILED:    return HCIStatusCode::CONNECT_FAILED;
+        case MgmtStatus::AUTH_FAILED:       return HCIStatusCode::AUTH_FAILED;
+        case MgmtStatus::NOT_PAIRED:        return HCIStatusCode::NOT_PAIRED;
+        case MgmtStatus::NO_RESOURCES:      return HCIStatusCode::NO_RESOURCES;
+        case MgmtStatus::TIMEOUT:           return HCIStatusCode::TIMEOUT;
+        case MgmtStatus::ALREADY_CONNECTED: return HCIStatusCode::ALREADY_CONNECTED;
+        case MgmtStatus::BUSY:              return HCIStatusCode::BUSY;
+        case MgmtStatus::REJECTED:          return HCIStatusCode::REJECTED;
+        case MgmtStatus::NOT_SUPPORTED:     return HCIStatusCode::NOT_SUPPORTED;
+        case MgmtStatus::INVALID_PARAMS:    return HCIStatusCode::INVALID_PARAMS;
+        case MgmtStatus::DISCONNECTED:      return HCIStatusCode::DISCONNECTED;
+        case MgmtStatus::NOT_POWERED:       return HCIStatusCode::NOT_POWERED;
+        case MgmtStatus::CANCELLED:         return HCIStatusCode::CANCELLED;
+        case MgmtStatus::INVALID_INDEX:     return HCIStatusCode::INVALID_INDEX;
+        case MgmtStatus::RFKILLED:          return HCIStatusCode::RFKILLED;
+        case MgmtStatus::ALREADY_PAIRED:    return HCIStatusCode::ALREADY_PAIRED;
+        case MgmtStatus::PERMISSION_DENIED: return HCIStatusCode::PERMISSION_DENIED;
+        default:
+            return HCIStatusCode::UNKNOWN;
+    }
+}

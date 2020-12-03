@@ -190,6 +190,29 @@ namespace direct_bt {
         OPERATION_CANCELLED_BY_HOST = 0x44,
         PACKET_TOO_LONG = 0x45,
 
+        // MgmtStatus -> HCIStatusCode
+
+        FAILED              = 0xc3,
+        CONNECT_FAILED      = 0xc4,
+        AUTH_FAILED         = 0xc5,
+        NOT_PAIRED          = 0xc6,
+        NO_RESOURCES        = 0xc7,
+        TIMEOUT             = 0xc8,
+        ALREADY_CONNECTED   = 0xc9,
+        BUSY                = 0xca,
+        REJECTED            = 0xcb,
+        NOT_SUPPORTED       = 0xcc,
+        INVALID_PARAMS      = 0xcd,
+        DISCONNECTED        = 0xce,
+        NOT_POWERED         = 0xcf,
+        CANCELLED           = 0xd0,
+        INVALID_INDEX       = 0xd1,
+        RFKILLED            = 0xd2,
+        ALREADY_PAIRED      = 0xd3,
+        PERMISSION_DENIED   = 0xd4,
+
+        // Direct-BT
+
         INTERNAL_TIMEOUT = 0xfd,
         INTERNAL_FAILURE = 0xfe,
         UNKNOWN = 0xff
