@@ -323,14 +323,14 @@ GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device, L2CAPComm& l2
     try {
         mtu = exchangeMTUImpl(number(Defaults::MAX_ATT_MTU), env.GATT_INITIAL_COMMAND_REPLY_TIMEOUT);
     } catch (std::exception &e) {
-        ERR_PRINT("GattHandler.ctor: exchangeMTU failed: %s", e.what());
+        ERR_PRINT2("GattHandler.ctor: exchangeMTU failed: %s", e.what());
     } catch (std::string &msg) {
-        ERR_PRINT("GattHandler.ctor: exchangeMTU failed: %s", msg.c_str());
+        ERR_PRINT2("GattHandler.ctor: exchangeMTU failed: %s", msg.c_str());
     } catch (const char *msg) {
-        ERR_PRINT("GattHandler.ctor: exchangeMTU failed: %s", msg);
+        ERR_PRINT2("GattHandler.ctor: exchangeMTU failed: %s", msg);
     }
     if( 0 == mtu ) {
-        ERR_PRINT("GATTHandler::ctor: Zero serverMTU -> disconnect: %s", deviceString.c_str());
+        ERR_PRINT2("GATTHandler::ctor: Zero serverMTU -> disconnect: %s", deviceString.c_str());
         disconnect(true /* disconnectDevice */, false /* ioErrorCause */);
     } else {
         serverMTU = mtu;
