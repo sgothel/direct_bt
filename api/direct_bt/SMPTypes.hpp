@@ -300,7 +300,7 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.6.4 Authentication stage 1 – Out of Band
      * </pre>
      *
-     * @param le_sc_pairing true if both devices support Secure Connections pairing, otherwise false for legacy pairing.
+     * @param use_sc true if both devices support Secure Connections pairing, otherwise false for legacy pairing.
      * @param authReqs_ini SMPAuthReqs of initiator
      * @param ioCap_ini SMPIOCapability of initiator
      * @param oobFlag_ini SMPOOBDataFlag of initiator
@@ -309,7 +309,7 @@ namespace direct_bt {
      * @param oobFlag_res SMPOOBDataFlag of responder
      * @return resulting PairingMode
      */
-    PairingMode getPairingMode(const bool le_sc_pairing,
+    PairingMode getPairingMode(const bool use_sc,
                                const SMPAuthReqs authReqs_ini, const SMPIOCapability ioCap_ini, const SMPOOBDataFlag oobFlag_ini,
                                const SMPAuthReqs authReqs_res, const SMPIOCapability ioCap_res, const SMPOOBDataFlag oobFlag_res) noexcept;
 
@@ -319,12 +319,12 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.8
      * </pre>
      *
-     * @param le_sc_pairing true if both devices support Secure Connections pairing, otherwise false for legacy pairing.
+     * @param use_sc true if both devices support Secure Connections pairing, otherwise false for legacy pairing.
      * @param ioCap_ini SMPIOCapability of initiator
      * @param ioCap_res SMPIOCapability of responder
      * @return resulting PairingMode
      */
-    PairingMode getPairingMode(const bool le_sc_pairing,
+    PairingMode getPairingMode(const bool use_sc,
                                const SMPIOCapability ioCap_ini, const SMPIOCapability ioCap_res) noexcept;
 
     /**

@@ -147,13 +147,13 @@ std::string direct_bt::getSMPAuthReqMaskString(const SMPAuthReqs mask) noexcept 
     return out;
 }
 
-PairingMode direct_bt::getPairingMode(const bool le_sc_pairing,
+PairingMode direct_bt::getPairingMode(const bool use_sc,
                                       const SMPAuthReqs authReqs_ini, const SMPIOCapability ioCap_ini, const SMPOOBDataFlag oobFlag_ini,
                                       const SMPAuthReqs authReqs_res, const SMPIOCapability ioCap_res, const SMPOOBDataFlag oobFlag_res) noexcept
 {
     // BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.1 Security Properties
 
-    if( !le_sc_pairing ) {
+    if( !use_sc ) {
         // BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.6 (STK, le_sc_all_supported==false)
         // LE Secure Connections is _NOT_ supported by both devices.
 
@@ -168,7 +168,7 @@ PairingMode direct_bt::getPairingMode(const bool le_sc_pairing,
         if( isSMPAuthReqBitSet( authReqs_ini, SMPAuthReqs::MITM ) ||
             isSMPAuthReqBitSet( authReqs_res, SMPAuthReqs::MITM ) )
         {
-            return getPairingMode(le_sc_pairing, ioCap_ini, ioCap_res);
+            return getPairingMode(use_sc, ioCap_ini, ioCap_res);
         }
 
         // Unauthenticated pairing
@@ -189,7 +189,7 @@ PairingMode direct_bt::getPairingMode(const bool le_sc_pairing,
         if( isSMPAuthReqBitSet( authReqs_ini, SMPAuthReqs::MITM ) ||
             isSMPAuthReqBitSet( authReqs_res, SMPAuthReqs::MITM ) )
         {
-            return getPairingMode(le_sc_pairing, ioCap_ini, ioCap_res);
+            return getPairingMode(use_sc, ioCap_ini, ioCap_res);
         }
 
         // Unauthenticated pairing
@@ -237,7 +237,7 @@ static const PairingMode seccon_pairing[5 /* ioCap_res */][5 /* ioCap_ini */] = 
  /* Res: KEYBOARD_DISPLAY */{ PM_PASSKEY_RES, PM_NUMCOMP_ANY, PM_PASSKEY_INI, PM_JUST__WORKS, PM_NUMCOMP_ANY },
 };
 
-PairingMode direct_bt::getPairingMode(const bool le_sc_pairing,
+PairingMode direct_bt::getPairingMode(const bool use_sc,
                                       const SMPIOCapability ioCap_ini, const SMPIOCapability ioCap_res) noexcept
 {
     // BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.8
@@ -249,7 +249,7 @@ PairingMode direct_bt::getPairingMode(const bool le_sc_pairing,
     if( ioCap_res_int > 4) {
         ABORT("Invalid ioCap_resp %s, %d", getSMPIOCapabilityString(ioCap_res).c_str(), ioCap_res_int);
     }
-    if( le_sc_pairing ) {
+    if( use_sc ) {
         return seccon_pairing[ioCap_res_int][ioCap_ini_int];
     } else {
         return legacy_pairing[ioCap_res_int][ioCap_ini_int];
