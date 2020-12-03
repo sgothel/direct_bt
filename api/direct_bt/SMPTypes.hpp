@@ -633,7 +633,6 @@ namespace direct_bt {
      */
     class SMPPairingMsg : public SMPPDUMsg
     {
-
         private:
             const bool request;
             const SMPAuthReqs authReqMask;
@@ -820,15 +819,16 @@ namespace direct_bt {
              * See Vol 3, Part H, 2.3.5.6 SM - Pairing algo - LE Secure Connections pairing phase 2.
              * </p>
              */
-            jau::uint128_t getConfirmValuePtr() const noexcept { return pdu.get_uint128_nc(1); }
+            jau::uint128_t getConfirmValue() const noexcept { return pdu.get_uint128_nc(1); }
 
             std::string getName() const noexcept override {
                 return "SMPPairConfirm";
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "size "+std::to_string(getDataSize())+", data anon"; // FIXME: Shareable?
+            std::string valueString() const noexcept override { // hex-fmt aligned with btmon
+                return "size "+std::to_string(getDataSize())+", value "+
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */, false /* leading0X */);
             }
     };
 
@@ -909,15 +909,16 @@ namespace direct_bt {
              * the initiating device sends Na and the responding device sends Nb.
              * </p>
              */
-            jau::uint128_t getRandomValuePtr() const noexcept { return pdu.get_uint128_nc(1); }
+            jau::uint128_t getRand() const noexcept { return pdu.get_uint128_nc(1); }
 
             std::string getName() const noexcept override {
                 return "SMPPairRand";
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "size "+std::to_string(getDataSize())+", data anon";
+            std::string valueString() const noexcept override { // hex-fmt aligned with btmon
+                return "size "+std::to_string(getDataSize())+", rand "+
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */, false /* leading0X */);
             }
     };
 
@@ -992,7 +993,7 @@ namespace direct_bt {
     /**
      * Vol 3, Part H: 3.5.6 Pairing Public Key message.
      * <pre>
-     * Vol 3 (Host), Part H (SM): 3 (SMP), 3.5 Pairing Methods
+     * Vol 3 (Host), Part H (SM): 3 (SMP), 3.5.6 Pairing Public Key
      * </pre>
      *
      * Opcode::PAIRING_PUBLIC_KEY
@@ -1030,15 +1031,23 @@ namespace direct_bt {
             /**
              * Returns the 256-bit Public Key X value (32 octets)
              */
-            jau::uint256_t getPublicKeyXValuePtr() const noexcept { return pdu.get_uint256_nc(1); }
+            jau::uint256_t getPubKeyX() const noexcept { return pdu.get_uint256_nc(1); }
 
             /**
              * Returns the 256-bit Public Key Y value (32 octets)
              */
-            jau::uint256_t getPublicKeyYValuePtr() const noexcept { return pdu.get_uint256_nc(1+32); }
+            jau::uint256_t getPubKeyY() const noexcept { return pdu.get_uint256_nc(1+32); }
 
             std::string getName() const noexcept override {
                 return "SMPPairPubKey";
+            }
+
+        protected:
+            std::string valueString() const noexcept override {
+                return "size "+std::to_string(getDataSize())+", pk_x "+
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, 32, true /* lsbFirst */, false /* leading0X */)+
+                        ", pk_y "+
+                        jau::bytesHexString(pdu.get_ptr_nc(1+32), 0, 32, true /* lsbFirst */, false /* leading0X */);
             }
     };
 
@@ -1081,7 +1090,7 @@ namespace direct_bt {
             /**
              * Returns the 128-bit DHKey Check value (16 octets)
              */
-            jau::uint128_t getDHKeyCheckValuePtr() const noexcept { return pdu.get_uint128_nc(1); }
+            jau::uint128_t getDHKeyCheck() const noexcept { return pdu.get_uint128_nc(1); }
 
             std::string getName() const noexcept override {
                 return "SMPPairDHKeyCheck";
@@ -1089,7 +1098,8 @@ namespace direct_bt {
 
         protected:
             std::string valueString() const noexcept override {
-                return "size "+std::to_string(getDataSize())+", data anon"; // FIXME: Shareable?
+                return "size "+std::to_string(getDataSize())+", dhkey_chk "+
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */, false /* leading0X */);
             }
     };
 
@@ -1157,6 +1167,8 @@ namespace direct_bt {
      * Vol 3, Part H: 3.6.2 Encryption Information message.
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6 SECURITY IN BLUETOOTH LOW ENERGY
+     * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6.1 Key distribution and generation
+     * Vol 3 (Host), Part H (SM): 2 (SM), 2.4.1 Definition of keys and values
      * </pre>
      *
      * Opcode::ENCRYPTION_INFORMATION
@@ -1167,9 +1179,12 @@ namespace direct_bt {
      * </pre>
      *
      * Message is used in the LE legacy pairing Transport Specific Key Distribution
-     * to distribute LTK that is used when encrypting future connections.
+     * to distribute Long Term Key (LTK) that is used when encrypting future connections.
      * <p>
-     * The message shall only be sent when the link has been encrypted or re-encrypted using the generated STK.
+     * The message shall only be sent when the link has been encrypted or re-encrypted using the generated LTK.
+     * </p>
+     * <p>
+     * Legacy: #1 in distribution, first value.
      * </p>
      */
     class SMPEncInfoMsg : public SMPPDUMsg
@@ -1195,18 +1210,19 @@ namespace direct_bt {
              * Returns the 128-bit Long Term Key (16 octets)
              * <p>
              * The generated LTK value being distributed,
-             * see Vol 3, Part H, 2.4.2.3 SM - Generation of CSRK - LE legacy pairing - generation of LTK, EDIV and Rand.
+             * see Vol 3, Part H, 2.4.2.3 SM - LE legacy pairing - generation of LTK, EDIV and Rand.
              * </p>
              */
-            jau::uint128_t getLongTermKeyPtr() const noexcept { return pdu.get_uint128_nc(1); }
+            jau::uint128_t getLTK() const noexcept { return pdu.get_uint128_nc(1); }
 
             std::string getName() const noexcept override {
                 return "SMPEncInfo";
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "size "+std::to_string(getDataSize())+", data anon";
+            std::string valueString() const noexcept override { // hex-fmt aligned with btmon
+                return "size "+std::to_string(getDataSize())+", ltk "+
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */, false /* leading0X */);
             }
     };
 
@@ -1214,6 +1230,8 @@ namespace direct_bt {
      * Vol 3, Part H: 3.6.3 Master Identification message.
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6 SECURITY IN BLUETOOTH LOW ENERGY
+     * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6.1 Key distribution and generation
+     * Vol 3 (Host), Part H (SM): 2 (SM), 2.4.1 Definition of keys and values
      * </pre>
      *
      * Opcode::MASTER_IDENTIFICATION
@@ -1225,10 +1243,13 @@ namespace direct_bt {
      * </pre>
      *
      * Message is used in the LE legacy pairing Transport Specific Key Distribution phase
-     * to distribute EDIV and Rand which are used when encrypting future connections.
+     * to distribute Encrypted Diversifier (EDIV) and Random Number (Rand) which are used when encrypting future connections.
      *
      * <p>
-     * The message shall only be sent when the link has been encrypted or re-encrypted using the generated STK.
+     * The message shall only be sent when the link has been encrypted or re-encrypted using the generated LTK.
+     * </p>
+     * <p>
+     * Legacy: #2 in distribution
      * </p>
      */
     class SMPMasterIdentMsg : public SMPPDUMsg
@@ -1272,8 +1293,11 @@ namespace direct_bt {
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "size "+std::to_string(getDataSize())+", data anon";
+            std::string valueString() const noexcept override { // hex-fmt aligned with btmon
+                return "size "+std::to_string(getDataSize())+", ediv "+
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, 2, false /* lsbFirst */, true /* leading0X */)+
+                        ", rand "+
+                        jau::bytesHexString(pdu.get_ptr_nc(1+2), 0, 8, false /* lsbFirst */, true /* leading0X */);
             }
     };
 
@@ -1281,6 +1305,9 @@ namespace direct_bt {
      * Vol 3, Part H: 3.6.4 Identify Information message.
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6 SECURITY IN BLUETOOTH LOW ENERGY
+     * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6.1 Key distribution and generation
+     * Vol 3 (Host), Part H (SM): 2 (SM), 2.4.1 Definition of keys and values
+     * Vol 3 (Host), Part H (SM): 2 (SM), 2.4.2.1 Generation of IRK
      * </pre>
      *
      * Opcode::IDENTITY_INFORMATION
@@ -1290,9 +1317,13 @@ namespace direct_bt {
      * jau::uint128_t identity_resolving_key
      * </pre>
      *
-     * Message is used in the Transport Specific Key Distribution phase to distribute IRK.
+     * Message is used in the Transport Specific Key Distribution phase to distribute Identity Resolving Key (IRK).
      * <p>
-     * The message shall only shall only be sent when the link has been encrypted or re-encrypted using the generated key.
+     * The message shall only be sent when the link has been encrypted or re-encrypted using the generated key.
+     * </p>
+     * <p>
+     * Legacy: #3 in distribution<br>
+     * Secure Connection: #1 in distribution, first value.
      * </p>
      */
     class SMPIdentInfoMsg : public SMPPDUMsg
@@ -1321,7 +1352,7 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.1 SM - Definition of keys and values - Generation of IRK.
              * </p>
              */
-            jau::uint128_t getIRKPtr() const noexcept { return pdu.get_uint128_nc(1); }
+            jau::uint128_t getIRK() const noexcept { return pdu.get_uint128_nc(1); }
 
             std::string getName() const noexcept override {
                 return "SMPIdentInfo";
@@ -1329,7 +1360,8 @@ namespace direct_bt {
 
         protected:
             std::string valueString() const noexcept override {
-                return "size "+std::to_string(getDataSize())+", data anon";
+                return "size "+std::to_string(getDataSize())+", irk "+
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */, false /* leading0X */);
             }
     };
 
@@ -1338,6 +1370,7 @@ namespace direct_bt {
      * Vol 3, Part H: 3.6.5 Identity Address Information message.
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6 SECURITY IN BLUETOOTH LOW ENERGY
+     * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6.1 Key distribution and generation
      * </pre>
      *
      * Opcode::IDENTITY_ADDRESS_INFORMATION
@@ -1352,6 +1385,10 @@ namespace direct_bt {
      * to distribute its public device address or static random address.
      * <p>
      * The message shall only be sent when the link has been encrypted or re-encrypted using the generated key.
+     * </p>
+     * <p>
+     * Legacy: #4 in distribution<br>
+     * Secure Connection: #2 in distribution
      * </p>
      */
     class SMPIdentAddrInfoMsg : public SMPPDUMsg
@@ -1399,6 +1436,9 @@ namespace direct_bt {
      * Vol 3, Part H: 3.6.6 Signing Information message.
      * <pre>
      * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6 SECURITY IN BLUETOOTH LOW ENERGY
+     * Vol 3 (Host), Part H (SM): 3 (SMP), 3.6.1 Key distribution and generation
+     * Vol 3 (Host), Part H (SM): 2 (SM), 2.4.1 Definition of keys and values
+     * Vol 3 (Host), Part H (SM): 2 (SM), 2.4.2.2 Generation of CSRK
      * </pre>
      *
      * Opcode::SIGNING_INFORMATION
@@ -1408,9 +1448,14 @@ namespace direct_bt {
      * jau::uint128_t signature_key
      * </pre>
      *
-     * Message is used  in the Transport Specific Key Distribution to distribute the CSRK which a device uses to sign data.
+     * Message is used in the Transport Specific Key Distribution
+     * to distribute the Connection Signature Resolving Key (CSRK), which a device uses to sign data.
      * <p>
-     * The message shall only shall only be sent when the link has been encrypted or re-encrypted using the generated key.
+     * The message shall only be sent when the link has been encrypted or re-encrypted using the generated key.
+     * </p>
+     * <p>
+     * Legacy: #5 in distribution, last value.<br>
+     * Secure Connection: #3 in distribution, last value.
      * </p>
      */
     class SMPSignInfoMsg : public SMPPDUMsg
@@ -1433,21 +1478,22 @@ namespace direct_bt {
             }
 
             /**
-             * Returns the 128-bit Identity Resolving Key (IRK, 16 octets)
+             * Returns the 128-bit Connection Signature Resolving Key (CSRK, 16 octets)
              * <p>
-             * The 128-bit IRK value being distributed,
-             * see Vol 3, Part H, 2.4.2.1 SM - Definition of keys and values - Generation of IRK.
+             * The 128-bit CSRK value being distributed,
+             * see Vol 3, Part H, 2.4.2.2 SM - Definition of keys and values - Generation of CSRK.
              * </p>
              */
-            jau::uint128_t getIRKPtr() const noexcept { return pdu.get_uint128_nc(1); }
+            jau::uint128_t getCSRK() const noexcept { return pdu.get_uint128_nc(1); }
 
             std::string getName() const noexcept override {
                 return "SMPSignInfo";
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "size "+std::to_string(getDataSize())+", data anon";
+            std::string valueString() const noexcept override { // hex-fmt aligned with btmon
+                return "size "+std::to_string(getDataSize())+", csrk "+
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */, false /* leading0X */);
             }
     };
 
