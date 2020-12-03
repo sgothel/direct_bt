@@ -448,21 +448,21 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
                 getBTSecurityLevelString(sec_level).c_str());
 
         const bool l2cap_open = l2cap_att.open(*this, sec_level); // initiates hciSMPMsgCallback() if sec_level > BT_SECURITY_LOW
-        const bool l2cap_auth = l2cap_open && BTSecurityLevel::ENC_ONLY < sec_level;
+        const bool l2cap_enc = l2cap_open && BTSecurityLevel::NONE < sec_level;
 #if SMP_SUPPORTED_BY_OS
-        const bool smp_auth = connectSMP(sthis, sec_level) && BTSecurityLevel::ENC_ONLY < sec_level;
+        const bool smp_enc = connectSMP(sthis, sec_level) && BTSecurityLevel::NONE < sec_level;
 #else
-        const bool smp_auth = false;
+        const bool smp_enc = false;
 #endif
-        DBG_PRINT("DBTDevice::processL2CAPSetup: lvl %s, connect[smp auth %d, l2cap[open %d, auth %d]]",
-                getBTSecurityLevelString(sec_level).c_str(), smp_auth, l2cap_open, l2cap_auth);
+        DBG_PRINT("DBTDevice::processL2CAPSetup: lvl %s, connect[smp_enc %d, l2cap[open %d, enc %d]]",
+                getBTSecurityLevelString(sec_level).c_str(), smp_enc, l2cap_open, l2cap_enc);
 
         adapter.resetConnIOCapability(*this);
 
         if( !l2cap_open ) {
             pairing_data.sec_level_conn = BTSecurityLevel::NONE;
             disconnect(HCIStatusCode::INTERNAL_FAILURE);
-        } else if( !l2cap_auth ) {
+        } else if( !l2cap_enc ) {
             processDeviceReady(sthis, jau::getCurrentMilliseconds());
         }
     }
