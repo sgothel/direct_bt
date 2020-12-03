@@ -183,12 +183,10 @@ public interface BluetoothDevice extends BluetoothObject
     /**
      * A secure connection to this device is established, and the device is then paired.
      * <p>
-     * Use {@link #pair(int[])} for direct_bt
+     * For direct_bt use {@link #setConnSecurity(BTSecurityLevel, SMPIOCapability, boolean) setConnSecurity(..)}
+     * and {@link #connectLE(short, short, short, short, short, short) connectLE(..)}.
      * </p>
      * @return TRUE if the device connected and paired
-     * @implNote secure pairing with JustWorks method on direct_bt.tinyb,
-     *           but device must be {@link #connectLE(short, short, short, short, short, short)} before.
-     *           Use {@link #pair(int[])}
      * @implNote not implemented in direct_bt.tinyb
      */
     boolean pair() throws BluetoothException;
