@@ -26,7 +26,7 @@
 #      -- -c "YOUR FANCY direct_bt STUFF"
 #
 
-username=nobody
+username=${USER}
 
 sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`
@@ -65,8 +65,7 @@ export LC_MEASUREMENT=en_US.UTF-8
 # export VALGRIND="valgrind --tool=callgrind --instr-atstart=yes --collect-atstart=yes --collect-systime=yes --combine-dumps=yes --separate-threads=no --callgrind-out-file=$callgrindoutfile --log-file=$valgrindlogfile"
 
 runit() {
-    ulimit -c unlimited
-
+    echo username $username
     echo COMMANDLINE $0 $*
     echo VALGRIND $VALGRIND
     echo logbasename $logbasename
