@@ -192,7 +192,7 @@ namespace direct_bt {
     class DBTAdapter : public DBTObject
     {
         private:
-            const bool debug_event;
+            const bool debug_event, debug_lock;
             DBTManager& mgmt;
 
         public:
@@ -214,8 +214,10 @@ namespace direct_bt {
             std::atomic<ScanType> currentMetaScanType; // = ScanType::NONE
             std::atomic<bool> keep_le_scan_alive; //  = false;
 
-            jau::ordered_atomic<SMPIOCapability, std::memory_order_relaxed> iocap_defaultval = SMPIOCapability::UNSET;
-            std::atomic<const DBTDevice *>                                  conn_blocking_device_ptr = nullptr;
+            SMPIOCapability  iocap_defaultval = SMPIOCapability::UNSET;
+            const DBTDevice* single_conn_device_ptr = nullptr;
+            std::mutex mtx_single_conn_device;
+            std::condition_variable cv_single_conn_device;
 
             std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
@@ -249,19 +251,15 @@ namespace direct_bt {
                                                       uint16_t min_interval, uint16_t max_interval,
                                                       uint16_t latency, uint16_t supervision_timeout);
             friend HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch);
-            friend bool DBTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept;
-            friend bool DBTDevice::setConnIOCapability(const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept;
-            friend bool DBTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept;
             friend void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis);
             friend bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<MgmtEvent> evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
             friend void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;
             friend void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint64_t timestamp);
             friend std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept;
 
-            bool lockConnect(const DBTDevice & device, const bool wait) noexcept;
-            bool setConnIOCapability(const DBTDevice & device, const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept;
+            bool lockConnect(const DBTDevice & device, const bool wait, const SMPIOCapability io_cap) noexcept;
             bool unlockConnect(const DBTDevice & device) noexcept;
-            bool unlockConnect(const DBTDevice & device, SMPIOCapability& pre_io_cap) noexcept;
+            bool unlockConnectAny() noexcept;
 
             bool addConnectedDevice(const std::shared_ptr<DBTDevice> & device) noexcept;
             bool removeConnectedDevice(const DBTDevice & device) noexcept;

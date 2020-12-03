@@ -222,6 +222,7 @@ errout0:
 
 DBTAdapter::DBTAdapter() noexcept
 : debug_event(jau::environment::getBooleanProperty("direct_bt.debug.adapter.event", false)),
+  debug_lock(jau::environment::getBooleanProperty("direct_bt.debug.adapter.lock", false)),
   mgmt( DBTManager::get(BTMode::NONE /* use env default */) ),
   dev_id( mgmt.getDefaultAdapterDevID() ),
   hci( dev_id )
@@ -231,6 +232,7 @@ DBTAdapter::DBTAdapter() noexcept
 
 DBTAdapter::DBTAdapter(EUI48 &mac) noexcept
 : debug_event(jau::environment::getBooleanProperty("direct_bt.debug.adapter.event", false)),
+  debug_lock(jau::environment::getBooleanProperty("direct_bt.debug.adapter.lock", false)),
   mgmt( DBTManager::get(BTMode::NONE /* use env default */) ),
   dev_id( mgmt.findAdapterInfoDevId(mac) ),
   hci( dev_id )
@@ -240,6 +242,7 @@ DBTAdapter::DBTAdapter(EUI48 &mac) noexcept
 
 DBTAdapter::DBTAdapter(const int _dev_id) noexcept
 : debug_event(jau::environment::getBooleanProperty("direct_bt.debug.adapter.event", false)),
+  debug_lock(jau::environment::getBooleanProperty("direct_bt.debug.adapter.lock", false)),
   mgmt( DBTManager::get(BTMode::NONE /* use env default */) ),
   dev_id( 0 <= _dev_id ? _dev_id : mgmt.getDefaultAdapterDevID() ),
   hci( dev_id )
@@ -315,8 +318,7 @@ void DBTAdapter::poweredOff() noexcept {
     // ensure all hci states are reset.
     hci.clearAllStates();
 
-    iocap_defaultval = SMPIOCapability::UNSET;
-    conn_blocking_device_ptr = nullptr;
+    unlockConnectAny();
 
     DBG_PRINT("DBTAdapter::poweredOff: XXX");
 }
@@ -355,72 +357,115 @@ bool DBTAdapter::setPowered(bool value) noexcept {
     return mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, value ? 1 : 0, current_settings);
 }
 
-bool DBTAdapter::lockConnect(const DBTDevice & device, const bool wait) noexcept {
-    const DBTDevice * exp_device = nullptr; // C++11, exp as value since C++20
+bool DBTAdapter::lockConnect(const DBTDevice & device, const bool wait, const SMPIOCapability io_cap) noexcept {
+    std::unique_lock<std::mutex> lock(mtx_single_conn_device); // RAII-style acquire and relinquish via destructor
     const uint32_t timeout_ms = 10000; // FIXME: Configurable?
-    const uint32_t poll_period_ms = 125;
-    uint32_t td = 0;
-    while( !conn_blocking_device_ptr.compare_exchange_strong(exp_device, &device) ) {
-        if( device == *exp_device ) {
+
+    if( nullptr != single_conn_device_ptr ) {
+        if( device == *single_conn_device_ptr ) {
+            COND_PRINT(debug_lock, "DBTAdapter::lockConnect: Success: Already locked, same device: %s", device.toString(false).c_str());
             return true; // already set, same device: OK, locked
         }
         if( wait ) {
-            if( timeout_ms <= td ) {
-                return false; // already set, timeout, blocked
+            while( nullptr != single_conn_device_ptr ) {
+                std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+                std::cv_status s = cv_single_conn_device.wait_until(lock, t0 + std::chrono::milliseconds(timeout_ms));
+                if( std::cv_status::timeout == s && nullptr != single_conn_device_ptr ) {
+                    if( debug_lock ) {
+                        jau::PLAIN_PRINT(true, "DBTAdapter::lockConnect: Failed: Locked (waited)");
+                        jau::PLAIN_PRINT(true, " - locked-by-other-device %s", single_conn_device_ptr->toString(false).c_str());
+                        jau::PLAIN_PRINT(true, " - lock-failed-for %s", device.toString(false).c_str());
+                    }
+                    return false;
+                }
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(poll_period_ms));
-            td += poll_period_ms;
-            exp_device = nullptr; // continue wait for nullptr
+            // lock was released
         } else {
+            if( debug_lock ) {
+                jau::PLAIN_PRINT(true, "DBTAdapter::lockConnect: Failed: Locked (no-wait)");
+                jau::PLAIN_PRINT(true, " - locked-by-other-device %s", single_conn_device_ptr->toString(false).c_str());
+                jau::PLAIN_PRINT(true, " - lock-failed-for %s", device.toString(false).c_str());
+            }
             return false; // already set, not waiting, blocked
         }
     }
-    // newly locked: iocap_blocking_device_ptr := &device
-    return true;
-}
+    single_conn_device_ptr = &device;
 
-bool DBTAdapter::setConnIOCapability(const DBTDevice & device, const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept {
-    if( SMPIOCapability::UNSET == io_cap ) {
-        blocking = false;
-        return false;
-    }
-    if( !lockConnect(device, blocking) ) {
-        blocking = true;
-        return false;
-    }
-    blocking = false;
-    const bool res = mgmt.setIOCapability(dev_id, io_cap, pre_io_cap);
-    if( res ) {
-        iocap_defaultval  = pre_io_cap;
-        return true;
+    if( SMPIOCapability::UNSET != io_cap ) {
+        SMPIOCapability pre_io_cap { SMPIOCapability::UNSET };
+        const bool res_iocap = mgmt.setIOCapability(dev_id, io_cap, pre_io_cap);
+        if( res_iocap ) {
+            iocap_defaultval  = pre_io_cap;
+            COND_PRINT(debug_lock, "DBTAdapter::lockConnect: Success: setIOCapability[%s -> %s], %s",
+                getSMPIOCapabilityString(pre_io_cap).c_str(), getSMPIOCapabilityString(io_cap).c_str(),
+                device.toString(false).c_str());
+            return true;
+        } else {
+            // failed, unlock and exit
+            COND_PRINT(debug_lock, "DBTAdapter::lockConnect: Failed: setIOCapability[%s], %s",
+                getSMPIOCapabilityString(io_cap).c_str(), device.toString(false).c_str());
+            single_conn_device_ptr = nullptr;
+            cv_single_conn_device.notify_all(); // notify waiting getter
+            return false;
+        }
     } else {
-        conn_blocking_device_ptr = nullptr;
-        return false;
+        COND_PRINT(debug_lock, "DBTAdapter::lockConnect: Success: New lock, no io-cap: %s", device.toString(false).c_str());
+        return true;
     }
 }
 
 bool DBTAdapter::unlockConnect(const DBTDevice & device) noexcept {
-    SMPIOCapability pre_io_cap { SMPIOCapability::UNSET };
-    return unlockConnect(device, pre_io_cap);
-}
+    std::unique_lock<std::mutex> lock(mtx_single_conn_device); // RAII-style acquire and relinquish via destructor
 
-bool DBTAdapter::unlockConnect(const DBTDevice & device, SMPIOCapability& pre_io_cap) noexcept {
-    if( nullptr != conn_blocking_device_ptr && device == *conn_blocking_device_ptr ) {
+    if( nullptr != single_conn_device_ptr && device == *single_conn_device_ptr ) {
         const SMPIOCapability v = iocap_defaultval;
         iocap_defaultval  = SMPIOCapability::UNSET;
         if( SMPIOCapability::UNSET != v ) {
             SMPIOCapability o;
             const bool res = mgmt.setIOCapability(dev_id, v, o);
-            DBG_PRINT("DBTAdapter::resetConnIOCapability: result %d: %s -> %s, %s",
+            COND_PRINT(debug_lock, "DBTAdapter::unlockConnect: Success: setIOCapability[res %d: %s -> %s], %s",
                 res, getSMPIOCapabilityString(o).c_str(), getSMPIOCapabilityString(v).c_str(),
-                device.toString(false).c_str());
-            if( res ) {
-                pre_io_cap = o;
-            }
+                single_conn_device_ptr->toString(false).c_str());
+        } else {
+            COND_PRINT(debug_lock, "DBTAdapter::unlockConnect: Success: %s",
+                single_conn_device_ptr->toString(false).c_str());
         }
-        conn_blocking_device_ptr = nullptr;
+        single_conn_device_ptr = nullptr;
+        cv_single_conn_device.notify_all(); // notify waiting getter
         return true;
     } else {
+        if( debug_lock ) {
+            const std::string other_device_str = nullptr != single_conn_device_ptr ? single_conn_device_ptr->toString(false) : "null";
+            jau::PLAIN_PRINT(true, "DBTAdapter::unlockConnect: Not locked:");
+            jau::PLAIN_PRINT(true, " - locked-by-other-device %s", other_device_str.c_str());
+            jau::PLAIN_PRINT(true, " - unlock-failed-for %s", device.toString(false).c_str());
+        }
+        return false;
+    }
+}
+
+bool DBTAdapter::unlockConnectAny() noexcept {
+    std::unique_lock<std::mutex> lock(mtx_single_conn_device); // RAII-style acquire and relinquish via destructor
+
+    if( nullptr != single_conn_device_ptr ) {
+        const SMPIOCapability v = iocap_defaultval;
+        iocap_defaultval  = SMPIOCapability::UNSET;
+        if( SMPIOCapability::UNSET != v ) {
+            SMPIOCapability o;
+            const bool res = mgmt.setIOCapability(dev_id, v, o);
+            COND_PRINT(debug_lock, "DBTAdapter::unlockConnectAny: Success: setIOCapability[res %d: %s -> %s]; %s",
+                res, getSMPIOCapabilityString(o).c_str(), getSMPIOCapabilityString(v).c_str(),
+                single_conn_device_ptr->toString(false).c_str());
+        } else {
+            COND_PRINT(debug_lock, "DBTAdapter::unlockConnectAny: Success: %s",
+                single_conn_device_ptr->toString(false).c_str());
+        }
+        single_conn_device_ptr = nullptr;
+        cv_single_conn_device.notify_all(); // notify waiting getter
+        return true;
+    } else {
+        iocap_defaultval = SMPIOCapability::UNSET;
+        COND_PRINT(debug_lock, "DBTAdapter::unlockConnectAny: Not locked");
         return false;
     }
 }

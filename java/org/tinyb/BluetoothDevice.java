@@ -183,13 +183,27 @@ public interface BluetoothDevice extends BluetoothObject
     /**
      * A secure connection to this device is established, and the device is then paired.
      * <p>
-     * For direct_bt use {@link #setConnSecurity(BTSecurityLevel, SMPIOCapability, boolean) setConnSecurity(..)}
+     * For direct_bt use {@link #setConnSecurity(BTSecurityLevel, SMPIOCapability) setConnSecurity(..) or its variants}
      * and {@link #connectLE(short, short, short, short, short, short) connectLE(..)}.
      * </p>
      * @return TRUE if the device connected and paired
      * @implNote not implemented in direct_bt.tinyb
      */
     boolean pair() throws BluetoothException;
+
+    /**
+     * Unpairs this device from the adapter while staying connected.
+     * <p>
+     * All keys will be cleared within the adapter and host implementation.<br>
+     * Should rarely being used by user.<br>
+     * Internally being used to re-start pairing if GATT connection fails
+     * in {@link PairingMode#PRE_PAIRED} mode.
+     * </p>
+     * @return {@link HCIStatusCode#SUCCESS} or an appropriate error status.
+     * @since 2.1.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    HCIStatusCode unpair();
 
     /**
      * Set the {@link BTSecurityLevel} used to connect to this device on the upcoming connection.
@@ -203,7 +217,8 @@ public interface BluetoothDevice extends BluetoothObject
      * it is advised to set {@link SMPIOCapability#NO_INPUT_NO_OUTPUT} for sec_level <= {@link BTSecurityLevel#ENC_ONLY}
      * using {@link #setConnSecurity(BTSecurityLevel, SMPIOCapability, boolean) setConnSecurity(..)}
      * as well as an IO capable {@link SMPIOCapability} value
-     * for {@link BTSecurityLevel#ENC_AUTH} or {@link BTSecurityLevel#ENC_AUTH_FIPS}.
+     * for {@link BTSecurityLevel#ENC_AUTH} or {@link BTSecurityLevel#ENC_AUTH_FIPS}.<br>
+     * You may like to consider using {@link #setConnSecurityBest(BTSecurityLevel, SMPIOCapability)}.
      * </p>
      * @param sec_level {@link BTSecurityLevel} to be applied, {@link BTSecurityLevel#UNSET} will be ignored and method fails.
      * @return
@@ -212,9 +227,10 @@ public interface BluetoothDevice extends BluetoothObject
      * @see BTSecurityLevel
      * @see SMPIOCapability
      * @see #getConnSecurityLevel()
-     * @see #setConnIOCapability(SMPIOCapability, boolean)
+     * @see #setConnIOCapability(SMPIOCapability)
      * @see #getConnIOCapability()
-     * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability, boolean)
+     * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability)
+     * @see #setConnSecurityBest(BTSecurityLevel, SMPIOCapability)
      */
     boolean setConnSecurityLevel(final BTSecurityLevel sec_level);
 
@@ -228,23 +244,18 @@ public interface BluetoothDevice extends BluetoothObject
      * @see #setConnIOCapability(SMPIOCapability, boolean)
      * @see #getConnIOCapability()
      * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability, boolean)
+     * @see #setConnSecurityBest(BTSecurityLevel, SMPIOCapability)
      */
     BTSecurityLevel getConnSecurityLevel();
 
     /**
-     * Sets the given {@link SMPIOCapability} used to connect to this device temporarily for the adapter.
+     * Sets the given {@link SMPIOCapability} used to connect to this device on the upcoming connection.
      * <p>
      * Method returns false if {@link SMPIOCapability#UNSET} has been given,
      * operation fails, this device has already being connected,
      * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connect()} has been issued already.
      * </p>
-     * <p>
-     * The {@link SMPIOCapability} value will be reset for the adapter to its previous value when connection is completed or failed.
-     * </p>
      * @param io_cap {@link SMPIOCapability} to be applied, {@link SMPIOCapability#UNSET} will be ignored and method fails.
-     * @param blocking if true, blocks until previous {@link SMPIOCapability} setting is completed,
-     *        i.e. until connection has been completed or failed.
-     *        Otherwise returns immediately with false if previous connection result is still pending on the adapter.
      * @since 2.1.0
      * @implNote not implemented in tinyb.dbus
      * @see BTSecurityLevel
@@ -252,36 +263,10 @@ public interface BluetoothDevice extends BluetoothObject
      * @see #setConnSecurityLevel(BTSecurityLevel)
      * @see #getConnSecurityLevel()
      * @see #getConnIOCapability()
-     * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability, boolean)
+     * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability)
+     * @see #setConnSecurityBest(BTSecurityLevel, SMPIOCapability)
      */
-    boolean setConnIOCapability(final SMPIOCapability io_cap, final boolean blocking);
-
-    /**
-     * Sets the given {@link BTSecurityLevel} (on the upcoming connection) and {@link SMPIOCapability} (temporarily for the adapter)
-     * used to connect to this device if successful, otherwise method doesn't change either value.
-     * <p>
-     * Method returns false if {@link BTSecurityLevel#UNSET} or {@link SMPIOCapability#UNSET} has been given,
-     * operation fails, this device has already being connected,
-     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connect()} has been issued already.
-     * </p>
-     * <p>
-     * The {@link SMPIOCapability} value will be reset for the adapter to its previous value when connection is completed or failed.
-     * </p>
-     * @param sec_level {@link BTSecurityLevel} to be applied, {@link BTSecurityLevel#UNSET} will be ignored and method fails.
-     * @param io_cap {@link SMPIOCapability} to be applied, {@link SMPIOCapability#UNSET} will be ignored and method fails.
-     * @param blocking if true, blocks until previous {@link SMPIOCapability} setting is completed,
-     *        i.e. until connection has been completed or failed.
-     *        Otherwise returns immediately with false if previous connection result is still pending on the adapter.
-     * @since 2.1.0
-     * @implNote not implemented in tinyb.dbus
-     * @see BTSecurityLevel
-     * @see SMPIOCapability
-     * @see #setConnSecurityLevel(BTSecurityLevel)
-     * @see #getConnSecurityLevel()
-     * @see #setConnIOCapability(SMPIOCapability, boolean)
-     * @see #getConnIOCapability()
-     */
-    boolean setConnSecurity(final BTSecurityLevel sec_level, final SMPIOCapability io_cap, final boolean blocking);
+    boolean setConnIOCapability(final SMPIOCapability io_cap);
 
     /**
      * Return the {@link SMPIOCapability} value, determined when the connection is established.
@@ -291,10 +276,72 @@ public interface BluetoothDevice extends BluetoothObject
      * @see SMPIOCapability
      * @see #setConnSecurityLevel(BTSecurityLevel)
      * @see #getConnSecurityLevel()
-     * @see #setConnIOCapability(SMPIOCapability, boolean)
-     * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability, boolean)
+     * @see #setConnIOCapability(SMPIOCapability)
+     * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability)
+     * @see #setConnSecurityBest(BTSecurityLevel, SMPIOCapability)
      */
     SMPIOCapability getConnIOCapability();
+
+    /**
+     * Sets the given {@link BTSecurityLevel} and {@link SMPIOCapability} used to connect to this device on the upcoming connection.
+     * <p>
+     * Method returns false if {@link BTSecurityLevel#UNSET} or {@link SMPIOCapability#UNSET} has been given,
+     * operation fails, this device has already being connected,
+     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connect()} has been issued already.
+     * </p>
+     * <p>
+     * Method either changes both parameter for the upcoming connection or none at all.
+     * </p>
+     * @param sec_level {@link BTSecurityLevel} to be applied, {@link BTSecurityLevel#UNSET} will be ignored and method fails.
+     * @param io_cap {@link SMPIOCapability} to be applied, {@link SMPIOCapability#UNSET} will be ignored and method fails.
+     * @since 2.1.0
+     * @implNote not implemented in tinyb.dbus
+     * @see BTSecurityLevel
+     * @see SMPIOCapability
+     * @see #setConnSecurityLevel(BTSecurityLevel)
+     * @see #getConnSecurityLevel()
+     * @see #setConnIOCapability(SMPIOCapability)
+     * @see #getConnIOCapability()
+     * @see #setConnSecurityBest(BTSecurityLevel, SMPIOCapability)
+     */
+    boolean setConnSecurity(final BTSecurityLevel sec_level, final SMPIOCapability io_cap);
+
+    /**
+     * Convenience method to determine the best practice {@link BTSecurityLevel} and {@link SMPIOCapability}
+     * based on the given arguments, used to connect to this device on the upcoming connection.
+     * <pre>
+     *   if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_cap ) {
+     *      return setConnSecurity(sec_level, io_cap);
+     *   } else if( BTSecurityLevel::UNSET < sec_level ) {
+     *       if( BTSecurityLevel::ENC_ONLY >= sec_level ) {
+     *           return setConnSecurity(sec_level, SMPIOCapability::NO_INPUT_NO_OUTPUT);
+     *       } else {
+     *           return setConnSecurityLevel(sec_level);
+     *       }
+     *   } else if( SMPIOCapability::UNSET != io_cap ) {
+     *       return setConnIOCapability(io_cap);
+     *   } else {
+     *       return false;
+     *   }
+     * </pre>
+     * <p>
+     * Method returns false if {@link BTSecurityLevel#UNSET} and {@link SMPIOCapability#UNSET} has been given,
+     * operation fails, this device has already being connected,
+     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connect()} has been issued already.
+     * </p>
+     * @param sec_level {@link BTSecurityLevel} to be applied.
+     * @param io_cap {@link SMPIOCapability} to be applied.
+     * @since 2.1.0
+     * @implNote not implemented in tinyb.dbus
+     * @see BTSecurityLevel
+     * @see SMPIOCapability
+     * @see #setConnSecurityLevel(BTSecurityLevel)
+     * @see #getConnSecurityLevel()
+     * @see #setConnIOCapability(SMPIOCapability)
+     * @see #getConnIOCapability()
+     * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability)
+     */
+    boolean setConnSecurityBest(final BTSecurityLevel sec_level, final SMPIOCapability io_cap);
 
     /**
      * Method sets the given passkey entry, see {@link PairingMode#PASSKEY_ENTRY_ini}.

@@ -370,45 +370,9 @@ static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
         fprintf(stderr, "****** Connecting Device: Unpair-Pre result: %s\n", getHCIStatusCodeString(unpair_res).c_str());
     }
 
-#if 0
-    // stopDiscovery: Renders pairDevice(..) to fail: Busy!
-    // pairDevice(..) behaves quite instable within our connected workflow: Not used!
-    // device->getAdapter().stopDiscovery();
-
-    SMPIOCapability io_cap = io_capabilities;
-    if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_cap ) {
-        device->setConnSecurityLevel(sec_level);
-    } else if( BTSecurityLevel::UNSET < sec_level ) {
-        if( BTSecurityLevel::ENC_ONLY >= sec_level ) {
-            io_cap = SMPIOCapability::NO_INPUT_NO_OUTPUT;
-        }
-        device->setConnSecurityLevel(sec_level);
-    }
-
-    HCIStatusCode res;
-    if( !USE_WHITELIST ) {
-        if( SMPIOCapability::UNSET != io_cap ) {
-            res = device->pairDevice(io_cap);
-        } else {
-            res = device->connectDefault();
-        }
-    } else {
-        res = HCIStatusCode::SUCCESS;
-    }
-#else
     device->getAdapter().stopDiscovery();
 
-    if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_capabilities ) {
-        device->setConnSecurity(sec_level, io_capabilities, true /* blocking */);
-    } else if( BTSecurityLevel::UNSET < sec_level ) {
-        if( BTSecurityLevel::ENC_ONLY >= sec_level ) {
-            device->setConnSecurity(sec_level, SMPIOCapability::NO_INPUT_NO_OUTPUT, true /* blocking */);
-        } else {
-            device->setConnSecurityLevel(sec_level);
-        }
-    } else if( SMPIOCapability::UNSET != io_capabilities ) {
-        device->setConnIOCapability(io_capabilities, true /* blocking */);
-    }
+    device->setConnSecurityBest(sec_level, io_capabilities);
 
     HCIStatusCode res;
     if( !USE_WHITELIST ) {
@@ -416,7 +380,7 @@ static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
     } else {
         res = HCIStatusCode::SUCCESS;
     }
-#endif
+
     fprintf(stderr, "****** Connecting Device: End result %s of %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
     if( !USE_WHITELIST && 0 == getDeviceProcessingCount() && HCIStatusCode::SUCCESS != res ) {
         startDiscovery(&device->getAdapter(), "post-connect");
@@ -577,7 +541,7 @@ exit:
 
         if( UNPAIR_DEVICE_POST ) {
             const HCIStatusCode unpair_res = device->unpair();
-            fprintf(stderr, "****** Connecting Device: Unpair-Post result: %s\n", getHCIStatusCodeString(unpair_res).c_str());
+            fprintf(stderr, "****** Processing Ready Device: Unpair-Post result: %s\n", getHCIStatusCodeString(unpair_res).c_str());
         }
 
         device->remove();

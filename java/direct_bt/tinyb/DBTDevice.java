@@ -335,6 +335,12 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     }
 
     @Override
+    public final HCIStatusCode unpair() {
+        return HCIStatusCode.get( unpairImpl() );
+    }
+    private final native byte unpairImpl();
+
+    @Override
     public final boolean  setConnSecurityLevel(final BTSecurityLevel sec_level) {
         return setConnSecurityLevelImpl(sec_level.value);
     }
@@ -347,22 +353,39 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     private final native byte getConnSecurityLevelImpl();
 
     @Override
-    public final boolean setConnIOCapability(final SMPIOCapability io_cap, final boolean blocking) {
-        return setConnIOCapabilityImpl(io_cap.value, blocking);
+    public final boolean setConnIOCapability(final SMPIOCapability io_cap) {
+        return setConnIOCapabilityImpl(io_cap.value);
     }
-    private final native boolean setConnIOCapabilityImpl(final byte io_cap, final boolean blocking);
-
-    @Override
-    public final boolean setConnSecurity(final BTSecurityLevel sec_level, final SMPIOCapability io_cap, final boolean blocking) {
-        return setConnSecurityImpl(sec_level.value, io_cap.value, blocking);
-    }
-    private final native boolean setConnSecurityImpl(final byte sec_level, final byte io_cap, final boolean blocking);
+    private final native boolean setConnIOCapabilityImpl(final byte io_cap);
 
     @Override
     public final SMPIOCapability getConnIOCapability() {
         return SMPIOCapability.get( getConnIOCapabilityImpl() );
     }
     private final native byte getConnIOCapabilityImpl();
+
+    @Override
+    public final boolean setConnSecurity(final BTSecurityLevel sec_level, final SMPIOCapability io_cap) {
+        return setConnSecurityImpl(sec_level.value, io_cap.value);
+    }
+    private final native boolean setConnSecurityImpl(final byte sec_level, final byte io_cap);
+
+    @Override
+    public final boolean setConnSecurityBest(final BTSecurityLevel sec_level, final SMPIOCapability io_cap) {
+        if( BTSecurityLevel.UNSET.value < sec_level.value && SMPIOCapability.UNSET.value != io_cap.value ) {
+            return setConnSecurity(sec_level, io_cap);
+        } else if( BTSecurityLevel.UNSET.value < sec_level.value ) {
+            if( BTSecurityLevel.ENC_ONLY.value >= sec_level.value ) {
+                return setConnSecurity(sec_level, SMPIOCapability.NO_INPUT_NO_OUTPUT);
+            } else {
+                return setConnSecurityLevel(sec_level);
+            }
+        } else if( SMPIOCapability.UNSET.value != io_cap.value ) {
+            return setConnIOCapability(io_cap);
+        } else {
+            return false;
+        }
+    }
 
     @Override
     public HCIStatusCode setPairingPasskey(final int passkey) {

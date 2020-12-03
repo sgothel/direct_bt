@@ -110,19 +110,25 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native boolean pair() throws BluetoothException;
 
     @Override
+    public final HCIStatusCode unpair() { return HCIStatusCode.NOT_SUPPORTED; } // FIXME
+
+    @Override
     public final boolean setConnSecurityLevel(final BTSecurityLevel sec_level) { return false; } // FIXME
 
     @Override
     public final BTSecurityLevel getConnSecurityLevel() { return BTSecurityLevel.UNSET; } // FIXME
 
     @Override
-    public final boolean setConnIOCapability(final SMPIOCapability io_cap, final boolean blocking) { return false; } // FIXME
-
-    @Override
-    public final boolean setConnSecurity(final BTSecurityLevel sec_level, final SMPIOCapability io_cap, final boolean blocking) { return false; } // FIXME
+    public final boolean setConnIOCapability(final SMPIOCapability io_cap) { return false; } // FIXME
 
     @Override
     public final SMPIOCapability getConnIOCapability() { return SMPIOCapability.UNSET; } // FIXME
+
+    @Override
+    public final boolean setConnSecurity(final BTSecurityLevel sec_level, final SMPIOCapability io_cap) { return false; } // FIXME
+
+    @Override
+    public final boolean setConnSecurityBest(final BTSecurityLevel sec_level, final SMPIOCapability io_cap) { return false; } // FIXME
 
     @Override
     public HCIStatusCode setPairingPasskey(final int passkey) { return HCIStatusCode.INTERNAL_FAILURE; }

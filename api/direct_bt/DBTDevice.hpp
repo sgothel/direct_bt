@@ -82,6 +82,7 @@ namespace direct_bt {
 
             struct PairingData {
                 jau::ordered_atomic<SMPIOCapability, std::memory_order_relaxed> ioCap_conn=SMPIOCapability::UNSET;
+                jau::ordered_atomic<SMPIOCapability, std::memory_order_relaxed> ioCap_user=SMPIOCapability::UNSET;
                 jau::ordered_atomic<BTSecurityLevel, std::memory_order_relaxed> sec_level_conn=BTSecurityLevel::UNSET;
                 jau::ordered_atomic<BTSecurityLevel, std::memory_order_relaxed> sec_level_user=BTSecurityLevel::UNSET;
 
@@ -464,7 +465,8 @@ namespace direct_bt {
              * To ensure a consistent authentication setup,
              * it is advised to set ::SMPIOCapability::NO_INPUT_NO_OUTPUT for sec_level <= ::BTSecurityLevel::ENC_ONLY
              * using setConnSecurity() as well as an IO capable ::SMPIOCapability value
-             * for ::BTSecurityLevel::ENC_AUTH or ::BTSecurityLevel::ENC_AUTH_FIPS.
+             * for ::BTSecurityLevel::ENC_AUTH or ::BTSecurityLevel::ENC_AUTH_FIPS.<br>
+             * You may like to consider using setConnSecurityBest().
              * </p>
              * @param sec_level ::BTSecurityLevel to be applied, ::BTSecurityLevel::UNSET will be ignored and method fails.
              * @see ::BTSecurityLevel
@@ -473,6 +475,7 @@ namespace direct_bt {
              * @see setConnIOCapability()
              * @see getConnIOCapability()
              * @see setConnSecurity()
+             * @see setConnSecurityBest()
              */
             bool setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept;
 
@@ -484,116 +487,27 @@ namespace direct_bt {
              * @see setConnIOCapability()
              * @see getConnIOCapability()
              * @see setConnSecurity()
+             * @see setConnSecurityBest()
              */
             BTSecurityLevel getConnSecurityLevel() const noexcept { return pairing_data.sec_level_conn; }
 
             /**
-             * Sets the given ::SMPIOCapability used to connect to this device temporarily for the adapter.
+             * Sets the given ::SMPIOCapability used to connect to this device on the upcoming connection.
              * <p>
              * Method returns false if ::SMPIOCapability::UNSET has been given,
              * operation fails, this device has already being connected,
              * or DBTDevice::connectLE() or DBTDevice::connectBREDR() has been issued already.
              * </p>
-             * <p>
-             * The ::SMPIOCapability value will be reset for the adapter to its previous value when connection is completed or failed.
-             * </p>
              * @param[in] io_cap ::SMPIOCapability to be applied, ::SMPIOCapability::UNSET will be ignored and method fails.
-             * @param[in,out] blocking if true, blocks until previous ::SMPIOCapability setting is completed,
-             *        i.e. until connection has been completed or failed.
-             *        Otherwise returns immediately with false if previous connection result is still pending on the adapter.<br>
-             *        On return, this parameter will be set to true if failure was caused by blocking or timeout, otherwise set to false.
-             * @param[out] pre_io_cap return the previous set ::SMPIOCapability value if successful
              * @see ::BTSecurityLevel
              * @see ::SMPIOCapability
              * @see setConnSecurityLevel()
              * @see getConnSecurityLevel()
              * @see getConnIOCapability()
              * @see setConnSecurity()
+             * @see setConnSecurityBest()
              */
-            bool setConnIOCapability(const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept;
-
-            /**
-             * Sets the given ::SMPIOCapability used to connect to this device temporarily for the adapter.
-             * <p>
-             * Method returns false if ::SMPIOCapability::UNSET has been given,
-             * operation fails, this device has already being connected,
-             * or DBTDevice::connectLE() or DBTDevice::connectBREDR() has been issued already.
-             * </p>
-             * <p>
-             * The ::SMPIOCapability value will be reset for the adapter to its previous value when connection is completed or failed.
-             * </p>
-             * @param[in] io_cap ::SMPIOCapability to be applied, ::SMPIOCapability::UNSET will be ignored and method fails.
-             * @param[in] blocking if true, blocks until previous ::SMPIOCapability setting is completed,
-             *        i.e. until connection has been completed or failed.
-             *        Otherwise returns immediately with false if previous connection result is still pending on the adapter.
-             * @see ::BTSecurityLevel
-             * @see ::SMPIOCapability
-             * @see setConnSecurityLevel()
-             * @see getConnSecurityLevel()
-             * @see getConnIOCapability()
-             * @see setConnSecurity()
-             */
-            bool setConnIOCapability(const SMPIOCapability io_cap, const bool blocking) noexcept {
-                SMPIOCapability pre_io_cap { SMPIOCapability::UNSET };
-                bool blocking_in_out = blocking;
-                return setConnIOCapability(io_cap, blocking_in_out, pre_io_cap);
-            }
-
-            /**
-             * Sets the given ::BTSecurityLevel (on the upcoming connection) and ::SMPIOCapability (temporarily for the adapter)
-             * used to connect to this device if successful, otherwise method doesn't change either value.
-             * <p>
-             * Method returns false if ::BTSecurityLevel::UNSET or ::SMPIOCapability::UNSET has been given,
-             * operation fails, this device has already being connected,
-             * or DBTDevice::connectLE() or DBTDevice::connectBREDR() has been issued already.
-             * </p>
-             * <p>
-             * The ::SMPIOCapability value will be reset for the adapter to its previous value when connection is completed or failed.
-             * </p>
-             * @param[in] sec_level ::BTSecurityLevel to be applied, ::BTSecurityLevel::UNSET will be ignored and method fails.
-             * @param[in] io_cap ::SMPIOCapability to be applied, ::SMPIOCapability::UNSET will be ignored and method fails.
-             * @param[in,out] blocking if true, blocks until previous ::SMPIOCapability setting is completed,
-             *        i.e. until connection has been completed or failed.
-             *        Otherwise returns immediately with false if previous connection result is still pending on the adapter.<br>
-             *        On return, this parameter will be set to true if failure was caused by blocking or timeout, otherwise set to false.
-             * @param[out] pre_io_cap return the previous set ::SMPIOCapability value if successful
-             * @see ::BTSecurityLevel
-             * @see ::SMPIOCapability
-             * @see setConnSecurityLevel()
-             * @see getConnSecurityLevel()
-             * @see setConnIOCapability()
-             * @see getConnIOCapability()
-             */
-            bool setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept;
-
-            /**
-             * Sets the given ::BTSecurityLevel (on the upcoming connection) and ::SMPIOCapability (temporarily for the adapter)
-             * used to connect to this device if successful, otherwise method doesn't change either value.
-             * <p>
-             * Method returns false if ::BTSecurityLevel::UNSET or ::SMPIOCapability::UNSET has been given,
-             * operation fails, this device has already being connected,
-             * or DBTDevice::connectLE() or DBTDevice::connectBREDR() has been issued already.
-             * </p>
-             * <p>
-             * The ::SMPIOCapability value will be reset for the adapter to its previous value when connection is completed or failed.
-             * </p>
-             * @param[in] sec_level ::BTSecurityLevel to be applied, ::BTSecurityLevel::UNSET will be ignored and method fails.
-             * @param[in] io_cap ::SMPIOCapability to be applied, ::SMPIOCapability::UNSET will be ignored and method fails.
-             * @param[in] blocking if true, blocks until previous ::SMPIOCapability setting is completed,
-             *        i.e. until connection has been completed or failed.
-             *        Otherwise returns immediately with false if previous connection result is still pending on the adapter.
-             * @see ::BTSecurityLevel
-             * @see ::SMPIOCapability
-             * @see setConnSecurityLevel()
-             * @see getConnSecurityLevel()
-             * @see setConnIOCapability()
-             * @see getConnIOCapability()
-             */
-            bool setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap, const bool blocking) noexcept {
-                SMPIOCapability pre_io_cap { SMPIOCapability::UNSET };
-                bool blocking_in_out = blocking;
-                return setConnSecurity(sec_level, io_cap, blocking_in_out, pre_io_cap);
-            }
+            bool setConnIOCapability(const SMPIOCapability io_cap) noexcept;
 
             /**
              * Return the set ::SMPIOCapability value, determined when the connection is established.
@@ -603,8 +517,69 @@ namespace direct_bt {
              * @see getConnSecurityLevel()
              * @see setConnIOCapability()
              * @see setConnSecurity()
+             * @see setConnSecurityBest()
              */
             SMPIOCapability getConnIOCapability() const noexcept { return pairing_data.ioCap_conn; }
+
+            /**
+             * Sets the given ::BTSecurityLevel and ::SMPIOCapability used to connect to this device on the upcoming connection.
+             * <p>
+             * Method returns false if ::BTSecurityLevel::UNSET or ::SMPIOCapability::UNSET has been given,
+             * operation fails, this device has already being connected,
+             * or DBTDevice::connectLE() or DBTDevice::connectBREDR() has been issued already.
+             * </p>
+             * <p>
+             * Method either changes both parameter for the upcoming connection or none at all.
+             * </p>
+             * @param[in] sec_level ::BTSecurityLevel to be applied, ::BTSecurityLevel::UNSET will be ignored and method fails.
+             * @param[in] io_cap ::SMPIOCapability to be applied, ::SMPIOCapability::UNSET will be ignored and method fails.
+             * @see ::BTSecurityLevel
+             * @see ::SMPIOCapability
+             * @see setConnSecurityLevel()
+             * @see getConnSecurityLevel()
+             * @see setConnIOCapability()
+             * @see getConnIOCapability()
+             * @see setConnSecurityBest()
+             */
+            bool setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept;
+
+            /**
+             * Convenience method to determine the best practice ::BTSecurityLevel and ::SMPIOCapability
+             * based on the given arguments, used to connect to this device on the upcoming connection.
+             * <pre>
+             *   if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_cap ) {
+             *      return setConnSecurity(sec_level, io_cap);
+             *   } else if( BTSecurityLevel::UNSET < sec_level ) {
+             *       if( BTSecurityLevel::ENC_ONLY >= sec_level ) {
+             *           return setConnSecurity(sec_level, SMPIOCapability::NO_INPUT_NO_OUTPUT);
+             *       } else {
+             *           return setConnSecurityLevel(sec_level);
+             *       }
+             *   } else if( SMPIOCapability::UNSET != io_cap ) {
+             *       return setConnIOCapability(io_cap);
+             *   } else {
+             *       return false;
+             *   }
+             * </pre>
+             * <p>
+             * Method returns false if ::BTSecurityLevel::UNSET and ::SMPIOCapability::UNSET has been given,
+             * operation fails, this device has already being connected,
+             * or DBTDevice::connectLE() or DBTDevice::connectBREDR() has been issued already.
+             * </p>
+             * <p>
+             * Method either changes both parameter for the upcoming connection or none at all.
+             * </p>
+             * @param[in] sec_level ::BTSecurityLevel to be applied.
+             * @param[in] io_cap ::SMPIOCapability to be applied.
+             * @see ::BTSecurityLevel
+             * @see ::SMPIOCapability
+             * @see setConnSecurityLevel()
+             * @see getConnSecurityLevel()
+             * @see setConnIOCapability()
+             * @see getConnIOCapability()
+             * @see setConnSecurityBest()
+             */
+            bool setConnSecurityBest(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept;
 
             /**
              * Method sets the given passkey entry, see ::PairingMode::PASSKEY_ENTRY_ini.

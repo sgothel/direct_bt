@@ -60,7 +60,6 @@ import org.tinyb.PairingMode;
 import org.tinyb.SMPIOCapability;
 import org.tinyb.SMPPairingState;
 import org.tinyb.ScanType;
-import org.tinyb.BluetoothManager.ChangedAdapterSetListener;
 
 import direct_bt.tinyb.DBTManager;
 
@@ -89,6 +88,9 @@ public class DBTScanner10 {
 
     AtomicInteger MULTI_MEASUREMENTS = new AtomicInteger(8);
     boolean KEEP_CONNECTED = true;
+    boolean UNPAIR_DEVICE_PRE = false;
+    boolean UNPAIR_DEVICE_POST = false;
+
     boolean GATT_PING_ENABLED = false;
     boolean REMOVE_DEVICE = true;
     boolean USE_WHITELIST = false;
@@ -263,7 +265,7 @@ public class DBTScanner10 {
                     println("PERF: adapter-init -> READY-0 " + td + " ms");
                 }
                 devicesInProcessing.add(device.getAddress());
-                processConnectedDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
+                processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
             } else {
                 println("****** READY-1: NOP " + device.toString());
             }
@@ -287,22 +289,18 @@ public class DBTScanner10 {
 
     private void connectDiscoveredDevice(final BluetoothDevice device) {
         println("****** Connecting Device: Start " + device.toString());
+
+        if( UNPAIR_DEVICE_PRE ) {
+            final HCIStatusCode unpair_res = device.unpair();
+            println("****** Connecting Device: Unpair-Pre result: "+unpair_res);
+        }
+
         {
             final HCIStatusCode r = device.getAdapter().stopDiscovery();
             println("****** Connecting Device: stopDiscovery result "+r);
         }
 
-        if( BTSecurityLevel.UNSET.value < sec_level.value && SMPIOCapability.UNSET.value != io_capabilities.value ) {
-            device.setConnSecurity(sec_level, io_capabilities, true /* blocking */);
-        } else if( BTSecurityLevel.UNSET.value < sec_level.value ) {
-            if( BTSecurityLevel.ENC_ONLY.value >= sec_level.value ) {
-                device.setConnSecurity(sec_level, SMPIOCapability.NO_INPUT_NO_OUTPUT, true /* blocking */);
-            } else {
-                device.setConnSecurityLevel(sec_level);
-            }
-        } else if( SMPIOCapability.UNSET.value != io_capabilities.value ) {
-            device.setConnIOCapability(io_capabilities, true /* blocking */);
-        }
+        device.setConnSecurityBest(sec_level, io_capabilities);
 
         HCIStatusCode res;
         if( !USE_WHITELIST ) {
@@ -340,12 +338,12 @@ public class DBTScanner10 {
         }, true);
     }
 
-    private void processConnectedDevice(final BluetoothDevice device) {
-        println("****** Processing Device: Start " + device.toString());
+    private void processReadyDevice(final BluetoothDevice device) {
+        println("****** Processing Ready Device: Start " + device.toString());
         {
             // make sure for pending connections on failed connect*(..) command
             final HCIStatusCode r = device.getAdapter().stopDiscovery();
-            println("****** Processing Device: stopDiscovery result "+r);
+            println("****** Processing Ready Device: stopDiscovery result "+r);
         }
 
         final long t1 = BluetoothUtils.currentTimeMillis();
@@ -359,7 +357,7 @@ public class DBTScanner10 {
             if( null == primServices || 0 == primServices.size() ) {
                 // Cheating the flow, but avoiding: goto, do-while-false and lastly unreadable intendations
                 // And it is an error case nonetheless ;-)
-                throw new RuntimeException("Processing Device: getServices() failed " + device.toString());
+                throw new RuntimeException("Processing Ready Device: getServices() failed " + device.toString());
             }
             final long t5 = BluetoothUtils.currentTimeMillis();
             if( !QUIET ) {
@@ -485,7 +483,7 @@ public class DBTScanner10 {
             }
             success = true;
         } catch (final Throwable t ) {
-            println("****** Processing Device: Exception caught for " + device.toString() + ": "+t.getMessage());
+            println("****** Processing Ready Device: Exception caught for " + device.toString() + ": "+t.getMessage());
             t.printStackTrace();
         }
 
@@ -495,18 +493,18 @@ public class DBTScanner10 {
 
         if( KEEP_CONNECTED && GATT_PING_ENABLED && success ) {
             while( device.pingGATT() ) {
-                println("****** Processing Device: pingGATT OK: "+device.getAddress());
+                println("****** Processing Ready Device: pingGATT OK: "+device.getAddress());
                 try {
                     Thread.sleep(1000);
                 } catch (final InterruptedException e) {
                     e.printStackTrace();
                 }
             }
-            println("****** Processing Device: pingGATT failed, waiting for disconnect: "+device.getAddress());
+            println("****** Processing Ready Device: pingGATT failed, waiting for disconnect: "+device.getAddress());
             // Even w/ GATT_PING_ENABLED, we utilize disconnect event to clean up -> remove
         }
 
-        println("****** Processing Device: End: Success " + success +
+        println("****** Processing Ready Device: End: Success " + success +
                            " on " + device.toString() + "; devInProc "+devicesInProcessing.size());
         if( success ) {
             devicesProcessed.add(device.getAddress());
@@ -514,6 +512,11 @@ public class DBTScanner10 {
 
         if( !KEEP_CONNECTED ) {
             devicesInProcessing.remove(device.getAddress());
+
+            if( UNPAIR_DEVICE_POST ) {
+                final HCIStatusCode unpair_res = device.unpair();
+                println("****** Processing Ready Device: Unpair-Post result: "+unpair_res);
+            }
 
             device.remove();
 
@@ -526,7 +529,7 @@ public class DBTScanner10 {
 
         if( 0 < MULTI_MEASUREMENTS.get() ) {
             MULTI_MEASUREMENTS.decrementAndGet();
-            println("****** Processing Device: MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS.get()+": "+device.getAddress());
+            println("****** Processing Ready Device: MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS.get()+": "+device.getAddress());
         }
     }
 
@@ -746,6 +749,10 @@ public class DBTScanner10 {
                     test.sec_level = BTSecurityLevel.get( (byte)Integer.valueOf(args[++i]).intValue() );
                 } else if( arg.equals("-iocap") && args.length > (i+1) ) {
                     test.io_capabilities = SMPIOCapability.get( (byte)Integer.valueOf(args[++i]).intValue() );
+                } else if( arg.equals("-unpairPre") ) {
+                    test.UNPAIR_DEVICE_PRE = true;
+                } else if( arg.equals("-unpairPost") ) {
+                    test.UNPAIR_DEVICE_POST = true;
                 } else if( arg.equals("-charid") && args.length > (i+1) ) {
                     test.charIdentifier = args[++i];
                 } else if( arg.equals("-charval") && args.length > (i+1) ) {
@@ -770,6 +777,7 @@ public class DBTScanner10 {
                     "[-resetEachCon connectionCount] "+
                     "(-mac <device_address>)* (-wl <device_address>)* "+
                     "[-seclevel <int>] [-iocap <int>] [-passkey <digits>] " +
+                    "[-unpairPre] [-unpairPost] "+
                     "[-charid <uuid>] [-charval <byte-val>] "+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
@@ -792,6 +800,8 @@ public class DBTScanner10 {
         println("passkey "+test.pairing_passkey);
         println("seclevel "+test.sec_level);
         println("iocap "+test.io_capabilities);
+        println("UNPAIR_DEVICE_PRE "+ test.UNPAIR_DEVICE_PRE);
+        println("UNPAIR_DEVICE_POST "+ test.UNPAIR_DEVICE_POST);
         println("characteristic-id: "+test.charIdentifier);
         println("characteristic-value: "+test.charValue);
 

@@ -323,7 +323,7 @@ HCIStatusCode DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_w
         ERR_PRINT("DBTDevice::connectLE: HCI closed: %s", toString(false).c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
-    if( !adapter.lockConnect(*this, true /* wait */) ) {
+    if( !adapter.lockConnect(*this, true /* wait */, pairing_data.ioCap_user) ) {
         ERR_PRINT("DBTDevice::connectLE: adapter::lockConnect() failed: %s", toString(false).c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
@@ -372,7 +372,7 @@ HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t cl
         ERR_PRINT("DBTDevice::connectBREDR: HCI closed: %s", toString(false).c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
-    if( !adapter.lockConnect(*this, true /* wait */) ) {
+    if( !adapter.lockConnect(*this, true /* wait */, pairing_data.ioCap_user) ) {
         ERR_PRINT("DBTDevice::connectBREDR: adapter::lockConnect() failed: %s", toString(false).c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
@@ -834,18 +834,16 @@ bool DBTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept {
             getBTSecurityLevelString(sec_level).c_str(), toString(false).c_str());
         return false;
     }
-    const BTSecurityLevel old_sec_level = pairing_data.sec_level_user;
-    pairing_data.sec_level_user = sec_level;
     const bool res = true;
+    pairing_data.sec_level_user = sec_level;
 
-    DBG_PRINT("DBTDevice::setConnSecurityLevel: result %d: lvl %s -> %s, %s", res,
-        getBTSecurityLevelString(old_sec_level).c_str(),
+    DBG_PRINT("DBTDevice::setConnSecurityLevel: result %d: lvl %s, %s", res,
         getBTSecurityLevelString(sec_level).c_str(),
         toString(false).c_str());
     return res;
 }
 
-bool DBTDevice::setConnIOCapability(const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept {
+bool DBTDevice::setConnIOCapability(const SMPIOCapability io_cap) noexcept {
     if( SMPIOCapability::UNSET == io_cap ) {
         DBG_PRINT("DBTDevice::setConnIOCapability: io %s, invalid value.", getSMPIOCapabilityString(io_cap).c_str());
         return false;
@@ -856,19 +854,17 @@ bool DBTDevice::setConnIOCapability(const SMPIOCapability io_cap, bool& blocking
                 getSMPIOCapabilityString(io_cap).c_str(), toString(false).c_str());
         return false;
     }
+    const bool res = true;
+    pairing_data.ioCap_user = io_cap;
 
-    const bool blocking_call = blocking;
-    const bool res = adapter.setConnIOCapability(*this, io_cap, blocking, pre_io_cap);
-
-    DBG_PRINT("DBTDevice::setConnIOCapability: result %d (blocked %d): io %s -> %s (blocking %d), %s",
-        res, blocking,
-        getSMPIOCapabilityString(pre_io_cap).c_str(), getSMPIOCapabilityString(io_cap).c_str(),
-        blocking_call, toString(false).c_str());
+    DBG_PRINT("DBTDevice::setConnIOCapability: result %d: io %s, %s", res,
+        getSMPIOCapabilityString(io_cap).c_str(),
+        toString(false).c_str());
 
     return res;
 }
 
-bool DBTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept {
+bool DBTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {
     if( BTSecurityLevel::UNSET == sec_level ) {
         DBG_PRINT("DBTAdapter::setConnSecurity: lvl %s, invalid value.", getBTSecurityLevelString(sec_level).c_str());
         return false;
@@ -884,23 +880,32 @@ bool DBTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapa
                 getSMPIOCapabilityString(io_cap).c_str(), toString(false).c_str());
         return false;
     }
+    const bool res = true;
+    pairing_data.ioCap_user = io_cap;
+    pairing_data.sec_level_user = sec_level;
 
-    const BTSecurityLevel pre_sec_level = pairing_data.sec_level_user;
-
-    const bool blocking_call = blocking;
-    const bool res = adapter.setConnIOCapability(*this, io_cap, blocking, pre_io_cap);
-    if( res ) {
-        pairing_data.sec_level_user = sec_level;
-    }
-
-    DBG_PRINT("DBTDevice::setConnSecurity: result %d (blocked %d): lvl %s -> %s, io %s -> %s (blocking %d), %s",
-        res, blocking,
-        getBTSecurityLevelString(pre_sec_level).c_str(),
-        getBTSecurityLevelString(pairing_data.sec_level_user).c_str(),
-        getSMPIOCapabilityString(pre_io_cap).c_str(), getSMPIOCapabilityString(io_cap).c_str(),
-        blocking_call, toString(false).c_str());
+    DBG_PRINT("DBTDevice::setConnSecurity: result %d: lvl %s, io %s, %s", res,
+        getBTSecurityLevelString(sec_level).c_str(),
+        getSMPIOCapabilityString(io_cap).c_str(),
+        toString(false).c_str());
 
     return res;
+}
+
+bool DBTDevice::setConnSecurityBest(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {
+    if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_cap ) {
+        return setConnSecurity(sec_level, io_cap);
+    } else if( BTSecurityLevel::UNSET < sec_level ) {
+        if( BTSecurityLevel::ENC_ONLY >= sec_level ) {
+            return setConnSecurity(sec_level, SMPIOCapability::NO_INPUT_NO_OUTPUT);
+        } else {
+            return setConnSecurityLevel(sec_level);
+        }
+    } else if( SMPIOCapability::UNSET != io_cap ) {
+        return setConnIOCapability(io_cap);
+    } else {
+        return false;
+    }
 }
 
 HCIStatusCode DBTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
@@ -956,6 +961,7 @@ void DBTDevice::clearSMPStates(const bool connected) noexcept {
 
     if( !connected ) {
         // needs to survive connected, or will be set right @ connected
+        pairing_data.ioCap_user = SMPIOCapability::UNSET;
         pairing_data.ioCap_conn = SMPIOCapability::UNSET;
         pairing_data.sec_level_user = BTSecurityLevel::UNSET;
     }
