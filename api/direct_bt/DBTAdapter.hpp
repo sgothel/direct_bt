@@ -298,13 +298,14 @@ namespace direct_bt {
             bool mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceDisconnectedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvPairDeviceCompleteMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
 
             bool mgmtEvDeviceDiscoveringHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvHCILERemoteUserFeaturesHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvHCIEncryptionChangedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvHCIEncryptionKeyRefreshCompleteHCI(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvHCILERemoteUserFeaturesHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
 
 

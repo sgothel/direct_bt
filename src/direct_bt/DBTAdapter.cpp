@@ -186,6 +186,7 @@ bool DBTAdapter::validateDevInfo() noexcept {
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvUserPasskeyRequestMgmt));
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::AUTH_FAILED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvAuthFailedMgmt));
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceUnpairedMgmt));
+    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvPairDeviceCompleteMgmt));
 
     if( !ok ) {
         ERR_PRINT("Could not add all required MgmtEventCallbacks to DBTManager: %s", toString().c_str());
@@ -1097,23 +1098,6 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
     return true;
 }
 
-bool DBTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtHCILERemoteUserFeatures &event = *static_cast<const MgmtEvtHCILERemoteUserFeatures *>(e.get());
-
-    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
-    if( nullptr != device ) {
-        COND_PRINT(debug_event, "DBTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): %s, %s",
-            dev_id, event.toString().c_str(), device->toString().c_str());
-
-        device->notifyLEFeatures(device, event.getFeatures());
-
-    } else {
-        WORDY_PRINT("DBTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): Device not tracked: %s",
-            dev_id, event.toString().c_str());
-    }
-    return true;
-}
-
 bool DBTAdapter::mgmtEvHCIEncryptionChangedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
     const MgmtEvtHCIEncryptionChanged &event = *static_cast<const MgmtEvtHCIEncryptionChanged *>(e.get());
 
@@ -1143,6 +1127,23 @@ bool DBTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI(std::shared_ptr<MgmtEv
         device->updatePairingState(device, e, evtStatus, pstate);
     } else {
         WORDY_PRINT("DBTAdapter::EventHCI:EncryptionKeyRefreshComplete(dev_id %d): Device not tracked: %s",
+            dev_id, event.toString().c_str());
+    }
+    return true;
+}
+
+bool DBTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(std::shared_ptr<MgmtEvent> e) noexcept {
+    const MgmtEvtHCILERemoteUserFeatures &event = *static_cast<const MgmtEvtHCILERemoteUserFeatures *>(e.get());
+
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr != device ) {
+        COND_PRINT(debug_event, "DBTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): %s, %s",
+            dev_id, event.toString().c_str(), device->toString().c_str());
+
+        device->notifyLEFeatures(device, event.getFeatures());
+
+    } else {
+        WORDY_PRINT("DBTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
     return true;
@@ -1191,6 +1192,22 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedMgmt(std::shared_ptr<MgmtEvent> e) noex
     COND_PRINT(debug_event, "DBTAdapter:mgmt:DeviceDisconnected: %s", e->toString().c_str());
     const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
     (void)event;
+    return true;
+}
+
+bool DBTAdapter::mgmtEvPairDeviceCompleteMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
+    const MgmtEvtPairDeviceComplete &event = *static_cast<const MgmtEvtPairDeviceComplete *>(e.get());
+
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr != device ) {
+        const HCIStatusCode evtStatus = getHCIStatusCode( event.getStatus() );
+        const bool ok = HCIStatusCode::ALREADY_PAIRED == evtStatus;
+        const SMPPairingState pstate = ok ? SMPPairingState::COMPLETED : SMPPairingState::NONE;
+        device->updatePairingState(device, e, evtStatus, pstate);
+    } else {
+        WORDY_PRINT("DBTAdapter::mgmt:PairDeviceComplete(dev_id %d): Device not tracked: %s",
+            dev_id, event.toString().c_str());
+    }
     return true;
 }
 
@@ -1304,7 +1321,8 @@ bool DBTAdapter::mgmtEvAuthFailedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
                 event.toString().c_str());
         return true;
     }
-    device->updatePairingState(device, SMPPairingState::FAILED, e);
+    const HCIStatusCode evtStatus = getHCIStatusCode( event.getStatus() );
+    device->updatePairingState(device, e, evtStatus, SMPPairingState::FAILED);
     return true;
 }
 bool DBTAdapter::mgmtEvUserConfirmRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
@@ -1318,7 +1336,7 @@ bool DBTAdapter::mgmtEvUserConfirmRequestMgmt(std::shared_ptr<MgmtEvent> e) noex
         return true;
     }
     // FIXME: Pass confirm_hint and value?
-    device->updatePairingState(device, SMPPairingState::NUMERIC_COMPARE_EXPECTED, e);
+    device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::NUMERIC_COMPARE_EXPECTED);
     return true;
 }
 bool DBTAdapter::mgmtEvUserPasskeyRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
@@ -1331,7 +1349,7 @@ bool DBTAdapter::mgmtEvUserPasskeyRequestMgmt(std::shared_ptr<MgmtEvent> e) noex
                 event.toString().c_str());
         return true;
     }
-    device->updatePairingState(device, SMPPairingState::PASSKEY_EXPECTED, e);
+    device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::PASSKEY_EXPECTED);
     return true;
 }
 

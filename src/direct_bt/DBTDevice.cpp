@@ -400,7 +400,9 @@ void DBTDevice::notifyConnected(std::shared_ptr<DBTDevice> sthis, const uint16_t
     allowDisconnect = true;
     isConnected = true;
     hciConnHandle = handle;
-    pairing_data.ioCap_conn = io_cap;
+    if( SMPIOCapability::UNSET == pairing_data.ioCap_conn ) {
+        pairing_data.ioCap_conn = io_cap;
+    }
     (void)sthis; // not used yet
 }
 
@@ -783,6 +785,31 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
         jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), toString(false).c_str());
     }
 }
+
+HCIStatusCode DBTDevice::pair(const SMPIOCapability io_cap) noexcept {
+    /**
+     * Experimental only.
+     * <pre>
+     *   adapter.stopDiscovery(): Renders pairDevice(..) to fail: Busy!
+     *   pairDevice(..) behaves quite instable within our connected workflow: Not used!
+     * </pre>
+     */
+    if( SMPIOCapability::UNSET == io_cap ) {
+        DBG_PRINT("DBTDevice::pairDevice: io %s, invalid value.", getSMPIOCapabilityString(io_cap).c_str());
+        return HCIStatusCode::INVALID_PARAMS;
+    }
+    DBTManager& mngr = adapter.getManager();
+
+    DBG_PRINT("DBTDevice::pairDevice: Start: io %s, %s", getSMPIOCapabilityString(io_cap).c_str(), toString(false).c_str());
+    mngr.uploadConnParam(adapter.dev_id, address, addressType);
+
+    pairing_data.ioCap_conn = io_cap;
+    const bool res = mngr.pairDevice(adapter.dev_id, address, addressType, io_cap);
+    if( !res ) {
+        pairing_data.ioCap_conn = SMPIOCapability::UNSET;
+    }
+    DBG_PRINT("DBTDevice::pairDevice: End: io %s, %s", getSMPIOCapabilityString(io_cap).c_str(), toString(false).c_str());
+    return res ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
 }
 
 bool DBTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept {

@@ -236,6 +236,7 @@ std::string MgmtCommand::getOpcodeString(const Opcode op) noexcept {
     X(DEVICE_FLAGS_CHANGED) \
     X(ADV_MONITOR_ADDED) \
     X(ADV_MONITOR_REMOVED) \
+    X(PAIR_DEVICE_COMPLETE) \
     X(HCI_ENC_CHANGED) \
     X(HCI_ENC_KEY_REFRESH_COMPLETE) \
     X(HCI_LE_REMOTE_USR_FEATURES)
@@ -251,17 +252,22 @@ std::string MgmtEvent::getOpcodeString(const Opcode opc) noexcept {
 }
 
 std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
-    const MgmtEvent::Opcode opc = static_cast<MgmtEvent::Opcode>( jau::get_uint16(buffer, 0, true /* littleEndian */) );
+    const MgmtEvent::Opcode opc = MgmtEvent::getOpcode(buffer);
     MgmtEvent * res;
     switch( opc ) {
-        case MgmtEvent::Opcode::CMD_COMPLETE:
+        case MgmtEvent::Opcode::CMD_COMPLETE: {
+            const MgmtCommand::Opcode cmdOpcode = MgmtEvtCmdComplete::getCmdOpcode(buffer);
+
             if( buffer_size >= MgmtEvtAdapterInfo::getRequiredTotalSize() &&
-                MgmtCommand::Opcode::READ_INFO == MgmtEvtCmdComplete::getCmdOpcode(buffer) ) {
+                MgmtCommand::Opcode::READ_INFO == cmdOpcode ) {
                 res = new MgmtEvtAdapterInfo(buffer, buffer_size);
+            } else if( buffer_size >= MgmtEvtPairDeviceComplete::getRequiredTotalSize() &&
+                       MgmtCommand::Opcode::PAIR_DEVICE == cmdOpcode ) {
+                res = new MgmtEvtPairDeviceComplete(buffer, buffer_size);
             } else {
                 res = new MgmtEvtCmdComplete(buffer, buffer_size);
             }
-            break;
+        } break;
         case MgmtEvent::Opcode::CMD_STATUS:
             res = new MgmtEvtCmdStatus(buffer, buffer_size); break;
         case MgmtEvent::Opcode::CONTROLLER_ERROR:

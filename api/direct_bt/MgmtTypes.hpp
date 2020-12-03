@@ -117,6 +117,13 @@ namespace direct_bt {
             virtual std::string valueString() const noexcept = 0;
 
         public:
+            static uint16_t getIntOpcode(const uint8_t * buffer) {
+                return jau::get_uint16(buffer, 0, true /* littleEndian */);
+            }
+            static uint16_t getDevID(const uint8_t *data) {
+                return jau::get_uint16(data, 2, true /* littleEndian */);
+            }
+
             MgmtMsg(const uint16_t opc, const uint16_t dev_id, const uint16_t param_size)
             : pdu(MGMT_HEADER_SIZE+param_size), ts_creation(jau::getCurrentMilliseconds())
             {
@@ -140,6 +147,7 @@ namespace direct_bt {
 
             uint16_t getIntOpcode() const noexcept { return pdu.get_uint16_nc(0); }
             uint16_t getDevID() const noexcept { return pdu.get_uint16_nc(2); }
+            uint16_t getParamSize() const noexcept { return pdu.get_uint16_nc(4); }
 
             virtual std::string toString() const noexcept = 0;
     };
@@ -286,7 +294,6 @@ namespace direct_bt {
             Opcode getOpcode() const noexcept { return static_cast<Opcode>( pdu.get_uint16_nc(0) ); }
             std::string getOpcodeString() const noexcept { return getOpcodeString(getOpcode()); }
 
-            uint16_t getParamSize() const noexcept { return pdu.get_uint16_nc(4); }
             const uint8_t* getParam() const noexcept { return pdu.get_ptr_nc(MGMT_HEADER_SIZE); }
 
             std::string toString() const noexcept override {
@@ -664,9 +671,69 @@ namespace direct_bt {
             { }
     };
 
-    // FIXME PAIR_DEVICE             = 0x0019,
-    // FIXME CANCEL_PAIR_DEVICE      = 0x001A,
-    // FIXME UNPAIR_DEVICE           = 0x001B,
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     * SMPIOCapability io_cap (1 octet)
+     */
+    class MgmtPairDeviceCmd : public MgmtCommand
+    {
+        protected:
+            std::string valueString() const noexcept override {
+                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
+                                       ", io "+getSMPIOCapabilityString(getIOCapability());
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
+        public:
+            MgmtPairDeviceCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const SMPIOCapability iocap)
+            : MgmtCommand(Opcode::PAIR_DEVICE, dev_id, 6+1+1)
+            {
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(iocap));
+            }
+            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+            SMPIOCapability getIOCapability() const noexcept { return getSMPIOCapability( pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1) ); }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     */
+    class MgmtCancelPairDevice : public MgmtCmdAdressInfoMeta
+    {
+        public:
+        MgmtCancelPairDevice(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
+            : MgmtCmdAdressInfoMeta(Opcode::CANCEL_PAIR_DEVICE, dev_id, address, addressType)
+            { }
+    };
+
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     * bool disconnect (1 octet)
+     */
+    class MgmtUnpairDeviceCmd : public MgmtCommand
+    {
+        protected:
+            std::string valueString() const noexcept override {
+                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
+                                       ", disconnect "+std::to_string(getDisconnect());
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
+        public:
+            MgmtUnpairDeviceCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const bool disconnect)
+            : MgmtCommand(Opcode::UNPAIR_DEVICE, dev_id, 6+1+1)
+            {
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, disconnect ? 0x01 : 0x00);
+            }
+            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+            bool getDisconnect() const noexcept { return 0x00 != pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1); }
+    };
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
@@ -715,7 +782,6 @@ namespace direct_bt {
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
             uint32_t getPasskey() const noexcept { return pdu.get_uint32_nc(MGMT_HEADER_SIZE+6+1); }
     };
-
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
@@ -904,10 +970,11 @@ namespace direct_bt {
                 DEVICE_FLAGS_CHANGED         = 0x002a,
                 ADV_MONITOR_ADDED            = 0x002b,
                 ADV_MONITOR_REMOVED          = 0x002c,
-                HCI_ENC_CHANGED              = 0x002d, // direct_bt extension HCIHandler -> listener
-                HCI_ENC_KEY_REFRESH_COMPLETE = 0x002e, // direct_bt extension HCIHandler -> listener
-                HCI_LE_REMOTE_USR_FEATURES   = 0x002f, // direct_bt extension HCIHandler -> listener
-                MGMT_EVENT_TYPE_COUNT        = 0x0030
+                PAIR_DEVICE_COMPLETE        = 0x002d, // CMD_COMPLETE of PAIR_DEVICE (pending)
+                HCI_ENC_CHANGED              = 0x002e, // direct_bt extension HCIHandler -> listener
+                HCI_ENC_KEY_REFRESH_COMPLETE = 0x002f, // direct_bt extension HCIHandler -> listener
+                HCI_LE_REMOTE_USR_FEATURES   = 0x0030, // direct_bt extension HCIHandler -> listener
+                MGMT_EVENT_TYPE_COUNT        = 0x0031
             };
             static constexpr uint16_t number(const Opcode rhs) noexcept {
                 return static_cast<uint16_t>(rhs);
@@ -941,6 +1008,9 @@ namespace direct_bt {
             }
 
         public:
+            static MgmtEvent::Opcode getOpcode(const uint8_t * buffer) {
+                return static_cast<MgmtEvent::Opcode>( jau::get_uint16(buffer, 0, true /* littleEndian */) );
+            }
 
             /**
              * Return a newly created specialized instance pointer to base class.
@@ -984,8 +1054,6 @@ namespace direct_bt {
 
             Opcode getOpcode() const noexcept { return static_cast<Opcode>( pdu.get_uint16_nc(0) ); }
             std::string getOpcodeString() const noexcept { return getOpcodeString(getOpcode()); }
-            uint16_t getDevID() const noexcept { return pdu.get_uint16_nc(2); }
-            uint16_t getParamSize() const noexcept { return pdu.get_uint16_nc(4); }
 
             virtual jau::nsize_t getDataOffset() const noexcept { return MGMT_HEADER_SIZE; }
             virtual jau::nsize_t getDataSize() const noexcept { return getParamSize(); }
@@ -1046,6 +1114,9 @@ namespace direct_bt {
 
             static MgmtCommand::Opcode getCmdOpcode(const uint8_t *data) {
                 return static_cast<MgmtCommand::Opcode>( jau::get_uint16(data, MGMT_HEADER_SIZE, true /* littleEndian */) );
+            }
+            static MgmtStatus getStatus(const uint8_t *data) {
+                return static_cast<MgmtStatus>( jau::get_uint8(data, MGMT_HEADER_SIZE+2) );
             }
 
             MgmtEvtCmdComplete(const uint8_t* buffer, const jau::nsize_t buffer_len)
@@ -1781,13 +1852,61 @@ namespace direct_bt {
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
+     * MgmtStatus (1 octet)
+     */
+    class MgmtEvtPairDeviceComplete : public MgmtEvent
+    {
+        protected:
+        std::string baseString() const noexcept override {
+            return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                   ", addressType "+getBDAddressTypeString(getAddressType())+
+                   ", status "+getMgmtStatusString(getStatus());
+        }
+
+        public:
+            static jau::nsize_t getRequiredTotalSize() noexcept { return MGMT_HEADER_SIZE + 3 + 6 + 1; }
+
+            /** Converts MgmtEvtCmdComplete -> MgmtEvtPairDeviceComplete */
+            MgmtEvtPairDeviceComplete(const uint8_t* buffer, const jau::nsize_t buffer_len)
+            : MgmtEvent(Opcode::PAIR_DEVICE_COMPLETE, MgmtMsg::getDevID(buffer), 6+1+1)
+            {
+                (void)buffer_len;
+                const MgmtStatus status = MgmtEvtCmdComplete::getStatus(buffer);
+                const EUI48& address = *reinterpret_cast<const EUI48 *>( buffer + MGMT_HEADER_SIZE + 3 + 0 ); // mgmt_addr_info
+                const BDAddressType addressType = static_cast<BDAddressType>( jau::get_uint8(buffer, MGMT_HEADER_SIZE + 3 + 6) ); // mgmt_addr_info
+
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, static_cast<uint8_t>(status));
+            }
+
+            MgmtEvtPairDeviceComplete(const uint16_t dev_id, const EUI48& address, const BDAddressType addressType, const MgmtStatus status)
+            : MgmtEvent(Opcode::PAIR_DEVICE_COMPLETE, dev_id, 6+1+1)
+            {
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, static_cast<uint8_t>(status));
+            }
+
+            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE + 6)); } // mgmt_addr_info
+
+            MgmtStatus getStatus() const noexcept { return static_cast<MgmtStatus>(pdu.get_uint8_nc(MGMT_HEADER_SIZE + 6 + 1)); }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+6+1+1; }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
      * HCIStatusCode status (1 Octet)
      * uint8_t enc_enabled (1 Octet)
      * <p>
      * This is a Direct_BT extension for HCI.
      * </p>
      * <pre>
-     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.8 ENCRYPT_CHANGE
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.8 HCIEventType::ENCRYPT_CHANGE
      * </pre>
      */
     class MgmtEvtHCIEncryptionChanged : public MgmtEvent
@@ -1827,7 +1946,7 @@ namespace direct_bt {
      * This is a Direct_BT extension for HCI.
      * </p>
      * <pre>
-     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.39 ENCRYPT_KEY_REFRESH_COMPLETE
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.39 HCIEventType::ENCRYPT_KEY_REFRESH_COMPLETE
      * </pre>
      */
     class MgmtEvtHCIEncryptionKeyRefreshComplete : public MgmtEvent

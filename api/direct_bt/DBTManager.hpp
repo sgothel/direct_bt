@@ -224,7 +224,7 @@ namespace direct_bt {
             pthread_t mgmtReaderThreadId;
             jau::relaxed_atomic_bool mgmtReaderRunning;
 
-            std::recursive_mutex mtx_sendReply; // for sendWithReply
+            std::recursive_mutex mtx_sendReply; // for send() and sendWithReply()
 
             jau::sc_atomic_bool allowClose;
 
@@ -252,6 +252,8 @@ namespace direct_bt {
              * function returns NULL.
              */
             std::shared_ptr<MgmtEvent> sendWithReply(MgmtCommand &req) noexcept;
+
+            bool send(MgmtCommand &req) noexcept;
 
             /**
              * Instantiate singleton.
@@ -441,6 +443,9 @@ namespace direct_bt {
             MgmtStatus userPasskeyReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint32_t passkey) noexcept;
             MgmtStatus userPasskeyNegativeReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType) noexcept;
             MgmtStatus userConfirmReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const bool positive) noexcept;
+
+            bool pairDevice(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const SMPIOCapability iocap) noexcept;
+            MgmtStatus unpairDevice(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const bool disconnect) noexcept;
 
             /** MgmtEventCallback handling  */
 

@@ -200,15 +200,21 @@ static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) noex
 #endif
 }
 
+bool DBTManager::send(MgmtCommand &req) noexcept {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
+    COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO SENT %s", req.toString().c_str());
+    TROOctets & pdu = req.getPDU();
+    if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
+        ERR_PRINT("DBTManager::sendWithReply: HCIComm write error, req %s", req.toString().c_str());
+        return false;
+    }
+    return true;
+}
+
 std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    {
-        COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO SENT %s", req.toString().c_str());
-        TROOctets & pdu = req.getPDU();
-        if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
-            ERR_PRINT("DBTManager::sendWithReply: HCIComm write error, req %s", req.toString().c_str());
-            return nullptr;
-        }
+    if( !send(req) ) {
+        return nullptr;
     }
 
     // Ringbuffer read is thread safe
@@ -519,6 +525,7 @@ next1:
 
         addMgmtEventCallback(-1, MgmtEvent::Opcode::LOCAL_OOB_DATA_UPDATED, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
 
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::HCI_ENC_CHANGED, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::HCI_LE_REMOTE_USR_FEATURES, jau::bindMemberFunc(this, &DBTManager::mgmtEventAnyCB));
@@ -899,6 +906,23 @@ MgmtStatus DBTManager::userConfirmReply(const uint16_t dev_id, const EUI48 &addr
     return MgmtStatus::TIMEOUT;
 }
 
+bool DBTManager::pairDevice(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const SMPIOCapability iocap) noexcept {
+    MgmtPairDeviceCmd cmd(dev_id, address, addressType, iocap);
+    return send(cmd);
+}
+
+MgmtStatus DBTManager::unpairDevice(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const bool disconnect) noexcept {
+    MgmtUnpairDeviceCmd cmd(dev_id, address, addressType, disconnect);
+    std::shared_ptr<MgmtEvent> res = sendWithReply(cmd);
+
+    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+        // FIXME: Analyze address + addressType result?
+        return res1.getStatus();
+    }
+    return MgmtStatus::TIMEOUT;
+}
+
 bool DBTManager::isDeviceWhitelisted(const uint16_t dev_id, const EUI48 &address) noexcept {
     for(auto it = whitelist.begin(); it != whitelist.end(); ) {
         std::shared_ptr<WhitelistElem> wle = *it;
@@ -1148,6 +1172,7 @@ bool DBTManager::mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) noexcept {
     }
     return true;
 }
+
 bool DBTManager::mgmtEventAnyCB(std::shared_ptr<MgmtEvent> e) noexcept {
     DBG_PRINT("DBTManager:mgmt:Any: %s", e->toString().c_str());
     (void)e;

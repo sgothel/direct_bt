@@ -62,6 +62,8 @@ static std::atomic<int> deviceReadyCount = 0;
 static std::atomic<int> MULTI_MEASUREMENTS = 8;
 
 static bool KEEP_CONNECTED = true;
+static bool UNPAIR_DEVICE_PRE = false;
+static bool UNPAIR_DEVICE_POST = false;
 static bool GATT_PING_ENABLED = false;
 static bool REMOVE_DEVICE = true;
 
@@ -362,6 +364,38 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
 
 static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
     fprintf(stderr, "****** Connecting Device: Start %s\n", device->toString().c_str());
+
+    if( UNPAIR_DEVICE_PRE ) {
+        const HCIStatusCode unpair_res = device->unpair();
+        fprintf(stderr, "****** Connecting Device: Unpair-Pre result: %s\n", getHCIStatusCodeString(unpair_res).c_str());
+    }
+
+#if 0
+    // stopDiscovery: Renders pairDevice(..) to fail: Busy!
+    // pairDevice(..) behaves quite instable within our connected workflow: Not used!
+    // device->getAdapter().stopDiscovery();
+
+    SMPIOCapability io_cap = io_capabilities;
+    if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_cap ) {
+        device->setConnSecurityLevel(sec_level);
+    } else if( BTSecurityLevel::UNSET < sec_level ) {
+        if( BTSecurityLevel::ENC_ONLY >= sec_level ) {
+            io_cap = SMPIOCapability::NO_INPUT_NO_OUTPUT;
+        }
+        device->setConnSecurityLevel(sec_level);
+    }
+
+    HCIStatusCode res;
+    if( !USE_WHITELIST ) {
+        if( SMPIOCapability::UNSET != io_cap ) {
+            res = device->pairDevice(io_cap);
+        } else {
+            res = device->connectDefault();
+        }
+    } else {
+        res = HCIStatusCode::SUCCESS;
+    }
+#else
     device->getAdapter().stopDiscovery();
 
     if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_capabilities ) {
@@ -382,6 +416,7 @@ static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
     } else {
         res = HCIStatusCode::SUCCESS;
     }
+#endif
     fprintf(stderr, "****** Connecting Device: End result %s of %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
     if( !USE_WHITELIST && 0 == getDeviceProcessingCount() && HCIStatusCode::SUCCESS != res ) {
         startDiscovery(&device->getAdapter(), "post-connect");
@@ -539,6 +574,11 @@ exit:
 
     if( !KEEP_CONNECTED ) {
         removeFromDevicesProcessing(device->getAddress());
+
+        if( UNPAIR_DEVICE_POST ) {
+            const HCIStatusCode unpair_res = device->unpair();
+            fprintf(stderr, "****** Connecting Device: Unpair-Post result: %s\n", getHCIStatusCodeString(unpair_res).c_str());
+        }
 
         device->remove();
 
@@ -768,6 +808,10 @@ int main(int argc, char *argv[])
             sec_level = getBTSecurityLevel(atoi(argv[++i]));
         } else if( !strcmp("-iocap", argv[i]) && argc > (i+1) ) {
             io_capabilities = getSMPIOCapability(atoi(argv[++i]));
+        } else if( !strcmp("-unpairPre", argv[i]) ) {
+            UNPAIR_DEVICE_PRE = true;
+        } else if( !strcmp("-unpairPost", argv[i]) ) {
+            UNPAIR_DEVICE_POST = true;
         } else if( !strcmp("-charid", argv[i]) && argc > (i+1) ) {
             charIdentifier = std::string(argv[++i]);
         } else if( !strcmp("-charval", argv[i]) && argc > (i+1) ) {
@@ -793,6 +837,7 @@ int main(int argc, char *argv[])
                     "[-resetEachCon connectionCount] "
                     "(-mac <device_address>)* (-wl <device_address>)* "
                     "[-seclevel <int>] [-iocap <int>] [-passkey <digits>] "
+                    "[-unpairPre] [-unpairPost] "
                     "[-charid <uuid>] [-charval <byte-val>] "
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "
@@ -814,6 +859,8 @@ int main(int argc, char *argv[])
     fprintf(stderr, "passkey %d\n", pairing_passkey);
     fprintf(stderr, "seclevel %s\n", getBTSecurityLevelString(sec_level).c_str());
     fprintf(stderr, "iocap %s\n", getSMPIOCapabilityString(io_capabilities).c_str());
+    fprintf(stderr, "UNPAIR_DEVICE_PRE %d\n", UNPAIR_DEVICE_PRE);
+    fprintf(stderr, "UNPAIR_DEVICE_POST %d\n", UNPAIR_DEVICE_POST);
     fprintf(stderr, "characteristic-id: %s\n", charIdentifier.c_str());
     fprintf(stderr, "characteristic-value: %d\n", charValue);
 
