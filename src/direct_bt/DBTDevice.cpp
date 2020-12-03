@@ -323,6 +323,10 @@ HCIStatusCode DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_w
         ERR_PRINT("DBTDevice::connectLE: HCI closed: %s", toString(false).c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
+    if( !adapter.lockConnect(*this, true /* wait */) ) {
+        ERR_PRINT("DBTDevice::connectLE: adapter::lockConnect() failed: %s", toString(false).c_str());
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
     HCIStatusCode status = hci.le_create_conn(address,
                                       hci_peer_mac_type, hci_own_mac_type,
                                       le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
@@ -334,12 +338,14 @@ HCIStatusCode DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_w
                 getHCILEPeerAddressTypeString(hci_peer_mac_type).c_str(),
                 getHCILEOwnAddressTypeString(hci_own_mac_type).c_str(),
                 toString(false).c_str());
+        adapter.unlockConnect(*this);
     } else if ( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("DBTDevice::connectLE: Could not create connection: status 0x%2.2X (%s), errno %d %s, hci-atype[peer %s, own %s] on %s",
                 static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno),
                 getHCILEPeerAddressTypeString(hci_peer_mac_type).c_str(),
                 getHCILEOwnAddressTypeString(hci_own_mac_type).c_str(),
                 toString(false).c_str());
+        adapter.unlockConnect(*this);
     }
     return status;
 }
@@ -366,11 +372,16 @@ HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t cl
         ERR_PRINT("DBTDevice::connectBREDR: HCI closed: %s", toString(false).c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
+    if( !adapter.lockConnect(*this, true /* wait */) ) {
+        ERR_PRINT("DBTDevice::connectBREDR: adapter::lockConnect() failed: %s", toString(false).c_str());
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
     HCIStatusCode status = hci.create_conn(address, pkt_type, clock_offset, role_switch);
     allowDisconnect = true;
     if ( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("DBTDevice::connectBREDR: Could not create connection: status 0x%2.2X (%s), errno %d %s on %s",
                 static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno), toString(false).c_str());
+        adapter.unlockConnect(*this);
     }
     return status;
 }
@@ -457,7 +468,7 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
         DBG_PRINT("DBTDevice::processL2CAPSetup: lvl %s, connect[smp_enc %d, l2cap[open %d, enc %d]]",
                 getBTSecurityLevelString(sec_level).c_str(), smp_enc, l2cap_open, l2cap_enc);
 
-        adapter.resetConnIOCapability(*this);
+        adapter.unlockConnect(*this);
 
         if( !l2cap_open ) {
             pairing_data.sec_level_conn = BTSecurityLevel::NONE;

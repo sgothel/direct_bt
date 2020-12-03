@@ -214,8 +214,8 @@ namespace direct_bt {
             std::atomic<ScanType> currentMetaScanType; // = ScanType::NONE
             std::atomic<bool> keep_le_scan_alive; //  = false;
 
-            jau::ordered_atomic<SMPIOCapability, std::memory_order_relaxed> io_capability_defaultval = SMPIOCapability::UNSET;
-            std::atomic<const DBTDevice *>                                  io_capability_device_ptr = nullptr;
+            jau::ordered_atomic<SMPIOCapability, std::memory_order_relaxed> iocap_defaultval = SMPIOCapability::UNSET;
+            std::atomic<const DBTDevice *>                                  conn_blocking_device_ptr = nullptr;
 
             std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
@@ -258,25 +258,10 @@ namespace direct_bt {
             friend void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint64_t timestamp);
             friend std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept;
 
-            /**
-             * Sets the given SMPIOCapability for the next DBTDevice::connectLE() or DBTDevice::connectBREDR().
-             * <p>
-             * The ::SMPIOCapability value will be reset to its previous value when connection is completed or failed.
-             * </p>
-             * <p>
-             * A value of ::SMPIOCapability::UNSET will be ignored and method returns immediately.
-             * </p>
-             * @param[in] io_cap ::SMPIOCapability to be applied
-             * @param[in,out] blocking if true, blocks until previous setting is completed,
-             *        i.e. until connection has been completed or failed.
-             *        Otherwise returns immediately with false if previous connection result is still pending.
-             *        On return, this parameter will be set to true if failure was caused by blocking or timeout, otherwise set to false.
-             * @param[out] pre_io_cap return the previous set ::SMPIOCapability value if successful
-             */
+            bool lockConnect(const DBTDevice & device, const bool wait) noexcept;
             bool setConnIOCapability(const DBTDevice & device, const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept;
-            bool resetConnIOCapability(const DBTDevice & device) noexcept;
-            bool resetConnIOCapability(const DBTDevice & device, SMPIOCapability& pre_io_cap) noexcept;
-            bool isConnIOCapabilitySet() const noexcept { return nullptr != io_capability_device_ptr; }
+            bool unlockConnect(const DBTDevice & device) noexcept;
+            bool unlockConnect(const DBTDevice & device, SMPIOCapability& pre_io_cap) noexcept;
 
             bool addConnectedDevice(const std::shared_ptr<DBTDevice> & device) noexcept;
             bool removeConnectedDevice(const DBTDevice & device) noexcept;

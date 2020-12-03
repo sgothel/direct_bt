@@ -315,8 +315,8 @@ void DBTAdapter::poweredOff() noexcept {
     // ensure all hci states are reset.
     hci.clearAllStates();
 
-    io_capability_defaultval = SMPIOCapability::UNSET;
-    io_capability_device_ptr = nullptr;
+    iocap_defaultval = SMPIOCapability::UNSET;
+    conn_blocking_device_ptr = nullptr;
 
     DBG_PRINT("DBTAdapter::poweredOff: XXX");
 }
@@ -355,58 +355,71 @@ bool DBTAdapter::setPowered(bool value) noexcept {
     return mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, value ? 1 : 0, current_settings);
 }
 
+bool DBTAdapter::lockConnect(const DBTDevice & device, const bool wait) noexcept {
+    const DBTDevice * exp_device = nullptr; // C++11, exp as value since C++20
+    const uint32_t timeout_ms = 10000; // FIXME: Configurable?
+    const uint32_t poll_period_ms = 125;
+    uint32_t td = 0;
+    while( !conn_blocking_device_ptr.compare_exchange_strong(exp_device, &device) ) {
+        if( device == *exp_device ) {
+            return true; // already set, same device: OK, locked
+        }
+        if( wait ) {
+            if( timeout_ms <= td ) {
+                return false; // already set, timeout, blocked
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(poll_period_ms));
+            td += poll_period_ms;
+            exp_device = nullptr; // continue wait for nullptr
+        } else {
+            return false; // already set, not waiting, blocked
+        }
+    }
+    // newly locked: iocap_blocking_device_ptr := &device
+    return true;
+}
+
 bool DBTAdapter::setConnIOCapability(const DBTDevice & device, const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept {
     if( SMPIOCapability::UNSET == io_cap ) {
         blocking = false;
         return false;
     }
-    const DBTDevice * exp_null_device = nullptr; // C++11, exp as value since C++20
-    const uint32_t timeout_ms = 10000; // FIXME: Configurable?
-    const uint32_t poll_period_ms = 125;
-    uint32_t td = 0;
-    while( !io_capability_device_ptr.compare_exchange_strong(exp_null_device, &device) ) {
-        if( blocking ) {
-            if( timeout_ms <= td ) {
-                blocking = true;
-                return false;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(poll_period_ms));
-            td += poll_period_ms;
-        } else {
-            blocking = true;
-            return false;
-        }
+    if( !lockConnect(device, blocking) ) {
+        blocking = true;
+        return false;
     }
     blocking = false;
     const bool res = mgmt.setIOCapability(dev_id, io_cap, pre_io_cap);
     if( res ) {
-        io_capability_defaultval  = pre_io_cap;
+        iocap_defaultval  = pre_io_cap;
         return true;
     } else {
-        io_capability_device_ptr = nullptr;
+        conn_blocking_device_ptr = nullptr;
         return false;
     }
 }
 
-bool DBTAdapter::resetConnIOCapability(const DBTDevice & device) noexcept {
+bool DBTAdapter::unlockConnect(const DBTDevice & device) noexcept {
     SMPIOCapability pre_io_cap { SMPIOCapability::UNSET };
-    return resetConnIOCapability(device, pre_io_cap);
+    return unlockConnect(device, pre_io_cap);
 }
 
-bool DBTAdapter::resetConnIOCapability(const DBTDevice & device, SMPIOCapability& pre_io_cap) noexcept {
-    if( nullptr != io_capability_device_ptr && device == *io_capability_device_ptr ) {
-        const SMPIOCapability v = io_capability_defaultval;
-        io_capability_defaultval  = SMPIOCapability::UNSET;
-        io_capability_device_ptr = nullptr;
-        SMPIOCapability o;
-        const bool res = mgmt.setIOCapability(dev_id, v, o);
-        DBG_PRINT("DBTAdapter::resetConnIOCapability: result %d: %s -> %s, %s",
-            res, getSMPIOCapabilityString(o).c_str(), getSMPIOCapabilityString(v).c_str(),
-            device.toString(false).c_str());
-        if( res ) {
-            pre_io_cap = o;
+bool DBTAdapter::unlockConnect(const DBTDevice & device, SMPIOCapability& pre_io_cap) noexcept {
+    if( nullptr != conn_blocking_device_ptr && device == *conn_blocking_device_ptr ) {
+        const SMPIOCapability v = iocap_defaultval;
+        iocap_defaultval  = SMPIOCapability::UNSET;
+        if( SMPIOCapability::UNSET != v ) {
+            SMPIOCapability o;
+            const bool res = mgmt.setIOCapability(dev_id, v, o);
+            DBG_PRINT("DBTAdapter::resetConnIOCapability: result %d: %s -> %s, %s",
+                res, getSMPIOCapabilityString(o).c_str(), getSMPIOCapabilityString(v).c_str(),
+                device.toString(false).c_str());
+            if( res ) {
+                pre_io_cap = o;
+            }
         }
-        return res;
+        conn_blocking_device_ptr = nullptr;
+        return true;
     } else {
         return false;
     }
@@ -770,7 +783,7 @@ void DBTAdapter::removeDevice(DBTDevice & device) noexcept {
     WORDY_PRINT("DBTAdapter::removeDevice: Start %s", toString(false).c_str());
     const HCIStatusCode status = device.disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
     WORDY_PRINT("DBTAdapter::removeDevice: disconnect %s, %s", getHCIStatusCodeString(status).c_str(), toString(false).c_str());
-    resetConnIOCapability(device);
+    unlockConnect(device);
     removeConnectedDevice(device); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
     removeDiscoveredDevice(device); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
     WORDY_PRINT("DBTAdapter::removeDevice: End %s", toString(false).c_str());
@@ -1073,7 +1086,7 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
             dev_id, event.toString().c_str(), jau::uint16HexString(handle).c_str(),
             device->toString().c_str());
 
-        resetConnIOCapability(*device);
+        unlockConnect(*device);
         device->notifyDisconnected();
         removeConnectedDevice(*device);
 
@@ -1163,7 +1176,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexc
             dev_id, event.toString().c_str(), jau::uint16HexString(event.getHCIHandle()).c_str(),
             device->toString().c_str());
 
-        resetConnIOCapability(*device);
+        unlockConnect(*device);
         device->notifyDisconnected();
         removeConnectedDevice(*device);
 
