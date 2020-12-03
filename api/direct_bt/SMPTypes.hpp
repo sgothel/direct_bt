@@ -329,6 +329,98 @@ namespace direct_bt {
                                const SMPIOCapability ioCap_ini, const SMPIOCapability ioCap_res) noexcept;
 
     /**
+     * SMP Key Distribution, indicates keys distributed in the Transport Specific Key Distribution phase.
+     * <pre>
+     * Field format and usage: Vol 3, Part H, 3.6.1 SMP - LE Security - Key distribution and generation.
+     * See also Vol 3, Part H, 2.4.3 SM - LE Security - Distribution of keys.
+     * </pre>
+     * </p>
+     * Layout LSB -> MSB
+     * <pre>
+     * uint8_t EncKey : 1, IdKey : 1, SignKey : 1, LinkKey : 1, RFU : 4;
+     * </pre>
+     */
+    enum class SMPKeyDist : uint8_t {
+        NONE                        =          0,
+        /**
+         * LE legacy pairing: Indicates device shall distribute LTK using the Encryption Information command,
+         * followed by EDIV and Rand using the Master Identification command.
+         * <p>
+         * LE Secure Connections pairing (SMP on LE transport): Ignored,
+         * EDIV and Rand shall be zero and shall not be distributed.
+         * </p>
+         * <p>
+         * SMP on BR/EDR transport: Indicates device likes to derive LTK from BR/EDR Link Key.<br>
+         * When EncKey is set to 1 by both devices in the initiator and responder Key Distribution / Generation fields,
+         * the procedures for calculating the LTK from the BR/EDR Link Key shall be used.
+         * </p>
+         */
+        ENC_KEY                     = 0b00000001,
+        /**
+         * Indicates that the device shall distribute IRK using the Identity Information command
+         * followed by its public device or status random address using Identity Address Information.
+         */
+        ID_KEY                      = 0b00000010,
+        /**
+         * Indicates that the device shall distribute CSRK using the Signing Information command.
+         */
+        SIGN_KEY                    = 0b00000100,
+        /**
+         * SMP on the LE transport: Indicate that the device would like to derive the Link Key from the LTK.<br>
+         * When LinkKey is set to 1 by both devices in the initiator and responder Key Distribution / Generation fields,
+         * the procedures for calculating the BR/EDR link key from the LTK shall be used.<br>
+         * Devices not supporting LE Secure Connections shall set this bit to zero and ignore it on reception.
+         * <p>
+         * SMP on BR/EDR transport: Reserved for future use.
+         * </p>
+         */
+        LINK_KEY                    = 0b00001000,
+        /** Reserved for future use */
+        RFU_1                       = 0b00010000,
+        /** Reserved for future use */
+        RFU_2                       = 0b00100000,
+        /** Reserved for future use */
+        RFU_3                       = 0b01000000,
+        /** Reserved for future use */
+        RFU_4                       = 0b10000000
+    };
+    constexpr SMPKeyDist operator ^(const SMPKeyDist lhs, const SMPKeyDist rhs) noexcept {
+        return static_cast<SMPKeyDist> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
+    }
+    constexpr SMPKeyDist& operator ^=(SMPKeyDist& store, const SMPKeyDist& rhs) noexcept {
+        store = static_cast<SMPKeyDist> ( static_cast<uint8_t>(store) ^ static_cast<uint8_t>(rhs) );
+        return store;
+    }
+    constexpr SMPKeyDist operator |(const SMPKeyDist lhs, const SMPKeyDist rhs) noexcept {
+        return static_cast<SMPKeyDist> ( static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs) );
+    }
+    constexpr SMPKeyDist& operator |=(SMPKeyDist& store, const SMPKeyDist& rhs) noexcept {
+        store = static_cast<SMPKeyDist> ( static_cast<uint8_t>(store) | static_cast<uint8_t>(rhs) );
+        return store;
+    }
+    constexpr SMPKeyDist operator &(const SMPKeyDist lhs, const SMPKeyDist rhs) noexcept {
+        return static_cast<SMPKeyDist> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
+    }
+    constexpr SMPKeyDist& operator &=(SMPKeyDist& store, const SMPKeyDist& rhs) noexcept {
+        store = static_cast<SMPKeyDist> ( static_cast<uint8_t>(store) & static_cast<uint8_t>(rhs) );
+        return store;
+    }
+    constexpr bool operator ==(const SMPKeyDist lhs, const SMPKeyDist rhs) noexcept {
+        return static_cast<uint8_t>(lhs) == static_cast<uint8_t>(rhs);
+    }
+    constexpr bool operator !=(const SMPKeyDist lhs, const SMPKeyDist rhs) noexcept {
+        return !( lhs == rhs );
+    }
+    constexpr uint8_t number(const SMPKeyDist rhs) noexcept {
+        return static_cast<uint8_t>(rhs);
+    }
+    constexpr bool isKeyDistBitSet(const SMPKeyDist mask, const SMPKeyDist bit) noexcept {
+        return SMPKeyDist::NONE != ( mask & bit );
+    }
+    std::string getSMPKeyDistBitString(const SMPKeyDist bit) noexcept;
+    std::string getSMPKeyDistMaskString(const SMPKeyDist mask) noexcept;
+
+    /**
      * Handles the Security Manager Protocol (SMP) using Protocol Data Unit (PDU)
      * encoded messages over L2CAP channel.
      * <p>
@@ -541,85 +633,20 @@ namespace direct_bt {
      */
     class SMPPairingMsg : public SMPPDUMsg
     {
-        public:
-            /**
-             * LE Key Distribution format, indicates keys distributed in the Transport Specific Key Distribution phase.
-             * <pre>
-             * Field format and usage: Vol 3, Part H, 3.6.1 SMP - LE Security - Key distribution and generation.
-             * See also Vol 3, Part H, 2.4.3 SM - LE Security - Distribution of keys.
-             * </pre>
-             * </p>
-             * Layout LSB -> MSB
-             * <pre>
-             * uint8_t EncKey : 1, IdKey : 1, SignKey : 1, LinkKey : 1, RFU : 4;
-             * </pre>
-             */
-            enum class KeyDistFormat : uint8_t {
-                NONE                        =          0,
-                /**
-                 * LE legacy pairing: Indicates device shall distribute LTK using the Encryption Information command,
-                 * followed by EDIV and Rand using the Master Identification command.
-                 * <p>
-                 * LE Secure Connections pairing (SMP on LE transport): Ignored,
-                 * EDIV and Rand shall be zero and shall not be distributed.
-                 * </p>
-                 * <p>
-                 * SMP on BR/EDR transport: Indicates device likes to derive LTK from BR/EDR Link Key.<br>
-                 * When EncKey is set to 1 by both devices in the initiator and responder Key Distribution / Generation fields,
-                 * the procedures for calculating the LTK from the BR/EDR Link Key shall be used.
-                 * </p>
-                 */
-                ENC_KEY                     = 0b00000001,
-                /**
-                 * Indicates that the device shall distribute IRK using the Identity Information command
-                 * followed by its public device or status random address using Identity Address Information.
-                 */
-                ID_KEY                      = 0b00000010,
-                /**
-                 * Indicates that the device shall distribute CSRK using the Signing Information command.
-                 */
-                SIGN_KEY                    = 0b00000100,
-                /**
-                 * SMP on the LE transport: Indicate that the device would like to derive the Link Key from the LTK.<br>
-                 * When LinkKey is set to 1 by both devices in the initiator and responder Key Distribution / Generation fields,
-                 * the procedures for calculating the BR/EDR link key from the LTK shall be used.<br>
-                 * Devices not supporting LE Secure Connections shall set this bit to zero and ignore it on reception.
-                 * <p>
-                 * SMP on BR/EDR transport: Reserved for future use.
-                 * </p>
-                 */
-                LINK_KEY                    = 0b00001000,
-                /** Reserved for future use */
-                RFU_1                       = 0b00010000,
-                /** Reserved for future use */
-                RFU_2                       = 0b00100000,
-                /** Reserved for future use */
-                RFU_3                       = 0b01000000,
-                /** Reserved for future use */
-                RFU_4                       = 0b10000000
-            };
-            static constexpr uint8_t number(const KeyDistFormat rhs) noexcept {
-                return static_cast<uint8_t>(rhs);
-            }
-            static constexpr bool isKeyDistFormatBitSet(const KeyDistFormat mask, const KeyDistFormat bit) noexcept {
-                return 0 != ( static_cast<uint8_t>(mask) & static_cast<uint8_t>(bit) );
-            }
-            static std::string getKeyDistFormatBitString(const KeyDistFormat bit) noexcept;
-            static std::string getKeyDistFormatMaskString(const KeyDistFormat mask) noexcept;
 
         private:
             const bool request;
             const SMPAuthReqs authReqMask;
-            const KeyDistFormat initiator_key_dist;
-            const KeyDistFormat responder_key_dist;
+            const SMPKeyDist initiator_key_dist;
+            const SMPKeyDist responder_key_dist;
 
         public:
             SMPPairingMsg(const bool request_, const uint8_t* source, const jau::nsize_t length)
             : SMPPDUMsg(source, length),
               request(request_),
               authReqMask(static_cast<SMPAuthReqs>( pdu.get_uint8_nc(3) )),
-              initiator_key_dist(static_cast<KeyDistFormat>(pdu.get_uint8_nc(5))),
-              responder_key_dist(static_cast<KeyDistFormat>(pdu.get_uint8_nc(6)))
+              initiator_key_dist(static_cast<SMPKeyDist>(pdu.get_uint8_nc(5))),
+              responder_key_dist(static_cast<SMPKeyDist>(pdu.get_uint8_nc(6)))
             {
                 checkOpcode(request? Opcode::PAIRING_REQUEST : Opcode::PAIRING_RESPONSE);
             }
@@ -627,8 +654,8 @@ namespace direct_bt {
             SMPPairingMsg(const bool request_,
                           const SMPIOCapability ioc, const SMPOOBDataFlag odf,
                           const SMPAuthReqs auth_req_mask, const uint8_t maxEncKeySize,
-                          const KeyDistFormat initiator_key_dist_,
-                          const KeyDistFormat responder_key_dist_)
+                          const SMPKeyDist initiator_key_dist_,
+                          const SMPKeyDist responder_key_dist_)
             : SMPPDUMsg(request_? Opcode::PAIRING_REQUEST : Opcode::PAIRING_RESPONSE, 1+6),
               request(request_),
               authReqMask(auth_req_mask), initiator_key_dist(initiator_key_dist_), responder_key_dist(responder_key_dist_)
@@ -637,8 +664,8 @@ namespace direct_bt {
                 pdu.put_uint8_nc(2, direct_bt::number(odf));
                 pdu.put_uint8_nc(3, direct_bt::number(authReqMask));
                 pdu.put_uint8_nc(4, maxEncKeySize);
-                pdu.put_uint8_nc(5, number(initiator_key_dist));
-                pdu.put_uint8_nc(6, number(responder_key_dist));
+                pdu.put_uint8_nc(5, direct_bt::number(initiator_key_dist));
+                pdu.put_uint8_nc(6, direct_bt::number(responder_key_dist));
             }
 
             jau::nsize_t getDataSize() const noexcept override {
@@ -697,13 +724,10 @@ namespace direct_bt {
              * See Vol 3, Part H, 2.4.3 SM - LE Security - Distribution of keys.
              * Field format and usage: Vol 3, Part H, 3.6.1 SMP - LE Security - Key distribution and generation.
              * </pre>
-             * @see KeyDistributionFormat
+             * @see SMPKeyDistFormat
              */
-            constexpr KeyDistFormat getInitiatorKeyDistribution() const noexcept {
+            constexpr SMPKeyDist getInitKeyDist() const noexcept {
                 return initiator_key_dist;
-            }
-            constexpr bool isInitiatorKeyDistributionBitSet(const KeyDistFormat bit) const noexcept {
-                return isKeyDistFormatBitSet(initiator_key_dist, bit);
             }
             /**
              * Return the Responder Key Distribution field,
@@ -713,13 +737,10 @@ namespace direct_bt {
              * See Vol 3, Part H, 2.4.3 SM - LE Security - Distribution of keys.
              * Field format and usage: Vol 3, Part H, 3.6.1 SMP - LE Security - Key distribution and generation.
              * </p>
-             * @see KeyDistributionFormat
+             * @see SMPKeyDistFormat
              */
-            constexpr KeyDistFormat getResponderKeyDistribution() const noexcept {
+            constexpr SMPKeyDist getRespKeyDist() const noexcept {
                 return responder_key_dist;
-            }
-            constexpr bool isResponderKeyDistributionBitSet(const KeyDistFormat bit) const noexcept {
-                return isKeyDistFormatBitSet(initiator_key_dist, bit);
             }
 
             std::string getName() const noexcept override {
@@ -732,8 +753,8 @@ namespace direct_bt {
                        ", oob "+getSMPOOBDataFlagString(getOOBDataFlag())+
                        ", auth_req "+getSMPAuthReqMaskString(getAuthReqMask())+
                        ", max_keysz "+std::to_string(getMaxEncryptionKeySize())+
-                       ", key_dist[init "+getKeyDistFormatMaskString(getInitiatorKeyDistribution())+
-                       ", resp "+getKeyDistFormatMaskString(getResponderKeyDistribution())+
+                       ", key_dist[init "+getSMPKeyDistMaskString(getInitKeyDist())+
+                       ", resp "+getSMPKeyDistMaskString(getRespKeyDist())+
                        "]";
             }
     };

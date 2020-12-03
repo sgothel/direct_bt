@@ -257,6 +257,44 @@ PairingMode direct_bt::getPairingMode(const bool use_sc,
 }
 
 
+#define KEYDISTFMT_ENUM(X) \
+    X(NONE) \
+    X(ENC_KEY) \
+    X(ID_KEY) \
+    X(SIGN_KEY) \
+    X(LINK_KEY) \
+    X(RFU_1) \
+    X(RFU_2) \
+    X(RFU_3) \
+    X(RFU_4)
+
+#define CASE_TO_STRING_KEYDISTFMT(V) case SMPKeyDist::V: return #V;
+
+std::string direct_bt::getSMPKeyDistBitString(const SMPKeyDist bit) noexcept {
+    switch(bit) {
+        KEYDISTFMT_ENUM(CASE_TO_STRING_KEYDISTFMT)
+        default: ; // fall through intended
+    }
+    return "Unknown SMPKeyDistFormat bit";
+}
+
+std::string direct_bt::getSMPKeyDistMaskString(const SMPKeyDist mask) noexcept {
+    const uint8_t one = 1;
+    bool has_pre = false;
+    std::string out("[");
+    for(int i=0; i<8; i++) {
+        const uint8_t settingBit = one << i;
+        if( 0 != ( static_cast<uint8_t>(mask) & settingBit ) ) {
+            if( has_pre ) { out.append(", "); }
+            out.append( getSMPKeyDistBitString( static_cast<SMPKeyDist>(settingBit) ) );
+            has_pre = true;
+        }
+    }
+    out.append("]");
+    return out;
+}
+
+
 #define OPCODE_ENUM(X) \
         X(UNDEFINED) \
         X(PAIRING_REQUEST) \
@@ -304,43 +342,6 @@ std::string SMPPairFailedMsg::getPlainReasonString(const ReasonCode reasonCode) 
         default: ; // fall through intended
     }
     return "Reason reserved for future use";
-}
-
-#define KEYDISTFMT_ENUM(X) \
-    X(NONE) \
-    X(ENC_KEY) \
-    X(ID_KEY) \
-    X(SIGN_KEY) \
-    X(LINK_KEY) \
-    X(RFU_1) \
-    X(RFU_2) \
-    X(RFU_3) \
-    X(RFU_4)
-
-#define CASE_TO_STRING_KEYDISTFMT(V) case KeyDistFormat::V: return #V;
-
-std::string SMPPairingMsg::getKeyDistFormatBitString(const KeyDistFormat bit) noexcept {
-    switch(bit) {
-        KEYDISTFMT_ENUM(CASE_TO_STRING_KEYDISTFMT)
-        default: ; // fall through intended
-    }
-    return "Unknown SMP KeyDistributionFormat bit";
-}
-
-std::string SMPPairingMsg::getKeyDistFormatMaskString(const KeyDistFormat mask) noexcept {
-    const uint8_t one = 1;
-    bool has_pre = false;
-    std::string out("[");
-    for(int i=0; i<8; i++) {
-        const uint8_t settingBit = one << i;
-        if( 0 != ( static_cast<uint8_t>(mask) & settingBit ) ) {
-            if( has_pre ) { out.append(", "); }
-            out.append( getKeyDistFormatBitString( static_cast<KeyDistFormat>(settingBit) ) );
-            has_pre = true;
-        }
-    }
-    out.append("]");
-    return out;
 }
 
 #define TYPECODE_ENUM(X) \
