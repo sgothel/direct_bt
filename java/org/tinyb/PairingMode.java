@@ -53,7 +53,9 @@ public enum PairingMode {
     /** Visual comparison of digit sequence (PIN) input by responder, shown on both devices. Initiator produces and displays artifact. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
     NUMERIC_COMPARE_res ((byte)6),
     /** Utilizing a second factor secret to be used as a secret, e.g. NFC field. Random key exchange with additional secret (2FA) and encryption and potential MITM protection. */
-    OUT_OF_BAND         ((byte)7);
+    OUT_OF_BAND         ((byte)7),
+    /** Reusing encryption keys from previous pairing. */
+    PRE_PAIRED          ((byte)8);
 
     public final byte value;
 
@@ -86,6 +88,7 @@ public enum PairingMode {
             case (byte) 0x05: return NUMERIC_COMPARE_ini;
             case (byte) 0x06: return NUMERIC_COMPARE_res;
             case (byte) 0x07: return OUT_OF_BAND;
+            case (byte) 0x08: return PRE_PAIRED;
             default: return NONE;
         }
     }

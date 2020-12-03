@@ -181,7 +181,9 @@ namespace direct_bt {
         /** Visual comparison of digit sequence (PIN) input by responder, shown on both devices. Initiator produces and displays artifact. Random key exchange with additional secret (PIN) and encryption and MITM protection. */
         NUMERIC_COMPARE_res = 6,
         /** Utilizing a second factor secret to be used as a secret, e.g. NFC field. Random key exchange with additional secret (2FA) and encryption and potential MITM protection. */
-        OUT_OF_BAND         = 7
+        OUT_OF_BAND         = 7,
+        /** Reusing encryption keys from previous pairing. */
+        PRE_PAIRED          = 8
     };
     constexpr uint8_t number(const PairingMode rhs) noexcept {
         return static_cast<uint8_t>(rhs);

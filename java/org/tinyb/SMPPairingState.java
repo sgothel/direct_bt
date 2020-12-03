@@ -70,14 +70,15 @@ public enum SMPPairingState {
     /** Phase 2: Authentication (MITM) OOB data expected, see {@link PairingMode#OUT_OF_BAND} */
     OOB_EXPECTED((byte)7),
 
-    /** Phase 2: Pairing process started by SMPPairConfirmMsg or SMPPairPubKeyMsg (LE Secure Connection) exchange between initiating (master) and responding (slave) device. */
-    PROCESS_STARTED((byte)8),
+    /** Phase 3: Key & value distribution started after SMPPairConfirmMsg or SMPPairPubKeyMsg (LE Secure Connection) exchange between initiating (master) and responding (slave) device. */
+    KEY_DISTRIBUTION((byte)8),
 
     /**
-     * Phase 2: Pairing process is completed by responding (slave) device sending SMPPairRandMsg.<br>
+     * Phase 3: Key & value distribution completed by responding (slave) device sending SMPIdentInfoMsg (#1) , SMPIdentAddrInfoMsg (#2) or SMPSignInfoMsg (#3),<br>
+     * depending on the key distribution field SMPKeyDistFormat SMPPairingMsg::getInitKeyDist() and SMPPairingMsg::getRespKeyDist()
      * The link is assumed to be encrypted from here on.
      */
-    PROCESS_COMPLETED((byte)9);
+    COMPLETED((byte)9);
 
     public final byte value;
 
@@ -110,8 +111,8 @@ public enum SMPPairingState {
             case (byte) 0x05: return PASSKEY_EXPECTED;
             case (byte) 0x06: return NUMERIC_COMPARE_EXPECTED;
             case (byte) 0x07: return OOB_EXPECTED;
-            case (byte) 0x08: return PROCESS_STARTED;
-            case (byte) 0x09: return PROCESS_COMPLETED;
+            case (byte) 0x08: return KEY_DISTRIBUTION;
+            case (byte) 0x09: return COMPLETED;
             default: return NONE;
         }
     }

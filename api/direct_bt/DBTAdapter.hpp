@@ -253,7 +253,7 @@ namespace direct_bt {
             friend bool DBTDevice::setConnIOCapability(const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept;
             friend bool DBTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap, bool& blocking, SMPIOCapability& pre_io_cap) noexcept;
             friend void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis);
-            friend bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, SMPPairingState state, std::shared_ptr<MgmtEvent> evt) noexcept;
+            friend bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<MgmtEvent> evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
             friend void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;
             friend void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint64_t timestamp);
             friend std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept;

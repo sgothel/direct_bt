@@ -45,8 +45,8 @@ using namespace direct_bt;
         X(PASSKEY_EXPECTED) \
         X(NUMERIC_COMPARE_EXPECTED) \
         X(OOB_EXPECTED) \
-        X(PROCESS_STARTED) \
-        X(PROCESS_COMPLETED)
+        X(KEY_DISTRIBUTION) \
+        X(COMPLETED)
 
 #define CASE_TO_STRING_PAIRSTATE(V) case SMPPairingState::V: return #V;
 

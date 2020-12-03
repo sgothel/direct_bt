@@ -33,6 +33,7 @@
 #include  <algorithm>
 
 // #define VERBOSE_ON 1
+#include <jau/environment.hpp>
 #include <jau/debug.hpp>
 
 #include "HCIComm.hpp"
@@ -143,7 +144,7 @@ std::string DBTDevice::toString(bool includeDiscoveredServices) const noexcept {
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
             "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", handle "+jau::uint16HexString(hciConnHandle)+
             ", sec[lvl "+getBTSecurityLevelString(pairing_data.sec_level_conn).c_str()+", io "+getSMPIOCapabilityString(pairing_data.ioCap_conn).c_str()+
-            ", pairing "+getPairingModeString(pairing_data.mode).c_str()+"]], rssi "+std::to_string(getRSSI())+
+            ", pairing "+getPairingModeString(pairing_data.mode).c_str()+", state "+getSMPPairingStateString(pairing_data.state).c_str()+"]], rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+
             ", appearance "+jau::uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
             "), "+msdstr+", "+javaObjectToString()+"]");
@@ -416,13 +417,14 @@ void DBTDevice::notifyLEFeatures(std::shared_ptr<DBTDevice> sthis, const LEFeatu
 
 void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    (void)sthis;
+
     DBG_PRINT("DBTDevice::processL2CAPSetup: Start %s", toString(false).c_str());
     if( isLEAddressType() && !l2cap_att.isOpen() ) {
-        const bool responderLikesEncryption = pairing_data.res_requested_sec || isLEFeaturesBitSet(le_features, LEFeatures::LE_Encryption);
         const BTSecurityLevel sec_level_user = pairing_data.sec_level_user;
         const SMPIOCapability io_cap_conn = pairing_data.ioCap_conn;
         BTSecurityLevel sec_level { BTSecurityLevel::UNSET };
+
+        const bool responderLikesEncryption = pairing_data.res_requested_sec || isLEFeaturesBitSet(le_features, LEFeatures::LE_Encryption);
         if( BTSecurityLevel::UNSET != sec_level_user ) {
             sec_level = sec_level_user;
         } else if( SMPIOCapability::NO_INPUT_NO_OUTPUT == io_cap_conn ) {
@@ -436,6 +438,7 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
                 sec_level = BTSecurityLevel::NONE;
             }
         }
+
         pairing_data.sec_level_conn = sec_level;
         DBG_PRINT("DBTDevice::processL2CAPSetup: sec_level_user %s, io_cap_conn %s -> sec_level %s",
                 getBTSecurityLevelString(sec_level_user).c_str(),
@@ -457,6 +460,8 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
         if( !l2cap_open ) {
             pairing_data.sec_level_conn = BTSecurityLevel::NONE;
             disconnect(HCIStatusCode::INTERNAL_FAILURE);
+        } else if( !l2cap_auth ) {
+            processDeviceReady(sthis, jau::getCurrentMilliseconds());
         }
     }
     DBG_PRINT("DBTDevice::processL2CAPSetup: End %s", toString(false).c_str());
@@ -464,29 +469,48 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
 
 void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint64_t timestamp) {
     DBG_PRINT("DBTDevice::processDeviceReady: %s", toString(false).c_str());
-    bool res1 = connectGATT(sthis);
-    DBG_PRINT("DBTDevice::processDeviceReady: ready[GATT %d], %s", res1, toString(false).c_str());
+    const PairingMode pmode = pairing_data.mode;
+    HCIStatusCode unpair_res = HCIStatusCode::UNKNOWN;
+
+    if( PairingMode::PRE_PAIRED == pmode ) {
+        // Delay GATT processing when re-using encryption keys.
+        // Here we lack of further processing / state indication
+        // and a too fast GATT access leads to disconnection.
+        // (Empirical delay figured by accident.)
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    const bool res1 = connectGATT(sthis); // may close connection and hence clear pairing_data
+
+    if( !res1 && PairingMode::PRE_PAIRED == pmode ) {
+        // Need to repair as GATT communication failed
+        unpair_res = unpair();
+    }
+    DBG_PRINT("DBTDevice::processDeviceReady: ready[GATT %d, unpair %s], %s",
+            res1, getHCIStatusCodeString(unpair_res).c_str(), toString(false).c_str());
     if( res1 ) {
         adapter.sendDeviceReady(sthis, timestamp);
     }
 }
 
-bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, SMPPairingState state, std::shared_ptr<MgmtEvent> evt) noexcept {
+
+bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<MgmtEvent> evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    const MgmtEvent::Opcode mgmtEvtOpcode = evt->getOpcode();
     PairingMode mode = pairing_data.mode;
     bool is_device_ready = false;
 
-    DBG_PRINT("DBTDevice::updatePairingState.0: Start state %s -> %s, %s, %s",
-        getSMPPairingStateString(pairing_data.state).c_str(), getSMPPairingStateString(state).c_str(),
-        evt->toString().c_str(), toString(false).c_str());
-
-    if( pairing_data.state != state ) {
+    if( pairing_data.state != claimed_state ) {
         // Potentially force update PairingMode by forced state change, assuming being the initiator.
         // FIXME: Initiator and responder role might need more specific determination and documentation.
-        switch( state ) {
+        switch( claimed_state ) {
+            case SMPPairingState::NONE:
+                // no change
+                claimed_state = pairing_data.state;
+                break;
             case SMPPairingState::FAILED: {
                 // ignore here, let hciSMPMsgCallback() handle auth failure.
-                state = pairing_data.state;
+                claimed_state = pairing_data.state;
             } break;
             case SMPPairingState::PASSKEY_EXPECTED:
                 mode = PairingMode::PASSKEY_ENTRY_ini;
@@ -497,38 +521,55 @@ bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, SMPPairingS
             case SMPPairingState::OOB_EXPECTED:
                 mode = PairingMode::OUT_OF_BAND;
                 break;
-            case SMPPairingState::PROCESS_COMPLETED:
-                if( BTSecurityLevel::ENC_ONLY >= pairing_data.sec_level_conn ) {
-                    // no auth, done
-                    mode = PairingMode::JUST_WORKS;
+            case SMPPairingState::COMPLETED:
+                if( MgmtEvent::Opcode::HCI_ENC_CHANGED == mgmtEvtOpcode &&
+                    HCIStatusCode::SUCCESS == evtStatus &&
+                    SMPPairingState::FEATURE_EXCHANGE_STARTED > pairing_data.state )
+                {
+                    // No SMP pairing in process (maybe REQUESTED_BY_RESPONDER at maximum),
+                    // i.e. already paired, reusing keys and usable connection
+                    mode = PairingMode::PRE_PAIRED;
+                    is_device_ready = true;
+                } else if( MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE == mgmtEvtOpcode &&
+                           HCIStatusCode::ALREADY_PAIRED == evtStatus &&
+                           SMPPairingState::FEATURE_EXCHANGE_STARTED > pairing_data.state )
+                {
+                    // No SMP pairing in process (maybe REQUESTED_BY_RESPONDER at maximum),
+                    // i.e. already paired, reusing keys and usable connection
+                    mode = PairingMode::PRE_PAIRED;
                     is_device_ready = true;
                 } else {
-                    // requires SMP auth: reset, no change
-                    state = pairing_data.state;
+                    // Ignore: Undesired event or SMP pairing is in process, which needs to be completed.
+                    claimed_state = pairing_data.state;
                 }
                 break;
-            default: // nop
+            default: // use given state as-is
                 break;
         }
-        DBG_PRINT("DBTDevice::updatePairingState.2: state %s -> %s, mode %s -> %s, ready %d",
-            getSMPPairingStateString(pairing_data.state).c_str(), getSMPPairingStateString(state).c_str(),
-            getPairingModeString(pairing_data.mode).c_str(), getPairingModeString(mode).c_str(), is_device_ready);
     }
 
-    if( pairing_data.state != state ) {
-        pairing_data.mode = mode;
-        pairing_data.state = state;
+    if( pairing_data.state != claimed_state ) {
+        DBG_PRINT("DBTDevice::updatePairingState.0: state %s -> %s, mode %s -> %s, ready %d, %s",
+            getSMPPairingStateString(pairing_data.state).c_str(), getSMPPairingStateString(claimed_state).c_str(),
+            getPairingModeString(pairing_data.mode).c_str(), getPairingModeString(mode).c_str(),
+            is_device_ready, evt->toString().c_str());
 
-        adapter.sendDevicePairingState(sthis, state, mode, evt->getTimestamp());
+        pairing_data.mode = mode;
+        pairing_data.state = claimed_state;
+
+        adapter.sendDevicePairingState(sthis, claimed_state, mode, evt->getTimestamp());
 
         if( is_device_ready ) {
             std::thread dc(&DBTDevice::processDeviceReady, this, sthis, evt->getTimestamp()); // @suppress("Invalid arguments")
             dc.detach();
         }
-        DBG_PRINT("DBTDevice::updatePairingState.3: End Complete: state %s", getSMPPairingStateString(state).c_str());
+        DBG_PRINT("DBTDevice::updatePairingState.2: End Complete: state %s, %s",
+                getSMPPairingStateString(claimed_state).c_str(), toString(false).c_str());
         return true;
     } else {
-        DBG_PRINT("DBTDevice::updatePairingState.4: End Unchanged: state %s", getSMPPairingStateString(state).c_str());
+        DBG_PRINT("DBTDevice::updatePairingState.3: End Unchanged: state %s, %s, %s",
+            getSMPPairingStateString(pairing_data.state).c_str(),
+            evt->toString().c_str(), toString(false).c_str());
     }
     return false;
 }
@@ -536,34 +577,28 @@ bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, SMPPairingS
 void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
+    const SMPKeyDist key_mask = SMPKeyDist::ENC_KEY | SMPKeyDist::ID_KEY | SMPKeyDist::SIGN_KEY;
     const SMPPairingState old_pstate = pairing_data.state;
     const PairingMode old_pmode = pairing_data.mode;
+    const std::string timestamp = jau::uint64DecString(jau::environment::getElapsedMillisecond(), ',', 9);
 
     SMPPairingState pstate = old_pstate;
     PairingMode pmode = old_pmode;
     bool is_device_ready = false;
 
+    if( jau::environment::get().debug ) {
+        jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.0: address[%s, %s]",
+            timestamp.c_str(),
+            address.toString().c_str(), getBDAddressTypeString(addressType).c_str());
+        jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), msg->toString().c_str());
+        jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), source.toString().c_str());
+        jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), toString(false).c_str());
+    }
+
     const SMPPDUMsg::Opcode opc = msg->getOpcode();
 
-    DBG_PRINT("DBTDevice:hci:SMP.0: Start %s, %s, %s",
-            msg->toString().c_str(), source.toString().c_str(), toString(false).c_str());
-
     switch( opc ) {
-        case SMPPDUMsg::Opcode::PAIRING_FAILED: {
-            pmode = PairingMode::NONE;
-            pstate = SMPPairingState::FAILED;
-            pairing_data.res_requested_sec = false;
-
-            // After a failed encryption/authentication, we try without security!
-            const BTSecurityLevel sec_level = BTSecurityLevel::NONE;
-            pairing_data.sec_level_conn = sec_level;
-            const bool l2cap_close = l2cap_att.close();
-            const bool l2cap_open = l2cap_att.open(*this, sec_level);
-            is_device_ready = l2cap_open;
-
-            DBG_PRINT("DBTDevice:hci:SMP.1: l2cap ATT reopen: ready %d, sec_level %s, l2cap[close %d, open %d]",
-                    is_device_ready, getBTSecurityLevelString(sec_level).c_str(), l2cap_close, l2cap_open);
-          } break;
+        // Phase 1: SMP Negotiation phase
 
         case SMPPDUMsg::Opcode::SECURITY_REQUEST:
             pmode = PairingMode::NEGOTIATING;
@@ -578,6 +613,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
                 pairing_data.ioCap_init    = msg1.getIOCapability();
                 pairing_data.oobFlag_init  = msg1.getOOBDataFlag();
                 pairing_data.maxEncsz_init = msg1.getMaxEncryptionKeySize();
+                pairing_data.keys_init_exp = msg1.getInitKeyDist();
                 pmode = PairingMode::NEGOTIATING;
                 pstate = SMPPairingState::FEATURE_EXCHANGE_STARTED;
             }
@@ -590,67 +626,148 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
                 pairing_data.ioCap_resp    = msg1.getIOCapability();
                 pairing_data.oobFlag_resp  = msg1.getOOBDataFlag();
                 pairing_data.maxEncsz_resp = msg1.getMaxEncryptionKeySize();
+                pairing_data.keys_resp_exp = msg1.getRespKeyDist();
 
-                const bool le_sc_pairing = isSMPAuthReqBitSet( pairing_data.authReqs_init, SMPAuthReqs::SECURE_CONNECTIONS ) &&
-                                           isSMPAuthReqBitSet( pairing_data.authReqs_resp, SMPAuthReqs::SECURE_CONNECTIONS );
+                const bool use_sc = isSMPAuthReqBitSet( pairing_data.authReqs_init, SMPAuthReqs::SECURE_CONNECTIONS ) &&
+                                    isSMPAuthReqBitSet( pairing_data.authReqs_resp, SMPAuthReqs::SECURE_CONNECTIONS );
+                pairing_data.use_sc = use_sc;
 
-                pmode = ::getPairingMode(le_sc_pairing,
+                pmode = ::getPairingMode(use_sc,
                                          pairing_data.authReqs_init, pairing_data.ioCap_init, pairing_data.oobFlag_init,
                                          pairing_data.authReqs_resp, pairing_data.ioCap_resp, pairing_data.oobFlag_resp);
 
                 pstate = SMPPairingState::FEATURE_EXCHANGE_COMPLETED;
 
-                DBG_PRINT("");
-                DBG_PRINT("DBTDevice:hci:SMP.2: address[%s, %s]: State %s, Mode %s, using SC %d:",
-                    address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
-                    getSMPPairingStateString(pstate).c_str(), getPairingModeString(pmode).c_str(), le_sc_pairing);
-                DBG_PRINT("- oob:   init %s", getSMPOOBDataFlagString(pairing_data.oobFlag_init).c_str());
-                DBG_PRINT("- oob:   resp %s", getSMPOOBDataFlagString(pairing_data.oobFlag_resp).c_str());
-                DBG_PRINT("");
-                DBG_PRINT("- auth:  init %s", getSMPAuthReqMaskString(pairing_data.authReqs_init).c_str());
-                DBG_PRINT("- auth:  resp %s", getSMPAuthReqMaskString(pairing_data.authReqs_resp).c_str());
-                DBG_PRINT("");
-                DBG_PRINT("- iocap: init %s", getSMPIOCapabilityString(pairing_data.ioCap_init).c_str());
-                DBG_PRINT("- iocap: resp %s", getSMPIOCapabilityString(pairing_data.ioCap_resp).c_str());
-                DBG_PRINT("");
-                DBG_PRINT("- encsz: init %d", (int)pairing_data.maxEncsz_init);
-                DBG_PRINT("- encsz: resp %d", (int)pairing_data.maxEncsz_resp);
+                if( jau::environment::get().debug ) {
+                    jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
+                    jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.2: address[%s, %s]: State %s, Mode %s, using SC %d:", timestamp.c_str() ,
+                        address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
+                        getSMPPairingStateString(pstate).c_str(), getPairingModeString(pmode).c_str(), use_sc);
+                    jau::PLAIN_PRINT(false, "[%s] - oob:   init %s", timestamp.c_str(), getSMPOOBDataFlagString(pairing_data.oobFlag_init).c_str());
+                    jau::PLAIN_PRINT(false, "[%s] - oob:   resp %s", timestamp.c_str(), getSMPOOBDataFlagString(pairing_data.oobFlag_resp).c_str());
+                    jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
+                    jau::PLAIN_PRINT(false, "[%s] - auth:  init %s", timestamp.c_str(), getSMPAuthReqMaskString(pairing_data.authReqs_init).c_str());
+                    jau::PLAIN_PRINT(false, "[%s] - auth:  resp %s", timestamp.c_str(), getSMPAuthReqMaskString(pairing_data.authReqs_resp).c_str());
+                    jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
+                    jau::PLAIN_PRINT(false, "[%s] - iocap: init %s", timestamp.c_str(), getSMPIOCapabilityString(pairing_data.ioCap_init).c_str());
+                    jau::PLAIN_PRINT(false, "[%s] - iocap: resp %s", timestamp.c_str(), getSMPIOCapabilityString(pairing_data.ioCap_resp).c_str());
+                    jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
+                    jau::PLAIN_PRINT(false, "[%s] - encsz: init %d", timestamp.c_str(), (int)pairing_data.maxEncsz_init);
+                    jau::PLAIN_PRINT(false, "[%s] - encsz: resp %d", timestamp.c_str(), (int)pairing_data.maxEncsz_resp);
+                }
             }
         } break;
+
+        // Phase 2: SMP Authentication and Encryption
 
         case SMPPDUMsg::Opcode::PAIRING_CONFIRM:
             [[fallthrough]];
         case SMPPDUMsg::Opcode::PAIRING_PUBLIC_KEY:
+            [[fallthrough]];
+        case SMPPDUMsg::Opcode::PAIRING_RANDOM:
             pmode = old_pmode;
-            pstate = SMPPairingState::PROCESS_STARTED;
+            pstate = SMPPairingState::KEY_DISTRIBUTION;
             break;
 
-        case SMPPDUMsg::Opcode::PAIRING_RANDOM:
-            if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) { // from responder (slave)
-                pmode = old_pmode;
-                pstate = SMPPairingState::PROCESS_COMPLETED;
-                is_device_ready = true;
+        case SMPPDUMsg::Opcode::PAIRING_FAILED: {
+            pmode = PairingMode::NONE;
+            pstate = SMPPairingState::FAILED;
+            pairing_data.res_requested_sec = false;
+
+            // After a failed encryption/authentication, we try without security!
+            const BTSecurityLevel sec_level = BTSecurityLevel::NONE;
+            pairing_data.sec_level_conn = sec_level;
+            const bool l2cap_close = l2cap_att.close();
+            const bool l2cap_open = l2cap_att.open(*this, sec_level);
+            is_device_ready = l2cap_open;
+
+            if( jau::environment::get().debug ) {
+                jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.1: l2cap ATT reopen: ready %d, sec_level %s, l2cap[close %d, open %d]",
+                        timestamp.c_str(),
+                        is_device_ready, getBTSecurityLevelString(sec_level).c_str(), l2cap_close, l2cap_open);
+            }
+          } break;
+
+        // Phase 3: SMP Key & Value Distribution phase
+
+        case SMPPDUMsg::Opcode::ENCRYPTION_INFORMATION:       /* Legacy: 1 */
+            // LTK: First part for SMPKeyDistFormat::ENC_KEY, followed by MASTER_IDENTIFICATION (EDIV + RAND)
+            break;
+
+        case SMPPDUMsg::Opcode::MASTER_IDENTIFICATION:        /* Legacy: 2 */
+            // EDIV + RAND
+            if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
+                // from responder (slave)
+                pairing_data.keys_resp_has |= SMPKeyDist::ENC_KEY;
+            } else {
+                // from initiator (master)
+                pairing_data.keys_init_has |= SMPKeyDist::ENC_KEY;
             }
             break;
+
+        case SMPPDUMsg::Opcode::IDENTITY_INFORMATION:         /* Legacy: 3; SC: 1 */
+            // IRK
+            if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
+                // from responder (slave)
+                pairing_data.keys_resp_has |= SMPKeyDist::ID_KEY;
+            } else {
+                // from initiator (master)
+                pairing_data.keys_init_has |= SMPKeyDist::ID_KEY;
+            }
+            break;
+
+        case SMPPDUMsg::Opcode::IDENTITY_ADDRESS_INFORMATION: /* Lecacy: 4; SC: 2 */
+            break;
+
+        case SMPPDUMsg::Opcode::SIGNING_INFORMATION:          /* Legacy: 5; SC: 3; Last value. */
+            // CSRK
+            if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
+                // from responder (slave)
+                pairing_data.keys_resp_has |= SMPKeyDist::SIGN_KEY;
+            } else {
+                // from initiator (master)
+                pairing_data.keys_init_has |= SMPKeyDist::SIGN_KEY;
+            }
+            break;
+
         default:
-            WORDY_PRINT("DBTDevice:hci:SMP.3: Unhandled: address[%s, %s]: %s, %s",
-                    address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
-                    msg->toString().c_str(), source.toString().c_str());
-            return;
+            break;
+    }
+
+    if( SMPPairingState::KEY_DISTRIBUTION == old_pstate &&
+        pairing_data.keys_resp_has == ( pairing_data.keys_resp_exp & key_mask ) &&
+        pairing_data.keys_init_has == ( pairing_data.keys_init_exp & key_mask ) )
+    {
+        pstate = SMPPairingState::COMPLETED;
+        is_device_ready = true;
+    }
+
+    if( jau::environment::get().debug ) {
+        if( old_pstate == pstate /* && old_pmode == pmode */ ) {
+            jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.4: Unchanged: address[%s, %s]",
+                timestamp.c_str(),
+                address.toString().c_str(), getBDAddressTypeString(addressType).c_str());
+        } else {
+            jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.5:   Updated: address[%s, %s]",
+                timestamp.c_str(),
+                address.toString().c_str(), getBDAddressTypeString(addressType).c_str());
+        }
+        jau::PLAIN_PRINT(false, "[%s] - state %s -> %s, mode %s -> %s, ready %d",
+            timestamp.c_str(),
+            getSMPPairingStateString(old_pstate).c_str(), getSMPPairingStateString(pstate).c_str(),
+            getPairingModeString(old_pmode).c_str(), getPairingModeString(pmode).c_str(),
+            is_device_ready);
+        jau::PLAIN_PRINT(false, "[%s] - keys[init %s / %s, resp %s / %s]",
+            timestamp.c_str(),
+            getSMPKeyDistMaskString(pairing_data.keys_init_has).c_str(),
+            getSMPKeyDistMaskString(pairing_data.keys_init_exp).c_str(),
+            getSMPKeyDistMaskString(pairing_data.keys_resp_has).c_str(),
+            getSMPKeyDistMaskString(pairing_data.keys_resp_exp).c_str());
     }
 
     if( old_pstate == pstate /* && old_pmode == pmode */ ) {
-        WORDY_PRINT("DBTDevice::hci:SMP.4: Unchanged: state %s, mode %s",
-                getSMPPairingStateString(old_pstate).c_str(),
-                getPairingModeString(old_pmode).c_str());
         return;
     }
-
-    DBG_PRINT("DBTDevice:hci:SMP.5: address[%s, %s]: state %s -> %s, mode %s -> %s, ready %d",
-        address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
-        getSMPPairingStateString(old_pstate).c_str(), getSMPPairingStateString(pstate).c_str(),
-        getPairingModeString(old_pmode).c_str(), getPairingModeString(pmode).c_str(),
-        is_device_ready);
 
     pairing_data.mode = pmode;
     pairing_data.state = pstate;
@@ -661,7 +778,11 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
         std::thread dc(&DBTDevice::processDeviceReady, this, sthis, msg->ts_creation); // @suppress("Invalid arguments")
         dc.detach();
     }
-    DBG_PRINT("DBTDevice:hci:SMP.6: End %s", toString(false).c_str());
+    if( jau::environment::get().debug ) {
+        jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.6: End", timestamp.c_str());
+        jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), toString(false).c_str());
+    }
+}
 }
 
 bool DBTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept {
@@ -805,16 +926,21 @@ void DBTDevice::clearSMPStates(const bool connected) noexcept {
     pairing_data.state = SMPPairingState::NONE;
     pairing_data.mode = PairingMode::NONE;
     pairing_data.res_requested_sec = false;
+    pairing_data.use_sc = false;
 
     pairing_data.authReqs_resp = SMPAuthReqs::NONE;
     pairing_data.ioCap_resp    = SMPIOCapability::NO_INPUT_NO_OUTPUT;
     pairing_data.oobFlag_resp  = SMPOOBDataFlag::OOB_AUTH_DATA_NOT_PRESENT;
     pairing_data.maxEncsz_resp = 0;
+    pairing_data.keys_resp_exp = SMPKeyDist::NONE;
+    pairing_data.keys_resp_has = SMPKeyDist::NONE;
 
     pairing_data.authReqs_init = SMPAuthReqs::NONE;
     pairing_data.ioCap_init    = SMPIOCapability::NO_INPUT_NO_OUTPUT;
     pairing_data.oobFlag_init  = SMPOOBDataFlag::OOB_AUTH_DATA_NOT_PRESENT;
     pairing_data.maxEncsz_init = 0;
+    pairing_data.keys_init_exp = SMPKeyDist::NONE;
+    pairing_data.keys_init_has = SMPKeyDist::NONE;
 }
 
 void DBTDevice::disconnectSMP(const int caller) noexcept {
@@ -904,7 +1030,7 @@ bool DBTDevice::connectGATT(std::shared_ptr<DBTDevice> sthis) noexcept {
 
     gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sthis, l2cap_att));
     if( !gattHandler->isConnected() ) {
-        ERR_PRINT("DBTDevice::connectGATT: Connection failed");
+        ERR_PRINT2("DBTDevice::connectGATT: Connection failed");
         gattHandler = nullptr;
         return false;
     }
@@ -1106,11 +1232,23 @@ exit:
         // adapter.mgmtEvDeviceDisconnectedHCI( std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load()) ) );
     }
     WORDY_PRINT("DBTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d on %s",
-            getHCIStatusCodeString(res).c_str(), hciConnHandle.load(),
-            allowDisconnect.load(), isConnected.load(),
+            getHCIStatusCodeString(res).c_str(),
+            hciConnHandle.load(), allowDisconnect.load(), isConnected.load(),
             toString(false).c_str());
 
     return res;
+}
+
+HCIStatusCode DBTDevice::unpair() noexcept {
+#if USE_LINUX_BT_SECURITY
+    const MgmtStatus res = adapter.getManager().unpairDevice(adapter.dev_id, address, addressType, false /* disconnect */);
+    clearSMPStates(false /* connected */);
+    return getHCIStatusCode(res);
+#elif SMP_SUPPORTED_BY_OS
+    return HCIStatusCode::NOT_SUPPORTED;
+#else
+    return HCIStatusCode::NOT_SUPPORTED;
+#endif
 }
 
 void DBTDevice::remove() noexcept {

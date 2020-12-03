@@ -88,11 +88,14 @@ namespace direct_bt {
                 jau::ordered_atomic<SMPPairingState, std::memory_order_relaxed> state;
                 jau::ordered_atomic<PairingMode, std::memory_order_relaxed> mode;
                 jau::relaxed_atomic_bool res_requested_sec;
+                jau::relaxed_atomic_bool use_sc;
 
                 SMPAuthReqs     authReqs_init, authReqs_resp;
                 SMPIOCapability ioCap_init,    ioCap_resp;
                 SMPOOBDataFlag  oobFlag_init,  oobFlag_resp;
                 uint8_t         maxEncsz_init, maxEncsz_resp;
+                SMPKeyDist      keys_init_exp, keys_resp_exp;
+                SMPKeyDist      keys_init_has, keys_resp_has;
             };
             PairingData pairing_data;
             std::mutex mtx_pairing;
@@ -173,7 +176,7 @@ namespace direct_bt {
              */
             bool connectGATT(std::shared_ptr<DBTDevice> sthis) noexcept;
 
-            bool updatePairingState(std::shared_ptr<DBTDevice> sthis, SMPPairingState state, std::shared_ptr<MgmtEvent> evt) noexcept;
+            bool updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<MgmtEvent> evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
 
             /**
              * Will be performed within disconnect() and notifyDisconnected().
@@ -428,6 +431,18 @@ namespace direct_bt {
              * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */
             HCIStatusCode disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
+
+            /**
+             * Unpairs this device from the adapter while staying connected.
+             * <p>
+             * All keys will be cleared within the adapter and host implementation.<br>
+             * Should rarely being used by user.<br>
+             * Internally being used to re-start pairing if GATT connection fails
+             * in PairingMode::PRE_PAIRED mode.
+             * </p>
+             * @return HCIStatusCode::SUCCESS or an appropriate error status.
+             */
+            HCIStatusCode unpair() noexcept;
 
             /**
              * Set the ::BTSecurityLevel used to connect to this device on the upcoming connection.

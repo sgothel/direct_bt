@@ -133,14 +133,15 @@ namespace direct_bt {
         /** Phase 2: Authentication (MITM) OOB data expected now, see PairingMode::OUT_OF_BAND */
         OOB_EXPECTED                = 7,
 
-        /** Phase 2: Pairing process started by SMPPairConfirmMsg or SMPPairPubKeyMsg (LE Secure Connection) exchange between initiating (master) and responding (slave) device. */
-        PROCESS_STARTED             = 8,
+        /** Phase 3: Key & value distribution started after SMPPairConfirmMsg or SMPPairPubKeyMsg (LE Secure Connection) exchange between initiating (master) and responding (slave) device. */
+        KEY_DISTRIBUTION            = 8,
 
         /**
-         * Phase 2: Pairing process is completed by responding (slave) device sending SMPPairRandMsg.<br>
+         * Phase 3: Key & value distribution completed by responding (slave) device sending SMPIdentInfoMsg (#1) , SMPIdentAddrInfoMsg (#2) or SMPSignInfoMsg (#3),<br>
+         * depending on the key distribution field SMPKeyDistFormat SMPPairingMsg::getInitKeyDist() and SMPPairingMsg::getRespKeyDist()
          * The link is assumed to be encrypted from here on.
          */
-        PROCESS_COMPLETED           = 9
+        COMPLETED                   = 9
     };
     std::string getSMPPairingStateString(const SMPPairingState state) noexcept;
 

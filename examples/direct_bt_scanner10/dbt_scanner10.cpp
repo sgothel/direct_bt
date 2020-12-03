@@ -83,7 +83,7 @@ static SMPIOCapability io_capabilities = SMPIOCapability::UNSET;
 
 static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device);
 
-static void processConnectedDevice(std::shared_ptr<DBTDevice> device);
+static void processReadyDevice(std::shared_ptr<DBTDevice> device);
 
 static void removeDevice(std::shared_ptr<DBTDevice> device);
 static void resetAdapter(DBTAdapter *a, int mode);
@@ -246,7 +246,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 // next: FEATURE_EXCHANGE_COMPLETED
                 break;
             case SMPPairingState::FEATURE_EXCHANGE_COMPLETED:
-                // next: PASSKEY_EXPECTED... or PROCESS_STARTED
+                // next: PASSKEY_EXPECTED... or KEY_DISTRIBUTION
                 break;
             case SMPPairingState::PASSKEY_EXPECTED: {
                 if( pairing_passkey != NO_PASSKEY ) {
@@ -256,20 +256,20 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                     std::thread dc(&DBTDevice::setPairingPasskeyNegative, device); // @suppress("Invalid arguments")
                     dc.detach();
                 } */
-                // next: PROCESS_STARTED or FAILED
+                // next: KEY_DISTRIBUTION or FAILED
               } break;
             case SMPPairingState::NUMERIC_COMPARE_EXPECTED: {
                 std::thread dc(&DBTDevice::setPairingNumericComparison, device, true); // @suppress("Invalid arguments")
                 dc.detach();
-                // next: PROCESS_STARTED or FAILED
+                // next: KEY_DISTRIBUTION or FAILED
               } break;
             case SMPPairingState::OOB_EXPECTED:
                 // FIXME: ABORT
                 break;
-            case SMPPairingState::PROCESS_STARTED:
-                // next: PROCESS_COMPLETED or FAILED
+            case SMPPairingState::KEY_DISTRIBUTION:
+                // next: COMPLETED or FAILED
                 break;
-            case SMPPairingState::PROCESS_COMPLETED:
+            case SMPPairingState::COMPLETED:
                 // next: deviceReady(..)
                 break;
             default: // nop
@@ -290,7 +290,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             deviceReadyCount++;
             fprintf(stderr, "****** READY-0: Processing[%d] %s\n", deviceReadyCount.load(), device->toString(true).c_str());
             addToDevicesProcessing(device->getAddress());
-            processConnectedDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
+            processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
         } else {
             fprintf(stderr, "****** READY-1: NOP %s\n", device->toString(true).c_str());
         }
@@ -388,8 +388,8 @@ static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
     }
 }
 
-static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
-    fprintf(stderr, "****** Processing Device: Start %s\n", device->toString().c_str());
+static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
+    fprintf(stderr, "****** Processing Ready Device: Start %s\n", device->toString().c_str());
     device->getAdapter().stopDiscovery(); // make sure for pending connections on failed connect*(..) command
     const uint64_t t1 = getCurrentMilliseconds();
     bool success = false;
@@ -398,14 +398,14 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
     //
     // GATT Service Processing
     //
-    fprintf(stderr, "****** Processing Device: GATT start: %s\n", device->getAddressString().c_str());
+    fprintf(stderr, "****** Processing Ready Device: GATT start: %s\n", device->getAddressString().c_str());
     if( !QUIET ) {
         device->getAdapter().printSharedPtrListOfDevices();
     }
     try {
         std::vector<GATTServiceRef> primServices = device->getGATTServices();
         if( 0 == primServices.size() ) {
-            fprintf(stderr, "****** Processing Device: getServices() failed %s\n", device->toString().c_str());
+            fprintf(stderr, "****** Processing Ready Device: getServices() failed %s\n", device->toString().c_str());
             goto exit;
         }
 
@@ -507,7 +507,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         success = true;
     } catch ( std::exception & e ) {
-        fprintf(stderr, "****** Processing Device: Exception caught for %s: %s\n", device->toString().c_str(), e.what());
+        fprintf(stderr, "****** Processing Ready Device: Exception caught for %s: %s\n", device->toString().c_str(), e.what());
     }
 
 exit:
@@ -517,10 +517,10 @@ exit:
 
     if( KEEP_CONNECTED && GATT_PING_ENABLED && success ) {
         while( device->pingGATT() ) {
-            fprintf(stderr, "****** Processing Device: pingGATT OK: %s\n", device->getAddressString().c_str());
+            fprintf(stderr, "****** Processing Ready Device: pingGATT OK: %s\n", device->getAddressString().c_str());
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
-        fprintf(stderr, "****** Processing Device: pingGATT failed, waiting for disconnect: %s\n", device->getAddressString().c_str());
+        fprintf(stderr, "****** Processing Ready Device: pingGATT failed, waiting for disconnect: %s\n", device->getAddressString().c_str());
         // Even w/ GATT_PING_ENABLED, we utilize disconnect event to clean up -> remove
     }
 
@@ -530,7 +530,7 @@ exit:
 
 #endif
 
-    fprintf(stderr, "****** Processing Device: End: Success %d on %s; devInProc %zu\n",
+    fprintf(stderr, "****** Processing Ready Device: End: Success %d on %s; devInProc %zu\n",
             success, device->toString().c_str(), getDeviceProcessingCount());
 
     if( success ) {
@@ -551,7 +551,7 @@ exit:
 
     if( 0 < MULTI_MEASUREMENTS ) {
         MULTI_MEASUREMENTS--;
-        fprintf(stderr, "****** Processing Device: MULTI_MEASUREMENTS left %d: %s\n", MULTI_MEASUREMENTS.load(), device->getAddressString().c_str());
+        fprintf(stderr, "****** Processing Ready Device: MULTI_MEASUREMENTS left %d: %s\n", MULTI_MEASUREMENTS.load(), device->getAddressString().c_str());
     }
 }
 

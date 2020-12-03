@@ -220,25 +220,25 @@ public class DBTScanner10 {
                     // next: FEATURE_EXCHANGE_COMPLETED
                     break;
                 case FEATURE_EXCHANGE_COMPLETED:
-                    // next: PASSKEY_EXPECTED... or PROCESS_STARTED
+                    // next: PASSKEY_EXPECTED... or KEY_DISTRIBUTION
                     break;
                 case PASSKEY_EXPECTED: {
                     if( pairing_passkey != NO_PASSKEY ) {
                         executeOffThread( () -> { device.setPairingPasskey(pairing_passkey); }, "DBT-SetPasskey-"+device.getAddress(), true /* detach */);
                     }
-                    // next: PROCESS_STARTED or FAILED
+                    // next: KEY_DISTRIBUTION or FAILED
                   } break;
                 case NUMERIC_COMPARE_EXPECTED: {
                     executeOffThread( () -> { device.setPairingNumericComparison(true); }, "DBT-SetNumericComp-"+device.getAddress(), true /* detach */);
-                    // next: PROCESS_STARTED or FAILED
+                    // next: KEY_DISTRIBUTION or FAILED
                   } break;
                 case OOB_EXPECTED:
                     // FIXME: ABORT
                     break;
-                case PROCESS_STARTED:
-                    // next: PROCESS_COMPLETED or FAILED
+                case KEY_DISTRIBUTION:
+                    // next: COMPLETED or FAILED
                     break;
-                case PROCESS_COMPLETED:
+                case COMPLETED:
                     // next: deviceReady(..)
                     break;
                 default: // nop

@@ -1119,7 +1119,11 @@ bool DBTAdapter::mgmtEvHCIEncryptionChangedHCI(std::shared_ptr<MgmtEvent> e) noe
 
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
-        device->updatePairingState(device, SMPPairingState::PROCESS_COMPLETED, e);
+        // BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.8 HCIEventType::ENCRYPT_CHANGE
+        const HCIStatusCode evtStatus = event.getHCIStatus();
+        const bool ok = HCIStatusCode::SUCCESS == evtStatus && 0 != event.getEncEnabled();
+        const SMPPairingState pstate = ok ? SMPPairingState::COMPLETED : SMPPairingState::FAILED;
+        device->updatePairingState(device, e, evtStatus, pstate);
     } else {
         WORDY_PRINT("DBTAdapter::EventHCI:EncryptionChanged(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
@@ -1131,7 +1135,12 @@ bool DBTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI(std::shared_ptr<MgmtEv
 
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
-        device->updatePairingState(device, SMPPairingState::PROCESS_COMPLETED, e);
+        // BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.39 HCIEventType::ENCRYPT_KEY_REFRESH_COMPLETE
+        const HCIStatusCode evtStatus = event.getHCIStatus();
+        // const bool ok = HCIStatusCode::SUCCESS == evtStatus;
+        // const SMPPairingState pstate = ok ? SMPPairingState::COMPLETED : SMPPairingState::FAILED;
+        const SMPPairingState pstate = SMPPairingState::NONE;
+        device->updatePairingState(device, e, evtStatus, pstate);
     } else {
         WORDY_PRINT("DBTAdapter::EventHCI:EncryptionKeyRefreshComplete(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());

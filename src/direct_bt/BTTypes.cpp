@@ -239,6 +239,7 @@ std::string direct_bt::getPairingModeString(const PairingMode v) noexcept {
         case PairingMode::NUMERIC_COMPARE_ini: return "NUMCOMP_ini";
         case PairingMode::NUMERIC_COMPARE_res: return "NUMCOMP_res";
         case PairingMode::OUT_OF_BAND:         return "OUT_OF_BAND";
+        case PairingMode::PRE_PAIRED:          return "PRE_PAIRED";
     }
     return "Unknown PairingMode";
 }
