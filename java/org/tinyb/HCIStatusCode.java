@@ -99,6 +99,30 @@ public enum HCIStatusCode {
         LIMIT_REACHED((byte) 0x43),
         OPERATION_CANCELLED_BY_HOST((byte) 0x44),
         PACKET_TOO_LONG((byte) 0x45),
+
+        // MgmtStatus -> HCIStatusCode
+
+        FAILED((byte) 0xc3),
+        CONNECT_FAILED((byte) 0xc4),
+        AUTH_FAILED((byte) 0xc5),
+        NOT_PAIRED((byte) 0xc6),
+        NO_RESOURCES((byte) 0xc7),
+        TIMEOUT((byte) 0xc8),
+        ALREADY_CONNECTED((byte) 0xc9),
+        BUSY((byte) 0xca),
+        REJECTED((byte) 0xcb),
+        NOT_SUPPORTED((byte) 0xcc),
+        INVALID_PARAMS((byte) 0xcd),
+        DISCONNECTED((byte) 0xce),
+        NOT_POWERED((byte) 0xcf),
+        CANCELLED((byte) 0xd0),
+        INVALID_INDEX((byte) 0xd1),
+        RFKILLED((byte) 0xd2),
+        ALREADY_PAIRED((byte) 0xd3),
+        PERMISSION_DENIED((byte) 0xd4),
+
+        // Direct-BT
+
         INTERNAL_TIMEOUT((byte) 0xfd),
         INTERNAL_FAILURE((byte) 0xfe),
         UNKNOWN((byte) 0xff);
@@ -196,6 +220,26 @@ public enum HCIStatusCode {
             case (byte) 0x43: return LIMIT_REACHED;
             case (byte) 0x44: return OPERATION_CANCELLED_BY_HOST;
             case (byte) 0x45: return PACKET_TOO_LONG;
+
+            case (byte) 0xc3: return FAILED;
+            case (byte) 0xc4: return CONNECT_FAILED;
+            case (byte) 0xc5: return AUTH_FAILED;
+            case (byte) 0xc6: return NOT_PAIRED;
+            case (byte) 0xc7: return NO_RESOURCES;
+            case (byte) 0xc8: return TIMEOUT;
+            case (byte) 0xc9: return ALREADY_CONNECTED;
+            case (byte) 0xca: return BUSY;
+            case (byte) 0xcb: return REJECTED;
+            case (byte) 0xcc: return NOT_SUPPORTED;
+            case (byte) 0xcd: return INVALID_PARAMS;
+            case (byte) 0xce: return DISCONNECTED;
+            case (byte) 0xcf: return NOT_POWERED;
+            case (byte) 0xd0: return CANCELLED;
+            case (byte) 0xd1: return INVALID_INDEX;
+            case (byte) 0xd2: return RFKILLED;
+            case (byte) 0xd3: return ALREADY_PAIRED;
+            case (byte) 0xd4: return PERMISSION_DENIED;
+
             case (byte) 0xfd: return INTERNAL_TIMEOUT;
             case (byte) 0xfe: return INTERNAL_FAILURE;
             case (byte) 0xff: return UNKNOWN;
