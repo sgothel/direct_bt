@@ -359,6 +359,10 @@ namespace direct_bt {
 
     /**
      * Used for MgmtLoadLinkKeyCmd and MgmtEvtNewLinkKey
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
      */
     __pack( struct MgmtLinkKey {
         EUI48 address;
@@ -438,24 +442,36 @@ namespace direct_bt {
 
     /**
      * Used for MgmtLoadLongTermKeyCmd and MgmtEvtNewLongTermKey
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
      */
     __pack( struct MgmtLongTermKey {
         EUI48 address;
         BDAddressType address_type;
         uint8_t key_type;
+        /**
+         * BlueZ claims itself (initiator) as the SLAVE and the responder as the MASTER,
+         * contrary to the spec roles of: Initiator (LL Master) and Responder (LL Slave).
+         */
         uint8_t master;
-        uint8_t encryption_size;
-        uint16_t encryption_diversifier;
-        uint64_t random_number;
-        jau::uint128_t value;
+        /** Encryption Size */
+        uint8_t enc_size;
+        /** Encryption Diversifier */
+        uint16_t ediv;
+        /** Random Number */
+        uint64_t rand;
+        /** Long Term Key (LTK) */
+        jau::uint128_t ltk;
 
-        std::string toString() const noexcept {
+        std::string toString() const noexcept { // hex-fmt aligned with btmon
             return "LTK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
                    "], type "+jau::uint8HexString(key_type)+", master "+jau::uint8HexString(master)+
-                   ", encSize "+jau::uint8HexString(encryption_size)+
-                   ", encDivs "+jau::uint16HexString(encryption_diversifier)+
-                   ", random "+jau::uint64HexString(random_number)+
-                   ", value "+jau::uint128HexString(value)+
+                   ", enc_size "+std::to_string(enc_size)+
+                   ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), false /* lsbFirst */, true /* leading0X */)+
+                   ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), false /* lsbFirst */, true /* leading0X */)+
+                   ", ltk "+jau::bytesHexString(ltk.data, 0, sizeof(ltk), true /* lsbFirst */, false /* leading0X */)+
                    "]";
         }
     } );
