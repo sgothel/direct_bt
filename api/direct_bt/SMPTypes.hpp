@@ -580,6 +580,33 @@ namespace direct_bt {
     };
 
     /**
+     * Tag type to group all SMP messages covering encryption keys,
+     * treated as byte stream (all of them).
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
+     */
+    class SMPEncKeyByteStream : public SMPPDUMsg
+    {
+        public:
+            /** Persistent memory, w/ ownership ..*/
+            SMPEncKeyByteStream(const uint8_t* source, const jau::nsize_t size)
+            : SMPPDUMsg(source, size) { }
+
+            /** Persistent memory, w/ ownership ..*/
+            SMPEncKeyByteStream(const Opcode opc, const jau::nsize_t size)
+            : SMPPDUMsg(opc, size) { }
+
+            SMPEncKeyByteStream(const SMPEncKeyByteStream &o) noexcept = default;
+            SMPEncKeyByteStream(SMPEncKeyByteStream &&o) noexcept = default;
+            SMPEncKeyByteStream& operator=(const SMPEncKeyByteStream &o) noexcept = delete; // const ts_creation
+            SMPEncKeyByteStream& operator=(SMPEncKeyByteStream &&o) noexcept = delete; // const ts_creation
+
+            virtual ~SMPEncKeyByteStream() noexcept {}
+    };
+
+    /**
      * Vol 3, Part H: 3.5.1 Pairing Request message.<br>
      * Vol 3, Part H: 3.5.2 Pairing Response message.
      * <pre>
@@ -786,20 +813,24 @@ namespace direct_bt {
      * The responding device sends the Pairing Confirm command
      * after it has received a Pairing Confirm command from the initiating device.
      * </p>
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
      */
-    class SMPPairConfirmMsg : public SMPPDUMsg
+    class SMPPairConfirmMsg : public SMPEncKeyByteStream
     {
         public:
             SMPPairConfirmMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPPDUMsg(source, length)
+            : SMPEncKeyByteStream(source, length)
             {
                 checkOpcode(Opcode::PAIRING_CONFIRM);
             }
 
             SMPPairConfirmMsg(const jau::uint128_t & confirm_value)
-            : SMPPDUMsg(Opcode::PAIRING_CONFIRM, 1+16)
+            : SMPEncKeyByteStream(Opcode::PAIRING_CONFIRM, 1+16)
             {
-                pdu.put_uint128_nc(1, confirm_value);
+                jau::put_uint128(pdu.get_wptr(), 1, confirm_value);
             }
 
             jau::nsize_t getDataSize() const noexcept override {
@@ -819,7 +850,7 @@ namespace direct_bt {
              * See Vol 3, Part H, 2.3.5.6 SM - Pairing algo - LE Secure Connections pairing phase 2.
              * </p>
              */
-            jau::uint128_t getConfirmValue() const noexcept { return pdu.get_uint128_nc(1); }
+            jau::uint128_t getConfirmValue() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
             std::string getName() const noexcept override {
                 return "SMPPairConfirm";
@@ -877,20 +908,24 @@ namespace direct_bt {
      * If the calculated Confirm value does not match then
      * the initiating device shall respond with the Pairing Failed command.
      * </p>
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
      */
-    class SMPPairRandMsg : public SMPPDUMsg
+    class SMPPairRandMsg : public SMPEncKeyByteStream
     {
         public:
             SMPPairRandMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPPDUMsg(source, length)
+            : SMPEncKeyByteStream(source, length)
             {
                 checkOpcode(Opcode::PAIRING_RANDOM);
             }
 
             SMPPairRandMsg(const jau::uint128_t & random_value)
-            : SMPPDUMsg(Opcode::PAIRING_RANDOM, 1+16)
+            : SMPEncKeyByteStream(Opcode::PAIRING_RANDOM, 1+16)
             {
-                pdu.put_uint128_nc(1, random_value);
+                jau::put_uint128(pdu.get_wptr(), 1, random_value);
             }
 
             jau::nsize_t getDataSize() const noexcept override {
@@ -909,7 +944,7 @@ namespace direct_bt {
              * the initiating device sends Na and the responding device sends Nb.
              * </p>
              */
-            jau::uint128_t getRand() const noexcept { return pdu.get_uint128_nc(1); }
+            jau::uint128_t getRand() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
             std::string getName() const noexcept override {
                 return "SMPPairRand";
@@ -1007,21 +1042,25 @@ namespace direct_bt {
      * Message is used to transfer the device’s local public key (X and Y coordinates) to the remote device.<br>
      * This message is used by both the initiator and responder.<br>
      * This PDU is only used for LE Secure Connections.
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
      */
-    class SMPPairPubKeyMsg : public SMPPDUMsg
+    class SMPPairPubKeyMsg : public SMPEncKeyByteStream
     {
         public:
             SMPPairPubKeyMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPPDUMsg(source, length)
+            : SMPEncKeyByteStream(source, length)
             {
                 checkOpcode(Opcode::PAIRING_PUBLIC_KEY);
             }
 
             SMPPairPubKeyMsg(const jau::uint256_t & pub_key_x, const jau::uint256_t & pub_key_y)
-            : SMPPDUMsg(Opcode::PAIRING_PUBLIC_KEY, 1+32+32)
+            : SMPEncKeyByteStream(Opcode::PAIRING_PUBLIC_KEY, 1+32+32)
             {
-                pdu.put_uint256_nc(1, pub_key_x);
-                pdu.put_uint256_nc(1+32, pub_key_y);
+                jau::put_uint256(pdu.get_wptr(), 1,    pub_key_x);
+                jau::put_uint256(pdu.get_wptr(), 1+32, pub_key_y);
             }
 
             jau::nsize_t getDataSize() const noexcept override {
@@ -1031,12 +1070,12 @@ namespace direct_bt {
             /**
              * Returns the 256-bit Public Key X value (32 octets)
              */
-            jau::uint256_t getPubKeyX() const noexcept { return pdu.get_uint256_nc(1); }
+            jau::uint256_t getPubKeyX() const noexcept { return jau::get_uint256(pdu.get_ptr(), 1); }
 
             /**
              * Returns the 256-bit Public Key Y value (32 octets)
              */
-            jau::uint256_t getPubKeyY() const noexcept { return pdu.get_uint256_nc(1+32); }
+            jau::uint256_t getPubKeyY() const noexcept { return jau::get_uint256(pdu.get_ptr(), 1+32); }
 
             std::string getName() const noexcept override {
                 return "SMPPairPubKey";
@@ -1067,20 +1106,24 @@ namespace direct_bt {
      * Message is used to transmit the 128-bit DHKey Check values (Ea/Eb) generated using f6.<br>
      * This message is used by both initiator and responder.<br>
      * This PDU is only used for LE Secure Connections.
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
      */
-    class SMPPairDHKeyCheckMsg : public SMPPDUMsg
+    class SMPPairDHKeyCheckMsg : public SMPEncKeyByteStream
     {
         public:
             SMPPairDHKeyCheckMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPPDUMsg(source, length)
+            : SMPEncKeyByteStream(source, length)
             {
                 checkOpcode(Opcode::PAIRING_DHKEY_CHECK);
             }
 
             SMPPairDHKeyCheckMsg(const jau::uint128_t & dhkey_check_values)
-            : SMPPDUMsg(Opcode::PAIRING_DHKEY_CHECK, 1+16)
+            : SMPEncKeyByteStream(Opcode::PAIRING_DHKEY_CHECK, 1+16)
             {
-                pdu.put_uint128_nc(1, dhkey_check_values);
+                jau::put_uint128(pdu.get_wptr(), 1, dhkey_check_values);
             }
 
             jau::nsize_t getDataSize() const noexcept override {
@@ -1090,7 +1133,7 @@ namespace direct_bt {
             /**
              * Returns the 128-bit DHKey Check value (16 octets)
              */
-            jau::uint128_t getDHKeyCheck() const noexcept { return pdu.get_uint128_nc(1); }
+            jau::uint128_t getDHKeyCheck() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
             std::string getName() const noexcept override {
                 return "SMPPairDHKeyCheck";
@@ -1186,20 +1229,24 @@ namespace direct_bt {
      * <p>
      * Legacy: #1 in distribution, first value.
      * </p>
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
      */
-    class SMPEncInfoMsg : public SMPPDUMsg
+    class SMPEncInfoMsg : public SMPEncKeyByteStream
     {
         public:
             SMPEncInfoMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPPDUMsg(source, length)
+            : SMPEncKeyByteStream(source, length)
             {
                 checkOpcode(Opcode::ENCRYPTION_INFORMATION);
             }
 
             SMPEncInfoMsg(const jau::uint128_t & long_term_key)
-            : SMPPDUMsg(Opcode::ENCRYPTION_INFORMATION, 1+16)
+            : SMPEncKeyByteStream(Opcode::ENCRYPTION_INFORMATION, 1+16)
             {
-                pdu.put_uint128_nc(1, long_term_key);
+                jau::put_uint128(pdu.get_wptr(), 1, long_term_key);
             }
 
             jau::nsize_t getDataSize() const noexcept override {
@@ -1213,7 +1260,7 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.3 SM - LE legacy pairing - generation of LTK, EDIV and Rand.
              * </p>
              */
-            jau::uint128_t getLTK() const noexcept { return pdu.get_uint128_nc(1); }
+            jau::uint128_t getLTK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
             std::string getName() const noexcept override {
                 return "SMPEncInfo";
@@ -1251,21 +1298,25 @@ namespace direct_bt {
      * <p>
      * Legacy: #2 in distribution
      * </p>
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
      */
-    class SMPMasterIdentMsg : public SMPPDUMsg
+    class SMPMasterIdentMsg : public SMPEncKeyByteStream
     {
         public:
             SMPMasterIdentMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPPDUMsg(source, length)
+            : SMPEncKeyByteStream(source, length)
             {
                 checkOpcode(Opcode::MASTER_IDENTIFICATION);
             }
 
             SMPMasterIdentMsg(const uint16_t ediv, const uint64_t & rand)
-            : SMPPDUMsg(Opcode::MASTER_IDENTIFICATION, 1+2+8)
+            : SMPEncKeyByteStream(Opcode::MASTER_IDENTIFICATION, 1+2+8)
             {
-                pdu.put_uint16_nc(1, ediv);
-                pdu.put_uint64_nc(1+2, rand);
+                jau::put_uint16(pdu.get_wptr(), 1, ediv);
+                jau::put_uint64(pdu.get_wptr(), 1+2, rand);
             }
 
             jau::nsize_t getDataSize() const noexcept override {
@@ -1278,7 +1329,7 @@ namespace direct_bt {
              * See Vol 3, Part H, 2.4.2.3 SM - Generation of CSRK - LE legacy pairing - generation of LTK, EDIV and Rand.
              * </p>
              */
-            uint16_t getEDIV() const noexcept { return pdu.get_uint16_nc(1); }
+            uint16_t getEDIV() const noexcept { return jau::get_uint16(pdu.get_ptr(), 1); }
 
             /**
              * Returns the 64-bit Rand value (8 octets) being distributed
@@ -1286,7 +1337,7 @@ namespace direct_bt {
              * See Vol 3, Part H, 2.4.2.3 SM - Generation of CSRK - LE legacy pairing - generation of LTK, EDIV and Rand.
              * </p>
              */
-            uint64_t getRand() const noexcept { return pdu.get_uint64_nc(1+2); }
+            uint64_t getRand() const noexcept { return jau::get_uint64(pdu.get_ptr(), 1+2); }
 
             std::string getName() const noexcept override {
                 return "SMPMasterIdent";
@@ -1325,20 +1376,24 @@ namespace direct_bt {
      * Legacy: #3 in distribution<br>
      * Secure Connection: #1 in distribution, first value.
      * </p>
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
      */
-    class SMPIdentInfoMsg : public SMPPDUMsg
+    class SMPIdentInfoMsg : public SMPEncKeyByteStream
     {
         public:
             SMPIdentInfoMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPPDUMsg(source, length)
+            : SMPEncKeyByteStream(source, length)
             {
                 checkOpcode(Opcode::IDENTITY_INFORMATION);
             }
 
             SMPIdentInfoMsg(const jau::uint128_t & identity_resolving_key)
-            : SMPPDUMsg(Opcode::IDENTITY_INFORMATION, 1+16)
+            : SMPEncKeyByteStream(Opcode::IDENTITY_INFORMATION, 1+16)
             {
-                pdu.put_uint128_nc(1, identity_resolving_key);
+                jau::put_uint128(pdu.get_wptr(), 1, identity_resolving_key);
             }
 
             jau::nsize_t getDataSize() const noexcept override {
@@ -1352,7 +1407,7 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.1 SM - Definition of keys and values - Generation of IRK.
              * </p>
              */
-            jau::uint128_t getIRK() const noexcept { return pdu.get_uint128_nc(1); }
+            jau::uint128_t getIRK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
             std::string getName() const noexcept override {
                 return "SMPIdentInfo";
@@ -1457,20 +1512,24 @@ namespace direct_bt {
      * Legacy: #5 in distribution, last value.<br>
      * Secure Connection: #3 in distribution, last value.
      * </p>
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
      */
-    class SMPSignInfoMsg : public SMPPDUMsg
+    class SMPSignInfoMsg : public SMPEncKeyByteStream
     {
         public:
             SMPSignInfoMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPPDUMsg(source, length)
+            : SMPEncKeyByteStream(source, length)
             {
                 checkOpcode(Opcode::SIGNING_INFORMATION);
             }
 
             SMPSignInfoMsg(const jau::uint128_t & signature_key)
-            : SMPPDUMsg(Opcode::SIGNING_INFORMATION, 1+16)
+            : SMPEncKeyByteStream(Opcode::SIGNING_INFORMATION, 1+16)
             {
-                pdu.put_uint128_nc(1, signature_key);
+                jau::put_uint128(pdu.get_wptr(), 1, signature_key);
             }
 
             jau::nsize_t getDataSize() const noexcept override {
@@ -1484,7 +1543,7 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.2 SM - Definition of keys and values - Generation of CSRK.
              * </p>
              */
-            jau::uint128_t getCSRK() const noexcept { return pdu.get_uint128_nc(1); }
+            jau::uint128_t getCSRK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
             std::string getName() const noexcept override {
                 return "SMPSignInfo";
