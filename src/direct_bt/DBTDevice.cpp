@@ -639,6 +639,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
                 pairing_data.ioCap_resp    = msg1.getIOCapability();
                 pairing_data.oobFlag_resp  = msg1.getOOBDataFlag();
                 pairing_data.maxEncsz_resp = msg1.getMaxEncryptionKeySize();
+                pairing_data.keys_init_exp = msg1.getInitKeyDist(); // responding device overrides initiator's request!
                 pairing_data.keys_resp_exp = msg1.getRespKeyDist();
 
                 const bool use_sc = isSMPAuthReqBitSet( pairing_data.authReqs_init, SMPAuthReqs::SECURE_CONNECTIONS ) &&
@@ -667,6 +668,9 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
                     jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
                     jau::PLAIN_PRINT(false, "[%s] - encsz: init %d", timestamp.c_str(), (int)pairing_data.maxEncsz_init);
                     jau::PLAIN_PRINT(false, "[%s] - encsz: resp %d", timestamp.c_str(), (int)pairing_data.maxEncsz_resp);
+                    jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
+                    jau::PLAIN_PRINT(false, "[%s] - keys:  init %s", timestamp.c_str(), getSMPKeyDistMaskString(pairing_data.keys_init_exp).c_str());
+                    jau::PLAIN_PRINT(false, "[%s] - keys:  resp %s", timestamp.c_str(), getSMPKeyDistMaskString(pairing_data.keys_resp_exp).c_str());
                 }
             }
         } break;
