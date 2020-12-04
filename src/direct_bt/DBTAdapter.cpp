@@ -392,11 +392,12 @@ bool DBTAdapter::lockConnect(const DBTDevice & device, const bool wait, const SM
     single_conn_device_ptr = &device;
 
     if( SMPIOCapability::UNSET != io_cap ) {
+#if USE_LINUX_BT_SECURITY
         SMPIOCapability pre_io_cap { SMPIOCapability::UNSET };
         const bool res_iocap = mgmt.setIOCapability(dev_id, io_cap, pre_io_cap);
         if( res_iocap ) {
             iocap_defaultval  = pre_io_cap;
-            COND_PRINT(debug_lock, "DBTAdapter::lockConnect: Success: setIOCapability[%s -> %s], %s",
+            COND_PRINT(debug_lock, "DBTAdapter::lockConnect: Success: New lock, setIOCapability[%s -> %s], %s",
                 getSMPIOCapabilityString(pre_io_cap).c_str(), getSMPIOCapabilityString(io_cap).c_str(),
                 device.toString(false).c_str());
             return true;
@@ -408,6 +409,12 @@ bool DBTAdapter::lockConnect(const DBTDevice & device, const bool wait, const SM
             cv_single_conn_device.notify_all(); // notify waiting getter
             return false;
         }
+#else
+        COND_PRINT(debug_lock, "DBTAdapter::lockConnect: Success: New lock, ignored io-cap: %s, %s",
+                getSMPIOCapabilityString(io_cap).c_str()
+                device.toString(false).c_str());
+        return true;
+#endif
     } else {
         COND_PRINT(debug_lock, "DBTAdapter::lockConnect: Success: New lock, no io-cap: %s", device.toString(false).c_str());
         return true;
@@ -421,6 +428,7 @@ bool DBTAdapter::unlockConnect(const DBTDevice & device) noexcept {
         const SMPIOCapability v = iocap_defaultval;
         iocap_defaultval  = SMPIOCapability::UNSET;
         if( SMPIOCapability::UNSET != v ) {
+            // Unreachable: !USE_LINUX_BT_SECURITY
             SMPIOCapability o;
             const bool res = mgmt.setIOCapability(dev_id, v, o);
             COND_PRINT(debug_lock, "DBTAdapter::unlockConnect: Success: setIOCapability[res %d: %s -> %s], %s",
@@ -451,6 +459,7 @@ bool DBTAdapter::unlockConnectAny() noexcept {
         const SMPIOCapability v = iocap_defaultval;
         iocap_defaultval  = SMPIOCapability::UNSET;
         if( SMPIOCapability::UNSET != v ) {
+            // Unreachable: !USE_LINUX_BT_SECURITY
             SMPIOCapability o;
             const bool res = mgmt.setIOCapability(dev_id, v, o);
             COND_PRINT(debug_lock, "DBTAdapter::unlockConnectAny: Success: setIOCapability[res %d: %s -> %s]; %s",
