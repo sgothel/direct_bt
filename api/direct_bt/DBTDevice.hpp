@@ -97,6 +97,12 @@ namespace direct_bt {
                 uint8_t         maxEncsz_init, maxEncsz_resp;
                 SMPKeyDist      keys_init_exp, keys_resp_exp;
                 SMPKeyDist      keys_init_has, keys_resp_has;
+
+                // LTK: Set of Long Term Key data: ltk, ediv + rand
+                jau::uint128_t  ltk_init,      ltk_resp;
+                uint16_t        ediv_init,     ediv_resp;
+                uint64_t        rand_init,     rand_resp;
+
             };
             PairingData pairing_data;
             std::mutex mtx_pairing;

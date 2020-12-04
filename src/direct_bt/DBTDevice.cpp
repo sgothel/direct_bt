@@ -707,28 +707,41 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
 
         // Phase 3: SMP Key & Value Distribution phase
 
-        case SMPPDUMsg::Opcode::ENCRYPTION_INFORMATION:       /* Legacy: 1 */
+        case SMPPDUMsg::Opcode::ENCRYPTION_INFORMATION: {     /* Legacy: 1 */
             // LTK: First part for SMPKeyDistFormat::ENC_KEY, followed by MASTER_IDENTIFICATION (EDIV + RAND)
-            break;
-
-        case SMPPDUMsg::Opcode::MASTER_IDENTIFICATION:        /* Legacy: 2 */
-            // EDIV + RAND
+            const SMPEncInfoMsg & msg1 = *static_cast<const SMPEncInfoMsg *>( msg.get() );
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
-                // from responder (slave)
-                pairing_data.keys_resp_has |= SMPKeyDist::ENC_KEY;
+                // from responder (LL slave)
+                pairing_data.ltk_resp = msg1.getLTK();
             } else {
-                // from initiator (master)
-                pairing_data.keys_init_has |= SMPKeyDist::ENC_KEY;
+                // from initiator (LL master)
+                pairing_data.ltk_init = msg1.getLTK();
             }
-            break;
+        }   break;
+
+        case SMPPDUMsg::Opcode::MASTER_IDENTIFICATION: {      /* Legacy: 2 */
+            // EDIV + RAND
+            const SMPMasterIdentMsg & msg1 = *static_cast<const SMPMasterIdentMsg *>( msg.get() );
+            if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
+                // from responder (LL slave)
+                pairing_data.keys_resp_has |= SMPKeyDist::ENC_KEY;
+                pairing_data.ediv_resp = msg1.getEDIV();
+                pairing_data.rand_resp = msg1.getRand();
+            } else {
+                // from initiator (LL master)
+                pairing_data.keys_init_has |= SMPKeyDist::ENC_KEY;
+                pairing_data.ediv_init = msg1.getEDIV();
+                pairing_data.rand_init = msg1.getRand();
+            }
+        }   break;
 
         case SMPPDUMsg::Opcode::IDENTITY_INFORMATION:         /* Legacy: 3; SC: 1 */
             // IRK
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
-                // from responder (slave)
+                // from responder (LL slave)
                 pairing_data.keys_resp_has |= SMPKeyDist::ID_KEY;
             } else {
-                // from initiator (master)
+                // from initiator (LL master)
                 pairing_data.keys_init_has |= SMPKeyDist::ID_KEY;
             }
             break;
@@ -739,10 +752,10 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
         case SMPPDUMsg::Opcode::SIGNING_INFORMATION:          /* Legacy: 5; SC: 3; Last value. */
             // CSRK
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
-                // from responder (slave)
+                // from responder (LL slave)
                 pairing_data.keys_resp_has |= SMPKeyDist::SIGN_KEY;
             } else {
-                // from initiator (master)
+                // from initiator (LL master)
                 pairing_data.keys_init_has |= SMPKeyDist::SIGN_KEY;
             }
             break;
