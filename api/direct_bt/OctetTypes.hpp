@@ -347,6 +347,14 @@ namespace direct_bt {
                 memcpy(data() + i, v.get_ptr(), v.getSize());
             }
 
+            void put_bytes(const jau::nsize_t i, const uint8_t *source, const jau::nsize_t byte_count) {
+                check_range(i, byte_count);
+                memcpy(data() + i, source, byte_count);
+            }
+            void put_bytes_nc(const jau::nsize_t i, const uint8_t *source, const jau::nsize_t byte_count) noexcept {
+                memcpy(data() + i, source, byte_count);
+            }
+
             void put_string(const jau::nsize_t i, const std::string & v, const jau::nsize_t max_len, const bool includeEOS) {
                 const jau::nsize_t size1 = v.size() + ( includeEOS ? 1 : 0 );
                 const jau::nsize_t size = std::min(size1, max_len);
