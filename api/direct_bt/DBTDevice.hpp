@@ -81,15 +81,15 @@ namespace direct_bt {
             std::atomic<bool> allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
 
             struct PairingData {
-                jau::ordered_atomic<SMPIOCapability, std::memory_order_relaxed> ioCap_conn=SMPIOCapability::UNSET;
-                jau::ordered_atomic<SMPIOCapability, std::memory_order_relaxed> ioCap_user=SMPIOCapability::UNSET;
-                jau::ordered_atomic<BTSecurityLevel, std::memory_order_relaxed> sec_level_conn=BTSecurityLevel::UNSET;
-                jau::ordered_atomic<BTSecurityLevel, std::memory_order_relaxed> sec_level_user=BTSecurityLevel::UNSET;
+                SMPIOCapability ioCap_conn=SMPIOCapability::UNSET;
+                SMPIOCapability ioCap_user=SMPIOCapability::UNSET;
+                BTSecurityLevel sec_level_conn=BTSecurityLevel::UNSET;
+                BTSecurityLevel sec_level_user=BTSecurityLevel::UNSET;
 
-                jau::ordered_atomic<SMPPairingState, std::memory_order_relaxed> state;
-                jau::ordered_atomic<PairingMode, std::memory_order_relaxed> mode;
-                jau::relaxed_atomic_bool res_requested_sec;
-                jau::relaxed_atomic_bool use_sc;
+                SMPPairingState state;
+                PairingMode mode;
+                bool res_requested_sec;
+                bool use_sc;
 
                 SMPAuthReqs     authReqs_init, authReqs_resp;
                 SMPIOCapability ioCap_init,    ioCap_resp;
@@ -99,13 +99,19 @@ namespace direct_bt {
                 SMPKeyDist      keys_init_has, keys_resp_has;
 
                 // LTK: Set of Long Term Key data: ltk, ediv + rand
-                jau::uint128_t  ltk_init,      ltk_resp;
-                uint16_t        ediv_init,     ediv_resp;
-                uint64_t        rand_init,     rand_resp;
+                SMPLongTermKeyInfo ltk_init, ltk_resp;
 
+                // IRK
+                jau::uint128_t  irk_init,      irk_resp;
+                EUI48           address;
+                bool            is_static_random_address;
+
+                // CSRK
+                jau::uint128_t  csrk_init,     csrk_resp;
             };
             PairingData pairing_data;
             std::mutex mtx_pairing;
+            jau::sc_atomic_bool sync_pairing;
 
 
             DBTDevice(DBTAdapter & adapter, EInfoReport const & r);
@@ -495,7 +501,7 @@ namespace direct_bt {
              * @see setConnSecurity()
              * @see setConnSecurityBest()
              */
-            BTSecurityLevel getConnSecurityLevel() const noexcept { return pairing_data.sec_level_conn; }
+            BTSecurityLevel getConnSecurityLevel() const noexcept;
 
             /**
              * Sets the given ::SMPIOCapability used to connect to this device on the upcoming connection.
@@ -525,7 +531,7 @@ namespace direct_bt {
              * @see setConnSecurity()
              * @see setConnSecurityBest()
              */
-            SMPIOCapability getConnIOCapability() const noexcept { return pairing_data.ioCap_conn; }
+            SMPIOCapability getConnIOCapability() const noexcept;
 
             /**
              * Sets the given ::BTSecurityLevel and ::SMPIOCapability used to connect to this device on the upcoming connection.
@@ -653,7 +659,7 @@ namespace direct_bt {
              * @see getPairingMode()
              * @see getPairingState()
              */
-            PairingMode getPairingMode() const noexcept { return pairing_data.mode; }
+            PairingMode getPairingMode() const noexcept;
 
             /**
              * Returns the current ::SMPPairingState.
@@ -668,7 +674,7 @@ namespace direct_bt {
              * @see getPairingMode()
              * @see getPairingState()
              */
-            SMPPairingState getPairingState() const noexcept { return pairing_data.state; }
+            SMPPairingState getPairingState() const noexcept;
 
             /**
              * Disconnects this device via disconnect(..) if getConnected()==true

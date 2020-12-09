@@ -139,6 +139,7 @@ std::string DBTDevice::toString(bool includeDiscoveredServices) const noexcept {
     if( BLERandomAddressType::UNDEFINED != leRandomAddressType ) {
         leaddrtype = ", random "+getBLERandomAddressTypeString(leRandomAddressType);
     }
+    jau::sc_atomic_critical sync(const_cast<DBTDevice*>(this)->sync_pairing);
     std::string msdstr = nullptr != advMSD ? advMSD->toString() : "MSD[null]";
     std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+leaddrtype+"], name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
@@ -323,9 +324,13 @@ HCIStatusCode DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_w
         ERR_PRINT("DBTDevice::connectLE: HCI closed: %s", toString(false).c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
-    if( !adapter.lockConnect(*this, true /* wait */, pairing_data.ioCap_user) ) {
-        ERR_PRINT("DBTDevice::connectLE: adapter::lockConnect() failed: %s", toString(false).c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+
+    {
+        jau::sc_atomic_critical sync(sync_pairing);
+        if( !adapter.lockConnect(*this, true /* wait */, pairing_data.ioCap_user) ) {
+            ERR_PRINT("DBTDevice::connectLE: adapter::lockConnect() failed: %s", toString(false).c_str());
+            return HCIStatusCode::INTERNAL_FAILURE;
+        }
     }
     HCIStatusCode status = hci.le_create_conn(address,
                                       hci_peer_mac_type, hci_own_mac_type,
@@ -372,9 +377,13 @@ HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t cl
         ERR_PRINT("DBTDevice::connectBREDR: HCI closed: %s", toString(false).c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
-    if( !adapter.lockConnect(*this, true /* wait */, pairing_data.ioCap_user) ) {
-        ERR_PRINT("DBTDevice::connectBREDR: adapter::lockConnect() failed: %s", toString(false).c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+
+    {
+        jau::sc_atomic_critical sync(sync_pairing);
+        if( !adapter.lockConnect(*this, true /* wait */, pairing_data.ioCap_user) ) {
+            ERR_PRINT("DBTDevice::connectBREDR: adapter::lockConnect() failed: %s", toString(false).c_str());
+            return HCIStatusCode::INTERNAL_FAILURE;
+        }
     }
     HCIStatusCode status = hci.create_conn(address, pkt_type, clock_offset, role_switch);
     allowDisconnect = true;
@@ -403,6 +412,7 @@ HCIStatusCode DBTDevice::connectDefault()
 
 void DBTDevice::notifyConnected(std::shared_ptr<DBTDevice> sthis, const uint16_t handle, const SMPIOCapability io_cap) noexcept {
     // coming from connected callback, update state and spawn-off connectGATT in background if appropriate (LE)
+    jau::sc_atomic_critical sync(sync_pairing);
     DBG_PRINT("DBTDevice::notifyConnected: handle %s -> %s, io %s -> %s, %s",
               jau::uint16HexString(hciConnHandle).c_str(), jau::uint16HexString(handle).c_str(),
               getSMPIOCapabilityString(pairing_data.ioCap_conn).c_str(), getSMPIOCapabilityString(io_cap).c_str(),
@@ -430,6 +440,7 @@ void DBTDevice::notifyLEFeatures(std::shared_ptr<DBTDevice> sthis, const LEFeatu
 
 void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_pairing);
 
     DBG_PRINT("DBTDevice::processL2CAPSetup: Start %s", toString(false).c_str());
     if( isLEAddressType() && !l2cap_att.isOpen() ) {
@@ -482,7 +493,11 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
 
 void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint64_t timestamp) {
     DBG_PRINT("DBTDevice::processDeviceReady: %s", toString(false).c_str());
-    const PairingMode pmode = pairing_data.mode;
+    PairingMode pmode;
+    {
+        jau::sc_atomic_critical sync(sync_pairing);
+        pmode = pairing_data.mode;
+    }
     HCIStatusCode unpair_res = HCIStatusCode::UNKNOWN;
 
     if( PairingMode::PRE_PAIRED == pmode ) {
@@ -509,6 +524,8 @@ void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint6
 
 bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<MgmtEvent> evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_pairing);
+
     const MgmtEvent::Opcode mgmtEvtOpcode = evt->getOpcode();
     PairingMode mode = pairing_data.mode;
     bool is_device_ready = false;
@@ -589,8 +606,10 @@ bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared
 
 void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_pairing);
 
-    const SMPKeyDist key_mask = SMPKeyDist::ENC_KEY | SMPKeyDist::ID_KEY | SMPKeyDist::SIGN_KEY;
+    const SMPKeyDist key_mask_legacy = SMPKeyDist::ENC_KEY | SMPKeyDist::ID_KEY | SMPKeyDist::SIGN_KEY;
+    const SMPKeyDist key_mask_sc     =                       SMPKeyDist::ID_KEY | SMPKeyDist::SIGN_KEY | SMPKeyDist::LINK_KEY;
     const SMPPairingState old_pstate = pairing_data.state;
     const PairingMode old_pmode = pairing_data.mode;
     const std::string timestamp = jau::uint64DecString(jau::environment::getElapsedMillisecond(), ',', 9);
@@ -712,64 +731,98 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
             const SMPEncInfoMsg & msg1 = *static_cast<const SMPEncInfoMsg *>( msg.get() );
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
                 // from responder (LL slave)
-                pairing_data.ltk_resp = msg1.getLTK();
+                pairing_data.ltk_resp.use_auth = BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn;
+                pairing_data.ltk_resp.use_sc = pairing_data.use_sc;
+                pairing_data.ltk_resp.enc_size = pairing_data.maxEncsz_resp;
+                pairing_data.ltk_resp.ltk = msg1.getLTK();
             } else {
                 // from initiator (LL master)
-                pairing_data.ltk_init = msg1.getLTK();
+                pairing_data.ltk_init.use_auth = BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn;
+                pairing_data.ltk_init.use_sc = pairing_data.use_sc;
+                pairing_data.ltk_init.enc_size = pairing_data.maxEncsz_init;
+                pairing_data.ltk_init.ltk = msg1.getLTK();
             }
         }   break;
 
         case SMPPDUMsg::Opcode::MASTER_IDENTIFICATION: {      /* Legacy: 2 */
-            // EDIV + RAND
+            // EDIV + RAND, completing SMPKeyDistFormat::ENC_KEY
             const SMPMasterIdentMsg & msg1 = *static_cast<const SMPMasterIdentMsg *>( msg.get() );
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
                 // from responder (LL slave)
                 pairing_data.keys_resp_has |= SMPKeyDist::ENC_KEY;
-                pairing_data.ediv_resp = msg1.getEDIV();
-                pairing_data.rand_resp = msg1.getRand();
+                pairing_data.ltk_resp.ediv = msg1.getEDIV();
+                pairing_data.ltk_resp.rand = msg1.getRand();
             } else {
                 // from initiator (LL master)
                 pairing_data.keys_init_has |= SMPKeyDist::ENC_KEY;
-                pairing_data.ediv_init = msg1.getEDIV();
-                pairing_data.rand_init = msg1.getRand();
+                pairing_data.ltk_init.ediv = msg1.getEDIV();
+                pairing_data.ltk_init.rand = msg1.getRand();
             }
         }   break;
 
-        case SMPPDUMsg::Opcode::IDENTITY_INFORMATION:         /* Legacy: 3; SC: 1 */
-            // IRK
+        case SMPPDUMsg::Opcode::IDENTITY_INFORMATION: {       /* Legacy: 3; SC: 1 */
+            // IRK: First part of SMPKeyDist::ID_KEY, followed by IDENTITY_ADDRESS_INFORMATION
+            const SMPIdentInfoMsg & msg1 = *static_cast<const SMPIdentInfoMsg *>( msg.get() );
+            if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
+                // from responder (LL slave)
+                pairing_data.irk_resp = msg1.getIRK();
+            } else {
+                // from initiator (LL master)
+                pairing_data.irk_init = msg1.getIRK();
+            }
+        }   break;
+
+        case SMPPDUMsg::Opcode::IDENTITY_ADDRESS_INFORMATION:{/* Lecacy: 4; SC: 2 */
+            // Public device or static random, completing SMPKeyDist::ID_KEY
+            const SMPIdentAddrInfoMsg & msg1 = *static_cast<const SMPIdentAddrInfoMsg *>( msg.get() );
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
                 // from responder (LL slave)
                 pairing_data.keys_resp_has |= SMPKeyDist::ID_KEY;
+                pairing_data.address = msg1.getAddress();
+                pairing_data.is_static_random_address = msg1.isStaticRandomAddress();
             } else {
                 // from initiator (LL master)
                 pairing_data.keys_init_has |= SMPKeyDist::ID_KEY;
+                pairing_data.address = msg1.getAddress();
+                pairing_data.is_static_random_address = msg1.isStaticRandomAddress();
             }
-            break;
+        }   break;
 
-        case SMPPDUMsg::Opcode::IDENTITY_ADDRESS_INFORMATION: /* Lecacy: 4; SC: 2 */
-            break;
-
-        case SMPPDUMsg::Opcode::SIGNING_INFORMATION:          /* Legacy: 5; SC: 3; Last value. */
+        case SMPPDUMsg::Opcode::SIGNING_INFORMATION: {        /* Legacy: 5; SC: 3; Last value. */
             // CSRK
+            const SMPSignInfoMsg & msg1 = *static_cast<const SMPSignInfoMsg *>( msg.get() );
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
                 // from responder (LL slave)
                 pairing_data.keys_resp_has |= SMPKeyDist::SIGN_KEY;
+                pairing_data.csrk_resp = msg1.getCSRK();
             } else {
                 // from initiator (LL master)
                 pairing_data.keys_init_has |= SMPKeyDist::SIGN_KEY;
+                pairing_data.csrk_init = msg1.getCSRK();
             }
-            break;
+        }   break;
 
         default:
             break;
     }
 
-    if( SMPPairingState::KEY_DISTRIBUTION == old_pstate &&
-        pairing_data.keys_resp_has == ( pairing_data.keys_resp_exp & key_mask ) &&
-        pairing_data.keys_init_has == ( pairing_data.keys_init_exp & key_mask ) )
-    {
-        pstate = SMPPairingState::COMPLETED;
-        is_device_ready = true;
+    if( SMPPairingState::KEY_DISTRIBUTION == old_pstate ) {
+        // Spec allows responder to not distribute the keys,
+        // hence distribution is complete with initiator (LL master) keys!
+        // Impact of missing responder keys: Requires new pairing each connection.
+        if( pairing_data.use_sc ) {
+            if( pairing_data.keys_init_has == ( pairing_data.keys_init_exp & key_mask_sc ) ) {
+                // pairing_data.keys_resp_has == ( pairing_data.keys_resp_exp & key_mask_sc )
+                pstate = SMPPairingState::COMPLETED;
+                is_device_ready = true;
+            }
+        } else {
+            if( pairing_data.keys_init_has == ( pairing_data.keys_init_exp & key_mask_legacy ) ) {
+                // pairing_data.keys_resp_has == ( pairing_data.keys_resp_exp & key_mask_legacy )
+                pstate = SMPPairingState::COMPLETED;
+                is_device_ready = true;
+            }
+        }
     }
 
     if( jau::environment::get().debug ) {
@@ -831,6 +884,7 @@ HCIStatusCode DBTDevice::pair(const SMPIOCapability io_cap) noexcept {
     DBG_PRINT("DBTDevice::pairDevice: Start: io %s, %s", getSMPIOCapabilityString(io_cap).c_str(), toString(false).c_str());
     mngr.uploadConnParam(adapter.dev_id, address, addressType);
 
+    jau::sc_atomic_critical sync(sync_pairing);
     pairing_data.ioCap_conn = io_cap;
     const bool res = mngr.pairDevice(adapter.dev_id, address, addressType, io_cap);
     if( !res ) {
@@ -851,6 +905,7 @@ bool DBTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept {
             getBTSecurityLevelString(sec_level).c_str(), toString(false).c_str());
         return false;
     }
+    jau::sc_atomic_critical sync(sync_pairing);
     const bool res = true;
     pairing_data.sec_level_user = sec_level;
 
@@ -858,6 +913,11 @@ bool DBTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept {
         getBTSecurityLevelString(sec_level).c_str(),
         toString(false).c_str());
     return res;
+}
+
+BTSecurityLevel DBTDevice::getConnSecurityLevel() const noexcept {
+    jau::sc_atomic_critical sync(const_cast<DBTDevice*>(this)->sync_pairing);
+    return pairing_data.sec_level_conn;
 }
 
 bool DBTDevice::setConnIOCapability(const SMPIOCapability io_cap) noexcept {
@@ -871,6 +931,7 @@ bool DBTDevice::setConnIOCapability(const SMPIOCapability io_cap) noexcept {
                 getSMPIOCapabilityString(io_cap).c_str(), toString(false).c_str());
         return false;
     }
+    jau::sc_atomic_critical sync(sync_pairing);
     const bool res = true;
     pairing_data.ioCap_user = io_cap;
 
@@ -879,6 +940,11 @@ bool DBTDevice::setConnIOCapability(const SMPIOCapability io_cap) noexcept {
         toString(false).c_str());
 
     return res;
+}
+
+SMPIOCapability DBTDevice::getConnIOCapability() const noexcept {
+    jau::sc_atomic_critical sync(const_cast<DBTDevice*>(this)->sync_pairing);
+    return pairing_data.ioCap_conn;
 }
 
 bool DBTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {
@@ -897,6 +963,7 @@ bool DBTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapa
                 getSMPIOCapabilityString(io_cap).c_str(), toString(false).c_str());
         return false;
     }
+    jau::sc_atomic_critical sync(sync_pairing);
     const bool res = true;
     pairing_data.ioCap_user = io_cap;
     pairing_data.sec_level_user = sec_level;
@@ -927,6 +994,7 @@ bool DBTDevice::setConnSecurityBest(const BTSecurityLevel sec_level, const SMPIO
 
 HCIStatusCode DBTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_pairing);
 
     if( SMPPairingState::PASSKEY_EXPECTED == pairing_data.state ) {
         DBTManager& mngr = adapter.getManager();
@@ -943,6 +1011,7 @@ HCIStatusCode DBTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
 
 HCIStatusCode DBTDevice::setPairingPasskeyNegative() noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_pairing);
 
     if( SMPPairingState::PASSKEY_EXPECTED == pairing_data.state ) {
         DBTManager& mngr = adapter.getManager();
@@ -959,6 +1028,7 @@ HCIStatusCode DBTDevice::setPairingPasskeyNegative() noexcept {
 
 HCIStatusCode DBTDevice::setPairingNumericComparison(const bool positive) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_pairing);
 
     if( SMPPairingState::NUMERIC_COMPARE_EXPECTED == pairing_data.state ) {
         DBTManager& mngr = adapter.getManager();
@@ -973,8 +1043,19 @@ HCIStatusCode DBTDevice::setPairingNumericComparison(const bool positive) noexce
     }
 }
 
+PairingMode DBTDevice::getPairingMode() const noexcept {
+    jau::sc_atomic_critical sync(const_cast<DBTDevice*>(this)->sync_pairing);
+    return pairing_data.mode;
+}
+
+SMPPairingState DBTDevice::getPairingState() const noexcept {
+    jau::sc_atomic_critical sync(const_cast<DBTDevice*>(this)->sync_pairing);
+    return pairing_data.state;
+}
+
 void DBTDevice::clearSMPStates(const bool connected) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_pairing);
 
     if( !connected ) {
         // needs to survive connected, or will be set right @ connected
