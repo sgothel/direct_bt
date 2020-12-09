@@ -206,7 +206,7 @@ namespace direct_bt {
         public:
             const uint64_t ts_creation;
             /** Device mac address */
-            const EUI48 address;
+            const EUI48 address; // FIXME: Mutable for resolvable -> identity during pairing?
             const BDAddressType addressType;
             const BLERandomAddressType leRandomAddressType;
 
@@ -792,10 +792,10 @@ namespace direct_bt {
     };
 
     inline bool operator<(const DBTDevice& lhs, const DBTDevice& rhs) noexcept
-    { return lhs.address < rhs.address; }
+    { return lhs.getAddress() < rhs.getAddress(); }
 
     inline bool operator==(const DBTDevice& lhs, const DBTDevice& rhs) noexcept
-    { return lhs.address == rhs.address && lhs.addressType == rhs.addressType; }
+    { return lhs.getAddress() == rhs.getAddress() && lhs.getAddressType() == rhs.getAddressType(); }
 
     inline bool operator!=(const DBTDevice& lhs, const DBTDevice& rhs) noexcept
     { return !(lhs == rhs); }

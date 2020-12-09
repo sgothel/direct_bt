@@ -115,7 +115,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
   public:
 
     std::string toString() const override {
-        const std::string devMatchAddr = nullptr != deviceMatchRef ? deviceMatchRef->address.toString() : "nil";
+        const std::string devMatchAddr = nullptr != deviceMatchRef ? deviceMatchRef->getAddress().toString() : "nil";
         return "JNIAdapterStatusListener[this "+jau::aptrHexString(this)+", iname "+std::to_string(iname)+", devMatchAddr "+devMatchAddr+"]";
     }
 
