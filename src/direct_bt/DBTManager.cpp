@@ -847,7 +847,7 @@ bool DBTManager::uploadConnParam(const uint16_t dev_id, const EUI48 &address, co
     return false;
 }
 
-MgmtStatus DBTManager::uploadLinkKey(const uint16_t dev_id, const bool debug_keys, const MgmtLinkKey &key) noexcept {
+MgmtStatus DBTManager::uploadLinkKey(const uint16_t dev_id, const bool debug_keys, const MgmtLinkKeyInfo &key) noexcept {
     MgmtLoadLinkKeyCmd req(dev_id, debug_keys, key);
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -857,14 +857,47 @@ MgmtStatus DBTManager::uploadLinkKey(const uint16_t dev_id, const bool debug_key
     return MgmtStatus::TIMEOUT;
 }
 
-MgmtStatus DBTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKey &key) noexcept {
+MgmtStatus DBTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKeyInfo &key) noexcept {
     MgmtLoadLongTermKeyCmd req(dev_id, key);
-    std::shared_ptr<MgmtEvent> res = sendWithReply(req);
-    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-        return res1.getStatus();
+    HCIStatusCode res;
+    std::shared_ptr<MgmtEvent> reply = sendWithReply(req);
+    if( nullptr != reply ) {
+        if( reply->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            res = getHCIStatusCode( static_cast<const MgmtEvtCmdComplete *>(reply.get())->getStatus() );
+        } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
+            res = getHCIStatusCode( static_cast<const MgmtEvtCmdStatus *>(reply.get())->getStatus() );
+        } else {
+            res = HCIStatusCode::UNKNOWN_HCI_COMMAND;
+        }
+    } else {
+        res = HCIStatusCode::TIMEOUT;
     }
-    return MgmtStatus::TIMEOUT;
+    DBG_PRINT("DBTManager::uploadLongTermKeyInfo[%d]: %s, result %s", dev_id,
+            req.toString().c_str(), getHCIStatusCodeString(res).c_str());
+    return res;
+}
+
+HCIStatusCode DBTManager::uploadLongTermKeyInfo(const uint16_t dev_id, const EUI48& address, BDAddressType address_type,
+                                                const SMPLongTermKeyInfo& ltk, const bool responder) noexcept {
+    const MgmtLTKType key_type = getMgmtLTKType(ltk.use_auth, ltk.use_sc);
+    const MgmtLongTermKeyInfo mgmt_ltk_info { address, address_type, key_type, responder, ltk.enc_size, ltk.ediv, ltk.rand, ltk.ltk };
+    MgmtLoadLongTermKeyCmd req(dev_id, mgmt_ltk_info);
+    HCIStatusCode res;
+    std::shared_ptr<MgmtEvent> reply = sendWithReply(req);
+    if( nullptr != reply ) {
+        if( reply->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            res = getHCIStatusCode( static_cast<const MgmtEvtCmdComplete *>(reply.get())->getStatus() );
+        } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
+            res = getHCIStatusCode( static_cast<const MgmtEvtCmdStatus *>(reply.get())->getStatus() );
+        } else {
+            res = HCIStatusCode::UNKNOWN_HCI_COMMAND;
+        }
+    } else {
+        res = HCIStatusCode::TIMEOUT;
+    }
+    DBG_PRINT("DBTManager::uploadLongTermKeyInfo[%d]: %s, result %s", dev_id,
+            req.toString().c_str(), getHCIStatusCodeString(res).c_str());
+    return res;
 }
 
 MgmtStatus DBTManager::userPasskeyReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint32_t passkey) noexcept {
