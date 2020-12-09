@@ -129,11 +129,13 @@ std::string direct_bt::getMgmtLTKTypeString(const MgmtLTKType type) noexcept {
     return "Unknown MgmtLTKType";
 }
 
-MgmtLTKType direct_bt::getMgmtLTKType(const bool use_auth, const bool use_sc) noexcept {
-    if( use_auth ) {
-        return use_sc ? MgmtLTKType::AUTHENTICATED_P256 : MgmtLTKType::AUTHENTICATED;
+MgmtLTKType direct_bt::getMgmtLTKType(const SMPLongTermKeyInfo::Property mask) noexcept {
+    if( ( SMPLongTermKeyInfo::Property::AUTH & mask ) != SMPLongTermKeyInfo::Property::NONE ) {
+        return ( SMPLongTermKeyInfo::Property::SC & mask ) != SMPLongTermKeyInfo::Property::NONE ?
+                MgmtLTKType::AUTHENTICATED_P256 : MgmtLTKType::AUTHENTICATED;
     } else {
-        return use_sc ? MgmtLTKType::UNAUTHENTICATED_P256 : MgmtLTKType::UNAUTHENTICATED;
+        return ( SMPLongTermKeyInfo::Property::SC & mask ) != SMPLongTermKeyInfo::Property::NONE ?
+                MgmtLTKType::UNAUTHENTICATED_P256 : MgmtLTKType::UNAUTHENTICATED;
     }
 }
 

@@ -731,14 +731,22 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
             const SMPEncInfoMsg & msg1 = *static_cast<const SMPEncInfoMsg *>( msg.get() );
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
                 // from responder (LL slave)
-                pairing_data.ltk_resp.use_auth = BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn;
-                pairing_data.ltk_resp.use_sc = pairing_data.use_sc;
+                if( BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn ) {
+                    pairing_data.ltk_resp.properties |= SMPLongTermKeyInfo::Property::AUTH;
+                }
+                if( pairing_data.use_sc ) {
+                    pairing_data.ltk_resp.properties |= SMPLongTermKeyInfo::Property::SC;
+                }
                 pairing_data.ltk_resp.enc_size = pairing_data.maxEncsz_resp;
                 pairing_data.ltk_resp.ltk = msg1.getLTK();
             } else {
                 // from initiator (LL master)
-                pairing_data.ltk_init.use_auth = BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn;
-                pairing_data.ltk_init.use_sc = pairing_data.use_sc;
+                if( BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn ) {
+                    pairing_data.ltk_init.properties |= SMPLongTermKeyInfo::Property::AUTH;
+                }
+                if( pairing_data.use_sc ) {
+                    pairing_data.ltk_init.properties |= SMPLongTermKeyInfo::Property::SC;
+                }
                 pairing_data.ltk_init.enc_size = pairing_data.maxEncsz_init;
                 pairing_data.ltk_init.ltk = msg1.getLTK();
             }

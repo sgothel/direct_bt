@@ -294,6 +294,37 @@ std::string direct_bt::getSMPKeyDistMaskString(const SMPKeyDist mask) noexcept {
     return out;
 }
 
+#define LTKPROP_ENUM(X) \
+    X(NONE) \
+    X(AUTH) \
+    X(SC)
+
+#define CASE_TO_STRING_LTKPROPFMT(V) case SMPLongTermKeyInfo::Property::V: return #V;
+
+std::string SMPLongTermKeyInfo::getPropertyBitString(const Property bit) noexcept {
+    switch(bit) {
+        LTKPROP_ENUM(CASE_TO_STRING_LTKPROPFMT)
+        default: ; // fall through intended
+    }
+    return "Unknown SMPLongTermKeyInfo::Property bit";
+}
+
+std::string SMPLongTermKeyInfo::getPropertyMaskString(const Property mask) noexcept {
+    bool has_pre = false;
+    std::string out("[");
+    if( Property::NONE != ( mask & Property::AUTH ) ) {
+        out.append( getPropertyBitString( Property::AUTH ) );
+        has_pre = true;
+    }
+    if( Property::NONE != ( mask & Property::SC ) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append( getPropertyBitString( Property::SC ) );
+        has_pre = true;
+    }
+    out.append("]");
+    return out;
+}
+
 
 #define OPCODE_ENUM(X) \
         X(UNDEFINED) \

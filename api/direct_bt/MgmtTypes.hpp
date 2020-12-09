@@ -149,7 +149,7 @@ namespace direct_bt {
         NONE                 = 0xff
     };
     std::string getMgmtLTKTypeString(const MgmtLTKType type) noexcept;
-    MgmtLTKType getMgmtLTKType(const bool use_auth, const bool use_sc) noexcept;
+    MgmtLTKType getMgmtLTKType(const SMPLongTermKeyInfo::Property ltk_prop_mask) noexcept;
 
     /**
      * Signature Resolving Key Types compatible with Mgmt's MgmtSignatureResolvingKeyInfo

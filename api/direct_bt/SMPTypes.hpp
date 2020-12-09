@@ -422,11 +422,36 @@ namespace direct_bt {
     std::string getSMPKeyDistBitString(const SMPKeyDist bit) noexcept;
     std::string getSMPKeyDistMaskString(const SMPKeyDist mask) noexcept;
 
+    /**
+     * SMP Long Term Key Info, used for platform agnostic persistence.
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
+     * <p>
+     * Byte layout must be synchronized with java org.tinyb.SMPLongTermKeyInfo
+     * </p>
+     */
     __pack( struct SMPLongTermKeyInfo {
-        /** true if using authentication, otherwise false */
-        bool use_auth;
-        /** true if using secure connection, otherwise false */
-        bool use_sc;
+        /**
+         * SMPLongTermKeyInfo Property Bits
+         */
+        enum class Property : uint8_t {
+            /** No specific property */
+            NONE = 0x00,
+            /** Authentication used. */
+            AUTH = 0x01,
+            /** Secure Connection used. */
+            SC   = 0x02
+        };
+        static constexpr uint8_t number(const Property rhs) noexcept {
+            return static_cast<uint8_t>(rhs);
+        }
+        static std::string getPropertyBitString(const Property bit) noexcept;
+        static std::string getPropertyMaskString(const Property mask) noexcept;
+
+        /** SMPLongTermKeyInfo::Property bit mask. */
+        Property properties;
         /** Encryption Size */
         uint8_t enc_size;
         /** Encryption Diversifier */
@@ -441,13 +466,40 @@ namespace direct_bt {
         }
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
-            return "LTK[auth "+std::to_string(use_auth)+", sc "+std::to_string(use_sc)+", enc_size "+std::to_string(enc_size)+
+            return "LTK[props "+getPropertyMaskString(properties)+", enc_size "+std::to_string(enc_size)+
                    ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), false /* lsbFirst */, true /* leading0X */)+
                    ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), false /* lsbFirst */, true /* leading0X */)+
                    ", ltk "+jau::bytesHexString(ltk.data, 0, sizeof(ltk), true /* lsbFirst */, false /* leading0X */)+
                    "]";
         }
     } );
+    constexpr SMPLongTermKeyInfo::Property operator ^(const SMPLongTermKeyInfo::Property lhs, const SMPLongTermKeyInfo::Property rhs) noexcept {
+        return static_cast<SMPLongTermKeyInfo::Property> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
+    }
+    constexpr SMPLongTermKeyInfo::Property& operator ^=(SMPLongTermKeyInfo::Property& store, const SMPLongTermKeyInfo::Property& rhs) noexcept {
+        store = static_cast<SMPLongTermKeyInfo::Property> ( static_cast<uint8_t>(store) ^ static_cast<uint8_t>(rhs) );
+        return store;
+    }
+    constexpr SMPLongTermKeyInfo::Property operator |(const SMPLongTermKeyInfo::Property lhs, const SMPLongTermKeyInfo::Property rhs) noexcept {
+        return static_cast<SMPLongTermKeyInfo::Property> ( static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs) );
+    }
+    constexpr SMPLongTermKeyInfo::Property& operator |=(SMPLongTermKeyInfo::Property& store, const SMPLongTermKeyInfo::Property& rhs) noexcept {
+        store = static_cast<SMPLongTermKeyInfo::Property> ( static_cast<uint8_t>(store) | static_cast<uint8_t>(rhs) );
+        return store;
+    }
+    constexpr SMPLongTermKeyInfo::Property operator &(const SMPLongTermKeyInfo::Property lhs, const SMPLongTermKeyInfo::Property rhs) noexcept {
+        return static_cast<SMPLongTermKeyInfo::Property> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
+    }
+    constexpr SMPLongTermKeyInfo::Property& operator &=(SMPLongTermKeyInfo::Property& store, const SMPLongTermKeyInfo::Property& rhs) noexcept {
+        store = static_cast<SMPLongTermKeyInfo::Property> ( static_cast<uint8_t>(store) & static_cast<uint8_t>(rhs) );
+        return store;
+    }
+    constexpr bool operator ==(const SMPLongTermKeyInfo::Property lhs, const SMPLongTermKeyInfo::Property rhs) noexcept {
+        return static_cast<uint8_t>(lhs) == static_cast<uint8_t>(rhs);
+    }
+    constexpr bool operator !=(const SMPLongTermKeyInfo::Property lhs, const SMPLongTermKeyInfo::Property rhs) noexcept {
+        return !( lhs == rhs );
+    }
 
     /**
      * Handles the Security Manager Protocol (SMP) using Protocol Data Unit (PDU)
