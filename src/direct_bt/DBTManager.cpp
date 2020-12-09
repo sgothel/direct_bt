@@ -857,7 +857,7 @@ MgmtStatus DBTManager::uploadLinkKey(const uint16_t dev_id, const bool debug_key
     return MgmtStatus::TIMEOUT;
 }
 
-MgmtStatus DBTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKeyInfo &key) noexcept {
+HCIStatusCode DBTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKeyInfo &key) noexcept {
     MgmtLoadLongTermKeyCmd req(dev_id, key);
     HCIStatusCode res;
     std::shared_ptr<MgmtEvent> reply = sendWithReply(req);

@@ -440,7 +440,7 @@ namespace direct_bt {
 
             MgmtStatus uploadLinkKey(const uint16_t dev_id, const bool debug_keys, const MgmtLinkKeyInfo &key) noexcept;
 
-            MgmtStatus uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKeyInfo &key) noexcept;
+            HCIStatusCode uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKeyInfo &key) noexcept;
             HCIStatusCode uploadLongTermKeyInfo(const uint16_t dev_id, const EUI48& address, BDAddressType address_type,
                                                 const SMPLongTermKeyInfo& ltk, const bool responder) noexcept;
 
