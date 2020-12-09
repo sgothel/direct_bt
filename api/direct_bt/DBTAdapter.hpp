@@ -147,6 +147,7 @@ namespace direct_bt {
              * </p>
              * @param device the device ready to use
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             * @see ::SMPPairingState::COMPLETED
              */
             virtual void deviceReady(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
 

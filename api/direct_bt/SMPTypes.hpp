@@ -138,8 +138,10 @@ namespace direct_bt {
 
         /**
          * Phase 3: Key & value distribution completed by responding (slave) device sending SMPIdentInfoMsg (#1) , SMPIdentAddrInfoMsg (#2) or SMPSignInfoMsg (#3),<br>
-         * depending on the key distribution field SMPKeyDistFormat SMPPairingMsg::getInitKeyDist() and SMPPairingMsg::getRespKeyDist()
-         * The link is assumed to be encrypted from here on.
+         * depending on the key distribution field SMPKeyDistFormat SMPPairingMsg::getInitKeyDist() and SMPPairingMsg::getRespKeyDist().<br>
+         * <p>
+         * The link is assumed to be encrypted from here on and AdapterStatusListener::deviceReady() gets called on all listener.
+         * </p>
          */
         COMPLETED                   = 9
     };

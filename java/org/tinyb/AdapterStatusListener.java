@@ -132,6 +132,7 @@ public abstract class AdapterStatusListener {
      * </p>
      * @param device the device ready to use
      * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+     * @see {@link SMPPairingState#COMPLETED}
      */
     public void deviceReady(final BluetoothDevice device, final long timestamp) {}
 

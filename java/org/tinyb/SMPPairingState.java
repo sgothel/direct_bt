@@ -75,8 +75,10 @@ public enum SMPPairingState {
 
     /**
      * Phase 3: Key & value distribution completed by responding (slave) device sending SMPIdentInfoMsg (#1) , SMPIdentAddrInfoMsg (#2) or SMPSignInfoMsg (#3),<br>
-     * depending on the key distribution field SMPKeyDistFormat SMPPairingMsg::getInitKeyDist() and SMPPairingMsg::getRespKeyDist()
-     * The link is assumed to be encrypted from here on.
+     * depending on the key distribution field SMPKeyDistFormat SMPPairingMsg::getInitKeyDist() and SMPPairingMsg::getRespKeyDist().
+     * <p>
+     * The link is assumed to be encrypted from here on and {@link AdapterStatusListener#deviceReady(BluetoothDevice, long)} gets called on all listener.
+     * </p>
      */
     COMPLETED((byte)9);
 

@@ -55,13 +55,13 @@ namespace direct_bt {
      */
     enum class BTMode : uint8_t {
         /** Zero mode, neither DUAL, BREDR nor LE. Usually an error. */
-        NONE        = 0,/**< NONE */
+        NONE        = 0,
         /** Dual Bluetooth mode, i.e. BREDR + LE. */
-        DUAL        = 1,/**< DUAL */
+        DUAL        = 1,
         /** BREDR only Bluetooth mode */
-        BREDR       = 2,/**< BREDR */
+        BREDR       = 2,
         /** LE only Bluetooth mode */
-        LE          = 3 /**< LE */
+        LE          = 3
     };
     constexpr uint8_t number(const BTMode rhs) noexcept {
         return static_cast<uint8_t>(rhs);
