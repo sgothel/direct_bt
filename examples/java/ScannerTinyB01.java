@@ -344,14 +344,14 @@ public class ScannerTinyB01 {
                         public void notificationReceived(final BluetoothGattCharacteristic charDecl,
                                 final byte[] value, final long timestamp) {
                             System.err.println("****** GATT notificationReceived: "+charDecl+
-                                    ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                                    ", value "+BluetoothUtils.bytesHexString(value, 0, -1, true, true, true));
                         }
 
                         @Override
                         public void indicationReceived(final BluetoothGattCharacteristic charDecl,
                                 final byte[] value, final long timestamp, final boolean confirmationSent) {
                             System.err.println("****** GATT indicationReceived: "+charDecl+
-                                    ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                                    ", value "+BluetoothUtils.bytesHexString(value, 0, -1, true, true, true));
                         }
                     };
                     final boolean addedCharacteristicListenerRes =
@@ -373,7 +373,7 @@ public class ScannerTinyB01 {
                                     final byte[] value = serviceChar.readValue();
                                     final String svalue = BluetoothUtils.decodeUTF8String(value, 0, value.length);
                                     System.err.printf("  [%02d.%02d] Value: %s ('%s')\n",
-                                            i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
+                                            i, j, BluetoothUtils.bytesHexString(value, 0, -1, true, true, true), svalue);
                                 } catch( final Exception ex) {
                                     System.err.println("Caught "+ex.getMessage());
                                     ex.printStackTrace();

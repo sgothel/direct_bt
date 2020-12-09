@@ -68,44 +68,59 @@ public class BluetoothUtils {
     }
 
     /**
-     * Returns a hex string representation
-     *
+     * Produce a hexadecimal string representation of the given byte values.
+     * <p>
+     * If lsbFirst is true, orders LSB left -> MSB right, usual for byte streams.<br>
+     * Otherwise orders MSB left -> LSB right, usual for readable integer values.
+     * </p>
      * @param bytes the byte array to represent
-     * @param lsbFirst if true, orders LSB left -> MSB right, usual for byte streams.
-     *                 Otherwise orders MSB left -> LSB right, usual for readable integer values.
-     * @param leading0X if true, prepends the value identifier '0x'
+     * @param offset offset in byte array to the first byte to print.
+     * @param length number of bytes to print. If negative, will use {@code bytes.length - offset}.
+     * @param lsbFirst true having the least significant byte printed first (lowest addressed byte to highest),
+     *                 otherwise have the most significant byte printed first (highest addressed byte to lowest).
+     * @param leading0X true to have a leading '0x' being printed, otherwise no prefix is produced.
+     * @param lowerCase true to use lower case hex-chars, otherwise capital letters are being used.
+     * @return the hex-string representation of the data
      */
-    public static String bytesHexString(final byte[] bytes, final boolean lsbFirst, final boolean leading0X) {
+    public static String bytesHexString(final byte[] bytes, final int offset, final int length,
+                                        final boolean lsbFirst, final boolean leading0X, final boolean lowerCase)
+    {
+        final int byte_len = 0 <= length ? length : bytes.length - offset;
+        if( byte_len > ( bytes.length - offset ) ) {
+            throw new IllegalArgumentException("byte[] ( "+bytes.length+" - "+offset+" ) < "+length+" bytes");
+        }
+        final char[] hex_array = lowerCase ? HEX_ARRAY_LOW : HEX_ARRAY_BIG;
         final char[] hexChars;
-        final int offset;
+        final int char_offset;
         if( leading0X ) {
-            offset = 2;
-            hexChars = new char[2 + bytes.length * 2];
+            char_offset = 2;
+            hexChars = new char[2 + byte_len * 2];
             hexChars[0] = '0';
             hexChars[1] = 'x';
         } else {
-            offset = 0;
-            hexChars = new char[bytes.length * 2];
+            char_offset = 0;
+            hexChars = new char[byte_len * 2];
         }
 
         if( lsbFirst ) {
             // LSB left -> MSB right
-            for (int j = 0; j < bytes.length; j++) {
-                final int v = bytes[j] & 0xFF;
-                hexChars[offset + j * 2] = HEX_ARRAY[v >>> 4];
-                hexChars[offset + j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+            for (int j = 0; j < byte_len; j++) {
+                final int v = bytes[offset + j] & 0xFF;
+                hexChars[char_offset + j * 2] = hex_array[v >>> 4];
+                hexChars[char_offset + j * 2 + 1] = hex_array[v & 0x0F];
             }
         } else {
             // MSB left -> LSB right
-            for (int j = bytes.length-1; j >= 0; j--) {
-                final int v = bytes[j] & 0xFF;
-                hexChars[offset + j * 2] = HEX_ARRAY[v >>> 4];
-                hexChars[offset + j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+            for (int j = byte_len-1; j >= 0; j--) {
+                final int v = bytes[offset + j] & 0xFF;
+                hexChars[char_offset + j * 2] = hex_array[v >>> 4];
+                hexChars[char_offset + j * 2 + 1] = hex_array[v & 0x0F];
             }
         }
         return new String(hexChars);
     }
-    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+    private static final char[] HEX_ARRAY_LOW = "0123456789abcdef".toCharArray();
+    private static final char[] HEX_ARRAY_BIG = "0123456789ABCDEF".toCharArray();
 
 
     /**

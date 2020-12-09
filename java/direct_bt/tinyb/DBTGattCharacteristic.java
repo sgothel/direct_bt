@@ -142,7 +142,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
                     }
                     if( DEBUG ) {
                         System.err.println("GATTCharacteristicListener.notificationReceived: "+charDecl+
-                                           ", value[changed "+valueChanged+", len "+value.length+": "+BluetoothUtils.bytesHexString(value, true, true)+"]");
+                                           ", value[changed "+valueChanged+", len "+value.length+": "+BluetoothUtils.bytesHexString(value, 0, -1, true, true, true)+"]");
                     }
                 }
                 @Override
@@ -161,7 +161,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
                     }
                     if( DEBUG ) {
                         System.err.println("GATTCharacteristicListener.indicationReceived: "+charDecl+
-                                           ", value[changed "+valueChanged+", len "+value.length+": "+BluetoothUtils.bytesHexString(value, true, true)+
+                                           ", value[changed "+valueChanged+", len "+value.length+": "+BluetoothUtils.bytesHexString(value, 0, -1, true, true, true)+
                                            "], confirmationSent "+confirmationSent);
                     }
                 }

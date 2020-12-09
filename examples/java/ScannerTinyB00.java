@@ -271,7 +271,7 @@ public class ScannerTinyB00 {
 
                     if (c.getUUID().contains("2a23-")) {
                         final byte[] tempRaw = c.readValue();
-                        System.err.println("    System ID: " + BluetoothUtils.bytesHexString(tempRaw, true, true));
+                        System.err.println("    System ID: " + BluetoothUtils.bytesHexString(tempRaw, 0, -1, true, true, true));
                     }
                 }
             }

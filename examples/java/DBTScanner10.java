@@ -386,14 +386,14 @@ public class DBTScanner10 {
                             public void notificationReceived(final BluetoothGattCharacteristic charDecl,
                                                              final byte[] value, final long timestamp) {
                                 println("****** PingPong GATT notificationReceived: "+charDecl+
-                                        ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                                        ", value "+BluetoothUtils.bytesHexString(value, 0, -1, true, true, true));
                             }
 
                             @Override
                             public void indicationReceived(final BluetoothGattCharacteristic charDecl,
                                                            final byte[] value, final long timestamp, final boolean confirmationSent) {
                                 println("****** PingPong GATT indicationReceived: "+charDecl+
-                                        ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                                        ", value "+BluetoothUtils.bytesHexString(value, 0, -1, true, true, true));
                             }
                         };
                         final boolean enabledState[] = { false, false };
@@ -417,7 +417,7 @@ public class DBTScanner10 {
                     public void notificationReceived(final BluetoothGattCharacteristic charDecl,
                                                      final byte[] value, final long timestamp) {
                         println("****** GATT notificationReceived: "+charDecl+
-                                ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                                ", value "+BluetoothUtils.bytesHexString(value, 0, -1, true, true, true));
                         shutdownTest();
 
                     }
@@ -426,7 +426,7 @@ public class DBTScanner10 {
                     public void indicationReceived(final BluetoothGattCharacteristic charDecl,
                                                    final byte[] value, final long timestamp, final boolean confirmationSent) {
                         println("****** GATT indicationReceived: "+charDecl+
-                                ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                                ", value "+BluetoothUtils.bytesHexString(value, 0, -1, true, true, true));
                         shutdownTest();
                     }
                 };
@@ -458,7 +458,7 @@ public class DBTScanner10 {
                             final String svalue = BluetoothUtils.decodeUTF8String(value, 0, value.length);
                             if( !QUIET ) {
                                 printf("  [%02d.%02d] CharVal: %s ('%s')\n",
-                                        i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
+                                        i, j, BluetoothUtils.bytesHexString(value, 0, -1, true, true, true), svalue);
                             }
                         }
                         int k=0;
