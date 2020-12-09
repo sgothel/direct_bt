@@ -422,6 +422,33 @@ namespace direct_bt {
     std::string getSMPKeyDistBitString(const SMPKeyDist bit) noexcept;
     std::string getSMPKeyDistMaskString(const SMPKeyDist mask) noexcept;
 
+    __pack( struct SMPLongTermKeyInfo {
+        /** true if using authentication, otherwise false */
+        bool use_auth;
+        /** true if using secure connection, otherwise false */
+        bool use_sc;
+        /** Encryption Size */
+        uint8_t enc_size;
+        /** Encryption Diversifier */
+        uint16_t ediv;
+        /** Random Number */
+        uint64_t rand;
+        /** Long Term Key (LTK) */
+        jau::uint128_t ltk;
+
+        void clear() noexcept {
+            bzero(reinterpret_cast<void *>(this), sizeof(SMPLongTermKeyInfo));
+        }
+
+        std::string toString() const noexcept { // hex-fmt aligned with btmon
+            return "LTK[auth "+std::to_string(use_auth)+", sc "+std::to_string(use_sc)+", enc_size "+std::to_string(enc_size)+
+                   ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), false /* lsbFirst */, true /* leading0X */)+
+                   ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), false /* lsbFirst */, true /* leading0X */)+
+                   ", ltk "+jau::bytesHexString(ltk.data, 0, sizeof(ltk), true /* lsbFirst */, false /* leading0X */)+
+                   "]";
+        }
+    } );
+
     /**
      * Handles the Security Manager Protocol (SMP) using Protocol Data Unit (PDU)
      * encoded messages over L2CAP channel.
