@@ -104,6 +104,163 @@ namespace direct_bt {
         PUBLIC_ADDRESS      = 0x00000002
     };
 
+    /**
+     * Link Key Types compatible with Mgmt's MgmtLinkKeyInfo
+     */
+    enum class MgmtLinkKeyType : uint8_t {
+        /** Combination key */
+        COMBI             = 0x00,
+        /** Local Unit key */
+        LOCAL_UNIT        = 0x01,
+        /** Remote Unit key */
+        REMOTE_UNIT       = 0x02,
+        /** Debug Combination key */
+        DBG_COMBI         = 0x03,
+        /** Unauthenticated Combination key from P-192 */
+        UNAUTH_COMBI_P192 = 0x04,
+        /** Authenticated Combination key from P-192 */
+        AUTH_COMBI_P192   = 0x05,
+        /** Changed Combination key */
+        CHANGED_COMBI     = 0x06,
+        /** Unauthenticated Combination key from P-256 */
+        UNAUTH_COMBI_P256 = 0x07,
+        /** Authenticated Combination key from P-256 */
+        AUTH_COMBI_P256   = 0x08,
+        /** Denoting no or invalid link key type */
+        NONE              = 0xff
+    };
+    std::string getMgmtLinkKeyTypeString(const MgmtLinkKeyType type) noexcept;
+
+    /**
+     * Long Term Key Types compatible with Mgmt's MgmtLongTermKeyInfo
+     */
+    enum class MgmtLTKType : uint8_t {
+        /** Unauthenticated long term key, implying legacy. */
+        UNAUTHENTICATED      = 0x00, // master ? SMP_LTK : SMP_LTK_SLAVE
+        /** Authenticated long term key, implying legacy and BTSecurityLevel::ENC_AUTH. */
+        AUTHENTICATED        = 0x01, // master ? SMP_LTK : SMP_LTK_SLAVE
+        /** Unauthenticated long term key from P-256, implying Secure Connection (SC). */
+        UNAUTHENTICATED_P256 = 0x02, // SMP_LTK_P256
+        /** Authenticated long term key from P-256, implying Secure Connection (SC) and BTSecurityLevel::ENC_AUTH_FIPS. */
+        AUTHENTICATED_P256   = 0x03, // SMP_LTK_P256
+        /** Debug long term key from P-256 */
+        DEBUG_P256           = 0x04, // SMP_LTK_P256_DEBUG
+        /** Denoting no or invalid long term key type */
+        NONE                 = 0xff
+    };
+    std::string getMgmtLTKTypeString(const MgmtLTKType type) noexcept;
+    MgmtLTKType getMgmtLTKType(const bool use_auth, const bool use_sc) noexcept;
+
+    /**
+     * Signature Resolving Key Types compatible with Mgmt's MgmtSignatureResolvingKeyInfo
+     */
+    enum class MgmtCSRKType : uint8_t {
+        /** Unauthenticated local key */
+        UNAUTHENTICATED_LOCAL  = 0x00,
+        /** Unauthenticated remote key */
+        UNAUTHENTICATED_REMOTE = 0x01,
+        /** Authenticated local key, implying ::BTSecurityLevel::ENC_AUTH or ::BTSecurityLevel::ENC_AUTH_FIPS. */
+        AUTHENTICATED_LOCAL    = 0x02,
+        /** Authenticated remote key, implying ::BTSecurityLevel::ENC_AUTH or ::BTSecurityLevel::ENC_AUTH_FIPS. */
+        AUTHENTICATED_REMOTE   = 0x03,
+        /** Denoting no or invalid signature resolving key type */
+        NONE                   = 0xff
+    };
+    std::string getMgmtCSRKTypeString(const MgmtCSRKType type) noexcept;
+
+    /**
+     * Used for MgmtLoadLinkKeyCmd and MgmtEvtNewLinkKey
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
+     */
+    __pack( struct MgmtLinkKeyInfo {
+        EUI48 address;
+        BDAddressType address_type;
+        MgmtLinkKeyType key_type;
+        jau::uint128_t key;
+        uint8_t pin_length;
+
+        std::string toString() const noexcept {
+            return "LK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
+                   "], type "+getMgmtLinkKeyTypeString(key_type).c_str()+
+                   ", key "+jau::uint128HexString(key)+
+                   ", pinLen "+jau::uint8HexString(pin_length)+
+                   "]";
+        }
+    } );
+
+    /**
+     * Used for MgmtLoadLongTermKeyCmd and MgmtEvtNewLongTermKey
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
+     */
+    __pack( struct MgmtLongTermKeyInfo {
+        EUI48 address;
+        /** 0 reserved, 1 le public, 2 le static random address. Compatible with BDAddressType. */
+        BDAddressType address_type;
+        /** Describing type of key, i.e. used ::BTSecurityLevel and whether using Secure Connections (SC) for P256. */
+        MgmtLTKType key_type;
+        /**
+         * BlueZ claims itself (initiator) as the SLAVE and the responder as the MASTER,
+         * contrary to the spec roles of: Initiator (LL Master) and Responder (LL Slave).
+         */
+        uint8_t master;
+        /** Encryption Size */
+        uint8_t enc_size;
+        /** Encryption Diversifier */
+        uint16_t ediv;
+        /** Random Number */
+        uint64_t rand;
+        /** Long Term Key (LTK) */
+        jau::uint128_t ltk;
+
+        std::string toString() const noexcept { // hex-fmt aligned with btmon
+            return "LTK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
+                   "], type "+getMgmtLTKTypeString(key_type).c_str()+", master "+jau::uint8HexString(master)+
+                   ", enc_size "+std::to_string(enc_size)+
+                   ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), false /* lsbFirst */, true /* leading0X */)+
+                   ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), false /* lsbFirst */, true /* leading0X */)+
+                   ", ltk "+jau::bytesHexString(ltk.data, 0, sizeof(ltk), true /* lsbFirst */, false /* leading0X */)+
+                   "]";
+        }
+    } );
+
+    /**
+     * Used for MgmtLoadIdentityResolvingKeyCmd and MgmtEvtNewIdentityResolvingKey
+     */
+    __pack( struct MgmtIdentityResolvingKeyInfo {
+        EUI48 address;
+        BDAddressType address_type;
+        jau::uint128_t irk;
+
+        std::string toString() const noexcept {
+            return "IRK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
+                   "], irk "+jau::uint128HexString(irk)+
+                   "]";
+        }
+    } );
+
+    /**
+     * Used for MgmtEvtNewSignatureResolvingKey
+     */
+    __pack( struct MgmtSignatureResolvingKeyInfo {
+        EUI48 address;
+        BDAddressType address_type;
+        MgmtCSRKType key_type;
+        jau::uint128_t csrk;
+
+        std::string toString() const noexcept {
+            return "CSRK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
+                   "], type "+getMgmtCSRKTypeString(key_type).c_str()+
+                   ", csrk "+jau::uint128HexString(csrk)+
+                   "]";
+        }
+    } );
+
     class MgmtMsg
     {
         protected:
@@ -358,29 +515,6 @@ namespace direct_bt {
     };
 
     /**
-     * Used for MgmtLoadLinkKeyCmd and MgmtEvtNewLinkKey
-     * <p>
-     * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
-     * </p>
-     */
-    __pack( struct MgmtLinkKey {
-        EUI48 address;
-        BDAddressType address_type;
-        uint8_t key_type;
-        jau::uint128_t value;
-        uint8_t pin_length;
-
-        std::string toString() const noexcept {
-            return "LK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
-                   "], type "+jau::uint8HexString(key_type)+
-                   ", value "+jau::uint128HexString(value)+
-                   ", pinLen "+jau::uint8HexString(pin_length)+
-                   "]";
-        }
-    } );
-
-    /**
      * uint8_t debug_keys,
      * uint16_t key_count,
      * MgmtLinkKey keys[key_count]
@@ -409,24 +543,24 @@ namespace direct_bt {
             }
 
         public:
-            MgmtLoadLinkKeyCmd(const uint16_t dev_id, const bool debug_keys, const MgmtLinkKey & key)
-            : MgmtCommand(Opcode::LOAD_LINK_KEYS, dev_id, 1 + 2 + sizeof(MgmtLinkKey))
+            MgmtLoadLinkKeyCmd(const uint16_t dev_id, const bool debug_keys, const MgmtLinkKeyInfo & key)
+            : MgmtCommand(Opcode::LOAD_LINK_KEYS, dev_id, 1 + 2 + sizeof(MgmtLinkKeyInfo))
             {
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE, debug_keys ? 0x01 : 0x00);
                 pdu.put_uint16_nc(MGMT_HEADER_SIZE+1, 1);
-                memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE+1+2), &key, sizeof(MgmtLinkKey));
+                memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE+1+2), &key, sizeof(MgmtLinkKeyInfo));
             }
 
-            MgmtLoadLinkKeyCmd(const uint16_t dev_id, const bool debug_keys, const std::vector<MgmtLinkKey> &keys)
-            : MgmtCommand(Opcode::LOAD_LINK_KEYS, dev_id, 1 + 2 + keys.size() * sizeof(MgmtLinkKey))
+            MgmtLoadLinkKeyCmd(const uint16_t dev_id, const bool debug_keys, const std::vector<MgmtLinkKeyInfo> &keys)
+            : MgmtCommand(Opcode::LOAD_LINK_KEYS, dev_id, 1 + 2 + keys.size() * sizeof(MgmtLinkKeyInfo))
             {
                 jau::nsize_t offset = MGMT_HEADER_SIZE;
                 pdu.put_uint8_nc(offset, debug_keys ? 0x01 : 0x00); offset+= 1;
                 pdu.put_uint16_nc(offset, keys.size()); offset+= 2;
 
-                for(auto it = keys.begin(); it != keys.end(); ++it, offset+=sizeof(MgmtLinkKey)) {
-                    const MgmtLinkKey& key = *it;
-                    memcpy(pdu.get_wptr_nc(offset), &key, sizeof(MgmtLinkKey));
+                for(auto it = keys.begin(); it != keys.end(); ++it, offset+=sizeof(MgmtLinkKeyInfo)) {
+                    const MgmtLinkKeyInfo& key = *it;
+                    memcpy(pdu.get_wptr_nc(offset), &key, sizeof(MgmtLinkKeyInfo));
                 }
             }
 
@@ -434,47 +568,11 @@ namespace direct_bt {
 
             uint16_t getKeyCount() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE+1); }
 
-            const MgmtLinkKey& getLinkKey(jau::nsize_t idx) const {
+            const MgmtLinkKeyInfo& getLinkKey(jau::nsize_t idx) const {
                 checkParamIdx(idx);
-                return *reinterpret_cast<const MgmtLinkKey *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 2 + sizeof(MgmtLinkKey)*idx) );
+                return *reinterpret_cast<const MgmtLinkKeyInfo *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 2 + sizeof(MgmtLinkKeyInfo)*idx) );
             }
     };
-
-    /**
-     * Used for MgmtLoadLongTermKeyCmd and MgmtEvtNewLongTermKey
-     * <p>
-     * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
-     * </p>
-     */
-    __pack( struct MgmtLongTermKey {
-        EUI48 address;
-        BDAddressType address_type;
-        uint8_t key_type;
-        /**
-         * BlueZ claims itself (initiator) as the SLAVE and the responder as the MASTER,
-         * contrary to the spec roles of: Initiator (LL Master) and Responder (LL Slave).
-         */
-        uint8_t master;
-        /** Encryption Size */
-        uint8_t enc_size;
-        /** Encryption Diversifier */
-        uint16_t ediv;
-        /** Random Number */
-        uint64_t rand;
-        /** Long Term Key (LTK) */
-        jau::uint128_t ltk;
-
-        std::string toString() const noexcept { // hex-fmt aligned with btmon
-            return "LTK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
-                   "], type "+jau::uint8HexString(key_type)+", master "+jau::uint8HexString(master)+
-                   ", enc_size "+std::to_string(enc_size)+
-                   ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), false /* lsbFirst */, true /* leading0X */)+
-                   ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), false /* lsbFirst */, true /* leading0X */)+
-                   ", ltk "+jau::bytesHexString(ltk.data, 0, sizeof(ltk), true /* lsbFirst */, false /* leading0X */)+
-                   "]";
-        }
-    } );
 
     /**
      * uint16_t key_count
@@ -504,29 +602,29 @@ namespace direct_bt {
             }
 
         public:
-            MgmtLoadLongTermKeyCmd(const uint16_t dev_id, const MgmtLongTermKey & key)
-            : MgmtCommand(Opcode::LOAD_LONG_TERM_KEYS, dev_id, 2 + sizeof(MgmtLongTermKey))
+            MgmtLoadLongTermKeyCmd(const uint16_t dev_id, const MgmtLongTermKeyInfo & key)
+            : MgmtCommand(Opcode::LOAD_LONG_TERM_KEYS, dev_id, 2 + sizeof(MgmtLongTermKeyInfo))
             {
                 pdu.put_uint16_nc(MGMT_HEADER_SIZE, 1);
-                memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE+2), &key, sizeof(MgmtLongTermKey));
+                memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE+2), &key, sizeof(MgmtLongTermKeyInfo));
             }
 
-            MgmtLoadLongTermKeyCmd(const uint16_t dev_id, const std::vector<MgmtLongTermKey> &keys)
-            : MgmtCommand(Opcode::LOAD_LONG_TERM_KEYS, dev_id, 2 + keys.size() * sizeof(MgmtLongTermKey))
+            MgmtLoadLongTermKeyCmd(const uint16_t dev_id, const std::vector<MgmtLongTermKeyInfo> &keys)
+            : MgmtCommand(Opcode::LOAD_LONG_TERM_KEYS, dev_id, 2 + keys.size() * sizeof(MgmtLongTermKeyInfo))
             {
                 jau::nsize_t offset = MGMT_HEADER_SIZE;
                 pdu.put_uint16_nc(offset, keys.size()); offset+= 2;
 
-                for(auto it = keys.begin(); it != keys.end(); ++it, offset+=sizeof(MgmtLongTermKey)) {
-                    const MgmtLongTermKey& key = *it;
-                    memcpy(pdu.get_wptr_nc(offset), &key, sizeof(MgmtLongTermKey));
+                for(auto it = keys.begin(); it != keys.end(); ++it, offset+=sizeof(MgmtLongTermKeyInfo)) {
+                    const MgmtLongTermKeyInfo& key = *it;
+                    memcpy(pdu.get_wptr_nc(offset), &key, sizeof(MgmtLongTermKeyInfo));
                 }
             }
             uint16_t getKeyCount() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE); }
 
-            const MgmtLongTermKey& getLongTermKey(jau::nsize_t idx) const {
+            const MgmtLongTermKeyInfo& getLongTermKey(jau::nsize_t idx) const {
                 checkParamIdx(idx);
-                return *reinterpret_cast<const MgmtLongTermKey *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 2 + sizeof(MgmtLongTermKey)*idx) );
+                return *reinterpret_cast<const MgmtLongTermKeyInfo *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 2 + sizeof(MgmtLongTermKeyInfo)*idx) );
             }
     };
 
@@ -567,21 +665,6 @@ namespace direct_bt {
     };
 
     /**
-     * Used for MgmtLoadIdentityResolvingKeyCmd and MgmtEvtNewIdentityResolvingKey
-     */
-    __pack( struct MgmtIdentityResolvingKey {
-        EUI48 address;
-        BDAddressType address_type;
-        jau::uint128_t value;
-
-        std::string toString() const noexcept {
-            return "IRK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
-                   "], value "+jau::uint128HexString(value)+
-                   "]";
-        }
-    } );
-
-    /**
      * uint16_t key_count
      * MgmtIdentityResolvingKey keys[key_count]
      */
@@ -609,29 +692,29 @@ namespace direct_bt {
             }
 
         public:
-            MgmtLoadIdentityResolvingKeyCmd(const uint16_t dev_id, const MgmtIdentityResolvingKey & key)
-            : MgmtCommand(Opcode::LOAD_IRKS, dev_id, 2 + sizeof(MgmtIdentityResolvingKey))
+            MgmtLoadIdentityResolvingKeyCmd(const uint16_t dev_id, const MgmtIdentityResolvingKeyInfo & key)
+            : MgmtCommand(Opcode::LOAD_IRKS, dev_id, 2 + sizeof(MgmtIdentityResolvingKeyInfo))
             {
                 pdu.put_uint16_nc(MGMT_HEADER_SIZE, 1);
-                memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE+2), &key, sizeof(MgmtIdentityResolvingKey));
+                memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE+2), &key, sizeof(MgmtIdentityResolvingKeyInfo));
             }
 
-            MgmtLoadIdentityResolvingKeyCmd(const uint16_t dev_id, const std::vector<MgmtIdentityResolvingKey> &keys)
-            : MgmtCommand(Opcode::LOAD_IRKS, dev_id, 2 + keys.size() * sizeof(MgmtIdentityResolvingKey))
+            MgmtLoadIdentityResolvingKeyCmd(const uint16_t dev_id, const std::vector<MgmtIdentityResolvingKeyInfo> &keys)
+            : MgmtCommand(Opcode::LOAD_IRKS, dev_id, 2 + keys.size() * sizeof(MgmtIdentityResolvingKeyInfo))
             {
                 jau::nsize_t offset = MGMT_HEADER_SIZE;
                 pdu.put_uint16_nc(offset, keys.size()); offset+= 2;
 
-                for(auto it = keys.begin(); it != keys.end(); ++it, offset+=sizeof(MgmtIdentityResolvingKey)) {
-                    const MgmtIdentityResolvingKey& key = *it;
-                    memcpy(pdu.get_wptr_nc(offset), &key, sizeof(MgmtIdentityResolvingKey));
+                for(auto it = keys.begin(); it != keys.end(); ++it, offset+=sizeof(MgmtIdentityResolvingKeyInfo)) {
+                    const MgmtIdentityResolvingKeyInfo& key = *it;
+                    memcpy(pdu.get_wptr_nc(offset), &key, sizeof(MgmtIdentityResolvingKeyInfo));
                 }
             }
             uint16_t getKeyCount() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE); }
 
-            const MgmtIdentityResolvingKey& getIdentityResolvingKey(jau::nsize_t idx) const {
+            const MgmtIdentityResolvingKeyInfo& getIdentityResolvingKey(jau::nsize_t idx) const {
                 checkParamIdx(idx);
-                return *reinterpret_cast<const MgmtIdentityResolvingKey *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 2 + sizeof(MgmtIdentityResolvingKey)*idx) );
+                return *reinterpret_cast<const MgmtIdentityResolvingKeyInfo *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 2 + sizeof(MgmtIdentityResolvingKeyInfo)*idx) );
             }
     };
 
@@ -1296,18 +1379,18 @@ namespace direct_bt {
 
         public:
             MgmtEvtNewLinkKey(const uint8_t* buffer, const jau::nsize_t buffer_len)
-            : MgmtEvent(buffer, buffer_len, 1+sizeof(MgmtLinkKey))
+            : MgmtEvent(buffer, buffer_len, 1+sizeof(MgmtLinkKeyInfo))
             {
                 checkOpcode(getOpcode(), Opcode::NEW_LINK_KEY);
             }
 
             uint8_t getStoreHint() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE); }
 
-            const MgmtLinkKey& getLinkKey() const {
-                return *reinterpret_cast<const MgmtLinkKey *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1) );
+            const MgmtLinkKeyInfo& getLinkKey() const {
+                return *reinterpret_cast<const MgmtLinkKeyInfo *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1) );
             }
 
-            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+sizeof(MgmtLinkKey); }
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+sizeof(MgmtLinkKeyInfo); }
             jau::nsize_t getDataSize() const noexcept override { return 0; }
             const uint8_t* getData() const noexcept override { return nullptr; }
     };
@@ -1326,18 +1409,18 @@ namespace direct_bt {
 
         public:
             MgmtEvtNewLongTermKey(const uint8_t* buffer, const jau::nsize_t buffer_len)
-            : MgmtEvent(buffer, buffer_len, 1+sizeof(MgmtLongTermKey))
+            : MgmtEvent(buffer, buffer_len, 1+sizeof(MgmtLongTermKeyInfo))
             {
                 checkOpcode(getOpcode(), Opcode::NEW_LONG_TERM_KEY);
             }
 
             uint8_t getStoreHint() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE); }
 
-            const MgmtLongTermKey& getLongTermKey() const {
-                return *reinterpret_cast<const MgmtLongTermKey *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1) );
+            const MgmtLongTermKeyInfo& getLongTermKey() const {
+                return *reinterpret_cast<const MgmtLongTermKeyInfo *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1) );
             }
 
-            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+sizeof(MgmtLongTermKey); }
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+sizeof(MgmtLongTermKeyInfo); }
             jau::nsize_t getDataSize() const noexcept override { return 0; }
             const uint8_t* getData() const noexcept override { return nullptr; }
     };
@@ -1759,7 +1842,7 @@ namespace direct_bt {
 
         public:
             MgmtEvtNewIdentityResolvingKey(const uint8_t* buffer, const jau::nsize_t buffer_len)
-            : MgmtEvent(buffer, buffer_len, 1+6+sizeof(MgmtIdentityResolvingKey))
+            : MgmtEvent(buffer, buffer_len, 1+6+sizeof(MgmtIdentityResolvingKeyInfo))
             {
                 checkOpcode(getOpcode(), Opcode::NEW_IRK);
             }
@@ -1768,16 +1851,46 @@ namespace direct_bt {
 
             const EUI48& getRandomAddress() const { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1) ); }
 
-            const MgmtIdentityResolvingKey& getIdentityResolvingKey() const {
-                return *reinterpret_cast<const MgmtIdentityResolvingKey *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1 + 6) );
+            const MgmtIdentityResolvingKeyInfo& getIdentityResolvingKey() const {
+                return *reinterpret_cast<const MgmtIdentityResolvingKeyInfo *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1 + 6) );
             }
 
-            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+sizeof(MgmtIdentityResolvingKey); }
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+sizeof(MgmtIdentityResolvingKeyInfo); }
             jau::nsize_t getDataSize() const noexcept override { return 0; }
             const uint8_t* getData() const noexcept override { return nullptr; }
     };
 
-    // FIXME NEW_CSRK                   = 0x0019,
+    /**
+     * uint8_t store_hint,
+     * EUI48 random_address;
+     * MgmtIdentityResolvingKey key
+     */
+    class MgmtEvtNewSignatureResolvingKey : public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", store "+jau::uint8HexString(getStoreHint())+
+                       +", "+getSignatureResolvingKey().toString();
+            }
+
+        public:
+            MgmtEvtNewSignatureResolvingKey(const uint8_t* buffer, const jau::nsize_t buffer_len)
+            : MgmtEvent(buffer, buffer_len, 1+sizeof(MgmtSignatureResolvingKeyInfo))
+            {
+                checkOpcode(getOpcode(), Opcode::NEW_CSRK);
+            }
+
+            uint8_t getStoreHint() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE); }
+
+            const MgmtSignatureResolvingKeyInfo& getSignatureResolvingKey() const {
+                return *reinterpret_cast<const MgmtSignatureResolvingKeyInfo *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1) );
+            }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+sizeof(MgmtSignatureResolvingKeyInfo); }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+    };
+
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },

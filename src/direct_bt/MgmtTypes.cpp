@@ -89,6 +89,72 @@ std::string direct_bt::getMgmtStatusString(const MgmtStatus opc) noexcept {
     return "Unknown Status";
 }
 
+#define MGMT_LINKKEYTYPE_ENUM(X) \
+    X(COMBI) \
+    X(LOCAL_UNIT) \
+    X(REMOTE_UNIT) \
+    X(DBG_COMBI) \
+    X(UNAUTH_COMBI_P192) \
+    X(AUTH_COMBI_P192) \
+    X(CHANGED_COMBI) \
+    X(UNAUTH_COMBI_P256) \
+    X(AUTH_COMBI_P256) \
+    X(NONE)
+
+#define MGMT_LINKKEYTYPE_TO_STRING(V) case MgmtLinkKeyType::V: return #V;
+
+std::string direct_bt::getMgmtLinkKeyTypeString(const MgmtLinkKeyType type) noexcept {
+    switch(type) {
+        MGMT_LINKKEYTYPE_ENUM(MGMT_LINKKEYTYPE_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown MgmtLinkKeyType";
+}
+
+#define MGMT_LTKTYPE_ENUM(X) \
+    X(UNAUTHENTICATED) \
+    X(AUTHENTICATED) \
+    X(UNAUTHENTICATED_P256) \
+    X(AUTHENTICATED_P256) \
+    X(DEBUG_P256) \
+    X(NONE)
+
+#define MGMT_LTKTYPE_TO_STRING(V) case MgmtLTKType::V: return #V;
+
+std::string direct_bt::getMgmtLTKTypeString(const MgmtLTKType type) noexcept {
+    switch(type) {
+        MGMT_LTKTYPE_ENUM(MGMT_LTKTYPE_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown MgmtLTKType";
+}
+
+MgmtLTKType direct_bt::getMgmtLTKType(const bool use_auth, const bool use_sc) noexcept {
+    if( use_auth ) {
+        return use_sc ? MgmtLTKType::AUTHENTICATED_P256 : MgmtLTKType::AUTHENTICATED;
+    } else {
+        return use_sc ? MgmtLTKType::UNAUTHENTICATED_P256 : MgmtLTKType::UNAUTHENTICATED;
+    }
+}
+
+#define MGMT_CSRKTYPE_ENUM(X) \
+    X(UNAUTHENTICATED_LOCAL) \
+    X(UNAUTHENTICATED_REMOTE) \
+    X(AUTHENTICATED_LOCAL) \
+    X(AUTHENTICATED_REMOTE) \
+    X(NONE)
+
+#define MGMT_CSRKTYPE_TO_STRING(V) case MgmtCSRKType::V: return #V;
+
+std::string direct_bt::getMgmtCSRKTypeString(const MgmtCSRKType type) noexcept {
+    switch(type) {
+        MGMT_CSRKTYPE_ENUM(MGMT_CSRKTYPE_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown MgmtCSRKType";
+}
+
+
 // *************************************************
 // *************************************************
 // *************************************************
@@ -306,6 +372,8 @@ std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau
             res = new MgmtEvtDeviceUnpaired(buffer, buffer_size); break;
         case Opcode::NEW_IRK:
             res = new MgmtEvtNewIdentityResolvingKey(buffer, buffer_size); break;
+        case Opcode::NEW_CSRK:
+            res = new MgmtEvtNewSignatureResolvingKey(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED:
             res = new MgmtEvtDeviceWhitelistAdded(buffer, buffer_size); break;
         case MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED:
