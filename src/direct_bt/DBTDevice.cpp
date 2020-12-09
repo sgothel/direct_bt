@@ -867,6 +867,18 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
     }
 }
 
+SMPLongTermKeyInfo DBTDevice::getLongTermKeyInfo(const bool responder) const noexcept {
+    jau::sc_atomic_critical sync(const_cast<DBTDevice*>(this)->sync_pairing);
+    return responder ? pairing_data.ltk_resp : pairing_data.ltk_init;
+}
+
+HCIStatusCode DBTDevice::setLongTermKeyInfo(const SMPLongTermKeyInfo& ltk, const bool responder) noexcept {
+    jau::sc_atomic_critical sync(sync_pairing);
+    DBTManager & mngr = adapter.getManager();
+    HCIStatusCode res = mngr.uploadLongTermKeyInfo(adapter.dev_id, address, addressType, ltk, responder);
+    return res;
+}
+
 HCIStatusCode DBTDevice::pair(const SMPIOCapability io_cap) noexcept {
     /**
      * Experimental only.

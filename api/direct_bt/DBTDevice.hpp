@@ -446,6 +446,23 @@ namespace direct_bt {
             HCIStatusCode disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
 
             /**
+             * Returns a copy of the long term ket (LTK) info, valid after connection and SMP pairing has been completed.
+             * @param responder true will return the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
+             * @return
+             * @see ::SMPPairingState::COMPLETED
+             * @see AdapterStatusListener::deviceReady()
+             */
+            SMPLongTermKeyInfo getLongTermKeyInfo(const bool responder) const noexcept;
+
+            /**
+             * Sets the long term ket (LTK) info of this device to reuse pre-paired encryption.
+             * @param ltk the pre-paired encryption
+             * @param responder true will set the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
+             * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+             */
+            HCIStatusCode setLongTermKeyInfo(const SMPLongTermKeyInfo& ltk, const bool responder) noexcept;
+
+            /**
              * Unpairs this device from the adapter while staying connected.
              * <p>
              * All keys will be cleared within the adapter and host implementation.<br>

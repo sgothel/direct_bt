@@ -28,6 +28,8 @@
 #include <memory>
 #include <cstdint>
 #include <vector>
+#include <fstream>
+#include <iostream>
 
 #include <cinttypes>
 
@@ -43,6 +45,7 @@ extern "C" {
 
 using namespace direct_bt;
 using namespace jau;
+
 
 /**
  * This C++ scanner example uses the Direct-BT fully event driven workflow
@@ -156,6 +159,27 @@ static size_t getDeviceProcessingCount() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
     return devicesInProcessing.size();
 }
+
+__pack( struct MyLongTermKeyInfo {
+    EUI48 address;
+    BDAddressType address_type;
+    SMPLongTermKeyInfo smp_ltk;
+
+    void write(const std::string filename) {
+        std::ofstream file(filename, std::ios::binary | std::ios::trunc);
+        file.write((char*)this, sizeof(*this));
+        file.close();
+    }
+    bool read(const std::string filename) {
+        std::ifstream file(filename, std::ios::binary);
+        if (!file.is_open() ) {
+            return false;
+        }
+        file.read((char*)this, sizeof(*this));
+        file.close();
+        return true;
+    }
+} );
 
 class MyAdapterStatusListener : public AdapterStatusListener {
 
@@ -372,6 +396,19 @@ static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
 
     device->getAdapter().stopDiscovery();
 
+    {
+        MyLongTermKeyInfo my_ltk_resp;
+        MyLongTermKeyInfo my_ltk_init;
+        if( my_ltk_init.read(device->getAddress().toString()+".init.ltk") &&
+            my_ltk_resp.read(device->getAddress().toString()+".resp.ltk") &&
+            HCIStatusCode::SUCCESS == device->setLongTermKeyInfo(my_ltk_init.smp_ltk, false /* responder */) &&
+            HCIStatusCode::SUCCESS == device->setLongTermKeyInfo(my_ltk_resp.smp_ltk, true /* responder */) ) {
+            fprintf(stderr, "****** Connecting Device: Loaded LTKs from file successfully\n");
+        } else {
+            fprintf(stderr, "****** Connecting Device: Error loading LTKs from file\n");
+        }
+    }
+
     device->setConnSecurityBest(sec_level, io_capabilities);
 
     HCIStatusCode res;
@@ -393,6 +430,21 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
     const uint64_t t1 = getCurrentMilliseconds();
     bool success = false;
 
+    {
+        const SMPPairingState pstate = device->getPairingState();
+        if( SMPPairingState::COMPLETED == pstate) {
+            {
+                MyLongTermKeyInfo my_ltk { device->getAddress(), device->getAddressType(),
+                                           device->getLongTermKeyInfo(false /* responder */) };
+                my_ltk.write(my_ltk.address.toString()+".init.ltk");
+            }
+            {
+                MyLongTermKeyInfo my_ltk { device->getAddress(), device->getAddressType(),
+                                           device->getLongTermKeyInfo(true /* responder */) };
+                my_ltk.write(my_ltk.address.toString()+".resp.ltk");
+            }
+        }
+    }
 #if 1
     //
     // GATT Service Processing
