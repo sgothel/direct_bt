@@ -181,7 +181,16 @@ public interface BluetoothDevice extends BluetoothObject
     boolean disconnectProfile(String arg_UUID) throws BluetoothException;
 
     /**
-     * Returns a copy of the long term ket (LTK) info, valid after connection and SMP pairing has been completed.
+     * Returns the available {@link SMPKeyMask.KeyType} {@link SMPKeyMask} for the responder (LL slave) or initiator (LL master).
+     * @param responder if true, queries the responder (LL slave) key, otherwise the initiator (LL master) key.
+     * @return {@link SMPKeyMask.KeyType} {@link SMPKeyMask} result
+     * @since 2.2.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    SMPKeyMask getAvailableSMPKeys(final boolean responder);
+
+    /**
+     * Returns a copy of the long term key (LTK) info, valid after connection and SMP pairing has been completed.
      * @param responder true will return the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
      * @return the resulting key. {@link SMPLongTermKeyInfo#enc_size} will be zero if invalid.
      * @see {@link SMPPairingState#COMPLETED}
@@ -202,6 +211,17 @@ public interface BluetoothDevice extends BluetoothObject
      * @implNote not implemented in tinyb.dbus
      */
     HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk);
+
+    /**
+     * Returns a copy of the Signature Resolving Key (LTK) info, valid after connection and SMP pairing has been completed.
+     * @param responder true will return the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
+     * @return the resulting key
+     * @see {@link SMPPairingState#COMPLETED}
+     * @see {@link AdapterStatusListener#deviceReady(BluetoothDevice, long)}
+     * @since 2.2.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    SMPSignatureResolvingKeyInfo getSignatureResolvingKeyInfo(final boolean responder);
 
     /**
      * A secure connection to this device is established, and the device is then paired.

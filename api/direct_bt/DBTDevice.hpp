@@ -95,8 +95,8 @@ namespace direct_bt {
                 SMPIOCapability ioCap_init,    ioCap_resp;
                 SMPOOBDataFlag  oobFlag_init,  oobFlag_resp;
                 uint8_t         maxEncsz_init, maxEncsz_resp;
-                SMPKeyDist      keys_init_exp, keys_resp_exp;
-                SMPKeyDist      keys_init_has, keys_resp_has;
+                SMPKeyType      keys_init_exp, keys_resp_exp;
+                SMPKeyType      keys_init_has, keys_resp_has;
 
                 // LTK: Set of Long Term Key data: ltk, ediv + rand
                 SMPLongTermKeyInfo ltk_init, ltk_resp;
@@ -107,7 +107,7 @@ namespace direct_bt {
                 bool            is_static_random_address;
 
                 // CSRK
-                jau::uint128_t  csrk_init,     csrk_resp;
+                SMPSignatureResolvingKeyInfo csrk_init, csrk_resp;
             };
             PairingData pairing_data;
             std::mutex mtx_pairing;
@@ -447,7 +447,14 @@ namespace direct_bt {
             HCIStatusCode disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
 
             /**
-             * Returns a copy of the long term ket (LTK) info, valid after connection and SMP pairing has been completed.
+             * Returns the available ::SMPKeyType mask for the responder (LL slave) or initiator (LL master).
+             * @param responder if true, queries the responder (LL slave) key, otherwise the initiator (LL master) key.
+             * @return ::SMPKeyType mask result
+             */
+            SMPKeyType getAvailableSMPKeys(const bool responder) const noexcept;
+
+            /**
+             * Returns a copy of the Long Term Key (LTK) info, valid after connection and SMP pairing has been completed.
              * @param responder true will return the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
              * @return the resulting key. SMPLongTermKeyInfo::enc_size will be zero if invalid.
              * @see ::SMPPairingState::COMPLETED
@@ -464,6 +471,15 @@ namespace direct_bt {
              * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
              */
             HCIStatusCode setLongTermKeyInfo(const SMPLongTermKeyInfo& ltk) noexcept;
+
+            /**
+             * Returns a copy of the Signature Resolving Key (LTK) info, valid after connection and SMP pairing has been completed.
+             * @param responder true will return the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
+             * @return the resulting key
+             * @see ::SMPPairingState::COMPLETED
+             * @see AdapterStatusListener::deviceReady()
+             */
+            SMPSignatureResolvingKeyInfo getSignatureResolvingKeyInfo(const bool responder) const noexcept;
 
             /**
              * Unpairs this device from the adapter while staying connected.

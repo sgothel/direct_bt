@@ -522,8 +522,8 @@ void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint6
 }
 
 
-static const SMPKeyDist _key_mask_legacy = SMPKeyDist::ENC_KEY | SMPKeyDist::ID_KEY | SMPKeyDist::SIGN_KEY;
-static const SMPKeyDist _key_mask_sc     =                       SMPKeyDist::ID_KEY | SMPKeyDist::SIGN_KEY | SMPKeyDist::LINK_KEY;
+static const SMPKeyType _key_mask_legacy = SMPKeyType::ENC_KEY | SMPKeyType::ID_KEY | SMPKeyType::SIGN_KEY;
+static const SMPKeyType _key_mask_sc     =                       SMPKeyType::ID_KEY | SMPKeyType::SIGN_KEY | SMPKeyType::LINK_KEY;
 
 bool DBTDevice::checkPairingKeyDistributionComplete(const std::string& timestamp) const noexcept {
     bool res = false;
@@ -550,10 +550,10 @@ bool DBTDevice::checkPairingKeyDistributionComplete(const std::string& timestamp
                 address.toString().c_str(), getBDAddressTypeString(addressType).c_str());
             jau::PLAIN_PRINT(false, "[%s] - keys[init %s / %s, resp %s / %s]",
                 timestamp.c_str(),
-                getSMPKeyDistMaskString(pairing_data.keys_init_has).c_str(),
-                getSMPKeyDistMaskString(pairing_data.keys_init_exp).c_str(),
-                getSMPKeyDistMaskString(pairing_data.keys_resp_has).c_str(),
-                getSMPKeyDistMaskString(pairing_data.keys_resp_exp).c_str());
+                getSMPKeyTypeMaskString(pairing_data.keys_init_has).c_str(),
+                getSMPKeyTypeMaskString(pairing_data.keys_init_exp).c_str(),
+                getSMPKeyTypeMaskString(pairing_data.keys_resp_has).c_str(),
+                getSMPKeyTypeMaskString(pairing_data.keys_resp_exp).c_str());
         }
     }
 
@@ -619,27 +619,27 @@ bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared
                         const bool responder = ( SMPLongTermKeyInfo::Property::RESPONDER & smp_ltk.properties ) != SMPLongTermKeyInfo::Property::NONE;
 
                         if( responder ) {
-                            if( ( SMPKeyDist::ENC_KEY & pairing_data.keys_resp_has ) == SMPKeyDist::NONE ) { // no overwrite
+                            if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) == SMPKeyType::NONE ) { // no overwrite
                                 if( jau::environment::get().debug ) {
                                     jau::PLAIN_PRINT(false, "[%s] DBTDevice::updatePairingState.0: ENC_KEY responder set", timestamp.c_str());
                                     jau::PLAIN_PRINT(false, "[%s] - old %s", timestamp.c_str(), pairing_data.ltk_resp.toString().c_str());
                                     jau::PLAIN_PRINT(false, "[%s] - new %s", timestamp.c_str(), smp_ltk.toString().c_str());
                                 }
                                 pairing_data.ltk_resp = smp_ltk;
-                                pairing_data.keys_resp_has |= SMPKeyDist::ENC_KEY;
+                                pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY;
                                 if( checkPairingKeyDistributionComplete(timestamp) ) {
                                     is_device_ready = true;
                                 }
                             }
                         } else {
-                            if( ( SMPKeyDist::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyDist::NONE ) { // no overwrite
+                            if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyType::NONE ) { // no overwrite
                                 if( jau::environment::get().debug ) {
                                     jau::PLAIN_PRINT(false, "[%s] DBTDevice::updatePairingState.0: ENC_KEY initiator set", timestamp.c_str());
                                     jau::PLAIN_PRINT(false, "[%s] - old %s", timestamp.c_str(), pairing_data.ltk_init.toString().c_str());
                                     jau::PLAIN_PRINT(false, "[%s] - new %s", timestamp.c_str(), smp_ltk.toString().c_str());
                                 }
                                 pairing_data.ltk_init = smp_ltk;
-                                pairing_data.keys_init_has |= SMPKeyDist::ENC_KEY;
+                                pairing_data.keys_init_has |= SMPKeyType::ENC_KEY;
                                 if( checkPairingKeyDistributionComplete(timestamp) ) {
                                     is_device_ready = true;
                                 }
@@ -767,8 +767,8 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
                     jau::PLAIN_PRINT(false, "[%s] - encsz: init %d", timestamp.c_str(), (int)pairing_data.maxEncsz_init);
                     jau::PLAIN_PRINT(false, "[%s] - encsz: resp %d", timestamp.c_str(), (int)pairing_data.maxEncsz_resp);
                     jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
-                    jau::PLAIN_PRINT(false, "[%s] - keys:  init %s", timestamp.c_str(), getSMPKeyDistMaskString(pairing_data.keys_init_exp).c_str());
-                    jau::PLAIN_PRINT(false, "[%s] - keys:  resp %s", timestamp.c_str(), getSMPKeyDistMaskString(pairing_data.keys_resp_exp).c_str());
+                    jau::PLAIN_PRINT(false, "[%s] - keys:  init %s", timestamp.c_str(), getSMPKeyTypeMaskString(pairing_data.keys_init_exp).c_str());
+                    jau::PLAIN_PRINT(false, "[%s] - keys:  resp %s", timestamp.c_str(), getSMPKeyTypeMaskString(pairing_data.keys_resp_exp).c_str());
                 }
             }
         } break;
@@ -838,12 +838,12 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
             const SMPMasterIdentMsg & msg1 = *static_cast<const SMPMasterIdentMsg *>( msg.get() );
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
                 // from responder (LL slave)
-                pairing_data.keys_resp_has |= SMPKeyDist::ENC_KEY;
+                pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY;
                 pairing_data.ltk_resp.ediv = msg1.getEDIV();
                 pairing_data.ltk_resp.rand = msg1.getRand();
             } else {
                 // from initiator (LL master)
-                pairing_data.keys_init_has |= SMPKeyDist::ENC_KEY;
+                pairing_data.keys_init_has |= SMPKeyType::ENC_KEY;
                 pairing_data.ltk_init.ediv = msg1.getEDIV();
                 pairing_data.ltk_init.rand = msg1.getRand();
             }
@@ -866,12 +866,12 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
             const SMPIdentAddrInfoMsg & msg1 = *static_cast<const SMPIdentAddrInfoMsg *>( msg.get() );
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
                 // from responder (LL slave)
-                pairing_data.keys_resp_has |= SMPKeyDist::ID_KEY;
+                pairing_data.keys_resp_has |= SMPKeyType::ID_KEY;
                 pairing_data.address = msg1.getAddress();
                 pairing_data.is_static_random_address = msg1.isStaticRandomAddress();
             } else {
                 // from initiator (LL master)
-                pairing_data.keys_init_has |= SMPKeyDist::ID_KEY;
+                pairing_data.keys_init_has |= SMPKeyType::ID_KEY;
                 pairing_data.address = msg1.getAddress();
                 pairing_data.is_static_random_address = msg1.isStaticRandomAddress();
             }
@@ -882,12 +882,22 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
             const SMPSignInfoMsg & msg1 = *static_cast<const SMPSignInfoMsg *>( msg.get() );
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
                 // from responder (LL slave)
-                pairing_data.keys_resp_has |= SMPKeyDist::SIGN_KEY;
-                pairing_data.csrk_resp = msg1.getCSRK();
+                pairing_data.keys_resp_has |= SMPKeyType::SIGN_KEY;
+
+                pairing_data.csrk_resp.properties |= SMPSignatureResolvingKeyInfo::Property::RESPONDER;
+                if( BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn ) {
+                    pairing_data.csrk_resp.properties |= SMPSignatureResolvingKeyInfo::Property::AUTH;
+                }
+                pairing_data.csrk_resp.csrk = msg1.getCSRK();
             } else {
                 // from initiator (LL master)
-                pairing_data.keys_init_has |= SMPKeyDist::SIGN_KEY;
-                pairing_data.csrk_init = msg1.getCSRK();
+                pairing_data.keys_init_has |= SMPKeyType::SIGN_KEY;
+
+                // pairing_data.csrk_init.properties |= SMPSignatureResolvingKeyInfo::Property::INITIATOR;
+                if( BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn ) {
+                    pairing_data.csrk_init.properties |= SMPSignatureResolvingKeyInfo::Property::AUTH;
+                }
+                pairing_data.csrk_init.csrk = msg1.getCSRK();
             }
         }   break;
 
@@ -917,10 +927,10 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
             is_device_ready);
         jau::PLAIN_PRINT(false, "[%s] - keys[init %s / %s, resp %s / %s]",
             timestamp.c_str(),
-            getSMPKeyDistMaskString(pairing_data.keys_init_has).c_str(),
-            getSMPKeyDistMaskString(pairing_data.keys_init_exp).c_str(),
-            getSMPKeyDistMaskString(pairing_data.keys_resp_has).c_str(),
-            getSMPKeyDistMaskString(pairing_data.keys_resp_exp).c_str());
+            getSMPKeyTypeMaskString(pairing_data.keys_init_has).c_str(),
+            getSMPKeyTypeMaskString(pairing_data.keys_init_exp).c_str(),
+            getSMPKeyTypeMaskString(pairing_data.keys_resp_has).c_str(),
+            getSMPKeyTypeMaskString(pairing_data.keys_resp_exp).c_str());
     }
 
     if( old_pstate == pstate /* && old_pmode == pmode */ ) {
@@ -939,6 +949,15 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
     if( jau::environment::get().debug ) {
         jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.6: End", timestamp.c_str());
         jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), toString(false).c_str());
+    }
+}
+
+SMPKeyType DBTDevice::getAvailableSMPKeys(const bool responder) const noexcept {
+    jau::sc_atomic_critical sync(const_cast<DBTDevice*>(this)->sync_pairing);
+    if( responder ) {
+        return pairing_data.keys_resp_has;
+    } else {
+        return pairing_data.keys_init_has;
     }
 }
 
@@ -963,6 +982,11 @@ HCIStatusCode DBTDevice::setLongTermKeyInfo(const SMPLongTermKeyInfo& ltk) noexc
     DBTManager & mngr = adapter.getManager();
     HCIStatusCode res = mngr.uploadLongTermKeyInfo(adapter.dev_id, address, addressType, ltk);
     return res;
+}
+
+SMPSignatureResolvingKeyInfo DBTDevice::getSignatureResolvingKeyInfo(const bool responder) const noexcept {
+    jau::sc_atomic_critical sync(const_cast<DBTDevice*>(this)->sync_pairing);
+    return responder ? pairing_data.csrk_resp : pairing_data.csrk_init;
 }
 
 HCIStatusCode DBTDevice::pair(const SMPIOCapability io_cap) noexcept {
@@ -1172,8 +1196,8 @@ void DBTDevice::clearSMPStates(const bool connected) noexcept {
     pairing_data.ioCap_resp    = SMPIOCapability::NO_INPUT_NO_OUTPUT;
     pairing_data.oobFlag_resp  = SMPOOBDataFlag::OOB_AUTH_DATA_NOT_PRESENT;
     pairing_data.maxEncsz_resp = 0;
-    pairing_data.keys_resp_exp = SMPKeyDist::NONE;
-    pairing_data.keys_resp_has = SMPKeyDist::NONE;
+    pairing_data.keys_resp_exp = SMPKeyType::NONE;
+    pairing_data.keys_resp_has = SMPKeyType::NONE;
     pairing_data.ltk_resp.clear();
     pairing_data.irk_resp.clear();
     // pairing_data.address;
@@ -1184,8 +1208,8 @@ void DBTDevice::clearSMPStates(const bool connected) noexcept {
     pairing_data.ioCap_init    = SMPIOCapability::NO_INPUT_NO_OUTPUT;
     pairing_data.oobFlag_init  = SMPOOBDataFlag::OOB_AUTH_DATA_NOT_PRESENT;
     pairing_data.maxEncsz_init = 0;
-    pairing_data.keys_init_exp = SMPKeyDist::NONE;
-    pairing_data.keys_init_has = SMPKeyDist::NONE;
+    pairing_data.keys_init_exp = SMPKeyType::NONE;
+    pairing_data.keys_init_has = SMPKeyType::NONE;
     pairing_data.ltk_init.clear();
     pairing_data.irk_init.clear();
     pairing_data.csrk_init.clear();

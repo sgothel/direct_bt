@@ -195,6 +195,35 @@ __pack( struct MyLongTermKeyInfo {
     }
 } );
 
+__pack( struct MySignatureResolvingKeyInfo {
+    EUI48 address;
+    BDAddressType address_type;
+    SMPSignatureResolvingKeyInfo smp_csrk;
+
+    bool write(const std::string filename) {
+        std::ofstream file(filename, std::ios::binary | std::ios::trunc);
+        file.write((char*)this, sizeof(*this));
+        file.close();
+        fprintf(stderr, "****** WRITE CSRK [%s %s, written]: %s\n",
+                address.toString().c_str(), getBDAddressTypeString(address_type).c_str(),
+                smp_csrk.toString().c_str());
+        return true;
+    }
+
+    bool read(const std::string filename) {
+        std::ifstream file(filename, std::ios::binary);
+        if (!file.is_open() ) {
+            return false;
+        }
+        file.read((char*)this, sizeof(*this));
+        file.close();
+        fprintf(stderr, "****** READ CSRK [%s %s]: %s\n",
+                address.toString().c_str(), getBDAddressTypeString(address_type).c_str(),
+                smp_csrk.toString().c_str());
+        return true;
+    }
+} );
+
 class MyAdapterStatusListener : public AdapterStatusListener {
 
     void adapterSettingsChanged(DBTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
@@ -448,15 +477,29 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
         const SMPPairingState pstate = device->getPairingState();
         const PairingMode pmode = device->getPairingMode(); // Skip PairingMode::PRE_PAIRED (write again)
         if( SMPPairingState::COMPLETED == pstate && PairingMode::PRE_PAIRED != pmode ) {
-            {
+            const SMPKeyType keys_resp = device->getAvailableSMPKeys(true /* responder */);
+            const SMPKeyType keys_init = device->getAvailableSMPKeys(false /* responder */);
+
+            if( ( SMPKeyType::ENC_KEY & keys_init ) != SMPKeyType::NONE ) {
                 MyLongTermKeyInfo my_ltk { device->getAddress(), device->getAddressType(),
                                            device->getLongTermKeyInfo(false /* responder */) };
                 my_ltk.write(my_ltk.address.toString()+".init.ltk");
             }
-            {
+            if( ( SMPKeyType::ENC_KEY & keys_resp ) != SMPKeyType::NONE ) {
                 MyLongTermKeyInfo my_ltk { device->getAddress(), device->getAddressType(),
                                            device->getLongTermKeyInfo(true /* responder */) };
                 my_ltk.write(my_ltk.address.toString()+".resp.ltk");
+            }
+
+            if( ( SMPKeyType::SIGN_KEY & keys_init ) != SMPKeyType::NONE ) {
+                MySignatureResolvingKeyInfo my_csrk { device->getAddress(), device->getAddressType(),
+                                                      device->getSignatureResolvingKeyInfo(false /* responder */) };
+                my_csrk.write(my_csrk.address.toString()+".init.csrk");
+            }
+            if( ( SMPKeyType::SIGN_KEY & keys_resp ) != SMPKeyType::NONE ) {
+                MySignatureResolvingKeyInfo my_csrk { device->getAddress(), device->getAddressType(),
+                                                      device->getSignatureResolvingKeyInfo(true /* responder */) };
+                my_csrk.write(my_csrk.address.toString()+".resp.csrk");
             }
         }
     }

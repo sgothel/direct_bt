@@ -49,8 +49,10 @@ import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.PairingMode;
 import org.tinyb.SMPIOCapability;
+import org.tinyb.SMPKeyMask;
 import org.tinyb.SMPLongTermKeyInfo;
 import org.tinyb.SMPPairingState;
+import org.tinyb.SMPSignatureResolvingKeyInfo;
 
 public class DBTDevice extends DBTObject implements BluetoothDevice
 {
@@ -329,6 +331,12 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public final BluetoothDevice clone() { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
+    public final SMPKeyMask getAvailableSMPKeys(final boolean responder) {
+        return new SMPKeyMask(getAvailableSMPKeysImpl(responder));
+    }
+    private final native byte getAvailableSMPKeysImpl(final boolean responder);
+
+    @Override
     public final SMPLongTermKeyInfo getLongTermKeyInfo(final boolean responder) {
         final byte[] stream = new byte[SMPLongTermKeyInfo.byte_size];
         getLongTermKeyInfoImpl(responder, stream);
@@ -343,6 +351,14 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         return HCIStatusCode.get( setLongTermKeyInfoImpl(stream) );
     }
     private final native byte setLongTermKeyInfoImpl(final byte[] source);
+
+    @Override
+    public final SMPSignatureResolvingKeyInfo getSignatureResolvingKeyInfo(final boolean responder) {
+        final byte[] stream = new byte[SMPSignatureResolvingKeyInfo.byte_size];
+        getSignatureResolvingKeyInfoImpl(responder, stream);
+        return new SMPSignatureResolvingKeyInfo(stream, 0);
+    }
+    private final native void getSignatureResolvingKeyInfoImpl(final boolean responder, final byte[] sink);
 
     @Override
     public final boolean pair() throws BluetoothException {

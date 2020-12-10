@@ -378,6 +378,18 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_connectLEImpl1(JNIEnv *env, jobject obj,
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
+jbyte Java_direct_1bt_tinyb_DBTDevice_getAvailableSMPKeysImpl(JNIEnv *env, jobject obj, jboolean responder) {
+    try {
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        return number( device->getAvailableSMPKeys(JNI_TRUE == responder) ); // assign data of new key copy to JNI critical-array
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return 0;
+}
+
 void Java_direct_1bt_tinyb_DBTDevice_getLongTermKeyInfoImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
@@ -427,6 +439,30 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_setLongTermKeyInfoImpl(JNIEnv *env, jobjec
         rethrow_and_raise_java_exception(env);
     }
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+}
+
+void Java_direct_1bt_tinyb_DBTDevice_getSignatureResolvingKeyInfoImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
+    try {
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        if( nullptr == jsink ) {
+            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+        }
+        const size_t sink_size = env->GetArrayLength(jsink);
+        if( sizeof(SMPSignatureResolvingKeyInfo) > sink_size ) {
+            throw IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPSignatureResolvingKeyInfo)), E_FILE_LINE);
+        }
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
+        if( NULL == sink_ptr ) {
+            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+        }
+        SMPSignatureResolvingKeyInfo& csrk_sink = *reinterpret_cast<SMPSignatureResolvingKeyInfo *>(sink_ptr);
+        csrk_sink = device->getSignatureResolvingKeyInfo(JNI_TRUE == responder); // assign data of new key copy to JNI critical-array
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
 }
 
 jbyte Java_direct_1bt_tinyb_DBTDevice_unpairImpl(JNIEnv *env, jobject obj) {

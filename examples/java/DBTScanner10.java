@@ -65,8 +65,10 @@ import org.tinyb.HCIStatusCode;
 import org.tinyb.HCIWhitelistConnectType;
 import org.tinyb.PairingMode;
 import org.tinyb.SMPIOCapability;
+import org.tinyb.SMPKeyMask;
 import org.tinyb.SMPLongTermKeyInfo;
 import org.tinyb.SMPPairingState;
+import org.tinyb.SMPSignatureResolvingKeyInfo;
 import org.tinyb.ScanType;
 
 import direct_bt.tinyb.DBTManager;
@@ -144,6 +146,11 @@ public class DBTScanner10 {
         BluetoothAddressType address_type;
         SMPLongTermKeyInfo smp_ltk;
 
+        MyLongTermKeyInfo(final EUI48 address, final BluetoothAddressType address_type, final SMPLongTermKeyInfo smp_ltk) {
+            this.address = address;
+            this.address_type = address_type;
+            this.smp_ltk = smp_ltk;
+        }
         MyLongTermKeyInfo() {
             address = new EUI48();
             address_type = BluetoothAddressType.BDADDR_UNDEFINED;
@@ -196,6 +203,78 @@ public class DBTScanner10 {
                 smp_ltk.putStream(buffer, 6+1);
                 println("****** READ LTK ["+address+" "+address_type+", valid "+smp_ltk.isValid()+"]: "+smp_ltk);
                 return smp_ltk.isValid();
+            } catch (final Exception ex) {
+                ex.printStackTrace();
+            } finally {
+                try {
+                    if( null != in ) {
+                        in.close();
+                    }
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return false;
+        }
+    }
+    static public class MySignatureResolvingKeyInfo {
+        EUI48 address;
+        BluetoothAddressType address_type;
+        SMPSignatureResolvingKeyInfo smp_csrk;
+
+        MySignatureResolvingKeyInfo(final EUI48 address, final BluetoothAddressType address_type, final SMPSignatureResolvingKeyInfo smp_csrk) {
+            this.address = address;
+            this.address_type = address_type;
+            this.smp_csrk = smp_csrk;
+        }
+        MySignatureResolvingKeyInfo() {
+            address = new EUI48();
+            address_type = BluetoothAddressType.BDADDR_UNDEFINED;
+            smp_csrk = new SMPSignatureResolvingKeyInfo();
+        }
+
+        boolean write(final String filename) {
+            final File file = new File(filename);
+            OutputStream out = null;
+            try {
+                file.delete(); // alternative to truncate, if existing
+                out = new FileOutputStream(file);
+                out.write(address.b);
+                out.write(address_type.value);
+                final byte[] smp_ltk_b = new byte[SMPSignatureResolvingKeyInfo.byte_size];
+                smp_csrk.getStream(smp_ltk_b, 0);
+                out.write(smp_ltk_b);
+                println("****** WRITE CSRK ["+address+" "+address_type+", written]: "+smp_csrk);
+                return true;
+            } catch (final Exception ex) {
+                ex.printStackTrace();
+            } finally {
+                try {
+                    if( null != out ) {
+                        out.close();
+                    }
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return false;
+        }
+
+        boolean read(final String filename) {
+            final File file = new File(filename);
+            InputStream in = null;
+            try {
+                final byte[] buffer = new byte[6 + 1 + SMPSignatureResolvingKeyInfo.byte_size];
+                in = new FileInputStream(file);
+                final int read_count = in.read(buffer, 0, buffer.length);
+                if( read_count != buffer.length ) {
+                    throw new IOException("Couldn't read "+buffer.length+" bytes, only "+read_count+" from "+filename);
+                }
+                address.putStream(buffer, 0);
+                address_type = BluetoothAddressType.get(buffer[6]);
+                smp_csrk.putStream(buffer, 6+1);
+                println("****** READ CSRK ["+address+" "+address_type+"]: "+smp_csrk);
+                return true;
             } catch (final Exception ex) {
                 ex.printStackTrace();
             } finally {
@@ -442,19 +521,29 @@ public class DBTScanner10 {
             final SMPPairingState pstate = device.getPairingState();
             final PairingMode pmode = device.getPairingMode(); // Skip PairingMode::PRE_PAIRED (write again)
             if( SMPPairingState.COMPLETED == pstate && PairingMode.PRE_PAIRED != pmode ) {
-                {
-                    final MyLongTermKeyInfo my_ltk = new MyLongTermKeyInfo();
-                    my_ltk.address = device.getAddress();
-                    my_ltk.address_type = device.getAddressType();
-                    my_ltk.smp_ltk = device.getLongTermKeyInfo(false /* responder */);
+                final SMPKeyMask keys_resp = device.getAvailableSMPKeys(true /* responder */);
+                final SMPKeyMask keys_init = device.getAvailableSMPKeys(false /* responder */);
+
+                if( keys_init.isSet(SMPKeyMask.KeyType.ENC_KEY) ) {
+                    final MyLongTermKeyInfo my_ltk = new MyLongTermKeyInfo(device.getAddress(), device.getAddressType(),
+                                                                           device.getLongTermKeyInfo(false /* responder */));
                     my_ltk.write(my_ltk.address.toString()+".init.ltk");
                 }
-                {
-                    final MyLongTermKeyInfo my_ltk = new MyLongTermKeyInfo();
-                    my_ltk.address = device.getAddress();
-                    my_ltk.address_type = device.getAddressType();
-                    my_ltk.smp_ltk = device.getLongTermKeyInfo(true /* responder */);
+                if( keys_resp.isSet(SMPKeyMask.KeyType.ENC_KEY) ) {
+                    final MyLongTermKeyInfo my_ltk = new MyLongTermKeyInfo(device.getAddress(), device.getAddressType(),
+                                                                           device.getLongTermKeyInfo(true /* responder */));
                     my_ltk.write(my_ltk.address.toString()+".resp.ltk");
+                }
+
+                if( keys_init.isSet(SMPKeyMask.KeyType.SIGN_KEY) ) {
+                    final MySignatureResolvingKeyInfo my_csrk = new MySignatureResolvingKeyInfo(device.getAddress(), device.getAddressType(),
+                                                                                               device.getSignatureResolvingKeyInfo(false /* responder */));
+                    my_csrk.write(my_csrk.address.toString()+".init.csrk");
+                }
+                if( keys_resp.isSet(SMPKeyMask.KeyType.SIGN_KEY) ) {
+                    final MySignatureResolvingKeyInfo my_csrk = new MySignatureResolvingKeyInfo(device.getAddress(), device.getAddressType(),
+                                                                                               device.getSignatureResolvingKeyInfo(true /* responder */));
+                    my_csrk.write(my_csrk.address.toString()+".resp.csrk");
                 }
             }
         }

@@ -331,7 +331,7 @@ namespace direct_bt {
                                const SMPIOCapability ioCap_ini, const SMPIOCapability ioCap_res) noexcept;
 
     /**
-     * SMP Key Distribution, indicates keys distributed in the Transport Specific Key Distribution phase.
+     * SMP Key Type for Distribution, indicates keys distributed in the Transport Specific Key Distribution phase.
      * <pre>
      * Field format and usage: Vol 3, Part H, 3.6.1 SMP - LE Security - Key distribution and generation.
      * See also Vol 3, Part H, 2.4.3 SM - LE Security - Distribution of keys.
@@ -342,7 +342,7 @@ namespace direct_bt {
      * uint8_t EncKey : 1, IdKey : 1, SignKey : 1, LinkKey : 1, RFU : 4;
      * </pre>
      */
-    enum class SMPKeyDist : uint8_t {
+    enum class SMPKeyType : uint8_t {
         NONE                        =          0,
         /**
          * LE legacy pairing: Indicates device shall distribute LTK using the Encryption Information command,
@@ -386,41 +386,41 @@ namespace direct_bt {
         /** Reserved for future use */
         RFU_4                       = 0b10000000
     };
-    constexpr SMPKeyDist operator ^(const SMPKeyDist lhs, const SMPKeyDist rhs) noexcept {
-        return static_cast<SMPKeyDist> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
+    constexpr SMPKeyType operator ^(const SMPKeyType lhs, const SMPKeyType rhs) noexcept {
+        return static_cast<SMPKeyType> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
     }
-    constexpr SMPKeyDist& operator ^=(SMPKeyDist& store, const SMPKeyDist& rhs) noexcept {
-        store = static_cast<SMPKeyDist> ( static_cast<uint8_t>(store) ^ static_cast<uint8_t>(rhs) );
+    constexpr SMPKeyType& operator ^=(SMPKeyType& store, const SMPKeyType& rhs) noexcept {
+        store = static_cast<SMPKeyType> ( static_cast<uint8_t>(store) ^ static_cast<uint8_t>(rhs) );
         return store;
     }
-    constexpr SMPKeyDist operator |(const SMPKeyDist lhs, const SMPKeyDist rhs) noexcept {
-        return static_cast<SMPKeyDist> ( static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs) );
+    constexpr SMPKeyType operator |(const SMPKeyType lhs, const SMPKeyType rhs) noexcept {
+        return static_cast<SMPKeyType> ( static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs) );
     }
-    constexpr SMPKeyDist& operator |=(SMPKeyDist& store, const SMPKeyDist& rhs) noexcept {
-        store = static_cast<SMPKeyDist> ( static_cast<uint8_t>(store) | static_cast<uint8_t>(rhs) );
+    constexpr SMPKeyType& operator |=(SMPKeyType& store, const SMPKeyType& rhs) noexcept {
+        store = static_cast<SMPKeyType> ( static_cast<uint8_t>(store) | static_cast<uint8_t>(rhs) );
         return store;
     }
-    constexpr SMPKeyDist operator &(const SMPKeyDist lhs, const SMPKeyDist rhs) noexcept {
-        return static_cast<SMPKeyDist> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
+    constexpr SMPKeyType operator &(const SMPKeyType lhs, const SMPKeyType rhs) noexcept {
+        return static_cast<SMPKeyType> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
     }
-    constexpr SMPKeyDist& operator &=(SMPKeyDist& store, const SMPKeyDist& rhs) noexcept {
-        store = static_cast<SMPKeyDist> ( static_cast<uint8_t>(store) & static_cast<uint8_t>(rhs) );
+    constexpr SMPKeyType& operator &=(SMPKeyType& store, const SMPKeyType& rhs) noexcept {
+        store = static_cast<SMPKeyType> ( static_cast<uint8_t>(store) & static_cast<uint8_t>(rhs) );
         return store;
     }
-    constexpr bool operator ==(const SMPKeyDist lhs, const SMPKeyDist rhs) noexcept {
+    constexpr bool operator ==(const SMPKeyType lhs, const SMPKeyType rhs) noexcept {
         return static_cast<uint8_t>(lhs) == static_cast<uint8_t>(rhs);
     }
-    constexpr bool operator !=(const SMPKeyDist lhs, const SMPKeyDist rhs) noexcept {
+    constexpr bool operator !=(const SMPKeyType lhs, const SMPKeyType rhs) noexcept {
         return !( lhs == rhs );
     }
-    constexpr uint8_t number(const SMPKeyDist rhs) noexcept {
+    constexpr uint8_t number(const SMPKeyType rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
-    constexpr bool isKeyDistBitSet(const SMPKeyDist mask, const SMPKeyDist bit) noexcept {
-        return SMPKeyDist::NONE != ( mask & bit );
+    constexpr bool isKeyDistBitSet(const SMPKeyType mask, const SMPKeyType bit) noexcept {
+        return SMPKeyType::NONE != ( mask & bit );
     }
-    std::string getSMPKeyDistBitString(const SMPKeyDist bit) noexcept;
-    std::string getSMPKeyDistMaskString(const SMPKeyDist mask) noexcept;
+    std::string getSMPKeyTypeBitString(const SMPKeyType bit) noexcept;
+    std::string getSMPKeyTypeMaskString(const SMPKeyType mask) noexcept;
 
     /**
      * SMP Long Term Key Info, used for platform agnostic persistence.
@@ -822,16 +822,16 @@ namespace direct_bt {
         private:
             const bool request;
             const SMPAuthReqs authReqMask;
-            const SMPKeyDist initiator_key_dist;
-            const SMPKeyDist responder_key_dist;
+            const SMPKeyType initiator_key_dist;
+            const SMPKeyType responder_key_dist;
 
         public:
             SMPPairingMsg(const bool request_, const uint8_t* source, const jau::nsize_t length)
             : SMPPDUMsg(source, length),
               request(request_),
               authReqMask(static_cast<SMPAuthReqs>( pdu.get_uint8_nc(3) )),
-              initiator_key_dist(static_cast<SMPKeyDist>(pdu.get_uint8_nc(5))),
-              responder_key_dist(static_cast<SMPKeyDist>(pdu.get_uint8_nc(6)))
+              initiator_key_dist(static_cast<SMPKeyType>(pdu.get_uint8_nc(5))),
+              responder_key_dist(static_cast<SMPKeyType>(pdu.get_uint8_nc(6)))
             {
                 checkOpcode(request? Opcode::PAIRING_REQUEST : Opcode::PAIRING_RESPONSE);
             }
@@ -839,8 +839,8 @@ namespace direct_bt {
             SMPPairingMsg(const bool request_,
                           const SMPIOCapability ioc, const SMPOOBDataFlag odf,
                           const SMPAuthReqs auth_req_mask, const uint8_t maxEncKeySize,
-                          const SMPKeyDist initiator_key_dist_,
-                          const SMPKeyDist responder_key_dist_)
+                          const SMPKeyType initiator_key_dist_,
+                          const SMPKeyType responder_key_dist_)
             : SMPPDUMsg(request_? Opcode::PAIRING_REQUEST : Opcode::PAIRING_RESPONSE, 1+6),
               request(request_),
               authReqMask(auth_req_mask), initiator_key_dist(initiator_key_dist_), responder_key_dist(responder_key_dist_)
@@ -911,7 +911,7 @@ namespace direct_bt {
              * </pre>
              * @see SMPKeyDistFormat
              */
-            constexpr SMPKeyDist getInitKeyDist() const noexcept {
+            constexpr SMPKeyType getInitKeyDist() const noexcept {
                 return initiator_key_dist;
             }
             /**
@@ -924,7 +924,7 @@ namespace direct_bt {
              * </p>
              * @see SMPKeyDistFormat
              */
-            constexpr SMPKeyDist getRespKeyDist() const noexcept {
+            constexpr SMPKeyType getRespKeyDist() const noexcept {
                 return responder_key_dist;
             }
 
@@ -938,8 +938,8 @@ namespace direct_bt {
                        ", oob "+getSMPOOBDataFlagString(getOOBDataFlag())+
                        ", auth_req "+getSMPAuthReqMaskString(getAuthReqMask())+
                        ", max_keysz "+std::to_string(getMaxEncryptionKeySize())+
-                       ", key_dist[init "+getSMPKeyDistMaskString(getInitKeyDist())+
-                       ", resp "+getSMPKeyDistMaskString(getRespKeyDist())+
+                       ", key_dist[init "+getSMPKeyTypeMaskString(getInitKeyDist())+
+                       ", resp "+getSMPKeyTypeMaskString(getRespKeyDist())+
                        "]";
             }
     };

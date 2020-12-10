@@ -268,9 +268,9 @@ PairingMode direct_bt::getPairingMode(const bool use_sc,
     X(RFU_3) \
     X(RFU_4)
 
-#define CASE_TO_STRING_KEYDISTFMT(V) case SMPKeyDist::V: return #V;
+#define CASE_TO_STRING_KEYDISTFMT(V) case SMPKeyType::V: return #V;
 
-std::string direct_bt::getSMPKeyDistBitString(const SMPKeyDist bit) noexcept {
+std::string direct_bt::getSMPKeyTypeBitString(const SMPKeyType bit) noexcept {
     switch(bit) {
         KEYDISTFMT_ENUM(CASE_TO_STRING_KEYDISTFMT)
         default: ; // fall through intended
@@ -278,7 +278,7 @@ std::string direct_bt::getSMPKeyDistBitString(const SMPKeyDist bit) noexcept {
     return "Unknown SMPKeyDistFormat bit";
 }
 
-std::string direct_bt::getSMPKeyDistMaskString(const SMPKeyDist mask) noexcept {
+std::string direct_bt::getSMPKeyTypeMaskString(const SMPKeyType mask) noexcept {
     const uint8_t one = 1;
     bool has_pre = false;
     std::string out("[");
@@ -286,7 +286,7 @@ std::string direct_bt::getSMPKeyDistMaskString(const SMPKeyDist mask) noexcept {
         const uint8_t settingBit = one << i;
         if( 0 != ( static_cast<uint8_t>(mask) & settingBit ) ) {
             if( has_pre ) { out.append(", "); }
-            out.append( getSMPKeyDistBitString( static_cast<SMPKeyDist>(settingBit) ) );
+            out.append( getSMPKeyTypeBitString( static_cast<SMPKeyType>(settingBit) ) );
             has_pre = true;
         }
     }
@@ -331,6 +331,36 @@ std::string SMPLongTermKeyInfo::getPropertyMaskString(const Property mask) noexc
     return out;
 }
 
+#define CSRKPROP_ENUM(X) \
+    X(NONE) \
+    X(RESPONDER) \
+    X(AUTH)
+
+#define CASE_TO_STRING_CSRKPROPFMT(V) case SMPSignatureResolvingKeyInfo::Property::V: return #V;
+
+std::string SMPSignatureResolvingKeyInfo::getPropertyBitString(const Property bit) noexcept {
+    switch(bit) {
+        CSRKPROP_ENUM(CASE_TO_STRING_CSRKPROPFMT)
+        default: ; // fall through intended
+    }
+    return "Unknown SMPSignatureResolvingKeyInfo::Property bit";
+}
+
+std::string SMPSignatureResolvingKeyInfo::getPropertyMaskString(const Property mask) noexcept {
+    bool has_pre = false;
+    std::string out("[");
+    if( Property::NONE != ( mask & Property::RESPONDER ) ) {
+        out.append( getPropertyBitString( Property::RESPONDER ) );
+        has_pre = true;
+    }
+    if( Property::NONE != ( mask & Property::AUTH ) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append( getPropertyBitString( Property::AUTH ) );
+        has_pre = true;
+    }
+    out.append("]");
+    return out;
+}
 
 #define OPCODE_ENUM(X) \
         X(UNDEFINED) \

@@ -47,8 +47,10 @@ import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.PairingMode;
 import org.tinyb.SMPIOCapability;
+import org.tinyb.SMPKeyMask;
 import org.tinyb.SMPLongTermKeyInfo;
 import org.tinyb.SMPPairingState;
+import org.tinyb.SMPSignatureResolvingKeyInfo;
 
 public class DBusDevice extends DBusObject implements BluetoothDevice
 {
@@ -109,10 +111,16 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native boolean disconnectProfile(String arg_UUID) throws BluetoothException;
 
     @Override
+    public final SMPKeyMask getAvailableSMPKeys(final boolean responder) { return new SMPKeyMask(); }
+
+    @Override
     public final SMPLongTermKeyInfo getLongTermKeyInfo(final boolean responder) { return new SMPLongTermKeyInfo(); } // FIXME
 
     @Override
     public final HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk) { return HCIStatusCode.NOT_SUPPORTED; } // FIXME
+
+    @Override
+    public final SMPSignatureResolvingKeyInfo getSignatureResolvingKeyInfo(final boolean responder) { return new SMPSignatureResolvingKeyInfo(); } // FIXME
 
     @Override
     public native boolean pair() throws BluetoothException;
