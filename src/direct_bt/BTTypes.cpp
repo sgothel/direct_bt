@@ -146,15 +146,14 @@ BLERandomAddressType EUI48::getBLERandomAddressType(const BDAddressType addressT
 }
 
 std::string EUI48::toString() const {
-    const int length = 17;
     std::string str;
-    str.reserve(length+1); // including EOS for snprintf
-    str.resize(length);
+    str.reserve(17);
 
-    const int count = snprintf(&str[0], str.capacity(), "%2.2X:%2.2X:%2.2X:%2.2X:%2.2X:%2.2X",
-                                b[5], b[4], b[3], b[2], b[1], b[0]);
-    if( length != count ) {
-        throw jau::InternalError("EUI48 string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);
+    for(int i=6-1; 0 <= i; i--) {
+        jau::byteHexString(str, b[i], false /* lowerCase */);
+        if( 0 < i ) {
+            str.push_back(':');
+        }
     }
     return str;
 }
