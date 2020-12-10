@@ -113,7 +113,7 @@ public class SMPLongTermKeyInfo {
     /** {@link Properties} bit mask. 1 octet or 8 bits. */
     public Properties properties;
 
-    /** Encryption Size, 1 octets or 8 bits. */
+    /** Encryption Size, 1 octets or 8 bits. Is zero if key is invalid. */
     public byte enc_size;
     /** Encryption Diversifier, 2 octets or 16 bits. */
     public byte ediv[/*2*/];
@@ -122,43 +122,78 @@ public class SMPLongTermKeyInfo {
     /** Long Term Key (LTK), 16 octets or 128 bits. */
     public byte ltk[/*16*/];
 
-    /** Size of this byte stream compound in bytes */
+    /**
+     * Size of the byte stream representation in bytes
+     * @see #getStream(byte[], int)
+     */
     public static final int byte_size = 1+1+2+8+16;
 
-    /** Construct instance via given byte array */
-    public SMPLongTermKeyInfo(final byte stream[], int pos) {
-        if( byte_size > ( stream.length - pos ) ) {
-            throw new IllegalArgumentException("Stream ( "+stream.length+" - "+pos+" ) < "+byte_size+" bytes");
+    /** Construct instance via given source byte array */
+    public SMPLongTermKeyInfo(final byte source[], final int pos) {
+        if( byte_size > ( source.length - pos ) ) {
+            throw new IllegalArgumentException("Stream ( "+source.length+" - "+pos+" ) < "+byte_size+" bytes");
         }
-        properties = new Properties(stream[pos++]);
-        enc_size   = stream[pos++];
-        ediv[0]    = stream[pos++];
-        ediv[1]    = stream[pos++];
-        System.arraycopy(stream, pos, rand, 0,  8); pos+=8;
-        System.arraycopy(stream, pos, ltk,  0, 16); pos+=16;
+        ediv       = new byte[2];
+        rand       = new byte[8];
+        ltk        = new byte[16];
+        putStream(source, pos);
     }
 
     /** Construct emoty unset instance. */
     public SMPLongTermKeyInfo() {
         properties = new Properties((byte)0);
         enc_size   = (byte)0;
+        ediv       = new byte[2];
+        rand       = new byte[8];
+        ltk        = new byte[16];
     }
 
-    public byte[] copyStream(final byte[] stream, int pos) {
-        if( byte_size > ( stream.length - pos ) ) {
-            throw new IllegalArgumentException("Stream ( "+stream.length+" - "+pos+" ) < "+byte_size+" bytes");
+    /**
+     * Method transfers all bytes representing a SMPLongTermKeyInfo from the given
+     * source array at the given position into this instance.
+     * <p>
+     * Implementation is consistent with {@link #getStream(byte[], int)}.
+     * </p>
+     * @param source the source array
+     * @param pos starting position in the source array
+     * @see #getStream(byte[], int)
+     */
+    public void putStream(final byte[] source, int pos) {
+        if( byte_size > ( source.length - pos ) ) {
+            throw new IllegalArgumentException("Stream ( "+source.length+" - "+pos+" ) < "+byte_size+" bytes");
         }
-        stream[pos++] = properties.mask;
-        stream[pos++] = enc_size;
-        stream[pos++] = ediv[0];
-        stream[pos++] = ediv[1];
-        System.arraycopy(rand, 0, stream, pos,  8); pos+=8;
-        System.arraycopy(ltk,  0, stream, pos, 16); pos+=16;
-        return stream;
+        properties = new Properties(source[pos++]);
+        enc_size   = source[pos++];
+        ediv[0]    = source[pos++];
+        ediv[1]    = source[pos++];
+        System.arraycopy(source, pos, rand, 0,  8); pos+=8;
+        System.arraycopy(source, pos, ltk,  0, 16); pos+=16;
     }
-    public byte[] copyStream() {
-        return copyStream(new byte[byte_size], 0);
+
+    /**
+     * Method transfers all bytes representing this instance into the given
+     * destination array at the given position.
+     * <p>
+     * Implementation is consistent with {@link #SMPLongTermKeyInfo(byte[], int)}.
+     * </p>
+     * @param sink the destination array
+     * @param pos starting position in the destination array
+     * @see #SMPLongTermKeyInfo(byte[], int)
+     * @see #putStream(byte[], int)
+     */
+    public final void getStream(final byte[] sink, int pos) {
+        if( byte_size > ( sink.length - pos ) ) {
+            throw new IllegalArgumentException("Stream ( "+sink.length+" - "+pos+" ) < "+byte_size+" bytes");
+        }
+        sink[pos++] = properties.mask;
+        sink[pos++] = enc_size;
+        sink[pos++] = ediv[0];
+        sink[pos++] = ediv[1];
+        System.arraycopy(rand, 0, sink, pos,  8); pos+=8;
+        System.arraycopy(ltk,  0, sink, pos, 16); pos+=16;
     }
+
+    public final boolean isValid() { return 0 != enc_size; }
 
     @Override
     public String toString() { // hex-fmt aligned with btmon
