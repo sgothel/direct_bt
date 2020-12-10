@@ -452,7 +452,7 @@ namespace direct_bt {
 
         /** SMPLongTermKeyInfo::Property bit mask. */
         Property properties;
-        /** Encryption Size */
+        /** Encryption Size, zero if key is invalid. */
         uint8_t enc_size;
         /** Encryption Diversifier */
         uint16_t ediv;
@@ -460,6 +460,8 @@ namespace direct_bt {
         uint64_t rand;
         /** Long Term Key (LTK) */
         jau::uint128_t ltk;
+
+        bool isValid() const { return 0 != enc_size; }
 
         void clear() noexcept {
             bzero(reinterpret_cast<void *>(this), sizeof(SMPLongTermKeyInfo));
