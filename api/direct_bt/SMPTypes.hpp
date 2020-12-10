@@ -506,6 +506,80 @@ namespace direct_bt {
     }
 
     /**
+     * SMP Signature Resolving Key Info, used for platform agnostic persistence.
+     * <p>
+     * One way for ATT Signed Write.
+     * </p>
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
+     * <p>
+     * Byte layout must be synchronized with java org.tinyb.SMPSignatureResolvingKeyInfo
+     * </p>
+     */
+    __pack( struct SMPSignatureResolvingKeyInfo {
+        /**
+         * SMPLongTermKeyInfo Property Bits
+         */
+        enum class Property : uint8_t {
+            /** No specific property */
+            NONE = 0x00,
+            /** Responder Key (LL slave). Absence indicates Initiator Key (LL master). */
+            RESPONDER = 0x01,
+            /** Authentication used. */
+            AUTH = 0x02
+        };
+        static constexpr uint8_t number(const Property rhs) noexcept {
+            return static_cast<uint8_t>(rhs);
+        }
+        static std::string getPropertyBitString(const Property bit) noexcept;
+        static std::string getPropertyMaskString(const Property mask) noexcept;
+
+        /** SMPSignatureResolvingKeyInfo::Property bit mask. */
+        Property properties;
+        /** Connection Signature Resolving Key (CSRK) */
+        jau::uint128_t csrk;
+
+        void clear() noexcept {
+            bzero(reinterpret_cast<void *>(this), sizeof(SMPLongTermKeyInfo));
+        }
+
+        std::string toString() const noexcept { // hex-fmt aligned with btmon
+            return "CSRK[props "+getPropertyMaskString(properties)+
+                   ", csrk "+jau::bytesHexString(csrk.data, 0, sizeof(csrk), true /* lsbFirst */, false /* leading0X */)+
+                   "]";
+        }
+    } );
+    constexpr SMPSignatureResolvingKeyInfo::Property operator ^(const SMPSignatureResolvingKeyInfo::Property lhs, const SMPSignatureResolvingKeyInfo::Property rhs) noexcept {
+        return static_cast<SMPSignatureResolvingKeyInfo::Property> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
+    }
+    constexpr SMPSignatureResolvingKeyInfo::Property& operator ^=(SMPSignatureResolvingKeyInfo::Property& store, const SMPSignatureResolvingKeyInfo::Property& rhs) noexcept {
+        store = static_cast<SMPSignatureResolvingKeyInfo::Property> ( static_cast<uint8_t>(store) ^ static_cast<uint8_t>(rhs) );
+        return store;
+    }
+    constexpr SMPSignatureResolvingKeyInfo::Property operator |(const SMPSignatureResolvingKeyInfo::Property lhs, const SMPSignatureResolvingKeyInfo::Property rhs) noexcept {
+        return static_cast<SMPSignatureResolvingKeyInfo::Property> ( static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs) );
+    }
+    constexpr SMPSignatureResolvingKeyInfo::Property& operator |=(SMPSignatureResolvingKeyInfo::Property& store, const SMPSignatureResolvingKeyInfo::Property& rhs) noexcept {
+        store = static_cast<SMPSignatureResolvingKeyInfo::Property> ( static_cast<uint8_t>(store) | static_cast<uint8_t>(rhs) );
+        return store;
+    }
+    constexpr SMPSignatureResolvingKeyInfo::Property operator &(const SMPSignatureResolvingKeyInfo::Property lhs, const SMPSignatureResolvingKeyInfo::Property rhs) noexcept {
+        return static_cast<SMPSignatureResolvingKeyInfo::Property> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
+    }
+    constexpr SMPSignatureResolvingKeyInfo::Property& operator &=(SMPSignatureResolvingKeyInfo::Property& store, const SMPSignatureResolvingKeyInfo::Property& rhs) noexcept {
+        store = static_cast<SMPSignatureResolvingKeyInfo::Property> ( static_cast<uint8_t>(store) & static_cast<uint8_t>(rhs) );
+        return store;
+    }
+    constexpr bool operator ==(const SMPSignatureResolvingKeyInfo::Property lhs, const SMPSignatureResolvingKeyInfo::Property rhs) noexcept {
+        return static_cast<uint8_t>(lhs) == static_cast<uint8_t>(rhs);
+    }
+    constexpr bool operator !=(const SMPSignatureResolvingKeyInfo::Property lhs, const SMPSignatureResolvingKeyInfo::Property rhs) noexcept {
+        return !( lhs == rhs );
+    }
+
+    /**
      * Handles the Security Manager Protocol (SMP) using Protocol Data Unit (PDU)
      * encoded messages over L2CAP channel.
      * <p>
