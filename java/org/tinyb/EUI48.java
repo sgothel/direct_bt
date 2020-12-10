@@ -87,6 +87,11 @@ public class EUI48 {
         b = address;
     }
 
+    /** Construct emoty unset instance. */
+    public EUI48() {
+        b = new byte[byte_size];
+    }
+
     @Override
     public final boolean equals(final Object obj)
     {
@@ -104,6 +109,23 @@ public class EUI48 {
     public final int hashCode() { return java.util.Arrays.hashCode(b); }
 
     /**
+     * Method transfers all bytes representing a EUI48 from the given
+     * source array at the given position into this instance.
+     * <p>
+     * Implementation is consistent with {@link #EUI48(byte[], int)}.
+     * </p>
+     * @param source the source array
+     * @param pos starting position in the source array
+     * @see #EUI48(byte[], int)
+     */
+    public final void putStream(final byte[] source, final int pos) {
+        if( byte_size > ( source.length - pos ) ) {
+            throw new IllegalArgumentException("Stream ( "+source.length+" - "+pos+" ) < "+byte_size+" bytes");
+        }
+        System.arraycopy(source, pos, b, 0, byte_size);
+    }
+
+    /**
      * Method transfers all bytes representing this instance into the given
      * destination array at the given position.
      * <p>
@@ -111,15 +133,13 @@ public class EUI48 {
      * </p>
      * @param sink the destination array
      * @param pos starting position in the destination array
-     * @return the given destination array for chaining
      * @see #EUI48(byte[], int)
      */
-    public final byte[] getStream(final byte[] sink, final int pos) {
+    public final void getStream(final byte[] sink, final int pos) {
         if( byte_size > ( sink.length - pos ) ) {
             throw new IllegalArgumentException("Stream ( "+sink.length+" - "+pos+" ) < "+byte_size+" bytes");
         }
         System.arraycopy(b, 0, sink, pos, byte_size);
-        return sink;
     }
 
     public BLERandomAddressType getBLERandomAddressType(final BluetoothAddressType addressType) {
