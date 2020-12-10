@@ -27,7 +27,7 @@ package org.tinyb;
 /**
  * Bluetooth LE random address type constants.
  * <p>
- * See {@link #get(int)} for its native integer mapping.
+ * See {@link #get(byte)} for its native byte mapping.
  * </p>
  * <p>
  * BT Core Spec v5.2:  Vol 6 LE, Part B Link Layer Specification: 1.3 Device Address
@@ -49,24 +49,24 @@ package org.tinyb;
  */
 public enum BLERandomAddressType {
     /** Non-resolvable private random device address 0b00 */
-    UNRESOLVABLE_PRIVAT (0x00),
+    UNRESOLVABLE_PRIVAT ((byte)0x00),
     /** Resolvable private random device address 0b01 */
-    RESOLVABLE_PRIVAT   (0x01),
+    RESOLVABLE_PRIVAT   ((byte)0x01),
     /** Reserved for future use 0b10 */
-    RESERVED            (0x02),
+    RESERVED            ((byte)0x02),
     /** Static public 'random' device address 0b11 */
-    STATIC_PUBLIC       (0x03),
+    STATIC_PUBLIC       ((byte)0x03),
     /** Undefined, e.g. address not of type {@link BluetoothAddressType#BDADDR_LE_RANDOM} */
-    UNDEFINED           (0xff);
+    UNDEFINED           ((byte)0xff);
 
-    public final int value;
+    public final byte value;
 
     /**
-     * Maps the specified integer value to a constant of {@link BLERandomAddressType}.
-     * @param value the integer value to be mapped to a constant of this enum type.
+     * Maps the specified byte value to a constant of {@link BLERandomAddressType}.
+     * @param value the byte value to be mapped to a constant of this enum type.
      * @return the corresponding constant of this enum type, using {@link #UNDEFINED} if not supported.
      */
-    public static BLERandomAddressType get(final int value) {
+    public static BLERandomAddressType get(final byte value) {
         switch(value) {
             case 0x00: return UNRESOLVABLE_PRIVAT;
             case 0x01: return RESOLVABLE_PRIVAT;
@@ -76,22 +76,7 @@ public enum BLERandomAddressType {
         }
     }
 
-    public static BLERandomAddressType getLERandomAddressType(final String address, final BluetoothAddressType addressType) {
-        if( BluetoothAddressType.BDADDR_LE_RANDOM != addressType ) {
-            return BLERandomAddressType.UNDEFINED;
-        }
-        final String highByteS = address.substring(0, 3);
-        int highByte = 0;
-        try {
-            highByte = Integer.valueOf(highByteS, 16);
-        } catch (final NumberFormatException e) {
-            return UNDEFINED;
-        }
-        final int high2 = ( highByte >> 6 ) & 0x03;
-        return get(high2);
-    }
-
-    BLERandomAddressType(final int v) {
+    BLERandomAddressType(final byte v) {
         value = v;
     }
 }

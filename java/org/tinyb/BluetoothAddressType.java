@@ -30,7 +30,7 @@ package org.tinyb;
  * See {@link #get(String)} for its string mapping.
  * </p>
  * <p>
- * See {@link #get(int)} for its native integer mapping.
+ * See {@link #get(byte)} for its native byte mapping.
  * </p>
  * <p>
  * BT Core Spec v5.2:  Vol 3, Part C Generic Access Profile (GAP): 15.1.1.1 Public Bluetooth address
@@ -52,18 +52,33 @@ package org.tinyb;
  */
 public enum BluetoothAddressType {
     /** Bluetooth BREDR address */
-    BDADDR_BREDR      (0x00),
+    BDADDR_BREDR      ((byte)0x00),
     /** Bluetooth LE public address */
-    BDADDR_LE_PUBLIC  (0x01),
+    BDADDR_LE_PUBLIC  ((byte)0x01),
     /** Bluetooth LE random address, see {@link BLERandomAddressType} */
-    BDADDR_LE_RANDOM  (0x02),
+    BDADDR_LE_RANDOM  ((byte)0x02),
     /** Undefined */
-    BDADDR_UNDEFINED  (0xff);
+    BDADDR_UNDEFINED  ((byte)0xff);
 
-    public final int value;
+    public final byte value;
 
+    private static String _bredr = "";
     private static String _public = "public";
     private static String _random = "random";
+    private static String _undef = "undefined";
+
+    public String toDbusString() {
+        if( this == BDADDR_BREDR ) {
+            return _bredr;
+        }
+        if( this == BDADDR_LE_PUBLIC ) {
+            return _public;
+        }
+        if( this == BDADDR_LE_RANDOM ) {
+            return _random;
+        }
+        return _undef;
+    }
 
     /**
      * Maps the specified name to a constant of {@link BluetoothAddressType}.
@@ -100,20 +115,20 @@ public enum BluetoothAddressType {
     }
 
     /**
-     * Maps the specified integer value to a constant of {@link BluetoothAddressType}.
-     * @param value the integer value to be mapped to a constant of this enum type.
+     * Maps the specified byte value to a constant of {@link BluetoothAddressType}.
+     * @param value the byte value to be mapped to a constant of this enum type.
      * @return the corresponding constant of this enum type, using {@link #BDADDR_UNDEFINED} if not supported.
      */
-    public static BluetoothAddressType get(final int value) {
+    public static BluetoothAddressType get(final byte value) {
         switch(value) {
-            case 0x00: return BDADDR_BREDR;
-            case 0x01: return BDADDR_LE_PUBLIC;
-            case 0x02: return BDADDR_LE_RANDOM;
+            case (byte)0x00: return BDADDR_BREDR;
+            case (byte)0x01: return BDADDR_LE_PUBLIC;
+            case (byte)0x02: return BDADDR_LE_RANDOM;
             default: return BDADDR_UNDEFINED;
         }
     }
 
-    BluetoothAddressType(final int v) {
+    BluetoothAddressType(final byte v) {
         value = v;
     }
 }
