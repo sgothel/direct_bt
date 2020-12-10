@@ -187,6 +187,7 @@ bool DBTAdapter::validateDevInfo() noexcept {
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::AUTH_FAILED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvAuthFailedMgmt));
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceUnpairedMgmt));
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvPairDeviceCompleteMgmt));
+    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvNewLongTermKeyMgmt));
 
     if( !ok ) {
         ERR_PRINT("Could not add all required MgmtEventCallbacks to DBTManager: %s", toString().c_str());
@@ -1273,6 +1274,25 @@ bool DBTAdapter::mgmtEvPairDeviceCompleteMgmt(std::shared_ptr<MgmtEvent> e) noex
         device->updatePairingState(device, e, evtStatus, pstate);
     } else {
         WORDY_PRINT("DBTAdapter::mgmt:PairDeviceComplete(dev_id %d): Device not tracked: %s",
+            dev_id, event.toString().c_str());
+    }
+    return true;
+}
+
+bool DBTAdapter::mgmtEvNewLongTermKeyMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
+    const MgmtEvtNewLongTermKey& event = *static_cast<const MgmtEvtNewLongTermKey *>(e.get());
+    const MgmtLongTermKeyInfo& ltk_info = event.getLongTermKey();
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(ltk_info.address, ltk_info.address_type);
+    if( nullptr != device ) {
+        const bool ok = ltk_info.enc_size > 0 && ltk_info.key_type != MgmtLTKType::NONE;
+        if( ok ) {
+            device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::COMPLETED);
+        } else {
+            WORDY_PRINT("DBTAdapter::mgmt:NewLongTermKey(dev_id %d): Invalid LTK: %s",
+                dev_id, event.toString().c_str());
+        }
+    } else {
+        WORDY_PRINT("DBTAdapter::mgmt:NewLongTermKey(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
     return true;

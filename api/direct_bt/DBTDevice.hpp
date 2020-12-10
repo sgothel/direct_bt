@@ -113,7 +113,6 @@ namespace direct_bt {
             std::mutex mtx_pairing;
             jau::sc_atomic_bool sync_pairing;
 
-
             DBTDevice(DBTAdapter & adapter, EInfoReport const & r);
 
             /** Add advertised service (GAP discovery) */
@@ -160,6 +159,10 @@ namespace direct_bt {
              */
             bool connectSMP(std::shared_ptr<DBTDevice> sthis, const BTSecurityLevel sec_level) noexcept;
 
+            bool checkPairingKeyDistributionComplete(const std::string& timestamp) const noexcept;
+
+            bool updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<MgmtEvent> evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
+
             /**
              * Forwarded from HCIHandler -> DBTAdapter -> this DBTDevice
              * <p>
@@ -188,8 +191,6 @@ namespace direct_bt {
              * </p>
              */
             bool connectGATT(std::shared_ptr<DBTDevice> sthis) noexcept;
-
-            bool updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<MgmtEvent> evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
 
             /**
              * Will be performed within disconnect() and notifyDisconnected().

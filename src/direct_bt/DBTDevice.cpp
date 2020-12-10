@@ -522,6 +522,44 @@ void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint6
 }
 
 
+static const SMPKeyDist _key_mask_legacy = SMPKeyDist::ENC_KEY | SMPKeyDist::ID_KEY | SMPKeyDist::SIGN_KEY;
+static const SMPKeyDist _key_mask_sc     =                       SMPKeyDist::ID_KEY | SMPKeyDist::SIGN_KEY | SMPKeyDist::LINK_KEY;
+
+bool DBTDevice::checkPairingKeyDistributionComplete(const std::string& timestamp) const noexcept {
+    bool res = false;
+
+    if( SMPPairingState::KEY_DISTRIBUTION == pairing_data.state ) {
+        // Spec allows responder to not distribute the keys,
+        // hence distribution is complete with initiator (LL master) keys!
+        // Impact of missing responder keys: Requires new pairing each connection.
+        if( pairing_data.use_sc ) {
+            if( pairing_data.keys_init_has == ( pairing_data.keys_init_exp & _key_mask_sc ) ) {
+                // pairing_data.keys_resp_has == ( pairing_data.keys_resp_exp & key_mask_sc )
+                res = true;
+            }
+        } else {
+            if( pairing_data.keys_init_has == ( pairing_data.keys_init_exp & _key_mask_legacy ) ) {
+                // pairing_data.keys_resp_has == ( pairing_data.keys_resp_exp & key_mask_legacy )
+                res = true;
+            }
+        }
+
+        if( jau::environment::get().debug ) {
+            jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:SMP:KEY_DISTRIBUTION: done %d, address[%s, %s]",
+                timestamp.c_str(), res,
+                address.toString().c_str(), getBDAddressTypeString(addressType).c_str());
+            jau::PLAIN_PRINT(false, "[%s] - keys[init %s / %s, resp %s / %s]",
+                timestamp.c_str(),
+                getSMPKeyDistMaskString(pairing_data.keys_init_has).c_str(),
+                getSMPKeyDistMaskString(pairing_data.keys_init_exp).c_str(),
+                getSMPKeyDistMaskString(pairing_data.keys_resp_has).c_str(),
+                getSMPKeyDistMaskString(pairing_data.keys_resp_exp).c_str());
+        }
+    }
+
+    return res;
+}
+
 bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<MgmtEvent> evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
@@ -568,6 +606,49 @@ bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared
                     // i.e. already paired, reusing keys and usable connection
                     mode = PairingMode::PRE_PAIRED;
                     is_device_ready = true;
+                } else if( MgmtEvent::Opcode::NEW_LONG_TERM_KEY == mgmtEvtOpcode &&
+                           HCIStatusCode::SUCCESS == evtStatus &&
+                           SMPPairingState::KEY_DISTRIBUTION == pairing_data.state )
+                {
+                    // SMP pairing has started, mngr issued new LTK key command
+                    const MgmtEvtNewLongTermKey& event = *static_cast<const MgmtEvtNewLongTermKey *>(evt.get());
+                    const MgmtLongTermKeyInfo& ltk_info = event.getLongTermKey();
+                    const SMPLongTermKeyInfo smp_ltk = ltk_info.toSMPLongTermKeyInfo();
+                    if( smp_ltk.isValid() ) {
+                        const std::string timestamp = jau::uint64DecString(jau::environment::getElapsedMillisecond(evt->getTimestamp()), ',', 9);
+                        const bool responder = ( SMPLongTermKeyInfo::Property::RESPONDER & smp_ltk.properties ) != SMPLongTermKeyInfo::Property::NONE;
+
+                        if( responder ) {
+                            if( ( SMPKeyDist::ENC_KEY & pairing_data.keys_resp_has ) == SMPKeyDist::NONE ) { // no overwrite
+                                if( jau::environment::get().debug ) {
+                                    jau::PLAIN_PRINT(false, "[%s] DBTDevice::updatePairingState.0: ENC_KEY responder set", timestamp.c_str());
+                                    jau::PLAIN_PRINT(false, "[%s] - old %s", timestamp.c_str(), pairing_data.ltk_resp.toString().c_str());
+                                    jau::PLAIN_PRINT(false, "[%s] - new %s", timestamp.c_str(), smp_ltk.toString().c_str());
+                                }
+                                pairing_data.ltk_resp = smp_ltk;
+                                pairing_data.keys_resp_has |= SMPKeyDist::ENC_KEY;
+                                if( checkPairingKeyDistributionComplete(timestamp) ) {
+                                    is_device_ready = true;
+                                }
+                            }
+                        } else {
+                            if( ( SMPKeyDist::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyDist::NONE ) { // no overwrite
+                                if( jau::environment::get().debug ) {
+                                    jau::PLAIN_PRINT(false, "[%s] DBTDevice::updatePairingState.0: ENC_KEY initiator set", timestamp.c_str());
+                                    jau::PLAIN_PRINT(false, "[%s] - old %s", timestamp.c_str(), pairing_data.ltk_init.toString().c_str());
+                                    jau::PLAIN_PRINT(false, "[%s] - new %s", timestamp.c_str(), smp_ltk.toString().c_str());
+                                }
+                                pairing_data.ltk_init = smp_ltk;
+                                pairing_data.keys_init_has |= SMPKeyDist::ENC_KEY;
+                                if( checkPairingKeyDistributionComplete(timestamp) ) {
+                                    is_device_ready = true;
+                                }
+                            }
+                        }
+                        if( !is_device_ready ) {
+                            claimed_state = pairing_data.state; // not yet
+                        }
+                    }
                 } else {
                     // Ignore: Undesired event or SMP pairing is in process, which needs to be completed.
                     claimed_state = pairing_data.state;
@@ -608,11 +689,9 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
 
-    const SMPKeyDist key_mask_legacy = SMPKeyDist::ENC_KEY | SMPKeyDist::ID_KEY | SMPKeyDist::SIGN_KEY;
-    const SMPKeyDist key_mask_sc     =                       SMPKeyDist::ID_KEY | SMPKeyDist::SIGN_KEY | SMPKeyDist::LINK_KEY;
     const SMPPairingState old_pstate = pairing_data.state;
     const PairingMode old_pmode = pairing_data.mode;
-    const std::string timestamp = jau::uint64DecString(jau::environment::getElapsedMillisecond(), ',', 9);
+    const std::string timestamp = jau::uint64DecString(jau::environment::getElapsedMillisecond(msg->ts_creation), ',', 9);
 
     SMPPairingState pstate = old_pstate;
     PairingMode pmode = old_pmode;
@@ -816,23 +895,9 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
             break;
     }
 
-    if( SMPPairingState::KEY_DISTRIBUTION == old_pstate ) {
-        // Spec allows responder to not distribute the keys,
-        // hence distribution is complete with initiator (LL master) keys!
-        // Impact of missing responder keys: Requires new pairing each connection.
-        if( pairing_data.use_sc ) {
-            if( pairing_data.keys_init_has == ( pairing_data.keys_init_exp & key_mask_sc ) ) {
-                // pairing_data.keys_resp_has == ( pairing_data.keys_resp_exp & key_mask_sc )
-                pstate = SMPPairingState::COMPLETED;
-                is_device_ready = true;
-            }
-        } else {
-            if( pairing_data.keys_init_has == ( pairing_data.keys_init_exp & key_mask_legacy ) ) {
-                // pairing_data.keys_resp_has == ( pairing_data.keys_resp_exp & key_mask_legacy )
-                pstate = SMPPairingState::COMPLETED;
-                is_device_ready = true;
-            }
-        }
+    if( checkPairingKeyDistributionComplete(timestamp) ) {
+        pstate = SMPPairingState::COMPLETED;
+        is_device_ready = true;
     }
 
     if( jau::environment::get().debug ) {
@@ -1109,6 +1174,11 @@ void DBTDevice::clearSMPStates(const bool connected) noexcept {
     pairing_data.maxEncsz_resp = 0;
     pairing_data.keys_resp_exp = SMPKeyDist::NONE;
     pairing_data.keys_resp_has = SMPKeyDist::NONE;
+    pairing_data.ltk_resp.clear();
+    pairing_data.irk_resp.clear();
+    // pairing_data.address;
+    // pairing_data.is_static_random_address;
+    pairing_data.csrk_resp.clear();
 
     pairing_data.authReqs_init = SMPAuthReqs::NONE;
     pairing_data.ioCap_init    = SMPIOCapability::NO_INPUT_NO_OUTPUT;
@@ -1116,6 +1186,9 @@ void DBTDevice::clearSMPStates(const bool connected) noexcept {
     pairing_data.maxEncsz_init = 0;
     pairing_data.keys_init_exp = SMPKeyDist::NONE;
     pairing_data.keys_init_has = SMPKeyDist::NONE;
+    pairing_data.ltk_init.clear();
+    pairing_data.irk_init.clear();
+    pairing_data.csrk_init.clear();
 }
 
 void DBTDevice::disconnectSMP(const int caller) noexcept {

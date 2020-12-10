@@ -283,6 +283,7 @@ namespace direct_bt {
             bool mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceDisconnectedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvPairDeviceCompleteMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvNewLongTermKeyMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
 
             bool mgmtEvDeviceDiscoveringHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
