@@ -53,6 +53,7 @@ import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
 import org.tinyb.BluetoothUtils;
 import org.tinyb.EIRDataTypeSet;
+import org.tinyb.EUI48;
 import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.HCIWhitelistConnectType;
@@ -72,9 +73,7 @@ import direct_bt.tinyb.DBTManager;
  * </p>
  */
 public class DBTScanner10 {
-    static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
-
-    final List<String> waitForDevices = new ArrayList<String>();
+    final List<EUI48> waitForDevices = new ArrayList<EUI48>();
 
     static final int NO_PASSKEY = -1;
     int pairing_passkey = NO_PASSKEY;
@@ -94,7 +93,7 @@ public class DBTScanner10 {
     boolean GATT_PING_ENABLED = false;
     boolean REMOVE_DEVICE = true;
     boolean USE_WHITELIST = false;
-    final List<String> whitelist = new ArrayList<String>();
+    final List<EUI48> whitelist = new ArrayList<EUI48>();
 
     String charIdentifier = null;
     int charValue = 0;
@@ -133,8 +132,8 @@ public class DBTScanner10 {
         }
     }
 
-    Collection<String> devicesInProcessing = Collections.synchronizedCollection(new ArrayList<>());
-    Collection<String> devicesProcessed = Collections.synchronizedCollection(new ArrayList<>());
+    Collection<EUI48> devicesInProcessing = Collections.synchronizedCollection(new ArrayList<>());
+    Collection<EUI48> devicesProcessed = Collections.synchronizedCollection(new ArrayList<>());
 
     final AdapterStatusListener statusListener = new AdapterStatusListener() {
         @Override
@@ -575,8 +574,8 @@ public class DBTScanner10 {
         adapter.enablePoweredNotifications(new BooleanNotification("Powered", timestamp_t0));
 
         if( USE_WHITELIST ) {
-            for(final Iterator<String> wliter = whitelist.iterator(); wliter.hasNext(); ) {
-                final String addr = wliter.next();
+            for(final Iterator<EUI48> wliter = whitelist.iterator(); wliter.hasNext(); ) {
+                final EUI48 addr = wliter.next();
                 final boolean res = adapter.addDeviceToWhitelist(addr, BluetoothAddressType.BDADDR_LE_PUBLIC, HCIWhitelistConnectType.HCI_AUTO_CONN_ALWAYS);
                 println("Added to whitelist: res "+res+", address "+addr);
             }
@@ -737,9 +736,9 @@ public class DBTScanner10 {
                 } else if( arg.equals("-shutdown") && args.length > (i+1) ) {
                     test.shutdownTest = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-mac") && args.length > (i+1) ) {
-                    test.waitForDevices.add(args[++i]);
+                    test.waitForDevices.add(new EUI48(args[++i]));
                 } else if( arg.equals("-wl") && args.length > (i+1) ) {
-                    final String addr = args[++i];
+                    final EUI48 addr = new EUI48(args[++i]);
                     println("Whitelist + "+addr);
                     test.whitelist.add(addr);
                     test.USE_WHITELIST = true;

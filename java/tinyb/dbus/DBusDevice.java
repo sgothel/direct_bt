@@ -42,10 +42,12 @@ import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
 import org.tinyb.BluetoothUtils;
+import org.tinyb.EUI48;
 import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.PairingMode;
 import org.tinyb.SMPIOCapability;
+import org.tinyb.SMPLongTermKeyInfo;
 import org.tinyb.SMPPairingState;
 
 public class DBusDevice extends DBusObject implements BluetoothDevice
@@ -107,6 +109,12 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native boolean disconnectProfile(String arg_UUID) throws BluetoothException;
 
     @Override
+    public final SMPLongTermKeyInfo getLongTermKeyInfo(final boolean responder) { return new SMPLongTermKeyInfo(); } // FIXME
+
+    @Override
+    public final HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk, final boolean responder) { return HCIStatusCode.NOT_SUPPORTED; } // FIXME
+
+    @Override
     public native boolean pair() throws BluetoothException;
 
     @Override
@@ -157,7 +165,10 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     /* D-Bus property accessors: */
 
     @Override
-    public native String getAddress();
+    public EUI48 getAddress() { return new EUI48(getAddressString()); }
+
+    @Override
+    public native String getAddressString();
 
     @Override
     public BluetoothAddressType getAddressType() { return BluetoothAddressType.BDADDR_LE_PUBLIC; /* FIXME */}

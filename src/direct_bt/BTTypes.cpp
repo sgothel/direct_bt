@@ -169,7 +169,7 @@ EUI48::EUI48(const std::string str) {
     if ( sscanf(str.c_str(), "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
                      &b[5], &b[4], &b[3], &b[2], &b[1], &b[0]) != 6 )
     {
-        std::string msg("EUI48 string not in format '00:00:00:00:00:00' but "+str);
+        std::string msg("EUI48 string not in format '01:02:03:0A:0B:0C' but "+str);
         throw jau::IllegalArgumentException(msg, E_FILE_LINE);
     }
 

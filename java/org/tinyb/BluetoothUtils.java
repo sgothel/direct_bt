@@ -122,6 +122,21 @@ public class BluetoothUtils {
     private static final char[] HEX_ARRAY_LOW = "0123456789abcdef".toCharArray();
     private static final char[] HEX_ARRAY_BIG = "0123456789ABCDEF".toCharArray();
 
+    /**
+     * Produce a hexadecimal string representation of the given byte value.
+     * @param sb the StringBuilder destination to append
+     * @param value the byte value to represent
+     * @param lowerCase true to use lower case hex-chars, otherwise capital letters are being used.
+     * @return the given StringBuilder for chaining
+     */
+    public static StringBuilder byteHexString(final StringBuilder sb, final byte value, final boolean lowerCase)
+    {
+        final char[] hex_array = lowerCase ? HEX_ARRAY_LOW : HEX_ARRAY_BIG;
+        final int v = value & 0xFF;
+        sb.append(hex_array[v >>> 4]);
+        sb.append(hex_array[v & 0x0F]);
+        return sb;
+    }
 
     /**
      * Returns all valid consecutive UTF-8 characters within buffer

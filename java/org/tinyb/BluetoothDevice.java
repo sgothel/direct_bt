@@ -523,10 +523,20 @@ public interface BluetoothDevice extends BluetoothObject
      */
     long getLastUpdateTimestamp();
 
-    /** Returns the hardware address of this device.
-      * @return The hardware address of this device.
-      */
-    String getAddress();
+    /**
+     * Returns the hardware address of this device.
+     * @return The hardware address of this device.
+     * @implNote Changed to EUI48 since version 2.2.0
+     * @since 2.2.0
+     */
+    EUI48 getAddress();
+
+    /**
+     * Returns the hardware address of this device in its string representation.
+     * @return The hardware address of this device as a string.
+     * @since 2.2.0
+     */
+    String getAddressString();
 
     /**
      * Returns the {@link BluetoothAddressType},

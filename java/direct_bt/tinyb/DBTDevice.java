@@ -44,6 +44,7 @@ import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothType;
 import org.tinyb.EIRDataTypeSet;
+import org.tinyb.EUI48;
 import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.PairingMode;
@@ -57,7 +58,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     /** Device's adapter weak back-reference */
     private final WeakReference<DBTAdapter> wbr_adapter;
 
-    private final String address;
+    private final EUI48 address;
     private final BluetoothAddressType addressType;
     private final BLERandomAddressType leRandomAddressType;
     private final long ts_creation;
@@ -205,27 +206,18 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     };
 
     /* pp */ DBTDevice(final long nativeInstance, final DBTAdapter adptr,
-                       final String address,
-                       final int intAddressType, final int intBLERandomAddressType,
+                       final byte byteAddress[/*6*/],
+                       final byte byteAddressType,
                        final String name, final long ts_creation)
     {
-        super(nativeInstance, address.hashCode());
+        super(nativeInstance, java.util.Arrays.hashCode(byteAddress));
         this.wbr_adapter = new WeakReference<DBTAdapter>(adptr);
-        this.address = address;
-        this.addressType = BluetoothAddressType.get(intAddressType);
+        this.address = new EUI48(hashCode(), byteAddress);
+        this.addressType = BluetoothAddressType.get(byteAddressType);
         if( BluetoothAddressType.BDADDR_UNDEFINED == addressType ) {
-            throw new IllegalArgumentException("Unsupported given native addresstype "+intAddressType);
+            throw new IllegalArgumentException("Unsupported given native addresstype "+byteAddressType);
         }
-        this.leRandomAddressType = BLERandomAddressType.get(intBLERandomAddressType);
-        if( BluetoothAddressType.BDADDR_LE_RANDOM == addressType ) {
-            if( BLERandomAddressType.UNDEFINED == leRandomAddressType ) {
-                throw new IllegalArgumentException("BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+intBLERandomAddressType+": "+toString());
-            }
-        } else {
-            if( BLERandomAddressType.UNDEFINED != leRandomAddressType ) {
-                throw new IllegalArgumentException("Not BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+leRandomAddressType+": "+toString());
-            }
-        }
+        this.leRandomAddressType = address.getBLERandomAddressType(addressType);
         this.ts_creation = ts_creation;
         this.name = name;
         ts_last_discovery = ts_creation;
@@ -273,6 +265,9 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     @Override
     public boolean equals(final Object obj)
     {
+        if(this == obj) {
+            return true;
+        }
         if (obj == null || !(obj instanceof DBTDevice)) {
             return false;
         }
@@ -293,7 +288,10 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public DBTAdapter getAdapter() { return wbr_adapter.get(); }
 
     @Override
-    public String getAddress() { return address; }
+    public EUI48 getAddress() { return address; }
+
+    @Override
+    public String getAddressString() { return address.toString(); }
 
     @Override
     public BluetoothAddressType getAddressType() { return addressType; }

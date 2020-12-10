@@ -47,7 +47,7 @@ static const std::string _pairingModeClassName("org/tinyb/PairingMode");
 static const std::string _pairingModeClazzGetArgs("(B)Lorg/tinyb/PairingMode;");
 static const std::string _pairingStateClassName("org/tinyb/SMPPairingState");
 static const std::string _pairingStateClazzGetArgs("(B)Lorg/tinyb/SMPPairingState;");
-static const std::string _deviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTAdapter;Ljava/lang/String;IILjava/lang/String;J)V");
+static const std::string _deviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTAdapter;[BBLjava/lang/String;J)V");
 
 static const std::string _adapterSettingsChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;J)V");
 static const std::string _discoveringChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/ScanType;Lorg/tinyb/ScanType;ZZJ)V");
@@ -358,19 +358,21 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         } else {
             // New Java instance
             // Device(final long nativeInstance, final Adapter adptr, final String address, final int intAddressType, final String name)
-            const jstring addr = jau::from_string_to_jstring(env, device->getAddressString());
+            const EUI48 addr = device->getAddress();
+            jbyteArray jaddr = env->NewByteArray(sizeof(addr));
+            env->SetByteArrayRegion(jaddr, 0, sizeof(addr), (const jbyte*)(addr.b));
+            jau::java_exception_check_and_throw(env, E_FILE_LINE);
             const jstring name = jau::from_string_to_jstring(env, device->getName());
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             jobject tmp_jdevice = env->NewObject(deviceClazzRef.getClass(), deviceClazzCtor,
-                    (jlong)device.get(), jau::JavaGlobalObj::GetObject(adapterObjRef), addr,
-                    device->getAddressType(), device->getBLERandomAddressType(),
-                    name, (jlong)timestamp);
+                    (jlong)device.get(), jau::JavaGlobalObj::GetObject(adapterObjRef),
+                    jaddr, device->getAddressType(), name, (jlong)timestamp);
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             JNIGlobalRef::check(tmp_jdevice, E_FILE_LINE);
             std::shared_ptr<jau::JavaAnon> jDeviceRef1 = device->getJavaObject();
             jau::JavaGlobalObj::check(jDeviceRef1, E_FILE_LINE);
             jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef1);
-            env->DeleteLocalRef(addr);
+            env->DeleteLocalRef(jaddr);
             env->DeleteLocalRef(name);
             env->DeleteLocalRef(tmp_jdevice);
         }
@@ -409,19 +411,21 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         } else {
             // New Java instance
             // Device(final long nativeInstance, final Adapter adptr, final String address, final int intAddressType, final String name)
-            const jstring addr = jau::from_string_to_jstring(env, device->getAddressString());
+            const EUI48 addr = device->getAddress();
+            jbyteArray jaddr = env->NewByteArray(sizeof(addr));
+            env->SetByteArrayRegion(jaddr, 0, sizeof(addr), (const jbyte*)(addr.b));
+            jau::java_exception_check_and_throw(env, E_FILE_LINE);
             const jstring name = jau::from_string_to_jstring(env, device->getName());
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             jobject tmp_jdevice = env->NewObject(deviceClazzRef.getClass(), deviceClazzCtor,
-                    (jlong)device.get(), jau::JavaGlobalObj::GetObject(adapterObjRef), addr,
-                    device->getAddressType(), device->getBLERandomAddressType(),
-                    name, (jlong)timestamp);
+                    (jlong)device.get(), jau::JavaGlobalObj::GetObject(adapterObjRef),
+                    jaddr, device->getAddressType(), name, (jlong)timestamp);
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             JNIGlobalRef::check(tmp_jdevice, E_FILE_LINE);
             std::shared_ptr<jau::JavaAnon> jDeviceRef1 = device->getJavaObject();
             jau::JavaGlobalObj::check(jDeviceRef1, E_FILE_LINE);
             jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef1);
-            env->DeleteLocalRef(addr);
+            env->DeleteLocalRef(jaddr);
             env->DeleteLocalRef(name);
             env->DeleteLocalRef(tmp_jdevice);
         }
@@ -594,29 +598,53 @@ jint Java_direct_1bt_tinyb_DBTAdapter_removeAllStatusListener(JNIEnv *env, jobje
     return 0;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobject obj, jstring jaddress) {
+jboolean Java_direct_1bt_tinyb_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobject obj, jbyteArray jaddress) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
-        std::string saddress = jau::from_jstring_to_string(env, jaddress);
-        EUI48 address(saddress);
+        if( nullptr == jaddress ) {
+            throw jau::IllegalArgumentException("address null", E_FILE_LINE);
+        }
+        const size_t address_size = env->GetArrayLength(jaddress);
+        if( sizeof(EUI48) > address_size ) {
+            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(SMPLongTermKeyInfo)), E_FILE_LINE);
+        }
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+        if( NULL == address_ptr ) {
+            throw jau::InternalError("GetPrimitiveArrayCritical(address byte array) is null", E_FILE_LINE);
+        }
+        const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
+
         return adapter->isDeviceWhitelisted(address);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
     return JNI_FALSE;
 }
-jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist__Ljava_lang_String_2IISSSS(JNIEnv *env, jobject obj,
-                                                               jstring jaddress, int jaddressType, int jctype,
-                                                               jshort min_interval, jshort max_interval,
-                                                               jshort latency, jshort timeout) {
+jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelistImpl1(JNIEnv *env, jobject obj,
+                                                                    jbyteArray jaddress, jbyte jaddressType, int jctype,
+                                                                    jshort min_interval, jshort max_interval,
+                                                                    jshort latency, jshort timeout) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
-        std::string saddress = jau::from_jstring_to_string(env, jaddress);
-        EUI48 address(saddress);
+        if( nullptr == jaddress ) {
+            throw jau::IllegalArgumentException("address null", E_FILE_LINE);
+        }
+        const size_t address_size = env->GetArrayLength(jaddress);
+        if( sizeof(EUI48) > address_size ) {
+            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(SMPLongTermKeyInfo)), E_FILE_LINE);
+        }
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+        if( NULL == address_ptr ) {
+            throw jau::InternalError("GetPrimitiveArrayCritical(address byte array) is null", E_FILE_LINE);
+        }
+        const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
+
         const BDAddressType addressType = static_cast<BDAddressType>( jaddressType );
         const HCIWhitelistConnectType ctype = static_cast<HCIWhitelistConnectType>( jctype );
         return adapter->addDeviceToWhitelist(address, addressType, ctype, (uint16_t)min_interval, (uint16_t)max_interval, (uint16_t)latency, (uint16_t)timeout);
@@ -625,14 +653,26 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist__Ljava_lang_Strin
     }
     return JNI_FALSE;
 }
-jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist__Ljava_lang_String_2II(JNIEnv *env, jobject obj,
-                                                               jstring jaddress, int jaddressType, int jctype) {
+jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelistImpl2(JNIEnv *env, jobject obj,
+                                                                    jbyteArray jaddress, jbyte jaddressType, int jctype) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
-        std::string saddress = jau::from_jstring_to_string(env, jaddress);
-        EUI48 address(saddress);
+        if( nullptr == jaddress ) {
+            throw jau::IllegalArgumentException("address null", E_FILE_LINE);
+        }
+        const size_t address_size = env->GetArrayLength(jaddress);
+        if( sizeof(EUI48) > address_size ) {
+            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(SMPLongTermKeyInfo)), E_FILE_LINE);
+        }
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+        if( NULL == address_ptr ) {
+            throw jau::InternalError("GetPrimitiveArrayCritical(address byte array) is null", E_FILE_LINE);
+        }
+        const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
+
         const BDAddressType addressType = static_cast<BDAddressType>( jaddressType );
         const HCIWhitelistConnectType ctype = static_cast<HCIWhitelistConnectType>( jctype );
         return adapter->addDeviceToWhitelist(address, addressType, ctype);
@@ -641,13 +681,25 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist__Ljava_lang_Strin
     }
     return JNI_FALSE;
 }
-jboolean Java_direct_1bt_tinyb_DBTAdapter_removeDeviceFromWhitelist(JNIEnv *env, jobject obj, jstring jaddress, int jaddressType) {
+jboolean Java_direct_1bt_tinyb_DBTAdapter_removeDeviceFromWhitelistImpl(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
-        std::string saddress = jau::from_jstring_to_string(env, jaddress);
-        EUI48 address(saddress);
+        if( nullptr == jaddress ) {
+            throw jau::IllegalArgumentException("address null", E_FILE_LINE);
+        }
+        const size_t address_size = env->GetArrayLength(jaddress);
+        if( sizeof(EUI48) > address_size ) {
+            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(SMPLongTermKeyInfo)), E_FILE_LINE);
+        }
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+        if( NULL == address_ptr ) {
+            throw jau::InternalError("GetPrimitiveArrayCritical(address byte array) is null", E_FILE_LINE);
+        }
+        const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
+
         const BDAddressType addressType = static_cast<BDAddressType>( jaddressType );
         return adapter->removeDeviceFromWhitelist(address, addressType);
     } catch(...) {
@@ -817,13 +869,26 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_setDiscoverable(JNIEnv *env, jobject o
     return JNI_FALSE;
 }
 
-jobject Java_direct_1bt_tinyb_DBTAdapter_connectDevice(JNIEnv *env, jobject obj, jstring jaddress, jstring jaddressType) {
+jobject Java_direct_1bt_tinyb_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
-        std::string saddress = jau::from_jstring_to_string(env, jaddress);
-        EUI48 address(saddress);
-        const BDAddressType addressType = fromJavaAdressTypeToBDAddressType(env, jaddressType);
+
+        if( nullptr == jaddress ) {
+            throw jau::IllegalArgumentException("address null", E_FILE_LINE);
+        }
+        const size_t address_size = env->GetArrayLength(jaddress);
+        if( sizeof(EUI48) > address_size ) {
+            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(SMPLongTermKeyInfo)), E_FILE_LINE);
+        }
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+        if( NULL == address_ptr ) {
+            throw jau::InternalError("GetPrimitiveArrayCritical(address byte array) is null", E_FILE_LINE);
+        }
+        const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
+
+        const BDAddressType addressType = static_cast<BDAddressType>( jaddressType );
         std::shared_ptr<DBTDevice> device = adapter->findDiscoveredDevice(address, addressType);
         if( nullptr != device ) {
             direct_bt::HCIHandler & hci = adapter->getHCI();

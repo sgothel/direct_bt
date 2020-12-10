@@ -45,7 +45,6 @@ import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothType;
 import org.tinyb.HCIStatusCode;
-import org.tinyb.BluetoothManager.ChangedAdapterSetListener;
 
 public class DBTManager implements BluetoothManager
 {
@@ -502,13 +501,13 @@ public class DBTManager implements BluetoothManager
             if( ( anyType || adapterType ) ) {
                 if( null != name && null != identifier &&
                     adapter.getName().equals(name) &&
-                    adapter.getAddress().equals(identifier)
+                    adapter.getAddressString().equals(identifier)
                   )
                 {
                     return adapter;
                 }
                 if( null != identifier &&
-                    adapter.getAddress().equals(identifier)
+                    adapter.getAddressString().equals(identifier)
                   )
                 {
                     return adapter;

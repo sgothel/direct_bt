@@ -37,6 +37,7 @@ import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothUtils;
+import org.tinyb.EUI48;
 import org.tinyb.HCIStatusCode;
 
 /**
@@ -56,7 +57,7 @@ public class ScannerTinyB00 {
     public static void main(final String[] args) throws InterruptedException {
         String bluetoothManagerClazzName = BluetoothFactory.DirectBTImplementationID.BluetoothManagerClassName;
         int dev_id = 0; // default
-        String mac = null;
+        EUI48 mac = null;
         int mode = 0;
         boolean forever = false;
 
@@ -66,7 +67,7 @@ public class ScannerTinyB00 {
             if( arg.equals("-dev_id") && args.length > (i+1) ) {
                 dev_id = Integer.valueOf(args[++i]).intValue();
             } else if( arg.equals("-mac") ) {
-                mac = args[++i];
+                mac = new EUI48( args[++i] );
             } else if( arg.equals("-mode") ) {
                 mode = Integer.valueOf(args[++i]).intValue();
             } else if( arg.equals("-bluetoothManager") && args.length > (i+1) ) {
@@ -146,7 +147,7 @@ public class ScannerTinyB00 {
                 if( useAdapter ) {
                     sensor = adapter.find(null, mac, TO_DISCOVER);
                 } else {
-                    sensor = manager.find(null, mac, null, TO_DISCOVER);
+                    sensor = manager.find(null, mac.toString(), null, TO_DISCOVER);
                 }
             } else {
                 boolean timeout = false;

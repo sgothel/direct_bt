@@ -116,7 +116,7 @@ jint Java_tinyb_dbus_DBusAdapter_removeDevices(JNIEnv *env, jobject obj)
     return 0;
 }
 
-jstring Java_tinyb_dbus_DBusAdapter_getAddress(JNIEnv *env, jobject obj)
+jstring Java_tinyb_dbus_DBusAdapter_getAddressString(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
@@ -562,7 +562,7 @@ void Java_tinyb_dbus_DBusAdapter_setDiscoveryFilter(JNIEnv *env, jobject obj, jo
     }
 }
 
-jobject Java_tinyb_dbus_DBusAdapter_connectDevice(JNIEnv *env, jobject obj, jstring jaddress, jstring jaddressType)
+jobject Java_tinyb_dbus_DBusAdapter_connectDeviceImpl(JNIEnv *env, jobject obj, jstring jaddress, jstring jaddressType)
 {
     try {
         BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);

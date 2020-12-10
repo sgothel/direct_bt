@@ -58,7 +58,7 @@ public interface BluetoothAdapter extends BluetoothObject
       * @return An object matching the name and address or null if not found before
       * timeout expires.
       */
-    public BluetoothDevice find(String name, String address, long timeoutMS);
+    public BluetoothDevice find(String name, EUI48 address, long timeoutMS);
 
     /** Find a BluetoothDevice. If parameters name and address are not null,
       * the returned object will have to match them.
@@ -70,7 +70,7 @@ public interface BluetoothAdapter extends BluetoothObject
       * waiting for
       * @return An object matching the name and address.
       */
-    public BluetoothDevice find(String name, String address);
+    public BluetoothDevice find(String name, EUI48 address);
 
     /* Bluetooth specific API */
 
@@ -79,7 +79,7 @@ public interface BluetoothAdapter extends BluetoothObject
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      */
-    public boolean isDeviceWhitelisted(final String address);
+    public boolean isDeviceWhitelisted(final EUI48 address);
 
     /**
      * Add the given device to the adapter's autoconnect whitelist.
@@ -104,7 +104,7 @@ public interface BluetoothAdapter extends BluetoothObject
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      */
-    public boolean addDeviceToWhitelist(final String address, final BluetoothAddressType address_type,
+    public boolean addDeviceToWhitelist(final EUI48 address, final BluetoothAddressType address_type,
                                         final HCIWhitelistConnectType ctype,
                                         final short conn_interval_min, final short conn_interval_max,
                                         final short conn_latency, final short timeout);
@@ -128,7 +128,7 @@ public interface BluetoothAdapter extends BluetoothObject
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      */
-    public boolean addDeviceToWhitelist(final String address, final BluetoothAddressType address_type,
+    public boolean addDeviceToWhitelist(final EUI48 address, final BluetoothAddressType address_type,
                                         final HCIWhitelistConnectType ctype);
 
 
@@ -137,7 +137,7 @@ public interface BluetoothAdapter extends BluetoothObject
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      */
-    public boolean removeDeviceFromWhitelist(final String address, final BluetoothAddressType address_type);
+    public boolean removeDeviceFromWhitelist(final EUI48 address, final BluetoothAddressType address_type);
 
 
     /** Turns on device discovery if it is disabled.
@@ -198,10 +198,21 @@ public interface BluetoothAdapter extends BluetoothObject
     public int removeDevices() throws BluetoothException;
 
     /* D-Bus property accessors: */
-    /** Returns the hardware address of this adapter.
-      * @return The hardware address of this adapter.
-      */
-    public String getAddress();
+
+    /**
+     * Returns the hardware address of this adapter.
+     * @return The hardware address of this adapter.
+     * @implNote Changed to EUI48 since version 2.2.0
+     * @since 2.2.0
+     */
+    EUI48 getAddress();
+
+    /**
+     * Returns the hardware address of this adapter in its string representation.
+     * @return The hardware address of this adapter as a string.
+     * @since 2.2.0
+     */
+    String getAddressString();
 
     /** Returns the system name of this adapter.
       * @return The system name of this adapter.
@@ -374,7 +385,7 @@ public interface BluetoothAdapter extends BluetoothObject
      *                <li>{@code random} - Random address</li>
      *                </ul>
      */
-    public BluetoothDevice connectDevice(String address, String addressType);
+    public BluetoothDevice connectDevice(EUI48 address, BluetoothAddressType addressType);
 
     /** Returns the pairable state the adapter.
       * @return The pairable state of the adapter.

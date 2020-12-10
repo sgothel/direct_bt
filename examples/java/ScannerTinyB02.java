@@ -24,7 +24,6 @@
  */
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -34,13 +33,11 @@ import org.tinyb.BluetoothDevice;
 import org.tinyb.AdapterStatusListener;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothFactory;
-import org.tinyb.BluetoothGattCharacteristic;
-import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothUtils;
 import org.tinyb.EIRDataTypeSet;
-import org.tinyb.GATTCharacteristicListener;
+import org.tinyb.EUI48;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.ScanType;
 
@@ -60,8 +57,7 @@ public class ScannerTinyB02 {
     /** 300 milliseconds */
     static long TO_CONNECT = 300;
 
-    static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
-    static String waitForDevice = EUI48_ANY_DEVICE;
+    static EUI48 waitForDevice = EUI48.ANY_DEVICE;
 
     public static void main(final String[] args) throws InterruptedException {
         final boolean waitForEnter=false;
@@ -78,7 +74,7 @@ public class ScannerTinyB02 {
                 if( arg.equals("-dev_id") && args.length > (i+1) ) {
                     dev_id = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-mac") && args.length > (i+1) ) {
-                    waitForDevice = args[++i];
+                    waitForDevice = new EUI48( args[++i] );
                 } else if( arg.equals("-mode") && args.length > (i+1) ) {
                     mode = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-factory") && args.length > (i+1) ) {
@@ -156,7 +152,7 @@ public class ScannerTinyB02 {
 
             @Override
             public void deviceFound(final BluetoothDevice device, final long timestamp) {
-                final boolean matches = EUI48_ANY_DEVICE.equals(waitForDevice) || device.getAddress().equals(waitForDevice);
+                final boolean matches = EUI48.ANY_DEVICE.equals(waitForDevice) || device.getAddress().equals(waitForDevice);
                 System.err.println("****** FOUND__: "+device.toString()+" - match "+matches);
                 System.err.println("Status Adapter:");
                 System.err.println(device.getAdapter().toString());
@@ -171,13 +167,13 @@ public class ScannerTinyB02 {
 
             @Override
             public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
-                final boolean matches = EUI48_ANY_DEVICE.equals(waitForDevice) || device.getAddress().equals(waitForDevice);
+                final boolean matches = EUI48.ANY_DEVICE.equals(waitForDevice) || device.getAddress().equals(waitForDevice);
                 System.err.println("****** UPDATED: "+updateMask+" of "+device+" - match "+matches);
             }
 
             @Override
             public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) {
-                final boolean matches = EUI48_ANY_DEVICE.equals(waitForDevice) || device.getAddress().equals(waitForDevice);
+                final boolean matches = EUI48.ANY_DEVICE.equals(waitForDevice) || device.getAddress().equals(waitForDevice);
                 System.err.println("****** CONNECTED: "+device+" - matches "+matches);
             }
 
@@ -244,7 +240,7 @@ public class ScannerTinyB02 {
                         int i=0;
                         for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
                             final BluetoothDevice d = id.next();
-                            final boolean match = EUI48_ANY_DEVICE.equals(waitForDevice) || d.getAddress().equals(waitForDevice);
+                            final boolean match = EUI48.ANY_DEVICE.equals(waitForDevice) || d.getAddress().equals(waitForDevice);
                             System.err.println("****** Has "+i+"/"+devices.size()+": match "+match+": "+d.toString());
                             i++;
                             if( match ) {

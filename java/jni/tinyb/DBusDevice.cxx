@@ -182,7 +182,7 @@ jobject Java_tinyb_dbus_DBusDevice_getServices(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jstring Java_tinyb_dbus_DBusDevice_getAddress(JNIEnv *env, jobject obj)
+jstring Java_tinyb_dbus_DBusDevice_getAddressString(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
