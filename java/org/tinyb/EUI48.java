@@ -39,9 +39,6 @@ public class EUI48 {
     /** EUI48 MAC address matching local device, i.e. '0:0:0:ff:ff:ff'. */
     public static final EUI48 LOCAL_DEVICE = new EUI48( new byte[] { (byte)0x00, (byte)0x00, (byte)0x00, (byte)0xff, (byte)0xff, (byte)0xff } );
 
-    private volatile boolean hasHashValue = false;
-    private int hashValue = 0;
-
     /** The 6 byte EUI48 address */
     public final byte b[/* 6 octets */];
 
@@ -49,7 +46,7 @@ public class EUI48 {
      * Size of the byte stream representation in bytes
      * @see #getStream(byte[], int)
      */
-    public static final int byte_size = 6;
+    private static final int byte_size = 6;
 
     /**
      * Construct instance via given string representation.
@@ -90,16 +87,6 @@ public class EUI48 {
         b = address;
     }
 
-    /** Construct instance using the given address of the byte array and a precomputed hash-value. */
-    public EUI48(final int hash_value, final byte address[]) {
-        if( byte_size != address.length ) {
-            throw new IllegalArgumentException("EUI48 stream "+address.length+" != "+byte_size+" bytes");
-        }
-        b = address;
-        hasHashValue = true;
-        hashValue = hash_value;
-    }
-
     @Override
     public final boolean equals(final Object obj)
     {
@@ -114,17 +101,7 @@ public class EUI48 {
     }
 
     @Override
-    public final int hashCode() {
-        if( !hasHashValue ) { // dbl-check OK: volatile = atomic
-            synchronized(this) {
-                if( !hasHashValue ) {
-                    hasHashValue = true;
-                    hashValue = java.util.Arrays.hashCode(b);
-                }
-            }
-        }
-        return hashValue;
-    }
+    public final int hashCode() { return java.util.Arrays.hashCode(b); }
 
     /**
      * Method transfers all bytes representing this instance into the given

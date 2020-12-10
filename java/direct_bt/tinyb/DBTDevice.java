@@ -212,7 +212,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     {
         super(nativeInstance, java.util.Arrays.hashCode(byteAddress));
         this.wbr_adapter = new WeakReference<DBTAdapter>(adptr);
-        this.address = new EUI48(hashCode(), byteAddress);
+        this.address = new EUI48(byteAddress);
         this.addressType = BluetoothAddressType.get(byteAddressType);
         if( BluetoothAddressType.BDADDR_UNDEFINED == addressType ) {
             throw new IllegalArgumentException("Unsupported given native addresstype "+byteAddressType);
