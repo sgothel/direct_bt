@@ -42,6 +42,7 @@
 #include "HCIComm.hpp"
 
 #include "DBTTypes.hpp"
+#include "SMPTypes.hpp"
 
 namespace direct_bt {
 
@@ -226,6 +227,42 @@ namespace direct_bt {
                    ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), false /* lsbFirst */, true /* leading0X */)+
                    ", ltk "+jau::bytesHexString(ltk.data, 0, sizeof(ltk), true /* lsbFirst */, false /* leading0X */)+
                    "]";
+        }
+
+        /**
+         * Convert this instance into its platform agnostic SMPLongTermKeyInfo type.
+         */
+        SMPLongTermKeyInfo toSMPLongTermKeyInfo() const noexcept {
+            direct_bt::SMPLongTermKeyInfo res;
+            res.clear();
+            if( master ) {
+                res.properties |= SMPLongTermKeyInfo::Property::RESPONDER;
+            }
+            switch( key_type ) {
+                case MgmtLTKType::NONE:
+                    res.clear();
+                    break;
+                case MgmtLTKType::UNAUTHENTICATED: //      = 0x00, // master ? SMP_LTK : SMP_LTK_SLAVE
+                    break;
+                case MgmtLTKType::AUTHENTICATED: //        = 0x01, // master ? SMP_LTK : SMP_LTK_SLAVE
+                    res.properties |= SMPLongTermKeyInfo::Property::AUTH;
+                    break;
+                case MgmtLTKType::UNAUTHENTICATED_P256: // = 0x02, // SMP_LTK_P256
+                    res.properties |= SMPLongTermKeyInfo::Property::SC;
+                    break;
+                case MgmtLTKType::AUTHENTICATED_P256: //   = 0x03, // SMP_LTK_P256
+                    res.properties |= SMPLongTermKeyInfo::Property::SC;
+                    res.properties |= SMPLongTermKeyInfo::Property::AUTH;
+                    break;
+                case MgmtLTKType::DEBUG_P256: //           = 0x04, // SMP_LTK_P256_DEBUG
+                    res.properties |= SMPLongTermKeyInfo::Property::SC;
+                    break;
+            }
+            res.enc_size = enc_size;
+            res.ediv = ediv;
+            res.rand = rand;
+            res.ltk = ltk;
+            return res;
         }
     } );
 
@@ -1400,7 +1437,7 @@ namespace direct_bt {
 
     /**
      * uint8_t store_hint,
-     * MgmtLongTermKey key
+     * MgmtLongTermKeyInfo key
      */
     class MgmtEvtNewLongTermKey : public MgmtEvent
     {
