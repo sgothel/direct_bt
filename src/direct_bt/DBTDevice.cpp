@@ -883,6 +883,11 @@ SMPLongTermKeyInfo DBTDevice::getLongTermKeyInfo(const bool responder) const noe
 }
 
 HCIStatusCode DBTDevice::setLongTermKeyInfo(const SMPLongTermKeyInfo& ltk) noexcept {
+    if( isConnected ) {
+        ERR_PRINT("DBTDevice::setLongTermKeyInfo: Already connected: %s", toString(false).c_str());
+        return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
+    }
+    const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
     const bool responder = ( SMPLongTermKeyInfo::Property::RESPONDER & ltk.properties ) != SMPLongTermKeyInfo::Property::NONE;
     if( responder ) {

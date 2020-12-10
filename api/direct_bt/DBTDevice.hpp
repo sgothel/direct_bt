@@ -456,6 +456,9 @@ namespace direct_bt {
 
             /**
              * Sets the long term ket (LTK) info of this device to reuse pre-paired encryption.
+             * <p>
+             * Must be called before connecting to this device, otherwise HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned.
+             * </p>
              * @param ltk the pre-paired encryption LTK
              * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
              */

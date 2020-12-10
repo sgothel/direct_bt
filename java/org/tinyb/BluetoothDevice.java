@@ -193,8 +193,11 @@ public interface BluetoothDevice extends BluetoothObject
 
     /**
      * Sets the long term ket (LTK) info of this device to reuse pre-paired encryption.
+     * <p>
+     * Must be called before connecting to this device, otherwise {@link HCIStatusCode#CONNECTION_ALREADY_EXISTS} will be returned.
+     * </p>
      * @param ltk the pre-paired encryption LTK
-     * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the appropriate error code.
      * @since 2.2.0
      * @implNote not implemented in tinyb.dbus
      */
