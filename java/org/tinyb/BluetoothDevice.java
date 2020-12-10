@@ -181,6 +181,27 @@ public interface BluetoothDevice extends BluetoothObject
     boolean disconnectProfile(String arg_UUID) throws BluetoothException;
 
     /**
+     * Returns a copy of the long term ket (LTK) info, valid after connection and SMP pairing has been completed.
+     * @param responder true will return the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
+     * @return the resulting key. {@link SMPLongTermKeyInfo#enc_size} will be zero if invalid.
+     * @see {@link SMPPairingState#COMPLETED}
+     * @see {@link AdapterStatusListener#deviceReady(BluetoothDevice, long)}
+     * @since 2.2.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    SMPLongTermKeyInfo getLongTermKeyInfo(final boolean responder);
+
+    /**
+     * Sets the long term ket (LTK) info of this device to reuse pre-paired encryption.
+     * @param ltk the pre-paired encryption
+     * @param responder true will set the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
+     * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+     * @since 2.2.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk, final boolean responder);
+
+    /**
      * A secure connection to this device is established, and the device is then paired.
      * <p>
      * For direct_bt use {@link #setConnSecurity(BTSecurityLevel, SMPIOCapability) setConnSecurity(..) or its variants}

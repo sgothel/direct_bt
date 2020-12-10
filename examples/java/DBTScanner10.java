@@ -23,6 +23,12 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,6 +65,7 @@ import org.tinyb.HCIStatusCode;
 import org.tinyb.HCIWhitelistConnectType;
 import org.tinyb.PairingMode;
 import org.tinyb.SMPIOCapability;
+import org.tinyb.SMPLongTermKeyInfo;
 import org.tinyb.SMPPairingState;
 import org.tinyb.ScanType;
 
@@ -132,6 +139,74 @@ public class DBTScanner10 {
         }
     }
 
+    static public class MyLongTermKeyInfo {
+        EUI48 address;
+        BluetoothAddressType address_type;
+        SMPLongTermKeyInfo smp_ltk;
+
+        MyLongTermKeyInfo() {
+            address = new EUI48();
+            address_type = BluetoothAddressType.BDADDR_UNDEFINED;
+            smp_ltk = new SMPLongTermKeyInfo();
+        }
+
+        boolean write(final String filename) {
+            if( !smp_ltk.isValid() ) {
+                return false;
+            }
+            final File file = new File(filename);
+            OutputStream out = null;
+            try {
+                file.delete(); // alternative to truncate, if existing
+                out = new FileOutputStream(file);
+                out.write(address.b);
+                out.write(address_type.value);
+                final byte[] smp_ltk_b = new byte[SMPLongTermKeyInfo.byte_size];
+                smp_ltk.getStream(smp_ltk_b, 0);
+                out.write(smp_ltk_b);
+                return true;
+            } catch (final Exception ex) {
+                ex.printStackTrace();
+            } finally {
+                try {
+                    if( null != out ) {
+                        out.close();
+                    }
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return false;
+        }
+
+        boolean read(final String filename) {
+            final File file = new File(filename);
+            InputStream in = null;
+            try {
+                final byte[] buffer = new byte[6 + 1 + SMPLongTermKeyInfo.byte_size];
+                in = new FileInputStream(file);
+                final int read_count = in.read(buffer, 0, buffer.length);
+                if( read_count != buffer.length ) {
+                    throw new IOException("Couldn't read "+buffer.length+" bytes, only "+read_count+" from "+filename);
+                }
+                address.putStream(buffer, 0);
+                address_type = BluetoothAddressType.get(buffer[6]);
+                smp_ltk.putStream(buffer, 6+1);
+                return smp_ltk.isValid();
+            } catch (final Exception ex) {
+                ex.printStackTrace();
+            } finally {
+                try {
+                    if( null != in ) {
+                        in.close();
+                    }
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return false;
+        }
+    }
     Collection<EUI48> devicesInProcessing = Collections.synchronizedCollection(new ArrayList<>());
     Collection<EUI48> devicesProcessed = Collections.synchronizedCollection(new ArrayList<>());
 
@@ -299,6 +374,18 @@ public class DBTScanner10 {
             println("****** Connecting Device: stopDiscovery result "+r);
         }
 
+        {
+            final MyLongTermKeyInfo my_ltk_resp = new MyLongTermKeyInfo();
+            final MyLongTermKeyInfo my_ltk_init = new MyLongTermKeyInfo();
+            if( my_ltk_init.read(device.getAddress().toString()+".init.ltk") &&
+                my_ltk_resp.read(device.getAddress().toString()+".resp.ltk") &&
+                HCIStatusCode.SUCCESS == device.setLongTermKeyInfo(my_ltk_init.smp_ltk, false /* responder */) &&
+                HCIStatusCode.SUCCESS == device.setLongTermKeyInfo(my_ltk_resp.smp_ltk, true /* responder */) ) {
+                println("****** Connecting Device: Loaded LTKs from file successfully\n");
+            } else {
+                println("****** Connecting Device: Error loading LTKs from file\n");
+            }
+        }
         device.setConnSecurityBest(sec_level, io_capabilities);
 
         HCIStatusCode res;
@@ -347,6 +434,26 @@ public class DBTScanner10 {
 
         final long t1 = BluetoothUtils.currentTimeMillis();
         boolean success = false;
+
+        {
+            final SMPPairingState pstate = device.getPairingState();
+            if( SMPPairingState.COMPLETED == pstate) {
+                {
+                    final MyLongTermKeyInfo my_ltk = new MyLongTermKeyInfo();
+                    my_ltk.address = device.getAddress();
+                    my_ltk.address_type = device.getAddressType();
+                    my_ltk.smp_ltk = device.getLongTermKeyInfo(false /* responder */);
+                    my_ltk.write(my_ltk.address.toString()+".init.ltk");
+                }
+                {
+                    final MyLongTermKeyInfo my_ltk = new MyLongTermKeyInfo();
+                    my_ltk.address = device.getAddress();
+                    my_ltk.address_type = device.getAddressType();
+                    my_ltk.smp_ltk = device.getLongTermKeyInfo(true /* responder */);
+                    my_ltk.write(my_ltk.address.toString()+".resp.ltk");
+                }
+            }
+        }
 
         //
         // GATT Service Processing

@@ -378,6 +378,57 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_connectLEImpl1(JNIEnv *env, jobject obj,
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
+void Java_direct_1bt_tinyb_DBTDevice_getLongTermKeyInfoImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
+    try {
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        if( nullptr == jsink ) {
+            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+        }
+        const size_t sink_size = env->GetArrayLength(jsink);
+        if( sizeof(SMPLongTermKeyInfo) > sink_size ) {
+            throw IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPLongTermKeyInfo)), E_FILE_LINE);
+        }
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
+        if( NULL == sink_ptr ) {
+            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+        }
+        SMPLongTermKeyInfo& ltk_sink = *reinterpret_cast<SMPLongTermKeyInfo *>(sink_ptr);
+        ltk_sink = device->getLongTermKeyInfo(JNI_TRUE == responder); // assign data of new key copy to JNI critical-array
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
+jbyte Java_direct_1bt_tinyb_DBTDevice_setLongTermKeyInfoImpl(JNIEnv *env, jobject obj, jbyteArray jsource, jboolean responder) {
+    try {
+        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        if( nullptr == jsource ) {
+            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+        }
+        const size_t source_size = env->GetArrayLength(jsource);
+        if( sizeof(SMPLongTermKeyInfo) > source_size ) {
+            throw IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPLongTermKeyInfo)), E_FILE_LINE);
+        }
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+        if( NULL == source_ptr ) {
+            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+        }
+        const SMPLongTermKeyInfo& ltk = *reinterpret_cast<SMPLongTermKeyInfo *>(source_ptr);
+
+        const HCIStatusCode res = device->setLongTermKeyInfo(ltk, JNI_TRUE == responder);
+        return (jbyte) number(res);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+}
+
 jbyte Java_direct_1bt_tinyb_DBTDevice_unpairImpl(JNIEnv *env, jobject obj) {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);

@@ -165,11 +165,16 @@ __pack( struct MyLongTermKeyInfo {
     BDAddressType address_type;
     SMPLongTermKeyInfo smp_ltk;
 
-    void write(const std::string filename) {
+    bool write(const std::string filename) {
+        if( !smp_ltk.isValid() ) {
+            return false;
+        }
         std::ofstream file(filename, std::ios::binary | std::ios::trunc);
         file.write((char*)this, sizeof(*this));
         file.close();
+        return true;
     }
+
     bool read(const std::string filename) {
         std::ifstream file(filename, std::ios::binary);
         if (!file.is_open() ) {
@@ -177,7 +182,7 @@ __pack( struct MyLongTermKeyInfo {
         }
         file.read((char*)this, sizeof(*this));
         file.close();
-        return true;
+        return smp_ltk.isValid();
     }
 } );
 

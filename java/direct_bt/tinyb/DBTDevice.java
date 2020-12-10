@@ -49,6 +49,7 @@ import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.PairingMode;
 import org.tinyb.SMPIOCapability;
+import org.tinyb.SMPLongTermKeyInfo;
 import org.tinyb.SMPPairingState;
 
 public class DBTDevice extends DBTObject implements BluetoothDevice
@@ -326,6 +327,22 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     @Override
     public final BluetoothDevice clone() { throw new UnsupportedOperationException(); } // FIXME
+
+    @Override
+    public final SMPLongTermKeyInfo getLongTermKeyInfo(final boolean responder) {
+        final byte[] stream = new byte[SMPLongTermKeyInfo.byte_size];
+        getLongTermKeyInfoImpl(responder, stream);
+        return new SMPLongTermKeyInfo(stream, 0);
+    }
+    private final native void getLongTermKeyInfoImpl(final boolean responder, final byte[] sink);
+
+    @Override
+    public final HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk, final boolean responder) {
+        final byte[] stream = new byte[SMPLongTermKeyInfo.byte_size];
+        ltk.getStream(stream, 0);
+        return HCIStatusCode.get( setLongTermKeyInfoImpl(stream, responder) );
+    }
+    private final native byte setLongTermKeyInfoImpl(final byte[] source, final boolean responder);
 
     @Override
     public final boolean pair() throws BluetoothException {

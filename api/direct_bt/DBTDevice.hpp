@@ -448,7 +448,7 @@ namespace direct_bt {
             /**
              * Returns a copy of the long term ket (LTK) info, valid after connection and SMP pairing has been completed.
              * @param responder true will return the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
-             * @return
+             * @return the resulting key. SMPLongTermKeyInfo::enc_size will be zero if invalid.
              * @see ::SMPPairingState::COMPLETED
              * @see AdapterStatusListener::deviceReady()
              */
