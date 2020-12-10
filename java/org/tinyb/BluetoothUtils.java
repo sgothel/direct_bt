@@ -47,6 +47,11 @@ public class BluetoothUtils {
     public static long elapsedTimeMillis() { return currentTimeMillis() - t0; }
 
     /**
+     * Returns elapsed monotonic time in milliseconds since module startup comparing against the given timestamp, see {@link #startupTimeMillis()}.
+     */
+    public static long elapsedTimeMillis(final long current_ts) { return current_ts - t0; }
+
+    /**
      * Defining the supervising timeout for LE connections to be a multiple of the maximum connection interval as follows:
      * <pre>
      *  ( 1 + conn_latency ) * conn_interval_max_ms * max(2, multiplier) [ms]
