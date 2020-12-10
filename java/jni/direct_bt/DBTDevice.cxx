@@ -402,7 +402,7 @@ void Java_direct_1bt_tinyb_DBTDevice_getLongTermKeyInfoImpl(JNIEnv *env, jobject
     }
 }
 
-jbyte Java_direct_1bt_tinyb_DBTDevice_setLongTermKeyInfoImpl(JNIEnv *env, jobject obj, jbyteArray jsource, jboolean responder) {
+jbyte Java_direct_1bt_tinyb_DBTDevice_setLongTermKeyInfoImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
     try {
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
@@ -421,7 +421,7 @@ jbyte Java_direct_1bt_tinyb_DBTDevice_setLongTermKeyInfoImpl(JNIEnv *env, jobjec
         }
         const SMPLongTermKeyInfo& ltk = *reinterpret_cast<SMPLongTermKeyInfo *>(source_ptr);
 
-        const HCIStatusCode res = device->setLongTermKeyInfo(ltk, JNI_TRUE == responder);
+        const HCIStatusCode res = device->setLongTermKeyInfo(ltk);
         return (jbyte) number(res);
     } catch(...) {
         rethrow_and_raise_java_exception(env);

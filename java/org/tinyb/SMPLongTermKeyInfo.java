@@ -41,9 +41,14 @@ public class SMPLongTermKeyInfo {
      * {@link SMPLongTermKeyInfo} Property Bits
      */
     static public enum PropertyType {
+        /** No specific property */
         NONE((byte)0),
-        AUTH((byte)1),
-        SC((byte)2);
+        /** Responder Key (LL slave). Absence indicates Initiator Key (LL master). */
+        RESPONDER((byte)0x01),
+        /** Authentication used. */
+        AUTH((byte)0x02),
+        /** Secure Connection used. */
+        SC((byte)0x04);
 
         public final byte value;
 
@@ -69,8 +74,9 @@ public class SMPLongTermKeyInfo {
          */
         public static PropertyType get(final byte value) {
             switch(value) {
-                case (byte) 0x01: return AUTH;
-                case (byte) 0x02: return SC;
+                case (byte) 0x01: return RESPONDER;
+                case (byte) 0x02: return AUTH;
+                case (byte) 0x04: return SC;
                 default: return NONE;
             }
         }
@@ -99,7 +105,11 @@ public class SMPLongTermKeyInfo {
         public String toString() {
             int count = 0;
             final StringBuilder out = new StringBuilder();
+            if( isSet(PropertyType.RESPONDER) ) {
+                out.append(PropertyType.RESPONDER.name()); count++;
+            }
             if( isSet(PropertyType.AUTH) ) {
+                if( 0 < count ) { out.append(", "); }
                 out.append(PropertyType.AUTH.name()); count++;
             }
             if( isSet(PropertyType.SC) ) {

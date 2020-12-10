@@ -878,8 +878,9 @@ HCIStatusCode DBTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLon
 }
 
 HCIStatusCode DBTManager::uploadLongTermKeyInfo(const uint16_t dev_id, const EUI48& address, BDAddressType address_type,
-                                                const SMPLongTermKeyInfo& ltk, const bool responder) noexcept {
+                                                const SMPLongTermKeyInfo& ltk) noexcept {
     const MgmtLTKType key_type = getMgmtLTKType(ltk.properties);
+    const bool responder = ( SMPLongTermKeyInfo::Property::RESPONDER & ltk.properties ) != SMPLongTermKeyInfo::Property::NONE;
     const MgmtLongTermKeyInfo mgmt_ltk_info { address, address_type, key_type, responder, ltk.enc_size, ltk.ediv, ltk.rand, ltk.ltk };
     MgmtLoadLongTermKeyCmd req(dev_id, mgmt_ltk_info);
     HCIStatusCode res;
@@ -895,8 +896,8 @@ HCIStatusCode DBTManager::uploadLongTermKeyInfo(const uint16_t dev_id, const EUI
     } else {
         res = HCIStatusCode::TIMEOUT;
     }
-    DBG_PRINT("DBTManager::uploadLongTermKeyInfo[%d]: %s, result %s", dev_id,
-            req.toString().c_str(), getHCIStatusCodeString(res).c_str());
+    DBG_PRINT("DBTManager::uploadLongTermKeyInfo[%d]: %s -> %s, result %s", dev_id,
+            ltk.toString().c_str(), req.toString().c_str(), getHCIStatusCodeString(res).c_str());
     return res;
 }
 

@@ -112,7 +112,7 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public final SMPLongTermKeyInfo getLongTermKeyInfo(final boolean responder) { return new SMPLongTermKeyInfo(); } // FIXME
 
     @Override
-    public final HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk, final boolean responder) { return HCIStatusCode.NOT_SUPPORTED; } // FIXME
+    public final HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk) { return HCIStatusCode.NOT_SUPPORTED; } // FIXME
 
     @Override
     public native boolean pair() throws BluetoothException;

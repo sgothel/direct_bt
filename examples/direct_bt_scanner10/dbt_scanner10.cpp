@@ -167,11 +167,17 @@ __pack( struct MyLongTermKeyInfo {
 
     bool write(const std::string filename) {
         if( !smp_ltk.isValid() ) {
+            fprintf(stderr, "****** WRITE LTK [%s %s, invalid, skipped]: %s\n",
+                    address.toString().c_str(), getBDAddressTypeString(address_type).c_str(),
+                    smp_ltk.toString().c_str());
             return false;
         }
         std::ofstream file(filename, std::ios::binary | std::ios::trunc);
         file.write((char*)this, sizeof(*this));
         file.close();
+        fprintf(stderr, "****** WRITE LTK [%s %s, valid, written]: %s\n",
+                address.toString().c_str(), getBDAddressTypeString(address_type).c_str(),
+                smp_ltk.toString().c_str());
         return true;
     }
 
@@ -182,6 +188,9 @@ __pack( struct MyLongTermKeyInfo {
         }
         file.read((char*)this, sizeof(*this));
         file.close();
+        fprintf(stderr, "****** READ LTK [%s %s, valid %d]: %s\n",
+                address.toString().c_str(), getBDAddressTypeString(address_type).c_str(),
+                smp_ltk.isValid(), smp_ltk.toString().c_str());
         return smp_ltk.isValid();
     }
 } );
@@ -406,8 +415,8 @@ static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
         MyLongTermKeyInfo my_ltk_init;
         if( my_ltk_init.read(device->getAddress().toString()+".init.ltk") &&
             my_ltk_resp.read(device->getAddress().toString()+".resp.ltk") &&
-            HCIStatusCode::SUCCESS == device->setLongTermKeyInfo(my_ltk_init.smp_ltk, false /* responder */) &&
-            HCIStatusCode::SUCCESS == device->setLongTermKeyInfo(my_ltk_resp.smp_ltk, true /* responder */) ) {
+            HCIStatusCode::SUCCESS == device->setLongTermKeyInfo(my_ltk_init.smp_ltk) &&
+            HCIStatusCode::SUCCESS == device->setLongTermKeyInfo(my_ltk_resp.smp_ltk) ) {
             fprintf(stderr, "****** Connecting Device: Loaded LTKs from file successfully\n");
         } else {
             fprintf(stderr, "****** Connecting Device: Error loading LTKs from file\n");
@@ -437,7 +446,8 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
 
     {
         const SMPPairingState pstate = device->getPairingState();
-        if( SMPPairingState::COMPLETED == pstate) {
+        const PairingMode pmode = device->getPairingMode(); // Skip PairingMode::PRE_PAIRED (write again)
+        if( SMPPairingState::COMPLETED == pstate && PairingMode::PRE_PAIRED != pmode ) {
             {
                 MyLongTermKeyInfo my_ltk { device->getAddress(), device->getAddressType(),
                                            device->getLongTermKeyInfo(false /* responder */) };

@@ -185,7 +185,7 @@ namespace direct_bt {
         std::string toString() const noexcept {
             return "LK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
                    "], type "+getMgmtLinkKeyTypeString(key_type).c_str()+
-                   ", key "+jau::uint128HexString(key)+
+                   ", key "+jau::bytesHexString(key.data, 0, sizeof(key), true /* lsbFirst */, false /* leading0X */)+
                    ", pinLen "+jau::uint8HexString(pin_length)+
                    "]";
         }
@@ -239,13 +239,16 @@ namespace direct_bt {
 
         std::string toString() const noexcept {
             return "IRK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
-                   "], irk "+jau::uint128HexString(irk)+
+                   "], irk "+jau::bytesHexString(irk.data, 0, sizeof(irk), true /* lsbFirst */, false /* leading0X */)+
                    "]";
         }
     } );
 
     /**
      * Used for MgmtEvtNewSignatureResolvingKey
+     * <p>
+     * One way for ATT Signed Write.
+     * </p>
      */
     __pack( struct MgmtSignatureResolvingKeyInfo {
         EUI48 address;
@@ -256,7 +259,7 @@ namespace direct_bt {
         std::string toString() const noexcept {
             return "CSRK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
                    "], type "+getMgmtCSRKTypeString(key_type).c_str()+
-                   ", csrk "+jau::uint128HexString(csrk)+
+                   ", csrk "+jau::bytesHexString(csrk.data, 0, sizeof(csrk), true /* lsbFirst */, false /* leading0X */)+
                    "]";
         }
     } );
@@ -1863,7 +1866,7 @@ namespace direct_bt {
     /**
      * uint8_t store_hint,
      * EUI48 random_address;
-     * MgmtIdentityResolvingKey key
+     * MgmtSignatureResolvingKeyInfo key
      */
     class MgmtEvtNewSignatureResolvingKey : public MgmtEvent
     {

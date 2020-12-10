@@ -296,6 +296,7 @@ std::string direct_bt::getSMPKeyDistMaskString(const SMPKeyDist mask) noexcept {
 
 #define LTKPROP_ENUM(X) \
     X(NONE) \
+    X(RESPONDER) \
     X(AUTH) \
     X(SC)
 
@@ -312,7 +313,12 @@ std::string SMPLongTermKeyInfo::getPropertyBitString(const Property bit) noexcep
 std::string SMPLongTermKeyInfo::getPropertyMaskString(const Property mask) noexcept {
     bool has_pre = false;
     std::string out("[");
+    if( Property::NONE != ( mask & Property::RESPONDER ) ) {
+        out.append( getPropertyBitString( Property::RESPONDER ) );
+        has_pre = true;
+    }
     if( Property::NONE != ( mask & Property::AUTH ) ) {
+        if( has_pre ) { out.append(", "); }
         out.append( getPropertyBitString( Property::AUTH ) );
         has_pre = true;
     }

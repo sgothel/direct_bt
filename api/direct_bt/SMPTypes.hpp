@@ -439,10 +439,12 @@ namespace direct_bt {
         enum class Property : uint8_t {
             /** No specific property */
             NONE = 0x00,
+            /** Responder Key (LL slave). Absence indicates Initiator Key (LL master). */
+            RESPONDER = 0x01,
             /** Authentication used. */
-            AUTH = 0x01,
+            AUTH = 0x02,
             /** Secure Connection used. */
-            SC   = 0x02
+            SC   = 0x04
         };
         static constexpr uint8_t number(const Property rhs) noexcept {
             return static_cast<uint8_t>(rhs);
@@ -1587,7 +1589,7 @@ namespace direct_bt {
      * </pre>
      *
      * Message is used in the Transport Specific Key Distribution
-     * to distribute the Connection Signature Resolving Key (CSRK), which a device uses to sign data.
+     * to distribute the Connection Signature Resolving Key (CSRK), which a device uses to sign data (ATT Signed Write).
      * <p>
      * The message shall only be sent when the link has been encrypted or re-encrypted using the generated key.
      * </p>

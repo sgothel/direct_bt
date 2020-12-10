@@ -193,13 +193,12 @@ public interface BluetoothDevice extends BluetoothObject
 
     /**
      * Sets the long term ket (LTK) info of this device to reuse pre-paired encryption.
-     * @param ltk the pre-paired encryption
-     * @param responder true will set the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
+     * @param ltk the pre-paired encryption LTK
      * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
      * @since 2.2.0
      * @implNote not implemented in tinyb.dbus
      */
-    HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk, final boolean responder);
+    HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk);
 
     /**
      * A secure connection to this device is established, and the device is then paired.

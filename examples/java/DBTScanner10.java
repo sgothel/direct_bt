@@ -152,6 +152,7 @@ public class DBTScanner10 {
 
         boolean write(final String filename) {
             if( !smp_ltk.isValid() ) {
+                println("****** WRITE LTK ["+address+" "+address_type+", invalid, skipped]: "+smp_ltk+" (write)");
                 return false;
             }
             final File file = new File(filename);
@@ -164,6 +165,7 @@ public class DBTScanner10 {
                 final byte[] smp_ltk_b = new byte[SMPLongTermKeyInfo.byte_size];
                 smp_ltk.getStream(smp_ltk_b, 0);
                 out.write(smp_ltk_b);
+                println("****** WRITE LTK ["+address+" "+address_type+", valid, written]: "+smp_ltk);
                 return true;
             } catch (final Exception ex) {
                 ex.printStackTrace();
@@ -192,6 +194,7 @@ public class DBTScanner10 {
                 address.putStream(buffer, 0);
                 address_type = BluetoothAddressType.get(buffer[6]);
                 smp_ltk.putStream(buffer, 6+1);
+                println("****** READ LTK ["+address+" "+address_type+", valid "+smp_ltk.isValid()+"]: "+smp_ltk);
                 return smp_ltk.isValid();
             } catch (final Exception ex) {
                 ex.printStackTrace();
@@ -379,8 +382,8 @@ public class DBTScanner10 {
             final MyLongTermKeyInfo my_ltk_init = new MyLongTermKeyInfo();
             if( my_ltk_init.read(device.getAddress().toString()+".init.ltk") &&
                 my_ltk_resp.read(device.getAddress().toString()+".resp.ltk") &&
-                HCIStatusCode.SUCCESS == device.setLongTermKeyInfo(my_ltk_init.smp_ltk, false /* responder */) &&
-                HCIStatusCode.SUCCESS == device.setLongTermKeyInfo(my_ltk_resp.smp_ltk, true /* responder */) ) {
+                HCIStatusCode.SUCCESS == device.setLongTermKeyInfo(my_ltk_init.smp_ltk) &&
+                HCIStatusCode.SUCCESS == device.setLongTermKeyInfo(my_ltk_resp.smp_ltk) ) {
                 println("****** Connecting Device: Loaded LTKs from file successfully\n");
             } else {
                 println("****** Connecting Device: Error loading LTKs from file\n");
@@ -437,7 +440,8 @@ public class DBTScanner10 {
 
         {
             final SMPPairingState pstate = device.getPairingState();
-            if( SMPPairingState.COMPLETED == pstate) {
+            final PairingMode pmode = device.getPairingMode(); // Skip PairingMode::PRE_PAIRED (write again)
+            if( SMPPairingState.COMPLETED == pstate && PairingMode.PRE_PAIRED != pmode ) {
                 {
                     final MyLongTermKeyInfo my_ltk = new MyLongTermKeyInfo();
                     my_ltk.address = device.getAddress();

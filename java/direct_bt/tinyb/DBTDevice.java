@@ -337,12 +337,12 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     private final native void getLongTermKeyInfoImpl(final boolean responder, final byte[] sink);
 
     @Override
-    public final HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk, final boolean responder) {
+    public final HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk) {
         final byte[] stream = new byte[SMPLongTermKeyInfo.byte_size];
         ltk.getStream(stream, 0);
-        return HCIStatusCode.get( setLongTermKeyInfoImpl(stream, responder) );
+        return HCIStatusCode.get( setLongTermKeyInfoImpl(stream) );
     }
-    private final native byte setLongTermKeyInfoImpl(final byte[] source, final boolean responder);
+    private final native byte setLongTermKeyInfoImpl(final byte[] source);
 
     @Override
     public final boolean pair() throws BluetoothException {
