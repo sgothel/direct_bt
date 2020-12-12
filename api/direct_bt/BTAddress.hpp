@@ -29,8 +29,10 @@
 #include <cstring>
 #include <string>
 #include <cstdint>
+#include <functional>
 
 #include <jau/packed_attribute.hpp>
+#include <jau/ordered_atomic.hpp>
 
 namespace direct_bt {
 
@@ -60,20 +62,6 @@ namespace direct_bt {
         return static_cast<uint8_t>(rhs);
     }
     std::string getBDAddressTypeString(const BDAddressType type) noexcept;
-
-    /**
-     * Returns true if the given BDAddressType is a LE address type.
-     * @param type given BDAddressType
-     */
-    constexpr bool isLEAddressType(const BDAddressType type) noexcept {
-        return BDAddressType::BDADDR_LE_PUBLIC == type || BDAddressType::BDADDR_LE_RANDOM == type;
-    }
-
-    /**
-     * Returns true if the given BDAddressType is a BREDR address type.
-     * @param type given BDAddressType
-     */
-    constexpr bool isBREDRAddressType(const BDAddressType type) noexcept { return BDAddressType::BDADDR_BREDR == type; }
 
     /**
      * BT Core Spec v5.2:  Vol 6 LE, Part B Link Layer Specification: 1.3 Device Address
@@ -161,6 +149,13 @@ namespace direct_bt {
      * </p>
      */
     __pack ( struct EUI48 {
+        /** EUI48 MAC address matching any device, i.e. '0:0:0:0:0:0'. */
+        static const EUI48 ANY_DEVICE;
+        /** EUI48 MAC address matching all device, i.e. 'ff:ff:ff:ff:ff:ff'. */
+        static const EUI48 ALL_DEVICE;
+        /** EUI48 MAC address matching local device, i.e. '0:0:0:ff:ff:ff'. */
+        static const EUI48 LOCAL_DEVICE;
+
         uint8_t b[6]; // == sizeof(EUI48)
 
         constexpr EUI48() noexcept : b{0}  { }
@@ -171,26 +166,209 @@ namespace direct_bt {
         constexpr EUI48& operator=(const EUI48 &o) noexcept = default;
         EUI48& operator=(EUI48 &&o) noexcept = default;
 
+        constexpr std::size_t hash_code() const noexcept {
+            // 31 * x == (x << 5) - x
+            std::size_t h = b[0];
+            h = ( ( h << 5 ) - h ) + b[1];
+            h = ( ( h << 5 ) - h ) + b[2];
+            h = ( ( h << 5 ) - h ) + b[3];
+            h = ( ( h << 5 ) - h ) + b[4];
+            h = ( ( h << 5 ) - h ) + b[5];
+            return h;
+        }
+
+        /**
+         * Method clears the underlying byte array {@link #b}.
+         */
+        void clear() {
+            b[0] = 0; b[1] = 0; b[2] = 0;
+            b[3] = 0; b[4] = 0; b[5] = 0;
+        }
+
+        /**
+         * Returns the BLERandomAddressType.
+         * <p>
+         * If ::BDAddressType is ::BDAddressType::BDADDR_LE_RANDOM,
+         * method shall return a valid value other than ::BLERandomAddressType::UNDEFINED.
+         * </p>
+         * <p>
+         * If BDAddressType is not ::BDAddressType::BDADDR_LE_RANDOM,
+         * method shall return ::BLERandomAddressType::UNDEFINED.
+         * </p>
+         * @since 2.2.0
+         */
         BLERandomAddressType getBLERandomAddressType(const BDAddressType addressType) const noexcept;
+
         std::string toString() const;
     } );
 
     inline bool operator<(const EUI48& lhs, const EUI48& rhs) noexcept
     { return memcmp(&lhs, &rhs, sizeof(EUI48))<0; }
 
-    inline bool operator==(const EUI48& lhs, const EUI48& rhs) noexcept
-    { return !memcmp(&lhs, &rhs, sizeof(EUI48)); }
+    inline bool operator==(const EUI48& lhs, const EUI48& rhs) noexcept {
+        if( &lhs == &rhs ) {
+            return true;
+        }
+        //return !memcmp(&lhs, &rhs, sizeof(EUI48));
+        const uint8_t * a = lhs.b;
+        const uint8_t * b = lhs.b;
+        return a[0] == b[0] &&
+               a[1] == b[1] &&
+               a[2] == b[2] &&
+               a[3] == b[3] &&
+               a[4] == b[4] &&
+               a[5] == b[5];
+    }
 
     inline bool operator!=(const EUI48& lhs, const EUI48& rhs) noexcept
     { return !(lhs == rhs); }
 
-    /** EUI48 MAC address matching any device, i.e. '0:0:0:0:0:0'. */
-    extern const EUI48 EUI48_ANY_DEVICE;
-    /** EUI48 MAC address matching all device, i.e. 'ff:ff:ff:ff:ff:ff'. */
-    extern const EUI48 EUI48_ALL_DEVICE;
-    /** EUI48 MAC address matching local device, i.e. '0:0:0:ff:ff:ff'. */
-    extern const EUI48 EUI48_LOCAL_DEVICE;
+    /**
+     * Unique Bluetooth EUI48 address and ::BDAddressType tuple.
+     * <p>
+     * Bluetooth EUI48 address itself is not unique as it requires the ::BDAddressType bits.<br>
+     * E.g. there could be two devices with the same EUI48 address, one using ::BDAddressType::BDADDR_LE_PUBLIC
+     * and one using ::BDAddressType::BDADDR_LE_RANDOM being a ::BLERandomAddressType::RESOLVABLE_PRIVAT.
+     * </p>
+     */
+    class BDAddressAndType {
+        public:
+            /** Using EUI48::ANY_DEVICE and ::BDAddressType::BDADDR_BREDR to match any BREDR device. */
+            static const BDAddressAndType ANY_BREDR_DEVICE;
+
+            /**
+             * Using EUI48::ANY_DEVICE and ::BDAddressType::BDADDR_UNDEFINED to match any device.<br>
+             * This constant is suitable to {@link #matches(BDAddressAndType) any device.
+             */
+            static const BDAddressAndType ANY_DEVICE;
+
+            EUI48 address;
+            BDAddressType type;
+
+        private:
+            jau::relaxed_atomic_size_t hash = 0; // default 0, cache
+
+        public:
+            BDAddressAndType(const EUI48 & address_, BDAddressType type_)
+            : address(address_), type(type_) {}
+
+            constexpr BDAddressAndType() noexcept : address(), type{BDAddressType::BDADDR_UNDEFINED} { }
+            BDAddressAndType(const BDAddressAndType &o) noexcept : address(o.address), type(o.type) { }
+            BDAddressAndType(BDAddressAndType &&o) noexcept {
+                address = std::move(o.address);
+                type = std::move(o.type);
+            }
+            constexpr BDAddressAndType& operator=(const BDAddressAndType &o) noexcept {
+                address = o.address;
+                type = o.type;
+                return *this;
+            }
+            BDAddressAndType& operator=(BDAddressAndType &&o) noexcept {
+                address = std::move(o.address);
+                type = std::move(o.type);
+                return *this;
+            }
+
+            /**
+             * Returns true if the BDAddressType is a LE address type.
+             */
+            constexpr bool isLEAddress() const noexcept {
+                return BDAddressType::BDADDR_LE_PUBLIC == type || BDAddressType::BDADDR_LE_RANDOM == type;
+            }
+
+            /**
+             * Returns true if the BDAddressType is a BREDR address type.
+             */
+            constexpr bool isBREDRAddress() const noexcept { return BDAddressType::BDADDR_BREDR == type; }
+
+            /**
+             * Returns the BLERandomAddressType.
+             * <p>
+             * If type is ::BDAddressType::BDADDR_LE_RANDOM},
+             * method shall return a valid value other than ::BLERandomAddressType::UNDEFINED.
+             * </p>
+             * <p>
+             * If type is not ::BDAddressType::BDADDR_LE_RANDOM,
+             * method shall return ::BLERandomAddressType::UNDEFINED.
+             * </p>
+             * @since 2.0.0
+             */
+            BLERandomAddressType getBLERandomAddressType() const noexcept {
+                return address.getBLERandomAddressType(type);
+            }
+
+            /**
+             * Returns true if both devices match, i.e. equal address
+             * and equal type or at least one type is {@link BDAddressType#BDADDR_UNDEFINED}.
+             */
+            bool matches(const BDAddressAndType & o) const noexcept {
+                if(this == &o) {
+                    return true;
+                }
+                return address == o.address &&
+                       ( type == o.type ||
+                         BDAddressType::BDADDR_UNDEFINED == type ||
+                         BDAddressType::BDADDR_UNDEFINED == o.type );
+            }
+
+            /**
+             * Implementation uses a lock-free volatile cache.
+             */
+            std::size_t hash_code() const noexcept {
+                std::size_t h = hash;
+                if( 0 == h ) {
+                    // 31 * x == (x << 5) - x
+                    h = 31 + address.hash_code();
+                    h = ((h << 5) - h) + number(type);
+                    const_cast<BDAddressAndType *>(this)->hash = h;
+                }
+                return h;
+            }
+
+            /**
+             * Method clears the cached hash value.
+             * @see #clear()
+             */
+            void clearHash() { hash = 0; }
+
+            /**
+             * Method clears the underlying byte array {@link #b} and cached hash value.
+             * @see #clearHash()
+             */
+            void clear() {
+                hash = 0;
+                address.clear();
+                type = BDAddressType::BDADDR_UNDEFINED;
+            }
+
+            std::string toString() const;
+    };
+    inline bool operator==(const BDAddressAndType& lhs, const BDAddressAndType& rhs) noexcept {
+        if( &lhs == &rhs ) {
+            return true;
+        }
+        return lhs.address == rhs.address &&
+               lhs.type == rhs.type;
+    }
+    inline bool operator!=(const BDAddressAndType& lhs, const BDAddressAndType& rhs) noexcept
+    { return !(lhs == rhs); }
 
 } // namespace direct_bt
+
+// injecting specialization of std::hash to namespace std of our types above
+namespace std
+{
+    template<> struct hash<direct_bt::EUI48> {
+        std::size_t operator()(direct_bt::EUI48 const& a) const noexcept {
+            return a.hash_code();
+        }
+    };
+
+    template<> struct hash<direct_bt::BDAddressAndType> {
+        std::size_t operator()(direct_bt::BDAddressAndType const& a) const noexcept {
+            return a.hash_code();
+        }
+    };
+}
 
 #endif /* BT_ADDRESS_HPP_ */

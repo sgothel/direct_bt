@@ -25,11 +25,14 @@
 
 package org.tinyb;
 
-import java.util.Arrays;
-
 /**
  * A packed 48 bit EUI-48 identifier, formerly known as MAC-48
  * or simply network device MAC address (Media Access Control address).
+ * <p>
+ * Implementation caches the hash value {@link #hashCode()},
+ * hence users shall take special care when mutating the
+ * underlying data {@link #b}, read its API notes.
+ * </p>
  */
 public class EUI48 {
     /** EUI48 MAC address matching any device, i.e. '0:0:0:0:0:0'. */
@@ -39,8 +42,16 @@ public class EUI48 {
     /** EUI48 MAC address matching local device, i.e. '0:0:0:ff:ff:ff'. */
     public static final EUI48 LOCAL_DEVICE = new EUI48( new byte[] { (byte)0x00, (byte)0x00, (byte)0x00, (byte)0xff, (byte)0xff, (byte)0xff } );
 
-    /** The 6 byte EUI48 address */
+    /**
+     * The 6 byte EUI48 address.
+     * <p>
+     * If modifying, it is the user's responsibility to avoid data races.<br>
+     * Further, call {@link #clearHash()} after mutation is complete.
+     * </p>
+     */
     public final byte b[/* 6 octets */];
+
+    private volatile int hash; // default 0, cache
 
     /**
      * Size of the byte stream representation in bytes
@@ -93,35 +104,91 @@ public class EUI48 {
     }
 
     @Override
-    public final boolean equals(final Object obj)
-    {
+    public final boolean equals(final Object obj) {
         if(this == obj) {
             return true;
         }
         if (obj == null || !(obj instanceof EUI48)) {
             return false;
         }
-        final EUI48 other = (EUI48)obj;
-        return Arrays.equals(b, other.b);
+        final byte[] b2 = ((EUI48)obj).b;
+        return b[0] == b2[0] &&
+               b[1] == b2[1] &&
+               b[2] == b2[2] &&
+               b[3] == b2[3] &&
+               b[4] == b2[4] &&
+               b[5] == b2[5];
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Implementation uses a lock-free volatile cache.
+     * </p>
+     * @see #clearHash()
+     */
     @Override
-    public final int hashCode() { return java.util.Arrays.hashCode(b); }
+    public final int hashCode() {
+        int h = hash;
+        if( 0 == h ) {
+            /**
+            // final int p = 92821; // alternative with less collisions?
+            final int p = 31; // traditional prime
+            h = b[0];
+            h = p * h + b[1];
+            h = p * h + b[2];
+            h = p * h + b[3];
+            h = p * h + b[4];
+            h = p * h + b[5];
+            */
+            // 31 * x == (x << 5) - x
+            h = b[0];
+            h = ( ( h << 5 ) - h ) + b[1];
+            h = ( ( h << 5 ) - h ) + b[2];
+            h = ( ( h << 5 ) - h ) + b[3];
+            h = ( ( h << 5 ) - h ) + b[4];
+            h = ( ( h << 5 ) - h ) + b[5];
+            hash = h;
+        }
+        return h;
+    }
+
+    /**
+     * Method clears the cached hash value.
+     * @see #clear()
+     */
+    public void clearHash() { hash = 0; }
+
+    /**
+     * Method clears the underlying byte array {@link #b} and cached hash value.
+     * @see #clearHash()
+     */
+    public void clear() {
+        hash = 0;
+        b[0] = 0;
+        b[1] = 0;
+        b[2] = 0;
+        b[3] = 0;
+        b[4] = 0;
+        b[5] = 0;
+    }
 
     /**
      * Method transfers all bytes representing a EUI48 from the given
-     * source array at the given position into this instance.
+     * source array at the given position into this instance and clears its cached hash value.
      * <p>
      * Implementation is consistent with {@link #EUI48(byte[], int)}.
      * </p>
      * @param source the source array
      * @param pos starting position in the source array
      * @see #EUI48(byte[], int)
+     * @see #clearHash()
      */
     public final void putStream(final byte[] source, final int pos) {
         if( byte_size > ( source.length - pos ) ) {
             throw new IllegalArgumentException("Stream ( "+source.length+" - "+pos+" ) < "+byte_size+" bytes");
         }
+        hash = 0;
         System.arraycopy(source, pos, b, 0, byte_size);
     }
 
@@ -142,8 +209,20 @@ public class EUI48 {
         System.arraycopy(b, 0, sink, pos, byte_size);
     }
 
-    public BLERandomAddressType getBLERandomAddressType(final BluetoothAddressType addressType) {
-        if( BluetoothAddressType.BDADDR_LE_RANDOM != addressType ) {
+    /**
+     * Returns the {@link BLERandomAddressType}.
+     * <p>
+     * If {@link BDAddressType} is {@link BDAddressType::BDADDR_LE_RANDOM},
+     * method shall return a valid value other than {@link BLERandomAddressType::UNDEFINED}.
+     * </p>
+     * <p>
+     * If {@link BDAddressType} is not {@link BDAddressType::BDADDR_LE_RANDOM},
+     * method shall return {@link BLERandomAddressType::UNDEFINED}.
+     * </p>
+     * @since 2.2.0
+     */
+    public BLERandomAddressType getBLERandomAddressType(final BDAddressType addressType) {
+        if( BDAddressType.BDADDR_LE_RANDOM != addressType ) {
             return BLERandomAddressType.UNDEFINED;
         }
         final byte high2 = (byte) ( ( b[5] >> 6 ) & 0x03 );
