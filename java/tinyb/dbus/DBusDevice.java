@@ -33,7 +33,8 @@ import java.util.Map;
 
 import org.tinyb.BLERandomAddressType;
 import org.tinyb.BTSecurityLevel;
-import org.tinyb.BluetoothAddressType;
+import org.tinyb.BDAddressAndType;
+import org.tinyb.BDAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothGattCharacteristic;
@@ -173,16 +174,10 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     /* D-Bus property accessors: */
 
     @Override
-    public EUI48 getAddress() { return new EUI48(getAddressString()); }
+    public BDAddressAndType getAddressAndType() { return new BDAddressAndType(new EUI48(getAddressString()), BDAddressType.BDADDR_LE_PUBLIC /* FIXME */); }
 
     @Override
     public native String getAddressString();
-
-    @Override
-    public BluetoothAddressType getAddressType() { return BluetoothAddressType.BDADDR_LE_PUBLIC; /* FIXME */}
-
-    @Override
-    public BLERandomAddressType getBLERandomAddressType() { return BLERandomAddressType.UNDEFINED; /* FIXME */ }
 
     @Override
     public native String getName();
@@ -330,6 +325,6 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
 
     @Override
     public String toString() {
-        return "Device[address["+getAddress()+", "+getAddressType()+"], '"+getName()+"']";
+        return "Device[address"+getAddressAndType()+", '"+getName()+"']";
     }
 }

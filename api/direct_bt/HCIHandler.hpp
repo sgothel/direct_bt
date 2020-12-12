@@ -147,7 +147,7 @@ namespace direct_bt {
             }
     };
 
-    typedef jau::FunctionDef<bool, const EUI48& /* address */, BDAddressType /* addressType */,
+    typedef jau::FunctionDef<bool, const BDAddressAndType& /* addressAndType */,
                                    std::shared_ptr<const SMPPDUMsg>, const HCIACLData::l2cap_frame& /* source */> HCISMPMsgCallback;
     typedef jau::cow_vector<HCISMPMsgCallback> HCISMPMsgCallbackList;
 
@@ -171,37 +171,43 @@ namespace direct_bt {
         private:
             class HCIConnection {
                 private:
-                    EUI48 address; // immutable
-                    BDAddressType addressType; // immutable
+                    BDAddressAndType addressAndType; // immutable
                     uint16_t handle; // mutable
 
                 public:
-                    HCIConnection(const EUI48 &address_, const BDAddressType addressType_, const uint16_t handle_)
-                    : address(address_), addressType(addressType_), handle(handle_) {}
+                    HCIConnection(const BDAddressAndType& addressAndType_, const uint16_t handle_)
+                    : addressAndType(addressAndType_), handle(handle_) {}
 
                     HCIConnection(const HCIConnection &o) = default;
                     HCIConnection(HCIConnection &&o) = default;
                     HCIConnection& operator=(const HCIConnection &o) = default;
                     HCIConnection& operator=(HCIConnection &&o) = default;
 
-                    const EUI48 & getAddress() const { return address; }
-                    BDAddressType getAddressType() const { return addressType; }
+                    const BDAddressAndType & getAddressAndType() const { return addressAndType; }
                     uint16_t getHandle() const { return handle; }
 
                     void setHandle(uint16_t newHandle) { handle = newHandle; }
 
-                    bool equals(const EUI48 & otherAddress, const BDAddressType otherAddressType) const
-                    { return address == otherAddress && addressType == otherAddressType; }
+                    bool equals(const BDAddressAndType & other) const
+                    { return addressAndType == other; }
 
-                    bool operator==(const HCIConnection& rhs) const
-                    { return address == rhs.address && addressType == rhs.addressType; }
+                    bool operator==(const HCIConnection& rhs) const {
+                        if( this == &rhs ) {
+                            return true;
+                        }
+                        return addressAndType == rhs.addressAndType;
+                    }
 
                     bool operator!=(const HCIConnection& rhs) const
                     { return !(*this == rhs); }
 
+                    std::size_t hash_code() const noexcept {
+                        return addressAndType.hash_code();
+                    }
+
                     std::string toString() const {
                         return "HCIConnection[handle "+jau::uint16HexString(handle)+
-                               ", address="+address.toString()+", addressType "+getBDAddressTypeString(addressType)+"]";
+                               ", address "+addressAndType.toString()+"]";
                     }
             };
             typedef std::shared_ptr<HCIConnection> HCIConnectionRef;
@@ -265,20 +271,20 @@ namespace direct_bt {
              * @param handle ignored for existing tracker _if_ invalid, i.e. zero.
              */
             HCIConnectionRef addOrUpdateHCIConnection(std::vector<HCIConnectionRef> &list,
-                                                      const EUI48 & address, BDAddressType addrType, const uint16_t handle) noexcept;
-            HCIConnectionRef addOrUpdateTrackerConnection(const EUI48 & address, BDAddressType addrType, const uint16_t handle) noexcept {
-                return addOrUpdateHCIConnection(connectionList, address, addrType, handle);
+                                                      const BDAddressAndType& addressAndType, const uint16_t handle) noexcept;
+            HCIConnectionRef addOrUpdateTrackerConnection(const BDAddressAndType& addressAndType, const uint16_t handle) noexcept {
+                return addOrUpdateHCIConnection(connectionList, addressAndType, handle);
             }
-            HCIConnectionRef addOrUpdateDisconnectCmd(const EUI48 & address, BDAddressType addrType, const uint16_t handle) noexcept {
-                return addOrUpdateHCIConnection(disconnectCmdList, address, addrType, handle);
+            HCIConnectionRef addOrUpdateDisconnectCmd(const BDAddressAndType& addressAndType, const uint16_t handle) noexcept {
+                return addOrUpdateHCIConnection(disconnectCmdList, addressAndType, handle);
             }
 
-            HCIConnectionRef findHCIConnection(std::vector<HCIConnectionRef> &list, const EUI48 & address, BDAddressType addrType) noexcept;
-            HCIConnectionRef findTrackerConnection(const EUI48 & address, BDAddressType addrType) noexcept {
-                return findHCIConnection(connectionList, address, addrType);
+            HCIConnectionRef findHCIConnection(std::vector<HCIConnectionRef> &list, const BDAddressAndType& addressAndType) noexcept;
+            HCIConnectionRef findTrackerConnection(const BDAddressAndType& addressAndType) noexcept {
+                return findHCIConnection(connectionList, addressAndType);
             }
-            HCIConnectionRef findDisconnectCmd(const EUI48 & address, BDAddressType addrType) noexcept {
-                return findHCIConnection(disconnectCmdList, address, addrType);
+            HCIConnectionRef findDisconnectCmd(const BDAddressAndType& addressAndType) noexcept {
+                return findHCIConnection(disconnectCmdList, addressAndType);
             }
 
             HCIConnectionRef findTrackerConnection(const uint16_t handle) noexcept;
@@ -526,7 +532,7 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.6 Disconnect command
              * </p>
              */
-            HCIStatusCode disconnect(const uint16_t conn_handle, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
+            HCIStatusCode disconnect(const uint16_t conn_handle, const BDAddressAndType& addressAndType,
                                      const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION) noexcept;
 
             /**
@@ -601,6 +607,19 @@ namespace direct_bt {
     };
 
 } // namespace direct_bt
+
+#if 0
+// Injecting specialization of std::hash to namespace std of our types above
+// Would need to make direct_bt::HCIHandler::HCIConnection accessible
+namespace std
+{
+    template<> struct hash<direct_bt::HCIHandler::HCIConnection> {
+        std::size_t operator()(direct_bt::HCIHandler::HCIConnection const& a) const noexcept {
+            return a.hash_code();
+        }
+    };
+}
+#endif
 
 #endif /* DBT_HANDLER_HPP_ */
 

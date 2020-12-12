@@ -34,9 +34,9 @@ import java.util.List;
 import java.util.UUID;
 
 import org.tinyb.BluetoothAdapter;
-import org.tinyb.BluetoothAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.AdapterStatusListener;
+import org.tinyb.BDAddressAndType;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
@@ -58,14 +58,14 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     static BluetoothType class_type() { return BluetoothType.ADAPTER; }
 
     @Override
-    public BluetoothDevice find(final String name, final EUI48 address, final long timeoutMS) {
+    public BluetoothDevice find(final String name, final BDAddressAndType addressAndType, final long timeoutMS) {
         final BluetoothManager manager = DBusManager.getManager();
-        return (BluetoothDevice) manager.find(BluetoothType.DEVICE, name, address.toString(), this, timeoutMS);
+        return (BluetoothDevice) manager.find(BluetoothType.DEVICE, name, addressAndType.address.toString(), this, timeoutMS);
     }
 
     @Override
-    public BluetoothDevice find(final String name, final EUI48 address) {
-            return find(name, address, 0);
+    public BluetoothDevice find(final String name, final BDAddressAndType addressAndType) {
+            return find(name, addressAndType, 0);
     }
 
     @Override
@@ -78,12 +78,12 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     public final boolean isValid() { return super.isValid(); }
 
     @Override
-    public boolean isDeviceWhitelisted(final EUI48 address) {
+    public boolean isDeviceWhitelisted(final BDAddressAndType addressAndType) {
         return false; // FIXME
     }
 
     @Override
-    public boolean addDeviceToWhitelist(final EUI48 address, final BluetoothAddressType address_type,
+    public boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
                                         final HCIWhitelistConnectType ctype,
                                         final short min_interval, final short max_interval,
                                         final short latency, final short timeout) {
@@ -91,13 +91,13 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     }
 
     @Override
-    public boolean addDeviceToWhitelist(final EUI48 address, final BluetoothAddressType address_type,
+    public boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
                                         final HCIWhitelistConnectType ctype) {
         return false; // FIXME
     }
 
     @Override
-    public boolean removeDeviceFromWhitelist(final EUI48 address, final BluetoothAddressType address_type) {
+    public boolean removeDeviceFromWhitelist(final BDAddressAndType addressAndType) {
         return false; // FIXME
     }
 
@@ -184,8 +184,8 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     public native boolean setDiscoverableTimout(long value);
 
     @Override
-    public BluetoothDevice connectDevice(final EUI48 address, final BluetoothAddressType addressType) {
-        return connectDeviceImpl(address.toString(), addressType.toDbusString());
+    public BluetoothDevice connectDevice(final BDAddressAndType addressAndType) {
+        return connectDeviceImpl(addressAndType.address.toString(), addressAndType.type.toDbusString());
     }
     private native BluetoothDevice connectDeviceImpl(String address, String addressType);
 

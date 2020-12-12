@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
     bool ok = true, foundDevice=false;
     int dev_id = 0; // default
     bool waitForEnter=false;
-    EUI48 waitForDevice = EUI48_ANY_DEVICE;
+    BDAddressAndType waitForDevice = BDAddressAndType::ANY_DEVICE;
     bool forever = false;
 
     /**
@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
             doHCI_Connect = false;
         } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
             std::string macstr = std::string(argv[++i]);
-            waitForDevice = EUI48(macstr);
+            waitForDevice = BDAddressAndType(EUI48(macstr), BDAddressType::BDADDR_UNDEFINED);
         }
     }
     fprintf(stderr, "dev_id %d\n", dev_id);
@@ -228,8 +228,8 @@ int main(int argc, char *argv[])
             while( nullptr == device ) { // FIXME deadlock, waiting forever!
                 cvDeviceFound.wait(lockRead);
                 if( nullptr != deviceFound ) {
-                    foundDevice = deviceFound->getAddress() == waitForDevice; // match
-                    if( foundDevice || ( EUI48_ANY_DEVICE == waitForDevice && deviceFound->isLEAddressType() ) ) {
+                    foundDevice = deviceFound->getAddressAndType().matches(waitForDevice); // match
+                    if( foundDevice || ( BDAddressAndType::ANY_DEVICE == waitForDevice && deviceFound->getAddressAndType().isLEAddress() ) ) {
                         // match or any LE device
                         device.swap(deviceFound); // take over deviceFound
                     }

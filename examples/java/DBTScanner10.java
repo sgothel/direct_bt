@@ -43,9 +43,10 @@ import java.util.function.Predicate;
 
 import org.tinyb.AdapterSettings;
 import org.tinyb.BluetoothAdapter;
-import org.tinyb.BluetoothAddressType;
+import org.tinyb.BDAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.AdapterStatusListener;
+import org.tinyb.BDAddressAndType;
 import org.tinyb.BLERandomAddressType;
 import org.tinyb.BTMode;
 import org.tinyb.BTSecurityLevel;
@@ -82,7 +83,7 @@ import direct_bt.tinyb.DBTManager;
  * </p>
  */
 public class DBTScanner10 {
-    final List<EUI48> waitForDevices = new ArrayList<EUI48>();
+    final List<BDAddressAndType> waitForDevices = new ArrayList<BDAddressAndType>();
 
     static final int NO_PASSKEY = -1;
     int pairing_passkey = NO_PASSKEY;
@@ -102,7 +103,7 @@ public class DBTScanner10 {
     boolean GATT_PING_ENABLED = false;
     boolean REMOVE_DEVICE = true;
     boolean USE_WHITELIST = false;
-    final List<EUI48> whitelist = new ArrayList<EUI48>();
+    final List<BDAddressAndType> whitelist = new ArrayList<BDAddressAndType>();
 
     String charIdentifier = null;
     int charValue = 0;
@@ -142,24 +143,21 @@ public class DBTScanner10 {
     }
 
     static public class MyLongTermKeyInfo {
-        EUI48 address;
-        BluetoothAddressType address_type;
+        BDAddressAndType address_and_type;
         SMPLongTermKeyInfo smp_ltk;
 
-        MyLongTermKeyInfo(final EUI48 address, final BluetoothAddressType address_type, final SMPLongTermKeyInfo smp_ltk) {
-            this.address = address;
-            this.address_type = address_type;
+        MyLongTermKeyInfo(final BDAddressAndType address_and_type, final SMPLongTermKeyInfo smp_ltk) {
+            this.address_and_type = address_and_type;
             this.smp_ltk = smp_ltk;
         }
         MyLongTermKeyInfo() {
-            address = new EUI48();
-            address_type = BluetoothAddressType.BDADDR_UNDEFINED;
+            address_and_type = new BDAddressAndType();
             smp_ltk = new SMPLongTermKeyInfo();
         }
 
         boolean write(final String filename) {
             if( !smp_ltk.isValid() ) {
-                println("****** WRITE LTK ["+address+" "+address_type+", invalid, skipped]: "+smp_ltk+" (write)");
+                println("****** WRITE LTK ["+address_and_type+", invalid, skipped]: "+smp_ltk+" (write)");
                 return false;
             }
             final File file = new File(filename);
@@ -167,12 +165,12 @@ public class DBTScanner10 {
             try {
                 file.delete(); // alternative to truncate, if existing
                 out = new FileOutputStream(file);
-                out.write(address.b);
-                out.write(address_type.value);
+                out.write(address_and_type.address.b);
+                out.write(address_and_type.type.value);
                 final byte[] smp_ltk_b = new byte[SMPLongTermKeyInfo.byte_size];
                 smp_ltk.getStream(smp_ltk_b, 0);
                 out.write(smp_ltk_b);
-                println("****** WRITE LTK ["+address+" "+address_type+", valid, written]: "+smp_ltk);
+                println("****** WRITE LTK ["+address_and_type+", valid, written]: "+smp_ltk);
                 return true;
             } catch (final Exception ex) {
                 ex.printStackTrace();
@@ -198,10 +196,10 @@ public class DBTScanner10 {
                 if( read_count != buffer.length ) {
                     throw new IOException("Couldn't read "+buffer.length+" bytes, only "+read_count+" from "+filename);
                 }
-                address.putStream(buffer, 0);
-                address_type = BluetoothAddressType.get(buffer[6]);
+                address_and_type.address.putStream(buffer, 0);
+                address_and_type.type = BDAddressType.get(buffer[6]);
                 smp_ltk.putStream(buffer, 6+1);
-                println("****** READ LTK ["+address+" "+address_type+", valid "+smp_ltk.isValid()+"]: "+smp_ltk);
+                println("****** READ LTK ["+address_and_type+", valid "+smp_ltk.isValid()+"]: "+smp_ltk);
                 return smp_ltk.isValid();
             } catch (final Exception ex) {
                 ex.printStackTrace();
@@ -218,18 +216,15 @@ public class DBTScanner10 {
         }
     }
     static public class MySignatureResolvingKeyInfo {
-        EUI48 address;
-        BluetoothAddressType address_type;
+        BDAddressAndType address_and_type;
         SMPSignatureResolvingKeyInfo smp_csrk;
 
-        MySignatureResolvingKeyInfo(final EUI48 address, final BluetoothAddressType address_type, final SMPSignatureResolvingKeyInfo smp_csrk) {
-            this.address = address;
-            this.address_type = address_type;
+        MySignatureResolvingKeyInfo(final BDAddressAndType address_and_type, final SMPSignatureResolvingKeyInfo smp_csrk) {
+            this.address_and_type = address_and_type;
             this.smp_csrk = smp_csrk;
         }
         MySignatureResolvingKeyInfo() {
-            address = new EUI48();
-            address_type = BluetoothAddressType.BDADDR_UNDEFINED;
+            address_and_type = new BDAddressAndType();
             smp_csrk = new SMPSignatureResolvingKeyInfo();
         }
 
@@ -239,12 +234,12 @@ public class DBTScanner10 {
             try {
                 file.delete(); // alternative to truncate, if existing
                 out = new FileOutputStream(file);
-                out.write(address.b);
-                out.write(address_type.value);
+                out.write(address_and_type.address.b);
+                out.write(address_and_type.type.value);
                 final byte[] smp_ltk_b = new byte[SMPSignatureResolvingKeyInfo.byte_size];
                 smp_csrk.getStream(smp_ltk_b, 0);
                 out.write(smp_ltk_b);
-                println("****** WRITE CSRK ["+address+" "+address_type+", written]: "+smp_csrk);
+                println("****** WRITE CSRK ["+address_and_type+", written]: "+smp_csrk);
                 return true;
             } catch (final Exception ex) {
                 ex.printStackTrace();
@@ -270,10 +265,10 @@ public class DBTScanner10 {
                 if( read_count != buffer.length ) {
                     throw new IOException("Couldn't read "+buffer.length+" bytes, only "+read_count+" from "+filename);
                 }
-                address.putStream(buffer, 0);
-                address_type = BluetoothAddressType.get(buffer[6]);
+                address_and_type.address.putStream(buffer, 0);
+                address_and_type.type = BDAddressType.get(buffer[6]);
                 smp_csrk.putStream(buffer, 6+1);
-                println("****** READ CSRK ["+address+" "+address_type+"]: "+smp_csrk);
+                println("****** READ CSRK ["+address_and_type+"]: "+smp_csrk);
                 return true;
             } catch (final Exception ex) {
                 ex.printStackTrace();
@@ -289,8 +284,8 @@ public class DBTScanner10 {
             return false;
         }
     }
-    Collection<EUI48> devicesInProcessing = Collections.synchronizedCollection(new ArrayList<>());
-    Collection<EUI48> devicesProcessed = Collections.synchronizedCollection(new ArrayList<>());
+    Collection<BDAddressAndType> devicesInProcessing = Collections.synchronizedCollection(new ArrayList<>());
+    Collection<BDAddressAndType> devicesProcessed = Collections.synchronizedCollection(new ArrayList<>());
 
     final AdapterStatusListener statusListener = new AdapterStatusListener() {
         @Override
@@ -323,16 +318,16 @@ public class DBTScanner10 {
         public void deviceFound(final BluetoothDevice device, final long timestamp) {
             println("****** FOUND__: "+device.toString());
 
-            if( BluetoothAddressType.BDADDR_LE_PUBLIC != device.getAddressType()
-                && BLERandomAddressType.STATIC_PUBLIC != device.getBLERandomAddressType() ) {
+            if( BDAddressType.BDADDR_LE_PUBLIC != device.getAddressAndType().type
+                && BLERandomAddressType.STATIC_PUBLIC != device.getAddressAndType().getBLERandomAddressType() ) {
                 // Requires BREDR or LE Secure Connection support: WIP
                 println("****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' "+device.toString());
                 return;
             }
-            if( !devicesInProcessing.contains( device.getAddress() ) &&
+            if( !devicesInProcessing.contains( device.getAddressAndType() ) &&
                 ( waitForDevices.isEmpty() ||
-                  ( waitForDevices.contains( device.getAddress() ) &&
-                    ( 0 < MULTI_MEASUREMENTS.get() || !devicesProcessed.contains( device.getAddress() ) )
+                  ( waitForDevices.contains( device.getAddressAndType() ) &&
+                    ( 0 < MULTI_MEASUREMENTS.get() || !devicesProcessed.contains( device.getAddressAndType() ) )
                   )
                 )
               )
@@ -343,7 +338,7 @@ public class DBTScanner10 {
                     println("PERF: adapter-init -> FOUND__-0 " + td + " ms");
                 }
                 executeOffThread( () -> { connectDiscoveredDevice(device); },
-                                  "DBT-Connect-"+device.getAddress(), true /* detach */);
+                                  "DBT-Connect-"+device.getAddressAndType(), true /* detach */);
             } else {
                 println("****** FOUND__-1: NOP "+device.toString());
             }
@@ -382,12 +377,12 @@ public class DBTScanner10 {
                     break;
                 case PASSKEY_EXPECTED: {
                     if( pairing_passkey != NO_PASSKEY ) {
-                        executeOffThread( () -> { device.setPairingPasskey(pairing_passkey); }, "DBT-SetPasskey-"+device.getAddress(), true /* detach */);
+                        executeOffThread( () -> { device.setPairingPasskey(pairing_passkey); }, "DBT-SetPasskey-"+device.getAddressAndType(), true /* detach */);
                     }
                     // next: KEY_DISTRIBUTION or FAILED
                   } break;
                 case NUMERIC_COMPARE_EXPECTED: {
-                    executeOffThread( () -> { device.setPairingNumericComparison(true); }, "DBT-SetNumericComp-"+device.getAddress(), true /* detach */);
+                    executeOffThread( () -> { device.setPairingNumericComparison(true); }, "DBT-SetNumericComp-"+device.getAddressAndType(), true /* detach */);
                     // next: KEY_DISTRIBUTION or FAILED
                   } break;
                 case OOB_EXPECTED:
@@ -406,10 +401,10 @@ public class DBTScanner10 {
 
         @Override
         public void deviceReady(final BluetoothDevice device, final long timestamp) {
-            if( !devicesInProcessing.contains( device.getAddress() ) &&
+            if( !devicesInProcessing.contains( device.getAddressAndType() ) &&
                 ( waitForDevices.isEmpty() ||
-                  ( waitForDevices.contains( device.getAddress() ) &&
-                    ( 0 < MULTI_MEASUREMENTS.get() || !devicesProcessed.contains( device.getAddress() ) )
+                  ( waitForDevices.contains( device.getAddressAndType() ) &&
+                    ( 0 < MULTI_MEASUREMENTS.get() || !devicesProcessed.contains( device.getAddressAndType() ) )
                   )
                 )
               )
@@ -420,7 +415,7 @@ public class DBTScanner10 {
                     final long td = BluetoothUtils.currentTimeMillis() - timestamp_t0; // adapter-init -> now
                     println("PERF: adapter-init -> READY-0 " + td + " ms");
                 }
-                devicesInProcessing.add(device.getAddress());
+                devicesInProcessing.add(device.getAddressAndType());
                 processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
             } else {
                 println("****** READY-1: NOP " + device.toString());
@@ -432,9 +427,9 @@ public class DBTScanner10 {
             println("****** DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
 
             if( REMOVE_DEVICE ) {
-                executeOffThread( () -> { removeDevice(device); }, "DBT-Remove-"+device.getAddress(), true /* detach */);
+                executeOffThread( () -> { removeDevice(device); }, "DBT-Remove-"+device.getAddressAndType(), true /* detach */);
             } else {
-                devicesInProcessing.remove(device.getAddress());
+                devicesInProcessing.remove(device.getAddressAndType());
             }
             if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount.get() % RESET_ADAPTER_EACH_CONN ) {
                 executeOffThread( () -> { resetAdapter(device.getAdapter(), 1); },
@@ -459,8 +454,8 @@ public class DBTScanner10 {
         {
             final MyLongTermKeyInfo my_ltk_resp = new MyLongTermKeyInfo();
             final MyLongTermKeyInfo my_ltk_init = new MyLongTermKeyInfo();
-            if( my_ltk_init.read(device.getAddress().toString()+".init.ltk") &&
-                my_ltk_resp.read(device.getAddress().toString()+".resp.ltk") &&
+            if( my_ltk_init.read(device.getAddressAndType().toString()+".init.ltk") &&
+                my_ltk_resp.read(device.getAddressAndType().toString()+".resp.ltk") &&
                 HCIStatusCode.SUCCESS == device.setLongTermKeyInfo(my_ltk_init.smp_ltk) &&
                 HCIStatusCode.SUCCESS == device.setLongTermKeyInfo(my_ltk_resp.smp_ltk) ) {
                 println("****** Connecting Device: Loaded LTKs from file successfully\n");
@@ -525,25 +520,25 @@ public class DBTScanner10 {
                 final SMPKeyMask keys_init = device.getAvailableSMPKeys(false /* responder */);
 
                 if( keys_init.isSet(SMPKeyMask.KeyType.ENC_KEY) ) {
-                    final MyLongTermKeyInfo my_ltk = new MyLongTermKeyInfo(device.getAddress(), device.getAddressType(),
+                    final MyLongTermKeyInfo my_ltk = new MyLongTermKeyInfo(device.getAddressAndType(),
                                                                            device.getLongTermKeyInfo(false /* responder */));
-                    my_ltk.write(my_ltk.address.toString()+".init.ltk");
+                    my_ltk.write(my_ltk.address_and_type.toString()+".init.ltk");
                 }
                 if( keys_resp.isSet(SMPKeyMask.KeyType.ENC_KEY) ) {
-                    final MyLongTermKeyInfo my_ltk = new MyLongTermKeyInfo(device.getAddress(), device.getAddressType(),
+                    final MyLongTermKeyInfo my_ltk = new MyLongTermKeyInfo(device.getAddressAndType(),
                                                                            device.getLongTermKeyInfo(true /* responder */));
-                    my_ltk.write(my_ltk.address.toString()+".resp.ltk");
+                    my_ltk.write(my_ltk.address_and_type.toString()+".resp.ltk");
                 }
 
                 if( keys_init.isSet(SMPKeyMask.KeyType.SIGN_KEY) ) {
-                    final MySignatureResolvingKeyInfo my_csrk = new MySignatureResolvingKeyInfo(device.getAddress(), device.getAddressType(),
+                    final MySignatureResolvingKeyInfo my_csrk = new MySignatureResolvingKeyInfo(device.getAddressAndType(),
                                                                                                device.getSignatureResolvingKeyInfo(false /* responder */));
-                    my_csrk.write(my_csrk.address.toString()+".init.csrk");
+                    my_csrk.write(my_csrk.address_and_type.toString()+".init.csrk");
                 }
                 if( keys_resp.isSet(SMPKeyMask.KeyType.SIGN_KEY) ) {
-                    final MySignatureResolvingKeyInfo my_csrk = new MySignatureResolvingKeyInfo(device.getAddress(), device.getAddressType(),
+                    final MySignatureResolvingKeyInfo my_csrk = new MySignatureResolvingKeyInfo(device.getAddressAndType(),
                                                                                                device.getSignatureResolvingKeyInfo(true /* responder */));
-                    my_csrk.write(my_csrk.address.toString()+".resp.csrk");
+                    my_csrk.write(my_csrk.address_and_type.toString()+".resp.csrk");
                 }
             }
         }
@@ -692,25 +687,25 @@ public class DBTScanner10 {
 
         if( KEEP_CONNECTED && GATT_PING_ENABLED && success ) {
             while( device.pingGATT() ) {
-                println("****** Processing Ready Device: pingGATT OK: "+device.getAddress());
+                println("****** Processing Ready Device: pingGATT OK: "+device.getAddressAndType());
                 try {
                     Thread.sleep(1000);
                 } catch (final InterruptedException e) {
                     e.printStackTrace();
                 }
             }
-            println("****** Processing Ready Device: pingGATT failed, waiting for disconnect: "+device.getAddress());
+            println("****** Processing Ready Device: pingGATT failed, waiting for disconnect: "+device.getAddressAndType());
             // Even w/ GATT_PING_ENABLED, we utilize disconnect event to clean up -> remove
         }
 
         println("****** Processing Ready Device: End: Success " + success +
                            " on " + device.toString() + "; devInProc "+devicesInProcessing.size());
         if( success ) {
-            devicesProcessed.add(device.getAddress());
+            devicesProcessed.add(device.getAddressAndType());
         }
 
         if( !KEEP_CONNECTED ) {
-            devicesInProcessing.remove(device.getAddress());
+            devicesInProcessing.remove(device.getAddressAndType());
 
             if( UNPAIR_DEVICE_POST ) {
                 final HCIStatusCode unpair_res = device.unpair();
@@ -728,15 +723,15 @@ public class DBTScanner10 {
 
         if( 0 < MULTI_MEASUREMENTS.get() ) {
             MULTI_MEASUREMENTS.decrementAndGet();
-            println("****** Processing Ready Device: MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS.get()+": "+device.getAddress());
+            println("****** Processing Ready Device: MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS.get()+": "+device.getAddressAndType());
         }
     }
 
     private void removeDevice(final BluetoothDevice device) {
-        println("****** Remove Device: removing: "+device.getAddress());
+        println("****** Remove Device: removing: "+device.getAddressAndType());
         device.getAdapter().stopDiscovery();
 
-        devicesInProcessing.remove(device.getAddress());
+        devicesInProcessing.remove(device.getAddressAndType());
 
         device.remove();
 
@@ -774,9 +769,9 @@ public class DBTScanner10 {
         adapter.enablePoweredNotifications(new BooleanNotification("Powered", timestamp_t0));
 
         if( USE_WHITELIST ) {
-            for(final Iterator<EUI48> wliter = whitelist.iterator(); wliter.hasNext(); ) {
-                final EUI48 addr = wliter.next();
-                final boolean res = adapter.addDeviceToWhitelist(addr, BluetoothAddressType.BDADDR_LE_PUBLIC, HCIWhitelistConnectType.HCI_AUTO_CONN_ALWAYS);
+            for(final Iterator<BDAddressAndType> wliter = whitelist.iterator(); wliter.hasNext(); ) {
+                final BDAddressAndType addr = wliter.next();
+                final boolean res = adapter.addDeviceToWhitelist(addr, HCIWhitelistConnectType.HCI_AUTO_CONN_ALWAYS);
                 println("Added to whitelist: res "+res+", address "+addr);
             }
         } else {
@@ -936,11 +931,12 @@ public class DBTScanner10 {
                 } else if( arg.equals("-shutdown") && args.length > (i+1) ) {
                     test.shutdownTest = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-mac") && args.length > (i+1) ) {
-                    test.waitForDevices.add(new EUI48(args[++i]));
+                    final BDAddressAndType a = new BDAddressAndType(new EUI48(args[++i]), BDAddressType.BDADDR_LE_PUBLIC);
+                    test.waitForDevices.add(a);
                 } else if( arg.equals("-wl") && args.length > (i+1) ) {
-                    final EUI48 addr = new EUI48(args[++i]);
-                    println("Whitelist + "+addr);
-                    test.whitelist.add(addr);
+                    final BDAddressAndType wle = new BDAddressAndType(new EUI48(args[++i]), BDAddressType.BDADDR_LE_PUBLIC);
+                    println("Whitelist + "+wle);
+                    test.whitelist.add(wle);
                     test.USE_WHITELIST = true;
                 } else if( arg.equals("-passkey") && args.length > (i+1) ) {
                     test.pairing_passkey = Integer.valueOf(args[++i]).intValue();

@@ -32,9 +32,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.tinyb.AdapterStatusListener;
-import org.tinyb.BLERandomAddressType;
+import org.tinyb.BDAddressAndType;
 import org.tinyb.BTSecurityLevel;
-import org.tinyb.BluetoothAddressType;
+import org.tinyb.BDAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothGattCharacteristic;
@@ -61,9 +61,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     /** Device's adapter weak back-reference */
     private final WeakReference<DBTAdapter> wbr_adapter;
 
-    private final EUI48 address;
-    private final BluetoothAddressType addressType;
-    private final BLERandomAddressType leRandomAddressType;
+    private final BDAddressAndType addressAndType;
     private final long ts_creation;
     private volatile String name;
     volatile long ts_last_discovery;
@@ -213,14 +211,12 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
                        final byte byteAddressType,
                        final String name, final long ts_creation)
     {
-        super(nativeInstance, java.util.Arrays.hashCode(byteAddress));
+        super(nativeInstance, compHash(java.util.Arrays.hashCode(byteAddress), 31+byteAddressType));
         this.wbr_adapter = new WeakReference<DBTAdapter>(adptr);
-        this.address = new EUI48(byteAddress);
-        this.addressType = BluetoothAddressType.get(byteAddressType);
-        if( BluetoothAddressType.BDADDR_UNDEFINED == addressType ) {
+        this.addressAndType = new BDAddressAndType(new EUI48(byteAddress), BDAddressType.get(byteAddressType));
+        if( BDAddressType.BDADDR_UNDEFINED == addressAndType.type ) {
             throw new IllegalArgumentException("Unsupported given native addresstype "+byteAddressType);
         }
-        this.leRandomAddressType = address.getBLERandomAddressType(addressType);
         this.ts_creation = ts_creation;
         this.name = name;
         ts_last_discovery = ts_creation;
@@ -275,7 +271,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             return false;
         }
         final DBTDevice other = (DBTDevice)obj;
-        return address.equals(other.address) && addressType.equals(other.addressType);
+        return addressAndType.equals(other.addressAndType);
     }
 
     @Override
@@ -291,16 +287,10 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public DBTAdapter getAdapter() { return wbr_adapter.get(); }
 
     @Override
-    public EUI48 getAddress() { return address; }
+    public String getAddressString() { return addressAndType.address.toString(); }
 
     @Override
-    public String getAddressString() { return address.toString(); }
-
-    @Override
-    public BluetoothAddressType getAddressType() { return addressType; }
-
-    @Override
-    public BLERandomAddressType getBLERandomAddressType() { return leRandomAddressType; }
+    public BDAddressAndType getAddressAndType() { return addressAndType; }
 
     @Override
     public String getName() { return name; }
@@ -650,13 +640,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public final String toString() {
         if( !isValid() ) {
             // UTF-8 271D = Cross
-            final String leRandomStr;
-            if( BLERandomAddressType.UNDEFINED != this.leRandomAddressType ) {
-                leRandomStr = ", random "+leRandomAddressType.toString();
-            } else {
-                leRandomStr = "";
-            }
-            return "Device" + "\u271D" + "[address["+address+", "+addressType.toString()+leRandomStr+"], '"+name+
+            return "Device" + "\u271D" + "[address"+addressAndType+", '"+name+
                     "', connected["+isConnected.get()+", 0x"+Integer.toHexString(hciConnHandle)+"]]";
         }
         return toStringImpl();

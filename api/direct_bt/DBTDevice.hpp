@@ -206,10 +206,8 @@ namespace direct_bt {
 
         public:
             const uint64_t ts_creation;
-            /** Device mac address */
-            const EUI48 address; // FIXME: Mutable for resolvable -> identity during pairing?
-            const BDAddressType addressType;
-            const BLERandomAddressType leRandomAddressType;
+            /** Device's unique mac address and type tuple. */
+            const BDAddressAndType addressAndType; // FIXME: Mutable for resolvable -> identity during pairing?
 
             DBTDevice(const DBTDevice&) = delete;
             void operator=(const DBTDevice&) = delete;
@@ -258,25 +256,11 @@ namespace direct_bt {
              */
             uint64_t getLastUpdateAge(const uint64_t ts_now) const noexcept { return ts_now - ts_last_update; }
 
-            EUI48 const & getAddress() const noexcept { return address; }
-            std::string getAddressString() const noexcept { return address.toString(); }
-            constexpr BDAddressType getAddressType() const noexcept { return addressType; }
-            constexpr bool isLEAddressType() const noexcept { return direct_bt::isLEAddressType(addressType); }
-            constexpr bool isBREDRAddressType() const noexcept { return direct_bt::isBREDRAddressType(addressType); }
-
             /**
-             * Returns the {@link BLERandomAddressType}.
-             * <p>
-             * If {@link #getAddressType()} is {@link BDAddressType::BDADDR_LE_RANDOM},
-             * method shall return a valid value other than {@link BLERandomAddressType::UNDEFINED}.
-             * </p>
-             * <p>
-             * If {@link #getAddressType()} is not {@link BDAddressType::BDADDR_LE_RANDOM},
-             * method shall return {@link BLERandomAddressType::UNDEFINED}.
-             * </p>
-             * @since 2.0.0
+             * Returns the unique device EUI48 address and BDAddressType type.
+             * @since 2.2.0
              */
-            constexpr BLERandomAddressType getBLERandomAddressType() const noexcept { return leRandomAddressType; }
+            constexpr BDAddressAndType const & getAddressAndType() const noexcept { return addressAndType; }
 
             /** Return RSSI of device as recognized at discovery and connect. */
             int8_t getRSSI() const noexcept { return rssi; }
@@ -827,11 +811,8 @@ namespace direct_bt {
             int removeAllCharacteristicListener() noexcept;
     };
 
-    inline bool operator<(const DBTDevice& lhs, const DBTDevice& rhs) noexcept
-    { return lhs.getAddress() < rhs.getAddress(); }
-
     inline bool operator==(const DBTDevice& lhs, const DBTDevice& rhs) noexcept
-    { return lhs.getAddress() == rhs.getAddress() && lhs.getAddressType() == rhs.getAddressType(); }
+    { return lhs.getAddressAndType() == rhs.getAddressAndType(); }
 
     inline bool operator!=(const DBTDevice& lhs, const DBTDevice& rhs) noexcept
     { return !(lhs == rhs); }

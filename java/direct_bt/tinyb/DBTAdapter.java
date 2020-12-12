@@ -36,7 +36,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.tinyb.AdapterSettings;
 import org.tinyb.BluetoothAdapter;
-import org.tinyb.BluetoothAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothGattCharacteristic;
@@ -54,6 +53,7 @@ import org.tinyb.PairingMode;
 import org.tinyb.SMPPairingState;
 import org.tinyb.ScanType;
 import org.tinyb.AdapterStatusListener;
+import org.tinyb.BDAddressAndType;
 import org.tinyb.TransportType;
 
 public class DBTAdapter extends DBTObject implements BluetoothAdapter
@@ -169,25 +169,25 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     static BluetoothType class_type() { return BluetoothType.ADAPTER; }
 
     @Override
-    public BluetoothDevice find(final String name, final EUI48 address, final long timeoutMS) {
-        return findDeviceInCache(name, address);
+    public BluetoothDevice find(final String name, final BDAddressAndType addressAndType, final long timeoutMS) {
+        return findDeviceInCache(name, addressAndType);
     }
 
     @Override
-    public BluetoothDevice find(final String name, final EUI48 address) {
-        return find(name, address, 0);
+    public BluetoothDevice find(final String name, final BDAddressAndType addressAndType) {
+        return find(name, addressAndType, 0);
     }
 
     @Override
-    public final boolean isDeviceWhitelisted(final EUI48 address) { return isDeviceWhitelistedImpl(address.b); }
-    private final native boolean isDeviceWhitelistedImpl(final byte[] address);
+    public final boolean isDeviceWhitelisted(final BDAddressAndType addressAndType) { return isDeviceWhitelistedImpl(addressAndType.address.b, addressAndType.type.value); }
+    private final native boolean isDeviceWhitelistedImpl(final byte[] address, byte address_type);
 
     @Override
-    public boolean addDeviceToWhitelist(final EUI48 address, final BluetoothAddressType address_type,
+    public boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
                                         final HCIWhitelistConnectType ctype,
                                         final short conn_interval_min, final short conn_interval_max,
                                         final short conn_latency, final short timeout) {
-        return addDeviceToWhitelistImpl1(address.b, address_type.value, ctype.value,
+        return addDeviceToWhitelistImpl1(addressAndType.address.b, addressAndType.type.value, ctype.value,
                                     conn_interval_min, conn_interval_max, conn_latency, timeout);
     }
     private native boolean addDeviceToWhitelistImpl1(final byte[] address, final byte address_type, final int ctype,
@@ -195,15 +195,15 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
                                         final short conn_latency, final short timeout);
 
     @Override
-    public boolean addDeviceToWhitelist(final EUI48 address, final BluetoothAddressType address_type,
+    public boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
                                         final HCIWhitelistConnectType ctype) {
-        return addDeviceToWhitelistImpl2(address.b, address_type.value, ctype.value);
+        return addDeviceToWhitelistImpl2(addressAndType.address.b, addressAndType.type.value, ctype.value);
     }
     private native boolean addDeviceToWhitelistImpl2(final byte[] address, final byte address_type, final int ctype);
 
     @Override
-    public boolean removeDeviceFromWhitelist(final EUI48 address, final BluetoothAddressType address_type) {
-        return removeDeviceFromWhitelistImpl(address.b, address_type.value);
+    public boolean removeDeviceFromWhitelist(final BDAddressAndType addressAndType) {
+        return removeDeviceFromWhitelistImpl(addressAndType.address.b, addressAndType.type.value);
     }
     private native boolean removeDeviceFromWhitelistImpl(final byte[] address, final byte address_type);
 
@@ -344,8 +344,8 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public native boolean setDiscoverable(boolean value);
 
     @Override
-    public final BluetoothDevice connectDevice(final EUI48 address, final BluetoothAddressType addressType) {
-        return connectDeviceImpl(address.b, addressType.value);
+    public final BluetoothDevice connectDevice(final BDAddressAndType addressAndType) {
+        return connectDeviceImpl(addressAndType.address.b, addressAndType.type.value);
     }
     private native BluetoothDevice connectDeviceImpl(byte[] address, byte addressType);
 
@@ -668,9 +668,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         }
     }
 
-    /* pp */ DBTDevice findDeviceInCache(final String name, final EUI48 address) {
+    /* pp */ DBTDevice findDeviceInCache(final String name, final BDAddressAndType addressAndType) {
         synchronized(discoveredDevicesLock) {
-            if( null == name && null == address ) {
+            if( null == name && null == addressAndType ) {
                 // special case for 1st valid device
                 if( discoveredDevices.size() > 0 ) {
                     return (DBTDevice) discoveredDevices.get(0);
@@ -679,15 +679,15 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             }
             for(int devIdx = discoveredDevices.size() - 1; devIdx >= 0; devIdx-- ) {
                 final DBTDevice device = (DBTDevice) discoveredDevices.get(devIdx);
-                if( null != name && null != address &&
+                if( null != name && null != addressAndType &&
                     device.getName().equals(name) &&
-                    device.getAddress().equals(address)
+                    device.getAddressAndType().equals(addressAndType)
                   )
                 {
                     return device;
                 }
-                if( null != address &&
-                    device.getAddress().equals(address)
+                if( null != addressAndType &&
+                    device.getAddressAndType().equals(addressAndType)
                   )
                 {
                     return device;

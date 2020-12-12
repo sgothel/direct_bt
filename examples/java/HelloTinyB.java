@@ -5,19 +5,22 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.tinyb.BDAddressAndType;
+import org.tinyb.BDAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothGattCharacteristic;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
+import org.tinyb.EUI48;
 import org.tinyb.HCIStatusCode;
 
 public class HelloTinyB {
     static boolean running = true;
 
     static void printDevice(final BluetoothDevice device) {
-        System.out.print("Address = " + device.getAddress());
+        System.out.print("Address = " + device.getAddressAndType());
         System.out.print(" Name = " + device.getName());
         System.out.print(" Connected = " + device.getConnected());
         System.out.println();
@@ -32,7 +35,7 @@ public class HelloTinyB {
      * getDevices method. We can the look through the list of devices to find the device with the MAC which we provided
      * as a parameter. We continue looking until we find it, or we try 15 times (1 minutes).
      */
-    static BluetoothDevice getDevice(final BluetoothManager manager, final String address) throws InterruptedException {
+    static BluetoothDevice getDevice(final BluetoothManager manager, final BDAddressAndType addressAndType) throws InterruptedException {
         BluetoothDevice sensor = null;
         for (int i = 0; (i < 15) && running; ++i) {
             final List<BluetoothDevice> list = manager.getDevices();
@@ -44,8 +47,9 @@ public class HelloTinyB {
                 /*
                  * Here we check if the address matches.
                  */
-                if (device.getAddress().equals(address))
+                if (device.getAddressAndType().matches(addressAndType)) {
                     sensor = device;
+                }
             }
 
             if (sensor != null) {
@@ -132,7 +136,7 @@ public class HelloTinyB {
         final boolean discoveryStarted = manager.startDiscovery();
 
         System.out.println("The discovery started: " + (discoveryStarted ? "true" : "false"));
-        final BluetoothDevice sensor = getDevice(manager, args[0]);
+        final BluetoothDevice sensor = getDevice(manager, new BDAddressAndType(new EUI48(args[0]), BDAddressType.BDADDR_UNDEFINED));
 
         /*
          * After we find the device we can stop looking for other devices.

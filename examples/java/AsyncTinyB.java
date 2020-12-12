@@ -16,7 +16,7 @@ public class AsyncTinyB {
     static boolean running = true;
 
     static void printDevice(final BluetoothDevice device) {
-        System.out.print("Address = " + device.getAddress());
+        System.out.print("Address = " + device.getAddressAndType());
         System.out.print(" Name = " + device.getName());
         System.out.print(" Connected = " + device.getConnected());
         System.out.println();

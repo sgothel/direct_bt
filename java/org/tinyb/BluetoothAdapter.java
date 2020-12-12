@@ -58,7 +58,7 @@ public interface BluetoothAdapter extends BluetoothObject
       * @return An object matching the name and address or null if not found before
       * timeout expires.
       */
-    public BluetoothDevice find(String name, EUI48 address, long timeoutMS);
+    public BluetoothDevice find(String name, BDAddressAndType addressAndType, long timeoutMS);
 
     /** Find a BluetoothDevice. If parameters name and address are not null,
       * the returned object will have to match them.
@@ -70,7 +70,7 @@ public interface BluetoothAdapter extends BluetoothObject
       * waiting for
       * @return An object matching the name and address.
       */
-    public BluetoothDevice find(String name, EUI48 address);
+    public BluetoothDevice find(String name, BDAddressAndType addressAndType);
 
     /* Bluetooth specific API */
 
@@ -79,13 +79,13 @@ public interface BluetoothAdapter extends BluetoothObject
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      */
-    public boolean isDeviceWhitelisted(final EUI48 address);
+    public boolean isDeviceWhitelisted(final BDAddressAndType addressAndType);
 
     /**
      * Add the given device to the adapter's autoconnect whitelist.
      * <p>
      * The given LE connection parameter will be uploaded to the kernel for the given device first,
-     * if the device is of type {@link BluetoothAddressType#BDADDR_LE_PUBLIC} or {@link BluetoothAddressType#BDADDR_LE_RANDOM}.
+     * if the device is of type {@link BDAddressType#BDADDR_LE_PUBLIC} or {@link BDAddressType#BDADDR_LE_RANDOM}.
      * </p>
      * <p>
      * Method will reject duplicate devices, in which case it should be removed first.
@@ -100,11 +100,11 @@ public interface BluetoothAdapter extends BluetoothObject
      * @param timeout in units of 10ms, default value 1000 for 10000ms or 10s.
      * @return {@code true} if successful, otherwise {@code false}.
      *
-     * @see #addDeviceToWhitelist(String, BluetoothAddressType, HCIWhitelistConnectType)
+     * @see #addDeviceToWhitelist(String, BDAddressType, HCIWhitelistConnectType)
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      */
-    public boolean addDeviceToWhitelist(final EUI48 address, final BluetoothAddressType address_type,
+    public boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
                                         final HCIWhitelistConnectType ctype,
                                         final short conn_interval_min, final short conn_interval_max,
                                         final short conn_latency, final short timeout);
@@ -112,7 +112,7 @@ public interface BluetoothAdapter extends BluetoothObject
     /**
      * Add the given device to the adapter's autoconnect whitelist.
      * <p>
-     * This variant of {@link #addDeviceToWhitelist(String, BluetoothAddressType, HCIWhitelistConnectType, short, short, short, short)}
+     * This variant of {@link #addDeviceToWhitelist(String, BDAddressType, HCIWhitelistConnectType, short, short, short, short)}
      * uses default connection parameter, which will be uploaded to the kernel for the given device first.
      * </p>
      * <p>
@@ -124,11 +124,11 @@ public interface BluetoothAdapter extends BluetoothObject
      * @param ctype
      * @return {@code true} if successful, otherwise {@code false}.
      *
-     * @see #addDeviceToWhitelist(String, BluetoothAddressType, HCIWhitelistConnectType, short, short, short, short)
+     * @see #addDeviceToWhitelist(String, BDAddressType, HCIWhitelistConnectType, short, short, short, short)
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      */
-    public boolean addDeviceToWhitelist(final EUI48 address, final BluetoothAddressType address_type,
+    public boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
                                         final HCIWhitelistConnectType ctype);
 
 
@@ -137,7 +137,7 @@ public interface BluetoothAdapter extends BluetoothObject
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      */
-    public boolean removeDeviceFromWhitelist(final EUI48 address, final BluetoothAddressType address_type);
+    public boolean removeDeviceFromWhitelist(final BDAddressAndType addressAndType);
 
 
     /** Turns on device discovery if it is disabled.
@@ -211,7 +211,9 @@ public interface BluetoothAdapter extends BluetoothObject
      * Returns the hardware address of this adapter in its string representation.
      * @return The hardware address of this adapter as a string.
      * @since 2.2.0
+     * @deprecated Use {@link #getAddress()}
      */
+    @Deprecated
     String getAddressString();
 
     /** Returns the system name of this adapter.
@@ -385,7 +387,7 @@ public interface BluetoothAdapter extends BluetoothObject
      *                <li>{@code random} - Random address</li>
      *                </ul>
      */
-    public BluetoothDevice connectDevice(EUI48 address, BluetoothAddressType addressType);
+    public BluetoothDevice connectDevice(BDAddressAndType addressAndType);
 
     /** Returns the pairable state the adapter.
       * @return The pairable state of the adapter.

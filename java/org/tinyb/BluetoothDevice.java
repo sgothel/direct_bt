@@ -567,43 +567,20 @@ public interface BluetoothDevice extends BluetoothObject
     long getLastUpdateTimestamp();
 
     /**
-     * Returns the hardware address of this device.
-     * @return The hardware address of this device.
-     * @implNote Changed to EUI48 since version 2.2.0
+     * Returns the unique device {@link EUI48} address and {@link BDAddressType} type.
      * @since 2.2.0
+     * @implNote not fully implemented in <b>tinyb.dbus</b>, uses {@link BDAddressType#BDADDR_LE_PUBLIC}
      */
-    EUI48 getAddress();
+    BDAddressAndType getAddressAndType();
 
     /**
      * Returns the hardware address of this device in its string representation.
      * @return The hardware address of this device as a string.
      * @since 2.2.0
+     * @deprecated Use {@link #getAddressAndType()}
      */
+    @Deprecated
     String getAddressString();
-
-    /**
-     * Returns the {@link BluetoothAddressType},
-     * determining whether the device is {@link BluetoothAddressType#BDADDR_BREDR}
-     * or an LE device, {@link BluetoothAddressType#BDADDR_LE_PUBLIC} or {@link BluetoothAddressType#BDADDR_LE_RANDOM}.
-     * @since 2.0.0
-     * @implNote not implemented in <b>tinyb.dbus</b>, returns {@link BluetoothAddressType#BDADDR_LE_PUBLIC}
-     */
-    BluetoothAddressType getAddressType();
-
-    /**
-     * Returns the {@link BLERandomAddressType}.
-     * <p>
-     * If {@link #getAddressType()} is {@link BluetoothAddressType#BDADDR_LE_RANDOM},
-     * method shall return a valid value other than {@link BLERandomAddressType#UNDEFINED}.
-     * </p>
-     * <p>
-     * If {@link #getAddressType()} is not {@link BluetoothAddressType#BDADDR_LE_RANDOM},
-     * method shall return {@link BLERandomAddressType#UNDEFINED}.
-     * </p>
-     * @since 2.0.0
-     * @implNote not implemented in <b>tinyb.dbus</b>, returns {@link BLERandomAddressType#UNDEFINED}
-     */
-    BLERandomAddressType getBLERandomAddressType();
 
     /** Returns the remote friendly name of this device.
       * @return The remote friendly name of this device, or NULL if not set.

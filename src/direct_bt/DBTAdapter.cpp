@@ -50,22 +50,11 @@ extern "C" {
 
 using namespace direct_bt;
 
-int DBTAdapter::findDeviceIdx(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType) noexcept {
+std::shared_ptr<DBTDevice> DBTAdapter::findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, const EUI48 & address, const BDAddressType addressType) noexcept {
     const size_t size = devices.size();
     for (size_t i = 0; i < size; i++) {
         std::shared_ptr<DBTDevice> & e = devices[i];
-        if ( nullptr != e && mac == e->getAddress() && macType == e->getAddressType() ) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-std::shared_ptr<DBTDevice> DBTAdapter::findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType) noexcept {
-    const size_t size = devices.size();
-    for (size_t i = 0; i < size; i++) {
-        std::shared_ptr<DBTDevice> & e = devices[i];
-        if ( nullptr != e && mac == e->getAddress() && macType == e->getAddressType() ) {
+        if ( nullptr != e && address == e->getAddressAndType().address && addressType == e->getAddressAndType().type) {
             return e;
         }
     }
@@ -120,11 +109,10 @@ int DBTAdapter::disconnectAllDevices(const HCIStatusCode reason) noexcept {
     return count;
 }
 
-std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (EUI48 const & mac, const BDAddressType macType) noexcept {
+std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (const EUI48 & address, const BDAddressType & addressType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
-    return findDevice(connectedDevices, mac, macType);
+    return findDevice(connectedDevices, address, addressType);
 }
-
 
 // *************************************************
 // *************************************************
@@ -216,7 +204,7 @@ bool DBTAdapter::validateDevInfo() noexcept {
     return true;
 
 errout0:
-    adapterInfo = std::shared_ptr<AdapterInfo>( new AdapterInfo(dev_id, EUI48_ANY_DEVICE, 0, 0,
+    adapterInfo = std::shared_ptr<AdapterInfo>( new AdapterInfo(dev_id, EUI48::ANY_DEVICE, 0, 0,
                             AdapterSetting::NONE, AdapterSetting::NONE, 0, "invalid", "invalid"));
     return false;
 }
@@ -509,31 +497,31 @@ HCIStatusCode DBTAdapter::reset() noexcept {
 #endif
 }
 
-bool DBTAdapter::isDeviceWhitelisted(const EUI48 &address) noexcept {
-    return mgmt.isDeviceWhitelisted(dev_id, address);
+bool DBTAdapter::isDeviceWhitelisted(const BDAddressAndType & addressAndType) noexcept {
+    return mgmt.isDeviceWhitelisted(dev_id, addressAndType);
 }
 
-bool DBTAdapter::addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype,
+bool DBTAdapter::addDeviceToWhitelist(const BDAddressAndType & addressAndType, const HCIWhitelistConnectType ctype,
                                       const uint16_t conn_interval_min, const uint16_t conn_interval_max,
                                       const uint16_t conn_latency, const uint16_t timeout) {
     if( !isPowered() ) {
         ERR_PRINT("DBTAdapter::startDiscovery: Adapter not powered: %s", toString().c_str());
         return false;
     }
-    if( mgmt.isDeviceWhitelisted(dev_id, address) ) {
-        ERR_PRINT("DBTAdapter::addDeviceToWhitelist: device already listed: dev_id %d, address %s", dev_id, address.toString().c_str());
+    if( mgmt.isDeviceWhitelisted(dev_id, addressAndType) ) {
+        ERR_PRINT("DBTAdapter::addDeviceToWhitelist: device already listed: dev_id %d, address%s", dev_id, addressAndType.toString().c_str());
         return true;
     }
 
-    if( !mgmt.uploadConnParam(dev_id, address, address_type, conn_interval_min, conn_interval_max, conn_latency, timeout) ) {
-        ERR_PRINT("DBTAdapter::addDeviceToWhitelist: uploadConnParam(dev_id %d, address %s, interval[%u..%u], latency %u, timeout %u): Failed",
-                dev_id, address.toString().c_str(), conn_interval_min, conn_interval_max, conn_latency, timeout);
+    if( !mgmt.uploadConnParam(dev_id, addressAndType, conn_interval_min, conn_interval_max, conn_latency, timeout) ) {
+        ERR_PRINT("DBTAdapter::addDeviceToWhitelist: uploadConnParam(dev_id %d, address%s, interval[%u..%u], latency %u, timeout %u): Failed",
+                dev_id, addressAndType.toString().c_str(), conn_interval_min, conn_interval_max, conn_latency, timeout);
     }
-    return mgmt.addDeviceToWhitelist(dev_id, address, address_type, ctype);
+    return mgmt.addDeviceToWhitelist(dev_id, addressAndType, ctype);
 }
 
-bool DBTAdapter::removeDeviceFromWhitelist(const EUI48 &address, const BDAddressType address_type) {
-    return mgmt.removeDeviceFromWhitelist(dev_id, address, address_type);
+bool DBTAdapter::removeDeviceFromWhitelist(const BDAddressAndType & addressAndType) {
+    return mgmt.removeDeviceFromWhitelist(dev_id, addressAndType);
 }
 
 static jau::cow_vector<std::shared_ptr<AdapterStatusListener>>::equal_comparator _adapterStatusListenerRefEqComparator =
@@ -760,9 +748,9 @@ exit:
 
 // *************************************************
 
-std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (EUI48 const & mac, const BDAddressType macType) noexcept {
+std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (const EUI48 & address, const BDAddressType addressType) noexcept {
     const std::lock_guard<std::mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
-    return findDevice(discoveredDevices, mac, macType);
+    return findDevice(discoveredDevices, address, addressType);
 }
 
 bool DBTAdapter::addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) noexcept {
@@ -829,9 +817,9 @@ void DBTAdapter::removeSharedDevice(const DBTDevice & device) noexcept {
     }
 }
 
-std::shared_ptr<DBTDevice> DBTAdapter::findSharedDevice (EUI48 const & mac, const BDAddressType macType) noexcept {
+std::shared_ptr<DBTDevice> DBTAdapter::findSharedDevice (const EUI48 & address, const BDAddressType addressType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
-    return findDevice(sharedDevices, mac, macType);
+    return findDevice(sharedDevices, address, addressType);
 }
 
 void DBTAdapter::removeDevice(DBTDevice & device) noexcept {
@@ -1322,7 +1310,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
         //
         EIRDataType updateMask = dev->update(*eir);
         COND_PRINT(debug_event, "DBTAdapter:hci:DeviceFound: Drop already discovered %s, %s",
-                dev->getAddressString().c_str(), eir->toString().c_str());
+                dev->getAddressAndType().toString().c_str(), eir->toString().c_str());
         if( EIRDataType::NONE != updateMask ) {
             sendDeviceUpdated("DiscoveredDeviceFound", dev, eir->getTimestamp(), updateMask);
         }
@@ -1341,7 +1329,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
         addDiscoveredDevice(dev); // re-add to discovered devices!
         dev->ts_last_discovery = eir->getTimestamp();
         COND_PRINT(debug_event, "DBTAdapter:hci:DeviceFound: Use already shared %s, %s",
-                dev->getAddressString().c_str(), eir->toString().c_str());
+                dev->getAddressAndType().toString().c_str(), eir->toString().c_str());
 
         int i=0;
         jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
@@ -1369,7 +1357,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
     addDiscoveredDevice(dev);
     addSharedDevice(dev);
     COND_PRINT(debug_event, "DBTAdapter:hci:DeviceFound: Use new %s, %s",
-            dev->getAddressString().c_str(), eir->toString().c_str());
+            dev->getAddressAndType().toString().c_str(), eir->toString().c_str());
 
     int i=0;
     jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
@@ -1440,18 +1428,18 @@ bool DBTAdapter::mgmtEvUserPasskeyRequestMgmt(std::shared_ptr<MgmtEvent> e) noex
     return true;
 }
 
-bool DBTAdapter::hciSMPMsgCallback(const EUI48& address, BDAddressType addressType,
+bool DBTAdapter::hciSMPMsgCallback(const BDAddressAndType & addressAndType,
                                    std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept {
-    std::shared_ptr<DBTDevice> device = findConnectedDevice(address, addressType);
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(addressAndType.address, addressAndType.type);
     if( nullptr == device ) {
-        WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s]: %s, %s",
-                dev_id, address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
+        WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: Device not tracked: address%s: %s, %s",
+                dev_id, addressAndType.toString().c_str(),
                 msg->toString().c_str(), source.toString().c_str());
         return true;
     }
     if( device->getConnectionHandle() != source.handle ) {
-        WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: ConnHandle mismatch address[%s, %s]: %s, %s\n    -> %s",
-                dev_id, address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
+        WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: ConnHandle mismatch address%s: %s, %s\n    -> %s",
+                dev_id, addressAndType.toString().c_str(),
                 msg->toString().c_str(), source.toString().c_str(), device->toString().c_str());
         return true;
     }

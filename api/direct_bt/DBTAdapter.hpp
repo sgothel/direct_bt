@@ -231,9 +231,7 @@ namespace direct_bt {
 
             bool validateDevInfo() noexcept;
 
-            /** Returns index >= 0 if found, otherwise -1 */
-            static int findDeviceIdx(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType) noexcept;
-            static std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType) noexcept;
+            static std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
             std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device) noexcept;
 
             /**
@@ -265,7 +263,7 @@ namespace direct_bt {
             bool addConnectedDevice(const std::shared_ptr<DBTDevice> & device) noexcept;
             bool removeConnectedDevice(const DBTDevice & device) noexcept;
             int disconnectAllDevices(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
-            std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac, const BDAddressType macType) noexcept;
+            std::shared_ptr<DBTDevice> findConnectedDevice (const EUI48 & address, const BDAddressType & addressType) noexcept;
 
             bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) noexcept;
             bool removeDiscoveredDevice(const DBTDevice & device) noexcept;
@@ -275,7 +273,7 @@ namespace direct_bt {
             bool addSharedDevice(std::shared_ptr<DBTDevice> const &device) noexcept;
             std::shared_ptr<DBTDevice> getSharedDevice(const DBTDevice & device) noexcept;
             void removeSharedDevice(const DBTDevice & device) noexcept;
-            std::shared_ptr<DBTDevice> findSharedDevice (EUI48 const & mac, const BDAddressType macType) noexcept;
+            std::shared_ptr<DBTDevice> findSharedDevice (const EUI48 & address, const BDAddressType addressType) noexcept;
 
             bool mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
@@ -302,7 +300,7 @@ namespace direct_bt {
             bool mgmtEvAuthFailedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceUnpairedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
 
-            bool hciSMPMsgCallback(const EUI48& address, BDAddressType addressType,
+            bool hciSMPMsgCallback(const BDAddressAndType & addressAndType,
                                    std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;
             void sendDevicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept;
             void sendDeviceReady(std::shared_ptr<DBTDevice> device, uint64_t timestamp) noexcept;
@@ -482,7 +480,7 @@ namespace direct_bt {
             /**
              * Returns true, if the adapter's device is already whitelisted.
              */
-            bool isDeviceWhitelisted(const EUI48 &address) noexcept;
+            bool isDeviceWhitelisted(const BDAddressAndType & addressAndType) noexcept;
 
             /**
              * Add the given device to the adapter's autoconnect whitelist.
@@ -502,14 +500,14 @@ namespace direct_bt {
              * @param supervision_timeout in units of 10ms, default value >= 10 x conn_interval_max, we use HCIConstInt::LE_CONN_MIN_TIMEOUT_MS minimum; Value range [0xA-0x0C80] for [100ms - 32s].
              * @return true if the device was already added or has been newly added to the adapter's whitelist.
              */
-            bool addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type,
+            bool addDeviceToWhitelist(const BDAddressAndType & addressAndType,
                                       const HCIWhitelistConnectType ctype,
                                       const uint16_t conn_interval_min=12, const uint16_t conn_interval_max=12,
                                       const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 15));
 
 
             /** Remove the given device from the adapter's autoconnect whitelist. */
-            bool removeDeviceFromWhitelist(const EUI48 &address, const BDAddressType address_type);
+            bool removeDeviceFromWhitelist(const BDAddressAndType & addressAndType);
 
             // device discovery aka device scanning
 
@@ -658,7 +656,7 @@ namespace direct_bt {
             int removeDiscoveredDevices() noexcept;
 
             /** Returns shared DBTDevice if found, otherwise nullptr */
-            std::shared_ptr<DBTDevice> findDiscoveredDevice (EUI48 const & mac, const BDAddressType macType) noexcept;
+            std::shared_ptr<DBTDevice> findDiscoveredDevice (const EUI48 & address, const BDAddressType addressType) noexcept;
 
             std::string toString() const noexcept override { return toString(true); }
             std::string toString(bool includeDiscoveredDevices) const noexcept;

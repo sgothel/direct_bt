@@ -157,7 +157,7 @@ void SMPHandler::l2capReaderThreadImpl() {
 
 SMPHandler::SMPHandler(const std::shared_ptr<DBTDevice> &device) noexcept
 : env(SMPEnv::get()),
-  wbr_device(device), deviceString(device->getAddressString()), rbuffer(number(Defaults::SMP_MTU_BUFFER_SZ)),
+  wbr_device(device), deviceString(device->getAddressAndType().toString()), rbuffer(number(Defaults::SMP_MTU_BUFFER_SZ)),
   l2cap(device->getAdapter().getAddress(), L2CAP_PSM_UNDEF, L2CAP_CID_SMP),
   is_connected(l2cap.open(*device)), has_ioerror(false),
   smpPDURing(env.SMPPDU_RING_CAPACITY), l2capReaderShallStop(false),

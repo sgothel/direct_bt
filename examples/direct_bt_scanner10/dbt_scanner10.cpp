@@ -71,7 +71,7 @@ static bool GATT_PING_ENABLED = false;
 static bool REMOVE_DEVICE = true;
 
 static bool USE_WHITELIST = false;
-static std::vector<EUI48> WHITELIST;
+static std::vector<BDAddressAndType> WHITELIST;
 
 static std::string charIdentifier = "";
 static int charValue = 0;
@@ -79,7 +79,7 @@ static int charValue = 0;
 static bool SHOW_UPDATE_EVENTS = false;
 static bool QUIET = false;
 
-static std::vector<EUI48> waitForDevices;
+static std::vector<BDAddressAndType> waitForDevices;
 
 const static int NO_PASSKEY = -1;
 static int pairing_passkey = NO_PASSKEY;
@@ -94,28 +94,34 @@ static void removeDevice(std::shared_ptr<DBTDevice> device);
 static void resetAdapter(DBTAdapter *a, int mode);
 static bool startDiscovery(DBTAdapter *a, std::string msg);
 
-static std::vector<EUI48> devicesInProcessing;
+static std::vector<BDAddressAndType> devicesInProcessing;
 static std::recursive_mutex mtx_devicesProcessing;
 
 static std::recursive_mutex mtx_devicesProcessed;
-static std::vector<EUI48> devicesProcessed;
+static std::vector<BDAddressAndType> devicesProcessed;
 
-bool contains(std::vector<EUI48> &cont, const EUI48 &mac) {
+bool matches(std::vector<BDAddressAndType> &cont, const BDAddressAndType &mac) {
+    return cont.end() != find_if(cont.begin(), cont.end(), [&](const BDAddressAndType & it)->bool {
+       return it.matches(mac);
+    });
+}
+
+bool contains(std::vector<BDAddressAndType> &cont, const BDAddressAndType &mac) {
     return cont.end() != find(cont.begin(), cont.end(), mac);
 }
 
-void printList(const std::string &msg, std::vector<EUI48> &cont) {
+void printList(const std::string &msg, std::vector<BDAddressAndType> &cont) {
     fprintf(stderr, "%s ", msg.c_str());
     std::for_each(cont.begin(), cont.end(),
-            [](const EUI48 &mac) { fprintf(stderr, "%s, ", mac.toString().c_str()); });
+            [](const BDAddressAndType &mac) { fprintf(stderr, "%s, ", mac.toString().c_str()); });
     fprintf(stderr, "\n");
 }
 
-static void addToDevicesProcessed(const EUI48 &a) {
+static void addToDevicesProcessed(const BDAddressAndType &a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
     devicesProcessed.push_back(a);
 }
-static bool isDeviceProcessed(const EUI48 & a) {
+static bool isDeviceProcessed(const BDAddressAndType & a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
     return contains(devicesProcessed, a);
 }
@@ -123,7 +129,7 @@ static size_t getDeviceProcessedCount() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
     return devicesProcessed.size();
 }
-static bool allDevicesProcessed(std::vector<EUI48> &cont) {
+static bool allDevicesProcessed(std::vector<BDAddressAndType> &cont) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
     for (auto it = cont.begin(); it != cont.end(); ++it) {
         if( !contains(devicesProcessed, *it) ) {
@@ -137,11 +143,11 @@ static void printDevicesProcessed(const std::string &msg) {
     printList(msg, devicesProcessed);
 }
 
-static void addToDevicesProcessing(const EUI48 &a) {
+static void addToDevicesProcessing(const BDAddressAndType &a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
     devicesInProcessing.push_back(a);
 }
-static bool removeFromDevicesProcessing(const EUI48 &a) {
+static bool removeFromDevicesProcessing(const BDAddressAndType &a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
     for (auto it = devicesInProcessing.begin(); it != devicesInProcessing.end(); ++it) {
         if ( a == *it ) {
@@ -151,7 +157,7 @@ static bool removeFromDevicesProcessing(const EUI48 &a) {
     }
     return false;
 }
-static bool isDeviceProcessing(const EUI48 & a) {
+static bool isDeviceProcessing(const BDAddressAndType & a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
     return contains(devicesInProcessing, a);
 }
@@ -160,23 +166,24 @@ static size_t getDeviceProcessingCount() {
     return devicesInProcessing.size();
 }
 
-__pack( struct MyLongTermKeyInfo {
-    EUI48 address;
-    BDAddressType address_type;
+struct MyLongTermKeyInfo {
+    BDAddressAndType address_and_type;
     SMPLongTermKeyInfo smp_ltk;
 
     bool write(const std::string filename) {
         if( !smp_ltk.isValid() ) {
-            fprintf(stderr, "****** WRITE LTK [%s %s, invalid, skipped]: %s\n",
-                    address.toString().c_str(), getBDAddressTypeString(address_type).c_str(),
+            fprintf(stderr, "****** WRITE LTK [%s, invalid, skipped]: %s\n",
+                    address_and_type.toString().c_str(),
                     smp_ltk.toString().c_str());
             return false;
         }
         std::ofstream file(filename, std::ios::binary | std::ios::trunc);
-        file.write((char*)this, sizeof(*this));
+        file.write((char*)&address_and_type.address, sizeof(address_and_type.address));
+        file.write((char*)&address_and_type.type, sizeof(address_and_type.type));
+        file.write((char*)&smp_ltk, sizeof(smp_ltk));
         file.close();
-        fprintf(stderr, "****** WRITE LTK [%s %s, valid, written]: %s\n",
-                address.toString().c_str(), getBDAddressTypeString(address_type).c_str(),
+        fprintf(stderr, "****** WRITE LTK [%s, valid, written]: %s\n",
+                address_and_type.toString().c_str(),
                 smp_ltk.toString().c_str());
         return true;
     }
@@ -186,26 +193,30 @@ __pack( struct MyLongTermKeyInfo {
         if (!file.is_open() ) {
             return false;
         }
-        file.read((char*)this, sizeof(*this));
+        file.read((char*)&address_and_type.address, sizeof(address_and_type.address));
+        file.read((char*)&address_and_type.type, sizeof(address_and_type.type));
+        file.read((char*)&smp_ltk, sizeof(smp_ltk));
         file.close();
-        fprintf(stderr, "****** READ LTK [%s %s, valid %d]: %s\n",
-                address.toString().c_str(), getBDAddressTypeString(address_type).c_str(),
+        address_and_type.clearHash();
+        fprintf(stderr, "****** READ LTK [%s, valid %d]: %s\n",
+                address_and_type.toString().c_str(),
                 smp_ltk.isValid(), smp_ltk.toString().c_str());
         return smp_ltk.isValid();
     }
-} );
+};
 
-__pack( struct MySignatureResolvingKeyInfo {
-    EUI48 address;
-    BDAddressType address_type;
+struct MySignatureResolvingKeyInfo {
+    BDAddressAndType address_and_type;
     SMPSignatureResolvingKeyInfo smp_csrk;
 
     bool write(const std::string filename) {
         std::ofstream file(filename, std::ios::binary | std::ios::trunc);
-        file.write((char*)this, sizeof(*this));
+        file.write((char*)&address_and_type.address, sizeof(address_and_type.address));
+        file.write((char*)&address_and_type.type, sizeof(address_and_type.type));
+        file.write((char*)&smp_csrk, sizeof(smp_csrk));
         file.close();
-        fprintf(stderr, "****** WRITE CSRK [%s %s, written]: %s\n",
-                address.toString().c_str(), getBDAddressTypeString(address_type).c_str(),
+        fprintf(stderr, "****** WRITE CSRK [%s, written]: %s\n",
+                address_and_type.toString().c_str(),
                 smp_csrk.toString().c_str());
         return true;
     }
@@ -215,14 +226,17 @@ __pack( struct MySignatureResolvingKeyInfo {
         if (!file.is_open() ) {
             return false;
         }
-        file.read((char*)this, sizeof(*this));
+        file.read((char*)&address_and_type.address, sizeof(address_and_type.address));
+        file.read((char*)&address_and_type.type, sizeof(address_and_type.type));
+        file.read((char*)&smp_csrk, sizeof(smp_csrk));
         file.close();
-        fprintf(stderr, "****** READ CSRK [%s %s]: %s\n",
-                address.toString().c_str(), getBDAddressTypeString(address_type).c_str(),
+        address_and_type.clearHash();
+        fprintf(stderr, "****** READ CSRK %s: %s\n",
+                address_and_type.toString().c_str(),
                 smp_csrk.toString().c_str());
         return true;
     }
-} );
+};
 
 class MyAdapterStatusListener : public AdapterStatusListener {
 
@@ -258,16 +272,16 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         (void)timestamp;
 
-        if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressType()
-            && BLERandomAddressType::STATIC_PUBLIC != device->getBLERandomAddressType() ) {
+        if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressAndType().type
+            && BLERandomAddressType::STATIC_PUBLIC != device->getAddressAndType().getBLERandomAddressType() ) {
             // Requires BREDR or LE Secure Connection support: WIP
             fprintf(stderr, "****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' %s\n", device->toString(true).c_str());
             return;
         }
-        if( !isDeviceProcessing( device->getAddress() ) &&
+        if( !isDeviceProcessing( device->getAddressAndType() ) &&
             ( waitForDevices.empty() ||
-              ( contains(waitForDevices, device->getAddress()) &&
-                ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(device->getAddress()) )
+              ( matches(waitForDevices, device->getAddressAndType()) &&
+                ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(device->getAddressAndType()) )
               )
             )
           )
@@ -348,17 +362,17 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
     void deviceReady(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         (void)timestamp;
-        if( !isDeviceProcessing( device->getAddress() ) &&
+        if( !isDeviceProcessing( device->getAddressAndType() ) &&
             ( waitForDevices.empty() ||
-              ( contains(waitForDevices, device->getAddress()) &&
-                ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(device->getAddress()) )
+              ( matches(waitForDevices, device->getAddressAndType()) &&
+                ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(device->getAddressAndType()) )
               )
             )
           )
         {
             deviceReadyCount++;
             fprintf(stderr, "****** READY-0: Processing[%d] %s\n", deviceReadyCount.load(), device->toString(true).c_str());
-            addToDevicesProcessing(device->getAddress());
+            addToDevicesProcessing(device->getAddressAndType());
             processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
         } else {
             fprintf(stderr, "****** READY-1: NOP %s\n", device->toString(true).c_str());
@@ -375,7 +389,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             std::thread dc(::removeDevice, device); // @suppress("Invalid arguments")
             dc.detach();
         } else {
-            removeFromDevicesProcessing(device->getAddress());
+            removeFromDevicesProcessing(device->getAddressAndType());
         }
         if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount % RESET_ADAPTER_EACH_CONN ) {
             std::thread dc(::resetAdapter, &device->getAdapter(), 1); // @suppress("Invalid arguments")
@@ -442,8 +456,8 @@ static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
     {
         MyLongTermKeyInfo my_ltk_resp;
         MyLongTermKeyInfo my_ltk_init;
-        if( my_ltk_init.read(device->getAddress().toString()+".init.ltk") &&
-            my_ltk_resp.read(device->getAddress().toString()+".resp.ltk") &&
+        if( my_ltk_init.read(device->getAddressAndType().toString()+".init.ltk") &&
+            my_ltk_resp.read(device->getAddressAndType().toString()+".resp.ltk") &&
             HCIStatusCode::SUCCESS == device->setLongTermKeyInfo(my_ltk_init.smp_ltk) &&
             HCIStatusCode::SUCCESS == device->setLongTermKeyInfo(my_ltk_resp.smp_ltk) ) {
             fprintf(stderr, "****** Connecting Device: Loaded LTKs from file successfully\n");
@@ -481,25 +495,25 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
             const SMPKeyType keys_init = device->getAvailableSMPKeys(false /* responder */);
 
             if( ( SMPKeyType::ENC_KEY & keys_init ) != SMPKeyType::NONE ) {
-                MyLongTermKeyInfo my_ltk { device->getAddress(), device->getAddressType(),
+                MyLongTermKeyInfo my_ltk { device->getAddressAndType(),
                                            device->getLongTermKeyInfo(false /* responder */) };
-                my_ltk.write(my_ltk.address.toString()+".init.ltk");
+                my_ltk.write(my_ltk.address_and_type.toString()+".init.ltk");
             }
             if( ( SMPKeyType::ENC_KEY & keys_resp ) != SMPKeyType::NONE ) {
-                MyLongTermKeyInfo my_ltk { device->getAddress(), device->getAddressType(),
+                MyLongTermKeyInfo my_ltk { device->getAddressAndType(),
                                            device->getLongTermKeyInfo(true /* responder */) };
-                my_ltk.write(my_ltk.address.toString()+".resp.ltk");
+                my_ltk.write(my_ltk.address_and_type.toString()+".resp.ltk");
             }
 
             if( ( SMPKeyType::SIGN_KEY & keys_init ) != SMPKeyType::NONE ) {
-                MySignatureResolvingKeyInfo my_csrk { device->getAddress(), device->getAddressType(),
+                MySignatureResolvingKeyInfo my_csrk { device->getAddressAndType(),
                                                       device->getSignatureResolvingKeyInfo(false /* responder */) };
-                my_csrk.write(my_csrk.address.toString()+".init.csrk");
+                my_csrk.write(my_csrk.address_and_type.toString()+".init.csrk");
             }
             if( ( SMPKeyType::SIGN_KEY & keys_resp ) != SMPKeyType::NONE ) {
-                MySignatureResolvingKeyInfo my_csrk { device->getAddress(), device->getAddressType(),
+                MySignatureResolvingKeyInfo my_csrk { device->getAddressAndType(),
                                                       device->getSignatureResolvingKeyInfo(true /* responder */) };
-                my_csrk.write(my_csrk.address.toString()+".resp.csrk");
+                my_csrk.write(my_csrk.address_and_type.toString()+".resp.csrk");
             }
         }
     }
@@ -507,7 +521,7 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
     //
     // GATT Service Processing
     //
-    fprintf(stderr, "****** Processing Ready Device: GATT start: %s\n", device->getAddressString().c_str());
+    fprintf(stderr, "****** Processing Ready Device: GATT start: %s\n", device->getAddressAndType().toString().c_str());
     if( !QUIET ) {
         device->getAdapter().printSharedPtrListOfDevices();
     }
@@ -626,10 +640,10 @@ exit:
 
     if( KEEP_CONNECTED && GATT_PING_ENABLED && success ) {
         while( device->pingGATT() ) {
-            fprintf(stderr, "****** Processing Ready Device: pingGATT OK: %s\n", device->getAddressString().c_str());
+            fprintf(stderr, "****** Processing Ready Device: pingGATT OK: %s\n", device->getAddressAndType().toString().c_str());
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
-        fprintf(stderr, "****** Processing Ready Device: pingGATT failed, waiting for disconnect: %s\n", device->getAddressString().c_str());
+        fprintf(stderr, "****** Processing Ready Device: pingGATT failed, waiting for disconnect: %s\n", device->getAddressAndType().toString().c_str());
         // Even w/ GATT_PING_ENABLED, we utilize disconnect event to clean up -> remove
     }
 
@@ -643,11 +657,11 @@ exit:
             success, device->toString().c_str(), getDeviceProcessingCount());
 
     if( success ) {
-        addToDevicesProcessed(device->getAddress());
+        addToDevicesProcessed(device->getAddressAndType());
     }
 
     if( !KEEP_CONNECTED ) {
-        removeFromDevicesProcessing(device->getAddress());
+        removeFromDevicesProcessing(device->getAddressAndType());
 
         if( UNPAIR_DEVICE_POST ) {
             const HCIStatusCode unpair_res = device->unpair();
@@ -665,15 +679,15 @@ exit:
 
     if( 0 < MULTI_MEASUREMENTS ) {
         MULTI_MEASUREMENTS--;
-        fprintf(stderr, "****** Processing Ready Device: MULTI_MEASUREMENTS left %d: %s\n", MULTI_MEASUREMENTS.load(), device->getAddressString().c_str());
+        fprintf(stderr, "****** Processing Ready Device: MULTI_MEASUREMENTS left %d: %s\n", MULTI_MEASUREMENTS.load(), device->getAddressAndType().toString().c_str());
     }
 }
 
 static void removeDevice(std::shared_ptr<DBTDevice> device) {
-    fprintf(stderr, "****** Remove Device: removing: %s\n", device->getAddressString().c_str());
+    fprintf(stderr, "****** Remove Device: removing: %s\n", device->getAddressAndType().toString().c_str());
     device->getAdapter().stopDiscovery();
 
-    removeFromDevicesProcessing(device->getAddress());
+    removeFromDevicesProcessing(device->getAddressAndType());
 
     device->remove();
 
@@ -728,7 +742,7 @@ static std::shared_ptr<DBTAdapter> createAdapter(const int dev_id0, const bool v
 
     if( USE_WHITELIST ) {
         for (auto it = WHITELIST.begin(); it != WHITELIST.end(); ++it) {
-            bool res = adapter->addDeviceToWhitelist(*it, BDAddressType::BDADDR_LE_PUBLIC, HCIWhitelistConnectType::HCI_AUTO_CONN_ALWAYS);
+            bool res = adapter->addDeviceToWhitelist(*it, HCIWhitelistConnectType::HCI_AUTO_CONN_ALWAYS);
             fprintf(stderr, "Added to WHITELIST: res %d, address %s\n", res, it->toString().c_str());
         }
     } else {
@@ -869,12 +883,13 @@ int main(int argc, char *argv[])
             QUIET = true;
         } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
             std::string macstr = std::string(argv[++i]);
-            waitForDevices.push_back( EUI48(macstr) );
+            BDAddressAndType mac(EUI48(macstr), BDAddressType::BDADDR_UNDEFINED);
+            waitForDevices.push_back( mac );
         } else if( !strcmp("-wl", argv[i]) && argc > (i+1) ) {
             std::string macstr = std::string(argv[++i]);
-            EUI48 wlmac(macstr);
-            fprintf(stderr, "Whitelist + %s\n", wlmac.toString().c_str());
-            WHITELIST.push_back( wlmac );
+            BDAddressAndType wle(EUI48(macstr), BDAddressType::BDADDR_LE_PUBLIC);
+            fprintf(stderr, "Whitelist + %s\n", wle.toString().c_str());
+            WHITELIST.push_back( wle );
             USE_WHITELIST = true;
         } else if( !strcmp("-passkey", argv[i]) && argc > (i+1) ) {
             pairing_passkey = atoi(argv[++i]);

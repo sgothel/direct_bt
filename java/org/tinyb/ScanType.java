@@ -26,7 +26,7 @@ package org.tinyb;
 
 /**
  * Meta ScanType as derived from {@link BTMode}
- * with defined value mask consisting of {@link BluetoothAddressType} bits.
+ * with defined value mask consisting of {@link BDAddressType} bits.
  * <p>
  * This ScanType is natively compatible with DBTManager's implementation
  * for start and stop discovery.

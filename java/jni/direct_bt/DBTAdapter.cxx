@@ -115,7 +115,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
   public:
 
     std::string toString() const override {
-        const std::string devMatchAddr = nullptr != deviceMatchRef ? deviceMatchRef->getAddress().toString() : "nil";
+        const std::string devMatchAddr = nullptr != deviceMatchRef ? deviceMatchRef->getAddressAndType().toString() : "nil";
         return "JNIAdapterStatusListener[this "+jau::aptrHexString(this)+", iname "+std::to_string(iname)+", devMatchAddr "+devMatchAddr+"]";
     }
 
@@ -358,7 +358,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         } else {
             // New Java instance
             // Device(final long nativeInstance, final Adapter adptr, final String address, final int intAddressType, final String name)
-            const EUI48 addr = device->getAddress();
+            const EUI48 addr = device->getAddressAndType().address;
             jbyteArray jaddr = env->NewByteArray(sizeof(addr));
             env->SetByteArrayRegion(jaddr, 0, sizeof(addr), (const jbyte*)(addr.b));
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
@@ -366,7 +366,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             jobject tmp_jdevice = env->NewObject(deviceClazzRef.getClass(), deviceClazzCtor,
                     (jlong)device.get(), jau::JavaGlobalObj::GetObject(adapterObjRef),
-                    jaddr, device->getAddressType(), name, (jlong)timestamp);
+                    jaddr, device->getAddressAndType().type, name, (jlong)timestamp);
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             JNIGlobalRef::check(tmp_jdevice, E_FILE_LINE);
             std::shared_ptr<jau::JavaAnon> jDeviceRef1 = device->getJavaObject();
@@ -411,7 +411,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         } else {
             // New Java instance
             // Device(final long nativeInstance, final Adapter adptr, final String address, final int intAddressType, final String name)
-            const EUI48 addr = device->getAddress();
+            const EUI48 addr = device->getAddressAndType().address;
             jbyteArray jaddr = env->NewByteArray(sizeof(addr));
             env->SetByteArrayRegion(jaddr, 0, sizeof(addr), (const jbyte*)(addr.b));
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
@@ -419,7 +419,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             jobject tmp_jdevice = env->NewObject(deviceClazzRef.getClass(), deviceClazzCtor,
                     (jlong)device.get(), jau::JavaGlobalObj::GetObject(adapterObjRef),
-                    jaddr, device->getAddressType(), name, (jlong)timestamp);
+                    jaddr, device->getAddressAndType().type, name, (jlong)timestamp);
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             JNIGlobalRef::check(tmp_jdevice, E_FILE_LINE);
             std::shared_ptr<jau::JavaAnon> jDeviceRef1 = device->getJavaObject();
@@ -598,7 +598,7 @@ jint Java_direct_1bt_tinyb_DBTAdapter_removeAllStatusListener(JNIEnv *env, jobje
     return 0;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobject obj, jbyteArray jaddress) {
+jboolean Java_direct_1bt_tinyb_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
@@ -616,8 +616,9 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobje
             throw jau::InternalError("GetPrimitiveArrayCritical(address byte array) is null", E_FILE_LINE);
         }
         const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
+        const BDAddressAndType addressAndType(address, static_cast<BDAddressType>( jaddressType ));
 
-        return adapter->isDeviceWhitelisted(address);
+        return adapter->isDeviceWhitelisted(addressAndType);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -645,9 +646,9 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelistImpl1(JNIEnv *env,
         }
         const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
 
-        const BDAddressType addressType = static_cast<BDAddressType>( jaddressType );
+        const BDAddressAndType addressAndType(address, static_cast<BDAddressType>( jaddressType ));
         const HCIWhitelistConnectType ctype = static_cast<HCIWhitelistConnectType>( jctype );
-        return adapter->addDeviceToWhitelist(address, addressType, ctype, (uint16_t)min_interval, (uint16_t)max_interval, (uint16_t)latency, (uint16_t)timeout);
+        return adapter->addDeviceToWhitelist(addressAndType, ctype, (uint16_t)min_interval, (uint16_t)max_interval, (uint16_t)latency, (uint16_t)timeout);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -673,9 +674,9 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelistImpl2(JNIEnv *env,
         }
         const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
 
-        const BDAddressType addressType = static_cast<BDAddressType>( jaddressType );
+        const BDAddressAndType addressAndType(address, static_cast<BDAddressType>( jaddressType ));
         const HCIWhitelistConnectType ctype = static_cast<HCIWhitelistConnectType>( jctype );
-        return adapter->addDeviceToWhitelist(address, addressType, ctype);
+        return adapter->addDeviceToWhitelist(addressAndType, ctype);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -700,8 +701,8 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_removeDeviceFromWhitelistImpl(JNIEnv *
         }
         const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
 
-        const BDAddressType addressType = static_cast<BDAddressType>( jaddressType );
-        return adapter->removeDeviceFromWhitelist(address, addressType);
+        const BDAddressAndType addressAndType(address, static_cast<BDAddressType>( jaddressType ));
+        return adapter->removeDeviceFromWhitelist(addressAndType);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

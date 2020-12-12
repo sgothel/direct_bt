@@ -680,11 +680,11 @@ namespace direct_bt {
             }
 
         public:
-            MgmtCmdAdressInfoMeta(const Opcode opc, const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
+            MgmtCmdAdressInfoMeta(const Opcode opc, const uint16_t dev_id, const BDAddressAndType& addressAndType)
             : MgmtCommand(opc, dev_id, 6+1)
             {
-                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
             }
 
             virtual ~MgmtCmdAdressInfoMeta() noexcept override {}
@@ -699,8 +699,8 @@ namespace direct_bt {
     class MgmtDisconnectCmd : public MgmtCmdAdressInfoMeta
     {
         public:
-            MgmtDisconnectCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
-            : MgmtCmdAdressInfoMeta(Opcode::DISCONNECT, dev_id, address, addressType)
+            MgmtDisconnectCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType)
+            : MgmtCmdAdressInfoMeta(Opcode::DISCONNECT, dev_id, addressAndType)
             { }
     };
 
@@ -764,8 +764,8 @@ namespace direct_bt {
     class MgmtGetConnectionInfoCmd : public MgmtCmdAdressInfoMeta
     {
         public:
-            MgmtGetConnectionInfoCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
-            : MgmtCmdAdressInfoMeta(Opcode::GET_CONN_INFO, dev_id, address, addressType)
+            MgmtGetConnectionInfoCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType)
+            : MgmtCmdAdressInfoMeta(Opcode::GET_CONN_INFO, dev_id, addressAndType)
             { }
     };
 
@@ -784,12 +784,12 @@ namespace direct_bt {
             }
 
         public:
-            MgmtPinCodeReplyCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType,
+            MgmtPinCodeReplyCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType,
                                 const uint8_t pin_len, const TROOctets &pin_code)
             : MgmtCommand(Opcode::PIN_CODE_REPLY, dev_id, 6+1+1+16)
             {
-                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+7, pin_len);
                 pdu.put_octets_nc(MGMT_HEADER_SIZE+8, pin_code);
             }
@@ -805,8 +805,8 @@ namespace direct_bt {
     class MgmtPinCodeNegativeReplyCmd : public MgmtCmdAdressInfoMeta
     {
         public:
-            MgmtPinCodeNegativeReplyCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
-            : MgmtCmdAdressInfoMeta(Opcode::PIN_CODE_NEG_REPLY, dev_id, address, addressType)
+            MgmtPinCodeNegativeReplyCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType)
+            : MgmtCmdAdressInfoMeta(Opcode::PIN_CODE_NEG_REPLY, dev_id, addressAndType)
             { }
     };
 
@@ -824,11 +824,11 @@ namespace direct_bt {
             }
 
         public:
-            MgmtPairDeviceCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const SMPIOCapability iocap)
+            MgmtPairDeviceCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType, const SMPIOCapability iocap)
             : MgmtCommand(Opcode::PAIR_DEVICE, dev_id, 6+1+1)
             {
-                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(iocap));
             }
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
@@ -842,8 +842,8 @@ namespace direct_bt {
     class MgmtCancelPairDevice : public MgmtCmdAdressInfoMeta
     {
         public:
-        MgmtCancelPairDevice(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
-            : MgmtCmdAdressInfoMeta(Opcode::CANCEL_PAIR_DEVICE, dev_id, address, addressType)
+        MgmtCancelPairDevice(const uint16_t dev_id, const BDAddressAndType& addressAndType)
+            : MgmtCmdAdressInfoMeta(Opcode::CANCEL_PAIR_DEVICE, dev_id, addressAndType)
             { }
     };
 
@@ -862,11 +862,11 @@ namespace direct_bt {
             }
 
         public:
-            MgmtUnpairDeviceCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const bool disconnect)
+            MgmtUnpairDeviceCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType, const bool disconnect)
             : MgmtCommand(Opcode::UNPAIR_DEVICE, dev_id, 6+1+1)
             {
-                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, disconnect ? 0x01 : 0x00);
             }
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
@@ -880,8 +880,8 @@ namespace direct_bt {
     class MgmtUserConfirmReplyCmd : public MgmtCmdAdressInfoMeta
     {
         public:
-            MgmtUserConfirmReplyCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
-            : MgmtCmdAdressInfoMeta(Opcode::USER_CONFIRM_REPLY, dev_id, address, addressType)
+            MgmtUserConfirmReplyCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType)
+            : MgmtCmdAdressInfoMeta(Opcode::USER_CONFIRM_REPLY, dev_id, addressAndType)
             { }
     };
 
@@ -891,8 +891,8 @@ namespace direct_bt {
     class MgmtUserConfirmNegativeReplyCmd : public MgmtCmdAdressInfoMeta
     {
         public:
-            MgmtUserConfirmNegativeReplyCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
-            : MgmtCmdAdressInfoMeta(Opcode::USER_CONFIRM_NEG_REPLY, dev_id, address, addressType)
+            MgmtUserConfirmNegativeReplyCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType)
+            : MgmtCmdAdressInfoMeta(Opcode::USER_CONFIRM_NEG_REPLY, dev_id, addressAndType)
             { }
     };
 
@@ -910,11 +910,11 @@ namespace direct_bt {
             }
 
         public:
-            MgmtUserPasskeyReplyCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint32_t passkey)
+            MgmtUserPasskeyReplyCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType, const uint32_t passkey)
             : MgmtCommand(Opcode::USER_PASSKEY_REPLY, dev_id, 6+1+4)
             {
-                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
                 pdu.put_uint32_nc(MGMT_HEADER_SIZE+6+1, passkey);
             }
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
@@ -928,8 +928,8 @@ namespace direct_bt {
     class MgmtUserPasskeyNegativeReplyCmd : public MgmtCmdAdressInfoMeta
     {
         public:
-            MgmtUserPasskeyNegativeReplyCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
-            : MgmtCmdAdressInfoMeta(Opcode::USER_PASSKEY_NEG_REPLY, dev_id, address, addressType)
+            MgmtUserPasskeyNegativeReplyCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType)
+            : MgmtCmdAdressInfoMeta(Opcode::USER_PASSKEY_NEG_REPLY, dev_id, addressAndType)
             { }
     };
 
@@ -951,11 +951,11 @@ namespace direct_bt {
             }
 
         public:
-            MgmtAddDeviceToWhitelistCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const HCIWhitelistConnectType ctype)
+            MgmtAddDeviceToWhitelistCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType, const HCIWhitelistConnectType ctype)
             : MgmtCommand(Opcode::ADD_DEVICE_WHITELIST, dev_id, 6+1+1)
             {
-                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(ctype));
             }
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
@@ -969,8 +969,8 @@ namespace direct_bt {
     class MgmtRemoveDeviceFromWhitelistCmd : public MgmtCmdAdressInfoMeta
     {
         public:
-            MgmtRemoveDeviceFromWhitelistCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
-            : MgmtCmdAdressInfoMeta(Opcode::REMOVE_DEVICE_WHITELIST, dev_id, address, addressType)
+            MgmtRemoveDeviceFromWhitelistCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType)
+            : MgmtCmdAdressInfoMeta(Opcode::REMOVE_DEVICE_WHITELIST, dev_id, addressAndType)
             { }
     };
 
@@ -1491,11 +1491,11 @@ namespace direct_bt {
             {
                 checkOpcode(getOpcode(), Opcode::DEVICE_CONNECTED);
             }
-            MgmtEvtDeviceConnected(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint16_t hci_conn_handle_)
+            MgmtEvtDeviceConnected(const uint16_t dev_id, const BDAddressAndType& addressAndType, const uint16_t hci_conn_handle_)
             : MgmtEvent(Opcode::DEVICE_CONNECTED, dev_id, 6+1+4+2), hci_conn_handle(hci_conn_handle_)
             {
-                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
                 pdu.put_uint32_nc(MGMT_HEADER_SIZE+6+1, 0); // flags
                 pdu.put_uint16_nc(MGMT_HEADER_SIZE+6+1+4, 0); // eir-len
             }
@@ -1565,13 +1565,13 @@ namespace direct_bt {
             {
                 checkOpcode(getOpcode(), Opcode::DEVICE_DISCONNECTED);
             }
-            MgmtEvtDeviceDisconnected(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType,
+            MgmtEvtDeviceDisconnected(const uint16_t dev_id, const BDAddressAndType& addressAndType,
                                       HCIStatusCode hciReason_, const uint16_t hci_conn_handle_)
             : MgmtEvent(Opcode::DEVICE_DISCONNECTED, dev_id, 6+1+1), hciReason(hciReason_), hci_conn_handle(hci_conn_handle_)
             {
                 DisconnectReason disconnectReason = getDisconnectReason(hciReason_);
-                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, static_cast<uint8_t>(disconnectReason));
             }
 
@@ -1619,11 +1619,11 @@ namespace direct_bt {
             {
                 checkOpcode(getOpcode(), Opcode::CONNECT_FAILED);
             }
-            MgmtEvtDeviceConnectFailed(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const HCIStatusCode status)
+            MgmtEvtDeviceConnectFailed(const uint16_t dev_id, const BDAddressAndType& addressAndType, const HCIStatusCode status)
             : MgmtEvent(Opcode::CONNECT_FAILED, dev_id, 6+1+1), hciStatus(status)
             {
-                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, static_cast<uint8_t>(MgmtStatus::CONNECT_FAILED));
             }
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
@@ -2089,11 +2089,11 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtHCIEncryptionChanged(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const HCIStatusCode hci_status, uint8_t hci_enc_enabled)
+            MgmtEvtHCIEncryptionChanged(const uint16_t dev_id, const BDAddressAndType& addressAndType, const HCIStatusCode hci_status, uint8_t hci_enc_enabled)
             : MgmtEvent(Opcode::HCI_ENC_CHANGED, dev_id, 6+1+1+1)
             {
-                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(hci_status));
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1+1, hci_enc_enabled);
             }
@@ -2128,11 +2128,11 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtHCIEncryptionKeyRefreshComplete(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const HCIStatusCode hci_status)
+            MgmtEvtHCIEncryptionKeyRefreshComplete(const uint16_t dev_id, const BDAddressAndType& addressAndType, const HCIStatusCode hci_status)
             : MgmtEvent(Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, dev_id, 6+1+1)
             {
-                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(hci_status));
             }
 
@@ -2162,11 +2162,11 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtHCILERemoteUserFeatures(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const LEFeatures features_)
+            MgmtEvtHCILERemoteUserFeatures(const uint16_t dev_id, const BDAddressAndType& addressAndType, const LEFeatures features_)
             : MgmtEvent(Opcode::HCI_LE_REMOTE_USR_FEATURES, dev_id, 6+1+8)
             {
-                pdu.put_eui48_nc(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressType));
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
                 pdu.put_uint64_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(features_));
             }
 

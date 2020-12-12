@@ -38,11 +38,11 @@ package org.tinyb;
  * Table 1.2, address bits [47:46]
  * </p>
  * <p>
- * If {@link BluetoothAddressType} is {@link BluetoothAddressType#BDADDR_LE_RANDOM},
+ * If {@link BDAddressType} is {@link BDAddressType#BDADDR_LE_RANDOM},
  * its value shall be different than {@link BLERandomAddressType#UNDEFINED}.
  * </p>
  * <p>
- * If {@link BluetoothAddressType} is not {@link BluetoothAddressType#BDADDR_LE_RANDOM},
+ * If {@link BDAddressType} is not {@link BDAddressType#BDADDR_LE_RANDOM},
  * its value shall be {@link BLERandomAddressType#UNDEFINED}.
  * </p>
  * @since 2.0.0

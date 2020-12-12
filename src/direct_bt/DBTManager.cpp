@@ -322,7 +322,7 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
     setMode(dev_id, MgmtCommand::Opcode::SET_CONNECTABLE, 0, current_settings);
     setMode(dev_id, MgmtCommand::Opcode::SET_FAST_CONNECTABLE, 0, current_settings);
 
-    removeDeviceFromWhitelist(dev_id, EUI48_ANY_DEVICE, BDAddressType::BDADDR_BREDR); // flush whitelist!
+    removeDeviceFromWhitelist(dev_id, BDAddressAndType::ANY_BREDR_DEVICE); // flush whitelist!
 
     setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 1, current_settings);
 
@@ -834,10 +834,10 @@ bool DBTManager::stopDiscovery(const uint16_t dev_id, const ScanType type) noexc
     return false;
 }
 
-bool DBTManager::uploadConnParam(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type,
+bool DBTManager::uploadConnParam(const uint16_t dev_id, const BDAddressAndType & addressAndType,
                                  const uint16_t conn_min_interval, const uint16_t conn_max_interval,
                                  const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
-    MgmtConnParam connParam{ address, address_type, conn_min_interval, conn_max_interval, conn_latency, supervision_timeout };
+    MgmtConnParam connParam{ addressAndType.address, addressAndType.type, conn_min_interval, conn_max_interval, conn_latency, supervision_timeout };
     MgmtLoadConnParamCmd req(dev_id, connParam);
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -877,11 +877,11 @@ HCIStatusCode DBTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLon
     return res;
 }
 
-HCIStatusCode DBTManager::uploadLongTermKeyInfo(const uint16_t dev_id, const EUI48& address, BDAddressType address_type,
+HCIStatusCode DBTManager::uploadLongTermKeyInfo(const uint16_t dev_id, const BDAddressAndType & addressAndType,
                                                 const SMPLongTermKeyInfo& ltk) noexcept {
     const MgmtLTKType key_type = getMgmtLTKType(ltk.properties);
     const bool responder = ( SMPLongTermKeyInfo::Property::RESPONDER & ltk.properties ) != SMPLongTermKeyInfo::Property::NONE;
-    const MgmtLongTermKeyInfo mgmt_ltk_info { address, address_type, key_type, responder, ltk.enc_size, ltk.ediv, ltk.rand, ltk.ltk };
+    const MgmtLongTermKeyInfo mgmt_ltk_info { addressAndType.address, addressAndType.type, key_type, responder, ltk.enc_size, ltk.ediv, ltk.rand, ltk.ltk };
     MgmtLoadLongTermKeyCmd req(dev_id, mgmt_ltk_info);
     HCIStatusCode res;
     std::shared_ptr<MgmtEvent> reply = sendWithReply(req);
@@ -901,8 +901,8 @@ HCIStatusCode DBTManager::uploadLongTermKeyInfo(const uint16_t dev_id, const EUI
     return res;
 }
 
-MgmtStatus DBTManager::userPasskeyReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint32_t passkey) noexcept {
-    MgmtUserPasskeyReplyCmd cmd(dev_id, address, addressType, passkey);
+MgmtStatus DBTManager::userPasskeyReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const uint32_t passkey) noexcept {
+    MgmtUserPasskeyReplyCmd cmd(dev_id, addressAndType, passkey);
     std::shared_ptr<MgmtEvent> res = sendWithReply(cmd);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
@@ -912,8 +912,8 @@ MgmtStatus DBTManager::userPasskeyReply(const uint16_t dev_id, const EUI48 &addr
     return MgmtStatus::TIMEOUT;
 }
 
-MgmtStatus DBTManager::userPasskeyNegativeReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType) noexcept {
-    MgmtUserPasskeyNegativeReplyCmd cmd(dev_id, address, addressType);
+MgmtStatus DBTManager::userPasskeyNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept {
+    MgmtUserPasskeyNegativeReplyCmd cmd(dev_id, addressAndType);
     std::shared_ptr<MgmtEvent> res = sendWithReply(cmd);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
@@ -923,13 +923,13 @@ MgmtStatus DBTManager::userPasskeyNegativeReply(const uint16_t dev_id, const EUI
     return MgmtStatus::TIMEOUT;
 }
 
-MgmtStatus DBTManager::userConfirmReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const bool positive) noexcept {
+MgmtStatus DBTManager::userConfirmReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool positive) noexcept {
     std::shared_ptr<MgmtEvent> res;
     if( positive ) {
-        MgmtUserConfirmReplyCmd cmd(dev_id, address, addressType);
+        MgmtUserConfirmReplyCmd cmd(dev_id, addressAndType);
         res = sendWithReply(cmd);
     } else {
-        MgmtUserConfirmNegativeReplyCmd cmd(dev_id, address, addressType);
+        MgmtUserConfirmNegativeReplyCmd cmd(dev_id, addressAndType);
         res = sendWithReply(cmd);
     }
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -940,13 +940,13 @@ MgmtStatus DBTManager::userConfirmReply(const uint16_t dev_id, const EUI48 &addr
     return MgmtStatus::TIMEOUT;
 }
 
-bool DBTManager::pairDevice(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const SMPIOCapability iocap) noexcept {
-    MgmtPairDeviceCmd cmd(dev_id, address, addressType, iocap);
+bool DBTManager::pairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPIOCapability iocap) noexcept {
+    MgmtPairDeviceCmd cmd(dev_id, addressAndType, iocap);
     return send(cmd);
 }
 
-MgmtStatus DBTManager::unpairDevice(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const bool disconnect) noexcept {
-    MgmtUnpairDeviceCmd cmd(dev_id, address, addressType, disconnect);
+MgmtStatus DBTManager::unpairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool disconnect) noexcept {
+    MgmtUnpairDeviceCmd cmd(dev_id, addressAndType, disconnect);
     std::shared_ptr<MgmtEvent> res = sendWithReply(cmd);
 
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -957,10 +957,10 @@ MgmtStatus DBTManager::unpairDevice(const uint16_t dev_id, const EUI48 &address,
     return MgmtStatus::TIMEOUT;
 }
 
-bool DBTManager::isDeviceWhitelisted(const uint16_t dev_id, const EUI48 &address) noexcept {
+bool DBTManager::isDeviceWhitelisted(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept {
     for(auto it = whitelist.begin(); it != whitelist.end(); ) {
         std::shared_ptr<WhitelistElem> wle = *it;
-        if( wle->dev_id == dev_id && wle->address == address ) {
+        if( wle->dev_id == dev_id && wle->address_and_type == addressAndType ) {
             return true;
         } else {
             ++it;
@@ -969,11 +969,11 @@ bool DBTManager::isDeviceWhitelisted(const uint16_t dev_id, const EUI48 &address
     return false;
 }
 
-bool DBTManager::addDeviceToWhitelist(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype) noexcept {
-    MgmtAddDeviceToWhitelistCmd req(dev_id, address, address_type, ctype);
+bool DBTManager::addDeviceToWhitelist(const uint16_t dev_id, const BDAddressAndType & addressAndType, const HCIWhitelistConnectType ctype) noexcept {
+    MgmtAddDeviceToWhitelistCmd req(dev_id, addressAndType, ctype);
 
     // Check if already exist in our local whitelist first, reject if so ..
-    if( isDeviceWhitelisted(dev_id, address) ) {
+    if( isDeviceWhitelisted(dev_id, addressAndType) ) {
         ERR_PRINT("DBTManager::addDeviceToWhitelist: Already in local whitelist, remove first: %s", req.toString().c_str());
         return false;
     }
@@ -981,7 +981,7 @@ bool DBTManager::addDeviceToWhitelist(const uint16_t dev_id, const EUI48 &addres
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         if( MgmtStatus::SUCCESS == res1.getStatus() ) {
-            std::shared_ptr<WhitelistElem> wle( new WhitelistElem{dev_id, address, address_type, ctype} );
+            std::shared_ptr<WhitelistElem> wle( new WhitelistElem{dev_id, addressAndType, ctype} );
             whitelist.push_back(wle);
             return true;
         }
@@ -1005,7 +1005,7 @@ int DBTManager::removeAllDevicesFromWhitelist() noexcept {
     DBG_PRINT("DBTManager::removeAllDevicesFromWhitelist.B: Start %d elements", count);
     whitelist.clear();
     jau::for_each_cow(adapterInfos, [&](std::shared_ptr<AdapterInfo> & a) {
-        removeDeviceFromWhitelist(a->dev_id, EUI48_ANY_DEVICE, BDAddressType::BDADDR_BREDR); // flush whitelist!
+        removeDeviceFromWhitelist(a->dev_id, BDAddressAndType::ANY_BREDR_DEVICE); // flush whitelist!
     });
 #endif
 
@@ -1014,12 +1014,12 @@ int DBTManager::removeAllDevicesFromWhitelist() noexcept {
     return count;
 }
 
-bool DBTManager::removeDeviceFromWhitelist(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type) noexcept {
+bool DBTManager::removeDeviceFromWhitelist(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept {
     // Remove from our local whitelist first
     {
         for(auto it = whitelist.begin(); it != whitelist.end(); ) {
             std::shared_ptr<WhitelistElem> wle = *it;
-            if( wle->dev_id == dev_id && wle->address == address ) {
+            if( wle->dev_id == dev_id && wle->address_and_type == addressAndType ) {
                 it = whitelist.erase(it);
             } else {
                 ++it;
@@ -1028,7 +1028,7 @@ bool DBTManager::removeDeviceFromWhitelist(const uint16_t dev_id, const EUI48 &a
     }
 
     // Actual removal
-    MgmtRemoveDeviceFromWhitelistCmd req(dev_id, address, address_type);
+    MgmtRemoveDeviceFromWhitelistCmd req(dev_id, addressAndType);
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
@@ -1040,7 +1040,7 @@ bool DBTManager::removeDeviceFromWhitelist(const uint16_t dev_id, const EUI48 &a
 }
 
 bool DBTManager::disconnect(const bool ioErrorCause,
-                            const uint16_t dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
+                            const uint16_t dev_id, const BDAddressAndType & addressAndType,
                             const HCIStatusCode reason) noexcept {
     bool bres = false;
 
@@ -1048,7 +1048,7 @@ bool DBTManager::disconnect(const bool ioErrorCause,
     // see Issue #124 fast re-connect on CSR adapter.
     // This will always notify the adapter of a disconnected device.
     {
-        MgmtDisconnectCmd req(dev_id, peer_bdaddr, peer_mac_type);
+        MgmtDisconnectCmd req(dev_id, addressAndType);
         std::shared_ptr<MgmtEvent> res = sendWithReply(req);
         if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
             const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
@@ -1060,14 +1060,14 @@ bool DBTManager::disconnect(const bool ioErrorCause,
     if( !ioErrorCause ) {
         // In case of an ioError (lost-connection), don't wait for the lagging
         // DISCONN_COMPLETE event but send it directly.
-        MgmtEvtDeviceDisconnected *e = new MgmtEvtDeviceDisconnected(dev_id, peer_bdaddr, peer_mac_type, reason, 0xffff);
+        MgmtEvtDeviceDisconnected *e = new MgmtEvtDeviceDisconnected(dev_id, addressAndType, reason, 0xffff);
         sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
     }
     return bres;
 }
 
-std::shared_ptr<ConnectionInfo> DBTManager::getConnectionInfo(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type) noexcept {
-    MgmtGetConnectionInfoCmd req(dev_id, address, address_type);
+std::shared_ptr<ConnectionInfo> DBTManager::getConnectionInfo(const uint16_t dev_id, const BDAddressAndType& addressAndType) noexcept {
+    MgmtGetConnectionInfoCmd req(dev_id, addressAndType);
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());

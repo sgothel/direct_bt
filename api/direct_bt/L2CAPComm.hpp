@@ -132,9 +132,7 @@ namespace direct_bt {
             const uint16_t cid;
 
             std::recursive_mutex mtx_write;
-            std::string deviceString;
-            EUI48 deviceAddress;
-            BDAddressType deviceAddressType;
+            BDAddressAndType deviceAddressAndType;
             std::atomic<int> socket_descriptor; // the l2cap socket
             std::atomic<bool> is_open; // reflects state
             std::atomic<bool> has_ioerror;  // reflects state

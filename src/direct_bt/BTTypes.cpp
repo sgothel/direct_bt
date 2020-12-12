@@ -180,11 +180,23 @@ EUI48::EUI48(const uint8_t * _b) noexcept {
     memcpy(b, _b, sizeof(b));
 }
 
-const EUI48 direct_bt::EUI48_ANY_DEVICE; // default ctor is zero bytes!
+const EUI48 direct_bt::EUI48::ANY_DEVICE; // default ctor is zero bytes!
 static uint8_t _EUI48_ALL_DEVICE[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 static uint8_t _EUI48_LOCAL_DEVICE[] = {0x00, 0x00, 0x00, 0xff, 0xff, 0xff};
-const EUI48 direct_bt::EUI48_ALL_DEVICE( _EUI48_ALL_DEVICE );
-const EUI48 direct_bt::EUI48_LOCAL_DEVICE( _EUI48_LOCAL_DEVICE );
+const EUI48 direct_bt::EUI48::ALL_DEVICE( _EUI48_ALL_DEVICE );
+const EUI48 direct_bt::EUI48::LOCAL_DEVICE( _EUI48_LOCAL_DEVICE );
+
+const BDAddressAndType direct_bt::BDAddressAndType::ANY_BREDR_DEVICE(EUI48::ANY_DEVICE, BDAddressType::BDADDR_BREDR);
+const BDAddressAndType direct_bt::BDAddressAndType::ANY_DEVICE(EUI48::ANY_DEVICE, BDAddressType::BDADDR_UNDEFINED);
+
+std::string BDAddressAndType::toString() const {
+    const BLERandomAddressType leRandomAddressType = getBLERandomAddressType();
+    std::string leaddrtype;
+    if( BLERandomAddressType::UNDEFINED != leRandomAddressType ) {
+        leaddrtype = ", random "+getBLERandomAddressTypeString(leRandomAddressType);
+    }
+    return "["+address.toString()+", "+getBDAddressTypeString(type)+leaddrtype+"]";
+}
 
 // *************************************************
 // *************************************************

@@ -285,7 +285,7 @@ GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device, L2CAPComm& l2
 : env(GATTEnv::get()),
   wbr_device(device),
   l2cap(l2cap_att),
-  deviceString(device->getAddressString()),
+  deviceString(device->getAddressAndType().toString()),
   rbuffer(number(Defaults::MAX_ATT_MTU)),
   is_connected(l2cap.isOpen()), has_ioerror(false),
   attPDURing(env.ATTPDU_RING_CAPACITY), l2capReaderShallStop(false),

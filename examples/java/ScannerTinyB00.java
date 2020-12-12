@@ -27,6 +27,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
 import java.util.List;
 
+import org.tinyb.BDAddressAndType;
+import org.tinyb.BDAddressType;
 import org.tinyb.BluetoothAdapter;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
@@ -57,7 +59,7 @@ public class ScannerTinyB00 {
     public static void main(final String[] args) throws InterruptedException {
         String bluetoothManagerClazzName = BluetoothFactory.DirectBTImplementationID.BluetoothManagerClassName;
         int dev_id = 0; // default
-        EUI48 mac = null;
+        BDAddressAndType mac = null;
         int mode = 0;
         boolean forever = false;
 
@@ -67,7 +69,7 @@ public class ScannerTinyB00 {
             if( arg.equals("-dev_id") && args.length > (i+1) ) {
                 dev_id = Integer.valueOf(args[++i]).intValue();
             } else if( arg.equals("-mac") ) {
-                mac = new EUI48( args[++i] );
+                mac = new BDAddressAndType(new EUI48(args[++i]), BDAddressType.BDADDR_LE_PUBLIC);
             } else if( arg.equals("-mode") ) {
                 mode = Integer.valueOf(args[++i]).intValue();
             } else if( arg.equals("-bluetoothManager") && args.length > (i+1) ) {
@@ -155,7 +157,7 @@ public class ScannerTinyB00 {
                     final List<BluetoothDevice> devices = useAdapter ? adapter.getDevices() : manager.getDevices();
                     for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
                         final BluetoothDevice d = id.next();
-                        if(d.getAddress().equals(mac)) {
+                        if(d.getAddressAndType().equals(mac)) {
                             sensor = d;
                             break;
                         }
@@ -222,7 +224,7 @@ public class ScannerTinyB00 {
         } while( forever );
     }
     private static void printDevice(final BluetoothDevice device) {
-        System.err.println("Address = " + device.getAddress());
+        System.err.println("Address = " + device.getAddressAndType());
         System.err.println("  Name = " + device.getName());
         System.err.println("  Connected = " + device.getConnected());
         System.err.println();

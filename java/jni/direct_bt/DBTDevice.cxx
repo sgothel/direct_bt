@@ -794,7 +794,7 @@ jshort Java_direct_1bt_tinyb_DBTDevice_getTxPower(JNIEnv *env, jobject obj)
 //
 
 struct BooleanDeviceCBContext {
-    EUI48 deviceAddress;
+    BDAddressAndType addressAndType;
     JNIGlobalRef javaCallback_ref;
     jmethodID  mRun;
     JNIGlobalRef boolean_cls_ref;
@@ -805,7 +805,7 @@ struct BooleanDeviceCBContext {
         if( &rhs == this ) {
             return true;
         }
-        return rhs.deviceAddress == deviceAddress &&
+        return rhs.addressAndType == addressAndType &&
                rhs.javaCallback_ref == javaCallback_ref;
     }
 
@@ -864,13 +864,13 @@ void Java_direct_1bt_tinyb_DBTDevice_enableBlockedNotificationsImpl(JNIEnv *env,
             bool isBlocked = false;
             if( MgmtEvent::Opcode::DEVICE_BLOCKED == e->getOpcode() ) {
                 const MgmtEvtDeviceBlocked &event = *static_cast<const MgmtEvtDeviceBlocked *>(e.get());
-                if( event.getAddress() != ctx_ref->deviceAddress ) {
+                if( event.getAddress() != ctx_ref->addressAndType.address || event.getAddressType() != ctx_ref->addressAndType.type ) {
                     return false; // not this device
                 }
                 isBlocked = true;
             } else if( MgmtEvent::Opcode::DEVICE_UNBLOCKED == e->getOpcode() ) {
                 const MgmtEvtDeviceUnblocked &event = *static_cast<const MgmtEvtDeviceUnblocked *>(e.get());
-                if( event.getAddress() != ctx_ref->deviceAddress ) {
+                if( event.getAddress() != ctx_ref->addressAndType.address || event.getAddressType() != ctx_ref->addressAndType.type ) {
                     return false; // not this device
                 }
                 isBlocked = false;
@@ -893,7 +893,7 @@ void Java_direct_1bt_tinyb_DBTDevice_enableBlockedNotificationsImpl(JNIEnv *env,
         java_exception_check_and_throw(env, E_FILE_LINE);
 
         BooleanDeviceCBContext * ctx = new BooleanDeviceCBContext{
-            device->getAddress(), JNIGlobalRef(javaCallback), mRun, JNIGlobalRef(boolean_cls), boolean_ctor };
+            device->getAddressAndType(), JNIGlobalRef(javaCallback), mRun, JNIGlobalRef(boolean_cls), boolean_ctor };
         jni_env->DeleteLocalRef(boolean_cls);
 
         // move BooleanDeviceCBContextRef into CaptureInvocationFunc and operator== includes javaCallback comparison
@@ -949,7 +949,7 @@ void Java_direct_1bt_tinyb_DBTDevice_enablePairedNotificationsImpl(JNIEnv *env, 
         bool(*nativeCallback)(BooleanDeviceCBContextRef&, std::shared_ptr<MgmtEvent>) =
                 [](BooleanDeviceCBContextRef& ctx_ref, std::shared_ptr<MgmtEvent> e)->bool {
             const MgmtEvtDeviceUnpaired &event = *static_cast<const MgmtEvtDeviceUnpaired *>(e.get());
-            if( event.getAddress() != ctx_ref->deviceAddress ) {
+            if( event.getAddress() != ctx_ref->addressAndType.address || event.getAddressType() != ctx_ref->addressAndType.type ) {
                 return false; // not this device
             }
             jobject result = jni_env->NewObject(ctx_ref->boolean_cls_ref.getClass(), ctx_ref->boolean_ctor, JNI_FALSE);
@@ -967,7 +967,7 @@ void Java_direct_1bt_tinyb_DBTDevice_enablePairedNotificationsImpl(JNIEnv *env, 
         java_exception_check_and_throw(env, E_FILE_LINE);
 
         BooleanDeviceCBContext * ctx = new BooleanDeviceCBContext{
-            device->getAddress(), JNIGlobalRef(javaCallback), mRun, JNIGlobalRef(boolean_cls), boolean_ctor };
+            device->getAddressAndType(), JNIGlobalRef(javaCallback), mRun, JNIGlobalRef(boolean_cls), boolean_ctor };
         jni_env->DeleteLocalRef(boolean_cls);
 
         // move BooleanDeviceCBContextRef into CaptureInvocationFunc and operator== includes javaCallback comparison

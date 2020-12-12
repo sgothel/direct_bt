@@ -202,8 +202,7 @@ namespace direct_bt {
 
             struct WhitelistElem {
                 uint16_t dev_id;
-                EUI48 address;
-                BDAddressType address_type;
+                BDAddressAndType address_and_type;
                 HCIWhitelistConnectType ctype;
             };
             std::vector<std::shared_ptr<WhitelistElem>> whitelist;
@@ -403,14 +402,14 @@ namespace direct_bt {
              * @param supervision_timeout in units of 10ms, default value >= 10 x conn_interval_max, we use HCIConstInt::LE_CONN_MIN_TIMEOUT_MS minimum; Value range [0xA-0x0C80] for [100ms - 32s].
              * @return
              */
-            bool uploadConnParam(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type,
+            bool uploadConnParam(const uint16_t dev_id, const BDAddressAndType & addressAndType,
                                  const uint16_t conn_interval_min=12, const uint16_t conn_interval_max=12,
                                  const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 15)) noexcept;
 
             /**
              * Returns true, if the adapter's device is already whitelisted.
              */
-            bool isDeviceWhitelisted(const uint16_t dev_id, const EUI48 &address) noexcept;
+            bool isDeviceWhitelisted(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept;
 
             /**
              * Add the given device to the adapter's autoconnect whitelist.
@@ -421,19 +420,19 @@ namespace direct_bt {
              * Method will reject duplicate devices, in which case it should be removed first.
              * </p>
              */
-            bool addDeviceToWhitelist(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype) noexcept;
+            bool addDeviceToWhitelist(const uint16_t dev_id, const BDAddressAndType & addressAndType, const HCIWhitelistConnectType ctype) noexcept;
 
             /** Remove the given device from the adapter's autoconnect whitelist. */
-            bool removeDeviceFromWhitelist(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type) noexcept;
+            bool removeDeviceFromWhitelist(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept;
 
             /** Remove all previously added devices from the autoconnect whitelist. Returns number of removed devices. */
             int removeAllDevicesFromWhitelist() noexcept;
 
             bool disconnect(const bool ioErrorCause,
-                            const uint16_t dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
+                            const uint16_t dev_id, const BDAddressAndType & addressAndType,
                             const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
 
-            std::shared_ptr<ConnectionInfo> getConnectionInfo(const uint16_t dev_id, const EUI48 &address, const BDAddressType address_type) noexcept;
+            std::shared_ptr<ConnectionInfo> getConnectionInfo(const uint16_t dev_id, const BDAddressAndType& addressAndType) noexcept;
             std::shared_ptr<NameAndShortName> setLocalName(const uint16_t dev_id, const std::string & name, const std::string & short_name) noexcept;
 
             /** Security commands */
@@ -441,14 +440,14 @@ namespace direct_bt {
             MgmtStatus uploadLinkKey(const uint16_t dev_id, const bool debug_keys, const MgmtLinkKeyInfo &key) noexcept;
 
             HCIStatusCode uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKeyInfo &key) noexcept;
-            HCIStatusCode uploadLongTermKeyInfo(const uint16_t dev_id, const EUI48& address, BDAddressType address_type, const SMPLongTermKeyInfo& ltk) noexcept;
+            HCIStatusCode uploadLongTermKeyInfo(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLongTermKeyInfo& ltk) noexcept;
 
-            MgmtStatus userPasskeyReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint32_t passkey) noexcept;
-            MgmtStatus userPasskeyNegativeReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType) noexcept;
-            MgmtStatus userConfirmReply(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const bool positive) noexcept;
+            MgmtStatus userPasskeyReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const uint32_t passkey) noexcept;
+            MgmtStatus userPasskeyNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept;
+            MgmtStatus userConfirmReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool positive) noexcept;
 
-            bool pairDevice(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const SMPIOCapability iocap) noexcept;
-            MgmtStatus unpairDevice(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const bool disconnect) noexcept;
+            bool pairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPIOCapability iocap) noexcept;
+            MgmtStatus unpairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool disconnect) noexcept;
 
             /** MgmtEventCallback handling  */
 

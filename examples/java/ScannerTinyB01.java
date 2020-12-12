@@ -33,6 +33,8 @@ import org.tinyb.AdapterSettings;
 import org.tinyb.BluetoothAdapter;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.AdapterStatusListener;
+import org.tinyb.BDAddressAndType;
+import org.tinyb.BDAddressType;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothGattCharacteristic;
@@ -65,7 +67,7 @@ public class ScannerTinyB01 {
     /** 20000 milliseconds */
     static long TO_CONNECT_AND_RESOLVE = 20000;
 
-    static EUI48 waitForDevice = EUI48.ANY_DEVICE;
+    static BDAddressAndType waitForDevice = BDAddressAndType.ANY_DEVICE;
     static List<String> characteristicList = new ArrayList<String>();
 
     public static void main(final String[] args) throws InterruptedException {
@@ -83,7 +85,7 @@ public class ScannerTinyB01 {
                 if( arg.equals("-dev_id") && args.length > (i+1) ) {
                     dev_id = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-mac") && args.length > (i+1) ) {
-                    waitForDevice = new EUI48(args[++i]);
+                    waitForDevice = new BDAddressAndType(new EUI48(args[++i]), BDAddressType.BDADDR_LE_PUBLIC);
                 } else if( arg.equals("-char") && args.length > (i+1) ) {
                     characteristicList.add(args[++i]);
                 } else if( arg.equals("-mode") && args.length > (i+1) ) {
@@ -176,7 +178,7 @@ public class ScannerTinyB01 {
 
             @Override
             public void deviceFound(final BluetoothDevice device, final long timestamp) {
-                final boolean matches = EUI48.ANY_DEVICE.equals(waitForDevice) || device.getAddress().equals(waitForDevice);
+                final boolean matches = BDAddressAndType.ANY_DEVICE.matches(waitForDevice) || device.getAddressAndType().matches(waitForDevice);
                 System.err.println("****** FOUND__: "+device.toString()+" - match "+matches);
                 System.err.println("Status Adapter:");
                 System.err.println(device.getAdapter().toString());
@@ -191,13 +193,13 @@ public class ScannerTinyB01 {
 
             @Override
             public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
-                final boolean matches = EUI48.ANY_DEVICE.equals(waitForDevice) || device.getAddress().equals(waitForDevice);
+                final boolean matches = BDAddressAndType.ANY_DEVICE.matches(waitForDevice) || device.getAddressAndType().equals(waitForDevice);
                 System.err.println("****** UPDATED: "+updateMask+" of "+device+" - match "+matches);
             }
 
             @Override
             public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) {
-                final boolean matches = EUI48.ANY_DEVICE.equals(waitForDevice) || device.getAddress().equals(waitForDevice);
+                final boolean matches = BDAddressAndType.ANY_DEVICE.matches(waitForDevice) || device.getAddressAndType().equals(waitForDevice);
                 System.err.println("****** CONNECTED: "+device+" - matches "+matches);
             }
 
@@ -261,7 +263,7 @@ public class ScannerTinyB01 {
                         final List<BluetoothDevice> devices = adapter.getDevices();
                         for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
                             final BluetoothDevice d = id.next();
-                            if( EUI48.ANY_DEVICE.equals(waitForDevice) || d.getAddress().equals(waitForDevice) ) {
+                            if( BDAddressAndType.ANY_DEVICE.matches(waitForDevice) || d.getAddressAndType().equals(waitForDevice) ) {
                                 sensor = d;
                                 break;
                             }
@@ -408,7 +410,7 @@ public class ScannerTinyB01 {
         System.err.println("ScannerTinyB01 XX");
     }
     private static void printDevice(final BluetoothDevice device) {
-        System.err.println("Address = " + device.getAddress());
+        System.err.println("Address = " + device.getAddressAndType());
         System.err.println("  Name = " + device.getName());
         System.err.println("  Connected = " + device.getConnected());
         System.err.println();

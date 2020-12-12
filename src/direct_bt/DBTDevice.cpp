@@ -47,8 +47,7 @@ DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
 : adapter(a),
   l2cap_att(adapter.getAddress(), L2CAP_PSM_UNDEF, L2CAP_CID_ATT),
   ts_creation(r.getTimestamp()),
-  address(r.getAddress()), addressType(r.getAddressType()),
-  leRandomAddressType(address.getBLERandomAddressType(addressType))
+  addressAndType{r.getAddress(), r.getAddressType()}
 {
     ts_last_discovery = ts_creation;
     hciConnHandle = 0;
@@ -63,7 +62,8 @@ DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
     }
     update(r);
 
-    if( BDAddressType::BDADDR_LE_RANDOM == addressType ) {
+    const BLERandomAddressType leRandomAddressType = addressAndType.getBLERandomAddressType();
+    if( BDAddressType::BDADDR_LE_RANDOM == addressAndType.type ) {
         if( BLERandomAddressType::UNDEFINED == leRandomAddressType ) {
             throw jau::IllegalArgumentException("BDADDR_LE_RANDOM: Invalid BLERandomAddressType "+
                     getBLERandomAddressTypeString(leRandomAddressType)+": "+toString(false), E_FILE_LINE);
@@ -77,10 +77,10 @@ DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
 }
 
 DBTDevice::~DBTDevice() noexcept {
-    DBG_PRINT("DBTDevice::dtor: ... %p %s", this, getAddressString().c_str());
+    DBG_PRINT("DBTDevice::dtor: ... %p %s", this, addressAndType.toString().c_str());
     advServices.clear();
     advMSD = nullptr;
-    DBG_PRINT("DBTDevice::dtor: XXX %p %s", this, getAddressString().c_str());
+    DBG_PRINT("DBTDevice::dtor: XXX %p %s", this, addressAndType.toString().c_str());
 }
 
 std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const noexcept {
@@ -135,13 +135,9 @@ std::vector<std::shared_ptr<uuid_t>> DBTDevice::getAdvertisedServices() const no
 std::string DBTDevice::toString(bool includeDiscoveredServices) const noexcept {
     const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
     const uint64_t t0 = jau::getCurrentMilliseconds();
-    std::string leaddrtype;
-    if( BLERandomAddressType::UNDEFINED != leRandomAddressType ) {
-        leaddrtype = ", random "+getBLERandomAddressTypeString(leRandomAddressType);
-    }
     jau::sc_atomic_critical sync(const_cast<DBTDevice*>(this)->sync_pairing);
     std::string msdstr = nullptr != advMSD ? advMSD->toString() : "MSD[null]";
-    std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+leaddrtype+"], name['"+name+
+    std::string out("Device["+addressAndType.toString()+", name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
             "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", handle "+jau::uint16HexString(hciConnHandle)+
             ", sec[lvl "+getBTSecurityLevelString(pairing_data.sec_level_conn).c_str()+", io "+getSMPIOCapabilityString(pairing_data.ioCap_conn).c_str()+
@@ -169,13 +165,13 @@ EIRDataType DBTDevice::update(EInfoReport const & data) noexcept {
     EIRDataType res = EIRDataType::NONE;
     ts_last_update = data.getTimestamp();
     if( data.isSet(EIRDataType::BDADDR) ) {
-        if( data.getAddress() != this->address ) {
+        if( data.getAddress() != this->addressAndType.address ) {
             WARN_PRINT("DBTDevice::update:: BDADDR update not supported: %s for %s",
                     data.toString().c_str(), this->toString(false).c_str());
         }
     }
     if( data.isSet(EIRDataType::BDADDR_TYPE) ) {
-        if( data.getAddressType() != this->addressType ) {
+        if( data.getAddressType() != this->addressAndType.type ) {
             WARN_PRINT("DBTDevice::update:: BDADDR_TYPE update not supported: %s for %s",
                     data.toString().c_str(), this->toString(false).c_str());
         }
@@ -240,7 +236,7 @@ EIRDataType DBTDevice::update(GattGenericAccessSvc const &data, const uint64_t t
 
 std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() noexcept {
     DBTManager & mgmt = adapter.getManager();
-    std::shared_ptr<ConnectionInfo> connInfo = mgmt.getConnectionInfo(adapter.dev_id, address, addressType);
+    std::shared_ptr<ConnectionInfo> connInfo = mgmt.getConnectionInfo(adapter.dev_id, addressAndType);
     if( nullptr != connInfo ) {
         EIRDataType updateMask = EIRDataType::NONE;
         if( rssi != connInfo->getRSSI() ) {
@@ -275,43 +271,44 @@ HCIStatusCode DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_w
     HCILEOwnAddressType hci_own_mac_type;
     HCILEPeerAddressType hci_peer_mac_type;
 
-    switch( addressType ) {
+    switch( addressAndType.type ) {
         case BDAddressType::BDADDR_LE_PUBLIC:
             hci_peer_mac_type = HCILEPeerAddressType::PUBLIC;
             hci_own_mac_type = HCILEOwnAddressType::PUBLIC;
             break;
         case BDAddressType::BDADDR_LE_RANDOM: {
-                switch( leRandomAddressType ) {
-                    case BLERandomAddressType::UNRESOLVABLE_PRIVAT:
-                        hci_peer_mac_type = HCILEPeerAddressType::RANDOM;
-                        hci_own_mac_type = HCILEOwnAddressType::RANDOM;
-                        ERR_PRINT("LE Random address type '%s' not supported yet: %s",
-                                getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString(false).c_str());
-                        return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
-                    case BLERandomAddressType::RESOLVABLE_PRIVAT:
-                        hci_peer_mac_type = HCILEPeerAddressType::PUBLIC_IDENTITY;
-                        hci_own_mac_type = HCILEOwnAddressType::RESOLVABLE_OR_PUBLIC;
-                        ERR_PRINT("LE Random address type '%s' not supported yet: %s",
-                                getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString(false).c_str());
-                        return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
-                    case BLERandomAddressType::STATIC_PUBLIC:
-                        // FIXME: This only works for a static random address not changing at all,
-                        // i.e. between power-cycles - hence a temporary hack.
-                        // We need to use 'resolving list' and/or LE Set Privacy Mode (HCI) for all devices.
-                        hci_peer_mac_type = HCILEPeerAddressType::RANDOM;
-                        hci_own_mac_type = HCILEOwnAddressType::PUBLIC;
-                        break;
-                    default: {
-                        ERR_PRINT("Can't connectLE to LE Random address type '%s': %s",
-                                getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString(false).c_str());
-                        return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
-                    }
+            const BLERandomAddressType leRandomAddressType = addressAndType.getBLERandomAddressType();
+            switch( leRandomAddressType ) {
+                case BLERandomAddressType::UNRESOLVABLE_PRIVAT:
+                    hci_peer_mac_type = HCILEPeerAddressType::RANDOM;
+                    hci_own_mac_type = HCILEOwnAddressType::RANDOM;
+                    ERR_PRINT("LE Random address type '%s' not supported yet: %s",
+                            getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString(false).c_str());
+                    return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
+                case BLERandomAddressType::RESOLVABLE_PRIVAT:
+                    hci_peer_mac_type = HCILEPeerAddressType::PUBLIC_IDENTITY;
+                    hci_own_mac_type = HCILEOwnAddressType::RESOLVABLE_OR_PUBLIC;
+                    ERR_PRINT("LE Random address type '%s' not supported yet: %s",
+                            getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString(false).c_str());
+                    return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
+                case BLERandomAddressType::STATIC_PUBLIC:
+                    // FIXME: This only works for a static random address not changing at all,
+                    // i.e. between power-cycles - hence a temporary hack.
+                    // We need to use 'resolving list' and/or LE Set Privacy Mode (HCI) for all devices.
+                    hci_peer_mac_type = HCILEPeerAddressType::RANDOM;
+                    hci_own_mac_type = HCILEOwnAddressType::PUBLIC;
+                    break;
+                default: {
+                    ERR_PRINT("Can't connectLE to LE Random address type '%s': %s",
+                            getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString(false).c_str());
+                    return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
                 }
-            } break;
-        default: {
-                ERR_PRINT("Can't connectLE to address type '%s': %s", getBDAddressTypeString(addressType).c_str(), toString(false).c_str());
-                return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
             }
+        } break;
+        default: {
+            ERR_PRINT("Can't connectLE to address type '%s': %s", getBDAddressTypeString(addressAndType.type).c_str(), toString(false).c_str());
+            return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
+        }
     }
 
     if( isConnected ) {
@@ -332,7 +329,7 @@ HCIStatusCode DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_w
             return HCIStatusCode::INTERNAL_FAILURE;
         }
     }
-    HCIStatusCode status = hci.le_create_conn(address,
+    HCIStatusCode status = hci.le_create_conn(addressAndType.address,
                                       hci_peer_mac_type, hci_own_mac_type,
                                       le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
                                       conn_latency, supervision_timeout);
@@ -367,7 +364,7 @@ HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t cl
         ERR_PRINT("DBTDevice::connectBREDR: Already connected: %s", toString(false).c_str());
         return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
     }
-    if( !isBREDRAddressType() ) {
+    if( !addressAndType.isBREDRAddress() ) {
         ERR_PRINT("DBTDevice::connectBREDR: Not a BDADDR_BREDR address: %s", toString(false).c_str());
         return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
     }
@@ -385,7 +382,7 @@ HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t cl
             return HCIStatusCode::INTERNAL_FAILURE;
         }
     }
-    HCIStatusCode status = hci.create_conn(address, pkt_type, clock_offset, role_switch);
+    HCIStatusCode status = hci.create_conn(addressAndType.address, pkt_type, clock_offset, role_switch);
     allowDisconnect = true;
     if ( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("DBTDevice::connectBREDR: Could not create connection: status 0x%2.2X (%s), errno %d %s on %s",
@@ -397,7 +394,7 @@ HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t cl
 
 HCIStatusCode DBTDevice::connectDefault()
 {
-    switch( addressType ) {
+    switch( addressAndType.type ) {
         case BDAddressType::BDADDR_LE_PUBLIC:
             [[fallthrough]];
         case BDAddressType::BDADDR_LE_RANDOM:
@@ -432,7 +429,7 @@ void DBTDevice::notifyLEFeatures(std::shared_ptr<DBTDevice> sthis, const LEFeatu
             isLEFeaturesBitSet(features, LEFeatures::LE_Encryption), toString(false).c_str());
     le_features = features;
 
-    if( isLEAddressType() && !l2cap_att.isOpen() ) {
+    if( addressAndType.isLEAddress() && !l2cap_att.isOpen() ) {
         std::thread bg(&DBTDevice::processL2CAPSetup, this, sthis); // @suppress("Invalid arguments")
         bg.detach();
     }
@@ -443,7 +440,7 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
     jau::sc_atomic_critical sync(sync_pairing);
 
     DBG_PRINT("DBTDevice::processL2CAPSetup: Start %s", toString(false).c_str());
-    if( isLEAddressType() && !l2cap_att.isOpen() ) {
+    if( addressAndType.isLEAddress() && !l2cap_att.isOpen() ) {
         const BTSecurityLevel sec_level_user = pairing_data.sec_level_user;
         const SMPIOCapability io_cap_conn = pairing_data.ioCap_conn;
         BTSecurityLevel sec_level { BTSecurityLevel::UNSET };
@@ -545,9 +542,9 @@ bool DBTDevice::checkPairingKeyDistributionComplete(const std::string& timestamp
         }
 
         if( jau::environment::get().debug ) {
-            jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:SMP:KEY_DISTRIBUTION: done %d, address[%s, %s]",
+            jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:SMP:KEY_DISTRIBUTION: done %d, address%s",
                 timestamp.c_str(), res,
-                address.toString().c_str(), getBDAddressTypeString(addressType).c_str());
+                addressAndType.toString().c_str());
             jau::PLAIN_PRINT(false, "[%s] - keys[init %s / %s, resp %s / %s]",
                 timestamp.c_str(),
                 getSMPKeyTypeMaskString(pairing_data.keys_init_has).c_str(),
@@ -698,9 +695,9 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
     bool is_device_ready = false;
 
     if( jau::environment::get().debug ) {
-        jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.0: address[%s, %s]",
+        jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.0: address%s",
             timestamp.c_str(),
-            address.toString().c_str(), getBDAddressTypeString(addressType).c_str());
+            addressAndType.toString().c_str());
         jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), msg->toString().c_str());
         jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), source.toString().c_str());
         jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), toString(false).c_str());
@@ -752,8 +749,8 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
 
                 if( jau::environment::get().debug ) {
                     jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
-                    jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.2: address[%s, %s]: State %s, Mode %s, using SC %d:", timestamp.c_str() ,
-                        address.toString().c_str(), getBDAddressTypeString(addressType).c_str(),
+                    jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.2: address%s: State %s, Mode %s, using SC %d:", timestamp.c_str() ,
+                        addressAndType.toString().c_str(),
                         getSMPPairingStateString(pstate).c_str(), getPairingModeString(pmode).c_str(), use_sc);
                     jau::PLAIN_PRINT(false, "[%s] - oob:   init %s", timestamp.c_str(), getSMPOOBDataFlagString(pairing_data.oobFlag_init).c_str());
                     jau::PLAIN_PRINT(false, "[%s] - oob:   resp %s", timestamp.c_str(), getSMPOOBDataFlagString(pairing_data.oobFlag_resp).c_str());
@@ -912,13 +909,13 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
 
     if( jau::environment::get().debug ) {
         if( old_pstate == pstate /* && old_pmode == pmode */ ) {
-            jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.4: Unchanged: address[%s, %s]",
+            jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.4: Unchanged: address%s",
                 timestamp.c_str(),
-                address.toString().c_str(), getBDAddressTypeString(addressType).c_str());
+                addressAndType.toString().c_str());
         } else {
-            jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.5:   Updated: address[%s, %s]",
+            jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.5:   Updated: address%s",
                 timestamp.c_str(),
-                address.toString().c_str(), getBDAddressTypeString(addressType).c_str());
+                addressAndType.toString().c_str());
         }
         jau::PLAIN_PRINT(false, "[%s] - state %s -> %s, mode %s -> %s, ready %d",
             timestamp.c_str(),
@@ -980,7 +977,7 @@ HCIStatusCode DBTDevice::setLongTermKeyInfo(const SMPLongTermKeyInfo& ltk) noexc
         pairing_data.ltk_init = ltk;
     }
     DBTManager & mngr = adapter.getManager();
-    HCIStatusCode res = mngr.uploadLongTermKeyInfo(adapter.dev_id, address, addressType, ltk);
+    HCIStatusCode res = mngr.uploadLongTermKeyInfo(adapter.dev_id, addressAndType, ltk);
     return res;
 }
 
@@ -1004,11 +1001,11 @@ HCIStatusCode DBTDevice::pair(const SMPIOCapability io_cap) noexcept {
     DBTManager& mngr = adapter.getManager();
 
     DBG_PRINT("DBTDevice::pairDevice: Start: io %s, %s", getSMPIOCapabilityString(io_cap).c_str(), toString(false).c_str());
-    mngr.uploadConnParam(adapter.dev_id, address, addressType);
+    mngr.uploadConnParam(adapter.dev_id, addressAndType);
 
     jau::sc_atomic_critical sync(sync_pairing);
     pairing_data.ioCap_conn = io_cap;
-    const bool res = mngr.pairDevice(adapter.dev_id, address, addressType, io_cap);
+    const bool res = mngr.pairDevice(adapter.dev_id, addressAndType, io_cap);
     if( !res ) {
         pairing_data.ioCap_conn = SMPIOCapability::UNSET;
     }
@@ -1120,7 +1117,7 @@ HCIStatusCode DBTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
 
     if( SMPPairingState::PASSKEY_EXPECTED == pairing_data.state ) {
         DBTManager& mngr = adapter.getManager();
-        MgmtStatus res = mngr.userPasskeyReply(adapter.dev_id, address, addressType, passkey);
+        MgmtStatus res = mngr.userPasskeyReply(adapter.dev_id, addressAndType, passkey);
         DBG_PRINT("DBTDevice:mgmt:SMP: PASSKEY '%d', state %s, result %s",
             passkey, getSMPPairingStateString(pairing_data.state).c_str(), getMgmtStatusString(res).c_str());
         return HCIStatusCode::SUCCESS;
@@ -1137,7 +1134,7 @@ HCIStatusCode DBTDevice::setPairingPasskeyNegative() noexcept {
 
     if( SMPPairingState::PASSKEY_EXPECTED == pairing_data.state ) {
         DBTManager& mngr = adapter.getManager();
-        MgmtStatus res = mngr.userPasskeyNegativeReply(adapter.dev_id, address, addressType);
+        MgmtStatus res = mngr.userPasskeyNegativeReply(adapter.dev_id, addressAndType);
         DBG_PRINT("DBTDevice:mgmt:SMP: PASSKEY NEGATIVE, state %s, result %s",
             getSMPPairingStateString(pairing_data.state).c_str(), getMgmtStatusString(res).c_str());
         return HCIStatusCode::SUCCESS;
@@ -1154,7 +1151,7 @@ HCIStatusCode DBTDevice::setPairingNumericComparison(const bool positive) noexce
 
     if( SMPPairingState::NUMERIC_COMPARE_EXPECTED == pairing_data.state ) {
         DBTManager& mngr = adapter.getManager();
-        MgmtStatus res = mngr.userConfirmReply(adapter.dev_id, address, addressType, positive);
+        MgmtStatus res = mngr.userConfirmReply(adapter.dev_id, addressAndType, positive);
         DBG_PRINT("DBTDevice:mgmt:SMP: CONFIRM '%d', state %s, result %s",
             positive, getSMPPairingStateString(pairing_data.state).c_str(), getMgmtStatusString(res).c_str());
         return HCIStatusCode::SUCCESS;
@@ -1483,7 +1480,7 @@ HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
         goto exit;
     }
 
-    res = hci.disconnect(hciConnHandle.load(), address, addressType, reason);
+    res = hci.disconnect(hciConnHandle.load(), addressAndType, reason);
     if( HCIStatusCode::SUCCESS != res ) {
         ERR_PRINT("DBTDevice::disconnect: status %s, handle 0x%X, isConnected %d/%d: errno %d %s on %s",
                 getHCIStatusCodeString(res).c_str(), hciConnHandle.load(),
@@ -1499,7 +1496,7 @@ exit:
         // send the DISCONN_COMPLETE event directly.
         // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
         std::thread bg(&DBTAdapter::mgmtEvDeviceDisconnectedHCI, &adapter, std::shared_ptr<MgmtEvent>( // @suppress("Invalid arguments")
-                 new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load()) ) );
+                 new MgmtEvtDeviceDisconnected(adapter.dev_id, addressAndType, reason, hciConnHandle.load()) ) );
         bg.detach();
         // adapter.mgmtEvDeviceDisconnectedHCI( std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load()) ) );
     }
@@ -1513,7 +1510,7 @@ exit:
 
 HCIStatusCode DBTDevice::unpair() noexcept {
 #if USE_LINUX_BT_SECURITY
-    const MgmtStatus res = adapter.getManager().unpairDevice(adapter.dev_id, address, addressType, false /* disconnect */);
+    const MgmtStatus res = adapter.getManager().unpairDevice(adapter.dev_id, addressAndType, false /* disconnect */);
     clearSMPStates(false /* connected */);
     return getHCIStatusCode(res);
 #elif SMP_SUPPORTED_BY_OS
