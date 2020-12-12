@@ -50,7 +50,7 @@ package org.tinyb;
  *
  * @since 2.0.0
  */
-public enum BluetoothAddressType {
+public enum BDAddressType {
     /** Bluetooth BREDR address */
     BDADDR_BREDR      ((byte)0x00),
     /** Bluetooth LE public address */
@@ -81,7 +81,7 @@ public enum BluetoothAddressType {
     }
 
     /**
-     * Maps the specified name to a constant of {@link BluetoothAddressType}.
+     * Maps the specified name to a constant of {@link BDAddressType}.
      * <p>
      * According to BlueZ's D-Bus protocol, which is also followed by TinyB,
      * the following mappings are valid:
@@ -101,7 +101,7 @@ public enum BluetoothAddressType {
      * @throws IllegalArgumentException if the specified name can't be mapped to a constant of this enum type
      *                                  as described above.
      */
-    public static BluetoothAddressType get(final String name) throws IllegalArgumentException {
+    public static BDAddressType get(final String name) throws IllegalArgumentException {
         if( null == name || name.length() == 0 ) {
             return BDADDR_BREDR;
         }
@@ -115,11 +115,11 @@ public enum BluetoothAddressType {
     }
 
     /**
-     * Maps the specified byte value to a constant of {@link BluetoothAddressType}.
+     * Maps the specified byte value to a constant of {@link BDAddressType}.
      * @param value the byte value to be mapped to a constant of this enum type.
      * @return the corresponding constant of this enum type, using {@link #BDADDR_UNDEFINED} if not supported.
      */
-    public static BluetoothAddressType get(final byte value) {
+    public static BDAddressType get(final byte value) {
         switch(value) {
             case (byte)0x00: return BDADDR_BREDR;
             case (byte)0x01: return BDADDR_LE_PUBLIC;
@@ -128,7 +128,7 @@ public enum BluetoothAddressType {
         }
     }
 
-    BluetoothAddressType(final byte v) {
+    BDAddressType(final byte v) {
         value = v;
     }
 }
