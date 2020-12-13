@@ -163,7 +163,7 @@ namespace direct_bt {
             jau::sc_atomic_bool is_connected; // reflects state
             jau::relaxed_atomic_bool has_ioerror;  // reflects state
 
-            jau::ringbuffer<std::shared_ptr<const AttPDUMsg>, nullptr, jau::nsize_t> attPDURing;
+            jau::ringbuffer<std::unique_ptr<const AttPDUMsg>, nullptr, jau::nsize_t> attPDURing;
             jau::sc_atomic_bool l2capReaderShallStop;
 
             std::mutex mtx_l2capReaderLifecycle;
@@ -221,7 +221,7 @@ namespace direct_bt {
              * @param timeout milliseconds to wait for a reply
              * @return a valid reply, never nullptrs
              */
-            std::shared_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg, const int timeout);
+            std::unique_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg, const int timeout);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.4.2 MTU Exchange

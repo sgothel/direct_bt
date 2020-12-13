@@ -104,7 +104,6 @@ std::vector<std::unique_ptr<std::string>> GATTCharacteristic::getPropertiesStrin
 }
 
 std::string GATTCharacteristic::toString() const noexcept {
-    std::shared_ptr<const uuid_t> service_uuid;
     uint16_t service_handle_end = 0xffff;
     GATTServiceRef serviceRef = getServiceUnchecked();
     std::string service_uuid_str = "";
@@ -113,7 +112,7 @@ std::string GATTCharacteristic::toString() const noexcept {
     std::string desc_str = ", descr[ ";
 
     if( nullptr != serviceRef ) {
-        service_uuid = serviceRef->type;
+        std::unique_ptr<const uuid_t> & service_uuid = serviceRef->type;
         service_uuid_str = service_uuid->toString();
         service_handle_end = serviceRef->endHandle;
 

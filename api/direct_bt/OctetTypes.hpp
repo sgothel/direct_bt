@@ -221,7 +221,7 @@ namespace direct_bt {
                 return uuid128_t(jau::get_uint128(_data, i, true /* littleEndian */));
             }
 
-            std::shared_ptr<const uuid_t> get_uuid(const jau::nsize_t i, const uuid_t::TypeSize tsize) const {
+            std::unique_ptr<const uuid_t> get_uuid(const jau::nsize_t i, const uuid_t::TypeSize tsize) const {
                 check_range(i, uuid_t::number(tsize));
                 return uuid_t::create(tsize, _data, i, true /* littleEndian */);
             }

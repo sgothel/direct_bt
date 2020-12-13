@@ -67,7 +67,7 @@ protected:
 
 public:
     static TypeSize toTypeSize(const jau::nsize_t size);
-    static std::shared_ptr<const uuid_t> create(TypeSize const t, uint8_t const * const buffer, jau::nsize_t const byte_offset, bool const littleEndian);
+    static std::unique_ptr<const uuid_t> create(TypeSize const t, uint8_t const * const buffer, jau::nsize_t const byte_offset, bool const littleEndian);
 
     virtual ~uuid_t() noexcept {}
 

@@ -135,7 +135,7 @@ namespace direct_bt {
             const uint16_t value_handle;
 
             /* Characteristics Value Type UUID */
-            std::shared_ptr<const uuid_t> value_type;
+            std::unique_ptr<const uuid_t> value_type;
 
             /** List of Characteristic Descriptions as shared reference */
             std::vector<GATTDescriptorRef> descriptorList;
@@ -144,9 +144,9 @@ namespace direct_bt {
             int clientCharacteristicsConfigIndex = -1;
 
             GATTCharacteristic(const GATTServiceRef & service_, const uint16_t service_handle_, const uint16_t handle_,
-                               const PropertyBitVal properties_, const uint16_t value_handle_, std::shared_ptr<const uuid_t> value_type_) noexcept
+                               const PropertyBitVal properties_, const uint16_t value_handle_, std::unique_ptr<const uuid_t> && value_type_) noexcept
             : wbr_service(service_), service_handle(service_handle_), handle(handle_),
-              properties(properties_), value_handle(value_handle_), value_type(value_type_) {}
+              properties(properties_), value_handle(value_handle_), value_type(std::move(value_type_)) {}
 
             std::string get_java_class() const noexcept override {
                 return java_class();

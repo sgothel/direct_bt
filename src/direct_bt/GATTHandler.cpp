@@ -211,7 +211,7 @@ void GATTHandler::l2capReaderThreadImpl() {
 
         len = l2cap.read(rbuffer.get_wptr(), rbuffer.getSize());
         if( 0 < len ) {
-            std::shared_ptr<const AttPDUMsg> attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), static_cast<jau::nsize_t>(len));
+            std::unique_ptr<const AttPDUMsg> attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), static_cast<jau::nsize_t>(len));
             const AttPDUMsg::Opcode opc = attPDU->getOpcode();
 
             if( AttPDUMsg::Opcode::HANDLE_VALUE_NTF == opc ) {
@@ -263,7 +263,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 // FIXME TODO ..
                 ERR_PRINT("GATTHandler::reader: MULTI-NTF not implemented: %s", attPDU->toString().c_str());
             } else {
-                attPDURing.putBlocking( attPDU );
+                attPDURing.putBlocking( std::move(attPDU) );
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
             IRQ_PRINT("GATTHandler::reader: l2cap read error -> Stop; l2cap.read %d", len);
@@ -437,11 +437,11 @@ void GATTHandler::send(const AttPDUMsg & msg) {
     }
 }
 
-std::shared_ptr<const AttPDUMsg> GATTHandler::sendWithReply(const AttPDUMsg & msg, const int timeout) {
+std::unique_ptr<const AttPDUMsg> GATTHandler::sendWithReply(const AttPDUMsg & msg, const int timeout) {
     send( msg );
 
     // Ringbuffer read is thread safe
-    std::shared_ptr<const AttPDUMsg> res = attPDURing.getBlocking(timeout);
+    std::unique_ptr<const AttPDUMsg> res = attPDURing.getBlocking(timeout);
     if( nullptr == res ) {
         errno = ETIMEDOUT;
         IRQ_PRINT("GATTHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), deviceString.c_str());
@@ -466,7 +466,7 @@ uint16_t GATTHandler::exchangeMTUImpl(const uint16_t clientMaxMTU, const int32_t
     uint16_t mtu = 0;
     DBG_PRINT("GATT MTU send: %s to %s", req.toString().c_str(), deviceString.c_str());
 
-    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, timeout); // valid reply or exception
+    std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, timeout); // valid reply or exception
 
     if( pdu->getOpcode() == AttPDUMsg::Opcode::EXCHANGE_MTU_RSP ) {
         const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
@@ -559,7 +559,7 @@ bool GATTHandler::discoverPrimaryServices(std::shared_ptr<GATTHandler> shared_th
         const AttReadByNTypeReq req(true /* group */, startHandle, 0xffff, groupType);
         COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discover send: %s to %s", req.toString().c_str(), deviceString.c_str());
 
-        std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT); // valid reply or exception
+        std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT); // valid reply or exception
         COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discover recv: %s on %s", pdu->toString().c_str(), deviceString.c_str());
 
         if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_BY_GROUP_TYPE_RSP ) {
@@ -619,7 +619,7 @@ bool GATTHandler::discoverCharacteristics(GATTServiceRef & service) {
         const AttReadByNTypeReq req(false /* group */, handle, service->endHandle, characteristicTypeReq);
         COND_PRINT(env.DEBUG_DATA, "GATT C discover send: %s to %s", req.toString().c_str(), deviceString.c_str());
 
-        std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT); // valid reply or exception
+        std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT); // valid reply or exception
         COND_PRINT(env.DEBUG_DATA, "GATT C discover recv: %s from %s", pdu->toString().c_str(), deviceString.c_str());
 
         if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_BY_TYPE_RSP ) {
@@ -691,7 +691,7 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
             const AttFindInfoReq req(cd_handle_iter, cd_handle_end);
             COND_PRINT(env.DEBUG_DATA, "GATT CD discover send: %s", req.toString().c_str());
 
-            std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT); // valid reply or exception
+            std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT); // valid reply or exception
             COND_PRINT(env.DEBUG_DATA, "GATT CD discover recv: %s from ", pdu->toString().c_str(), deviceString.c_str());
 
             if( pdu->getOpcode() == AttPDUMsg::Opcode::FIND_INFORMATION_RSP ) {
@@ -702,9 +702,9 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
                     // handle: handle of Characteristic Descriptor.
                     // value: Characteristic Descriptor UUID.
                     const uint16_t cd_handle = p->getElementHandle(e_iter);
-                    const std::shared_ptr<const uuid_t> cd_uuid = p->getElementValue(e_iter);
+                    std::unique_ptr<const uuid_t> cd_uuid = p->getElementValue(e_iter);
 
-                    std::shared_ptr<GATTDescriptor> cd( new GATTDescriptor(charDecl, cd_uuid, cd_handle) );
+                    std::shared_ptr<GATTDescriptor> cd( new GATTDescriptor(charDecl, std::move(cd_uuid), cd_handle) );
                     if( cd_handle <= charDecl->value_handle || cd_handle > cd_handle_end ) { // should never happen!
                         ERR_PRINT("GATT discoverDescriptors CD handle %s not in range ]%s..%s]: descr%s within char%s on %s",
                                 jau::uint16HexString(cd_handle).c_str(),
@@ -783,7 +783,7 @@ bool GATTHandler::readValue(const uint16_t handle, POctets & res, int expectedLe
             break; // done w/ only one request
         } // else 0 > expectedLength: implicit
 
-        std::shared_ptr<const AttPDUMsg> pdu = nullptr;
+        std::unique_ptr<const AttPDUMsg> pdu = nullptr;
 
         const AttReadReq req0(handle);
         const AttReadBlobReq req1(handle, offset);
@@ -896,7 +896,7 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
     COND_PRINT(env.DEBUG_DATA, "GATT WV send(resp %d): %s to %s", withResponse, req.toString().c_str(), deviceString.c_str());
 
     bool res = false;
-    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_WRITE_COMMAND_REPLY_TIMEOUT); // valid reply or exception
+    std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_WRITE_COMMAND_REPLY_TIMEOUT); // valid reply or exception
     COND_PRINT(env.DEBUG_DATA, "GATT WV recv: %s from %s", pdu->toString().c_str(), deviceString.c_str());
 
     if( pdu->getOpcode() == AttPDUMsg::Opcode::WRITE_RSP ) {

@@ -71,9 +71,6 @@ namespace direct_bt {
             static const uuid16_t TYPE_EXT_PROP;
             static const uuid16_t TYPE_USER_DESC;
             static const uuid16_t TYPE_CCC_DESC;
-            static std::shared_ptr<const uuid_t> getStaticType(const uuid16_t & type) noexcept {
-                return std::shared_ptr<const uuid_t>(&type, [](const uuid_t *){});
-            }
 
             /**
              * Following UUID16 GATT profile attribute types are listed under:
@@ -103,7 +100,7 @@ namespace direct_bt {
             };
 
             /** Type of descriptor */
-            std::shared_ptr<const uuid_t> type;
+            std::unique_ptr<const uuid_t> type;
 
             /**
              * Characteristic Descriptor Handle
@@ -116,9 +113,9 @@ namespace direct_bt {
             /* Characteristics Descriptor's Value */
             POctets value;
 
-            GATTDescriptor(const GATTCharacteristicRef & characteristic, const std::shared_ptr<const uuid_t> & type_,
+            GATTDescriptor(const GATTCharacteristicRef & characteristic, std::unique_ptr<const uuid_t> && type_,
                            const uint16_t handle_) noexcept
-            : wbr_characteristic(characteristic), type(type_), handle(handle_), value(/* intentional zero sized */) {}
+            : wbr_characteristic(characteristic), type(std::move(type_)), handle(handle_), value(/* intentional zero sized */) {}
 
             std::string get_java_class() const noexcept override {
                 return java_class();

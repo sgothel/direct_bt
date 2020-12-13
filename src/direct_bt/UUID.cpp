@@ -44,13 +44,13 @@ uuid_t::TypeSize uuid_t::toTypeSize(const jau::nsize_t size) {
     throw jau::IllegalArgumentException("Given size "+std::to_string(size)+", not matching uuid16_t, uuid32_t or uuid128_t", E_FILE_LINE);
 }
 
-std::shared_ptr<const uuid_t> uuid_t::create(TypeSize t, uint8_t const * const buffer, jau::nsize_t const byte_offset, bool littleEndian) {
+std::unique_ptr<const uuid_t> uuid_t::create(TypeSize t, uint8_t const * const buffer, jau::nsize_t const byte_offset, bool littleEndian) {
     if( TypeSize::UUID16_SZ == t ) {
-        return std::shared_ptr<const uuid_t>(new uuid16_t(buffer, byte_offset, littleEndian));
+        return std::unique_ptr<const uuid_t>(new uuid16_t(buffer, byte_offset, littleEndian));
     } else if( TypeSize::UUID32_SZ == t ) {
-        return std::shared_ptr<const uuid_t>(new uuid32_t(buffer, byte_offset, littleEndian));
+        return std::unique_ptr<const uuid_t>(new uuid32_t(buffer, byte_offset, littleEndian));
     } else if( TypeSize::UUID128_SZ == t ) {
-        return std::shared_ptr<const uuid_t>(new uuid128_t(buffer, byte_offset, littleEndian));
+        return std::unique_ptr<const uuid_t>(new uuid128_t(buffer, byte_offset, littleEndian));
     }
     throw jau::IllegalArgumentException("Unknown Type "+std::to_string(static_cast<jau::nsize_t>(t)), E_FILE_LINE);
 }

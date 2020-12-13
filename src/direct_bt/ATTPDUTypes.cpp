@@ -115,43 +115,41 @@ std::string AttErrorRsp::getPlainErrorString(const ErrorCode errorCode) noexcept
     return "Error Reserved for future use";
 }
 
-std::shared_ptr<const AttPDUMsg> AttPDUMsg::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
+std::unique_ptr<const AttPDUMsg> AttPDUMsg::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
     const AttPDUMsg::Opcode opc = static_cast<AttPDUMsg::Opcode>(*buffer);
-    const AttPDUMsg * res;
     switch( opc ) {
-        case Opcode::PDU_UNDEFINED:                 res = new AttPDUUndefined(buffer, buffer_size); break;
-        case Opcode::ERROR_RSP:                     res = new AttErrorRsp(buffer, buffer_size); break;
-        case Opcode::EXCHANGE_MTU_REQ:              res = new AttExchangeMTU(buffer, buffer_size); break;
-        case Opcode::EXCHANGE_MTU_RSP:              res = new AttExchangeMTU(buffer, buffer_size); break;
-        case Opcode::FIND_INFORMATION_REQ:          res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::FIND_INFORMATION_RSP:          res = new AttFindInfoRsp(buffer, buffer_size); break;
-        case Opcode::FIND_BY_TYPE_VALUE_REQ:        res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::FIND_BY_TYPE_VALUE_RSP:        res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::READ_BY_TYPE_REQ:              res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::READ_BY_TYPE_RSP:              res = new AttReadByTypeRsp(buffer, buffer_size); break;
-        case Opcode::READ_REQ:                      res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::READ_RSP:                      res = new AttReadRsp(buffer, buffer_size); break;
-        case Opcode::READ_BLOB_REQ:                 res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::READ_BLOB_RSP:                 res = new AttReadBlobRsp(buffer, buffer_size); break;
-        case Opcode::READ_MULTIPLE_REQ:             res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::READ_MULTIPLE_RSP:             res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::READ_BY_GROUP_TYPE_REQ:        res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::READ_BY_GROUP_TYPE_RSP:        res = new AttReadByGroupTypeRsp(buffer, buffer_size); break;
-        case Opcode::WRITE_REQ:                     res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::WRITE_RSP:                     res = new AttWriteRsp(buffer, buffer_size); break;
-        case Opcode::WRITE_CMD:                     res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::PREPARE_WRITE_REQ:             res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::PREPARE_WRITE_RSP:             res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::EXECUTE_WRITE_REQ:             res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::EXECUTE_WRITE_RSP:             res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::READ_MULTIPLE_VARIABLE_REQ:    res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::READ_MULTIPLE_VARIABLE_RSP:    res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::MULTIPLE_HANDLE_VALUE_NTF:     res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::HANDLE_VALUE_NTF:              res = new AttHandleValueRcv(buffer, buffer_size); break;
-        case Opcode::HANDLE_VALUE_IND:              res = new AttHandleValueRcv(buffer, buffer_size); break;
-        case Opcode::HANDLE_VALUE_CFM:              res = new AttPDUMsg(buffer, buffer_size); break;
-        case Opcode::SIGNED_WRITE_CMD:              res = new AttPDUMsg(buffer, buffer_size); break;
-        default:                                    res = new AttPDUMsg(buffer, buffer_size); break;
+        case Opcode::PDU_UNDEFINED:                 return std::make_unique<AttPDUUndefined>(buffer, buffer_size);
+        case Opcode::ERROR_RSP:                     return std::make_unique<AttErrorRsp>(buffer, buffer_size);
+        case Opcode::EXCHANGE_MTU_REQ:              return std::make_unique<AttExchangeMTU>(buffer, buffer_size);
+        case Opcode::EXCHANGE_MTU_RSP:              return std::make_unique<AttExchangeMTU>(buffer, buffer_size);
+        case Opcode::FIND_INFORMATION_REQ:          return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::FIND_INFORMATION_RSP:          return std::make_unique<AttFindInfoRsp>(buffer, buffer_size);
+        case Opcode::FIND_BY_TYPE_VALUE_REQ:        return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::FIND_BY_TYPE_VALUE_RSP:        return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::READ_BY_TYPE_REQ:              return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::READ_BY_TYPE_RSP:              return std::make_unique<AttReadByTypeRsp>(buffer, buffer_size);
+        case Opcode::READ_REQ:                      return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::READ_RSP:                      return std::make_unique<AttReadRsp>(buffer, buffer_size);
+        case Opcode::READ_BLOB_REQ:                 return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::READ_BLOB_RSP:                 return std::make_unique<AttReadBlobRsp>(buffer, buffer_size);
+        case Opcode::READ_MULTIPLE_REQ:             return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::READ_MULTIPLE_RSP:             return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::READ_BY_GROUP_TYPE_REQ:        return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::READ_BY_GROUP_TYPE_RSP:        return std::make_unique<AttReadByGroupTypeRsp>(buffer, buffer_size);
+        case Opcode::WRITE_REQ:                     return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::WRITE_RSP:                     return std::make_unique<AttWriteRsp>(buffer, buffer_size);
+        case Opcode::WRITE_CMD:                     return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::PREPARE_WRITE_REQ:             return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::PREPARE_WRITE_RSP:             return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::EXECUTE_WRITE_REQ:             return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::EXECUTE_WRITE_RSP:             return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::READ_MULTIPLE_VARIABLE_REQ:    return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::READ_MULTIPLE_VARIABLE_RSP:    return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::MULTIPLE_HANDLE_VALUE_NTF:     return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::HANDLE_VALUE_NTF:              return std::make_unique<AttHandleValueRcv>(buffer, buffer_size);
+        case Opcode::HANDLE_VALUE_IND:              return std::make_unique<AttHandleValueRcv>(buffer, buffer_size);
+        case Opcode::HANDLE_VALUE_CFM:              return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        case Opcode::SIGNED_WRITE_CMD:              return std::make_unique<AttPDUMsg>(buffer, buffer_size);
+        default:                                    return std::make_unique<AttPDUMsg>(buffer, buffer_size);
     }
-    return std::shared_ptr<const AttPDUMsg>(res);
 }

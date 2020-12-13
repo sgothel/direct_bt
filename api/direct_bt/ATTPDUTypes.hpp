@@ -369,7 +369,7 @@ namespace direct_bt {
              * Returned memory reference is managed by caller (delete etc)
              * </p>
              */
-            static std::shared_ptr<const AttPDUMsg> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
+            static std::unique_ptr<const AttPDUMsg> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
 
             /** Persistent memory, w/ ownership ..*/
             AttPDUMsg(const uint8_t* source, const jau::nsize_t size)
@@ -1111,7 +1111,7 @@ namespace direct_bt {
                 return "AttReadByNTypeReq";
             }
 
-            std::shared_ptr<const uuid_t> getNType() const {
+            std::unique_ptr<const uuid_t> getNType() const {
                 return pdu.get_uuid( getPDUValueOffset(), getUUIFormat() );
             }
 
@@ -1415,7 +1415,7 @@ namespace direct_bt {
             class Element {
                 public:
                     const uint16_t handle;
-                    const std::shared_ptr<const uuid_t> uuid;
+                    const std::unique_ptr<const uuid_t> uuid;
 
                     Element(const AttFindInfoRsp & p, const jau::nsize_t idx)
                     : handle( p.getElementHandle(idx) ), uuid( p.getElementValue(idx) )
@@ -1460,7 +1460,7 @@ namespace direct_bt {
                 return pdu.get_uint16( getElementPDUOffset(elementIdx) );
             }
 
-            std::shared_ptr<const uuid_t> getElementValue(const jau::nsize_t elementIdx) const {
+            std::unique_ptr<const uuid_t> getElementValue(const jau::nsize_t elementIdx) const {
                 return pdu.get_uuid( getElementPDUOffset(elementIdx) + 2, getUUIFormat() );
             }
 
