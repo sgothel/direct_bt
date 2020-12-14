@@ -624,6 +624,8 @@ namespace direct_bt {
             static std::string getOpcodeString(const Opcode opc) noexcept;
 
         protected:
+            friend class SMPHandler;
+
             void checkOpcode(const Opcode expected) const
             {
                 const Opcode has = getOpcode();
@@ -651,20 +653,20 @@ namespace direct_bt {
                         +jau::bytesHexString(pdu.get_ptr(), getDataOffset(), getDataSize(), true /* lsbFirst */, true /* leading0X */);
             }
 
-        public:
             /** actual received PDU */
             POctets pdu;
 
             /** creation timestamp in milliseconds */
-            const uint64_t ts_creation;
+            uint64_t ts_creation;
 
+        public:
             /**
              * Return a newly created specialized instance pointer to base class.
              * <p>
              * Returned memory reference is managed by caller (delete etc)
              * </p>
              */
-            static std::shared_ptr<const SMPPDUMsg> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
+            static std::unique_ptr<const SMPPDUMsg> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
 
             /** Persistent memory, w/ ownership ..*/
             SMPPDUMsg(const uint8_t* source, const jau::nsize_t size)
@@ -681,12 +683,24 @@ namespace direct_bt {
                 pdu.check_range(0, getDataOffset()+getDataSize());
             }
 
-            SMPPDUMsg(const SMPPDUMsg &o) noexcept = default;
-            SMPPDUMsg(SMPPDUMsg &&o) noexcept = default;
-            SMPPDUMsg& operator=(const SMPPDUMsg &o) noexcept = delete; // const ts_creation
-            SMPPDUMsg& operator=(SMPPDUMsg &&o) noexcept = delete; // const ts_creation
-
             virtual ~SMPPDUMsg() noexcept {}
+
+            /**
+             * Clone template for convenience, based on derived class's copy-constructor.
+             * <pre>
+             * const SMPPDUMsg & smpPDU;
+             * const SMPSignInfoMsg * signInfo = static_cast<const SMPSignInfoMsg *>(&smpPDU);
+             * SMPPDUMsg* b1 = SMPPDUMsg::clone(*signInfo);
+             * SMPSignInfoMsg* b2 = SMPPDUMsg::clone(*signInfo);
+             * </pre>
+             * @tparam T The derived definite class type, deducible by source argument
+             * @param source the source to be copied
+             * @return a new instance.
+             */
+            template<class T>
+            static T* clone(const T& source) noexcept { return new T(source); }
+
+            uint64_t getTimestamp() const noexcept { return ts_creation; }
 
             /** SMP Command Codes Vol 3, Part H (SM): 3.3 */
             inline Opcode getOpcode() const noexcept {
@@ -756,11 +770,6 @@ namespace direct_bt {
             /** Persistent memory, w/ ownership ..*/
             SMPEncKeyByteStream(const Opcode opc, const jau::nsize_t size)
             : SMPPDUMsg(opc, size) { }
-
-            SMPEncKeyByteStream(const SMPEncKeyByteStream &o) noexcept = default;
-            SMPEncKeyByteStream(SMPEncKeyByteStream &&o) noexcept = default;
-            SMPEncKeyByteStream& operator=(const SMPEncKeyByteStream &o) noexcept = delete; // const ts_creation
-            SMPEncKeyByteStream& operator=(SMPEncKeyByteStream &&o) noexcept = delete; // const ts_creation
 
             virtual ~SMPEncKeyByteStream() noexcept {}
     };

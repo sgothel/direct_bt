@@ -148,7 +148,7 @@ namespace direct_bt {
     };
 
     typedef jau::FunctionDef<bool, const BDAddressAndType& /* addressAndType */,
-                                   std::shared_ptr<const SMPPDUMsg>, const HCIACLData::l2cap_frame& /* source */> HCISMPMsgCallback;
+                                   const SMPPDUMsg&, const HCIACLData::l2cap_frame& /* source */> HCISMPMsgCallback;
     typedef jau::cow_vector<HCISMPMsgCallback> HCISMPMsgCallbackList;
 
     /**
@@ -236,7 +236,7 @@ namespace direct_bt {
             constexpr static void filter_all_opcbit(uint64_t &mask) noexcept { mask=0xffffffffffffffffUL; }
             inline static void filter_set_opcbit(HCIOpcodeBit opcbit, uint64_t &mask) noexcept { jau::set_bit_uint64(number(opcbit), mask); }
 
-            jau::ringbuffer<std::shared_ptr<HCIEvent>, nullptr, jau::nsize_t> hciEventRing;
+            jau::ringbuffer<std::unique_ptr<HCIEvent>, nullptr, jau::nsize_t> hciEventRing;
             jau::sc_atomic_bool hciReaderShallStop;
 
             std::mutex mtx_hciReaderLifecycle;
@@ -307,28 +307,29 @@ namespace direct_bt {
 
             HCISMPMsgCallbackList hciSMPMsgCallbackList;
 
-            std::shared_ptr<MgmtEvent> translate(std::shared_ptr<HCIEvent> ev) noexcept;
+            std::unique_ptr<MgmtEvent> translate(HCIEvent& ev) noexcept;
 
+            std::unique_ptr<const SMPPDUMsg> getSMPPDUMsg(const HCIACLData::l2cap_frame & l2cap, const uint8_t * l2cap_data) const noexcept;
             void hciReaderThreadImpl() noexcept;
 
             bool sendCommand(HCICommand &req) noexcept;
-            std::shared_ptr<HCIEvent> getNextReply(HCICommand &req, int32_t & retryCount, const int32_t replyTimeoutMS) noexcept;
-            std::shared_ptr<HCIEvent> getNextCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) noexcept;
+            std::unique_ptr<HCIEvent> getNextReply(HCICommand &req, int32_t & retryCount, const int32_t replyTimeoutMS) noexcept;
+            std::unique_ptr<HCIEvent> getNextCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) noexcept;
 
-            std::shared_ptr<HCIEvent> processCommandStatus(HCICommand &req, HCIStatusCode *status) noexcept;
+            std::unique_ptr<HCIEvent> processCommandStatus(HCICommand &req, HCIStatusCode *status) noexcept;
 
             template<typename hci_cmd_event_struct>
-            std::shared_ptr<HCIEvent> processCommandComplete(HCICommand &req,
+            std::unique_ptr<HCIEvent> processCommandComplete(HCICommand &req,
                                                              const hci_cmd_event_struct **res, HCIStatusCode *status) noexcept;
             template<typename hci_cmd_event_struct>
-            std::shared_ptr<HCIEvent> receiveCommandComplete(HCICommand &req,
+            std::unique_ptr<HCIEvent> receiveCommandComplete(HCICommand &req,
                                                              const hci_cmd_event_struct **res, HCIStatusCode *status) noexcept;
 
             template<typename hci_cmd_event_struct>
-            const hci_cmd_event_struct* getReplyStruct(std::shared_ptr<HCIEvent> event, HCIEventType evc, HCIStatusCode *status) noexcept;
+            const hci_cmd_event_struct* getReplyStruct(HCIEvent& event, HCIEventType evc, HCIStatusCode *status) noexcept;
 
             template<typename hci_cmd_event_struct>
-            const hci_cmd_event_struct* getMetaReplyStruct(std::shared_ptr<HCIEvent> event, HCIMetaEventType mec, HCIStatusCode *status) noexcept;
+            const hci_cmd_event_struct* getMetaReplyStruct(HCIEvent& event, HCIMetaEventType mec, HCIStatusCode *status) noexcept;
 
         public:
             HCIHandler(const uint16_t dev_id, const BTMode btMode=BTMode::NONE) noexcept;
@@ -563,7 +564,7 @@ namespace direct_bt {
             void clearAllCallbacks() noexcept;
 
             /** Manually send a MgmtEvent to all of its listeners. */
-            void sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept;
+            void sendMgmtEvent(const MgmtEvent& event) noexcept;
 
             /**
              * FIXME / TODO: Privacy Mode / Pairing / Bonding

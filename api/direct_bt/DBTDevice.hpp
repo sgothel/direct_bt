@@ -169,7 +169,7 @@ namespace direct_bt {
              * Will be initiated by processL2CAPSetup()'s security_level setup after connectLE(..), i.e. notifyConnected() and notifyLEFeatures().
              * </p>
              */
-            void hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;
+            void hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
 
             /**
              * Setup GATT via connectGATT() off-thread.

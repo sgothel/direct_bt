@@ -492,6 +492,15 @@ namespace direct_bt {
 
             virtual ~HCIPacket() noexcept {}
 
+            /**
+             * Clone template for convenience, based on derived class's copy-constructor.
+             * @tparam T The derived definite class type, deducible by source argument
+             * @param source the source to be copied
+             * @return a new instance.
+             */
+            template<class T>
+            static T* clone(const T& source) noexcept { return new T(source); }
+
             inline jau::nsize_t getTotalSize() const noexcept { return pdu.getSize(); }
 
             /** Return the underlying octets read only */
@@ -609,6 +618,8 @@ namespace direct_bt {
             hcistruct * getWStruct() noexcept { return (hcistruct *)( pdu.get_wptr_nc( number(HCIConstSizeT::COMMAND_HDR_SIZE) ) ); }
     };
 
+    class HCIHandler; // fwd
+
     /**
      * BT Core Spec v5.2: Vol 4, Part E HCI: 5.4.2 HCI ACL Data packets
      * <p>
@@ -661,22 +672,13 @@ namespace direct_bt {
                 const uint16_t cid;
                 const uint16_t psm;
                 const uint16_t len;
-                const uint8_t * data;
 
                 bool isSMP() const noexcept { return L2CAP_CID_SMP == cid || L2CAP_CID_SMP_BREDR == cid; }
-
-                std::shared_ptr<const SMPPDUMsg> getSMPPDUMsg() const noexcept {
-                    if( 0 < len && isSMP() ) {
-                        return SMPPDUMsg::getSpecialized(data, len);
-                    }
-                    return nullptr;
-                }
 
                 std::string toString() const noexcept {
                     return "l2cap[handle "+jau::uint16HexString(handle)+", flags[pb "+getPBFlagString(pb_flag)+", bc "+jau::uint8HexString(bc_flag)+
                             "], cid "+jau::uint8HexString(cid)+
-                            ", psm "+jau::uint8HexString(psm)+", len "+std::to_string(len)+
-                            ", data "+ jau::bytesHexString(data, 0, len, true /* lsbFirst */, true /* leading0X */) +"]";
+                            ", psm "+jau::uint8HexString(psm)+", len "+std::to_string(len)+ "]";
                 }
             };
 
@@ -686,7 +688,7 @@ namespace direct_bt {
              * Returned memory reference is managed by caller (delete etc)
              * </p>
              */
-            static std::shared_ptr<HCIACLData> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
+            static std::unique_ptr<HCIACLData> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
 
             /**
              * Returns the handle.
@@ -715,10 +717,11 @@ namespace direct_bt {
             jau::nsize_t getParamSize() const noexcept { return pdu.get_uint16_nc(3); }
             const uint8_t* getParam() const noexcept { return pdu.get_ptr_nc(number(HCIConstSizeT::ACL_HDR_SIZE)); }
 
-            l2cap_frame getL2CAPFrame() const noexcept;
+            l2cap_frame getL2CAPFrame(const uint8_t* & l2cap_data) const noexcept;
 
             std::string toString() const noexcept {
-                return "ACLData[size "+std::to_string(getParamSize())+", data "+getL2CAPFrame().toString()+", tsz "+std::to_string(getTotalSize())+"]";
+                const uint8_t* l2cap_data;
+                return "ACLData[size "+std::to_string(getParamSize())+", data "+getL2CAPFrame(l2cap_data).toString()+", tsz "+std::to_string(getTotalSize())+"]";
             }
     };
 
@@ -773,7 +776,7 @@ namespace direct_bt {
              * Returned memory reference is managed by caller (delete etc)
              * </p>
              */
-            static std::shared_ptr<HCIEvent> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
+            static std::unique_ptr<HCIEvent> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
 
             /** Persistent memory, w/ ownership ..*/
             HCIEvent(const uint8_t* buffer, const jau::nsize_t buffer_len, const jau::nsize_t exp_param_size)

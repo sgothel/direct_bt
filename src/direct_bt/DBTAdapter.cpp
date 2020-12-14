@@ -1430,18 +1430,18 @@ bool DBTAdapter::mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept {
 }
 
 bool DBTAdapter::hciSMPMsgCallback(const BDAddressAndType & addressAndType,
-                                   std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept {
+                                   const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept {
     std::shared_ptr<DBTDevice> device = findConnectedDevice(addressAndType.address, addressAndType.type);
     if( nullptr == device ) {
         WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: Device not tracked: address%s: %s, %s",
                 dev_id, addressAndType.toString().c_str(),
-                msg->toString().c_str(), source.toString().c_str());
+                msg.toString().c_str(), source.toString().c_str());
         return true;
     }
     if( device->getConnectionHandle() != source.handle ) {
         WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: ConnHandle mismatch address%s: %s, %s\n    -> %s",
                 dev_id, addressAndType.toString().c_str(),
-                msg->toString().c_str(), source.toString().c_str(), device->toString().c_str());
+                msg.toString().c_str(), source.toString().c_str(), device->toString().c_str());
         return true;
     }
 

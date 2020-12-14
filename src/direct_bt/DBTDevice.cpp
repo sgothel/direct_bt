@@ -682,13 +682,13 @@ bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, const MgmtE
     return false;
 }
 
-void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept {
+void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
 
     const SMPPairingState old_pstate = pairing_data.state;
     const PairingMode old_pmode = pairing_data.mode;
-    const std::string timestamp = jau::uint64DecString(jau::environment::getElapsedMillisecond(msg->ts_creation), ',', 9);
+    const std::string timestamp = jau::uint64DecString(jau::environment::getElapsedMillisecond(msg.getTimestamp()), ',', 9);
 
     SMPPairingState pstate = old_pstate;
     PairingMode pmode = old_pmode;
@@ -698,12 +698,12 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
         jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.0: address%s",
             timestamp.c_str(),
             addressAndType.toString().c_str());
-        jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), msg->toString().c_str());
+        jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), msg.toString().c_str());
         jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), source.toString().c_str());
         jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), toString(false).c_str());
     }
 
-    const SMPPDUMsg::Opcode opc = msg->getOpcode();
+    const SMPPDUMsg::Opcode opc = msg.getOpcode();
 
     switch( opc ) {
         // Phase 1: SMP Negotiation phase
@@ -716,7 +716,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
 
         case SMPPDUMsg::Opcode::PAIRING_REQUEST:
             if( HCIACLData::l2cap_frame::PBFlag::START_NON_AUTOFLUSH_HOST == source.pb_flag ) { // from initiator (master)
-                const SMPPairingMsg & msg1 = *static_cast<const SMPPairingMsg *>( msg.get() );
+                const SMPPairingMsg & msg1 = *static_cast<const SMPPairingMsg *>( &msg );
                 pairing_data.authReqs_init = msg1.getAuthReqMask();
                 pairing_data.ioCap_init    = msg1.getIOCapability();
                 pairing_data.oobFlag_init  = msg1.getOOBDataFlag();
@@ -729,7 +729,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
 
         case SMPPDUMsg::Opcode::PAIRING_RESPONSE: {
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) { // from responder (slave)
-                const SMPPairingMsg & msg1 = *static_cast<const SMPPairingMsg *>( msg.get() );
+                const SMPPairingMsg & msg1 = *static_cast<const SMPPairingMsg *>( &msg );
                 pairing_data.authReqs_resp = msg1.getAuthReqMask();
                 pairing_data.ioCap_resp    = msg1.getIOCapability();
                 pairing_data.oobFlag_resp  = msg1.getOOBDataFlag();
@@ -804,7 +804,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
 
         case SMPPDUMsg::Opcode::ENCRYPTION_INFORMATION: {     /* Legacy: 1 */
             // LTK: First part for SMPKeyDistFormat::ENC_KEY, followed by MASTER_IDENTIFICATION (EDIV + RAND)
-            const SMPEncInfoMsg & msg1 = *static_cast<const SMPEncInfoMsg *>( msg.get() );
+            const SMPEncInfoMsg & msg1 = *static_cast<const SMPEncInfoMsg *>( &msg );
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
                 // from responder (LL slave)
                 pairing_data.ltk_resp.properties |= SMPLongTermKeyInfo::Property::RESPONDER;
@@ -832,7 +832,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
 
         case SMPPDUMsg::Opcode::MASTER_IDENTIFICATION: {      /* Legacy: 2 */
             // EDIV + RAND, completing SMPKeyDistFormat::ENC_KEY
-            const SMPMasterIdentMsg & msg1 = *static_cast<const SMPMasterIdentMsg *>( msg.get() );
+            const SMPMasterIdentMsg & msg1 = *static_cast<const SMPMasterIdentMsg *>( &msg );
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
                 // from responder (LL slave)
                 pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY;
@@ -848,7 +848,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
 
         case SMPPDUMsg::Opcode::IDENTITY_INFORMATION: {       /* Legacy: 3; SC: 1 */
             // IRK: First part of SMPKeyDist::ID_KEY, followed by IDENTITY_ADDRESS_INFORMATION
-            const SMPIdentInfoMsg & msg1 = *static_cast<const SMPIdentInfoMsg *>( msg.get() );
+            const SMPIdentInfoMsg & msg1 = *static_cast<const SMPIdentInfoMsg *>( &msg );
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
                 // from responder (LL slave)
                 pairing_data.irk_resp = msg1.getIRK();
@@ -860,7 +860,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
 
         case SMPPDUMsg::Opcode::IDENTITY_ADDRESS_INFORMATION:{/* Lecacy: 4; SC: 2 */
             // Public device or static random, completing SMPKeyDist::ID_KEY
-            const SMPIdentAddrInfoMsg & msg1 = *static_cast<const SMPIdentAddrInfoMsg *>( msg.get() );
+            const SMPIdentAddrInfoMsg & msg1 = *static_cast<const SMPIdentAddrInfoMsg *>( &msg );
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
                 // from responder (LL slave)
                 pairing_data.keys_resp_has |= SMPKeyType::ID_KEY;
@@ -876,7 +876,7 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
 
         case SMPPDUMsg::Opcode::SIGNING_INFORMATION: {        /* Legacy: 5; SC: 3; Last value. */
             // CSRK
-            const SMPSignInfoMsg & msg1 = *static_cast<const SMPSignInfoMsg *>( msg.get() );
+            const SMPSignInfoMsg & msg1 = *static_cast<const SMPSignInfoMsg *>( &msg );
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
                 // from responder (LL slave)
                 pairing_data.keys_resp_has |= SMPKeyType::SIGN_KEY;
@@ -937,10 +937,10 @@ void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_
     pairing_data.mode = pmode;
     pairing_data.state = pstate;
 
-    adapter.sendDevicePairingState(sthis, pstate, pmode, msg->ts_creation);
+    adapter.sendDevicePairingState(sthis, pstate, pmode, msg.getTimestamp());
 
     if( is_device_ready ) {
-        std::thread dc(&DBTDevice::processDeviceReady, this, sthis, msg->ts_creation); // @suppress("Invalid arguments")
+        std::thread dc(&DBTDevice::processDeviceReady, this, sthis, msg.getTimestamp()); // @suppress("Invalid arguments")
         dc.detach();
     }
     if( jau::environment::get().debug ) {

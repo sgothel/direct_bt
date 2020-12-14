@@ -296,7 +296,7 @@ std::string getHCIMetaEventTypeString(const HCIMetaEventType op) noexcept {
     return "Unknown HCIMetaType";
 }
 
-std::shared_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
+std::unique_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
     const HCIPacketType pc = static_cast<HCIPacketType>( jau::get_uint8(buffer, 0) );
     if( HCIPacketType::EVENT != pc ) {
         return nullptr;
@@ -309,23 +309,21 @@ std::shared_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, jau::
     }
 
     const HCIEventType ec = static_cast<HCIEventType>( jau::get_uint8(buffer, 1) );
-    HCIEvent *res;
     switch( ec ) {
         case HCIEventType::DISCONN_COMPLETE:
-            res = new HCIDisconnectionCompleteEvent(buffer, buffer_size); break;
+            return std::make_unique<HCIDisconnectionCompleteEvent>(buffer, buffer_size);
         case HCIEventType::CMD_COMPLETE:
-            res = new HCICommandCompleteEvent(buffer, buffer_size); break;
+            return std::make_unique<HCICommandCompleteEvent>(buffer, buffer_size);
         case HCIEventType::CMD_STATUS:
-            res = new HCICommandStatusEvent(buffer, buffer_size); break;
+            return std::make_unique<HCICommandStatusEvent>(buffer, buffer_size);
         case HCIEventType::LE_META:
             // No need to HCIMetaType specializations as we use HCIStructCmdCompleteMetaEvt template
             // based on HCIMetaEvent.
-            res = new HCIMetaEvent(buffer, buffer_size, 1); break;
+            return std::make_unique<HCIMetaEvent>(buffer, buffer_size, 1);
         default:
             // No further specialization, use HCIStructCmdCompleteEvt template
-            res = new HCIEvent(buffer, buffer_size, 0); break;
+            return std::make_unique<HCIEvent>(buffer, buffer_size, 0);
     }
-    return std::shared_ptr<HCIEvent>(res);
 }
 
 std::string HCILocalVersion::toString() noexcept {
@@ -343,7 +341,7 @@ std::string HCIACLData::l2cap_frame::getPBFlagString(const PBFlag v) noexcept {
     }
 }
 
-std::shared_ptr<HCIACLData> HCIACLData::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
+std::unique_ptr<HCIACLData> HCIACLData::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
     const HCIPacketType pc = static_cast<HCIPacketType>( jau::get_uint8(buffer, 0) );
     if( HCIPacketType::ACLDATA != pc ) {
         return nullptr;
@@ -354,8 +352,7 @@ std::shared_ptr<HCIACLData> HCIACLData::getSpecialized(const uint8_t * buffer, j
                 buffer_size, number(HCIConstSizeT::ACL_HDR_SIZE), paramSize);
         return nullptr;
     }
-
-    return std::shared_ptr<HCIACLData>(new HCIACLData(buffer, buffer_size));
+    return std::make_unique<HCIACLData>(buffer, buffer_size);
 }
 
 __pack ( struct l2cap_hdr {
@@ -363,7 +360,7 @@ __pack ( struct l2cap_hdr {
     uint16_t cid;
 } );
 
-HCIACLData::l2cap_frame HCIACLData::getL2CAPFrame() const noexcept {
+HCIACLData::l2cap_frame HCIACLData::getL2CAPFrame(const uint8_t* & l2cap_data) const noexcept {
     const uint16_t h_f = getHandleAndFlags();
     uint16_t size = static_cast<uint16_t>(getParamSize());
     const uint8_t * data = getParam();
@@ -371,6 +368,8 @@ HCIACLData::l2cap_frame HCIACLData::getL2CAPFrame() const noexcept {
     const HCIACLData::l2cap_frame::PBFlag pb_flag { get_pbflag(h_f) };
     const uint8_t bc_flag = get_bcflag(h_f);
     const l2cap_hdr* hdr = reinterpret_cast<const l2cap_hdr*>(data);
+
+    l2cap_data = nullptr;
 
     switch( pb_flag ) {
         case HCIACLData::l2cap_frame::PBFlag::START_NON_AUTOFLUSH_HOST:
@@ -381,17 +380,18 @@ HCIACLData::l2cap_frame HCIACLData::getL2CAPFrame() const noexcept {
         {
             if( size < sizeof(*hdr) ) {
                 DBG_PRINT("l2cap DROP frame-size %d < hdr-size %z, handle ", size, sizeof(*hdr), handle);
-                return l2cap_frame { handle, pb_flag, bc_flag, 0, 0, 0, nullptr };
+                return l2cap_frame { handle, pb_flag, bc_flag, 0, 0, 0 };
             }
             const uint16_t len = jau::le_to_cpu(hdr->len);
             const uint16_t cid = jau::le_to_cpu(hdr->cid);
             data += sizeof(*hdr);
             size -= sizeof(*hdr);
             if( len <= size ) { // tolerate frame size > len, cutting-off excess octets
-                return l2cap_frame { handle, pb_flag, bc_flag, cid, 0, len, data };
+                l2cap_data = data;
+                return l2cap_frame { handle, pb_flag, bc_flag, cid, 0, len };
             } else {
                 DBG_PRINT("l2cap DROP frame-size %d < l2cap-size %d, handle ", size, len, handle);
-                return l2cap_frame { handle, pb_flag, bc_flag, 0, 0, 0, nullptr };
+                return l2cap_frame { handle, pb_flag, bc_flag, 0, 0, 0 };
             }
         } break;
 
@@ -399,7 +399,7 @@ HCIACLData::l2cap_frame HCIACLData::getL2CAPFrame() const noexcept {
             [[fallthrough]];
         default: // not supported
             DBG_PRINT("l2cap DROP frame flag 0x%2.2x not supported, handle %d, packet-size %d", pb_flag, handle, size);
-            return l2cap_frame { handle, pb_flag, bc_flag, 0, 0, 0, nullptr };
+            return l2cap_frame { handle, pb_flag, bc_flag, 0, 0, 0 };
     }
 }
 

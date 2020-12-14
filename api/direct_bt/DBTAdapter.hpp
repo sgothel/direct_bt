@@ -252,8 +252,8 @@ namespace direct_bt {
                                                       uint16_t latency, uint16_t supervision_timeout);
             friend HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch);
             friend void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis);
-            friend void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;
             friend bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
+            friend void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
             friend void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint64_t timestamp);
             friend std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept;
 
@@ -284,13 +284,13 @@ namespace direct_bt {
             bool mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept;
 
-            bool mgmtEvDeviceDiscoveringHCI(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvHCIEncryptionChangedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvHCIEncryptionKeyRefreshCompleteHCI(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvHCILERemoteUserFeaturesHCI(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept;
+            bool mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept;
+            bool mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept;
+            bool mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept;
+            bool mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noexcept;
+            bool mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept;
+            bool mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept;
 
 
             bool mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSourced) noexcept;
@@ -302,7 +302,7 @@ namespace direct_bt {
             bool mgmtEvDeviceUnpairedMgmt(const MgmtEvent& e) noexcept;
 
             bool hciSMPMsgCallback(const BDAddressAndType & addressAndType,
-                                   std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;
+                                   const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
             void sendDevicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept;
             void sendDeviceReady(std::shared_ptr<DBTDevice> device, uint64_t timestamp) noexcept;
 

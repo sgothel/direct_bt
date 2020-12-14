@@ -130,7 +130,7 @@ namespace direct_bt {
     };
 
 
-    typedef jau::FunctionDef<bool, std::shared_ptr<const SMPPDUMsg>> SMPSecurityReqCallback;
+    typedef jau::FunctionDef<bool, const SMPPDUMsg&> SMPSecurityReqCallback;
     typedef jau::cow_vector<SMPSecurityReqCallback> SMPSecurityReqCallbackList;
 
     /**
@@ -178,7 +178,7 @@ namespace direct_bt {
             jau::sc_atomic_bool is_connected; // reflects state
             jau::relaxed_atomic_bool has_ioerror;  // reflects state
 
-            jau::ringbuffer<std::shared_ptr<const SMPPDUMsg>, nullptr, jau::nsize_t> smpPDURing;
+            jau::ringbuffer<std::unique_ptr<const SMPPDUMsg>, nullptr, jau::nsize_t> smpPDURing;
             jau::sc_atomic_bool l2capReaderShallStop;
 
             std::mutex mtx_l2capReaderLifecycle;
@@ -195,7 +195,7 @@ namespace direct_bt {
             void l2capReaderThreadImpl();
 
             void send(const SMPPDUMsg & msg);
-            std::shared_ptr<const SMPPDUMsg> sendWithReply(const SMPPDUMsg & msg, const int timeout);
+            std::unique_ptr<const SMPPDUMsg> sendWithReply(const SMPPDUMsg & msg, const int timeout);
 
             void clearAllCallbacks() noexcept;
 

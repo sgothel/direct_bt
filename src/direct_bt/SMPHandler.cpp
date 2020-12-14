@@ -122,13 +122,13 @@ void SMPHandler::l2capReaderThreadImpl() {
 
         len = l2cap.read(rbuffer.get_wptr(), rbuffer.getSize());
         if( 0 < len ) {
-            std::shared_ptr<const SMPPDUMsg> smpPDU = SMPPDUMsg::getSpecialized(rbuffer.get_ptr(), static_cast<jau::nsize_t>(len));
+            std::unique_ptr<const SMPPDUMsg> smpPDU = SMPPDUMsg::getSpecialized(rbuffer.get_ptr(), static_cast<jau::nsize_t>(len));
             const SMPPDUMsg::Opcode opc = smpPDU->getOpcode();
 
             if( SMPPDUMsg::Opcode::SECURITY_REQUEST == opc ) {
                 COND_PRINT(env.DEBUG_DATA, "SMPHandler-IO RECV (SEC_REQ) %s", smpPDU->toString().c_str());
                 jau::for_each_cow(smpSecurityReqCallbackList, [&](SMPSecurityReqCallback &cb) {
-                   cb.invoke(smpPDU);
+                   cb.invoke(*smpPDU);
                 });
             } else {
                 COND_PRINT(env.DEBUG_DATA, "SMPHandler-IO RECV (MSG) %s", smpPDU->toString().c_str());
@@ -137,7 +137,7 @@ void SMPHandler::l2capReaderThreadImpl() {
                     smpPDURing.drop(dropCount);
                     WARN_PRINT("SMPHandler-IO RECV Drop (%u oldest elements of %u capacity, ring full)", dropCount, smpPDURing.capacity());
                 }
-                smpPDURing.putBlocking( smpPDU );
+                smpPDURing.putBlocking( std::move(smpPDU) );
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
             IRQ_PRINT("SMPHandler::reader: l2cap read error -> Stop; l2cap.read %d", len);
@@ -299,11 +299,11 @@ void SMPHandler::send(const SMPPDUMsg & msg) {
     }
 }
 
-std::shared_ptr<const SMPPDUMsg> SMPHandler::sendWithReply(const SMPPDUMsg & msg, const int timeout) {
+std::unique_ptr<const SMPPDUMsg> SMPHandler::sendWithReply(const SMPPDUMsg & msg, const int timeout) {
     send( msg );
 
     // Ringbuffer read is thread safe
-    std::shared_ptr<const SMPPDUMsg> res = smpPDURing.getBlocking(timeout);
+    std::unique_ptr<const SMPPDUMsg> res = smpPDURing.getBlocking(timeout);
     if( nullptr == res ) {
         errno = ETIMEDOUT;
         IRQ_PRINT("SMPHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), deviceString.c_str());

@@ -191,9 +191,9 @@ MgmtEvent::Opcode HCIHandler::translate(HCIEventType evt, HCIMetaEventType met) 
     }
 }
 
-std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) noexcept {
-    const HCIEventType evt = ev->getEventType();
-    const HCIMetaEventType mevt = ev->getMetaEventType();
+std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
+    const HCIEventType evt = ev.getEventType();
+    const HCIMetaEventType mevt = ev.getMetaEventType();
 
     if( HCIEventType::LE_META == evt ) {
         switch( mevt ) {
@@ -202,7 +202,7 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
                 const hci_ev_le_conn_complete * ev_cc = getMetaReplyStruct<hci_ev_le_conn_complete>(ev, mevt, &status);
                 if( nullptr == ev_cc ) {
                     ERR_PRINT("HCIHandler::translate(reader): LE_CONN_COMPLETE: Null reply-struct: %s - %s",
-                            ev->toString().c_str(), toString().c_str());
+                            ev.toString().c_str(), toString().c_str());
                     return nullptr;
                 }
                 const HCILEPeerAddressType hciAddrType = static_cast<HCILEPeerAddressType>(ev_cc->bdaddr_type);
@@ -210,11 +210,10 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
                 const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
                 const HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, handle);
                 if( HCIStatusCode::SUCCESS == status ) {
-                    return std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceConnected(dev_id, addressAndType, handle) );
+                    return std::make_unique<MgmtEvtDeviceConnected>(dev_id, addressAndType, handle);
                 } else {
-                    std::shared_ptr<MgmtEvent> res( new MgmtEvtDeviceConnectFailed(dev_id, addressAndType, status) );
                     removeTrackerConnection(conn);
-                    return res;
+                    return std::make_unique<MgmtEvtDeviceConnectFailed>(dev_id, addressAndType, status);
                 }
             }
             case HCIMetaEventType::LE_REMOTE_FEAT_COMPLETE: {
@@ -222,7 +221,7 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
                 const hci_ev_le_remote_feat_complete * ev_cc = getMetaReplyStruct<hci_ev_le_remote_feat_complete>(ev, mevt, &status);
                 if( nullptr == ev_cc ) {
                     ERR_PRINT("HCIHandler::translate(reader): LE_REMOTE_FEAT_COMPLETE: Null reply-struct: %s - %s",
-                            ev->toString().c_str(), toString().c_str());
+                            ev.toString().c_str(), toString().c_str());
                     return nullptr;
                 }
                 const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
@@ -238,7 +237,7 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
                             getHCIStatusCodeString(status).c_str(), jau::uint16HexString(handle), conn->toString().c_str());
                     return nullptr;
                 }
-                return std::shared_ptr<MgmtEvent>( new MgmtEvtHCILERemoteUserFeatures(dev_id, conn->getAddressAndType(), features) );
+                return std::make_unique<MgmtEvtHCILERemoteUserFeatures>(dev_id, conn->getAddressAndType(), features);
             }
             default:
                 return nullptr;
@@ -250,15 +249,15 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
             const hci_ev_conn_complete * ev_cc = getReplyStruct<hci_ev_conn_complete>(ev, evt, &status);
             if( nullptr == ev_cc ) {
                 ERR_PRINT("HCIHandler::translate(reader): CONN_COMPLETE: Null reply-struct: %s - %s",
-                        ev->toString().c_str(), toString().c_str());
+                        ev.toString().c_str(), toString().c_str());
                 return nullptr;
             }
             const BDAddressAndType addressAndType(ev_cc->bdaddr, BDAddressType::BDADDR_BREDR);
             HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, ev_cc->handle);
             if( HCIStatusCode::SUCCESS == status ) {
-                return std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceConnected(dev_id, conn->getAddressAndType(), conn->getHandle()) );
+                return std::make_unique<MgmtEvtDeviceConnected>(dev_id, conn->getAddressAndType(), conn->getHandle());
             } else {
-                std::shared_ptr<MgmtEvent> res( new MgmtEvtDeviceConnectFailed(dev_id, conn->getAddressAndType(),status) );
+                std::unique_ptr<MgmtEvent> res( new MgmtEvtDeviceConnectFailed(dev_id, conn->getAddressAndType(),status) );
                 removeTrackerConnection(conn);
                 return res;
             }
@@ -268,24 +267,24 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
             const hci_ev_disconn_complete * ev_cc = getReplyStruct<hci_ev_disconn_complete>(ev, evt, &status);
             if( nullptr == ev_cc ) {
                 ERR_PRINT("HCIHandler::translate(reader): DISCONN_COMPLETE: Null reply-struct: %s - %s",
-                        ev->toString().c_str(), toString().c_str());
+                        ev.toString().c_str(), toString().c_str());
                 return nullptr;
             }
             removeDisconnectCmd(ev_cc->handle);
             HCIConnectionRef conn = removeTrackerConnection(ev_cc->handle);
             if( nullptr == conn ) {
                 WORDY_PRINT("HCIHandler::translate(reader): DISCONN_COMPLETE: Not tracked handle %s: %s - %s",
-                        jau::uint16HexString(ev_cc->handle).c_str(), ev->toString().c_str(), toString().c_str());
+                        jau::uint16HexString(ev_cc->handle).c_str(), ev.toString().c_str(), toString().c_str());
                 return nullptr;
             } else {
                 if( HCIStatusCode::SUCCESS != status ) {
                     // FIXME: Ever occuring? Still sending out essential disconnect event!
                     ERR_PRINT("HCIHandler::translate(reader): DISCONN_COMPLETE: !SUCCESS[%s, %s], %s: %s - %s",
                             jau::uint8HexString(static_cast<uint8_t>(status)).c_str(), getHCIStatusCodeString(status).c_str(),
-                            conn->toString().c_str(), ev->toString().c_str(), toString().c_str());
+                            conn->toString().c_str(), ev.toString().c_str(), toString().c_str());
                 }
                 const HCIStatusCode hciRootReason = static_cast<HCIStatusCode>(ev_cc->reason);
-                return std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(dev_id, conn->getAddressAndType(), hciRootReason, conn->getHandle()) );
+                return std::make_unique<MgmtEvtDeviceDisconnected>(dev_id, conn->getAddressAndType(), hciRootReason, conn->getHandle());
             }
         }
         case HCIEventType::ENCRYPT_CHANGE: {
@@ -293,7 +292,7 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
             const hci_ev_encrypt_change * ev_cc = getReplyStruct<hci_ev_encrypt_change>(ev, evt, &status);
             if( nullptr == ev_cc ) {
                 ERR_PRINT("HCIHandler::translate(reader): ENCRYPT_CHANGE: Null reply-struct: %s - %s",
-                        ev->toString().c_str(), toString().c_str());
+                        ev.toString().c_str(), toString().c_str());
                 return nullptr;
             }
             const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
@@ -303,14 +302,14 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
                         jau::uint16HexString(handle), conn->toString().c_str());
                 return nullptr;
             }
-            return std::shared_ptr<MgmtEvent>( new MgmtEvtHCIEncryptionChanged(dev_id, conn->getAddressAndType(), status, ev_cc->encrypt) );
+            return std::make_unique<MgmtEvtHCIEncryptionChanged>(dev_id, conn->getAddressAndType(), status, ev_cc->encrypt);
         }
         case HCIEventType::ENCRYPT_KEY_REFRESH_COMPLETE: {
             HCIStatusCode status;
             const hci_ev_key_refresh_complete * ev_cc = getReplyStruct<hci_ev_key_refresh_complete>(ev, evt, &status);
             if( nullptr == ev_cc ) {
                 ERR_PRINT("HCIHandler::translate(reader): ENCRYPT_KEY_REFRESH_COMPLETE: Null reply-struct: %s - %s",
-                        ev->toString().c_str(), toString().c_str());
+                        ev.toString().c_str(), toString().c_str());
                 return nullptr;
             }
             const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
@@ -320,7 +319,7 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
                         jau::uint16HexString(handle), conn->toString().c_str());
                 return nullptr;
             }
-            return std::shared_ptr<MgmtEvent>( new MgmtEvtHCIEncryptionKeyRefreshComplete(dev_id, conn->getAddressAndType(), status) );
+            return std::make_unique<MgmtEvtHCIEncryptionKeyRefreshComplete>(dev_id, conn->getAddressAndType(), status);
         }
         // TODO: AUTH_COMPLETE
         // 7.7.6 AUTH_COMPLETE 0x06
@@ -328,6 +327,13 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) n
         default:
             return nullptr;
     }
+}
+
+std::unique_ptr<const SMPPDUMsg> HCIHandler::getSMPPDUMsg(const HCIACLData::l2cap_frame & l2cap, const uint8_t * l2cap_data) const noexcept {
+    if( nullptr != l2cap_data && 0 < l2cap.len && l2cap.isSMP() ) {
+        return SMPPDUMsg::getSpecialized(l2cap_data, l2cap.len);
+    }
+    return nullptr;
 }
 
 void HCIHandler::hciReaderThreadImpl() noexcept {
@@ -358,15 +364,16 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
             const HCIPacketType pc = static_cast<HCIPacketType>( rbuffer.get_uint8_nc(0) );
 
             if( HCIPacketType::ACLDATA == pc ) {
-                std::shared_ptr<HCIACLData> acldata = HCIACLData::getSpecialized(rbuffer.get_ptr(), len2);
+                std::unique_ptr<HCIACLData> acldata = HCIACLData::getSpecialized(rbuffer.get_ptr(), len2);
                 if( nullptr == acldata ) {
                     // not valid acl-data ...
                     WARN_PRINT("HCIHandler-IO RECV Drop (non-acl-data) %s - %s",
                             jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
                     continue;
                 }
-                HCIACLData::l2cap_frame l2cap = acldata->getL2CAPFrame();
-                std::shared_ptr<const SMPPDUMsg> smpPDU = l2cap.getSMPPDUMsg();
+                const uint8_t* l2cap_data = nullptr; // owned by acldata
+                HCIACLData::l2cap_frame l2cap = acldata->getL2CAPFrame(l2cap_data);
+                std::unique_ptr<const SMPPDUMsg> smpPDU = getSMPPDUMsg(l2cap, l2cap_data);
                 if( nullptr != smpPDU ) {
                     HCIConnectionRef conn = findTrackerConnection(l2cap.handle);
 
@@ -374,14 +381,16 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                         COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (ACL.SMP) %s for %s",
                                 smpPDU->toString().c_str(), conn->toString().c_str());
                         jau::for_each_cow(hciSMPMsgCallbackList, [&](HCISMPMsgCallback &cb) {
-                           cb.invoke(conn->getAddressAndType(), smpPDU, l2cap);
+                           cb.invoke(conn->getAddressAndType(), *smpPDU, l2cap);
                         });
                     } else {
-                        WARN_PRINT("HCIHandler-IO RECV Drop (ACL.SMP): Not tracked conn_handle %s: %s",
-                                jau::uint16HexString(l2cap.handle), conn->toString().c_str());
+                        WARN_PRINT("HCIHandler-IO RECV Drop (ACL.SMP): Not tracked conn_handle %s: %s; %s, %s",
+                                jau::uint16HexString(l2cap.handle), conn->toString().c_str(),
+                                l2cap.toString().c_str(), smpPDU->toString().c_str());
                     }
                 } else {
-                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV Drop (ACL.L2CAP): %s", l2cap.toString().c_str());
+                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV Drop (ACL.L2CAP): %s, data %s", l2cap.toString().c_str());
+
                 }
                 continue;
             }
@@ -392,7 +401,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
             }
 
             // EVENT
-            std::shared_ptr<HCIEvent> event = HCIEvent::getSpecialized(rbuffer.get_ptr(), len2);
+            std::unique_ptr<HCIEvent> event = HCIEvent::getSpecialized(rbuffer.get_ptr(), len2);
             if( nullptr == event ) {
                 // not a valid event ...
                 ERR_PRINT("HCIHandler-IO RECV Drop (non-event) %s - %s",
@@ -416,20 +425,21 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                     WARN_PRINT("HCIHandler-IO RECV Drop (%u oldest elements of %u capacity, ring full) - %s",
                             dropCount, hciEventRing.capacity(), toString().c_str());
                 }
-                hciEventRing.putBlocking( event );
+                hciEventRing.putBlocking( std::move( event ) );
             } else if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
                 // issue callbacks for the translated AD events
                 std::vector<std::shared_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
                 jau::for_each_idx(eirlist, [&](std::shared_ptr<EInfoReport> & eir) {
                     // COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (AD EIR) %s", eir->toString().c_str());
-                    sendMgmtEvent( std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceFound(dev_id, eir) ) );
+                    const MgmtEvtDeviceFound e(dev_id, eir);
+                    sendMgmtEvent( e );
                 });
             } else {
                 // issue a callback for the translated event
-                std::shared_ptr<MgmtEvent> mevent = translate(event);
+                std::unique_ptr<MgmtEvent> mevent = translate(*event);
                 if( nullptr != mevent ) {
                     COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (CB) %s", event->toString().c_str());
-                    sendMgmtEvent( mevent );
+                    sendMgmtEvent( *mevent );
                 } else {
                     COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV Drop (no translation) %s", event->toString().c_str());
                 }
@@ -447,8 +457,8 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
     }
 }
 
-void HCIHandler::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept {
-    MgmtEventCallbackList & mgmtEventCallbackList = mgmtEventCallbackLists[static_cast<uint16_t>(event->getOpcode())];
+void HCIHandler::sendMgmtEvent(const MgmtEvent& event) noexcept {
+    MgmtEventCallbackList & mgmtEventCallbackList = mgmtEventCallbackLists[static_cast<uint16_t>(event.getOpcode())];
     int invokeCount = 0;
 
     jau::for_each_cow(mgmtEventCallbackList, [&](MgmtEventCallback &cb) {
@@ -462,7 +472,7 @@ void HCIHandler::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept {
         invokeCount++;
     });
 
-    COND_PRINT(env.DEBUG_EVENT, "HCIHandler::sendMgmtEvent: Event %s -> %d/%zd callbacks", event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
+    COND_PRINT(env.DEBUG_EVENT, "HCIHandler::sendMgmtEvent: Event %s -> %d/%zd callbacks", event.toString().c_str(), invokeCount, mgmtEventCallbackList.size());
     (void)invokeCount;
 }
 
@@ -477,11 +487,11 @@ bool HCIHandler::sendCommand(HCICommand &req) noexcept {
     return true;
 }
 
-std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int32_t & retryCount, const int32_t replyTimeoutMS) noexcept
+std::unique_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int32_t & retryCount, const int32_t replyTimeoutMS) noexcept
 {
     // Ringbuffer read is thread safe
     while( retryCount < env.HCI_READ_PACKET_MAX_RETRY ) {
-        std::shared_ptr<HCIEvent> ev = hciEventRing.getBlocking(replyTimeoutMS);
+        std::unique_ptr<HCIEvent> ev = hciEventRing.getBlocking(replyTimeoutMS);
         if( nullptr == ev ) {
             errno = ETIMEDOUT;
             ERR_PRINT("HCIHandler::getNextReply: nullptr result (timeout %d ms -> abort): req %s - %s",
@@ -501,13 +511,13 @@ std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int32_t & re
     return nullptr;
 }
 
-std::shared_ptr<HCIEvent> HCIHandler::getNextCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) noexcept {
+std::unique_ptr<HCIEvent> HCIHandler::getNextCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
     *res = nullptr;
 
     int32_t retryCount = 0;
-    std::shared_ptr<HCIEvent> ev = nullptr;
+    std::unique_ptr<HCIEvent> ev = nullptr;
 
     while( retryCount < env.HCI_READ_PACKET_MAX_RETRY ) {
         ev = getNextReply(req, retryCount, env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT);
@@ -804,7 +814,7 @@ HCIStatusCode HCIHandler::reset() noexcept {
 
     const hci_rp_status * ev_status;
     HCIStatusCode status;
-    std::shared_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
     if( nullptr == ev ) {
         return HCIStatusCode::INTERNAL_TIMEOUT; // timeout
     }
@@ -822,7 +832,7 @@ HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
     HCICommand req0(HCIOpcode::READ_LOCAL_VERSION, 0);
     const hci_rp_read_local_version * ev_lv;
     HCIStatusCode status;
-    std::shared_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_lv, &status);
+    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_lv, &status);
     if( nullptr == ev || nullptr == ev_lv || HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("HCIHandler::getLocalVersion: READ_LOCAL_VERSION: 0x%x (%s) - %s",
                 number(status), getHCIStatusCodeString(status).c_str(), toString().c_str());
@@ -862,7 +872,7 @@ HCIStatusCode HCIHandler::le_set_scan_param(const HCILEOwnAddressType own_mac_ty
 
     const hci_rp_status * ev_status;
     HCIStatusCode status;
-    std::shared_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
     return status;
 }
 
@@ -885,7 +895,7 @@ HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_du
         cp->filter_dup = filter_dup ? LE_SCAN_FILTER_DUP_ENABLE : LE_SCAN_FILTER_DUP_DISABLE;
 
         const hci_rp_status * ev_status;
-        std::shared_ptr<HCIEvent> evComplete = processCommandComplete(req0, &ev_status, &status);
+        std::unique_ptr<HCIEvent> evComplete = processCommandComplete(req0, &ev_status, &status);
     } else {
         status = HCIStatusCode::SUCCESS;
         WARN_PRINT("HCI Enable Scan: current %s == next %s, OK, skip command - %s",
@@ -894,7 +904,8 @@ HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_du
 
     if( HCIStatusCode::SUCCESS == status ) {
         currentScanType = nextScanType;
-        sendMgmtEvent(std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, enable) ) );
+        const MgmtEvtDiscovering e(dev_id, ScanType::LE, enable);
+        sendMgmtEvent( e );
     }
     return status;
 }
@@ -1005,7 +1016,7 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
     }
     HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, 0);
     HCIStatusCode status;
-    std::shared_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
+    std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
     if( HCIStatusCode::SUCCESS != status ) {
         removeTrackerConnection(conn);
 
@@ -1077,7 +1088,7 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
     }
     HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, 0);
     HCIStatusCode status;
-    std::shared_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
+    std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
     if( HCIStatusCode::SUCCESS != status ) {
         removeTrackerConnection(conn);
 
@@ -1134,7 +1145,7 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const BDAddress
         cp->handle = jau::cpu_to_le(conn_handle);
         cp->reason = number(reason);
 
-        std::shared_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
+        std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
     }
     if( HCIStatusCode::SUCCESS == status ) {
         addOrUpdateDisconnectCmd(peerAddressAndType, conn_handle);
@@ -1142,14 +1153,14 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const BDAddress
     return status;
 }
 
-std::shared_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIStatusCode *status) noexcept
+std::unique_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIStatusCode *status) noexcept
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
     *status = HCIStatusCode::INTERNAL_FAILURE;
 
     int32_t retryCount = 0;
-    std::shared_ptr<HCIEvent> ev = nullptr;
+    std::unique_ptr<HCIEvent> ev = nullptr;
 
     if( !sendCommand(req) ) {
         goto exit;
@@ -1188,7 +1199,7 @@ exit:
 }
 
 template<typename hci_cmd_event_struct>
-std::shared_ptr<HCIEvent> HCIHandler::processCommandComplete(HCICommand &req,
+std::unique_ptr<HCIEvent> HCIHandler::processCommandComplete(HCICommand &req,
                                                              const hci_cmd_event_struct **res, HCIStatusCode *status) noexcept
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
@@ -1207,7 +1218,7 @@ std::shared_ptr<HCIEvent> HCIHandler::processCommandComplete(HCICommand &req,
 }
 
 template<typename hci_cmd_event_struct>
-std::shared_ptr<HCIEvent> HCIHandler::receiveCommandComplete(HCICommand &req,
+std::unique_ptr<HCIEvent> HCIHandler::receiveCommandComplete(HCICommand &req,
                                                              const hci_cmd_event_struct **res, HCIStatusCode *status) noexcept
 {
     *res = nullptr;
@@ -1215,7 +1226,7 @@ std::shared_ptr<HCIEvent> HCIHandler::receiveCommandComplete(HCICommand &req,
 
     const HCIEventType evc = HCIEventType::CMD_COMPLETE;
     HCICommandCompleteEvent * ev_cc;
-    std::shared_ptr<HCIEvent> ev = getNextCmdCompleteReply(req, &ev_cc);
+    std::unique_ptr<HCIEvent> ev = getNextCmdCompleteReply(req, &ev_cc);
     if( nullptr == ev ) {
         *status = HCIStatusCode::INTERNAL_TIMEOUT;
         WARN_PRINT("HCIHandler::processCommandComplete %s -> %s: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s - %s",
@@ -1248,13 +1259,13 @@ std::shared_ptr<HCIEvent> HCIHandler::receiveCommandComplete(HCICommand &req,
 }
 
 template<typename hci_cmd_event_struct>
-const hci_cmd_event_struct* HCIHandler::getReplyStruct(std::shared_ptr<HCIEvent> event, HCIEventType evc, HCIStatusCode *status) noexcept
+const hci_cmd_event_struct* HCIHandler::getReplyStruct(HCIEvent& event, HCIEventType evc, HCIStatusCode *status) noexcept
 {
     const hci_cmd_event_struct* res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
 
     typedef HCIStructCmdCompleteEvtWrap<hci_cmd_event_struct> HCITypeCmdCompleteEvtWrap;
-    HCITypeCmdCompleteEvtWrap ev_cc( *event.get() );
+    HCITypeCmdCompleteEvtWrap ev_cc( event );
     if( ev_cc.isTypeAndSizeValid(evc) ) {
         *status = ev_cc.getStatus();
         res = ev_cc.getStruct();
@@ -1268,13 +1279,13 @@ const hci_cmd_event_struct* HCIHandler::getReplyStruct(std::shared_ptr<HCIEvent>
 }
 
 template<typename hci_cmd_event_struct>
-const hci_cmd_event_struct* HCIHandler::getMetaReplyStruct(std::shared_ptr<HCIEvent> event, HCIMetaEventType mec, HCIStatusCode *status) noexcept
+const hci_cmd_event_struct* HCIHandler::getMetaReplyStruct(HCIEvent& event, HCIMetaEventType mec, HCIStatusCode *status) noexcept
 {
     const hci_cmd_event_struct* res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
 
     typedef HCIStructCmdCompleteMetaEvtWrap<hci_cmd_event_struct> HCITypeCmdCompleteMetaEvtWrap;
-    HCITypeCmdCompleteMetaEvtWrap ev_cc( *static_cast<HCIMetaEvent*>( event.get() ) );
+    const HCITypeCmdCompleteMetaEvtWrap ev_cc( *static_cast<HCIMetaEvent*>( &event ) );
     if( ev_cc.isTypeAndSizeValid(mec) ) {
         *status = ev_cc.getStatus();
         res = ev_cc.getStruct();

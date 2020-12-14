@@ -428,25 +428,23 @@ std::string SMPPasskeyNotification::getTypeCodeString(const TypeCode tc) noexcep
     return "Unknown TypeCode";
 }
 
-std::shared_ptr<const SMPPDUMsg> SMPPDUMsg::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
+std::unique_ptr<const SMPPDUMsg> SMPPDUMsg::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
     const SMPPDUMsg::Opcode opc = static_cast<SMPPDUMsg::Opcode>(*buffer);
-    const SMPPDUMsg * res;
     switch( opc ) {
-        case Opcode::PAIRING_REQUEST:               res = new SMPPairingMsg(true /* request */, buffer, buffer_size); break;
-        case Opcode::PAIRING_RESPONSE:              res = new SMPPairingMsg(false /* request */, buffer, buffer_size); break;
-        case Opcode::PAIRING_CONFIRM:               res = new SMPPairConfirmMsg(buffer, buffer_size); break;
-        case Opcode::PAIRING_RANDOM:                res = new SMPPairRandMsg(buffer, buffer_size); break;
-        case Opcode::PAIRING_FAILED:                res = new SMPPairFailedMsg(buffer, buffer_size); break;
-        case Opcode::ENCRYPTION_INFORMATION:        res = new SMPEncInfoMsg(buffer, buffer_size); break;
-        case Opcode::MASTER_IDENTIFICATION:         res = new SMPMasterIdentMsg(buffer, buffer_size); break;
-        case Opcode::IDENTITY_INFORMATION:          res = new SMPIdentInfoMsg(buffer, buffer_size); break;
-        case Opcode::IDENTITY_ADDRESS_INFORMATION:  res = new SMPIdentAddrInfoMsg(buffer, buffer_size); break;
-        case Opcode::SIGNING_INFORMATION:           res = new SMPSignInfoMsg(buffer, buffer_size); break;
-        case Opcode::SECURITY_REQUEST:              res = new SMPSecurityReqMsg(buffer, buffer_size); break;
-        case Opcode::PAIRING_PUBLIC_KEY:            res = new SMPPairPubKeyMsg(buffer, buffer_size); break;
-        case Opcode::PAIRING_DHKEY_CHECK:           res = new SMPPairDHKeyCheckMsg(buffer, buffer_size); break;
-        case Opcode::PAIRING_KEYPRESS_NOTIFICATION: res = new SMPPasskeyNotification(buffer, buffer_size); break;
-        default:                                    res = new SMPPDUMsg(buffer, buffer_size); break;
+        case Opcode::PAIRING_REQUEST:               return std::make_unique<SMPPairingMsg>(true /* request */, buffer, buffer_size);
+        case Opcode::PAIRING_RESPONSE:              return std::make_unique<SMPPairingMsg>(false /* request */, buffer, buffer_size);
+        case Opcode::PAIRING_CONFIRM:               return std::make_unique<SMPPairConfirmMsg>(buffer, buffer_size);
+        case Opcode::PAIRING_RANDOM:                return std::make_unique<SMPPairRandMsg>(buffer, buffer_size);
+        case Opcode::PAIRING_FAILED:                return std::make_unique<SMPPairFailedMsg>(buffer, buffer_size);
+        case Opcode::ENCRYPTION_INFORMATION:        return std::make_unique<SMPEncInfoMsg>(buffer, buffer_size);
+        case Opcode::MASTER_IDENTIFICATION:         return std::make_unique<SMPMasterIdentMsg>(buffer, buffer_size);
+        case Opcode::IDENTITY_INFORMATION:          return std::make_unique<SMPIdentInfoMsg>(buffer, buffer_size);
+        case Opcode::IDENTITY_ADDRESS_INFORMATION:  return std::make_unique<SMPIdentAddrInfoMsg>(buffer, buffer_size);
+        case Opcode::SIGNING_INFORMATION:           return std::make_unique<SMPSignInfoMsg>(buffer, buffer_size);
+        case Opcode::SECURITY_REQUEST:              return std::make_unique<SMPSecurityReqMsg>(buffer, buffer_size);
+        case Opcode::PAIRING_PUBLIC_KEY:            return std::make_unique<SMPPairPubKeyMsg>(buffer, buffer_size);
+        case Opcode::PAIRING_DHKEY_CHECK:           return std::make_unique<SMPPairDHKeyCheckMsg>(buffer, buffer_size);
+        case Opcode::PAIRING_KEYPRESS_NOTIFICATION: return std::make_unique<SMPPasskeyNotification>(buffer, buffer_size);
+        default:                                    return std::make_unique<SMPPDUMsg>(buffer, buffer_size);
     }
-    return std::shared_ptr<const SMPPDUMsg>(res);
 }

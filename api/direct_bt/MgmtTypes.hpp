@@ -336,21 +336,22 @@ namespace direct_bt {
             virtual ~MgmtMsg() {}
 
             /**
-             * User utility clone template for convenience, based on derived class's copy-constructor.<br>
+             * Clone template for convenience, based on derived class's copy-constructor.<br>
              * MgmtEvent callback example:
              * <pre>
              * bool mgmtEvDeviceUnpairedMgmt(const MgmtEvent& e) noexcept {
              *     const MgmtEvtDeviceUnpaired &event = *static_cast<const MgmtEvtDeviceUnpaired *>(&e);
-             *     MgmtMsg * b2 = MgmtMsg::clone(event);
+             *     MgmtMsg * b1 = MgmtMsg::clone(event);
+             *     MgmtEvtDeviceUnpaired * b2 = MgmtMsg::clone(event);
              *     .. do something ..
              * }
              * </pre>
-             * @tparam T The derived definite class type, deduced by source
+             * @tparam T The derived definite class type, deducible by source argument
              * @param source the source to be copied
              * @return a new instance.
              */
             template<class T>
-            static MgmtMsg* clone(const T& source) noexcept { return new T(source); }
+            static T* clone(const T& source) noexcept { return new T(source); }
 
             uint64_t getTimestamp() const noexcept { return ts_creation; }
 
