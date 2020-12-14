@@ -453,7 +453,7 @@ std::shared_ptr<ConnectionInfo> MgmtEvtCmdComplete::toConnectionInfo() const noe
     int8_t rssi = jau::get_int8(data, 7);
     int8_t tx_power = jau::get_int8(data, 8);
     int8_t max_tx_power = jau::get_int8(data, 9);
-    return std::shared_ptr<ConnectionInfo>(new ConnectionInfo(address, addressType, rssi, tx_power, max_tx_power) );
+    return std::make_shared<ConnectionInfo>(address, addressType, rssi, tx_power, max_tx_power);
 }
 
 std::shared_ptr<NameAndShortName> MgmtEvtCmdComplete::toNameAndShortName() const noexcept {
@@ -476,19 +476,19 @@ std::shared_ptr<NameAndShortName> MgmtEvtCmdComplete::toNameAndShortName() const
     std::string name = std::string( (const char*) ( data ) );
     std::string short_name = std::string( (const char*) ( data + MgmtConstU16::MGMT_MAX_NAME_LENGTH ) );
 
-    return std::shared_ptr<NameAndShortName>(new NameAndShortName(name, short_name) );
+    return std::make_shared<NameAndShortName>(name, short_name);
 }
 
 std::shared_ptr<NameAndShortName> MgmtEvtLocalNameChanged::toNameAndShortName() const noexcept {
-    return std::shared_ptr<NameAndShortName>(new NameAndShortName(getName(), getShortName()) );
+    return std::make_shared<NameAndShortName>(getName(), getShortName());
 }
 
 std::shared_ptr<AdapterInfo> MgmtEvtAdapterInfo::toAdapterInfo() const noexcept {
-    return std::shared_ptr<AdapterInfo>(new AdapterInfo(
+    return std::make_shared<AdapterInfo>(
             getDevID(), getAddress(), getVersion(),
             getManufacturer(), getSupportedSetting(),
             getCurrentSetting(), getDevClass(),
-            getName(), getShortName()) );
+            getName(), getShortName());
 }
 
 std::string MgmtEvtDeviceDisconnected::getDisconnectReasonString(DisconnectReason mgmtReason) noexcept {

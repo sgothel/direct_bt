@@ -369,7 +369,7 @@ std::shared_ptr<GattPeriphalPreferredConnectionParameters> GattPeriphalPreferred
         ERR_PRINT("GattPeriphalPreferredConnectionParameters: Insufficient data, less than %d bytes in %s", reqSize, source.toString().c_str());
         return nullptr;
     }
-    return std::shared_ptr<GattPeriphalPreferredConnectionParameters>(new GattPeriphalPreferredConnectionParameters(source));
+    return std::make_shared<GattPeriphalPreferredConnectionParameters>(source);
 }
 
 std::string GattPeriphalPreferredConnectionParameters::toString() const noexcept {
@@ -394,7 +394,7 @@ std::shared_ptr<GattPnP_ID> GattPnP_ID::get(const TROOctets &source) noexcept {
         ERR_PRINT("GattPnP_ID: Insufficient data, less than %d bytes in %s", reqSize, source.toString().c_str());
         return nullptr;
     }
-    return std::shared_ptr<GattPnP_ID>(new GattPnP_ID(source));
+    return std::make_shared<GattPnP_ID>(source);
 }
 
 std::string GattPnP_ID::toString() const noexcept {
@@ -447,7 +447,7 @@ std::shared_ptr<GattTemperatureMeasurement> GattTemperatureMeasurement::get(cons
     if( hasTemperatureType ) {
         temperature_type = source.get_uint8(1+4+7);
     }
-    return std::shared_ptr<GattTemperatureMeasurement>(new GattTemperatureMeasurement(flags, temperatureValue, timestamp, temperature_type));
+    return std::make_shared<GattTemperatureMeasurement>(flags, temperatureValue, timestamp, temperature_type);
 }
 
 std::string GattTemperatureMeasurement::toString() const noexcept {

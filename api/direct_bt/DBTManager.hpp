@@ -204,6 +204,9 @@ namespace direct_bt {
                 uint16_t dev_id;
                 BDAddressAndType address_and_type;
                 HCIWhitelistConnectType ctype;
+
+                WhitelistElem(uint16_t dev_id_, BDAddressAndType address_and_type_, HCIWhitelistConnectType ctype_)
+                : dev_id(dev_id_), address_and_type(address_and_type_), ctype(ctype_) { }
             };
             std::vector<std::shared_ptr<WhitelistElem>> whitelist;
 

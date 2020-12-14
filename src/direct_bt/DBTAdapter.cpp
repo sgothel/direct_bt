@@ -204,8 +204,8 @@ bool DBTAdapter::validateDevInfo() noexcept {
     return true;
 
 errout0:
-    adapterInfo = std::shared_ptr<AdapterInfo>( new AdapterInfo(dev_id, EUI48::ANY_DEVICE, 0, 0,
-                            AdapterSetting::NONE, AdapterSetting::NONE, 0, "invalid", "invalid"));
+    adapterInfo = std::make_shared<AdapterInfo>(dev_id, EUI48::ANY_DEVICE, 0, 0,
+                            AdapterSetting::NONE, AdapterSetting::NONE, 0, "invalid", "invalid");
     return false;
 }
 
@@ -1065,6 +1065,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     }
     if( nullptr == device ) {
         // a whitelist auto-connect w/o previous discovery
+        // private ctor: device = std::make_shared<DBTDevice>(*this, ad_report);
         device = std::shared_ptr<DBTDevice>(new DBTDevice(*this, ad_report));
         addDiscoveredDevice(device);
         addSharedDevice(device);
@@ -1294,7 +1295,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
     std::shared_ptr<EInfoReport> eir = deviceFoundEvent.getEIR();
     if( nullptr == eir ) {
         // Sourced from Linux Mgmt or otherwise ...
-        eir = std::shared_ptr<EInfoReport>(new EInfoReport());
+        eir = std::make_shared<EInfoReport>();
         eir->setSource(EInfoReport::Source::EIR_MGMT);
         eir->setTimestamp(deviceFoundEvent.getTimestamp());
         eir->setEvtType(AD_PDU_Type::ADV_IND);
@@ -1354,6 +1355,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
     //
     // new device
     //
+    // private ctor: dev = std::make_shared<DBTDevice>(*this, *eir);
     dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, *eir));
     addDiscoveredDevice(dev);
     addSharedDevice(dev);

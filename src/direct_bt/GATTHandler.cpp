@@ -220,7 +220,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 GATTCharacteristicRef decl = findCharacterisicsByValueHandle(a->getHandle());
                 const TOctetSlice& a_value_view = a->getValue();
                 const TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.getSize()); // just a view, still owned by attPDU
-                // const std::shared_ptr<TROOctets> data(new POctets(a->getValue()));
+                // const std::shared_ptr<TROOctets> data( std::make_shared<POctets>(a->getValue()) );
                 const uint64_t timestamp = a->ts_creation;
                 int i=0;
                 jau::for_each_cow(characteristicListenerList, [&](std::shared_ptr<GATTCharacteristicListener> &l) {
@@ -248,7 +248,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 GATTCharacteristicRef decl = findCharacterisicsByValueHandle(a->getHandle());
                 const TOctetSlice& a_value_view = a->getValue();
                 const TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.getSize()); // just a view, still owned by attPDU
-                // const std::shared_ptr<TROOctets> data(new POctets(a->getValue()));
+                // const std::shared_ptr<TROOctets> data( std::make_shared<POctets>(a->getValue()) );
                 const uint64_t timestamp = a->ts_creation;
                 int i=0;
                 jau::for_each_cow(characteristicListenerList, [&](std::shared_ptr<GATTCharacteristicListener> &l) {
@@ -708,7 +708,7 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
                     const uint16_t cd_handle = p->getElementHandle(e_iter);
                     std::unique_ptr<const uuid_t> cd_uuid = p->getElementValue(e_iter);
 
-                    std::shared_ptr<GATTDescriptor> cd( new GATTDescriptor(charDecl, std::move(cd_uuid), cd_handle) );
+                    std::shared_ptr<GATTDescriptor> cd( std::make_shared<GATTDescriptor>(charDecl, std::move(cd_uuid), cd_handle) );
                     if( cd_handle <= charDecl->value_handle || cd_handle > cd_handle_end ) { // should never happen!
                         ERR_PRINT("GATT discoverDescriptors CD handle %s not in range ]%s..%s]: descr%s within char%s on %s",
                                 jau::uint16HexString(cd_handle).c_str(),
@@ -988,7 +988,7 @@ std::shared_ptr<GattGenericAccessSvc> GATTHandler::getGenericAccess(std::vector<
         }
     }
     if( deviceName.size() > 0 ) {
-    	res = std::shared_ptr<GattGenericAccessSvc>(new GattGenericAccessSvc(deviceName, appearance, prefConnParam));
+    	res = std::make_shared<GattGenericAccessSvc>(deviceName, appearance, prefConnParam);
     }
     return res;
 }
@@ -1096,9 +1096,9 @@ std::shared_ptr<GattDeviceInformationSvc> GATTHandler::getDeviceInformation(std:
         }
     }
     if( found ) {
-        res = std::shared_ptr<GattDeviceInformationSvc>(new GattDeviceInformationSvc(systemID, modelNumber, serialNumber,
-                                                      firmwareRevision, hardwareRevision, softwareRevision,
-                                                      manufacturer, regulatoryCertDataList, pnpID) );
+        res = std::make_shared<GattDeviceInformationSvc>(systemID, modelNumber, serialNumber,
+                                          firmwareRevision, hardwareRevision, softwareRevision,
+                                          manufacturer, regulatoryCertDataList, pnpID);
     }
     return res;
 }

@@ -981,8 +981,7 @@ bool DBTManager::addDeviceToWhitelist(const uint16_t dev_id, const BDAddressAndT
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         if( MgmtStatus::SUCCESS == res1.getStatus() ) {
-            std::shared_ptr<WhitelistElem> wle( new WhitelistElem{dev_id, addressAndType, ctype} );
-            whitelist.push_back(wle);
+            whitelist.push_back( std::make_shared<WhitelistElem>(dev_id, addressAndType, ctype) );
             return true;
         }
     }

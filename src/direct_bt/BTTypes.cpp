@@ -490,9 +490,9 @@ void EInfoReport::setShortName(const uint8_t *buffer, int buffer_len) noexcept {
 
 void EInfoReport::setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) noexcept {
     if( nullptr == data || 0 >= data_len ) {
-        msd = std::shared_ptr<ManufactureSpecificData>(new ManufactureSpecificData(company));
+        msd = std::make_shared<ManufactureSpecificData>(company);
     } else {
-        msd = std::shared_ptr<ManufactureSpecificData>(new ManufactureSpecificData(company, data, data_len));
+        msd = std::make_shared<ManufactureSpecificData>(company, data, data_len);
     }
     set(EIRDataType::MANUF_DATA);
 }
@@ -619,21 +619,21 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
             case GAP_T::UUID16_INCOMPLETE:
             case GAP_T::UUID16_COMPLETE:
                 for(int j=0; j<elem_len/2; j++) {
-                    const std::shared_ptr<uuid_t> uuid(new uuid16_t(elem_data, j*2, true));
+                    const std::shared_ptr<uuid_t> uuid( std::make_shared<uuid16_t>(elem_data, j*2, true) );
                     addService(std::move(uuid));
                 }
                 break;
             case GAP_T::UUID32_INCOMPLETE:
             case GAP_T::UUID32_COMPLETE:
                 for(int j=0; j<elem_len/4; j++) {
-                    const std::shared_ptr<uuid_t> uuid(new uuid32_t(elem_data, j*4, true));
+                    const std::shared_ptr<uuid_t> uuid( std::make_shared<uuid32_t>(elem_data, j*4, true) );
                     addService(std::move(uuid));
                 }
                 break;
             case GAP_T::UUID128_INCOMPLETE:
             case GAP_T::UUID128_COMPLETE:
                 for(int j=0; j<elem_len/16; j++) {
-                    const std::shared_ptr<uuid_t> uuid(new uuid128_t(elem_data, j*16, true));
+                    const std::shared_ptr<uuid_t> uuid( std::make_shared<uuid128_t>(elem_data, j*16, true) );
                     addService(std::move(uuid));
                 }
                 break;
@@ -723,7 +723,7 @@ std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
     const uint64_t timestamp = jau::getCurrentMilliseconds();
 
     for(i = 0; i < num_reports && i_octets < limes; i++) {
-        ad_reports.push_back(std::shared_ptr<EInfoReport>(new EInfoReport()));
+        ad_reports.push_back( std::make_shared<EInfoReport>() );
         ad_reports[i]->setSource(Source::AD);
         ad_reports[i]->setTimestamp(timestamp);
         ad_reports[i]->setEvtType(static_cast<AD_PDU_Type>(*i_octets++));

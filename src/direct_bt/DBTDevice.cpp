@@ -1252,7 +1252,7 @@ bool DBTDevice::connectSMP(std::shared_ptr<DBTDevice> sthis, const BTSecurityLev
         smpHandler = nullptr;
     }
 
-    smpHandler = std::shared_ptr<SMPHandler>(new SMPHandler(sthis));
+    smpHandler = std::make_shared<SMPHandler>(sthis);
     if( !smpHandler->isConnected() ) {
         ERR_PRINT("DBTDevice::connectSMP: Connection failed");
         smpHandler = nullptr;
@@ -1297,7 +1297,7 @@ bool DBTDevice::connectGATT(std::shared_ptr<DBTDevice> sthis) noexcept {
         gattHandler = nullptr;
     }
 
-    gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sthis, l2cap_att));
+    gattHandler = std::make_shared<GATTHandler>(sthis, l2cap_att);
     if( !gattHandler->isConnected() ) {
         ERR_PRINT2("DBTDevice::connectGATT: Connection failed");
         gattHandler = nullptr;
