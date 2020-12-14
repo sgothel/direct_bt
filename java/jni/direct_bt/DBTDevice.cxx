@@ -102,7 +102,7 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
     }
 
     void notificationReceived(GATTCharacteristicRef charDecl,
-                              std::shared_ptr<TROOctets> charValue, const uint64_t timestamp) override {
+                              const TROOctets& charValue, const uint64_t timestamp) override {
         std::shared_ptr<jau::JavaAnon> jCharDeclRef = charDecl->getJavaObject();
         if( !jau::JavaGlobalObj::isValid(jCharDeclRef) ) {
             return; // java object has been pulled
@@ -110,9 +110,9 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
         JNIEnv *env = *jni_env;
         jobject jCharDecl = jau::JavaGlobalObj::GetObject(jCharDeclRef);
 
-        const size_t value_size = charValue->getSize();
+        const size_t value_size = charValue.getSize();
         jbyteArray jval = env->NewByteArray((jsize)value_size);
-        env->SetByteArrayRegion(jval, 0, (jsize)value_size, (const jbyte *)charValue->get_ptr());
+        env->SetByteArrayRegion(jval, 0, (jsize)value_size, (const jbyte *)charValue.get_ptr());
         java_exception_check_and_throw(env, E_FILE_LINE);
 
         env->CallVoidMethod(listenerObj.getObject(), mNotificationReceived,
@@ -122,7 +122,7 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
     }
 
     void indicationReceived(GATTCharacteristicRef charDecl,
-                            std::shared_ptr<TROOctets> charValue, const uint64_t timestamp,
+                            const TROOctets& charValue, const uint64_t timestamp,
                             const bool confirmationSent) override {
         std::shared_ptr<jau::JavaAnon> jCharDeclRef = charDecl->getJavaObject();
         if( !jau::JavaGlobalObj::isValid(jCharDeclRef) ) {
@@ -131,9 +131,9 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
         JNIEnv *env = *jni_env;
         jobject jCharDecl = jau::JavaGlobalObj::GetObject(jCharDeclRef);
 
-        const size_t value_size = charValue->getSize();
+        const size_t value_size = charValue.getSize();
         jbyteArray jval = env->NewByteArray((jsize)value_size);
-        env->SetByteArrayRegion(jval, 0, (jsize)value_size, (const jbyte *)charValue->get_ptr());
+        env->SetByteArrayRegion(jval, 0, (jsize)value_size, (const jbyte *)charValue.get_ptr());
         java_exception_check_and_throw(env, E_FILE_LINE);
 
         env->CallVoidMethod(listenerObj.getObject(), mIndicationReceived,

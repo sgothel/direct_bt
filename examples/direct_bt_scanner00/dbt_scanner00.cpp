@@ -120,7 +120,7 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
     MyGATTEventListener(const GATTCharacteristic * characteristicMatch)
     : AssociatedGATTCharacteristicListener(characteristicMatch) {}
 
-    void notificationReceived(GATTCharacteristicRef charDecl, std::shared_ptr<TROOctets> charValue, const uint64_t timestamp) override {
+    void notificationReceived(GATTCharacteristicRef charDecl, const TROOctets& charValue, const uint64_t timestamp) override {
         const std::shared_ptr<DBTDevice> dev = charDecl->getDeviceChecked();
         const uint64_t tR = getCurrentMilliseconds();
         fprintf(stderr, "****** GATT Notify (td %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
@@ -128,11 +128,11 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
         if( nullptr != charDecl ) {
             fprintf(stderr, "****** decl %s\n", charDecl->toString().c_str());
         }
-        fprintf(stderr, "****** rawv %s\n", charValue->toString().c_str());
+        fprintf(stderr, "****** rawv %s\n", charValue.toString().c_str());
     }
 
     void indicationReceived(GATTCharacteristicRef charDecl,
-                            std::shared_ptr<TROOctets> charValue, const uint64_t timestamp,
+                            const TROOctets& charValue, const uint64_t timestamp,
                             const bool confirmationSent) override
     {
         const std::shared_ptr<DBTDevice> dev = charDecl->getDeviceChecked();
@@ -142,13 +142,13 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
         if( nullptr != charDecl ) {
             fprintf(stderr, "****** decl %s\n", charDecl->toString().c_str());
             if( _TEMPERATURE_MEASUREMENT == *charDecl->value_type ) {
-                std::shared_ptr<GattTemperatureMeasurement> temp = GattTemperatureMeasurement::get(*charValue);
+                std::shared_ptr<GattTemperatureMeasurement> temp = GattTemperatureMeasurement::get(charValue);
                 if( nullptr != temp ) {
                     fprintf(stderr, "****** valu %s\n", temp->toString().c_str());
                 }
             }
         }
-        fprintf(stderr, "****** rawv %s\n", charValue->toString().c_str());
+        fprintf(stderr, "****** rawv %s\n", charValue.toString().c_str());
     }
 };
 

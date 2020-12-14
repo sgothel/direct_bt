@@ -430,7 +430,7 @@ namespace direct_bt {
              * @param timestamp the indication monotonic timestamp, see getCurrentMilliseconds()
              */
             virtual void notificationReceived(GATTCharacteristicRef charDecl,
-                                              std::shared_ptr<TROOctets> charValue, const uint64_t timestamp) = 0;
+                                              const TROOctets& charValue, const uint64_t timestamp) = 0;
 
             /**
              * Called from native BLE stack, initiated by a received indication associated
@@ -441,7 +441,7 @@ namespace direct_bt {
              * @param confirmationSent if true, the native stack has sent the confirmation, otherwise user is required to do so.
              */
             virtual void indicationReceived(GATTCharacteristicRef charDecl,
-                                            std::shared_ptr<TROOctets> charValue, const uint64_t timestamp,
+                                            const TROOctets& charValue, const uint64_t timestamp,
                                             const bool confirmationSent) = 0;
 
             virtual ~GATTCharacteristicListener() noexcept {}

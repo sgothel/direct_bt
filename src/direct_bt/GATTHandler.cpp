@@ -218,13 +218,15 @@ void GATTHandler::l2capReaderThreadImpl() {
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
                 COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: NTF: %s, listener %zd", a->toString().c_str(), characteristicListenerList.size());
                 GATTCharacteristicRef decl = findCharacterisicsByValueHandle(a->getHandle());
-                const std::shared_ptr<TROOctets> data(new POctets(a->getValue()));
+                const TOctetSlice& a_value_view = a->getValue();
+                const TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.getSize()); // just a view, still owned by attPDU
+                // const std::shared_ptr<TROOctets> data(new POctets(a->getValue()));
                 const uint64_t timestamp = a->ts_creation;
                 int i=0;
                 jau::for_each_cow(characteristicListenerList, [&](std::shared_ptr<GATTCharacteristicListener> &l) {
                     try {
                         if( l->match(*decl) ) {
-                            l->notificationReceived(decl, data, timestamp);
+                            l->notificationReceived(decl, data_view, timestamp);
                         }
                     } catch (std::exception &e) {
                         ERR_PRINT("GATTHandler::notificationReceived-CBs %d/%zd: GATTCharacteristicListener %s: Caught exception %s",
@@ -244,13 +246,15 @@ void GATTHandler::l2capReaderThreadImpl() {
                     cfmSent = true;
                 }
                 GATTCharacteristicRef decl = findCharacterisicsByValueHandle(a->getHandle());
-                const std::shared_ptr<TROOctets> data(new POctets(a->getValue()));
+                const TOctetSlice& a_value_view = a->getValue();
+                const TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.getSize()); // just a view, still owned by attPDU
+                // const std::shared_ptr<TROOctets> data(new POctets(a->getValue()));
                 const uint64_t timestamp = a->ts_creation;
                 int i=0;
                 jau::for_each_cow(characteristicListenerList, [&](std::shared_ptr<GATTCharacteristicListener> &l) {
                     try {
                         if( l->match(*decl) ) {
-                            l->indicationReceived(decl, data, timestamp, cfmSent);
+                            l->indicationReceived(decl, data_view, timestamp, cfmSent);
                         }
                     } catch (std::exception &e) {
                         ERR_PRINT("GATTHandler::indicationReceived-CBs %d/%zd: GATTCharacteristicListener %s, cfmSent %d: Caught exception %s",
