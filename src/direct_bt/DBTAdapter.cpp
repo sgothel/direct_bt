@@ -735,7 +735,8 @@ exit:
     if( le_scan_temp_disabled || HCIStatusCode::SUCCESS != status ) {
         // In case of discoveryTempDisabled, power-off, le_enable_scane failure
         // or already closed HCIHandler, send the event directly.
-        mgmtEvDeviceDiscoveringHCI( std::shared_ptr<MgmtEvent>( new MgmtEvtDiscovering(dev_id, ScanType::LE, false) ) );
+        const MgmtEvtDiscovering e(dev_id, ScanType::LE, false);
+        mgmtEvDeviceDiscoveringHCI( e );
     }
     DBG_PRINT("DBTAdapter::stopDiscovery: End: Result %s, keepAlive %d, currentScanType[native %s, meta %s], le_scan_temp_disabled %d ...",
             getHCIStatusCodeString(status).c_str(), keep_le_scan_alive.load(),
@@ -901,17 +902,17 @@ void DBTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice>
 
 // *************************************************
 
-bool DBTAdapter::mgmtEvDeviceDiscoveringHCI(std::shared_ptr<MgmtEvent> e) noexcept {
+bool DBTAdapter::mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept {
     return mgmtEvDeviceDiscoveringAny(e, true /* hciSourced */ );
 }
 
-bool DBTAdapter::mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
+bool DBTAdapter::mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept {
     return mgmtEvDeviceDiscoveringAny(e, false /* hciSourced */ );
 }
 
-bool DBTAdapter::mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const bool hciSourced) noexcept {
+bool DBTAdapter::mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSourced) noexcept {
     const std::string srctkn = hciSourced ? "hci" : "mgmt";
-    const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
+    const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(&e);
     const ScanType eventScanType = event.getScanType();
     const bool eventEnabled = event.getEnabled();
     ScanType currentNativeScanType = hci.getCurrentScanType();
@@ -975,9 +976,9 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const 
     return true;
 }
 
-bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    COND_PRINT(debug_event, "DBTAdapter:mgmt:NewSettings: %s", e->toString().c_str());
-    const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(e.get());
+bool DBTAdapter::mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept {
+    COND_PRINT(debug_event, "DBTAdapter:mgmt:NewSettings: %s", e.toString().c_str());
+    const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(&e);
     const AdapterSetting new_settings = adapterInfo->setCurrentSettingMask(event.getSettings()); // probably done by mgmt callback already
     {
         const BTMode _btMode = getAdapterSettingsBTMode(new_settings);
@@ -1017,9 +1018,9 @@ bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
     return true;
 }
 
-bool DBTAdapter::mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    COND_PRINT(debug_event, "DBTAdapter:mgmt:LocalNameChanged: %s", e->toString().c_str());
-    const MgmtEvtLocalNameChanged &event = *static_cast<const MgmtEvtLocalNameChanged *>(e.get());
+bool DBTAdapter::mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept {
+    COND_PRINT(debug_event, "DBTAdapter:mgmt:LocalNameChanged: %s", e.toString().c_str());
+    const MgmtEvtLocalNameChanged &event = *static_cast<const MgmtEvtLocalNameChanged *>(&e);
     std::string old_name = localName.getName();
     std::string old_shortName = localName.getShortName();
     bool nameChanged = old_name != event.getName();
@@ -1038,9 +1039,9 @@ bool DBTAdapter::mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) noexce
     return true;
 }
 
-bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
-    COND_PRINT(debug_event, "DBTAdapter:hci:DeviceConnected(dev_id %d): %s", dev_id, e->toString().c_str());
-    const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(e.get());
+bool DBTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
+    COND_PRINT(debug_event, "DBTAdapter:hci:DeviceConnected(dev_id %d): %s", dev_id, e.toString().c_str());
+    const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(&e);
     EInfoReport ad_report;
     {
         ad_report.setSource(EInfoReport::Source::EIR);
@@ -1118,9 +1119,9 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept
     return true;
 }
 
-bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
-    COND_PRINT(debug_event, "DBTAdapter::EventHCI:ConnectFailed: %s", e->toString().c_str());
-    const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(e.get());
+bool DBTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
+    COND_PRINT(debug_event, "DBTAdapter::EventHCI:ConnectFailed: %s", e.toString().c_str());
+    const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(&e);
 
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
@@ -1154,8 +1155,8 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
     return true;
 }
 
-bool DBTAdapter::mgmtEvHCIEncryptionChangedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtHCIEncryptionChanged &event = *static_cast<const MgmtEvtHCIEncryptionChanged *>(e.get());
+bool DBTAdapter::mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept {
+    const MgmtEvtHCIEncryptionChanged &event = *static_cast<const MgmtEvtHCIEncryptionChanged *>(&e);
 
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
@@ -1170,8 +1171,8 @@ bool DBTAdapter::mgmtEvHCIEncryptionChangedHCI(std::shared_ptr<MgmtEvent> e) noe
     }
     return true;
 }
-bool DBTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtHCIEncryptionKeyRefreshComplete &event = *static_cast<const MgmtEvtHCIEncryptionKeyRefreshComplete *>(e.get());
+bool DBTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noexcept {
+    const MgmtEvtHCIEncryptionKeyRefreshComplete &event = *static_cast<const MgmtEvtHCIEncryptionKeyRefreshComplete *>(&e);
 
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
@@ -1188,8 +1189,8 @@ bool DBTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI(std::shared_ptr<MgmtEv
     return true;
 }
 
-bool DBTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtHCILERemoteUserFeatures &event = *static_cast<const MgmtEvtHCILERemoteUserFeatures *>(e.get());
+bool DBTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
+    const MgmtEvtHCILERemoteUserFeatures &event = *static_cast<const MgmtEvtHCILERemoteUserFeatures *>(&e);
 
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
@@ -1205,8 +1206,8 @@ bool DBTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(std::shared_ptr<MgmtEvent> e) 
     return true;
 }
 
-bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
+bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
+    const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(&e);
 
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
@@ -1244,15 +1245,15 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexc
     return true;
 }
 
-bool DBTAdapter::mgmtEvDeviceDisconnectedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    COND_PRINT(debug_event, "DBTAdapter:mgmt:DeviceDisconnected: %s", e->toString().c_str());
-    const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
+bool DBTAdapter::mgmtEvDeviceDisconnectedMgmt(const MgmtEvent& e) noexcept {
+    COND_PRINT(debug_event, "DBTAdapter:mgmt:DeviceDisconnected: %s", e.toString().c_str());
+    const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(&e);
     (void)event;
     return true;
 }
 
-bool DBTAdapter::mgmtEvPairDeviceCompleteMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtPairDeviceComplete &event = *static_cast<const MgmtEvtPairDeviceComplete *>(e.get());
+bool DBTAdapter::mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept {
+    const MgmtEvtPairDeviceComplete &event = *static_cast<const MgmtEvtPairDeviceComplete *>(&e);
 
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
@@ -1267,8 +1268,8 @@ bool DBTAdapter::mgmtEvPairDeviceCompleteMgmt(std::shared_ptr<MgmtEvent> e) noex
     return true;
 }
 
-bool DBTAdapter::mgmtEvNewLongTermKeyMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtNewLongTermKey& event = *static_cast<const MgmtEvtNewLongTermKey *>(e.get());
+bool DBTAdapter::mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept {
+    const MgmtEvtNewLongTermKey& event = *static_cast<const MgmtEvtNewLongTermKey *>(&e);
     const MgmtLongTermKeyInfo& ltk_info = event.getLongTermKey();
     std::shared_ptr<DBTDevice> device = findConnectedDevice(ltk_info.address, ltk_info.address_type);
     if( nullptr != device ) {
@@ -1286,9 +1287,9 @@ bool DBTAdapter::mgmtEvNewLongTermKeyMgmt(std::shared_ptr<MgmtEvent> e) noexcept
     return true;
 }
 
-bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
-    COND_PRINT(debug_event, "DBTAdapter:hci:DeviceFound(dev_id %d): %s", dev_id, e->toString().c_str());
-    const MgmtEvtDeviceFound &deviceFoundEvent = *static_cast<const MgmtEvtDeviceFound *>(e.get());
+bool DBTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
+    COND_PRINT(debug_event, "DBTAdapter:hci:DeviceFound(dev_id %d): %s", dev_id, e.toString().c_str());
+    const MgmtEvtDeviceFound &deviceFoundEvent = *static_cast<const MgmtEvtDeviceFound *>(&e);
 
     std::shared_ptr<EInfoReport> eir = deviceFoundEvent.getEIR();
     if( nullptr == eir ) {
@@ -1376,18 +1377,18 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept {
     return true;
 }
 
-bool DBTAdapter::mgmtEvDeviceUnpairedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtDeviceUnpaired &event = *static_cast<const MgmtEvtDeviceUnpaired *>(e.get());
+bool DBTAdapter::mgmtEvDeviceUnpairedMgmt(const MgmtEvent& e) noexcept {
+    const MgmtEvtDeviceUnpaired &event = *static_cast<const MgmtEvtDeviceUnpaired *>(&e);
     DBG_PRINT("DBTAdapter:mgmt:DeviceUnpaired: %s", event.toString().c_str());
     return true;
 }
-bool DBTAdapter::mgmtEvPinCodeRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtPinCodeRequest &event = *static_cast<const MgmtEvtPinCodeRequest *>(e.get());
+bool DBTAdapter::mgmtEvPinCodeRequestMgmt(const MgmtEvent& e) noexcept {
+    const MgmtEvtPinCodeRequest &event = *static_cast<const MgmtEvtPinCodeRequest *>(&e);
     DBG_PRINT("DBTAdapter:mgmt:PinCodeRequest: %s", event.toString().c_str());
     return true;
 }
-bool DBTAdapter::mgmtEvAuthFailedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtAuthFailed &event = *static_cast<const MgmtEvtAuthFailed *>(e.get());
+bool DBTAdapter::mgmtEvAuthFailedMgmt(const MgmtEvent& e) noexcept {
+    const MgmtEvtAuthFailed &event = *static_cast<const MgmtEvtAuthFailed *>(&e);
 
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
@@ -1400,8 +1401,8 @@ bool DBTAdapter::mgmtEvAuthFailedMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
     device->updatePairingState(device, e, evtStatus, SMPPairingState::FAILED);
     return true;
 }
-bool DBTAdapter::mgmtEvUserConfirmRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtUserConfirmRequest &event = *static_cast<const MgmtEvtUserConfirmRequest *>(e.get());
+bool DBTAdapter::mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept {
+    const MgmtEvtUserConfirmRequest &event = *static_cast<const MgmtEvtUserConfirmRequest *>(&e);
 
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
@@ -1414,8 +1415,8 @@ bool DBTAdapter::mgmtEvUserConfirmRequestMgmt(std::shared_ptr<MgmtEvent> e) noex
     device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::NUMERIC_COMPARE_EXPECTED);
     return true;
 }
-bool DBTAdapter::mgmtEvUserPasskeyRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept {
-    const MgmtEvtUserPasskeyRequest &event = *static_cast<const MgmtEvtUserPasskeyRequest *>(e.get());
+bool DBTAdapter::mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept {
+    const MgmtEvtUserPasskeyRequest &event = *static_cast<const MgmtEvtUserPasskeyRequest *>(&e);
 
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {

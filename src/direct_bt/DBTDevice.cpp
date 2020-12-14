@@ -557,11 +557,11 @@ bool DBTDevice::checkPairingKeyDistributionComplete(const std::string& timestamp
     return res;
 }
 
-bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<MgmtEvent> evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept {
+bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
 
-    const MgmtEvent::Opcode mgmtEvtOpcode = evt->getOpcode();
+    const MgmtEvent::Opcode mgmtEvtOpcode = evt.getOpcode();
     PairingMode mode = pairing_data.mode;
     bool is_device_ready = false;
 
@@ -608,11 +608,11 @@ bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared
                            SMPPairingState::KEY_DISTRIBUTION == pairing_data.state )
                 {
                     // SMP pairing has started, mngr issued new LTK key command
-                    const MgmtEvtNewLongTermKey& event = *static_cast<const MgmtEvtNewLongTermKey *>(evt.get());
+                    const MgmtEvtNewLongTermKey& event = *static_cast<const MgmtEvtNewLongTermKey *>(&evt);
                     const MgmtLongTermKeyInfo& ltk_info = event.getLongTermKey();
                     const SMPLongTermKeyInfo smp_ltk = ltk_info.toSMPLongTermKeyInfo();
                     if( smp_ltk.isValid() ) {
-                        const std::string timestamp = jau::uint64DecString(jau::environment::getElapsedMillisecond(evt->getTimestamp()), ',', 9);
+                        const std::string timestamp = jau::uint64DecString(jau::environment::getElapsedMillisecond(evt.getTimestamp()), ',', 9);
                         const bool responder = ( SMPLongTermKeyInfo::Property::RESPONDER & smp_ltk.properties ) != SMPLongTermKeyInfo::Property::NONE;
 
                         if( responder ) {
@@ -660,15 +660,15 @@ bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared
         DBG_PRINT("DBTDevice::updatePairingState.0: state %s -> %s, mode %s -> %s, ready %d, %s",
             getSMPPairingStateString(pairing_data.state).c_str(), getSMPPairingStateString(claimed_state).c_str(),
             getPairingModeString(pairing_data.mode).c_str(), getPairingModeString(mode).c_str(),
-            is_device_ready, evt->toString().c_str());
+            is_device_ready, evt.toString().c_str());
 
         pairing_data.mode = mode;
         pairing_data.state = claimed_state;
 
-        adapter.sendDevicePairingState(sthis, claimed_state, mode, evt->getTimestamp());
+        adapter.sendDevicePairingState(sthis, claimed_state, mode, evt.getTimestamp());
 
         if( is_device_ready ) {
-            std::thread dc(&DBTDevice::processDeviceReady, this, sthis, evt->getTimestamp()); // @suppress("Invalid arguments")
+            std::thread dc(&DBTDevice::processDeviceReady, this, sthis, evt.getTimestamp()); // @suppress("Invalid arguments")
             dc.detach();
         }
         DBG_PRINT("DBTDevice::updatePairingState.2: End Complete: state %s, %s",
@@ -677,7 +677,7 @@ bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared
     } else {
         DBG_PRINT("DBTDevice::updatePairingState.3: End Unchanged: state %s, %s, %s",
             getSMPPairingStateString(pairing_data.state).c_str(),
-            evt->toString().c_str(), toString(false).c_str());
+            evt.toString().c_str(), toString(false).c_str());
     }
     return false;
 }
@@ -1437,6 +1437,10 @@ void DBTDevice::notifyDisconnected() noexcept {
     l2cap_att.close();
 }
 
+void DBTDevice::sendMgmtEvDeviceDisconnected(std::unique_ptr<MgmtEvent> evt) noexcept {
+    adapter.mgmtEvDeviceDisconnectedHCI(*evt);
+}
+
 HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept {
     // Avoid disconnect re-entry lock-free
     bool expConn = true; // C++11, exp as value since C++20
@@ -1495,10 +1499,10 @@ exit:
         // or in case the hci->disconnect() itself fails,
         // send the DISCONN_COMPLETE event directly.
         // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
-        std::thread bg(&DBTAdapter::mgmtEvDeviceDisconnectedHCI, &adapter, std::shared_ptr<MgmtEvent>( // @suppress("Invalid arguments")
-                 new MgmtEvtDeviceDisconnected(adapter.dev_id, addressAndType, reason, hciConnHandle.load()) ) );
+        std::thread bg(&DBTDevice::sendMgmtEvDeviceDisconnected, this, // @suppress("Invalid arguments")
+                       std::make_unique<MgmtEvtDeviceDisconnected>(adapter.dev_id, addressAndType, reason, hciConnHandle.load()) );
         bg.detach();
-        // adapter.mgmtEvDeviceDisconnectedHCI( std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load()) ) );
+        // adapter.mgmtEvDeviceDisconnectedHCI( std::unique_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load()) ) );
     }
     WORDY_PRINT("DBTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d on %s",
             getHCIStatusCodeString(res).c_str(),

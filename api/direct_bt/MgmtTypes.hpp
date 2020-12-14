@@ -335,6 +335,23 @@ namespace direct_bt {
 
             virtual ~MgmtMsg() {}
 
+            /**
+             * User utility clone template for convenience, based on derived class's copy-constructor.<br>
+             * MgmtEvent callback example:
+             * <pre>
+             * bool mgmtEvDeviceUnpairedMgmt(const MgmtEvent& e) noexcept {
+             *     const MgmtEvtDeviceUnpaired &event = *static_cast<const MgmtEvtDeviceUnpaired *>(&e);
+             *     MgmtMsg * b2 = MgmtMsg::clone(event);
+             *     .. do something ..
+             * }
+             * </pre>
+             * @tparam T The derived definite class type, deduced by source
+             * @param source the source to be copied
+             * @return a new instance.
+             */
+            template<class T>
+            static MgmtMsg* clone(const T& source) noexcept { return new T(source); }
+
             uint64_t getTimestamp() const noexcept { return ts_creation; }
 
             jau::nsize_t getTotalSize() const noexcept { return pdu.getSize(); }
@@ -1157,7 +1174,7 @@ namespace direct_bt {
              * Returned memory reference is managed by caller (delete etc)
              * </p>
              */
-            static std::shared_ptr<MgmtEvent> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
+            static std::unique_ptr<MgmtEvent> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
 
             /** Persistent memory, w/ ownership ..*/
             MgmtEvent(const uint8_t* buffer, const jau::nsize_t buffer_len, const jau::nsize_t exp_param_size)
@@ -1187,6 +1204,7 @@ namespace direct_bt {
                     memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE), param, param_size);
                 }
             }
+
             virtual ~MgmtEvent() noexcept override {}
 
             jau::nsize_t getTotalSize() const noexcept { return pdu.getSize(); }
@@ -2213,7 +2231,7 @@ namespace direct_bt {
 
     };
 
-    typedef jau::FunctionDef<bool, std::shared_ptr<MgmtEvent>> MgmtEventCallback;
+    typedef jau::FunctionDef<bool, const MgmtEvent&> MgmtEventCallback;
     typedef jau::cow_vector<MgmtEventCallback> MgmtEventCallbackList;
 
     class MgmtAdapterEventCallback {

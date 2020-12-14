@@ -48,6 +48,9 @@ struct BooleanMgmtCBContext {
     JNIGlobalRef jmgmtRef;
     jmethodID  mid;
 
+    BooleanMgmtCBContext(MgmtEvent::Opcode opc_, JNIGlobalRef jmgmtRef_, jmethodID mid_)
+    : opc(opc_), jmgmtRef(jmgmtRef_), mid(mid_) { }
+
     bool operator==(const BooleanMgmtCBContext& rhs) const
     {
         if( &rhs == this ) {
@@ -67,17 +70,17 @@ static void _addMgmtCBOnce(JNIEnv *env, DBTManager & mgmt, JNIGlobalRef jmgmtRef
                            const std::string &jmethodName, const std::string &jmethodArgs)
 {
     try {
-        bool(*nativeCallback)(BooleanMgmtCBContextRef&, std::shared_ptr<MgmtEvent>) =
-                [](BooleanMgmtCBContextRef& ctx_ref, std::shared_ptr<MgmtEvent> e)->bool {
+        bool(*nativeCallback)(BooleanMgmtCBContextRef&, const MgmtEvent&) =
+                [](BooleanMgmtCBContextRef& ctx_ref, const MgmtEvent& e)->bool {
             JNIEnv *env_ = *jni_env;
-            const int dev_id = e->getDevID();
+            const int dev_id = e.getDevID();
 
             if( MgmtEvent::Opcode::INDEX_REMOVED == ctx_ref->opc ) {
                 env_->CallVoidMethod(*(ctx_ref->jmgmtRef), ctx_ref->mid, dev_id, ctx_ref->opc); // remove
             } else if( MgmtEvent::Opcode::INDEX_ADDED == ctx_ref->opc ) {
                 env_->CallVoidMethod(*(ctx_ref->jmgmtRef), ctx_ref->mid, dev_id, ctx_ref->opc); // updated
             } else if( MgmtEvent::Opcode::NEW_SETTINGS == ctx_ref->opc ) {
-                const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(e.get());
+                const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(&e);
                 if( isAdapterSettingBitSet(event.getSettings(), AdapterSetting::POWERED) ) {
                     // probably newly POWERED on
                     env_->CallVoidMethod(*(ctx_ref->jmgmtRef), ctx_ref->mid, dev_id, ctx_ref->opc); // updated
@@ -97,10 +100,9 @@ static void _addMgmtCBOnce(JNIEnv *env, DBTManager & mgmt, JNIGlobalRef jmgmtRef
         if( nullptr == mid ) {
             throw jau::InternalError("DBTManager has no "+jmethodName+"."+jmethodArgs+" method, for "+mgmt.toString(), E_FILE_LINE);
         }
-        BooleanMgmtCBContext * ctx = new BooleanMgmtCBContext{opc, jmgmtRef, mid };
 
         // move BooleanDeviceCBContextRef into CaptureInvocationFunc and operator== includes javaCallback comparison
-        FunctionDef<bool, std::shared_ptr<MgmtEvent>> funcDef = bindCaptureFunc(BooleanMgmtCBContextRef(ctx), nativeCallback);
+        FunctionDef<bool, const MgmtEvent&> funcDef = bindCaptureFunc(std::make_shared<BooleanMgmtCBContext>(opc, jmgmtRef, mid), nativeCallback);
         mgmt.addMgmtEventCallback(-1, opc, funcDef);
     } catch(...) {
         rethrow_and_raise_java_exception(env);

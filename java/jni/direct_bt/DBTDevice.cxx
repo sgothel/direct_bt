@@ -800,6 +800,17 @@ struct BooleanDeviceCBContext {
     JNIGlobalRef boolean_cls_ref;
     jmethodID boolean_ctor;
 
+    BooleanDeviceCBContext(
+            BDAddressAndType addressAndType_,
+            JNIGlobalRef javaCallback_ref_,
+            jmethodID  mRun_,
+            JNIGlobalRef boolean_cls_ref_,
+            jmethodID boolean_ctor_)
+    : addressAndType(addressAndType_), javaCallback_ref(javaCallback_ref_),
+      mRun(mRun_), boolean_cls_ref(boolean_cls_ref_), boolean_ctor(boolean_ctor_)
+    { }
+
+
     bool operator==(const BooleanDeviceCBContext& rhs) const
     {
         if( &rhs == this ) {
@@ -822,10 +833,10 @@ typedef std::shared_ptr<BooleanDeviceCBContext> BooleanDeviceCBContextRef;
 
 static void disableBlockedNotifications(JNIEnv *env, jobject obj, DBTManager &mgmt)
 {
-    InvocationFunc<bool, std::shared_ptr<MgmtEvent>> * funcptr =
-            getObjectRef<InvocationFunc<bool, std::shared_ptr<MgmtEvent>>>(env, obj, "blockedNotificationRef");
+    InvocationFunc<bool, const MgmtEvent&> * funcptr =
+            getObjectRef<InvocationFunc<bool, const MgmtEvent&>>(env, obj, "blockedNotificationRef");
     if( nullptr != funcptr ) {
-        FunctionDef<bool, std::shared_ptr<MgmtEvent>> funcDef( funcptr );
+        FunctionDef<bool, const MgmtEvent&> funcDef( funcptr );
         funcptr = nullptr;
         setObjectRef(env, obj, funcptr, "blockedNotificationRef"); // clear java ref
         int count;
@@ -859,17 +870,17 @@ void Java_direct_1bt_tinyb_DBTDevice_enableBlockedNotificationsImpl(JNIEnv *env,
 
         disableBlockedNotifications(env, obj, mgmt);
 
-        bool(*nativeCallback)(BooleanDeviceCBContextRef&, std::shared_ptr<MgmtEvent>) =
-                [](BooleanDeviceCBContextRef& ctx_ref, std::shared_ptr<MgmtEvent> e)->bool {
+        bool(*nativeCallback)(BooleanDeviceCBContextRef&, const MgmtEvent&) =
+                [](BooleanDeviceCBContextRef& ctx_ref, const MgmtEvent& e)->bool {
             bool isBlocked = false;
-            if( MgmtEvent::Opcode::DEVICE_BLOCKED == e->getOpcode() ) {
-                const MgmtEvtDeviceBlocked &event = *static_cast<const MgmtEvtDeviceBlocked *>(e.get());
+            if( MgmtEvent::Opcode::DEVICE_BLOCKED == e.getOpcode() ) {
+                const MgmtEvtDeviceBlocked &event = *static_cast<const MgmtEvtDeviceBlocked *>(&e);
                 if( event.getAddress() != ctx_ref->addressAndType.address || event.getAddressType() != ctx_ref->addressAndType.type ) {
                     return false; // not this device
                 }
                 isBlocked = true;
-            } else if( MgmtEvent::Opcode::DEVICE_UNBLOCKED == e->getOpcode() ) {
-                const MgmtEvtDeviceUnblocked &event = *static_cast<const MgmtEvtDeviceUnblocked *>(e.get());
+            } else if( MgmtEvent::Opcode::DEVICE_UNBLOCKED == e.getOpcode() ) {
+                const MgmtEvtDeviceUnblocked &event = *static_cast<const MgmtEvtDeviceUnblocked *>(&e);
                 if( event.getAddress() != ctx_ref->addressAndType.address || event.getAddressType() != ctx_ref->addressAndType.type ) {
                     return false; // not this device
                 }
@@ -892,12 +903,12 @@ void Java_direct_1bt_tinyb_DBTDevice_enableBlockedNotificationsImpl(JNIEnv *env,
         jmethodID boolean_ctor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
         java_exception_check_and_throw(env, E_FILE_LINE);
 
-        BooleanDeviceCBContext * ctx = new BooleanDeviceCBContext{
-            device->getAddressAndType(), JNIGlobalRef(javaCallback), mRun, JNIGlobalRef(boolean_cls), boolean_ctor };
+        BooleanDeviceCBContextRef ctx_ref = std::make_shared<BooleanDeviceCBContext>(
+                device->getAddressAndType(), JNIGlobalRef(javaCallback), mRun, JNIGlobalRef(boolean_cls), boolean_ctor );
         jni_env->DeleteLocalRef(boolean_cls);
 
         // move BooleanDeviceCBContextRef into CaptureInvocationFunc and operator== includes javaCallback comparison
-        FunctionDef<bool, std::shared_ptr<MgmtEvent>> funcDef = bindCaptureFunc(BooleanDeviceCBContextRef(ctx), nativeCallback);
+        FunctionDef<bool, const MgmtEvent&> funcDef = bindCaptureFunc(ctx_ref, nativeCallback);
         setObjectRef(env, obj, funcDef.cloneFunction(), "blockedNotificationRef"); // set java ref
         mgmt.addMgmtEventCallback(adapter.dev_id, MgmtEvent::Opcode::DEVICE_BLOCKED, funcDef);
         mgmt.addMgmtEventCallback(adapter.dev_id, MgmtEvent::Opcode::DEVICE_UNBLOCKED, funcDef);
@@ -912,10 +923,10 @@ void Java_direct_1bt_tinyb_DBTDevice_enableBlockedNotificationsImpl(JNIEnv *env,
 
 static void disablePairedNotifications(JNIEnv *env, jobject obj, DBTManager &mgmt)
 {
-    InvocationFunc<bool, std::shared_ptr<MgmtEvent>> * funcptr =
-            getObjectRef<InvocationFunc<bool, std::shared_ptr<MgmtEvent>>>(env, obj, "pairedNotificationRef");
+    InvocationFunc<bool, const MgmtEvent&> * funcptr =
+            getObjectRef<InvocationFunc<bool, const MgmtEvent&>>(env, obj, "pairedNotificationRef");
     if( nullptr != funcptr ) {
-        FunctionDef<bool, std::shared_ptr<MgmtEvent>> funcDef( funcptr );
+        FunctionDef<bool, const MgmtEvent&> funcDef( funcptr );
         funcptr = nullptr;
         setObjectRef(env, obj, funcptr, "pairedNotificationRef"); // clear java ref
         int count;
@@ -946,9 +957,9 @@ void Java_direct_1bt_tinyb_DBTDevice_enablePairedNotificationsImpl(JNIEnv *env, 
 
         disablePairedNotifications(env, obj, mgmt);
 
-        bool(*nativeCallback)(BooleanDeviceCBContextRef&, std::shared_ptr<MgmtEvent>) =
-                [](BooleanDeviceCBContextRef& ctx_ref, std::shared_ptr<MgmtEvent> e)->bool {
-            const MgmtEvtDeviceUnpaired &event = *static_cast<const MgmtEvtDeviceUnpaired *>(e.get());
+        bool(*nativeCallback)(BooleanDeviceCBContextRef&, const MgmtEvent&) =
+                [](BooleanDeviceCBContextRef& ctx_ref, const MgmtEvent& e)->bool {
+            const MgmtEvtDeviceUnpaired &event = *static_cast<const MgmtEvtDeviceUnpaired *>(&e);
             if( event.getAddress() != ctx_ref->addressAndType.address || event.getAddressType() != ctx_ref->addressAndType.type ) {
                 return false; // not this device
             }
@@ -971,7 +982,7 @@ void Java_direct_1bt_tinyb_DBTDevice_enablePairedNotificationsImpl(JNIEnv *env, 
         jni_env->DeleteLocalRef(boolean_cls);
 
         // move BooleanDeviceCBContextRef into CaptureInvocationFunc and operator== includes javaCallback comparison
-        FunctionDef<bool, std::shared_ptr<MgmtEvent>> funcDef = bindCaptureFunc(BooleanDeviceCBContextRef(ctx), nativeCallback);
+        FunctionDef<bool, const MgmtEvent&> funcDef = bindCaptureFunc(BooleanDeviceCBContextRef(ctx), nativeCallback);
         setObjectRef(env, obj, funcDef.cloneFunction(), "pairedNotificationRef"); // set java ref
         // Note that this is only called natively for unpaired, i.e. paired:=false. Using deviceConnected for paired:=true on Java side
         mgmt.addMgmtEventCallback(adapter.dev_id, MgmtEvent::Opcode::DEVICE_UNPAIRED, funcDef);

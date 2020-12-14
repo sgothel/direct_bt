@@ -244,6 +244,7 @@ namespace direct_bt {
 
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const noexcept;
             friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() noexcept;
+            friend void DBTDevice::sendMgmtEvDeviceDisconnected(std::unique_ptr<MgmtEvent> evt) noexcept;
             friend HCIStatusCode DBTDevice::disconnect(const HCIStatusCode reason) noexcept;
             friend void DBTDevice::remove() noexcept;
             friend HCIStatusCode DBTDevice::connectLE(uint16_t interval, uint16_t window,
@@ -251,8 +252,8 @@ namespace direct_bt {
                                                       uint16_t latency, uint16_t supervision_timeout);
             friend HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch);
             friend void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis);
-            friend bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<MgmtEvent> evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
             friend void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;
+            friend bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
             friend void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint64_t timestamp);
             friend std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept;
 
@@ -275,13 +276,13 @@ namespace direct_bt {
             void removeSharedDevice(const DBTDevice & device) noexcept;
             std::shared_ptr<DBTDevice> findSharedDevice (const EUI48 & address, const BDAddressType addressType) noexcept;
 
-            bool mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvDeviceDisconnectedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvPairDeviceCompleteMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvNewLongTermKeyMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept;
+            bool mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept;
+            bool mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept;
+            bool mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept;
+            bool mgmtEvDeviceDisconnectedMgmt(const MgmtEvent& e) noexcept;
+            bool mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept;
+            bool mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept;
 
             bool mgmtEvDeviceDiscoveringHCI(std::shared_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
@@ -292,13 +293,13 @@ namespace direct_bt {
             bool mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) noexcept;
 
 
-            bool mgmtEvDeviceDiscoveringAny(std::shared_ptr<MgmtEvent> e, const bool hciSourced) noexcept;
+            bool mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSourced) noexcept;
 
-            bool mgmtEvPinCodeRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvUserConfirmRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvUserPasskeyRequestMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvAuthFailedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvDeviceUnpairedMgmt(std::shared_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvPinCodeRequestMgmt(const MgmtEvent& e) noexcept;
+            bool mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept;
+            bool mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept;
+            bool mgmtEvAuthFailedMgmt(const MgmtEvent& e) noexcept;
+            bool mgmtEvDeviceUnpairedMgmt(const MgmtEvent& e) noexcept;
 
             bool hciSMPMsgCallback(const BDAddressAndType & addressAndType,
                                    std::shared_ptr<const SMPPDUMsg> msg, const HCIACLData::l2cap_frame& source) noexcept;

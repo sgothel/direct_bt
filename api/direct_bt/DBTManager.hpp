@@ -215,7 +215,7 @@ namespace direct_bt {
             POctets rbuffer;
             HCIComm comm;
 
-            jau::ringbuffer<std::shared_ptr<MgmtEvent>, nullptr, jau::nsize_t> mgmtEventRing;
+            jau::ringbuffer<std::unique_ptr<MgmtEvent>, nullptr, jau::nsize_t> mgmtEventRing;
             jau::sc_atomic_bool mgmtReaderShallStop;
 
             std::mutex mtx_mgmtReaderLifecycle;
@@ -250,7 +250,7 @@ namespace direct_bt {
              * In case response size check or devID and optional opcode validation fails,
              * function returns NULL.
              */
-            std::shared_ptr<MgmtEvent> sendWithReply(MgmtCommand &req) noexcept;
+            std::unique_ptr<MgmtEvent> sendWithReply(MgmtCommand &req) noexcept;
 
             bool send(MgmtCommand &req) noexcept;
 
@@ -267,10 +267,10 @@ namespace direct_bt {
             std::shared_ptr<AdapterInfo> initAdapter(const uint16_t dev_id, const BTMode btMode) noexcept;
             void shutdownAdapter(const uint16_t dev_id) noexcept;
 
-            void processAdapterAdded(std::shared_ptr<MgmtEvent> e) noexcept;
-            void processAdapterRemoved(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEventAnyCB(std::shared_ptr<MgmtEvent> e) noexcept;
+            void processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept;
+            void processAdapterRemoved(std::unique_ptr<MgmtEvent> e) noexcept;
+            bool mgmtEvNewSettingsCB(const MgmtEvent& e) noexcept;
+            bool mgmtEventAnyCB(const MgmtEvent& e) noexcept;
 
             int findAdapterInfoIndex(const uint16_t dev_id) const noexcept;
 
@@ -474,7 +474,7 @@ namespace direct_bt {
             void clearAllCallbacks() noexcept;
 
             /** Manually send a MgmtEvent to all of its listeners. */
-            void sendMgmtEvent(std::shared_ptr<MgmtEvent> event) noexcept;
+            void sendMgmtEvent(const MgmtEvent& event) noexcept;
 
             /** ChangedAdapterSetCallback handling */
 

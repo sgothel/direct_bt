@@ -319,73 +319,71 @@ std::string MgmtEvent::getOpcodeString(const Opcode opc) noexcept {
     return "Unknown Opcode";
 }
 
-std::shared_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
+std::unique_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
     const MgmtEvent::Opcode opc = MgmtEvent::getOpcode(buffer);
-    MgmtEvent * res;
     switch( opc ) {
         case MgmtEvent::Opcode::CMD_COMPLETE: {
             const MgmtCommand::Opcode cmdOpcode = MgmtEvtCmdComplete::getCmdOpcode(buffer);
 
             if( buffer_size >= MgmtEvtAdapterInfo::getRequiredTotalSize() &&
                 MgmtCommand::Opcode::READ_INFO == cmdOpcode ) {
-                res = new MgmtEvtAdapterInfo(buffer, buffer_size);
+                return std::make_unique<MgmtEvtAdapterInfo>(buffer, buffer_size);
             } else if( buffer_size >= MgmtEvtPairDeviceComplete::getRequiredTotalSize() &&
                        MgmtCommand::Opcode::PAIR_DEVICE == cmdOpcode ) {
-                res = new MgmtEvtPairDeviceComplete(buffer, buffer_size);
+                return std::make_unique<MgmtEvtPairDeviceComplete>(buffer, buffer_size);
             } else {
-                res = new MgmtEvtCmdComplete(buffer, buffer_size);
+                return std::make_unique<MgmtEvtCmdComplete>(buffer, buffer_size);
             }
-        } break;
+        }
         case MgmtEvent::Opcode::CMD_STATUS:
-            res = new MgmtEvtCmdStatus(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtCmdStatus>(buffer, buffer_size);
         case MgmtEvent::Opcode::CONTROLLER_ERROR:
-            res = new MgmtEvtControllerError(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtControllerError>(buffer, buffer_size);
         case MgmtEvent::Opcode::INDEX_ADDED:
-            res = new MgmtEvent(buffer, buffer_size, 0); break;
+            return std::make_unique<MgmtEvent>(buffer, buffer_size, 0);
         case MgmtEvent::Opcode::INDEX_REMOVED:
-            res = new MgmtEvent(buffer, buffer_size, 0); break;
+            return std::make_unique<MgmtEvent>(buffer, buffer_size, 0);
         case MgmtEvent::Opcode::NEW_SETTINGS:
-            res = new MgmtEvtNewSettings(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtNewSettings>(buffer, buffer_size);
         case MgmtEvent::Opcode::LOCAL_NAME_CHANGED:
-            res = new MgmtEvtLocalNameChanged(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtLocalNameChanged>(buffer, buffer_size);
         case Opcode::NEW_LINK_KEY:
-            res = new MgmtEvtNewLinkKey(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtNewLinkKey>(buffer, buffer_size);
         case Opcode::NEW_LONG_TERM_KEY:
-            res = new MgmtEvtNewLongTermKey(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtNewLongTermKey>(buffer, buffer_size);
         case MgmtEvent::Opcode::DEVICE_CONNECTED:
-            res = new MgmtEvtDeviceConnected(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtDeviceConnected>(buffer, buffer_size);
         case MgmtEvent::Opcode::DEVICE_DISCONNECTED:
-            res = new MgmtEvtDeviceDisconnected(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtDeviceDisconnected>(buffer, buffer_size);
         case MgmtEvent::Opcode::CONNECT_FAILED:
-            res = new MgmtEvtDeviceConnectFailed(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtDeviceConnectFailed>(buffer, buffer_size);
         case MgmtEvent::Opcode::PIN_CODE_REQUEST:
-            res = new MgmtEvtPinCodeRequest(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtPinCodeRequest>(buffer, buffer_size);
         case MgmtEvent::Opcode::USER_CONFIRM_REQUEST:
-            res = new MgmtEvtUserConfirmRequest(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtUserConfirmRequest>(buffer, buffer_size);
         case MgmtEvent::Opcode::USER_PASSKEY_REQUEST:
-            res = new MgmtEvtUserPasskeyRequest(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtUserPasskeyRequest>(buffer, buffer_size);
         case Opcode::AUTH_FAILED:
-            res = new MgmtEvtAuthFailed(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtAuthFailed>(buffer, buffer_size);
         case MgmtEvent::Opcode::DEVICE_FOUND:
-            res = new MgmtEvtDeviceFound(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtDeviceFound>(buffer, buffer_size);
         case MgmtEvent::Opcode::DISCOVERING:
-            res = new MgmtEvtDiscovering(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtDiscovering>(buffer, buffer_size);
         case MgmtEvent::Opcode::DEVICE_UNPAIRED:
-            res = new MgmtEvtDeviceUnpaired(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtDeviceUnpaired>(buffer, buffer_size);
         case Opcode::NEW_IRK:
-            res = new MgmtEvtNewIdentityResolvingKey(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtNewIdentityResolvingKey>(buffer, buffer_size);
         case Opcode::NEW_CSRK:
-            res = new MgmtEvtNewSignatureResolvingKey(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtNewSignatureResolvingKey>(buffer, buffer_size);
         case MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED:
-            res = new MgmtEvtDeviceWhitelistAdded(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtDeviceWhitelistAdded>(buffer, buffer_size);
         case MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED:
-            res = new MgmtEvtDeviceWhitelistRemoved(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtDeviceWhitelistRemoved>(buffer, buffer_size);
         case MgmtEvent::Opcode::NEW_CONN_PARAM:
-            res = new MgmtEvtNewConnectionParam(buffer, buffer_size); break;
+            return std::make_unique<MgmtEvtNewConnectionParam>(buffer, buffer_size);
         default:
-            res = new MgmtEvent(buffer, buffer_size, 0); break;
+            return std::make_unique<MgmtEvent>(buffer, buffer_size, 0);
     }
-    return std::shared_ptr<MgmtEvent>( res );
 }
 
 // *************************************************

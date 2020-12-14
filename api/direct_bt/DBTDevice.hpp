@@ -161,7 +161,7 @@ namespace direct_bt {
 
             bool checkPairingKeyDistributionComplete(const std::string& timestamp) const noexcept;
 
-            bool updatePairingState(std::shared_ptr<DBTDevice> sthis, std::shared_ptr<MgmtEvent> evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
+            bool updatePairingState(std::shared_ptr<DBTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
 
             /**
              * Forwarded from HCIHandler -> DBTAdapter -> this DBTDevice
@@ -203,6 +203,8 @@ namespace direct_bt {
             void disconnectSMP(const int caller) noexcept;
 
             void clearSMPStates(const bool connected) noexcept;
+
+            void sendMgmtEvDeviceDisconnected(std::unique_ptr<MgmtEvent> evt) noexcept;
 
         public:
             const uint64_t ts_creation;
