@@ -4,18 +4,28 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/api
 )
 
-add_executable (test_basictypes01    test_basictypes01.cpp)
-target_link_libraries (test_basictypes01 direct_bt)
-add_dependencies(test_basictypes01 direct_bt)
-add_test (NAME basictypes01   COMMAND test_basictypes01)
+# These examples use the standard separate compilation
+set( SOURCES_IDIOMATIC_EXAMPLES
+    test_btaddress01.cpp
+    test_uuid.cpp
+    test_attpdu01.cpp
+)
 
-add_executable (test_uuid            test_uuid.cpp)
-target_link_libraries (test_uuid direct_bt)
-add_dependencies(test_uuid direct_bt)
-add_test (NAME uuid           COMMAND test_uuid)
+string( REPLACE ".cpp" "" BASENAMES_IDIOMATIC_EXAMPLES "${SOURCES_IDIOMATIC_EXAMPLES}" )
+set( TARGETS_IDIOMATIC_EXAMPLES ${BASENAMES_IDIOMATIC_EXAMPLES} )
 
-add_executable (test_attpdu01        test_attpdu01.cpp)
-target_link_libraries (test_attpdu01 direct_bt)
-add_dependencies(test_attpdu01 direct_bt)
-add_test (NAME attpdu01       COMMAND test_attpdu01)
+foreach( name ${TARGETS_IDIOMATIC_EXAMPLES} )
+    add_executable(${name} ${name}.cpp)
+endforeach()
+
+set(ALL_EXAMPLE_TARGETS
+  ${TARGETS_IDIOMATIC_EXAMPLES}
+)
+
+foreach(name ${ALL_EXAMPLE_TARGETS})
+    target_link_libraries(${name} direct_bt catch2)
+    add_dependencies(${name} direct_bt catch2)
+    add_test (NAME ${name} COMMAND ${name})
+endforeach()
+
 
