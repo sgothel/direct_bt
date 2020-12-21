@@ -6,7 +6,7 @@ if (JNI_FOUND)
 endif (JNI_FOUND)
 
 set (tinyb_LIB_INCLUDE_DIRS
-    ${PROJECT_SOURCE_DIR}/jaucpp/include
+    ${PROJECT_SOURCE_DIR}/jaulib/include
     ${PROJECT_SOURCE_DIR}/api
     ${PROJECT_SOURCE_DIR}/api/direct_bt
     ${PROJECT_SOURCE_DIR}/api/tinyb
@@ -21,9 +21,9 @@ include_directories(
 )
 
 set (tinyb_JNI_SRCS
-  ${PROJECT_SOURCE_DIR}/jaucpp/java/jni/jni_mem.cxx
-  ${PROJECT_SOURCE_DIR}/jaucpp/java/jni/helper_jni.cxx
-  ${PROJECT_SOURCE_DIR}/jaucpp/src/basic_types.cpp
+  ${PROJECT_SOURCE_DIR}/jaulib/java/jni/jni_mem.cxx
+  ${PROJECT_SOURCE_DIR}/jaulib/java/jni/helper_jni.cxx
+  ${PROJECT_SOURCE_DIR}/jaulib/src/basic_types.cpp
   ${PROJECT_SOURCE_DIR}/java/jni/helper_base.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/BluetoothFactory.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/BluetoothUtils.cxx

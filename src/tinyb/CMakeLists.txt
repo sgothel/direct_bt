@@ -1,5 +1,5 @@
 set (tinyb_LIB_INCLUDE_DIRS
-  ${PROJECT_SOURCE_DIR}/jaucpp/include
+  ${PROJECT_SOURCE_DIR}/jaulib/include
   ${PROJECT_SOURCE_DIR}/api
   ${PROJECT_SOURCE_DIR}/api/tinyb
   ${PROJECT_SOURCE_DIR}/include
@@ -14,10 +14,10 @@ include_directories(
 )
 
 set (tinyb_LIB_SRCS
-  ${PROJECT_SOURCE_DIR}/jaucpp/src/dfa_utf8_decode.cpp
-  ${PROJECT_SOURCE_DIR}/jaucpp/src/environment.cpp
-  ${PROJECT_SOURCE_DIR}/jaucpp/src/debug.cpp
-  ${PROJECT_SOURCE_DIR}/jaucpp/src/basic_types.cpp
+  ${PROJECT_SOURCE_DIR}/jaulib/src/dfa_utf8_decode.cpp
+  ${PROJECT_SOURCE_DIR}/jaulib/src/environment.cpp
+  ${PROJECT_SOURCE_DIR}/jaulib/src/debug.cpp
+  ${PROJECT_SOURCE_DIR}/jaulib/src/basic_types.cpp
   ${PROJECT_SOURCE_DIR}/src/tinyb/BluetoothObject.cpp
   ${PROJECT_SOURCE_DIR}/src/tinyb/BluetoothEvent.cpp
   ${PROJECT_SOURCE_DIR}/src/tinyb/BluetoothManager.cpp

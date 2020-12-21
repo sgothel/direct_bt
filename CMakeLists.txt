@@ -135,7 +135,7 @@ set (tinyb_DOCS_DIR documentation)
 find_path (SYSTEM_USR_DIR "stdlib.h")
 include_directories (${SYSTEM_USR_DIR})
 
-add_subdirectory (jaucpp)
+add_subdirectory (jaulib)
 
 add_subdirectory (src/direct_bt)
 
