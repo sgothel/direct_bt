@@ -16,7 +16,8 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CC_FLAGS_WARNING "-Wall -Wextra -Werror")
 set (GCC_FLAGS_WARNING_FORMAT "-Wformat=2 -Wformat-overflow=2 -Wformat-nonliteral -Wformat-security -Wformat-signedness -Wformat-y2k")
 set (GCC_FLAGS_WARNING "-Wall -Wextra -Wshadow -Wtype-limits -Wsign-compare -Wcast-align=strict -Wnull-dereference -Winit-self ${GCC_FLAGS_WARNING_FORMAT} -Werror")
-set (GCC_FLAGS_WARNING_NO_ERROR "-Wno-error=array-bounds")
+# causes issues in jau::get_int8(..): "-Wnull-dereference"
+set (GCC_FLAGS_WARNING_NO_ERROR "-Wno-error=array-bounds -Werror -Wno-error=null-dereference")
 
 # too pedantic, but nice to check once in a while
 # set (DISABLED_CC_FLAGS_WARNING "-Wsign-conversion")
@@ -133,6 +134,8 @@ set (tinyb_DOCS_DIR documentation)
 
 find_path (SYSTEM_USR_DIR "stdlib.h")
 include_directories (${SYSTEM_USR_DIR})
+
+add_subdirectory (jaucpp)
 
 add_subdirectory (src/direct_bt)
 

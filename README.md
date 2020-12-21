@@ -168,7 +168,7 @@ Up to date API documentation can be found:
 
 * [Java API Doc](https://jausoft.com/projects/direct_bt/build/documentation/java/html/index.html).
 
-* [Jau C++ Standalone API Doc](https://jausoft.com/projects/jaucpp/build/documentation/cpp/html/index.html).
+* [jaulib Standalone C++ API Doc](https://jausoft.com/projects/jaulib/build/documentation/cpp/html/index.html).
 
 A guide for getting started with *Direct-BT* on C++ and Java may follow up.
 
@@ -227,7 +227,7 @@ Building Binaries
 
 The project requires CMake 3.13+ for building and a Java JDK >= 11.
 
-This project also uses the [Jau C++ Library](https://jausoft.com/cgit/jaucpp.git/about/)
+This project also uses the [Jau Library](https://jausoft.com/cgit/jaulib.git/about/)
 as a git submodule, which has been extracted earlier from this project
 to better encapsulation and allow general use.
 
