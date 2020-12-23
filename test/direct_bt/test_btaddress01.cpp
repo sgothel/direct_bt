@@ -3,7 +3,9 @@
 #include <cinttypes>
 #include <cstring>
 
-#include <cppunit.h>
+#define CATCH_CONFIG_MAIN
+#include <catch2/catch_amalgamated.hpp>
+#include <jau/test/catch2_ext.hpp>
 
 #include <jau/basic_types.hpp>
 #include <direct_bt/BTAddress.hpp>
@@ -11,27 +13,11 @@
 using namespace direct_bt;
 using namespace jau;
 
-// Test examples.
-class Cppunit_tests : public Cppunit {
-  public:
-    void single_test() override {
-        {
-            EUI48 mac01;
-            PRINTM("EUI48 size: whole0 "+std::to_string(sizeof(EUI48)));
-            PRINTM("EUI48 size: whole1 "+std::to_string(sizeof(mac01)));
-            PRINTM("EUI48 size:  data1 "+std::to_string(sizeof(mac01.b)));
-            CHECKM("EUI48 struct and data size not matching", sizeof(EUI48), sizeof(mac01));
-            CHECKM("EUI48 struct and data size not matching", sizeof(mac01), sizeof(mac01.b));
-        }
-
-    }
-};
-
-int main(int argc, char *argv[]) {
-    (void)argc;
-    (void)argv;
-
-    Cppunit_tests test1;
-    return test1.run();
+TEST_CASE( "EUI48 Test 01", "[datatype][eui48]" ) {
+    EUI48 mac01;
+    INFO_STR("EUI48 size: whole0 "+std::to_string(sizeof(EUI48)));
+    INFO_STR("EUI48 size: whole1 "+std::to_string(sizeof(mac01)));
+    INFO_STR("EUI48 size:  data1 "+std::to_string(sizeof(mac01.b)));
+    REQUIRE_MSG("EUI48 struct and data size match", sizeof(EUI48) == sizeof(mac01));
+    REQUIRE_MSG("EUI48 struct and data size match", sizeof(mac01) == sizeof(mac01.b));
 }
-
