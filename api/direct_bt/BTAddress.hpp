@@ -202,16 +202,13 @@ namespace direct_bt {
         std::string toString() const;
     } );
 
-    inline bool operator<(const EUI48& lhs, const EUI48& rhs) noexcept
-    { return memcmp(&lhs, &rhs, sizeof(EUI48))<0; }
-
     inline bool operator==(const EUI48& lhs, const EUI48& rhs) noexcept {
         if( &lhs == &rhs ) {
             return true;
         }
         //return !memcmp(&lhs, &rhs, sizeof(EUI48));
         const uint8_t * a = lhs.b;
-        const uint8_t * b = lhs.b;
+        const uint8_t * b = rhs.b;
         return a[0] == b[0] &&
                a[1] == b[1] &&
                a[2] == b[2] &&
