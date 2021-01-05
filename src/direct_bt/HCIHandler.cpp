@@ -380,7 +380,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                     if( nullptr != conn ) {
                         COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (ACL.SMP) %s for %s",
                                 smpPDU->toString().c_str(), conn->toString().c_str());
-                        jau::for_each_cow(hciSMPMsgCallbackList, [&](HCISMPMsgCallback &cb) {
+                        jau::for_each_fidelity(hciSMPMsgCallbackList.cbegin(), hciSMPMsgCallbackList.cend(), [&](HCISMPMsgCallback &cb) {
                            cb.invoke(conn->getAddressAndType(), *smpPDU, l2cap);
                         });
                     } else {
@@ -461,7 +461,7 @@ void HCIHandler::sendMgmtEvent(const MgmtEvent& event) noexcept {
     MgmtEventCallbackList & mgmtEventCallbackList = mgmtEventCallbackLists[static_cast<uint16_t>(event.getOpcode())];
     int invokeCount = 0;
 
-    jau::for_each_cow(mgmtEventCallbackList, [&](MgmtEventCallback &cb) {
+    jau::for_each_fidelity(mgmtEventCallbackList.cbegin(), mgmtEventCallbackList.cend(), [&](MgmtEventCallback &cb) {
         try {
             cb.invoke(event);
         } catch (std::exception &e) {

@@ -223,7 +223,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 // const std::shared_ptr<TROOctets> data( std::make_shared<POctets>(a->getValue()) );
                 const uint64_t timestamp = a->ts_creation;
                 int i=0;
-                jau::for_each_cow(characteristicListenerList, [&](std::shared_ptr<GATTCharacteristicListener> &l) {
+                jau::for_each_fidelity(characteristicListenerList.cbegin(), characteristicListenerList.cend(), [&](std::shared_ptr<GATTCharacteristicListener> &l) {
                     try {
                         if( l->match(*decl) ) {
                             l->notificationReceived(decl, data_view, timestamp);
@@ -251,7 +251,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 // const std::shared_ptr<TROOctets> data( std::make_shared<POctets>(a->getValue()) );
                 const uint64_t timestamp = a->ts_creation;
                 int i=0;
-                jau::for_each_cow(characteristicListenerList, [&](std::shared_ptr<GATTCharacteristicListener> &l) {
+                jau::for_each_fidelity(characteristicListenerList.cbegin(), characteristicListenerList.cend(), [&](std::shared_ptr<GATTCharacteristicListener> &l) {
                     try {
                         if( l->match(*decl) ) {
                             l->indicationReceived(decl, data_view, timestamp, cfmSent);

@@ -127,7 +127,7 @@ void SMPHandler::l2capReaderThreadImpl() {
 
             if( SMPPDUMsg::Opcode::SECURITY_REQUEST == opc ) {
                 COND_PRINT(env.DEBUG_DATA, "SMPHandler-IO RECV (SEC_REQ) %s", smpPDU->toString().c_str());
-                jau::for_each_cow(smpSecurityReqCallbackList, [&](SMPSecurityReqCallback &cb) {
+                jau::for_each_fidelity(smpSecurityReqCallbackList.cbegin(), smpSecurityReqCallbackList.cend(), [&](SMPSecurityReqCallback &cb) {
                    cb.invoke(*smpPDU);
                 });
             } else {

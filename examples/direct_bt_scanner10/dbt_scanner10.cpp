@@ -36,6 +36,7 @@
 #include <pthread.h>
 
 #include <jau/dfa_utf8_decode.hpp>
+#include <jau/basic_algos.hpp>
 
 #include <direct_bt/DirectBT.hpp>
 
@@ -101,7 +102,7 @@ static std::recursive_mutex mtx_devicesProcessed;
 static std::vector<BDAddressAndType> devicesProcessed;
 
 bool matches(std::vector<BDAddressAndType> &cont, const BDAddressAndType &mac) {
-    return cont.end() != find_if(cont.begin(), cont.end(), [&](const BDAddressAndType & it)->bool {
+    return cont.end() != jau::find_if(cont.begin(), cont.end(), [&](const BDAddressAndType & it)->bool {
        return it.matches(mac);
     });
 }
@@ -835,7 +836,7 @@ void test() {
         }
     }
 
-    jau::for_each_cow(adapterList, [](std::shared_ptr<DBTAdapter>& adapter) {
+    jau::for_each_fidelity(adapterList.cbegin(), adapterList.cend(), [](std::shared_ptr<DBTAdapter>& adapter) {
         fprintf(stderr, "****** EOL Adapter's Devices - pre close: %s\n", adapter->toString().c_str());
         adapter->printSharedPtrListOfDevices();
         adapter->close();

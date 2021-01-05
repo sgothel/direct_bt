@@ -859,7 +859,7 @@ void DBTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings_, 
                                             const uint64_t timestampMS) noexcept
 {
     int i=0;
-    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             l->adapterSettingsChanged(*this, old_settings_, current_settings, changes, timestampMS);
         } catch (std::exception &e) {
@@ -886,7 +886,7 @@ void DBTAdapter::sendAdapterSettingsInitial(AdapterStatusListener & asl, const u
 
 void DBTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept {
     int i=0;
-    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*device) ) {
                 l->deviceUpdated(device, updateMask, timestamp);
@@ -958,7 +958,7 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSo
     checkDiscoveryState();
 
     int i=0;
-    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             l->discoveringChanged(*this, currentMetaScanType, eventScanType, eventEnabled, keep_le_scan_alive, event.getTimestamp());
         } catch (std::exception &except) {
@@ -1100,7 +1100,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     device->notifyConnected(device, event.getHCIHandle(), io_cap_conn);
 
     int i=0;
-    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*device) ) {
                 if( EIRDataType::NONE != updateMask ) {
@@ -1136,7 +1136,7 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
         removeConnectedDevice(*device);
 
         int i=0;
-        jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*device) ) {
                     l->deviceDisconnected(device, event.getHCIStatus(), handle, event.getTimestamp());
@@ -1226,7 +1226,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
         removeConnectedDevice(*device);
 
         int i=0;
-        jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*device) ) {
                     l->deviceDisconnected(device, event.getHCIReason(), event.getHCIHandle(), event.getTimestamp());
@@ -1334,7 +1334,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
                 dev->getAddressAndType().toString().c_str(), eir->toString().c_str());
 
         int i=0;
-        jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*dev) ) {
                     l->deviceFound(dev, eir->getTimestamp());
@@ -1363,7 +1363,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             dev->getAddressAndType().toString().c_str(), eir->toString().c_str());
 
     int i=0;
-    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*dev) ) {
                 l->deviceFound(dev, eir->getTimestamp());
@@ -1455,7 +1455,7 @@ bool DBTAdapter::hciSMPMsgCallback(const BDAddressAndType & addressAndType,
 void DBTAdapter::sendDevicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept
 {
     int i=0;
-    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*device) ) {
                 l->devicePairingState(device, state, mode, timestamp);
@@ -1471,7 +1471,7 @@ void DBTAdapter::sendDevicePairingState(std::shared_ptr<DBTDevice> device, const
 
 void DBTAdapter::sendDeviceReady(std::shared_ptr<DBTDevice> device, uint64_t timestamp) noexcept {
     int i=0;
-    jau::for_each_cow(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             // Only issue if valid && received connected confirmation (HCI) && not have called disconnect yet.
             if( device->isValid() && device->getConnected() && device->allowDisconnect ) {

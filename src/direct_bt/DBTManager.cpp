@@ -156,7 +156,7 @@ void DBTManager::sendMgmtEvent(const MgmtEvent& event) noexcept {
     MgmtAdapterEventCallbackList & mgmtEventCallbackList = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(event.getOpcode())];
     int invokeCount = 0;
 
-    jau::for_each_cow(mgmtEventCallbackList, [&](MgmtAdapterEventCallback &cb) {
+    jau::for_each_fidelity(mgmtEventCallbackList.cbegin(), mgmtEventCallbackList.cend(), [&](MgmtAdapterEventCallback &cb) {
         if( 0 > cb.getDevID() || dev_id == cb.getDevID() ) {
             try {
                 cb.getCallback().invoke(event);
@@ -561,7 +561,7 @@ void DBTManager::close() noexcept {
     removeAllDevicesFromWhitelist();
     clearAllCallbacks();
 
-    jau::for_each_cow(adapterInfos, [&](std::shared_ptr<AdapterInfo> & a) {
+    jau::for_each(adapterInfos.cbegin(), adapterInfos.cend(), [&](const std::shared_ptr<AdapterInfo> & a) {
         shutdownAdapter(a->dev_id);
     });
     adapterInfos.clear();
@@ -1003,7 +1003,7 @@ int DBTManager::removeAllDevicesFromWhitelist() noexcept {
     int count = whitelist.size();
     DBG_PRINT("DBTManager::removeAllDevicesFromWhitelist.B: Start %d elements", count);
     whitelist.clear();
-    jau::for_each_cow(adapterInfos, [&](std::shared_ptr<AdapterInfo> & a) {
+    jau::for_each(adapterInfos.cbegin(), adapterInfos.cend(), [&](const std::shared_ptr<AdapterInfo> & a) {
         removeDeviceFromWhitelist(a->dev_id, BDAddressAndType::ANY_BREDR_DEVICE); // flush whitelist!
     });
 #endif
@@ -1163,7 +1163,7 @@ void DBTManager::processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept {
         DBG_PRINT("DBTManager::Adapter[%d] Added: Start %s, added %d", dev_id, ai->toString().c_str(), added);
         sendMgmtEvent(*e);
         DBG_PRINT("DBTManager::Adapter[%d] Added: User_ %s", dev_id, ai->toString().c_str());
-        jau::for_each_cow(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
+        jau::for_each_fidelity(mgmtChangedAdapterSetCallbackList.cbegin(), mgmtChangedAdapterSetCallbackList.cend(), [&](ChangedAdapterSetCallback &cb) {
            cb.invoke(true /* added */, *ai);
         });
         DBG_PRINT("DBTManager::Adapter[%d] Added: End__ %s", dev_id, ai->toString().c_str());
@@ -1178,7 +1178,7 @@ void DBTManager::processAdapterRemoved(std::unique_ptr<MgmtEvent> e) noexcept {
         DBG_PRINT("DBTManager::Adapter[%d] Removed: Start: %s", dev_id, ai->toString().c_str());
         sendMgmtEvent(*e);
         DBG_PRINT("DBTManager::Adapter[%d] Removed: User_: %s", dev_id, ai->toString().c_str());
-        jau::for_each_cow(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
+        jau::for_each_fidelity(mgmtChangedAdapterSetCallbackList.cbegin(), mgmtChangedAdapterSetCallbackList.cend(), [&](ChangedAdapterSetCallback &cb) {
            cb.invoke(false /* added */, *ai);
         });
         DBG_PRINT("DBTManager::Adapter[%d] Removed: End__: %s", dev_id, ai->toString().c_str());
@@ -1223,8 +1223,8 @@ static ChangedAdapterSetCallbackList::equal_comparator _changedAdapterSetCallbac
 void DBTManager::addChangedAdapterSetCallback(const ChangedAdapterSetCallback & l) {
     mgmtChangedAdapterSetCallbackList.push_back(l);
 
-    jau::for_each_cow(adapterInfos, [&](std::shared_ptr<AdapterInfo>& ai) {
-        jau::for_each_cow(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
+    jau::for_each(adapterInfos.cbegin(), adapterInfos.cend(), [&](const std::shared_ptr<AdapterInfo>& ai) {
+        jau::for_each_fidelity(mgmtChangedAdapterSetCallbackList.cbegin(), mgmtChangedAdapterSetCallbackList.cend(), [&](ChangedAdapterSetCallback &cb) {
            cb.invoke(true /* added */, *ai);
         });
     });
