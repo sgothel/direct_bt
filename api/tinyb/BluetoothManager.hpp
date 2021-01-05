@@ -28,6 +28,8 @@
 #include <vector>
 #include <list>
 
+#include <jau/cpp_lang_macros.hpp>
+
 class tinyb::BluetoothManager: public BluetoothObject
 {
 friend class BluetoothAdapter;
@@ -114,9 +116,17 @@ public:
         std::string* identifier, BluetoothObject *parent,
         std::chrono::milliseconds timeout = std::chrono::milliseconds::zero())
     {
+#if defined(__cxx_rtti_available__)
         std::unique_ptr<BluetoothObject> obj = find(T::class_type(), name, identifier, parent, timeout);
         T *t = dynamic_cast<T *>(obj.release());
         return std::unique_ptr<T>(t);
+#else
+        (void)name;
+        (void) identifier;
+        (void) parent;
+        (void) timeout;
+        return std::unique_ptr<T>(nullptr);
+#endif
     }
 
     /** Find a BluetoothObject of a type matching type. If parameters name,
