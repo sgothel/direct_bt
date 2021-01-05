@@ -30,6 +30,8 @@
 #include <vector>
 #include <fstream>
 #include <iostream>
+#include <unordered_set>
+#include <unordered_map>
 
 #include <cinttypes>
 
@@ -95,11 +97,12 @@ static void removeDevice(std::shared_ptr<DBTDevice> device);
 static void resetAdapter(DBTAdapter *a, int mode);
 static bool startDiscovery(DBTAdapter *a, std::string msg);
 
-static std::vector<BDAddressAndType> devicesInProcessing;
+
+static std::unordered_set<BDAddressAndType> devicesInProcessing;
 static std::recursive_mutex mtx_devicesProcessing;
 
 static std::recursive_mutex mtx_devicesProcessed;
-static std::vector<BDAddressAndType> devicesProcessed;
+static std::unordered_set<BDAddressAndType> devicesProcessed;
 
 bool matches(std::vector<BDAddressAndType> &cont, const BDAddressAndType &mac) {
     return cont.end() != jau::find_if(cont.begin(), cont.end(), [&](const BDAddressAndType & it)->bool {
@@ -107,8 +110,8 @@ bool matches(std::vector<BDAddressAndType> &cont, const BDAddressAndType &mac) {
     });
 }
 
-bool contains(std::vector<BDAddressAndType> &cont, const BDAddressAndType &mac) {
-    return cont.end() != find(cont.begin(), cont.end(), mac);
+bool contains(std::unordered_set<direct_bt::BDAddressAndType> &cont, const BDAddressAndType &mac) {
+    return cont.end() != cont.find(mac);
 }
 
 void printList(const std::string &msg, std::vector<BDAddressAndType> &cont) {
@@ -118,9 +121,16 @@ void printList(const std::string &msg, std::vector<BDAddressAndType> &cont) {
     fprintf(stderr, "\n");
 }
 
+void printList(const std::string &msg, std::unordered_set<BDAddressAndType> &cont) {
+    fprintf(stderr, "%s ", msg.c_str());
+    std::for_each(cont.begin(), cont.end(),
+            [](const BDAddressAndType &mac) { fprintf(stderr, "%s, ", mac.toString().c_str()); });
+    fprintf(stderr, "\n");
+}
+
 static void addToDevicesProcessed(const BDAddressAndType &a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
-    devicesProcessed.push_back(a);
+    devicesProcessed.insert(devicesProcessed.end(), a);
 }
 static bool isDeviceProcessed(const BDAddressAndType & a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
@@ -146,7 +156,7 @@ static void printDevicesProcessed(const std::string &msg) {
 
 static void addToDevicesProcessing(const BDAddressAndType &a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
-    devicesInProcessing.push_back(a);
+    devicesInProcessing.insert(devicesInProcessing.end(), a);
 }
 static bool removeFromDevicesProcessing(const BDAddressAndType &a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
@@ -518,7 +528,7 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
             }
         }
     }
-#if 1
+
     //
     // GATT Service Processing
     //
@@ -635,6 +645,11 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
     }
 
 exit:
+    fprintf(stderr, "****** Processing Ready Device: End-1: Success %d on %s; devInProc %zu\n",
+            success, device->toString().c_str(), getDeviceProcessingCount());
+
+    removeFromDevicesProcessing(device->getAddressAndType());
+
     if( !USE_WHITELIST && 0 == getDeviceProcessingCount() ) {
         startDiscovery(&device->getAdapter(), "post-processing-1");
     }
@@ -652,9 +667,7 @@ exit:
         device->getAdapter().printSharedPtrListOfDevices();
     }
 
-#endif
-
-    fprintf(stderr, "****** Processing Ready Device: End: Success %d on %s; devInProc %zu\n",
+    fprintf(stderr, "****** Processing Ready Device: End-2: Success %d on %s; devInProc %zu\n",
             success, device->toString().c_str(), getDeviceProcessingCount());
 
     if( success ) {
@@ -662,7 +675,6 @@ exit:
     }
 
     if( !KEEP_CONNECTED ) {
-        removeFromDevicesProcessing(device->getAddressAndType());
 
         if( UNPAIR_DEVICE_POST ) {
             const HCIStatusCode unpair_res = device->unpair();

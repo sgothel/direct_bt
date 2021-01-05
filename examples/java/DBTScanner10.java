@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -284,8 +285,8 @@ public class DBTScanner10 {
             return false;
         }
     }
-    Collection<BDAddressAndType> devicesInProcessing = Collections.synchronizedCollection(new ArrayList<>());
-    Collection<BDAddressAndType> devicesProcessed = Collections.synchronizedCollection(new ArrayList<>());
+    Collection<BDAddressAndType> devicesInProcessing = Collections.synchronizedCollection(new HashSet<>());
+    Collection<BDAddressAndType> devicesProcessed = Collections.synchronizedCollection(new HashSet<>());
 
     final AdapterStatusListener statusListener = new AdapterStatusListener() {
         @Override
@@ -681,6 +682,11 @@ public class DBTScanner10 {
             t.printStackTrace();
         }
 
+        println("****** Processing Ready Device: End-1: Success " + success +
+                           " on " + device.toString() + "; devInProc "+devicesInProcessing.size());
+
+        devicesInProcessing.remove(device.getAddressAndType());
+
         if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
             startDiscovery(device.getAdapter(), "post-processing-1");
         }
@@ -698,14 +704,13 @@ public class DBTScanner10 {
             // Even w/ GATT_PING_ENABLED, we utilize disconnect event to clean up -> remove
         }
 
-        println("****** Processing Ready Device: End: Success " + success +
+        println("****** Processing Ready Device: End-2: Success " + success +
                            " on " + device.toString() + "; devInProc "+devicesInProcessing.size());
         if( success ) {
             devicesProcessed.add(device.getAddressAndType());
         }
 
         if( !KEEP_CONNECTED ) {
-            devicesInProcessing.remove(device.getAddressAndType());
 
             if( UNPAIR_DEVICE_POST ) {
                 final HCIStatusCode unpair_res = device.unpair();
