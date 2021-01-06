@@ -766,10 +766,10 @@ static std::shared_ptr<DBTAdapter> createAdapter(const int dev_id0, const bool v
     return adapter;
 }
 
-static jau::cow_vector<std::shared_ptr<DBTAdapter>> adapterList;
+static jau::cow_darray<std::shared_ptr<DBTAdapter>> adapterList;
 
 static std::shared_ptr<DBTAdapter> getAdapter(const uint16_t dev_id) {
-    std::shared_ptr<std::vector<std::shared_ptr<DBTAdapter>>> snapshot = adapterList.get_snapshot();
+    std::shared_ptr<jau::darray<std::shared_ptr<DBTAdapter>>> snapshot = adapterList.get_snapshot();
     auto begin = snapshot->begin();
     auto it = std::find_if(begin, snapshot->end(), [&](std::shared_ptr<DBTAdapter> const& p) -> bool {
         return p->dev_id == dev_id;
@@ -783,7 +783,7 @@ static std::shared_ptr<DBTAdapter> getAdapter(const uint16_t dev_id) {
 static std::shared_ptr<DBTAdapter> removeAdapter(const uint16_t dev_id) {
     std::shared_ptr<DBTAdapter> res = nullptr;
     const std::lock_guard<std::recursive_mutex> lock(adapterList.get_write_mutex());
-    std::shared_ptr<std::vector<std::shared_ptr<DBTAdapter>>> store = adapterList.copy_store();
+    std::shared_ptr<jau::darray<std::shared_ptr<DBTAdapter>>> store = adapterList.copy_store();
     for(auto it = store->begin(); it != store->end(); ) {
         if ( (*it)->dev_id == dev_id ) {
             res = *it;

@@ -99,7 +99,7 @@ bool GATTHandler::validateConnected() noexcept {
     return true;
 }
 
-static jau::cow_vector<std::shared_ptr<GATTCharacteristicListener>>::equal_comparator _characteristicListenerRefEqComparator =
+static jau::cow_darray<std::shared_ptr<GATTCharacteristicListener>>::equal_comparator _characteristicListenerRefEqComparator =
         [](const std::shared_ptr<GATTCharacteristicListener> &a, const std::shared_ptr<GATTCharacteristicListener> &b) -> bool { return *a == *b; };
 
 bool GATTHandler::addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) {
@@ -124,7 +124,7 @@ bool GATTHandler::removeCharacteristicListener(const GATTCharacteristicListener 
         return false;
     }
     const std::lock_guard<std::recursive_mutex> lock(characteristicListenerList.get_write_mutex());
-    std::shared_ptr<std::vector<std::shared_ptr<GATTCharacteristicListener>>> store = characteristicListenerList.copy_store();
+    std::shared_ptr<jau::darray<std::shared_ptr<GATTCharacteristicListener>>> store = characteristicListenerList.copy_store();
     int count = 0;
     for(auto it = store->begin(); it != store->end(); ) {
         if ( **it == *l ) {
@@ -156,7 +156,7 @@ int GATTHandler::removeAllAssociatedCharacteristicListener(const GATTCharacteris
         return false;
     }
     const std::lock_guard<std::recursive_mutex> lock(characteristicListenerList.get_write_mutex());
-    std::shared_ptr<std::vector<std::shared_ptr<GATTCharacteristicListener>>> store = characteristicListenerList.copy_store();
+    std::shared_ptr<jau::darray<std::shared_ptr<GATTCharacteristicListener>>> store = characteristicListenerList.copy_store();
     int count = 0;
     for(auto it = store->begin(); it != store->end(); ) {
         if ( (*it)->match(*associatedCharacteristic) ) {

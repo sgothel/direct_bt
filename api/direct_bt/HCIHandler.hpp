@@ -149,7 +149,7 @@ namespace direct_bt {
 
     typedef jau::FunctionDef<bool, const BDAddressAndType& /* addressAndType */,
                                    const SMPPDUMsg&, const HCIACLData::l2cap_frame& /* source */> HCISMPMsgCallback;
-    typedef jau::cow_vector<HCISMPMsgCallback> HCISMPMsgCallbackList;
+    typedef jau::cow_darray<HCISMPMsgCallback> HCISMPMsgCallbackList;
 
     /**
      * A thread safe singleton handler of the HCI control channel to one controller (BT adapter)

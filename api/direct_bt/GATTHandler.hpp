@@ -38,7 +38,7 @@
 
 #include <jau/environment.hpp>
 #include <jau/ringbuffer.hpp>
-#include <jau/cow_vector.hpp>
+#include <jau/cow_darray.hpp>
 
 #include "UUID.hpp"
 #include "BTTypes.hpp"
@@ -173,7 +173,7 @@ namespace direct_bt {
 
             /** send immediate confirmation of indication events from device, defaults to true. */
             jau::relaxed_atomic_bool sendIndicationConfirmation = true;
-            jau::cow_vector<std::shared_ptr<GATTCharacteristicListener>> characteristicListenerList;
+            jau::cow_darray<std::shared_ptr<GATTCharacteristicListener>> characteristicListenerList;
 
             uint16_t serverMTU;
             std::atomic<uint16_t> usedMTU; // concurrent use in ctor(set), send and l2capReaderThreadImpl

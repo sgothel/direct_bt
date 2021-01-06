@@ -39,7 +39,7 @@
 #include <jau/environment.hpp>
 #include <jau/ringbuffer.hpp>
 #include <jau/java_uplink.hpp>
-#include <jau/cow_vector.hpp>
+#include <jau/cow_darray.hpp>
 
 #include "BTTypes.hpp"
 #include "BTIoctl.hpp"
@@ -177,7 +177,7 @@ namespace direct_bt {
      * @see DBTManager::removeChangedAdapterSetCallback()
      */
     typedef jau::FunctionDef<bool, bool, const AdapterInfo&> ChangedAdapterSetCallback;
-    typedef jau::cow_vector<ChangedAdapterSetCallback> ChangedAdapterSetCallbackList;
+    typedef jau::cow_darray<ChangedAdapterSetCallback> ChangedAdapterSetCallbackList;
 
     /**
      * A thread safe singleton handler of the Linux Kernel's BlueZ manager control channel.
@@ -238,7 +238,7 @@ namespace direct_bt {
 
             ChangedAdapterSetCallbackList mgmtChangedAdapterSetCallbackList;
 
-            jau::cow_vector<std::shared_ptr<AdapterInfo>> adapterInfos;
+            jau::cow_darray<std::shared_ptr<AdapterInfo>> adapterInfos;
 
             /**
              * Using defaultIOCapability on added AdapterInfo.

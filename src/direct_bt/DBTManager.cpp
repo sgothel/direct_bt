@@ -480,7 +480,7 @@ next1:
         {
             // Not required: CTOR: const std::lock_guard<std::recursive_mutex> lock(adapterInfos.get_write_mutex());
             // Not required: CTOR: std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> store = adapterInfos.copy_store();
-            std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+            std::shared_ptr<jau::darray<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
 
             for(int i=0; i < num_adapter; i++) {
                 const uint16_t dev_id = jau::get_uint16(data, 2+i*2, true /* littleEndian */);
@@ -611,7 +611,7 @@ void DBTManager::close() noexcept {
 }
 
 int DBTManager::findAdapterInfoIndex(const uint16_t dev_id) const noexcept {
-    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+    std::shared_ptr<jau::darray<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
     auto begin = snapshot->begin();
     auto it = std::find_if(begin, snapshot->end(), [&](std::shared_ptr<AdapterInfo> const& p) -> bool {
         return p->dev_id == dev_id;
@@ -623,7 +623,7 @@ int DBTManager::findAdapterInfoIndex(const uint16_t dev_id) const noexcept {
     }
 }
 int DBTManager::findAdapterInfoDevId(const EUI48 &mac) const noexcept {
-    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+    std::shared_ptr<jau::darray<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
     auto begin = snapshot->begin();
     auto it = std::find_if(begin, snapshot->end(), [&](std::shared_ptr<AdapterInfo> const& p) -> bool {
         return p->address == mac;
@@ -635,7 +635,7 @@ int DBTManager::findAdapterInfoDevId(const EUI48 &mac) const noexcept {
     }
 }
 std::shared_ptr<AdapterInfo> DBTManager::findAdapterInfo(const EUI48 &mac) const noexcept {
-    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+    std::shared_ptr<jau::darray<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
     auto begin = snapshot->begin();
     auto it = std::find_if(begin, snapshot->end(), [&](std::shared_ptr<AdapterInfo> const& p) -> bool {
         return p->address == mac;
@@ -647,7 +647,7 @@ std::shared_ptr<AdapterInfo> DBTManager::findAdapterInfo(const EUI48 &mac) const
     }
 }
 std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const uint16_t dev_id) const noexcept {
-    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+    std::shared_ptr<jau::darray<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
     auto begin = snapshot->begin();
     auto it = std::find_if(begin, snapshot->end(), [&](std::shared_ptr<AdapterInfo> const& p) -> bool {
         return p->dev_id == dev_id;
@@ -660,7 +660,7 @@ std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const uint16_t dev_id) c
 }
 bool DBTManager::addAdapterInfo(std::shared_ptr<AdapterInfo> ai) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(adapterInfos.get_write_mutex());
-    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> store = adapterInfos.copy_store();
+    std::shared_ptr<jau::darray<std::shared_ptr<AdapterInfo>>> store = adapterInfos.copy_store();
 
     auto begin = store->begin();
     auto it = std::find_if(begin, store->end(), [&](std::shared_ptr<AdapterInfo> const& p) -> bool {
@@ -677,7 +677,7 @@ bool DBTManager::addAdapterInfo(std::shared_ptr<AdapterInfo> ai) noexcept {
 }
 std::shared_ptr<AdapterInfo> DBTManager::removeAdapterInfo(const uint16_t dev_id) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(adapterInfos.get_write_mutex());
-    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> store = adapterInfos.copy_store();
+    std::shared_ptr<jau::darray<std::shared_ptr<AdapterInfo>>> store = adapterInfos.copy_store();
 
     for(auto it = store->begin(); it != store->end(); ) {
         std::shared_ptr<AdapterInfo> & ai = *it;
@@ -704,7 +704,7 @@ BTMode DBTManager::getCurrentBTMode(uint16_t dev_id) const noexcept {
 }
 
 std::shared_ptr<AdapterInfo> DBTManager::getDefaultAdapterInfo() const noexcept {
-    std::shared_ptr<std::vector<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
+    std::shared_ptr<jau::darray<std::shared_ptr<AdapterInfo>>> snapshot = adapterInfos.get_snapshot();
     auto begin = snapshot->begin();
     auto it = std::find_if(begin, snapshot->end(), [](std::shared_ptr<AdapterInfo> const& p) -> bool {
         return p->isCurrentSettingBitSet(AdapterSetting::POWERED);

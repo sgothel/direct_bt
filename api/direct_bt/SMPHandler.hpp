@@ -38,7 +38,7 @@
 #include <jau/environment.hpp>
 #include <jau/ringbuffer.hpp>
 #include <jau/function_def.hpp>
-#include <jau/cow_vector.hpp>
+#include <jau/cow_darray.hpp>
 
 #include "UUID.hpp"
 #include "BTTypes.hpp"
@@ -131,7 +131,7 @@ namespace direct_bt {
 
 
     typedef jau::FunctionDef<bool, const SMPPDUMsg&> SMPSecurityReqCallback;
-    typedef jau::cow_vector<SMPSecurityReqCallback> SMPSecurityReqCallbackList;
+    typedef jau::cow_darray<SMPSecurityReqCallback> SMPSecurityReqCallbackList;
 
     /**
      * A thread safe SMP handler associated to one device via one L2CAP connection.

@@ -33,7 +33,7 @@
 #include <mutex>
 
 #include <jau/function_def.hpp>
-#include <jau/cow_vector.hpp>
+#include <jau/cow_darray.hpp>
 #include <jau/packed_attribute.hpp>
 
 #include "BTTypes.hpp"
@@ -2233,7 +2233,7 @@ namespace direct_bt {
     };
 
     typedef jau::FunctionDef<bool, const MgmtEvent&> MgmtEventCallback;
-    typedef jau::cow_vector<MgmtEventCallback> MgmtEventCallbackList;
+    typedef jau::cow_darray<MgmtEventCallback> MgmtEventCallbackList;
 
     class MgmtAdapterEventCallback {
         private:
@@ -2273,7 +2273,7 @@ namespace direct_bt {
             }
     };
 
-    typedef jau::cow_vector<MgmtAdapterEventCallback> MgmtAdapterEventCallbackList;
+    typedef jau::cow_darray<MgmtAdapterEventCallback> MgmtAdapterEventCallbackList;
 
 } // namespace direct_bt
 
