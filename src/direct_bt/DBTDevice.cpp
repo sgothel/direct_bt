@@ -53,6 +53,7 @@ DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
     le_features = LEFeatures::NONE;
     isConnected = false;
     allowDisconnect = false;
+    clearSMPStates(false /* connected */);
     if( !r.isSet(EIRDataType::BDADDR) ) {
         throw jau::IllegalArgumentException("Address not set: "+r.toString(false), E_FILE_LINE);
     }
