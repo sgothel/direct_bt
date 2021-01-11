@@ -323,6 +323,8 @@ Changes
 **2.2.00 *Direct-BT* Maturity (Bluetooth LE)**
 
 * TODO
+* Completing SMP/Security implementation (WIP)
+* Replaced std::vector and jau::cow_vector with jau::darray and jau::cow_darray
 
 **2.1.33**
 
