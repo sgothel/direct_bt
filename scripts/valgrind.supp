@@ -546,4 +546,12 @@
    ...
 }
 
+{
+   jau_check2_01
+   Memcheck:Cond
+   ...
+   fun:*Catch*RunContext*
+   ...
+}
+
 
