@@ -30,9 +30,10 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 
 #include <mutex>
+
+#include <jau/darray.hpp>
 
 #include "DBTTypes.hpp"
 
@@ -68,7 +69,7 @@ namespace direct_bt {
             jau::relaxed_atomic_uint16 hciConnHandle;
             jau::ordered_atomic<LEFeatures, std::memory_order_relaxed> le_features;
             std::shared_ptr<ManufactureSpecificData> advMSD = nullptr;
-            std::vector<std::shared_ptr<uuid_t>> advServices;
+            jau::darray<std::shared_ptr<uuid_t>> advServices;
 #if SMP_SUPPORTED_BY_OS
             std::shared_ptr<SMPHandler> smpHandler = nullptr;
             std::recursive_mutex mtx_smpHandler;
@@ -118,7 +119,7 @@ namespace direct_bt {
             /** Add advertised service (GAP discovery) */
             bool addAdvService(std::shared_ptr<uuid_t> const &uuid) noexcept;
             /** Add advertised service (GAP discovery) */
-            bool addAdvServices(std::vector<std::shared_ptr<uuid_t>> const & services) noexcept;
+            bool addAdvServices(jau::darray<std::shared_ptr<uuid_t>> const & services) noexcept;
             /**
              * Find advertised service (GAP discovery) index
              * @return index >= 0 if found, otherwise -1
@@ -285,7 +286,7 @@ namespace direct_bt {
              * use {@link #getGATTServices()}.
              * </p>
              */
-            std::vector<std::shared_ptr<uuid_t>> getAdvertisedServices() const noexcept;
+            jau::darray<std::shared_ptr<uuid_t>> getAdvertisedServices() const noexcept;
 
             std::string toString() const noexcept override { return toString(false); }
 
@@ -739,7 +740,7 @@ namespace direct_bt {
              * In case no GATT connection has been established it will be created via connectGATT().
              * </p>
              */
-            std::vector<std::shared_ptr<GATTService>> getGATTServices() noexcept;
+            jau::darray<std::shared_ptr<GATTService>> getGATTServices() noexcept;
 
             /**
              * Returns the matching GATTService for the given uuid.

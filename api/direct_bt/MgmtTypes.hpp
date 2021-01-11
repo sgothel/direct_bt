@@ -609,7 +609,7 @@ namespace direct_bt {
                 memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE+1+2), &key, sizeof(MgmtLinkKeyInfo));
             }
 
-            MgmtLoadLinkKeyCmd(const uint16_t dev_id, const bool debug_keys, const std::vector<MgmtLinkKeyInfo> &keys)
+            MgmtLoadLinkKeyCmd(const uint16_t dev_id, const bool debug_keys, const jau::darray<MgmtLinkKeyInfo> &keys)
             : MgmtCommand(Opcode::LOAD_LINK_KEYS, dev_id, 1 + 2 + keys.size() * sizeof(MgmtLinkKeyInfo))
             {
                 jau::nsize_t offset = MGMT_HEADER_SIZE;
@@ -667,7 +667,7 @@ namespace direct_bt {
                 memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE+2), &key, sizeof(MgmtLongTermKeyInfo));
             }
 
-            MgmtLoadLongTermKeyCmd(const uint16_t dev_id, const std::vector<MgmtLongTermKeyInfo> &keys)
+            MgmtLoadLongTermKeyCmd(const uint16_t dev_id, const jau::darray<MgmtLongTermKeyInfo> &keys)
             : MgmtCommand(Opcode::LOAD_LONG_TERM_KEYS, dev_id, 2 + keys.size() * sizeof(MgmtLongTermKeyInfo))
             {
                 jau::nsize_t offset = MGMT_HEADER_SIZE;
@@ -757,7 +757,7 @@ namespace direct_bt {
                 memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE+2), &key, sizeof(MgmtIdentityResolvingKeyInfo));
             }
 
-            MgmtLoadIdentityResolvingKeyCmd(const uint16_t dev_id, const std::vector<MgmtIdentityResolvingKeyInfo> &keys)
+            MgmtLoadIdentityResolvingKeyCmd(const uint16_t dev_id, const jau::darray<MgmtIdentityResolvingKeyInfo> &keys)
             : MgmtCommand(Opcode::LOAD_IRKS, dev_id, 2 + keys.size() * sizeof(MgmtIdentityResolvingKeyInfo))
             {
                 jau::nsize_t offset = MGMT_HEADER_SIZE;
@@ -1055,7 +1055,7 @@ namespace direct_bt {
                 memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE+2), &connParam, sizeof(MgmtConnParam));
             }
 
-            MgmtLoadConnParamCmd(const uint16_t dev_id, const std::vector<MgmtConnParam> &connParams)
+            MgmtLoadConnParamCmd(const uint16_t dev_id, const jau::darray<MgmtConnParam> &connParams)
             : MgmtCommand(Opcode::LOAD_CONN_PARAM, dev_id, 2 + connParams.size() * sizeof(MgmtConnParam))
             {
                 jau::nsize_t offset = MGMT_HEADER_SIZE;

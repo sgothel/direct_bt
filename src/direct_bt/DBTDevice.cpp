@@ -27,7 +27,6 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 #include <cstdio>
 
 #include  <algorithm>
@@ -95,7 +94,7 @@ bool DBTDevice::addAdvService(std::shared_ptr<uuid_t> const &uuid) noexcept
     }
     return false;
 }
-bool DBTDevice::addAdvServices(std::vector<std::shared_ptr<uuid_t>> const & services) noexcept
+bool DBTDevice::addAdvServices(jau::darray<std::shared_ptr<uuid_t>> const & services) noexcept
 {
     bool res = false;
     for(size_t j=0; j<services.size(); j++) {
@@ -127,7 +126,7 @@ std::shared_ptr<ManufactureSpecificData> const DBTDevice::getManufactureSpecific
     return advMSD;
 }
 
-std::vector<std::shared_ptr<uuid_t>> DBTDevice::getAdvertisedServices() const noexcept {
+jau::darray<std::shared_ptr<uuid_t>> DBTDevice::getAdvertisedServices() const noexcept {
     const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
     return advServices;
 }
@@ -1311,13 +1310,13 @@ std::shared_ptr<GATTHandler> DBTDevice::getGATTHandler() noexcept {
     return gattHandler;
 }
 
-std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept {
+jau::darray<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept {
     std::shared_ptr<GATTHandler> gh = getGATTHandler();
     if( nullptr == gh ) {
         ERR_PRINT("DBTDevice::getGATTServices: GATTHandler nullptr");
-        return std::vector<std::shared_ptr<GATTService>>();
+        return jau::darray<std::shared_ptr<GATTService>>();
     }
-    std::vector<std::shared_ptr<GATTService>> & gattServices = gh->getServices(); // reference of the GATTHandler's list
+    jau::darray<std::shared_ptr<GATTService>> gattServices = gh->getServices();
     if( gattServices.size() > 0 ) { // reuse previous discovery result
         return gattServices;
     }
@@ -1350,7 +1349,7 @@ std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept 
 }
 
 std::shared_ptr<GATTService> DBTDevice::findGATTService(std::shared_ptr<uuid_t> const &uuid) {
-    const std::vector<std::shared_ptr<GATTService>> & gattServices = getGATTServices(); // reference of the GATTHandler's list
+    const jau::darray<std::shared_ptr<GATTService>> & gattServices = getGATTServices(); // reference of the GATTHandler's list
     const size_t size = gattServices.size();
     for (size_t i = 0; i < size; i++) {
         const std::shared_ptr<GATTService> & e = gattServices[i];

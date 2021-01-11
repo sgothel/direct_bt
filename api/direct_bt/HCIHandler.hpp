@@ -29,12 +29,12 @@
 #include <cstring>
 #include <string>
 #include <cstdint>
-#include <array>
 
 #include <mutex>
 #include <atomic>
 #include <thread>
 
+#include <jau/darray.hpp>
 #include <jau/environment.hpp>
 #include <jau/ringbuffer.hpp>
 #include <jau/java_uplink.hpp>
@@ -251,8 +251,8 @@ namespace direct_bt {
 
             std::atomic<ScanType> currentScanType;
 
-            std::vector<HCIConnectionRef> connectionList;
-            std::vector<HCIConnectionRef> disconnectCmdList;
+            jau::darray<HCIConnectionRef> connectionList;
+            jau::darray<HCIConnectionRef> disconnectCmdList;
             std::recursive_mutex mtx_connectionList; // Recurses from disconnect -> findTrackerConnection, addOrUpdateTrackerConnection
 
             /** Exclusive [le] connection command (status + pending completed) one at a time */
@@ -270,7 +270,7 @@ namespace direct_bt {
              * @param addrType key to matching connection
              * @param handle ignored for existing tracker _if_ invalid, i.e. zero.
              */
-            HCIConnectionRef addOrUpdateHCIConnection(std::vector<HCIConnectionRef> &list,
+            HCIConnectionRef addOrUpdateHCIConnection(jau::darray<HCIConnectionRef> &list,
                                                       const BDAddressAndType& addressAndType, const uint16_t handle) noexcept;
             HCIConnectionRef addOrUpdateTrackerConnection(const BDAddressAndType& addressAndType, const uint16_t handle) noexcept {
                 return addOrUpdateHCIConnection(connectionList, addressAndType, handle);
@@ -279,7 +279,7 @@ namespace direct_bt {
                 return addOrUpdateHCIConnection(disconnectCmdList, addressAndType, handle);
             }
 
-            HCIConnectionRef findHCIConnection(std::vector<HCIConnectionRef> &list, const BDAddressAndType& addressAndType) noexcept;
+            HCIConnectionRef findHCIConnection(jau::darray<HCIConnectionRef> &list, const BDAddressAndType& addressAndType) noexcept;
             HCIConnectionRef findTrackerConnection(const BDAddressAndType& addressAndType) noexcept {
                 return findHCIConnection(connectionList, addressAndType);
             }
@@ -291,7 +291,7 @@ namespace direct_bt {
             HCIConnectionRef removeTrackerConnection(const HCIConnectionRef conn) noexcept;
             int countPendingTrackerConnections() noexcept;
 
-            HCIConnectionRef removeHCIConnection(std::vector<HCIConnectionRef> &list, const uint16_t handle) noexcept;
+            HCIConnectionRef removeHCIConnection(jau::darray<HCIConnectionRef> &list, const uint16_t handle) noexcept;
             HCIConnectionRef removeTrackerConnection(const uint16_t handle) noexcept {
                 return removeHCIConnection(connectionList, handle);
             }

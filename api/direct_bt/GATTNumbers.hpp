@@ -29,6 +29,7 @@
 #include <cstdint>
 
 #include <jau/basic_types.hpp>
+#include <jau/darray.hpp>
 
 #include "UUID.hpp"
 #include "OctetTypes.hpp"
@@ -184,7 +185,7 @@ struct GattCharacteristicSpec {
         BroadcastIdx
     };
     /** Aggregated in PropertySpecIdx order */
-    const std::vector<GattCharacteristicPropertySpec> propertySpec;
+    const jau::darray<GattCharacteristicPropertySpec> propertySpec;
 
     const GattClientCharacteristicConfigSpec clientConfig;
 
@@ -193,7 +194,7 @@ struct GattCharacteristicSpec {
 
 struct GattServiceCharacteristic {
     const GattServiceType service;
-    const std::vector<GattCharacteristicSpec> characteristics;
+    const jau::darray<GattCharacteristicSpec> characteristics;
 
     std::string toString() const noexcept;
 };
@@ -206,7 +207,7 @@ struct GattServiceCharacteristic {
 extern const GattServiceCharacteristic GATT_GENERIC_ACCESS_SRVC;
 extern const GattServiceCharacteristic GATT_HEALTH_THERMOMETER_SRVC;
 extern const GattServiceCharacteristic GATT_DEVICE_INFORMATION_SRVC;
-extern const std::vector<const GattServiceCharacteristic*> GATT_SERVICES;
+extern const jau::darray<const GattServiceCharacteristic*> GATT_SERVICES;
 
 /**
  * Find the GattServiceCharacteristic entry by given uuid16,

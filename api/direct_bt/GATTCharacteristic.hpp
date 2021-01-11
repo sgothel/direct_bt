@@ -30,7 +30,6 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 
 #include <mutex>
 #include <atomic>
@@ -105,7 +104,7 @@ namespace direct_bt {
             static std::string getPropertyString(const PropertyBitVal prop) noexcept;
 
             static std::string getPropertiesString(const PropertyBitVal properties) noexcept;
-            static std::vector<std::unique_ptr<std::string>> getPropertiesStringList(const PropertyBitVal properties) noexcept;
+            static jau::darray<std::unique_ptr<std::string>> getPropertiesStringList(const PropertyBitVal properties) noexcept;
 
             /**
              * Characteristics's Service Handle - key to service's handle range, retrieved from Characteristics data.
@@ -138,7 +137,7 @@ namespace direct_bt {
             std::unique_ptr<const uuid_t> value_type;
 
             /** List of Characteristic Descriptions as shared reference */
-            std::vector<GATTDescriptorRef> descriptorList;
+            jau::darray<GATTDescriptorRef> descriptorList;
 
             /* Optional Client Characteristic Configuration index within descriptorList */
             int clientCharacteristicsConfigIndex = -1;

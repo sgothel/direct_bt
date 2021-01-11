@@ -29,8 +29,6 @@
 #include <cstring>
 #include <string>
 #include <cstdint>
-#include <array>
-#include <vector>
 
 #include <mutex>
 #include <atomic>
@@ -39,6 +37,7 @@
 #include <jau/environment.hpp>
 #include <jau/ringbuffer.hpp>
 #include <jau/java_uplink.hpp>
+#include <jau/darray.hpp>
 #include <jau/cow_darray.hpp>
 
 #include "BTTypes.hpp"
@@ -208,7 +207,7 @@ namespace direct_bt {
                 WhitelistElem(uint16_t dev_id_, BDAddressAndType address_and_type_, HCIWhitelistConnectType ctype_)
                 : dev_id(dev_id_), address_and_type(address_and_type_), ctype(ctype_) { }
             };
-            std::vector<std::shared_ptr<WhitelistElem>> whitelist;
+            jau::darray<std::shared_ptr<WhitelistElem>> whitelist;
 
             const MgmtEnv & env;
             const BTMode defaultBTMode;
@@ -238,14 +237,15 @@ namespace direct_bt {
 
             ChangedAdapterSetCallbackList mgmtChangedAdapterSetCallbackList;
 
-            jau::cow_darray<std::shared_ptr<AdapterInfo>> adapterInfos;
+            typedef jau::cow_darray<std::shared_ptr<AdapterInfo>> adapterInfos_t;
+            adapterInfos_t adapterInfos;
 
             /**
              * Using defaultIOCapability on added AdapterInfo.
              * Sharing same dev_id <-> index mapping of adapterInfos using findAdapterInfoIndex().
              * Piggy back reusing adapterInfos.get_write_mutex().
              */
-            std::vector<SMPIOCapability> adapterIOCapability;
+            jau::darray<SMPIOCapability> adapterIOCapability;
 
             void mgmtReaderThreadImpl() noexcept;
 

@@ -30,7 +30,6 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 
 #include <mutex>
 #include <atomic>
@@ -173,11 +172,12 @@ namespace direct_bt {
 
             /** send immediate confirmation of indication events from device, defaults to true. */
             jau::relaxed_atomic_bool sendIndicationConfirmation = true;
-            jau::cow_darray<std::shared_ptr<GATTCharacteristicListener>> characteristicListenerList;
+            typedef jau::cow_darray<std::shared_ptr<GATTCharacteristicListener>> characteristicListenerList_t;
+            characteristicListenerList_t characteristicListenerList;
 
             uint16_t serverMTU;
             std::atomic<uint16_t> usedMTU; // concurrent use in ctor(set), send and l2capReaderThreadImpl
-            std::vector<GATTServiceRef> services;
+            jau::darray<GATTServiceRef> services;
             std::shared_ptr<GattGenericAccessSvc> genericAccess = nullptr;
 
             bool validateConnected() noexcept;
@@ -281,7 +281,7 @@ namespace direct_bt {
              * Returns nullptr if not found.
              * </p>
              */
-            GATTCharacteristicRef findCharacterisicsByValueHandle(const uint16_t charValueHandle, std::vector<GATTServiceRef> &services) noexcept;
+            GATTCharacteristicRef findCharacterisicsByValueHandle(const uint16_t charValueHandle, jau::darray<GATTServiceRef> &services) noexcept;
 
             /**
              * Find and return the GATTCharacterisicsDecl within given primary service
@@ -303,7 +303,7 @@ namespace direct_bt {
              * @param shared_this shared pointer of this instance, used to forward a weak_ptr to GATTService for back-reference. Reference is validated.
              * @return GATTHandler's internal GATTService vector of discovered services
              */
-            std::vector<GATTServiceRef> & discoverCompletePrimaryServices(std::shared_ptr<GATTHandler> shared_this);
+            jau::darray<GATTServiceRef> & discoverCompletePrimaryServices(std::shared_ptr<GATTHandler> shared_this);
 
             /**
              * Returns a reference of the internal kept GATTService list.
@@ -311,7 +311,7 @@ namespace direct_bt {
              * The internal list will be populated via {@link #discoverCompletePrimaryServices()}.
              * </p>
              */
-            inline std::vector<GATTServiceRef> & getServices() noexcept { return services; }
+            inline jau::darray<GATTServiceRef> & getServices() noexcept { return services; }
 
             /**
              * Returns the internal kept shared GattGenericAccessSvc instance.
@@ -330,7 +330,7 @@ namespace direct_bt {
              * @param result vector containing all discovered primary services
              * @return true on success, otherwise false
              */
-            bool discoverPrimaryServices(std::shared_ptr<GATTHandler> shared_this, std::vector<GATTServiceRef> & result);
+            bool discoverPrimaryServices(std::shared_ptr<GATTHandler> shared_this, jau::darray<GATTServiceRef> & result);
 
             /**
              * Discover all characteristics of a service and declaration attributes _only_.
@@ -518,11 +518,11 @@ namespace direct_bt {
             /** Higher level semantic functionality **/
             /*****************************************************/
 
-            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(std::vector<GATTServiceRef> & primServices);
-            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(std::vector<GATTCharacteristicRef> & genericAccessCharDeclList);
+            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(jau::darray<GATTServiceRef> & primServices);
+            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(jau::darray<GATTCharacteristicRef> & genericAccessCharDeclList);
 
-            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(std::vector<GATTServiceRef> & primServices);
-            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(std::vector<GATTCharacteristicRef> & deviceInfoCharDeclList);
+            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(jau::darray<GATTServiceRef> & primServices);
+            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(jau::darray<GATTCharacteristicRef> & deviceInfoCharDeclList);
 
             /**
              * Issues a ping to the device, validating whether it is still reachable.

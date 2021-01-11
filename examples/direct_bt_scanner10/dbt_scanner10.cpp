@@ -27,7 +27,6 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 #include <fstream>
 #include <iostream>
 #include <unordered_set>
@@ -36,9 +35,11 @@
 #include <cinttypes>
 
 #include <pthread.h>
+#include <csignal>
 
 #include <jau/dfa_utf8_decode.hpp>
 #include <jau/basic_algos.hpp>
+#include <jau/darray.hpp>
 
 #include <direct_bt/DirectBT.hpp>
 
@@ -74,7 +75,7 @@ static bool GATT_PING_ENABLED = false;
 static bool REMOVE_DEVICE = true;
 
 static bool USE_WHITELIST = false;
-static std::vector<BDAddressAndType> WHITELIST;
+static jau::darray<BDAddressAndType> WHITELIST;
 
 static std::string charIdentifier = "";
 static int charValue = 0;
@@ -82,7 +83,7 @@ static int charValue = 0;
 static bool SHOW_UPDATE_EVENTS = false;
 static bool QUIET = false;
 
-static std::vector<BDAddressAndType> waitForDevices;
+static jau::darray<BDAddressAndType> waitForDevices;
 
 const static int NO_PASSKEY = -1;
 static int pairing_passkey = NO_PASSKEY;
@@ -104,7 +105,7 @@ static std::recursive_mutex mtx_devicesProcessing;
 static std::recursive_mutex mtx_devicesProcessed;
 static std::unordered_set<BDAddressAndType> devicesProcessed;
 
-bool matches(std::vector<BDAddressAndType> &cont, const BDAddressAndType &mac) {
+bool matches(jau::darray<BDAddressAndType> &cont, const BDAddressAndType &mac) {
     return cont.end() != jau::find_if(cont.begin(), cont.end(), [&](const BDAddressAndType & it)->bool {
        return it.matches(mac);
     });
@@ -114,7 +115,7 @@ bool contains(std::unordered_set<direct_bt::BDAddressAndType> &cont, const BDAdd
     return cont.end() != cont.find(mac);
 }
 
-void printList(const std::string &msg, std::vector<BDAddressAndType> &cont) {
+void printList(const std::string &msg, jau::darray<BDAddressAndType> &cont) {
     fprintf(stderr, "%s ", msg.c_str());
     std::for_each(cont.begin(), cont.end(),
             [](const BDAddressAndType &mac) { fprintf(stderr, "%s, ", mac.toString().c_str()); });
@@ -140,7 +141,7 @@ static size_t getDeviceProcessedCount() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
     return devicesProcessed.size();
 }
-static bool allDevicesProcessed(std::vector<BDAddressAndType> &cont) {
+static bool allDevicesProcessed(jau::darray<BDAddressAndType> &cont) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
     for (auto it = cont.begin(); it != cont.end(); ++it) {
         if( !contains(devicesProcessed, *it) ) {
@@ -537,10 +538,17 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
         device->getAdapter().printSharedPtrListOfDevices();
     }
     try {
-        std::vector<GATTServiceRef> primServices = device->getGATTServices();
+        jau::darray<GATTServiceRef> primServices = device->getGATTServices();
         if( 0 == primServices.size() ) {
             fprintf(stderr, "****** Processing Ready Device: getServices() failed %s\n", device->toString().c_str());
             goto exit;
+        }
+        fprintf(stderr, "  **** JAU C-01 Service Count %d\n", (int)primServices.size());
+        int _i=0;
+        for(auto it = primServices.begin(); it != primServices.end(); it++) { // JAU FIXME
+            GATTServiceRef primSrv = *it;
+            fprintf(stderr, "  [%2.2d] JAU C-01 Service %s\n", (int)_i, primSrv->toString().c_str());
+            ++_i;
         }
 
         const uint64_t t5 = getCurrentMilliseconds();
@@ -600,13 +608,22 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
             }
         }
 
+        for(size_t i=0; i<primServices.size(); i++) { // JAU FIXME
+            GATTServiceRef primServiceRef = primServices.at(i);
+            fprintf(stderr, "  [%2.2d] Service - Ptr %p\n", (int)i, primServiceRef.get());
+            if( nullptr != primServiceRef ) {
+                GATTService & primService = *primServiceRef;
+                fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
+            }
+        }
+        // raise (SIGABRT); // JAU FIXME
         for(size_t i=0; i<primServices.size(); i++) {
             GATTService & primService = *primServices.at(i);
             if( !QUIET ) {
-                fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
+                // fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
                 fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
             }
-            std::vector<GATTCharacteristicRef> & serviceCharacteristics = primService.characteristicList;
+            jau::darray<GATTCharacteristicRef> & serviceCharacteristics = primService.characteristicList;
             for(size_t j=0; j<serviceCharacteristics.size(); j++) {
                 GATTCharacteristic & serviceChar = *serviceCharacteristics.at(j);
                 if( !QUIET ) {
@@ -621,7 +638,7 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
                         }
                     }
                 }
-                std::vector<GATTDescriptorRef> & charDescList = serviceChar.descriptorList;
+                jau::darray<GATTDescriptorRef> & charDescList = serviceChar.descriptorList;
                 for(size_t k=0; k<charDescList.size(); k++) {
                     GATTDescriptor & charDesc = *charDescList.at(k);
                     if( !QUIET ) {
@@ -766,15 +783,16 @@ static std::shared_ptr<DBTAdapter> createAdapter(const int dev_id0, const bool v
     return adapter;
 }
 
-static jau::cow_darray<std::shared_ptr<DBTAdapter>> adapterList;
+typedef jau::cow_darray<std::shared_ptr<DBTAdapter>> cow_adapter_list_t;
+static cow_adapter_list_t adapterList;
 
 static std::shared_ptr<DBTAdapter> getAdapter(const uint16_t dev_id) {
-    std::shared_ptr<jau::darray<std::shared_ptr<DBTAdapter>>> snapshot = adapterList.get_snapshot();
-    auto begin = snapshot->begin();
-    auto it = std::find_if(begin, snapshot->end(), [&](std::shared_ptr<DBTAdapter> const& p) -> bool {
+    cow_adapter_list_t::const_iterator begin = adapterList.cbegin();
+    cow_adapter_list_t::const_iterator end = begin.cend();
+    auto it = jau::find_if(begin, end, [&](std::shared_ptr<DBTAdapter> const& p) -> bool {
         return p->dev_id == dev_id;
     });
-    if ( it == std::end(*snapshot) ) {
+    if ( it == end ) {
         return nullptr;
     } else {
         return *it;
@@ -782,6 +800,7 @@ static std::shared_ptr<DBTAdapter> getAdapter(const uint16_t dev_id) {
 }
 static std::shared_ptr<DBTAdapter> removeAdapter(const uint16_t dev_id) {
     std::shared_ptr<DBTAdapter> res = nullptr;
+    cow_adapter_list_t::iterator begin = adapterList.begin(); // lock, copy_store and set_store @ dtor!
     const std::lock_guard<std::recursive_mutex> lock(adapterList.get_write_mutex());
     std::shared_ptr<jau::darray<std::shared_ptr<DBTAdapter>>> store = adapterList.copy_store();
     for(auto it = store->begin(); it != store->end(); ) {
@@ -839,7 +858,7 @@ void test() {
           )
         {
             fprintf(stderr, "****** EOL Test MULTI_MEASUREMENTS left %d, processed %zu/%zu\n",
-                    MULTI_MEASUREMENTS.load(), getDeviceProcessedCount(), waitForDevices.size());
+                    MULTI_MEASUREMENTS.load(), getDeviceProcessedCount(), (size_t)waitForDevices.size());
             printList("****** WaitForDevice ", waitForDevices);
             printDevicesProcessed("****** DevicesProcessed ");
             done = true;
@@ -848,7 +867,7 @@ void test() {
         }
     }
 
-    jau::for_each_fidelity(adapterList.cbegin(), adapterList.cend(), [](std::shared_ptr<DBTAdapter>& adapter) {
+    jau::for_each_fidelity(adapterList, [](std::shared_ptr<DBTAdapter>& adapter) {
         fprintf(stderr, "****** EOL Adapter's Devices - pre close: %s\n", adapter->toString().c_str());
         adapter->printSharedPtrListOfDevices();
         adapter->close();

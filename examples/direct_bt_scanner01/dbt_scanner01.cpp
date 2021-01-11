@@ -275,7 +275,7 @@ int main(int argc, char *argv[])
 
                 gatt->addCharacteristicListener( std::shared_ptr<GATTCharacteristicListener>( new MyGATTEventListener() ) );
 
-                std::vector<GATTServiceRef> & primServices = gatt->discoverCompletePrimaryServices(gatt);
+                jau::darray<GATTServiceRef> & primServices = gatt->discoverCompletePrimaryServices(gatt);
                 const uint64_t t5 = getCurrentMilliseconds();
                 {
                     const uint64_t td45 = t5 - t4; // connect -> gatt complete
@@ -302,7 +302,7 @@ int main(int argc, char *argv[])
                     GATTService & primService = *primServices.at(i);
                     fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
                     fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
-                    std::vector<GATTCharacteristicRef> & serviceCharacteristics = primService.characteristicList;
+                    jau::darray<GATTCharacteristicRef> & serviceCharacteristics = primService.characteristicList;
                     for(size_t j=0; j<serviceCharacteristics.size() && gatt->isConnected(); j++) {
                         GATTCharacteristic & serviceChar = *serviceCharacteristics.at(j);
                         fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());

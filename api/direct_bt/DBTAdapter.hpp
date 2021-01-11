@@ -30,11 +30,11 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 
 #include <mutex>
 #include <atomic>
 
+#include <jau/darray.hpp>
 #include <jau/cow_darray.hpp>
 
 #include "DBTTypes.hpp"
@@ -220,10 +220,11 @@ namespace direct_bt {
             std::mutex mtx_single_conn_device;
             std::condition_variable cv_single_conn_device;
 
-            std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
-            std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
-            std::vector<std::shared_ptr<DBTDevice>> sharedDevices; // All active shared devices. Final holder of DBTDevice lifecycle!
-            jau::cow_darray<std::shared_ptr<AdapterStatusListener>> statusListenerList;
+            jau::darray<std::shared_ptr<DBTDevice>> connectedDevices;
+            jau::darray<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
+            jau::darray<std::shared_ptr<DBTDevice>> sharedDevices; // All active shared devices. Final holder of DBTDevice lifecycle!
+            typedef jau::cow_darray<std::shared_ptr<AdapterStatusListener>> statusListenerList_t;
+            statusListenerList_t statusListenerList;
             std::mutex mtx_discoveredDevices;
             std::mutex mtx_connectedDevices;
             std::mutex mtx_discovery;
@@ -231,8 +232,8 @@ namespace direct_bt {
 
             bool validateDevInfo() noexcept;
 
-            static std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
-            std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device) noexcept;
+            static std::shared_ptr<DBTDevice> findDevice(jau::darray<std::shared_ptr<DBTDevice>> & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
+            std::shared_ptr<DBTDevice> findDevice(jau::darray<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device) noexcept;
 
             /**
              * Closes all device connections, stops discovery and cleans up all references.
@@ -255,7 +256,7 @@ namespace direct_bt {
             friend bool DBTDevice::updatePairingState(std::shared_ptr<DBTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
             friend void DBTDevice::hciSMPMsgCallback(std::shared_ptr<DBTDevice> sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
             friend void DBTDevice::processDeviceReady(std::shared_ptr<DBTDevice> sthis, const uint64_t timestamp);
-            friend std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept;
+            friend jau::darray<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() noexcept;
 
             bool lockConnect(const DBTDevice & device, const bool wait, const SMPIOCapability io_cap) noexcept;
             bool unlockConnect(const DBTDevice & device) noexcept;
@@ -651,7 +652,7 @@ namespace direct_bt {
              * use 'DeviceStatusListener::deviceFound(..)' callback.
              * </p>
              */
-            std::vector<std::shared_ptr<DBTDevice>> getDiscoveredDevices() const noexcept;
+            jau::darray<std::shared_ptr<DBTDevice>> getDiscoveredDevices() const noexcept;
 
             /** Discards all discovered devices. Returns number of removed discovered devices. */
             int removeDiscoveredDevices() noexcept;

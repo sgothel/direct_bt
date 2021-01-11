@@ -29,7 +29,6 @@
 #include <cstring>
 #include <string>
 #include <cstdint>
-#include <array>
 
 #include <mutex>
 #include <atomic>
@@ -38,6 +37,7 @@
 #include <jau/environment.hpp>
 #include <jau/ringbuffer.hpp>
 #include <jau/function_def.hpp>
+#include <jau/darray.hpp>
 #include <jau/cow_darray.hpp>
 
 #include "UUID.hpp"

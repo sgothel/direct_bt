@@ -27,11 +27,11 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 #include <cstdio>
 
 #include  <algorithm>
 
+#include <jau/darray.hpp>
 #include <jau/debug.hpp>
 
 #include "GATTNumbers.hpp"
@@ -193,7 +193,7 @@ const GattServiceCharacteristic direct_bt::GATT_DEVICE_INFORMATION_SRVC = { DEVI
 		  }
         } };
 
-const std::vector<const GattServiceCharacteristic*> direct_bt::GATT_SERVICES = {
+const jau::darray<const GattServiceCharacteristic*> direct_bt::GATT_SERVICES = {
         &direct_bt::GATT_GENERIC_ACCESS_SRVC, &direct_bt::GATT_HEALTH_THERMOMETER_SRVC, &direct_bt::GATT_DEVICE_INFORMATION_SRVC };
 
 #define CASE_TO_STRING(V) case V: return #V;

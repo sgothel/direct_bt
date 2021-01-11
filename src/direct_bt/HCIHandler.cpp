@@ -27,7 +27,6 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 #include <cstdio>
 
 #include <algorithm>
@@ -76,11 +75,12 @@ __pack( struct hci_rp_status {
     __u8    status;
 } );
 
-HCIHandler::HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(std::vector<HCIConnectionRef> &list,
+HCIHandler::HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(jau::darray<HCIConnectionRef> &list,
                                                       const BDAddressAndType& addressAndType, const uint16_t handle) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     // remove all old entry with given address first
-    for (auto it = list.begin(); it != list.end(); ) {
+    auto end = list.end();
+    for (auto it = list.begin(); it != end; ++it) {
         HCIConnectionRef conn = *it;
         if ( conn->equals(addressAndType) ) {
             // reuse same entry
@@ -97,8 +97,6 @@ HCIHandler::HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(std::vector<HC
                 conn->setHandle( handle );
             }
             return conn; // done
-        } else {
-            ++it;
         }
     }
     HCIConnectionRef res( new HCIConnection(addressAndType, handle) );
@@ -106,10 +104,10 @@ HCIHandler::HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(std::vector<HC
     return res;
 }
 
-HCIHandler::HCIConnectionRef HCIHandler::findHCIConnection(std::vector<HCIConnectionRef> &list, const BDAddressAndType& addressAndType) noexcept {
+HCIHandler::HCIConnectionRef HCIHandler::findHCIConnection(jau::darray<HCIConnectionRef> &list, const BDAddressAndType& addressAndType) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
-    const size_t size = list.size();
-    for (size_t i = 0; i < size; i++) {
+    const jau::nsize_t size = list.size();
+    for (jau::nsize_t i = 0; i < size; i++) {
         HCIConnectionRef & e = list[i];
         if( e->equals(addressAndType) ) {
             return e;
@@ -120,8 +118,8 @@ HCIHandler::HCIConnectionRef HCIHandler::findHCIConnection(std::vector<HCIConnec
 
 HCIHandler::HCIConnectionRef HCIHandler::findTrackerConnection(const uint16_t handle) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
-    const size_t size = connectionList.size();
-    for (size_t i = 0; i < size; i++) {
+    const jau::nsize_t size = connectionList.size();
+    for (jau::nsize_t i = 0; i < size; i++) {
         HCIConnectionRef & e = connectionList[i];
         if ( handle == e->getHandle() ) {
             return e;
@@ -132,13 +130,12 @@ HCIHandler::HCIConnectionRef HCIHandler::findTrackerConnection(const uint16_t ha
 
 HCIHandler::HCIConnectionRef HCIHandler::removeTrackerConnection(const HCIConnectionRef conn) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
-    for (auto it = connectionList.begin(); it != connectionList.end(); ) {
+    auto end = connectionList.end();
+    for (auto it = connectionList.begin(); it != end; ++it) {
         HCIConnectionRef e = *it;
         if ( *e == *conn ) {
-            it = connectionList.erase(it);
+            connectionList.erase(it);
             return e; // done
-        } else {
-            ++it;
         }
     }
     return nullptr;
@@ -154,15 +151,14 @@ int HCIHandler::countPendingTrackerConnections() noexcept {
     }
     return count;
 }
-HCIHandler::HCIConnectionRef HCIHandler::removeHCIConnection(std::vector<HCIConnectionRef> &list, const uint16_t handle) noexcept {
+HCIHandler::HCIConnectionRef HCIHandler::removeHCIConnection(jau::darray<HCIConnectionRef> &list, const uint16_t handle) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
-    for (auto it = list.begin(); it != list.end(); ) {
+    auto end = list.end();
+    for (auto it = list.begin(); it != end; ++it) {
         HCIConnectionRef e = *it;
         if ( e->getHandle() == handle ) {
-            it = list.erase(it);
+            list.erase(it);
             return e; // done
-        } else {
-            ++it;
         }
     }
     return nullptr;
@@ -380,7 +376,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                     if( nullptr != conn ) {
                         COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (ACL.SMP) %s for %s",
                                 smpPDU->toString().c_str(), conn->toString().c_str());
-                        jau::for_each_fidelity(hciSMPMsgCallbackList.cbegin(), hciSMPMsgCallbackList.cend(), [&](HCISMPMsgCallback &cb) {
+                        jau::for_each_fidelity(hciSMPMsgCallbackList, [&](HCISMPMsgCallback &cb) {
                            cb.invoke(conn->getAddressAndType(), *smpPDU, l2cap);
                         });
                     } else {
@@ -428,7 +424,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                 hciEventRing.putBlocking( std::move( event ) );
             } else if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
                 // issue callbacks for the translated AD events
-                std::vector<std::shared_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
+                jau::darray<std::shared_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
                 jau::for_each_idx(eirlist, [&](std::shared_ptr<EInfoReport> & eir) {
                     // COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (AD EIR) %s", eir->toString().c_str());
                     const MgmtEvtDeviceFound e(dev_id, eir);
@@ -461,7 +457,7 @@ void HCIHandler::sendMgmtEvent(const MgmtEvent& event) noexcept {
     MgmtEventCallbackList & mgmtEventCallbackList = mgmtEventCallbackLists[static_cast<uint16_t>(event.getOpcode())];
     int invokeCount = 0;
 
-    jau::for_each_fidelity(mgmtEventCallbackList.cbegin(), mgmtEventCallbackList.cend(), [&](MgmtEventCallback &cb) {
+    jau::for_each_fidelity(mgmtEventCallbackList, [&](MgmtEventCallback &cb) {
         try {
             cb.invoke(event);
         } catch (std::exception &e) {

@@ -260,7 +260,7 @@ int main(int argc, char *argv[])
             //
             // GATT Service Processing
             //
-            std::vector<GATTServiceRef> primServices = device->getGATTServices(); // implicit GATT connect...
+            jau::darray<GATTServiceRef> primServices = device->getGATTServices(); // implicit GATT connect...
             if( primServices.size() > 0 ) {
                 const uint64_t t5 = getCurrentMilliseconds();
                 {
@@ -291,7 +291,7 @@ int main(int argc, char *argv[])
                     GATTService & primService = *primServices.at(i);
                     fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
                     fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
-                    std::vector<GATTCharacteristicRef> & serviceCharacteristics = primService.characteristicList;
+                    jau::darray<GATTCharacteristicRef> & serviceCharacteristics = primService.characteristicList;
                     for(size_t j=0; j<serviceCharacteristics.size(); j++) {
                         GATTCharacteristic & serviceChar = *serviceCharacteristics.at(j);
                         fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());

@@ -30,12 +30,12 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 
 #include <mutex>
 #include <atomic>
 
 #include <jau/java_uplink.hpp>
+#include <jau/darray.hpp>
 
 #include "UUID.hpp"
 #include "BTTypes.hpp"
@@ -94,7 +94,7 @@ namespace direct_bt {
             std::unique_ptr<const uuid_t> type;
 
             /** List of Characteristic Declarations as shared reference */
-            std::vector<GATTCharacteristicRef> characteristicList;
+            jau::darray<GATTCharacteristicRef> characteristicList;
 
             GATTService(const std::shared_ptr<GATTHandler> &handler_, const bool isPrimary_,
                         const uint16_t startHandle_, const uint16_t endHandle_, std::unique_ptr<const uuid_t> && type_) noexcept

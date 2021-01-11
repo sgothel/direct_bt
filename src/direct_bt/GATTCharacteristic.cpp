@@ -90,8 +90,8 @@ std::string GATTCharacteristic::getPropertiesString(const PropertyBitVal propert
     return out;
 }
 
-std::vector<std::unique_ptr<std::string>> GATTCharacteristic::getPropertiesStringList(const PropertyBitVal properties) noexcept {
-    std::vector<std::unique_ptr<std::string>> out;
+jau::darray<std::unique_ptr<std::string>> GATTCharacteristic::getPropertiesStringList(const PropertyBitVal properties) noexcept {
+    jau::darray<std::unique_ptr<std::string>> out;
     const PropertyBitVal none = static_cast<PropertyBitVal>(0);
     const uint8_t one = 1;
     for(int i=0; i<8; i++) {

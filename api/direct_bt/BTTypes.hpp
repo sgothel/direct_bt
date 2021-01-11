@@ -30,9 +30,9 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 
 #include <jau/basic_types.hpp>
+#include <jau/darray.hpp>
 
 #include "OctetTypes.hpp"
 #include "BTAddress.hpp"
@@ -641,7 +641,7 @@ namespace direct_bt {
         int8_t rssi = 127; // The core spec defines 127 as the "not available" value
         int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
         std::shared_ptr<ManufactureSpecificData> msd = nullptr;
-        std::vector<std::shared_ptr<uuid_t>> services;
+        jau::darray<std::shared_ptr<uuid_t>> services;
         uint32_t device_class = 0;
         AppearanceCat appearance = AppearanceCat::UNKNOWN;
         POctets hash;
@@ -687,7 +687,7 @@ namespace direct_bt {
          * https://www.bluetooth.com/specifications/archived-specifications/
          * </p>
          */
-        static std::vector<std::shared_ptr<EInfoReport>> read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept;
+        static jau::darray<std::shared_ptr<EInfoReport>> read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept;
 
         /**
          * Reads the Extended Inquiry Response (EIR) or Advertising Data (AD) segments
@@ -732,7 +732,7 @@ namespace direct_bt {
         int8_t getTxPower() const noexcept { return tx_power; }
 
         std::shared_ptr<ManufactureSpecificData> getManufactureSpecificData() const noexcept { return msd; }
-        std::vector<std::shared_ptr<uuid_t>> getServices() const noexcept { return services; }
+        jau::darray<std::shared_ptr<uuid_t>> getServices() const noexcept { return services; }
 
         uint32_t getDeviceClass() const noexcept { return device_class; }
         AppearanceCat getAppearance() const noexcept { return appearance; }

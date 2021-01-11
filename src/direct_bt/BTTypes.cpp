@@ -27,12 +27,12 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 #include <cstdio>
 
 #include  <algorithm>
 
 #include <jau/debug.hpp>
+#include <jau/darray.hpp>
 
 #include "BTTypes.hpp"
 
@@ -706,9 +706,9 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
     return count;
 }
 
-std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept {
+jau::darray<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept {
     jau::nsize_t const num_reports = (jau::nsize_t) data[0];
-    std::vector<std::shared_ptr<EInfoReport>> ad_reports;
+    jau::darray<std::shared_ptr<EInfoReport>> ad_reports;
 
     if( 0 == num_reports || num_reports > 0x19 ) {
         DBG_PRINT("AD-Reports: Invalid reports count: %d", num_reports);

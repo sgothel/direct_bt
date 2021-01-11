@@ -27,7 +27,6 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 #include <cstdio>
 
 #include  <algorithm>
@@ -123,21 +122,13 @@ bool GATTHandler::removeCharacteristicListener(const GATTCharacteristicListener 
         ERR_PRINT("Given GATTCharacteristicListener ref is null");
         return false;
     }
-    const std::lock_guard<std::recursive_mutex> lock(characteristicListenerList.get_write_mutex());
-    std::shared_ptr<jau::darray<std::shared_ptr<GATTCharacteristicListener>>> store = characteristicListenerList.copy_store();
-    int count = 0;
-    for(auto it = store->begin(); it != store->end(); ) {
+    auto it = characteristicListenerList.begin(); // lock mutex and copy_store
+    for (; !it.is_end(); ++it ) {
         if ( **it == *l ) {
-            it = store->erase(it);
-            count++;
-            break;
-        } else {
-            ++it;
+            it.erase();
+            it.write_back();
+            return true;
         }
-    }
-    if( 0 < count ) {
-        characteristicListenerList.set_store(std::move(store));
-        return true;
     }
     return false;
 }
@@ -155,23 +146,20 @@ int GATTHandler::removeAllAssociatedCharacteristicListener(const GATTCharacteris
         ERR_PRINT("Given GATTCharacteristic ref is null");
         return false;
     }
-    const std::lock_guard<std::recursive_mutex> lock(characteristicListenerList.get_write_mutex());
-    std::shared_ptr<jau::darray<std::shared_ptr<GATTCharacteristicListener>>> store = characteristicListenerList.copy_store();
     int count = 0;
-    for(auto it = store->begin(); it != store->end(); ) {
+    auto it = characteristicListenerList.begin(); // lock mutex and copy_store
+    while( !it.is_end() ) {
         if ( (*it)->match(*associatedCharacteristic) ) {
-            it = store->erase(it);
-            count++;
-            break;
+            it.erase();
+            ++count;
         } else {
             ++it;
         }
     }
     if( 0 < count ) {
-        characteristicListenerList.set_store(std::move(store));
-        return true;
+        it.write_back();
     }
-    return false;
+    return count;
 }
 
 int GATTHandler::removeAllCharacteristicListener() noexcept {
@@ -223,7 +211,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 // const std::shared_ptr<TROOctets> data( std::make_shared<POctets>(a->getValue()) );
                 const uint64_t timestamp = a->ts_creation;
                 int i=0;
-                jau::for_each_fidelity(characteristicListenerList.cbegin(), characteristicListenerList.cend(), [&](std::shared_ptr<GATTCharacteristicListener> &l) {
+                jau::for_each_fidelity(characteristicListenerList, [&](std::shared_ptr<GATTCharacteristicListener> &l) {
                     try {
                         if( l->match(*decl) ) {
                             l->notificationReceived(decl, data_view, timestamp);
@@ -251,7 +239,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 // const std::shared_ptr<TROOctets> data( std::make_shared<POctets>(a->getValue()) );
                 const uint64_t timestamp = a->ts_creation;
                 int i=0;
-                jau::for_each_fidelity(characteristicListenerList.cbegin(), characteristicListenerList.cend(), [&](std::shared_ptr<GATTCharacteristicListener> &l) {
+                jau::for_each_fidelity(characteristicListenerList, [&](std::shared_ptr<GATTCharacteristicListener> &l) {
                     try {
                         if( l->match(*decl) ) {
                             l->indicationReceived(decl, data_view, timestamp, cfmSent);
@@ -501,7 +489,7 @@ GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_
     return findCharacterisicsByValueHandle(charValueHandle, services);
 }
 
-GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle, std::vector<GATTServiceRef> &services_) noexcept {
+GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle, jau::darray<GATTServiceRef> &services_) noexcept {
     for(auto it = services_.begin(); it != services_.end(); it++) {
         GATTCharacteristicRef decl = findCharacterisicsByValueHandle(charValueHandle, *it);
         if( nullptr != decl ) {
@@ -521,7 +509,7 @@ GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_
     return nullptr;
 }
 
-std::vector<GATTServiceRef> & GATTHandler::discoverCompletePrimaryServices(std::shared_ptr<GATTHandler> shared_this) {
+jau::darray<GATTServiceRef> & GATTHandler::discoverCompletePrimaryServices(std::shared_ptr<GATTHandler> shared_this) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     if( !discoverPrimaryServices(shared_this, services) ) {
         return services;
@@ -536,7 +524,7 @@ std::vector<GATTServiceRef> & GATTHandler::discoverCompletePrimaryServices(std::
     return services;
 }
 
-bool GATTHandler::discoverPrimaryServices(std::shared_ptr<GATTHandler> shared_this, std::vector<GATTServiceRef> & result) {
+bool GATTHandler::discoverPrimaryServices(std::shared_ptr<GATTHandler> shared_this, jau::darray<GATTServiceRef> & result) {
     {
         // validate shared_this first!
         GATTHandler *given_this = shared_this.get();
@@ -958,7 +946,7 @@ static const uuid16_t _MANUFACTURER_NAME_STRING(GattCharacteristicType::MANUFACT
 static const uuid16_t _REGULATORY_CERT_DATA_LIST(GattCharacteristicType::REGULATORY_CERT_DATA_LIST);
 static const uuid16_t _PNP_ID(GattCharacteristicType::PNP_ID);
 
-std::shared_ptr<GattGenericAccessSvc> GATTHandler::getGenericAccess(std::vector<GATTCharacteristicRef> & genericAccessCharDeclList) {
+std::shared_ptr<GattGenericAccessSvc> GATTHandler::getGenericAccess(jau::darray<GATTCharacteristicRef> & genericAccessCharDeclList) {
     std::shared_ptr<GattGenericAccessSvc> res = nullptr;
     POctets value(number(Defaults::MAX_ATT_MTU), 0);
     std::string deviceName = "";
@@ -993,7 +981,7 @@ std::shared_ptr<GattGenericAccessSvc> GATTHandler::getGenericAccess(std::vector<
     return res;
 }
 
-std::shared_ptr<GattGenericAccessSvc> GATTHandler::getGenericAccess(std::vector<GATTServiceRef> & primServices) {
+std::shared_ptr<GattGenericAccessSvc> GATTHandler::getGenericAccess(jau::darray<GATTServiceRef> & primServices) {
 	std::shared_ptr<GattGenericAccessSvc> res = nullptr;
 	for(size_t i=0; i<primServices.size() && nullptr == res; i++) {
 		res = getGenericAccess(primServices.at(i)->characteristicList);
@@ -1006,7 +994,7 @@ bool GATTHandler::ping() {
     bool isOK = true;
 
     for(size_t i=0; isOK && i<services.size(); i++) {
-        std::vector<GATTCharacteristicRef> & genericAccessCharDeclList = services.at(i)->characteristicList;
+        jau::darray<GATTCharacteristicRef> & genericAccessCharDeclList = services.at(i)->characteristicList;
         POctets value(32, 0);
 
         for(size_t j=0; isOK && j<genericAccessCharDeclList.size(); j++) {
@@ -1033,7 +1021,7 @@ bool GATTHandler::ping() {
     return false;
 }
 
-std::shared_ptr<GattDeviceInformationSvc> GATTHandler::getDeviceInformation(std::vector<GATTCharacteristicRef> & characteristicDeclList) {
+std::shared_ptr<GattDeviceInformationSvc> GATTHandler::getDeviceInformation(jau::darray<GATTCharacteristicRef> & characteristicDeclList) {
     std::shared_ptr<GattDeviceInformationSvc> res = nullptr;
     POctets value(number(Defaults::MAX_ATT_MTU), 0);
 
@@ -1103,7 +1091,7 @@ std::shared_ptr<GattDeviceInformationSvc> GATTHandler::getDeviceInformation(std:
     return res;
 }
 
-std::shared_ptr<GattDeviceInformationSvc> GATTHandler::getDeviceInformation(std::vector<GATTServiceRef> & primServices) {
+std::shared_ptr<GattDeviceInformationSvc> GATTHandler::getDeviceInformation(jau::darray<GATTServiceRef> & primServices) {
     std::shared_ptr<GattDeviceInformationSvc> res = nullptr;
     for(size_t i=0; i<primServices.size() && nullptr == res; i++) {
         res = getDeviceInformation(primServices.at(i)->characteristicList);

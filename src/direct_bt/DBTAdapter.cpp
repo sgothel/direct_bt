@@ -27,7 +27,6 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 #include <cstdio>
 
 #include <algorithm>
@@ -50,9 +49,9 @@ extern "C" {
 
 using namespace direct_bt;
 
-std::shared_ptr<DBTDevice> DBTAdapter::findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, const EUI48 & address, const BDAddressType addressType) noexcept {
-    const size_t size = devices.size();
-    for (size_t i = 0; i < size; i++) {
+std::shared_ptr<DBTDevice> DBTAdapter::findDevice(jau::darray<std::shared_ptr<DBTDevice>> & devices, const EUI48 & address, const BDAddressType addressType) noexcept {
+    const jau::nsize_t size = devices.size();
+    for (jau::nsize_t i = 0; i < size; i++) {
         std::shared_ptr<DBTDevice> & e = devices[i];
         if ( nullptr != e && address == e->getAddressAndType().address && addressType == e->getAddressAndType().type) {
             return e;
@@ -61,9 +60,9 @@ std::shared_ptr<DBTDevice> DBTAdapter::findDevice(std::vector<std::shared_ptr<DB
     return nullptr;
 }
 
-std::shared_ptr<DBTDevice> DBTAdapter::findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device) noexcept {
-    const size_t size = devices.size();
-    for (size_t i = 0; i < size; i++) {
+std::shared_ptr<DBTDevice> DBTAdapter::findDevice(jau::darray<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device) noexcept {
+    const jau::nsize_t size = devices.size();
+    for (jau::nsize_t i = 0; i < size; i++) {
         std::shared_ptr<DBTDevice> & e = devices[i];
         if ( nullptr != e && device == *e ) {
             return e;
@@ -83,25 +82,25 @@ bool DBTAdapter::addConnectedDevice(const std::shared_ptr<DBTDevice> & device) n
 
 bool DBTAdapter::removeConnectedDevice(const DBTDevice & device) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
-    for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ) {
+    auto end = connectedDevices.end();
+    for (auto it = connectedDevices.begin(); it != end; ++it) {
         if ( nullptr != *it && device == **it ) {
-            it = connectedDevices.erase(it);
+            connectedDevices.erase(it);
             return true;
-        } else {
-            ++it;
         }
     }
     return false;
 }
 
 int DBTAdapter::disconnectAllDevices(const HCIStatusCode reason) noexcept {
-    std::vector<std::shared_ptr<DBTDevice>> devices;
+    jau::darray<std::shared_ptr<DBTDevice>> devices;
     {
         const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
         devices = connectedDevices; // copy!
     }
     const int count = devices.size();
-    for (auto it = devices.begin(); it != devices.end(); ++it) {
+    auto end = devices.end();
+    for (auto it = devices.begin(); it != end; ++it) {
         if( nullptr != *it ) {
             (*it)->disconnect(reason); // will erase device from list via removeConnectedDevice(..) above
         }
@@ -550,21 +549,17 @@ bool DBTAdapter::removeStatusListener(const AdapterStatusListener * l) {
     if( nullptr == l ) {
         throw jau::IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
-    const std::lock_guard<std::recursive_mutex> lock(statusListenerList.get_write_mutex());
-    std::shared_ptr<jau::darray<std::shared_ptr<AdapterStatusListener>>> store = statusListenerList.copy_store();
-    int count = 0;
-    for(auto it = store->begin(); it != store->end(); ) {
-        if ( **it == *l ) {
-            it = store->erase(it);
-            count++;
-            break;
-        } else {
-            ++it;
+    {
+        auto begin = statusListenerList.begin(); // lock mutex and copy_store
+        while ( !begin.is_end() ) {
+            if ( **begin == *l ) {
+                begin.erase();
+                begin.write_back();
+                return true;
+            } else {
+                ++begin;
+            }
         }
-    }
-    if( 0 < count ) {
-        statusListenerList.set_store(std::move(store));
-        return true;
     }
     return false;
 }
@@ -785,9 +780,9 @@ int DBTAdapter::removeDiscoveredDevices() noexcept {
     return res;
 }
 
-std::vector<std::shared_ptr<DBTDevice>> DBTAdapter::getDiscoveredDevices() const noexcept {
+jau::darray<std::shared_ptr<DBTDevice>> DBTAdapter::getDiscoveredDevices() const noexcept {
     const std::lock_guard<std::mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
-    std::vector<std::shared_ptr<DBTDevice>> res = discoveredDevices;
+    jau::darray<std::shared_ptr<DBTDevice>> res = discoveredDevices;
     return res;
 }
 
@@ -840,7 +835,7 @@ std::string DBTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
                     ", scanType[native "+getScanTypeString(hci.getCurrentScanType())+", meta "+getScanTypeString(currentMetaScanType)+"]"
                     ", valid "+std::to_string(isValid())+", open[mgmt, "+std::to_string(mgmt.isOpen())+", hci "+std::to_string(hci.isOpen())+
                     "], "+javaObjectToString()+"]");
-    std::vector<std::shared_ptr<DBTDevice>> devices = getDiscoveredDevices();
+    jau::darray<std::shared_ptr<DBTDevice>> devices = getDiscoveredDevices();
     if( includeDiscoveredDevices && devices.size() > 0 ) {
         out.append("\n");
         for(auto it = devices.begin(); it != devices.end(); it++) {
@@ -859,7 +854,7 @@ void DBTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings_, 
                                             const uint64_t timestampMS) noexcept
 {
     int i=0;
-    jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             l->adapterSettingsChanged(*this, old_settings_, current_settings, changes, timestampMS);
         } catch (std::exception &e) {
@@ -886,7 +881,7 @@ void DBTAdapter::sendAdapterSettingsInitial(AdapterStatusListener & asl, const u
 
 void DBTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept {
     int i=0;
-    jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*device) ) {
                 l->deviceUpdated(device, updateMask, timestamp);
@@ -958,7 +953,7 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSo
     checkDiscoveryState();
 
     int i=0;
-    jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             l->discoveringChanged(*this, currentMetaScanType, eventScanType, eventEnabled, keep_le_scan_alive, event.getTimestamp());
         } catch (std::exception &except) {
@@ -1100,7 +1095,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     device->notifyConnected(device, event.getHCIHandle(), io_cap_conn);
 
     int i=0;
-    jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*device) ) {
                 if( EIRDataType::NONE != updateMask ) {
@@ -1136,7 +1131,7 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
         removeConnectedDevice(*device);
 
         int i=0;
-        jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
+        jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*device) ) {
                     l->deviceDisconnected(device, event.getHCIStatus(), handle, event.getTimestamp());
@@ -1226,7 +1221,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
         removeConnectedDevice(*device);
 
         int i=0;
-        jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
+        jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*device) ) {
                     l->deviceDisconnected(device, event.getHCIReason(), event.getHCIHandle(), event.getTimestamp());
@@ -1334,7 +1329,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
                 dev->getAddressAndType().toString().c_str(), eir->toString().c_str());
 
         int i=0;
-        jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
+        jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*dev) ) {
                     l->deviceFound(dev, eir->getTimestamp());
@@ -1363,7 +1358,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             dev->getAddressAndType().toString().c_str(), eir->toString().c_str());
 
     int i=0;
-    jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*dev) ) {
                 l->deviceFound(dev, eir->getTimestamp());
@@ -1455,7 +1450,7 @@ bool DBTAdapter::hciSMPMsgCallback(const BDAddressAndType & addressAndType,
 void DBTAdapter::sendDevicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept
 {
     int i=0;
-    jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*device) ) {
                 l->devicePairingState(device, state, mode, timestamp);
@@ -1471,7 +1466,7 @@ void DBTAdapter::sendDevicePairingState(std::shared_ptr<DBTDevice> device, const
 
 void DBTAdapter::sendDeviceReady(std::shared_ptr<DBTDevice> device, uint64_t timestamp) noexcept {
     int i=0;
-    jau::for_each_fidelity(statusListenerList.cbegin(), statusListenerList.cend(), [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             // Only issue if valid && received connected confirmation (HCI) && not have called disconnect yet.
             if( device->isValid() && device->getConnected() && device->allowDisconnect ) {
