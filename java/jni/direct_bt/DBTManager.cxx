@@ -171,7 +171,7 @@ jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject
         DBTManager *manager = getInstance<DBTManager>(env, obj);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl: Manager %s", manager->toString().c_str());
 
-        std::vector<std::unique_ptr<DBTAdapter>> adapters;
+        jau::darray<std::unique_ptr<DBTAdapter>> adapters;
         const int adapterCount = manager->getAdapterCount();
         for(int dev_id = 0; dev_id < adapterCount; dev_id++) {
             if( nullptr == manager->getAdapterInfo(dev_id) ) {
@@ -190,7 +190,8 @@ jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject
             }
             adapters.push_back(std::move(adapter));
         }
-        return convert_vector_uniqueptr_to_jarraylist<DBTAdapter>(env, adapters, _adapterClazzCtorArgs.c_str(), _createJavaAdapter);
+        return convert_vector_uniqueptr_to_jarraylist<jau::darray<std::unique_ptr<DBTAdapter>>, DBTAdapter>(
+                env, adapters, _adapterClazzCtorArgs.c_str(), _createJavaAdapter);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

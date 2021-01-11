@@ -192,7 +192,8 @@ jobject Java_tinyb_dbus_DBusManager_getObjects(JNIEnv *env, jobject obj, jint ty
                                                                     identifier_to_write,
                                                                     b_parent);
         getObject_cleaner(name_to_write, identifier_to_write);
-        jobject result = convert_vector_uniqueptr_to_jarraylist<BluetoothObject>(env, array, "(J)V");
+        jobject result = convert_vector_uniqueptr_to_jarraylist<std::vector<std::unique_ptr<BluetoothObject>>, BluetoothObject>(
+                env, array, "(J)V");
         return result;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -206,8 +207,8 @@ jobject Java_tinyb_dbus_DBusManager_getAdapters(JNIEnv *env, jobject obj)
         BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
 
         std::vector<std::unique_ptr<BluetoothAdapter>> array = manager->get_adapters();
-        jobject result = convert_vector_uniqueptr_to_jarraylist<BluetoothAdapter>(env, array,
-                                                                    "(J)V");
+        jobject result = convert_vector_uniqueptr_to_jarraylist<std::vector<std::unique_ptr<BluetoothAdapter>>, BluetoothAdapter>(
+                env, array, "(J)V");
         return result;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -221,8 +222,8 @@ jobject Java_tinyb_dbus_DBusManager_getDevices(JNIEnv *env, jobject obj)
         BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
 
         std::vector<std::unique_ptr<BluetoothDevice>> array = manager->get_devices();
-        jobject result = convert_vector_uniqueptr_to_jarraylist<BluetoothDevice>(env, array,
-                                                                    "(J)V");
+        jobject result = convert_vector_uniqueptr_to_jarraylist<std::vector<std::unique_ptr<BluetoothDevice>>, BluetoothDevice>(
+                env, array, "(J)V");
         return result;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -236,8 +237,8 @@ jobject Java_tinyb_dbus_DBusManager_getServices(JNIEnv *env, jobject obj)
         BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
 
         std::vector<std::unique_ptr<BluetoothGattService>> array = manager->get_services();
-        jobject result = convert_vector_uniqueptr_to_jarraylist<BluetoothGattService>(env, array,
-                                                                    "(J)V");
+        jobject result = convert_vector_uniqueptr_to_jarraylist<std::vector<std::unique_ptr<BluetoothGattService>>, BluetoothGattService>(
+                env, array, "(J)V");
         return result;
     } catch(...) {
         rethrow_and_raise_java_exception(env);

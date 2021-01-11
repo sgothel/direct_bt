@@ -84,8 +84,8 @@ jobject Java_tinyb_dbus_DBusAdapter_getDevices(JNIEnv *env, jobject obj)
     try {
         BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
         std::vector<std::unique_ptr<BluetoothDevice>> array = obj_adapter->get_devices();
-        jobject result = convert_vector_uniqueptr_to_jarraylist<BluetoothDevice>(env, array,
-                                                                    "(J)V");
+        jobject result = convert_vector_uniqueptr_to_jarraylist<std::vector<std::unique_ptr<BluetoothDevice>>, BluetoothDevice>(
+                env, array, "(J)V");
 
         return result;
     } catch(...) {

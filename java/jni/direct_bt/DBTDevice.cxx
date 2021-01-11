@@ -598,7 +598,7 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj
         DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        std::vector<GATTServiceRef> services = device->getGATTServices(); // implicit GATT connect and discovery if required incl GenericAccess retrieval
+        jau::darray<GATTServiceRef> services = device->getGATTServices(); // implicit GATT connect and discovery if required incl GenericAccess retrieval
         if( services.size() > 0 ) {
             std::shared_ptr<GattGenericAccessSvc> ga = device->getGATTGenericAccess();
             if( nullptr != ga ) {
@@ -635,7 +635,8 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj
                     env_->DeleteLocalRef(jservice);
                     return JavaGlobalObj::GetObject(jServiceRef);
                 };
-        return convert_vector_sharedptr_to_jarraylist<GATTService>(env, services, _serviceClazzCtorArgs.c_str(), ctor_service);
+        return convert_vector_sharedptr_to_jarraylist<jau::darray<GATTServiceRef>, GATTService>(
+                env, services, _serviceClazzCtorArgs.c_str(), ctor_service);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

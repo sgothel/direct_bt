@@ -65,7 +65,7 @@ jobject Java_direct_1bt_tinyb_DBTGattCharacteristic_getDescriptorsImpl(JNIEnv *e
         GATTCharacteristic *characteristic = getJavaUplinkObject<GATTCharacteristic>(env, obj);
         JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
 
-        std::vector<GATTDescriptorRef> & descriptorList = characteristic->descriptorList;
+        jau::darray<GATTDescriptorRef> & descriptorList = characteristic->descriptorList;
 
         // DBTGattDescriptor(final long nativeInstance, final DBTGattCharacteristic characteristic,
         //                   final String type_uuid, final short handle, final byte[] value)
@@ -101,7 +101,8 @@ jobject Java_direct_1bt_tinyb_DBTGattCharacteristic_getDescriptorsImpl(JNIEnv *e
                     env_->DeleteLocalRef(jdesc);
                     return JavaGlobalObj::GetObject(jDescRef);
                 };
-        return convert_vector_sharedptr_to_jarraylist<GATTDescriptor>(env, descriptorList, _descriptorClazzCtorArgs.c_str(), ctor_desc);
+        return convert_vector_sharedptr_to_jarraylist<jau::darray<GATTDescriptorRef>, GATTDescriptor>(
+                env, descriptorList, _descriptorClazzCtorArgs.c_str(), ctor_desc);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

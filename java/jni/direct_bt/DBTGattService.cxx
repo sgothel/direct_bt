@@ -67,7 +67,7 @@ jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristicsImpl(JNIEnv *env,
         GATTService *service = getJavaUplinkObject<GATTService>(env, obj);
         JavaGlobalObj::check(service->getJavaObject(), E_FILE_LINE);
 
-        std::vector<std::shared_ptr<GATTCharacteristic>> & characteristics = service->characteristicList;
+        jau::darray<std::shared_ptr<GATTCharacteristic>> & characteristics = service->characteristicList;
 
         // DBTGattCharacteristic(final long nativeInstance, final DBTGattService service,
         //                       final short handle, final String[] properties,
@@ -82,7 +82,7 @@ jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristicsImpl(JNIEnv *env,
                     JavaGlobalObj::check(_service->getJavaObject(), E_FILE_LINE);
                     jobject jservice = JavaGlobalObj::GetObject(_service->getJavaObject());
 
-                    std::vector<std::unique_ptr<std::string>> props = GATTCharacteristic::getPropertiesStringList(characteristic->properties);
+                    jau::darray<std::unique_ptr<std::string>> props = GATTCharacteristic::getPropertiesStringList(characteristic->properties);
                     size_t props_size = props.size();
 
                     jobjectArray jproperties;
@@ -118,7 +118,8 @@ jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristicsImpl(JNIEnv *env,
                     env_->DeleteLocalRef(jcharVal);
                     return JavaGlobalObj::GetObject(jCharRef);
                 };
-        return convert_vector_sharedptr_to_jarraylist<GATTCharacteristic>(env, characteristics, _characteristicClazzCtorArgs.c_str(), ctor_char);
+        return convert_vector_sharedptr_to_jarraylist<jau::darray<std::shared_ptr<GATTCharacteristic>>, GATTCharacteristic>(
+                env, characteristics, _characteristicClazzCtorArgs.c_str(), ctor_char);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

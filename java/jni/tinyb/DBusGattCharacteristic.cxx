@@ -234,8 +234,8 @@ jobject Java_tinyb_dbus_DBusGattCharacteristic_getDescriptors(JNIEnv *env, jobje
                                     getInstance<BluetoothGattCharacteristic>(env, obj);
         std::vector<std::unique_ptr<BluetoothGattDescriptor>> array = obj_gatt_char->get_descriptors();
 
-        jobject result = convert_vector_uniqueptr_to_jarraylist<BluetoothGattDescriptor>(env, array,
-                                                                    "(J)V");
+        jobject result = convert_vector_uniqueptr_to_jarraylist<std::vector<std::unique_ptr<BluetoothGattDescriptor>>, BluetoothGattDescriptor>(
+                env, array, "(J)V");
         return result;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
