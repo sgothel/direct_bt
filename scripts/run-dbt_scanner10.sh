@@ -59,15 +59,16 @@ ulimit -c unlimited
 export LANG=en_US.UTF-8
 export LC_MEASUREMENT=en_US.UTF-8
 
-# export VALGRIND="valgrind --tool=memcheck --leak-check=full --show-reachable=yes --error-limit=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
-# export VALGRIND="valgrind --tool=helgrind --track-lockorders=yes  --ignore-thread-creation=yes --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
-# export VALGRIND="valgrind --tool=drd --segment-merging=no --ignore-thread-creation=yes --trace-barrier=no --trace-cond=no --trace-fork-join=no --trace-mutex=no --trace-rwlock=no --trace-semaphore=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
-# export VALGRIND="valgrind --tool=callgrind --instr-atstart=yes --collect-atstart=yes --collect-systime=yes --combine-dumps=yes --separate-threads=no --callgrind-out-file=$callgrindoutfile --log-file=$valgrindlogfile"
+# export EXE_WRAPPER="valgrind --tool=memcheck --leak-check=full --show-reachable=yes --track-origins=yes --malloc-fill=0xff --free-fill=0xfe --error-limit=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
+# export EXE_WRAPPER="valgrind --tool=memcheck --leak-check=full --show-leak-kinds=definite --track-origins=yes --malloc-fill=0xff --free-fill=0xfe --error-limit=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
+# export EXE_WRAPPER="valgrind --tool=helgrind --track-lockorders=yes  --ignore-thread-creation=yes --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
+# export EXE_WRAPPER="valgrind --tool=drd --segment-merging=no --ignore-thread-creation=yes --trace-barrier=no --trace-cond=no --trace-fork-join=no --trace-mutex=no --trace-rwlock=no --trace-semaphore=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
+# export EXE_WRAPPER="valgrind --tool=callgrind --instr-atstart=yes --collect-atstart=yes --collect-systime=yes --combine-dumps=yes --separate-threads=no --callgrind-out-file=$callgrindoutfile --log-file=$valgrindlogfile"
 
 runit() {
     echo username $username
     echo COMMANDLINE $0 $*
-    echo VALGRIND $VALGRIND
+    echo EXE_WRAPPER $EXE_WRAPPER
     echo logbasename $logbasename
     echo logfile $logfile
     echo valgrindlogfile $valgrindlogfile
@@ -75,13 +76,13 @@ runit() {
     echo direct_bt_debug $direct_bt_debug
     echo direct_bt_verbose $direct_bt_verbose
 
-    echo LD_LIBRARY_PATH=`pwd`/lib $VALGRIND bin/dbt_scanner10 $*
+    echo LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/dbt_scanner10 $*
 
-    #LD_LIBRARY_PATH=`pwd`/lib $VALGRIND bin/dbt_scanner10 $*
+    #LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/dbt_scanner10 $*
 
     sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
         --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
-        -- -c "ulimit -c unlimited; LD_LIBRARY_PATH=`pwd`/lib $VALGRIND bin/dbt_scanner10 $*"
+        -- -c "ulimit -c unlimited; LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/dbt_scanner10 $*"
 }
 
 runit $* 2>&1 | tee $logfile
