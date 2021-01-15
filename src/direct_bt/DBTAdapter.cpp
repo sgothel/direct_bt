@@ -49,9 +49,9 @@ extern "C" {
 
 using namespace direct_bt;
 
-std::shared_ptr<DBTDevice> DBTAdapter::findDevice(jau::darray<std::shared_ptr<DBTDevice>> & devices, const EUI48 & address, const BDAddressType addressType) noexcept {
+std::shared_ptr<DBTDevice> DBTAdapter::findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept {
     const jau::nsize_t size = devices.size();
-    for (jau::nsize_t i = 0; i < size; i++) {
+    for (jau::nsize_t i = 0; i < size; ++i) {
         std::shared_ptr<DBTDevice> & e = devices[i];
         if ( nullptr != e && address == e->getAddressAndType().address && addressType == e->getAddressAndType().type) {
             return e;
@@ -60,9 +60,9 @@ std::shared_ptr<DBTDevice> DBTAdapter::findDevice(jau::darray<std::shared_ptr<DB
     return nullptr;
 }
 
-std::shared_ptr<DBTDevice> DBTAdapter::findDevice(jau::darray<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device) noexcept {
+std::shared_ptr<DBTDevice> DBTAdapter::findDevice(device_list_t & devices, DBTDevice const & device) noexcept {
     const jau::nsize_t size = devices.size();
-    for (jau::nsize_t i = 0; i < size; i++) {
+    for (jau::nsize_t i = 0; i < size; ++i) {
         std::shared_ptr<DBTDevice> & e = devices[i];
         if ( nullptr != e && device == *e ) {
             return e;
@@ -93,7 +93,7 @@ bool DBTAdapter::removeConnectedDevice(const DBTDevice & device) noexcept {
 }
 
 int DBTAdapter::disconnectAllDevices(const HCIStatusCode reason) noexcept {
-    jau::darray<std::shared_ptr<DBTDevice>> devices;
+    device_list_t devices;
     {
         const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
         devices = connectedDevices; // copy!
@@ -782,7 +782,7 @@ int DBTAdapter::removeDiscoveredDevices() noexcept {
 
 jau::darray<std::shared_ptr<DBTDevice>> DBTAdapter::getDiscoveredDevices() const noexcept {
     const std::lock_guard<std::mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
-    jau::darray<std::shared_ptr<DBTDevice>> res = discoveredDevices;
+    device_list_t res = discoveredDevices;
     return res;
 }
 
@@ -835,7 +835,7 @@ std::string DBTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
                     ", scanType[native "+getScanTypeString(hci.getCurrentScanType())+", meta "+getScanTypeString(currentMetaScanType)+"]"
                     ", valid "+std::to_string(isValid())+", open[mgmt, "+std::to_string(mgmt.isOpen())+", hci "+std::to_string(hci.isOpen())+
                     "], "+javaObjectToString()+"]");
-    jau::darray<std::shared_ptr<DBTDevice>> devices = getDiscoveredDevices();
+    device_list_t devices = getDiscoveredDevices();
     if( includeDiscoveredDevices && devices.size() > 0 ) {
         out.append("\n");
         for(auto it = devices.begin(); it != devices.end(); it++) {
