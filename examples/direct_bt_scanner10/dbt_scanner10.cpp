@@ -281,14 +281,14 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
-    void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+    bool deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         (void)timestamp;
 
         if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressAndType().type
             && BLERandomAddressType::STATIC_PUBLIC != device->getAddressAndType().getBLERandomAddressType() ) {
             // Requires BREDR or LE Secure Connection support: WIP
             fprintf(stderr, "****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' %s\n", device->toString(true).c_str());
-            return;
+            return false;
         }
         if( !isDeviceProcessing( device->getAddressAndType() ) &&
             ( waitForDevices.empty() ||
@@ -305,8 +305,10 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             }
             std::thread dc(::connectDiscoveredDevice, device); // @suppress("Invalid arguments")
             dc.detach();
+            return true;
         } else {
             fprintf(stderr, "****** FOUND__-1: NOP %s\n", device->toString(true).c_str());
+            return false;
         }
     }
 

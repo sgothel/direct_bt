@@ -108,10 +108,19 @@ namespace direct_bt {
 
             /**
              * A DBTDevice has been newly discovered.
+             * <p>
+             * The boolean return value informs the adapter whether the device shall be made persistent for connection {@code true},
+             * or that it can be discarded {@code false}.<br>
+             * If no registered AdapterStatusListener::deviceFound() implementation returns {@code true},
+             * the device instance will be removed from all internal lists and can no longer being used.<br>
+             * If any registered AdapterStatusListener::deviceFound() implementation returns {@code true},
+             * the device will be made persistent, is ready to connect and DBTDevice::remove() shall be called after usage.
+             * </p>
              * @param device the found device
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             * @return true if the device shall be made persistent and DBTDevice::remove() issued later. Otherwise false to remove device right away.
              */
-            virtual void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
+            virtual bool deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
 
             /**
              * An already discovered DBTDevice has been updated.
@@ -221,15 +230,18 @@ namespace direct_bt {
             std::condition_variable cv_single_conn_device;
 
             typedef jau::darray<std::shared_ptr<DBTDevice>> device_list_t;
+            /** All discovered devices: Transient until removeDiscoveredDevices(), startDiscovery(). */
+            device_list_t discoveredDevices;
+            /** All connected devices: Transient until disconnect or removal. */
             device_list_t connectedDevices;
-            device_list_t discoveredDevices; // all discovered devices
+            /** All persistent shared devices: Persistent until removal. */
             device_list_t sharedDevices; // All active shared devices. Final holder of DBTDevice lifecycle!
             typedef jau::cow_darray<std::shared_ptr<AdapterStatusListener>> statusListenerList_t;
             statusListenerList_t statusListenerList;
-            std::mutex mtx_discoveredDevices;
-            std::mutex mtx_connectedDevices;
-            std::mutex mtx_discovery;
-            std::mutex mtx_sharedDevices; // final mutex of all DBTDevice lifecycle
+            mutable std::mutex mtx_discoveredDevices;
+            mutable std::mutex mtx_connectedDevices;
+            mutable std::mutex mtx_discovery;
+            mutable std::mutex mtx_sharedDevices; // final mutex of all DBTDevice lifecycle
 
             bool validateDevInfo() noexcept;
 
@@ -269,14 +281,12 @@ namespace direct_bt {
             std::shared_ptr<DBTDevice> findConnectedDevice (const EUI48 & address, const BDAddressType & addressType) noexcept;
 
             bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) noexcept;
-            bool removeDiscoveredDevice(const DBTDevice & device) noexcept;
 
             void removeDevice(DBTDevice & device) noexcept;
 
             bool addSharedDevice(std::shared_ptr<DBTDevice> const &device) noexcept;
             std::shared_ptr<DBTDevice> getSharedDevice(const DBTDevice & device) noexcept;
             void removeSharedDevice(const DBTDevice & device) noexcept;
-            std::shared_ptr<DBTDevice> findSharedDevice (const EUI48 & address, const BDAddressType addressType) noexcept;
 
             bool mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept;
@@ -658,8 +668,14 @@ namespace direct_bt {
             /** Discards all discovered devices. Returns number of removed discovered devices. */
             int removeDiscoveredDevices() noexcept;
 
+            /** Discards matching discovered devices. Returns {@code true} if found and removed, otherwise false. */
+            bool removeDiscoveredDevice(const BDAddressAndType & addressAndType) noexcept;
+
             /** Returns shared DBTDevice if found, otherwise nullptr */
             std::shared_ptr<DBTDevice> findDiscoveredDevice (const EUI48 & address, const BDAddressType addressType) noexcept;
+
+            /** Returns shared DBTDevice if found, otherwise nullptr */
+            std::shared_ptr<DBTDevice> findSharedDevice (const EUI48 & address, const BDAddressType addressType) noexcept;
 
             std::string toString() const noexcept override { return toString(true); }
             std::string toString(bool includeDiscoveredDevices) const noexcept;

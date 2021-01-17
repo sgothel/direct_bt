@@ -70,7 +70,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
-    void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+    bool deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         fprintf(stderr, "****** FOUND__: %s\n", device->toString(true).c_str());
         fprintf(stderr, "Status Adapter:\n");
         fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
@@ -78,6 +78,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             std::unique_lock<std::mutex> lockRead(mtxDeviceFound); // RAII-style acquire and relinquish via destructor
             ::deviceFound = device;
             cvDeviceFound.notify_all(); // notify waiting getter
+            return true;
         }
         (void)timestamp;
     }

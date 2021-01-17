@@ -537,13 +537,14 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             }
         }
         @Override
-        public void deviceFound(final BluetoothDevice device, final long timestamp) {
+        public boolean deviceFound(final BluetoothDevice device, final long timestamp) {
             if( DEBUG ) {
                 System.err.println("Adapter.FOUND: "+device+" on "+device.getAdapter());
             }
             synchronized(discoveredDevicesLock) {
                 discoveredDevices.add(device);
             }
+            return false;
         }
 
         @Override

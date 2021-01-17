@@ -712,9 +712,6 @@ namespace direct_bt {
              * After calling this method, this instance is destroyed and shall not be used anymore!
              * </p>
              * <p>
-             * This method is automatically called @ destructor.
-             * </p>
-             * <p>
              * This method is an atomic operation.
              * </p>
              * <p>

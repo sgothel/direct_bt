@@ -93,10 +93,19 @@ public abstract class AdapterStatusListener {
 
     /**
      * A {@link BluetoothDevice} has been newly discovered.
+     * <p>
+     * The boolean return value informs the adapter whether the device shall be made persistent for connection {@code true},
+     * or that it can be discarded {@code false}.<br>
+     * If no registered {@link AdapterStatusListener#deviceFound(BluetoothDevice, long) deviceFound(..)} implementation returns {@code true},
+     * the device instance will be removed from all internal lists and can no longer being used.<br>
+     * If any registered {@link AdapterStatusListener#deviceFound(BluetoothDevice, long) deviceFound(..)} implementation returns {@code true},
+     * the device will be made persistent, is ready to connect and {@link BluetoothDevice#remove() remove} shall be called after usage.
+     * </p>
      * @param device the found device
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
+     * @return true if the device shall be made persistent and {@link BluetoothDevice#remove() remove} issued later. Otherwise false to remove device right away.
      */
-    public void deviceFound(final BluetoothDevice device, final long timestamp) { }
+    public boolean deviceFound(final BluetoothDevice device, final long timestamp) { return false; }
 
     /**
      * An already discovered {@link BluetoothDevice} has been updated.

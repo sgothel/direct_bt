@@ -177,7 +177,7 @@ public class ScannerTinyB01 {
             }
 
             @Override
-            public void deviceFound(final BluetoothDevice device, final long timestamp) {
+            public boolean deviceFound(final BluetoothDevice device, final long timestamp) {
                 final boolean matches = BDAddressAndType.ANY_DEVICE.matches(waitForDevice) || device.getAddressAndType().matches(waitForDevice);
                 System.err.println("****** FOUND__: "+device.toString()+" - match "+matches);
                 System.err.println("Status Adapter:");
@@ -188,6 +188,9 @@ public class ScannerTinyB01 {
                         matchingDiscoveredDeviceBucket[0] = device;
                         matchingDiscoveredDeviceBucket.notifyAll();
                     }
+                    return true;
+                } else {
+                    return false;
                 }
             }
 

@@ -51,7 +51,7 @@ static const std::string _deviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTAdapter;[BB
 
 static const std::string _adapterSettingsChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;J)V");
 static const std::string _discoveringChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/ScanType;Lorg/tinyb/ScanType;ZZJ)V");
-static const std::string _deviceFoundMethodArgs("(Lorg/tinyb/BluetoothDevice;J)V");
+static const std::string _deviceFoundMethodArgs("(Lorg/tinyb/BluetoothDevice;J)Z");
 static const std::string _deviceUpdatedMethodArgs("(Lorg/tinyb/BluetoothDevice;Lorg/tinyb/EIRDataTypeSet;J)V");
 static const std::string _deviceConnectedMethodArgs("(Lorg/tinyb/BluetoothDevice;SJ)V");
 static const std::string _devicePairingStateMethodArgs("(Lorg/tinyb/BluetoothDevice;Lorg/tinyb/SMPPairingState;Lorg/tinyb/PairingMode;J)V");
@@ -348,7 +348,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
 
-    void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+    bool deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         jobject jdevice;
         std::shared_ptr<jau::JavaAnon> jDeviceRef0 = device->getJavaObject();
@@ -378,8 +378,9 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         }
         env->SetLongField(jdevice, deviceClazzTSLastDiscoveryField, (jlong)device->getLastDiscoveryTimestamp());
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        env->CallVoidMethod(listenerObjRef.getObject(), mDeviceFound, jdevice, (jlong)timestamp);
+        jboolean res = env->CallBooleanMethod(listenerObjRef.getObject(), mDeviceFound, jdevice, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        return JNI_TRUE == res;
     }
 
     void deviceUpdated(std::shared_ptr<DBTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
@@ -890,7 +891,10 @@ jobject Java_direct_1bt_tinyb_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject 
         const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
 
         const BDAddressType addressType = static_cast<BDAddressType>( jaddressType );
-        std::shared_ptr<DBTDevice> device = adapter->findDiscoveredDevice(address, addressType);
+        std::shared_ptr<DBTDevice> device = adapter->findSharedDevice(address, addressType);
+        if( nullptr == device ) {
+            device = adapter->findDiscoveredDevice(address, addressType);
+        }
         if( nullptr != device ) {
             direct_bt::HCIHandler & hci = adapter->getHCI();
             if( !hci.isOpen() ) {

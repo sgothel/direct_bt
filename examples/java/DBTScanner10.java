@@ -316,14 +316,14 @@ public class DBTScanner10 {
         }
 
         @Override
-        public void deviceFound(final BluetoothDevice device, final long timestamp) {
+        public boolean deviceFound(final BluetoothDevice device, final long timestamp) {
             println("****** FOUND__: "+device.toString());
 
             if( BDAddressType.BDADDR_LE_PUBLIC != device.getAddressAndType().type
                 && BLERandomAddressType.STATIC_PUBLIC != device.getAddressAndType().getBLERandomAddressType() ) {
                 // Requires BREDR or LE Secure Connection support: WIP
                 println("****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' "+device.toString());
-                return;
+                return false;
             }
             if( !devicesInProcessing.contains( device.getAddressAndType() ) &&
                 ( waitForDevices.isEmpty() ||
@@ -340,8 +340,10 @@ public class DBTScanner10 {
                 }
                 executeOffThread( () -> { connectDiscoveredDevice(device); },
                                   "DBT-Connect-"+device.getAddressAndType(), true /* detach */);
+                return true;
             } else {
                 println("****** FOUND__-1: NOP "+device.toString());
+                return false;
             }
         }
 

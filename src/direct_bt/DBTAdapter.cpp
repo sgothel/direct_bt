@@ -745,7 +745,7 @@ exit:
 // *************************************************
 
 std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (const EUI48 & address, const BDAddressType addressType) noexcept {
-    const std::lock_guard<std::mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     return findDevice(discoveredDevices, address, addressType);
 }
 
@@ -759,10 +759,10 @@ bool DBTAdapter::addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) n
     return true;
 }
 
-bool DBTAdapter::removeDiscoveredDevice(const DBTDevice & device) noexcept {
+bool DBTAdapter::removeDiscoveredDevice(const BDAddressAndType & addressAndType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = discoveredDevices.begin(); it != discoveredDevices.end(); ) {
-        if ( nullptr != *it && device == **it ) {
+        if ( nullptr != *it && addressAndType == (*it)->addressAndType ) {
             it = discoveredDevices.erase(it);
             return true;
         } else {
@@ -824,7 +824,7 @@ void DBTAdapter::removeDevice(DBTDevice & device) noexcept {
     WORDY_PRINT("DBTAdapter::removeDevice: disconnect %s, %s", getHCIStatusCodeString(status).c_str(), toString(false).c_str());
     unlockConnect(device);
     removeConnectedDevice(device); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
-    removeDiscoveredDevice(device); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
+    removeDiscoveredDevice(device.addressAndType); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
     WORDY_PRINT("DBTAdapter::removeDevice: End %s", toString(false).c_str());
     removeSharedDevice(device);
 }
@@ -1049,12 +1049,15 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
         device = findDiscoveredDevice(event.getAddress(), event.getAddressType());
-        new_connect = nullptr != device ? 1 : 0;
+        if( nullptr != device ) {
+            addSharedDevice(device); // connected devices must be in shared + discovered list
+            new_connect = 1;
+        }
     }
     if( nullptr == device ) {
         device = findSharedDevice(event.getAddress(), event.getAddressType());
         if( nullptr != device ) {
-            addDiscoveredDevice(device);
+            addDiscoveredDevice(device); // connected devices must be in shared + discovered list
             new_connect = 2;
         }
     }
@@ -1070,14 +1073,6 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     const SMPIOCapability io_cap_conn = mgmt.getIOCapability(dev_id);
 
     EIRDataType updateMask = device->update(ad_report);
-    if( addConnectedDevice(device) ) { // track device, if not done yet
-        if( 0 == new_connect ) {
-            new_connect = 4; // unknown reason...
-        }
-    }
-    if( 2 <= new_connect ) {
-        device->ts_last_discovery = ad_report.getTimestamp();
-    }
     if( 0 == new_connect ) {
         WARN_PRINT("DBTAdapter::EventHCI:DeviceConnected(dev_id %d, already connected, updated %s): %s, handle %s -> %s,\n    %s,\n    -> %s",
             dev_id, getEIRDataMaskString(updateMask).c_str(), event.toString().c_str(),
@@ -1085,13 +1080,16 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
             ad_report.toString().c_str(),
             device->toString().c_str());
     } else {
+        addConnectedDevice(device); // track device, if not done yet
+        if( 2 <= new_connect ) {
+            device->ts_last_discovery = ad_report.getTimestamp();
+        }
         COND_PRINT(debug_event, "DBTAdapter::EventHCI:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s, handle %s -> %s,\n    %s,\n    -> %s",
             dev_id, new_connect, getEIRDataMaskString(updateMask).c_str(), event.toString().c_str(),
             jau::uint16HexString(device->getConnectionHandle()).c_str(), jau::uint16HexString(event.getHCIHandle()).c_str(),
             ad_report.toString().c_str(),
             device->toString().c_str());
     }
-
     device->notifyConnected(device, event.getHCIHandle(), io_cap_conn);
 
     int i=0;
@@ -1143,7 +1141,7 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
             }
             i++;
         });
-        removeDiscoveredDevice(*device); // ensure device will cause a deviceFound event after disconnect
+        removeDiscoveredDevice(device->addressAndType); // ensure device will cause a deviceFound event after disconnect
     } else {
         WORDY_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
@@ -1233,7 +1231,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
             }
             i++;
         });
-        removeDiscoveredDevice(*device); // ensure device will cause a deviceFound event after disconnect
+        removeDiscoveredDevice(device->addressAndType); // ensure device will cause a deviceFound event after disconnect
     } else {
         WORDY_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
@@ -1329,10 +1327,11 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
                 dev->getAddressAndType().toString().c_str(), eir->toString().c_str());
 
         int i=0;
+        bool device_used = false;
         jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*dev) ) {
-                    l->deviceFound(dev, eir->getTimestamp());
+                    device_used = l->deviceFound(dev, eir->getTimestamp()) || device_used;
                 }
             } catch (std::exception &except) {
                 ERR_PRINT("DBTAdapter:hci:DeviceFound: %d/%zd: %s of %s: Caught exception %s",
@@ -1341,7 +1340,11 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             }
             i++;
         });
-        if( EIRDataType::NONE != updateMask ) {
+        if( !device_used ) {
+            // keep to avoid duplicate finds: removeDiscoveredDevice(dev->addressAndType);
+            // and still allowing usage, as connecting will re-add to shared list
+            removeSharedDevice(*dev); // pending dtor if discovered is flushed
+        } else if( EIRDataType::NONE != updateMask ) {
             sendDeviceUpdated("SharedDeviceFound", dev, eir->getTimestamp(), updateMask);
         }
         return true;
@@ -1358,10 +1361,11 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             dev->getAddressAndType().toString().c_str(), eir->toString().c_str());
 
     int i=0;
+    bool device_used = false;
     jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*dev) ) {
-                l->deviceFound(dev, eir->getTimestamp());
+                device_used = l->deviceFound(dev, eir->getTimestamp()) || device_used;
             }
         } catch (std::exception &except) {
             ERR_PRINT("DBTAdapter:hci:DeviceFound-CBs %d/%zd: %s of %s: Caught exception %s",
@@ -1370,7 +1374,11 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
         }
         i++;
     });
-
+    if( !device_used ) {
+        // keep to avoid duplicate finds: removeDiscoveredDevice(dev->addressAndType);
+        // and still allowing usage, as connecting will re-add to shared list
+        removeSharedDevice(*dev); // pending dtor if discovered is flushed
+    }
     return true;
 }
 
