@@ -30,6 +30,7 @@
 #include <atomic>
 
 #include <jau/java_uplink.hpp>
+#include <jau/basic_types.hpp>
 
 #include "UUID.hpp"
 #include "BTAddress.hpp"
@@ -185,13 +186,13 @@ namespace direct_bt {
         friend class DBTAdapter; // direct manager
 
         public:
-            const int dev_id;
+            const uint16_t dev_id;
             const EUI48 address;
             const uint8_t version;
             const uint16_t manufacturer;
-            const AdapterSetting supported_setting;
 
         private:
+            AdapterSetting supported_setting;
             std::atomic<AdapterSetting> current_setting;
             uint32_t dev_class;
             std::string name;
@@ -212,15 +213,47 @@ namespace direct_bt {
             void setShortName(const std::string v) noexcept { short_name = v; }
 
         public:
-            AdapterInfo(const int dev_id_, const EUI48 & address_,
+            AdapterInfo(const uint16_t dev_id_, const EUI48 & address_,
                         const uint8_t version_, const uint16_t manufacturer_,
                         const AdapterSetting supported_setting_, const AdapterSetting current_setting_,
                         const uint32_t dev_class_, const std::string & name_, const std::string & short_name_) noexcept
             : dev_id(dev_id_), address(address_), version(version_),
-              manufacturer(manufacturer_), supported_setting(supported_setting_),
+              manufacturer(manufacturer_),
+              supported_setting(supported_setting_),
               current_setting(current_setting_), dev_class(dev_class_),
               name(name_), short_name(short_name_)
             { }
+
+            AdapterInfo(const AdapterInfo &o) noexcept
+            : dev_id(o.dev_id), address(o.address), version(o.version),
+              manufacturer(o.manufacturer),
+              supported_setting(o.supported_setting),
+              current_setting(o.current_setting.load()), dev_class(o.dev_class),
+              name(o.name), short_name(o.short_name)
+            { }
+            AdapterInfo& operator=(const AdapterInfo &o) {
+                if( this != &o ) {
+                    if( dev_id != o.dev_id || address != o.address ) {
+                        throw jau::IllegalArgumentException("Can't assign different device id's or address "+o.toString()+" -> "+toString(), E_FILE_LINE);
+                    }
+                    supported_setting   = o.supported_setting;
+                    current_setting     = o.current_setting.load();
+                    dev_class           = o.dev_class;
+                    name                = o.name;
+                    short_name          = o.short_name;
+                }
+                return *this;
+            }
+            AdapterInfo(AdapterInfo&& o) noexcept
+            : dev_id(std::move(o.dev_id)), address(std::move(o.address)), version(std::move(o.version)),
+              manufacturer(std::move(o.manufacturer)),
+              supported_setting(std::move(o.supported_setting)),
+              current_setting(o.current_setting.load()), dev_class(std::move(o.dev_class)),
+              name(std::move(o.name)), short_name(std::move(o.short_name))
+            { }
+            AdapterInfo& operator=(AdapterInfo &&o) noexcept = delete;
+
+            constexpr const AdapterSetting& get_supportedSetting() const noexcept { return supported_setting; }
 
             bool isSettingMaskSupported(const AdapterSetting setting) const noexcept {
                 return setting == ( setting & supported_setting );

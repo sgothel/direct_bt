@@ -33,6 +33,7 @@
 
 #include "direct_bt/DBTDevice.hpp"
 #include "direct_bt/DBTAdapter.hpp"
+#include "direct_bt/DBTManager.hpp"
 
 using namespace direct_bt;
 using namespace jau;
@@ -305,6 +306,7 @@ void Java_direct_1bt_tinyb_DBTDevice_deleteImpl(JNIEnv *env, jobject obj, jlong 
     (void)obj;
     try {
         DBTDevice *device = castInstance<DBTDevice>(nativeInstance);
+        DBG_PRINT("Java_direct_1bt_tinyb_DBTDevice_deleteImpl (remove only) %s", device->toString().c_str());
         device->remove();
         // No delete: DBTDevice instance owned by DBTAdapter
         // However, device->remove() might issue destruction

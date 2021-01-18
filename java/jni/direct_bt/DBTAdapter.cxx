@@ -32,6 +32,7 @@
 #include "helper_dbt.hpp"
 
 #include "direct_bt/DBTAdapter.hpp"
+#include "direct_bt/DBTManager.hpp"
 
 using namespace direct_bt;
 
@@ -726,8 +727,10 @@ void Java_direct_1bt_tinyb_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj, jlong
     (void)obj;
     try {
         DBTAdapter *adapter = jau::castInstance<DBTAdapter>(nativeInstance);
-        DBG_PRINT("Java_direct_1bt_tinyb_DBTAdapter_deleteImpl %s", adapter->toString().c_str());
-        delete adapter;
+        DBG_PRINT("Java_direct_1bt_tinyb_DBTAdapter_deleteImpl (close only) %s", adapter->toString().c_str());
+        adapter->close();
+        // No delete: DBTAdapter instance owned by DBTManager
+        // However, adapter->close() cleans up most..
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

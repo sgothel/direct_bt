@@ -789,46 +789,12 @@ public class DBTScanner10 {
         return true;
     }
 
-    private final List<BluetoothAdapter> adapters = new CopyOnWriteArrayList<BluetoothAdapter>();
-
-    @SuppressWarnings("unused")
-    private BluetoothAdapter getAdapter(final int dev_id) {
-        for( int i=0; i<adapters.size(); i++) {
-            final BluetoothAdapter a = adapters.get(i);
-            if( dev_id == a.getDevID() ) {
-                return a;
-            }
-        }
-        return null;
-    }
-
-    private int removeAdapter(final int dev_id) {
-        // Using removeIf allows performing test on all object and remove within one write-lock cycle
-        final int count[] = { 0 };
-        adapters.removeIf(new Predicate<BluetoothAdapter>() {
-            @Override
-            public boolean test(final BluetoothAdapter t) {
-                if( dev_id == t.getDevID() ) {
-                    count[0]++;
-                    return true;
-                }
-                return false;
-            }
-        });
-        return count[0];
-    }
-
     private final BluetoothManager.ChangedAdapterSetListener myChangedAdapterSetListener =
             new BluetoothManager.ChangedAdapterSetListener() {
                 @Override
                 public void adapterAdded(final BluetoothAdapter adapter) {
-                    if( adapter.isPowered() ) {
-                        if( initAdapter( adapter ) ) {
-                            adapters.add(adapter);
-                            println("****** Adapter ADDED__: NewInit " + adapter);
-                        } else {
-                            println("****** Adapter ADDED__: Failed_ " + adapter);
-                        }
+                    if( initAdapter( adapter ) ) {
+                        println("****** Adapter ADDED__: InitOK. " + adapter);
                     } else {
                         println("****** Adapter ADDED__: Ignored " + adapter);
                     }
@@ -836,8 +802,7 @@ public class DBTScanner10 {
 
                 @Override
                 public void adapterRemoved(final BluetoothAdapter adapter) {
-                    final int count = removeAdapter(adapter.getDevID());
-                    println("****** Adapter REMOVED: count "+count+", " + adapter);
+                    println("****** Adapter REMOVED: " + adapter);
                 }
     };
 
@@ -867,21 +832,29 @@ public class DBTScanner10 {
             }
         }
 
+        //
+        // just a manually controlled pull down to show status, not required
+        //
+        final List<BluetoothAdapter> adapters = manager.getAdapters();
+
         adapters.forEach(new Consumer<BluetoothAdapter>() {
             @Override
             public void accept(final BluetoothAdapter a) {
                 println("****** EOL Adapter's Devices - pre_ close: " + a);
-                a.close();
-                println("****** EOL Adapter's Devices - post close: " + a);
             } } );
-
         {
             final int count = manager.removeChangedAdapterSetListener(myChangedAdapterSetListener);
             println("****** EOL Removed ChangedAdapterSetCallback " + count);
-        }
 
-        // All implicit via destructor or shutdown hook!
-        // manager.shutdown(); /* implies: adapter.close(); */
+            // All implicit via destructor or shutdown hook!
+            manager.shutdown(); /* implies: adapter.close(); */
+        }
+        adapters.forEach(new Consumer<BluetoothAdapter>() {
+            @Override
+            public void accept(final BluetoothAdapter a) {
+                println("****** EOL Adapter's Devices - post close: " + a);
+            } } );
+
     }
 
     public static void main(final String[] args) throws InterruptedException {

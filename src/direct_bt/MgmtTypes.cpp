@@ -483,8 +483,8 @@ std::shared_ptr<NameAndShortName> MgmtEvtLocalNameChanged::toNameAndShortName() 
     return std::make_shared<NameAndShortName>(getName(), getShortName());
 }
 
-std::shared_ptr<AdapterInfo> MgmtEvtAdapterInfo::toAdapterInfo() const noexcept {
-    return std::make_shared<AdapterInfo>(
+std::unique_ptr<AdapterInfo> MgmtEvtAdapterInfo::toAdapterInfo() const noexcept {
+    return std::make_unique<AdapterInfo>(
             getDevID(), getAddress(), getVersion(),
             getManufacturer(), getSupportedSetting(),
             getCurrentSetting(), getDevClass(),

@@ -101,6 +101,10 @@ public interface BluetoothManager
 
         /**
          * {@link BluetoothAdapter} was removed from the system.
+         * <p>
+         * {@link BluetoothAdapter#close()} is being called by the native manager after issuing all
+         * {@link #adapterRemoved(BluetoothAdapter)} calls.
+         * </p>
          * @param adapter the removed {@link BluetoothAdapter} from the system
          */
         void adapterRemoved(final BluetoothAdapter adapter);

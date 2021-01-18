@@ -2228,7 +2228,7 @@ namespace direct_bt {
             std::string getName() const noexcept { return pdu.get_string_nc(getDataOffset()+20); }
             std::string getShortName() const noexcept { return pdu.get_string_nc(getDataOffset()+20+MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
 
-            std::shared_ptr<AdapterInfo> toAdapterInfo() const noexcept;
+            std::unique_ptr<AdapterInfo> toAdapterInfo() const noexcept;
 
     };
 

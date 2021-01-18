@@ -44,6 +44,7 @@
 #include "HCIIoctl.hpp"
 #include "HCIComm.hpp"
 #include "DBTTypes.hpp"
+#include "DBTAdapter.hpp"
 
 #include "SMPHandler.hpp"
 
@@ -239,7 +240,7 @@ std::unique_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) noexcept 
     return nullptr;
 }
 
-std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) noexcept {
+std::unique_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) noexcept {
     /**
      * We weight on PairingMode::PASSKEY_ENTRY. FIXME: Have it configurable!
      *
@@ -253,7 +254,7 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
     const uint8_t sc_on_param = 0x01; // SET_SECURE_CONN 0x00 disabled, 0x01 enables SC mixed, 0x02 enables SC only mode
 #endif
 
-    std::shared_ptr<AdapterInfo> adapterInfo = nullptr;
+    std::unique_ptr<AdapterInfo> adapterInfo(nullptr); // nullptr
     AdapterSetting current_settings;
     MgmtCommand req0(MgmtCommand::Opcode::READ_INFO, dev_id);
     {
@@ -352,7 +353,11 @@ fail:
     return adapterInfo;
 }
 
-void DBTManager::shutdownAdapter(const uint16_t dev_id) noexcept {
+void DBTManager::shutdownAdapter(DBTAdapter& adapter) noexcept {
+    DBG_PRINT("DBTManager::shutdownAdapter: %s", adapter.toString().c_str());
+    const uint16_t dev_id = adapter.dev_id;
+    adapter.close(); // also issues removeMgmtEventCallback(dev_id);
+
     AdapterSetting current_settings;
     setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 0, current_settings);
 
@@ -364,6 +369,7 @@ void DBTManager::shutdownAdapter(const uint16_t dev_id) noexcept {
     setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(SMPIOCapability::DISPLAY_ONLY), current_settings);
     setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings);
     setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
+    DBG_PRINT("DBTManager::shutdownAdapter: done: %s", adapter.toString().c_str());
 }
 
 DBTManager::DBTManager(const BTMode _defaultBTMode) noexcept
@@ -476,19 +482,18 @@ next1:
             ERR_PRINT("Insufficient data for %d adapter indices: res %s", num_adapter, res->toString().c_str());
             goto fail;
         }
-        {
-            for(int i=0; i < num_adapter; i++) {
-                const uint16_t dev_id = jau::get_uint16(data, 2+i*2, true /* littleEndian */);
-                std::shared_ptr<AdapterInfo> adapterInfo = initAdapter(dev_id, defaultBTMode);
-                if( nullptr != adapterInfo ) {
-                    adapterInfos.push_back(adapterInfo);
-                    adapterIOCapability.push_back(defaultIOCapability);
-                    DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: %s", i, num_adapter, dev_id, adapterInfo->toString().c_str());
-                } else {
-                    DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: FAILED", i, num_adapter, dev_id);
-                }
+        for(int i=0; i < num_adapter; i++) {
+            const uint16_t dev_id = jau::get_uint16(data, 2+i*2, true /* littleEndian */);
+            std::unique_ptr<AdapterInfo> adapterInfo = initAdapter(dev_id, defaultBTMode);
+            if( nullptr != adapterInfo ) {
+                // private: std::shared_ptr<DBTAdapter> adapter = std::make_shared<DBTAdapter>(*this, *adapterInfo);
+                std::shared_ptr<DBTAdapter> adapter( new DBTAdapter(*this, *adapterInfo) );
+                adapters.push_back( adapter );
+                adapterIOCapability.push_back(defaultIOCapability);
+                DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: %s", i, num_adapter, dev_id, adapter->toString().c_str());
+            } else {
+                DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: FAILED", i, num_adapter, dev_id);
             }
-            // Not required: CTOR: adapterInfos.set_store(std::move(snapshot));
         }
     }
 
@@ -544,7 +549,7 @@ void DBTManager::close() noexcept {
         DBG_PRINT("DBTManager::close: Not open");
         whitelist.clear();
         clearAllCallbacks();
-        adapterInfos.clear();
+        adapters.clear();
         adapterIOCapability.clear();
         comm.close();
         return;
@@ -556,10 +561,17 @@ void DBTManager::close() noexcept {
     removeAllDevicesFromWhitelist();
     clearAllCallbacks();
 
-    jau::for_each_const(adapterInfos, [&](const std::shared_ptr<AdapterInfo> & a) {
-        shutdownAdapter(a->dev_id);
-    });
-    adapterInfos.clear();
+    {
+        int i=0;
+        jau::for_each_fidelity(adapters, [&](std::shared_ptr<DBTAdapter> & a) {
+            DBG_PRINT("DBTManager::close::shutdownAdapter: %d/%d processing: %s", i, adapters.size(), a->toString().c_str());
+            shutdownAdapter(*a);
+            ++i;
+        });
+    }
+
+    adapters.clear();
+    adapterIOCapability.clear();
 
     // Interrupt DBTManager's HCIComm::read(..), avoiding prolonged hang
     // and pull all underlying hci read operations!
@@ -605,35 +617,27 @@ void DBTManager::close() noexcept {
     DBG_PRINT("DBTManager::close: End");
 }
 
-int DBTManager::findAdapterInfoIndex(const uint16_t dev_id) const noexcept {
-    auto it = adapterInfos.cbegin();
+std::shared_ptr<DBTAdapter> DBTManager::getDefaultAdapter() const noexcept {
+    typename adapters_t::const_iterator it = adapters.cbegin();
     for (; !it.is_end(); ++it) {
-        if ( (*it)->dev_id == dev_id ) {
-            return it - it.cend();
-        }
-    }
-    return -1;
-}
-int DBTManager::findAdapterInfoDevId(const EUI48 &mac) const noexcept {
-    auto it = adapterInfos.cbegin();
-    for (; !it.is_end(); ++it) {
-        if ( (*it)->address == mac ) {
-            return (*it)->dev_id;
-        }
-    }
-    return -1;
-}
-std::shared_ptr<AdapterInfo> DBTManager::findAdapterInfo(const EUI48 &mac) const noexcept {
-    auto it = adapterInfos.cbegin();
-    for (; !it.is_end(); ++it) {
-        if ( (*it)->address == mac ) {
+        if( (*it)->isPowered() ) {
             return *it;
         }
     }
     return nullptr;
 }
-std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const uint16_t dev_id) const noexcept {
-    auto it = adapterInfos.cbegin();
+
+std::shared_ptr<DBTAdapter> DBTManager::getAdapter(const EUI48 &mac) const noexcept {
+    typename adapters_t::const_iterator it = adapters.cbegin();
+    for (; !it.is_end(); ++it) {
+        if ( (*it)->adapterInfo.address == mac ) {
+            return *it;
+        }
+    }
+    return nullptr;
+}
+std::shared_ptr<DBTAdapter> DBTManager::getAdapter(const uint16_t dev_id) const noexcept {
+    typename adapters_t::const_iterator it = adapters.cbegin();
     for (; !it.is_end(); ++it) {
         if ( (*it)->dev_id == dev_id ) {
             return *it;
@@ -641,76 +645,80 @@ std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const uint16_t dev_id) c
     }
     return nullptr;
 }
-bool DBTManager::addAdapterInfo(std::shared_ptr<AdapterInfo> ai) noexcept {
-    auto it = adapterInfos.begin(); // lock mutex and copy_store
+
+std::shared_ptr<DBTAdapter> DBTManager::addAdapter(const AdapterInfo& ai ) noexcept {
+    typename adapters_t::iterator it = adapters.begin(); // lock mutex and copy_store
     for (; !it.is_end(); ++it) {
-        if ( (*it)->dev_id == ai->dev_id ) {
-            it.push_back(ai);
-            it.write_back();
-            adapterIOCapability.push_back(defaultIOCapability);
-            return true;
+        if ( (*it)->dev_id == ai.dev_id ) {
+            break;
         }
     }
-    // already existing
-    return false;
+    if( it.is_end() ) {
+        // new entry
+        // private: std::shared_ptr<DBTAdapter> adapter = std::make_shared<DBTAdapter>(*this, ai);
+        std::shared_ptr<DBTAdapter> adapter( new DBTAdapter(*this, ai) );
+        it.push_back( adapter );
+        adapterIOCapability.push_back(defaultIOCapability);
+        DBG_PRINT("DBTManager::addAdapter: Adding new: %s", adapter->toString().c_str())
+        it.write_back();
+        return adapter;
+    } else {
+        // already existing
+        std::shared_ptr<DBTAdapter> adapter = *it;
+        WARN_PRINT("DBTManager::addAdapter: Already existing %s, overwriting %s", ai.toString().c_str(), adapter->toString().c_str())
+        adapter->adapterInfo = ai;
+        return adapter;
+    }
 }
-std::shared_ptr<AdapterInfo> DBTManager::removeAdapterInfo(const uint16_t dev_id) noexcept {
-    typename adapterInfos_t::iterator it = adapterInfos.begin(); // lock mutex and copy_store
-    while ( !it.is_end() ) {
-        std::shared_ptr<AdapterInfo> & ai = *it;
+
+std::shared_ptr<DBTAdapter> DBTManager::removeAdapter(const uint16_t dev_id) noexcept {
+    typename adapters_t::iterator it = adapters.begin(); // lock mutex and copy_store
+    for(; !it.is_end(); ++it ) {
+        std::shared_ptr<DBTAdapter> & ai = *it;
         if( ai->dev_id == dev_id ) {
-            adapterIOCapability.erase( adapterIOCapability.begin() + ( it - it.begin() ) );
-            std::shared_ptr<AdapterInfo> res = ai; // copy
+            adapterIOCapability.erase( adapterIOCapability.cbegin() + it.dist_begin() );
+            std::shared_ptr<DBTAdapter> res = ai; // copy
+            DBG_PRINT("DBTManager::removeAdapter: Remove: %s", res->toString().c_str())
             it.erase();
             it.write_back();
             return res;
-        } else {
-            ++it;
         }
     }
+    DBG_PRINT("DBTManager::removeAdapter: Not found: dev_id %d", dev_id)
     return nullptr;
 }
 
-BTMode DBTManager::getCurrentBTMode(uint16_t dev_id) const noexcept {
-    std::shared_ptr<AdapterInfo> ai = getAdapterInfo(dev_id);
-    if( nullptr == ai ) {
-        ERR_PRINT("dev_id %d not found", dev_id);
-        return BTMode::NONE;
-    }
-    return ai->getCurrentBTMode();
-}
-
-std::shared_ptr<AdapterInfo> DBTManager::getDefaultAdapterInfo() const noexcept {
-    auto it = adapterInfos.cbegin();
-    for (; !it.is_end(); ++it) {
-        if( (*it)->isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
-            return *it;
+bool DBTManager::removeAdapter(DBTAdapter* adapter) noexcept {
+    typename adapters_t::iterator it = adapters.begin(); // lock mutex and copy_store
+    for(; !it.is_end(); ++it ) {
+        std::shared_ptr<DBTAdapter> & ai = *it;
+        if( ai.get() == adapter ) {
+            adapterIOCapability.erase( adapterIOCapability.cbegin() + it.dist_begin() );
+            DBG_PRINT("DBTManager::removeAdapter: Remove: %p -> %s", adapter, ai->toString().c_str())
+            it.erase();
+            it.write_back();
+            return true;
         }
     }
-    return nullptr;
-}
-
-int DBTManager::getDefaultAdapterDevID() const noexcept {
-    std::shared_ptr<AdapterInfo> ai = getDefaultAdapterInfo();
-    if( nullptr == ai ) {
-        return -1;
-    }
-    return ai->dev_id;
+    DBG_PRINT("DBTManager::removeAdapter: Not found: %p", adapter)
+    return false;
 }
 
 bool DBTManager::setIOCapability(const uint16_t dev_id, const SMPIOCapability io_cap, SMPIOCapability& pre_io_cap) noexcept {
     if( SMPIOCapability::UNSET != io_cap ) {
 #if USE_LINUX_BT_SECURITY
-        auto it = adapterInfos.cbegin();
+        typename adapters_t::const_iterator it = adapters.cbegin();
         for (; !it.is_end(); ++it) {
             if( (*it)->dev_id == dev_id ) {
-                const typename adapterInfos_t::difference_type index = it-it.cbegin();
+                const typename adapters_t::difference_type index = it.dist_begin();
                 const SMPIOCapability o = adapterIOCapability.at(index);
                 AdapterSetting current_settings { AdapterSetting::NONE }; // throw away return value, unchanged on SET_IO_CAPABILITY
                 if( setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(io_cap), current_settings) ) {
                     adapterIOCapability.at(index) = io_cap;
                     pre_io_cap = o;
                     return true;
+                } else {
+                    return false;
                 }
             }
         }
@@ -720,10 +728,10 @@ bool DBTManager::setIOCapability(const uint16_t dev_id, const SMPIOCapability io
 }
 
 SMPIOCapability DBTManager::getIOCapability(const uint16_t dev_id) const noexcept {
-    auto it = adapterInfos.cbegin();
+    typename adapters_t::const_iterator it = adapters.cbegin();
     for (; !it.is_end(); ++it) {
         if( (*it)->dev_id == dev_id ) {
-            return adapterIOCapability.at(it-it.cbegin());
+            return adapterIOCapability.at( it.dist_begin() );
         }
     }
     return SMPIOCapability::UNSET;
@@ -979,7 +987,7 @@ int DBTManager::removeAllDevicesFromWhitelist() noexcept {
     int count = 0;
     DBG_PRINT("DBTManager::removeAllDevicesFromWhitelist.B: Start %d elements", count);
     whitelist.clear();
-    jau::for_each_const(adapterInfos, [&](const std::shared_ptr<AdapterInfo> & a) {
+    jau::for_each_const(adapters, [&](const std::shared_ptr<DBTAdapter> & a) {
         if( removeDeviceFromWhitelist(a->dev_id, BDAddressAndType::ANY_BREDR_DEVICE) ) { // flush whitelist!
             ++count;
         }
@@ -1136,30 +1144,33 @@ void DBTManager::clearAllCallbacks() noexcept {
 
 void DBTManager::processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept {
     const uint16_t dev_id = e->getDevID();
-    std::shared_ptr<AdapterInfo> ai = initAdapter(dev_id, defaultBTMode);
-    if( nullptr != ai ) {
-        const bool added = addAdapterInfo(ai);
-        DBG_PRINT("DBTManager::Adapter[%d] Added: Start %s, added %d", dev_id, ai->toString().c_str(), added);
+
+    std::unique_ptr<AdapterInfo> adapterInfo = initAdapter(dev_id, defaultBTMode);
+
+    if( nullptr != adapterInfo ) {
+        std::shared_ptr<DBTAdapter> adapter = addAdapter( *adapterInfo );
+        DBG_PRINT("DBTManager::Adapter[%d] Added: Start %s, added %d", dev_id, adapter->toString().c_str());
         sendMgmtEvent(*e);
-        DBG_PRINT("DBTManager::Adapter[%d] Added: User_ %s", dev_id, ai->toString().c_str());
+        DBG_PRINT("DBTManager::Adapter[%d] Added: User_ %s", dev_id, adapter->toString().c_str());
         jau::for_each_fidelity(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
-           cb.invoke(true /* added */, *ai);
+           cb.invoke(true /* added */, adapter);
         });
-        DBG_PRINT("DBTManager::Adapter[%d] Added: End__ %s", dev_id, ai->toString().c_str());
+        DBG_PRINT("DBTManager::Adapter[%d] Added: End__ %s", dev_id, adapter->toString().c_str());
     } else {
         DBG_PRINT("DBTManager::Adapter[%d] Added: InitAI failed", dev_id);
     }
 }
 void DBTManager::processAdapterRemoved(std::unique_ptr<MgmtEvent> e) noexcept {
     const uint16_t dev_id = e->getDevID();
-    std::shared_ptr<AdapterInfo> ai = removeAdapterInfo(dev_id);
+    std::shared_ptr<DBTAdapter> ai = removeAdapter(dev_id);
     if( nullptr != ai ) {
         DBG_PRINT("DBTManager::Adapter[%d] Removed: Start: %s", dev_id, ai->toString().c_str());
         sendMgmtEvent(*e);
         DBG_PRINT("DBTManager::Adapter[%d] Removed: User_: %s", dev_id, ai->toString().c_str());
         jau::for_each_fidelity(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
-           cb.invoke(false /* added */, *ai);
+           cb.invoke(false /* added */, ai);
         });
+        ai->close(); // issuing dtor on DBTAdapter
         DBG_PRINT("DBTManager::Adapter[%d] Removed: End__: %s", dev_id, ai->toString().c_str());
     } else {
         DBG_PRINT("DBTManager::Adapter[%d] Removed: RemoveAI failed", dev_id);
@@ -1167,10 +1178,10 @@ void DBTManager::processAdapterRemoved(std::unique_ptr<MgmtEvent> e) noexcept {
 }
 bool DBTManager::mgmtEvNewSettingsCB(const MgmtEvent& e) noexcept {
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(&e);
-    std::shared_ptr<AdapterInfo> adapterInfo = getAdapterInfo(event.getDevID());
-    if( nullptr != adapterInfo ) {
-        const AdapterSetting old_settings = adapterInfo->getCurrentSettingMask();
-        const AdapterSetting new_settings = adapterInfo->setCurrentSettingMask(event.getSettings());
+    std::shared_ptr<DBTAdapter> adapter = getAdapter(event.getDevID());
+    if( nullptr != adapter ) {
+        const AdapterSetting old_settings = adapter->adapterInfo.getCurrentSettingMask();
+        const AdapterSetting new_settings = adapter->adapterInfo.setCurrentSettingMask(event.getSettings());
         DBG_PRINT("DBTManager:mgmt:NewSettings: Adapter[%d] %s -> %s - %s",
                 event.getDevID(),
                 getAdapterSettingMaskString(old_settings).c_str(),
@@ -1200,12 +1211,11 @@ static ChangedAdapterSetCallbackList::equal_comparator _changedAdapterSetCallbac
 
 
 void DBTManager::addChangedAdapterSetCallback(const ChangedAdapterSetCallback & l) {
+    ChangedAdapterSetCallback* l_p = const_cast<ChangedAdapterSetCallback*>(&l);
     mgmtChangedAdapterSetCallbackList.push_back(l);
 
-    jau::for_each_const(adapterInfos, [&](const std::shared_ptr<AdapterInfo>& ai) {
-        jau::for_each_fidelity(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
-           cb.invoke(true /* added */, *ai);
-        });
+    jau::for_each_fidelity(adapters, [&](std::shared_ptr<DBTAdapter>& ai) {
+        l_p->invoke(true /* added */, ai);
     });
 }
 int DBTManager::removeChangedAdapterSetCallback(const ChangedAdapterSetCallback & l) {
@@ -1215,10 +1225,10 @@ int DBTManager::removeChangedAdapterSetCallback(const ChangedAdapterSetCallback 
 void DBTManager::addChangedAdapterSetCallback(ChangedAdapterSetFunc f) {
     addChangedAdapterSetCallback(
             ChangedAdapterSetCallback(
-                    jau::bindPlainFunc<bool, bool, const AdapterInfo&>(f)
+                    jau::bindPlainFunc<bool, bool, std::shared_ptr<DBTAdapter>&>(f)
             ) );
 }
 int DBTManager::removeChangedAdapterSetCallback(ChangedAdapterSetFunc f) {
-    ChangedAdapterSetCallback l( jau::bindPlainFunc<bool, bool, const AdapterInfo&>(f) );
+    ChangedAdapterSetCallback l( jau::bindPlainFunc<bool, bool, std::shared_ptr<DBTAdapter>&>(f) );
     return mgmtChangedAdapterSetCallbackList.erase_matching(l, true /* all_matching */, _changedAdapterSetCallbackEqComp);
 }

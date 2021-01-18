@@ -56,6 +56,7 @@ extern "C" {
 
 #include "DBTManager.hpp"
 #include "DBTAdapter.hpp"
+#include "DBTManager.hpp"
 
 using namespace direct_bt;
 

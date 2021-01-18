@@ -45,6 +45,7 @@
 #include "OctetTypes.hpp"
 #include "HCIComm.hpp"
 #include "MgmtTypes.hpp"
+#include "DBTAdapter.hpp"
 
 namespace direct_bt {
 
@@ -146,15 +147,20 @@ namespace direct_bt {
      * The callback is performed on a dedicated thread,
      * allowing the user to perform complex operations.
      * </p>
+     * <p>
+     * If an adapter is being removed from the system,
+     * DBTAdapter::close() is being called by DBTManager after issuing all
+     * ChangedAdapterSetFunc calls.
+     * </p>
      *
      * @param added true if adapter was newly added, otherwise removed from system
-     * @param adapterInfo the adapter's AdapterInfo, inclusive the dev_id
+     * @param adapter the shared DBTAdapter reference
      * @return ignored
      * @see ChangedAdapterSetCallback
      * @see DBTManager::addChangedAdapterSetCallback()
      * @see DBTManager::removeChangedAdapterSetCallback()
      */
-    typedef bool (*ChangedAdapterSetFunc)(bool added, const AdapterInfo& adapterInfo);
+    typedef bool (*ChangedAdapterSetFunc)(bool added, std::shared_ptr<DBTAdapter>& adapter);
 
     /**
      * Callback jau::FunctionDef to receive change events regarding the system's adapter set,
@@ -167,15 +173,20 @@ namespace direct_bt {
      * The callback is performed on a dedicated thread,
      * allowing the user to perform complex operations.
      * </p>
+     * <p>
+     * If an adapter is being removed from the system,
+     * DBTAdapter::close() is being called by DBTManager after issuing all
+     * ChangedAdapterSetFunc calls.
+     * </p>
      *
      * @param added true if adapter was newly added, otherwise removed from system
-     * @param adapterInfo the adapter's AdapterInfo, inclusive the dev_id
+     * @param adapter the shared DBTAdapter reference
      * @return ignored
      * @see ChangedAdapterSetFunc
      * @see DBTManager::addChangedAdapterSetCallback()
      * @see DBTManager::removeChangedAdapterSetCallback()
      */
-    typedef jau::FunctionDef<bool, bool, const AdapterInfo&> ChangedAdapterSetCallback;
+    typedef jau::FunctionDef<bool, bool, std::shared_ptr<DBTAdapter>&> ChangedAdapterSetCallback;
     typedef jau::cow_darray<ChangedAdapterSetCallback> ChangedAdapterSetCallbackList;
 
     /**
@@ -197,6 +208,8 @@ namespace direct_bt {
             static const pid_t pidSelf;
 
         private:
+            friend DBTAdapter::~DBTAdapter() noexcept;
+
             static std::mutex mtx_singleton;
 
             struct WhitelistElem {
@@ -237,8 +250,8 @@ namespace direct_bt {
 
             ChangedAdapterSetCallbackList mgmtChangedAdapterSetCallbackList;
 
-            typedef jau::cow_darray<std::shared_ptr<AdapterInfo>> adapterInfos_t;
-            adapterInfos_t adapterInfos;
+            typedef jau::cow_darray<std::shared_ptr<DBTAdapter>> adapters_t;
+            adapters_t adapters;
 
             /**
              * Using defaultIOCapability on added AdapterInfo.
@@ -267,27 +280,28 @@ namespace direct_bt {
             void operator=(const DBTManager&) = delete;
 
             void setAdapterMode(const uint16_t dev_id, const uint8_t ssp, const uint8_t bredr, const uint8_t le) noexcept;
-            std::shared_ptr<AdapterInfo> initAdapter(const uint16_t dev_id, const BTMode btMode) noexcept;
-            void shutdownAdapter(const uint16_t dev_id) noexcept;
+            std::unique_ptr<AdapterInfo> initAdapter(const uint16_t dev_id, const BTMode btMode) noexcept;
+            void shutdownAdapter(DBTAdapter& adapter) noexcept;
 
             void processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept;
             void processAdapterRemoved(std::unique_ptr<MgmtEvent> e) noexcept;
             bool mgmtEvNewSettingsCB(const MgmtEvent& e) noexcept;
             bool mgmtEventAnyCB(const MgmtEvent& e) noexcept;
 
-            int findAdapterInfoIndex(const uint16_t dev_id) const noexcept;
-
-            /**
-             * Adds the given AdapterInfo if representing a new dev_id.
-             * @return true if newly added dev_id, otherwise false if dev_id already exists.
-             */
-            bool addAdapterInfo(std::shared_ptr<AdapterInfo> ai) noexcept;
+            std::shared_ptr<DBTAdapter> addAdapter(const AdapterInfo& ai) noexcept;
 
             /**
              * Removes the AdapterInfo with the given dev_id
              * @return the removed instance or nullptr if not found.
              */
-            std::shared_ptr<AdapterInfo> removeAdapterInfo(const uint16_t dev_id) noexcept;
+            std::shared_ptr<DBTAdapter> removeAdapter(const uint16_t dev_id) noexcept;
+
+            /**
+             * Removal entry for DBTAdapter::~DBTAdapter
+             * @param adapter pointer to the dtor'ed adapter
+             * @return true if contained and removed, otherwise false
+             */
+            bool removeAdapter(DBTAdapter* adapter) noexcept;
 
         public:
             /**
@@ -332,7 +346,7 @@ namespace direct_bt {
             }
 
             std::string toString() const noexcept override {
-                return "MgmtHandler[BTMode "+getBTModeString(defaultBTMode)+", "+std::to_string(adapterInfos.size())+" adapter, "+javaObjectToString()+"]";
+                return "MgmtHandler[BTMode "+getBTModeString(defaultBTMode)+", "+std::to_string(adapters.size())+" adapter, "+javaObjectToString()+"]";
             }
 
             /** retrieve information gathered at startup */
@@ -340,27 +354,22 @@ namespace direct_bt {
             /**
              * Returns AdapterInfo count in list
              */
-            int getAdapterCount() const noexcept { return adapterInfos.size(); }
+            int getAdapterCount() const noexcept { return adapters.size(); }
 
             /**
-             * Returns the AdapterInfo dev_id with the given address or -1 if not found.
+             * Returns a list of currently added DBTAdapter.
              */
-            int findAdapterInfoDevId(const EUI48 &mac) const noexcept;
+            jau::darray<std::shared_ptr<DBTAdapter>> getAdapters() { return *adapters.snapshot(); }
 
             /**
-             * Returns the AdapterInfo with the given address or nullptr if not found.
+             * Returns the DBTAdapter with the given address or nullptr if not found.
              */
-            std::shared_ptr<AdapterInfo> findAdapterInfo(const EUI48 &mac) const noexcept;
+            std::shared_ptr<DBTAdapter> getAdapter(const EUI48 &mac) const noexcept;
 
             /**
-             * Returns the AdapterInfo with the given dev_id, or nullptr if not found.
+             * Returns the DBTAdapter with the given dev_id, or nullptr if not found.
              */
-            std::shared_ptr<AdapterInfo> getAdapterInfo(const uint16_t dev_id) const noexcept;
-
-            /**
-             * Returns the current BTMode of given adapter dev_idx or BTMode::NONE if dev_id adapter is not available.
-             */
-            BTMode getCurrentBTMode(uint16_t dev_id) const noexcept;
+            std::shared_ptr<DBTAdapter> getAdapter(const uint16_t dev_id) const noexcept;
 
             /**
              * Returns the default AdapterInfo.
@@ -369,16 +378,7 @@ namespace direct_bt {
              * or function returns nullptr if none is AdapterSetting::POWERED.
              * </p>
              */
-            std::shared_ptr<AdapterInfo> getDefaultAdapterInfo() const noexcept;
-
-            /**
-             * Returns the default adapter dev_id (index).
-             * <p>
-             * The default adapter is either the first AdapterSetting::POWERED adapter,
-             * or function returns -1 if none is AdapterSetting::POWERED.
-             * </p>
-             */
-            int getDefaultAdapterDevID() const noexcept;
+            std::shared_ptr<DBTAdapter> getDefaultAdapter() const noexcept;
 
             bool setIOCapability(const uint16_t dev_id, const SMPIOCapability io_cap, SMPIOCapability& pre_io_cap) noexcept;
             SMPIOCapability getIOCapability(const uint16_t dev_id) const noexcept;

@@ -42,11 +42,11 @@
 #include "DBTDevice.hpp"
 
 #include "HCIHandler.hpp"
-#include "DBTManager.hpp"
 
 namespace direct_bt {
 
     class DBTAdapter; // forward
+    class DBTManager; // forward
 
     /**
      * {@link DBTAdapter} status listener for {@link DBTDevice} discovery events: Added, updated and removed;
@@ -202,8 +202,11 @@ namespace direct_bt {
     class DBTAdapter : public DBTObject
     {
         private:
+            friend DBTManager;
+
             const bool debug_event, debug_lock;
             DBTManager& mgmt;
+            AdapterInfo adapterInfo;
 
         public:
             /**
@@ -212,13 +215,12 @@ namespace direct_bt {
              * The internal device id is constant across the adapter lifecycle,
              * but may change after its destruction.
              */
-            const int dev_id;
+            const uint16_t dev_id;
 
         private:
             HCIHandler hci;
 
             std::atomic<AdapterSetting> old_settings;
-            std::shared_ptr<AdapterInfo> adapterInfo;
             std::atomic<BTMode> btMode = BTMode::NONE;
             NameAndShortName localName;
             std::atomic<ScanType> currentMetaScanType; // = ScanType::NONE
@@ -247,6 +249,8 @@ namespace direct_bt {
 
             static std::shared_ptr<DBTDevice> findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
             static std::shared_ptr<DBTDevice> findDevice(device_list_t & devices, DBTDevice const & device) noexcept;
+
+            DBTAdapter(DBTManager& mgmt_, const AdapterInfo& adapterInfo_) noexcept;
 
             /**
              * Closes all device connections, stops discovery and cleans up all references.
@@ -329,35 +333,6 @@ namespace direct_bt {
 
         public:
 
-            /**
-             * Using the default adapter device
-             * <p>
-             * The default adapter is either the first POWERED adapter,
-             * or none - in which case this instance !isValid()
-             * </p>
-             */
-            DBTAdapter() noexcept;
-
-            /**
-             * Using the identified adapter with given mac address.
-             *
-             * @param[in] mac address
-             */
-            DBTAdapter(EUI48 &mac) noexcept;
-
-            /**
-             * Using the identified adapter with given dev_id,
-             * or the default adapter device if dev_id < 0.
-             * <p>
-             * The default adapter is either the first POWERED adapter,
-             * or none - in which case this instance !isValid().
-             * </p>
-             *
-             * @param[in] dev_id an already identified HCI device id
-             *            or use -1 to choose the default adapter.
-             */
-            DBTAdapter(const int dev_id) noexcept;
-
             DBTAdapter(const DBTAdapter&) = delete;
             void operator=(const DBTAdapter&) = delete;
 
@@ -367,7 +342,8 @@ namespace direct_bt {
             ~DBTAdapter() noexcept;
 
             /**
-             * Closes this instance, usually being called by destructor or when this adapter is being removed.
+             * Closes this instance, usually being called by destructor or when this adapter is being removed
+             * as recognized and handled by DBTManager.
              * <p>
              * Renders this adapter's DBTAdapter#isValid() state to false.
              * </p>
@@ -381,8 +357,6 @@ namespace direct_bt {
                 return std::string(JAVA_DBT_PACKAGE "DBTAdapter");
             }
 
-            bool hasDevId() const noexcept { return 0 <= dev_id; }
-
             /**
              * Returns whether the adapter is valid, plugged in and powered.
              * @return true if DBTAdapter::isValid(), HCIHandler::isOpen() and AdapterSetting::POWERED state is set.
@@ -390,7 +364,7 @@ namespace direct_bt {
              * @see #isValid()
              */
             bool isPowered() const noexcept {
-                return isValid() && hci.isOpen() && adapterInfo->isCurrentSettingBitSet(AdapterSetting::POWERED);
+                return isValid() && hci.isOpen() && adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED);
             }
 
             /**
@@ -400,15 +374,15 @@ namespace direct_bt {
              * @see #isValid()
              */
             bool isSuspended() const noexcept {
-                return isValid() && hci.isOpen() && !adapterInfo->isCurrentSettingBitSet(AdapterSetting::POWERED);
+                return isValid() && hci.isOpen() && !adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED);
             }
 
             bool hasSecureConnections() const noexcept {
-                return adapterInfo->isCurrentSettingBitSet(AdapterSetting::SECURE_CONN);
+                return adapterInfo.isCurrentSettingBitSet(AdapterSetting::SECURE_CONN);
             }
 
             bool hasSecureSimplePairing() const noexcept {
-                return adapterInfo->isCurrentSettingBitSet(AdapterSetting::SSP);
+                return adapterInfo.isCurrentSettingBitSet(AdapterSetting::SSP);
             }
 
             /**
@@ -422,18 +396,23 @@ namespace direct_bt {
                 return DBTObject::isValid();
             }
 
-            EUI48 const & getAddress() const noexcept { return adapterInfo->address; }
-            std::string getAddressString() const noexcept { return adapterInfo->address.toString(); }
+            /**
+             * Returns the current BTMode of this adapter.
+             */
+            BTMode getBTMode() const noexcept { return adapterInfo.getCurrentBTMode(); }
+
+            EUI48 const & getAddress() const noexcept { return adapterInfo.address; }
+            std::string getAddressString() const noexcept { return adapterInfo.address.toString(); }
 
             /**
              * Returns the system name.
              */
-            std::string getName() const noexcept { return adapterInfo->getName(); }
+            std::string getName() const noexcept { return adapterInfo.getName(); }
 
             /**
              * Returns the short system name.
              */
-            std::string getShortName() const noexcept { return adapterInfo->getShortName(); }
+            std::string getShortName() const noexcept { return adapterInfo.getShortName(); }
 
             /**
              * Returns the local friendly name and short_name. Contains empty strings if not set.

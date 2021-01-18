@@ -31,9 +31,9 @@
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
-#include "direct_bt/DBTManager.hpp"
 #include "direct_bt/DBTDevice.hpp"
 #include "direct_bt/DBTAdapter.hpp"
+#include "direct_bt/DBTManager.hpp"
 
 using namespace direct_bt;
 using namespace jau;
@@ -171,26 +171,8 @@ jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject
         DBTManager *manager = getInstance<DBTManager>(env, obj);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl: Manager %s", manager->toString().c_str());
 
-        jau::darray<std::unique_ptr<DBTAdapter>> adapters;
-        const int adapterCount = manager->getAdapterCount();
-        for(int dev_id = 0; dev_id < adapterCount; dev_id++) {
-            if( nullptr == manager->getAdapterInfo(dev_id) ) {
-                ERR_PRINT("DBTManager::getAdapterListImpl: Adapter dev_id %d: Not found", dev_id);
-                continue;
-            }
-            std::unique_ptr<DBTAdapter> adapter(new DBTAdapter( dev_id ) );
-            if( !adapter->isValid() ) {
-                throw BluetoothException("Invalid adapter @ dev_id "+std::to_string( dev_id ), E_FILE_LINE);
-            }
-            if( !adapter->hasDevId() ) {
-                throw BluetoothException("Invalid adapter dev-id @ dev_id "+std::to_string( dev_id ), E_FILE_LINE);
-            }
-            if( dev_id != adapter->dev_id ) { // just make sure idx == dev_id
-                throw BluetoothException("Invalid adapter dev-id "+std::to_string( adapter->dev_id )+" != dev_id "+std::to_string( dev_id ), E_FILE_LINE);
-            }
-            adapters.push_back(std::move(adapter));
-        }
-        return convert_vector_uniqueptr_to_jarraylist<jau::darray<std::unique_ptr<DBTAdapter>>, DBTAdapter>(
+        jau::darray<std::shared_ptr<DBTAdapter>> adapters = manager->getAdapters();
+        return convert_vector_sharedptr_to_jarraylist<jau::darray<std::shared_ptr<DBTAdapter>>, DBTAdapter>(
                 env, adapters, _adapterClazzCtorArgs.c_str(), _createJavaAdapter);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -203,23 +185,14 @@ jobject Java_direct_1bt_tinyb_DBTManager_getAdapterImpl(JNIEnv *env, jobject obj
     try {
         DBTManager *manager = getInstance<DBTManager>(env, obj);
 
-        if( nullptr == manager->getAdapterInfo(dev_id) ) {
+        std::shared_ptr<DBTAdapter> adapter = manager->getAdapter(dev_id);
+        if( nullptr == adapter ) {
             ERR_PRINT("DBTManager::getAdapterImpl: Adapter dev_id %d: Not found", dev_id);
             return nullptr;
         }
-        DBTAdapter * adapter = new DBTAdapter( dev_id );
         DBG_PRINT("DBTManager::getAdapterImpl: Adapter dev_id %d: %s", dev_id, adapter->toString().c_str());
 
-        if( !adapter->isValid() ) {
-            throw BluetoothException("Invalid adapter @ dev_id "+std::to_string( dev_id ), E_FILE_LINE);
-        }
-        if( !adapter->hasDevId() ) {
-            throw BluetoothException("Invalid adapter dev-id @ dev_id "+std::to_string( dev_id ), E_FILE_LINE);
-        }
-        if( dev_id != adapter->dev_id ) { // just make sure idx == dev_id
-            throw BluetoothException("Invalid adapter dev-id "+std::to_string( adapter->dev_id )+" != dev_id "+std::to_string( dev_id ), E_FILE_LINE);
-        }
-        return jau::convert_instance_to_jobject<DBTAdapter>(env, adapter,  _adapterClazzCtorArgs.c_str(), _createJavaAdapter);
+        return jau::convert_instance_to_jobject<DBTAdapter>(env, adapter.get(),  _adapterClazzCtorArgs.c_str(), _createJavaAdapter);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

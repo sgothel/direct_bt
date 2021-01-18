@@ -77,22 +77,36 @@
  * - - - - - - - - - - - - - - -
  *
  * From a user perspective the following hierarchy is provided
- * - DBTAdapter has no or more
- *   - DBTDevice has no or more
- *     - GATTService has no or more
- *       - GATTCharacteristic has no or more
- *         - GATTDescriptor
+ * - DBTManager has zero or more
+ *   - DBTAdapter has zero or more
+ *     - DBTDevice has zero or more
+ *       - GATTService has zero or more
+ *         - GATTCharacteristic has zero or more
+ *           - GATTDescriptor
  *
  * - - - - - - - - - - - - - - -
  *
  * Object lifecycle with all instances and marked weak back-references to their owner
  * - DBTManager singleton instance for all
- * - DBTAdapter ownership by user (C++) and BluetoothManager (Java)
+ * - DBTAdapter ownership by DBTManager
  *   - DBTDevice ownership by DBTAdapter
  *     - GATTHandler ownership by DBTDevice, with weak DBTDevice back-reference
  *       - GATTService ownership by GATTHandler, with weak GATTHandler back-reference
  *         - GATTCharacteristic ownership by GATTService, with weak GATTService back-reference
  *           - GATTDescriptor ownership by GATTCharacteristic, with weak GATTCharacteristic back-reference
+ *
+ * - - - - - - - - - - - - - - -
+ *
+ * Mapped names from C++ implementation to Java implementation and to Java interface:
+ *
+ *  C++                | Java Implementation   | Java Interface |
+ *  :------------------| :---------------------| :---------------------------|
+ *  DBTManager         | DBTManager            | BluetoothManager            |
+ *  DBTAdapter         | DBTAdapter            | BluetoothAdapter            |
+ *  DBTDevice          | DBTDevice             | BluetoothDevice             |
+ *  GATTService        | DBTGattService        | BluetoothGattService        |
+ *  GATTCharacteristic | DBTGattCharacteristic | BluetoothGattCharacteristic |
+ *  GATTDescriptor     | DBTGattDescriptor     | BluetoothGattDescriptor     |
  *
  * - - - - - - - - - - - - - - -
  *

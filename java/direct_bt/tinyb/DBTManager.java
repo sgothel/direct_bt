@@ -219,7 +219,7 @@ public class DBTManager implements BluetoothManager
     }
 
     @Override
-    public List<BluetoothDevice> getDevices() { return getDefaultAdapter().getDevices(); }
+    public List<BluetoothDevice> getDevices() { return getDefaultAdapter().getDiscoveredDevices(); }
 
     /**
      * {@inheritDoc}
@@ -288,11 +288,7 @@ public class DBTManager implements BluetoothManager
         adapters.forEach(new Consumer<BluetoothAdapter>() {
             @Override
             public void accept(final BluetoothAdapter adapter) {
-                changedAdapterSetListenerList.forEach(new Consumer<ChangedAdapterSetListener>() {
-                    @Override
-                    public void accept(final ChangedAdapterSetListener t) {
-                        t.adapterAdded(adapter);
-                    } } );
+                l.adapterAdded(adapter);
             }
         });
     }
@@ -316,6 +312,25 @@ public class DBTManager implements BluetoothManager
 
     private native List<BluetoothAdapter> getAdapterListImpl();
     private native BluetoothAdapter getAdapterImpl(int dev_id);
+
+    /**
+     * Removal entry for DBTAdapter.close()
+     * @param adapter ref to the close'ed adapter
+     * @return true if contained and removed, otherwise false
+     */
+    /* pp */ final boolean removeAdapter(final DBTAdapter adapter) {
+        if( adapters.remove(adapter) ) {
+            if( DEBUG ) {
+                System.err.println("DBTManager.removeAdapter: Removed "+adapter);
+            }
+            return true;
+        } else {
+            if( DEBUG ) {
+                System.err.println("DBTManager.removeAdapter: Not found "+adapter);
+            }
+            return false;
+        }
+    }
 
     /** callback from native adapter remove */
     /* pp */ final void removeAdapterCB(final int dev_id, final int opc_reason) {
@@ -346,8 +361,7 @@ public class DBTManager implements BluetoothManager
                         t.adapterRemoved( removed[0] );
                     } } );
             }
-            removed[0].close(); // issuing dtor on native DBTAdapter
-            removed[0] = null;
+            removed[0] = null; // DBTAdapter::close() issued by DBTManager after all callbacks
         }
         if( DEBUG ) {
             System.err.println("DBTManager.removeAdapterCB[dev_id "+dev_id+", opc 0x"+Integer.toHexString(opc_reason)+

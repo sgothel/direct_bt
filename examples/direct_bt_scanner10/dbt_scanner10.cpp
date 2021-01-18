@@ -111,20 +111,16 @@ bool matches(jau::darray<BDAddressAndType> &cont, const BDAddressAndType &mac) {
     });
 }
 
-bool contains(std::unordered_set<direct_bt::BDAddressAndType> &cont, const BDAddressAndType &mac) {
-    return cont.end() != cont.find(mac);
-}
-
 void printList(const std::string &msg, jau::darray<BDAddressAndType> &cont) {
     fprintf(stderr, "%s ", msg.c_str());
-    std::for_each(cont.begin(), cont.end(),
+    jau::for_each(cont.begin(), cont.end(),
             [](const BDAddressAndType &mac) { fprintf(stderr, "%s, ", mac.toString().c_str()); });
     fprintf(stderr, "\n");
 }
 
 void printList(const std::string &msg, std::unordered_set<BDAddressAndType> &cont) {
     fprintf(stderr, "%s ", msg.c_str());
-    std::for_each(cont.begin(), cont.end(),
+    jau::for_each(cont.begin(), cont.end(),
             [](const BDAddressAndType &mac) { fprintf(stderr, "%s, ", mac.toString().c_str()); });
     fprintf(stderr, "\n");
 }
@@ -135,7 +131,7 @@ static void addToDevicesProcessed(const BDAddressAndType &a) {
 }
 static bool isDeviceProcessed(const BDAddressAndType & a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
-    return contains(devicesProcessed, a);
+    return devicesProcessed.end() != devicesProcessed.find(a);
 }
 static size_t getDeviceProcessedCount() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
@@ -144,7 +140,7 @@ static size_t getDeviceProcessedCount() {
 static bool allDevicesProcessed(jau::darray<BDAddressAndType> &cont) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
     for (auto it = cont.begin(); it != cont.end(); ++it) {
-        if( !contains(devicesProcessed, *it) ) {
+        if( devicesProcessed.end() == devicesProcessed.find(*it) ) {
             return false;
         }
     }
@@ -171,7 +167,7 @@ static bool removeFromDevicesProcessing(const BDAddressAndType &a) {
 }
 static bool isDeviceProcessing(const BDAddressAndType & a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
-    return contains(devicesInProcessing, a);
+    return devicesInProcessing.end() != devicesInProcessing.find(a);
 }
 static size_t getDeviceProcessingCount() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
@@ -740,36 +736,11 @@ static bool startDiscovery(DBTAdapter *a, std::string msg) {
     return HCIStatusCode::SUCCESS == status;
 }
 
-static std::shared_ptr<DBTAdapter> createAdapter(const int dev_id0, const bool validate_dev_id) {
-    // pre-validate dev_id availability
-    int dev_id;
-    if( validate_dev_id ) {
-        DBTManager & mngr = DBTManager::get();
-        if( 0 > dev_id0 ) {
-            dev_id = mngr.getDefaultAdapterDevID();
-        } else if( nullptr != mngr.getAdapterInfo(dev_id0) ) {
-            dev_id = dev_id0;
-        } else {
-            dev_id = -1;
-        }
-    } else {
-        dev_id = dev_id0;
-    }
-    if( 0 > dev_id ) {
-        fprintf(stderr, "Adapter not available (1): Request %d, deduced %d\n", dev_id0, dev_id);
-        return nullptr;
-    }
-
-    std::shared_ptr<DBTAdapter> adapter(new DBTAdapter(dev_id)); // given dev_id >= 0 or default adapter (1st powered)
-    if( !adapter->hasDevId() ) {
-        fprintf(stderr, "Adapter not available (2): %d\n", dev_id); // should have been covered above
-        return nullptr;
-    }
+static bool initAdapter(std::shared_ptr<DBTAdapter>& adapter) {
     if( !adapter->isPowered() ) { // should have been covered above
         fprintf(stderr, "Adapter not powered (2): %s\n", adapter->toString().c_str());
-        return nullptr;
+        return false;
     }
-
     adapter->addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
 
     if( USE_WHITELIST ) {
@@ -779,69 +750,21 @@ static std::shared_ptr<DBTAdapter> createAdapter(const int dev_id0, const bool v
         }
     } else {
         if( !startDiscovery(adapter.get(), "kick-off") ) {
-            return nullptr;
+            return false;
         }
     }
-    return adapter;
+    return true;
 }
 
-typedef jau::cow_darray<std::shared_ptr<DBTAdapter>> cow_adapter_list_t;
-static cow_adapter_list_t adapterList;
-
-static std::shared_ptr<DBTAdapter> getAdapter(const uint16_t dev_id) {
-    cow_adapter_list_t::const_iterator begin = adapterList.cbegin();
-    cow_adapter_list_t::const_iterator end = begin.cend();
-    auto it = jau::find_if(begin, end, [&](std::shared_ptr<DBTAdapter> const& p) -> bool {
-        return p->dev_id == dev_id;
-    });
-    if ( it == end ) {
-        return nullptr;
-    } else {
-        return *it;
-    }
-}
-static std::shared_ptr<DBTAdapter> removeAdapter(const uint16_t dev_id) {
-    std::shared_ptr<DBTAdapter> res = nullptr;
-    cow_adapter_list_t::iterator begin = adapterList.begin(); // lock, copy_store and set_store @ dtor!
-    const std::lock_guard<std::recursive_mutex> lock(adapterList.get_write_mutex());
-    std::shared_ptr<jau::darray<std::shared_ptr<DBTAdapter>>> store = adapterList.copy_store();
-    for(auto it = store->begin(); it != store->end(); ) {
-        if ( (*it)->dev_id == dev_id ) {
-            res = *it;
-            it = store->erase(it);
-            adapterList.set_store(std::move(store));
-            return res;
-        } else {
-            ++it;
-        }
-    }
-    return nullptr;
-}
-
-static bool myChangedAdapterSetFunc(const bool added, const AdapterInfo& adapterInfo) {
+static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<DBTAdapter>& adapter) {
     if( added ) {
-        std::shared_ptr<DBTAdapter> pre = getAdapter(adapterInfo.dev_id);
-        if( nullptr != pre ) {
-            fprintf(stderr, "****** Adapter ADDED__: Not new %s\n", pre->toString().c_str());
+        if( initAdapter( adapter ) ) {
+            fprintf(stderr, "****** Adapter ADDED__: InitOK. %s\n", adapter->toString().c_str());
         } else {
-            if( adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
-                std::shared_ptr<DBTAdapter> adapter = createAdapter(adapterInfo.dev_id, false /* validate_dev_id */);
-                if( nullptr != adapter ) {
-                    adapterList.push_back(adapter);
-                    fprintf(stderr, "****** Adapter ADDED__: Created %s\n", adapter->toString().c_str());
-                }
-            } else {
-                fprintf(stderr, "****** Adapter ADDED__: Ignored %s\n", adapterInfo.toString().c_str());
-            }
+            fprintf(stderr, "****** Adapter ADDED__: Ignored %s\n", adapter->toString().c_str());
         }
     } else {
-        std::shared_ptr<DBTAdapter> removed = removeAdapter(adapterInfo.dev_id);
-        if( nullptr != removed ) {
-            fprintf(stderr, "****** Adapter REMOVED: %s\n", removed->toString().c_str());
-            removed->close();
-        } else {
-            fprintf(stderr, "****** Adapter REMOVED: Not found %s\n", adapterInfo.toString().c_str());
-        }
+        fprintf(stderr, "****** Adapter REMOVED: %s\n", adapter->toString().c_str());
     }
     return true;
 }
@@ -869,19 +792,25 @@ void test() {
         }
     }
 
-    jau::for_each_fidelity(adapterList, [](std::shared_ptr<DBTAdapter>& adapter) {
+    //
+    // just a manually controlled pull down to show status, not required
+    //
+    jau::darray<std::shared_ptr<DBTAdapter>> adapterList = mngr.getAdapters();
+
+    jau::for_each_const(adapterList, [](const std::shared_ptr<DBTAdapter>& adapter) {
         fprintf(stderr, "****** EOL Adapter's Devices - pre close: %s\n", adapter->toString().c_str());
         adapter->printSharedPtrListOfDevices();
-        adapter->close();
-        fprintf(stderr, "****** EOL Adapter's Devices - post close\n");
-        adapter->printSharedPtrListOfDevices();
     });
-    fprintf(stderr, "****** EOL Adapter's Devices - post close all\n");
-
     {
         int count = mngr.removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
         fprintf(stderr, "****** EOL Removed ChangedAdapterSetCallback %d\n", count);
+
+        mngr.close();
     }
+    jau::for_each_const(adapterList, [](const std::shared_ptr<DBTAdapter>& adapter) {
+        fprintf(stderr, "****** EOL Adapter's Devices - post close: %s\n", adapter->toString().c_str());
+        adapter->printSharedPtrListOfDevices();
+    });
 }
 
 #include <cstdio>

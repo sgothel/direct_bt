@@ -54,6 +54,7 @@ import org.tinyb.SMPPairingState;
 import org.tinyb.ScanType;
 import org.tinyb.AdapterStatusListener;
 import org.tinyb.BDAddressAndType;
+import org.tinyb.BDAddressType;
 import org.tinyb.TransportType;
 
 public class DBTAdapter extends DBTObject implements BluetoothAdapter
@@ -99,6 +100,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     @Override
     public void close() {
+        final DBTManager mngr = (DBTManager)DBTManager.getManager();
         if( !isValid() ) {
             return;
         }
@@ -124,11 +126,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
         poweredOff();
 
-        // notify manager that this instance is gone for good
-        final DBTManager mngr = (DBTManager)DBTManager.getManager();
-        if( equals(mngr.getAdapter(dev_id)) ) {
-            mngr.removeAdapterCB(dev_id, 0x0100 /* custom opc */);
-        }
+        mngr.removeAdapter(this); // remove this instance from manager
 
         super.close();
     }

@@ -194,30 +194,29 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Press ENTER to continue\n");
         getchar();
     }
+    DBTManager & mngr = DBTManager::get();
 
-    DBTAdapter adapter(dev_id);
-    if( !adapter.hasDevId() ) {
-        fprintf(stderr, "Default adapter not available.\n");
+    std::shared_ptr<DBTAdapter> adapter = mngr.getAdapter(dev_id);
+    if( nullptr == adapter ) {
+        fprintf(stderr, "adapter dev_id %d not available.\n", dev_id);
         exit(1);
     }
-    if( !adapter.isValid() ) {
-        fprintf(stderr, "Adapter invalid.\n");
+    if( !adapter->isValid() ) {
+        fprintf(stderr, "Adapter invalid: %s\n", adapter->toString().c_str());
         exit(1);
     }
-    if( !adapter.isPowered() ) {
-        fprintf(stderr, "Adapter not powered: device %s, address %s: %s\n",
-                adapter.getName().c_str(), adapter.getAddressString().c_str(), adapter.toString().c_str());
+    if( !adapter->isPowered() ) {
+        fprintf(stderr, "Adapter not powered: %s\n", adapter->toString().c_str());
         exit(1);
     }
-    fprintf(stderr, "Using adapter: device %s, address %s: %s\n",
-        adapter.getName().c_str(), adapter.getAddressString().c_str(), adapter.toString().c_str());
+    fprintf(stderr, "Using adapter: %s\n", adapter->toString().c_str());
 
-    adapter.addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
+    adapter->addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
 
     const uint64_t t0 = getCurrentMilliseconds();
 
     while( ok && ( forever || !foundDevice ) ) {
-        ok = HCIStatusCode::SUCCESS == adapter.startDiscovery(true /* keepAlive */);
+        ok = HCIStatusCode::SUCCESS == adapter->startDiscovery(true /* keepAlive */);
         if( !ok) {
             perror("Adapter start discovery failed");
             goto out;
@@ -237,7 +236,7 @@ int main(int argc, char *argv[])
                 }
             }
         }
-        adapter.stopDiscovery();
+        adapter->stopDiscovery();
 
         if( ok && nullptr != device ) {
             const uint64_t t1 = getCurrentMilliseconds();

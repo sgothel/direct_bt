@@ -40,6 +40,7 @@
 #include "HCIComm.hpp"
 
 #include "DBTAdapter.hpp"
+#include "DBTManager.hpp"
 
 extern "C" {
     #include <inttypes.h>
@@ -122,10 +123,6 @@ bool DBTAdapter::validateDevInfo() noexcept {
     currentMetaScanType = ScanType::NONE;
     keep_le_scan_alive = false;
 
-    if( 0 > dev_id ) {
-        ERR_PRINT("DBTAdapter::validateDevInfo: Invalid negative dev_id %d", dev_id);
-        goto errout0;
-    }
     if( !mgmt.isOpen() ) {
         ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: Manager not open", dev_id);
         goto errout0;
@@ -135,34 +132,28 @@ bool DBTAdapter::validateDevInfo() noexcept {
         goto errout0;
     }
 
-    adapterInfo = mgmt.getAdapterInfo(dev_id);
-    if( nullptr == adapterInfo ) {
-        // fill in a dummy AdapterInfo for the sake of de-referencing throughout this adapter instance
-        ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: Not existent", dev_id);
-        goto errout0;
-    }
-    old_settings = adapterInfo->getCurrentSettingMask();
+    old_settings = adapterInfo.getCurrentSettingMask();
 
-    btMode = adapterInfo->getCurrentBTMode();
+    btMode = getBTMode();
     if( BTMode::NONE == btMode ) {
-        ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: BTMode invalid, BREDR nor LE set: %s", dev_id, adapterInfo->toString().c_str());
+        ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: BTMode invalid, BREDR nor LE set: %s", dev_id, adapterInfo.toString().c_str());
         return false;
     }
     hci.setBTMode(btMode);
 
-    if( adapterInfo->isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
+    if( adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
         HCILocalVersion version;
         HCIStatusCode status = hci.getLocalVersion(version);
         if( HCIStatusCode::SUCCESS != status ) {
             ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: POWERED, LocalVersion failed %s - %s",
-                    dev_id, getHCIStatusCodeString(status).c_str(), adapterInfo->toString().c_str());
+                    dev_id, getHCIStatusCodeString(status).c_str(), adapterInfo.toString().c_str());
             return false;
         } else {
             WORDY_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: POWERED, %s - %s",
-                    dev_id, version.toString().c_str(), adapterInfo->toString().c_str());
+                    dev_id, version.toString().c_str(), adapterInfo.toString().c_str());
         }
     } else {
-        WORDY_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: Not POWERED: %s", dev_id, adapterInfo->toString().c_str());
+        WORDY_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: Not POWERED: %s", dev_id, adapterInfo.toString().c_str());
     }
     ok = true;
     ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
@@ -203,36 +194,15 @@ bool DBTAdapter::validateDevInfo() noexcept {
     return true;
 
 errout0:
-    adapterInfo = std::make_shared<AdapterInfo>(dev_id, EUI48::ANY_DEVICE, 0, 0,
-                            AdapterSetting::NONE, AdapterSetting::NONE, 0, "invalid", "invalid");
     return false;
 }
 
-DBTAdapter::DBTAdapter() noexcept
+DBTAdapter::DBTAdapter(DBTManager& mgmt_, const AdapterInfo& adapterInfo_) noexcept
 : debug_event(jau::environment::getBooleanProperty("direct_bt.debug.adapter.event", false)),
   debug_lock(jau::environment::getBooleanProperty("direct_bt.debug.adapter.lock", false)),
-  mgmt( DBTManager::get(BTMode::NONE /* use env default */) ),
-  dev_id( mgmt.getDefaultAdapterDevID() ),
-  hci( dev_id )
-{
-    valid = validateDevInfo();
-}
-
-DBTAdapter::DBTAdapter(EUI48 &mac) noexcept
-: debug_event(jau::environment::getBooleanProperty("direct_bt.debug.adapter.event", false)),
-  debug_lock(jau::environment::getBooleanProperty("direct_bt.debug.adapter.lock", false)),
-  mgmt( DBTManager::get(BTMode::NONE /* use env default */) ),
-  dev_id( mgmt.findAdapterInfoDevId(mac) ),
-  hci( dev_id )
-{
-    valid = validateDevInfo();
-}
-
-DBTAdapter::DBTAdapter(const int _dev_id) noexcept
-: debug_event(jau::environment::getBooleanProperty("direct_bt.debug.adapter.event", false)),
-  debug_lock(jau::environment::getBooleanProperty("direct_bt.debug.adapter.lock", false)),
-  mgmt( DBTManager::get(BTMode::NONE /* use env default */) ),
-  dev_id( 0 <= _dev_id ? _dev_id : mgmt.getDefaultAdapterDevID() ),
+  mgmt( mgmt_ ),
+  adapterInfo( adapterInfo_ ),
+  dev_id( adapterInfo.dev_id ),
   hci( dev_id )
 {
     valid = validateDevInfo();
@@ -241,10 +211,14 @@ DBTAdapter::DBTAdapter(const int _dev_id) noexcept
 DBTAdapter::~DBTAdapter() noexcept {
     if( !isValid() ) {
         DBG_PRINT("DBTAdapter::dtor: dev_id %d, invalid, %p", dev_id, this);
+        mgmt.removeAdapter(this); // remove this instance from manager
         return;
     }
     DBG_PRINT("DBTAdapter::dtor: ... %p %s", this, toString().c_str());
     close();
+
+    mgmt.removeAdapter(this); // remove this instance from manager
+
     DBG_PRINT("DBTAdapter::dtor: XXX");
 }
 
@@ -700,7 +674,7 @@ HCIStatusCode DBTAdapter::stopDiscovery() noexcept {
     }
 
     HCIStatusCode status;
-    if( !adapterInfo->isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
+    if( !adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
         WARN_PRINT("DBTAdapter::stopDiscovery: Powered off: %s", toString().c_str());
         hci.setCurrentScanType(ScanType::NONE);
         currentMetaScanType = ScanType::NONE;
@@ -831,7 +805,7 @@ void DBTAdapter::removeDevice(DBTDevice & device) noexcept {
 
 std::string DBTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
     std::string out("Adapter[BTMode "+getBTModeString(btMode)+", "+getAddressString()+", '"+getName()+"', id "+std::to_string(dev_id)+
-                    ", curSettings"+getAdapterSettingMaskString(adapterInfo->getCurrentSettingMask())+
+                    ", curSettings"+getAdapterSettingMaskString(adapterInfo.getCurrentSettingMask())+
                     ", scanType[native "+getScanTypeString(hci.getCurrentScanType())+", meta "+getScanTypeString(currentMetaScanType)+"]"
                     ", valid "+std::to_string(isValid())+", open[mgmt, "+std::to_string(mgmt.isOpen())+", hci "+std::to_string(hci.isOpen())+
                     "], "+javaObjectToString()+"]");
@@ -868,7 +842,7 @@ void DBTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings_, 
 
 void DBTAdapter::sendAdapterSettingsInitial(AdapterStatusListener & asl, const uint64_t timestampMS) noexcept
 {
-    const AdapterSetting current_settings = adapterInfo->getCurrentSettingMask();
+    const AdapterSetting current_settings = adapterInfo.getCurrentSettingMask();
     COND_PRINT(debug_event, "DBTAdapter::sendAdapterSettingsInitial: NONE -> %s, changes NONE: %s",
             getAdapterSettingMaskString(current_settings).c_str(), toString(false).c_str() );
     try {
@@ -974,7 +948,7 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSo
 bool DBTAdapter::mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept {
     COND_PRINT(debug_event, "DBTAdapter:mgmt:NewSettings: %s", e.toString().c_str());
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(&e);
-    const AdapterSetting new_settings = adapterInfo->setCurrentSettingMask(event.getSettings()); // probably done by mgmt callback already
+    const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(event.getSettings()); // probably done by mgmt callback already
     {
         const BTMode _btMode = getAdapterSettingsBTMode(new_settings);
         if( BTMode::NONE != _btMode ) {

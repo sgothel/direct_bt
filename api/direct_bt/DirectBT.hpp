@@ -34,15 +34,18 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 
 #include <mutex>
 #include <atomic>
+
+#include <jau/darray.hpp>
 
 #include "DBTTypes.hpp"
 
 #include "DBTDevice.hpp"
 
 #include "DBTAdapter.hpp"
+
+#include "DBTManager.hpp"
 
 #endif /* DIRECTBT_HPP_ */
