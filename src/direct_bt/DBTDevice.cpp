@@ -437,11 +437,14 @@ void DBTDevice::notifyLEFeatures(std::shared_ptr<DBTDevice> sthis, const LEFeatu
 }
 
 void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
-    const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_pairing);
+    bool callProcessDeviceReady = false;
 
-    DBG_PRINT("DBTDevice::processL2CAPSetup: Start %s", toString(false).c_str());
     if( addressAndType.isLEAddress() && !l2cap_att.isOpen() ) {
+        const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+        jau::sc_atomic_critical sync(sync_pairing);
+
+        DBG_PRINT("DBTDevice::processL2CAPSetup: Start %s", toString(false).c_str());
+
         const BTSecurityLevel sec_level_user = pairing_data.sec_level_user;
         const SMPIOCapability io_cap_conn = pairing_data.ioCap_conn;
         BTSecurityLevel sec_level { BTSecurityLevel::UNSET };
@@ -483,8 +486,14 @@ void DBTDevice::processL2CAPSetup(std::shared_ptr<DBTDevice> sthis) {
             pairing_data.sec_level_conn = BTSecurityLevel::NONE;
             disconnect(HCIStatusCode::INTERNAL_FAILURE);
         } else if( !l2cap_enc ) {
-            processDeviceReady(sthis, jau::getCurrentMilliseconds());
+            callProcessDeviceReady = true;
         }
+    } else {
+        DBG_PRINT("DBTDevice::processL2CAPSetup: Skipped (not LE) %s", toString(false).c_str());
+    }
+    if( callProcessDeviceReady ) {
+        // call out of scope of locked mtx_pairing
+        processDeviceReady(sthis, jau::getCurrentMilliseconds());
     }
     DBG_PRINT("DBTDevice::processL2CAPSetup: End %s", toString(false).c_str());
 }
