@@ -138,7 +138,7 @@ public class ScannerTinyB00 {
             final long t0 = System.currentTimeMillis();;
 
             if( useAdapter ) {
-                adapter.removeDevices();
+                adapter.removeDiscoveredDevices();
             }
             final HCIStatusCode discoveryStatus = useAdapter ? adapter.startDiscovery(true) : manager.startDiscovery(true);
 
@@ -154,7 +154,7 @@ public class ScannerTinyB00 {
             } else {
                 boolean timeout = false;
                 while( null == sensor && !timeout ) {
-                    final List<BluetoothDevice> devices = useAdapter ? adapter.getDevices() : manager.getDevices();
+                    final List<BluetoothDevice> devices = useAdapter ? adapter.getDiscoveredDevices() : manager.getDevices();
                     for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
                         final BluetoothDevice d = id.next();
                         if(d.getAddressAndType().equals(mac)) {

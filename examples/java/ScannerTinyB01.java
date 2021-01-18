@@ -263,7 +263,7 @@ public class ScannerTinyB01 {
                 } else {
                     boolean timeout = false;
                     while( null == sensor && !timeout ) {
-                        final List<BluetoothDevice> devices = adapter.getDevices();
+                        final List<BluetoothDevice> devices = adapter.getDiscoveredDevices();
                         for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
                             final BluetoothDevice d = id.next();
                             if( BDAddressAndType.ANY_DEVICE.matches(waitForDevice) || d.getAddressAndType().equals(waitForDevice) ) {

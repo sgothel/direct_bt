@@ -803,7 +803,7 @@ jobject Java_direct_1bt_tinyb_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, j
     return nullptr;
 }
 
-jint Java_direct_1bt_tinyb_DBTAdapter_removeDevicesImpl(JNIEnv *env, jobject obj)
+jint Java_direct_1bt_tinyb_DBTAdapter_removeDiscoveredDevicesImpl1(JNIEnv *env, jobject obj)
 {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
@@ -812,6 +812,34 @@ jint Java_direct_1bt_tinyb_DBTAdapter_removeDevicesImpl(JNIEnv *env, jobject obj
         rethrow_and_raise_java_exception(env);
     }
     return 0;
+}
+
+jboolean Java_direct_1bt_tinyb_DBTAdapter_removeDiscoveredDeviceImpl1(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType)
+{
+    try {
+        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+
+        if( nullptr == jaddress ) {
+            throw jau::IllegalArgumentException("address null", E_FILE_LINE);
+        }
+        const size_t address_size = env->GetArrayLength(jaddress);
+        if( sizeof(EUI48) > address_size ) {
+            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(SMPLongTermKeyInfo)), E_FILE_LINE);
+        }
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+        if( NULL == address_ptr ) {
+            throw jau::InternalError("GetPrimitiveArrayCritical(address byte array) is null", E_FILE_LINE);
+        }
+        const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
+        const BDAddressAndType addressAndType(address, static_cast<BDAddressType>( jaddressType ));
+
+        return adapter->removeDiscoveredDevice(addressAndType);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
 }
 
 //

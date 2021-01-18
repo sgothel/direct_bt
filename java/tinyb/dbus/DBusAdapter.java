@@ -30,6 +30,7 @@ package tinyb.dbus;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -122,10 +123,15 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     private native boolean stopDiscoveryImpl() throws BluetoothException;
 
     @Override
-    public native List<BluetoothDevice> getDevices();
+    public native List<BluetoothDevice> getDiscoveredDevices();
 
     @Override
-    public native int removeDevices() throws BluetoothException;
+    public native int removeDiscoveredDevices() throws BluetoothException;
+
+    @Override
+    public boolean removeDiscoveredDevice(final BDAddressAndType addressAndType) {
+        return false; // FIXME
+    }
 
     /* D-Bus property accessors: */
 

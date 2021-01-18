@@ -743,6 +743,18 @@ static bool initAdapter(std::shared_ptr<DBTAdapter>& adapter) {
     }
     adapter->addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
 
+    // Flush discovered devices after registering our status listener.
+    // This avoids discovered devices before we have registered!
+    if( 0 == waitForDevices.size() ) {
+        // we accept all devices, so flush all discovered devices
+        adapter->removeDiscoveredDevices();
+    } else {
+        // only flush discovered devices we intend to listen to
+        jau::for_each(waitForDevices.begin(), waitForDevices.end(), [&adapter](const BDAddressAndType &mac) {
+            adapter->removeDiscoveredDevice(mac);
+        });
+    }
+
     if( USE_WHITELIST ) {
         for (auto it = WHITELIST.begin(); it != WHITELIST.end(); ++it) {
             bool res = adapter->addDeviceToWhitelist(*it, HCIWhitelistConnectType::HCI_AUTO_CONN_ALWAYS);

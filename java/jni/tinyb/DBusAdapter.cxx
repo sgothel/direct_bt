@@ -79,7 +79,7 @@ jboolean Java_tinyb_dbus_DBusAdapter_stopDiscoveryImpl(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jobject Java_tinyb_dbus_DBusAdapter_getDevices(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusAdapter_getDiscoveredDevices(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
@@ -94,7 +94,7 @@ jobject Java_tinyb_dbus_DBusAdapter_getDevices(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jint Java_tinyb_dbus_DBusAdapter_removeDevices(JNIEnv *env, jobject obj)
+jint Java_tinyb_dbus_DBusAdapter_removeDiscoveredDevices(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);

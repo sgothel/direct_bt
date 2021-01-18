@@ -183,19 +183,29 @@ public interface BluetoothAdapter extends BluetoothObject
      */
     public HCIStatusCode stopDiscovery() throws BluetoothException;
 
-    /** Returns a list of BluetoothDevices visible from this adapter.
-      * @return A list of BluetoothDevices visible on this adapter,
+    /** Returns a list of discovered BluetoothDevices from this adapter.
+      * @return A list of discovered BluetoothDevices on this adapter,
       * NULL if an error occurred
       */
-    public List<BluetoothDevice> getDevices();
+    public List<BluetoothDevice> getDiscoveredDevices();
 
     /**
-     * Remove all the known devices
+     * Remove all the discovered devices found on this adapter.
      *
-     * @return The number of devices removed from internal list
+     * @return The number of removed discovered devices on this adapter
      * @throws BluetoothException
+     * @since 2.2.0
+     * @implNote Changed from 'removeDiscoveredDevices()' for clarity since version 2.2.0
      */
-    public int removeDevices() throws BluetoothException;
+    public int removeDiscoveredDevices() throws BluetoothException;
+
+    /**
+     * Discards matching discovered devices.
+     * @return {@code true} if found and removed, otherwise false.
+     * @since 2.2.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    public boolean removeDiscoveredDevice(final BDAddressAndType addressAndType);
 
     /* D-Bus property accessors: */
 

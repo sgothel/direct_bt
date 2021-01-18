@@ -232,7 +232,7 @@ public class DBTManager implements BluetoothManager
      * </p>
      * <p>
      * This implementation does not {@link BluetoothAdapter#startDiscovery() start} an explicit discovery,
-     * but previous {@link BluetoothAdapter#getDevices() discovered devices} are being queried.
+     * but previous {@link BluetoothAdapter#getDiscoveredDevices() discovered devices} are being queried.
      * </p>
      */
     @Override
@@ -240,7 +240,7 @@ public class DBTManager implements BluetoothManager
         final List<BluetoothGattService> res = new ArrayList<BluetoothGattService>();
         for(final Iterator<BluetoothAdapter> iterA=adapters.iterator(); iterA.hasNext(); ) {
             final BluetoothAdapter adapter = iterA.next();
-            final List<BluetoothDevice> devices = adapter.getDevices();
+            final List<BluetoothDevice> devices = adapter.getDiscoveredDevices();
             for(final Iterator<BluetoothDevice> iterD=devices.iterator(); iterD.hasNext(); ) {
                 final BluetoothDevice device = iterD.next();
                 final List<BluetoothGattService> devServices = device.getServices();

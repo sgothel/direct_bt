@@ -241,7 +241,7 @@ public class ScannerTinyB02 {
                 } else {
                     boolean timeout = false;
                     while( null == sensor && !timeout ) {
-                        final List<BluetoothDevice> devices = adapter.getDevices();
+                        final List<BluetoothDevice> devices = adapter.getDiscoveredDevices();
                         int i=0;
                         for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
                             final BluetoothDevice d = id.next();

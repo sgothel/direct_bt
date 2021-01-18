@@ -775,6 +775,18 @@ public class DBTScanner10 {
 
         adapter.enablePoweredNotifications(new BooleanNotification("Powered", timestamp_t0));
 
+        // Flush discovered devices after registering our status listener.
+        // This avoids discovered devices before we have registered!
+        if( 0 == waitForDevices.size() ) {
+            // we accept all devices, so flush all discovered devices
+            adapter.removeDiscoveredDevices();
+        } else {
+            // only flush discovered devices we intend to listen to
+            for( final Iterator<BDAddressAndType> iter=waitForDevices.iterator(); iter.hasNext(); ) {
+                adapter.removeDiscoveredDevice( iter.next() );
+            }
+        }
+
         if( USE_WHITELIST ) {
             for(final Iterator<BDAddressAndType> wliter = whitelist.iterator(); wliter.hasNext(); ) {
                 final BDAddressAndType addr = wliter.next();
