@@ -114,6 +114,15 @@ public class DBTScanner10 {
 
     int shutdownTest = 0;
 
+    boolean matches(final List<BDAddressAndType> cont, final BDAddressAndType mac) {
+        for(final Iterator<BDAddressAndType> it = cont.iterator(); it.hasNext(); ) {
+            if( it.next().matches(mac) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     static void printf(final String format, final Object... args) {
         final Object[] args2 = new Object[args.length+1];
         args2[0] = BluetoothUtils.elapsedTimeMillis();
@@ -327,7 +336,7 @@ public class DBTScanner10 {
             }
             if( !devicesInProcessing.contains( device.getAddressAndType() ) &&
                 ( waitForDevices.isEmpty() ||
-                  ( waitForDevices.contains( device.getAddressAndType() ) &&
+                  ( matches(waitForDevices, device.getAddressAndType() ) &&
                     ( 0 < MULTI_MEASUREMENTS.get() || !devicesProcessed.contains( device.getAddressAndType() ) )
                   )
                 )
@@ -406,7 +415,7 @@ public class DBTScanner10 {
         public void deviceReady(final BluetoothDevice device, final long timestamp) {
             if( !devicesInProcessing.contains( device.getAddressAndType() ) &&
                 ( waitForDevices.isEmpty() ||
-                  ( waitForDevices.contains( device.getAddressAndType() ) &&
+                  ( matches(waitForDevices, device.getAddressAndType() ) &&
                     ( 0 < MULTI_MEASUREMENTS.get() || !devicesProcessed.contains( device.getAddressAndType() ) )
                   )
                 )
@@ -764,7 +773,6 @@ public class DBTScanner10 {
             println("Adapter not powered (2): "+adapter.toString());
             return false;
         }
-        println("Using adapter: "+adapter.toString());
 
         adapter.addStatusListener(statusListener, null);
         adapter.enableDiscoverableNotifications(new BooleanNotification("Discoverable", timestamp_t0));
@@ -923,7 +931,7 @@ public class DBTScanner10 {
                 } else if( arg.equals("-shutdown") && args.length > (i+1) ) {
                     test.shutdownTest = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-mac") && args.length > (i+1) ) {
-                    final BDAddressAndType a = new BDAddressAndType(new EUI48(args[++i]), BDAddressType.BDADDR_LE_PUBLIC);
+                    final BDAddressAndType a = new BDAddressAndType(new EUI48(args[++i]), BDAddressType.BDADDR_UNDEFINED);
                     test.waitForDevices.add(a);
                 } else if( arg.equals("-wl") && args.length > (i+1) ) {
                     final BDAddressAndType wle = new BDAddressAndType(new EUI48(args[++i]), BDAddressType.BDADDR_LE_PUBLIC);
