@@ -64,9 +64,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private static AtomicInteger globThreadID = new AtomicInteger(0);
     private static int discoverTimeoutMS = 100;
 
+    private final int dev_id;
     private final EUI48 address;
     private final String name;
-    private final int dev_id;
 
     private final Object discoveryLock = new Object();
     private final Object discoveredDevicesLock = new Object();
@@ -88,10 +88,10 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     /* pp */ DBTAdapter(final long nativeInstance, final byte byteAddress[/*6*/], final String name, final int dev_id)
     {
-        super(nativeInstance, compHash(java.util.Arrays.hashCode(byteAddress), name.hashCode()));
+        super( nativeInstance, compHash( dev_id, java.util.Arrays.hashCode(byteAddress) ) );
+        this.dev_id = dev_id;
         this.address = new EUI48(byteAddress);
         this.name = name;
-        this.dev_id = dev_id;
         addStatusListener(this.statusListener, null);
     }
 
@@ -146,7 +146,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             return false;
         }
         final DBTAdapter other = (DBTAdapter)obj;
-        return address.equals(other.address) && name.equals(other.name);
+        return dev_id == other.dev_id && address.equals(other.address);
     }
 
     @Override
