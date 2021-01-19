@@ -250,7 +250,13 @@ namespace direct_bt {
             static std::shared_ptr<DBTDevice> findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
             static std::shared_ptr<DBTDevice> findDevice(device_list_t & devices, DBTDevice const & device) noexcept;
 
-            DBTAdapter(DBTManager& mgmt_, const AdapterInfo& adapterInfo_) noexcept;
+            /** Private class only for private make_shared(). */
+            class ctor_cookie { friend DBTAdapter; ctor_cookie(const uint16_t secret) { (void)secret; } };
+
+            /** Private std::make_shared<DBTAdapter>(..) vehicle for friends. */
+            static std::shared_ptr<DBTAdapter> make_shared(DBTManager& mgmt_, const AdapterInfo& adapterInfo_) {
+                return std::make_shared<DBTAdapter>(DBTAdapter::ctor_cookie(0), mgmt_, adapterInfo_);
+            }
 
             /**
              * Closes all device connections, stops discovery and cleans up all references.
@@ -332,6 +338,9 @@ namespace direct_bt {
             void sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept;
 
         public:
+
+            /** Private ctor for private DBTAdapter::make_shared() intended for friends. */
+            DBTAdapter(const DBTAdapter::ctor_cookie& cc, DBTManager& mgmt_, const AdapterInfo& adapterInfo_) noexcept;
 
             DBTAdapter(const DBTAdapter&) = delete;
             void operator=(const DBTAdapter&) = delete;

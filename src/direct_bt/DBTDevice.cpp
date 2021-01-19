@@ -43,12 +43,13 @@
 
 using namespace direct_bt;
 
-DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
+DBTDevice::DBTDevice(const ctor_cookie& cc, DBTAdapter & a, EInfoReport const & r)
 : adapter(a),
   l2cap_att(adapter.getAddress(), L2CAP_PSM_UNDEF, L2CAP_CID_ATT),
   ts_creation(r.getTimestamp()),
   addressAndType{r.getAddress(), r.getAddressType()}
 {
+    (void)cc;
     ts_last_discovery = ts_creation;
     hciConnHandle = 0;
     le_features = LEFeatures::NONE;

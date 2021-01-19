@@ -197,7 +197,7 @@ errout0:
     return false;
 }
 
-DBTAdapter::DBTAdapter(DBTManager& mgmt_, const AdapterInfo& adapterInfo_) noexcept
+DBTAdapter::DBTAdapter(const DBTAdapter::ctor_cookie& cc, DBTManager& mgmt_, const AdapterInfo& adapterInfo_) noexcept
 : debug_event(jau::environment::getBooleanProperty("direct_bt.debug.adapter.event", false)),
   debug_lock(jau::environment::getBooleanProperty("direct_bt.debug.adapter.lock", false)),
   mgmt( mgmt_ ),
@@ -205,6 +205,7 @@ DBTAdapter::DBTAdapter(DBTManager& mgmt_, const AdapterInfo& adapterInfo_) noexc
   dev_id( adapterInfo.dev_id ),
   hci( dev_id )
 {
+    (void)cc;
     valid = validateDevInfo();
 }
 
@@ -1037,8 +1038,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     }
     if( nullptr == device ) {
         // a whitelist auto-connect w/o previous discovery
-        // private ctor: device = std::make_shared<DBTDevice>(*this, ad_report);
-        device = std::shared_ptr<DBTDevice>(new DBTDevice(*this, ad_report));
+        device = DBTDevice::make_shared(*this, ad_report);
         addDiscoveredDevice(device);
         addSharedDevice(device);
         new_connect = 3;
@@ -1327,8 +1327,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
     //
     // new device
     //
-    // private ctor: dev = std::make_shared<DBTDevice>(*this, *eir);
-    dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, *eir));
+    dev = DBTDevice::make_shared(*this, *eir);
     addDiscoveredDevice(dev);
     addSharedDevice(dev);
     COND_PRINT(debug_event, "DBTAdapter:hci:DeviceFound: Use new %s, %s",

@@ -114,7 +114,13 @@ namespace direct_bt {
             std::mutex mtx_pairing;
             jau::sc_atomic_bool sync_pairing;
 
-            DBTDevice(DBTAdapter & adapter, EInfoReport const & r);
+            /** Private class only for private make_shared(). */
+            class ctor_cookie { friend DBTDevice; ctor_cookie(const uint16_t secret) { (void)secret; } };
+
+            /** Private std::make_shared<DBTDevice>(..) vehicle for friends. */
+            static std::shared_ptr<DBTDevice> make_shared(DBTAdapter & adapter, EInfoReport const & r) {
+                return std::make_shared<DBTDevice>(DBTDevice::ctor_cookie(0), adapter, r);
+            }
 
             /** Add advertised service (GAP discovery) */
             bool addAdvService(std::shared_ptr<uuid_t> const &uuid) noexcept;
@@ -211,6 +217,9 @@ namespace direct_bt {
             const uint64_t ts_creation;
             /** Device's unique mac address and type tuple. */
             const BDAddressAndType addressAndType; // FIXME: Mutable for resolvable -> identity during pairing?
+
+            /** Private ctor for private DBTDevice::make_shared() intended for friends. */
+            DBTDevice(const DBTDevice::ctor_cookie& cc, DBTAdapter & adapter, EInfoReport const & r);
 
             DBTDevice(const DBTDevice&) = delete;
             void operator=(const DBTDevice&) = delete;

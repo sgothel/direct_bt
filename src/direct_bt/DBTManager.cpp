@@ -486,8 +486,7 @@ next1:
             const uint16_t dev_id = jau::get_uint16(data, 2+i*2, true /* littleEndian */);
             std::unique_ptr<AdapterInfo> adapterInfo = initAdapter(dev_id, defaultBTMode);
             if( nullptr != adapterInfo ) {
-                // private: std::shared_ptr<DBTAdapter> adapter = std::make_shared<DBTAdapter>(*this, *adapterInfo);
-                std::shared_ptr<DBTAdapter> adapter( new DBTAdapter(*this, *adapterInfo) );
+                std::shared_ptr<DBTAdapter> adapter = DBTAdapter::make_shared(*this, *adapterInfo);
                 adapters.push_back( adapter );
                 adapterIOCapability.push_back(defaultIOCapability);
                 DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: %s", i, num_adapter, dev_id, adapter->toString().c_str());
@@ -655,8 +654,7 @@ std::shared_ptr<DBTAdapter> DBTManager::addAdapter(const AdapterInfo& ai ) noexc
     }
     if( it.is_end() ) {
         // new entry
-        // private: std::shared_ptr<DBTAdapter> adapter = std::make_shared<DBTAdapter>(*this, ai);
-        std::shared_ptr<DBTAdapter> adapter( new DBTAdapter(*this, ai) );
+        std::shared_ptr<DBTAdapter> adapter = DBTAdapter::make_shared(*this, ai);
         it.push_back( adapter );
         adapterIOCapability.push_back(defaultIOCapability);
         DBG_PRINT("DBTManager::addAdapter: Adding new: %s", adapter->toString().c_str())
