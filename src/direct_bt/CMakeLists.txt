@@ -46,6 +46,14 @@ target_link_libraries (
   ${CMAKE_THREAD_LIBS_INIT}
 )
 
+if(USE_STRIP)
+add_custom_command(TARGET direct_bt POST_BUILD
+                   COMMAND ${STRIP} ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}direct_bt${CMAKE_SHARED_LIBRARY_SUFFIX}.${direct_bt_VERSION_STRING}
+                   COMMENT "stripping direct_bt"
+                   VERBATIM
+                   )
+endif(USE_STRIP)
+
 set_target_properties(
    direct_bt
    PROPERTIES

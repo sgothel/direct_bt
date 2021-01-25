@@ -61,6 +61,14 @@ target_link_libraries (
   ${GIO_LIBRARIES}
 )
 
+if(USE_STRIP)
+add_custom_command(TARGET tinyb POST_BUILD
+                   COMMAND ${STRIP} ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}tinyb${CMAKE_SHARED_LIBRARY_SUFFIX}.${tinyb_VERSION_STRING}
+                   COMMENT "stripping tinyb"
+                   VERBATIM
+                   )
+endif(USE_STRIP)
+
 set_target_properties(
    tinyb
    PROPERTIES
