@@ -57,7 +57,7 @@ public class EUI48 {
      * Size of the byte stream representation in bytes
      * @see #getStream(byte[], int)
      */
-    private static final int byte_size = 6;
+    /* pp */ static final int byte_size = 6;
 
     /**
      * Construct instance via given string representation.
@@ -227,6 +227,47 @@ public class EUI48 {
         }
         final byte high2 = (byte) ( ( b[5] >> 6 ) & 0x03 );
         return BLERandomAddressType.get(high2);
+    }
+
+    /**
+     * Finds the index of given EUI48Sub.
+     */
+    public int indexOf(final EUI48Sub other) {
+        if( 0 == other.length ) {
+            return 0;
+        }
+        final byte first = other.b[0];
+        final int outerEnd = 6 - other.length + 1; // exclusive
+
+        for (int i = 0; i < outerEnd; i++) {
+            // find first char of other
+            while( b[i] != first ) {
+                if( ++i == outerEnd ) {
+                    return -1;
+                }
+            }
+            if( i < outerEnd ) { // otherLen chars left to match?
+                // continue matching other chars
+                final int innerEnd = i + other.length; // exclusive
+                int j = i, k=0;
+                do {
+                    if( ++j == innerEnd ) {
+                        return i; // gotcha
+                    }
+                } while( b[j] == other.b[++k] );
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Returns true, if given EUI48Sub is contained in here.
+     * <p>
+     * If the sub is zero, true is returned.
+     * </p>
+     */
+    public boolean contains(final EUI48Sub other) {
+        return 0 <= indexOf(other);
     }
 
     /**

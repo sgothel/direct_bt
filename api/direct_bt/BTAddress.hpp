@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2021 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -140,6 +140,44 @@ namespace direct_bt {
     BDAddressType getBDAddressType(const HCILEOwnAddressType hciOwnAddrType) noexcept;
     std::string getHCILEOwnAddressTypeString(const HCILEOwnAddressType type) noexcept;
 
+    struct EUI48Sub {
+        /**
+         * The <= 6 byte EUI48 sub-address.
+         */
+        uint8_t b[6]; // == sizeof(EUI48)
+
+        /**
+         * The actual length in bytes of the EUI48 sub-address, less or equal 6 bytes.
+         */
+        jau::nsize_t length;
+
+        constexpr EUI48Sub() noexcept : b{0}, length{0} { }
+        EUI48Sub(const uint8_t * b_, const jau::nsize_t len_) noexcept;
+
+        /**
+         * Construct a sub EUI48 via given string representation.
+         * <p>
+         * Implementation is consistent with EUI48Sub::toString().
+         * </p>
+         * @param str a string of less or equal of 17 characters representing less or equal of 6 bytes as hexadecimal numbers separated via colon,
+         * e.g. {@code "01:02:03:0A:0B:0C"}, {@code "01:02:03:0A"}, {@code ":"}, {@code ""}.
+         * @see EUI48Sub::toString()
+         */
+        EUI48Sub(const std::string mac);
+
+        constexpr EUI48Sub(const EUI48Sub &o) noexcept = default;
+        EUI48Sub(EUI48Sub &&o) noexcept = default;
+        constexpr EUI48Sub& operator=(const EUI48Sub &o) noexcept = default;
+        EUI48Sub& operator=(EUI48Sub &&o) noexcept = default;
+
+        /**
+         * Returns the EUI48 sub-string representation,
+         * less or equal 17 characters representing less or equal 6 bytes as upper case hexadecimal numbers separated via colon,
+         * e.g. {@code "01:02:03:0A:0B:0C"}, {@code "01:02:03:0A"}, {@code ""}.
+         */
+        std::string toString() const noexcept;
+    };
+
     /**
      * A packed 48 bit EUI-48 identifier, formerly known as MAC-48
      * or simply network device MAC address (Media Access Control address).
@@ -156,11 +194,24 @@ namespace direct_bt {
         /** EUI48 MAC address matching local device, i.e. '0:0:0:ff:ff:ff'. */
         static const EUI48 LOCAL_DEVICE;
 
+        /**
+         * The 6 byte EUI48 address.
+         */
         uint8_t b[6]; // == sizeof(EUI48)
 
         constexpr EUI48() noexcept : b{0}  { }
-        EUI48(const uint8_t * b) noexcept;
+        EUI48(const uint8_t * b_) noexcept;
+
+        /**
+         * Construct instance via given string representation.
+         * <p>
+         * Implementation is consistent with EUI48::toString().
+         * </p>
+         * @param str a string of exactly 17 characters representing 6 bytes as hexadecimal numbers separated via colon {@code "01:02:03:0A:0B:0C"}.
+         * @see EUI48::toString()
+         */
         EUI48(const std::string mac);
+
         constexpr EUI48(const EUI48 &o) noexcept = default;
         EUI48(EUI48 &&o) noexcept = default;
         constexpr EUI48& operator=(const EUI48 &o) noexcept = default;
@@ -199,7 +250,25 @@ namespace direct_bt {
          */
         BLERandomAddressType getBLERandomAddressType(const BDAddressType addressType) const noexcept;
 
-        std::string toString() const;
+        /**
+         * Finds the index of given EUI48Sub.
+         */
+        jau::snsize_t indexOf(const EUI48Sub& other) const noexcept;
+
+        /**
+         * Returns true, if given EUI48Sub is contained in here.
+         * <p>
+         * If the sub is zero, true is returned.
+         * </p>
+         */
+        bool contains(const EUI48Sub& other) const noexcept;
+
+        /**
+         * Returns the EUI48 string representation,
+         * exactly 17 characters representing 6 bytes as upper case hexadecimal numbers separated via colon {@code "01:02:03:0A:0B:0C"}.
+         * @see EUI48::EUI48()
+         */
+        std::string toString() const noexcept;
     } );
 
     inline bool operator==(const EUI48& lhs, const EUI48& rhs) noexcept {
