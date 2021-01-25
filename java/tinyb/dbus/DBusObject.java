@@ -28,9 +28,9 @@
 
 package tinyb.dbus;
 
-import org.tinyb.BluetoothFactory;
-import org.tinyb.BluetoothObject;
-import org.tinyb.BluetoothType;
+import org.direct_bt.BluetoothFactory;
+import org.direct_bt.BluetoothObject;
+import org.direct_bt.BluetoothType;
 
 public class DBusObject implements BluetoothObject
 {

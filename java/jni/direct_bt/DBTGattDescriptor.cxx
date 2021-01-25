@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt_tinyb_DBTGattDescriptor.h"
+#include "jau_direct_bt_DBTGattDescriptor.h"
 
 // #define VERBOSE_ON 1
 #include <jau/debug.hpp>
@@ -37,7 +37,7 @@
 using namespace direct_bt;
 using namespace jau;
 
-void Java_direct_1bt_tinyb_DBTGattDescriptor_deleteImpl(JNIEnv *env, jobject obj) {
+void Java_jau_direct_1bt_DBTGattDescriptor_deleteImpl(JNIEnv *env, jobject obj) {
     try {
         GATTDescriptor *descriptor = getJavaUplinkObject<GATTDescriptor>(env, obj);
         (void)descriptor;
@@ -47,7 +47,7 @@ void Java_direct_1bt_tinyb_DBTGattDescriptor_deleteImpl(JNIEnv *env, jobject obj
     }
 }
 
-jstring Java_direct_1bt_tinyb_DBTGattDescriptor_toStringImpl(JNIEnv *env, jobject obj) {
+jstring Java_jau_direct_1bt_DBTGattDescriptor_toStringImpl(JNIEnv *env, jobject obj) {
     (void)obj;
     try {
         GATTDescriptor *descriptor = getJavaUplinkObject<GATTDescriptor>(env, obj);
@@ -59,7 +59,7 @@ jstring Java_direct_1bt_tinyb_DBTGattDescriptor_toStringImpl(JNIEnv *env, jobjec
     return nullptr;
 }
 
-jbyteArray Java_direct_1bt_tinyb_DBTGattDescriptor_readValueImpl(JNIEnv *env, jobject obj) {
+jbyteArray Java_jau_direct_1bt_DBTGattDescriptor_readValueImpl(JNIEnv *env, jobject obj) {
     try {
         GATTDescriptor *descriptor = getJavaUplinkObject<GATTDescriptor>(env, obj);
         JavaGlobalObj::check(descriptor->getJavaObject(), E_FILE_LINE);
@@ -80,7 +80,7 @@ jbyteArray Java_direct_1bt_tinyb_DBTGattDescriptor_readValueImpl(JNIEnv *env, jo
     return nullptr;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTGattDescriptor_writeValueImpl(JNIEnv *env, jobject obj, jbyteArray jval) {
+jboolean Java_jau_direct_1bt_DBTGattDescriptor_writeValueImpl(JNIEnv *env, jobject obj, jbyteArray jval) {
     try {
         if( nullptr == jval ) {
             throw IllegalArgumentException("byte array null", E_FILE_LINE);

@@ -31,27 +31,27 @@ package tinyb.dbus;
 import java.util.List;
 import java.util.Map;
 
-import org.tinyb.BLERandomAddressType;
-import org.tinyb.BTSecurityLevel;
-import org.tinyb.BDAddressAndType;
-import org.tinyb.BDAddressType;
-import org.tinyb.BluetoothDevice;
-import org.tinyb.BluetoothException;
-import org.tinyb.BluetoothGattCharacteristic;
-import org.tinyb.BluetoothGattService;
-import org.tinyb.BluetoothManager;
-import org.tinyb.BluetoothNotification;
-import org.tinyb.BluetoothType;
-import org.tinyb.BluetoothUtils;
-import org.tinyb.EUI48;
-import org.tinyb.GATTCharacteristicListener;
-import org.tinyb.HCIStatusCode;
-import org.tinyb.PairingMode;
-import org.tinyb.SMPIOCapability;
-import org.tinyb.SMPKeyMask;
-import org.tinyb.SMPLongTermKeyInfo;
-import org.tinyb.SMPPairingState;
-import org.tinyb.SMPSignatureResolvingKeyInfo;
+import org.direct_bt.BDAddressAndType;
+import org.direct_bt.BDAddressType;
+import org.direct_bt.BLERandomAddressType;
+import org.direct_bt.BTSecurityLevel;
+import org.direct_bt.BluetoothDevice;
+import org.direct_bt.BluetoothException;
+import org.direct_bt.BluetoothGattCharacteristic;
+import org.direct_bt.BluetoothGattService;
+import org.direct_bt.BluetoothManager;
+import org.direct_bt.BluetoothNotification;
+import org.direct_bt.BluetoothType;
+import org.direct_bt.BluetoothUtils;
+import org.direct_bt.EUI48;
+import org.direct_bt.GATTCharacteristicListener;
+import org.direct_bt.HCIStatusCode;
+import org.direct_bt.PairingMode;
+import org.direct_bt.SMPIOCapability;
+import org.direct_bt.SMPKeyMask;
+import org.direct_bt.SMPLongTermKeyInfo;
+import org.direct_bt.SMPPairingState;
+import org.direct_bt.SMPSignatureResolvingKeyInfo;
 
 public class DBusDevice extends DBusObject implements BluetoothDevice
 {

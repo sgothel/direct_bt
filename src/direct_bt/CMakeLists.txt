@@ -49,8 +49,8 @@ target_link_libraries (
 set_target_properties(
    direct_bt
    PROPERTIES
-   SOVERSION ${tinyb_VERSION_MAJOR}
-   VERSION ${tinyb_VERSION_STRING}
+   SOVERSION ${direct_bt_VERSION_MAJOR}
+   VERSION ${direct_bt_VERSION_STRING}
 )
 install (DIRECTORY ${PROJECT_SOURCE_DIR}/api/direct_bt/ DESTINATION include/direct_bt)
 

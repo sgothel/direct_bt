@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package direct_bt.tinyb;
+package jau.direct_bt;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -34,17 +34,17 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.tinyb.BluetoothAdapter;
-import org.tinyb.BluetoothDevice;
-import org.tinyb.BluetoothException;
-import org.tinyb.BluetoothFactory;
-import org.tinyb.BluetoothGattCharacteristic;
-import org.tinyb.BluetoothGattDescriptor;
-import org.tinyb.BluetoothGattService;
-import org.tinyb.BluetoothObject;
-import org.tinyb.BluetoothManager;
-import org.tinyb.BluetoothType;
-import org.tinyb.HCIStatusCode;
+import org.direct_bt.BluetoothAdapter;
+import org.direct_bt.BluetoothDevice;
+import org.direct_bt.BluetoothException;
+import org.direct_bt.BluetoothFactory;
+import org.direct_bt.BluetoothGattCharacteristic;
+import org.direct_bt.BluetoothGattDescriptor;
+import org.direct_bt.BluetoothGattService;
+import org.direct_bt.BluetoothManager;
+import org.direct_bt.BluetoothObject;
+import org.direct_bt.BluetoothType;
+import org.direct_bt.HCIStatusCode;
 
 public class DBTManager implements BluetoothManager
 {

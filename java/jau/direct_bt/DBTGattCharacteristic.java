@@ -23,22 +23,22 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package direct_bt.tinyb;
+package jau.direct_bt;
 
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.List;
 
-import org.tinyb.BluetoothException;
-import org.tinyb.BluetoothFactory;
-import org.tinyb.BluetoothGattCharacteristic;
-import org.tinyb.BluetoothGattDescriptor;
-import org.tinyb.BluetoothGattService;
-import org.tinyb.BluetoothNotification;
-import org.tinyb.BluetoothObject;
-import org.tinyb.BluetoothType;
-import org.tinyb.BluetoothUtils;
-import org.tinyb.GATTCharacteristicListener;
+import org.direct_bt.BluetoothException;
+import org.direct_bt.BluetoothFactory;
+import org.direct_bt.BluetoothGattCharacteristic;
+import org.direct_bt.BluetoothGattDescriptor;
+import org.direct_bt.BluetoothGattService;
+import org.direct_bt.BluetoothNotification;
+import org.direct_bt.BluetoothObject;
+import org.direct_bt.BluetoothType;
+import org.direct_bt.BluetoothUtils;
+import org.direct_bt.GATTCharacteristicListener;
 
 public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCharacteristic
 {

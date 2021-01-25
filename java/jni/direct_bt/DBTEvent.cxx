@@ -23,9 +23,9 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt_tinyb_DBTEvent.h"
+#include "jau_direct_bt_DBTEvent.h"
 
-jobject Java_direct_1bt_tinyb_DBTEvent_getType(JNIEnv *env, jobject obj)
+jobject Java_jau_direct_1bt_DBTEvent_getType(JNIEnv *env, jobject obj)
 {
     (void)env;
     (void)obj;
@@ -33,7 +33,7 @@ jobject Java_direct_1bt_tinyb_DBTEvent_getType(JNIEnv *env, jobject obj)
     return NULL;
 }
 
-jstring Java_direct_1bt_tinyb_DBTEvent_getName(JNIEnv *env, jobject obj)
+jstring Java_jau_direct_1bt_DBTEvent_getName(JNIEnv *env, jobject obj)
 {
     (void)env;
     (void)obj;
@@ -41,7 +41,7 @@ jstring Java_direct_1bt_tinyb_DBTEvent_getName(JNIEnv *env, jobject obj)
     return NULL;
 }
 
-jstring Java_direct_1bt_tinyb_DBTEvent_getIdentifier(JNIEnv *env, jobject obj)
+jstring Java_jau_direct_1bt_DBTEvent_getIdentifier(JNIEnv *env, jobject obj)
 {
     (void)env;
     (void)obj;
@@ -49,7 +49,7 @@ jstring Java_direct_1bt_tinyb_DBTEvent_getIdentifier(JNIEnv *env, jobject obj)
     return NULL;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTEvent_executeCallback(JNIEnv *env, jobject obj)
+jboolean Java_jau_direct_1bt_DBTEvent_executeCallback(JNIEnv *env, jobject obj)
 {
     (void)env;
     (void)obj;
@@ -57,7 +57,7 @@ jboolean Java_direct_1bt_tinyb_DBTEvent_executeCallback(JNIEnv *env, jobject obj
     return JNI_FALSE;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTEvent_hasCallback(JNIEnv *env, jobject obj)
+jboolean Java_jau_direct_1bt_DBTEvent_hasCallback(JNIEnv *env, jobject obj)
 {
     (void)env;
     (void)obj;
@@ -65,7 +65,7 @@ jboolean Java_direct_1bt_tinyb_DBTEvent_hasCallback(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-void Java_direct_1bt_tinyb_DBTEvent_init(JNIEnv *env, jobject obj, jobject type, jstring name,
+void Java_jau_direct_1bt_DBTEvent_init(JNIEnv *env, jobject obj, jobject type, jstring name,
                                          jstring identifier, jobject parent, jobject callback,
                                          jobject arg_data)
 {
@@ -79,7 +79,7 @@ void Java_direct_1bt_tinyb_DBTEvent_init(JNIEnv *env, jobject obj, jobject type,
     (void)arg_data;
 }
 
-void Java_direct_1bt_tinyb_DBTEvent_delete(JNIEnv *env, jobject obj)
+void Java_jau_direct_1bt_DBTEvent_delete(JNIEnv *env, jobject obj)
 {
     (void)env;
     (void)obj;

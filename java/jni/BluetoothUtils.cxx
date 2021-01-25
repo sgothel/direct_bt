@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "org_tinyb_BluetoothUtils.h"
+#include "org_direct_bt_BluetoothUtils.h"
 
 #include <cstdint>
 #include <cinttypes>
@@ -47,7 +47,7 @@ static const int64_t MilliPerOne = 1000L;
  * clock_gettime seems to be well supported at least on kernel >= 4.4.
  * Only bfin and sh are missing, while ia64 seems to be complicated.
  */
-jlong Java_org_tinyb_BluetoothUtils_currentTimeMillis(JNIEnv *env, jclass clazz) {
+jlong Java_org_direct_bt_BluetoothUtils_currentTimeMillis(JNIEnv *env, jclass clazz) {
     (void)env;
     (void)clazz;
 
@@ -57,14 +57,14 @@ jlong Java_org_tinyb_BluetoothUtils_currentTimeMillis(JNIEnv *env, jclass clazz)
     return (jlong)res;
 }
 
-jlong Java_org_tinyb_BluetoothUtils_startupTimeMillisImpl(JNIEnv *env, jclass clazz) {
+jlong Java_org_direct_bt_BluetoothUtils_startupTimeMillisImpl(JNIEnv *env, jclass clazz) {
     (void)env;
     (void)clazz;
 
     return jau::environment::startupTimeMilliseconds;
 }
 
-jstring Java_org_tinyb_BluetoothUtils_decodeUTF8String(JNIEnv *env, jclass clazz, jbyteArray jbuffer, jint offset, jint size) {
+jstring Java_org_direct_bt_BluetoothUtils_decodeUTF8String(JNIEnv *env, jclass clazz, jbyteArray jbuffer, jint offset, jint size) {
     (void)clazz;
 
     const int buffer_size = env->GetArrayLength(jbuffer);

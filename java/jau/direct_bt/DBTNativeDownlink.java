@@ -23,11 +23,11 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package direct_bt.tinyb;
+package jau.direct_bt;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.tinyb.BluetoothFactory;
+import org.direct_bt.BluetoothFactory;
 
 public abstract class DBTNativeDownlink
 {

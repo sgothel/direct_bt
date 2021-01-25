@@ -23,10 +23,10 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package direct_bt.tinyb;
+package jau.direct_bt;
 
-import org.tinyb.BluetoothObject;
-import org.tinyb.BluetoothType;
+import org.direct_bt.BluetoothObject;
+import org.direct_bt.BluetoothType;
 
 public abstract class DBTObject extends DBTNativeDownlink implements BluetoothObject
 {

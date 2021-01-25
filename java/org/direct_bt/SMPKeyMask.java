@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.tinyb;
+package org.direct_bt;
 
 /**
  * SMP Key Type for Distribution, indicates keys distributed in the Transport Specific Key Distribution phase.

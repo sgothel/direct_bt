@@ -34,19 +34,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
-import org.tinyb.BluetoothAdapter;
-import org.tinyb.BluetoothDevice;
-import org.tinyb.AdapterStatusListener;
-import org.tinyb.BDAddressAndType;
-import org.tinyb.BluetoothException;
-import org.tinyb.BluetoothManager;
-import org.tinyb.BluetoothNotification;
-import org.tinyb.BluetoothType;
-import org.tinyb.EUI48;
-import org.tinyb.HCIStatusCode;
-import org.tinyb.HCIWhitelistConnectType;
-import org.tinyb.ScanType;
-import org.tinyb.TransportType;
+import org.direct_bt.AdapterStatusListener;
+import org.direct_bt.BDAddressAndType;
+import org.direct_bt.BluetoothAdapter;
+import org.direct_bt.BluetoothDevice;
+import org.direct_bt.BluetoothException;
+import org.direct_bt.BluetoothManager;
+import org.direct_bt.BluetoothNotification;
+import org.direct_bt.BluetoothType;
+import org.direct_bt.EUI48;
+import org.direct_bt.HCIStatusCode;
+import org.direct_bt.HCIWhitelistConnectType;
+import org.direct_bt.ScanType;
+import org.direct_bt.TransportType;
 
 public class DBusAdapter extends DBusObject implements BluetoothAdapter
 {

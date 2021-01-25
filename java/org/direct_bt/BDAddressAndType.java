@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.tinyb;
+package org.direct_bt;
 
 /**
  * Unique Bluetooth {@link EUI48} address and {@link BDAddressType} tuple.

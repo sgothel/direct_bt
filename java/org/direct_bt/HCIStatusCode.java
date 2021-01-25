@@ -22,7 +22,7 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.tinyb;
+package org.direct_bt;
 
 /**
  * BT Core Spec v5.2: Vol 1, Part F Controller Error Codes: 1.3 List of Error Codes

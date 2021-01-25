@@ -23,11 +23,11 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package direct_bt.tinyb;
+package jau.direct_bt;
 
-import org.tinyb.BluetoothCallback;
-import org.tinyb.BluetoothEvent;
-import org.tinyb.BluetoothType;
+import org.direct_bt.BluetoothCallback;
+import org.direct_bt.BluetoothEvent;
+import org.direct_bt.BluetoothType;
 
 public class DBTEvent implements BluetoothEvent
 {

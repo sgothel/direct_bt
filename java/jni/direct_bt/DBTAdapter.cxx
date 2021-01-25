@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt_tinyb_DBTAdapter.h"
+#include "jau_direct_bt_DBTAdapter.h"
 
 // #define VERBOSE_ON 1
 #include <jau/debug.hpp>
@@ -501,7 +501,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 };
 std::atomic<int> JNIAdapterStatusListener::iname_next(0);
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(JNIEnv *env, jobject obj, jobject statusListener, jobject jdeviceMatch)
+jboolean Java_jau_direct_1bt_DBTAdapter_addStatusListener(JNIEnv *env, jobject obj, jobject statusListener, jobject jdeviceMatch)
 {
     try {
         if( nullptr == statusListener ) {
@@ -554,7 +554,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(JNIEnv *env, jobject
     return JNI_FALSE;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_removeStatusListenerImpl(JNIEnv *env, jobject obj, jobject statusListener)
+jboolean Java_jau_direct_1bt_DBTAdapter_removeStatusListenerImpl(JNIEnv *env, jobject obj, jobject statusListener)
 {
     try {
         if( nullptr == statusListener ) {
@@ -588,7 +588,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_removeStatusListenerImpl(JNIEnv *env, 
     return JNI_FALSE;
 }
 
-jint Java_direct_1bt_tinyb_DBTAdapter_removeAllStatusListener(JNIEnv *env, jobject obj) {
+jint Java_jau_direct_1bt_DBTAdapter_removeAllStatusListener(JNIEnv *env, jobject obj) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
@@ -600,7 +600,7 @@ jint Java_direct_1bt_tinyb_DBTAdapter_removeAllStatusListener(JNIEnv *env, jobje
     return 0;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
+jboolean Java_jau_direct_1bt_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
@@ -626,7 +626,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobje
     }
     return JNI_FALSE;
 }
-jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelistImpl1(JNIEnv *env, jobject obj,
+jboolean Java_jau_direct_1bt_DBTAdapter_addDeviceToWhitelistImpl1(JNIEnv *env, jobject obj,
                                                                     jbyteArray jaddress, jbyte jaddressType, int jctype,
                                                                     jshort min_interval, jshort max_interval,
                                                                     jshort latency, jshort timeout) {
@@ -656,7 +656,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelistImpl1(JNIEnv *env,
     }
     return JNI_FALSE;
 }
-jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelistImpl2(JNIEnv *env, jobject obj,
+jboolean Java_jau_direct_1bt_DBTAdapter_addDeviceToWhitelistImpl2(JNIEnv *env, jobject obj,
                                                                     jbyteArray jaddress, jbyte jaddressType, int jctype) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
@@ -684,7 +684,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelistImpl2(JNIEnv *env,
     }
     return JNI_FALSE;
 }
-jboolean Java_direct_1bt_tinyb_DBTAdapter_removeDeviceFromWhitelistImpl(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
+jboolean Java_jau_direct_1bt_DBTAdapter_removeDeviceFromWhitelistImpl(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
@@ -711,7 +711,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_removeDeviceFromWhitelistImpl(JNIEnv *
     return JNI_FALSE;
 }
 
-jstring Java_direct_1bt_tinyb_DBTAdapter_toStringImpl(JNIEnv *env, jobject obj) {
+jstring Java_jau_direct_1bt_DBTAdapter_toStringImpl(JNIEnv *env, jobject obj) {
     try {
         DBTAdapter *nativePtr = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
@@ -722,12 +722,12 @@ jstring Java_direct_1bt_tinyb_DBTAdapter_toStringImpl(JNIEnv *env, jobject obj) 
     return nullptr;
 }
 
-void Java_direct_1bt_tinyb_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance)
+void Java_jau_direct_1bt_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance)
 {
     (void)obj;
     try {
         DBTAdapter *adapter = jau::castInstance<DBTAdapter>(nativeInstance);
-        DBG_PRINT("Java_direct_1bt_tinyb_DBTAdapter_deleteImpl (close only) %s", adapter->toString().c_str());
+        DBG_PRINT("Java_jau_direct_1bt_DBTAdapter_deleteImpl (close only) %s", adapter->toString().c_str());
         adapter->close();
         // No delete: DBTAdapter instance owned by DBTManager
         // However, adapter->close() cleans up most..
@@ -736,7 +736,7 @@ void Java_direct_1bt_tinyb_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj, jlong
     }
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_isPoweredImpl(JNIEnv *env, jobject obj)
+jboolean Java_jau_direct_1bt_DBTAdapter_isPoweredImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
@@ -747,7 +747,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_isPoweredImpl(JNIEnv *env, jobject obj
     return JNI_FALSE;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_isSuspendedImpl(JNIEnv *env, jobject obj)
+jboolean Java_jau_direct_1bt_DBTAdapter_isSuspendedImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
@@ -758,7 +758,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_isSuspendedImpl(JNIEnv *env, jobject o
     return JNI_FALSE;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_isValidImpl(JNIEnv *env, jobject obj)
+jboolean Java_jau_direct_1bt_DBTAdapter_isValidImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
@@ -769,7 +769,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_isValidImpl(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jbyte Java_direct_1bt_tinyb_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj, jboolean keepAlive)
+jbyte Java_jau_direct_1bt_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj, jboolean keepAlive)
 {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
@@ -780,7 +780,7 @@ jbyte Java_direct_1bt_tinyb_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject o
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
-jbyte Java_direct_1bt_tinyb_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject obj)
+jbyte Java_jau_direct_1bt_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
@@ -791,7 +791,7 @@ jbyte Java_direct_1bt_tinyb_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject ob
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
-jobject Java_direct_1bt_tinyb_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, jobject obj)
+jobject Java_jau_direct_1bt_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
@@ -803,7 +803,7 @@ jobject Java_direct_1bt_tinyb_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, j
     return nullptr;
 }
 
-jint Java_direct_1bt_tinyb_DBTAdapter_removeDiscoveredDevicesImpl1(JNIEnv *env, jobject obj)
+jint Java_jau_direct_1bt_DBTAdapter_removeDiscoveredDevicesImpl1(JNIEnv *env, jobject obj)
 {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
@@ -814,7 +814,7 @@ jint Java_direct_1bt_tinyb_DBTAdapter_removeDiscoveredDevicesImpl1(JNIEnv *env, 
     return 0;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_removeDiscoveredDeviceImpl1(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType)
+jboolean Java_jau_direct_1bt_DBTAdapter_removeDiscoveredDeviceImpl1(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType)
 {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
@@ -846,7 +846,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_removeDiscoveredDeviceImpl1(JNIEnv *en
 // misc
 //
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jboolean value) {
+jboolean Java_jau_direct_1bt_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jboolean value) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
@@ -857,7 +857,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_setPowered(JNIEnv *env, jobject obj, j
     return JNI_FALSE;
 }
 
-jbyte Java_direct_1bt_tinyb_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {
+jbyte Java_jau_direct_1bt_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
@@ -869,7 +869,7 @@ jbyte Java_direct_1bt_tinyb_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
-jstring Java_direct_1bt_tinyb_DBTAdapter_getAlias(JNIEnv *env, jobject obj) {
+jstring Java_jau_direct_1bt_DBTAdapter_getAlias(JNIEnv *env, jobject obj) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
@@ -880,7 +880,7 @@ jstring Java_direct_1bt_tinyb_DBTAdapter_getAlias(JNIEnv *env, jobject obj) {
     return nullptr;
 }
 
-void Java_direct_1bt_tinyb_DBTAdapter_setAlias(JNIEnv *env, jobject obj, jstring jnewalias) {
+void Java_jau_direct_1bt_DBTAdapter_setAlias(JNIEnv *env, jobject obj, jstring jnewalias) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
@@ -891,7 +891,7 @@ void Java_direct_1bt_tinyb_DBTAdapter_setAlias(JNIEnv *env, jobject obj, jstring
     }
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_setDiscoverable(JNIEnv *env, jobject obj, jboolean value) {
+jboolean Java_jau_direct_1bt_DBTAdapter_setDiscoverable(JNIEnv *env, jobject obj, jboolean value) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
@@ -902,7 +902,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_setDiscoverable(JNIEnv *env, jobject o
     return JNI_FALSE;
 }
 
-jobject Java_direct_1bt_tinyb_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
+jobject Java_jau_direct_1bt_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
@@ -943,7 +943,7 @@ jobject Java_direct_1bt_tinyb_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject 
     return nullptr;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_setPairable(JNIEnv *env, jobject obj, jboolean value) {
+jboolean Java_jau_direct_1bt_DBTAdapter_setPairable(JNIEnv *env, jobject obj, jboolean value) {
     try {
         DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
@@ -954,7 +954,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_setPairable(JNIEnv *env, jobject obj, 
     return JNI_FALSE;
 }
 
-void Java_direct_1bt_tinyb_DBTAdapter_setDiscoveryFilter(JNIEnv *env, jobject obj, jobject juuids, jint rssi, jint pathloss, jint transportType) {
+void Java_jau_direct_1bt_DBTAdapter_setDiscoveryFilter(JNIEnv *env, jobject obj, jobject juuids, jint rssi, jint pathloss, jint transportType) {
     // List<String> uuids
     (void)env;
     (void)obj;

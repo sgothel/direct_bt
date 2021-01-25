@@ -20,8 +20,8 @@ include_directories(
 )
 
 set (direct_bt_JNI_SRCS
-  ${PROJECT_SOURCE_DIR}/jaulib/java/jni/jni_mem.cxx
-  ${PROJECT_SOURCE_DIR}/jaulib/java/jni/helper_jni.cxx
+  ${PROJECT_SOURCE_DIR}/jaulib/java_jni/jni/jni_mem.cxx
+  ${PROJECT_SOURCE_DIR}/jaulib/java_jni/jni/helper_jni.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/helper_base.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/BluetoothFactory.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/BluetoothUtils.cxx
@@ -45,11 +45,11 @@ target_link_libraries(javadirect_bt ${JNI_LIBRARIES} direct_bt)
 set_target_properties(
     javadirect_bt
     PROPERTIES
-    SOVERSION ${tinyb_VERSION_MAJOR}
-    VERSION ${tinyb_VERSION_STRING}
+    SOVERSION ${direct_bt_VERSION_MAJOR}
+    VERSION ${direct_bt_VERSION_STRING}
 )
 
 install(TARGETS javadirect_bt LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-add_dependencies(javadirect_bt direct_bt tinybjar)
+add_dependencies(javadirect_bt direct_bt direct_bt_jar)
 

@@ -28,10 +28,10 @@
 
 package tinyb.dbus;
 
-import org.tinyb.BluetoothException;
-import org.tinyb.BluetoothGattDescriptor;
-import org.tinyb.BluetoothNotification;
-import org.tinyb.BluetoothType;
+import org.direct_bt.BluetoothException;
+import org.direct_bt.BluetoothGattDescriptor;
+import org.direct_bt.BluetoothNotification;
+import org.direct_bt.BluetoothType;
 
 public class DBusGattDescriptor extends DBusObject implements BluetoothGattDescriptor
 {

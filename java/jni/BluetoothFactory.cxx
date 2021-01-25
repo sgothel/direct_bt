@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "org_tinyb_BluetoothFactory.h"
+#include "org_direct_bt_BluetoothFactory.h"
 
 #include "version.h"
 
@@ -31,7 +31,7 @@
 
 using namespace jau;
 
-jstring Java_org_tinyb_BluetoothFactory_getNativeAPIVersion(JNIEnv *env, jclass clazz)
+jstring Java_org_direct_bt_BluetoothFactory_getNativeAPIVersion(JNIEnv *env, jclass clazz)
 {
     try {
         (void) clazz;
@@ -44,7 +44,7 @@ jstring Java_org_tinyb_BluetoothFactory_getNativeAPIVersion(JNIEnv *env, jclass 
     return nullptr;
 }
 
-void Java_org_tinyb_BluetoothFactory_setenv(JNIEnv *env, jclass clazz, jstring jname, jstring jval, jboolean overwrite)
+void Java_org_direct_bt_BluetoothFactory_setenv(JNIEnv *env, jclass clazz, jstring jname, jstring jval, jboolean overwrite)
 {
     try {
         (void) clazz;

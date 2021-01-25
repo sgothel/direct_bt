@@ -5,16 +5,16 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.tinyb.BDAddressAndType;
-import org.tinyb.BDAddressType;
-import org.tinyb.BluetoothDevice;
-import org.tinyb.BluetoothException;
-import org.tinyb.BluetoothFactory;
-import org.tinyb.BluetoothGattCharacteristic;
-import org.tinyb.BluetoothGattService;
-import org.tinyb.BluetoothManager;
-import org.tinyb.EUI48;
-import org.tinyb.HCIStatusCode;
+import org.direct_bt.BDAddressAndType;
+import org.direct_bt.BDAddressType;
+import org.direct_bt.BluetoothDevice;
+import org.direct_bt.BluetoothException;
+import org.direct_bt.BluetoothFactory;
+import org.direct_bt.BluetoothGattCharacteristic;
+import org.direct_bt.BluetoothGattService;
+import org.direct_bt.BluetoothManager;
+import org.direct_bt.EUI48;
+import org.direct_bt.HCIStatusCode;
 
 public class HelloTinyB {
     static boolean running = true;

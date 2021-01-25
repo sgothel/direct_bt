@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt_tinyb_DBTNativeDownlink.h"
+#include "jau_direct_bt_DBTNativeDownlink.h"
 
 #include <jau/debug.hpp>
 
@@ -35,7 +35,7 @@
 using namespace direct_bt;
 using namespace jau;
 
-void Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, jobject obj, jlong nativeInstance)
+void Java_jau_direct_1bt_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, jobject obj, jlong nativeInstance)
 {
     try {
         JavaUplink *javaUplink = castInstance<JavaUplink>(nativeInstance);
@@ -51,18 +51,18 @@ void Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, j
         }
         javaUplink->setJavaObject( std::shared_ptr<JavaAnon>( new JavaGlobalObj(obj, mNotifyDeleted) ) );
         JavaGlobalObj::check(javaUplink->getJavaObject(), E_FILE_LINE);
-        DBG_JNI_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
+        DBG_JNI_PRINT("Java_jau_direct_1bt_DBTNativeDownlink_initNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
 }
 
-void Java_direct_1bt_tinyb_DBTNativeDownlink_deleteNativeJavaObject(JNIEnv *env, jobject obj, jlong nativeInstance)
+void Java_jau_direct_1bt_DBTNativeDownlink_deleteNativeJavaObject(JNIEnv *env, jobject obj, jlong nativeInstance)
 {
     (void)obj;
     try {
         JavaUplink *javaUplink = castInstance<JavaUplink>(nativeInstance);
-        DBG_JNI_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_deleteNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
+        DBG_JNI_PRINT("Java_jau_direct_1bt_DBTNativeDownlink_deleteNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
         javaUplink->setJavaObject();
     } catch(...) {
         rethrow_and_raise_java_exception(env);

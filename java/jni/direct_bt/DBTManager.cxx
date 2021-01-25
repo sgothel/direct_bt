@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt_tinyb_DBTManager.h"
+#include "jau_direct_bt_DBTManager.h"
 
 // #define VERBOSE_ON 1
 #include <jau/debug.hpp>
@@ -109,7 +109,7 @@ static void _addMgmtCBOnce(JNIEnv *env, DBTManager & mgmt, JNIGlobalRef jmgmtRef
     }
 }
 
-void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj, jboolean unifyUUID128Bit, jint jbtMode)
+void Java_jau_direct_1bt_DBTManager_initImpl(JNIEnv *env, jobject obj, jboolean unifyUUID128Bit, jint jbtMode)
 {
     directBTJNISettings.setUnifyUUID128Bit(unifyUUID128Bit);
     try {
@@ -124,13 +124,13 @@ void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj, jboolea
         _addMgmtCBOnce(env, *manager, jmgmtRef, MgmtEvent::Opcode::INDEX_REMOVED, _removeAdapterCBMethodName, _removeAdapterCBMethodArgs);
         _addMgmtCBOnce(env, *manager, jmgmtRef, MgmtEvent::Opcode::INDEX_ADDED, _updatedAdapterCBMethodName, _updatedAdapterCBMethodArgs);
         _addMgmtCBOnce(env, *manager, jmgmtRef, MgmtEvent::Opcode::NEW_SETTINGS, _updatedAdapterCBMethodName, _updatedAdapterCBMethodArgs);
-        DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_init: Manager %s", manager->toString().c_str());
+        DBG_PRINT("Java_jau_direct_1bt_DBTManager_init: Manager %s", manager->toString().c_str());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
 }
 
-void Java_direct_1bt_tinyb_DBTManager_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance)
+void Java_jau_direct_1bt_DBTManager_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance)
 {
     (void)obj;
     try {
@@ -161,15 +161,15 @@ static jobject _createJavaAdapter(JNIEnv *env_, jclass clazz, jmethodID clazz_ct
     env_->DeleteLocalRef(name);
     env_->DeleteLocalRef(jAdapter);
 
-    DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_createJavaAdapter: New Adapter %p %s", adapter, adapter->toString().c_str());
+    DBG_PRINT("Java_jau_direct_1bt_DBTManager_createJavaAdapter: New Adapter %p %s", adapter, adapter->toString().c_str());
     return JavaGlobalObj::GetObject(jAdapterRef);
 };
 
-jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject obj)
+jobject Java_jau_direct_1bt_DBTManager_getAdapterListImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTManager *manager = getInstance<DBTManager>(env, obj);
-        DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl: Manager %s", manager->toString().c_str());
+        DBG_PRINT("Java_jau_direct_1bt_DBTManager_getAdapterListImpl: Manager %s", manager->toString().c_str());
 
         jau::darray<std::shared_ptr<DBTAdapter>> adapters = manager->getAdapters();
         return convert_vector_sharedptr_to_jarraylist<jau::darray<std::shared_ptr<DBTAdapter>>, DBTAdapter>(
@@ -180,7 +180,7 @@ jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject
     return nullptr;
 }
 
-jobject Java_direct_1bt_tinyb_DBTManager_getAdapterImpl(JNIEnv *env, jobject obj, jint dev_id)
+jobject Java_jau_direct_1bt_DBTManager_getAdapterImpl(JNIEnv *env, jobject obj, jint dev_id)
 {
     try {
         DBTManager *manager = getInstance<DBTManager>(env, obj);

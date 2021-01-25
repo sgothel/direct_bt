@@ -21,8 +21,8 @@ include_directories(
 )
 
 set (tinyb_JNI_SRCS
-  ${PROJECT_SOURCE_DIR}/jaulib/java/jni/jni_mem.cxx
-  ${PROJECT_SOURCE_DIR}/jaulib/java/jni/helper_jni.cxx
+  ${PROJECT_SOURCE_DIR}/jaulib/java_jni/jni/jni_mem.cxx
+  ${PROJECT_SOURCE_DIR}/jaulib/java_jni/jni/helper_jni.cxx
   ${PROJECT_SOURCE_DIR}/jaulib/src/basic_types.cpp
   ${PROJECT_SOURCE_DIR}/java/jni/helper_base.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/BluetoothFactory.cxx
@@ -52,5 +52,5 @@ set_target_properties(
 
 install(TARGETS javatinyb LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-add_dependencies(javatinyb tinyb tinybjar)
+add_dependencies(javatinyb tinyb direct_bt_jar)
 

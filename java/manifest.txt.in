@@ -1,33 +1,33 @@
 Manifest-Version: 1.0
 Bundle-Date: @BUILD_TSTAMP@
 Bundle-ManifestVersion: 2
-Bundle-Name: org.tinyb
-Bundle-SymbolicName: org.tinyb
+Bundle-Name: org.direct_bt
+Bundle-SymbolicName: org.direct_bt
 Bundle-Version: @VERSION_SHORT@
-Export-Package: org.tinyb
-Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
-Package-Title: org.tinyb
-Package-Vendor: ZAFENA AB
+Export-Package: org.direct_bt
+Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.9))"
+Package-Title: org.direct_bt
+Package-Vendor: Gothel Software
 Package-Version: @VERSION_SHORT@
-Specification-Title: TinyB-2
-Specification-Vendor: ZAFENA AB
+Specification-Title: Direct-BT
+Specification-Vendor: Gothel Software
 Specification-Version: @VERSION_API@
-Implementation-Title: TinyB-2 with Direct-BT
-Implementation-Vendor: ZAFENA AB
+Implementation-Title: Direct-BT (optionally with TinyB)
+Implementation-Vendor: Gothel Software
 Implementation-Version: @VERSION@
 Implementation-Commit: @VERSION_SHA1@
-Implementation-URL: http://www.zafena.se/
-Extension-Name: org.tinyb
+Implementation-URL: http://www.jausoft.com/
+Extension-Name: org.direct_bt
 Trusted-Library: true
 Permissions: all-permissions
 Application-Library-Allowable-Codebase: *
 
-Name: org/tinyb/
+Name: org/direct_bt/
 Sealed: true
 
 Name: tinyb/dbus/
 Sealed: true
 
-Name: direct_bt/tinyb/
+Name: jau/direct_bt/
 Sealed: true
 

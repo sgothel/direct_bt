@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt_tinyb_DBTGattService.h"
+#include "jau_direct_bt_DBTGattService.h"
 
 // #define VERBOSE_ON 1
 #include <jau/debug.hpp>
@@ -37,7 +37,7 @@
 using namespace direct_bt;
 using namespace jau;
 
-jstring Java_direct_1bt_tinyb_DBTGattService_toStringImpl(JNIEnv *env, jobject obj) {
+jstring Java_jau_direct_1bt_DBTGattService_toStringImpl(JNIEnv *env, jobject obj) {
     try {
         GATTService *nativePtr = getJavaUplinkObject<GATTService>(env, obj);
         JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
@@ -49,7 +49,7 @@ jstring Java_direct_1bt_tinyb_DBTGattService_toStringImpl(JNIEnv *env, jobject o
 }
 
 
-void Java_direct_1bt_tinyb_DBTGattService_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
+void Java_jau_direct_1bt_DBTGattService_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
     (void)obj;
     try {
         GATTService *service = castInstance<GATTService>(nativeInstance);
@@ -62,7 +62,7 @@ void Java_direct_1bt_tinyb_DBTGattService_deleteImpl(JNIEnv *env, jobject obj, j
 
 static const std::string _characteristicClazzCtorArgs("(JLdirect_bt/tinyb/DBTGattService;S[Ljava/lang/String;ZZLjava/lang/String;SI)V");
 
-jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristicsImpl(JNIEnv *env, jobject obj) {
+jobject Java_jau_direct_1bt_DBTGattService_getCharacteristicsImpl(JNIEnv *env, jobject obj) {
     try {
         GATTService *service = getJavaUplinkObject<GATTService>(env, obj);
         JavaGlobalObj::check(service->getJavaObject(), E_FILE_LINE);

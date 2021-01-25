@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt_tinyb_DBTGattCharacteristic.h"
+#include "jau_direct_bt_DBTGattCharacteristic.h"
 
 #include <jau/debug.hpp>
 
@@ -36,7 +36,7 @@
 using namespace direct_bt;
 using namespace jau;
 
-jstring Java_direct_1bt_tinyb_DBTGattCharacteristic_toStringImpl(JNIEnv *env, jobject obj) {
+jstring Java_jau_direct_1bt_DBTGattCharacteristic_toStringImpl(JNIEnv *env, jobject obj) {
     try {
         GATTCharacteristic *nativePtr = getJavaUplinkObject<GATTCharacteristic>(env, obj);
         JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
@@ -47,7 +47,7 @@ jstring Java_direct_1bt_tinyb_DBTGattCharacteristic_toStringImpl(JNIEnv *env, jo
     return nullptr;
 }
 
-void Java_direct_1bt_tinyb_DBTGattCharacteristic_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
+void Java_jau_direct_1bt_DBTGattCharacteristic_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
     (void)obj;
     try {
         GATTCharacteristic *characteristic = castInstance<GATTCharacteristic>(nativeInstance);
@@ -60,7 +60,7 @@ void Java_direct_1bt_tinyb_DBTGattCharacteristic_deleteImpl(JNIEnv *env, jobject
 
 static const std::string _descriptorClazzCtorArgs("(JLdirect_bt/tinyb/DBTGattCharacteristic;Ljava/lang/String;S[B)V");
 
-jobject Java_direct_1bt_tinyb_DBTGattCharacteristic_getDescriptorsImpl(JNIEnv *env, jobject obj) {
+jobject Java_jau_direct_1bt_DBTGattCharacteristic_getDescriptorsImpl(JNIEnv *env, jobject obj) {
     try {
         GATTCharacteristic *characteristic = getJavaUplinkObject<GATTCharacteristic>(env, obj);
         JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
@@ -109,7 +109,7 @@ jobject Java_direct_1bt_tinyb_DBTGattCharacteristic_getDescriptorsImpl(JNIEnv *e
     return nullptr;
 }
 
-jbyteArray Java_direct_1bt_tinyb_DBTGattCharacteristic_readValueImpl(JNIEnv *env, jobject obj) {
+jbyteArray Java_jau_direct_1bt_DBTGattCharacteristic_readValueImpl(JNIEnv *env, jobject obj) {
     try {
         GATTCharacteristic *characteristic = getJavaUplinkObject<GATTCharacteristic>(env, obj);
         JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
@@ -132,7 +132,7 @@ jbyteArray Java_direct_1bt_tinyb_DBTGattCharacteristic_readValueImpl(JNIEnv *env
     return nullptr;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_writeValueImpl(JNIEnv *env, jobject obj, jbyteArray jval, jboolean withResponse) {
+jboolean Java_jau_direct_1bt_DBTGattCharacteristic_writeValueImpl(JNIEnv *env, jobject obj, jbyteArray jval, jboolean withResponse) {
     try {
         if( nullptr == jval ) {
             throw IllegalArgumentException("byte array null", E_FILE_LINE);
@@ -168,7 +168,7 @@ jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_writeValueImpl(JNIEnv *env,
     return JNI_FALSE;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_configNotificationIndicationImpl(JNIEnv *env, jobject obj,
+jboolean Java_jau_direct_1bt_DBTGattCharacteristic_configNotificationIndicationImpl(JNIEnv *env, jobject obj,
                         jboolean enableNotification, jboolean enableIndication, jbooleanArray jEnabledState) {
     try {
         GATTCharacteristic *characteristic = getJavaUplinkObjectUnchecked<GATTCharacteristic>(env, obj);

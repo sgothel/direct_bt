@@ -24,9 +24,9 @@
 
 package tinyb.dbus;
 
-import org.tinyb.BluetoothCallback;
-import org.tinyb.BluetoothEvent;
-import org.tinyb.BluetoothType;
+import org.direct_bt.BluetoothCallback;
+import org.direct_bt.BluetoothEvent;
+import org.direct_bt.BluetoothType;
 
 public class DBusEvent implements BluetoothEvent
 {

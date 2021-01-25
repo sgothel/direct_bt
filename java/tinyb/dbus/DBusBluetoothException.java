@@ -28,7 +28,7 @@
 
 package tinyb.dbus;
 
-import org.tinyb.BluetoothException;
+import org.direct_bt.BluetoothException;
 
 @SuppressWarnings("serial")
 public class DBusBluetoothException extends BluetoothException {

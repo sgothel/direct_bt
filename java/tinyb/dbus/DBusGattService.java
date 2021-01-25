@@ -30,10 +30,10 @@ package tinyb.dbus;
 
 import java.util.List;
 
-import org.tinyb.BluetoothGattCharacteristic;
-import org.tinyb.BluetoothGattService;
-import org.tinyb.BluetoothManager;
-import org.tinyb.BluetoothType;
+import org.direct_bt.BluetoothGattCharacteristic;
+import org.direct_bt.BluetoothGattService;
+import org.direct_bt.BluetoothManager;
+import org.direct_bt.BluetoothType;
 
 public class DBusGattService extends DBusObject implements BluetoothGattService
 {

@@ -1,12 +1,12 @@
 import java.util.concurrent.locks.*;
 
-import org.tinyb.BluetoothDevice;
-import org.tinyb.BluetoothException;
-import org.tinyb.BluetoothFactory;
-import org.tinyb.BluetoothGattCharacteristic;
-import org.tinyb.BluetoothGattService;
-import org.tinyb.BluetoothManager;
-import org.tinyb.HCIStatusCode;
+import org.direct_bt.BluetoothDevice;
+import org.direct_bt.BluetoothException;
+import org.direct_bt.BluetoothFactory;
+import org.direct_bt.BluetoothGattCharacteristic;
+import org.direct_bt.BluetoothGattService;
+import org.direct_bt.BluetoothManager;
+import org.direct_bt.HCIStatusCode;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.TimeUnit;

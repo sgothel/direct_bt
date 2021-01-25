@@ -27,20 +27,20 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
 import java.util.List;
 
-import org.tinyb.BDAddressAndType;
-import org.tinyb.BDAddressType;
-import org.tinyb.BluetoothAdapter;
-import org.tinyb.BluetoothDevice;
-import org.tinyb.BluetoothException;
-import org.tinyb.BluetoothFactory;
-import org.tinyb.BluetoothGattCharacteristic;
-import org.tinyb.BluetoothGattDescriptor;
-import org.tinyb.BluetoothGattService;
-import org.tinyb.BluetoothManager;
-import org.tinyb.BluetoothNotification;
-import org.tinyb.BluetoothUtils;
-import org.tinyb.EUI48;
-import org.tinyb.HCIStatusCode;
+import org.direct_bt.BDAddressAndType;
+import org.direct_bt.BDAddressType;
+import org.direct_bt.BluetoothAdapter;
+import org.direct_bt.BluetoothDevice;
+import org.direct_bt.BluetoothException;
+import org.direct_bt.BluetoothFactory;
+import org.direct_bt.BluetoothGattCharacteristic;
+import org.direct_bt.BluetoothGattDescriptor;
+import org.direct_bt.BluetoothGattService;
+import org.direct_bt.BluetoothManager;
+import org.direct_bt.BluetoothNotification;
+import org.direct_bt.BluetoothUtils;
+import org.direct_bt.EUI48;
+import org.direct_bt.HCIStatusCode;
 
 /**
  * This Java scanner example is a TinyB backward compatible and not fully event driven.
