@@ -9,10 +9,10 @@ Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.9))"
 Package-Title: org.direct_bt
 Package-Vendor: Gothel Software
 Package-Version: @VERSION_SHORT@
-Specification-Title: Direct-BT
+Specification-Title: Direct-BT Fat
 Specification-Vendor: Gothel Software
 Specification-Version: @VERSION_API@
-Implementation-Title: Direct-BT (optionally with TinyB)
+Implementation-Title: Direct-BT Fat (optionally with TinyB)
 Implementation-Vendor: Gothel Software
 Implementation-Version: @VERSION@
 Implementation-Commit: @VERSION_SHA1@
@@ -21,7 +21,7 @@ Extension-Name: org.direct_bt
 Trusted-Library: true
 Permissions: all-permissions
 Application-Library-Allowable-Codebase: *
-Class-Path: jaulib.jar
+Class-Path: jaulib_fat.jar
 
 Name: org/direct_bt/
 Sealed: true

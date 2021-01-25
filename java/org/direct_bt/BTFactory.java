@@ -139,7 +139,7 @@ public class BTFactory {
     /**
      * Verbose logging enabled or disabled.
      * <p>
-     * System property {@code org.tinyb.verbose}, boolean, default {@code false}.
+     * System property {@code org.direct_bt.verbose}, boolean, default {@code false}.
      * </p>
      */
     public static final boolean VERBOSE;
@@ -147,7 +147,7 @@ public class BTFactory {
     /**
      * Debug logging enabled or disabled.
      * <p>
-     * System property {@code org.tinyb.debug}, boolean, default {@code false}.
+     * System property {@code org.direct_bt.debug}, boolean, default {@code false}.
      * </p>
      */
     public static final boolean DEBUG;
@@ -155,7 +155,7 @@ public class BTFactory {
     /**
      * Default {@link BTMode} when initializing new adapter
      * <p>
-     * System property {@code org.tinyb.btmode}, string, default {@code DUAL} {@link BTMode#DUAL}.
+     * System property {@code org.direct_bt.btmode}, string, default {@code DUAL} {@link BTMode#DUAL}.
      * </p>
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus.
@@ -164,15 +164,17 @@ public class BTFactory {
 
     static {
         {
-            final String v = System.getProperty("org.tinyb.verbose", "false");
+            final String v = System.getProperty("org.direct_bt.debug", "false");
+            DEBUG = Boolean.valueOf(v);
+        }
+        if( DEBUG ) {
+            VERBOSE = true;
+        } else  {
+            final String v = System.getProperty("org.direct_bt.verbose", "false");
             VERBOSE = Boolean.valueOf(v);
         }
         {
-            final String v = System.getProperty("org.tinyb.debug", "false");
-            DEBUG = Boolean.valueOf(v);
-        }
-        {
-            final String v = System.getProperty("org.tinyb.btmode", "DUAL");
+            final String v = System.getProperty("org.direct_bt.btmode", "DUAL");
             BTMode btMode = BTMode.DUAL;
             try {
                 btMode = BTMode.get(v);
@@ -204,23 +206,67 @@ public class BTFactory {
             return;
         }
 
+        final ClassLoader cl = BTFactory.class.getClassLoader();
+        boolean libsLoaded = false;
+        boolean isJaulibAvail = false;
         try {
-            final Throwable[] t = { null };
-            if( !PlatformToolkit.loadLibrary(id.ImplementationNativeLibraryBasename, BTFactory.class.getClassLoader(), t) ) {
-                throw new RuntimeException("Couldn't load native library with basename <"+id.ImplementationNativeLibraryBasename+">", t[0]);
+            isJaulibAvail = null != Class.forName("org.jau.sys.PlatformProps", true /* initializeClazz */, cl);
+        } catch( final Throwable t ) {
+            System.err.println("Caught: "+t.getMessage());
+            if( DEBUG ) {
+                t.printStackTrace();
             }
-            if( !PlatformToolkit.loadLibrary(id.JavaNativeLibraryBasename, BTFactory.class.getClassLoader(), t) ) {
-                throw new RuntimeException("Couldn't load native library with basename <"+id.JavaNativeLibraryBasename+">", t[0]);
+        }
+        if( isJaulibAvail ) {
+            if( org.jau.sys.PlatformProps.USE_TEMP_JAR_CACHE ) {
+                try {
+                    org.jau.pkg.JNIJarLibrary.addNativeJarLibs(new Class<?>[] { BTFactory.class }, null);
+                } catch (final Exception e0) {
+                    System.err.println("BTFactory Caught "+e0.getClass().getSimpleName()+": "+e0.getMessage()+", while JNILibLoaderBase.addNativeJarLibs(..)");
+                    if( DEBUG ) {
+                        e0.printStackTrace();
+                    }
+                }
             }
-        } catch (final Throwable e) {
-            e.printStackTrace();
-            throw e; // fwd exception - end here
+            try {
+                if( null != org.jau.sys.dl.NativeLibrary.open(id.ImplementationNativeLibraryBasename,
+                                               true /* searchSystemPath */, false /* searchSystemPathFirst */, cl, true /* global */) )
+                {
+                    org.jau.sys.JNILibrary.loadLibrary(id.JavaNativeLibraryBasename, false, cl);
+                    libsLoaded = true;
+                }
+            } catch (final Throwable t) {
+                System.err.println("Caught "+t.getClass().getSimpleName()+": "+t.getMessage()+", while loading libs..");
+                if( DEBUG ) {
+                    t.printStackTrace();
+                }
+            }
+            if( DEBUG ) {
+                System.err.println("Jaulib: Native libs loaded: "+ libsLoaded);
+            }
+        }
+        if( !libsLoaded ) {
+            try {
+                final Throwable[] t = { null };
+                if( !PlatformToolkit.loadLibrary(id.ImplementationNativeLibraryBasename, cl, t) ) {
+                    throw new RuntimeException("Couldn't load native library with basename <"+id.ImplementationNativeLibraryBasename+">", t[0]);
+                }
+                if( !PlatformToolkit.loadLibrary(id.JavaNativeLibraryBasename, cl, t) ) {
+                    throw new RuntimeException("Couldn't load native library with basename <"+id.JavaNativeLibraryBasename+">", t[0]);
+                }
+            } catch (final Throwable e) {
+                System.err.println("Caught "+e.getClass().getSimpleName()+": "+e.getMessage()+", while loading libs (2) ..");
+                if( DEBUG ) {
+                    e.printStackTrace();
+                }
+                throw e; // fwd exception - end here
+            }
         }
 
-        // Map all Java properties '[org.]tinyb.*' and 'direct_bt.*' to native environment.
+        // Map all Java properties '[org.]direct_bt.*' and 'direct_bt.*' to native environment.
         try {
             if( DEBUG ) {
-                System.err.println("BlootoothFactory: Mapping '[org.]tinyb.*' and 'direct_bt.*' properties to native environment");
+                System.err.println("BlootoothFactory: Mapping '[org.|jau.]direct_bt.*' and 'tinyb.*' properties to native environment");
             }
             final Properties props = AccessController.doPrivileged(new PrivilegedAction<Properties>() {
                   @Override
@@ -231,7 +277,7 @@ public class BTFactory {
             final Enumeration<?> enums = props.propertyNames();
             while (enums.hasMoreElements()) {
               final String key = (String) enums.nextElement();
-              if( key.startsWith("org.tinyb.") ||
+              if( key.startsWith("org.direct_bt.") || key.startsWith("jau.direct_bt.") ||
                   key.startsWith("direct_bt.") || key.startsWith("tinyb.") )
               {
                   final String value = props.getProperty(key);
@@ -247,7 +293,7 @@ public class BTFactory {
         }
 
         try {
-            final Manifest manifest = getManifest(BTFactory.class.getClassLoader(), new String[] { "org.tinyb" } );
+            final Manifest manifest = getManifest(cl, new String[] { "org.direct_bt" } );
             final Attributes mfAttributes = null != manifest ? manifest.getMainAttributes() : null;
 
             // major.minor must match!
@@ -275,9 +321,9 @@ public class BTFactory {
             APIVersion = JAPIVersion;
             ImplVersion = null != mfAttributes ? mfAttributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION) : null;
             if( VERBOSE ) {
-                System.err.println("tinyb2 loaded "+id);
-                System.err.println("tinyb2 java api version "+JAPIVersion);
-                System.err.println("tinyb2 native api version "+NAPIVersion);
+                System.err.println("direct_bt loaded "+id);
+                System.err.println("direct_bt java api version "+JAPIVersion);
+                System.err.println("direct_bt native api version "+NAPIVersion);
                 if( null != mfAttributes ) {
                     final Attributes.Name[] versionAttributeNames = new Attributes.Name[] {
                             Attributes.Name.SPECIFICATION_TITLE,

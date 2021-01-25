@@ -48,8 +48,9 @@ option (BUILDJAVA "Build Java API." OFF)
 
 IF(BUILDJAVA)
     configure_file (${CMAKE_CURRENT_SOURCE_DIR}/java/manifest.txt.in ${CMAKE_CURRENT_BINARY_DIR}/java/manifest.txt)
+    configure_file (${CMAKE_CURRENT_SOURCE_DIR}/java_fat/manifest.txt.in ${CMAKE_CURRENT_BINARY_DIR}/java_fat/manifest.txt)
     add_subdirectory (java)
-    add_subdirectory (examples/java)
+    add_subdirectory (java_fat)
 ENDIF(BUILDJAVA)
 
 # add a target to generate API documentation with Doxygen
@@ -83,6 +84,9 @@ endif (DOXYGEN_FOUND)
 
 if (BUILDEXAMPLES)
   add_subdirectory (examples)
+  if (BUILDJAVA)
+      add_subdirectory (examples/java)
+  endif(BUILDJAVA)
 endif (BUILDEXAMPLES)
 
 if (BUILD_TESTING)
@@ -90,6 +94,7 @@ if (BUILD_TESTING)
   add_subdirectory (test/ieee11073)
   add_subdirectory (test/direct_bt)
   if (BUILDJAVA)
+      configure_file (${CMAKE_CURRENT_SOURCE_DIR}/test/java/manifest.txt.in ${CMAKE_CURRENT_BINARY_DIR}/test/java/manifest.txt)
       add_subdirectory (test/java)
   endif(BUILDJAVA)
 endif(BUILD_TESTING)

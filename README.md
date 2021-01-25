@@ -255,7 +255,7 @@ apt install git
 apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev 
 apt install libunwind8 libunwind-dev
 apt install libglib2.0 libglib2.0-0 libglib2.0-dev
-apt install openjdk-11-jdk openjdk-11-jre
+apt install openjdk-11-jdk openjdk-11-jre junit4
 apt install cmake cmake-extras extra-cmake-modules pkg-config
 apt install doxygen graphviz
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -285,6 +285,16 @@ Changing install path from /usr/local to /usr
 Building debug build:
 ~~~~~~~~~~~~~
 -DDEBUG=ON
+~~~~~~~~~~~~~
+Disable stripping native lib even in non debug build:
+~~~~~~~~~~~~~
+-DUSE_STRIP=OFF
+~~~~~~~~~~~~~
+Override default javac debug arguments `source,lines`:
+~~~~~~~~~~~~~
+-DJAVAC_DEBUG_ARGS="source,lines,vars"
+
+-DJAVAC_DEBUG_ARGS="none"
 ~~~~~~~~~~~~~
 Building debug and instrumentation (sanitizer) build:
 ~~~~~~~~~~~~~

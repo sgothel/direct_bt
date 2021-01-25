@@ -42,6 +42,14 @@ set (CMAKE_SHARED_LINKER_FLAGS "-Wl,--as-needed")
 add_library (javadirect_bt SHARED ${direct_bt_JNI_SRCS})
 target_link_libraries(javadirect_bt ${JNI_LIBRARIES} direct_bt)
 
+if(USE_STRIP)
+add_custom_command(TARGET javadirect_bt POST_BUILD
+                   COMMAND ${STRIP} ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}javadirect_bt${CMAKE_SHARED_LIBRARY_SUFFIX}.${direct_bt_VERSION_STRING}
+                   COMMENT "stripping javadirect_bt"
+                   VERBATIM
+                   )
+endif(USE_STRIP)
+
 set_target_properties(
     javadirect_bt
     PROPERTIES

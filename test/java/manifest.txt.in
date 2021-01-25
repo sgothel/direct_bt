@@ -1,34 +1,25 @@
 Manifest-Version: 1.0
 Bundle-Date: @BUILD_TSTAMP@
 Bundle-ManifestVersion: 2
-Bundle-Name: org.direct_bt
-Bundle-SymbolicName: org.direct_bt
+Bundle-Name: org.direct_bt.test
+Bundle-SymbolicName: org.direct_bt.test
 Bundle-Version: @VERSION_SHORT@
-Export-Package: org.direct_bt
+Export-Package: org.direct_bt.test
 Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.9))"
-Package-Title: org.direct_bt
+Package-Title: org.direct_bt.test
 Package-Vendor: Gothel Software
 Package-Version: @VERSION_SHORT@
-Specification-Title: Direct-BT
+Specification-Title: Direct-BT Unit Tests
 Specification-Vendor: Gothel Software
 Specification-Version: @VERSION_API@
-Implementation-Title: Direct-BT (optionally with TinyB)
+Implementation-Title: Direct-BT Unit Tests
 Implementation-Vendor: Gothel Software
 Implementation-Version: @VERSION@
 Implementation-Commit: @VERSION_SHA1@
 Implementation-URL: http://www.jausoft.com/
-Extension-Name: org.direct_bt
+Extension-Name: org.direct_bt.test
 Trusted-Library: true
 Permissions: all-permissions
 Application-Library-Allowable-Codebase: *
-Class-Path: jaulib.jar
-
-Name: org/direct_bt/
-Sealed: true
-
-Name: tinyb/dbus/
-Sealed: true
-
-Name: jau/direct_bt/
-Sealed: true
-
+Class-Path: jaulib_fat.jar direct_bt_fat.jar jaulib_test.jar
+Main-Class: org.jau.util.TestVersionInfo

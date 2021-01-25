@@ -1,14 +1,20 @@
 # java/CMakeLists.txt
 
 set(CMAKE_JNI_TARGET TRUE)
+
+set(direct_bt_jar_file ${CMAKE_CURRENT_BINARY_DIR}/direct_bt.jar CACHE FILEPATH "direct_bt jar file" FORCE)
+
 file(GLOB_RECURSE JAVA_SOURCES "*.java")
+
 add_jar(direct_bt_jar 
         ${JAVA_SOURCES}
+        INCLUDE_JARS ${jaulib_fat_jar_file}
         MANIFEST ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt
         OUTPUT_NAME direct_bt
         GENERATE_NATIVE_HEADERS javadirect_bt_javah
             DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/direct_bt_jar.dir/jni"
 )
+add_dependencies(direct_bt_jar jaulib_fat_jar)
 
 # JNI header generation is satisfied by above 'add_jar(.. GENERATE_NATIVE_HEADERS <target> DESTINATION <dir>)',
 # note that its GENERATE_NATIVE_HEADERS target is a dummy target, since jni/direct_bt defines target javadirect_bt.
@@ -26,7 +32,7 @@ add_jar(direct_bt_jar
 #)
 
 set(JNI_HEADER_PATH "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/direct_bt_jar.dir/jni")
-install (FILES ${CMAKE_CURRENT_BINARY_DIR}/direct_bt.jar DESTINATION ${CMAKE_INSTALL_LIBDIR}/../lib/java)
+install (FILES ${direct_bt_jar_file} DESTINATION ${CMAKE_INSTALL_LIBDIR}/../lib/java)
 
 add_subdirectory (jni/direct_bt)
 

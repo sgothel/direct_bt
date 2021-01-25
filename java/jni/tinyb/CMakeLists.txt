@@ -43,6 +43,14 @@ set (CMAKE_SHARED_LINKER_FLAGS "-Wl,--as-needed")
 add_library (javatinyb SHARED ${tinyb_JNI_SRCS})
 target_link_libraries(javatinyb ${JNI_LIBRARIES} tinyb)
 
+if(USE_STRIP)
+add_custom_command(TARGET javatinyb POST_BUILD
+                   COMMAND ${STRIP} ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}javatinyb${CMAKE_SHARED_LIBRARY_SUFFIX}.${tinyb_VERSION_STRING}
+                   COMMENT "stripping javatinyb"
+                   VERBATIM
+                   )
+endif(USE_STRIP)
+
 set_target_properties(
     javatinyb
     PROPERTIES
