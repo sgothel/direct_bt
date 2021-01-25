@@ -25,16 +25,16 @@
 
 package jau.direct_bt;
 
-import org.direct_bt.BluetoothCallback;
-import org.direct_bt.BluetoothEvent;
-import org.direct_bt.BluetoothType;
+import org.direct_bt.BTCallback;
+import org.direct_bt.BTEvent;
+import org.direct_bt.BTType;
 
-public class DBTEvent implements BluetoothEvent
+public class DBTEvent implements BTEvent
 {
     private long nativeInstance;
 
     @Override
-    public native BluetoothType getType();
+    public native BTType getType();
     @Override
     public native String getName();
     @Override
@@ -44,12 +44,12 @@ public class DBTEvent implements BluetoothEvent
     @Override
     public native boolean hasCallback();
 
-    private native void init(BluetoothType type, String name, String identifier,
-                            DBTObject parent, BluetoothCallback cb, Object data);
+    private native void init(BTType type, String name, String identifier,
+                            DBTObject parent, BTCallback cb, Object data);
     private native void delete();
 
-    public DBTEvent(final BluetoothType type, final String name, final String identifier,
-                            final DBTObject parent, final BluetoothCallback cb, final Object data)
+    public DBTEvent(final BTType type, final String name, final String identifier,
+                            final DBTObject parent, final BTCallback cb, final Object data)
     {
         init(type, name, identifier, parent, cb, data);
     }

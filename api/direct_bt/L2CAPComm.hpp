@@ -37,7 +37,7 @@
 #include <jau/environment.hpp>
 
 #include "UUID.hpp"
-#include "BTTypes.hpp"
+#include "BTTypes0.hpp"
 
 /**
  * - - - - - - - - - - - - - - -
@@ -48,7 +48,7 @@
  */
 namespace direct_bt {
 
-    class DBTDevice; // forward
+    class BTDevice; // forward
 
     /**
      * L2CAP Singleton runtime environment properties
@@ -164,7 +164,7 @@ namespace direct_bt {
              * @param sec_level sec_level < BTSecurityLevel::NONE will not set security level
              * @return true if connection has been established, otherwise false
              */
-            bool open(const DBTDevice& device, const BTSecurityLevel sec_level=BTSecurityLevel::NONE);
+            bool open(const BTDevice& device, const BTSecurityLevel sec_level=BTSecurityLevel::NONE);
 
             bool isOpen() const { return is_open; }
 

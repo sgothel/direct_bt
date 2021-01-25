@@ -24,16 +24,16 @@
 
 package tinyb.dbus;
 
-import org.direct_bt.BluetoothCallback;
-import org.direct_bt.BluetoothEvent;
-import org.direct_bt.BluetoothType;
+import org.direct_bt.BTCallback;
+import org.direct_bt.BTEvent;
+import org.direct_bt.BTType;
 
-public class DBusEvent implements BluetoothEvent
+public class DBusEvent implements BTEvent
 {
     private long nativeInstance;
 
     @Override
-    public native BluetoothType getType();
+    public native BTType getType();
     @Override
     public native String getName();
     @Override
@@ -43,12 +43,12 @@ public class DBusEvent implements BluetoothEvent
     @Override
     public native boolean hasCallback();
 
-    private native void init(BluetoothType type, String name, String identifier,
-                            DBusObject parent, BluetoothCallback cb, Object data);
+    private native void init(BTType type, String name, String identifier,
+                            DBusObject parent, BTCallback cb, Object data);
     private native void delete();
 
-    public DBusEvent(final BluetoothType type, final String name, final String identifier,
-                            final DBusObject parent, final BluetoothCallback cb, final Object data)
+    public DBusEvent(final BTType type, final String name, final String identifier,
+                            final DBusObject parent, final BTCallback cb, final Object data)
     {
         init(type, name, identifier, parent, cb, data);
     }

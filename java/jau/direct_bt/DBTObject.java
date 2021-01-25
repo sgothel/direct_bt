@@ -25,10 +25,10 @@
 
 package jau.direct_bt;
 
-import org.direct_bt.BluetoothObject;
-import org.direct_bt.BluetoothType;
+import org.direct_bt.BTObject;
+import org.direct_bt.BTType;
 
-public abstract class DBTObject extends DBTNativeDownlink implements BluetoothObject
+public abstract class DBTObject extends DBTNativeDownlink implements BTObject
 {
     private final int hashValue;
 
@@ -49,7 +49,7 @@ public abstract class DBTObject extends DBTNativeDownlink implements BluetoothOb
         this.hashValue = hashValue;
     }
 
-    static BluetoothType class_type() { return BluetoothType.NONE; }
+    static BTType class_type() { return BTType.NONE; }
 
     @Override
     public abstract boolean equals(final Object obj);
@@ -71,7 +71,7 @@ public abstract class DBTObject extends DBTNativeDownlink implements BluetoothOb
     }
 
     @Override
-    public BluetoothObject clone()
+    public BTObject clone()
     { throw new UnsupportedOperationException(); } // FIXME
 
 }

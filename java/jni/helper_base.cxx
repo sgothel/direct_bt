@@ -46,7 +46,7 @@ jobject get_bluetooth_type(JNIEnv *env, const char *field_name)
     return result;
 }
 
-void raise_java_exception(JNIEnv *env, const direct_bt::BluetoothException &e, const char* file, int line) {
+void raise_java_exception(JNIEnv *env, const direct_bt::BTException &e, const char* file, int line) {
     jau::print_native_caught_exception_fwd2java(e, file, line);
     env->ThrowNew(env->FindClass("org/tinyb/BluetoothException"), e.what());
 }
@@ -78,7 +78,7 @@ void rethrow_and_raise_java_exception_impl(JNIEnv *env, const char* file, int li
         jau::raise_java_exception(env, e, file, line);
     } catch (const jau::IndexOutOfBoundsException &e) {
         jau::raise_java_exception(env, e, file, line);
-    } catch (const direct_bt::BluetoothException &e) {
+    } catch (const direct_bt::BTException &e) {
         raise_java_exception(env, e, file, line);
     } catch (const tinyb::BluetoothException &e) {
         raise_java_exception(env, e, file, line);

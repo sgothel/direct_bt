@@ -29,16 +29,16 @@ import java.util.List;
 
 import org.direct_bt.BDAddressAndType;
 import org.direct_bt.BDAddressType;
-import org.direct_bt.BluetoothAdapter;
-import org.direct_bt.BluetoothDevice;
-import org.direct_bt.BluetoothException;
-import org.direct_bt.BluetoothFactory;
-import org.direct_bt.BluetoothGattCharacteristic;
-import org.direct_bt.BluetoothGattDescriptor;
-import org.direct_bt.BluetoothGattService;
-import org.direct_bt.BluetoothManager;
-import org.direct_bt.BluetoothNotification;
-import org.direct_bt.BluetoothUtils;
+import org.direct_bt.BTAdapter;
+import org.direct_bt.BTDevice;
+import org.direct_bt.BTException;
+import org.direct_bt.BTFactory;
+import org.direct_bt.BTGattChar;
+import org.direct_bt.BTGattDesc;
+import org.direct_bt.BTGattService;
+import org.direct_bt.BTManager;
+import org.direct_bt.BTNotification;
+import org.direct_bt.BTUtils;
 import org.direct_bt.EUI48;
 import org.direct_bt.HCIStatusCode;
 
@@ -57,7 +57,7 @@ public class ScannerTinyB00 {
     static long TO_DISCOVER = 60000;
 
     public static void main(final String[] args) throws InterruptedException {
-        String bluetoothManagerClazzName = BluetoothFactory.DirectBTImplementationID.BluetoothManagerClassName;
+        String bluetoothManagerClazzName = BTFactory.DirectBTImplementationID.BluetoothManagerClassName;
         int dev_id = 0; // default
         BDAddressAndType mac = null;
         int mode = 0;
@@ -95,20 +95,20 @@ public class ScannerTinyB00 {
         mode = mode %10;
 
         final boolean isDirectBT;
-        final BluetoothManager manager;
+        final BTManager manager;
         {
-            BluetoothManager _manager = null;
-            final BluetoothFactory.ImplementationIdentifier implID = BluetoothFactory.getImplementationIdentifier(bluetoothManagerClazzName);
+            BTManager _manager = null;
+            final BTFactory.ImplementationIdentifier implID = BTFactory.getImplementationIdentifier(bluetoothManagerClazzName);
             if( null == implID ) {
                 System.err.println("Unable to find BluetoothManager "+bluetoothManagerClazzName);
                 System.exit(-1);
             }
-            isDirectBT = BluetoothFactory.DirectBTImplementationID.equals(implID);
+            isDirectBT = BTFactory.DirectBTImplementationID.equals(implID);
             System.err.println("Using BluetoothManager "+bluetoothManagerClazzName);
             System.err.println("Using Implementation "+implID+", isDirectBT "+isDirectBT);
             try {
-                _manager = BluetoothFactory.getBluetoothManager( implID );
-            } catch (BluetoothException | NoSuchMethodException | SecurityException
+                _manager = BTFactory.getBluetoothManager( implID );
+            } catch (BTException | NoSuchMethodException | SecurityException
                     | IllegalAccessException | IllegalArgumentException
                     | InvocationTargetException | ClassNotFoundException e) {
                 System.err.println("Unable to instantiate BluetoothManager via "+implID);
@@ -117,9 +117,9 @@ public class ScannerTinyB00 {
             }
             manager = _manager;
         }
-        final BluetoothAdapter adapter;
+        final BTAdapter adapter;
         {
-            final List<BluetoothAdapter> adapters = manager.getAdapters();
+            final List<BTAdapter> adapters = manager.getAdapters();
             for(int i=0; i < adapters.size(); i++) {
                 System.err.println("Adapter["+i+"]: "+adapters.get(i));
             }
@@ -143,7 +143,7 @@ public class ScannerTinyB00 {
             final HCIStatusCode discoveryStatus = useAdapter ? adapter.startDiscovery(true) : manager.startDiscovery(true);
 
             System.err.println("The discovery started: " + discoveryStatus + " for mac "+mac+", mode "+mode+", useAdapter "+useAdapter);
-            BluetoothDevice sensor = null;
+            BTDevice sensor = null;
 
             if( 0 == mode ) {
                 if( useAdapter ) {
@@ -154,9 +154,9 @@ public class ScannerTinyB00 {
             } else {
                 boolean timeout = false;
                 while( null == sensor && !timeout ) {
-                    final List<BluetoothDevice> devices = useAdapter ? adapter.getDiscoveredDevices() : manager.getDevices();
-                    for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
-                        final BluetoothDevice d = id.next();
+                    final List<BTDevice> devices = useAdapter ? adapter.getDiscoveredDevices() : manager.getDevices();
+                    for(final Iterator<BTDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
+                        final BTDevice d = id.next();
                         if(d.getAddressAndType().equals(mac)) {
                             sensor = d;
                             break;
@@ -212,7 +212,7 @@ public class ScannerTinyB00 {
                 System.exit(-1);
             }
 
-            final List<BluetoothGattService> allBluetoothServices = sensor.getServices();
+            final List<BTGattService> allBluetoothServices = sensor.getServices();
             if (allBluetoothServices.isEmpty()) {
                 System.err.println("No BluetoothGattService found!");
                 System.exit(1);
@@ -223,23 +223,23 @@ public class ScannerTinyB00 {
             sensor.remove();
         } while( forever );
     }
-    private static void printDevice(final BluetoothDevice device) {
+    private static void printDevice(final BTDevice device) {
         System.err.println("Address = " + device.getAddressAndType());
         System.err.println("  Name = " + device.getName());
         System.err.println("  Connected = " + device.getConnected());
         System.err.println();
     }
-    private static void printAllServiceInfo(final List<BluetoothGattService> allBluetoothServices) {
+    private static void printAllServiceInfo(final List<BTGattService> allBluetoothServices) {
         try {
-            for (final BluetoothGattService service : allBluetoothServices) {
+            for (final BTGattService service : allBluetoothServices) {
                 System.err.println("Service UUID: " + service.getUUID());
-                final List<BluetoothGattCharacteristic> v = service.getCharacteristics();
-                for (final BluetoothGattCharacteristic c : v) {
+                final List<BTGattChar> v = service.getChars();
+                for (final BTGattChar c : v) {
                     System.err.println("    Characteristic UUID: " + c.getUUID());
 
-                    final List<BluetoothGattDescriptor> descriptors = c.getDescriptors();
+                    final List<BTGattDesc> descriptors = c.getDescriptors();
 
-                    for (final BluetoothGattDescriptor d : descriptors) {
+                    for (final BTGattDesc d : descriptors) {
                         System.err.println("        Descriptor UUID: " + d.getUUID());
                     }
                     if (c.getUUID().contains("2a29-")) {
@@ -274,14 +274,14 @@ public class ScannerTinyB00 {
 
                     if (c.getUUID().contains("2a23-")) {
                         final byte[] tempRaw = c.readValue();
-                        System.err.println("    System ID: " + BluetoothUtils.bytesHexString(tempRaw, 0, -1, true, true, true));
+                        System.err.println("    System ID: " + BTUtils.bytesHexString(tempRaw, 0, -1, true, true, true));
                     }
                 }
             }
         } catch (final RuntimeException e) {
         }
     }
-    static class BooleanNotification implements BluetoothNotification<Boolean> {
+    static class BooleanNotification implements BTNotification<Boolean> {
         private final long t0;
         private final String name;
         private boolean v;

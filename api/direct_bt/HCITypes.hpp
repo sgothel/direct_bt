@@ -35,7 +35,7 @@
 
 #include <jau/basic_types.hpp>
 
-#include "BTTypes.hpp"
+#include "BTTypes0.hpp"
 #include "BTIoctl.hpp"
 #include "OctetTypes.hpp"
 #include "HCIIoctl.hpp"

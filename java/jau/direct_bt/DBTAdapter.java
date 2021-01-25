@@ -38,16 +38,16 @@ import org.direct_bt.AdapterSettings;
 import org.direct_bt.AdapterStatusListener;
 import org.direct_bt.BDAddressAndType;
 import org.direct_bt.BDAddressType;
-import org.direct_bt.BluetoothAdapter;
-import org.direct_bt.BluetoothDevice;
-import org.direct_bt.BluetoothException;
-import org.direct_bt.BluetoothGattCharacteristic;
-import org.direct_bt.BluetoothGattDescriptor;
-import org.direct_bt.BluetoothGattService;
-import org.direct_bt.BluetoothManager;
-import org.direct_bt.BluetoothNotification;
-import org.direct_bt.BluetoothObject;
-import org.direct_bt.BluetoothType;
+import org.direct_bt.BTAdapter;
+import org.direct_bt.BTDevice;
+import org.direct_bt.BTException;
+import org.direct_bt.BTGattChar;
+import org.direct_bt.BTGattDesc;
+import org.direct_bt.BTGattService;
+import org.direct_bt.BTManager;
+import org.direct_bt.BTNotification;
+import org.direct_bt.BTObject;
+import org.direct_bt.BTType;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.EUI48;
 import org.direct_bt.HCIStatusCode;
@@ -57,7 +57,7 @@ import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
 import org.direct_bt.TransportType;
 
-public class DBTAdapter extends DBTObject implements BluetoothAdapter
+public class DBTAdapter extends DBTObject implements BTAdapter
 {
     private static final boolean DEBUG = DBTManager.DEBUG;
 
@@ -75,16 +75,16 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private final AtomicBoolean isClosing = new AtomicBoolean(false);
 
     private final AtomicBoolean powered_state = new AtomicBoolean(false); // AdapterSettings
-    private BluetoothNotification<Boolean> userPairableNotificationCB = null;
+    private BTNotification<Boolean> userPairableNotificationCB = null;
     private final AtomicBoolean isDiscoverable = new AtomicBoolean(false); // AdapterSettings
-    private BluetoothNotification<Boolean> userDiscoverableNotificationCB = null;
+    private BTNotification<Boolean> userDiscoverableNotificationCB = null;
     private final AtomicBoolean isPairable = new AtomicBoolean(false); // AdapterSettings
-    private BluetoothNotification<Boolean> userPoweredNotificationCB = null;
+    private BTNotification<Boolean> userPoweredNotificationCB = null;
 
     private final AtomicReference<ScanType> currentMetaScanType = new AtomicReference<ScanType>(ScanType.NONE); // AdapterStatusListener and powerdOff
-    private BluetoothNotification<Boolean> userDiscoveringNotificationCB = null;
+    private BTNotification<Boolean> userDiscoveringNotificationCB = null;
 
-    private final List<BluetoothDevice> discoveredDevices = new ArrayList<BluetoothDevice>();
+    private final List<BTDevice> discoveredDevices = new ArrayList<BTDevice>();
 
     /* pp */ DBTAdapter(final long nativeInstance, final byte byteAddress[/*6*/], final String name, final int dev_id)
     {
@@ -96,7 +96,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     }
 
     @Override
-    public final BluetoothManager getManager() { return DBTManager.getManager(); }
+    public final BTManager getManager() { return DBTManager.getManager(); }
 
     @Override
     public void close() {
@@ -116,8 +116,8 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
         stopDiscovery();
 
-        final List<BluetoothDevice> devices = getDiscoveredDevices();
-        for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext(); ) {
+        final List<BTDevice> devices = getDiscoveredDevices();
+        for(final Iterator<BTDevice> id = devices.iterator(); id.hasNext(); ) {
             final DBTDevice d = (DBTDevice) id.next();
             d.close();
         }
@@ -162,17 +162,17 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public int getDevID() { return dev_id; }
 
     @Override
-    public BluetoothType getBluetoothType() { return class_type(); }
+    public BTType getBluetoothType() { return class_type(); }
 
-    static BluetoothType class_type() { return BluetoothType.ADAPTER; }
+    static BTType class_type() { return BTType.ADAPTER; }
 
     @Override
-    public BluetoothDevice find(final String name, final BDAddressAndType addressAndType, final long timeoutMS) {
+    public BTDevice find(final String name, final BDAddressAndType addressAndType, final long timeoutMS) {
         return findDeviceInCache(name, addressAndType);
     }
 
     @Override
-    public BluetoothDevice find(final String name, final BDAddressAndType addressAndType) {
+    public BTDevice find(final String name, final BDAddressAndType addressAndType) {
         return find(name, addressAndType, 0);
     }
 
@@ -211,7 +211,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public long getBluetoothClass() { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
-    public final BluetoothAdapter clone() { throw new UnsupportedOperationException(); } // FIXME
+    public final BTAdapter clone() { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
     public String getInterfaceName() { throw new UnsupportedOperationException(); } // FIXME
@@ -238,7 +238,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     /* Java callbacks */
 
     @Override
-    public void enablePoweredNotifications(final BluetoothNotification<Boolean> callback) {
+    public void enablePoweredNotifications(final BTNotification<Boolean> callback) {
         synchronized(userCallbackLock) {
             userPoweredNotificationCB = callback;
         }
@@ -255,7 +255,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public boolean getDiscoverable() { return isDiscoverable.get(); }
 
     @Override
-    public void enableDiscoverableNotifications(final BluetoothNotification<Boolean> callback) {
+    public void enableDiscoverableNotifications(final BTNotification<Boolean> callback) {
         synchronized(userCallbackLock) {
             userDiscoverableNotificationCB = callback;
         }
@@ -279,7 +279,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     }
 
     @Override
-    public final void enableDiscoveringNotifications(final BluetoothNotification<Boolean> callback) {
+    public final void enableDiscoveringNotifications(final BTNotification<Boolean> callback) {
         synchronized(userCallbackLock) {
             userDiscoveringNotificationCB = callback;
         }
@@ -296,7 +296,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public final boolean getPairable() { return isPairable.get(); }
 
     @Override
-    public void enablePairableNotifications(final BluetoothNotification<Boolean> callback) {
+    public void enablePairableNotifications(final BTNotification<Boolean> callback) {
         synchronized(userCallbackLock) {
             userPairableNotificationCB = callback;
         }
@@ -342,10 +342,10 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public native boolean setDiscoverable(boolean value);
 
     @Override
-    public final BluetoothDevice connectDevice(final BDAddressAndType addressAndType) {
+    public final BTDevice connectDevice(final BDAddressAndType addressAndType) {
         return connectDeviceImpl(addressAndType.address.b, addressAndType.type.value);
     }
-    private native BluetoothDevice connectDeviceImpl(byte[] address, byte addressType);
+    private native BTDevice connectDeviceImpl(byte[] address, byte addressType);
 
     @Override
     public native boolean setPairable(boolean value);
@@ -373,12 +373,12 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     /* discovery */
 
     @Override
-    public boolean startDiscovery() throws BluetoothException {
+    public boolean startDiscovery() throws BTException {
         return HCIStatusCode.SUCCESS == startDiscovery(true);
     }
 
     @Override
-    public HCIStatusCode startDiscovery(final boolean keepAlive) throws BluetoothException {
+    public HCIStatusCode startDiscovery(final boolean keepAlive) throws BTException {
         synchronized( discoveryLock ) {
             // Ignoring 'isDiscovering', as native implementation also handles change of 'keepAlive'.
             // The discoveredDevices shall always get cleared.
@@ -386,28 +386,28 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             return HCIStatusCode.get( startDiscoveryImpl(keepAlive) ); // event callbacks will be generated by implementation
         }
     }
-    private native byte startDiscoveryImpl(boolean keepAlive) throws BluetoothException;
+    private native byte startDiscoveryImpl(boolean keepAlive) throws BTException;
 
     @Override
-    public HCIStatusCode stopDiscovery() throws BluetoothException {
+    public HCIStatusCode stopDiscovery() throws BTException {
         synchronized( discoveryLock ) {
             // Ignoring 'isDiscovering', be consistent with startDiscovery
             return HCIStatusCode.get( stopDiscoveryImpl() );  // event callbacks will be generated by implementation
         }
     }
-    private native byte stopDiscoveryImpl() throws BluetoothException;
+    private native byte stopDiscoveryImpl() throws BTException;
 
     @Override
-    public List<BluetoothDevice> getDiscoveredDevices() {
+    public List<BTDevice> getDiscoveredDevices() {
         synchronized(discoveredDevicesLock) {
-            return new ArrayList<BluetoothDevice>(discoveredDevices);
+            return new ArrayList<BTDevice>(discoveredDevices);
         }
     }
     // std::vector<std::shared_ptr<direct_bt::HCIDevice>> discoveredDevices = adapter.getDiscoveredDevices();
-    private native List<BluetoothDevice> getDiscoveredDevicesImpl();
+    private native List<BTDevice> getDiscoveredDevicesImpl();
 
     @Override
-    public int removeDiscoveredDevices() throws BluetoothException {
+    public int removeDiscoveredDevices() throws BTException {
         final int cj = removeDiscoveredDevicesImpl2j();
         final int cn = removeDiscoveredDevicesImpl1();
         if( cj != cn ) {
@@ -417,7 +417,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         }
         return cn;
     }
-    private native int removeDiscoveredDevicesImpl1() throws BluetoothException;
+    private native int removeDiscoveredDevicesImpl1() throws BTException;
     private int removeDiscoveredDevicesImpl2j() {
         synchronized(discoveredDevicesLock) {
             final int n = discoveredDevices.size();
@@ -425,7 +425,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             return n;
         }
     }
-    /* pp */ boolean removeDiscoveredDevice(final BluetoothDevice device) {
+    /* pp */ boolean removeDiscoveredDevice(final BTDevice device) {
         synchronized(discoveredDevicesLock) {
             return discoveredDevices.remove(device);
         }
@@ -445,8 +445,8 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private native boolean removeDiscoveredDeviceImpl1(final byte[] address, final byte addressType);
     private boolean removeDiscoveredDeviceImpl2j(final BDAddressAndType addressAndType) {
         synchronized(discoveredDevicesLock) {
-            for( final Iterator<BluetoothDevice> iter = discoveredDevices.iterator(); iter.hasNext(); ) {
-                final BluetoothDevice device = iter.next();
+            for( final Iterator<BTDevice> iter = discoveredDevices.iterator(); iter.hasNext(); ) {
+                final BTDevice device = iter.next();
                 if( device.getAddressAndType().equals(addressAndType) ) {
                     iter.remove();
                     return true;
@@ -457,7 +457,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     }
 
     @Override
-    public native boolean addStatusListener(final AdapterStatusListener l, final BluetoothDevice deviceMatch);
+    public native boolean addStatusListener(final AdapterStatusListener l, final BTDevice deviceMatch);
 
     @Override
     public boolean removeStatusListener(final AdapterStatusListener l) {
@@ -492,7 +492,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     private final AdapterStatusListener statusListener = new AdapterStatusListener() {
         @Override
-        public void adapterSettingsChanged(final BluetoothAdapter a, final AdapterSettings oldmask, final AdapterSettings newmask,
+        public void adapterSettingsChanged(final BTAdapter a, final AdapterSettings oldmask, final AdapterSettings newmask,
                                            final AdapterSettings changedmask, final long timestamp) {
             final boolean initialSetting = oldmask.isEmpty();
             if( DEBUG ) {
@@ -543,7 +543,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             }
         }
         @Override
-        public void discoveringChanged(final BluetoothAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final boolean keepAlive, final long timestamp) {
+        public void discoveringChanged(final BTAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final boolean keepAlive, final long timestamp) {
             if( DEBUG ) {
                 System.err.println("Adapter.StatusListener.DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", keepAlive "+keepAlive+"] on "+adapter);
             }
@@ -560,7 +560,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             }
         }
         @Override
-        public boolean deviceFound(final BluetoothDevice device, final long timestamp) {
+        public boolean deviceFound(final BTDevice device, final long timestamp) {
             if( DEBUG ) {
                 System.err.println("Adapter.FOUND: "+device+" on "+device.getAdapter());
             }
@@ -571,7 +571,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         }
 
         @Override
-        public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
+        public void deviceUpdated(final BTDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
             final boolean rssiUpdated = updateMask.isSet( EIRDataTypeSet.DataType.RSSI );
             final boolean mdUpdated = updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA );
             if( DEBUG && !rssiUpdated && !mdUpdated) {
@@ -581,28 +581,28 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         }
 
         @Override
-        public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) {
+        public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
             if( DEBUG ) {
                 System.err.println("Adapter.CONNECTED: "+device+" on "+device.getAdapter());
             }
         }
 
         @Override
-        public void devicePairingState(final BluetoothDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {
+        public void devicePairingState(final BTDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {
             if( DEBUG ) {
                 System.err.println("Adapter.PAIRING_STATE: state "+state+", mode "+mode+": "+device);
             }
         }
 
         @Override
-        public void deviceReady(final BluetoothDevice device, final long timestamp) {
+        public void deviceReady(final BTDevice device, final long timestamp) {
             if( DEBUG ) {
                 System.err.println("Adapter.READY: "+device);
             }
         }
 
         @Override
-        public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
+        public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
             if( DEBUG ) {
                 System.err.println("Adapter.DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
             }
@@ -617,35 +617,35 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
      * <ul>
      *   <li>{@link DBTDevice}</li>
      *   <li>{@link DBTGattService}</li>
-     *   <li>{@link DBTGattCharacteristic}</li>
-     *   <li>{@link DBTGattDescriptor}</li>
+     *   <li>{@link DBTGattChar}</li>
+     *   <li>{@link DBTGattDesc}</li>
      * </ul>
-     * or alternatively in {@link BluetoothObject} space
+     * or alternatively in {@link BTObject} space
      * <ul>
-     *   <li>{@link BluetoothType#DEVICE} -> {@link BluetoothDevice}</li>
-     *   <li>{@link BluetoothType#GATT_SERVICE} -> {@link BluetoothGattService}</li>
-     *   <li>{@link BluetoothType#GATT_CHARACTERISTIC} -> {@link BluetoothGattCharacteristic}</li>
-     *   <li>{@link BluetoothType#GATT_DESCRIPTOR} -> {@link BluetoothGattDescriptor}</li>
+     *   <li>{@link BTType#DEVICE} -> {@link BTDevice}</li>
+     *   <li>{@link BTType#GATT_SERVICE} -> {@link BTGattService}</li>
+     *   <li>{@link BTType#GATT_CHARACTERISTIC} -> {@link BTGattChar}</li>
+     *   <li>{@link BTType#GATT_DESCRIPTOR} -> {@link BTGattDesc}</li>
      * </ul>
      * </p>
-     * @param name name of the desired {@link BluetoothType#DEVICE device}.
+     * @param name name of the desired {@link BTType#DEVICE device}.
      * Maybe {@code null}.
-     * @param identifier EUI48 address of the desired {@link BluetoothType#DEVICE device}
-     * or UUID of the desired {@link BluetoothType#GATT_SERVICE service},
-     * {@link BluetoothType#GATT_CHARACTERISTIC characteristic} or {@link BluetoothType#GATT_DESCRIPTOR descriptor} to be found.
+     * @param identifier EUI48 address of the desired {@link BTType#DEVICE device}
+     * or UUID of the desired {@link BTType#GATT_SERVICE service},
+     * {@link BTType#GATT_CHARACTERISTIC characteristic} or {@link BTType#GATT_DESCRIPTOR descriptor} to be found.
      * Maybe {@code null}, in which case the first object of the desired type is being returned - if existing.
      * @param type specify the type of the object to be found, either
-     * {@link BluetoothType#DEVICE device},
-     * {@link BluetoothType#GATT_SERVICE service}, {@link BluetoothType#GATT_CHARACTERISTIC characteristic}
-     * or {@link BluetoothType#GATT_DESCRIPTOR descriptor}.
-     * {@link BluetoothType#NONE none} means anything.
+     * {@link BTType#DEVICE device},
+     * {@link BTType#GATT_SERVICE service}, {@link BTType#GATT_CHARACTERISTIC characteristic}
+     * or {@link BTType#GATT_DESCRIPTOR descriptor}.
+     * {@link BTType#NONE none} means anything.
      */
-    /* pp */ DBTObject findInCache(final String name, final String identifier, final BluetoothType type) {
-        final boolean anyType = BluetoothType.NONE == type;
-        final boolean deviceType = BluetoothType.DEVICE == type;
-        final boolean serviceType = BluetoothType.GATT_SERVICE == type;
-        final boolean charType = BluetoothType.GATT_CHARACTERISTIC== type;
-        final boolean descType = BluetoothType.GATT_DESCRIPTOR == type;
+    /* pp */ DBTObject findInCache(final String name, final String identifier, final BTType type) {
+        final boolean anyType = BTType.NONE == type;
+        final boolean deviceType = BTType.DEVICE == type;
+        final boolean serviceType = BTType.GATT_SERVICE == type;
+        final boolean charType = BTType.GATT_CHARACTERISTIC== type;
+        final boolean descType = BTType.GATT_DESCRIPTOR == type;
 
         if( !anyType && !deviceType && !serviceType && !charType && !descType ) {
             return null;

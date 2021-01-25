@@ -30,7 +30,7 @@
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
-#include "direct_bt/DBTTypes.hpp"
+#include "direct_bt/BTTypes1.hpp"
 
 using namespace direct_bt;
 using namespace jau;

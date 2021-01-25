@@ -34,22 +34,22 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.direct_bt.BluetoothAdapter;
-import org.direct_bt.BluetoothDevice;
-import org.direct_bt.BluetoothException;
-import org.direct_bt.BluetoothFactory;
-import org.direct_bt.BluetoothGattCharacteristic;
-import org.direct_bt.BluetoothGattDescriptor;
-import org.direct_bt.BluetoothGattService;
-import org.direct_bt.BluetoothManager;
-import org.direct_bt.BluetoothObject;
-import org.direct_bt.BluetoothType;
+import org.direct_bt.BTAdapter;
+import org.direct_bt.BTDevice;
+import org.direct_bt.BTException;
+import org.direct_bt.BTFactory;
+import org.direct_bt.BTGattChar;
+import org.direct_bt.BTGattDesc;
+import org.direct_bt.BTGattService;
+import org.direct_bt.BTManager;
+import org.direct_bt.BTObject;
+import org.direct_bt.BTType;
 import org.direct_bt.HCIStatusCode;
 
-public class DBTManager implements BluetoothManager
+public class DBTManager implements BTManager
 {
-    protected static final boolean DEBUG = BluetoothFactory.DEBUG;
-    protected static final boolean VERBOSE = BluetoothFactory.VERBOSE;
+    protected static final boolean DEBUG = BTFactory.DEBUG;
+    protected static final boolean VERBOSE = BTFactory.VERBOSE;
 
     private static volatile boolean isJVMShuttingDown = false;
     private static final List<Runnable> userShutdownHooks = new ArrayList<Runnable>();
@@ -96,7 +96,7 @@ public class DBTManager implements BluetoothManager
         }
 
         try {
-            final BluetoothManager mgmt = getManager();
+            final BTManager mgmt = getManager();
             mgmt.shutdown();
         } catch(final Throwable t) {
             System.err.println("DBTManager.shutdown: Caught "+t.getClass().getName()+" during DBTManager.shutdown()");
@@ -152,7 +152,7 @@ public class DBTManager implements BluetoothManager
     public static void setUnifyUUID128Bit(final boolean v) { unifyUUID128Bit=v; }
 
     private long nativeInstance;
-    private final List<BluetoothAdapter> adapters = new CopyOnWriteArrayList<BluetoothAdapter>();
+    private final List<BTAdapter> adapters = new CopyOnWriteArrayList<BTAdapter>();
     private final List<ChangedAdapterSetListener> changedAdapterSetListenerList = new CopyOnWriteArrayList<ChangedAdapterSetListener>();
 
     private final Settings settings;
@@ -160,20 +160,20 @@ public class DBTManager implements BluetoothManager
     @Override
     public final Settings getSettings() { return settings; }
 
-    public BluetoothType getBluetoothType() { return BluetoothType.NONE; }
+    public BTType getBluetoothType() { return BTType.NONE; }
 
     @Override
-    public DBTObject find(final BluetoothType type, final String name, final String identifier, final BluetoothObject parent, final long timeoutMS) {
+    public DBTObject find(final BTType type, final String name, final String identifier, final BTObject parent, final long timeoutMS) {
         return findInCache((DBTObject)parent, type, name, identifier);
     }
 
     @Override
-    public DBTObject find(final BluetoothType type, final String name, final String identifier, final BluetoothObject parent) {
+    public DBTObject find(final BTType type, final String name, final String identifier, final BTObject parent) {
         return find(type, name, identifier, parent, 0);
     }
 
     @Override
-    public <T extends BluetoothObject>  T find(final String name, final String identifier, final BluetoothObject parent, final long timeoutMS) {
+    public <T extends BTObject>  T find(final String name, final String identifier, final BTObject parent, final long timeoutMS) {
         // Due to generic type erasure, we cannot determine the matching BluetoothType for the return parameter,
         // hence this orig TinyB API method is rather misleading than useful.
         throw new UnsupportedOperationException("Generic return type 'find' won't be implemented.");
@@ -181,7 +181,7 @@ public class DBTManager implements BluetoothManager
     }
 
     @Override
-    public <T extends BluetoothObject>  T find(final String name, final String identifier, final BluetoothObject parent) {
+    public <T extends BTObject>  T find(final String name, final String identifier, final BTObject parent) {
         // Due to generic type erasure, we cannot determine the matching BluetoothType for the return parameter,
         // hence this orig TinyB API method is rather misleading than useful.
         throw new UnsupportedOperationException("Generic return type 'find' won't be implemented.");
@@ -189,28 +189,28 @@ public class DBTManager implements BluetoothManager
     }
 
     @Override
-    public BluetoothObject getObject(final BluetoothType type, final String name,
-                                final String identifier, final BluetoothObject parent) {
+    public BTObject getObject(final BTType type, final String name,
+                                final String identifier, final BTObject parent) {
         return getObject(type.ordinal(), name, identifier, parent);
     }
-    private BluetoothObject getObject(final int type, final String name, final String identifier, final BluetoothObject parent)
+    private BTObject getObject(final int type, final String name, final String identifier, final BTObject parent)
     { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
-    public List<BluetoothObject> getObjects(final BluetoothType type, final String name,
-                                    final String identifier, final BluetoothObject parent) {
+    public List<BTObject> getObjects(final BTType type, final String name,
+                                    final String identifier, final BTObject parent) {
         return getObjects(type.ordinal(), name, identifier, parent);
     }
-    private List<BluetoothObject> getObjects(final int type, final String name, final String identifier, final BluetoothObject parent)
+    private List<BTObject> getObjects(final int type, final String name, final String identifier, final BTObject parent)
     { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
-    public List<BluetoothAdapter> getAdapters() { return new ArrayList<BluetoothAdapter>(adapters); }
+    public List<BTAdapter> getAdapters() { return new ArrayList<BTAdapter>(adapters); }
 
     @Override
-    public BluetoothAdapter getAdapter(final int dev_id) {
-        for(final Iterator<BluetoothAdapter> iter = adapters.iterator(); iter.hasNext(); ) {
-            final BluetoothAdapter a = iter.next();
+    public BTAdapter getAdapter(final int dev_id) {
+        for(final Iterator<BTAdapter> iter = adapters.iterator(); iter.hasNext(); ) {
+            final BTAdapter a = iter.next();
             if( dev_id == a.getDevID() ) {
                 return a;
             }
@@ -219,7 +219,7 @@ public class DBTManager implements BluetoothManager
     }
 
     @Override
-    public List<BluetoothDevice> getDevices() { return getDefaultAdapter().getDiscoveredDevices(); }
+    public List<BTDevice> getDevices() { return getDefaultAdapter().getDiscoveredDevices(); }
 
     /**
      * {@inheritDoc}
@@ -227,23 +227,23 @@ public class DBTManager implements BluetoothManager
      * This call could be a quite expensive service query, see below.
      * </p>
      * <p>
-     * This implementation returns all {@link BluetoothGattService} from all {@link BluetoothDevice}s
-     * from the {@link #getDefaultAdapter()} using {@link BluetoothDevice#getServices()}.
+     * This implementation returns all {@link BTGattService} from all {@link BTDevice}s
+     * from the {@link #getDefaultAdapter()} using {@link BTDevice#getServices()}.
      * </p>
      * <p>
-     * This implementation does not {@link BluetoothAdapter#startDiscovery() start} an explicit discovery,
-     * but previous {@link BluetoothAdapter#getDiscoveredDevices() discovered devices} are being queried.
+     * This implementation does not {@link BTAdapter#startDiscovery() start} an explicit discovery,
+     * but previous {@link BTAdapter#getDiscoveredDevices() discovered devices} are being queried.
      * </p>
      */
     @Override
-    public List<BluetoothGattService> getServices() {
-        final List<BluetoothGattService> res = new ArrayList<BluetoothGattService>();
-        for(final Iterator<BluetoothAdapter> iterA=adapters.iterator(); iterA.hasNext(); ) {
-            final BluetoothAdapter adapter = iterA.next();
-            final List<BluetoothDevice> devices = adapter.getDiscoveredDevices();
-            for(final Iterator<BluetoothDevice> iterD=devices.iterator(); iterD.hasNext(); ) {
-                final BluetoothDevice device = iterD.next();
-                final List<BluetoothGattService> devServices = device.getServices();
+    public List<BTGattService> getServices() {
+        final List<BTGattService> res = new ArrayList<BTGattService>();
+        for(final Iterator<BTAdapter> iterA=adapters.iterator(); iterA.hasNext(); ) {
+            final BTAdapter adapter = iterA.next();
+            final List<BTDevice> devices = adapter.getDiscoveredDevices();
+            for(final Iterator<BTDevice> iterD=devices.iterator(); iterD.hasNext(); ) {
+                final BTDevice device = iterD.next();
+                final List<BTGattService> devServices = device.getServices();
                 if( null != devServices ) {
                     res.addAll(devServices);
                 }
@@ -253,14 +253,14 @@ public class DBTManager implements BluetoothManager
     }
 
     @Override
-    public boolean setDefaultAdapter(final BluetoothAdapter adapter) {
+    public boolean setDefaultAdapter(final BTAdapter adapter) {
         return false;
     }
 
     @Override
-    public BluetoothAdapter getDefaultAdapter() {
-        for(final Iterator<BluetoothAdapter> iter = adapters.iterator(); iter.hasNext(); ) {
-            final BluetoothAdapter a = iter.next();
+    public BTAdapter getDefaultAdapter() {
+        for(final Iterator<BTAdapter> iter = adapters.iterator(); iter.hasNext(); ) {
+            final BTAdapter a = iter.next();
             if( a.isPowered() ) {
                 return a;
             }
@@ -269,25 +269,25 @@ public class DBTManager implements BluetoothManager
     }
 
     @Override
-    public boolean startDiscovery() throws BluetoothException { return HCIStatusCode.SUCCESS == startDiscovery(true); }
+    public boolean startDiscovery() throws BTException { return HCIStatusCode.SUCCESS == startDiscovery(true); }
 
     @Override
-    public HCIStatusCode startDiscovery(final boolean keepAlive) throws BluetoothException { return getDefaultAdapter().startDiscovery(keepAlive); }
+    public HCIStatusCode startDiscovery(final boolean keepAlive) throws BTException { return getDefaultAdapter().startDiscovery(keepAlive); }
 
     @Override
-    public HCIStatusCode stopDiscovery() throws BluetoothException { return getDefaultAdapter().stopDiscovery(); }
+    public HCIStatusCode stopDiscovery() throws BTException { return getDefaultAdapter().stopDiscovery(); }
 
     @SuppressWarnings("deprecation")
     @Override
-    public boolean getDiscovering() throws BluetoothException { return getDefaultAdapter().getDiscovering(); }
+    public boolean getDiscovering() throws BTException { return getDefaultAdapter().getDiscovering(); }
 
     @Override
     public final void addChangedAdapterSetListener(final ChangedAdapterSetListener l) {
         changedAdapterSetListenerList.add(l);
 
-        adapters.forEach(new Consumer<BluetoothAdapter>() {
+        adapters.forEach(new Consumer<BTAdapter>() {
             @Override
-            public void accept(final BluetoothAdapter adapter) {
+            public void accept(final BTAdapter adapter) {
                 l.adapterAdded(adapter);
             }
         });
@@ -310,8 +310,8 @@ public class DBTManager implements BluetoothManager
         return count[0];
     }
 
-    private native List<BluetoothAdapter> getAdapterListImpl();
-    private native BluetoothAdapter getAdapterImpl(int dev_id);
+    private native List<BTAdapter> getAdapterListImpl();
+    private native BTAdapter getAdapterImpl(int dev_id);
 
     /**
      * Removal entry for DBTAdapter.close()
@@ -334,11 +334,11 @@ public class DBTManager implements BluetoothManager
 
     /** callback from native adapter remove */
     /* pp */ final void removeAdapterCB(final int dev_id, final int opc_reason) {
-        final BluetoothAdapter[] removed = { null };
+        final BTAdapter[] removed = { null };
         final int count[] = { 0 };
-        adapters.removeIf(new Predicate<BluetoothAdapter>() {
+        adapters.removeIf(new Predicate<BTAdapter>() {
             @Override
-            public boolean test(final BluetoothAdapter a) {
+            public boolean test(final BTAdapter a) {
                 if( 0 == count[0] && dev_id == a.getDevID() ) {
                     removed[0] = a;
                     count[0]++;
@@ -370,7 +370,7 @@ public class DBTManager implements BluetoothManager
     }
     /** callback from native adapter add or POWERED on */
     private final void updatedAdapterCB(final int dev_id, final int opc_reason) {
-        final BluetoothAdapter preInstance = getAdapter(dev_id);
+        final BTAdapter preInstance = getAdapter(dev_id);
         if( null != preInstance ) {
             if( DEBUG ) {
                 System.err.println("DBTManager.updatedAdapterCB[dev_id "+dev_id+", opc 0x"+Integer.toHexString(opc_reason)+
@@ -378,7 +378,7 @@ public class DBTManager implements BluetoothManager
             }
             return;
         }
-        final BluetoothAdapter newInstance = getAdapterImpl(dev_id);
+        final BTAdapter newInstance = getAdapterImpl(dev_id);
         if( null == newInstance ) {
             if( DEBUG ) {
                 System.err.println("DBTManager.updatedAdapterCB[dev_id "+dev_id+", opc 0x"+Integer.toHexString(opc_reason)+
@@ -401,14 +401,14 @@ public class DBTManager implements BluetoothManager
         }
     }
 
-    private native void initImpl(final boolean unifyUUID128Bit, final int btMode) throws BluetoothException;
+    private native void initImpl(final boolean unifyUUID128Bit, final int btMode) throws BTException;
     private native void deleteImpl(long nativeInstance);
     private DBTManager()
     {
-        initImpl(unifyUUID128Bit, BluetoothFactory.DEFAULT_BTMODE.value);
+        initImpl(unifyUUID128Bit, BTFactory.DEFAULT_BTMODE.value);
         try {
             adapters.addAll(getAdapterListImpl());
-        } catch (final BluetoothException be) {
+        } catch (final BTException be) {
             be.printStackTrace();
         }
         final boolean supCharValCacheNotify;
@@ -440,7 +440,7 @@ public class DBTManager implements BluetoothManager
     /** Returns an instance of BluetoothManager, to be used instead of constructor.
       * @return An initialized BluetoothManager instance.
       */
-    public static BluetoothManager getManager() throws RuntimeException, BluetoothException {
+    public static BTManager getManager() throws RuntimeException, BTException {
         return LazySingletonHolder.singleton;
     }
     /** Initialize-On-Demand Holder Class, similar to C++11's "Magic Statics". */
@@ -455,7 +455,7 @@ public class DBTManager implements BluetoothManager
 
     @Override
     public void shutdown() {
-        for(final Iterator<BluetoothAdapter> ia= adapters.iterator(); ia.hasNext(); ) {
+        for(final Iterator<BTAdapter> ia= adapters.iterator(); ia.hasNext(); ) {
             final DBTAdapter a = (DBTAdapter)ia.next();
             a.close();
         }
@@ -472,33 +472,33 @@ public class DBTManager implements BluetoothManager
      *   <li>{@link DBTAdapter}</li>
      *   <li>{@link DBTDevice}</li>
      *   <li>{@link DBTGattService}</li>
-     *   <li>{@link DBTGattCharacteristic}</li>
-     *   <li>{@link DBTGattDescriptor}</li>
+     *   <li>{@link DBTGattChar}</li>
+     *   <li>{@link DBTGattDesc}</li>
      * </ul>
-     * or alternatively in {@link BluetoothObject} space
+     * or alternatively in {@link BTObject} space
      * <ul>
-     *   <li>{@link BluetoothType#ADAPTER} -> {@link BluetoothAdapter}</li>
-     *   <li>{@link BluetoothType#DEVICE} -> {@link BluetoothDevice}</li>
-     *   <li>{@link BluetoothType#GATT_SERVICE} -> {@link BluetoothGattService}</li>
-     *   <li>{@link BluetoothType#GATT_CHARACTERISTIC} -> {@link BluetoothGattCharacteristic}</li>
-     *   <li>{@link BluetoothType#GATT_DESCRIPTOR} -> {@link BluetoothGattDescriptor}</li>
+     *   <li>{@link BTType#ADAPTER} -> {@link BTAdapter}</li>
+     *   <li>{@link BTType#DEVICE} -> {@link BTDevice}</li>
+     *   <li>{@link BTType#GATT_SERVICE} -> {@link BTGattService}</li>
+     *   <li>{@link BTType#GATT_CHARACTERISTIC} -> {@link BTGattChar}</li>
+     *   <li>{@link BTType#GATT_DESCRIPTOR} -> {@link BTGattDesc}</li>
      * </ul>
      * </p>
-     * @param name name of the desired {@link BluetoothType#ADAPTER adapter} or {@link BluetoothType#DEVICE device}.
+     * @param name name of the desired {@link BTType#ADAPTER adapter} or {@link BTType#DEVICE device}.
      * Maybe {@code null}.
-     * @param identifier EUI48 address of the desired {@link BluetoothType#ADAPTER adapter} or {@link BluetoothType#DEVICE device}
-     * or UUID of the desired {@link BluetoothType#GATT_SERVICE service},
-     * {@link BluetoothType#GATT_CHARACTERISTIC characteristic} or {@link BluetoothType#GATT_DESCRIPTOR descriptor} to be found.
+     * @param identifier EUI48 address of the desired {@link BTType#ADAPTER adapter} or {@link BTType#DEVICE device}
+     * or UUID of the desired {@link BTType#GATT_SERVICE service},
+     * {@link BTType#GATT_CHARACTERISTIC characteristic} or {@link BTType#GATT_DESCRIPTOR descriptor} to be found.
      * Maybe {@code null}, in which case the first object of the desired type is being returned - if existing.
      * @param type specify the type of the object to be found, either
-     * {@link BluetoothType#ADAPTER adapter}, {@link BluetoothType#DEVICE device},
-     * {@link BluetoothType#GATT_SERVICE service}, {@link BluetoothType#GATT_CHARACTERISTIC characteristic}
-     * or {@link BluetoothType#GATT_DESCRIPTOR descriptor}.
-     * {@link BluetoothType#NONE none} means anything.
+     * {@link BTType#ADAPTER adapter}, {@link BTType#DEVICE device},
+     * {@link BTType#GATT_SERVICE service}, {@link BTType#GATT_CHARACTERISTIC characteristic}
+     * or {@link BTType#GATT_DESCRIPTOR descriptor}.
+     * {@link BTType#NONE none} means anything.
      */
-    /* pp */ DBTObject findInCache(final String name, final String identifier, final BluetoothType type) {
-        final boolean anyType = BluetoothType.NONE == type;
-        final boolean adapterType = BluetoothType.ADAPTER == type;
+    /* pp */ DBTObject findInCache(final String name, final String identifier, final BTType type) {
+        final boolean anyType = BTType.NONE == type;
+        final boolean adapterType = BTType.ADAPTER == type;
 
         if( null == name && null == identifier && ( anyType || adapterType ) ) {
             // special case for 1st valid adapter
@@ -507,7 +507,7 @@ public class DBTManager implements BluetoothManager
             }
             return null; // no adapter
         }
-        for(final Iterator<BluetoothAdapter> iter = adapters.iterator(); iter.hasNext(); ) {
+        for(final Iterator<BTAdapter> iter = adapters.iterator(); iter.hasNext(); ) {
             final DBTAdapter adapter = (DBTAdapter) iter.next();
             if( !adapter.isValid() ) {
                 continue;
@@ -541,31 +541,31 @@ public class DBTManager implements BluetoothManager
         return null;
     }
 
-    /* pp */ DBTObject findInCache(final DBTObject parent, final BluetoothType type, final String name, final String identifier) {
+    /* pp */ DBTObject findInCache(final DBTObject parent, final BTType type, final String name, final String identifier) {
         if( null == parent ) {
             return findInCache(name, identifier, type);
         }
-        final boolean anyType = BluetoothType.NONE == type;
-        final boolean deviceType = BluetoothType.DEVICE == type;
-        final boolean serviceType = BluetoothType.GATT_SERVICE == type;
-        final boolean charType = BluetoothType.GATT_CHARACTERISTIC== type;
-        final boolean descType = BluetoothType.GATT_DESCRIPTOR == type;
+        final boolean anyType = BTType.NONE == type;
+        final boolean deviceType = BTType.DEVICE == type;
+        final boolean serviceType = BTType.GATT_SERVICE == type;
+        final boolean charType = BTType.GATT_CHARACTERISTIC== type;
+        final boolean descType = BTType.GATT_DESCRIPTOR == type;
 
-        final BluetoothType parentType = parent.getBluetoothType();
+        final BTType parentType = parent.getBluetoothType();
 
-        if( BluetoothType.ADAPTER == parentType &&
+        if( BTType.ADAPTER == parentType &&
             ( anyType || deviceType || serviceType || charType || descType )
           )
         {
             return ((DBTAdapter) parent).findInCache(name, identifier, type);
         }
-        if( BluetoothType.DEVICE == parentType &&
+        if( BTType.DEVICE == parentType &&
             ( anyType || serviceType || charType || descType )
           )
         {
             return ((DBTDevice) parent).findInCache(identifier, type);
         }
-        if( BluetoothType.GATT_SERVICE == parentType &&
+        if( BTType.GATT_SERVICE == parentType &&
             ( anyType || charType || descType )
           )
         {
@@ -575,11 +575,11 @@ public class DBTManager implements BluetoothManager
             }
             return service.findInCache(identifier, type);
         }
-        if( BluetoothType.GATT_CHARACTERISTIC == parentType &&
+        if( BTType.GATT_CHARACTERISTIC == parentType &&
             ( anyType || descType )
           )
         {
-            final DBTGattCharacteristic characteristic = (DBTGattCharacteristic) parent;
+            final DBTGattChar characteristic = (DBTGattChar) parent;
             if( !characteristic.checkServiceCache() ) {
                 return null;
             }

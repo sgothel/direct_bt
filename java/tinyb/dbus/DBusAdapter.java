@@ -36,36 +36,36 @@ import java.util.UUID;
 
 import org.direct_bt.AdapterStatusListener;
 import org.direct_bt.BDAddressAndType;
-import org.direct_bt.BluetoothAdapter;
-import org.direct_bt.BluetoothDevice;
-import org.direct_bt.BluetoothException;
-import org.direct_bt.BluetoothManager;
-import org.direct_bt.BluetoothNotification;
-import org.direct_bt.BluetoothType;
+import org.direct_bt.BTAdapter;
+import org.direct_bt.BTDevice;
+import org.direct_bt.BTException;
+import org.direct_bt.BTManager;
+import org.direct_bt.BTNotification;
+import org.direct_bt.BTType;
 import org.direct_bt.EUI48;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.HCIWhitelistConnectType;
 import org.direct_bt.ScanType;
 import org.direct_bt.TransportType;
 
-public class DBusAdapter extends DBusObject implements BluetoothAdapter
+public class DBusAdapter extends DBusObject implements BTAdapter
 {
     @Override
-    public native BluetoothType getBluetoothType();
+    public native BTType getBluetoothType();
 
     @Override
-    public native BluetoothAdapter clone();
+    public native BTAdapter clone();
 
-    static BluetoothType class_type() { return BluetoothType.ADAPTER; }
+    static BTType class_type() { return BTType.ADAPTER; }
 
     @Override
-    public BluetoothDevice find(final String name, final BDAddressAndType addressAndType, final long timeoutMS) {
-        final BluetoothManager manager = DBusManager.getManager();
-        return (BluetoothDevice) manager.find(BluetoothType.DEVICE, name, addressAndType.address.toString(), this, timeoutMS);
+    public BTDevice find(final String name, final BDAddressAndType addressAndType, final long timeoutMS) {
+        final BTManager manager = DBusManager.getManager();
+        return (BTDevice) manager.find(BTType.DEVICE, name, addressAndType.address.toString(), this, timeoutMS);
     }
 
     @Override
-    public BluetoothDevice find(final String name, final BDAddressAndType addressAndType) {
+    public BTDevice find(final String name, final BDAddressAndType addressAndType) {
             return find(name, addressAndType, 0);
     }
 
@@ -103,30 +103,30 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     }
 
     @Override
-    public final BluetoothManager getManager() { return DBusManager.getManager(); }
+    public final BTManager getManager() { return DBusManager.getManager(); }
 
     /* D-Bus method calls: */
 
     @Override
     @Deprecated
-    public native boolean startDiscovery() throws BluetoothException;
+    public native boolean startDiscovery() throws BTException;
 
     @Override
-    public synchronized HCIStatusCode startDiscovery(final boolean keepAlive) throws BluetoothException {
+    public synchronized HCIStatusCode startDiscovery(final boolean keepAlive) throws BTException {
         return startDiscovery() ? HCIStatusCode.SUCCESS : HCIStatusCode.INTERNAL_FAILURE; // FIXME keepAlive
     }
 
     @Override
-    public HCIStatusCode stopDiscovery() throws BluetoothException {
+    public HCIStatusCode stopDiscovery() throws BTException {
         return stopDiscoveryImpl() ? HCIStatusCode.SUCCESS : HCIStatusCode.INTERNAL_FAILURE;
     }
-    private native boolean stopDiscoveryImpl() throws BluetoothException;
+    private native boolean stopDiscoveryImpl() throws BTException;
 
     @Override
-    public native List<BluetoothDevice> getDiscoveredDevices();
+    public native List<BTDevice> getDiscoveredDevices();
 
     @Override
-    public native int removeDiscoveredDevices() throws BluetoothException;
+    public native int removeDiscoveredDevices() throws BTException;
 
     @Override
     public boolean removeDiscoveredDevice(final BDAddressAndType addressAndType) {
@@ -160,7 +160,7 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     public native boolean getPoweredState();
 
     @Override
-    public native void enablePoweredNotifications(BluetoothNotification<Boolean> callback);
+    public native void enablePoweredNotifications(BTNotification<Boolean> callback);
 
     @Override
     public native void disablePoweredNotifications();
@@ -175,7 +175,7 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     public native boolean getDiscoverable();
 
     @Override
-    public native void enableDiscoverableNotifications(BluetoothNotification<Boolean> callback);
+    public native void enableDiscoverableNotifications(BTNotification<Boolean> callback);
 
     @Override
     public native void disableDiscoverableNotifications();
@@ -190,16 +190,16 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     public native boolean setDiscoverableTimout(long value);
 
     @Override
-    public BluetoothDevice connectDevice(final BDAddressAndType addressAndType) {
+    public BTDevice connectDevice(final BDAddressAndType addressAndType) {
         return connectDeviceImpl(addressAndType.address.toString(), addressAndType.type.toDbusString());
     }
-    private native BluetoothDevice connectDeviceImpl(String address, String addressType);
+    private native BTDevice connectDeviceImpl(String address, String addressType);
 
     @Override
     public native boolean getPairable();
 
     @Override
-    public native void enablePairableNotifications(BluetoothNotification<Boolean> callback);
+    public native void enablePairableNotifications(BTNotification<Boolean> callback);
 
     @Override
     public native void disablePairableNotifications();
@@ -221,7 +221,7 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     public native boolean getDiscovering();
 
     @Override
-    public boolean addStatusListener(final AdapterStatusListener l, final BluetoothDevice deviceMatch) {
+    public boolean addStatusListener(final AdapterStatusListener l, final BTDevice deviceMatch) {
         return false; // FIXME
     }
 
@@ -236,7 +236,7 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     }
 
     @Override
-    public native void enableDiscoveringNotifications(BluetoothNotification<Boolean> callback);
+    public native void enableDiscoveringNotifications(BTNotification<Boolean> callback);
 
     @Override
     public native void disableDiscoveringNotifications();

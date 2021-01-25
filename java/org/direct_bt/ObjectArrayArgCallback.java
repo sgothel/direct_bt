@@ -26,7 +26,7 @@ package org.direct_bt;
 
 import tinyb.dbus.DBusObject;
 
-public class ObjectArrayArgCallback extends BluetoothCallback
+public class ObjectArrayArgCallback extends BTCallback
 {
     @SuppressWarnings("unused")
     private final Object[] callbackArg;

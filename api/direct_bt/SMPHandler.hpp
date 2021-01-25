@@ -41,7 +41,7 @@
 #include <jau/cow_darray.hpp>
 
 #include "UUID.hpp"
-#include "BTTypes.hpp"
+#include "BTTypes0.hpp"
 #include "L2CAPComm.hpp"
 #include "SMPTypes.hpp"
 
@@ -168,7 +168,7 @@ namespace direct_bt {
             const SMPEnv & env;
 
             /** GATTHandle's device weak back-reference */
-            std::weak_ptr<DBTDevice> wbr_device;
+            std::weak_ptr<BTDevice> wbr_device;
 
             const std::string deviceString;
             std::recursive_mutex mtx_command;
@@ -200,7 +200,7 @@ namespace direct_bt {
             void clearAllCallbacks() noexcept;
 
         public:
-            SMPHandler(const std::shared_ptr<DBTDevice> & device) noexcept;
+            SMPHandler(const std::shared_ptr<BTDevice> & device) noexcept;
 
             SMPHandler(const SMPHandler&) = delete;
             void operator=(const SMPHandler&) = delete;
@@ -208,8 +208,8 @@ namespace direct_bt {
             /** Destructor closing this instance including L2CAP channel, see {@link #disconnect()}. */
             ~SMPHandler() noexcept;
 
-            std::shared_ptr<DBTDevice> getDeviceUnchecked() const noexcept { return wbr_device.lock(); }
-            std::shared_ptr<DBTDevice> getDeviceChecked() const;
+            std::shared_ptr<BTDevice> getDeviceUnchecked() const noexcept { return wbr_device.lock(); }
+            std::shared_ptr<BTDevice> getDeviceChecked() const;
 
             bool isConnected() const noexcept { return is_connected ; }
             bool hasIOError() const noexcept { return has_ioerror; }

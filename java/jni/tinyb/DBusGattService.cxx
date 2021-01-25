@@ -103,7 +103,7 @@ jboolean Java_tinyb_dbus_DBusGattService_getPrimary(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jobject Java_tinyb_dbus_DBusGattService_getCharacteristics(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusGattService_getChars(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);

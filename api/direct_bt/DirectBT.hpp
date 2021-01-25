@@ -40,12 +40,13 @@
 
 #include <jau/darray.hpp>
 
-#include "DBTTypes.hpp"
+#include "BTTypes0.hpp"
 
-#include "DBTDevice.hpp"
+#include "BTDevice.hpp"
 
-#include "DBTAdapter.hpp"
+#include "BTAdapter.hpp"
 
-#include "DBTManager.hpp"
+#include "BTManager.hpp"
+
 
 #endif /* DIRECTBT_HPP_ */

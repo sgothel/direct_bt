@@ -25,7 +25,7 @@
 package org.direct_bt;
 
 /**
- * Bit mask of '{@link BluetoothAdapter} setting' data fields,
+ * Bit mask of '{@link BTAdapter} setting' data fields,
  * indicating a set of related data.
  *
  * @since 2.0.0
@@ -33,7 +33,7 @@ package org.direct_bt;
 public class AdapterSettings {
 
     /**
-     * Bits representing '{@link BluetoothAdapter} setting' data fields.
+     * Bits representing '{@link BTAdapter} setting' data fields.
      *
      * @since 2.0.0
      */

@@ -241,7 +241,7 @@ public class EUI48 {
     public final String toString() {
         final StringBuilder sb = new StringBuilder(17);
         for(int i=byte_size-1; 0 <= i; i--) {
-            BluetoothUtils.byteHexString(sb, b[i], false /* lowerCase */);
+            BTUtils.byteHexString(sb, b[i], false /* lowerCase */);
             if( 0 < i ) {
                 sb.append(":");
             }

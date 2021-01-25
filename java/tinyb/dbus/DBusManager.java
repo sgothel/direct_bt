@@ -30,26 +30,26 @@ package tinyb.dbus;
 
 import java.util.List;
 
-import org.direct_bt.BluetoothAdapter;
-import org.direct_bt.BluetoothDevice;
-import org.direct_bt.BluetoothException;
-import org.direct_bt.BluetoothGattService;
-import org.direct_bt.BluetoothManager;
-import org.direct_bt.BluetoothObject;
-import org.direct_bt.BluetoothType;
+import org.direct_bt.BTAdapter;
+import org.direct_bt.BTDevice;
+import org.direct_bt.BTException;
+import org.direct_bt.BTGattService;
+import org.direct_bt.BTManager;
+import org.direct_bt.BTObject;
+import org.direct_bt.BTType;
 import org.direct_bt.HCIStatusCode;
-import org.direct_bt.BluetoothManager.ChangedAdapterSetListener;
+import org.direct_bt.BTManager.ChangedAdapterSetListener;
 
-public class DBusManager implements BluetoothManager
+public class DBusManager implements BTManager
 {
     private long nativeInstance;
     private final Settings settings;
 
     private native static String getNativeAPIVersion();
 
-    public native BluetoothType getBluetoothType();
+    public native BTType getBluetoothType();
 
-    private native DBusObject find(int type, String name, String identifier, BluetoothObject parent, long milliseconds);
+    private native DBusObject find(int type, String name, String identifier, BTObject parent, long milliseconds);
 
     @Override
     public final Settings getSettings() {
@@ -57,77 +57,77 @@ public class DBusManager implements BluetoothManager
     }
 
     @Override
-    public DBusObject find(final BluetoothType type, final String name, final String identifier, final BluetoothObject parent, final long timeoutMS) {
+    public DBusObject find(final BTType type, final String name, final String identifier, final BTObject parent, final long timeoutMS) {
         return find(type.ordinal(), name, identifier, parent, timeoutMS);
     }
 
     @Override
-    public DBusObject find(final BluetoothType type, final String name, final String identifier, final BluetoothObject parent) {
+    public DBusObject find(final BTType type, final String name, final String identifier, final BTObject parent) {
         return find(type, name, identifier, parent, 0);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T extends BluetoothObject>  T find(final String name, final String identifier, final BluetoothObject parent, final long timeoutMS) {
+    public <T extends BTObject>  T find(final String name, final String identifier, final BTObject parent, final long timeoutMS) {
         return (T) find(DBusObject.class_type().ordinal(), name, identifier, parent, timeoutMS);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T extends BluetoothObject>  T find(final String name, final String identifier, final BluetoothObject parent) {
+    public <T extends BTObject>  T find(final String name, final String identifier, final BTObject parent) {
         return (T) find(name, identifier, parent, 0);
     }
 
     @Override
-    public BluetoothObject getObject(final BluetoothType type, final String name,
-                                final String identifier, final BluetoothObject parent) {
+    public BTObject getObject(final BTType type, final String name,
+                                final String identifier, final BTObject parent) {
         return getObject(type.ordinal(), name, identifier, parent);
     }
-    private native BluetoothObject getObject(int type, String name, String identifier, BluetoothObject parent);
+    private native BTObject getObject(int type, String name, String identifier, BTObject parent);
 
     @Override
-    public List<BluetoothObject> getObjects(final BluetoothType type, final String name,
-                                    final String identifier, final BluetoothObject parent) {
+    public List<BTObject> getObjects(final BTType type, final String name,
+                                    final String identifier, final BTObject parent) {
         return getObjects(type.ordinal(), name, identifier, parent);
     }
-    private native List<BluetoothObject> getObjects(int type, String name, String identifier, BluetoothObject parent);
+    private native List<BTObject> getObjects(int type, String name, String identifier, BTObject parent);
 
     @Override
-    public native List<BluetoothAdapter> getAdapters();
+    public native List<BTAdapter> getAdapters();
 
     @Override
-    public BluetoothAdapter getAdapter(final int dev_id) { return null; } // FIXME
+    public BTAdapter getAdapter(final int dev_id) { return null; } // FIXME
 
     @Override
-    public native List<BluetoothDevice> getDevices();
+    public native List<BTDevice> getDevices();
 
     @Override
-    public native List<BluetoothGattService> getServices();
+    public native List<BTGattService> getServices();
 
     @Override
-    public native boolean setDefaultAdapter(BluetoothAdapter adapter);
+    public native boolean setDefaultAdapter(BTAdapter adapter);
 
     @Override
-    public native BluetoothAdapter getDefaultAdapter();
+    public native BTAdapter getDefaultAdapter();
 
     @Override
-    public native boolean startDiscovery() throws BluetoothException;
+    public native boolean startDiscovery() throws BTException;
 
     @Override
-    public HCIStatusCode startDiscovery(final boolean keepAlive) throws BluetoothException {
+    public HCIStatusCode startDiscovery(final boolean keepAlive) throws BTException {
         return startDiscovery() ? HCIStatusCode.SUCCESS : HCIStatusCode.INTERNAL_FAILURE; // FIXME keepAlive
     }
 
     @Override
-    public HCIStatusCode stopDiscovery() throws BluetoothException {
+    public HCIStatusCode stopDiscovery() throws BTException {
         return stopDiscoveryImpl() ? HCIStatusCode.SUCCESS : HCIStatusCode.INTERNAL_FAILURE;
     }
-    private native boolean stopDiscoveryImpl() throws BluetoothException;
+    private native boolean stopDiscoveryImpl() throws BTException;
 
     @Override
-    public native boolean getDiscovering() throws BluetoothException;
+    public native boolean getDiscovering() throws BTException;
 
-    private native void init() throws BluetoothException;
+    private native void init() throws BTException;
     private native void delete();
     private DBusManager()
     {
@@ -156,7 +156,7 @@ public class DBusManager implements BluetoothManager
     /** Returns an instance of BluetoothManager, to be used instead of constructor.
       * @return An initialized BluetoothManager instance.
       */
-    public static synchronized BluetoothManager getManager() throws RuntimeException, BluetoothException {
+    public static synchronized BTManager getManager() throws RuntimeException, BTException {
         return LazySingletonHolder.singleton;
     }
     /** Initialize-On-Demand Holder Class, similar to C++11's "Magic Statics". */

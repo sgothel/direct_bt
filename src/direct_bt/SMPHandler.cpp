@@ -52,8 +52,8 @@ extern "C" {
 
 #include "SMPHandler.hpp"
 
-#include "DBTDevice.hpp"
-#include "DBTAdapter.hpp"
+#include <BTDevice.hpp>
+#include <BTAdapter.hpp>
 
 using namespace direct_bt;
 
@@ -72,8 +72,8 @@ SMPEnv::SMPEnv() noexcept
     bool SMPHandler::IS_SUPPORTED_BY_OS = false;
 #endif
 
-std::shared_ptr<DBTDevice> SMPHandler::getDeviceChecked() const {
-    std::shared_ptr<DBTDevice> ref = wbr_device.lock();
+std::shared_ptr<BTDevice> SMPHandler::getDeviceChecked() const {
+    std::shared_ptr<BTDevice> ref = wbr_device.lock();
     if( nullptr == ref ) {
         throw jau::IllegalStateException("SMPHandler's device already destructed: "+deviceString, E_FILE_LINE);
     }
@@ -155,7 +155,7 @@ void SMPHandler::l2capReaderThreadImpl() {
     disconnect(true /* disconnectDevice */, has_ioerror);
 }
 
-SMPHandler::SMPHandler(const std::shared_ptr<DBTDevice> &device) noexcept
+SMPHandler::SMPHandler(const std::shared_ptr<BTDevice> &device) noexcept
 : env(SMPEnv::get()),
   wbr_device(device), deviceString(device->getAddressAndType().toString()), rbuffer(number(Defaults::SMP_MTU_BUFFER_SZ)),
   l2cap(device->getAdapter().getAddress(), L2CAP_PSM_UNDEF, L2CAP_CID_SMP),
@@ -256,7 +256,7 @@ bool SMPHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause
     PERF3_TS_TD("SMPHandler::disconnect.2");
 
     if( disconnectDevice ) {
-        std::shared_ptr<DBTDevice> device = getDeviceUnchecked();
+        std::shared_ptr<BTDevice> device = getDeviceUnchecked();
         if( nullptr != device ) {
             // Cleanup device resources, proper connection state
             // Intentionally giving the POWER_OFF reason for the device in case of ioErrorCause!
@@ -287,14 +287,14 @@ void SMPHandler::send(const SMPPDUMsg & msg) {
         IRQ_PRINT("SMPHandler::send: l2cap write error -> disconnect: %s to %s", msg.toString().c_str(), deviceString.c_str());
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
-        throw BluetoothException("SMPHandler::send: l2cap write error: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
+        throw BTException("SMPHandler::send: l2cap write error: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     if( static_cast<size_t>(res) != msg.pdu.getSize() ) {
         ERR_PRINT("SMPHandler::send: l2cap write count error, %zd != %zu: %s -> disconnect: %s",
                 res, msg.pdu.getSize(), msg.toString().c_str(), deviceString.c_str());
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
-        throw BluetoothException("SMPHandler::send: l2cap write count error, "+std::to_string(res)+" != "+std::to_string(res)
+        throw BTException("SMPHandler::send: l2cap write count error, "+std::to_string(res)+" != "+std::to_string(res)
                                  +": "+msg.toString()+" -> disconnect: "+deviceString, E_FILE_LINE);
     }
 }
@@ -309,7 +309,7 @@ std::unique_ptr<const SMPPDUMsg> SMPHandler::sendWithReply(const SMPPDUMsg & msg
         IRQ_PRINT("SMPHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), deviceString.c_str());
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */);
-        throw BluetoothException("SMPHandler::sendWithReply: nullptr result (timeout "+std::to_string(timeout)+"): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
+        throw BTException("SMPHandler::sendWithReply: nullptr result (timeout "+std::to_string(timeout)+"): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     return res;
 }

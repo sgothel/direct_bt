@@ -27,7 +27,7 @@ package jau.direct_bt;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.direct_bt.BluetoothFactory;
+import org.direct_bt.BTFactory;
 
 public abstract class DBTNativeDownlink
 {
@@ -36,7 +36,7 @@ public abstract class DBTNativeDownlink
     private final Object nativeLock = new Object();
 
     static {
-        BluetoothFactory.checkInitialized();
+        BTFactory.checkInitialized();
     }
 
     protected DBTNativeDownlink(final long nativeInstance)

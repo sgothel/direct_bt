@@ -30,30 +30,30 @@ package tinyb.dbus;
 
 import java.util.List;
 
-import org.direct_bt.BluetoothGattCharacteristic;
-import org.direct_bt.BluetoothGattService;
-import org.direct_bt.BluetoothManager;
-import org.direct_bt.BluetoothType;
+import org.direct_bt.BTGattChar;
+import org.direct_bt.BTGattService;
+import org.direct_bt.BTManager;
+import org.direct_bt.BTType;
 
-public class DBusGattService extends DBusObject implements BluetoothGattService
+public class DBusGattService extends DBusObject implements BTGattService
 {
     @Override
-    public native BluetoothType getBluetoothType();
+    public native BTType getBluetoothType();
 
     @Override
-    public native BluetoothGattService clone();
+    public native BTGattService clone();
 
-    static BluetoothType class_type() { return BluetoothType.GATT_SERVICE; }
+    static BTType class_type() { return BTType.GATT_SERVICE; }
 
     @Override
-    public BluetoothGattCharacteristic find(final String UUID, final long timeoutMS) {
-            final BluetoothManager manager = DBusManager.getManager();
-            return (DBusGattCharacteristic) manager.find(BluetoothType.GATT_CHARACTERISTIC,
+    public BTGattChar find(final String UUID, final long timeoutMS) {
+            final BTManager manager = DBusManager.getManager();
+            return (DBusGattCharacteristic) manager.find(BTType.GATT_CHARACTERISTIC,
                 null, UUID, this, timeoutMS);
     }
 
     @Override
-    public BluetoothGattCharacteristic find(final String UUID) {
+    public BTGattChar find(final String UUID) {
             return find(UUID, 0);
     }
 
@@ -69,7 +69,7 @@ public class DBusGattService extends DBusObject implements BluetoothGattService
     public native boolean getPrimary();
 
     @Override
-    public native List<BluetoothGattCharacteristic> getCharacteristics();
+    public native List<BTGattChar> getChars();
 
     private native void delete();
 

@@ -34,7 +34,7 @@
 #include <jau/darray.hpp>
 #include <jau/debug.hpp>
 
-#include "GATTNumbers.hpp"
+#include "GattNumbers.hpp"
 
 using namespace direct_bt;
 

@@ -36,12 +36,12 @@
 #include <jau/cow_darray.hpp>
 #include <jau/packed_attribute.hpp>
 
-#include "BTTypes.hpp"
+#include "BTTypes0.hpp"
 #include "BTIoctl.hpp"
 #include "OctetTypes.hpp"
 #include "HCIComm.hpp"
 
-#include "DBTTypes.hpp"
+#include "BTTypes1.hpp"
 #include "SMPTypes.hpp"
 
 namespace direct_bt {

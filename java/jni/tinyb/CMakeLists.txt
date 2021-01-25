@@ -25,8 +25,8 @@ set (tinyb_JNI_SRCS
   ${PROJECT_SOURCE_DIR}/jaulib/java_jni/jni/helper_jni.cxx
   ${PROJECT_SOURCE_DIR}/jaulib/src/basic_types.cpp
   ${PROJECT_SOURCE_DIR}/java/jni/helper_base.cxx
-  ${PROJECT_SOURCE_DIR}/java/jni/BluetoothFactory.cxx
-  ${PROJECT_SOURCE_DIR}/java/jni/BluetoothUtils.cxx
+  ${PROJECT_SOURCE_DIR}/java/jni/BTFactory.cxx
+  ${PROJECT_SOURCE_DIR}/java/jni/BTUtils.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/tinyb/helper_tinyb.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/tinyb/DBusAdapter.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/tinyb/DBusDevice.cxx

@@ -279,7 +279,7 @@ final class PlatformToolkit {
             final String _os_arch2 = getArchName(CPU_TYPE, ABI_TYPE, LITTLE_ENDIAN);
             os_arch = null != _os_arch2 ? _os_arch2 : _os_arch1;
             os_and_arch = os_name+"-"+os_arch;
-            if( BluetoothFactory.DEBUG ) {
+            if( BTFactory.DEBUG ) {
                 System.err.println("PlatformToolkit: os_name "+os_name+", os_arch ("+_os_arch1+" -> "+_os_arch2+" ->) "+os_arch+" (final), "+
                                    "CPU_TYPE "+CPU_TYPE+", ABI_TYPE "+ABI_TYPE+", LITTLE_ENDIAN "+LITTLE_ENDIAN);
             }
@@ -458,7 +458,7 @@ final class PlatformToolkit {
                     // f.getCanonicalPath() also resolved '.', '..' and symbolic links in contrast to f.getAbsolutePath()
                     return f.getCanonicalPath();
                 } catch (final Throwable t) {
-                    if( BluetoothFactory.DEBUG ) {
+                    if( BTFactory.DEBUG ) {
                         System.err.println("getAbsolutePath("+path+") failed: "+t.getMessage());
                     }
                     return null;
@@ -471,7 +471,7 @@ final class PlatformToolkit {
             final String abspath = getCanonicalPath(fullpath);
             if( null != abspath ) {
                 final boolean isDup = paths.contains(abspath);
-                if( BluetoothFactory.DEBUG ) {
+                if( BTFactory.DEBUG ) {
                     System.err.println("  "+abspath+" (addPath "+msg+", dropped duplicate "+isDup+")");
                 }
                 if( !isDup ) {
@@ -542,12 +542,12 @@ final class PlatformToolkit {
      * @return {@code true} if successful, otherwise {@code false}.
      */
     static boolean loadLibrary(final String libBaseName, final ClassLoader cl, final Throwable[] t) {
-        if( BluetoothFactory.DEBUG ) {
+        if( BTFactory.DEBUG ) {
             System.err.println();
             System.err.println("PlatformToolkit.loadLibrary: libBaseName "+libBaseName+":");
         }
         final List<String> possiblePaths = enumerateLibraryPaths(libBaseName, true /* searchSystemPath */, false /* searchSystemPathFirst */, cl);
-        if( BluetoothFactory.DEBUG ) {
+        if( BTFactory.DEBUG ) {
             System.err.println();
         }
 
@@ -556,12 +556,12 @@ final class PlatformToolkit {
             final String path = iter.next();
             try {
                 System.load(path);
-                if( BluetoothFactory.DEBUG ) {
+                if( BTFactory.DEBUG ) {
                     System.err.println("  "+path+" success");
                 }
                 return true;
             } catch (final Throwable t0) {
-                if( BluetoothFactory.DEBUG ) {
+                if( BTFactory.DEBUG ) {
                     System.err.println("  "+path+" failed: "+t0.getMessage());
                 }
                 t[0] = t0;
@@ -571,12 +571,12 @@ final class PlatformToolkit {
         // Fall back to loadLibrary
         try {
             System.loadLibrary(libBaseName);
-            if( BluetoothFactory.DEBUG ) {
+            if( BTFactory.DEBUG ) {
                 System.err.println("  "+libBaseName+" success");
             }
             return true;
         } catch (final Throwable t0) {
-            if( BluetoothFactory.DEBUG ) {
+            if( BTFactory.DEBUG ) {
                 System.err.println("  "+libBaseName+" failed: "+t0.getMessage());
             }
             t[0] = t0;

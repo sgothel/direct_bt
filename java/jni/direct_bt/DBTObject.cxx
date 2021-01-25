@@ -27,7 +27,7 @@
 
 #include "helper_base.hpp"
 
-#include "direct_bt/DBTTypes.hpp"
+#include "direct_bt/BTTypes1.hpp"
 
 using namespace direct_bt;
 

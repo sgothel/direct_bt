@@ -39,7 +39,7 @@
 #include <jau/ringbuffer.hpp>
 #include <jau/java_uplink.hpp>
 
-#include "BTTypes.hpp"
+#include "BTTypes0.hpp"
 #include "BTIoctl.hpp"
 #include "OctetTypes.hpp"
 #include "HCIComm.hpp"
@@ -469,7 +469,7 @@ namespace direct_bt {
              * Hence this parameter influences the responsiveness on a link loss.
              * A too small number may render the link too unstable, it should be at least 6 times of the connection interval.
              * <br>
-             * To detect a link loss one can also send a regular ping to check whether the peripheral is still responding, see GATTHandler::ping().
+             * To detect a link loss one can also send a regular ping to check whether the peripheral is still responding, see BTGattHandler::ping().
              * </p>
              * <p>
              * Implementation tries to mitigate HCIStatusCode::COMMAND_DISALLOWED failure due to any pending connection commands,
@@ -622,5 +622,5 @@ namespace std
 }
 #endif
 
-#endif /* DBT_HANDLER_HPP_ */
+#endif /* HCI_HANDLER_HPP_ */
 

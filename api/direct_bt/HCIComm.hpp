@@ -32,7 +32,7 @@
 #include <memory>
 #include <mutex>
 
-#include "BTTypes.hpp"
+#include "BTTypes0.hpp"
 #include "BTIoctl.hpp"
 #include "HCIIoctl.hpp"
 #include "HCITypes.hpp"

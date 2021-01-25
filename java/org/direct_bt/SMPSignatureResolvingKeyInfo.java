@@ -180,7 +180,7 @@ public class SMPSignatureResolvingKeyInfo {
     @Override
     public String toString() { // hex-fmt aligned with btmon
         return "LTK[props "+properties.toString()+
-               ", csrk "+BluetoothUtils.bytesHexString(csrk, 0, -1, true /* lsbFirst */, false /* leading0X */, true /* lowerCase */)+
+               ", csrk "+BTUtils.bytesHexString(csrk, 0, -1, true /* lsbFirst */, false /* leading0X */, true /* lowerCase */)+
                "]";
     }
 

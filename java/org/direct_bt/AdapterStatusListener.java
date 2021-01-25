@@ -26,20 +26,20 @@
 package org.direct_bt;
 
 /**
- * {@link BluetoothAdapter} status listener for {@link BluetoothDevice} discovery events: Added, updated and removed;
- * as well as for certain {@link BluetoothAdapter} events.
+ * {@link BTAdapter} status listener for {@link BTDevice} discovery events: Added, updated and removed;
+ * as well as for certain {@link BTAdapter} events.
  * <p>
  * User implementations shall return as early as possible to avoid blocking the event-handler thread,
- * if not specified within the methods otherwise (see {@link #deviceReady(BluetoothDevice, long)}).<br>
+ * if not specified within the methods otherwise (see {@link #deviceReady(BTDevice, long)}).<br>
  * Especially complex mutable operations on DBTDevice or DBTAdapter should be issued off-thread!
  * </p>
  * <p>
- * A listener instance may be attached to a {@link BluetoothAdapter} via
- * {@link BluetoothAdapter#addStatusListener(AdapterStatusListener, BluetoothDevice)}.
+ * A listener instance may be attached to a {@link BTAdapter} via
+ * {@link BTAdapter#addStatusListener(AdapterStatusListener, BTDevice)}.
  * </p>
  * <p>
  * One {@link AdapterStatusListener} instance can only be attached to a listener receiver once at a time,
- * i.e. you cannot attach the same instance more than once to a {@link BluetoothAdapter}.
+ * i.e. you cannot attach the same instance more than once to a {@link BTAdapter}.
  * <br>
  * To attach multiple listener, one instance per attachment must be created.
  * <br>
@@ -67,75 +67,75 @@ public abstract class AdapterStatusListener {
     }
 
     /**
-     * {@link BluetoothAdapter} setting(s) changed.
+     * {@link BTAdapter} setting(s) changed.
      * @param adapter the adapter which settings have changed.
      * @param oldmask the previous settings mask. {@link AdapterSettings#isEmpty()} indicates the initial setting notification,
-     *        see {@link BluetoothAdapter#addStatusListener(AdapterStatusListener, BluetoothDevice) addStatusListener(..)}.
+     *        see {@link BTAdapter#addStatusListener(AdapterStatusListener, BTDevice) addStatusListener(..)}.
      * @param newmask the new settings mask
      * @param changedmask the changes settings mask. {@link AdapterSettings#isEmpty()} indicates the initial setting notification,
-     *        see {@link BluetoothAdapter#addStatusListener(AdapterStatusListener, BluetoothDevice) addStatusListener(..)}.
-     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
+     *        see {@link BTAdapter#addStatusListener(AdapterStatusListener, BTDevice) addStatusListener(..)}.
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
      */
-    public void adapterSettingsChanged(final BluetoothAdapter adapter,
+    public void adapterSettingsChanged(final BTAdapter adapter,
                                        final AdapterSettings oldmask, final AdapterSettings newmask,
                                        final AdapterSettings changedmask, final long timestamp) { }
 
     /**
-     * {@link BluetoothAdapter}'s discovery state has changed, i.e. enabled or disabled.
+     * {@link BTAdapter}'s discovery state has changed, i.e. enabled or disabled.
      * @param adapter the adapter which discovering state has changed.
      * @param currentMeta the current meta {@link ScanType}
      * @param changedType denotes the changed {@link ScanType}
      * @param changedEnabled denotes whether the changed {@link ScanType} has been enabled or disabled
      * @param keepAlive if {@code true}, the denoted changed {@link ScanType} will be re-enabled if disabled by the underlying Bluetooth implementation.
-     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
      */
-    public void discoveringChanged(final BluetoothAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final boolean keepAlive, final long timestamp) { }
+    public void discoveringChanged(final BTAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final boolean keepAlive, final long timestamp) { }
 
     /**
-     * A {@link BluetoothDevice} has been newly discovered.
+     * A {@link BTDevice} has been newly discovered.
      * <p>
      * The boolean return value informs the adapter whether the device shall be made persistent for connection {@code true},
      * or that it can be discarded {@code false}.<br>
-     * If no registered {@link AdapterStatusListener#deviceFound(BluetoothDevice, long) deviceFound(..)} implementation returns {@code true},
+     * If no registered {@link AdapterStatusListener#deviceFound(BTDevice, long) deviceFound(..)} implementation returns {@code true},
      * the device instance will be removed from all internal lists and can no longer being used.<br>
-     * If any registered {@link AdapterStatusListener#deviceFound(BluetoothDevice, long) deviceFound(..)} implementation returns {@code true},
-     * the device will be made persistent, is ready to connect and {@link BluetoothDevice#remove() remove} shall be called after usage.
+     * If any registered {@link AdapterStatusListener#deviceFound(BTDevice, long) deviceFound(..)} implementation returns {@code true},
+     * the device will be made persistent, is ready to connect and {@link BTDevice#remove() remove} shall be called after usage.
      * </p>
      * @param device the found device
-     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
-     * @return true if the device shall be made persistent and {@link BluetoothDevice#remove() remove} issued later. Otherwise false to remove device right away.
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
+     * @return true if the device shall be made persistent and {@link BTDevice#remove() remove} issued later. Otherwise false to remove device right away.
      */
-    public boolean deviceFound(final BluetoothDevice device, final long timestamp) { return false; }
+    public boolean deviceFound(final BTDevice device, final long timestamp) { return false; }
 
     /**
-     * An already discovered {@link BluetoothDevice} has been updated.
+     * An already discovered {@link BTDevice} has been updated.
      * @param device the updated device
      * @param updateMask the update mask of changed data
-     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
      */
-    public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) { }
+    public void deviceUpdated(final BTDevice device, final EIRDataTypeSet updateMask, final long timestamp) { }
 
     /**
-     * {@link BluetoothDevice} got connected.
+     * {@link BTDevice} got connected.
      * @param device the device which has been connected, holding the new connection handle.
      * @param handle the new connection handle, which has been assigned to the device already
-     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
      */
-    public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) { }
+    public void deviceConnected(final BTDevice device, final short handle, final long timestamp) { }
 
     /**
-     * An already connected {@link BluetoothDevice}'s {@link SMPPairingState} has changed.
+     * An already connected {@link BTDevice}'s {@link SMPPairingState} has changed.
      * @param device the device which {@link PairingMode} has been changed.
      * @param state the current {@link SMPPairingState} of the connected device, see DBTDevice::getCurrentPairingState()
      * @param mode the current {@link PairingMode} of the connected device, see DBTDevice::getCurrentPairingMode()
-     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
-     * @see BluetoothDevice#setPairingPasskey(int)
-     * @see BluetoothDevice#setPairingNumericComparison(boolean)
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
+     * @see BTDevice#setPairingPasskey(int)
+     * @see BTDevice#setPairingNumericComparison(boolean)
      */
-    public void devicePairingState(final BluetoothDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {}
+    public void devicePairingState(final BTDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {}
 
     /**
-     * {@link BluetoothDevice} is ready for user (GATT) processing, i.e. already connected, optionally paired and ATT MTU size negotiated via connected GATT.
+     * {@link BTDevice} is ready for user (GATT) processing, i.e. already connected, optionally paired and ATT MTU size negotiated via connected GATT.
      * <p>
      * Method is being called from a dedicated native thread, hence restrictions on method duration and complex mutable operations don't apply here.
      * </p>
@@ -143,14 +143,14 @@ public abstract class AdapterStatusListener {
      * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
      * @see {@link SMPPairingState#COMPLETED}
      */
-    public void deviceReady(final BluetoothDevice device, final long timestamp) {}
+    public void deviceReady(final BTDevice device, final long timestamp) {}
 
     /**
-     * {@link BluetoothDevice} got disconnected.
+     * {@link BTDevice} got disconnected.
      * @param device the device which has been disconnected with zeroed connection handle.
      * @param reason the {@link HCIStatusCode} reason for disconnection
      * @param handle the disconnected connection handle, which has been unassigned from the device already
-     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#currentTimeMillis()}.
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
      */
-    public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) { }
+    public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) { }
 };

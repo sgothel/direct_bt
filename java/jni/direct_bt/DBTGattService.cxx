@@ -31,15 +31,15 @@
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
-#include "direct_bt/DBTDevice.hpp"
-#include "direct_bt/DBTAdapter.hpp"
+#include "direct_bt/BTDevice.hpp"
+#include "direct_bt/BTAdapter.hpp"
 
 using namespace direct_bt;
 using namespace jau;
 
 jstring Java_jau_direct_1bt_DBTGattService_toStringImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTService *nativePtr = getJavaUplinkObject<GATTService>(env, obj);
+        BTGattService *nativePtr = getJavaUplinkObject<BTGattService>(env, obj);
         JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
         return from_string_to_jstring(env, nativePtr->toString());
     } catch(...) {
@@ -52,37 +52,37 @@ jstring Java_jau_direct_1bt_DBTGattService_toStringImpl(JNIEnv *env, jobject obj
 void Java_jau_direct_1bt_DBTGattService_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
     (void)obj;
     try {
-        GATTService *service = castInstance<GATTService>(nativeInstance);
+        BTGattService *service = castInstance<BTGattService>(nativeInstance);
         (void)service;
-        // No delete: Service instance owned by DBTDevice
+        // No delete: Service instance owned by BTDevice
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
 }
 
-static const std::string _characteristicClazzCtorArgs("(JLdirect_bt/tinyb/DBTGattService;S[Ljava/lang/String;ZZLjava/lang/String;SI)V");
+static const std::string _characteristicClazzCtorArgs("(JLjau/direct_bt/DBTGattService;S[Ljava/lang/String;ZZLjava/lang/String;SI)V");
 
-jobject Java_jau_direct_1bt_DBTGattService_getCharacteristicsImpl(JNIEnv *env, jobject obj) {
+jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTService *service = getJavaUplinkObject<GATTService>(env, obj);
+        BTGattService *service = getJavaUplinkObject<BTGattService>(env, obj);
         JavaGlobalObj::check(service->getJavaObject(), E_FILE_LINE);
 
-        jau::darray<std::shared_ptr<GATTCharacteristic>> & characteristics = service->characteristicList;
+        jau::darray<std::shared_ptr<BTGattChar>> & characteristics = service->characteristicList;
 
-        // DBTGattCharacteristic(final long nativeInstance, final DBTGattService service,
+        // BTGattChar(final long nativeInstance, final BTGattService service,
         //                       final short handle, final String[] properties,
         //                       final boolean hasNotify, final boolean hasIndicate,
         //                       final String value_type_uuid, final short value_handle,
         //                       final int clientCharacteristicsConfigIndex)
 
-        std::function<jobject(JNIEnv*, jclass, jmethodID, GATTCharacteristic *)> ctor_char =
-                [](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, GATTCharacteristic *characteristic)->jobject {
+        std::function<jobject(JNIEnv*, jclass, jmethodID, BTGattChar *)> ctor_char =
+                [](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, BTGattChar *characteristic)->jobject {
                     // prepare adapter ctor
-                    std::shared_ptr<GATTService> _service = characteristic->getServiceChecked();
+                    std::shared_ptr<BTGattService> _service = characteristic->getServiceChecked();
                     JavaGlobalObj::check(_service->getJavaObject(), E_FILE_LINE);
                     jobject jservice = JavaGlobalObj::GetObject(_service->getJavaObject());
 
-                    jau::darray<std::unique_ptr<std::string>> props = GATTCharacteristic::getPropertiesStringList(characteristic->properties);
+                    jau::darray<std::unique_ptr<std::string>> props = BTGattChar::getPropertiesStringList(characteristic->properties);
                     size_t props_size = props.size();
 
                     jobjectArray jproperties;
@@ -99,8 +99,8 @@ jobject Java_jau_direct_1bt_DBTGattService_getCharacteristicsImpl(JNIEnv *env, j
                     }
                     java_exception_check_and_throw(env_, E_FILE_LINE);
 
-                    const bool hasNotify = characteristic->hasProperties(GATTCharacteristic::PropertyBitVal::Notify);
-                    const bool hasIndicate = characteristic->hasProperties(GATTCharacteristic::PropertyBitVal::Indicate);
+                    const bool hasNotify = characteristic->hasProperties(BTGattChar::PropertyBitVal::Notify);
+                    const bool hasIndicate = characteristic->hasProperties(BTGattChar::PropertyBitVal::Indicate);
 
                     const jstring uuid = from_string_to_jstring(env_,
                             directBTJNISettings.getUnifyUUID128Bit() ? characteristic->value_type->toUUID128String() :
@@ -109,7 +109,7 @@ jobject Java_jau_direct_1bt_DBTGattService_getCharacteristicsImpl(JNIEnv *env, j
 
                     jobject jcharVal = env_->NewObject(clazz, clazz_ctor, (jlong)characteristic, jservice,
                             characteristic->handle, jproperties, hasNotify, hasIndicate,
-                            uuid, characteristic->value_handle, characteristic->clientCharacteristicsConfigIndex);
+                            uuid, characteristic->value_handle, characteristic->clientCharConfigIndex);
                     java_exception_check_and_throw(env_, E_FILE_LINE);
                     JNIGlobalRef::check(jcharVal, E_FILE_LINE);
                     std::shared_ptr<JavaAnon> jCharRef = characteristic->getJavaObject(); // GlobalRef
@@ -118,7 +118,7 @@ jobject Java_jau_direct_1bt_DBTGattService_getCharacteristicsImpl(JNIEnv *env, j
                     env_->DeleteLocalRef(jcharVal);
                     return JavaGlobalObj::GetObject(jCharRef);
                 };
-        return convert_vector_sharedptr_to_jarraylist<jau::darray<std::shared_ptr<GATTCharacteristic>>, GATTCharacteristic>(
+        return convert_vector_sharedptr_to_jarraylist<jau::darray<std::shared_ptr<BTGattChar>>, BTGattChar>(
                 env, characteristics, _characteristicClazzCtorArgs.c_str(), ctor_char);
     } catch(...) {
         rethrow_and_raise_java_exception(env);

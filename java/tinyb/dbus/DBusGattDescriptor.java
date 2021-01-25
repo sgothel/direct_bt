@@ -28,19 +28,19 @@
 
 package tinyb.dbus;
 
-import org.direct_bt.BluetoothException;
-import org.direct_bt.BluetoothGattDescriptor;
-import org.direct_bt.BluetoothNotification;
-import org.direct_bt.BluetoothType;
+import org.direct_bt.BTException;
+import org.direct_bt.BTGattDesc;
+import org.direct_bt.BTNotification;
+import org.direct_bt.BTType;
 
-public class DBusGattDescriptor extends DBusObject implements BluetoothGattDescriptor
+public class DBusGattDescriptor extends DBusObject implements BTGattDesc
 {
     @Override
-    public native BluetoothType getBluetoothType();
+    public native BTType getBluetoothType();
     @Override
-    public native BluetoothGattDescriptor clone();
+    public native BTGattDesc clone();
 
-    static BluetoothType class_type() { return BluetoothType.GATT_DESCRIPTOR; }
+    static BTType class_type() { return BTType.GATT_DESCRIPTOR; }
 
     /* D-Bus method calls: */
 
@@ -48,10 +48,10 @@ public class DBusGattDescriptor extends DBusObject implements BluetoothGattDescr
     public native byte[] readValue();
 
     @Override
-    public native boolean writeValue(byte[] argValue) throws BluetoothException;
+    public native boolean writeValue(byte[] argValue) throws BTException;
 
     @Override
-    public native void enableValueNotifications(BluetoothNotification<byte[]> callback);
+    public native void enableValueNotifications(BTNotification<byte[]> callback);
 
     @Override
     public native void disableValueNotifications();

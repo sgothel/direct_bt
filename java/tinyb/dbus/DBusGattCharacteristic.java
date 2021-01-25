@@ -30,55 +30,55 @@ package tinyb.dbus;
 
 import java.util.List;
 
-import org.direct_bt.BluetoothException;
-import org.direct_bt.BluetoothGattCharacteristic;
-import org.direct_bt.BluetoothGattDescriptor;
-import org.direct_bt.BluetoothGattService;
-import org.direct_bt.BluetoothManager;
-import org.direct_bt.BluetoothNotification;
-import org.direct_bt.BluetoothType;
-import org.direct_bt.GATTCharacteristicListener;
+import org.direct_bt.BTException;
+import org.direct_bt.BTGattChar;
+import org.direct_bt.BTGattDesc;
+import org.direct_bt.BTGattService;
+import org.direct_bt.BTManager;
+import org.direct_bt.BTNotification;
+import org.direct_bt.BTType;
+import org.direct_bt.BTGattCharListener;
 
-public class DBusGattCharacteristic extends DBusObject implements BluetoothGattCharacteristic
+public class DBusGattCharacteristic extends DBusObject implements BTGattChar
 {
     @Override
-    public native BluetoothType getBluetoothType();
+    public native BTType getBluetoothType();
     @Override
     public native DBusGattCharacteristic clone();
 
-    static BluetoothType class_type() { return BluetoothType.GATT_CHARACTERISTIC; }
+    static BTType class_type() { return BTType.GATT_CHARACTERISTIC; }
 
     @Override
-    public BluetoothGattDescriptor find(final String UUID, final long timeoutMS) {
-        final BluetoothManager manager = DBusManager.getManager();
-        return (BluetoothGattDescriptor) manager.find(BluetoothType.GATT_DESCRIPTOR,
+    public BTGattDesc find(final String UUID, final long timeoutMS) {
+        final BTManager manager = DBusManager.getManager();
+        return (BTGattDesc) manager.find(BTType.GATT_DESCRIPTOR,
                 null, UUID, this, timeoutMS);
     }
 
     @Override
-    public BluetoothGattDescriptor find(final String UUID) {
+    public BTGattDesc find(final String UUID) {
         return find(UUID, 0);
     }
 
     /* D-Bus method calls: */
 
     @Override
-    public native byte[] readValue() throws BluetoothException;
+    public native byte[] readValue() throws BTException;
 
     @Override
-    public native void enableValueNotifications(BluetoothNotification<byte[]> callback);
+    public native void enableValueNotifications(BTNotification<byte[]> callback);
 
     @Override
     public native void disableValueNotifications();
 
     @Override
-    public boolean writeValue(final byte[] argValue, final boolean withResponse) throws BluetoothException {
+    public boolean writeValue(final byte[] argValue, final boolean withResponse) throws BTException {
         if( withResponse ) {
             throw new DBusBluetoothException("writeValue with response not yet supported");
         }
         return writeValueImpl(argValue);
     }
-    private native boolean writeValueImpl(byte[] argValue) throws BluetoothException;
+    private native boolean writeValueImpl(byte[] argValue) throws BTException;
 
     /* D-Bus property accessors: */
 
@@ -86,7 +86,7 @@ public class DBusGattCharacteristic extends DBusObject implements BluetoothGattC
     public native String getUUID();
 
     @Override
-    public native BluetoothGattService getService();
+    public native BTGattService getService();
 
     @Override
     public native byte[] getValue();
@@ -98,7 +98,7 @@ public class DBusGattCharacteristic extends DBusObject implements BluetoothGattC
     public native String[] getFlags();
 
     @Override
-    public native List<BluetoothGattDescriptor> getDescriptors();
+    public native List<BTGattDesc> getDescriptors();
 
     private native void init(DBusGattCharacteristic obj);
 
@@ -110,7 +110,7 @@ public class DBusGattCharacteristic extends DBusObject implements BluetoothGattC
     }
 
     @Override
-    public boolean addCharacteristicListener(final GATTCharacteristicListener listener) {
+    public boolean addCharacteristicListener(final BTGattCharListener listener) {
         return false; // FIXME
     }
     @Override
@@ -126,13 +126,13 @@ public class DBusGattCharacteristic extends DBusObject implements BluetoothGattC
         return false; // FIXME
     }
     @Override
-    public boolean addCharacteristicListener(final GATTCharacteristicListener listener, final boolean[] enabledState)
+    public boolean addCharacteristicListener(final BTGattCharListener listener, final boolean[] enabledState)
             throws IllegalStateException
     {
         return false; // FIXME
     }
     @Override
-    public boolean removeCharacteristicListener(final GATTCharacteristicListener l, final boolean disableIndicationNotification) {
+    public boolean removeCharacteristicListener(final BTGattCharListener l, final boolean disableIndicationNotification) {
         return false; // FIXME
     }
     @Override

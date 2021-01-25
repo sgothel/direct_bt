@@ -33,18 +33,17 @@ import java.util.Map;
 
 import org.direct_bt.BDAddressAndType;
 import org.direct_bt.BDAddressType;
-import org.direct_bt.BLERandomAddressType;
 import org.direct_bt.BTSecurityLevel;
-import org.direct_bt.BluetoothDevice;
-import org.direct_bt.BluetoothException;
-import org.direct_bt.BluetoothGattCharacteristic;
-import org.direct_bt.BluetoothGattService;
-import org.direct_bt.BluetoothManager;
-import org.direct_bt.BluetoothNotification;
-import org.direct_bt.BluetoothType;
-import org.direct_bt.BluetoothUtils;
+import org.direct_bt.BTDevice;
+import org.direct_bt.BTException;
+import org.direct_bt.BTGattChar;
+import org.direct_bt.BTGattService;
+import org.direct_bt.BTManager;
+import org.direct_bt.BTNotification;
+import org.direct_bt.BTType;
+import org.direct_bt.BTUtils;
 import org.direct_bt.EUI48;
-import org.direct_bt.GATTCharacteristicListener;
+import org.direct_bt.BTGattCharListener;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPIOCapability;
@@ -53,7 +52,7 @@ import org.direct_bt.SMPLongTermKeyInfo;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.SMPSignatureResolvingKeyInfo;
 
-public class DBusDevice extends DBusObject implements BluetoothDevice
+public class DBusDevice extends DBusObject implements BTDevice
 {
     @Override
     public final long getCreationTimestamp() { return ts_creation; }
@@ -65,38 +64,38 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public final long getLastUpdateTimestamp() { return ts_creation; } // FIXME
 
     @Override
-    public native BluetoothType getBluetoothType();
+    public native BTType getBluetoothType();
     @Override
     public native DBusDevice clone();
 
-    static BluetoothType class_type() { return BluetoothType.DEVICE; }
+    static BTType class_type() { return BTType.DEVICE; }
 
     @Override
-    public BluetoothGattService find(final String UUID, final long timeoutMS) {
-        final BluetoothManager manager = DBusManager.getManager();
-        return (BluetoothGattService) manager.find(BluetoothType.GATT_SERVICE,
+    public BTGattService find(final String UUID, final long timeoutMS) {
+        final BTManager manager = DBusManager.getManager();
+        return (BTGattService) manager.find(BTType.GATT_SERVICE,
                 null, UUID, this, timeoutMS);
     }
 
     @Override
-    public BluetoothGattService find(final String UUID) {
+    public BTGattService find(final String UUID) {
         return find(UUID, 0);
     }
 
     /* D-Bus method calls: */
 
     @Override
-    public final HCIStatusCode disconnect() throws BluetoothException {
+    public final HCIStatusCode disconnect() throws BTException {
         return disconnectImpl() ? HCIStatusCode.SUCCESS : HCIStatusCode.UNSPECIFIED_ERROR ;
     }
-    private native boolean disconnectImpl() throws BluetoothException;
+    private native boolean disconnectImpl() throws BTException;
 
 
     @Override
-    public final HCIStatusCode connect() throws BluetoothException {
+    public final HCIStatusCode connect() throws BTException {
         return connectImpl() ? HCIStatusCode.SUCCESS : HCIStatusCode.UNSPECIFIED_ERROR ;
     }
-    private native boolean connectImpl() throws BluetoothException;
+    private native boolean connectImpl() throws BTException;
 
     @Override
     public HCIStatusCode connectLE(final short interval, final short window,
@@ -106,10 +105,10 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     }
 
     @Override
-    public native boolean connectProfile(String arg_UUID) throws BluetoothException;
+    public native boolean connectProfile(String arg_UUID) throws BTException;
 
     @Override
-    public native boolean disconnectProfile(String arg_UUID) throws BluetoothException;
+    public native boolean disconnectProfile(String arg_UUID) throws BTException;
 
     @Override
     public final SMPKeyMask getAvailableSMPKeys(final boolean responder) { return new SMPKeyMask(); }
@@ -124,7 +123,7 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public final SMPSignatureResolvingKeyInfo getSignatureResolvingKeyInfo(final boolean responder) { return new SMPSignatureResolvingKeyInfo(); } // FIXME
 
     @Override
-    public native boolean pair() throws BluetoothException;
+    public native boolean pair() throws BTException;
 
     @Override
     public final HCIStatusCode unpair() { return HCIStatusCode.NOT_SUPPORTED; } // FIXME
@@ -160,13 +159,13 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public SMPPairingState getPairingState() { return SMPPairingState.NONE; }
 
     @Override
-    public native boolean remove() throws BluetoothException;
+    public native boolean remove() throws BTException;
 
     @Override
-    public native boolean cancelPairing() throws BluetoothException;
+    public native boolean cancelPairing() throws BTException;
 
     @Override
-    public native List<BluetoothGattService> getServices();
+    public native List<BTGattService> getServices();
 
     @Override
     public boolean pingGATT() { return true; } // FIXME
@@ -201,7 +200,7 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native boolean getPaired();
 
     @Override
-    public native void enablePairedNotifications(BluetoothNotification<Boolean> callback);
+    public native void enablePairedNotifications(BTNotification<Boolean> callback);
 
     @Override
     public native void disablePairedNotifications();
@@ -210,7 +209,7 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native boolean getTrusted();
 
     @Override
-    public native void enableTrustedNotifications(BluetoothNotification<Boolean> callback);
+    public native void enableTrustedNotifications(BTNotification<Boolean> callback);
 
     @Override
     public native void disableTrustedNotifications();
@@ -222,7 +221,7 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native boolean getBlocked();
 
     @Override
-    public native void enableBlockedNotifications(BluetoothNotification<Boolean> callback);
+    public native void enableBlockedNotifications(BTNotification<Boolean> callback);
 
     @Override
     public native void disableBlockedNotifications();
@@ -237,7 +236,7 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native short getRSSI();
 
     @Override
-    public native void enableRSSINotifications(BluetoothNotification<Short> callback);
+    public native void enableRSSINotifications(BTNotification<Short> callback);
 
     @Override
     public native void disableRSSINotifications();
@@ -249,7 +248,7 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public final short getConnectionHandle() { return 0; /* FIXME */ }
 
     @Override
-    public native void enableConnectedNotifications(BluetoothNotification<Boolean> callback);
+    public native void enableConnectedNotifications(BTNotification<Boolean> callback);
 
      @Override
     public native void disableConnectedNotifications();
@@ -267,7 +266,7 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native Map<Short, byte[]> getManufacturerData();
 
     @Override
-    public native void enableManufacturerDataNotifications(BluetoothNotification<Map<Short, byte[]> > callback);
+    public native void enableManufacturerDataNotifications(BTNotification<Map<Short, byte[]> > callback);
 
     @Override
     public native void disableManufacturerDataNotifications();
@@ -277,7 +276,7 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native Map<String, byte[]> getServiceData();
 
     @Override
-    public native void enableServiceDataNotifications(BluetoothNotification<Map<String, byte[]> > callback);
+    public native void enableServiceDataNotifications(BTNotification<Map<String, byte[]> > callback);
 
     @Override
     public native void disableServiceDataNotifications();
@@ -289,28 +288,28 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native boolean getServicesResolved ();
 
     @Override
-    public native void enableServicesResolvedNotifications(BluetoothNotification<Boolean> callback);
+    public native void enableServicesResolvedNotifications(BTNotification<Boolean> callback);
 
     @Override
     public native void disableServicesResolvedNotifications();
 
     @Override
-    public boolean addCharacteristicListener(final GATTCharacteristicListener listener) {
+    public boolean addCharListener(final BTGattCharListener listener) {
         return false; // FIXME
     }
 
     @Override
-    public boolean removeCharacteristicListener(final GATTCharacteristicListener l) {
+    public boolean removeCharListener(final BTGattCharListener l) {
         return false; // FIXME
     }
 
     @Override
-    public int removeAllAssociatedCharacteristicListener(final BluetoothGattCharacteristic associatedCharacteristic) {
+    public int removeAllAssociatedCharListener(final BTGattChar associatedCharacteristic) {
         return 0; // FIXME
     }
 
     @Override
-    public int removeAllCharacteristicListener() {
+    public int removeAllCharListener() {
         return 0; // FIXME
     }
 
@@ -319,7 +318,7 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     private DBusDevice(final long instance)
     {
         super(instance);
-        ts_creation = BluetoothUtils.currentTimeMillis();
+        ts_creation = BTUtils.currentTimeMillis();
     }
     final long ts_creation;
 

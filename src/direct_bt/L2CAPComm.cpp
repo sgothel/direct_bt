@@ -23,6 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <BTAdapter.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
@@ -41,7 +42,6 @@
 
 #include "HCIComm.hpp"
 #include "L2CAPComm.hpp"
-#include "DBTAdapter.hpp"
 
 extern "C" {
     #include <unistd.h>
@@ -126,7 +126,7 @@ L2CAPComm::L2CAPComm(const EUI48& adapterAddress_, const uint16_t psm_, const ui
  */
 #define SET_BT_SECURITY_POST_CONNECT 1
 
-bool L2CAPComm::open(const DBTDevice& device, const BTSecurityLevel sec_level) {
+bool L2CAPComm::open(const BTDevice& device, const BTSecurityLevel sec_level) {
 
     bool expOpen = false; // C++11, exp as value since C++20
     if( !is_open.compare_exchange_strong(expOpen, true) ) {

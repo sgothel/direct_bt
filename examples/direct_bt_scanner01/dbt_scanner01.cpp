@@ -38,7 +38,7 @@ using namespace jau;
 
 /**
  * This C++ direct_bt scanner example is a TinyB backward compatible and not fully event driven.
- * It uses a more fine grained control via GATTHandler.
+ * It uses a more fine grained control via BTGattHandler
  * <p>
  * For a more user convenient and readable approach see dbt_scanner00.cpp or dbt_scanner10.cpp!
  * </p>
@@ -47,29 +47,29 @@ using namespace jau;
  * </p>
  */
 
-std::shared_ptr<DBTDevice> deviceFound = nullptr;
+std::shared_ptr<BTDevice> deviceFound = nullptr;
 std::mutex mtxDeviceFound;
 std::condition_variable cvDeviceFound;
 
 class MyAdapterStatusListener : public AdapterStatusListener {
-    void adapterSettingsChanged(DBTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
+    void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         fprintf(stderr, "****** Native Adapter SETTINGS_CHANGED: %s -> %s, changed %s\n",
                 getAdapterSettingMaskString(oldmask).c_str(),
                 getAdapterSettingMaskString(newmask).c_str(),
                 getAdapterSettingMaskString(changedmask).c_str());
-        fprintf(stderr, "Status DBTAdapter:\n");
+        fprintf(stderr, "Status BTAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
         (void)timestamp;
     }
 
-    void discoveringChanged(DBTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) override {
+    void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) override {
         fprintf(stderr, "****** DISCOVERING: meta %s, changed[%s, enabled %d, keepAlive %d]: %s\n",
                 getScanTypeString(currentMeta).c_str(), getScanTypeString(changedType).c_str(), changedEnabled, keepAlive, a.toString().c_str());
         (void)timestamp;
     }
 
-    bool deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+    bool deviceFound(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
         fprintf(stderr, "****** FOUND__: %s\n", device->toString(true).c_str());
         fprintf(stderr, "Status Adapter:\n");
         fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
@@ -81,25 +81,25 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
         (void)timestamp;
     }
-    void deviceUpdated(std::shared_ptr<DBTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
+    void deviceUpdated(std::shared_ptr<BTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
         fprintf(stderr, "****** UPDATED: %s of %s\n", getEIRDataMaskString(updateMask).c_str(), device->toString(true).c_str());
         (void)timestamp;
     }
-    void deviceConnected(std::shared_ptr<DBTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
         fprintf(stderr, "****** CONNECTED: %s\n", device->toString(true).c_str());
         (void)handle;
         (void)timestamp;
     }
-    void devicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+    void devicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
         fprintf(stderr, "****** PAIRING STATE: state %s, mode %s, %s\n",
             getSMPPairingStateString(state).c_str(), getPairingModeString(mode).c_str(), device->toString().c_str());
         (void)timestamp;
     }
-    void deviceReady(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+    void deviceReady(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
         fprintf(stderr, "****** READY: %s\n", device->toString().c_str());
         (void)timestamp;
     }
-    void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceDisconnected(std::shared_ptr<BTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         fprintf(stderr, "****** DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
                 static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
                 uint16HexString(handle).c_str(), device->toString(true).c_str());
@@ -114,11 +114,11 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
 static const uuid16_t _TEMPERATURE_MEASUREMENT(GattCharacteristicType::TEMPERATURE_MEASUREMENT);
 
-class MyGATTEventListener : public GATTCharacteristicListener {
+class MyGattCharListener : public BTGattCharListener {
 
-    void notificationReceived(GATTCharacteristicRef charDecl,
+    void notificationReceived(BTGattCharRef charDecl,
                              const TROOctets& charValue, const uint64_t timestamp) override {
-        const std::shared_ptr<DBTDevice> dev = charDecl->getDeviceChecked();
+        const std::shared_ptr<BTDevice> dev = charDecl->getDeviceChecked();
         const uint64_t tR = getCurrentMilliseconds();
         fprintf(stderr, "****** GATT Notify (td %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
                 (tR-timestamp), (tR-dev->ts_creation), dev->toString().c_str());
@@ -128,11 +128,11 @@ class MyGATTEventListener : public GATTCharacteristicListener {
         fprintf(stderr, "****** rawv %s\n", charValue.toString().c_str());
     }
 
-    void indicationReceived(GATTCharacteristicRef charDecl,
+    void indicationReceived(BTGattCharRef charDecl,
                             const TROOctets& charValue, const uint64_t timestamp,
                             const bool confirmationSent) override
     {
-        const std::shared_ptr<DBTDevice> dev = charDecl->getDeviceChecked();
+        const std::shared_ptr<BTDevice> dev = charDecl->getDeviceChecked();
         const uint64_t tR = getCurrentMilliseconds();
         fprintf(stderr, "****** GATT Indication (confirmed %d, td(msg %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
                 confirmationSent, (tR-timestamp), (tR-dev->ts_creation), dev->toString().c_str());
@@ -192,9 +192,9 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Press ENTER to continue\n");
         getchar();
     }
-    DBTManager & mngr = DBTManager::get();
+    BTManager & mngr = BTManager::get();
 
-    std::shared_ptr<DBTAdapter> adapter = mngr.getAdapter(dev_id);
+    std::shared_ptr<BTAdapter> adapter = mngr.getAdapter(dev_id);
     if( nullptr == adapter ) {
         fprintf(stderr, "adapter dev_id %d not available.\n", dev_id);
         exit(1);
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
             goto out;
         }
 
-        std::shared_ptr<DBTDevice> device = nullptr;
+        std::shared_ptr<BTDevice> device = nullptr;
         {
             std::unique_lock<std::mutex> lockRead(mtxDeviceFound); // RAII-style acquire and relinquish via destructor
             while( nullptr == device ) { // FIXME deadlock, waiting forever!
@@ -269,13 +269,13 @@ int main(int argc, char *argv[])
             //
             const uint64_t t4 = getCurrentMilliseconds();
             // let's check further for full GATT
-            std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
+            std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
             if( nullptr != gatt ) {
                 fprintf(stderr, "GATT usedMTU %d (server) -> %d (used)\n", gatt->getServerMTU(), gatt->getUsedMTU());
 
-                gatt->addCharacteristicListener( std::shared_ptr<GATTCharacteristicListener>( new MyGATTEventListener() ) );
+                gatt->addCharListener( std::shared_ptr<BTGattCharListener>( new MyGattCharListener() ) );
 
-                jau::darray<GATTServiceRef> & primServices = gatt->discoverCompletePrimaryServices(gatt);
+                jau::darray<BTGattServiceRef> & primServices = gatt->discoverCompletePrimaryServices(gatt);
                 const uint64_t t5 = getCurrentMilliseconds();
                 {
                     const uint64_t td45 = t5 - t4; // connect -> gatt complete
@@ -287,7 +287,7 @@ int main(int argc, char *argv[])
                                     "  total %" PRIu64 " ms\n\n",
                                     td45, (t5 - device->getCreationTimestamp()), td05);
                 }
-                std::shared_ptr<GattGenericAccessSvc> ga = device->getGATTGenericAccess();
+                std::shared_ptr<GattGenericAccessSvc> ga = device->getGattGenericAccess();
                 if( nullptr != ga ) {
                     fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
                 }
@@ -299,23 +299,23 @@ int main(int argc, char *argv[])
                 }
 
                 for(size_t i=0; i<primServices.size() && gatt->isConnected(); i++) {
-                    GATTService & primService = *primServices.at(i);
+                    BTGattService & primService = *primServices.at(i);
                     fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
                     fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
-                    jau::darray<GATTCharacteristicRef> & serviceCharacteristics = primService.characteristicList;
+                    jau::darray<BTGattCharRef> & serviceCharacteristics = primService.characteristicList;
                     for(size_t j=0; j<serviceCharacteristics.size() && gatt->isConnected(); j++) {
-                        GATTCharacteristic & serviceChar = *serviceCharacteristics.at(j);
+                        BTGattChar & serviceChar = *serviceCharacteristics.at(j);
                         fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
-                        if( serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Read) ) {
-                            POctets value(GATTHandler::number(GATTHandler::Defaults::MAX_ATT_MTU), 0);
+                        if( serviceChar.hasProperties(BTGattChar::PropertyBitVal::Read) ) {
+                            POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0);
                             if( gatt->readCharacteristicValue(serviceChar, value) ) {
                                 fprintf(stderr, "  [%2.2d.%2.2d] Value: %s\n", (int)i, (int)j, value.toString().c_str());
                             }
                         }
-                        GATTDescriptorRef cccd = serviceChar.getClientCharacteristicConfig();
+                        BTGattDescRef cccd = serviceChar.getClientCharConfig();
                         if( nullptr != cccd ) {
-                            const bool enableNotification = serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Notify);
-                            const bool enableIndication = serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Indicate);
+                            const bool enableNotification = serviceChar.hasProperties(BTGattChar::PropertyBitVal::Notify);
+                            const bool enableIndication = serviceChar.hasProperties(BTGattChar::PropertyBitVal::Indicate);
                             if( enableNotification || enableIndication ) {
                                 bool res = gatt->configNotificationIndication(*cccd, enableNotification, enableIndication);
                                 fprintf(stderr, "  [%2.2d.%2.2d] Config Notification(%d), Indication(%d): Result %d\n",

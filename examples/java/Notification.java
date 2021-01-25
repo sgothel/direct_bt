@@ -27,16 +27,16 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.direct_bt.BluetoothDevice;
-import org.direct_bt.BluetoothException;
-import org.direct_bt.BluetoothFactory;
-import org.direct_bt.BluetoothGattCharacteristic;
-import org.direct_bt.BluetoothGattService;
-import org.direct_bt.BluetoothManager;
-import org.direct_bt.BluetoothNotification;
+import org.direct_bt.BTDevice;
+import org.direct_bt.BTException;
+import org.direct_bt.BTFactory;
+import org.direct_bt.BTGattChar;
+import org.direct_bt.BTGattService;
+import org.direct_bt.BTManager;
+import org.direct_bt.BTNotification;
 import org.direct_bt.HCIStatusCode;
 
-class ValueNotification implements BluetoothNotification<byte[]> {
+class ValueNotification implements BTNotification<byte[]> {
 
     @Override
     public void run(final byte[] tempRaw) {
@@ -65,7 +65,7 @@ class ValueNotification implements BluetoothNotification<byte[]> {
 
 }
 
-class ConnectedNotification implements BluetoothNotification<Boolean> {
+class ConnectedNotification implements BTNotification<Boolean> {
 
     @Override
     public void run(final Boolean connected) {
@@ -78,7 +78,7 @@ public class Notification {
     // private static final float SCALE_LSB = 0.03125f;
     static boolean running = true;
 
-    static void printDevice(final BluetoothDevice device) {
+    static void printDevice(final BTDevice device) {
         System.out.print("Address = " + device.getAddressAndType());
         System.out.print(" Name = " + device.getName());
         System.out.print(" Connected = " + device.getConnected());
@@ -110,13 +110,13 @@ public class Notification {
          * library is through the BluetoothManager. There can be only one BluetoothManager at one time, and the
          * reference to it is obtained through the getBluetoothManager method.
          */
-        final BluetoothManager manager;
+        final BTManager manager;
         try {
-            manager = BluetoothFactory.getDBusBluetoothManager();
-        } catch (BluetoothException | NoSuchMethodException | SecurityException
+            manager = BTFactory.getDBusBluetoothManager();
+        } catch (BTException | NoSuchMethodException | SecurityException
                 | IllegalAccessException | IllegalArgumentException
                 | InvocationTargetException | ClassNotFoundException e) {
-            System.err.println("Failed to initialized "+BluetoothFactory.DBusImplementationID);
+            System.err.println("Failed to initialized "+BTFactory.DBusImplementationID);
             throw new RuntimeException(e);
         }
 
@@ -133,7 +133,7 @@ public class Notification {
          * After discovery is started, new devices will be detected. We can find the device we are interested in
          * through the manager's find method.
          */
-        final BluetoothDevice sensor = manager.find(null, args[0], null, 10000);
+        final BTDevice sensor = manager.find(null, args[0], null, 10000);
 
         if (sensor == null) {
             System.err.println("No sensor found with the provided address.");
@@ -179,7 +179,7 @@ public class Notification {
          * http://processors.wiki.ti.com/images/a/a8/BLE_SensorTag_GATT_Server.pdf. The service we are looking for has the
          * short UUID AA00 which we insert into the TI Base UUID: f000XXXX-0451-4000-b000-000000000000
          */
-        final BluetoothGattService tempService = sensor.find( "f000aa00-0451-4000-b000-000000000000");
+        final BTGattService tempService = sensor.find( "f000aa00-0451-4000-b000-000000000000");
 
         if (tempService == null) {
             System.err.println("This device does not have the temperature service we are looking for.");
@@ -188,9 +188,9 @@ public class Notification {
         }
         System.out.println("Found service " + tempService.getUUID());
 
-        final BluetoothGattCharacteristic tempValue = tempService.find("f000aa01-0451-4000-b000-000000000000");
-        final BluetoothGattCharacteristic tempConfig = tempService.find("f000aa02-0451-4000-b000-000000000000");
-        final BluetoothGattCharacteristic tempPeriod = tempService.find("f000aa03-0451-4000-b000-000000000000");
+        final BTGattChar tempValue = tempService.find("f000aa01-0451-4000-b000-000000000000");
+        final BTGattChar tempConfig = tempService.find("f000aa02-0451-4000-b000-000000000000");
+        final BTGattChar tempPeriod = tempService.find("f000aa03-0451-4000-b000-000000000000");
 
         if (tempValue == null || tempConfig == null || tempPeriod == null) {
             System.err.println("Could not find the correct characteristics.");

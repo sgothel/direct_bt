@@ -36,12 +36,12 @@
 
 #include <jau/jni/helper_jni.hpp>
 
-#include "direct_bt/BTTypes.hpp"
+#include "direct_bt/BTTypes0.hpp"
 #include "tinyb/BluetoothException.hpp"
 
 jobject get_bluetooth_type(JNIEnv *env, const char *field_name);
 
-void raise_java_exception(JNIEnv *env, const direct_bt::BluetoothException &e, const char* file, int line);
+void raise_java_exception(JNIEnv *env, const direct_bt::BTException &e, const char* file, int line);
 void raise_java_exception(JNIEnv *env, const tinyb::BluetoothException &e, const char* file, int line);
 
 /**

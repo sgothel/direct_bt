@@ -90,13 +90,13 @@ static int pairing_passkey = NO_PASSKEY;
 static BTSecurityLevel sec_level = BTSecurityLevel::UNSET;
 static SMPIOCapability io_capabilities = SMPIOCapability::UNSET;
 
-static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device);
+static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device);
 
-static void processReadyDevice(std::shared_ptr<DBTDevice> device);
+static void processReadyDevice(std::shared_ptr<BTDevice> device);
 
-static void removeDevice(std::shared_ptr<DBTDevice> device);
-static void resetAdapter(DBTAdapter *a, int mode);
-static bool startDiscovery(DBTAdapter *a, std::string msg);
+static void removeDevice(std::shared_ptr<BTDevice> device);
+static void resetAdapter(BTAdapter *a, int mode);
+static bool startDiscovery(BTAdapter *a, std::string msg);
 
 
 static std::unordered_set<BDAddressAndType> devicesInProcessing;
@@ -248,7 +248,7 @@ struct MySignatureResolvingKeyInfo {
 
 class MyAdapterStatusListener : public AdapterStatusListener {
 
-    void adapterSettingsChanged(DBTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
+    void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         const bool initialSetting = AdapterSetting::NONE == oldmask;
         if( initialSetting ) {
@@ -258,7 +258,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             fprintf(stderr, "****** SETTINGS_CHANGED: %s -> %s, changed %s\n", getAdapterSettingMaskString(oldmask).c_str(),
                     getAdapterSettingMaskString(newmask).c_str(), getAdapterSettingMaskString(changedmask).c_str());
         }
-        fprintf(stderr, "Status DBTAdapter:\n");
+        fprintf(stderr, "Status BTAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
         (void)timestamp;
 
@@ -271,13 +271,13 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    void discoveringChanged(DBTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) override {
+    void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) override {
         fprintf(stderr, "****** DISCOVERING: meta %s, changed[%s, enabled %d, keepAlive %d]: %s\n",
                 getScanTypeString(currentMeta).c_str(), getScanTypeString(changedType).c_str(), changedEnabled, keepAlive, a.toString().c_str());
         (void)timestamp;
     }
 
-    bool deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+    bool deviceFound(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
         (void)timestamp;
 
         if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressAndType().type
@@ -308,20 +308,20 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceUpdated(std::shared_ptr<DBTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
+    void deviceUpdated(std::shared_ptr<BTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
         if( SHOW_UPDATE_EVENTS ) {
             fprintf(stderr, "****** UPDATED: %s of %s\n", getEIRDataMaskString(updateMask).c_str(), device->toString(true).c_str());
         }
         (void)timestamp;
     }
 
-    void deviceConnected(std::shared_ptr<DBTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
         fprintf(stderr, "****** CONNECTED: %s\n", device->toString(true).c_str());
         (void)handle;
         (void)timestamp;
     }
 
-    void devicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+    void devicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
         fprintf(stderr, "****** PAIRING STATE: state %s, mode %s, %s\n",
             getSMPPairingStateString(state).c_str(), getPairingModeString(mode).c_str(), device->toString().c_str());
         (void)timestamp;
@@ -343,16 +343,16 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 break;
             case SMPPairingState::PASSKEY_EXPECTED: {
                 if( pairing_passkey != NO_PASSKEY ) {
-                    std::thread dc(&DBTDevice::setPairingPasskey, device, static_cast<uint32_t>(pairing_passkey)); // @suppress("Invalid arguments")
+                    std::thread dc(&BTDevice::setPairingPasskey, device, static_cast<uint32_t>(pairing_passkey)); // @suppress("Invalid arguments")
                     dc.detach();
                 } /* else {
-                    std::thread dc(&DBTDevice::setPairingPasskeyNegative, device); // @suppress("Invalid arguments")
+                    std::thread dc(&BTDevice::setPairingPasskeyNegative, device); // @suppress("Invalid arguments")
                     dc.detach();
                 } */
                 // next: KEY_DISTRIBUTION or FAILED
               } break;
             case SMPPairingState::NUMERIC_COMPARE_EXPECTED: {
-                std::thread dc(&DBTDevice::setPairingNumericComparison, device, true); // @suppress("Invalid arguments")
+                std::thread dc(&BTDevice::setPairingNumericComparison, device, true); // @suppress("Invalid arguments")
                 dc.detach();
                 // next: KEY_DISTRIBUTION or FAILED
               } break;
@@ -370,7 +370,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceReady(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+    void deviceReady(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
         (void)timestamp;
         if( !isDeviceProcessing( device->getAddressAndType() ) &&
             ( waitForDevices.empty() ||
@@ -389,7 +389,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceDisconnected(std::shared_ptr<BTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         fprintf(stderr, "****** DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
                 static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
                 uint16HexString(handle).c_str(), device->toString(true).c_str());
@@ -415,14 +415,14 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
 static const uuid16_t _TEMPERATURE_MEASUREMENT(GattCharacteristicType::TEMPERATURE_MEASUREMENT);
 
-class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
+class MyGATTEventListener : public AssociatedBTGattCharListener {
   public:
 
-    MyGATTEventListener(const GATTCharacteristic * characteristicMatch)
-    : AssociatedGATTCharacteristicListener(characteristicMatch) {}
+    MyGATTEventListener(const BTGattChar * characteristicMatch)
+    : AssociatedBTGattCharListener(characteristicMatch) {}
 
-    void notificationReceived(GATTCharacteristicRef charDecl, const TROOctets& char_value, const uint64_t timestamp) override {
-        const std::shared_ptr<DBTDevice> dev = charDecl->getDeviceChecked();
+    void notificationReceived(BTGattCharRef charDecl, const TROOctets& char_value, const uint64_t timestamp) override {
+        const std::shared_ptr<BTDevice> dev = charDecl->getDeviceChecked();
         const uint64_t tR = getCurrentMilliseconds();
         fprintf(stderr, "****** GATT Notify (td %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
                 (tR-timestamp), (tR-dev->getLastDiscoveryTimestamp()), dev->toString().c_str());
@@ -432,11 +432,11 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
         fprintf(stderr, "****** rawv %s\n", char_value.toString().c_str());
     }
 
-    void indicationReceived(GATTCharacteristicRef charDecl,
+    void indicationReceived(BTGattCharRef charDecl,
                             const TROOctets& char_value, const uint64_t timestamp,
                             const bool confirmationSent) override
     {
-        const std::shared_ptr<DBTDevice> dev = charDecl->getDeviceChecked();
+        const std::shared_ptr<BTDevice> dev = charDecl->getDeviceChecked();
         const uint64_t tR = getCurrentMilliseconds();
         fprintf(stderr, "****** GATT Indication (confirmed %d, td(msg %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
                 confirmationSent, (tR-timestamp), (tR-dev->getLastDiscoveryTimestamp()), dev->toString().c_str());
@@ -453,7 +453,7 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
     }
 };
 
-static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
+static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
     fprintf(stderr, "****** Connecting Device: Start %s\n", device->toString().c_str());
 
     if( UNPAIR_DEVICE_PRE ) {
@@ -491,7 +491,7 @@ static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
     }
 }
 
-static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
+static void processReadyDevice(std::shared_ptr<BTDevice> device) {
     fprintf(stderr, "****** Processing Ready Device: Start %s\n", device->toString().c_str());
     device->getAdapter().stopDiscovery(); // make sure for pending connections on failed connect*(..) command
     const uint64_t t1 = getCurrentMilliseconds();
@@ -536,7 +536,7 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
         device->getAdapter().printSharedPtrListOfDevices();
     }
     try {
-        jau::darray<GATTServiceRef> primServices = device->getGATTServices();
+        jau::darray<BTGattServiceRef> primServices = device->getGattServices();
         if( 0 == primServices.size() ) {
             fprintf(stderr, "****** Processing Ready Device: getServices() failed %s\n", device->toString().c_str());
             goto exit;
@@ -544,7 +544,7 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
         fprintf(stderr, "  **** JAU C-01 Service Count %d\n", (int)primServices.size());
         int _i=0;
         for(auto it = primServices.begin(); it != primServices.end(); it++) { // JAU FIXME
-            GATTServiceRef primSrv = *it;
+            BTGattServiceRef primSrv = *it;
             fprintf(stderr, "  [%2.2d] JAU C-01 Service %s\n", (int)_i, primSrv->toString().c_str());
             ++_i;
         }
@@ -566,15 +566,15 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
 #if 0
         {
             // WIP: Implement a simple Characteristic ping-pong writeValue <-> notify transmission for stress testing.
-            DBTManager & manager = device->getAdapter().getManager();
+            BTManager & manager = device->getAdapter().getManager();
             if( nullptr != charIdentifier && charIdentifier.length() > 0 ) {
-                GATTCharacteristic * char2 = (GATTCharacteristic*) nullptr;
+                BTGattChar * char2 = (BTGattChar*) nullptr;
                         // manager.find(BluetoothType.GATT_CHARACTERISTIC, null, charIdentifier, device);
                 fprintf(stderr, "Char UUID %s\n", charIdentifier.c_str());
                 fprintf(stderr, "  over device : %s\n", char2->toString().c_str());
                 if( nullptr != char2 ) {
                     bool cccdEnableResult[2];
-                    bool cccdRet = char2->addCharacteristicListener( std::shared_ptr<GATTCharacteristicListener>( new MyGATTEventListener(char2) ),
+                    bool cccdRet = char2->addCharListener( std::shared_ptr<BTGattCharListener>( new MyGATTEventListener(char2) ),
                                                                           cccdEnableResult );
                     if( !QUIET ) {
                         fprintf(stderr, "Added CharPingPongListenerRes Notification(%d), Indication(%d): Result %d\n",
@@ -592,12 +592,12 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
         }
 #endif
 
-        std::shared_ptr<GattGenericAccessSvc> ga = device->getGATTGenericAccess();
+        std::shared_ptr<GattGenericAccessSvc> ga = device->getGattGenericAccess();
         if( nullptr != ga && !QUIET ) {
             fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
         }
         {
-            std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
+            std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
             if( nullptr != gatt && gatt->isConnected() ) {
                 std::shared_ptr<GattDeviceInformationSvc> di = gatt->getDeviceInformation(primServices);
                 if( nullptr != di && !QUIET ) {
@@ -607,28 +607,28 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
         }
 
         for(size_t i=0; i<primServices.size(); i++) { // JAU FIXME
-            GATTServiceRef primServiceRef = primServices.at(i);
+            BTGattServiceRef primServiceRef = primServices.at(i);
             fprintf(stderr, "  [%2.2d] Service - Ptr %p\n", (int)i, primServiceRef.get());
             if( nullptr != primServiceRef ) {
-                GATTService & primService = *primServiceRef;
+                BTGattService & primService = *primServiceRef;
                 fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
             }
         }
         // raise (SIGABRT); // JAU FIXME
         for(size_t i=0; i<primServices.size(); i++) {
-            GATTService & primService = *primServices.at(i);
+            BTGattService & primService = *primServices.at(i);
             if( !QUIET ) {
                 // fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
                 fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
             }
-            jau::darray<GATTCharacteristicRef> & serviceCharacteristics = primService.characteristicList;
+            jau::darray<BTGattCharRef> & serviceCharacteristics = primService.characteristicList;
             for(size_t j=0; j<serviceCharacteristics.size(); j++) {
-                GATTCharacteristic & serviceChar = *serviceCharacteristics.at(j);
+                BTGattChar & serviceChar = *serviceCharacteristics.at(j);
                 if( !QUIET ) {
                     fprintf(stderr, "  [%2.2d.%2.2d] CharDef: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
                 }
-                if( serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Read) ) {
-                    POctets value(GATTHandler::number(GATTHandler::Defaults::MAX_ATT_MTU), 0);
+                if( serviceChar.hasProperties(BTGattChar::PropertyBitVal::Read) ) {
+                    POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0);
                     if( serviceChar.readValue(value) ) {
                         std::string sval = dfa_utf8_decode(value.get_ptr(), value.getSize());
                         if( !QUIET ) {
@@ -636,15 +636,15 @@ static void processReadyDevice(std::shared_ptr<DBTDevice> device) {
                         }
                     }
                 }
-                jau::darray<GATTDescriptorRef> & charDescList = serviceChar.descriptorList;
+                jau::darray<BTGattDescRef> & charDescList = serviceChar.descriptorList;
                 for(size_t k=0; k<charDescList.size(); k++) {
-                    GATTDescriptor & charDesc = *charDescList.at(k);
+                    BTGattDesc & charDesc = *charDescList.at(k);
                     if( !QUIET ) {
                         fprintf(stderr, "  [%2.2d.%2.2d.%2.2d] Desc: %s\n", (int)i, (int)j, (int)k, charDesc.toString().c_str());
                     }
                 }
                 bool cccdEnableResult[2];
-                bool cccdRet = serviceChar.addCharacteristicListener( std::shared_ptr<GATTCharacteristicListener>( new MyGATTEventListener(&serviceChar) ),
+                bool cccdRet = serviceChar.addCharListener( std::shared_ptr<BTGattCharListener>( new MyGATTEventListener(&serviceChar) ),
                                                                       cccdEnableResult );
                 if( !QUIET ) {
                     fprintf(stderr, "  [%2.2d.%2.2d] addCharacteristicListener Notification(%d), Indication(%d): Result %d\n",
@@ -711,7 +711,7 @@ exit:
     }
 }
 
-static void removeDevice(std::shared_ptr<DBTDevice> device) {
+static void removeDevice(std::shared_ptr<BTDevice> device) {
     fprintf(stderr, "****** Remove Device: removing: %s\n", device->getAddressAndType().toString().c_str());
     device->getAdapter().stopDiscovery();
 
@@ -724,19 +724,19 @@ static void removeDevice(std::shared_ptr<DBTDevice> device) {
     }
 }
 
-static void resetAdapter(DBTAdapter *a, int mode) {
+static void resetAdapter(BTAdapter *a, int mode) {
     fprintf(stderr, "****** Reset Adapter: reset[%d] start: %s\n", mode, a->toString().c_str());
     HCIStatusCode res = a->reset();
     fprintf(stderr, "****** Reset Adapter: reset[%d] end: %s, %s\n", mode, getHCIStatusCodeString(res).c_str(), a->toString().c_str());
 }
 
-static bool startDiscovery(DBTAdapter *a, std::string msg) {
+static bool startDiscovery(BTAdapter *a, std::string msg) {
     HCIStatusCode status = a->startDiscovery( true );
     fprintf(stderr, "****** Start discovery (%s) result: %s\n", msg.c_str(), getHCIStatusCodeString(status).c_str());
     return HCIStatusCode::SUCCESS == status;
 }
 
-static bool initAdapter(std::shared_ptr<DBTAdapter>& adapter) {
+static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     if( !adapter->isPowered() ) { // should have been covered above
         fprintf(stderr, "Adapter not powered (2): %s\n", adapter->toString().c_str());
         return false;
@@ -768,7 +768,7 @@ static bool initAdapter(std::shared_ptr<DBTAdapter>& adapter) {
     return true;
 }
 
-static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<DBTAdapter>& adapter) {
+static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>& adapter) {
     if( added ) {
         if( initAdapter( adapter ) ) {
             fprintf(stderr, "****** Adapter ADDED__: InitOK. %s\n", adapter->toString().c_str());
@@ -786,7 +786,7 @@ void test() {
 
     timestamp_t0 = getCurrentMilliseconds();
 
-    DBTManager & mngr = DBTManager::get();
+    BTManager & mngr = BTManager::get();
     mngr.addChangedAdapterSetCallback(myChangedAdapterSetFunc);
 
     while( !done ) {
@@ -807,9 +807,9 @@ void test() {
     //
     // just a manually controlled pull down to show status, not required
     //
-    jau::darray<std::shared_ptr<DBTAdapter>> adapterList = mngr.getAdapters();
+    jau::darray<std::shared_ptr<BTAdapter>> adapterList = mngr.getAdapters();
 
-    jau::for_each_const(adapterList, [](const std::shared_ptr<DBTAdapter>& adapter) {
+    jau::for_each_const(adapterList, [](const std::shared_ptr<BTAdapter>& adapter) {
         fprintf(stderr, "****** EOL Adapter's Devices - pre close: %s\n", adapter->toString().c_str());
         adapter->printSharedPtrListOfDevices();
     });
@@ -819,7 +819,7 @@ void test() {
 
         mngr.close();
     }
-    jau::for_each_const(adapterList, [](const std::shared_ptr<DBTAdapter>& adapter) {
+    jau::for_each_const(adapterList, [](const std::shared_ptr<BTAdapter>& adapter) {
         fprintf(stderr, "****** EOL Adapter's Devices - post close: %s\n", adapter->toString().c_str());
         adapter->printSharedPtrListOfDevices();
     });
@@ -938,10 +938,10 @@ int main(int argc, char *argv[])
     test();
     fprintf(stderr, "****** TEST end\n");
     if( true ) {
-        // Just for testing purpose, i.e. triggering DBTManager::close() within the test controlled app,
+        // Just for testing purpose, i.e. triggering BTManager::close() within the test controlled app,
         // instead of program shutdown.
         fprintf(stderr, "****** Manager close start\n");
-        DBTManager & mngr = DBTManager::get(); // already existing
+        BTManager & mngr = BTManager::get(); // already existing
         mngr.close();
         fprintf(stderr, "****** Manager close end\n");
     }

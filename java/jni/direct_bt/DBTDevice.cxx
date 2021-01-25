@@ -31,36 +31,36 @@
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
-#include "direct_bt/DBTDevice.hpp"
-#include "direct_bt/DBTAdapter.hpp"
-#include "direct_bt/DBTManager.hpp"
+#include "direct_bt/BTDevice.hpp"
+#include "direct_bt/BTAdapter.hpp"
+#include "direct_bt/BTManager.hpp"
 
 using namespace direct_bt;
 using namespace jau;
 
-static const std::string _notificationReceivedMethodArgs("(Lorg/tinyb/BluetoothGattCharacteristic;[BJ)V");
-static const std::string _indicationReceivedMethodArgs("(Lorg/tinyb/BluetoothGattCharacteristic;[BJZ)V");
+static const std::string _notificationReceivedMethodArgs("(Lorg/direct_bt/BTGattChar;[BJ)V");
+static const std::string _indicationReceivedMethodArgs("(Lorg/direct_bt/BTGattChar;[BJZ)V");
 
-class JNICharacteristicListener : public GATTCharacteristicListener {
+class JNICharacteristicListener : public BTGattCharListener {
   private:
     /**
         package org.tinyb;
 
-        public abstract class GATTCharacteristicListener {
+        public abstract class BTGattCharListener {
             long nativeInstance;
 
-            public void notificationReceived(final BluetoothGattCharacteristic charDecl,
+            public void notificationReceived(final BTGattChar charDecl,
                                              final byte[] value, final long timestamp) {
             }
 
-            public void indicationReceived(final BluetoothGattCharacteristic charDecl,
+            public void indicationReceived(final BTGattChar charDecl,
                                            final byte[] value, final long timestamp,
                                            final boolean confirmationSent) {
             }
 
         };
     */
-    const GATTCharacteristic * associatedCharacteristicRef;
+    const BTGattChar * associatedCharacteristicRef;
     JNIGlobalRef listenerObj; // keep listener instance alive
     JNIGlobalRef associatedCharacteristicObj; // keeps associated characteristic alive, if not null
     jmethodID  mNotificationReceived = nullptr;
@@ -68,7 +68,7 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
 
   public:
 
-    JNICharacteristicListener(JNIEnv *env, DBTDevice *device, jobject listener, GATTCharacteristic * associatedCharacteristicRef_)
+    JNICharacteristicListener(JNIEnv *env, BTDevice *device, jobject listener, BTGattChar * associatedCharacteristicRef_)
     : associatedCharacteristicRef(associatedCharacteristicRef_),
       listenerObj(listener)
     {
@@ -86,23 +86,23 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
         mNotificationReceived = search_method(env, listenerClazz, "notificationReceived", _notificationReceivedMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mNotificationReceived ) {
-            throw InternalError("GATTCharacteristicListener has no notificationReceived"+_notificationReceivedMethodArgs+" method, for "+device->toString(), E_FILE_LINE);
+            throw InternalError("BTGattCharListener has no notificationReceived"+_notificationReceivedMethodArgs+" method, for "+device->toString(), E_FILE_LINE);
         }
         mIndicationReceived = search_method(env, listenerClazz, "indicationReceived", _indicationReceivedMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mNotificationReceived ) {
-            throw InternalError("GATTCharacteristicListener has no indicationReceived"+_indicationReceivedMethodArgs+" method, for "+device->toString(), E_FILE_LINE);
+            throw InternalError("BTGattCharListener has no indicationReceived"+_indicationReceivedMethodArgs+" method, for "+device->toString(), E_FILE_LINE);
         }
     }
 
-    bool match(const GATTCharacteristic & characteristic) noexcept override {
+    bool match(const BTGattChar & characteristic) noexcept override {
         if( nullptr == associatedCharacteristicRef ) {
             return true;
         }
         return characteristic == *associatedCharacteristicRef;
     }
 
-    void notificationReceived(GATTCharacteristicRef charDecl,
+    void notificationReceived(BTGattCharRef charDecl,
                               const TROOctets& charValue, const uint64_t timestamp) override {
         std::shared_ptr<jau::JavaAnon> jCharDeclRef = charDecl->getJavaObject();
         if( !jau::JavaGlobalObj::isValid(jCharDeclRef) ) {
@@ -122,7 +122,7 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
         env->DeleteLocalRef(jval);
     }
 
-    void indicationReceived(GATTCharacteristicRef charDecl,
+    void indicationReceived(BTGattCharRef charDecl,
                             const TROOctets& charValue, const uint64_t timestamp,
                             const bool confirmationSent) override {
         std::shared_ptr<jau::JavaAnon> jCharDeclRef = charDecl->getJavaObject();
@@ -148,7 +148,7 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
 void Java_jau_direct_1bt_DBTDevice_initImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -157,7 +157,7 @@ void Java_jau_direct_1bt_DBTDevice_initImpl(JNIEnv *env, jobject obj)
 
 jstring Java_jau_direct_1bt_DBTDevice_getNameImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *nativePtr = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *nativePtr = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
         return from_string_to_jstring(env, nativePtr->getName());
     } catch(...) {
@@ -168,7 +168,7 @@ jstring Java_jau_direct_1bt_DBTDevice_getNameImpl(JNIEnv *env, jobject obj) {
 
 jstring Java_jau_direct_1bt_DBTDevice_toStringImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *nativePtr = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *nativePtr = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
         return from_string_to_jstring(env, nativePtr->toString());
     } catch(...) {
@@ -177,7 +177,7 @@ jstring Java_jau_direct_1bt_DBTDevice_toStringImpl(JNIEnv *env, jobject obj) {
     return nullptr;
 }
 
-jboolean Java_jau_direct_1bt_DBTDevice_addCharacteristicListener(JNIEnv *env, jobject obj, jobject listener, jobject jAssociatedCharacteristic) {
+jboolean Java_jau_direct_1bt_DBTDevice_addCharListener(JNIEnv *env, jobject obj, jobject listener, jobject jAssociatedCharacteristic) {
     try {
         if( nullptr == listener ) {
             throw IllegalArgumentException("characteristicListener argument is null", E_FILE_LINE);
@@ -190,22 +190,22 @@ jboolean Java_jau_direct_1bt_DBTDevice_addCharacteristicListener(JNIEnv *env, jo
                 return false;
             }
         }
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
+        std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
         if( nullptr == gatt ) {
             throw IllegalStateException("Characteristic's device GATTHandle not connected: "+ device->toString(), E_FILE_LINE);
         }
 
-        GATTCharacteristic * associatedCharacteristicRef = nullptr;
+        BTGattChar * associatedCharacteristicRef = nullptr;
         if( nullptr != jAssociatedCharacteristic ) {
-            associatedCharacteristicRef = getJavaUplinkObject<GATTCharacteristic>(env, jAssociatedCharacteristic);
+            associatedCharacteristicRef = getJavaUplinkObject<BTGattChar>(env, jAssociatedCharacteristic);
         }
 
-        std::shared_ptr<GATTCharacteristicListener> l =
-                std::shared_ptr<GATTCharacteristicListener>( new JNICharacteristicListener(env, device, listener, associatedCharacteristicRef) );
+        std::shared_ptr<BTGattCharListener> l =
+                std::shared_ptr<BTGattCharListener>( new JNICharacteristicListener(env, device, listener, associatedCharacteristicRef) );
 
-        if( gatt->addCharacteristicListener(l) ) {
+        if( gatt->addCharListener(l) ) {
             setInstance(env, listener, l.get());
             return JNI_TRUE;
         }
@@ -215,7 +215,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_addCharacteristicListener(JNIEnv *env, jo
     return JNI_FALSE;
 }
 
-jboolean Java_jau_direct_1bt_DBTDevice_removeCharacteristicListener(JNIEnv *env, jobject obj, jobject jlistener) {
+jboolean Java_jau_direct_1bt_DBTDevice_removeCharListener(JNIEnv *env, jobject obj, jobject jlistener) {
     try {
         if( nullptr == jlistener ) {
             throw IllegalArgumentException("characteristicListener argument is null", E_FILE_LINE);
@@ -228,20 +228,20 @@ jboolean Java_jau_direct_1bt_DBTDevice_removeCharacteristicListener(JNIEnv *env,
         }
         setObjectRef<JNICharacteristicListener>(env, jlistener, nullptr, "nativeInstance");
 
-        DBTDevice *device = getJavaUplinkObjectUnchecked<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObjectUnchecked<BTDevice>(env, obj);
         if( nullptr == device ) {
             // OK to have device being deleted already @ shutdown
             return 0;
         }
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
+        std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
         if( nullptr == gatt ) {
-            // OK to have GATTHandler being shutdown @ disable
+            // OK to have BTGattHandler being shutdown @ disable
             DBG_PRINT("Characteristic's device GATTHandle not connected: %s", device->toString().c_str());
             return false;
         }
 
-        if( ! gatt->removeCharacteristicListener(pre) ) {
+        if( ! gatt->removeCharListener(pre) ) {
             WARN_PRINT("Failed to remove characteristicListener with nativeInstance: %p at %s", pre, device->toString().c_str());
             return false;
         }
@@ -257,23 +257,23 @@ jint Java_jau_direct_1bt_DBTDevice_removeAllAssociatedCharacteristicListener(JNI
         if( nullptr == jAssociatedCharacteristic ) {
             throw IllegalArgumentException("associatedCharacteristic argument is null", E_FILE_LINE);
         }
-        DBTDevice *device = getJavaUplinkObjectUnchecked<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObjectUnchecked<BTDevice>(env, obj);
         if( nullptr == device ) {
             // OK to have device being deleted already @ shutdown
             return 0;
         }
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
+        std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
         if( nullptr == gatt ) {
-            // OK to have GATTHandler being shutdown @ disable
+            // OK to have BTGattHandler being shutdown @ disable
             DBG_PRINT("Characteristic's device GATTHandle not connected: %s", device->toString().c_str());
             return 0;
         }
 
-        GATTCharacteristic * associatedCharacteristicRef = getJavaUplinkObject<GATTCharacteristic>(env, jAssociatedCharacteristic);
+        BTGattChar * associatedCharacteristicRef = getJavaUplinkObject<BTGattChar>(env, jAssociatedCharacteristic);
         JavaGlobalObj::check(associatedCharacteristicRef->getJavaObject(), E_FILE_LINE);
 
-        return gatt->removeAllAssociatedCharacteristicListener(associatedCharacteristicRef);
+        return gatt->removeAllAssociatedCharListener(associatedCharacteristicRef);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -282,19 +282,19 @@ jint Java_jau_direct_1bt_DBTDevice_removeAllAssociatedCharacteristicListener(JNI
 
 jint Java_jau_direct_1bt_DBTDevice_removeAllCharacteristicListener(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *device = getJavaUplinkObjectUnchecked<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObjectUnchecked<BTDevice>(env, obj);
         if( nullptr == device ) {
             // OK to have device being deleted already @ shutdown
             return 0;
         }
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
+        std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
         if( nullptr == gatt ) {
-            // OK to have GATTHandler being shutdown @ disable
+            // OK to have BTGattHandler being shutdown @ disable
             DBG_PRINT("Characteristic's device GATTHandle not connected: %s", device->toString().c_str());
             return 0;
         }
-        return gatt->removeAllCharacteristicListener();
+        return gatt->removeAllCharListener();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -305,10 +305,10 @@ void Java_jau_direct_1bt_DBTDevice_deleteImpl(JNIEnv *env, jobject obj, jlong na
 {
     (void)obj;
     try {
-        DBTDevice *device = castInstance<DBTDevice>(nativeInstance);
+        BTDevice *device = castInstance<BTDevice>(nativeInstance);
         DBG_PRINT("Java_jau_direct_1bt_DBTDevice_deleteImpl (remove only) %s", device->toString().c_str());
         device->remove();
-        // No delete: DBTDevice instance owned by DBTAdapter
+        // No delete: BTDevice instance owned by BTAdapter
         // However, device->remove() might issue destruction
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -318,7 +318,7 @@ void Java_jau_direct_1bt_DBTDevice_deleteImpl(JNIEnv *env, jobject obj, jlong na
 jbyte Java_jau_direct_1bt_DBTDevice_disconnectImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return (jint) number( device->disconnect() );
     } catch(...) {
@@ -330,7 +330,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_disconnectImpl(JNIEnv *env, jobject obj)
 jboolean Java_jau_direct_1bt_DBTDevice_removeImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         device->remove();
     } catch(...) {
@@ -342,7 +342,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_removeImpl(JNIEnv *env, jobject obj)
 jbyte Java_jau_direct_1bt_DBTDevice_connectDefaultImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return (jbyte) number( device->connectDefault() );
     } catch(...) {
@@ -354,7 +354,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_connectDefaultImpl(JNIEnv *env, jobject obj)
 jbyte Java_jau_direct_1bt_DBTDevice_connectLEImpl0(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         HCIStatusCode res = device->connectLE();
         return (jbyte) number(res);
@@ -370,7 +370,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_connectLEImpl1(JNIEnv *env, jobject obj,
                                                      jshort latency, jshort timeout)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         HCIStatusCode res = device->connectLE(interval, window, min_interval, max_interval, latency, timeout);
         return (jbyte) number(res);
@@ -382,7 +382,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_connectLEImpl1(JNIEnv *env, jobject obj,
 
 jbyte Java_jau_direct_1bt_DBTDevice_getAvailableSMPKeysImpl(JNIEnv *env, jobject obj, jboolean responder) {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         return number( device->getAvailableSMPKeys(JNI_TRUE == responder) ); // assign data of new key copy to JNI critical-array
@@ -394,7 +394,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getAvailableSMPKeysImpl(JNIEnv *env, jobject
 
 void Java_jau_direct_1bt_DBTDevice_getLongTermKeyInfoImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         if( nullptr == jsink ) {
@@ -418,7 +418,7 @@ void Java_jau_direct_1bt_DBTDevice_getLongTermKeyInfoImpl(JNIEnv *env, jobject o
 
 jbyte Java_jau_direct_1bt_DBTDevice_setLongTermKeyInfoImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         if( nullptr == jsource ) {
@@ -445,7 +445,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_setLongTermKeyInfoImpl(JNIEnv *env, jobject 
 
 void Java_jau_direct_1bt_DBTDevice_getSignatureResolvingKeyInfoImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         if( nullptr == jsink ) {
@@ -469,7 +469,7 @@ void Java_jau_direct_1bt_DBTDevice_getSignatureResolvingKeyInfoImpl(JNIEnv *env,
 
 jbyte Java_jau_direct_1bt_DBTDevice_unpairImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         HCIStatusCode res = device->unpair();
         return (jbyte) number(res);
@@ -481,7 +481,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_unpairImpl(JNIEnv *env, jobject obj) {
 
 jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityLevelImpl(JNIEnv *env, jobject obj, jbyte jsec_level) {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         return device->setConnSecurityLevel( getBTSecurityLevel( static_cast<uint8_t>(jsec_level) ));
@@ -493,7 +493,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityLevelImpl(JNIEnv *env, job
 
 jbyte Java_jau_direct_1bt_DBTDevice_getConnSecurityLevelImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         return number( device->getConnSecurityLevel() );
@@ -505,7 +505,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getConnSecurityLevelImpl(JNIEnv *env, jobjec
 
 jboolean Java_jau_direct_1bt_DBTDevice_setConnIOCapabilityImpl(JNIEnv *env, jobject obj, jbyte jio_cap) {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         return device->setConnIOCapability( getSMPIOCapability( static_cast<uint8_t>(jio_cap) ));
@@ -517,7 +517,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_setConnIOCapabilityImpl(JNIEnv *env, jobj
 
 jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityImpl(JNIEnv *env, jobject obj, jbyte jsec_level, jbyte jio_cap) {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         return device->setConnSecurity( getBTSecurityLevel( static_cast<uint8_t>(jsec_level) ),
@@ -530,7 +530,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityImpl(JNIEnv *env, jobject 
 
 jbyte Java_jau_direct_1bt_DBTDevice_getConnIOCapabilityImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         return number( device->getConnIOCapability() );
@@ -542,7 +542,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getConnIOCapabilityImpl(JNIEnv *env, jobject
 
 jbyte Java_jau_direct_1bt_DBTDevice_getPairingModeImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         return number( device->getPairingMode() );
@@ -554,7 +554,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getPairingModeImpl(JNIEnv *env, jobject obj)
 
 jbyte Java_jau_direct_1bt_DBTDevice_getPairingStateImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         return static_cast<uint8_t>( device->getPairingState() );
@@ -566,7 +566,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getPairingStateImpl(JNIEnv *env, jobject obj
 
 jbyte Java_jau_direct_1bt_DBTDevice_setPairingPasskeyImpl(JNIEnv *env, jobject obj, jint jpasskey) {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         // const std::string passkey = nullptr != jpasskey ? from_jstring_to_string(env, jpasskey) : std::string();
@@ -579,7 +579,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_setPairingPasskeyImpl(JNIEnv *env, jobject o
 
 jbyte Java_jau_direct_1bt_DBTDevice_setPairingNumericComparisonImpl(JNIEnv *env, jobject obj, jboolean jequal) {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         return number( device->setPairingNumericComparison( JNI_TRUE == jequal ? true : false ) );
@@ -593,32 +593,32 @@ jbyte Java_jau_direct_1bt_DBTDevice_setPairingNumericComparisonImpl(JNIEnv *env,
 // getter
 //
 
-static const std::string _serviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTDevice;ZLjava/lang/String;SS)V");
+static const std::string _serviceClazzCtorArgs("(JLjau/direct_bt/DBTDevice;ZLjava/lang/String;SS)V");
 
 jobject Java_jau_direct_1bt_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        jau::darray<GATTServiceRef> services = device->getGATTServices(); // implicit GATT connect and discovery if required incl GenericAccess retrieval
+        jau::darray<BTGattServiceRef> services = device->getGattServices(); // implicit GATT connect and discovery if required incl GenericAccess retrieval
         if( services.size() > 0 ) {
-            std::shared_ptr<GattGenericAccessSvc> ga = device->getGATTGenericAccess();
+            std::shared_ptr<GattGenericAccessSvc> ga = device->getGattGenericAccess();
             if( nullptr != ga ) {
                 env->SetShortField(obj, getField(env, obj, "appearance", "S"), static_cast<jshort>(ga->appearance));
                 java_exception_check_and_throw(env, E_FILE_LINE);
-                DBG_PRINT("DBTDevice.getServices(): GenericAccess: %s", ga->toString().c_str());
+                DBG_PRINT("BTDevice.getServices(): GenericAccess: %s", ga->toString().c_str());
             }
         } else {
             return nullptr;
         }
 
-        // DBTGattService(final long nativeInstance, final DBTDevice device, final boolean isPrimary,
+        // BTGattService(final long nativeInstance, final BTDevice device, final boolean isPrimary,
         //                final String type_uuid, final short handleStart, final short handleEnd)
 
-        std::function<jobject(JNIEnv*, jclass, jmethodID, GATTService*)> ctor_service =
-                [](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, GATTService *service)->jobject {
+        std::function<jobject(JNIEnv*, jclass, jmethodID, BTGattService*)> ctor_service =
+                [](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, BTGattService *service)->jobject {
                     // prepare adapter ctor
-                    std::shared_ptr<DBTDevice> _device = service->getDeviceChecked();
+                    std::shared_ptr<BTDevice> _device = service->getDeviceChecked();
                     JavaGlobalObj::check(_device->getJavaObject(), E_FILE_LINE);
                     jobject jdevice = JavaGlobalObj::GetObject(_device->getJavaObject());
                     const jboolean isPrimary = service->isPrimary;
@@ -637,7 +637,7 @@ jobject Java_jau_direct_1bt_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj) 
                     env_->DeleteLocalRef(jservice);
                     return JavaGlobalObj::GetObject(jServiceRef);
                 };
-        return convert_vector_sharedptr_to_jarraylist<jau::darray<GATTServiceRef>, GATTService>(
+        return convert_vector_sharedptr_to_jarraylist<jau::darray<BTGattServiceRef>, BTGattService>(
                 env, services, _serviceClazzCtorArgs.c_str(), ctor_service);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -648,7 +648,7 @@ jobject Java_jau_direct_1bt_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj) 
 jboolean Java_jau_direct_1bt_DBTDevice_pingGATTImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         return device->pingGATT() ? JNI_TRUE : JNI_FALSE;
@@ -661,7 +661,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_pingGATTImpl(JNIEnv *env, jobject obj)
 jstring Java_jau_direct_1bt_DBTDevice_getIcon(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return nullptr; // FIXME
     } catch(...) {
@@ -673,7 +673,7 @@ jstring Java_jau_direct_1bt_DBTDevice_getIcon(JNIEnv *env, jobject obj)
 void Java_jau_direct_1bt_DBTDevice_setTrustedImpl(JNIEnv *env, jobject obj, jboolean value)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         (void)value;
         // FIXME
@@ -685,7 +685,7 @@ void Java_jau_direct_1bt_DBTDevice_setTrustedImpl(JNIEnv *env, jobject obj, jboo
 void Java_jau_direct_1bt_DBTDevice_setBlockedImpl(JNIEnv *env, jobject obj, jboolean value)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         (void)value;
         // FIXME
@@ -697,7 +697,7 @@ void Java_jau_direct_1bt_DBTDevice_setBlockedImpl(JNIEnv *env, jobject obj, jboo
 jboolean JNICALL Java_jau_direct_1bt_DBTDevice_getLegacyPairing(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return JNI_FALSE; // FIXME
     } catch(...) {
@@ -709,7 +709,7 @@ jboolean JNICALL Java_jau_direct_1bt_DBTDevice_getLegacyPairing(JNIEnv *env, job
 jshort Java_jau_direct_1bt_DBTDevice_getRSSI(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return (jshort) device->getRSSI();
     } catch(...) {
@@ -722,7 +722,7 @@ jshort Java_jau_direct_1bt_DBTDevice_getRSSI(JNIEnv *env, jobject obj)
 jobjectArray Java_jau_direct_1bt_DBTDevice_getUUIDs(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return nullptr; // FIXME
     } catch(...) {
@@ -734,7 +734,7 @@ jobjectArray Java_jau_direct_1bt_DBTDevice_getUUIDs(JNIEnv *env, jobject obj)
 jstring Java_jau_direct_1bt_DBTDevice_getModalias(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return nullptr; // FIXME
     } catch(...) {
@@ -746,7 +746,7 @@ jstring Java_jau_direct_1bt_DBTDevice_getModalias(JNIEnv *env, jobject obj)
 jobject Java_jau_direct_1bt_DBTDevice_getManufacturerData(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         std::shared_ptr<ManufactureSpecificData> mdata = device->getManufactureSpecificData();
 
@@ -783,7 +783,7 @@ jobject Java_jau_direct_1bt_DBTDevice_getManufacturerData(JNIEnv *env, jobject o
 jshort Java_jau_direct_1bt_DBTDevice_getTxPower(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         return (jshort) device->getTxPower();
     } catch(...) {
@@ -834,7 +834,7 @@ typedef std::shared_ptr<BooleanDeviceCBContext> BooleanDeviceCBContextRef;
 // Blocked
 //
 
-static void disableBlockedNotifications(JNIEnv *env, jobject obj, DBTManager &mgmt)
+static void disableBlockedNotifications(JNIEnv *env, jobject obj, BTManager &mgmt)
 {
     InvocationFunc<bool, const MgmtEvent&> * funcptr =
             getObjectRef<InvocationFunc<bool, const MgmtEvent&>>(env, obj, "blockedNotificationRef");
@@ -854,9 +854,9 @@ static void disableBlockedNotifications(JNIEnv *env, jobject obj, DBTManager &mg
 void Java_jau_direct_1bt_DBTDevice_disableBlockedNotificationsImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        DBTManager & mgmt = device->getAdapter().getManager();
+        BTManager & mgmt = device->getAdapter().getManager();
 
         disableBlockedNotifications(env, obj, mgmt);
     } catch(...) {
@@ -866,10 +866,10 @@ void Java_jau_direct_1bt_DBTDevice_disableBlockedNotificationsImpl(JNIEnv *env, 
 void Java_jau_direct_1bt_DBTDevice_enableBlockedNotificationsImpl(JNIEnv *env, jobject obj, jobject javaCallback)
 {
     try {
-        DBTDevice *device= getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device= getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        DBTAdapter & adapter = device->getAdapter();
-        DBTManager & mgmt = adapter.getManager();
+        BTAdapter & adapter = device->getAdapter();
+        BTManager & mgmt = adapter.getManager();
 
         disableBlockedNotifications(env, obj, mgmt);
 
@@ -924,7 +924,7 @@ void Java_jau_direct_1bt_DBTDevice_enableBlockedNotificationsImpl(JNIEnv *env, j
 // Paired
 //
 
-static void disablePairedNotifications(JNIEnv *env, jobject obj, DBTManager &mgmt)
+static void disablePairedNotifications(JNIEnv *env, jobject obj, BTManager &mgmt)
 {
     InvocationFunc<bool, const MgmtEvent&> * funcptr =
             getObjectRef<InvocationFunc<bool, const MgmtEvent&>>(env, obj, "pairedNotificationRef");
@@ -941,9 +941,9 @@ static void disablePairedNotifications(JNIEnv *env, jobject obj, DBTManager &mgm
 void Java_jau_direct_1bt_DBTDevice_disablePairedNotificationsImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTDevice *device = getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        DBTManager & mgmt = device->getAdapter().getManager();
+        BTManager & mgmt = device->getAdapter().getManager();
 
         disablePairedNotifications(env, obj, mgmt);
     } catch(...) {
@@ -953,10 +953,10 @@ void Java_jau_direct_1bt_DBTDevice_disablePairedNotificationsImpl(JNIEnv *env, j
 void Java_jau_direct_1bt_DBTDevice_enablePairedNotificationsImpl(JNIEnv *env, jobject obj, jobject javaCallback)
 {
     try {
-        DBTDevice *device= getJavaUplinkObject<DBTDevice>(env, obj);
+        BTDevice *device= getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        DBTAdapter & adapter = device->getAdapter();
-        DBTManager & mgmt = adapter.getManager();
+        BTAdapter & adapter = device->getAdapter();
+        BTManager & mgmt = adapter.getManager();
 
         disablePairedNotifications(env, obj, mgmt);
 

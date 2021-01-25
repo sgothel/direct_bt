@@ -35,17 +35,17 @@ import org.direct_bt.AdapterStatusListener;
 import org.direct_bt.BDAddressAndType;
 import org.direct_bt.BDAddressType;
 import org.direct_bt.BTSecurityLevel;
-import org.direct_bt.BluetoothDevice;
-import org.direct_bt.BluetoothException;
-import org.direct_bt.BluetoothGattCharacteristic;
-import org.direct_bt.BluetoothGattDescriptor;
-import org.direct_bt.BluetoothGattService;
-import org.direct_bt.BluetoothNotification;
-import org.direct_bt.BluetoothObject;
-import org.direct_bt.BluetoothType;
+import org.direct_bt.BTDevice;
+import org.direct_bt.BTException;
+import org.direct_bt.BTGattChar;
+import org.direct_bt.BTGattDesc;
+import org.direct_bt.BTGattService;
+import org.direct_bt.BTNotification;
+import org.direct_bt.BTObject;
+import org.direct_bt.BTType;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.EUI48;
-import org.direct_bt.GATTCharacteristicListener;
+import org.direct_bt.BTGattCharListener;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPIOCapability;
@@ -54,7 +54,7 @@ import org.direct_bt.SMPLongTermKeyInfo;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.SMPSignatureResolvingKeyInfo;
 
-public class DBTDevice extends DBTObject implements BluetoothDevice
+public class DBTDevice extends DBTObject implements BTDevice
 {
     private static final boolean DEBUG = DBTManager.DEBUG;
 
@@ -74,29 +74,29 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     private final Object userCallbackLock = new Object();
 
     private final long blockedNotificationRef = 0;
-    private BluetoothNotification<Boolean> userBlockedNotificationsCB = null;
+    private BTNotification<Boolean> userBlockedNotificationsCB = null;
     private final AtomicBoolean isBlocked = new AtomicBoolean(false);
 
     private final long pairedNotificationRef = 0;
-    private BluetoothNotification<Boolean> userPairedNotificationsCB = null;
+    private BTNotification<Boolean> userPairedNotificationsCB = null;
     private final AtomicBoolean isPaired = new AtomicBoolean(false);
 
     private final long trustedNotificationRef = 0;
-    private BluetoothNotification<Boolean> userTrustedNotificationsCB = null;
+    private BTNotification<Boolean> userTrustedNotificationsCB = null;
     private final AtomicBoolean isTrusted = new AtomicBoolean(false);
 
-    private BluetoothNotification<Boolean> userConnectedNotificationsCB = null;
+    private BTNotification<Boolean> userConnectedNotificationsCB = null;
     private final AtomicBoolean isConnected = new AtomicBoolean(false);
 
-    private BluetoothNotification<Short> userRSSINotificationsCB = null;
-    private BluetoothNotification<Map<Short, byte[]> > userManufDataNotificationsCB = null;
-    private BluetoothNotification<Boolean> userServicesResolvedNotificationsCB = null;
+    private BTNotification<Short> userRSSINotificationsCB = null;
+    private BTNotification<Map<Short, byte[]> > userManufDataNotificationsCB = null;
+    private BTNotification<Boolean> userServicesResolvedNotificationsCB = null;
     private final AtomicBoolean servicesResolved = new AtomicBoolean(false);
     private short appearance = 0;
 
     final AdapterStatusListener statusListener = new AdapterStatusListener() {
         @Override
-        public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
+        public void deviceUpdated(final BTDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
             final boolean nameUpdated = updateMask.isSet( EIRDataTypeSet.DataType.NAME );
             final boolean rssiUpdated = updateMask.isSet( EIRDataTypeSet.DataType.RSSI );
             final boolean mdUpdated = updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA );
@@ -119,7 +119,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             }
         }
         @Override
-        public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) {
+        public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
             if( isConnected.compareAndSet(false, true) ) {
                 synchronized(userCallbackLock) {
                     if( null != userConnectedNotificationsCB ) {
@@ -134,7 +134,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             }
         }
         @Override
-        public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
+        public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
             devicePaired(false);
 
             if( isConnected.compareAndSet(true, false) ) {
@@ -153,7 +153,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         }
     };
 
-    final private BluetoothNotification<Boolean> blockedNotificationsCB = new BluetoothNotification<Boolean>() {
+    final private BTNotification<Boolean> blockedNotificationsCB = new BTNotification<Boolean>() {
         @Override
         public void run(final Boolean value) {
             if( DEBUG ) {
@@ -182,14 +182,14 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             }
         }
     }
-    final private BluetoothNotification<Boolean> pairedNotificationsCB = new BluetoothNotification<Boolean>() {
+    final private BTNotification<Boolean> pairedNotificationsCB = new BTNotification<Boolean>() {
         @Override
         public void run(final Boolean value) {
             devicePaired( value.booleanValue() );
         }
     };
 
-    final private BluetoothNotification<Boolean> trustedNotificationsCB = new BluetoothNotification<Boolean>() {
+    final private BTNotification<Boolean> trustedNotificationsCB = new BTNotification<Boolean>() {
         @Override
         public void run(final Boolean value) {
             if( DEBUG ) {
@@ -298,17 +298,17 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     private native String getNameImpl();
 
     @Override
-    public BluetoothType getBluetoothType() { return class_type(); }
+    public BTType getBluetoothType() { return class_type(); }
 
-    static BluetoothType class_type() { return BluetoothType.DEVICE; }
+    static BTType class_type() { return BTType.DEVICE; }
 
     @Override
-    public BluetoothGattService find(final String UUID, final long timeoutMS) {
-        return (DBTGattService) findInCache(UUID, BluetoothType.GATT_SERVICE);
+    public BTGattService find(final String UUID, final long timeoutMS) {
+        return (DBTGattService) findInCache(UUID, BTType.GATT_SERVICE);
     }
 
     @Override
-    public BluetoothGattService find(final String UUID) {
+    public BTGattService find(final String UUID) {
         return find(UUID, 0);
     }
 
@@ -318,7 +318,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public int getBluetoothClass() { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
-    public final BluetoothDevice clone() { throw new UnsupportedOperationException(); } // FIXME
+    public final BTDevice clone() { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
     public final SMPKeyMask getAvailableSMPKeys(final boolean responder) {
@@ -351,7 +351,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     private final native void getSignatureResolvingKeyInfoImpl(final boolean responder, final byte[] sink);
 
     @Override
-    public final boolean pair() throws BluetoothException {
+    public final boolean pair() throws BTException {
         return false;
     }
 
@@ -412,7 +412,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public HCIStatusCode setPairingPasskey(final int passkey) {
         return HCIStatusCode.get( setPairingPasskeyImpl(passkey) );
     }
-    private native byte setPairingPasskeyImpl(final int passkey) throws BluetoothException;
+    private native byte setPairingPasskeyImpl(final int passkey) throws BTException;
 
     @Override
     public HCIStatusCode setPairingNumericComparison(final boolean equal) {
@@ -433,7 +433,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     private native byte getPairingStateImpl();
 
     @Override
-    public final boolean cancelPairing() throws BluetoothException {
+    public final boolean cancelPairing() throws BTException {
         // FIXME: Not supporter (yet)
         return false;
     }
@@ -451,7 +451,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     /* DBT method calls: Connection */
 
     @Override
-    public final void enableConnectedNotifications(final BluetoothNotification<Boolean> callback) {
+    public final void enableConnectedNotifications(final BTNotification<Boolean> callback) {
         synchronized(userCallbackLock) {
             userConnectedNotificationsCB = callback;
         }
@@ -470,22 +470,22 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public final short getConnectionHandle() { return hciConnHandle; }
 
     @Override
-    public final HCIStatusCode disconnect() throws BluetoothException {
+    public final HCIStatusCode disconnect() throws BTException {
         if( isConnected.get() ) {
             return HCIStatusCode.get( disconnectImpl() ); // event callbacks will be generated by implementation
         }
         return HCIStatusCode.CONNECTION_TERMINATED_BY_LOCAL_HOST;
     }
-    private native byte disconnectImpl() throws BluetoothException;
+    private native byte disconnectImpl() throws BTException;
 
     @Override
-    public final HCIStatusCode connect() throws BluetoothException {
+    public final HCIStatusCode connect() throws BTException {
         if( !isConnected.get() ) {
             return HCIStatusCode.get( connectDefaultImpl() ); // event callbacks will be generated by implementation
         }
         return HCIStatusCode.CONNECTION_ALREADY_EXISTS;
     }
-    private native byte connectDefaultImpl() throws BluetoothException;
+    private native byte connectDefaultImpl() throws BTException;
 
     @Override
     public HCIStatusCode connectLE(final short le_scan_interval, final short le_scan_window,
@@ -510,7 +510,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     /* DBT Java callbacks */
 
     @Override
-    public final void enableRSSINotifications(final BluetoothNotification<Short> callback) {
+    public final void enableRSSINotifications(final BTNotification<Short> callback) {
         synchronized(userCallbackLock) {
             userRSSINotificationsCB = callback;
         }
@@ -525,7 +525,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
 
     @Override
-    public final void enableManufacturerDataNotifications(final BluetoothNotification<Map<Short, byte[]> > callback) {
+    public final void enableManufacturerDataNotifications(final BTNotification<Map<Short, byte[]> > callback) {
         synchronized(userCallbackLock) {
             userManufDataNotificationsCB = callback;
         }
@@ -540,7 +540,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
 
     @Override
-    public final void enableServicesResolvedNotifications(final BluetoothNotification<Boolean> callback) {
+    public final void enableServicesResolvedNotifications(final BTNotification<Boolean> callback) {
         synchronized(userCallbackLock) {
             userServicesResolvedNotificationsCB = callback;
         }
@@ -560,7 +560,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public short getAppearance() { return appearance; }
 
     @Override
-    public void enableBlockedNotifications(final BluetoothNotification<Boolean> callback) {
+    public void enableBlockedNotifications(final BTNotification<Boolean> callback) {
         synchronized(userCallbackLock) {
             userBlockedNotificationsCB = callback;
         }
@@ -580,8 +580,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     }
 
     @Override
-    public void enableServiceDataNotifications(final BluetoothNotification<Map<String, byte[]> > callback) {
-        // FIXME: Isn't this GATTCharacteristic data notification/indication? Then map it or drop!
+    public void enableServiceDataNotifications(final BTNotification<Map<String, byte[]> > callback) {
+        // FIXME: Isn't this BTGattChar data notification/indication? Then map it or drop!
     }
 
     @Override
@@ -595,7 +595,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     }
 
     @Override
-    public void enablePairedNotifications(final BluetoothNotification<Boolean> callback) {
+    public void enablePairedNotifications(final BTNotification<Boolean> callback) {
         synchronized(userCallbackLock) {
             userPairedNotificationsCB = callback;
         }
@@ -612,7 +612,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public final boolean getPaired() { return isPaired.get(); }
 
     @Override
-    public void enableTrustedNotifications(final BluetoothNotification<Boolean> callback) {
+    public void enableTrustedNotifications(final BTNotification<Boolean> callback) {
         synchronized(userCallbackLock) {
             userTrustedNotificationsCB = callback;
         }
@@ -650,12 +650,12 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     private native String toStringImpl();
 
-    private native void enableBlockedNotificationsImpl(BluetoothNotification<Boolean> callback);
+    private native void enableBlockedNotificationsImpl(BTNotification<Boolean> callback);
     private native void disableBlockedNotificationsImpl();
     private native void setBlockedImpl(final boolean value);
 
     // Note that this is only called natively for unpaired, i.e. paired:=false. Using deviceConnected for paired:=true.
-    private native void enablePairedNotificationsImpl(BluetoothNotification<Boolean> callback);
+    private native void enablePairedNotificationsImpl(BTNotification<Boolean> callback);
     private native void disablePairedNotificationsImpl();
 
     /**
@@ -669,28 +669,28 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     /* DBT native method calls: */
 
     @Override
-    public native boolean connectProfile(String arg_UUID) throws BluetoothException;
+    public native boolean connectProfile(String arg_UUID) throws BTException;
 
     @Override
-    public native boolean disconnectProfile(String arg_UUID) throws BluetoothException;
+    public native boolean disconnectProfile(String arg_UUID) throws BTException;
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public final boolean remove() throws BluetoothException {
+    public final boolean remove() throws BTException {
         // close: clear java-listener, super.close()
         //        -> DBTNativeDownlink.delete(): deleteNativeJavaObject(..), deleteImpl(..) -> DBTDevice::remove()
         close();
         // return removeImpl();
         return true;
     }
-    private native boolean removeImpl() throws BluetoothException;
+    private native boolean removeImpl() throws BTException;
 
     @Override
-    public List<BluetoothGattService> getServices() {
+    public List<BTGattService> getServices() {
         try {
-            final List<BluetoothGattService> services = getServicesImpl();
+            final List<BTGattService> services = getServicesImpl();
             updateServiceCache(services);
             return services;
         } catch (final Throwable t) {
@@ -701,7 +701,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         }
         return null;
     }
-    private native List<BluetoothGattService> getServicesImpl();
+    private native List<BTGattService> getServicesImpl();
 
     @Override
     public boolean pingGATT() {
@@ -747,19 +747,19 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     protected native void deleteImpl(long nativeInstance);
 
     @Override
-    public boolean addCharacteristicListener(final GATTCharacteristicListener listener) {
-        return addCharacteristicListener(listener, (DBTGattCharacteristic)listener.getAssociatedCharacteristic());
+    public boolean addCharListener(final BTGattCharListener listener) {
+        return addCharListener(listener, (DBTGattChar)listener.getAssociatedChar());
     }
-    private native boolean addCharacteristicListener(final GATTCharacteristicListener listener, final DBTGattCharacteristic associatedCharacteristic);
+    private native boolean addCharListener(final BTGattCharListener listener, final DBTGattChar associatedCharacteristic);
 
     @Override
-    public native boolean removeCharacteristicListener(final GATTCharacteristicListener l);
+    public native boolean removeCharListener(final BTGattCharListener l);
 
     @Override
-    public native int removeAllAssociatedCharacteristicListener(final BluetoothGattCharacteristic associatedCharacteristic);
+    public native int removeAllAssociatedCharListener(final BTGattChar associatedCharacteristic);
 
     @Override
-    public native int removeAllCharacteristicListener();
+    public native int removeAllCharListener();
 
     /* local functionality */
 
@@ -771,11 +771,11 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             }
         }
     }
-    private void updateServiceCache(final List<BluetoothGattService> services) {
+    private void updateServiceCache(final List<BTGattService> services) {
         synchronized(serviceCache) {
             clearServiceCache();
             if( null != services ) {
-                for(final BluetoothGattService service : services) {
+                for(final BTGattService service : services) {
                     serviceCache.add( new WeakReference<DBTGattService>( (DBTGattService)service ) );
                 }
             }
@@ -805,29 +805,29 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
      * The returned {@link DBTObject} may be of type
      * <ul>
      *   <li>{@link DBTGattService}</li>
-     *   <li>{@link DBTGattCharacteristic}</li>
-     *   <li>{@link DBTGattDescriptor}</li>
+     *   <li>{@link DBTGattChar}</li>
+     *   <li>{@link DBTGattDesc}</li>
      * </ul>
-     * or alternatively in {@link BluetoothObject} space
+     * or alternatively in {@link BTObject} space
      * <ul>
-     *   <li>{@link BluetoothType#GATT_SERVICE} -> {@link BluetoothGattService}</li>
-     *   <li>{@link BluetoothType#GATT_CHARACTERISTIC} -> {@link BluetoothGattCharacteristic}</li>
-     *   <li>{@link BluetoothType#GATT_DESCRIPTOR} -> {@link BluetoothGattDescriptor}</li>
+     *   <li>{@link BTType#GATT_SERVICE} -> {@link BTGattService}</li>
+     *   <li>{@link BTType#GATT_CHARACTERISTIC} -> {@link BTGattChar}</li>
+     *   <li>{@link BTType#GATT_DESCRIPTOR} -> {@link BTGattDesc}</li>
      * </ul>
      * </p>
-     * @param uuid UUID of the desired {@link BluetoothType#GATT_SERVICE service},
-     * {@link BluetoothType#GATT_CHARACTERISTIC characteristic} or {@link BluetoothType#GATT_DESCRIPTOR descriptor} to be found.
+     * @param uuid UUID of the desired {@link BTType#GATT_SERVICE service},
+     * {@link BTType#GATT_CHARACTERISTIC characteristic} or {@link BTType#GATT_DESCRIPTOR descriptor} to be found.
      * Maybe {@code null}, in which case the first object of the desired type is being returned - if existing.
      * @param type specify the type of the object to be found, either
-     * {@link BluetoothType#GATT_SERVICE service}, {@link BluetoothType#GATT_CHARACTERISTIC characteristic}
-     * or {@link BluetoothType#GATT_DESCRIPTOR descriptor}.
-     * {@link BluetoothType#NONE none} means anything.
+     * {@link BTType#GATT_SERVICE service}, {@link BTType#GATT_CHARACTERISTIC characteristic}
+     * or {@link BTType#GATT_DESCRIPTOR descriptor}.
+     * {@link BTType#NONE none} means anything.
      */
-    /* pp */ DBTObject findInCache(final String uuid, final BluetoothType type) {
-        final boolean anyType = BluetoothType.NONE == type;
-        final boolean serviceType = BluetoothType.GATT_SERVICE == type;
-        final boolean charType = BluetoothType.GATT_CHARACTERISTIC== type;
-        final boolean descType = BluetoothType.GATT_DESCRIPTOR == type;
+    /* pp */ DBTObject findInCache(final String uuid, final BTType type) {
+        final boolean anyType = BTType.NONE == type;
+        final boolean serviceType = BTType.GATT_SERVICE == type;
+        final boolean charType = BTType.GATT_CHARACTERISTIC== type;
+        final boolean descType = BTType.GATT_DESCRIPTOR == type;
 
         if( !anyType && !serviceType && !charType && !descType ) {
             return null;

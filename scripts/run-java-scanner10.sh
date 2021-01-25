@@ -31,7 +31,7 @@ sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`
 bname=`basename $0 .sh`
 
-if [ ! -e lib/java/tinyb2.jar -o ! -e bin/java/DBTScanner10.jar -o ! -e lib/libdirect_bt.so ] ; then
+if [ ! -e lib/java/direct_bt.jar -o ! -e bin/java/DBTScanner10.jar -o ! -e lib/libdirect_bt.so ] ; then
     echo run from dist directory
     exit 1
 fi
@@ -58,8 +58,8 @@ ulimit -c unlimited
 export LANG=en_US.UTF-8
 export LC_MEASUREMENT=en_US.UTF-8
 
-# JAVA_CMD="java -Xcheck:jni"
-JAVA_CMD="java"
+JAVA_CMD="java -Xcheck:jni -verbose:jni"
+# JAVA_CMD="java"
 
 # VALGRIND="valgrind --tool=memcheck --leak-check=full --show-reachable=yes --error-limit=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
 # VALGRIND="valgrind --tool=helgrind --track-lockorders=yes  --ignore-thread-creation=yes --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
@@ -77,11 +77,12 @@ runit() {
     echo direct_bt_debug $direct_bt_debug
     echo direct_bt_verbose $direct_bt_verbose
 
-    # $VALGRIND $JAVA_CMD -cp lib/java/tinyb2.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
+    echo $VALGRIND $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
+    # $VALGRIND $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
 
     sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
         --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
-        -- -c "ulimit -c unlimited; $VALGRIND $JAVA_CMD -cp lib/java/tinyb2.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*"
+        -- -c "ulimit -c unlimited; $VALGRIND $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*"
 
 }
 

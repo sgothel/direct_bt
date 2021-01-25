@@ -28,26 +28,26 @@
 
 package tinyb.dbus;
 
-import org.direct_bt.BluetoothFactory;
-import org.direct_bt.BluetoothObject;
-import org.direct_bt.BluetoothType;
+import org.direct_bt.BTFactory;
+import org.direct_bt.BTObject;
+import org.direct_bt.BTType;
 
-public class DBusObject implements BluetoothObject
+public class DBusObject implements BTObject
 {
     protected long nativeInstance;
     private boolean isValid;
 
     static {
-        BluetoothFactory.checkInitialized();
+        BTFactory.checkInitialized();
     }
 
-    static BluetoothType class_type() { return BluetoothType.NONE; }
+    static BTType class_type() { return BTType.NONE; }
 
     @Override
-    public native BluetoothType getBluetoothType();
+    public native BTType getBluetoothType();
 
     @Override
-    public native BluetoothObject clone();
+    public native BTObject clone();
 
     private native void delete();
     private native boolean operatorEqual(DBusObject obj);

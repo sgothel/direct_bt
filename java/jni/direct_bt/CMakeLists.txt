@@ -23,17 +23,17 @@ set (direct_bt_JNI_SRCS
   ${PROJECT_SOURCE_DIR}/jaulib/java_jni/jni/jni_mem.cxx
   ${PROJECT_SOURCE_DIR}/jaulib/java_jni/jni/helper_jni.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/helper_base.cxx
-  ${PROJECT_SOURCE_DIR}/java/jni/BluetoothFactory.cxx
-  ${PROJECT_SOURCE_DIR}/java/jni/BluetoothUtils.cxx
+  ${PROJECT_SOURCE_DIR}/java/jni/BTFactory.cxx
+  ${PROJECT_SOURCE_DIR}/java/jni/BTUtils.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/helper_dbt.cxx
-  ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTNativeDownlink.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTAdapter.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTDevice.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTEvent.cxx
-  ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTGattCharacteristic.cxx
-  ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTGattDescriptor.cxx
+  ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTGattChar.cxx
+  ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTGattDesc.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTGattService.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTManager.cxx
+  ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTNativeDownlink.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTObject.cxx
 )
 

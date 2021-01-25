@@ -31,9 +31,9 @@
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
-#include "direct_bt/DBTDevice.hpp"
-#include "direct_bt/DBTAdapter.hpp"
-#include "direct_bt/DBTManager.hpp"
+#include "direct_bt/BTDevice.hpp"
+#include "direct_bt/BTAdapter.hpp"
+#include "direct_bt/BTManager.hpp"
 
 using namespace direct_bt;
 using namespace jau;
@@ -66,7 +66,7 @@ struct BooleanMgmtCBContext {
 };
 typedef std::shared_ptr<BooleanMgmtCBContext> BooleanMgmtCBContextRef;
 
-static void _addMgmtCBOnce(JNIEnv *env, DBTManager & mgmt, JNIGlobalRef jmgmtRef, MgmtEvent::Opcode opc,
+static void _addMgmtCBOnce(JNIEnv *env, BTManager & mgmt, JNIGlobalRef jmgmtRef, MgmtEvent::Opcode opc,
                            const std::string &jmethodName, const std::string &jmethodArgs)
 {
     try {
@@ -93,12 +93,12 @@ static void _addMgmtCBOnce(JNIEnv *env, DBTManager & mgmt, JNIGlobalRef jmgmtRef
         jclass mgmtClazz = jau::search_class(env, jmgmtRef.getObject());
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mgmtClazz ) {
-            throw jau::InternalError("DBTManager not found", E_FILE_LINE);
+            throw jau::InternalError("BTManager not found", E_FILE_LINE);
         }
         jmethodID mid = jau::search_method(env, mgmtClazz, jmethodName.c_str(), jmethodArgs.c_str(), false);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mid ) {
-            throw jau::InternalError("DBTManager has no "+jmethodName+"."+jmethodArgs+" method, for "+mgmt.toString(), E_FILE_LINE);
+            throw jau::InternalError("BTManager has no "+jmethodName+"."+jmethodArgs+" method, for "+mgmt.toString(), E_FILE_LINE);
         }
 
         // move BooleanDeviceCBContextRef into CaptureInvocationFunc and operator== includes javaCallback comparison
@@ -114,8 +114,8 @@ void Java_jau_direct_1bt_DBTManager_initImpl(JNIEnv *env, jobject obj, jboolean 
     directBTJNISettings.setUnifyUUID128Bit(unifyUUID128Bit);
     try {
         BTMode btMode = static_cast<BTMode>(jbtMode);
-        DBTManager *manager = &DBTManager::get(btMode); // special: static singleton
-        setInstance<DBTManager>(env, obj, manager);
+        BTManager *manager = &BTManager::get(btMode); // special: static singleton
+        setInstance<BTManager>(env, obj, manager);
         java_exception_check_and_throw(env, E_FILE_LINE);
         manager->setJavaObject( std::shared_ptr<JavaAnon>( new JavaGlobalObj(obj, nullptr) ) );
         JavaGlobalObj::check(manager->getJavaObject(), E_FILE_LINE);
@@ -134,7 +134,7 @@ void Java_jau_direct_1bt_DBTManager_deleteImpl(JNIEnv *env, jobject obj, jlong n
 {
     (void)obj;
     try {
-        DBTManager *manager = castInstance<DBTManager>(nativeInstance); // special: static singleton
+        BTManager *manager = castInstance<BTManager>(nativeInstance); // special: static singleton
         manager->close();
         manager->setJavaObject();
         (void) manager;
@@ -144,7 +144,7 @@ void Java_jau_direct_1bt_DBTManager_deleteImpl(JNIEnv *env, jobject obj, jlong n
 }
 
 static const std::string _adapterClazzCtorArgs("(J[BLjava/lang/String;I)V");
-static jobject _createJavaAdapter(JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, DBTAdapter* adapter) {
+static jobject _createJavaAdapter(JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, BTAdapter* adapter) {
     // prepare adapter ctor
     const EUI48 addr = adapter->getAddress();
     jbyteArray jaddr = env_->NewByteArray(sizeof(addr));
@@ -168,11 +168,11 @@ static jobject _createJavaAdapter(JNIEnv *env_, jclass clazz, jmethodID clazz_ct
 jobject Java_jau_direct_1bt_DBTManager_getAdapterListImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTManager *manager = getInstance<DBTManager>(env, obj);
+        BTManager *manager = getInstance<BTManager>(env, obj);
         DBG_PRINT("Java_jau_direct_1bt_DBTManager_getAdapterListImpl: Manager %s", manager->toString().c_str());
 
-        jau::darray<std::shared_ptr<DBTAdapter>> adapters = manager->getAdapters();
-        return convert_vector_sharedptr_to_jarraylist<jau::darray<std::shared_ptr<DBTAdapter>>, DBTAdapter>(
+        jau::darray<std::shared_ptr<BTAdapter>> adapters = manager->getAdapters();
+        return convert_vector_sharedptr_to_jarraylist<jau::darray<std::shared_ptr<BTAdapter>>, BTAdapter>(
                 env, adapters, _adapterClazzCtorArgs.c_str(), _createJavaAdapter);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -183,16 +183,16 @@ jobject Java_jau_direct_1bt_DBTManager_getAdapterListImpl(JNIEnv *env, jobject o
 jobject Java_jau_direct_1bt_DBTManager_getAdapterImpl(JNIEnv *env, jobject obj, jint dev_id)
 {
     try {
-        DBTManager *manager = getInstance<DBTManager>(env, obj);
+        BTManager *manager = getInstance<BTManager>(env, obj);
 
-        std::shared_ptr<DBTAdapter> adapter = manager->getAdapter(dev_id);
+        std::shared_ptr<BTAdapter> adapter = manager->getAdapter(dev_id);
         if( nullptr == adapter ) {
-            ERR_PRINT("DBTManager::getAdapterImpl: Adapter dev_id %d: Not found", dev_id);
+            ERR_PRINT("BTManager::getAdapterImpl: Adapter dev_id %d: Not found", dev_id);
             return nullptr;
         }
-        DBG_PRINT("DBTManager::getAdapterImpl: Adapter dev_id %d: %s", dev_id, adapter->toString().c_str());
+        DBG_PRINT("BTManager::getAdapterImpl: Adapter dev_id %d: %s", dev_id, adapter->toString().c_str());
 
-        return jau::convert_instance_to_jobject<DBTAdapter>(env, adapter.get(),  _adapterClazzCtorArgs.c_str(), _createJavaAdapter);
+        return jau::convert_instance_to_jobject<BTAdapter>(env, adapter.get(),  _adapterClazzCtorArgs.c_str(), _createJavaAdapter);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

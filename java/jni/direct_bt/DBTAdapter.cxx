@@ -31,33 +31,33 @@
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
-#include "direct_bt/DBTAdapter.hpp"
-#include "direct_bt/DBTManager.hpp"
+#include "direct_bt/BTAdapter.hpp"
+#include "direct_bt/BTManager.hpp"
 
 using namespace direct_bt;
 
-static const std::string _adapterSettingsClassName("org/tinyb/AdapterSettings");
+static const std::string _adapterSettingsClassName("org/direct_bt/AdapterSettings");
 static const std::string _adapterSettingsClazzCtorArgs("(I)V");
-static const std::string _eirDataTypeSetClassName("org/tinyb/EIRDataTypeSet");
+static const std::string _eirDataTypeSetClassName("org/direct_bt/EIRDataTypeSet");
 static const std::string _eirDataTypeSetClazzCtorArgs("(I)V");
-static const std::string _hciStatusCodeClassName("org/tinyb/HCIStatusCode");
-static const std::string _hciStatusCodeClazzGetArgs("(B)Lorg/tinyb/HCIStatusCode;");
-static const std::string _scanTypeClassName("org/tinyb/ScanType");
-static const std::string _scanTypeClazzGetArgs("(B)Lorg/tinyb/ScanType;");
-static const std::string _pairingModeClassName("org/tinyb/PairingMode");
-static const std::string _pairingModeClazzGetArgs("(B)Lorg/tinyb/PairingMode;");
-static const std::string _pairingStateClassName("org/tinyb/SMPPairingState");
-static const std::string _pairingStateClazzGetArgs("(B)Lorg/tinyb/SMPPairingState;");
-static const std::string _deviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTAdapter;[BBLjava/lang/String;J)V");
+static const std::string _hciStatusCodeClassName("org/direct_bt/HCIStatusCode");
+static const std::string _hciStatusCodeClazzGetArgs("(B)Lorg/direct_bt/HCIStatusCode;");
+static const std::string _scanTypeClassName("org/direct_bt/ScanType");
+static const std::string _scanTypeClazzGetArgs("(B)Lorg/direct_bt/ScanType;");
+static const std::string _pairingModeClassName("org/direct_bt/PairingMode");
+static const std::string _pairingModeClazzGetArgs("(B)Lorg/direct_bt/PairingMode;");
+static const std::string _pairingStateClassName("org/direct_bt/SMPPairingState");
+static const std::string _pairingStateClazzGetArgs("(B)Lorg/direct_bt/SMPPairingState;");
+static const std::string _deviceClazzCtorArgs("(JLjau/direct_bt/DBTAdapter;[BBLjava/lang/String;J)V");
 
-static const std::string _adapterSettingsChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;J)V");
-static const std::string _discoveringChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/ScanType;Lorg/tinyb/ScanType;ZZJ)V");
-static const std::string _deviceFoundMethodArgs("(Lorg/tinyb/BluetoothDevice;J)Z");
-static const std::string _deviceUpdatedMethodArgs("(Lorg/tinyb/BluetoothDevice;Lorg/tinyb/EIRDataTypeSet;J)V");
-static const std::string _deviceConnectedMethodArgs("(Lorg/tinyb/BluetoothDevice;SJ)V");
-static const std::string _devicePairingStateMethodArgs("(Lorg/tinyb/BluetoothDevice;Lorg/tinyb/SMPPairingState;Lorg/tinyb/PairingMode;J)V");
-static const std::string _deviceReadyMethodArgs("(Lorg/tinyb/BluetoothDevice;J)V");
-static const std::string _deviceDisconnectedMethodArgs("(Lorg/tinyb/BluetoothDevice;Lorg/tinyb/HCIStatusCode;SJ)V");
+static const std::string _adapterSettingsChangedMethodArgs("(Lorg/direct_bt/BTAdapter;Lorg/direct_bt/AdapterSettings;Lorg/direct_bt/AdapterSettings;Lorg/direct_bt/AdapterSettings;J)V");
+static const std::string _discoveringChangedMethodArgs("(Lorg/direct_bt/BTAdapter;Lorg/direct_bt/ScanType;Lorg/direct_bt/ScanType;ZZJ)V");
+static const std::string _deviceFoundMethodArgs("(Lorg/direct_bt/BTDevice;J)Z");
+static const std::string _deviceUpdatedMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/EIRDataTypeSet;J)V");
+static const std::string _deviceConnectedMethodArgs("(Lorg/direct_bt/BTDevice;SJ)V");
+static const std::string _devicePairingStateMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/SMPPairingState;Lorg/direct_bt/PairingMode;J)V");
+static const std::string _deviceReadyMethodArgs("(Lorg/direct_bt/BTDevice;J)V");
+static const std::string _deviceDisconnectedMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/HCIStatusCode;SJ)V");
 
 class JNIAdapterStatusListener : public AdapterStatusListener {
   private:
@@ -83,7 +83,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     */
     static std::atomic<int> iname_next;
     int const iname;
-    DBTDevice const * const deviceMatchRef;
+    BTDevice const * const deviceMatchRef;
     std::shared_ptr<jau::JavaAnon> adapterObjRef;
     JNIGlobalRef adapterSettingsClazzRef;
     jmethodID adapterSettingsClazzCtor;
@@ -124,9 +124,9 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         // listenerObjRef dtor will call notifyDelete and clears the nativeInstance handle
     }
 
-    JNIAdapterStatusListener(JNIEnv *env, DBTAdapter *adapter,
+    JNIAdapterStatusListener(JNIEnv *env, BTAdapter *adapter,
                              jclass listenerClazz, jobject statusListenerObj, jmethodID  statusListenerNotifyDeleted,
-                             const DBTDevice * _deviceMatchRef)
+                             const BTDevice * _deviceMatchRef)
     : iname(iname_next.fetch_add(1)), deviceMatchRef(_deviceMatchRef), listenerObjRef(statusListenerObj, statusListenerNotifyDeleted)
     {
         adapterObjRef = adapter->getJavaObject();
@@ -137,7 +137,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             jclass adapterSettingsClazz = jau::search_class(env, _adapterSettingsClassName.c_str());
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             if( nullptr == adapterSettingsClazz ) {
-                throw jau::InternalError("DBTDevice::java_class not found: "+_adapterSettingsClassName, E_FILE_LINE);
+                throw jau::InternalError("BTDevice::java_class not found: "+_adapterSettingsClassName, E_FILE_LINE);
             }
             adapterSettingsClazzRef = JNIGlobalRef(adapterSettingsClazz);
             env->DeleteLocalRef(adapterSettingsClazz);
@@ -153,7 +153,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             jclass eirDataTypeSetClazz = jau::search_class(env, _eirDataTypeSetClassName.c_str());
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             if( nullptr == eirDataTypeSetClazz ) {
-                throw jau::InternalError("DBTDevice::java_class not found: "+_eirDataTypeSetClassName, E_FILE_LINE);
+                throw jau::InternalError("BTDevice::java_class not found: "+_eirDataTypeSetClassName, E_FILE_LINE);
             }
             eirDataTypeSetClazzRef = JNIGlobalRef(eirDataTypeSetClazz);
             env->DeleteLocalRef(eirDataTypeSetClazz);
@@ -169,7 +169,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             jclass hciErrorCodeClazz = jau::search_class(env, _hciStatusCodeClassName.c_str());
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             if( nullptr == hciErrorCodeClazz ) {
-                throw jau::InternalError("DBTDevice::java_class not found: "+_hciStatusCodeClassName, E_FILE_LINE);
+                throw jau::InternalError("BTDevice::java_class not found: "+_hciStatusCodeClassName, E_FILE_LINE);
             }
             hciStatusCodeClazzRef = JNIGlobalRef(hciErrorCodeClazz);
             env->DeleteLocalRef(hciErrorCodeClazz);
@@ -185,7 +185,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             jclass scanTypeClazz = jau::search_class(env, _scanTypeClassName.c_str());
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             if( nullptr == scanTypeClazz ) {
-                throw jau::InternalError("DBTDevice::java_class not found: "+_scanTypeClassName, E_FILE_LINE);
+                throw jau::InternalError("BTDevice::java_class not found: "+_scanTypeClassName, E_FILE_LINE);
             }
             scanTypeClazzRef = JNIGlobalRef(scanTypeClazz);
             env->DeleteLocalRef(scanTypeClazz);
@@ -201,7 +201,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             jclass pairingModeClazz = jau::search_class(env, _pairingModeClassName.c_str());
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             if( nullptr == pairingModeClazz ) {
-                throw jau::InternalError("DBTDevice::java_class not found: "+_pairingModeClassName, E_FILE_LINE);
+                throw jau::InternalError("BTDevice::java_class not found: "+_pairingModeClassName, E_FILE_LINE);
             }
             pairingModeClazzRef = JNIGlobalRef(pairingModeClazz);
             env->DeleteLocalRef(pairingModeClazz);
@@ -217,7 +217,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             jclass pairingStateClazz = jau::search_class(env, _pairingStateClassName.c_str());
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             if( nullptr == pairingStateClazz ) {
-                throw jau::InternalError("DBTDevice::java_class not found: "+_pairingStateClassName, E_FILE_LINE);
+                throw jau::InternalError("BTDevice::java_class not found: "+_pairingStateClassName, E_FILE_LINE);
             }
             pairingStateClazzRef = JNIGlobalRef(pairingStateClazz);
             env->DeleteLocalRef(pairingStateClazz);
@@ -230,10 +230,10 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 
         // deviceClazzRef, deviceClazzCtor
         {
-            jclass deviceClazz = jau::search_class(env, DBTDevice::java_class().c_str());
+            jclass deviceClazz = jau::search_class(env, BTDevice::java_class().c_str());
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             if( nullptr == deviceClazz ) {
-                throw jau::InternalError("DBTDevice::java_class not found: "+DBTDevice::java_class(), E_FILE_LINE);
+                throw jau::InternalError("BTDevice::java_class not found: "+BTDevice::java_class(), E_FILE_LINE);
             }
             deviceClazzRef = JNIGlobalRef(deviceClazz);
             env->DeleteLocalRef(deviceClazz);
@@ -241,22 +241,22 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         deviceClazzCtor = jau::search_method(env, deviceClazzRef.getClass(), "<init>", _deviceClazzCtorArgs.c_str(), false);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == deviceClazzCtor ) {
-            throw jau::InternalError("DBTDevice::java_class ctor not found: "+DBTDevice::java_class()+".<init>"+_deviceClazzCtorArgs, E_FILE_LINE);
+            throw jau::InternalError("BTDevice::java_class ctor not found: "+BTDevice::java_class()+".<init>"+_deviceClazzCtorArgs, E_FILE_LINE);
         }
         deviceClazzTSLastDiscoveryField = env->GetFieldID(deviceClazzRef.getClass(), "ts_last_discovery", "J");
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == deviceClazzTSLastDiscoveryField ) {
-            throw jau::InternalError("DBTDevice::java_class field not found: "+DBTDevice::java_class()+".ts_last_discovery", E_FILE_LINE);
+            throw jau::InternalError("BTDevice::java_class field not found: "+BTDevice::java_class()+".ts_last_discovery", E_FILE_LINE);
         }
         deviceClazzTSLastUpdateField = env->GetFieldID(deviceClazzRef.getClass(), "ts_last_update", "J");
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == deviceClazzTSLastUpdateField ) {
-            throw jau::InternalError("DBTDevice::java_class field not found: "+DBTDevice::java_class()+".ts_last_update", E_FILE_LINE);
+            throw jau::InternalError("BTDevice::java_class field not found: "+BTDevice::java_class()+".ts_last_update", E_FILE_LINE);
         }
         deviceClazzConnectionHandleField = env->GetFieldID(deviceClazzRef.getClass(), "hciConnHandle", "S");
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == deviceClazzConnectionHandleField ) {
-            throw jau::InternalError("DBTDevice::java_class field not found: "+DBTDevice::java_class()+".hciConnHandle", E_FILE_LINE);
+            throw jau::InternalError("BTDevice::java_class field not found: "+BTDevice::java_class()+".hciConnHandle", E_FILE_LINE);
         }
 
         mAdapterSettingsChanged = jau::search_method(env, listenerClazz, "adapterSettingsChanged", _adapterSettingsChangedMethodArgs.c_str(), false);
@@ -301,14 +301,14 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    bool matchDevice(const DBTDevice & device) override {
+    bool matchDevice(const BTDevice & device) override {
         if( nullptr == deviceMatchRef ) {
             return true;
         }
         return device == *deviceMatchRef;
     }
 
-    void adapterSettingsChanged(DBTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
+    void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         (void)a;
@@ -332,7 +332,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->DeleteLocalRef(adapterSettingChanged);
     }
 
-    void discoveringChanged(DBTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) override {
+    void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         (void)a;
 
@@ -349,7 +349,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
 
-    bool deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+    bool deviceFound(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         jobject jdevice;
         std::shared_ptr<jau::JavaAnon> jDeviceRef0 = device->getJavaObject();
@@ -384,7 +384,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         return JNI_TRUE == res;
     }
 
-    void deviceUpdated(std::shared_ptr<DBTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
+    void deviceUpdated(std::shared_ptr<BTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
         std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
         if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
             return; // java device has been pulled
@@ -402,7 +402,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->DeleteLocalRef(eirDataTypeSet);
     }
 
-    void deviceConnected(std::shared_ptr<DBTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
 
         jobject jdevice;
@@ -441,7 +441,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->CallVoidMethod(listenerObjRef.getObject(), mDeviceConnected, jdevice, (jshort)handle, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
-    void devicePairingState(std::shared_ptr<DBTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+    void devicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
         std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
         if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
             return; // java device has been pulled
@@ -463,7 +463,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->CallVoidMethod(listenerObjRef.getObject(), mDevicePairingState, jdevice, jstate, jmode, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
-    void deviceReady(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+    void deviceReady(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
         std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
         if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
             return; // java device has been pulled
@@ -477,7 +477,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->CallVoidMethod(listenerObjRef.getObject(), mDeviceReady, jdevice, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
-    void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceDisconnected(std::shared_ptr<BTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
         if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
             return; // java device has been pulled
@@ -514,12 +514,12 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addStatusListener(JNIEnv *env, jobject o
                 return false;
             }
         }
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
-        DBTDevice * deviceMatchRef = nullptr;
+        BTDevice * deviceMatchRef = nullptr;
         if( nullptr != jdeviceMatch ) {
-            deviceMatchRef = jau::getJavaUplinkObject<DBTDevice>(env, jdeviceMatch);
+            deviceMatchRef = jau::getJavaUplinkObject<BTDevice>(env, jdeviceMatch);
             jau::JavaGlobalObj::check(deviceMatchRef->getJavaObject(), E_FILE_LINE);
         }
 
@@ -567,7 +567,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_removeStatusListenerImpl(JNIEnv *env, jo
         }
         jau::clearInstance(env, statusListener);
 
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         if( ! adapter->removeStatusListener( pre ) ) {
@@ -590,7 +590,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_removeStatusListenerImpl(JNIEnv *env, jo
 
 jint Java_jau_direct_1bt_DBTAdapter_removeAllStatusListener(JNIEnv *env, jobject obj) {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         return adapter->removeAllStatusListener();
@@ -602,7 +602,7 @@ jint Java_jau_direct_1bt_DBTAdapter_removeAllStatusListener(JNIEnv *env, jobject
 
 jboolean Java_jau_direct_1bt_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         if( nullptr == jaddress ) {
@@ -631,7 +631,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addDeviceToWhitelistImpl1(JNIEnv *env, j
                                                                     jshort min_interval, jshort max_interval,
                                                                     jshort latency, jshort timeout) {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         if( nullptr == jaddress ) {
@@ -659,7 +659,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addDeviceToWhitelistImpl1(JNIEnv *env, j
 jboolean Java_jau_direct_1bt_DBTAdapter_addDeviceToWhitelistImpl2(JNIEnv *env, jobject obj,
                                                                     jbyteArray jaddress, jbyte jaddressType, int jctype) {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         if( nullptr == jaddress ) {
@@ -686,7 +686,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addDeviceToWhitelistImpl2(JNIEnv *env, j
 }
 jboolean Java_jau_direct_1bt_DBTAdapter_removeDeviceFromWhitelistImpl(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         if( nullptr == jaddress ) {
@@ -713,7 +713,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_removeDeviceFromWhitelistImpl(JNIEnv *en
 
 jstring Java_jau_direct_1bt_DBTAdapter_toStringImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTAdapter *nativePtr = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *nativePtr = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
         return jau::from_string_to_jstring(env, nativePtr->toString());
     } catch(...) {
@@ -726,10 +726,10 @@ void Java_jau_direct_1bt_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj, jlong n
 {
     (void)obj;
     try {
-        DBTAdapter *adapter = jau::castInstance<DBTAdapter>(nativeInstance);
+        BTAdapter *adapter = jau::castInstance<BTAdapter>(nativeInstance);
         DBG_PRINT("Java_jau_direct_1bt_DBTAdapter_deleteImpl (close only) %s", adapter->toString().c_str());
         adapter->close();
-        // No delete: DBTAdapter instance owned by DBTManager
+        // No delete: BTAdapter instance owned by DBTManager
         // However, adapter->close() cleans up most..
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -739,7 +739,7 @@ void Java_jau_direct_1bt_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj, jlong n
 jboolean Java_jau_direct_1bt_DBTAdapter_isPoweredImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         return adapter->isPowered();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -750,7 +750,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_isPoweredImpl(JNIEnv *env, jobject obj)
 jboolean Java_jau_direct_1bt_DBTAdapter_isSuspendedImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         return adapter->isSuspended();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -761,7 +761,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_isSuspendedImpl(JNIEnv *env, jobject obj
 jboolean Java_jau_direct_1bt_DBTAdapter_isValidImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         return adapter->isValid();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -772,7 +772,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_isValidImpl(JNIEnv *env, jobject obj)
 jbyte Java_jau_direct_1bt_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj, jboolean keepAlive)
 {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         return (jbyte) number( adapter->startDiscovery(keepAlive) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -783,7 +783,7 @@ jbyte Java_jau_direct_1bt_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj
 jbyte Java_jau_direct_1bt_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         return (jbyte) number( adapter->stopDiscovery() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -794,8 +794,8 @@ jbyte Java_jau_direct_1bt_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject obj)
 jobject Java_jau_direct_1bt_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
-        jau::darray<std::shared_ptr<DBTDevice>> array = adapter->getDiscoveredDevices();
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::darray<std::shared_ptr<BTDevice>> array = adapter->getDiscoveredDevices();
         return convert_vector_sharedptr_to_jarraylist(env, array);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -806,7 +806,7 @@ jobject Java_jau_direct_1bt_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, job
 jint Java_jau_direct_1bt_DBTAdapter_removeDiscoveredDevicesImpl1(JNIEnv *env, jobject obj)
 {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         return adapter->removeDiscoveredDevices();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -817,7 +817,7 @@ jint Java_jau_direct_1bt_DBTAdapter_removeDiscoveredDevicesImpl1(JNIEnv *env, jo
 jboolean Java_jau_direct_1bt_DBTAdapter_removeDiscoveredDeviceImpl1(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType)
 {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         if( nullptr == jaddress ) {
@@ -848,7 +848,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_removeDiscoveredDeviceImpl1(JNIEnv *env,
 
 jboolean Java_jau_direct_1bt_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jboolean value) {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         return adapter->setPowered(JNI_TRUE == value ? true : false) ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
@@ -859,7 +859,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jbo
 
 jbyte Java_jau_direct_1bt_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         HCIStatusCode res = adapter->reset();
         return (jbyte) number(res);
@@ -871,7 +871,7 @@ jbyte Java_jau_direct_1bt_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {
 
 jstring Java_jau_direct_1bt_DBTAdapter_getAlias(JNIEnv *env, jobject obj) {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         return jau::from_string_to_jstring(env, adapter->getLocalName().getName());
     } catch(...) {
@@ -882,7 +882,7 @@ jstring Java_jau_direct_1bt_DBTAdapter_getAlias(JNIEnv *env, jobject obj) {
 
 void Java_jau_direct_1bt_DBTAdapter_setAlias(JNIEnv *env, jobject obj, jstring jnewalias) {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         std::string newalias = jau::from_jstring_to_string(env, jnewalias);
         adapter->setLocalName(newalias, std::string());
@@ -893,7 +893,7 @@ void Java_jau_direct_1bt_DBTAdapter_setAlias(JNIEnv *env, jobject obj, jstring j
 
 jboolean Java_jau_direct_1bt_DBTAdapter_setDiscoverable(JNIEnv *env, jobject obj, jboolean value) {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         return adapter->setDiscoverable(JNI_TRUE == value ? true : false) ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
@@ -904,7 +904,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_setDiscoverable(JNIEnv *env, jobject obj
 
 jobject Java_jau_direct_1bt_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         if( nullptr == jaddress ) {
@@ -922,14 +922,14 @@ jobject Java_jau_direct_1bt_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject ob
         const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
 
         const BDAddressType addressType = static_cast<BDAddressType>( jaddressType );
-        std::shared_ptr<DBTDevice> device = adapter->findSharedDevice(address, addressType);
+        std::shared_ptr<BTDevice> device = adapter->findSharedDevice(address, addressType);
         if( nullptr == device ) {
             device = adapter->findDiscoveredDevice(address, addressType);
         }
         if( nullptr != device ) {
             direct_bt::HCIHandler & hci = adapter->getHCI();
             if( !hci.isOpen() ) {
-                throw BluetoothException("Adapter's HCI closed "+adapter->toString(), E_FILE_LINE);
+                throw BTException("Adapter's HCI closed "+adapter->toString(), E_FILE_LINE);
             }
             std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
             jau::JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
@@ -945,7 +945,7 @@ jobject Java_jau_direct_1bt_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject ob
 
 jboolean Java_jau_direct_1bt_DBTAdapter_setPairable(JNIEnv *env, jobject obj, jboolean value) {
     try {
-        DBTAdapter *adapter = jau::getJavaUplinkObject<DBTAdapter>(env, obj);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         return adapter->setBondable(JNI_TRUE == value ? true : false) ? JNI_TRUE : JNI_FALSE;
     } catch(...) {

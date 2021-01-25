@@ -33,19 +33,19 @@ import org.direct_bt.AdapterSettings;
 import org.direct_bt.AdapterStatusListener;
 import org.direct_bt.BDAddressAndType;
 import org.direct_bt.BDAddressType;
-import org.direct_bt.BluetoothAdapter;
-import org.direct_bt.BluetoothDevice;
-import org.direct_bt.BluetoothException;
-import org.direct_bt.BluetoothFactory;
-import org.direct_bt.BluetoothGattCharacteristic;
-import org.direct_bt.BluetoothGattService;
-import org.direct_bt.BluetoothManager;
-import org.direct_bt.BluetoothNotification;
-import org.direct_bt.BluetoothType;
-import org.direct_bt.BluetoothUtils;
+import org.direct_bt.BTAdapter;
+import org.direct_bt.BTDevice;
+import org.direct_bt.BTException;
+import org.direct_bt.BTFactory;
+import org.direct_bt.BTGattChar;
+import org.direct_bt.BTGattService;
+import org.direct_bt.BTManager;
+import org.direct_bt.BTNotification;
+import org.direct_bt.BTType;
+import org.direct_bt.BTUtils;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.EUI48;
-import org.direct_bt.GATTCharacteristicListener;
+import org.direct_bt.BTGattCharListener;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.ScanType;
 
@@ -73,7 +73,7 @@ public class ScannerTinyB01 {
     public static void main(final String[] args) throws InterruptedException {
         final boolean waitForEnter=false;
         long t0_discovery = TO_DISCOVER;
-        String bluetoothManagerClazzName = BluetoothFactory.DirectBTImplementationID.BluetoothManagerClassName;
+        String bluetoothManagerClazzName = BTFactory.DirectBTImplementationID.BluetoothManagerClassName;
         int dev_id = 0; // default
         int mode = 0;
         int max_loops = 1;
@@ -119,20 +119,20 @@ public class ScannerTinyB01 {
         }
 
         final boolean isDirectBT;
-        final BluetoothManager manager;
+        final BTManager manager;
         {
-            BluetoothManager _manager = null;
-            final BluetoothFactory.ImplementationIdentifier implID = BluetoothFactory.getImplementationIdentifier(bluetoothManagerClazzName);
+            BTManager _manager = null;
+            final BTFactory.ImplementationIdentifier implID = BTFactory.getImplementationIdentifier(bluetoothManagerClazzName);
             if( null == implID ) {
                 System.err.println("Unable to find BluetoothManager "+bluetoothManagerClazzName);
                 System.exit(-1);
             }
-            isDirectBT = BluetoothFactory.DirectBTImplementationID.equals(implID);
+            isDirectBT = BTFactory.DirectBTImplementationID.equals(implID);
             System.err.println("Using BluetoothManager "+bluetoothManagerClazzName);
             System.err.println("Using Implementation "+implID+", isDirectBT "+isDirectBT);
             try {
-                _manager = BluetoothFactory.getBluetoothManager( implID );
-            } catch (BluetoothException | NoSuchMethodException | SecurityException
+                _manager = BTFactory.getBluetoothManager( implID );
+            } catch (BTException | NoSuchMethodException | SecurityException
                     | IllegalAccessException | IllegalArgumentException
                     | InvocationTargetException | ClassNotFoundException e) {
                 System.err.println("Unable to instantiate BluetoothManager via "+implID);
@@ -141,9 +141,9 @@ public class ScannerTinyB01 {
             }
             manager = _manager;
         }
-        final BluetoothAdapter adapter;
+        final BTAdapter adapter;
         {
-            final List<BluetoothAdapter> adapters = manager.getAdapters();
+            final List<BTAdapter> adapters = manager.getAdapters();
             for(int i=0; i < adapters.size(); i++) {
                 System.err.println("Adapter["+i+"]: "+adapters.get(i));
             }
@@ -158,11 +158,11 @@ public class ScannerTinyB01 {
             }
         }
 
-        final BluetoothDevice[] matchingDiscoveredDeviceBucket = { null };
+        final BTDevice[] matchingDiscoveredDeviceBucket = { null };
 
         final AdapterStatusListener statusListener = new AdapterStatusListener() {
             @Override
-            public void adapterSettingsChanged(final BluetoothAdapter adapter, final AdapterSettings oldmask,
+            public void adapterSettingsChanged(final BTAdapter adapter, final AdapterSettings oldmask,
                                                final AdapterSettings newmask, final AdapterSettings changedmask, final long timestamp) {
                 System.err.println("****** SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
                 System.err.println("Status Adapter:");
@@ -170,14 +170,14 @@ public class ScannerTinyB01 {
             }
 
             @Override
-            public void discoveringChanged(final BluetoothAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final boolean keepAlive, final long timestamp) {
+            public void discoveringChanged(final BTAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final boolean keepAlive, final long timestamp) {
                 System.err.println("****** DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", keepAlive "+keepAlive+"] on "+adapter);
                 System.err.println("Status Adapter:");
                 System.err.println(adapter.toString());
             }
 
             @Override
-            public boolean deviceFound(final BluetoothDevice device, final long timestamp) {
+            public boolean deviceFound(final BTDevice device, final long timestamp) {
                 final boolean matches = BDAddressAndType.ANY_DEVICE.matches(waitForDevice) || device.getAddressAndType().matches(waitForDevice);
                 System.err.println("****** FOUND__: "+device.toString()+" - match "+matches);
                 System.err.println("Status Adapter:");
@@ -195,25 +195,25 @@ public class ScannerTinyB01 {
             }
 
             @Override
-            public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
+            public void deviceUpdated(final BTDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
                 final boolean matches = BDAddressAndType.ANY_DEVICE.matches(waitForDevice) || device.getAddressAndType().equals(waitForDevice);
                 System.err.println("****** UPDATED: "+updateMask+" of "+device+" - match "+matches);
             }
 
             @Override
-            public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) {
+            public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
                 final boolean matches = BDAddressAndType.ANY_DEVICE.matches(waitForDevice) || device.getAddressAndType().equals(waitForDevice);
                 System.err.println("****** CONNECTED: "+device+" - matches "+matches);
             }
 
             @Override
-            public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
+            public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
                 System.err.println("****** DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
             }
         };
         adapter.addStatusListener(statusListener, null);
 
-        final long timestamp_t0 = BluetoothUtils.currentTimeMillis();
+        final long timestamp_t0 = BTUtils.currentTimeMillis();
 
         adapter.enableDiscoverableNotifications(new BooleanNotification("Discoverable", timestamp_t0));
 
@@ -229,7 +229,7 @@ public class ScannerTinyB01 {
                 loop++;
                 System.err.println("****** Loop "+loop);
 
-                final long t0 = BluetoothUtils.currentTimeMillis();
+                final long t0 = BTUtils.currentTimeMillis();
 
                 final HCIStatusCode discoveryStatus = adapter.startDiscovery(true);
 
@@ -237,14 +237,14 @@ public class ScannerTinyB01 {
                 if( HCIStatusCode.SUCCESS != discoveryStatus ) {
                     break;
                 }
-                BluetoothDevice sensor = null;
+                BTDevice sensor = null;
 
                 if( 0 == mode ) {
                     synchronized(matchingDiscoveredDeviceBucket) {
                         boolean timeout = false;
                         while( !timeout && null == matchingDiscoveredDeviceBucket[0] ) {
                             matchingDiscoveredDeviceBucket.wait(t0_discovery);
-                            final long tn = BluetoothUtils.currentTimeMillis();
+                            final long tn = BTUtils.currentTimeMillis();
                             timeout = ( tn - t0 ) > t0_discovery;
                         }
                         sensor = matchingDiscoveredDeviceBucket[0];
@@ -255,7 +255,7 @@ public class ScannerTinyB01 {
                     while( null == sensor && !timeout ) {
                         sensor = adapter.find(null, waitForDevice, t0_discovery);
                         if( null == sensor ) {
-                            final long tn = BluetoothUtils.currentTimeMillis();
+                            final long tn = BTUtils.currentTimeMillis();
                             timeout = ( tn - t0 ) > t0_discovery;
                             Thread.sleep(60);
                         }
@@ -263,22 +263,22 @@ public class ScannerTinyB01 {
                 } else {
                     boolean timeout = false;
                     while( null == sensor && !timeout ) {
-                        final List<BluetoothDevice> devices = adapter.getDiscoveredDevices();
-                        for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
-                            final BluetoothDevice d = id.next();
+                        final List<BTDevice> devices = adapter.getDiscoveredDevices();
+                        for(final Iterator<BTDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
+                            final BTDevice d = id.next();
                             if( BDAddressAndType.ANY_DEVICE.matches(waitForDevice) || d.getAddressAndType().equals(waitForDevice) ) {
                                 sensor = d;
                                 break;
                             }
                         }
                         if( null == sensor ) {
-                            final long tn = BluetoothUtils.currentTimeMillis();
+                            final long tn = BTUtils.currentTimeMillis();
                             timeout = ( tn - t0 ) > t0_discovery;
                             Thread.sleep(60);
                         }
                     }
                 }
-                final long t1 = BluetoothUtils.currentTimeMillis();
+                final long t1 = BTUtils.currentTimeMillis();
                 if (sensor == null) {
                     System.err.println("No sensor found within "+(t1-t0)+" ms");
                     continue; // forever loop
@@ -293,22 +293,22 @@ public class ScannerTinyB01 {
                 sensor.enableConnectedNotifications(connectedNotification);
                 sensor.enableServicesResolvedNotifications(servicesResolvedNotification);
 
-                final long t2 = BluetoothUtils.currentTimeMillis();
+                final long t2 = BTUtils.currentTimeMillis();
                 final long t3;
                 HCIStatusCode res;
                 if ( ( res = sensor.connect() ) == HCIStatusCode.SUCCESS ) {
-                    t3 = BluetoothUtils.currentTimeMillis();
+                    t3 = BTUtils.currentTimeMillis();
                     System.err.println("Sensor connect issued: "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
                     System.err.println("Sensor connectedNotification: "+connectedNotification.getValue());
                 } else {
-                    t3 = BluetoothUtils.currentTimeMillis();
+                    t3 = BTUtils.currentTimeMillis();
                     System.out.println("connect command failed, res "+res+": "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
                     // we tolerate the failed immediate connect, as it might happen at a later time
                 }
 
                 synchronized( servicesResolvedNotification ) {
                     while( !servicesResolvedNotification.getValue() ) {
-                        final long tn = BluetoothUtils.currentTimeMillis();
+                        final long tn = BTUtils.currentTimeMillis();
                         if( tn - t3 > TO_CONNECT_AND_RESOLVE ) {
                             break;
                         }
@@ -317,26 +317,26 @@ public class ScannerTinyB01 {
                 }
                 final long t4;
                 if ( servicesResolvedNotification.getValue() ) {
-                    t4 = BluetoothUtils.currentTimeMillis();
+                    t4 = BTUtils.currentTimeMillis();
                     System.err.println("Sensor servicesResolved: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
                 } else {
-                    t4 = BluetoothUtils.currentTimeMillis();
+                    t4 = BTUtils.currentTimeMillis();
                     System.out.println("Sensor service not resolved: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
                     System.exit(-1);
                 }
 
-                final List<BluetoothGattService> primServices = sensor.getServices();
+                final List<BTGattService> primServices = sensor.getServices();
                 if ( null == primServices || primServices.isEmpty() ) {
                     System.err.println("No BluetoothGattService found!");
                 } else {
                     {
                         for(final String characteristic : characteristicList) {
-                            final BluetoothGattCharacteristic char0 = (BluetoothGattCharacteristic)
-                                    manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, null, 1000);
-                            final BluetoothGattCharacteristic char1 = (BluetoothGattCharacteristic)
-                                    manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, sensor.getAdapter(), 1000);
-                            final BluetoothGattCharacteristic char2 = (BluetoothGattCharacteristic)
-                                    manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, sensor, 1000);
+                            final BTGattChar char0 = (BTGattChar)
+                                    manager.find(BTType.GATT_CHARACTERISTIC, null, characteristic, null, 1000);
+                            final BTGattChar char1 = (BTGattChar)
+                                    manager.find(BTType.GATT_CHARACTERISTIC, null, characteristic, sensor.getAdapter(), 1000);
+                            final BTGattChar char2 = (BTGattChar)
+                                    manager.find(BTType.GATT_CHARACTERISTIC, null, characteristic, sensor, 1000);
                             System.err.println("Char UUID "+characteristic);
                             System.err.println("  over manager: "+char0);
                             System.err.println("  over adapter: "+char1);
@@ -344,41 +344,41 @@ public class ScannerTinyB01 {
                         }
                     }
 
-                    final GATTCharacteristicListener myCharacteristicListener = new GATTCharacteristicListener(null) {
+                    final BTGattCharListener myCharacteristicListener = new BTGattCharListener(null) {
                         @Override
-                        public void notificationReceived(final BluetoothGattCharacteristic charDecl,
+                        public void notificationReceived(final BTGattChar charDecl,
                                 final byte[] value, final long timestamp) {
                             System.err.println("****** GATT notificationReceived: "+charDecl+
-                                    ", value "+BluetoothUtils.bytesHexString(value, 0, -1, true, true, true));
+                                    ", value "+BTUtils.bytesHexString(value, 0, -1, true, true, true));
                         }
 
                         @Override
-                        public void indicationReceived(final BluetoothGattCharacteristic charDecl,
+                        public void indicationReceived(final BTGattChar charDecl,
                                 final byte[] value, final long timestamp, final boolean confirmationSent) {
                             System.err.println("****** GATT indicationReceived: "+charDecl+
-                                    ", value "+BluetoothUtils.bytesHexString(value, 0, -1, true, true, true));
+                                    ", value "+BTUtils.bytesHexString(value, 0, -1, true, true, true));
                         }
                     };
                     final boolean addedCharacteristicListenerRes =
-                            BluetoothGattService.addCharacteristicListenerToAll(sensor, primServices, myCharacteristicListener);
+                            BTGattService.addCharListenerToAll(sensor, primServices, myCharacteristicListener);
                     System.err.println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
 
                     int i=0, j=0;
-                    for(final Iterator<BluetoothGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
-                        final BluetoothGattService primService = srvIter.next();
+                    for(final Iterator<BTGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
+                        final BTGattService primService = srvIter.next();
                         System.err.printf("  [%02d] Service %s\n", i, primService.toString());
                         System.err.printf("  [%02d] Service Characteristics\n", i);
-                        final List<BluetoothGattCharacteristic> serviceCharacteristics = primService.getCharacteristics();
-                        for(final Iterator<BluetoothGattCharacteristic> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
-                            final BluetoothGattCharacteristic serviceChar = charIter.next();
+                        final List<BTGattChar> serviceCharacteristics = primService.getChars();
+                        for(final Iterator<BTGattChar> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
+                            final BTGattChar serviceChar = charIter.next();
                             System.err.printf("  [%02d.%02d] Decla: %s\n", i, j, serviceChar.toString());
                             final List<String> properties = Arrays.asList(serviceChar.getFlags());
                             if( properties.contains("read") ) {
                                 try {
                                     final byte[] value = serviceChar.readValue();
-                                    final String svalue = BluetoothUtils.decodeUTF8String(value, 0, value.length);
+                                    final String svalue = BTUtils.decodeUTF8String(value, 0, value.length);
                                     System.err.printf("  [%02d.%02d] Value: %s ('%s')\n",
-                                            i, j, BluetoothUtils.bytesHexString(value, 0, -1, true, true, true), svalue);
+                                            i, j, BTUtils.bytesHexString(value, 0, -1, true, true, true), svalue);
                                 } catch( final Exception ex) {
                                     System.err.println("Caught "+ex.getMessage());
                                     ex.printStackTrace();
@@ -388,7 +388,7 @@ public class ScannerTinyB01 {
                     }
                     Thread.sleep(1000); // FIXME: Wait for notifications
 
-                    final boolean remRes = BluetoothGattService.removeCharacteristicListenerFromAll(sensor, primServices, myCharacteristicListener);
+                    final boolean remRes = BTGattService.removeCharListenerFromAll(sensor, primServices, myCharacteristicListener);
                     System.err.println("Removed GATTCharacteristicListener: "+remRes);
                 }
                 sensor.disconnect();
@@ -412,13 +412,13 @@ public class ScannerTinyB01 {
         manager.shutdown();
         System.err.println("ScannerTinyB01 XX");
     }
-    private static void printDevice(final BluetoothDevice device) {
+    private static void printDevice(final BTDevice device) {
         System.err.println("Address = " + device.getAddressAndType());
         System.err.println("  Name = " + device.getName());
         System.err.println("  Connected = " + device.getConnected());
         System.err.println();
     }
-    static class BooleanNotification implements BluetoothNotification<Boolean> {
+    static class BooleanNotification implements BTNotification<Boolean> {
         private final long t0;
         private final String name;
         private boolean v;
@@ -432,7 +432,7 @@ public class ScannerTinyB01 {
         @Override
         public void run(final Boolean v) {
             synchronized(this) {
-                final long t1 = BluetoothUtils.currentTimeMillis();
+                final long t1 = BTUtils.currentTimeMillis();
                 this.v = v.booleanValue();
                 System.out.println("###### "+name+": "+v+" in td "+(t1-t0)+" ms!");
                 this.notifyAll();
