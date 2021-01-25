@@ -58,8 +58,8 @@ ulimit -c unlimited
 export LANG=en_US.UTF-8
 export LC_MEASUREMENT=en_US.UTF-8
 
-JAVA_CMD="java -Xcheck:jni -verbose:jni"
-# JAVA_CMD="java"
+# JAVA_CMD="java -Xcheck:jni -verbose:jni"
+JAVA_CMD="java"
 
 # VALGRIND="valgrind --tool=memcheck --leak-check=full --show-reachable=yes --error-limit=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
 # VALGRIND="valgrind --tool=helgrind --track-lockorders=yes  --ignore-thread-creation=yes --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
