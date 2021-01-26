@@ -34,16 +34,16 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import org.junit.Test;
+import jau.test.junit.util.JunitTracer;
+
 import org.direct_bt.BTException;
 import org.direct_bt.BTFactory;
 import org.direct_bt.BTManager;
 import org.direct_bt.EUI48;
 import org.direct_bt.EUI48Sub;
-import org.jau.junit.util.JunitTracer;
 import org.junit.Assert;
-
 import org.junit.FixMethodOrder;
+import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 /**

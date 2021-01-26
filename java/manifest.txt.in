@@ -22,6 +22,7 @@ Trusted-Library: true
 Permissions: all-permissions
 Application-Library-Allowable-Codebase: *
 Class-Path: jaulib.jar
+Main-Class: org.direct_bt.DirectBTVersion
 
 Name: org/direct_bt/
 Sealed: true

@@ -10,7 +10,7 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
-	<classpathentry kind="lib" path="dist-amd64/lib/java/jaulib_fat.jar" sourcepath="dist-amd64/lib/java/jaulib_java_src.zip"/>
-	<classpathentry kind="lib" path="dist-amd64/lib/java/jaulib_test.jar"/>
+	<classpathentry kind="lib" path="/home/sven/projects/zafena/direct_bt/dist-amd64/lib/java/jaulib-fat.jar" sourcepath="dist-amd64/lib/java/jaulib-java-src.zip"/>
+	<classpathentry kind="lib" path="/home/sven/projects/zafena/direct_bt/dist-amd64/lib/java/jaulib-test.jar"/>
 	<classpathentry kind="output" path="build-eclipse-amd64/"/>
 </classpath>

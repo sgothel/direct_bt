@@ -13,13 +13,6 @@ set( TARGETS_IDIOMATIC_EXAMPLES ${BASENAMES_IDIOMATIC_EXAMPLES} )
 
 foreach( name ${TARGETS_IDIOMATIC_EXAMPLES} )
     add_executable(${name} ${name}.cpp)
-endforeach()
-
-set(ALL_EXAMPLE_TARGETS
-  ${TARGETS_IDIOMATIC_EXAMPLES}
-)
-
-foreach(name ${ALL_EXAMPLE_TARGETS})
     target_link_libraries(${name} direct_bt catch2)
     add_dependencies(${name} direct_bt catch2)
     add_test (NAME ${name} COMMAND ${name})
