@@ -434,7 +434,6 @@ public class DBTManager implements BTManager
                 return "Settings[dbt true, tinyb false, charValueCacheNotify "+isCharacteristicValueCacheNotificationSupported()+"]";
             }
         };
-        System.err.println("DBTManager: Using "+settings.toString());
     }
 
     /** Returns an instance of BluetoothManager, to be used instead of constructor.

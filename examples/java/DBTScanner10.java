@@ -905,7 +905,7 @@ public class DBTScanner10 {
         }
         final BTManager manager;
         try {
-            manager = BTFactory.getDirectBTBluetoothManager();
+            manager = BTFactory.getDirectBTManager();
         } catch (BTException | NoSuchMethodException | SecurityException
                 | IllegalAccessException | IllegalArgumentException
                 | InvocationTargetException | ClassNotFoundException e) {

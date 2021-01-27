@@ -112,7 +112,7 @@ public class Notification {
          */
         final BTManager manager;
         try {
-            manager = BTFactory.getDBusBluetoothManager();
+            manager = BTFactory.getDBusBTManager();
         } catch (BTException | NoSuchMethodException | SecurityException
                 | IllegalAccessException | IllegalArgumentException
                 | InvocationTargetException | ClassNotFoundException e) {

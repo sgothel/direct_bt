@@ -131,7 +131,7 @@ public class ScannerTinyB01 {
             System.err.println("Using BluetoothManager "+bluetoothManagerClazzName);
             System.err.println("Using Implementation "+implID+", isDirectBT "+isDirectBT);
             try {
-                _manager = BTFactory.getBluetoothManager( implID );
+                _manager = BTFactory.getBTManager( implID );
             } catch (BTException | NoSuchMethodException | SecurityException
                     | IllegalAccessException | IllegalArgumentException
                     | InvocationTargetException | ClassNotFoundException e) {

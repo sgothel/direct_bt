@@ -55,7 +55,7 @@ public class TestEUI48 extends JunitTracer {
     static {
         final BTManager manager;
         try {
-            manager = BTFactory.getDirectBTBluetoothManager();
+            manager = BTFactory.getDirectBTManager();
         } catch (BTException | NoSuchMethodException | SecurityException
                 | IllegalAccessException | IllegalArgumentException
                 | InvocationTargetException | ClassNotFoundException e) {

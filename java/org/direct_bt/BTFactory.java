@@ -40,17 +40,20 @@ import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
+import org.jau.sys.PlatformProps;
+import org.jau.util.VersionUtil;
+
 /**
  * One stop {@link BTManager} API entry point.
  * <p>
  * Further provides access to certain property settings,
- * see {@link #DEBUG}, {@link #VERBOSE}, {@link #DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT}.
+ * see {@link #DEBUG}, {@link #VERBOSE}, {@link #DEFAULT_BTMODE} and {@link BTManager.Settings}.
  * </p>
  */
 public class BTFactory {
 
     /**
-     * Identifier names, allowing {@link BTFactory#getBluetoothManager(ImplementationIdentifier)}
+     * Identifier names, allowing {@link BTFactory#getBTManager(ImplementationIdentifier)}
      * to initialize the required native libraries and to instantiate the root {@link BTManager} instance.
      * <p>
      * The implementation class must provide the static factory method
@@ -162,6 +165,17 @@ public class BTFactory {
      */
     public static final BTMode DEFAULT_BTMODE;
 
+    /**
+     * True if jaulib {@link org.jau.sys.PlatformProps} has been detected.
+     */
+    public static final boolean JAULIB_AVAILABLE;
+
+    /**
+     * True if jaulib {@link #JAULIB_AVAILABLE} and its {@link org.jau.sys.PlatformProps#USE_TEMP_JAR_CACHE} is true,
+     * i.e. the jar cache is available, enabled and in use.
+     */
+    public static final boolean JAULIB_JARCACHE_USED;
+
     static {
         {
             final String v = System.getProperty("org.direct_bt.debug", "false");
@@ -185,6 +199,26 @@ public class BTFactory {
         }
         implIDs.add(DirectBTImplementationID);
         implIDs.add(DBusImplementationID);
+
+        boolean isJaulibAvail = false;
+        try {
+            isJaulibAvail = null != Class.forName("org.jau.sys.PlatformProps", true /* initializeClazz */, BTFactory.class.getClassLoader());
+        } catch( final Throwable t ) {
+            System.err.println("Caught: "+t.getMessage());
+            if( DEBUG ) {
+                t.printStackTrace();
+            }
+        }
+        JAULIB_AVAILABLE = isJaulibAvail;
+
+        if( isJaulibAvail ) {
+            JAULIB_JARCACHE_USED = org.jau.sys.PlatformProps.USE_TEMP_JAR_CACHE;
+        } else {
+            JAULIB_JARCACHE_USED = false;
+        }
+        if( VERBOSE ) {
+            System.err.println("Jaulib available: "+JAULIB_AVAILABLE+", JarCache in use: "+JAULIB_JARCACHE_USED);
+        }
     }
 
     private static ImplementationIdentifier initializedID = null;
@@ -208,17 +242,8 @@ public class BTFactory {
 
         final ClassLoader cl = BTFactory.class.getClassLoader();
         boolean libsLoaded = false;
-        boolean isJaulibAvail = false;
-        try {
-            isJaulibAvail = null != Class.forName("org.jau.sys.PlatformProps", true /* initializeClazz */, cl);
-        } catch( final Throwable t ) {
-            System.err.println("Caught: "+t.getMessage());
-            if( DEBUG ) {
-                t.printStackTrace();
-            }
-        }
-        if( isJaulibAvail ) {
-            if( org.jau.sys.PlatformProps.USE_TEMP_JAR_CACHE ) {
+        if( JAULIB_AVAILABLE ) {
+            if( JAULIB_JARCACHE_USED ) {
                 try {
                     org.jau.pkg.JNIJarLibrary.addNativeJarLibs(new Class<?>[] { BTFactory.class }, null);
                 } catch (final Exception e0) {
@@ -347,7 +372,7 @@ public class BTFactory {
         }
     }
 
-    private static synchronized BTManager getBluetoothManager(final Class<?> factoryImplClass)
+    private static synchronized BTManager getBTManager(final Class<?> factoryImplClass)
             throws BTException, NoSuchMethodException, SecurityException,
                    IllegalAccessException, IllegalArgumentException, InvocationTargetException
     {
@@ -389,7 +414,7 @@ public class BTFactory {
      * Returns an initialized BluetoothManager instance using the given {@code fqBluetoothManagerImplementationClassName}
      * to lookup a registered {@link ImplementationIdentifier}.
      * <p>
-     * If found, method returns {@link #getBluetoothManager(ImplementationIdentifier)}, otherwise {@code null}.
+     * If found, method returns {@link #getBTManager(ImplementationIdentifier)}, otherwise {@code null}.
      * </p>
      * <p>
      * The chosen implementation can't be changed within a running implementation, an exception is thrown if tried.
@@ -406,13 +431,13 @@ public class BTFactory {
      * @see {@link #DBusFactoryImplClassName}
      * @see {@link #DirectBTFactoryImplClassName}
      */
-    public static synchronized BTManager getBluetoothManager(final String fqBluetoothManagerImplementationClassName)
+    public static synchronized BTManager getBTManager(final String fqBluetoothManagerImplementationClassName)
             throws BTException, NoSuchMethodException, SecurityException,
                    IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException
     {
         final ImplementationIdentifier id = getImplementationIdentifier(fqBluetoothManagerImplementationClassName);
         if( null != id ) {
-            return getBluetoothManager(id);
+            return getBTManager(id);
         }
         return null;
     }
@@ -437,20 +462,20 @@ public class BTFactory {
      * @see {@link #DBusFactoryImplClassName}
      * @see {@link #DirectBTFactoryImplClassName}
      */
-    public static synchronized BTManager getBluetoothManager(final ImplementationIdentifier id)
+    public static synchronized BTManager getBTManager(final ImplementationIdentifier id)
             throws BTException, NoSuchMethodException, SecurityException,
                    IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException
     {
         registerImplementationIdentifier(id);
         initLibrary(id);
         final Class<?> factoryImpl = Class.forName(id.BluetoothManagerClassName);
-        return getBluetoothManager(factoryImpl);
+        return getBTManager(factoryImpl);
     }
 
     /**
      * Returns an initialized BluetoothManager instance using a D-Bus implementation.
      * <p>
-     * Issues {@link #getBluetoothManager(ImplementationIdentifier)} using {@link #DBusImplementationID}.
+     * Issues {@link #getBTManager(ImplementationIdentifier)} using {@link #DBusImplementationID}.
      * </p>
      * <p>
      * The chosen implementation can't be changed within a running implementation, an exception is thrown if tried.
@@ -463,17 +488,17 @@ public class BTFactory {
      * @throws InvocationTargetException
      * @throws ClassNotFoundException
      */
-    public static synchronized BTManager getDBusBluetoothManager()
+    public static synchronized BTManager getDBusBTManager()
             throws BTException, NoSuchMethodException, SecurityException,
                    IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException
     {
-        return getBluetoothManager(DBusImplementationID);
+        return getBTManager(DBusImplementationID);
     }
 
     /**
      * Returns an initialized BluetoothManager instance using the DirectBT implementation.
      * <p>
-     * Issues {@link #getBluetoothManager(ImplementationIdentifier)} using {@link #DirectBTImplementationID}.
+     * Issues {@link #getBTManager(ImplementationIdentifier)} using {@link #DirectBTImplementationID}.
      * </p>
      * <p>
      * The chosen implementation can't be changed within a running implementation, an exception is thrown if tried.
@@ -486,11 +511,11 @@ public class BTFactory {
      * @throws InvocationTargetException
      * @throws ClassNotFoundException
      */
-    public static synchronized BTManager getDirectBTBluetoothManager()
+    public static synchronized BTManager getDirectBTManager()
             throws BTException, NoSuchMethodException, SecurityException,
                    IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException
     {
-        return getBluetoothManager(DirectBTImplementationID);
+        return getBTManager(DirectBTImplementationID);
     }
 
     private static final Manifest getManifest(final ClassLoader cl, final String[] extensions) {
@@ -514,15 +539,6 @@ public class BTFactory {
                 final Attributes attributes = manifest.getMainAttributes();
                 if(attributes != null) {
                     final String attributesExtName = attributes.getValue( Attributes.Name.EXTENSION_NAME );
-                    if( DEBUG ) {
-                        System.err.println("resource: "+resURL+", attributes extName "+attributesExtName+", count "+attributes.size());
-                        final Set<Object> keys = attributes.keySet();
-                        for(final Iterator<Object> iter=keys.iterator(); iter.hasNext(); ) {
-                            final Attributes.Name key = (Attributes.Name) iter.next();
-                            final String val = attributes.getValue(key);
-                            System.err.println("  "+key+": "+val);
-                        }
-                    }
                     for(int i=0; i < extensions.length && null == extManifests[i]; i++) {
                         final String extension = extensions[i];
                         if( extension.equals( attributesExtName ) ) {
@@ -543,6 +559,54 @@ public class BTFactory {
             }
         }
         return null;
+    }
+
+    public static void main(final String args[]) {
+        System.err.println("Jaulib: Available "+JAULIB_AVAILABLE+", JarCache in use "+JAULIB_JARCACHE_USED);
+        if( JAULIB_AVAILABLE ) {
+            System.err.println(VersionUtil.getPlatformInfo());
+            System.err.println("Version Info:");
+            final DirectBTVersion v = DirectBTVersion.getInstance();
+            System.err.println(v);
+            System.err.println("");
+            System.err.println("Full Manifest:");
+            System.err.println(v.getFullManifestInfo(null));
+        } else {
+            System.err.println("Full Manifest:");
+            final Manifest manifest = getManifest(BTFactory.class.getClassLoader(), new String[] { "org.direct_bt" } );
+            final Attributes attr = manifest.getMainAttributes();
+            final Set<Object> keys = attr.keySet();
+            final StringBuilder sb = new StringBuilder();
+            for(final Iterator<Object> iter=keys.iterator(); iter.hasNext(); ) {
+                final Attributes.Name key = (Attributes.Name) iter.next();
+                final String val = attr.getValue(key);
+                sb.append(" ");
+                sb.append(key);
+                sb.append(" = ");
+                sb.append(val);
+                sb.append(System.lineSeparator());
+            }
+            System.err.println(sb);
+        }
+        try {
+            final BTManager mngr = getDirectBTManager();
+            final List<BTAdapter> adapters = mngr.getAdapters();
+            System.err.println("BTManager: Settings "+mngr.getSettings().toString()+", adapters "+adapters.size());
+            final boolean isDBT = mngr.getSettings().isDirectBT();
+            int i=0;
+            for(final Iterator<BTAdapter> iter = adapters.iterator(); iter.hasNext(); ++i) {
+                if( isDBT ) {
+                    System.err.println("BTAdapter["+i+"]: "+iter.next().toString()); // has full toString()
+                } else {
+                    final BTAdapter a = iter.next();
+                    System.err.println("BTAdapter["+i+"]: dev_id "+a.getDevID()+", address "+a.getAddress()+", name "+a.getName());
+                }
+            }
+        } catch (BTException | NoSuchMethodException | SecurityException
+                | IllegalAccessException | IllegalArgumentException
+                | InvocationTargetException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 
     private native static String getNativeAPIVersion();

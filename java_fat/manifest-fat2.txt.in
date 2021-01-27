@@ -21,7 +21,7 @@ Extension-Name: org.direct_bt
 Trusted-Library: true
 Permissions: all-permissions
 Application-Library-Allowable-Codebase: *
-Main-Class: org.direct_bt.DirectBTVersion
+Main-Class: org.direct_bt.BTFactory
 
 Name: org/jau
 Sealed: true

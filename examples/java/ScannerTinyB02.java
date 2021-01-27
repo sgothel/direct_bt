@@ -107,7 +107,7 @@ public class ScannerTinyB02 {
         {
             BTManager _manager = null;
             try {
-                _manager = BTFactory.getBluetoothManager( implID );
+                _manager = BTFactory.getBTManager( implID );
             } catch (BTException | NoSuchMethodException | SecurityException
                     | IllegalAccessException | IllegalArgumentException
                     | InvocationTargetException | ClassNotFoundException e) {

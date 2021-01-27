@@ -43,25 +43,18 @@ public class DirectBTVersion extends JauVersion {
      * Returns a transient new instance.
      */
     public static DirectBTVersion getInstance() {
-            final String packageNameCompileTime = "org.direct_bt";
-            final String packageNameRuntime = "org.direct_bt";
-            Manifest mf = VersionUtil.getManifest(DirectBTVersion.class.getClassLoader(), packageNameRuntime);
-            if(null != mf) {
-                return new DirectBTVersion(packageNameRuntime, mf);
-            } else {
-                mf = VersionUtil.getManifest(DirectBTVersion.class.getClassLoader(), packageNameCompileTime);
-                return new DirectBTVersion(packageNameCompileTime, mf);
-            }
+        final String packageNameCompileTime = "org.direct_bt";
+        final String packageNameRuntime = "org.direct_bt";
+        Manifest mf = VersionUtil.getManifest(DirectBTVersion.class.getClassLoader(), packageNameRuntime);
+        if(null != mf) {
+            return new DirectBTVersion(packageNameRuntime, mf);
+        } else {
+            mf = VersionUtil.getManifest(DirectBTVersion.class.getClassLoader(), packageNameCompileTime);
+            return new DirectBTVersion(packageNameCompileTime, mf);
         }
     }
 
     public static void main(final String args[]) {
-        System.err.println(VersionUtil.getPlatformInfo());
-        System.err.println("Version Info:");
-        final DirectBTVersion v = DirectBTVersion.getInstance();
-        System.err.println(v);
-        System.err.println("");
-        System.err.println("Full Manifest:");
-        System.err.println(v.getFullManifestInfo(null));
+        BTFactory.main(args);
     }
 }
