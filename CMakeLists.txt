@@ -1,6 +1,12 @@
 cmake_minimum_required (VERSION 3.13.0 FATAL_ERROR)
 project (direct_bt LANGUAGES C CXX)
 
+if(${CMAKE_VERSION} VERSION_LESS "3.18.0")
+    message(STATUS "CMake ${CMAKE_VERSION}, please consider to switch to CMake 3.18.0 or later")
+else()
+    message(STATUS "CMake ${CMAKE_VERSION} >= 3.18.0, good.")
+endif()
+
 FIND_PACKAGE (Threads REQUIRED)
 
 if(NOT SKIP_TINYB)
