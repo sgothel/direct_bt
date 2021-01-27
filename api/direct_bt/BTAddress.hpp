@@ -58,6 +58,12 @@ namespace direct_bt {
         /** Undefined */
         BDADDR_UNDEFINED  = 0xff
     };
+    constexpr BDAddressType getBDAddressType(const uint8_t v) noexcept {
+        if( v <= 2 ) {
+            return static_cast<BDAddressType>(v);
+        }
+        return BDAddressType::BDADDR_UNDEFINED;
+    }
     constexpr uint8_t number(const BDAddressType rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }

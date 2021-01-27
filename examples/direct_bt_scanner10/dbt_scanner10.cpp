@@ -86,9 +86,6 @@ static bool QUIET = false;
 static jau::darray<BDAddressAndType> waitForDevices;
 
 const static int NO_PASSKEY = -1;
-static int pairing_passkey = NO_PASSKEY;
-static BTSecurityLevel sec_level = BTSecurityLevel::UNSET;
-static SMPIOCapability io_capabilities = SMPIOCapability::UNSET;
 
 static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device);
 
@@ -199,6 +196,7 @@ struct MyLongTermKeyInfo {
     bool read(const std::string filename) {
         std::ifstream file(filename, std::ios::binary);
         if (!file.is_open() ) {
+            fprintf(stderr, "****** READ LTK [%s] failed\n", filename.c_str());
             return false;
         }
         file.read((char*)&address_and_type.address, sizeof(address_and_type.address));
@@ -232,6 +230,7 @@ struct MySignatureResolvingKeyInfo {
     bool read(const std::string filename) {
         std::ifstream file(filename, std::ios::binary);
         if (!file.is_open() ) {
+            fprintf(stderr, "****** READ CSRK [%s] failed\n", filename.c_str());
             return false;
         }
         file.read((char*)&address_and_type.address, sizeof(address_and_type.address));
@@ -245,6 +244,67 @@ struct MySignatureResolvingKeyInfo {
         return true;
     }
 };
+
+struct MyBTSecurityDetail {
+    BDAddressAndType addrAndType;
+
+    BTSecurityLevel sec_level { BTSecurityLevel::UNSET };
+    SMPIOCapability io_cap { SMPIOCapability::UNSET };
+    int passkey = NO_PASSKEY;
+
+    MyBTSecurityDetail(const BDAddressAndType& addrAndType_)
+    : addrAndType(addrAndType_) {}
+
+    const BTSecurityLevel& getSecLevel() { return sec_level; }
+
+    const SMPIOCapability& getIOCapability() { return io_cap; }
+
+    int getPairingPasskey() { return passkey; }
+
+    int getPairingNumericComparison() { return 1; }
+
+    std::string toString() const noexcept {
+        return "MyBTSecurityDetail["+addrAndType.toString()+", lvl "+
+                getBTSecurityLevelString(sec_level)+", io "+getSMPIOCapabilityString(io_cap)+
+                ", passkey "+std::to_string(passkey)+"]";
+    }
+
+  private:
+    static std::unordered_map<BDAddressAndType, MyBTSecurityDetail> devicesSecDetail;
+
+  public:
+
+    static MyBTSecurityDetail* get(const BDAddressAndType& addrAndType) {
+        auto s = devicesSecDetail.find(addrAndType);
+        if( s != devicesSecDetail.end() ) {
+            return &(s->second);
+        } else {
+            return nullptr;
+        }
+    }
+    static MyBTSecurityDetail* getOrCreate(const BDAddressAndType& addrAndType) {
+        MyBTSecurityDetail* sec_detail = get(addrAndType);
+        if( nullptr != sec_detail ) {
+            return sec_detail;
+        } else {
+            auto i = devicesSecDetail.insert( devicesSecDetail.end(), { addrAndType, MyBTSecurityDetail(addrAndType) } );
+            return &(i->second);
+        }
+    }
+    static std::string allToString() {
+        std::string res;
+        int i=0;
+        for(auto iter = devicesSecDetail.begin(); iter != devicesSecDetail.end(); ++iter, ++i) {
+            const MyBTSecurityDetail& sec = iter->second;
+            if( 0 < i ) {
+                res += ", ";
+            }
+            res += sec.toString();
+        }
+        return res;
+    }
+};
+std::unordered_map<BDAddressAndType, MyBTSecurityDetail> MyBTSecurityDetail::devicesSecDetail;
 
 class MyAdapterStatusListener : public AdapterStatusListener {
 
@@ -342,8 +402,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 // next: PASSKEY_EXPECTED... or KEY_DISTRIBUTION
                 break;
             case SMPPairingState::PASSKEY_EXPECTED: {
-                if( pairing_passkey != NO_PASSKEY ) {
-                    std::thread dc(&BTDevice::setPairingPasskey, device, static_cast<uint32_t>(pairing_passkey)); // @suppress("Invalid arguments")
+                const MyBTSecurityDetail* sec = MyBTSecurityDetail::get(device->getAddressAndType());
+                if( nullptr != sec && sec->passkey != NO_PASSKEY ) {
+                    std::thread dc(&BTDevice::setPairingPasskey, device, static_cast<uint32_t>(sec->passkey)); // @suppress("Invalid arguments")
                     dc.detach();
                 } /* else {
                     std::thread dc(&BTDevice::setPairingPasskeyNegative, device); // @suppress("Invalid arguments")
@@ -471,12 +532,19 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
             HCIStatusCode::SUCCESS == device->setLongTermKeyInfo(my_ltk_init.smp_ltk) &&
             HCIStatusCode::SUCCESS == device->setLongTermKeyInfo(my_ltk_resp.smp_ltk) ) {
             fprintf(stderr, "****** Connecting Device: Loaded LTKs from file successfully\n");
+        }
+    }
+    {
+        // Always reuse same sec setting if reusing LTK
+        const MyBTSecurityDetail* sec = MyBTSecurityDetail::get(device->getAddressAndType());
+        if( nullptr != sec ) {
+            bool res = device->setConnSecurityBest(sec->sec_level, sec->io_cap);
+            fprintf(stderr, "****** Connecting Device: Using SecurityDetail %s, set OK %d\n", sec->toString().c_str(), res);
         } else {
-            fprintf(stderr, "****** Connecting Device: Error loading LTKs from file\n");
+            fprintf(stderr, "****** Connecting Device: No SecurityDetail for %s\n", device->getAddressAndType().toString().c_str());
         }
     }
 
-    device->setConnSecurityBest(sec_level, io_capabilities);
 
     HCIStatusCode res;
     if( !USE_WHITELIST ) {
@@ -866,12 +934,27 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Whitelist + %s\n", wle.toString().c_str());
             WHITELIST.push_back( wle );
             USE_WHITELIST = true;
-        } else if( !strcmp("-passkey", argv[i]) && argc > (i+1) ) {
-            pairing_passkey = atoi(argv[++i]);
-        } else if( !strcmp("-seclevel", argv[i]) && argc > (i+1) ) {
-            sec_level = getBTSecurityLevel(atoi(argv[++i]));
-        } else if( !strcmp("-iocap", argv[i]) && argc > (i+1) ) {
-            io_capabilities = getSMPIOCapability(atoi(argv[++i]));
+        } else if( !strcmp("-passkey", argv[i]) && argc > (i+3) ) {
+            const char* mac = argv[++i];
+            const uint8_t atype = (uint8_t) ( atoi(argv[++i]) & 0xff );
+            const BDAddressAndType macAndType(EUI48(mac), getBDAddressType(atype));
+            MyBTSecurityDetail* sec = MyBTSecurityDetail::getOrCreate(macAndType);
+            sec->passkey = atoi(argv[++i]);
+            fprintf(stderr, "Set passkey in %s\n", sec->toString().c_str());
+        } else if( !strcmp("-seclevel", argv[i]) && argc > (i+3) ) {
+            const char* mac = argv[++i];
+            const uint8_t atype = (uint8_t) ( atoi(argv[++i]) & 0xff );
+            const BDAddressAndType macAndType(EUI48(mac), getBDAddressType(atype));
+            MyBTSecurityDetail* sec = MyBTSecurityDetail::getOrCreate(macAndType);
+            sec->sec_level = getBTSecurityLevel(atoi(argv[++i]));
+            fprintf(stderr, "Set sec_level in %s\n", sec->toString().c_str());
+        } else if( !strcmp("-iocap", argv[i]) && argc > (i+3) ) {
+            const char* mac = argv[++i];
+            const uint8_t atype = (uint8_t) ( atoi(argv[++i]) & 0xff );
+            const BDAddressAndType macAndType(EUI48(mac), getBDAddressType(atype));
+            MyBTSecurityDetail* sec = MyBTSecurityDetail::getOrCreate(macAndType);
+            sec->io_cap = getSMPIOCapability(atoi(argv[++i]));
+            fprintf(stderr, "Set io_cap in %s\n", sec->toString().c_str());
         } else if( !strcmp("-unpairPre", argv[i]) ) {
             UNPAIR_DEVICE_PRE = true;
         } else if( !strcmp("-unpairPost", argv[i]) ) {
@@ -900,7 +983,9 @@ int main(int argc, char *argv[])
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "
                     "[-resetEachCon connectionCount] "
                     "(-mac <device_address>)* (-wl <device_address>)* "
-                    "[-seclevel <int>] [-iocap <int>] [-passkey <digits>] "
+                    "[-seclevel <device_address> <(int)address_type> <int>] "
+                    "[-iocap <device_address> <(int)address_type> <int>] "
+                    "[-passkey <device_address> <(int)address_type> <digits>] "
                     "[-unpairPre] [-unpairPost] "
                     "[-charid <uuid>] [-charval <byte-val>] "
                     "[-dbt_verbose true|false] "
@@ -920,15 +1005,14 @@ int main(int argc, char *argv[])
     fprintf(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
     fprintf(stderr, "QUIET %d\n", QUIET);
     fprintf(stderr, "btmode %s\n", getBTModeString(btMode).c_str());
-    fprintf(stderr, "passkey %d\n", pairing_passkey);
-    fprintf(stderr, "seclevel %s\n", getBTSecurityLevelString(sec_level).c_str());
-    fprintf(stderr, "iocap %s\n", getSMPIOCapabilityString(io_capabilities).c_str());
     fprintf(stderr, "UNPAIR_DEVICE_PRE %d\n", UNPAIR_DEVICE_PRE);
     fprintf(stderr, "UNPAIR_DEVICE_POST %d\n", UNPAIR_DEVICE_POST);
     fprintf(stderr, "characteristic-id: %s\n", charIdentifier.c_str());
     fprintf(stderr, "characteristic-value: %d\n", charValue);
 
+    fprintf(stderr, "security-details: %s\n", MyBTSecurityDetail::allToString().c_str());
     printList( "waitForDevice: ", waitForDevices);
+
 
     if( waitForEnter ) {
         fprintf(stderr, "Press ENTER to continue\n");

@@ -203,8 +203,8 @@ public class BTFactory {
         try {
             isJaulibAvail = null != Class.forName("org.jau.sys.PlatformProps", true /* initializeClazz */, BTFactory.class.getClassLoader());
         } catch( final Throwable t ) {
-            System.err.println("Caught: "+t.getMessage());
             if( DEBUG ) {
+                System.err.println("BTFactory Caught: "+t.getMessage());
                 t.printStackTrace();
             }
         }

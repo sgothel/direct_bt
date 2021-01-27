@@ -34,13 +34,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 import org.direct_bt.AdapterSettings;
 import org.direct_bt.AdapterStatusListener;
@@ -87,9 +86,6 @@ public class DBTScanner10 {
     final List<BDAddressAndType> waitForDevices = new ArrayList<BDAddressAndType>();
 
     static final int NO_PASSKEY = -1;
-    int pairing_passkey = NO_PASSKEY;
-    BTSecurityLevel sec_level = BTSecurityLevel.UNSET;
-    SMPIOCapability io_capabilities = SMPIOCapability.UNSET;
 
     long timestamp_t0;
 
@@ -183,6 +179,7 @@ public class DBTScanner10 {
                 println("****** WRITE LTK ["+address_and_type+", valid, written]: "+smp_ltk);
                 return true;
             } catch (final Exception ex) {
+                println("****** WRITE LTK "+address_and_type+" failed: "+ex.getMessage());
                 ex.printStackTrace();
             } finally {
                 try {
@@ -212,7 +209,7 @@ public class DBTScanner10 {
                 println("****** READ LTK ["+address_and_type+", valid "+smp_ltk.isValid()+"]: "+smp_ltk);
                 return smp_ltk.isValid();
             } catch (final Exception ex) {
-                ex.printStackTrace();
+                println("****** READ LTK ["+filename+"] failed: "+ex.getMessage());
             } finally {
                 try {
                     if( null != in ) {
@@ -252,6 +249,7 @@ public class DBTScanner10 {
                 println("****** WRITE CSRK ["+address_and_type+", written]: "+smp_csrk);
                 return true;
             } catch (final Exception ex) {
+                println("****** WRITE CSRK "+address_and_type+" failed: "+ex.getMessage());
                 ex.printStackTrace();
             } finally {
                 try {
@@ -278,10 +276,10 @@ public class DBTScanner10 {
                 address_and_type.address.putStream(buffer, 0);
                 address_and_type.type = BDAddressType.get(buffer[6]);
                 smp_csrk.putStream(buffer, 6+1);
-                println("****** READ CSRK ["+address_and_type+"]: "+smp_csrk);
+                println("****** READ CSRK "+address_and_type+": "+smp_csrk);
                 return true;
             } catch (final Exception ex) {
-                ex.printStackTrace();
+                println("****** READ CSRK ["+filename+"] failed: "+ex.getMessage());
             } finally {
                 try {
                     if( null != in ) {
@@ -294,6 +292,44 @@ public class DBTScanner10 {
             return false;
         }
     }
+    static public class MyBTSecurityDetail {
+        public final BDAddressAndType addrAndType;
+
+        BTSecurityLevel sec_level = BTSecurityLevel.UNSET;
+        SMPIOCapability io_cap = SMPIOCapability.UNSET;
+        int passkey = NO_PASSKEY;
+
+        public MyBTSecurityDetail(final BDAddressAndType addrAndType) { this.addrAndType = addrAndType; }
+
+        public BTSecurityLevel getSecLevel() { return sec_level; }
+
+        public SMPIOCapability getIOCapability() { return io_cap; }
+
+        public int getPairingPasskey() { return passkey; }
+
+        public int getPairingNumericComparison() { return 1; }
+
+        @Override
+        public String toString() {
+            return "BTSecurityDetail["+addrAndType+", lvl "+sec_level+", io "+io_cap+", passkey "+passkey+"]";
+        }
+
+        static private HashMap<BDAddressAndType, MyBTSecurityDetail> devicesSecDetail = new HashMap<BDAddressAndType, MyBTSecurityDetail>();
+
+        static public MyBTSecurityDetail get(final BDAddressAndType addrAndType) {
+            return devicesSecDetail.get(addrAndType);
+        }
+        static public MyBTSecurityDetail getOrCreate(final BDAddressAndType addrAndType) {
+            MyBTSecurityDetail sec_detail = devicesSecDetail.get(addrAndType);
+            if( null == sec_detail ) {
+                sec_detail = new MyBTSecurityDetail(addrAndType);
+                devicesSecDetail.put(addrAndType, sec_detail);
+            }
+            return sec_detail;
+        }
+        static public String allToString() { return Arrays.toString( devicesSecDetail.values().toArray() ); }
+    }
+
     Collection<BDAddressAndType> devicesInProcessing = Collections.synchronizedCollection(new HashSet<>());
     Collection<BDAddressAndType> devicesProcessed = Collections.synchronizedCollection(new HashSet<>());
 
@@ -388,8 +424,9 @@ public class DBTScanner10 {
                     // next: PASSKEY_EXPECTED... or KEY_DISTRIBUTION
                     break;
                 case PASSKEY_EXPECTED: {
-                    if( pairing_passkey != NO_PASSKEY ) {
-                        executeOffThread( () -> { device.setPairingPasskey(pairing_passkey); }, "DBT-SetPasskey-"+device.getAddressAndType(), true /* detach */);
+                    final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
+                    if( null != sec && sec.passkey != NO_PASSKEY ) {
+                        executeOffThread( () -> { device.setPairingPasskey(sec.passkey); }, "DBT-SetPasskey-"+device.getAddressAndType(), true /* detach */);
                     }
                     // next: KEY_DISTRIBUTION or FAILED
                   } break;
@@ -471,11 +508,18 @@ public class DBTScanner10 {
                 HCIStatusCode.SUCCESS == device.setLongTermKeyInfo(my_ltk_init.smp_ltk) &&
                 HCIStatusCode.SUCCESS == device.setLongTermKeyInfo(my_ltk_resp.smp_ltk) ) {
                 println("****** Connecting Device: Loaded LTKs from file successfully\n");
-            } else {
-                println("****** Connecting Device: Error loading LTKs from file\n");
             }
         }
-        device.setConnSecurityBest(sec_level, io_capabilities);
+        {
+            // Always reuse same sec setting if reusing LTK
+            final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
+            if( null != sec ) {
+                final boolean res = device.setConnSecurityBest(sec.sec_level, sec.io_cap);
+                println("****** Connecting Device: Using SecurityDetail "+sec+" -> set OK "+res);
+            } else {
+                println("****** Connecting Device: No SecurityDetail for "+device.getAddressAndType());
+            }
+        }
 
         HCIStatusCode res;
         if( !USE_WHITELIST ) {
@@ -938,12 +982,29 @@ public class DBTScanner10 {
                     println("Whitelist + "+wle);
                     test.whitelist.add(wle);
                     test.USE_WHITELIST = true;
-                } else if( arg.equals("-passkey") && args.length > (i+1) ) {
-                    test.pairing_passkey = Integer.valueOf(args[++i]).intValue();
-                } else if( arg.equals("-seclevel") && args.length > (i+1) ) {
-                    test.sec_level = BTSecurityLevel.get( (byte)Integer.valueOf(args[++i]).intValue() );
-                } else if( arg.equals("-iocap") && args.length > (i+1) ) {
-                    test.io_capabilities = SMPIOCapability.get( (byte)Integer.valueOf(args[++i]).intValue() );
+                } else if( arg.equals("-passkey") && args.length > (i+3) ) {
+                    final String mac = args[++i];
+                    final byte atype = (byte) ( Integer.valueOf(args[++i]).intValue() & 0xff );
+                    final BDAddressAndType macAndType = new BDAddressAndType(new EUI48(mac), BDAddressType.get(atype));
+                    final MyBTSecurityDetail sec = MyBTSecurityDetail.getOrCreate(macAndType);
+                    sec.passkey = Integer.valueOf(args[++i]).intValue();
+                    System.err.println("Set passkey in "+sec);
+                } else if( arg.equals("-seclevel") && args.length > (i+3) ) {
+                    final String mac = args[++i];
+                    final byte atype = (byte) ( Integer.valueOf(args[++i]).intValue() & 0xff );
+                    final BDAddressAndType macAndType = new BDAddressAndType(new EUI48(mac), BDAddressType.get(atype));
+                    final MyBTSecurityDetail sec = MyBTSecurityDetail.getOrCreate(macAndType);
+                    final int sec_level_i = Integer.valueOf(args[++i]).intValue();
+                    sec.sec_level = BTSecurityLevel.get( (byte)( sec_level_i & 0xff ) );
+                    System.err.println("Set sec_level "+sec_level_i+" in "+sec);
+                } else if( arg.equals("-iocap") && args.length > (i+3) ) {
+                    final String mac = args[++i];
+                    final byte atype = (byte) ( Integer.valueOf(args[++i]).intValue() & 0xff );
+                    final BDAddressAndType macAndType = new BDAddressAndType(new EUI48(mac), BDAddressType.get(atype));
+                    final MyBTSecurityDetail sec = MyBTSecurityDetail.getOrCreate(macAndType);
+                    final int io_cap_i = Integer.valueOf(args[++i]).intValue();
+                    sec.io_cap = SMPIOCapability.get( (byte)( io_cap_i & 0xff ) );
+                    System.err.println("Set io_cap "+io_cap_i+" in "+sec);
                 } else if( arg.equals("-unpairPre") ) {
                     test.UNPAIR_DEVICE_PRE = true;
                 } else if( arg.equals("-unpairPost") ) {
@@ -971,7 +1032,9 @@ public class DBTScanner10 {
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "+
                     "[-resetEachCon connectionCount] "+
                     "(-mac <device_address>)* (-wl <device_address>)* "+
-                    "[-seclevel <int>] [-iocap <int>] [-passkey <digits>] " +
+                    "[-seclevel <device_address> <(int)address_type> <int>] "+
+                    "[-iocap <device_address> <(int)address_type> <int>] "+
+                    "[-passkey <device_address> <(int)address_type> <digits>] " +
                     "[-unpairPre] [-unpairPost] "+
                     "[-charid <uuid>] [-charval <byte-val>] "+
                     "[-verbose] [-debug] "+
@@ -992,13 +1055,12 @@ public class DBTScanner10 {
         println("USE_WHITELIST "+test.USE_WHITELIST);
         println("SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
         println("QUIET "+test.QUIET);
-        println("passkey "+test.pairing_passkey);
-        println("seclevel "+test.sec_level);
-        println("iocap "+test.io_capabilities);
         println("UNPAIR_DEVICE_PRE "+ test.UNPAIR_DEVICE_PRE);
         println("UNPAIR_DEVICE_POST "+ test.UNPAIR_DEVICE_POST);
         println("characteristic-id: "+test.charIdentifier);
         println("characteristic-value: "+test.charValue);
+
+        println("security-details: "+MyBTSecurityDetail.allToString() );
 
         println("waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));
 
