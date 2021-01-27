@@ -42,11 +42,11 @@ public interface BTGattService extends BTObject
     @Override
     public BTGattService clone();
 
-    /** Find a BluetoothGattCharacteristic. If parameter UUID is not null,
+    /** Find a BTGattChar. If parameter UUID is not null,
       * the returned object will have to match it.
       * It will first check for existing objects. It will not turn on discovery
       * or connect to devices.
-      * @parameter UUID optionally specify the UUID of the BluetoothGattCharacteristic you are
+      * @parameter UUID optionally specify the UUID of the BTGattChar you are
       * waiting for
       * @parameter timeoutMS the function will return after timeout time in milliseconds, a
       * value of zero means wait forever. If object is not found during this time null will be returned.
@@ -55,7 +55,7 @@ public interface BTGattService extends BTObject
       */
     public BTGattChar find(String UUID, long timeoutMS);
 
-    /** Find a BluetoothGattCharacteristic. If parameter UUID is not null,
+    /** Find a BTGattChar. If parameter UUID is not null,
       * the returned object will have to match it.
       * It will first check for existing objects. It will not turn on discovery
       * or connect to devices.
@@ -100,7 +100,7 @@ public interface BTGattService extends BTObject
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      * @see BTGattChar#enableNotificationOrIndication(boolean[])
-     * @see BTDevice#addCharacteristicListener(BTGattCharListener, BTGattChar)
+     * @see BTDevice#addCharListener(BTGattCharListener, BTGattChar)
      */
     public static boolean addCharListenerToAll(final BTDevice device, final List<BTGattService> services,
                                                final BTGattCharListener listener) {
@@ -128,7 +128,7 @@ public interface BTGattService extends BTObject
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      * @see BTGattChar#configNotificationIndication(boolean, boolean, boolean[])
-     * @see BTDevice#removeCharacteristicListener(BTGattCharListener)
+     * @see BTDevice#removeCharListener(BTGattCharListener)
      */
     public static boolean removeCharListenerFromAll(final BTDevice device, final List<BTGattService> services,
                                                     final BTGattCharListener listener) {
@@ -148,7 +148,7 @@ public interface BTGattService extends BTObject
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      * @see BTGattChar#configNotificationIndication(boolean, boolean, boolean[])
-     * @see BTDevice#removeAllCharacteristicListener()
+     * @see BTDevice#removeAllCharListener()
      */
     public static int removeAllCharListener(final BTDevice device, final List<BTGattService> services) {
         for(final Iterator<BTGattService> is = services.iterator(); is.hasNext(); ) {

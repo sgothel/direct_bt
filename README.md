@@ -170,7 +170,8 @@ API Documentation
 
 Up to date API documentation can be found:
 
-* [Brief overview of *direct_bt*](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
+* [API Overview](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details) (C++)
+and the [same in the Java API](https://jausoft.com/projects/direct_bt/build/documentation/java/html/namespaceorg_1_1direct__bt.html#details).
 
 * [C++ API Doc](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/index.html).
 

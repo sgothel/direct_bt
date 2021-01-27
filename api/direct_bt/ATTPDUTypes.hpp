@@ -122,6 +122,9 @@
  *  BTGattService    | DBTGattService        | BTGattService        |
  *  BTGattChar       | DBTGattChar           | BTGattChar           |
  *  BTGattDesc       | DBTGattDesc           | BTGattDesc           |
+ *  AdapterStatusListener |                  | AdapterStatusListener   |
+ *  BTGattCharListener |                     | BTGattCharListener   |
+ *  ChangedAdapterSetFunc() |                | BTManager::ChangedAdapterSetListener   |
  *
  * - - - - - - - - - - - - - - -
  *

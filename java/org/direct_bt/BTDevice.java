@@ -829,7 +829,7 @@ public interface BTDevice extends BTObject
      * </p>
      * @param listener A {@link BTGattCharListener} instance, listening to all {@link BTGattChar} events of this device
      * @return true if the given listener is not element of the list and has been newly added, otherwise false.
-     * @throws IllegalStateException if the {@link BTDevice}'s GATTHandler is null, i.e. not connected
+     * @throws IllegalStateException if the {@link BTDevice}'s BTGattHandler is null, i.e. not connected
      * @throws IllegalStateException if the given {@link BTGattCharListener} is already in use, i.e. added.
      * @see BTGattChar#configNotificationIndication(boolean, boolean, boolean[])
      * @see BTGattChar#enableNotificationOrIndication(boolean[])
@@ -842,7 +842,7 @@ public interface BTDevice extends BTObject
     /**
      * Remove the given {@link BTGattCharListener} from the listener list.
      * <p>
-     * If the {@link BTDevice}'s GATTHandler is null, i.e. not connected, {@code false} is being returned.
+     * If the {@link BTDevice}'s BTGattHandler is null, i.e. not connected, {@code false} is being returned.
      * </p>
      * @param listener A {@link BTGattCharListener} instance
      * @return true if the given listener is an element of the list and has been removed, otherwise false.
@@ -857,7 +857,7 @@ public interface BTDevice extends BTObject
      * Implementation tests all listener's {@link BTGattCharListener#getAssociatedChar()}
      * to match with the given associated characteristic.
      * </p>
-     * @param associatedCharacteristic the match criteria to remove any GATTCharacteristicListener from the list
+     * @param associatedCharacteristic the match criteria to remove any BTGattCharListener from the list
      * @return number of removed listener.
      * @since 2.0.0
      * @implNote not implemented in <b>tinyb.dbus</b>

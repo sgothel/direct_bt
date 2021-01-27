@@ -110,7 +110,7 @@ public class DBusGattCharacteristic extends DBusObject implements BTGattChar
     }
 
     @Override
-    public boolean addCharacteristicListener(final BTGattCharListener listener) {
+    public boolean addCharListener(final BTGattCharListener listener) {
         return false; // FIXME
     }
     @Override
@@ -126,17 +126,17 @@ public class DBusGattCharacteristic extends DBusObject implements BTGattChar
         return false; // FIXME
     }
     @Override
-    public boolean addCharacteristicListener(final BTGattCharListener listener, final boolean[] enabledState)
+    public boolean addCharListener(final BTGattCharListener listener, final boolean[] enabledState)
             throws IllegalStateException
     {
         return false; // FIXME
     }
     @Override
-    public boolean removeCharacteristicListener(final BTGattCharListener l, final boolean disableIndicationNotification) {
+    public boolean removeCharListener(final BTGattCharListener l, final boolean disableIndicationNotification) {
         return false; // FIXME
     }
     @Override
-    public int removeAllAssociatedCharacteristicListener(final boolean disableIndicationNotification) {
+    public int removeAllAssociatedCharListener(final boolean disableIndicationNotification) {
         return 0; // FIXME
     }
 

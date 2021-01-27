@@ -16,7 +16,7 @@
  * ## Direct-BT Layers
  *
  * Direct-BT implements the following layers
- * - BTManager for adapter configuration and adapter add/removal notifications (BTManager#ChangedAdapterSetListener)
+ * - BTManager for adapter configuration and adapter add/removal notifications (BTManager::ChangedAdapterSetListener)
  *   - Using *BlueZ Kernel Manager Control Channel* via MgmtMsg communication.
  * - *HCI Handling* via HCIHandler using HCIPacket implementing connect/disconnect w/ tracking, device discovery, etc
  * - *ATT PDU* AttPDUMsg via L2CAP for low level packet communication
@@ -79,6 +79,9 @@
  *  BTGattService    | DBTGattService        | BTGattService        |
  *  BTGattChar       | DBTGattChar           | BTGattChar           |
  *  BTGattDesc       | DBTGattDesc           | BTGattDesc           |
+ *  AdapterStatusListener |                  | AdapterStatusListener   |
+ *  BTGattCharListener |                     | BTGattCharListener   |
+ *  ChangedAdapterSetFunc() |                | BTManager::ChangedAdapterSetListener   |
  *
  * - - - - - - - - - - - - - - -
  *
@@ -86,7 +89,7 @@
  *
  * A fully event driven workflow from adapter management via device discovery to GATT programming is supported.
  *
- * BTManager#ChangedAdapterSetListener allows listening to added and removed BTAdapter via BTManager.
+ * BTManager::ChangedAdapterSetListener allows listening to added and removed BTAdapter via BTManager.
  *
  * AdapterStatusListener allows listening to BTAdapter changes and BTDevice discovery.
  *
@@ -96,7 +99,7 @@
  * which maintain a set of unique listener instances without duplicates.
  *
  * - BTManager
- *   - BTManager#ChangedAdapterSetListener
+ *   - BTManager::ChangedAdapterSetListener
  *
  * - BTAdapter
  *   - AdapterStatusListener

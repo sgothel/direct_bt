@@ -166,7 +166,7 @@ public class DBTGattChar extends DBTObject implements BTGattChar
                     }
                 }
             };
-            this.addCharacteristicListener(characteristicListener); // silent, don't enable native GATT ourselves
+            this.addCharListener(characteristicListener); // silent, don't enable native GATT ourselves
         }
     }
 
@@ -175,7 +175,7 @@ public class DBTGattChar extends DBTObject implements BTGattChar
         if( !isValid() ) {
             return;
         }
-        removeAllAssociatedCharacteristicListener(true);
+        removeAllAssociatedCharListener(true);
         super.close();
     }
 
@@ -302,12 +302,12 @@ public class DBTGattChar extends DBTObject implements BTGattChar
     }
 
     @Override
-    public final boolean addCharacteristicListener(final BTGattCharListener listener) {
+    public final boolean addCharListener(final BTGattCharListener listener) {
         return getService().getDevice().addCharListener(listener);
     }
 
     @Override
-    public final boolean addCharacteristicListener(final BTGattCharListener listener, final boolean enabledState[/*2*/]) {
+    public final boolean addCharListener(final BTGattCharListener listener, final boolean enabledState[/*2*/]) {
         if( !enableNotificationOrIndication(enabledState) ) {
             return false;
         }
@@ -315,7 +315,7 @@ public class DBTGattChar extends DBTObject implements BTGattChar
     }
 
     @Override
-    public final boolean removeCharacteristicListener(final BTGattCharListener l, final boolean disableIndicationNotification) {
+    public final boolean removeCharListener(final BTGattCharListener l, final boolean disableIndicationNotification) {
         if( disableIndicationNotification ) {
             configNotificationIndication(false /* enableNotification */, false /* enableIndication */, new boolean[2]);
         }
@@ -323,7 +323,7 @@ public class DBTGattChar extends DBTObject implements BTGattChar
     }
 
     @Override
-    public final int removeAllAssociatedCharacteristicListener(final boolean disableIndicationNotification) {
+    public final int removeAllAssociatedCharListener(final boolean disableIndicationNotification) {
         if( disableIndicationNotification ) {
             configNotificationIndication(false /* enableNotification */, false /* enableIndication */, new boolean[2]);
         }

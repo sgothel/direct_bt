@@ -60,7 +60,7 @@ public interface BTManager
          * </p>
          * <p>
          * If using {@link #isDirectBT() Direct-BT}, user are encouraged to
-         * {@link BTGattChar#addCharacteristicListener(GATTCharacteristicListener, boolean[]) utilize GATTCharacteristicListener}
+         * {@link BTGattChar#addCharListener(BTGattCharListener, boolean[]) utilize BTGattCharListener}
          * to handle value notifications when they occur w/o caching.
          * </p>
          * <p>

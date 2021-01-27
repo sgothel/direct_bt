@@ -31,11 +31,11 @@ import java.lang.ref.WeakReference;
  * {@link BTGattChar} event listener for notification and indication events.
  * <p>
  * A listener instance may be attached to a {@link BTGattChar} via
- * {@link BTGattChar#addCharacteristicListener(BTGattCharListener)} to listen to its events.
+ * {@link BTGattChar#addCharListener(BTGattCharListener)} to listen to its events.
  * </p>
  * <p>
  * A listener instance may be attached to a {@link BTDevice} via
- * {@link BTDevice#addCharacteristicListener(BTGattCharListener, BTGattChar)}
+ * {@link BTDevice#addCharListener(BTGattCharListener, BTGattChar)}
  * to listen to all events of the device or the matching filtered events.
  * </p>
  * <p>
@@ -46,7 +46,7 @@ import java.lang.ref.WeakReference;
  * To attach multiple listener, one instance per attachment must be created.
  * <br>
  * This restriction is due to implementation semantics of strictly associating
- * one Java {@link BTGattCharListener} instance to one C++ {@code GATTCharacteristicListener} instance.
+ * one Java {@link BTGattCharListener} instance to one C++ {@code BTGattCharListener} instance.
  * The latter will be added to the native list of listeners.
  * This class's {@code nativeInstance} field links the Java instance to mentioned C++ listener.
  * <br>
@@ -107,9 +107,10 @@ public abstract class BTGattCharListener {
                                    final boolean confirmationSent) {
     }
 
+    @Override
     public String toString() {
         final BTGattChar c = getAssociatedChar();
         final String cs = null != c ? c.toString() : "null";
-        return "GATTCharacteristicListener[associated "+cs+"]";
+        return "BTGattCharListener[associated "+cs+"]";
     }
 };

@@ -134,7 +134,7 @@ public interface BTGattChar extends BTObject
      * <p>
      * Occurring notifications and indications, if enabled via {@link #configNotificationIndication(boolean, boolean, boolean[])}
      * or {@link #enableNotificationOrIndication(boolean[])},
-     * will call the respective GATTCharacteristicListener callback method.
+     * will call the respective BTGattCharListener callback method.
      * </p>
      * @param listener A {@link BTGattCharListener} instance, listening to this {@link BTGattChar}'s events
      * @return true if the given listener is not element of the list and has been newly added, otherwise false.
@@ -145,7 +145,7 @@ public interface BTGattChar extends BTObject
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      */
-    public boolean addCharacteristicListener(final BTGattCharListener listener)
+    public boolean addCharListener(final BTGattCharListener listener)
             throws IllegalStateException;
 
     /**
@@ -173,7 +173,7 @@ public interface BTGattChar extends BTObject
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      */
-    public boolean addCharacteristicListener(final BTGattCharListener listener, final boolean enabledState[/*2*/])
+    public boolean addCharListener(final BTGattCharListener listener, final boolean enabledState[/*2*/])
             throws IllegalStateException;
 
     /**
@@ -192,7 +192,7 @@ public interface BTGattChar extends BTObject
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      */
-    public boolean removeCharacteristicListener(final BTGattCharListener l, final boolean disableIndicationNotification);
+    public boolean removeCharListener(final BTGattCharListener l, final boolean disableIndicationNotification);
 
     /**
      * Disables the notification and/or indication for this characteristic BLE level
@@ -211,11 +211,11 @@ public interface BTGattChar extends BTObject
      * using {@link #configNotificationIndication(boolean, boolean, boolean[])}
      * @return number of removed listener.
      * @see #configNotificationIndication(boolean, boolean, boolean[])
-     * @see BTDevice#removeAllAssociatedCharacteristicListener(BTGattChar)
+     * @see BTDevice#removeAllAssociatedCharListener(BTGattChar)
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      */
-    public int removeAllAssociatedCharacteristicListener(final boolean disableIndicationNotification);
+    public int removeAllAssociatedCharListener(final boolean disableIndicationNotification);
 
     /**
      * Sets the given value BluetoothNotification to have its run function

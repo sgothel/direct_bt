@@ -603,7 +603,7 @@ public class DBTScanner10 {
                             }
                         };
                         final boolean enabledState[] = { false, false };
-                        final boolean addedCharPingPongListenerRes = char2.addCharacteristicListener(charPingPongListener, enabledState);
+                        final boolean addedCharPingPongListenerRes = char2.addCharListener(charPingPongListener, enabledState);
                         if( !QUIET ) {
                             println("Added CharPingPongListenerRes: "+addedCharPingPongListenerRes+", enabledState "+Arrays.toString(enabledState));
                         }
