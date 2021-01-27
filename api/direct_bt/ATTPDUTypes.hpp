@@ -46,6 +46,9 @@
  * Direct-BT provides direct Bluetooth LE and BREDR programming,
  * offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
  *
+ * Direct-BT follows the official [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
+ * and its C++ implementation contains detailed references.
+ *
  * Direct-BT supports a fully event driven workflow from device discovery to GATT programming,
  * using its platform agnostic HCI, GATT, SMP and L2CAP client-side protocol implementation.
  *

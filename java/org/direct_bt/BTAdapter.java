@@ -32,8 +32,10 @@ import java.util.List;
 import java.util.UUID;
 
 /**
-  * Provides access to Bluetooth adapters. Follows the BlueZ adapter API
-  * available at: http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/adapter-api.txt
+  * Provides access to Bluetooth adapters.
+  *
+  * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
+  * @see [BlueZ adapter API](http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/adapter-api.txt)
   */
 public interface BTAdapter extends BTObject
 {

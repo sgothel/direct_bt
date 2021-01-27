@@ -1,3 +1,94 @@
+/*! \package org.direct_bt
+ *
+ * Direct-BT provides direct Bluetooth LE and BREDR programming,
+ * offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
+ *
+ * Direct-BT follows the official [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
+ * and its C++ implementation contains detailed references.
+ *
+ * Direct-BT supports a fully event driven workflow from device discovery to GATT programming,
+ * using its platform agnostic HCI, GATT, SMP and L2CAP client-side protocol implementation.
+ *
+ * Direct-BT implements the following layers
+ * - BTManager for adapter configuration and adapter add/removal notifications (ChangedAdapterSetFunc())
+ *   - Using *BlueZ Kernel Manager Control Channel* via MgmtMsg communication.
+ * - *HCI Handling* via HCIHandler using HCIPacket implementing connect/disconnect w/ tracking, device discovery, etc
+ * - *ATT PDU* AttPDUMsg via L2CAP for low level packet communication
+ * - *GATT Support* via BTGattHandler using AttPDUMsg over L2CAPComm, providing
+ *   -  BTGattService
+ *   -  BTGattChar
+ *   -  BTGattDesc
+ * - *SMP PDU* SMPPDUMsg via L2CAP for Security Manager Protocol (SMP) communication
+ * - *SMP Support* via SMPHandler using SMPPDUMsg over L2CAPComm, providing (Not yet supported by Linux/BlueZ)
+ *   - LE Secure Connections
+ *   - LE legacy pairing
+ * - On Linux/BlueZ, LE Secure Connections and LE legacy pairing is supported using
+ *   - BTSecurityLevel setting via BTDevice / L2CAPComm per connection and
+ *   - SMPIOCapability via BTManager (per adapter) and BTDevice (per connection)
+ *   - SMPPDUMsg SMP event tracking over HCI/ACL/L2CAP, observing operations
+ *
+ * BTManager utilizes the *BlueZ Kernel Manager Control Channel*
+ * for adapter configuration and adapter add/removal notifications (ChangedAdapterSetFunc()).
+ *
+ * To support other platforms than Linux/BlueZ, we will have to
+ * - Move specified HCI host features used in BTManager to HCIHandler, SMPHandler,..  - and -
+ * - Add specialization for each new platform using their non-platform-agnostic features.
+ *
+ * - - - - - - - - - - - - - - -
+ *
+ * From a user perspective the following hierarchy is provided
+ * - BTManager has zero or more
+ *   - BTAdapter has zero or more
+ *     - BTDevice has zero or more
+ *       - BTGattService has zero or more
+ *         - BTGattChar has zero or more
+ *           - BTGattDesc
+ *
+ * - - - - - - - - - - - - - - -
+ *
+ * Object lifecycle with all instances and marked weak back-references to their owner
+ * - BTManager singleton instance for all
+ * - BTAdapter ownership by DBTManager
+ *   - BTDevice ownership by DBTAdapter
+ *     - BTGattHandler ownership by BTDevice, with weak BTDevice back-reference
+ *       - BTGattService ownership by BTGattHandler, with weak BTGattHandler back-reference
+ *         - BTGattChar ownership by BTGattService, with weak BTGattService back-reference
+ *           - BTGattDesc ownership by BTGattChar, with weak BTGattChar back-reference
+ *
+ * - - - - - - - - - - - - - - -
+ *
+ * Mapped names from C++ implementation to Java implementation and to Java interface:
+ *
+ *  C++  <br> `direct_bt` | Java Implementation  <br> `jau.direct_bt` | Java Interface <br> `org.direct_bt` |
+ *  :----------------| :---------------------| :--------------------|
+ *  BTManager        | DBTManager            | BTManager            |
+ *  BTAdapter        | DBTAdapter            | BTAdapter            |
+ *  BTDevice         | DBTDevice             | BTDevice             |
+ *  BTGattService    | DBTGattService        | BTGattService        |
+ *  BTGattChar       | DBTGattChar           | BTGattChar           |
+ *  BTGattDesc       | DBTGattDesc           | BTGattDesc           |
+ *
+ * - - - - - - - - - - - - - - -
+ *
+ * A fully event driven workflow from discovery to GATT programming is supported.
+ *
+ * AdapterStatusListener allows listening to adapter changes and device discovery
+ * and BTGattCharListener to GATT indications and notifications.
+ *
+ * Main event listener can be attached to these objects
+ * which maintain a set of unique listener instances without duplicates.
+ *
+ * - BTAdapter
+ *   - AdapterStatusListener
+ *
+ * - BTGattHandler
+ *   - BTGattCharListener
+ *
+ * Other API attachment method exists for BTGattCharListener,
+ * however, they only exists for convenience and end up to be attached to BTGattHandler.
+ */
+package org.direct_bt;
+
 /**
  * Author: Sven Gothel <sgothel@jausoft.com>
  * Copyright (c) 2020 Gothel Software e.K.
@@ -22,7 +113,6 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.direct_bt;
 
 /**
  * Bit mask of '{@link BTAdapter} setting' data fields,

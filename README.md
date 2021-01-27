@@ -16,7 +16,12 @@ Version 2
 Starting with version 2.1.0, the *TinyB* Java API has been refactored
 to support all new features of its new *Direct-BT* implementation.
 
-As of today, the *TinyB* Java API comprises two implementations, *Direct-BT* and *TinyB*.
+Starting with version 2.2.0, the Java API has changed 
+to clarify semantics, further support *Direct-BT* 
+and to favor a shortened naming convention,
+e.g. *BluetoothManager* to *BTManager*, *BluetoothGattCharacteristic* to *BTGattChar* etc.
+
+As of today, the Java API comprises two implementations, *Direct-BT* and *TinyB*.
 
 
 Direct-BT
@@ -24,25 +29,26 @@ Direct-BT
 *Direct-BT* provides direct [Bluetooth LE and BREDR](https://www.bluetooth.com/specifications/bluetooth-core-specification/) programming,
 offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
 
+You will find a detailed overview of *Direct-BT* in the doxygen generated 
+[C++ API doc of its *direct_bt* namespace](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
+Same overview in the [Java API *org.direct_bt* package](https://jausoft.com/projects/direct_bt/build/documentation/java/html/namespaceorg_1_1direct__bt.html#details).
+
 *Direct-BT* supports a fully event driven workflow from device discovery to GATT programming,
 using its platform agnostic HCI, L2CAP, SMP and GATT client-side protocol implementation.
 
 [AdapterStatusListener](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1AdapterStatusListener.html) 
 allows listening to adapter changes and device discovery and
-[GATTCharacteristicListener](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1GATTCharacteristicListener.html)
+[BTGattCharListener](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1BTGattCharListener.html)
 to GATT indications and notifications.
 
 *Direct-BT* may be utilized via its [C++ API](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/index.html)
-or via the refactored TinyB [Java API](https://jausoft.com/projects/direct_bt/build/documentation/java/html/index.html).
+or via its [Java API](https://jausoft.com/projects/direct_bt/build/documentation/java/html/index.html).
 
 *Direct-BT* is exposed via the following native libraries
 - *libdirect_bt.so* for the core C++ implementation.
 - *libjavadirect_bt.so* for the Java binding.
 
 *Direct-BT* is C++17 conform and shall upgrade towards C++20 when widely available on all target platforms.
-
-You will find a detailed overview of *Direct-BT* in the doxygen generated 
-[C++ API doc of its *direct_bt* namespace](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
 
 Some more elaboration on the implementation and its status
 > The host-side of HCI, L2CAP etc is usually implemented within the OS, e.g. *Linux/BlueZ* Kernel.
@@ -139,20 +145,23 @@ TinyB and Direct-BT
 -------------------
 Pre version 2.0.0 D-Bus implementation details of the Java[tm] classes
 of package *tinyb* has been moved to *tinyb.dbus*.
-The *tinyb.jar* jar file has been renamed to *tinyb2.jar*, avoiding conflicts.
+The *tinyb.jar* jar file has been renamed to *direct_bt.jar*, avoiding conflicts.
 
-General interfaces matching the original implementation 
-and following [BlueZ API](http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/)
-were created in package *org.tinyb*.
+Offering the fat jar *direct_bt-fat.jar*, bootstrapping its contained native libraries.
+This functionality is provided by the merged-in `jaulib` package.
 
-*org.tinyb.BluetoothFactory* provides a factory to instantiate the initial root
-*org.tinyb.BluetoothManager*, either using *Tiny-B*, the original D-Bus implementation,
-or *Direct-BT*, the direct implementation.
+General interfaces matching the [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
+were created in package *org.direct_bt*. Direct-BT's C++ API and implementation 
+contains detailed references to the official specification.
+
+*org.direct_bt.BTFactory* provides a factory to instantiate the initial root
+*org.direct_bt.BTManager*, either using *Direct-BT* or *Tiny-B* (D-Bus) implementation.
 
 *TinyB*'s C++ namespace and implementation kept mostly unchanged.
 
-The new Java interface of package *org.tinyb* has been kept mostly compatible,
-however, changes were required to benefit from *Direct-BT*'s implementation.
+The new Java interface has changed. Package renamed from *org.tinyb* to *org.direct_bt* 
+and most names have been shortened, 
+e.g. *BluetoothManager* to *BTManager*, *BluetoothGattCharacteristic* to *BTGattChar* etc.
 
 *since 2.x* version tags have been added to the Java interface specification for clarity.
 
@@ -330,9 +339,15 @@ make doc
 Changes
 ============
 
-**2.2.00 *Direct-BT* Maturity (Bluetooth LE)**
+**2.3.00 *Direct-BT* Maturity (Bluetooth LE)**
 
 * TODO
+
+**2.2.00**
+
+* Kicked off junit testing for Java implementation
+* Adding *direct_bt-fat.jar* (fat jar) bootstrapping its contained native libraries using merged-in `jaulib`.
+* Java API renaming, incl package: *org.tinyb* to *org.direct_bt*.
 * Completing SMP/Security implementation (WIP)
 * Replaced std::vector and jau::cow_vector with jau::darray and jau::cow_darray
 

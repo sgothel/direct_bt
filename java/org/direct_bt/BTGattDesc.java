@@ -29,8 +29,10 @@
 package org.direct_bt;
 
 /**
-  * Provides access to Bluetooth GATT descriptor. Follows the BlueZ adapter API
-  * available at: http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/gatt-api.txt
+  * Provides access to Bluetooth GATT descriptor.
+  *
+  * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
+  * @see [BlueZ GATT API](http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/gatt-api.txt)
   */
 public interface BTGattDesc extends BTObject
 {
