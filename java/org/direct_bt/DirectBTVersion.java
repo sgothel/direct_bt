@@ -29,39 +29,39 @@ import java.util.jar.Manifest;
 import org.jau.util.JauVersion;
 import org.jau.util.VersionUtil;
 
+/**
+ * This {@code jaulib} derived version info class is only
+ * usable when having {@code jaulib} available, naturally.
+ */
 public class DirectBTVersion extends JauVersion {
-
-    protected static volatile DirectBTVersion versionInfo;
 
     protected DirectBTVersion(final String packageName, final Manifest mf) {
         super(packageName, mf);
     }
 
+    /**
+     * Returns a transient new instance.
+     */
     public static DirectBTVersion getInstance() {
-        if(null == versionInfo) { // volatile: ok
-            synchronized(DirectBTVersion.class) {
-                if( null == versionInfo ) {
-                    final String packageNameCompileTime = "org.direct_bt";
-                    final String packageNameRuntime = "org.direct_bt";
-                    Manifest mf = VersionUtil.getManifest(DirectBTVersion.class.getClassLoader(), packageNameRuntime);
-                    if(null != mf) {
-                        versionInfo = new DirectBTVersion(packageNameRuntime, mf);
-                    } else {
-                        mf = VersionUtil.getManifest(DirectBTVersion.class.getClassLoader(), packageNameCompileTime);
-                        versionInfo = new DirectBTVersion(packageNameCompileTime, mf);
-                    }
-                }
+            final String packageNameCompileTime = "org.direct_bt";
+            final String packageNameRuntime = "org.direct_bt";
+            Manifest mf = VersionUtil.getManifest(DirectBTVersion.class.getClassLoader(), packageNameRuntime);
+            if(null != mf) {
+                return new DirectBTVersion(packageNameRuntime, mf);
+            } else {
+                mf = VersionUtil.getManifest(DirectBTVersion.class.getClassLoader(), packageNameCompileTime);
+                return new DirectBTVersion(packageNameCompileTime, mf);
             }
         }
-        return versionInfo;
     }
 
     public static void main(final String args[]) {
         System.err.println(VersionUtil.getPlatformInfo());
         System.err.println("Version Info:");
-        System.err.println(DirectBTVersion.getInstance());
+        final DirectBTVersion v = DirectBTVersion.getInstance();
+        System.err.println(v);
         System.err.println("");
         System.err.println("Full Manifest:");
-        System.err.println(DirectBTVersion.getInstance().getFullManifestInfo(null));
+        System.err.println(v.getFullManifestInfo(null));
     }
 }
