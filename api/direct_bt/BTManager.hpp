@@ -149,7 +149,7 @@ namespace direct_bt {
      * </p>
      * <p>
      * If an adapter is being removed from the system,
-     * DBTAdapter::close() is being called by DBTManager after issuing all
+     * DBTAdapter::close() is being called by BTManager after issuing all
      * ChangedAdapterSetFunc calls.
      * </p>
      *
@@ -157,8 +157,8 @@ namespace direct_bt {
      * @param adapter the shared DBTAdapter reference
      * @return ignored
      * @see ChangedAdapterSetCallback
-     * @see DBTManager::addChangedAdapterSetCallback()
-     * @see DBTManager::removeChangedAdapterSetCallback()
+     * @see BTManager::addChangedAdapterSetCallback()
+     * @see BTManager::removeChangedAdapterSetCallback()
      */
     typedef bool (*ChangedAdapterSetFunc)(bool added, std::shared_ptr<BTAdapter>& adapter);
 
@@ -175,7 +175,7 @@ namespace direct_bt {
      * </p>
      * <p>
      * If an adapter is being removed from the system,
-     * DBTAdapter::close() is being called by DBTManager after issuing all
+     * DBTAdapter::close() is being called by BTManager after issuing all
      * ChangedAdapterSetFunc calls.
      * </p>
      *
@@ -183,8 +183,8 @@ namespace direct_bt {
      * @param adapter the shared DBTAdapter reference
      * @return ignored
      * @see ChangedAdapterSetFunc
-     * @see DBTManager::addChangedAdapterSetCallback()
-     * @see DBTManager::removeChangedAdapterSetCallback()
+     * @see BTManager::addChangedAdapterSetCallback()
+     * @see BTManager::removeChangedAdapterSetCallback()
      */
     typedef jau::FunctionDef<bool, bool, std::shared_ptr<BTAdapter>&> ChangedAdapterSetCallback;
     typedef jau::cow_darray<ChangedAdapterSetCallback> ChangedAdapterSetCallbackList;

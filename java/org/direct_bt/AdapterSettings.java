@@ -1,4 +1,6 @@
 /*! \package org.direct_bt
+ * - - - - - - - - - - - - - - -
+ * # Direct-BT Overview
  *
  * Direct-BT provides direct Bluetooth LE and BREDR programming,
  * offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
@@ -6,11 +8,15 @@
  * Direct-BT follows the official [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
  * and its C++ implementation contains detailed references.
  *
- * Direct-BT supports a fully event driven workflow from device discovery to GATT programming,
+ * Direct-BT supports a fully event driven workflow from adapter management via device discovery to GATT programming,
  * using its platform agnostic HCI, GATT, SMP and L2CAP client-side protocol implementation.
  *
+ * - - - - - - - - - - - - - - -
+ *
+ * ## Direct-BT Layers
+ *
  * Direct-BT implements the following layers
- * - BTManager for adapter configuration and adapter add/removal notifications (ChangedAdapterSetFunc())
+ * - BTManager for adapter configuration and adapter add/removal notifications (BTManager#ChangedAdapterSetListener)
  *   - Using *BlueZ Kernel Manager Control Channel* via MgmtMsg communication.
  * - *HCI Handling* via HCIHandler using HCIPacket implementing connect/disconnect w/ tracking, device discovery, etc
  * - *ATT PDU* AttPDUMsg via L2CAP for low level packet communication
@@ -36,6 +42,8 @@
  *
  * - - - - - - - - - - - - - - -
  *
+ * ## Direct-BT User Hierarchy
+ *
  * From a user perspective the following hierarchy is provided
  * - BTManager has zero or more
  *   - BTAdapter has zero or more
@@ -45,6 +53,8 @@
  *           - BTGattDesc
  *
  * - - - - - - - - - - - - - - -
+ *
+ * ## Direct-BT Object Lifecycle
  *
  * Object lifecycle with all instances and marked weak back-references to their owner
  * - BTManager singleton instance for all
@@ -56,6 +66,8 @@
  *           - BTGattDesc ownership by BTGattChar, with weak BTGattChar back-reference
  *
  * - - - - - - - - - - - - - - -
+ *
+ * ## Direct-BT Mapped Names C++ vs Java
  *
  * Mapped names from C++ implementation to Java implementation and to Java interface:
  *
@@ -70,18 +82,26 @@
  *
  * - - - - - - - - - - - - - - -
  *
- * A fully event driven workflow from discovery to GATT programming is supported.
+ * ## Direct-BT Event Driven Workflow
  *
- * AdapterStatusListener allows listening to adapter changes and device discovery
- * and BTGattCharListener to GATT indications and notifications.
+ * A fully event driven workflow from adapter management via device discovery to GATT programming is supported.
+ *
+ * BTManager#ChangedAdapterSetListener allows listening to added and removed BTAdapter via BTManager.
+ *
+ * AdapterStatusListener allows listening to BTAdapter changes and BTDevice discovery.
+ *
+ * BTGattCharListener allows listening to GATT indications and notifications.
  *
  * Main event listener can be attached to these objects
  * which maintain a set of unique listener instances without duplicates.
  *
+ * - BTManager
+ *   - BTManager#ChangedAdapterSetListener
+ *
  * - BTAdapter
  *   - AdapterStatusListener
  *
- * - BTGattHandler
+ * - BTGattChar or BTDevice
  *   - BTGattCharListener
  *
  * Other API attachment method exists for BTGattCharListener,

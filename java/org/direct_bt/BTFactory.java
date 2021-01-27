@@ -40,7 +40,6 @@ import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
-import org.jau.sys.PlatformProps;
 import org.jau.util.VersionUtil;
 
 /**

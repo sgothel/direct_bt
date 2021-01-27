@@ -29,11 +29,10 @@ Direct-BT
 *Direct-BT* provides direct [Bluetooth LE and BREDR](https://www.bluetooth.com/specifications/bluetooth-core-specification/) programming,
 offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
 
-You will find a detailed overview of *Direct-BT* in the doxygen generated 
-[C++ API doc of its *direct_bt* namespace](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
-Same overview in the [Java API *org.direct_bt* package](https://jausoft.com/projects/direct_bt/build/documentation/java/html/namespaceorg_1_1direct__bt.html#details).
+You will find a [detailed overview of *Direct-BT*](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details) (C++)
+and the [same in the Java API](https://jausoft.com/projects/direct_bt/build/documentation/java/html/namespaceorg_1_1direct__bt.html#details).
 
-*Direct-BT* supports a fully event driven workflow from device discovery to GATT programming,
+*Direct-BT* supports a fully event driven workflow from adapter management via device discovery to GATT programming.
 using its platform agnostic HCI, L2CAP, SMP and GATT client-side protocol implementation.
 
 [AdapterStatusListener](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1AdapterStatusListener.html) 
