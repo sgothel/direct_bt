@@ -267,7 +267,7 @@ struct MyLongTermKeyInfo {
         return VERSION == version && BTSecurityLevel::ENC_ONLY <= sec_level && smp_ltk.isValid();
     }
 
-    constexpr bool isResponder() const noexcept { return smp_ltk.isResponder(); }
+    bool isResponder() const noexcept { return smp_ltk.isResponder(); }
 
     constexpr_cxx20 std::string getFilename() const noexcept {
         const std::string role = isResponder() ? "resp" : "init";
@@ -323,7 +323,7 @@ struct MySignatureResolvingKeyInfo {
     BDAddressAndType addrAndType;
     SMPSignatureResolvingKeyInfo smp_csrk;
 
-    constexpr bool isResponder() const noexcept { return smp_csrk.isResponder(); }
+    bool isResponder() const noexcept { return smp_csrk.isResponder(); }
 
     constexpr_cxx20 std::string getFilename() const noexcept {
         const std::string role = isResponder() ? "resp" : "init";
