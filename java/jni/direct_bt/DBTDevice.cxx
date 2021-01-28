@@ -252,7 +252,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_removeCharListener(JNIEnv *env, jobject o
     return JNI_FALSE;
 }
 
-jint Java_jau_direct_1bt_DBTDevice_removeAllAssociatedCharacteristicListener(JNIEnv *env, jobject obj, jobject jAssociatedCharacteristic) {
+jint Java_jau_direct_1bt_DBTDevice_removeAllAssociatedCharListener(JNIEnv *env, jobject obj, jobject jAssociatedCharacteristic) {
     try {
         if( nullptr == jAssociatedCharacteristic ) {
             throw IllegalArgumentException("associatedCharacteristic argument is null", E_FILE_LINE);
