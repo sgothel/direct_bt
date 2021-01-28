@@ -133,7 +133,7 @@ public class SMPLongTermKeyInfo {
     public byte ltk[/*16*/];
 
     /**
-     * Size of the byte stream representation in bytes
+     * Size of the byte stream representation in bytes (28)
      * @see #getStream(byte[], int)
      */
     public static final int byte_size = 1+1+2+8+16;
@@ -205,12 +205,15 @@ public class SMPLongTermKeyInfo {
 
     public final boolean isValid() { return 0 != enc_size; }
 
+    public final boolean isResponder() { return properties.isSet(PropertyType.RESPONDER); }
+
     @Override
     public String toString() { // hex-fmt aligned with btmon
         return "LTK[props "+properties.toString()+", enc_size "+enc_size+
                ", ediv "+BTUtils.bytesHexString(ediv, 0, -1, false /* lsbFirst */, true /* leading0X */, true /* lowerCase */)+
                ", rand "+BTUtils.bytesHexString(rand, 0, -1, false /* lsbFirst */, true /* leading0X */, true /* lowerCase */)+
                ", ltk "+BTUtils.bytesHexString(ltk, 0, -1, true /* lsbFirst */, false /* leading0X */, true /* lowerCase */)+
+               ", valid "+isValid()+
                "]";
     }
 

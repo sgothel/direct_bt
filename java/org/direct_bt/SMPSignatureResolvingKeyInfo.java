@@ -177,9 +177,11 @@ public class SMPSignatureResolvingKeyInfo {
         System.arraycopy(csrk,  0, sink, pos, 16); pos+=16;
     }
 
+    public final boolean isResponder() { return properties.isSet(PropertyType.RESPONDER); }
+
     @Override
     public String toString() { // hex-fmt aligned with btmon
-        return "LTK[props "+properties.toString()+
+        return "CSRK[props "+properties.toString()+
                ", csrk "+BTUtils.bytesHexString(csrk, 0, -1, true /* lsbFirst */, false /* leading0X */, true /* lowerCase */)+
                "]";
     }

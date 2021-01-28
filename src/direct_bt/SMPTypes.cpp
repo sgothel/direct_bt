@@ -331,6 +331,10 @@ std::string SMPLongTermKeyInfo::getPropertyMaskString(const Property mask) noexc
     return out;
 }
 
+bool SMPLongTermKeyInfo::isResponder() const noexcept {
+    return ( SMPLongTermKeyInfo::Property::RESPONDER & properties ) != SMPLongTermKeyInfo::Property::NONE;
+}
+
 #define CSRKPROP_ENUM(X) \
     X(NONE) \
     X(RESPONDER) \
@@ -360,6 +364,10 @@ std::string SMPSignatureResolvingKeyInfo::getPropertyMaskString(const Property m
     }
     out.append("]");
     return out;
+}
+
+bool SMPSignatureResolvingKeyInfo::isResponder() const noexcept {
+    return ( SMPSignatureResolvingKeyInfo::Property::RESPONDER & properties ) != SMPSignatureResolvingKeyInfo::Property::NONE;
 }
 
 #define OPCODE_ENUM(X) \

@@ -463,17 +463,22 @@ namespace direct_bt {
         /** Long Term Key (LTK) */
         jau::uint128_t ltk;
 
-        bool isValid() const { return 0 != enc_size; }
+        // 28 bytes
+
+        constexpr bool isValid() const noexcept { return 0 != enc_size; }
+
+        bool isResponder() const noexcept;
 
         void clear() noexcept {
             bzero(reinterpret_cast<void *>(this), sizeof(SMPLongTermKeyInfo));
         }
 
-        std::string toString() const noexcept { // hex-fmt aligned with btmon
+        constexpr_cxx20 std::string toString() const noexcept { // hex-fmt aligned with btmon
             return "LTK[props "+getPropertyMaskString(properties)+", enc_size "+std::to_string(enc_size)+
                    ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), false /* lsbFirst */, true /* leading0X */)+
                    ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), false /* lsbFirst */, true /* leading0X */)+
                    ", ltk "+jau::bytesHexString(ltk.data, 0, sizeof(ltk), true /* lsbFirst */, false /* leading0X */)+
+                   ", valid "+std::to_string(isValid())+
                    "]";
         }
     } );
@@ -540,6 +545,8 @@ namespace direct_bt {
         Property properties;
         /** Connection Signature Resolving Key (CSRK) */
         jau::uint128_t csrk;
+
+        bool isResponder() const noexcept;
 
         void clear() noexcept {
             bzero(reinterpret_cast<void *>(this), sizeof(SMPLongTermKeyInfo));

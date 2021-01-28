@@ -862,8 +862,8 @@ HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLong
 HCIStatusCode BTManager::uploadLongTermKeyInfo(const uint16_t dev_id, const BDAddressAndType & addressAndType,
                                                 const SMPLongTermKeyInfo& ltk) noexcept {
     const MgmtLTKType key_type = getMgmtLTKType(ltk.properties);
-    const bool responder = ( SMPLongTermKeyInfo::Property::RESPONDER & ltk.properties ) != SMPLongTermKeyInfo::Property::NONE;
-    const MgmtLongTermKeyInfo mgmt_ltk_info { addressAndType.address, addressAndType.type, key_type, responder, ltk.enc_size, ltk.ediv, ltk.rand, ltk.ltk };
+    const MgmtLongTermKeyInfo mgmt_ltk_info { addressAndType.address, addressAndType.type, key_type,
+                                              ltk.isResponder(), ltk.enc_size, ltk.ediv, ltk.rand, ltk.ltk };
     MgmtLoadLongTermKeyCmd req(dev_id, mgmt_ltk_info);
     HCIStatusCode res;
     std::unique_ptr<MgmtEvent> reply = sendWithReply(req);

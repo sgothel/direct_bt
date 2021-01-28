@@ -624,9 +624,8 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                     const SMPLongTermKeyInfo smp_ltk = ltk_info.toSMPLongTermKeyInfo();
                     if( smp_ltk.isValid() ) {
                         const std::string timestamp = jau::uint64DecString(jau::environment::getElapsedMillisecond(evt.getTimestamp()), ',', 9);
-                        const bool responder = ( SMPLongTermKeyInfo::Property::RESPONDER & smp_ltk.properties ) != SMPLongTermKeyInfo::Property::NONE;
 
-                        if( responder ) {
+                        if( smp_ltk.isResponder() ) {
                             if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) == SMPKeyType::NONE ) { // no overwrite
                                 if( jau::environment::get().debug ) {
                                     jau::PLAIN_PRINT(false, "[%s] DBTDevice::updatePairingState.0: ENC_KEY responder set", timestamp.c_str());
@@ -981,8 +980,7 @@ HCIStatusCode BTDevice::setLongTermKeyInfo(const SMPLongTermKeyInfo& ltk) noexce
     }
     const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
-    const bool responder = ( SMPLongTermKeyInfo::Property::RESPONDER & ltk.properties ) != SMPLongTermKeyInfo::Property::NONE;
-    if( responder ) {
+    if( ltk.isResponder() ) {
         pairing_data.ltk_resp = ltk;
     } else {
         pairing_data.ltk_init = ltk;
