@@ -16,6 +16,10 @@ fi
 
 CPU_COUNT=`getconf _NPROCESSORS_ONLN`
 
+# run 'dpkg-reconfigure locales' enable 'en_US.UTF-8'
+export LANG=en_US.UTF-8
+export LC_MEASUREMENT=en_US.UTF-8
+
 buildit() {
     echo rootdir $rootdir
     echo logfile $logfile
