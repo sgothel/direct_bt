@@ -80,6 +80,8 @@ runit() {
 
     #LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/dbt_scanner10 $*
 
+    mkdir -p keys
+
     sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
         --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
         -- -c "ulimit -c unlimited; LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/dbt_scanner10 $*"

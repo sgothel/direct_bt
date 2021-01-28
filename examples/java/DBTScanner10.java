@@ -83,9 +83,10 @@ import jau.direct_bt.DBTManager;
  * </p>
  */
 public class DBTScanner10 {
-    final List<BDAddressAndType> waitForDevices = new ArrayList<BDAddressAndType>();
-
     static final int NO_PASSKEY = -1;
+    static final String KEY_PATH = "keys";
+
+    final List<BDAddressAndType> waitForDevices = new ArrayList<BDAddressAndType>();
 
     long timestamp_t0;
 
@@ -148,150 +149,6 @@ public class DBTScanner10 {
         }
     }
 
-    static public class MyLongTermKeyInfo {
-        BDAddressAndType address_and_type;
-        SMPLongTermKeyInfo smp_ltk;
-
-        MyLongTermKeyInfo(final BDAddressAndType address_and_type, final SMPLongTermKeyInfo smp_ltk) {
-            this.address_and_type = address_and_type;
-            this.smp_ltk = smp_ltk;
-        }
-        MyLongTermKeyInfo() {
-            address_and_type = new BDAddressAndType();
-            smp_ltk = new SMPLongTermKeyInfo();
-        }
-
-        boolean write(final String filename) {
-            if( !smp_ltk.isValid() ) {
-                println("****** WRITE LTK ["+address_and_type+", invalid, skipped]: "+smp_ltk+" (write)");
-                return false;
-            }
-            final File file = new File(filename);
-            OutputStream out = null;
-            try {
-                file.delete(); // alternative to truncate, if existing
-                out = new FileOutputStream(file);
-                out.write(address_and_type.address.b);
-                out.write(address_and_type.type.value);
-                final byte[] smp_ltk_b = new byte[SMPLongTermKeyInfo.byte_size];
-                smp_ltk.getStream(smp_ltk_b, 0);
-                out.write(smp_ltk_b);
-                println("****** WRITE LTK ["+address_and_type+", valid, written]: "+smp_ltk);
-                return true;
-            } catch (final Exception ex) {
-                println("****** WRITE LTK "+address_and_type+" failed: "+ex.getMessage());
-                ex.printStackTrace();
-            } finally {
-                try {
-                    if( null != out ) {
-                        out.close();
-                    }
-                } catch (final IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            return false;
-        }
-
-        boolean read(final String filename) {
-            final File file = new File(filename);
-            InputStream in = null;
-            try {
-                final byte[] buffer = new byte[6 + 1 + SMPLongTermKeyInfo.byte_size];
-                in = new FileInputStream(file);
-                final int read_count = in.read(buffer, 0, buffer.length);
-                if( read_count != buffer.length ) {
-                    throw new IOException("Couldn't read "+buffer.length+" bytes, only "+read_count+" from "+filename);
-                }
-                address_and_type.address.putStream(buffer, 0);
-                address_and_type.type = BDAddressType.get(buffer[6]);
-                smp_ltk.putStream(buffer, 6+1);
-                println("****** READ LTK ["+address_and_type+", valid "+smp_ltk.isValid()+"]: "+smp_ltk);
-                return smp_ltk.isValid();
-            } catch (final Exception ex) {
-                println("****** READ LTK ["+filename+"] failed: "+ex.getMessage());
-            } finally {
-                try {
-                    if( null != in ) {
-                        in.close();
-                    }
-                } catch (final IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            return false;
-        }
-    }
-    static public class MySignatureResolvingKeyInfo {
-        BDAddressAndType address_and_type;
-        SMPSignatureResolvingKeyInfo smp_csrk;
-
-        MySignatureResolvingKeyInfo(final BDAddressAndType address_and_type, final SMPSignatureResolvingKeyInfo smp_csrk) {
-            this.address_and_type = address_and_type;
-            this.smp_csrk = smp_csrk;
-        }
-        MySignatureResolvingKeyInfo() {
-            address_and_type = new BDAddressAndType();
-            smp_csrk = new SMPSignatureResolvingKeyInfo();
-        }
-
-        boolean write(final String filename) {
-            final File file = new File(filename);
-            OutputStream out = null;
-            try {
-                file.delete(); // alternative to truncate, if existing
-                out = new FileOutputStream(file);
-                out.write(address_and_type.address.b);
-                out.write(address_and_type.type.value);
-                final byte[] smp_ltk_b = new byte[SMPSignatureResolvingKeyInfo.byte_size];
-                smp_csrk.getStream(smp_ltk_b, 0);
-                out.write(smp_ltk_b);
-                println("****** WRITE CSRK ["+address_and_type+", written]: "+smp_csrk);
-                return true;
-            } catch (final Exception ex) {
-                println("****** WRITE CSRK "+address_and_type+" failed: "+ex.getMessage());
-                ex.printStackTrace();
-            } finally {
-                try {
-                    if( null != out ) {
-                        out.close();
-                    }
-                } catch (final IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            return false;
-        }
-
-        boolean read(final String filename) {
-            final File file = new File(filename);
-            InputStream in = null;
-            try {
-                final byte[] buffer = new byte[6 + 1 + SMPSignatureResolvingKeyInfo.byte_size];
-                in = new FileInputStream(file);
-                final int read_count = in.read(buffer, 0, buffer.length);
-                if( read_count != buffer.length ) {
-                    throw new IOException("Couldn't read "+buffer.length+" bytes, only "+read_count+" from "+filename);
-                }
-                address_and_type.address.putStream(buffer, 0);
-                address_and_type.type = BDAddressType.get(buffer[6]);
-                smp_csrk.putStream(buffer, 6+1);
-                println("****** READ CSRK "+address_and_type+": "+smp_csrk);
-                return true;
-            } catch (final Exception ex) {
-                println("****** READ CSRK ["+filename+"] failed: "+ex.getMessage());
-            } finally {
-                try {
-                    if( null != in ) {
-                        in.close();
-                    }
-                } catch (final IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            return false;
-        }
-    }
     static public class MyBTSecurityDetail {
         public final BDAddressAndType addrAndType;
 
@@ -328,6 +185,210 @@ public class DBTScanner10 {
             return sec_detail;
         }
         static public String allToString() { return Arrays.toString( devicesSecDetail.values().toArray() ); }
+    }
+
+    static public class MyLongTermKeyInfo {
+        static final short VERSION = (short)0b0101010101010101 + (short)0; // bitpattern + version
+        short version;                //  2
+        BDAddressAndType addrAndType; //  7
+        BTSecurityLevel sec_level;;   //  1
+        SMPIOCapability io_cap;       //  1
+        SMPLongTermKeyInfo smp_ltk;   // 28
+
+        // 39 bytes
+
+        MyLongTermKeyInfo(final BDAddressAndType addrAndType_,
+                          final BTSecurityLevel sec_level_, final SMPIOCapability io_cap_,
+                          final SMPLongTermKeyInfo smp_ltk_) {
+            version = VERSION;
+            this.addrAndType = addrAndType_;
+            this.sec_level = sec_level_;
+            this.io_cap = io_cap_;
+            this.smp_ltk = smp_ltk_;
+        }
+
+        MyLongTermKeyInfo() {
+            version = VERSION;
+            addrAndType = new BDAddressAndType();
+            sec_level = BTSecurityLevel.UNSET;
+            io_cap = SMPIOCapability.UNSET;
+            smp_ltk = new SMPLongTermKeyInfo();
+        }
+
+        @Override
+        final public String toString() {
+            return "LTKInfo["+addrAndType+", sec "+sec_level+", io "+io_cap+
+                    ", "+smp_ltk+", ver[0x"+Integer.toHexString(version)+", ok "+(VERSION==version)+"]]";
+        }
+
+        final boolean isValid() {
+            return VERSION == version && BTSecurityLevel.ENC_ONLY.value <= sec_level.value && smp_ltk.isValid();
+        }
+
+        final public boolean isResponder() { return smp_ltk.isResponder(); }
+
+        final public String getFilename() {
+            final String role = isResponder() ? "resp" : "init";
+            return "bt_sec."+addrAndType.address.toString()+":"+addrAndType.type.value+".ltk."+role+".bin";
+        }
+        static final public String getFilename(final BDAddressAndType addrAndType_, final boolean isResponder_) {
+            final String role = isResponder_ ? "resp" : "init";
+            return "bt_sec."+addrAndType_.address.toString()+":"+addrAndType_.type.value+".ltk."+role+".bin";
+        }
+
+        final boolean write(final String path) {
+            if( !isValid() ) {
+                println("****** WRITE LTK: Invalid (skipped) "+toString());
+                return false;
+            }
+            final File file = new File(path+"/"+getFilename());
+            OutputStream out = null;
+            try {
+                file.delete(); // alternative to truncate, if existing
+                out = new FileOutputStream(file);
+                out.write( (byte)  version );
+                out.write( (byte)( version >> 8 ) );
+                out.write(addrAndType.address.b);
+                out.write(addrAndType.type.value);
+                out.write(sec_level.value);
+                out.write(io_cap.value);
+                final byte[] smp_ltk_b = new byte[SMPLongTermKeyInfo.byte_size];
+                smp_ltk.getStream(smp_ltk_b, 0);
+                out.write(smp_ltk_b);
+                println("****** WRITE LTK: Stored "+toString());
+                return true;
+            } catch (final Exception ex) {
+                println("****** WRITE LTK: Failed "+toString()+": "+ex.getMessage());
+                ex.printStackTrace();
+            } finally {
+                try {
+                    if( null != out ) {
+                        out.close();
+                    }
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return false;
+        }
+
+        final boolean read(final String path, final BDAddressAndType addrAndType_, final boolean isResponder_) {
+            final String filename = path+"/"+getFilename(addrAndType_, isResponder_);
+            final File file = new File(filename);
+            InputStream in = null;
+            try {
+                final byte[] buffer = new byte[2 + 6 + 1 + 1 + 1 + SMPLongTermKeyInfo.byte_size];
+                in = new FileInputStream(file);
+                final int read_count = in.read(buffer, 0, buffer.length);
+                if( read_count != buffer.length ) {
+                    throw new IOException("Couldn't read "+buffer.length+" bytes, only "+read_count+" from "+filename);
+                }
+                int i=0;
+                version = (short) ( buffer[i++] | ( buffer[i++] << 8 ) );
+                addrAndType.address.putStream(buffer, i); i+=6;
+                addrAndType.type = BDAddressType.get(buffer[i++]);
+                sec_level = BTSecurityLevel.get(buffer[i++]);
+                io_cap = SMPIOCapability.get(buffer[i++]);
+                smp_ltk.putStream(buffer, i++);
+                println("****** READ LTK: "+toString());
+                return isValid();
+            } catch (final Exception ex) {
+                println("****** READ LTK failed: "+filename+": "+ex.getMessage());
+            } finally {
+                try {
+                    if( null != in ) {
+                        in.close();
+                    }
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return false;
+        }
+    }
+
+    static public class MySignatureResolvingKeyInfo {
+        BDAddressAndType addrAndType;
+        SMPSignatureResolvingKeyInfo smp_csrk;
+
+        MySignatureResolvingKeyInfo(final BDAddressAndType address_and_type, final SMPSignatureResolvingKeyInfo smp_csrk) {
+            this.addrAndType = address_and_type;
+            this.smp_csrk = smp_csrk;
+        }
+
+        MySignatureResolvingKeyInfo() {
+            addrAndType = new BDAddressAndType();
+            smp_csrk = new SMPSignatureResolvingKeyInfo();
+        }
+
+        final public boolean isResponder() { return smp_csrk.isResponder(); }
+
+        final public String getFilename() {
+            final String role = isResponder() ? "resp" : "init";
+            return "bt_sec."+addrAndType.address.toString()+":"+addrAndType.type.value+".csrk."+role+".bin";
+        }
+        static final public String getFilename(final BDAddressAndType addrAndType_, final boolean isResponder_) {
+            final String role = isResponder_ ? "resp" : "init";
+            return "bt_sec."+addrAndType_.address.toString()+":"+addrAndType_.type.value+".csrk."+role+".bin";
+        }
+
+        final boolean write(final String path) {
+            final File file = new File(path+"/"+getFilename());
+            OutputStream out = null;
+            try {
+                file.delete(); // alternative to truncate, if existing
+                out = new FileOutputStream(file);
+                out.write(addrAndType.address.b);
+                out.write(addrAndType.type.value);
+                final byte[] smp_ltk_b = new byte[SMPSignatureResolvingKeyInfo.byte_size];
+                smp_csrk.getStream(smp_ltk_b, 0);
+                out.write(smp_ltk_b);
+                println("****** WRITE CSRK ["+addrAndType+", written]: "+smp_csrk);
+                return true;
+            } catch (final Exception ex) {
+                println("****** WRITE CSRK "+addrAndType+" failed: "+ex.getMessage());
+                ex.printStackTrace();
+            } finally {
+                try {
+                    if( null != out ) {
+                        out.close();
+                    }
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return false;
+        }
+
+        final boolean read(final String path, final BDAddressAndType addrAndType_, final boolean isResponder_) {
+            final String filename = path+"/"+getFilename(addrAndType_, isResponder_);
+            final File file = new File(filename);
+            InputStream in = null;
+            try {
+                final byte[] buffer = new byte[6 + 1 + SMPSignatureResolvingKeyInfo.byte_size];
+                in = new FileInputStream(file);
+                final int read_count = in.read(buffer, 0, buffer.length);
+                if( read_count != buffer.length ) {
+                    throw new IOException("Couldn't read "+buffer.length+" bytes, only "+read_count+" from "+filename);
+                }
+                addrAndType.address.putStream(buffer, 0);
+                addrAndType.type = BDAddressType.get(buffer[6]);
+                smp_csrk.putStream(buffer, 6+1);
+                println("****** READ CSRK "+addrAndType+": "+smp_csrk);
+                return true;
+            } catch (final Exception ex) {
+                println("****** READ CSRK ["+filename+"] failed: "+ex.getMessage());
+            } finally {
+                try {
+                    if( null != in ) {
+                        in.close();
+                    }
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return false;
+        }
     }
 
     Collection<BDAddressAndType> devicesInProcessing = Collections.synchronizedCollection(new HashSet<>());
@@ -500,17 +561,22 @@ public class DBTScanner10 {
             println("****** Connecting Device: stopDiscovery result "+r);
         }
 
+        boolean useStoredLTKInfo = false;
         {
             final MyLongTermKeyInfo my_ltk_resp = new MyLongTermKeyInfo();
             final MyLongTermKeyInfo my_ltk_init = new MyLongTermKeyInfo();
-            if( my_ltk_init.read(device.getAddressAndType().toString()+".init.ltk") &&
-                my_ltk_resp.read(device.getAddressAndType().toString()+".resp.ltk") &&
+            if( my_ltk_init.read(KEY_PATH, device.getAddressAndType(), false /* responder */) &&
+                my_ltk_resp.read(KEY_PATH, device.getAddressAndType(), true /* responder */) &&
+                device.setConnSecurity(my_ltk_init.sec_level, my_ltk_init.io_cap) &&
                 HCIStatusCode.SUCCESS == device.setLongTermKeyInfo(my_ltk_init.smp_ltk) &&
                 HCIStatusCode.SUCCESS == device.setLongTermKeyInfo(my_ltk_resp.smp_ltk) ) {
-                println("****** Connecting Device: Loaded LTKs from file successfully\n");
+                println("****** Connecting Device: Loaded LTKs from file successfully");
+                println("- init "+my_ltk_init.toString());
+                println("- resp "+my_ltk_resp.toString());
+                useStoredLTKInfo = true;
             }
         }
-        {
+        if( !useStoredLTKInfo ) {
             // Always reuse same sec setting if reusing LTK
             final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
             if( null != sec ) {
@@ -577,24 +643,26 @@ public class DBTScanner10 {
 
                 if( keys_init.isSet(SMPKeyMask.KeyType.ENC_KEY) ) {
                     final MyLongTermKeyInfo my_ltk = new MyLongTermKeyInfo(device.getAddressAndType(),
+                                                                           device.getConnSecurityLevel(), device.getConnIOCapability(),
                                                                            device.getLongTermKeyInfo(false /* responder */));
-                    my_ltk.write(my_ltk.address_and_type.toString()+".init.ltk");
+                    my_ltk.write(KEY_PATH);
                 }
                 if( keys_resp.isSet(SMPKeyMask.KeyType.ENC_KEY) ) {
                     final MyLongTermKeyInfo my_ltk = new MyLongTermKeyInfo(device.getAddressAndType(),
+                                                                           device.getConnSecurityLevel(), device.getConnIOCapability(),
                                                                            device.getLongTermKeyInfo(true /* responder */));
-                    my_ltk.write(my_ltk.address_and_type.toString()+".resp.ltk");
+                    my_ltk.write(KEY_PATH);
                 }
 
                 if( keys_init.isSet(SMPKeyMask.KeyType.SIGN_KEY) ) {
                     final MySignatureResolvingKeyInfo my_csrk = new MySignatureResolvingKeyInfo(device.getAddressAndType(),
-                                                                                               device.getSignatureResolvingKeyInfo(false /* responder */));
-                    my_csrk.write(my_csrk.address_and_type.toString()+".init.csrk");
+                                                                                                device.getSignatureResolvingKeyInfo(false /* responder */));
+                    my_csrk.write(KEY_PATH);
                 }
                 if( keys_resp.isSet(SMPKeyMask.KeyType.SIGN_KEY) ) {
                     final MySignatureResolvingKeyInfo my_csrk = new MySignatureResolvingKeyInfo(device.getAddressAndType(),
-                                                                                               device.getSignatureResolvingKeyInfo(true /* responder */));
-                    my_csrk.write(my_csrk.address_and_type.toString()+".resp.csrk");
+                                                                                                device.getSignatureResolvingKeyInfo(true /* responder */));
+                    my_csrk.write(KEY_PATH);
                 }
             }
         }

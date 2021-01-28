@@ -80,6 +80,8 @@ runit() {
     echo $VALGRIND $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
     # $VALGRIND $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
 
+    mkdir -p keys
+
     sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
         --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
         -- -c "ulimit -c unlimited; $VALGRIND $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*"
