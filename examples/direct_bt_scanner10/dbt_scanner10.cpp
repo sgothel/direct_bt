@@ -805,6 +805,7 @@ exit:
     if( success ) {
         addToDevicesProcessed(device->getAddressAndType());
     }
+    device->removeAllCharListener();
 
     if( !KEEP_CONNECTED ) {
 

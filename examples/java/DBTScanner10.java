@@ -832,6 +832,7 @@ public class DBTScanner10 {
         if( success ) {
             devicesProcessed.add(device.getAddressAndType());
         }
+        device.removeAllCharListener();
 
         if( !KEEP_CONNECTED ) {
 

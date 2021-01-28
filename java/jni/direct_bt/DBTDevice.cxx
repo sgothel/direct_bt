@@ -280,7 +280,7 @@ jint Java_jau_direct_1bt_DBTDevice_removeAllAssociatedCharacteristicListener(JNI
     return 0;
 }
 
-jint Java_jau_direct_1bt_DBTDevice_removeAllCharacteristicListener(JNIEnv *env, jobject obj) {
+jint Java_jau_direct_1bt_DBTDevice_removeAllCharListener(JNIEnv *env, jobject obj) {
     try {
         BTDevice *device = getJavaUplinkObjectUnchecked<BTDevice>(env, obj);
         if( nullptr == device ) {
