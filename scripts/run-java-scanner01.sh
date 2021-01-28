@@ -16,9 +16,11 @@ fi
 # hciconfig hci0 reset
 ulimit -c unlimited
 
-# run 'dpkg-reconfigure locales' enable 'en_US.UTF-8'
-export LANG=en_US.UTF-8
+# run as root 'dpkg-reconfigure locales' enable 'en_US.UTF-8'
+# perhaps run as root 'update-locale LC_MEASUREMENT=en_US.UTF-8 LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8'
 export LC_MEASUREMENT=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
 
 echo COMMANDLINE $0 $*
 echo direct_bt_debug $direct_bt_debug
