@@ -252,14 +252,14 @@ public interface BTManager
     /**
      * Sets a default adapter to use for discovery.
      * @return TRUE if the device was set
-     * @implNote not implemented for direct_bt.tinyb
+     * @implNote not implemented for jau.direct_bt
      */
     public boolean setDefaultAdapter(BTAdapter adapter);
 
     /**
      * Gets the default adapter to use for discovery.
      * <p>
-     * <i>direct_bt.tinyb</i>: The default adapter is either the first {@link BTAdapter#isPowered() powered} {@link BTAdapter},
+     * {@code jau.direct_bt}: The default adapter is either the first {@link BTAdapter#isPowered() powered} {@link BTAdapter},
      * or function returns nullptr if none is enabled.
      * </p>
      * <p>

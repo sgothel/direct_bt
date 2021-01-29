@@ -70,7 +70,7 @@ public interface BTDevice extends BTObject
     /* Bluetooth method calls: */
 
     /**
-     * <b>direct_bt.tinyb</b>: Disconnect the LE or BREDR peer's GATT and HCI connection.
+     * {@code jau.direct_bt}: Disconnect the LE or BREDR peer's GATT and HCI connection.
      * <p>
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.6 Disconnect command
      * </p>
@@ -98,7 +98,7 @@ public interface BTDevice extends BTObject
     HCIStatusCode disconnect() throws BTException;
 
     /**
-     * <b>direct_bt.tinyb</b>: Establish a default HCI connection to this device, using certain default parameter.
+     * {@code jau.direct_bt}: Establish a default HCI connection to this device, using certain default parameter.
      * <p>
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.12 LE Create Connection command <br>
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.5 Create Connection command
@@ -233,7 +233,7 @@ public interface BTDevice extends BTObject
      * and {@link #connectLE(short, short, short, short, short, short) connectLE(..)}.
      * </p>
      * @return TRUE if the device connected and paired
-     * @implNote not implemented in direct_bt.tinyb
+     * @implNote not implemented in {@code jau.direct_bt}
      */
     boolean pair() throws BTException;
 
