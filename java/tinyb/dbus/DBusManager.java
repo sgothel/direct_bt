@@ -142,12 +142,12 @@ public class DBusManager implements BTManager
                 return true;
             }
             @Override
-            public boolean isCharacteristicValueCacheNotificationSupported() {
+            public boolean isCharValueCacheNotificationSupported() {
                 return true;
             }
             @Override
             public String toString() {
-                return "Settings[dbt false, tinyb true, charValueCacheNotify "+isCharacteristicValueCacheNotificationSupported()+"]";
+                return "Settings[dbt false, tinyb true, charValueCacheNotify "+isCharValueCacheNotificationSupported()+"]";
             }
         };
         System.err.println("DBusManager: Using "+settings.toString());

@@ -65,11 +65,11 @@ public interface BTManager
          * </p>
          * <p>
          * If using {@link #isDirectBT() Direct-BT}, users can enable this TinyB compatibility
-         * by setting the System property {@code direct_bt.tinyb.characteristic.compat} to {@code true}.
+         * by setting the System property {@code jau.direct_bt.characteristic.compat} to {@code true}.
          * It defaults to {@code false}, i.e. disabled.
          * </p>
          */
-        boolean isCharacteristicValueCacheNotificationSupported();
+        boolean isCharValueCacheNotificationSupported();
 
         @Override
         String toString();

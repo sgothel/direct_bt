@@ -118,7 +118,7 @@ public class DBTGattChar extends DBTObject implements BTGattChar
         this.value_handle = value_handle;
         this.clientCharacteristicsConfigIndex = clientCharacteristicsConfigIndex;
         this.descriptorList = getDescriptorsImpl();
-        this.supCharValueCacheNotification = DBTManager.getManager().getSettings().isCharacteristicValueCacheNotificationSupported();
+        this.supCharValueCacheNotification = DBTManager.getManager().getSettings().isCharValueCacheNotificationSupported();
 
         if( ( BTFactory.DEBUG || supCharValueCacheNotification ) &&
             ( hasNotify || hasIndicate )

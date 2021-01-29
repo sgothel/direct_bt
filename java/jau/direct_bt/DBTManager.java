@@ -413,7 +413,7 @@ public class DBTManager implements BTManager
         }
         final boolean supCharValCacheNotify;
         {
-            final String v = System.getProperty("direct_bt.tinyb.characteristic.compat", "false");
+            final String v = System.getProperty("jau.direct_bt.characteristic.compat", "false");
             supCharValCacheNotify = Boolean.valueOf(v);
         }
         settings = new Settings() {
@@ -426,12 +426,12 @@ public class DBTManager implements BTManager
                 return false;
             }
             @Override
-            public boolean isCharacteristicValueCacheNotificationSupported() {
+            public boolean isCharValueCacheNotificationSupported() {
                 return supCharValCacheNotify;
             }
             @Override
             public String toString() {
-                return "Settings[dbt true, tinyb false, charValueCacheNotify "+isCharacteristicValueCacheNotificationSupported()+"]";
+                return "Settings[dbt true, tinyb false, charValueCacheNotify "+isCharValueCacheNotificationSupported()+"]";
             }
         };
     }
