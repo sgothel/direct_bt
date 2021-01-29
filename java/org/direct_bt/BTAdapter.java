@@ -151,6 +151,11 @@ public interface BTAdapter extends BTObject
 
     /**
      * Turns on device discovery if it is disabled.
+     * <p>
+     * {@code jau.direct_bt}'s implementation will always issue {@link #removeDiscoveredDevices()},
+     * ensuring all scanned devices will be found after calling this method. Regardless whether
+     * discovery is already running.
+     * </p>
      * <pre>
      * + --+-------+--------+-----------+----------------------------------------------------+
      * | # | meta  | native | keepAlive | Note
