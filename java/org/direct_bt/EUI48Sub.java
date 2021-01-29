@@ -94,13 +94,20 @@ public class EUI48Sub {
      */
     @Override
     public final String toString() {
-        final StringBuilder sb = new StringBuilder(17);
-        for(int i=length-1; 0 <= i; i--) {
-            BTUtils.byteHexString(sb, b[i], false /* lowerCase */);
-            if( 0 < i ) {
-                sb.append(":");
+        // str_len = 2 * len + ( len - 1 )
+        // str_len = 3 * len - 1
+        // len = ( str_len + 1 ) / 3
+        if( 0 < length ) {
+            final StringBuilder sb = new StringBuilder(3 * length - 1);
+            for(int i=length-1; 0 <= i; i--) {
+                BTUtils.byteHexString(sb, b[i], false /* lowerCase */);
+                if( 0 < i ) {
+                    sb.append(":");
+                }
             }
+            return sb.toString();
+        } else {
+            return new String();
         }
-        return sb.toString();
     }
 }

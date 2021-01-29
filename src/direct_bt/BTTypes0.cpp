@@ -150,12 +150,14 @@ std::string EUI48Sub::toString() const noexcept {
     // str_len = 3 * len - 1
     // len = ( str_len + 1 ) / 3
     std::string str;
-    str.reserve(3 * length - 1);
+    if( 0 < length ) {
+        str.reserve(3 * length - 1);
 
-    for(int i=length-1; 0 <= i; i--) {
-        jau::byteHexString(str, b[i], false /* lowerCase */);
-        if( 0 < i ) {
-            str.push_back(':');
+        for(int i=length-1; 0 <= i; i--) {
+            jau::byteHexString(str, b[i], false /* lowerCase */);
+            if( 0 < i ) {
+                str.push_back(':');
+            }
         }
     }
     return str;
