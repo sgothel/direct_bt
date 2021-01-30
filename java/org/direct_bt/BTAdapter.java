@@ -79,7 +79,7 @@ public interface BTAdapter extends BTObject
     /**
      * Returns true, if the adapter's device is already whitelisted.
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean isDeviceWhitelisted(final BDAddressAndType addressAndType);
 
@@ -104,7 +104,7 @@ public interface BTAdapter extends BTObject
      *
      * @see #addDeviceToWhitelist(String, BDAddressType, HCIWhitelistConnectType)
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
                                         final HCIWhitelistConnectType ctype,
@@ -128,7 +128,7 @@ public interface BTAdapter extends BTObject
      *
      * @see #addDeviceToWhitelist(String, BDAddressType, HCIWhitelistConnectType, short, short, short, short)
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
                                         final HCIWhitelistConnectType ctype);
@@ -137,7 +137,7 @@ public interface BTAdapter extends BTObject
     /**
      * Remove the given device from the adapter's autoconnect whitelist.
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean removeDeviceFromWhitelist(final BDAddressAndType addressAndType);
 
@@ -177,7 +177,7 @@ public interface BTAdapter extends BTObject
      * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
      * @throws BTException
      * @since 2.0.0
-     * @implNote {@code keepAlive} not implemented in tinyb.dbus
+     * @implNote {@code keepAlive} not implemented in {@code tinyb.dbus}
      * @see #getDiscovering()
      */
     public HCIStatusCode startDiscovery(final boolean keepAlive) throws BTException;
@@ -210,7 +210,7 @@ public interface BTAdapter extends BTObject
      * Discards matching discovered devices.
      * @return {@code true} if found and removed, otherwise false.
      * @since 2.2.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean removeDiscoveredDevice(final BDAddressAndType addressAndType);
 
@@ -245,7 +245,7 @@ public interface BTAdapter extends BTObject
      * but may change after its destruction.
      * </p>
      * @since 2.0.0
-     * @implNote Not implemented on tinyb.dbus
+     * @implNote Not implemented on {@code tinyb.dbus}
      */
     public int getDevID();
 
@@ -337,7 +337,7 @@ public interface BTAdapter extends BTObject
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
      * </pre>
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     public HCIStatusCode reset();
 
@@ -485,7 +485,7 @@ public interface BTAdapter extends BTObject
      *        {@link AdapterStatusListener} {@code device*} methods. Pass {@code null} for no filtering.
      * @return true if the given listener is not element of the list and has been newly added, otherwise false.
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean addStatusListener(final AdapterStatusListener listener, final BTDevice deviceMatch);
 
@@ -494,7 +494,7 @@ public interface BTAdapter extends BTObject
      * @param listener A {@link AdapterStatusListener} instance
      * @return true if the given listener is an element of the list and has been removed, otherwise false.
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean removeStatusListener(final AdapterStatusListener l);
 
@@ -502,7 +502,7 @@ public interface BTAdapter extends BTObject
      * Remove all {@link AdapterStatusListener} from the list.
      * @return number of removed listener.
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     public int removeAllStatusListener();
 

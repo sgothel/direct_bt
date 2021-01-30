@@ -117,12 +117,12 @@ public interface BTDevice extends BTObject
      * The device is tracked by the managing adapter.
      * </p>
      * <p>
-     * <b>tinyb.dbus</b>: A connection to this device is established, connecting each profile
+     * {@code tinyb.dbus}: A connection to this device is established, connecting each profile
      * flagged as auto-connectable.
      * </p>
      * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
      * @see #connectLE(short, short, short, short, short, short)
-     * @since 2.1.0 change API, i.e. return value from boolean to HCIStatusCode in favor of <i>direct_bt</i>
+     * @since 2.1.0 change API, i.e. return value from boolean to HCIStatusCode in favor of {@code jau.direct_bt}.
      * @implNote {@code jau.direct_bt} does not throw a BTException on error, only a 'general' exception in case of fatality like NPE etc (FIXME: Remove throws)
      */
     HCIStatusCode connect() throws BTException;
@@ -165,7 +165,7 @@ public interface BTDevice extends BTObject
      * @see BTUtils#getHCIConnSupervisorTimeout(int, int, int, int)
      * @see #connect()
      * @since 2.1.0 change API, i.e. return value from boolean to HCIStatusCode in favor of <i>direct_bt</i>
-     * @implNote not implemented in <b>tinyb.dbus</b>
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     HCIStatusCode connectLE(final short le_scan_interval, final short le_scan_window,
                             final short conn_interval_min, final short conn_interval_max,
@@ -189,7 +189,7 @@ public interface BTDevice extends BTObject
      * @param responder if true, queries the responder (LL slave) key, otherwise the initiator (LL master) key.
      * @return {@link SMPKeyMask.KeyType} {@link SMPKeyMask} result
      * @since 2.2.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     SMPKeyMask getAvailableSMPKeys(final boolean responder);
 
@@ -200,7 +200,7 @@ public interface BTDevice extends BTObject
      * @see {@link SMPPairingState#COMPLETED}
      * @see {@link AdapterStatusListener#deviceReady(BTDevice, long)}
      * @since 2.2.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     SMPLongTermKeyInfo getLongTermKeyInfo(final boolean responder);
 
@@ -212,7 +212,7 @@ public interface BTDevice extends BTObject
      * @param ltk the pre-paired encryption LTK
      * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the appropriate error code.
      * @since 2.2.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk);
 
@@ -223,7 +223,7 @@ public interface BTDevice extends BTObject
      * @see {@link SMPPairingState#COMPLETED}
      * @see {@link AdapterStatusListener#deviceReady(BTDevice, long)}
      * @since 2.2.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     SMPSignatureResolvingKeyInfo getSignatureResolvingKeyInfo(final boolean responder);
 
@@ -248,7 +248,7 @@ public interface BTDevice extends BTObject
      * </p>
      * @return {@link HCIStatusCode#SUCCESS} or an appropriate error status.
      * @since 2.1.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     HCIStatusCode unpair();
 
@@ -270,7 +270,7 @@ public interface BTDevice extends BTObject
      * @param sec_level {@link BTSecurityLevel} to be applied, {@link BTSecurityLevel#UNSET} will be ignored and method fails.
      * @return
      * @since 2.1.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      * @see BTSecurityLevel
      * @see SMPIOCapability
      * @see #getConnSecurityLevel()
@@ -284,7 +284,7 @@ public interface BTDevice extends BTObject
     /**
      * Return the {@link BTSecurityLevel}, determined when the connection is established.
      * @since 2.1.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      * @see BTSecurityLevel
      * @see SMPIOCapability
      * @see #setConnSecurityLevel(BTSecurityLevel)
@@ -304,7 +304,7 @@ public interface BTDevice extends BTObject
      * </p>
      * @param io_cap {@link SMPIOCapability} to be applied, {@link SMPIOCapability#UNSET} will be ignored and method fails.
      * @since 2.1.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      * @see BTSecurityLevel
      * @see SMPIOCapability
      * @see #setConnSecurityLevel(BTSecurityLevel)
@@ -318,7 +318,7 @@ public interface BTDevice extends BTObject
     /**
      * Return the {@link SMPIOCapability} value, determined when the connection is established.
      * @since 2.1.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      * @see BTSecurityLevel
      * @see SMPIOCapability
      * @see #setConnSecurityLevel(BTSecurityLevel)
@@ -342,7 +342,7 @@ public interface BTDevice extends BTObject
      * @param sec_level {@link BTSecurityLevel} to be applied, {@link BTSecurityLevel#UNSET} will be ignored and method fails.
      * @param io_cap {@link SMPIOCapability} to be applied, {@link SMPIOCapability#UNSET} will be ignored and method fails.
      * @since 2.1.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      * @see BTSecurityLevel
      * @see SMPIOCapability
      * @see #setConnSecurityLevel(BTSecurityLevel)
@@ -379,7 +379,7 @@ public interface BTDevice extends BTObject
      * @param sec_level {@link BTSecurityLevel} to be applied.
      * @param io_cap {@link SMPIOCapability} to be applied.
      * @since 2.1.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      * @see BTSecurityLevel
      * @see SMPIOCapability
      * @see #setConnSecurityLevel(BTSecurityLevel)
@@ -410,7 +410,7 @@ public interface BTDevice extends BTObject
      * @see #getPairingMode()
      * @see #getPairingState()
      * @since 2.1.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     HCIStatusCode setPairingPasskey(final int passkey);
 
@@ -434,7 +434,7 @@ public interface BTDevice extends BTObject
      * @see #getPairingMode()
      * @see #getPairingState()
      * @since 2.1.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     HCIStatusCode setPairingNumericComparison(final boolean equal);
 
@@ -461,7 +461,7 @@ public interface BTDevice extends BTObject
      * @see #getPairingMode()
      * @see #getPairingState()
      * @since 2.1.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     PairingMode getPairingMode();
 
@@ -478,7 +478,7 @@ public interface BTDevice extends BTObject
      * @see #getPairingMode()
      * @see #getPairingState()
      * @since 2.1.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     SMPPairingState getPairingState();
 
@@ -537,7 +537,7 @@ public interface BTDevice extends BTObject
      * </p>
      * @return {@code true} if successful or not implemented, otherwise false in case no GATT services exists or is not connected..
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus.
+     * @implNote not implemented in {@code tinyb.dbus}.
      */
     boolean pingGATT();
 
@@ -556,7 +556,7 @@ public interface BTDevice extends BTObject
      *
      * @see BTUtils#currentTimeMillis()
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus, returns {@link #getCreationTimestamp()}
+     * @implNote not implemented in {@code tinyb.dbus}, returns {@link #getCreationTimestamp()}
      */
     long getLastDiscoveryTimestamp();
 
@@ -566,14 +566,14 @@ public interface BTDevice extends BTObject
      *
      * @see BTUtils#currentTimeMillis()
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus, returns {@link #getCreationTimestamp()}
+     * @implNote not implemented in {@code tinyb.dbus}, returns {@link #getCreationTimestamp()}
      */
     long getLastUpdateTimestamp();
 
     /**
      * Returns the unique device {@link EUI48} address and {@link BDAddressType} type.
      * @since 2.2.0
-     * @implNote not fully implemented in <b>tinyb.dbus</b>, uses {@link BDAddressType#BDADDR_LE_PUBLIC}
+     * @implNote not fully implemented in {@code tinyb.dbus}, uses {@link BDAddressType#BDADDR_LE_PUBLIC}
      */
     BDAddressAndType getAddressAndType();
 
@@ -716,7 +716,7 @@ public interface BTDevice extends BTObject
     /**
      * Return the HCI connection handle to the LE or BREDR peer, zero if not connected.
      * @since 2.1.0
-     * @implNote not implemented in <b>tinyb.dbus</b>
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     short getConnectionHandle();
 
@@ -835,7 +835,7 @@ public interface BTDevice extends BTObject
      * @see BTGattChar#configNotificationIndication(boolean, boolean, boolean[])
      * @see BTGattChar#enableNotificationOrIndication(boolean[])
      * @since 2.0.0
-     * @implNote not implemented in <b>tinyb.dbus</b>
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean addCharListener(final BTGattCharListener listener)
         throws IllegalStateException;
@@ -848,7 +848,7 @@ public interface BTDevice extends BTObject
      * @param listener A {@link BTGattCharListener} instance
      * @return true if the given listener is an element of the list and has been removed, otherwise false.
      * @since 2.0.0
-     * @implNote not implemented in <b>tinyb.dbus</b>
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean removeCharListener(final BTGattCharListener l);
 
@@ -861,7 +861,7 @@ public interface BTDevice extends BTObject
      * @param associatedCharacteristic the match criteria to remove any BTGattCharListener from the list
      * @return number of removed listener.
      * @since 2.0.0
-     * @implNote not implemented in <b>tinyb.dbus</b>
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     public int removeAllAssociatedCharListener(final BTGattChar associatedCharacteristic);
 
@@ -869,7 +869,7 @@ public interface BTDevice extends BTObject
      * Remove all {@link BTGattCharListener} from the list.
      * @return number of removed listener.
      * @since 2.0.0
-     * @implNote not implemented in <b>tinyb.dbus</b>
+     * @implNote not implemented in {@code tinyb.dbus}
      */
     public int removeAllCharListener();
 }
