@@ -591,7 +591,8 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
             my_ltk_resp.read(KEY_PATH, device->getAddressAndType(), true /* responder */) &&
             device->setConnSecurity(my_ltk_init.sec_level, my_ltk_init.io_cap) &&
             HCIStatusCode::SUCCESS == device->setLongTermKeyInfo(my_ltk_init.smp_ltk) &&
-            HCIStatusCode::SUCCESS == device->setLongTermKeyInfo(my_ltk_resp.smp_ltk) ) {
+            HCIStatusCode::SUCCESS == device->setLongTermKeyInfo(my_ltk_resp.smp_ltk) )
+        {
             fprintf(stderr, "****** Connecting Device: Loaded LTKs from file successfully\n");
             fprintf(stderr, "- init %s\n", my_ltk_init.toString().c_str());
             fprintf(stderr, "- resp %s\n", my_ltk_resp.toString().c_str());

@@ -569,7 +569,8 @@ public class DBTScanner10 {
                 my_ltk_resp.read(KEY_PATH, device.getAddressAndType(), true /* responder */) &&
                 device.setConnSecurity(my_ltk_init.sec_level, my_ltk_init.io_cap) &&
                 HCIStatusCode.SUCCESS == device.setLongTermKeyInfo(my_ltk_init.smp_ltk) &&
-                HCIStatusCode.SUCCESS == device.setLongTermKeyInfo(my_ltk_resp.smp_ltk) ) {
+                HCIStatusCode.SUCCESS == device.setLongTermKeyInfo(my_ltk_resp.smp_ltk) )
+            {
                 println("****** Connecting Device: Loaded LTKs from file successfully");
                 println("- init "+my_ltk_init.toString());
                 println("- resp "+my_ltk_resp.toString());
