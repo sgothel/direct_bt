@@ -355,7 +355,7 @@ namespace direct_bt {
              */
             HCIStatusCode connectLE(const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
                                     const uint16_t conn_interval_min=12, const uint16_t conn_interval_max=12,
-                                    const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 15));
+                                    const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 15)) noexcept;
 
             /**
              * Establish a HCI BDADDR_BREDR connection to this device.
@@ -381,7 +381,7 @@ namespace direct_bt {
              * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */
             HCIStatusCode connectBREDR(const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
-                                       const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
+                                       const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01) noexcept;
 
             /**
              * Establish a default HCI connection to this device, using certain default parameter.
@@ -406,7 +406,7 @@ namespace direct_bt {
              * </p>
              * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */
-            HCIStatusCode connectDefault();
+            HCIStatusCode connectDefault() noexcept;
 
 
             /** Return the HCI connection handle to the LE or BREDR peer, zero if not connected. */

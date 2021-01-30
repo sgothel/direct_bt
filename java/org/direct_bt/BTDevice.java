@@ -123,6 +123,7 @@ public interface BTDevice extends BTObject
      * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
      * @see #connectLE(short, short, short, short, short, short)
      * @since 2.1.0 change API, i.e. return value from boolean to HCIStatusCode in favor of <i>direct_bt</i>
+     * @implNote {@code jau.direct_bt} does not throw a BTException on error, only a 'general' exception in case of fatality like NPE etc (FIXME: Remove throws)
      */
     HCIStatusCode connect() throws BTException;
 

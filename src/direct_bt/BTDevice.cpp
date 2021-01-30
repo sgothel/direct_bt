@@ -263,7 +263,7 @@ std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo() noexcept {
 
 HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
                                    uint16_t conn_interval_min, uint16_t conn_interval_max,
-                                   uint16_t conn_latency, uint16_t supervision_timeout)
+                                   uint16_t conn_latency, uint16_t supervision_timeout) noexcept
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
     if( !adapter.isPowered() ) {
@@ -354,7 +354,7 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
     return status;
 }
 
-HCIStatusCode BTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch)
+HCIStatusCode BTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch) noexcept
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
     if( !adapter.isPowered() ) {
@@ -394,7 +394,7 @@ HCIStatusCode BTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clo
     return status;
 }
 
-HCIStatusCode BTDevice::connectDefault()
+HCIStatusCode BTDevice::connectDefault() noexcept
 {
     switch( addressAndType.type ) {
         case BDAddressType::BDADDR_LE_PUBLIC:

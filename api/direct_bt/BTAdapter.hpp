@@ -273,8 +273,8 @@ namespace direct_bt {
             friend void BTDevice::remove() noexcept;
             friend HCIStatusCode BTDevice::connectLE(uint16_t interval, uint16_t window,
                                                       uint16_t min_interval, uint16_t max_interval,
-                                                      uint16_t latency, uint16_t supervision_timeout);
-            friend HCIStatusCode BTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch);
+                                                      uint16_t latency, uint16_t supervision_timeout) noexcept;
+            friend HCIStatusCode BTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch) noexcept;
             friend void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis);
             friend bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
             friend void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
