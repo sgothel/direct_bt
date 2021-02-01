@@ -453,16 +453,16 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
         const bool responderLikesEncryption = pairing_data.res_requested_sec || isLEFeaturesBitSet(le_features, LEFeatures::LE_Encryption);
         if( BTSecurityLevel::UNSET != sec_level_user ) {
             sec_level = sec_level_user;
-        } else if( SMPIOCapability::NO_INPUT_NO_OUTPUT == io_cap_conn ) {
-            sec_level = BTSecurityLevel::ENC_ONLY; // no auth w/o I/O
-        } else {
-            if( responderLikesEncryption && adapter.hasSecureConnections() ) {
+        } else if( responderLikesEncryption && SMPIOCapability::UNSET != io_cap_conn ) {
+            if( SMPIOCapability::NO_INPUT_NO_OUTPUT == io_cap_conn ) {
+                sec_level = BTSecurityLevel::ENC_ONLY; // no auth w/o I/O
+            } else if( adapter.hasSecureConnections() ) {
                 sec_level = BTSecurityLevel::ENC_AUTH_FIPS;
             } else if( responderLikesEncryption ) {
                 sec_level = BTSecurityLevel::ENC_AUTH;
-            } else {
-                sec_level = BTSecurityLevel::NONE;
             }
+        } else {
+            sec_level = BTSecurityLevel::NONE;
         }
 
         pairing_data.sec_level_conn = sec_level;
