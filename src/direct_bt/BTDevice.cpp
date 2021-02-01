@@ -120,24 +120,24 @@ int BTDevice::findAdvService(std::shared_ptr<uuid_t> const &uuid) const noexcept
 }
 
 std::string const BTDevice::getName() const noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(const_cast<BTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
     return name;
 }
 
 std::shared_ptr<ManufactureSpecificData> const BTDevice::getManufactureSpecificData() const noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(const_cast<BTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
     return advMSD;
 }
 
 jau::darray<std::shared_ptr<uuid_t>> BTDevice::getAdvertisedServices() const noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(const_cast<BTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
     return advServices;
 }
 
 std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(const_cast<BTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
     const uint64_t t0 = jau::getCurrentMilliseconds();
-    jau::sc_atomic_critical sync(const_cast<BTDevice*>(this)->sync_pairing);
+    jau::sc_atomic_critical sync(sync_pairing);
     std::string msdstr = nullptr != advMSD ? advMSD->toString() : "MSD[null]";
     std::string out("Device["+addressAndType.toString()+", name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
@@ -960,7 +960,7 @@ void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMs
 }
 
 SMPKeyType BTDevice::getAvailableSMPKeys(const bool responder) const noexcept {
-    jau::sc_atomic_critical sync(const_cast<BTDevice*>(this)->sync_pairing);
+    jau::sc_atomic_critical sync(sync_pairing);
     if( responder ) {
         return pairing_data.keys_resp_has;
     } else {
@@ -969,7 +969,7 @@ SMPKeyType BTDevice::getAvailableSMPKeys(const bool responder) const noexcept {
 }
 
 SMPLongTermKeyInfo BTDevice::getLongTermKeyInfo(const bool responder) const noexcept {
-    jau::sc_atomic_critical sync(const_cast<BTDevice*>(this)->sync_pairing);
+    jau::sc_atomic_critical sync(sync_pairing);
     return responder ? pairing_data.ltk_resp : pairing_data.ltk_init;
 }
 
@@ -991,7 +991,7 @@ HCIStatusCode BTDevice::setLongTermKeyInfo(const SMPLongTermKeyInfo& ltk) noexce
 }
 
 SMPSignatureResolvingKeyInfo BTDevice::getSignatureResolvingKeyInfo(const bool responder) const noexcept {
-    jau::sc_atomic_critical sync(const_cast<BTDevice*>(this)->sync_pairing);
+    jau::sc_atomic_critical sync(sync_pairing);
     return responder ? pairing_data.csrk_resp : pairing_data.csrk_init;
 }
 
@@ -1044,7 +1044,7 @@ bool BTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept {
 }
 
 BTSecurityLevel BTDevice::getConnSecurityLevel() const noexcept {
-    jau::sc_atomic_critical sync(const_cast<BTDevice*>(this)->sync_pairing);
+    jau::sc_atomic_critical sync(sync_pairing);
     return pairing_data.sec_level_conn;
 }
 
@@ -1071,7 +1071,7 @@ bool BTDevice::setConnIOCapability(const SMPIOCapability io_cap) noexcept {
 }
 
 SMPIOCapability BTDevice::getConnIOCapability() const noexcept {
-    jau::sc_atomic_critical sync(const_cast<BTDevice*>(this)->sync_pairing);
+    jau::sc_atomic_critical sync(sync_pairing);
     return pairing_data.ioCap_conn;
 }
 
@@ -1172,12 +1172,12 @@ HCIStatusCode BTDevice::setPairingNumericComparison(const bool positive) noexcep
 }
 
 PairingMode BTDevice::getPairingMode() const noexcept {
-    jau::sc_atomic_critical sync(const_cast<BTDevice*>(this)->sync_pairing);
+    jau::sc_atomic_critical sync(sync_pairing);
     return pairing_data.mode;
 }
 
 SMPPairingState BTDevice::getPairingState() const noexcept {
-    jau::sc_atomic_critical sync(const_cast<BTDevice*>(this)->sync_pairing);
+    jau::sc_atomic_critical sync(sync_pairing);
     return pairing_data.state;
 }
 

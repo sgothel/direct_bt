@@ -75,9 +75,9 @@ namespace direct_bt {
             std::recursive_mutex mtx_smpHandler;
 #endif
             std::shared_ptr<BTGattHandler> gattHandler = nullptr;
-            std::recursive_mutex mtx_gattHandler;
-            std::recursive_mutex mtx_connect;
-            std::recursive_mutex mtx_data;
+            mutable std::recursive_mutex mtx_gattHandler;
+            mutable std::recursive_mutex mtx_connect;
+            mutable std::recursive_mutex mtx_data;
             std::atomic<bool> isConnected;
             std::atomic<bool> allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
 
@@ -111,8 +111,8 @@ namespace direct_bt {
                 SMPSignatureResolvingKeyInfo csrk_init, csrk_resp;
             };
             PairingData pairing_data;
-            std::mutex mtx_pairing;
-            jau::sc_atomic_bool sync_pairing;
+            mutable std::mutex mtx_pairing;
+            mutable jau::sc_atomic_bool sync_pairing;
 
             /** Private class only for private make_shared(). */
             class ctor_cookie { friend BTDevice; ctor_cookie(const uint16_t secret) { (void)secret; } };
