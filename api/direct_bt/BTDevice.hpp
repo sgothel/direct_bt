@@ -568,15 +568,14 @@ namespace direct_bt {
             /**
              * Sets the given ::BTSecurityLevel and ::SMPIOCapability used to connect to this device on the upcoming connection.
              * <p>
-             * Method returns false if ::BTSecurityLevel::UNSET or ::SMPIOCapability::UNSET has been given,
-             * operation fails, this device has already being connected,
+             * Method returns false if this device has already being connected,
              * or BTDevice::connectLE() or BTDevice::connectBREDR() has been issued already.
              * </p>
              * <p>
              * Method either changes both parameter for the upcoming connection or none at all.
              * </p>
-             * @param[in] sec_level ::BTSecurityLevel to be applied, ::BTSecurityLevel::UNSET will be ignored and method fails.
-             * @param[in] io_cap ::SMPIOCapability to be applied, ::SMPIOCapability::UNSET will be ignored and method fails.
+             * @param[in] sec_level ::BTSecurityLevel to be applied.
+             * @param[in] io_cap ::SMPIOCapability to be applied.
              * @see ::BTSecurityLevel
              * @see ::SMPIOCapability
              * @see setConnSecurityLevel()

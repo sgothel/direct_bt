@@ -1076,15 +1076,6 @@ SMPIOCapability BTDevice::getConnIOCapability() const noexcept {
 }
 
 bool BTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {
-    if( BTSecurityLevel::UNSET == sec_level ) {
-        DBG_PRINT("DBTAdapter::setConnSecurity: lvl %s, invalid value.", getBTSecurityLevelString(sec_level).c_str());
-        return false;
-    }
-    if( SMPIOCapability::UNSET == io_cap ) {
-        DBG_PRINT("DBTDevice::setConnSecurity: io %s, invalid value.", getSMPIOCapabilityString(io_cap).c_str());
-        return false;
-    }
-
     if( !isValid() || isConnected || allowDisconnect ) {
         DBG_PRINT("DBTDevice::setConnSecurity: lvl %s, io %s failed, invalid state %s",
                 getBTSecurityLevelString(sec_level).c_str(),

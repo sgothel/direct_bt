@@ -333,15 +333,14 @@ public interface BTDevice extends BTObject
     /**
      * Sets the given {@link BTSecurityLevel} and {@link SMPIOCapability} used to connect to this device on the upcoming connection.
      * <p>
-     * Method returns false if {@link BTSecurityLevel#UNSET} or {@link SMPIOCapability#UNSET} has been given,
-     * operation fails, this device has already being connected,
+     * Method returns false if this device has already being connected,
      * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connect()} has been issued already.
      * </p>
      * <p>
      * Method either changes both parameter for the upcoming connection or none at all.
      * </p>
-     * @param sec_level {@link BTSecurityLevel} to be applied, {@link BTSecurityLevel#UNSET} will be ignored and method fails.
-     * @param io_cap {@link SMPIOCapability} to be applied, {@link SMPIOCapability#UNSET} will be ignored and method fails.
+     * @param sec_level {@link BTSecurityLevel} to be applied.
+     * @param io_cap {@link SMPIOCapability} to be applied.
      * @since 2.1.0
      * @implNote not implemented in {@code tinyb.dbus}
      * @see BTSecurityLevel
