@@ -324,7 +324,7 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
         return HCIStatusCode::INTERNAL_FAILURE;
     }
 
-    HCIStatusCode status; // HCI le_create_conn result
+    HCIStatusCode statusConnect; // HCI le_create_conn result
     const SMPIOCapability smp_auto_io_cap = pairing_data.ioCap_auto; // cache against clearSMPState
     const bool smp_auto = SMPIOCapability::UNSET != smp_auto_io_cap; // logical cached state
     bool smp_auto_done = !smp_auto;
@@ -369,21 +369,21 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
                 return HCIStatusCode::INTERNAL_FAILURE;
             }
         }
-        status = hci.le_create_conn(addressAndType.address,
+        statusConnect = hci.le_create_conn(addressAndType.address,
                                     hci_peer_mac_type, hci_own_mac_type,
                                     le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
                                     conn_latency, supervision_timeout);
         allowDisconnect = true;
-        if( HCIStatusCode::COMMAND_DISALLOWED == status ) {
+        if( HCIStatusCode::COMMAND_DISALLOWED == statusConnect ) {
             WARN_PRINT("DBTDevice::connectLE: Could not yet create connection: status 0x%2.2X (%s), errno %d, hci-atype[peer %s, own %s] %s on %s",
-                    static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno),
+                    static_cast<uint8_t>(statusConnect), getHCIStatusCodeString(statusConnect).c_str(), errno, strerror(errno),
                     getHCILEPeerAddressTypeString(hci_peer_mac_type).c_str(),
                     getHCILEOwnAddressTypeString(hci_own_mac_type).c_str(),
                     toString(false).c_str());
             adapter.unlockConnect(*this);
-        } else if ( HCIStatusCode::SUCCESS != status ) {
+        } else if ( HCIStatusCode::SUCCESS != statusConnect ) {
             ERR_PRINT("DBTDevice::connectLE: Could not create connection: status 0x%2.2X (%s), errno %d %s, hci-atype[peer %s, own %s] on %s",
-                    static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno),
+                    static_cast<uint8_t>(statusConnect), getHCIStatusCodeString(statusConnect).c_str(), errno, strerror(errno),
                     getHCILEPeerAddressTypeString(hci_peer_mac_type).c_str(),
                     getHCILEOwnAddressTypeString(hci_own_mac_type).c_str(),
                     toString(false).c_str());
@@ -415,6 +415,8 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
             }
             if( pairing_timeout ) {
                 disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
+                statusConnect = HCIStatusCode::INTERNAL_TIMEOUT;
+                adapter.unlockConnect(*this);
             } else if( SMPPairingState::COMPLETED == pstate ) {
                 DBG_PRINT("DBTDevice::connectLE: SEC AUTO.%d.X Done: %s", smp_auto_count, toString(false).c_str());
                 smp_auto_done = true;
@@ -438,6 +440,8 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
                                 smp_auto_count, std::to_string(td_disconnect), toString(false).c_str());
                         smp_auto_done = true;
                         pairing_data.ioCap_auto = SMPIOCapability::UNSET;
+                        statusConnect = HCIStatusCode::INTERNAL_TIMEOUT;
+                        adapter.unlockConnect(*this);
                     }
                 }
             }
@@ -445,13 +449,14 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
     } while( !smp_auto_done );
     if( smp_auto ) {
         jau::sc_atomic_critical sync(sync_pairing);
-        if( HCIStatusCode::SUCCESS == status && SMPPairingState::FAILED == pstate ) {
+        if( HCIStatusCode::SUCCESS == statusConnect && SMPPairingState::FAILED == pstate ) {
             ERR_PRINT("DBTDevice::connectLE: SEC AUTO.%d.X Failed SMPPairing -> Disconnect: %s", smp_auto_count, toString(false).c_str());
             pairing_data.ioCap_auto = SMPIOCapability::UNSET;
             disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
+            statusConnect = HCIStatusCode::AUTH_FAILED;
         }
     }
-    return status;
+    return statusConnect;
 }
 
 HCIStatusCode BTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch) noexcept
