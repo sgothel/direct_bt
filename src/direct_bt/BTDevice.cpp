@@ -142,8 +142,8 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
     std::string out("Device["+addressAndType.toString()+", name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
             "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", handle "+jau::uint16HexString(hciConnHandle)+
-            ", sec[lvl "+getBTSecurityLevelString(pairing_data.sec_level_conn).c_str()+", io "+getSMPIOCapabilityString(pairing_data.ioCap_conn).c_str()+
-            ", pairing "+getPairingModeString(pairing_data.mode).c_str()+", state "+getSMPPairingStateString(pairing_data.state).c_str()+"]], rssi "+std::to_string(getRSSI())+
+            ", sec[lvl "+getBTSecurityLevelString(pairing_data.sec_level_conn)+", io "+getSMPIOCapabilityString(pairing_data.ioCap_conn)+
+            ", auto "+getSMPIOCapabilityString(pairing_data.ioCap_auto)+", pairing "+getPairingModeString(pairing_data.mode)+", state "+getSMPPairingStateString(pairing_data.state)+"]], rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+
             ", appearance "+jau::uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
             "), "+msdstr+", "+javaObjectToString()+"]");
