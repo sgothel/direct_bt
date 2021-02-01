@@ -172,7 +172,7 @@ public class DBTScanner10 {
 
         @Override
         public String toString() {
-            return "BTSecurityDetail["+addrAndType+", lvl "+sec_level+", io "+io_cap+", passkey "+passkey+"]";
+            return "BTSecurityDetail["+addrAndType+", lvl "+sec_level+", io "+io_cap+", auto-io "+io_cap_auto+", passkey "+passkey+"]";
         }
 
         static private HashMap<BDAddressAndType, MyBTSecurityDetail> devicesSecDetail = new HashMap<BDAddressAndType, MyBTSecurityDetail>();
@@ -596,10 +596,10 @@ public class DBTScanner10 {
             if( null != sec ) {
                 if( sec.isSecurityAutoEnabled() ) {
                     final boolean res = device.setConnSecurityAuto( sec.getSecurityAutoIOCap() );
-                    println("****** Connecting Device: Using SecurityDetail "+sec+" -> set OK "+res);
+                    println("****** Connecting Device: Using SecurityDetail.SEC AUTO "+sec+" -> set OK "+res);
                 } else {
                     final boolean res = device.setConnSecurityBest(sec.getSecLevel(), sec.getIOCap());
-                    println("****** Connecting Device: Using SecurityDetail "+sec+" -> set OK "+res);
+                    println("****** Connecting Device: Using SecurityDetail.Level+IOCap "+sec+" -> set OK "+res);
                 }
             } else {
                 println("****** Connecting Device: No SecurityDetail for "+device.getAddressAndType());
@@ -1093,6 +1093,14 @@ public class DBTScanner10 {
                     final int io_cap_i = Integer.valueOf(args[++i]).intValue();
                     sec.io_cap = SMPIOCapability.get( (byte)( io_cap_i & 0xff ) );
                     System.err.println("Set io_cap "+io_cap_i+" in "+sec);
+                } else if( arg.equals("-secauto") && args.length > (i+3) ) {
+                    final String mac = args[++i];
+                    final byte atype = (byte) ( Integer.valueOf(args[++i]).intValue() & 0xff );
+                    final BDAddressAndType macAndType = new BDAddressAndType(new EUI48(mac), BDAddressType.get(atype));
+                    final MyBTSecurityDetail sec = MyBTSecurityDetail.getOrCreate(macAndType);
+                    final int io_cap_i = Integer.valueOf(args[++i]).intValue();
+                    sec.io_cap_auto = SMPIOCapability.get( (byte)( io_cap_i & 0xff ) );
+                    System.err.println("Set SEC AUTO security io_cap "+io_cap_i+" in "+sec);
                 } else if( arg.equals("-unpairPre") ) {
                     test.UNPAIR_DEVICE_PRE = true;
                 } else if( arg.equals("-unpairPost") ) {
@@ -1122,6 +1130,7 @@ public class DBTScanner10 {
                     "(-mac <device_address>)* (-wl <device_address>)* "+
                     "[-seclevel <device_address> <(int)address_type> <int>] "+
                     "[-iocap <device_address> <(int)address_type> <int>] "+
+                    "[-secauto <device_address> <(int)address_type> <int>] "+
                     "[-passkey <device_address> <(int)address_type> <digits>] " +
                     "[-unpairPre] [-unpairPost] "+
                     "[-charid <uuid>] [-charval <byte-val>] "+

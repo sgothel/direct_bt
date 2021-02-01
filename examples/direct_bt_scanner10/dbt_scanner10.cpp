@@ -619,10 +619,10 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
         if( nullptr != sec ) {
             if( sec->isSecurityAutoEnabled() ) {
                 bool res = device->setConnSecurityAuto( sec->getSecurityAutoIOCap() );
-                fprintf(stderr, "****** Connecting Device: Using SecurityDetail.AutoIOCap %s, set OK %d\n", sec->toString().c_str(), res);
+                fprintf(stderr, "****** Connecting Device: Using SecurityDetail.SEC AUTO %s, set OK %d\n", sec->toString().c_str(), res);
             } else {
                 bool res = device->setConnSecurityBest( sec->getSecLevel(), sec->getIOCap() );
-                fprintf(stderr, "****** Connecting Device: Using SecurityDetail.IOCap %s, set OK %d\n", sec->toString().c_str(), res);
+                fprintf(stderr, "****** Connecting Device: Using SecurityDetail.Level+IOCap %s, set OK %d\n", sec->toString().c_str(), res);
             }
         } else {
             fprintf(stderr, "****** Connecting Device: No SecurityDetail for %s\n", device->getAddressAndType().toString().c_str());
@@ -1032,7 +1032,7 @@ int main(int argc, char *argv[])
             const BDAddressAndType macAndType(EUI48(mac), getBDAddressType(atype));
             MyBTSecurityDetail* sec = MyBTSecurityDetail::getOrCreate(macAndType);
             sec->io_cap_auto = getSMPIOCapability(atoi(argv[++i]));
-            fprintf(stderr, "Set auto security io_cap in %s\n", sec->toString().c_str());
+            fprintf(stderr, "Set SEC AUTO security io_cap in %s\n", sec->toString().c_str());
         } else if( !strcmp("-unpairPre", argv[i]) ) {
             UNPAIR_DEVICE_PRE = true;
         } else if( !strcmp("-unpairPost", argv[i]) ) {
