@@ -414,9 +414,11 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
                         smp_auto_count, getSMPPairingStateString(pstate).c_str(), toString(false).c_str());
             }
             if( pairing_timeout ) {
+                pairing_data.ioCap_auto = SMPIOCapability::UNSET;
                 disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
                 statusConnect = HCIStatusCode::INTERNAL_TIMEOUT;
                 adapter.unlockConnect(*this);
+                smp_auto_done = true;
             } else if( SMPPairingState::COMPLETED == pstate ) {
                 DBG_PRINT("DBTDevice::connectLE: SEC AUTO.%d.X Done: %s", smp_auto_count, toString(false).c_str());
                 smp_auto_done = true;
@@ -438,10 +440,10 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
                         // timeout
                         ERR_PRINT("DBTDevice::connectLE: SEC AUTO.%d.4 Timeout Disconnect td_pairing %d ms: %s",
                                 smp_auto_count, std::to_string(td_disconnect), toString(false).c_str());
-                        smp_auto_done = true;
                         pairing_data.ioCap_auto = SMPIOCapability::UNSET;
                         statusConnect = HCIStatusCode::INTERNAL_TIMEOUT;
                         adapter.unlockConnect(*this);
+                        smp_auto_done = true;
                     }
                 }
             }
@@ -455,6 +457,7 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
             disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
             statusConnect = HCIStatusCode::AUTH_FAILED;
         }
+        pairing_data.ioCap_auto = SMPIOCapability::UNSET; // always clear post-auto-action: Allow normal notification.
     }
     return statusConnect;
 }
