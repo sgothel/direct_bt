@@ -154,17 +154,21 @@ public class DBTScanner10 {
 
         BTSecurityLevel sec_level = BTSecurityLevel.UNSET;
         SMPIOCapability io_cap = SMPIOCapability.UNSET;
+        SMPIOCapability io_cap_auto = SMPIOCapability.UNSET;
         int passkey = NO_PASSKEY;
 
         public MyBTSecurityDetail(final BDAddressAndType addrAndType) { this.addrAndType = addrAndType; }
 
         public BTSecurityLevel getSecLevel() { return sec_level; }
 
-        public SMPIOCapability getIOCapability() { return io_cap; }
+        public SMPIOCapability getIOCap() { return io_cap; }
+
+        public boolean isSecurityAutoEnabled() { return SMPIOCapability.UNSET != io_cap_auto; }
+        public SMPIOCapability getSecurityAutoIOCap() { return io_cap_auto; }
 
         public int getPairingPasskey() { return passkey; }
 
-        public int getPairingNumericComparison() { return 1; }
+        public boolean getPairingNumericComparison() { return true; }
 
         @Override
         public String toString() {
@@ -485,14 +489,23 @@ public class DBTScanner10 {
                     // next: PASSKEY_EXPECTED... or KEY_DISTRIBUTION
                     break;
                 case PASSKEY_EXPECTED: {
+                    int passkey_ = 0; // dummy
                     final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
-                    if( null != sec && sec.passkey != NO_PASSKEY ) {
-                        executeOffThread( () -> { device.setPairingPasskey(sec.passkey); }, "DBT-SetPasskey-"+device.getAddressAndType(), true /* detach */);
+                    if( null != sec && sec.getPairingPasskey() != NO_PASSKEY ) {
+                        passkey_ = sec.getPairingPasskey();
                     }
+                    final int passkey = passkey_;
+                    executeOffThread( () -> { device.setPairingPasskey( passkey ); }, "DBT-SetPasskey-"+device.getAddressAndType(), true /* detach */);
                     // next: KEY_DISTRIBUTION or FAILED
                   } break;
                 case NUMERIC_COMPARE_EXPECTED: {
-                    executeOffThread( () -> { device.setPairingNumericComparison(true); }, "DBT-SetNumericComp-"+device.getAddressAndType(), true /* detach */);
+                    boolean comp_ = true; // dummy
+                    final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
+                    if( null != sec ) {
+                        comp_ = sec.getPairingNumericComparison();
+                    }
+                    final boolean comp = comp_;
+                    executeOffThread( () -> { device.setPairingNumericComparison( comp ); }, "DBT-SetNumericComp-"+device.getAddressAndType(), true /* detach */);
                     // next: KEY_DISTRIBUTION or FAILED
                   } break;
                 case OOB_EXPECTED:
@@ -581,8 +594,13 @@ public class DBTScanner10 {
             // Always reuse same sec setting if reusing LTK
             final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
             if( null != sec ) {
-                final boolean res = device.setConnSecurityBest(sec.sec_level, sec.io_cap);
-                println("****** Connecting Device: Using SecurityDetail "+sec+" -> set OK "+res);
+                if( sec.isSecurityAutoEnabled() ) {
+                    final boolean res = device.setConnSecurityAuto( sec.getSecurityAutoIOCap() );
+                    println("****** Connecting Device: Using SecurityDetail "+sec+" -> set OK "+res);
+                } else {
+                    final boolean res = device.setConnSecurityBest(sec.getSecLevel(), sec.getIOCap());
+                    println("****** Connecting Device: Using SecurityDetail "+sec+" -> set OK "+res);
+                }
             } else {
                 println("****** Connecting Device: No SecurityDetail for "+device.getAddressAndType());
             }

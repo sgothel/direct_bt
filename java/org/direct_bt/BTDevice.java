@@ -387,8 +387,51 @@ public interface BTDevice extends BTObject
      * @see #setConnIOCapability(SMPIOCapability)
      * @see #getConnIOCapability()
      * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability)
+     * @see #setConnSecurityAuto(SMPIOCapability)
      */
     boolean setConnSecurityBest(final BTSecurityLevel sec_level, final SMPIOCapability io_cap);
+
+    /**
+     * Set automatic security negotiation of {@link BTSecurityLevel} and {@link SMPIOCapability} pairing mode.
+     * <p>
+     * Disabled by default and if set to {@link SMPIOCapability#NO_INPUT_NO_OUTPUT}
+     * </p>
+     * Implementation iterates through below setup from highest security to lowest,
+     * while performing a full connection attempt for each.
+     * <pre>
+     * BTSecurityLevel::ENC_AUTH_FIPS, iocap_auto*
+     * BTSecurityLevel::ENC_AUTH,      iocap_auto*
+     * BTSecurityLevel::ENC_ONLY,      SMPIOCapability::NO_INPUT_NO_OUTPUT
+     * BTSecurityLevel::NONE,          SMPIOCapability::NO_INPUT_NO_OUTPUT
+     *
+     * (*): user SMPIOCapability choice of for authentication IO, skipped if ::SMPIOCapability::NO_INPUT_NO_OUTPUT
+     * </pre>
+     * <p>
+     * Implementation may perform multiple connection and disconnect actions
+     * until successful pairing or failure.
+     * </p>
+     * <p>
+     * Intermediate {@link AdapterStatusListener#deviceConnected(BTDevice, short, long) deviceConnected(..)} and
+     * {@link AdapterStatusListener#deviceDisconnected(BTDevice, HCIStatusCode, short, long) deviceDisconnected(..)}
+     * callbacks are not delivered while negotiating. This avoids any interference by the user application.
+     * </p>
+     * @param auth_io_cap user {@link SMPIOCapability} choice for negotiation
+     * @since 2.2.0
+     * @implNote not implemented in {@code tinyb.dbus}
+     * @see #isConnSecurityAutoEnabled()
+     * @see BTSecurityLevel
+     * @see SMPIOCapability
+     */
+    boolean setConnSecurityAuto(final SMPIOCapability iocap_auto);
+
+    /**
+     * Returns true if automatic security negotiation has been enabled via {@link #setConnSecurityAuto(SMPIOCapability)},
+     * otherwise false.
+     * @since 2.2.0
+     * @implNote not implemented in {@code tinyb.dbus}
+     * @see #setConnSecurityAuto(SMPIOCapability)
+     */
+    boolean isConnSecurityAutoEnabled();
 
     /**
      * Method sets the given passkey entry, see {@link PairingMode#PASSKEY_ENTRY_ini}.

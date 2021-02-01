@@ -177,22 +177,33 @@ struct MyBTSecurityDetail {
 
     BTSecurityLevel sec_level { BTSecurityLevel::UNSET };
     SMPIOCapability io_cap { SMPIOCapability::UNSET };
+    SMPIOCapability io_cap_auto { SMPIOCapability::UNSET };
     int passkey = NO_PASSKEY;
 
     MyBTSecurityDetail(const BDAddressAndType& addrAndType_)
     : addrAndType(addrAndType_) {}
 
-    const BTSecurityLevel& getSecLevel() { return sec_level; }
+    const BTSecurityLevel& getSecLevel() const noexcept { return sec_level; }
 
-    const SMPIOCapability& getIOCapability() { return io_cap; }
+    bool isIOCapSet() const noexcept {
+        return SMPIOCapability::UNSET != io_cap;
+    }
+    const SMPIOCapability& getIOCap() const noexcept { return io_cap; }
 
-    int getPairingPasskey() { return passkey; }
+    bool isSecurityAutoEnabled() const noexcept {
+        return SMPIOCapability::UNSET != io_cap_auto;
+    }
+    const SMPIOCapability& getSecurityAutoIOCap() const noexcept { return io_cap_auto; }
 
-    int getPairingNumericComparison() { return 1; }
+    int getPairingPasskey() const noexcept { return passkey; }
+
+    bool getPairingNumericComparison() const noexcept { return true; }
 
     std::string toString() const noexcept {
         return "MyBTSecurityDetail["+addrAndType.toString()+", lvl "+
-                getBTSecurityLevelString(sec_level)+", io "+getSMPIOCapabilityString(io_cap)+
+                getBTSecurityLevelString(sec_level)+
+                ", io "+getSMPIOCapabilityString(io_cap)+
+                ", auto-io "+getSMPIOCapabilityString(io_cap_auto)+
                 ", passkey "+std::to_string(passkey)+"]";
     }
 
@@ -462,17 +473,21 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 break;
             case SMPPairingState::PASSKEY_EXPECTED: {
                 const MyBTSecurityDetail* sec = MyBTSecurityDetail::get(device->getAddressAndType());
-                if( nullptr != sec && sec->passkey != NO_PASSKEY ) {
-                    std::thread dc(&BTDevice::setPairingPasskey, device, static_cast<uint32_t>(sec->passkey)); // @suppress("Invalid arguments")
-                    dc.detach();
-                } /* else {
-                    std::thread dc(&BTDevice::setPairingPasskeyNegative, device); // @suppress("Invalid arguments")
-                    dc.detach();
-                } */
+                int passkey = 0; // dummy
+                if( nullptr != sec && sec->getPairingPasskey() != NO_PASSKEY ) {
+                    passkey = sec->getPairingPasskey();
+                }
+                std::thread dc(&BTDevice::setPairingPasskey, device, static_cast<uint32_t>(passkey)); // @suppress("Invalid arguments")
+                dc.detach();
                 // next: KEY_DISTRIBUTION or FAILED
               } break;
             case SMPPairingState::NUMERIC_COMPARE_EXPECTED: {
-                std::thread dc(&BTDevice::setPairingNumericComparison, device, true); // @suppress("Invalid arguments")
+                const MyBTSecurityDetail* sec = MyBTSecurityDetail::get(device->getAddressAndType());
+                bool comp = true; // dummy
+                if( nullptr != sec ) {
+                    comp = sec->getPairingNumericComparison();
+                }
+                std::thread dc(&BTDevice::setPairingNumericComparison, device, comp); // @suppress("Invalid arguments")
                 dc.detach();
                 // next: KEY_DISTRIBUTION or FAILED
               } break;
@@ -602,8 +617,13 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
     if( !useStoredLTKInfo ) {
         const MyBTSecurityDetail* sec = MyBTSecurityDetail::get(device->getAddressAndType());
         if( nullptr != sec ) {
-            bool res = device->setConnSecurityBest(sec->sec_level, sec->io_cap);
-            fprintf(stderr, "****** Connecting Device: Using SecurityDetail %s, set OK %d\n", sec->toString().c_str(), res);
+            if( sec->isSecurityAutoEnabled() ) {
+                bool res = device->setConnSecurityAuto( sec->getSecurityAutoIOCap() );
+                fprintf(stderr, "****** Connecting Device: Using SecurityDetail.AutoIOCap %s, set OK %d\n", sec->toString().c_str(), res);
+            } else {
+                bool res = device->setConnSecurityBest( sec->getSecLevel(), sec->getIOCap() );
+                fprintf(stderr, "****** Connecting Device: Using SecurityDetail.IOCap %s, set OK %d\n", sec->toString().c_str(), res);
+            }
         } else {
             fprintf(stderr, "****** Connecting Device: No SecurityDetail for %s\n", device->getAddressAndType().toString().c_str());
         }
@@ -1006,6 +1026,13 @@ int main(int argc, char *argv[])
             MyBTSecurityDetail* sec = MyBTSecurityDetail::getOrCreate(macAndType);
             sec->io_cap = getSMPIOCapability(atoi(argv[++i]));
             fprintf(stderr, "Set io_cap in %s\n", sec->toString().c_str());
+        } else if( !strcmp("-secauto", argv[i]) && argc > (i+3) ) {
+            const char* mac = argv[++i];
+            const uint8_t atype = (uint8_t) ( atoi(argv[++i]) & 0xff );
+            const BDAddressAndType macAndType(EUI48(mac), getBDAddressType(atype));
+            MyBTSecurityDetail* sec = MyBTSecurityDetail::getOrCreate(macAndType);
+            sec->io_cap_auto = getSMPIOCapability(atoi(argv[++i]));
+            fprintf(stderr, "Set auto security io_cap in %s\n", sec->toString().c_str());
         } else if( !strcmp("-unpairPre", argv[i]) ) {
             UNPAIR_DEVICE_PRE = true;
         } else if( !strcmp("-unpairPost", argv[i]) ) {
@@ -1036,6 +1063,7 @@ int main(int argc, char *argv[])
                     "(-mac <device_address>)* (-wl <device_address>)* "
                     "[-seclevel <device_address> <(int)address_type> <int>] "
                     "[-iocap <device_address> <(int)address_type> <int>] "
+                    "[-secauto <device_address> <(int)address_type> <int>] "
                     "[-passkey <device_address> <(int)address_type> <digits>] "
                     "[-unpairPre] [-unpairPost] "
                     "[-charid <uuid>] [-charval <byte-val>] "

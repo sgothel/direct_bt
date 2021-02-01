@@ -1066,6 +1066,9 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     }
     device->notifyConnected(device, event.getHCIHandle(), io_cap_conn);
 
+    if( device->isConnSecurityAutoEnabled() ) {
+        new_connect = 0; // disable deviceConnected() events
+    }
     int i=0;
     jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
@@ -1102,20 +1105,22 @@ bool BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
         device->notifyDisconnected();
         removeConnectedDevice(*device);
 
-        int i=0;
-        jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
-            try {
-                if( l->matchDevice(*device) ) {
-                    l->deviceDisconnected(device, event.getHCIStatus(), handle, event.getTimestamp());
+        if( !device->isConnSecurityAutoEnabled() ) {
+            int i=0;
+            jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+                try {
+                    if( l->matchDevice(*device) ) {
+                        l->deviceDisconnected(device, event.getHCIStatus(), handle, event.getTimestamp());
+                    }
+                } catch (std::exception &except) {
+                    ERR_PRINT("DBTAdapter::EventHCI:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",
+                            i+1, statusListenerList.size(),
+                            l->toString().c_str(), device->toString().c_str(), except.what());
                 }
-            } catch (std::exception &except) {
-                ERR_PRINT("DBTAdapter::EventHCI:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",
-                        i+1, statusListenerList.size(),
-                        l->toString().c_str(), device->toString().c_str(), except.what());
-            }
-            i++;
-        });
-        removeDiscoveredDevice(device->addressAndType); // ensure device will cause a deviceFound event after disconnect
+                i++;
+            });
+            removeDiscoveredDevice(device->addressAndType); // ensure device will cause a deviceFound event after disconnect
+        }
     } else {
         WORDY_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
@@ -1192,20 +1197,22 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
         device->notifyDisconnected();
         removeConnectedDevice(*device);
 
-        int i=0;
-        jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
-            try {
-                if( l->matchDevice(*device) ) {
-                    l->deviceDisconnected(device, event.getHCIReason(), event.getHCIHandle(), event.getTimestamp());
+        if( !device->isConnSecurityAutoEnabled() ) {
+            int i=0;
+            jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+                try {
+                    if( l->matchDevice(*device) ) {
+                        l->deviceDisconnected(device, event.getHCIReason(), event.getHCIHandle(), event.getTimestamp());
+                    }
+                } catch (std::exception &except) {
+                    ERR_PRINT("DBTAdapter::EventHCI:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",
+                            i+1, statusListenerList.size(),
+                            l->toString().c_str(), device->toString().c_str(), except.what());
                 }
-            } catch (std::exception &except) {
-                ERR_PRINT("DBTAdapter::EventHCI:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",
-                        i+1, statusListenerList.size(),
-                        l->toString().c_str(), device->toString().c_str(), except.what());
-            }
-            i++;
-        });
-        removeDiscoveredDevice(device->addressAndType); // ensure device will cause a deviceFound event after disconnect
+                i++;
+            });
+            removeDiscoveredDevice(device->addressAndType); // ensure device will cause a deviceFound event after disconnect
+        }
     } else {
         WORDY_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());

@@ -82,10 +82,11 @@ namespace direct_bt {
             std::atomic<bool> allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
 
             struct PairingData {
-                SMPIOCapability ioCap_conn=SMPIOCapability::UNSET;
-                SMPIOCapability ioCap_user=SMPIOCapability::UNSET;
-                BTSecurityLevel sec_level_conn=BTSecurityLevel::UNSET;
-                BTSecurityLevel sec_level_user=BTSecurityLevel::UNSET;
+                SMPIOCapability ioCap_conn     = SMPIOCapability::UNSET;
+                SMPIOCapability ioCap_user     = SMPIOCapability::UNSET;
+                BTSecurityLevel sec_level_conn = BTSecurityLevel::UNSET;
+                BTSecurityLevel sec_level_user = BTSecurityLevel::UNSET;
+                SMPIOCapability ioCap_auto     = SMPIOCapability::UNSET;
 
                 SMPPairingState state;
                 PairingMode mode;
@@ -621,8 +622,46 @@ namespace direct_bt {
              * @see setConnIOCapability()
              * @see getConnIOCapability()
              * @see setConnSecurityBest()
+             * @see setConnSecurityAuto()
              */
             bool setConnSecurityBest(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept;
+
+            /**
+             * Set automatic security negotiation of BTSecurityLevel and SMPIOCapability pairing mode.
+             * <p>
+             * Disabled by default and if set to ::SMPIOCapability::NO_INPUT_NO_OUTPUT
+             * </p>
+             * Implementation iterates through below setup from highest security to lowest,
+             * while performing a full connection attempt for each.
+             * <pre>
+             * BTSecurityLevel::ENC_AUTH_FIPS, iocap_auto*
+             * BTSecurityLevel::ENC_AUTH,      iocap_auto*
+             * BTSecurityLevel::ENC_ONLY,      SMPIOCapability::NO_INPUT_NO_OUTPUT
+             * BTSecurityLevel::NONE,          SMPIOCapability::NO_INPUT_NO_OUTPUT
+             *
+             * (*): user SMPIOCapability choice of for authentication IO, skipped if ::SMPIOCapability::NO_INPUT_NO_OUTPUT
+             * </pre>
+             * <p>
+             * Implementation may perform multiple connection and disconnect actions
+             * until successful pairing or failure.
+             * </p>
+             * <p>
+             * Intermediate AdapterStatusListener::deviceConnected() and AdapterStatusListener::deviceDisconnected()
+             * callbacks are not delivered while negotiating. This avoids any interference by the user application.
+             * </p>
+             * @param auth_io_cap user SMPIOCapability choice for negotiation
+             * @see isConnSecurityAutoEnabled()
+             * @see ::BTSecurityLevel
+             * @see ::SMPIOCapability
+             */
+            bool setConnSecurityAuto(const SMPIOCapability iocap_auto) noexcept;
+
+            /**
+             * Returns true if automatic security negotiation has been enabled via setConnSecurityAuto(),
+             * otherwise false.
+             * @see setConnSecurityAuto()
+             */
+            bool isConnSecurityAutoEnabled() const noexcept;
 
             /**
              * Method sets the given passkey entry, see ::PairingMode::PASSKEY_ENTRY_ini.

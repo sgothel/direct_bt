@@ -147,6 +147,12 @@ public class DBusDevice extends DBusObject implements BTDevice
     public final boolean setConnSecurityBest(final BTSecurityLevel sec_level, final SMPIOCapability io_cap) { return false; } // FIXME
 
     @Override
+    public final boolean setConnSecurityAuto(final SMPIOCapability iocap_auto) { return false; } // FIXME
+
+    @Override
+    public final boolean isConnSecurityAutoEnabled() { return false; } // FIXME
+
+    @Override
     public HCIStatusCode setPairingPasskey(final int passkey) { return HCIStatusCode.INTERNAL_FAILURE; }
 
     @Override

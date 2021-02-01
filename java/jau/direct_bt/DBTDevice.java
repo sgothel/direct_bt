@@ -409,6 +409,15 @@ public class DBTDevice extends DBTObject implements BTDevice
     }
 
     @Override
+    public final boolean setConnSecurityAuto(final SMPIOCapability iocap_auto) {
+        return setConnSecurityAutoImpl( iocap_auto.value );
+    }
+    private final native boolean setConnSecurityAutoImpl(final byte io_cap);
+
+    @Override
+    public final native boolean isConnSecurityAutoEnabled();
+
+    @Override
     public HCIStatusCode setPairingPasskey(final int passkey) {
         return HCIStatusCode.get( setPairingPasskeyImpl(passkey) );
     }
