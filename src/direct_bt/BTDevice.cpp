@@ -1230,7 +1230,7 @@ HCIStatusCode BTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
             passkey, getSMPPairingStateString(pairing_data.state).c_str(), getMgmtStatusString(res).c_str());
         return HCIStatusCode::SUCCESS;
     } else {
-        DBG_PRINT("DBTDevice:mgmt:SMP: PASSKEY '%d', state %s, SKIPPED (wrong state)",
+        ERR_PRINT("DBTDevice:mgmt:SMP: PASSKEY '%d', state %s, SKIPPED (wrong state)",
             passkey, getSMPPairingStateString(pairing_data.state).c_str());
         return HCIStatusCode::UNKNOWN;
     }
@@ -1247,7 +1247,7 @@ HCIStatusCode BTDevice::setPairingPasskeyNegative() noexcept {
             getSMPPairingStateString(pairing_data.state).c_str(), getMgmtStatusString(res).c_str());
         return HCIStatusCode::SUCCESS;
     } else {
-        DBG_PRINT("DBTDevice:mgmt:SMP: PASSKEY NEGATIVE, state %s, SKIPPED (wrong state)",
+        ERR_PRINT("DBTDevice:mgmt:SMP: PASSKEY NEGATIVE, state %s, SKIPPED (wrong state)",
             getSMPPairingStateString(pairing_data.state).c_str());
         return HCIStatusCode::UNKNOWN;
     }
@@ -1264,7 +1264,7 @@ HCIStatusCode BTDevice::setPairingNumericComparison(const bool positive) noexcep
             positive, getSMPPairingStateString(pairing_data.state).c_str(), getMgmtStatusString(res).c_str());
         return HCIStatusCode::SUCCESS;
     } else {
-        DBG_PRINT("DBTDevice:mgmt:SMP: CONFIRM '%d', state %s, SKIPPED (wrong state)",
+        ERR_PRINT("DBTDevice:mgmt:SMP: CONFIRM '%d', state %s, SKIPPED (wrong state)",
             positive, getSMPPairingStateString(pairing_data.state).c_str());
         return HCIStatusCode::UNKNOWN;
     }
