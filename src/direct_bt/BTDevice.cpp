@@ -1241,7 +1241,7 @@ HCIStatusCode BTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
 
-    if( SMPPairingState::PASSKEY_EXPECTED == pairing_data.state ) {
+    if( isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) ) {
         BTManager& mngr = adapter.getManager();
         MgmtStatus res = mngr.userPasskeyReply(adapter.dev_id, addressAndType, passkey);
         DBG_PRINT("DBTDevice:mgmt:SMP: PASSKEY '%d', state %s, result %s",
@@ -1258,7 +1258,7 @@ HCIStatusCode BTDevice::setPairingPasskeyNegative() noexcept {
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
 
-    if( SMPPairingState::PASSKEY_EXPECTED == pairing_data.state ) {
+    if( isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) ) {
         BTManager& mngr = adapter.getManager();
         MgmtStatus res = mngr.userPasskeyNegativeReply(adapter.dev_id, addressAndType);
         DBG_PRINT("DBTDevice:mgmt:SMP: PASSKEY NEGATIVE, state %s, result %s",
@@ -1275,7 +1275,7 @@ HCIStatusCode BTDevice::setPairingNumericComparison(const bool positive) noexcep
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
 
-    if( SMPPairingState::NUMERIC_COMPARE_EXPECTED == pairing_data.state ) {
+    if( isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::NUMERIC_COMPARE_EXPECTED) ) {
         BTManager& mngr = adapter.getManager();
         MgmtStatus res = mngr.userConfirmReply(adapter.dev_id, addressAndType, positive);
         DBG_PRINT("DBTDevice:mgmt:SMP: CONFIRM '%d', state %s, result %s",
