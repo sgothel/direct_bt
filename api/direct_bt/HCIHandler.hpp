@@ -168,6 +168,8 @@ namespace direct_bt {
 
             static const pid_t pidSelf;
 
+            const HCIEnv & env;
+
         private:
             class HCIConnection {
                 private:
@@ -214,7 +216,6 @@ namespace direct_bt {
 
             static MgmtEvent::Opcode translate(HCIEventType evt, HCIMetaEventType met) noexcept;
 
-            const HCIEnv & env;
             const uint16_t dev_id;
             POctets rbuffer;
             HCIComm comm;
