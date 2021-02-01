@@ -210,6 +210,13 @@ namespace direct_bt {
         private:
             friend BTAdapter::~BTAdapter() noexcept;
 
+#if USE_LINUX_BT_SECURITY
+            /** Default initialization with ::SMPIOCapability::NO_INPUT_NO_OUTPUT for PairingMode::JUST_WORKS. */
+            constexpr static const SMPIOCapability defaultIOCapability = SMPIOCapability::NO_INPUT_NO_OUTPUT;
+#else
+            /** Default initialization with ::SMPIOCapability::NO_INPUT_NO_OUTPUT for PairingMode::JUST_WORKS. */
+            constexpr static const SMPIOCapability defaultIOCapability = SMPIOCapability::UNSET;
+#endif
             static std::mutex mtx_singleton;
 
             struct WhitelistElem {
@@ -224,8 +231,6 @@ namespace direct_bt {
 
             const MgmtEnv & env;
             const BTMode defaultBTMode;
-            /** Default initialization with SMPIOCapability::KEYBOARD_ONLY for PairingMode::PASSKEY_ENTRY. */
-            const SMPIOCapability defaultIOCapability;
 
             POctets rbuffer;
             HCIComm comm;

@@ -309,7 +309,7 @@ std::unique_ptr<AdapterInfo> BTManager::initAdapter(const uint16_t dev_id, const
 
 #if USE_LINUX_BT_SECURITY
     setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, debug_keys, current_settings);
-    setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(defaultIOCapability), current_settings);
+    setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(BTManager::defaultIOCapability), current_settings);
     setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 1, current_settings); // required for pairing
 #else
     setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
@@ -374,11 +374,6 @@ void BTManager::shutdownAdapter(BTAdapter& adapter) noexcept {
 BTManager::BTManager(const BTMode _defaultBTMode) noexcept
 : env(MgmtEnv::get()),
   defaultBTMode(BTMode::NONE != _defaultBTMode ? _defaultBTMode : env.DEFAULT_BTMODE),
-#if USE_LINUX_BT_SECURITY
-  defaultIOCapability(SMPIOCapability::KEYBOARD_ONLY),
-#else
-  defaultIOCapability(SMPIOCapability::UNSET),
-#endif
   rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
   mgmtEventRing(env.MGMT_EVT_RING_CAPACITY), mgmtReaderShallStop(false),
   mgmtReaderThreadId(0), mgmtReaderRunning(false),
@@ -487,7 +482,7 @@ next1:
             if( nullptr != adapterInfo ) {
                 std::shared_ptr<BTAdapter> adapter = BTAdapter::make_shared(*this, *adapterInfo);
                 adapters.push_back( adapter );
-                adapterIOCapability.push_back(defaultIOCapability);
+                adapterIOCapability.push_back(BTManager::defaultIOCapability);
                 DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: %s", i, num_adapter, dev_id, adapter->toString().c_str());
             } else {
                 DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: FAILED", i, num_adapter, dev_id);
@@ -655,7 +650,7 @@ std::shared_ptr<BTAdapter> BTManager::addAdapter(const AdapterInfo& ai ) noexcep
         // new entry
         std::shared_ptr<BTAdapter> adapter = BTAdapter::make_shared(*this, ai);
         it.push_back( adapter );
-        adapterIOCapability.push_back(defaultIOCapability);
+        adapterIOCapability.push_back(BTManager::defaultIOCapability);
         DBG_PRINT("DBTManager::addAdapter: Adding new: %s", adapter->toString().c_str())
         it.write_back();
         return adapter;
