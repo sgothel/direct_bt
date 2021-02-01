@@ -167,6 +167,21 @@ namespace direct_bt {
     }
 
     /**
+     * Returns true if the given SMPPairingState indicates a pairing process waiting for user input,
+     * i.e. one of the following terminal states: ::SMPPairingState::FEATURE_EXCHANGE_STARTED,
+     * ::SMPPairingState::FEATURE_EXCHANGE_COMPLETED or the given {@code inputSpec}.
+     * <p>
+     * {@code inputSpec} should be one of ::SMPPairingState::PASSKEY_EXPECTED,
+     * ::SMPPairingState::NUMERIC_COMPARE_EXPECTED or ::SMPPairingState::OOB_EXPECTED.
+     * </p>
+     */
+    constexpr bool isSMPPairingAllowingInput(const SMPPairingState state, const SMPPairingState inputSpec) noexcept {
+        return SMPPairingState::FEATURE_EXCHANGE_STARTED   == state ||
+               SMPPairingState::FEATURE_EXCHANGE_COMPLETED == state ||
+               inputSpec                                   == state;
+    }
+
+    /**
      * Vol 3, Part H, 2.3.2 IO capabilities
      */
     enum class SMPIOCapability : uint8_t {
