@@ -86,7 +86,7 @@ namespace direct_bt {
                 SMPIOCapability ioCap_user     = SMPIOCapability::UNSET;
                 BTSecurityLevel sec_level_conn = BTSecurityLevel::UNSET;
                 BTSecurityLevel sec_level_user = BTSecurityLevel::UNSET;
-                SMPIOCapability ioCap_auto     = SMPIOCapability::UNSET;
+                SMPIOCapability ioCap_auto     = SMPIOCapability::UNSET; // not cleared by clearSMPStates()
 
                 SMPPairingState state;
                 PairingMode mode;
@@ -114,6 +114,7 @@ namespace direct_bt {
             PairingData pairing_data;
             mutable std::mutex mtx_pairing;
             mutable jau::sc_atomic_bool sync_pairing;
+            std::condition_variable cv_pairing_state_changed;
 
             /** Private class only for private make_shared(). */
             class ctor_cookie { friend BTDevice; ctor_cookie(const uint16_t secret) { (void)secret; } };

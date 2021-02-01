@@ -331,6 +331,7 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
     int smp_auto_count = 0;
     BTSecurityLevel sec_level = pairing_data.sec_level_user; // iterate down
     SMPIOCapability io_cap = pairing_data.ioCap_user; // iterate down
+    SMPPairingState pstate = SMPPairingState::NONE;
 
     do {
         smp_auto_count++;
@@ -352,13 +353,13 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
                 io_cap    = SMPIOCapability::NO_INPUT_NO_OUTPUT;
                 smp_auto_done = true;
             }
+            pairing_data.ioCap_auto = smp_auto_io_cap; // reload against clearSMPState
+            pairing_data.sec_level_user = sec_level;
+            pairing_data.ioCap_user = io_cap;
             DBG_PRINT("DBTDevice::connectLE: SEC AUTO.%d.1: lvl %s -> %s, io %s -> %s, %s", smp_auto_count,
                 getBTSecurityLevelString(sec_level_pre).c_str(), getBTSecurityLevelString(sec_level).c_str(),
                 getSMPIOCapabilityString(io_cap_pre).c_str(), getSMPIOCapabilityString(io_cap).c_str(),
                 toString(false).c_str());
-            pairing_data.ioCap_auto = smp_auto_io_cap; // reload against clearSMPState
-            pairing_data.sec_level_user = sec_level;
-            pairing_data.ioCap_user = io_cap;
         }
 
         {
@@ -387,56 +388,64 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
                     getHCILEOwnAddressTypeString(hci_own_mac_type).c_str(),
                     toString(false).c_str());
             adapter.unlockConnect(*this);
-        } else if( smp_auto ) {
-            // Connect HCIStatusCode::SUCCESS, wait for PairingState
-            int32_t td_pairing = 0;
-            while( hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td_pairing ) {
+        } else if( smp_auto ) { // implies HCIStatusCode::SUCCESS
+            // Waiting for PairingState
+            bool pairing_timeout = false;
+            {
+                std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
                 jau::sc_atomic_critical sync1(sync_pairing);
-                if( SMPPairingState::FAILED == pairing_data.state ) {
-                    if( !smp_auto_done ) {
-                        // disconnect for next smp_auto mode test
-                        int32_t td_disconnect = 0;
-                        DBG_PRINT("DBTDevice::connectLE: SEC AUTO.%d.2 Failed SMPPairing -> Disconnect: %s", smp_auto_count, toString(false).c_str());
-                        HCIStatusCode dres = disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
-                        if( HCIStatusCode::SUCCESS == dres ) {
-                            while( isConnected && hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td_disconnect ) {
-                                jau::sc_atomic_critical sync2(sync_pairing);
-                                td_disconnect += hci.env.HCI_COMMAND_POLL_PERIOD;
-                                std::this_thread::sleep_for(std::chrono::milliseconds(hci.env.HCI_COMMAND_POLL_PERIOD));
-                            }
-                        }
-                        if( hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT <= td_disconnect ) {
-                            // timeout
-                            ERR_PRINT("DBTDevice::connectLE: SEC AUTO.%d.3 Timeout Disconnect td_pairing %d ms: %s",
-                                    smp_auto_count, std::to_string(td_disconnect), toString(false).c_str());
-                            smp_auto_done = true;
-                            pairing_data.ioCap_auto = SMPIOCapability::UNSET;
+
+                while( !hasSMPPairingFinished( pairing_data.state ) ) {
+                    std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+                    std::cv_status s = cv_pairing_state_changed.wait_until(lock, t0 + std::chrono::milliseconds(hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT));
+                    DBG_PRINT("DBTDevice::connectLE: SEC AUTO.%d.2c Wait for SMPPairing: state %s, %s",
+                            smp_auto_count, getSMPPairingStateString(pairing_data.state).c_str(), toString(false).c_str());
+                    if( std::cv_status::timeout == s && !hasSMPPairingFinished( pairing_data.state ) ) {
+                        // timeout
+                        ERR_PRINT("DBTDevice::connectLE: SEC AUTO.%d.X Timeout SMPPairing: Disconnecting %s", smp_auto_count, toString(false).c_str());
+                        smp_auto_done = true;
+                        pairing_data.ioCap_auto = SMPIOCapability::UNSET;
+                        pairing_timeout = true;
+                        break;
+                    }
+                }
+                pstate = pairing_data.state;
+                DBG_PRINT("DBTDevice::connectLE: SEC AUTO.%d.2d Wait for SMPPairing: state %s, %s",
+                        smp_auto_count, getSMPPairingStateString(pstate).c_str(), toString(false).c_str());
+            }
+            if( pairing_timeout ) {
+                disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
+            } else if( SMPPairingState::COMPLETED == pstate ) {
+                DBG_PRINT("DBTDevice::connectLE: SEC AUTO.%d.X Done: %s", smp_auto_count, toString(false).c_str());
+                smp_auto_done = true;
+                break;
+            } else if( SMPPairingState::FAILED == pstate ) {
+                if( !smp_auto_done ) { // not last one
+                    // disconnect for next smp_auto mode test
+                    int32_t td_disconnect = 0;
+                    DBG_PRINT("DBTDevice::connectLE: SEC AUTO.%d.3 Failed SMPPairing -> Disconnect: %s", smp_auto_count, toString(false).c_str());
+                    HCIStatusCode dres = disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
+                    if( HCIStatusCode::SUCCESS == dres ) {
+                        while( isConnected && hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td_disconnect ) {
+                            jau::sc_atomic_critical sync2(sync_pairing);
+                            td_disconnect += hci.env.HCI_COMMAND_POLL_PERIOD;
+                            std::this_thread::sleep_for(std::chrono::milliseconds(hci.env.HCI_COMMAND_POLL_PERIOD));
                         }
                     }
-                    break;
-                } else if( SMPPairingState::COMPLETED == pairing_data.state ) {
-                    DBG_PRINT("DBTDevice::connectLE: SEC AUTO.%d.X Done: %s", smp_auto_count, toString(false).c_str());
-                    smp_auto_done = true;
-                    break;
-                } else {
-                    td_pairing += hci.env.HCI_COMMAND_POLL_PERIOD;
-                    std::this_thread::sleep_for(std::chrono::milliseconds(hci.env.HCI_COMMAND_POLL_PERIOD));
+                    if( hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT <= td_disconnect ) {
+                        // timeout
+                        ERR_PRINT("DBTDevice::connectLE: SEC AUTO.%d.4 Timeout Disconnect td_pairing %d ms: %s",
+                                smp_auto_count, std::to_string(td_disconnect), toString(false).c_str());
+                        smp_auto_done = true;
+                        pairing_data.ioCap_auto = SMPIOCapability::UNSET;
+                    }
                 }
-            }
-            if( hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT <= td_pairing ) {
-                // timeout
-                ERR_PRINT("DBTDevice::connectLE: SEC AUTO.%d.X Timeout SMPPairing td_pairing %d ms: %s",
-                        smp_auto_count, std::to_string(td_pairing), toString(false).c_str());
-                smp_auto_done = true;
-                pairing_data.ioCap_auto = SMPIOCapability::UNSET;
-                disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
-                break;
             }
         }
     } while( !smp_auto_done );
     if( smp_auto ) {
         jau::sc_atomic_critical sync(sync_pairing);
-        if( HCIStatusCode::SUCCESS == status && SMPPairingState::FAILED == pairing_data.state ) {
+        if( HCIStatusCode::SUCCESS == status && SMPPairingState::FAILED == pstate ) {
             ERR_PRINT("DBTDevice::connectLE: SEC AUTO.%d.X Failed SMPPairing -> Disconnect: %s", smp_auto_count, toString(false).c_str());
             pairing_data.ioCap_auto = SMPIOCapability::UNSET;
             disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
@@ -532,7 +541,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
     bool callProcessDeviceReady = false;
 
     if( addressAndType.isLEAddress() && !l2cap_att.isOpen() ) {
-        const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+        const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
         jau::sc_atomic_critical sync(sync_pairing);
 
         DBG_PRINT("DBTDevice::processL2CAPSetup: Start %s", toString(false).c_str());
@@ -659,7 +668,7 @@ bool BTDevice::checkPairingKeyDistributionComplete(const std::string& timestamp)
 }
 
 bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept {
-    const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
 
     const MgmtEvent::Opcode mgmtEvtOpcode = evt.getOpcode();
@@ -772,6 +781,9 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
         }
         DBG_PRINT("DBTDevice::updatePairingState.2: End Complete: state %s, %s",
                 getSMPPairingStateString(claimed_state).c_str(), toString(false).c_str());
+
+        cv_pairing_state_changed.notify_all();
+
         return true;
     } else {
         DBG_PRINT("DBTDevice::updatePairingState.3: End Unchanged: state %s, %s, %s",
@@ -782,7 +794,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
 }
 
 void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept {
-    const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
 
     const SMPPairingState old_pstate = pairing_data.state;
@@ -1032,6 +1044,7 @@ void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMs
         jau::PLAIN_PRINT(false, "[%s] Debug: DBTDevice:hci:SMP.6: End", timestamp.c_str());
         jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), toString(false).c_str());
     }
+    cv_pairing_state_changed.notify_all();
 }
 
 SMPKeyType BTDevice::getAvailableSMPKeys(const bool responder) const noexcept {
@@ -1053,7 +1066,7 @@ HCIStatusCode BTDevice::setLongTermKeyInfo(const SMPLongTermKeyInfo& ltk) noexce
         ERR_PRINT("DBTDevice::setLongTermKeyInfo: Already connected: %s", toString(false).c_str());
         return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
     }
-    const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
     if( ltk.isResponder() ) {
         pairing_data.ltk_resp = ltk;
@@ -1220,7 +1233,7 @@ bool BTDevice::isConnSecurityAutoEnabled() const noexcept {
 }
 
 HCIStatusCode BTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
-    const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
 
     if( SMPPairingState::PASSKEY_EXPECTED == pairing_data.state ) {
@@ -1237,7 +1250,7 @@ HCIStatusCode BTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
 }
 
 HCIStatusCode BTDevice::setPairingPasskeyNegative() noexcept {
-    const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
 
     if( SMPPairingState::PASSKEY_EXPECTED == pairing_data.state ) {
@@ -1254,7 +1267,7 @@ HCIStatusCode BTDevice::setPairingPasskeyNegative() noexcept {
 }
 
 HCIStatusCode BTDevice::setPairingNumericComparison(const bool positive) noexcept {
-    const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
 
     if( SMPPairingState::NUMERIC_COMPARE_EXPECTED == pairing_data.state ) {
@@ -1281,15 +1294,17 @@ SMPPairingState BTDevice::getPairingState() const noexcept {
 }
 
 void BTDevice::clearSMPStates(const bool connected) noexcept {
-    const std::lock_guard<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
+
+    DBG_PRINT("DBTDevice::clearSMPStates: Had: %s", toString(false).c_str());
 
     if( !connected ) {
         // needs to survive connected, or will be set right @ connected
         pairing_data.ioCap_user = SMPIOCapability::UNSET;
         pairing_data.ioCap_conn = SMPIOCapability::UNSET;
         pairing_data.sec_level_user = BTSecurityLevel::UNSET;
-        pairing_data.ioCap_auto = SMPIOCapability::UNSET;
+        // Keep alive: pairing_data.ioCap_auto = SMPIOCapability::UNSET;
     }
     pairing_data.sec_level_conn = BTSecurityLevel::UNSET;
 
