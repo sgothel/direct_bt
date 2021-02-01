@@ -148,6 +148,25 @@ namespace direct_bt {
     std::string getSMPPairingStateString(const SMPPairingState state) noexcept;
 
     /**
+     * Returns true if the given SMPPairingState indicated an active pairing process,
+     * i.e. none of the following terminal states: ::SMPPairingState::COMPLETED, ::SMPPairingState::FAILED or ::SMPPairingState::NONE
+     */
+    constexpr bool isSMPPairingActive(const SMPPairingState state) noexcept {
+        return SMPPairingState::COMPLETED != state &&
+               SMPPairingState::FAILED    != state &&
+               SMPPairingState::NONE      != state;
+    }
+
+    /**
+     * Returns true if the given SMPPairingState indicates a finished pairing process,
+     * i.e. one of the following terminal states: ::SMPPairingState::COMPLETED or ::SMPPairingState::FAILED
+     */
+    constexpr bool hasSMPPairingFinished(const SMPPairingState state) noexcept {
+        return SMPPairingState::COMPLETED == state ||
+               SMPPairingState::FAILED    == state;
+    }
+
+    /**
      * Vol 3, Part H, 2.3.2 IO capabilities
      */
     enum class SMPIOCapability : uint8_t {
