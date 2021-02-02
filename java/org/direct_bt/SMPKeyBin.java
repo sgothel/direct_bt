@@ -34,6 +34,8 @@ import java.io.OutputStream;
 import org.direct_bt.SMPKeyMask.KeyType;
 
 /**
+ * Storage for SMP keys including the required connection parameter.
+ *
  * Storage for a device's {@link BDAddressAndType}, its security connection setup {@link BTSecurityLevel} + {@link SMPIOCapability}
  * and optionally the initiator and responder {@link SMPLongTermKeyInfo LTK} and {@link SMPSignatureResolvingKeyInfo CSRK} within one file.
  * <p>

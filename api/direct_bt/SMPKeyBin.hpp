@@ -39,7 +39,7 @@ namespace direct_bt {
 /**
  * Storage for SMP keys including the required connection parameter.
  *
- * Storage for a device's BDAddressAndType, its security connection setup BTSecurityLevel + SMPIOCapability
+ * Storage for a device's BDAddressAndType, its security connection setup ::BTSecurityLevel + ::SMPIOCapability
  * and optionally the initiator and responder SMPLongTermKeyInfo (LTK) and SMPSignatureResolvingKeyInfo (CSRK) within one file.
  * <p>
  * Since the SMPLongTermKeyInfo (LTK) and SMPSignatureResolvingKeyInfo (CSRK)
