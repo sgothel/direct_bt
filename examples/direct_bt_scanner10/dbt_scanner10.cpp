@@ -244,138 +244,6 @@ struct MyBTSecurityDetail {
 };
 std::unordered_map<BDAddressAndType, MyBTSecurityDetail> MyBTSecurityDetail::devicesSecDetail;
 
-struct MyLongTermKeyInfo {
-    constexpr static const uint16_t VERSION = (uint16_t)0b0101010101010101 + (uint16_t)0; // bitpattern + version
-    uint16_t version;             //  2
-    BDAddressAndType addrAndType; //  7
-    BTSecurityLevel sec_level;    //  1
-    SMPIOCapability io_cap;       //  1
-    SMPLongTermKeyInfo smp_ltk;   // 28
-
-    // 39 bytes
-
-    MyLongTermKeyInfo(const BDAddressAndType& addrAndType_,
-                      const BTSecurityLevel sec_level_, const SMPIOCapability io_cap_,
-                      const SMPLongTermKeyInfo& smp_ltk_)
-    : version(VERSION),
-      addrAndType(addrAndType_), sec_level(sec_level_), io_cap(io_cap_),
-      smp_ltk(smp_ltk_)
-    {}
-
-    MyLongTermKeyInfo()
-    : version(VERSION),
-      addrAndType(), sec_level(BTSecurityLevel::UNSET), io_cap(SMPIOCapability::UNSET),
-      smp_ltk()
-    { }
-
-    constexpr_cxx20 std::string toString() const noexcept {
-        return "LTKInfo["+addrAndType.toString()+", sec "+getBTSecurityLevelString(sec_level)+
-                ", io "+getSMPIOCapabilityString(io_cap)+
-                ", "+smp_ltk.toString()+", ver["+jau::uint16HexString(version)+", ok "+std::to_string(VERSION==version)+"]]";
-    }
-
-    constexpr bool isValid() const noexcept {
-        return VERSION == version && BTSecurityLevel::ENC_ONLY <= sec_level && smp_ltk.isValid();
-    }
-
-    bool isResponder() const noexcept { return smp_ltk.isResponder(); }
-
-    constexpr_cxx20 std::string getFilename() const noexcept {
-        const std::string role = isResponder() ? "resp" : "init";
-        return "bt_sec."+addrAndType.address.toString()+":"+std::to_string(number(addrAndType.type))+".ltk."+role+".bin";
-    }
-    static std::string getFilename(const BDAddressAndType& addrAndType_, const bool isResponder_) {
-        const std::string role = isResponder_ ? "resp" : "init";
-        return "bt_sec."+addrAndType_.address.toString()+":"+std::to_string(number(addrAndType_.type))+".ltk."+role+".bin";
-    }
-
-    bool write(const std::string path) {
-        if( !isValid() ) {
-            fprintf(stderr, "****** WRITE LTK: Invalid (skipped) %s\n", toString().c_str());
-            return false;
-        }
-        std::ofstream file(path+"/"+getFilename(), std::ios::binary | std::ios::trunc);
-        uint8_t buffer[2];
-        jau::put_uint16(buffer, 0, version, true /* littleEndian */);
-        file.write((char*)buffer, sizeof(version));
-        file.write((char*)&addrAndType.address, sizeof(addrAndType.address));
-        file.write((char*)&addrAndType.type, sizeof(addrAndType.type));
-        file.write((char*)&sec_level, sizeof(sec_level));
-        file.write((char*)&io_cap, sizeof(io_cap));
-        file.write((char*)&smp_ltk, sizeof(smp_ltk));
-        file.close();
-        fprintf(stderr, "****** WRITE LTK: Stored %s\n", toString().c_str());
-        return true;
-    }
-
-    bool read(const std::string path, const BDAddressAndType& addrAndType_, const bool isResponder_) {
-        const std::string filename = path+"/"+getFilename(addrAndType_, isResponder_);
-        std::ifstream file(filename, std::ios::binary);
-        if (!file.is_open() ) {
-            fprintf(stderr, "****** READ LTK failed: %s\n", filename.c_str());
-            return false;
-        }
-        uint8_t buffer[2];
-        file.read((char*)buffer, sizeof(version));
-        version = jau::get_uint16(buffer, 0, true /* littleEndian */);
-        file.read((char*)&addrAndType.address, sizeof(addrAndType.address));
-        file.read((char*)&addrAndType.type, sizeof(addrAndType.type));
-        file.read((char*)&sec_level, sizeof(sec_level));
-        file.read((char*)&io_cap, sizeof(io_cap));
-        file.read((char*)&smp_ltk, sizeof(smp_ltk));
-        file.close();
-        addrAndType.clearHash();
-        fprintf(stderr, "****** READ LTK: %s\n", toString().c_str());
-        return isValid();
-    }
-};
-
-struct MySignatureResolvingKeyInfo {
-    BDAddressAndType addrAndType;
-    SMPSignatureResolvingKeyInfo smp_csrk;
-
-    bool isResponder() const noexcept { return smp_csrk.isResponder(); }
-
-    constexpr_cxx20 std::string getFilename() const noexcept {
-        const std::string role = isResponder() ? "resp" : "init";
-        return "bt_sec."+addrAndType.address.toString()+":"+std::to_string(number(addrAndType.type))+".csrk."+role+".bin";
-    }
-    static std::string getFilename(const BDAddressAndType& addrAndType_, const bool isResponder_) {
-        const std::string role = isResponder_ ? "resp" : "init";
-        return "bt_sec."+addrAndType_.address.toString()+":"+std::to_string(number(addrAndType_.type))+".csrk."+role+".bin";
-    }
-
-    bool write(const std::string path) {
-        std::ofstream file(path+"/"+getFilename(), std::ios::binary | std::ios::trunc);
-        file.write((char*)&addrAndType.address, sizeof(addrAndType.address));
-        file.write((char*)&addrAndType.type, sizeof(addrAndType.type));
-        file.write((char*)&smp_csrk, sizeof(smp_csrk));
-        file.close();
-        fprintf(stderr, "****** WRITE CSRK [%s, written]: %s\n",
-                addrAndType.toString().c_str(),
-                smp_csrk.toString().c_str());
-        return true;
-    }
-
-    bool read(const std::string path, const BDAddressAndType& addrAndType_, const bool isResponder_) {
-        const std::string filename = path+"/"+getFilename(addrAndType_, isResponder_);
-        std::ifstream file(filename, std::ios::binary);
-        if (!file.is_open() ) {
-            fprintf(stderr, "****** READ CSRK [%s] failed\n", filename.c_str());
-            return false;
-        }
-        file.read((char*)&addrAndType.address, sizeof(addrAndType.address));
-        file.read((char*)&addrAndType.type, sizeof(addrAndType.type));
-        file.read((char*)&smp_csrk, sizeof(smp_csrk));
-        file.close();
-        addrAndType.clearHash();
-        fprintf(stderr, "****** READ CSRK %s: %s\n",
-                addrAndType.toString().c_str(),
-                smp_csrk.toString().c_str());
-        return true;
-    }
-};
-
 class MyAdapterStatusListener : public AdapterStatusListener {
 
     void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
@@ -598,23 +466,28 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
 
     device->getAdapter().stopDiscovery();
 
-    bool useStoredLTKInfo = false;
+    bool useSMPKeyBin = false;
     {
-        MyLongTermKeyInfo my_ltk_resp;
-        MyLongTermKeyInfo my_ltk_init;
-        if( my_ltk_init.read(KEY_PATH, device->getAddressAndType(), false /* responder */) &&
-            my_ltk_resp.read(KEY_PATH, device->getAddressAndType(), true /* responder */) &&
-            device->setConnSecurity(my_ltk_init.sec_level, my_ltk_init.io_cap) &&
-            HCIStatusCode::SUCCESS == device->setLongTermKeyInfo(my_ltk_init.smp_ltk) &&
-            HCIStatusCode::SUCCESS == device->setLongTermKeyInfo(my_ltk_resp.smp_ltk) )
+        SMPKeyBin smpKeyBin;
+        smpKeyBin.setVerbose( true );
+        if( smpKeyBin.read(KEY_PATH, device->getAddressAndType()) &&
+            device->setConnSecurity(smpKeyBin.getSecLevel(), smpKeyBin.getIOCap()) )
         {
-            fprintf(stderr, "****** Connecting Device: Loaded LTKs from file successfully\n");
-            fprintf(stderr, "- init %s\n", my_ltk_init.toString().c_str());
-            fprintf(stderr, "- resp %s\n", my_ltk_resp.toString().c_str());
-            useStoredLTKInfo = true;
+            useSMPKeyBin = true;
+
+            if( smpKeyBin.hasLTKInit() &&
+                HCIStatusCode::SUCCESS != device->setLongTermKeyInfo(smpKeyBin.getLTKInit()) )
+            {
+                useSMPKeyBin = false; // error setting LTK init
+            }
+            if( smpKeyBin.hasLTKResp() &&
+                HCIStatusCode::SUCCESS != device->setLongTermKeyInfo(smpKeyBin.getLTKResp()) )
+            {
+                useSMPKeyBin = false; // error setting LTK resp
+            }
         }
     }
-    if( !useStoredLTKInfo ) {
+    if( !useSMPKeyBin ) {
         const MyBTSecurityDetail* sec = MyBTSecurityDetail::get(device->getAddressAndType());
         if( nullptr != sec ) {
             if( sec->isSecurityAutoEnabled() ) {
@@ -626,6 +499,8 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
             }
         } else {
             fprintf(stderr, "****** Connecting Device: No SecurityDetail for %s\n", device->getAddressAndType().toString().c_str());
+            bool res = device->setConnSecurityAuto( SMPIOCapability::KEYBOARD_ONLY );
+            fprintf(stderr, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK %d\n", res);
         }
     }
 
@@ -656,29 +531,24 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
             const SMPKeyType keys_resp = device->getAvailableSMPKeys(true /* responder */);
             const SMPKeyType keys_init = device->getAvailableSMPKeys(false /* responder */);
 
+            SMPKeyBin smpKeyBin(device->getAddressAndType(),
+                                device->getConnSecurityLevel(), device->getConnIOCapability());
+            smpKeyBin.setVerbose( true );
+
             if( ( SMPKeyType::ENC_KEY & keys_init ) != SMPKeyType::NONE ) {
-                MyLongTermKeyInfo my_ltk (device->getAddressAndType(),
-                                          device->getConnSecurityLevel(), device->getConnIOCapability(),
-                                          device->getLongTermKeyInfo(false /* responder */));
-                my_ltk.write(KEY_PATH);
+                smpKeyBin.setLTKInit( device->getLongTermKeyInfo(false /* responder */) );
             }
             if( ( SMPKeyType::ENC_KEY & keys_resp ) != SMPKeyType::NONE ) {
-                MyLongTermKeyInfo my_ltk (device->getAddressAndType(),
-                                          device->getConnSecurityLevel(), device->getConnIOCapability(),
-                                          device->getLongTermKeyInfo(true /* responder */));
-                my_ltk.write(KEY_PATH);
+                smpKeyBin.setLTKResp( device->getLongTermKeyInfo(true  /* responder */) );
             }
 
             if( ( SMPKeyType::SIGN_KEY & keys_init ) != SMPKeyType::NONE ) {
-                MySignatureResolvingKeyInfo my_csrk { device->getAddressAndType(),
-                                                      device->getSignatureResolvingKeyInfo(false /* responder */) };
-                my_csrk.write(KEY_PATH);
+                smpKeyBin.setCSRKInit( device->getSignatureResolvingKeyInfo(false /* responder */) );
             }
             if( ( SMPKeyType::SIGN_KEY & keys_resp ) != SMPKeyType::NONE ) {
-                MySignatureResolvingKeyInfo my_csrk { device->getAddressAndType(),
-                                                      device->getSignatureResolvingKeyInfo(true /* responder */) };
-                my_csrk.write(KEY_PATH);
+                smpKeyBin.setCSRKResp( device->getSignatureResolvingKeyInfo(true  /* responder */) );
             }
+            smpKeyBin.write(KEY_PATH);
         }
     }
 

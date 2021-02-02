@@ -48,5 +48,6 @@
 
 #include "BTManager.hpp"
 
+#include "SMPKeyBin.hpp"
 
 #endif /* DIRECTBT_HPP_ */
