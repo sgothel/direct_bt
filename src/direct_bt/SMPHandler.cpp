@@ -52,8 +52,8 @@ extern "C" {
 
 #include "SMPHandler.hpp"
 
-#include <BTDevice.hpp>
-#include <BTAdapter.hpp>
+#include "BTDevice.hpp"
+#include "BTAdapter.hpp"
 
 using namespace direct_bt;
 

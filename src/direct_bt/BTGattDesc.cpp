@@ -23,9 +23,6 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <BTDevice.hpp>
-#include <BTGattDesc.hpp>
-#include <BTGattHandler.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
@@ -37,6 +34,9 @@
 
 #include <jau/debug.hpp>
 
+#include "BTDevice.hpp"
+#include "BTGattDesc.hpp"
+#include "BTGattHandler.hpp"
 
 using namespace direct_bt;
 using namespace jau;

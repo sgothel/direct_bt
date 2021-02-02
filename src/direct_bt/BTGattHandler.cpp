@@ -50,13 +50,13 @@ extern "C" {
 #include "L2CAPIoctl.hpp"
 #include "GattNumbers.hpp"
 
-#include <BTGattHandler.hpp>
+#include "BTGattHandler.hpp"
 
-#include <BTDevice.hpp>
+#include "BTDevice.hpp"
 
-#include <BTManager.hpp>
-#include <BTAdapter.hpp>
-#include <BTManager.hpp>
+#include "BTManager.hpp"
+#include "BTAdapter.hpp"
+#include "BTManager.hpp"
 
 using namespace direct_bt;
 

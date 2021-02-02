@@ -23,7 +23,6 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <BTAdapter.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
@@ -42,6 +41,8 @@
 
 #include "HCIComm.hpp"
 #include "L2CAPComm.hpp"
+
+#include "BTAdapter.hpp"
 
 extern "C" {
     #include <unistd.h>

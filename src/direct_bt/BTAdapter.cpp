@@ -23,8 +23,6 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <BTAdapter.hpp>
-#include <BTManager.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
@@ -41,6 +39,8 @@
 #include "HCIIoctl.hpp"
 #include "HCIComm.hpp"
 
+#include "BTAdapter.hpp"
+#include "BTManager.hpp"
 
 extern "C" {
     #include <inttypes.h>
