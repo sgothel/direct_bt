@@ -394,7 +394,7 @@ public interface BTDevice extends BTObject
     /**
      * Set automatic security negotiation of {@link BTSecurityLevel} and {@link SMPIOCapability} pairing mode.
      * <p>
-     * Disabled by default and if set to {@link SMPIOCapability#NO_INPUT_NO_OUTPUT}
+     * Disabled by default and if set to {@link SMPIOCapability#UNSET}
      * </p>
      * Implementation iterates through below setup from highest security to lowest,
      * while performing a full connection attempt for each.

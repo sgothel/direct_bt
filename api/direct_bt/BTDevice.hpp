@@ -630,7 +630,7 @@ namespace direct_bt {
             /**
              * Set automatic security negotiation of BTSecurityLevel and SMPIOCapability pairing mode.
              * <p>
-             * Disabled by default and if set to ::SMPIOCapability::NO_INPUT_NO_OUTPUT
+             * Disabled by default and if set to ::SMPIOCapability::UNSET
              * </p>
              * Implementation iterates through below setup from highest security to lowest,
              * while performing a full connection attempt for each.
