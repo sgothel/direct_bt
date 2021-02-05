@@ -767,6 +767,7 @@ INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/jaulib/include/jau \
                          @CMAKE_CURRENT_SOURCE_DIR@/java/jni/ \
                          @CMAKE_CURRENT_SOURCE_DIR@/README.md \
                          @CMAKE_CURRENT_SOURCE_DIR@/examples/
+                         @CMAKE_CURRENT_SOURCE_DIR@/test/
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -835,6 +836,7 @@ EXCLUDE_SYMBOLS        =
 # command).
 
 EXAMPLE_PATH           = @CMAKE_CURRENT_SOURCE_DIR@/examples/ \
+                         @CMAKE_CURRENT_SOURCE_DIR@/test/ \
                          @CMAKE_CURRENT_SOURCE_DIR@/jaulib/test/
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
@@ -1971,7 +1973,9 @@ SEARCH_INCLUDES        = YES
 # preprocessor.
 # This tag requires that the tag SEARCH_INCLUDES is set to YES.
 
-INCLUDE_PATH           =
+INCLUDE_PATH           = @CMAKE_CURRENT_SOURCE_DIR@/jaulib/include \
+                         @CMAKE_CURRENT_SOURCE_DIR@/jaulib/include/jau \
+                         @CMAKE_CURRENT_SOURCE_DIR@/api/
 
 # You can use the INCLUDE_FILE_PATTERNS tag to specify one or more wildcard
 # patterns (like *.h and *.hpp) to filter out the header-files in the
@@ -1979,7 +1983,7 @@ INCLUDE_PATH           =
 # used.
 # This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
-INCLUDE_FILE_PATTERNS  =
+INCLUDE_FILE_PATTERNS  = *.h *.hpp
 
 # The PREDEFINED tag can be used to specify one or more macro names that are
 # defined before the preprocessor is started (similar to the -D option of e.g.
