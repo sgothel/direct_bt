@@ -146,6 +146,9 @@ namespace direct_bt {
     BDAddressType getBDAddressType(const HCILEOwnAddressType hciOwnAddrType) noexcept;
     std::string getHCILEOwnAddressTypeString(const HCILEOwnAddressType type) noexcept;
 
+    /**
+     * A 48 bit EUI-48 sub-identifier, see EUI48.
+     */
     struct EUI48Sub {
         /**
          * The <= 6 byte EUI48 sub-address.
@@ -187,10 +190,6 @@ namespace direct_bt {
     /**
      * A packed 48 bit EUI-48 identifier, formerly known as MAC-48
      * or simply network device MAC address (Media Access Control address).
-     * <p>
-     * Since we utilize this type within *ioctl* _and_ our high-level *types*,
-     * declaration is not within our *direct_bt* namespace.
-     * </p>
      */
     __pack ( struct EUI48 {
         /** EUI48 MAC address matching any device, i.e. `0:0:0:0:0:0`. */
