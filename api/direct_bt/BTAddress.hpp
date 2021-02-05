@@ -166,7 +166,7 @@ namespace direct_bt {
          * Implementation is consistent with EUI48Sub::toString().
          * </p>
          * @param str a string of less or equal of 17 characters representing less or equal of 6 bytes as hexadecimal numbers separated via colon,
-         * e.g. {@code "01:02:03:0A:0B:0C"}, {@code "01:02:03:0A"}, {@code ":"}, {@code ""}.
+         * e.g. `01:02:03:0A:0B:0C`, `01:02:03:0A`, `:`, (empty).
          * @see EUI48Sub::toString()
          */
         EUI48Sub(const std::string mac);
@@ -179,7 +179,7 @@ namespace direct_bt {
         /**
          * Returns the EUI48 sub-string representation,
          * less or equal 17 characters representing less or equal 6 bytes as upper case hexadecimal numbers separated via colon,
-         * e.g. {@code "01:02:03:0A:0B:0C"}, {@code "01:02:03:0A"}, {@code ""}.
+         * e.g. `01:02:03:0A:0B:0C`, `01:02:03:0A`, `:`, (empty).
          */
         std::string toString() const noexcept;
     };
@@ -193,11 +193,11 @@ namespace direct_bt {
      * </p>
      */
     __pack ( struct EUI48 {
-        /** EUI48 MAC address matching any device, i.e. '0:0:0:0:0:0'. */
+        /** EUI48 MAC address matching any device, i.e. `0:0:0:0:0:0`. */
         static const EUI48 ANY_DEVICE;
-        /** EUI48 MAC address matching all device, i.e. 'ff:ff:ff:ff:ff:ff'. */
+        /** EUI48 MAC address matching all device, i.e. `ff:ff:ff:ff:ff:ff`. */
         static const EUI48 ALL_DEVICE;
-        /** EUI48 MAC address matching local device, i.e. '0:0:0:ff:ff:ff'. */
+        /** EUI48 MAC address matching local device, i.e. `0:0:0:ff:ff:ff`. */
         static const EUI48 LOCAL_DEVICE;
 
         /**
@@ -213,7 +213,7 @@ namespace direct_bt {
          * <p>
          * Implementation is consistent with EUI48::toString().
          * </p>
-         * @param str a string of exactly 17 characters representing 6 bytes as hexadecimal numbers separated via colon {@code "01:02:03:0A:0B:0C"}.
+         * @param str a string of exactly 17 characters representing 6 bytes as hexadecimal numbers separated via colon `01:02:03:0A:0B:0C`.
          * @see EUI48::toString()
          */
         EUI48(const std::string mac);
@@ -271,7 +271,7 @@ namespace direct_bt {
 
         /**
          * Returns the EUI48 string representation,
-         * exactly 17 characters representing 6 bytes as upper case hexadecimal numbers separated via colon {@code "01:02:03:0A:0B:0C"}.
+         * exactly 17 characters representing 6 bytes as upper case hexadecimal numbers separated via colon `01:02:03:0A:0B:0C`.
          * @see EUI48::EUI48()
          */
         std::string toString() const noexcept;

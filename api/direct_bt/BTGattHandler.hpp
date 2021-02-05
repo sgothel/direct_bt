@@ -533,7 +533,7 @@ namespace direct_bt {
              * <p>
              * In case the device is no more reachable, disconnect will be initiated due to the occurring IO error.
              * </p>
-             * @return {@code true} if successful, otherwise false in case no GATT services exists etc.
+             * @return `true` if successful, otherwise false in case no GATT services exists etc.
              */
             bool ping();
     };

@@ -287,7 +287,7 @@ namespace direct_bt {
 
             /**
              * Disables the notification and/or indication for this characteristic at BLE level
-             * if {@code disableIndicationNotification == true}
+             * if `disableIndicationNotification == true`
              * and removes the given {@link BTGattCharListener} from the listener list.
              * <p>
              * Returns true if the given listener is an element of the list and has been removed,
@@ -296,10 +296,10 @@ namespace direct_bt {
              * <p>
              * Convenience delegation call to BTGattHandler via BTDevice
              * performing addCharListener(..)
-             * and {@link #configNotificationIndication(bool, bool, bool[]) if {@code disableIndicationNotification == true}.
+             * and {@link #configNotificationIndication(bool, bool, bool[]) if `disableIndicationNotification == true`
              * </p>
              * <p>
-             * If the BTDevice's BTGattHandler is null, i.e. not connected, {@code false} is being returned.
+             * If the BTDevice's BTGattHandler is null, i.e. not connected, `false` is being returned.
              * </p>
              * @param l
              * @param disableIndicationNotification if true, disables the notification and/or indication for this characteristic
@@ -310,7 +310,7 @@ namespace direct_bt {
 
             /**
              * Disables the notification and/or indication for this characteristic at BLE level
-             * if {@code disableIndicationNotification == true}
+             * if `disableIndicationNotification == true`
              * and removes all {@link BTGattCharListener} from the listener list.
              * <p>
              * Returns the number of removed event listener.
@@ -318,10 +318,10 @@ namespace direct_bt {
              * <p>
              * Convenience delegation call to BTGattHandler via BTDevice
              * performing addCharListener(..)
-             * and configNotificationIndication(..) if {@code disableIndicationNotification == true}.
+             * and configNotificationIndication(..) if `disableIndicationNotification == true`.
              * </p>
              * <p>
-             * If the BTDevice's BTGattHandler is null, i.e. not connected, {@code zero} is being returned.
+             * If the BTDevice's BTGattHandler is null, i.e. not connected, `zero` is being returned.
              * </p>
              * @param disableIndicationNotification if true, disables the notification and/or indication for this characteristic
              * using {@link #configNotificationIndication(bool, bool, bool[])

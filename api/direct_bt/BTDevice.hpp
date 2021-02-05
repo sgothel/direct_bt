@@ -809,9 +809,9 @@ namespace direct_bt {
              * A disconnect will finally being issued.
              * </p>
              * <p>
-             * GATT services must have been initialized via {@link #getGattService()}, otherwise {@code false} is being returned.
+             * GATT services must have been initialized via {@link #getGattService()}, otherwise `false` is being returned.
              * </p>
-             * @return {@code true} if successful, otherwise false in case no GATT services exists or is not connected .. etc.
+             * @return `true` if successful, otherwise false in case no GATT services exists or is not connected .. etc.
              */
             bool pingGATT() noexcept;
 
@@ -834,7 +834,7 @@ namespace direct_bt {
             /**
              * Remove the given {@link BTGattCharListener} from the listener list.
              * <p>
-             * If the GATTHandler is null, i.e. not connected, {@code false} is being returned.
+             * If the GATTHandler is null, i.e. not connected, `false` is being returned.
              * </p>
              * @param listener A {@link BTGattCharListener} instance
              * @return true if the given listener is an element of the list and has been removed, otherwise false.

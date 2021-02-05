@@ -99,7 +99,7 @@ namespace direct_bt {
              * @param currentMeta the current meta ScanType
              * @param changedType denotes the changed ScanType
              * @param changedEnabled denotes whether the changed ScanType has been enabled or disabled
-             * @param keepAlive if {@code true}, the denoted changed ScanType will be re-enabled if disabled by the underlying Bluetooth implementation.
+             * @param keepAlive if `true`, the denoted changed ScanType will be re-enabled if disabled by the underlying Bluetooth implementation.
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              *
              * changeScanType(const ScanType current, const bool enable, const ScanType enableChanged) noexcept {
@@ -109,11 +109,11 @@ namespace direct_bt {
             /**
              * A BTDevice has been newly discovered.
              * <p>
-             * The boolean return value informs the adapter whether the device shall be made persistent for connection {@code true},
-             * or that it can be discarded {@code false}.<br>
-             * If no registered AdapterStatusListener::deviceFound() implementation returns {@code true},
+             * The boolean return value informs the adapter whether the device shall be made persistent for connection `true`,
+             * or that it can be discarded `false`.<br>
+             * If no registered AdapterStatusListener::deviceFound() implementation returns `true`,
              * the device instance will be removed from all internal lists and can no longer being used.<br>
-             * If any registered AdapterStatusListener::deviceFound() implementation returns {@code true},
+             * If any registered AdapterStatusListener::deviceFound() implementation returns `true`,
              * the device will be made persistent, is ready to connect and BTDevice::remove() shall be called after usage.
              * </p>
              * @param device the found device
@@ -559,9 +559,9 @@ namespace direct_bt {
              * Returns HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state;
              * </p>
              * <p>
-             * if {@code keepAlive} is {@code  true}, discovery state will be re-enabled
+             * if `keepAlive` is `true`, discovery state will be re-enabled
              * in case the underlying Bluetooth implementation (BlueZ, ..) disabled it.
-             * Default is {@code true}.
+             * Default is `true`.
              * </p>
              * <p>
              * Using startDiscovery(keepAlive=true) and stopDiscovery()
@@ -656,7 +656,7 @@ namespace direct_bt {
             /** Discards all discovered devices. Returns number of removed discovered devices. */
             int removeDiscoveredDevices() noexcept;
 
-            /** Discards matching discovered devices. Returns {@code true} if found and removed, otherwise false. */
+            /** Discards matching discovered devices. Returns `true` if found and removed, otherwise false. */
             bool removeDiscoveredDevice(const BDAddressAndType & addressAndType) noexcept;
 
             /** Returns shared BTDevice if found, otherwise nullptr */
