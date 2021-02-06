@@ -680,6 +680,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_pairing);
 
+    const SMPIOCapability iocap = pairing_data.ioCap_conn;
     const MgmtEvent::Opcode mgmtEvtOpcode = evt.getOpcode();
     PairingMode mode = pairing_data.mode;
     bool is_device_ready = false;
@@ -696,10 +697,32 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                 claimed_state = pairing_data.state;
             } break;
             case SMPPairingState::PASSKEY_EXPECTED:
-                mode = PairingMode::PASSKEY_ENTRY_ini;
+                if( hasSMPIOCapabilityFullInput( iocap ) ) {
+                    mode = PairingMode::PASSKEY_ENTRY_ini;
+                } else {
+                    // BT core requesting passkey input w/o full input caps is nonsense (bug?)
+                    // Reply with a default value '0' off-thread ASAP
+                    DBG_PRINT("DBTDevice::updatePairingState.1a: state %s [ignored %s, sending dummy reply], mode %s, %s",
+                        getSMPPairingStateString(pairing_data.state).c_str(), getSMPPairingStateString(claimed_state).c_str(),
+                        getPairingModeString(pairing_data.mode).c_str(), evt.toString().c_str());
+                    claimed_state = pairing_data.state; // suppress
+                    std::thread dc(&BTDevice::setPairingPasskey, sthis, 0);
+                    dc.detach();
+                }
                 break;
             case SMPPairingState::NUMERIC_COMPARE_EXPECTED:
-                mode = PairingMode::NUMERIC_COMPARE_ini;
+                if( hasSMPIOCapabilityBinaryInput( iocap ) ) {
+                    mode = PairingMode::NUMERIC_COMPARE_ini;
+                } else {
+                    // BT core requesting binary input w/o input caps is nonsense (bug?)
+                    // Reply with a default value 'true' off-thread ASAP
+                    DBG_PRINT("DBTDevice::updatePairingState.1b: state %s [ignored %s, sending dummy reply], mode %s, %s",
+                        getSMPPairingStateString(pairing_data.state).c_str(), getSMPPairingStateString(claimed_state).c_str(),
+                        getPairingModeString(pairing_data.mode).c_str(), evt.toString().c_str());
+                    claimed_state = pairing_data.state; // suppress
+                    std::thread dc(&BTDevice::setPairingNumericComparison, sthis, true);
+                    dc.detach();
+                }
                 break;
             case SMPPairingState::OOB_EXPECTED:
                 mode = PairingMode::OUT_OF_BAND;
@@ -735,7 +758,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                         if( smp_ltk.isResponder() ) {
                             if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) == SMPKeyType::NONE ) { // no overwrite
                                 if( jau::environment::get().debug ) {
-                                    jau::PLAIN_PRINT(false, "[%s] DBTDevice::updatePairingState.0: ENC_KEY responder set", timestamp.c_str());
+                                    jau::PLAIN_PRINT(false, "[%s] DBTDevice::updatePairingState.2a: ENC_KEY responder set", timestamp.c_str());
                                     jau::PLAIN_PRINT(false, "[%s] - old %s", timestamp.c_str(), pairing_data.ltk_resp.toString().c_str());
                                     jau::PLAIN_PRINT(false, "[%s] - new %s", timestamp.c_str(), smp_ltk.toString().c_str());
                                 }
@@ -748,7 +771,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                         } else {
                             if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyType::NONE ) { // no overwrite
                                 if( jau::environment::get().debug ) {
-                                    jau::PLAIN_PRINT(false, "[%s] DBTDevice::updatePairingState.0: ENC_KEY initiator set", timestamp.c_str());
+                                    jau::PLAIN_PRINT(false, "[%s] DBTDevice::updatePairingState.2b: ENC_KEY initiator set", timestamp.c_str());
                                     jau::PLAIN_PRINT(false, "[%s] - old %s", timestamp.c_str(), pairing_data.ltk_init.toString().c_str());
                                     jau::PLAIN_PRINT(false, "[%s] - new %s", timestamp.c_str(), smp_ltk.toString().c_str());
                                 }
@@ -774,7 +797,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
     }
 
     if( pairing_data.state != claimed_state ) {
-        DBG_PRINT("DBTDevice::updatePairingState.0: state %s -> %s, mode %s -> %s, ready %d, %s",
+        DBG_PRINT("DBTDevice::updatePairingState.3: state %s -> %s, mode %s -> %s, ready %d, %s",
             getSMPPairingStateString(pairing_data.state).c_str(), getSMPPairingStateString(claimed_state).c_str(),
             getPairingModeString(pairing_data.mode).c_str(), getPairingModeString(mode).c_str(),
             is_device_ready, evt.toString().c_str());
@@ -788,14 +811,14 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
             std::thread dc(&BTDevice::processDeviceReady, this, sthis, evt.getTimestamp()); // @suppress("Invalid arguments")
             dc.detach();
         }
-        DBG_PRINT("DBTDevice::updatePairingState.2: End Complete: state %s, %s",
+        DBG_PRINT("DBTDevice::updatePairingState.4: End Complete: state %s, %s",
                 getSMPPairingStateString(claimed_state).c_str(), toString(false).c_str());
 
         cv_pairing_state_changed.notify_all();
 
         return true;
     } else {
-        DBG_PRINT("DBTDevice::updatePairingState.3: End Unchanged: state %s, %s, %s",
+        DBG_PRINT("DBTDevice::updatePairingState.5: End Unchanged: state %s, %s, %s",
             getSMPPairingStateString(pairing_data.state).c_str(),
             evt.toString().c_str(), toString(false).c_str());
     }

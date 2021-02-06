@@ -206,6 +206,15 @@ namespace direct_bt {
         return static_cast<uint8_t>(rhs);
     }
     std::string getSMPIOCapabilityString(const SMPIOCapability ioc) noexcept;
+    constexpr bool hasSMPIOCapabilityBinaryInput(const SMPIOCapability ioc) noexcept {
+        return ioc == SMPIOCapability::DISPLAY_YES_NO ||
+               ioc == SMPIOCapability::KEYBOARD_ONLY ||
+               ioc == SMPIOCapability::KEYBOARD_DISPLAY;
+    }
+    constexpr bool hasSMPIOCapabilityFullInput(const SMPIOCapability ioc) noexcept {
+        return ioc == SMPIOCapability::KEYBOARD_ONLY ||
+               ioc == SMPIOCapability::KEYBOARD_DISPLAY;
+    }
 
     /**
      * Vol 3, Part H, 2.3.3 OOB authentication data
