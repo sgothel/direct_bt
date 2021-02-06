@@ -1156,7 +1156,7 @@ namespace direct_bt {
             }
 
             virtual std::string baseString() const noexcept override {
-                return "opcode "+getOpcodeString()+", devID "+jau::uint16HexString(getDevID(), true);
+                return "opcode "+getOpcodeString()+", devID "+jau::uint16HexString(getDevID());
             }
             virtual std::string valueString() const noexcept override {
                 const jau::nsize_t d_sz = getDataSize();
@@ -1259,7 +1259,7 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", cmd "+MgmtCommand::getOpcodeString(getCmdOpcode())+
-                       ", status "+jau::uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getMgmtStatusString(getStatus());
+                       ", status "+jau::uint8HexString(static_cast<uint8_t>(getStatus()))+" "+getMgmtStatusString(getStatus());
             }
 
             MgmtEvtCmdComplete(const uint8_t* buffer, const jau::nsize_t buffer_len, const jau::nsize_t exp_param_size)
@@ -1499,7 +1499,7 @@ namespace direct_bt {
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", flags="+jau::uint32HexString(getFlags(), true)+
+                       ", flags="+jau::uint32HexString(getFlags())+
                        ", eir-size "+std::to_string(getEIRSize())+
                        ", hci_handle "+jau::uint16HexString(hci_conn_handle);
             }
@@ -1780,7 +1780,7 @@ namespace direct_bt {
                 } else {
                     return MgmtEvent::baseString()+", address="+getAddress().toString()+
                            ", addressType "+getBDAddressTypeString(getAddressType())+
-                           ", rssi "+std::to_string(getRSSI())+", flags="+jau::uint32HexString(getFlags(), true)+
+                           ", rssi "+std::to_string(getRSSI())+", flags="+jau::uint32HexString(getFlags())+
                            ", eir-size "+std::to_string(getEIRSize());
                 }
             }
@@ -2177,7 +2177,7 @@ namespace direct_bt {
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", features="+jau::uint64HexString(direct_bt::number(getFeatures()), true);
+                       ", features="+jau::uint64HexString(direct_bt::number(getFeatures()));
             }
 
         public:

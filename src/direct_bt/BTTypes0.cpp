@@ -614,14 +614,14 @@ std::string EInfoReport::toString(const bool includeServices) const noexcept {
                     "], name['"+name+"'/'"+name_short+"'], "+eirDataMaskToString()+
                     ", evt-type "+getAD_PDU_TypeString(evt_type)+", rssi "+std::to_string(rssi)+
                     ", tx-power "+std::to_string(tx_power)+
-                    ", dev-class "+jau::uint32HexString(device_class, true)+
+                    ", dev-class "+jau::uint32HexString(device_class)+
                     ", appearance "+jau::uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
                     "), hash["+hash.toString()+
                     "], randomizer["+randomizer.toString()+
-                    "], device-id[source "+jau::uint16HexString(did_source, true)+
-                    ", vendor "+jau::uint16HexString(did_vendor, true)+
-                    ", product "+jau::uint16HexString(did_product, true)+
-                    ", version "+jau::uint16HexString(did_version, true)+
+                    "], device-id[source "+jau::uint16HexString(did_source)+
+                    ", vendor "+jau::uint16HexString(did_vendor)+
+                    ", product "+jau::uint16HexString(did_product)+
+                    ", version "+jau::uint16HexString(did_version)+
                     "], "+msdstr+"]");
 
     if( includeServices && services.size() > 0 ) {

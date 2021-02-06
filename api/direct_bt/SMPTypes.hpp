@@ -678,22 +678,22 @@ namespace direct_bt {
             {
                 const Opcode has = getOpcode();
                 if( expected != has ) {
-                    throw SMPOpcodeException("Has opcode "+jau::uint8HexString(number(has), true)+" "+getOpcodeString(has)+
-                                     ", but expected "+jau::uint8HexString(number(expected), true)+" "+getOpcodeString(expected), E_FILE_LINE);
+                    throw SMPOpcodeException("Has opcode "+jau::uint8HexString(number(has))+" "+getOpcodeString(has)+
+                                     ", but expected "+jau::uint8HexString(number(expected))+" "+getOpcodeString(expected), E_FILE_LINE);
                 }
             }
             void checkOpcode(const Opcode exp1, const Opcode exp2) const
             {
                 const Opcode has = getOpcode();
                 if( exp1 != has && exp2 != has ) {
-                    throw SMPOpcodeException("Has opcode "+jau::uint8HexString(number(has), true)+" "+getOpcodeString(has)+
-                                     ", but expected either "+jau::uint8HexString(number(exp1), true)+" "+getOpcodeString(exp1)+
-                                     " or  "+jau::uint8HexString(number(exp1), true)+" "+getOpcodeString(exp1), E_FILE_LINE);
+                    throw SMPOpcodeException("Has opcode "+jau::uint8HexString(number(has))+" "+getOpcodeString(has)+
+                                     ", but expected either "+jau::uint8HexString(number(exp1))+" "+getOpcodeString(exp1)+
+                                     " or  "+jau::uint8HexString(number(exp1))+" "+getOpcodeString(exp1), E_FILE_LINE);
                 }
             }
 
             virtual std::string baseString() const noexcept {
-                return "opcode="+jau::uint8HexString(number(getOpcode()), true)+" "+getOpcodeString()+
+                return "opcode="+jau::uint8HexString(number(getOpcode()))+" "+getOpcodeString()+
                         ", size[total="+std::to_string(pdu.getSize())+", param "+std::to_string(getPDUParamSize())+"]";
             }
             virtual std::string valueString() const noexcept {
@@ -1236,7 +1236,7 @@ namespace direct_bt {
         protected:
             std::string valueString() const noexcept override {
                 const ReasonCode ec = getReasonCode();
-                return jau::uint8HexString(number(ec), true) + ": " + getPlainReasonString(ec);
+                return jau::uint8HexString(number(ec)) + ": " + getPlainReasonString(ec);
             }
     };
 
@@ -1418,7 +1418,7 @@ namespace direct_bt {
         protected:
             std::string valueString() const noexcept override {
                 const TypeCode ec = getTypeCode();
-                return jau::uint8HexString(number(ec), true) + ": " + getTypeCodeString(ec);
+                return jau::uint8HexString(number(ec)) + ": " + getTypeCodeString(ec);
             }
     };
 

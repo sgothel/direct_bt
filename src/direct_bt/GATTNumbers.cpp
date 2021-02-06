@@ -398,10 +398,10 @@ std::shared_ptr<GattPnP_ID> GattPnP_ID::get(const TROOctets &source) noexcept {
 }
 
 std::string GattPnP_ID::toString() const noexcept {
-    return "vendor_id[source "+jau::uint8HexString(vendor_id_source, true)+
-            ", id "+jau::uint16HexString(vendor_id, true)+
-            "], product_id "+jau::uint16HexString(product_id, true)+
-            ", product_version "+jau::uint16HexString(product_version, true);
+    return "vendor_id[source "+jau::uint8HexString(vendor_id_source)+
+            ", id "+jau::uint16HexString(vendor_id)+
+            "], product_id "+jau::uint16HexString(product_id)+
+            ", product_version "+jau::uint16HexString(product_version);
 }
 
 std::string GattDeviceInformationSvc::toString() const noexcept {

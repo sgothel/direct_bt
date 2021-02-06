@@ -880,9 +880,9 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return HCIEvent::baseString()+
-                        ", status "+jau::uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getHCIStatusCodeString(getStatus())+
+                        ", status "+jau::uint8HexString(static_cast<uint8_t>(getStatus()))+" "+getHCIStatusCodeString(getStatus())+
                         ", handle "+jau::uint16HexString(getHandle())+
-                        ", reason "+jau::uint8HexString(static_cast<uint8_t>(getReason()), true)+" "+getHCIStatusCodeString(getReason());
+                        ", reason "+jau::uint8HexString(static_cast<uint8_t>(getReason()))+" "+getHCIStatusCodeString(getReason());
             }
 
         public:
@@ -963,7 +963,7 @@ namespace direct_bt {
                 return HCIEvent::baseString()+", opcode="+jau::uint16HexString(static_cast<uint16_t>(getOpcode()))+
                         " "+getHCIOpcodeString(getOpcode())+
                         ", ncmd "+std::to_string(getNumCommandPackets())+
-                        ", status "+jau::uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getHCIStatusCodeString(getStatus());
+                        ", status "+jau::uint8HexString(static_cast<uint8_t>(getStatus()))+" "+getHCIStatusCodeString(getStatus());
             }
 
         public:
