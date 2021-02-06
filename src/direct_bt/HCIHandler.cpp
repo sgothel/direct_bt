@@ -224,8 +224,8 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 const LEFeatures features = static_cast<LEFeatures>(jau::get_uint64(ev_cc->features, 0, true /* littleEndian */));
                 const HCIConnectionRef conn = findTrackerConnection(handle);
                 if( nullptr == conn ) {
-                    WARN_PRINT("HCIHandler::translate(reader): LE_REMOTE_FEAT_COMPLETE: Not tracked conn_handle %s: %s",
-                            jau::uint16HexString(handle).c_str(), conn->toString().c_str());
+                    WARN_PRINT("HCIHandler::translate(reader): LE_REMOTE_FEAT_COMPLETE: Not tracked conn_handle %s",
+                            jau::uint16HexString(handle).c_str());
                     return nullptr;
                 }
                 if( HCIStatusCode::SUCCESS != status ) {
@@ -294,8 +294,8 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
             const HCIConnectionRef conn = findTrackerConnection(handle);
             if( nullptr == conn ) {
-                WARN_PRINT("HCIHandler::translate(reader): ENCRYPT_CHANGE: Not tracked conn_handle %s: %s",
-                        jau::uint16HexString(handle).c_str(), conn->toString().c_str());
+                WARN_PRINT("HCIHandler::translate(reader): ENCRYPT_CHANGE: Not tracked conn_handle %s",
+                        jau::uint16HexString(handle).c_str());
                 return nullptr;
             }
             return std::make_unique<MgmtEvtHCIEncryptionChanged>(dev_id, conn->getAddressAndType(), status, ev_cc->encrypt);
@@ -311,8 +311,8 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
             const HCIConnectionRef conn = findTrackerConnection(handle);
             if( nullptr == conn ) {
-                WARN_PRINT("HCIHandler::translate(reader): ENCRYPT_KEY_REFRESH_COMPLETE: Not tracked conn_handle %s: %s",
-                        jau::uint16HexString(handle).c_str(), conn->toString().c_str());
+                WARN_PRINT("HCIHandler::translate(reader): ENCRYPT_KEY_REFRESH_COMPLETE: Not tracked conn_handle %s",
+                        jau::uint16HexString(handle).c_str());
                 return nullptr;
             }
             return std::make_unique<MgmtEvtHCIEncryptionKeyRefreshComplete>(dev_id, conn->getAddressAndType(), status);
@@ -380,8 +380,8 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                            cb.invoke(conn->getAddressAndType(), *smpPDU, l2cap);
                         });
                     } else {
-                        WARN_PRINT("HCIHandler-IO RECV Drop (ACL.SMP): Not tracked conn_handle %s: %s; %s, %s",
-                                jau::uint16HexString(l2cap.handle).c_str(), conn->toString().c_str(),
+                        WARN_PRINT("HCIHandler-IO RECV Drop (ACL.SMP): Not tracked conn_handle %s: %s, %s",
+                                jau::uint16HexString(l2cap.handle).c_str(),
                                 l2cap.toString().c_str(), smpPDU->toString().c_str());
                     }
                 } else {
