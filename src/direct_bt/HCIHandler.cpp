@@ -385,9 +385,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                                 l2cap.toString().c_str(), smpPDU->toString().c_str());
                     }
                 } else {
-                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV Drop (ACL.L2CAP): %s, data %s",
-                            l2cap.toString().c_str(), acldata->toString().c_str());
-
+                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV Drop (ACL.L2CAP): %s", acldata->toString().c_str());
                 }
                 continue;
             }
