@@ -73,7 +73,7 @@ public class BTUtils {
     }
 
     /**
-     * Produce a hexadecimal string representation of the given byte values.
+     * Produce a lower-case hexadecimal string representation of the given byte values.
      * <p>
      * If lsbFirst is true, orders LSB left -> MSB right, usual for byte streams.<br>
      * Otherwise orders MSB left -> LSB right, usual for readable integer values.
@@ -83,39 +83,35 @@ public class BTUtils {
      * @param length number of bytes to print. If negative, will use {@code bytes.length - offset}.
      * @param lsbFirst true having the least significant byte printed first (lowest addressed byte to highest),
      *                 otherwise have the most significant byte printed first (highest addressed byte to lowest).
-     * @param leading0X true to have a leading '0x' being printed, otherwise no prefix is produced.
-     * @param lowerCase true to use lower case hex-chars, otherwise capital letters are being used.
      * @return the hex-string representation of the data
      */
     public static String bytesHexString(final byte[] bytes, final int offset, final int length,
-                                        final boolean lsbFirst, final boolean leading0X, final boolean lowerCase)
+                                        final boolean lsbFirst)
     {
         final int byte_len = 0 <= length ? length : bytes.length - offset;
         if( byte_len > ( bytes.length - offset ) ) {
             throw new IllegalArgumentException("byte[] ( "+bytes.length+" - "+offset+" ) < "+length+" bytes");
         }
-        final char[] hex_array = lowerCase ? HEX_ARRAY_LOW : HEX_ARRAY_BIG;
+        // final char[] hex_array = lowerCase ? HEX_ARRAY_LOW : HEX_ARRAY_BIG;
+        final char[] hex_array = HEX_ARRAY_LOW;
         final char[] hexChars;
         final int char_offset;
-        if( leading0X ) {
-            char_offset = 2;
-            hexChars = new char[2 + byte_len * 2];
-            hexChars[0] = '0';
-            hexChars[1] = 'x';
-        } else {
-            char_offset = 0;
-            hexChars = new char[byte_len * 2];
-        }
 
         if( lsbFirst ) {
-            // LSB left -> MSB right
+            // LSB left -> MSB right, no leading `0x`
+            char_offset = 0;
+            hexChars = new char[byte_len * 2];
             for (int j = 0; j < byte_len; j++) {
                 final int v = bytes[offset + j] & 0xFF;
                 hexChars[char_offset + j * 2] = hex_array[v >>> 4];
                 hexChars[char_offset + j * 2 + 1] = hex_array[v & 0x0F];
             }
         } else {
-            // MSB left -> LSB right
+            // MSB left -> LSB right, with leading `0x`
+            char_offset = 2;
+            hexChars = new char[2 + byte_len * 2];
+            hexChars[0] = '0';
+            hexChars[1] = 'x';
             for (int j = byte_len-1; j >= 0; j--) {
                 final int v = bytes[offset + j] & 0xFF;
                 hexChars[char_offset + j * 2] = hex_array[v >>> 4];

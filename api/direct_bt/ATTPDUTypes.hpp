@@ -393,7 +393,7 @@ namespace direct_bt {
             }
             virtual std::string valueString() const noexcept {
                 return "size "+std::to_string(getPDUValueSize())+", data "
-                        +jau::bytesHexString(pdu.get_ptr(), getPDUValueOffset(), getPDUValueSize(), true /* lsbFirst */, true /* leading0X */);
+                        +jau::bytesHexString(pdu.get_ptr(), getPDUValueOffset(), getPDUValueSize(), true /* lsbFirst */);
             }
 
         public:
@@ -1208,7 +1208,7 @@ namespace direct_bt {
 
                     std::string toString() const {
                         return "handle "+jau::uint16HexString(getHandle(), true)+
-                               ", data "+jau::bytesHexString(getValuePtr(), 0, getValueSize(), true /* lsbFirst */, true /* leading0X */);
+                               ", data "+jau::bytesHexString(getValuePtr(), 0, getValueSize(), true /* lsbFirst */);
                     }
             };
 
@@ -1371,7 +1371,7 @@ namespace direct_bt {
             std::string elementString(const jau::nsize_t idx) const override {
                 Element e = getElement(idx);
                 return "handle ["+jau::uint16HexString(e.getStartHandle(), true)+".."+jau::uint16HexString(e.getEndHandle(), true)+
-                       "], data "+jau::bytesHexString(e.getValuePtr(), 0, e.getValueSize(), true /* lsbFirst */, true /* leading0X */);
+                       "], data "+jau::bytesHexString(e.getValuePtr(), 0, e.getValueSize(), true /* lsbFirst */);
             }
     };
 

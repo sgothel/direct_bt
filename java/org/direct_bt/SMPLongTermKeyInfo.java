@@ -210,9 +210,9 @@ public class SMPLongTermKeyInfo {
     @Override
     public String toString() { // hex-fmt aligned with btmon
         return "LTK[props "+properties.toString()+", enc_size "+enc_size+
-               ", ediv "+BTUtils.bytesHexString(ediv, 0, -1, false /* lsbFirst */, true /* leading0X */, true /* lowerCase */)+
-               ", rand "+BTUtils.bytesHexString(rand, 0, -1, false /* lsbFirst */, true /* leading0X */, true /* lowerCase */)+
-               ", ltk "+BTUtils.bytesHexString(ltk, 0, -1, true /* lsbFirst */, false /* leading0X */, true /* lowerCase */)+
+               ", ediv "+BTUtils.bytesHexString(ediv, 0, -1, false /* lsbFirst */)+
+               ", rand "+BTUtils.bytesHexString(rand, 0, -1, false /* lsbFirst */)+
+               ", ltk "+BTUtils.bytesHexString(ltk, 0, -1, true /* lsbFirst */)+
                ", valid "+isValid()+
                "]";
     }

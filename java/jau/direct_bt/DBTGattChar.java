@@ -142,7 +142,7 @@ public class DBTGattChar extends DBTObject implements BTGattChar
                     }
                     if( DEBUG ) {
                         System.err.println("GATTCharacteristicListener.notificationReceived: "+charDecl+
-                                           ", value[changed "+valueChanged+", len "+value.length+": "+BTUtils.bytesHexString(value, 0, -1, true, true, true)+"]");
+                                           ", value[changed "+valueChanged+", len "+value.length+": "+BTUtils.bytesHexString(value, 0, -1, true)+"]");
                     }
                 }
                 @Override
@@ -161,7 +161,7 @@ public class DBTGattChar extends DBTObject implements BTGattChar
                     }
                     if( DEBUG ) {
                         System.err.println("GATTCharacteristicListener.indicationReceived: "+charDecl+
-                                           ", value[changed "+valueChanged+", len "+value.length+": "+BTUtils.bytesHexString(value, 0, -1, true, true, true)+
+                                           ", value[changed "+valueChanged+", len "+value.length+": "+BTUtils.bytesHexString(value, 0, -1, true)+
                                            "], confirmationSent "+confirmationSent);
                     }
                 }

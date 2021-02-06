@@ -349,14 +349,14 @@ public class ScannerTinyB01 {
                         public void notificationReceived(final BTGattChar charDecl,
                                 final byte[] value, final long timestamp) {
                             System.err.println("****** GATT notificationReceived: "+charDecl+
-                                    ", value "+BTUtils.bytesHexString(value, 0, -1, true, true, true));
+                                    ", value "+BTUtils.bytesHexString(value, 0, -1, true));
                         }
 
                         @Override
                         public void indicationReceived(final BTGattChar charDecl,
                                 final byte[] value, final long timestamp, final boolean confirmationSent) {
                             System.err.println("****** GATT indicationReceived: "+charDecl+
-                                    ", value "+BTUtils.bytesHexString(value, 0, -1, true, true, true));
+                                    ", value "+BTUtils.bytesHexString(value, 0, -1, true));
                         }
                     };
                     final boolean addedCharacteristicListenerRes =
@@ -378,7 +378,7 @@ public class ScannerTinyB01 {
                                     final byte[] value = serviceChar.readValue();
                                     final String svalue = BTUtils.decodeUTF8String(value, 0, value.length);
                                     System.err.printf("  [%02d.%02d] Value: %s ('%s')\n",
-                                            i, j, BTUtils.bytesHexString(value, 0, -1, true, true, true), svalue);
+                                            i, j, BTUtils.bytesHexString(value, 0, -1, true), svalue);
                                 } catch( final Exception ex) {
                                     System.err.println("Caught "+ex.getMessage());
                                     ex.printStackTrace();

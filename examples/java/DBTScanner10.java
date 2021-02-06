@@ -514,14 +514,14 @@ public class DBTScanner10 {
                             public void notificationReceived(final BTGattChar charDecl,
                                                              final byte[] value, final long timestamp) {
                                 println("****** PingPong GATT notificationReceived: "+charDecl+
-                                        ", value "+BTUtils.bytesHexString(value, 0, -1, true, true, true));
+                                        ", value "+BTUtils.bytesHexString(value, 0, -1, true));
                             }
 
                             @Override
                             public void indicationReceived(final BTGattChar charDecl,
                                                            final byte[] value, final long timestamp, final boolean confirmationSent) {
                                 println("****** PingPong GATT indicationReceived: "+charDecl+
-                                        ", value "+BTUtils.bytesHexString(value, 0, -1, true, true, true));
+                                        ", value "+BTUtils.bytesHexString(value, 0, -1, true));
                             }
                         };
                         final boolean enabledState[] = { false, false };
@@ -545,7 +545,7 @@ public class DBTScanner10 {
                     public void notificationReceived(final BTGattChar charDecl,
                                                      final byte[] value, final long timestamp) {
                         println("****** GATT notificationReceived: "+charDecl+
-                                ", value "+BTUtils.bytesHexString(value, 0, -1, true, true, true));
+                                ", value "+BTUtils.bytesHexString(value, 0, -1, true));
                         shutdownTest();
 
                     }
@@ -554,7 +554,7 @@ public class DBTScanner10 {
                     public void indicationReceived(final BTGattChar charDecl,
                                                    final byte[] value, final long timestamp, final boolean confirmationSent) {
                         println("****** GATT indicationReceived: "+charDecl+
-                                ", value "+BTUtils.bytesHexString(value, 0, -1, true, true, true));
+                                ", value "+BTUtils.bytesHexString(value, 0, -1, true));
                         shutdownTest();
                     }
                 };
@@ -586,7 +586,7 @@ public class DBTScanner10 {
                             final String svalue = BTUtils.decodeUTF8String(value, 0, value.length);
                             if( !QUIET ) {
                                 printf("  [%02d.%02d] CharVal: %s ('%s')\n",
-                                        i, j, BTUtils.bytesHexString(value, 0, -1, true, true, true), svalue);
+                                        i, j, BTUtils.bytesHexString(value, 0, -1, true), svalue);
                             }
                         }
                         int k=0;

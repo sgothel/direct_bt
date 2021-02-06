@@ -516,9 +516,9 @@ namespace direct_bt {
 
         constexpr_cxx20 std::string toString() const noexcept { // hex-fmt aligned with btmon
             return "LTK[props "+getPropertyMaskString(properties)+", enc_size "+std::to_string(enc_size)+
-                   ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), false /* lsbFirst */, true /* leading0X */)+
-                   ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), false /* lsbFirst */, true /* leading0X */)+
-                   ", ltk "+jau::bytesHexString(ltk.data, 0, sizeof(ltk), true /* lsbFirst */, false /* leading0X */)+
+                   ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), false /* lsbFirst */)+
+                   ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), false /* lsbFirst */)+
+                   ", ltk "+jau::bytesHexString(ltk.data, 0, sizeof(ltk), true /* lsbFirst */)+
                    ", valid "+std::to_string(isValid())+
                    "]";
         }
@@ -595,7 +595,7 @@ namespace direct_bt {
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
             return "CSRK[props "+getPropertyMaskString(properties)+
-                   ", csrk "+jau::bytesHexString(csrk.data, 0, sizeof(csrk), true /* lsbFirst */, false /* leading0X */)+
+                   ", csrk "+jau::bytesHexString(csrk.data, 0, sizeof(csrk), true /* lsbFirst */)+
                    "]";
         }
     } );
@@ -698,7 +698,7 @@ namespace direct_bt {
             }
             virtual std::string valueString() const noexcept {
                 return "size "+std::to_string(getDataSize())+", data "
-                        +jau::bytesHexString(pdu.get_ptr(), getDataOffset(), getDataSize(), true /* lsbFirst */, true /* leading0X */);
+                        +jau::bytesHexString(pdu.get_ptr(), getDataOffset(), getDataSize(), true /* lsbFirst */);
             }
 
             /** actual received PDU */
@@ -1075,7 +1075,7 @@ namespace direct_bt {
         protected:
             std::string valueString() const noexcept override { // hex-fmt aligned with btmon
                 return "size "+std::to_string(getDataSize())+", value "+
-                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */, false /* leading0X */);
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */);
             }
     };
 
@@ -1169,7 +1169,7 @@ namespace direct_bt {
         protected:
             std::string valueString() const noexcept override { // hex-fmt aligned with btmon
                 return "size "+std::to_string(getDataSize())+", rand "+
-                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */, false /* leading0X */);
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */);
             }
     };
 
@@ -1300,9 +1300,9 @@ namespace direct_bt {
         protected:
             std::string valueString() const noexcept override {
                 return "size "+std::to_string(getDataSize())+", pk_x "+
-                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, 32, true /* lsbFirst */, false /* leading0X */)+
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, 32, true /* lsbFirst */)+
                         ", pk_y "+
-                        jau::bytesHexString(pdu.get_ptr_nc(1+32), 0, 32, true /* lsbFirst */, false /* leading0X */);
+                        jau::bytesHexString(pdu.get_ptr_nc(1+32), 0, 32, true /* lsbFirst */);
             }
     };
 
@@ -1358,7 +1358,7 @@ namespace direct_bt {
         protected:
             std::string valueString() const noexcept override {
                 return "size "+std::to_string(getDataSize())+", dhkey_chk "+
-                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */, false /* leading0X */);
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */);
             }
     };
 
@@ -1485,7 +1485,7 @@ namespace direct_bt {
         protected:
             std::string valueString() const noexcept override { // hex-fmt aligned with btmon
                 return "size "+std::to_string(getDataSize())+", ltk "+
-                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */, false /* leading0X */);
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */);
             }
     };
 
@@ -1562,9 +1562,9 @@ namespace direct_bt {
         protected:
             std::string valueString() const noexcept override { // hex-fmt aligned with btmon
                 return "size "+std::to_string(getDataSize())+", ediv "+
-                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, 2, false /* lsbFirst */, true /* leading0X */)+
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, 2, false /* lsbFirst */)+
                         ", rand "+
-                        jau::bytesHexString(pdu.get_ptr_nc(1+2), 0, 8, false /* lsbFirst */, true /* leading0X */);
+                        jau::bytesHexString(pdu.get_ptr_nc(1+2), 0, 8, false /* lsbFirst */);
             }
     };
 
@@ -1632,7 +1632,7 @@ namespace direct_bt {
         protected:
             std::string valueString() const noexcept override {
                 return "size "+std::to_string(getDataSize())+", irk "+
-                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */, false /* leading0X */);
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */);
             }
     };
 
@@ -1768,7 +1768,7 @@ namespace direct_bt {
         protected:
             std::string valueString() const noexcept override { // hex-fmt aligned with btmon
                 return "size "+std::to_string(getDataSize())+", csrk "+
-                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */, false /* leading0X */);
+                        jau::bytesHexString(pdu.get_ptr_nc(1), 0, getDataSize(), true /* lsbFirst */);
             }
     };
 

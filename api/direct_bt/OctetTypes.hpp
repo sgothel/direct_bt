@@ -242,7 +242,7 @@ namespace direct_bt {
             }
 
             std::string toString() const noexcept {
-                return "size "+std::to_string(_size)+", ro: "+jau::bytesHexString(_data, 0, _size, true /* lsbFirst */, true /* leading0X */);
+                return "size "+std::to_string(_size)+", ro: "+jau::bytesHexString(_data, 0, _size, true /* lsbFirst */);
             }
     };
 
@@ -390,7 +390,7 @@ namespace direct_bt {
             }
 
             std::string toString() const noexcept {
-                return "size "+std::to_string(getSize())+", rw: "+jau::bytesHexString(get_ptr(), 0, getSize(), true /* lsbFirst */, true /* leading0X */);
+                return "size "+std::to_string(getSize())+", rw: "+jau::bytesHexString(get_ptr(), 0, getSize(), true /* lsbFirst */);
             }
     };
 
@@ -436,7 +436,7 @@ namespace direct_bt {
             }
 
             std::string toString() const noexcept {
-                return "offset "+std::to_string(offset)+", size "+std::to_string(size)+": "+jau::bytesHexString(parent.get_ptr(), offset, size, true /* lsbFirst */, true /* leading0X */);
+                return "offset "+std::to_string(offset)+", size "+std::to_string(size)+": "+jau::bytesHexString(parent.get_ptr(), offset, size, true /* lsbFirst */);
             }
     };
 
@@ -663,7 +663,7 @@ namespace direct_bt {
             }
 
             std::string toString() const {
-                return "size "+std::to_string(getSize())+", capacity "+std::to_string(getCapacity())+", l->h: "+jau::bytesHexString(get_ptr(), 0, getSize(), true /* lsbFirst */, true /* leading0X */);
+                return "size "+std::to_string(getSize())+", capacity "+std::to_string(getCapacity())+", "+jau::bytesHexString(get_ptr(), 0, getSize(), true /* lsbFirst */);
             }
     };
 

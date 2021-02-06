@@ -537,7 +537,7 @@ namespace direct_bt {
             }
             virtual std::string valueString() const noexcept {
                 const jau::nsize_t psz = getParamSize();
-                const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), 0, psz, true /* lsbFirst */, true /* leading0X */) : "";
+                const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), 0, psz, true /* lsbFirst */) : "";
                 return "param[size "+std::to_string(getParamSize())+", data "+ps+"], tsz "+std::to_string(getTotalSize());
             }
 
@@ -680,6 +680,12 @@ namespace direct_bt {
                             "], cid "+jau::uint8HexString(cid)+
                             ", psm "+jau::uint8HexString(psm)+", len "+std::to_string(len)+ "]";
                 }
+                std::string toString(const uint8_t* l2cap_data) const noexcept {
+                    const std::string ds = nullptr != l2cap_data && 0 < len ?  jau::bytesHexString(l2cap_data, 0, len, true /* lsbFirst*/) : "empty";
+                    return "l2cap[handle "+jau::uint16HexString(handle)+", flags[pb "+getPBFlagString(pb_flag)+", bc "+jau::uint8HexString(bc_flag)+
+                            "], cid "+jau::uint8HexString(cid)+
+                            ", psm "+jau::uint8HexString(psm)+", len "+std::to_string(len)+", data "+ds+"]";
+                }
             };
 
             /**
@@ -721,7 +727,7 @@ namespace direct_bt {
 
             std::string toString() const noexcept {
                 const uint8_t* l2cap_data;
-                return "ACLData[size "+std::to_string(getParamSize())+", data "+getL2CAPFrame(l2cap_data).toString()+", tsz "+std::to_string(getTotalSize())+"]";
+                return "ACLData[size "+std::to_string(getParamSize())+", data "+getL2CAPFrame(l2cap_data).toString(l2cap_data)+", tsz "+std::to_string(getTotalSize())+"]";
             }
     };
 
@@ -762,7 +768,7 @@ namespace direct_bt {
             virtual std::string valueString() const noexcept {
                 const jau::nsize_t d_sz_base = getBaseParamSize();
                 const jau::nsize_t d_sz = getParamSize();
-                const std::string d_str = d_sz > 0 ? jau::bytesHexString(getParam(), 0, d_sz, true /* lsbFirst */, true /* leading0X */) : "";
+                const std::string d_str = d_sz > 0 ? jau::bytesHexString(getParam(), 0, d_sz, true /* lsbFirst */) : "";
                 return "data[size "+std::to_string(d_sz)+"/"+std::to_string(d_sz_base)+", data "+d_str+"], tsz "+std::to_string(getTotalSize());
             }
 
