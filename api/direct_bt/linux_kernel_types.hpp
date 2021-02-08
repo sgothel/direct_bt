@@ -30,11 +30,12 @@
 
 #include "BTAddress.hpp"
 
-/* <sys/param.h> defines __u64 _le64 and _be64 on aarch64 */
-extern "C" {
-    #include <sys/param.h>
-}
-
+#if defined(__linux__)
+    /* <sys/param.h> defines __u64 _le64 and _be64 on aarch64 */
+    extern "C" {
+        #include <sys/param.h>
+    }
+#endif /* defined(__linux__) */
 
 typedef uint8_t  __u8;
 typedef int8_t   __s8;
@@ -45,10 +46,10 @@ typedef uint32_t __u32;
 typedef uint32_t __le32;
 typedef uint32_t __be32;
 
-#if !defined(__aarch64__) && !defined(__arm64__)
-typedef uint64_t __u64;
-typedef uint64_t __le64;
-typedef uint64_t __be64;
+#if !defined(__linux__) || ( !defined(__aarch64__) && !defined(__arm64__) )
+    typedef uint64_t __u64;
+    typedef uint64_t __le64;
+    typedef uint64_t __be64;
 #endif
 
 typedef direct_bt::EUI48 bdaddr_t;
