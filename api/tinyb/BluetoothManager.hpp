@@ -28,7 +28,7 @@
 #include <vector>
 #include <list>
 
-#include <jau/cpp_lang_macros.hpp>
+#include <jau/cpp_lang_util.hpp>
 
 class tinyb::BluetoothManager: public BluetoothObject
 {

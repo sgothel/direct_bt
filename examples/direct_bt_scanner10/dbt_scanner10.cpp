@@ -37,7 +37,7 @@
 #include <pthread.h>
 #include <csignal>
 
-#include <jau/cpp_lang_macros.hpp>
+#include <jau/cpp_lang_util.hpp>
 #include <jau/dfa_utf8_decode.hpp>
 #include <jau/basic_algos.hpp>
 #include <jau/darray.hpp>
