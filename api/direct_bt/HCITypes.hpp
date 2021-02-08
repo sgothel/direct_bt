@@ -429,7 +429,7 @@ namespace direct_bt {
         LE_DEL_FROM_WHITE_LIST      = 36,
         LE_CONN_UPDATE              = 37,
         LE_READ_REMOTE_FEATURES     = 38,
-        LE_ENABLE_ENC                = 39
+        LE_ENABLE_ENC               = 39
         // etc etc - incomplete
     };
     constexpr uint8_t number(const HCIOpcodeBit rhs) noexcept {
@@ -501,7 +501,7 @@ namespace direct_bt {
             template<class T>
             static T* clone(const T& source) noexcept { return new T(source); }
 
-            inline jau::nsize_t getTotalSize() const noexcept { return pdu.getSize(); }
+            constexpr jau::nsize_t getTotalSize() const noexcept { return pdu.getSize(); }
 
             /** Return the underlying octets read only */
             TROOctets & getPDU() noexcept { return pdu; }
@@ -669,22 +669,24 @@ namespace direct_bt {
                 const PBFlag pb_flag;
                 /** The Broadcast_Flag */
                 const uint8_t bc_flag;
-                const uint16_t cid;
-                const uint16_t psm;
+                const L2CAP_CID cid;
+                const L2CAP_PSM psm;
                 const uint16_t len;
 
-                bool isSMP() const noexcept { return L2CAP_CID_SMP == cid || L2CAP_CID_SMP_BREDR == cid; }
+                constexpr bool isSMP() const noexcept { return L2CAP_CID::SMP == cid || L2CAP_CID::SMP_BREDR == cid; }
+
+                constexpr bool isGATT() const noexcept { return L2CAP_CID::SMP == cid; }
 
                 std::string toString() const noexcept {
                     return "l2cap[handle "+jau::uint16HexString(handle)+", flags[pb "+getPBFlagString(pb_flag)+", bc "+jau::uint8HexString(bc_flag)+
-                            "], cid "+jau::uint8HexString(cid)+
-                            ", psm "+jau::uint8HexString(psm)+", len "+std::to_string(len)+ "]";
+                            "], cid "+getL2CAP_CIDString(cid)+
+                            ", psm "+getL2CAP_PSMString(psm)+", len "+std::to_string(len)+ "]";
                 }
                 std::string toString(const uint8_t* l2cap_data) const noexcept {
                     const std::string ds = nullptr != l2cap_data && 0 < len ?  jau::bytesHexString(l2cap_data, 0, len, true /* lsbFirst*/) : "empty";
                     return "l2cap[handle "+jau::uint16HexString(handle)+", flags[pb "+getPBFlagString(pb_flag)+", bc "+jau::uint8HexString(bc_flag)+
-                            "], cid "+jau::uint8HexString(cid)+
-                            ", psm "+jau::uint8HexString(psm)+", len "+std::to_string(len)+", data "+ds+"]";
+                            "], cid "+getL2CAP_CIDString(cid)+
+                            ", psm "+getL2CAP_PSMString(psm)+", len "+std::to_string(len)+", data "+ds+"]";
                 }
             };
 
@@ -728,6 +730,9 @@ namespace direct_bt {
             std::string toString() const noexcept {
                 const uint8_t* l2cap_data;
                 return "ACLData[size "+std::to_string(getParamSize())+", data "+getL2CAPFrame(l2cap_data).toString(l2cap_data)+", tsz "+std::to_string(getTotalSize())+"]";
+            }
+            std::string toString(const l2cap_frame& l2cap, const uint8_t* l2cap_data) const noexcept {
+                return "ACLData[size "+std::to_string(getParamSize())+", data "+l2cap.toString(l2cap_data)+", tsz "+std::to_string(getTotalSize())+"]";
             }
     };
 

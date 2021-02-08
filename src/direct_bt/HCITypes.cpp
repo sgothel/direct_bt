@@ -380,18 +380,18 @@ HCIACLData::l2cap_frame HCIACLData::getL2CAPFrame(const uint8_t* & l2cap_data) c
         {
             if( size < sizeof(*hdr) ) {
                 DBG_PRINT("l2cap DROP frame-size %d < hdr-size %z, handle ", size, sizeof(*hdr), handle);
-                return l2cap_frame { handle, pb_flag, bc_flag, 0, 0, 0 };
+                return l2cap_frame { handle, pb_flag, bc_flag, L2CAP_CID::UNDEFINED, L2CAP_PSM::UNDEFINED, 0 };
             }
             const uint16_t len = jau::le_to_cpu(hdr->len);
-            const uint16_t cid = jau::le_to_cpu(hdr->cid);
+            const L2CAP_CID cid = L2CAP_CID( jau::le_to_cpu(hdr->cid) );
             data += sizeof(*hdr);
             size -= sizeof(*hdr);
             if( len <= size ) { // tolerate frame size > len, cutting-off excess octets
                 l2cap_data = data;
-                return l2cap_frame { handle, pb_flag, bc_flag, cid, 0, len };
+                return l2cap_frame { handle, pb_flag, bc_flag, cid, L2CAP_PSM::UNDEFINED, len };
             } else {
                 DBG_PRINT("l2cap DROP frame-size %d < l2cap-size %d, handle ", size, len, handle);
-                return l2cap_frame { handle, pb_flag, bc_flag, 0, 0, 0 };
+                return l2cap_frame { handle, pb_flag, bc_flag, L2CAP_CID::UNDEFINED, L2CAP_PSM::UNDEFINED, 0 };
             }
         } break;
 
@@ -399,7 +399,7 @@ HCIACLData::l2cap_frame HCIACLData::getL2CAPFrame(const uint8_t* & l2cap_data) c
             [[fallthrough]];
         default: // not supported
             DBG_PRINT("l2cap DROP frame flag 0x%2.2x not supported, handle %d, packet-size %d", pb_flag, handle, size);
-            return l2cap_frame { handle, pb_flag, bc_flag, 0, 0, 0 };
+            return l2cap_frame { handle, pb_flag, bc_flag, L2CAP_CID::UNDEFINED, L2CAP_PSM::UNDEFINED, 0 };
     }
 }
 

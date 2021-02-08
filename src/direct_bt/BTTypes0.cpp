@@ -68,7 +68,7 @@ std::string direct_bt::getHCILEPeerAddressTypeString(const HCILEPeerAddressType 
         CHAR_DECL_HCILEPeerAddressType_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown HCILEPeerAddressType";
+    return "Unknown HCILEPeerAddressType "+jau::uint8HexString(number(type));
 }
 
 BDAddressType direct_bt::getBDAddressType(const HCILEOwnAddressType hciOwnAddrType) noexcept {
@@ -98,7 +98,7 @@ std::string direct_bt::getHCILEOwnAddressTypeString(const HCILEOwnAddressType ty
         CHAR_DECL_HCILEOwnAddressType_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown HCILEOwnAddressType";
+    return "Unknown HCILEOwnAddressType "+jau::uint8HexString(number(type));
 }
 
 
@@ -113,7 +113,7 @@ std::string direct_bt::getBDAddressTypeString(const BDAddressType type) noexcept
         CHAR_DECL_BDADDRESSTYPE_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown BDAddressType";
+    return "Unknown BDAddressType "+jau::uint8HexString(number(type));
 }
 
 #define CHAR_DECL_LERANDOMADDRESSTYPE_ENUM(X) \
@@ -128,7 +128,7 @@ std::string direct_bt::getBLERandomAddressTypeString(const BLERandomAddressType 
         CHAR_DECL_LERANDOMADDRESSTYPE_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown BLERandomAddressType";
+    return "Unknown BLERandomAddressType "+jau::uint8HexString(number(type));
 }
 
 BLERandomAddressType EUI48::getBLERandomAddressType(const BDAddressType addressType) const noexcept {
@@ -301,7 +301,7 @@ std::string direct_bt::getBTModeString(const BTMode v) noexcept {
         case BTMode::BREDR: return "BREDR";
         case BTMode::LE: return "LE";
     }
-    return "Unknown BTMode";
+    return "Unknown BTMode "+jau::uint8HexString(number(v));
 }
 
 BTMode direct_bt::getBTMode(const std::string & value) noexcept {
@@ -325,7 +325,7 @@ std::string direct_bt::getBTSecurityLevelString(const BTSecurityLevel v) noexcep
         case BTSecurityLevel::ENC_AUTH:      return "ENC_AUTH";
         case BTSecurityLevel::ENC_AUTH_FIPS: return "ENC_AUTH_FIPS";
     }
-    return "Unknown BTSecurityLevel";
+    return "Unknown BTSecurityLevel "+jau::uint8HexString(number(v));
 }
 
 std::string direct_bt::getPairingModeString(const PairingMode v) noexcept {
@@ -340,7 +340,7 @@ std::string direct_bt::getPairingModeString(const PairingMode v) noexcept {
         case PairingMode::OUT_OF_BAND:         return "OUT_OF_BAND";
         case PairingMode::PRE_PAIRED:          return "PRE_PAIRED";
     }
-    return "Unknown PairingMode";
+    return "Unknown PairingMode "+jau::uint8HexString(number(v));
 }
 
 ScanType direct_bt::getScanType(BTMode btMode) {
@@ -360,7 +360,7 @@ ScanType direct_bt::getScanType(BTMode btMode) {
         X(NONE) \
         X(BREDR) \
         X(LE) \
-        X(DUAL) \
+        X(DUAL)
 
 #define SCANTYPE_CASE_TO_STRING(V) case ScanType::V: return #V;
 
@@ -369,16 +369,16 @@ std::string direct_bt::getScanTypeString(const ScanType v) noexcept {
         SCANTYPE_ENUM(SCANTYPE_CASE_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown ScanType";
+    return "Unknown ScanType "+jau::uint8HexString(number(v));
 }
 
 #define AD_PDU_Type_ENUM(X) \
-        X(ADV_IND) \
-        X(ADV_DIRECT_IND) \
-        X(ADV_SCAN_IND) \
-        X(ADV_NONCONN_IND) \
-        X(SCAN_RSP) \
-        X(ADV_UNDEFINED) \
+    X(ADV_IND) \
+    X(ADV_DIRECT_IND) \
+    X(ADV_SCAN_IND) \
+    X(ADV_NONCONN_IND) \
+    X(SCAN_RSP) \
+    X(ADV_UNDEFINED)
 
 #define AD_PDU_Type_CASE_TO_STRING(V) case AD_PDU_Type::V: return #V;
 
@@ -387,7 +387,61 @@ std::string direct_bt::getAD_PDU_TypeString(const AD_PDU_Type v) noexcept {
         AD_PDU_Type_ENUM(AD_PDU_Type_CASE_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown AD_PDU_Type";
+    return "Unknown AD_PDU_Type "+jau::uint8HexString(number(v));
+}
+
+#define L2CAP_CID_ENUM(X) \
+    X(UNDEFINED) \
+    X(SIGNALING) \
+    X(CONN_LESS) \
+    X(A2MP) \
+    X(ATT) \
+    X(LE_SIGNALING) \
+    X(SMP) \
+    X(SMP_BREDR) \
+    X(DYN_START) \
+    X(DYN_END) \
+    X(LE_DYN_END)
+
+#define L2CAP_CID_CASE_TO_STRING(V) case L2CAP_CID::V: return #V;
+
+std::string direct_bt::getL2CAP_CIDString(const L2CAP_CID v) noexcept {
+    switch(v) {
+        L2CAP_CID_ENUM(L2CAP_CID_CASE_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown L2CAP_CID "+jau::uint16HexString(number(v));
+}
+
+#define L2CAP_PSM_ENUM(X) \
+    X(UNDEFINED) \
+    X(SDP) \
+    X(RFCOMM) \
+    X(TCSBIN) \
+    X(TCSBIN_CORDLESS) \
+    X(BNEP) \
+    X(HID_CONTROL) \
+    X(HID_INTERRUPT) \
+    X(UPNP) \
+    X(AVCTP) \
+    X(AVDTP) \
+    X(AVCTP_BROWSING) \
+    X(UDI_C_PLANE) \
+    X(ATT) \
+    X(LE_DYN_START) \
+    X(LE_DYN_END) \
+    X(DYN_START) \
+    X(DYN_END) \
+    X(AUTO_END)
+
+#define L2CAP_PSM_CASE_TO_STRING(V) case L2CAP_PSM::V: return #V;
+
+std::string direct_bt::getL2CAP_PSMString(const L2CAP_PSM v) noexcept {
+    switch(v) {
+        L2CAP_PSM_ENUM(L2CAP_PSM_CASE_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown L2CAP_PSM "+jau::uint16HexString(number(v));
 }
 
 #define APPEARANCECAT_ENUM(X) \
@@ -457,7 +511,7 @@ std::string direct_bt::getAppearanceCatString(const AppearanceCat v) noexcept {
         APPEARANCECAT_ENUM(APPEARANCE_CASE_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown AppearanceCat";
+    return "Unknown AppearanceCat "+jau::uint16HexString(number(v));
 }
 
 // *************************************************
@@ -510,7 +564,7 @@ std::string direct_bt::getEIRDataBitString(const EIRDataType bit) noexcept {
     EIRDATATYPE_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown EIRDataType Bit";
+    return "Unknown EIRDataType Bit "+jau::uint32HexString(number(bit));
 }
 
 std::string direct_bt::getEIRDataMaskString(const EIRDataType mask) noexcept {

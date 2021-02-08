@@ -46,7 +46,7 @@ using namespace direct_bt;
 
 BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
 : adapter(a),
-  l2cap_att(adapter.getAddress(), L2CAP_PSM_UNDEF, L2CAP_CID_ATT),
+  l2cap_att(adapter.getAddress(), L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT),
   ts_creation(r.getTimestamp()),
   addressAndType{r.getAddress(), r.getAddressType()}
 {

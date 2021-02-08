@@ -172,7 +172,7 @@ namespace direct_bt {
 
     constexpr bool isAdapterSettingBitSet(const AdapterSetting mask, const AdapterSetting bit) noexcept { return AdapterSetting::NONE != ( mask & bit ); }
 
-    inline void setAdapterSettingMaskBit(AdapterSetting &mask, const AdapterSetting bit) noexcept { mask = mask | bit; }
+    constexpr void setAdapterSettingMaskBit(AdapterSetting &mask, const AdapterSetting bit) noexcept { mask = mask | bit; }
     std::string getAdapterSettingBitString(const AdapterSetting settingBit) noexcept;
     std::string getAdapterSettingMaskString(const AdapterSetting settingBitMask) noexcept;
 

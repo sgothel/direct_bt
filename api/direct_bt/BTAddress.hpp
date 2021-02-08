@@ -98,6 +98,7 @@ namespace direct_bt {
         /** Undefined, e.g. address not of type {@link BDAddressType::BDADDR_LE_RANDOM} */
         UNDEFINED           = 0xff
     };
+    constexpr uint8_t number(const BLERandomAddressType rhs) noexcept { return static_cast<uint8_t>(rhs); }
     std::string getBLERandomAddressTypeString(const BLERandomAddressType type) noexcept;
 
     /**
@@ -127,7 +128,7 @@ namespace direct_bt {
         RANDOM_STATIC_IDENTITY = 0x03,
         UNDEFINED = 0xff /**< HCIADDR_UNDEFINED */
     };
-
+    constexpr uint8_t number(const HCILEPeerAddressType rhs) noexcept { return static_cast<uint8_t>(rhs); }
     BDAddressType getBDAddressType(const HCILEPeerAddressType hciPeerAddrType) noexcept;
     std::string getHCILEPeerAddressTypeString(const HCILEPeerAddressType type) noexcept;
 
@@ -142,7 +143,7 @@ namespace direct_bt {
         RESOLVABLE_OR_RANDOM = 0x03,
         UNDEFINED = 0xff
     };
-
+    constexpr uint8_t number(const HCILEOwnAddressType rhs) noexcept { return static_cast<uint8_t>(rhs); }
     BDAddressType getBDAddressType(const HCILEOwnAddressType hciOwnAddrType) noexcept;
     std::string getHCILEOwnAddressTypeString(const HCILEOwnAddressType type) noexcept;
 

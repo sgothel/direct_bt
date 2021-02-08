@@ -280,52 +280,63 @@ namespace direct_bt {
         return static_cast<uint8_t>(rhs);
     }
 
-    enum AD_Type_Const : uint8_t {
+    enum class AD_Type_Const : uint8_t {
         AD_FLAGS_LIMITED_MODE_BIT = 0x01,
         AD_FLAGS_GENERAL_MODE_BIT = 0x02
     };
 
-    enum L2CAP_Channels : uint16_t {
-        L2CAP_CID_SIGNALING     = 0x0001,
-        L2CAP_CID_CONN_LESS     = 0x0002,
-        L2CAP_CID_A2MP          = 0x0003,
+    enum class L2CAP_CID : uint16_t {
+        UNDEFINED     = 0x0000,
+        SIGNALING     = 0x0001,
+        CONN_LESS     = 0x0002,
+        A2MP          = 0x0003,
 
         /* BT Core Spec v5.2:  Vol 3, Part G GATT: 5.2.2 LE channel requirements */
-        L2CAP_CID_ATT           = 0x0004,
+        ATT           = 0x0004,
 
-        L2CAP_CID_LE_SIGNALING  = 0x0005,
-        L2CAP_CID_SMP           = 0x0006,
-        L2CAP_CID_SMP_BREDR     = 0x0007,
-        L2CAP_CID_DYN_START     = 0x0040,
-        L2CAP_CID_DYN_END       = 0xffff,
-        L2CAP_CID_LE_DYN_END    = 0x007f
+        LE_SIGNALING  = 0x0005,
+        SMP           = 0x0006,
+        SMP_BREDR     = 0x0007,
+        DYN_START     = 0x0040,
+        DYN_END       = 0xffff,
+        LE_DYN_END    = 0x007f
     };
+    constexpr uint16_t number(const L2CAP_CID rhs) noexcept {
+        return static_cast<uint16_t>(rhs);
+    }
+    constexpr L2CAP_CID toL2CAP_CID(const uint16_t v) noexcept { return static_cast<L2CAP_CID>(v); }
+    std::string getL2CAP_CIDString(const L2CAP_CID v) noexcept;
 
     /**
      * Protocol Service Multiplexers (PSM) Assigned numbers
      * <https://www.bluetooth.com/specifications/assigned-numbers/logical-link-control/>
      */
-    enum L2CAP_PSM : uint16_t {
-        L2CAP_PSM_UNDEF             = 0x0000,
-        L2CAP_PSM_SDP               = 0x0001,
-        L2CAP_PSM_RFCOMM            = 0x0003,
-        L2CAP_PSM_TCSBIN            = 0x0005,
-        L2CAP_PSM_TCSBIN_CORDLESS   = 0x0007,
-        L2CAP_PSM_BNEP              = 0x000F,
-        L2CAP_PSM_HID_CONTROL       = 0x0011,
-        L2CAP_PSM_HID_INTERRUPT     = 0x0013,
-        L2CAP_PSM_UPNP              = 0x0015,
-        L2CAP_PSM_AVCTP             = 0x0017,
-        L2CAP_PSM_AVDTP             = 0x0019,
-        L2CAP_PSM_AVCTP_BROWSING    = 0x001B,
-        L2CAP_PSM_UDI_C_PLANE       = 0x001D,
-        L2CAP_PSM_ATT               = 0x001F,
-        L2CAP_PSM_LE_DYN_START      = 0x0080,
-        L2CAP_PSM_LE_DYN_END        = 0x00FF,
-        L2CAP_PSM_DYN_START         = 0x1001,
-        L2CAP_PSM_DYN_END           = 0xffff,
-        L2CAP_PSM_AUTO_END          = 0x10ff
+    enum class L2CAP_PSM : uint16_t {
+        UNDEFINED         = 0x0000,
+        SDP               = 0x0001,
+        RFCOMM            = 0x0003,
+        TCSBIN            = 0x0005,
+        TCSBIN_CORDLESS   = 0x0007,
+        BNEP              = 0x000F,
+        HID_CONTROL       = 0x0011,
+        HID_INTERRUPT     = 0x0013,
+        UPNP              = 0x0015,
+        AVCTP             = 0x0017,
+        AVDTP             = 0x0019,
+        AVCTP_BROWSING    = 0x001B,
+        UDI_C_PLANE       = 0x001D,
+        ATT               = 0x001F,
+        LE_DYN_START      = 0x0080,
+        LE_DYN_END        = 0x00FF,
+        DYN_START         = 0x1001,
+        DYN_END           = 0xffff,
+        AUTO_END          = 0x10ff
     };
+    constexpr uint16_t number(const L2CAP_PSM rhs) noexcept {
+        return static_cast<uint16_t>(rhs);
+    }
+    constexpr L2CAP_PSM toL2CAP_PSM(const uint16_t v) noexcept { return static_cast<L2CAP_PSM>(v); }
+    std::string getL2CAP_PSMString(const L2CAP_PSM v) noexcept;
 
     /**
      * BT Core Spec v5.2:  Vol 3, Part A L2CAP Spec: 6 State Machine
@@ -539,6 +550,7 @@ namespace direct_bt {
         OUTDOOR_SPORTS_ACTIVITY_LOCATION_POD = 5187,
         OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_POD = 5188
     };
+    constexpr uint16_t number(const AppearanceCat rhs) noexcept { return static_cast<uint16_t>(rhs); }
     std::string getAppearanceCatString(const AppearanceCat v) noexcept;
 
     // *************************************************
@@ -558,10 +570,10 @@ namespace direct_bt {
         std::string toString() const noexcept;
     };
 
-    inline bool operator==(const ManufactureSpecificData& lhs, const ManufactureSpecificData& rhs) noexcept
+    constexpr bool operator==(const ManufactureSpecificData& lhs, const ManufactureSpecificData& rhs) noexcept
     { return lhs.company == rhs.company && lhs.data == rhs.data; }
 
-    inline bool operator!=(const ManufactureSpecificData& lhs, const ManufactureSpecificData& rhs) noexcept
+    constexpr bool operator!=(const ManufactureSpecificData& lhs, const ManufactureSpecificData& rhs) noexcept
     { return !(lhs == rhs); }
 
     // *************************************************
@@ -590,20 +602,21 @@ namespace direct_bt {
         DEVICE_ID    = (1 << 13),
         SERVICE_UUID = (1 << 30)
     };
-    inline EIRDataType operator |(const EIRDataType lhs, const EIRDataType rhs) noexcept {
+    constexpr uint32_t number(const EIRDataType rhs) noexcept { return static_cast<uint32_t>(rhs); }
+    constexpr EIRDataType operator |(const EIRDataType lhs, const EIRDataType rhs) noexcept {
         return static_cast<EIRDataType> ( static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs) );
     }
-    inline EIRDataType operator &(const EIRDataType lhs, const EIRDataType rhs) noexcept {
+    constexpr EIRDataType operator &(const EIRDataType lhs, const EIRDataType rhs) noexcept {
         return static_cast<EIRDataType> ( static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs) );
     }
-    inline bool operator ==(const EIRDataType lhs, const EIRDataType rhs) noexcept {
+    constexpr bool operator ==(const EIRDataType lhs, const EIRDataType rhs) noexcept {
         return static_cast<uint32_t>(lhs) == static_cast<uint32_t>(rhs);
     }
-    inline bool operator !=(const EIRDataType lhs, const EIRDataType rhs) noexcept {
+    constexpr bool operator !=(const EIRDataType lhs, const EIRDataType rhs) noexcept {
         return !( lhs == rhs );
     }
-    inline bool isEIRDataTypeSet(const EIRDataType mask, const EIRDataType bit) noexcept { return EIRDataType::NONE != ( mask & bit ); }
-    inline void setEIRDataTypeSet(EIRDataType &mask, const EIRDataType bit) noexcept { mask = mask | bit; }
+    constexpr bool isEIRDataTypeSet(const EIRDataType mask, const EIRDataType bit) noexcept { return EIRDataType::NONE != ( mask & bit ); }
+    constexpr void setEIRDataTypeSet(EIRDataType &mask, const EIRDataType bit) noexcept { mask = mask | bit; }
     std::string getEIRDataBitString(const EIRDataType bit) noexcept;
     std::string getEIRDataMaskString(const EIRDataType mask) noexcept;
 

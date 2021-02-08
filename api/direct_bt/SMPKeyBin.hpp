@@ -170,7 +170,7 @@ class SMPKeyBin {
 
         std::string toString() const noexcept;
 
-        constexpr_cxx20 std::string getFileBasename() const noexcept {
+        constexpr_func_cxx20 std::string getFileBasename() const noexcept {
             return "bd_"+addrAndType.address.toString()+":"+std::to_string(number(addrAndType.type))+".smpkey.bin";
         }
         static std::string getFileBasename(const BDAddressAndType& addrAndType_) {

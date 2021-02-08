@@ -122,13 +122,13 @@ namespace direct_bt {
             }
 
         private:
-            static int l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const BDAddressType addrType);
+            static int l2cap_open_dev(const EUI48 & adapterAddress, const L2CAP_PSM psm, const L2CAP_CID cid, const BDAddressType addrType);
             static int l2cap_close_dev(int dd);
 
             const L2CAPEnv & env;
             const EUI48 adapterAddress;
-            const uint16_t psm;
-            const uint16_t cid;
+            const L2CAP_PSM psm;
+            const L2CAP_CID cid;
 
             std::recursive_mutex mtx_write;
             BDAddressAndType deviceAddressAndType;
@@ -146,7 +146,7 @@ namespace direct_bt {
             /**
              * Constructing a non connected L2CAP channel instance for the pre-defined PSM and CID.
              */
-            L2CAPComm(const EUI48& adapterAddress, const uint16_t psm, const uint16_t cid);
+            L2CAPComm(const EUI48& adapterAddress, const L2CAP_PSM psm, const L2CAP_CID cid);
 
             L2CAPComm(const L2CAPComm&) = delete;
             void operator=(const L2CAPComm&) = delete;

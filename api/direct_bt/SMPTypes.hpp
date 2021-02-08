@@ -514,7 +514,7 @@ namespace direct_bt {
             bzero(reinterpret_cast<void *>(this), sizeof(SMPLongTermKeyInfo));
         }
 
-        constexpr_cxx20 std::string toString() const noexcept { // hex-fmt aligned with btmon
+        constexpr_func_cxx20 std::string toString() const noexcept { // hex-fmt aligned with btmon
             return "LTK[props "+getPropertyMaskString(properties)+", enc_size "+std::to_string(enc_size)+
                    ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), false /* lsbFirst */)+
                    ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), false /* lsbFirst */)+
