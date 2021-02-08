@@ -70,7 +70,7 @@ namespace direct_bt {
                 }
             }
 
-            inline uint8_t * data() noexcept { return _data; }
+            constexpr uint8_t * data() noexcept { return _data; }
 
             /**
              * @param d a non nullptr memory, otherwise throws exception
@@ -83,7 +83,7 @@ namespace direct_bt {
                 _size = s;
                 _data = d;
             }
-            inline void setSize(jau::nsize_t s) noexcept { _size = s; }
+            constexpr void setSize(jau::nsize_t s) noexcept { _size = s; }
 
         public:
             /**
@@ -110,18 +110,18 @@ namespace direct_bt {
             }
             #define check_range(I,C) check_range((I), (C), E_FILE_LINE)
 
-            inline bool is_range_valid(const jau::nsize_t i, const jau::nsize_t count) const noexcept {
+            constexpr bool is_range_valid(const jau::nsize_t i, const jau::nsize_t count) const noexcept {
                 return i+count <= _size;
             }
 
             /** Returns the used memory size for read and write operations, may be zero. */
-            inline jau::nsize_t getSize() const noexcept { return _size; }
+            constexpr jau::nsize_t getSize() const noexcept { return _size; }
 
             uint8_t get_uint8(const jau::nsize_t i) const {
                 check_range(i, 1);
                 return _data[i];
             }
-            inline uint8_t get_uint8_nc(const jau::nsize_t i) const noexcept {
+            constexpr uint8_t get_uint8_nc(const jau::nsize_t i) const noexcept {
                 return _data[i];
             }
 
@@ -129,7 +129,7 @@ namespace direct_bt {
                 check_range(i, 1);
                 return jau::get_int8(_data, i);
             }
-            inline int8_t get_int8_nc(const jau::nsize_t i) const noexcept {
+            constexpr int8_t get_int8_nc(const jau::nsize_t i) const noexcept {
                 return jau::get_int8(_data, i);
             }
 
@@ -137,7 +137,7 @@ namespace direct_bt {
                 check_range(i, 2);
                 return jau::get_uint16(_data, i, true /* littleEndian */);
             }
-            inline uint16_t get_uint16_nc(const jau::nsize_t i) const noexcept {
+            constexpr uint16_t get_uint16_nc(const jau::nsize_t i) const noexcept {
                 return jau::get_uint16(_data, i, true /* littleEndian */);
             }
 
@@ -145,7 +145,7 @@ namespace direct_bt {
                 check_range(i, 4);
                 return jau::get_uint32(_data, i, true /* littleEndian */);
             }
-            inline uint32_t get_uint32_nc(const jau::nsize_t i) const noexcept {
+            constexpr uint32_t get_uint32_nc(const jau::nsize_t i) const noexcept {
                 return jau::get_uint32(_data, i, true /* littleEndian */);
             }
 
@@ -161,7 +161,7 @@ namespace direct_bt {
                 check_range(i, 8);
                 return jau::get_uint64(_data, i, true /* littleEndian */);
             }
-            inline uint64_t get_uint64_nc(const jau::nsize_t i) const noexcept {
+            constexpr uint64_t get_uint64_nc(const jau::nsize_t i) const noexcept {
                 return jau::get_uint64(_data, i, true /* littleEndian */);
             }
 
@@ -169,7 +169,7 @@ namespace direct_bt {
                 check_range(i, 8);
                 return jau::get_uint128(_data, i, true /* littleEndian */);
             }
-            inline jau::uint128_t get_uint128_nc(const jau::nsize_t i) const noexcept {
+            constexpr jau::uint128_t get_uint128_nc(const jau::nsize_t i) const noexcept {
                 return jau::get_uint128(_data, i, true /* littleEndian */);
             }
 
@@ -177,7 +177,7 @@ namespace direct_bt {
                 check_range(i, 8);
                 return jau::get_uint192(_data, i, true /* littleEndian */);
             }
-            inline jau::uint192_t get_uint192_nc(const jau::nsize_t i) const noexcept {
+            constexpr jau::uint192_t get_uint192_nc(const jau::nsize_t i) const noexcept {
                 return jau::get_uint192(_data, i, true /* littleEndian */);
             }
 
@@ -185,7 +185,7 @@ namespace direct_bt {
                 check_range(i, 8);
                 return jau::get_uint256(_data, i, true /* littleEndian */);
             }
-            inline jau::uint256_t get_uint256_nc(const jau::nsize_t i) const noexcept {
+            constexpr jau::uint256_t get_uint256_nc(const jau::nsize_t i) const noexcept {
                 return jau::get_uint256(_data, i, true /* littleEndian */);
             }
 
@@ -195,7 +195,7 @@ namespace direct_bt {
                 return std::string( (const char*)(_data+i) );
             }
             /** Assumes a null terminated string */
-            inline std::string get_string_nc(const jau::nsize_t i) const noexcept {
+            constexpr_func_cxx20 std::string get_string_nc(const jau::nsize_t i) const noexcept {
                 return std::string( (const char*)(_data+i) );
             }
 
@@ -225,17 +225,17 @@ namespace direct_bt {
                 return uuid_t::create(tsize, _data, i, true /* littleEndian */);
             }
 
-            inline uint8_t const * get_ptr() const noexcept { return _data; }
+            constexpr uint8_t const * get_ptr() const noexcept { return _data; }
             uint8_t const * get_ptr(const jau::nsize_t i) const {
                 check_range(i, 1);
                 return _data + i;
             }
-            inline uint8_t const * get_ptr_nc(const jau::nsize_t i) const noexcept {
+            constexpr uint8_t const * get_ptr_nc(const jau::nsize_t i) const noexcept {
                 return _data + i;
             }
 
             bool operator==(const TROOctets& rhs) const noexcept {
-                return _size == rhs._size && 0 == memcmp(_data, rhs._data, _size);
+                return _size == rhs._size && 0 == std::memcmp(_data, rhs._data, _size);
             }
             bool operator!=(const TROOctets& rhs) const noexcept {
                 return !(*this == rhs);
@@ -270,7 +270,7 @@ namespace direct_bt {
                 check_range(i, 1);
                 data()[i] = static_cast<uint8_t>(v);
             }
-            void put_int8_nc(const jau::nsize_t i, const int8_t v) noexcept {
+            constexpr void put_int8_nc(const jau::nsize_t i, const int8_t v) noexcept {
                 data()[i] = static_cast<uint8_t>(v);
             }
 
@@ -278,7 +278,7 @@ namespace direct_bt {
                 check_range(i, 1);
                 data()[i] = v;
             }
-            void put_uint8_nc(const jau::nsize_t i, const uint8_t v) noexcept {
+            constexpr void put_uint8_nc(const jau::nsize_t i, const uint8_t v) noexcept {
                 data()[i] = v;
             }
 
@@ -286,7 +286,7 @@ namespace direct_bt {
                 check_range(i, 2);
                 jau::put_uint16(data(), i, v, true /* littleEndian */);
             }
-            void put_uint16_nc(const jau::nsize_t i, const uint16_t v) noexcept {
+            constexpr void put_uint16_nc(const jau::nsize_t i, const uint16_t v) noexcept {
                 jau::put_uint16(data(), i, v, true /* littleEndian */);
             }
 
@@ -294,7 +294,7 @@ namespace direct_bt {
                 check_range(i, 4);
                 jau::put_uint32(data(), i, v, true /* littleEndian */);
             }
-            void put_uint32_nc(const jau::nsize_t i, const uint32_t v) noexcept {
+            constexpr void put_uint32_nc(const jau::nsize_t i, const uint32_t v) noexcept {
                 jau::put_uint32(data(), i, v, true /* littleEndian */);
             }
 
@@ -310,7 +310,7 @@ namespace direct_bt {
                 check_range(i, 8);
                 jau::put_uint64(data(), i, v, true /* littleEndian */);
             }
-            void put_uint64_nc(const jau::nsize_t i, const uint64_t & v) noexcept {
+            constexpr void put_uint64_nc(const jau::nsize_t i, const uint64_t & v) noexcept {
                 jau::put_uint64(data(), i, v, true /* littleEndian */);
             }
 
@@ -318,7 +318,7 @@ namespace direct_bt {
                 check_range(i, 8);
                 jau::put_uint128(data(), i, v, true /* littleEndian */);
             }
-            void put_uint128_nc(const jau::nsize_t i, const jau::uint128_t & v) noexcept {
+            constexpr void put_uint128_nc(const jau::nsize_t i, const jau::uint128_t & v) noexcept {
                 jau::put_uint128(data(), i, v, true /* littleEndian */);
             }
 
@@ -326,7 +326,7 @@ namespace direct_bt {
                 check_range(i, 8);
                 jau::put_uint192(data(), i, v, true /* littleEndian */);
             }
-            void put_uint192_nc(const jau::nsize_t i, const jau::uint192_t & v) noexcept {
+            constexpr void put_uint192_nc(const jau::nsize_t i, const jau::uint192_t & v) noexcept {
                 jau::put_uint192(data(), i, v, true /* littleEndian */);
             }
 
@@ -334,7 +334,7 @@ namespace direct_bt {
                 check_range(i, 8);
                 jau::put_uint256(data(), i, v, true /* littleEndian */);
             }
-            void put_uint256_nc(const jau::nsize_t i, const jau::uint256_t & v) noexcept {
+            constexpr void put_uint256_nc(const jau::nsize_t i, const jau::uint256_t & v) noexcept {
                 jau::put_uint256(data(), i, v, true /* littleEndian */);
             }
 
@@ -380,12 +380,12 @@ namespace direct_bt {
                 direct_bt::put_uuid(data(), i, v, true /* littleEndian */);
             }
 
-            inline uint8_t * get_wptr() noexcept { return data(); }
+            constexpr uint8_t * get_wptr() noexcept { return data(); }
             uint8_t * get_wptr(const jau::nsize_t i) {
                 check_range(i, 1);
                 return data() + i;
             }
-            uint8_t * get_wptr_nc(const jau::nsize_t i) noexcept {
+            constexpr uint8_t * get_wptr_nc(const jau::nsize_t i) noexcept {
                 return data() + i;
             }
 
@@ -417,21 +417,21 @@ namespace direct_bt {
             uint8_t get_uint8(const jau::nsize_t i) const {
                 return parent.get_uint8(offset+i);
             }
-            inline uint8_t get_uint8_nc(const jau::nsize_t i) const noexcept {
+            constexpr uint8_t get_uint8_nc(const jau::nsize_t i) const noexcept {
                 return parent.get_uint8_nc(offset+i);
             }
 
             uint16_t get_uint16(const jau::nsize_t i) const {
                 return parent.get_uint16(offset+i);
             }
-            inline uint16_t get_uint16_nc(const jau::nsize_t i) const noexcept {
+            constexpr uint16_t get_uint16_nc(const jau::nsize_t i) const noexcept {
                 return parent.get_uint16_nc(offset+i);
             }
 
             uint8_t const * get_ptr(const jau::nsize_t i) const {
                 return parent.get_ptr(offset+i);
             }
-            inline uint8_t const * get_ptr_nc(const jau::nsize_t i) const noexcept {
+            constexpr uint8_t const * get_ptr_nc(const jau::nsize_t i) const noexcept {
                 return parent.get_ptr_nc(offset+i);
             }
 
@@ -472,7 +472,7 @@ namespace direct_bt {
 
         public:
             /** Returns the memory capacity, never zero, greater or equal {@link #getSize()}. */
-            inline jau::nsize_t getCapacity() const noexcept { return capacity; }
+            constexpr jau::nsize_t getCapacity() const noexcept { return capacity; }
 
             /** Intentional zero sized POctets instance. */
             POctets()
