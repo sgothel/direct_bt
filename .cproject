@@ -68,7 +68,7 @@
 								<option id="gnu.cpp.compiler.option.warnings.weffcpp.1864562430" name="Effective C++ guidelines (-Weffc++)" superClass="gnu.cpp.compiler.option.warnings.weffcpp" useByScannerDiscovery="false" value="false" valueType="boolean"/>
 								<option id="gnu.cpp.compiler.option.warnings.wfloatequal.1523294481" name="Direct float equal check (-Wfloat-equal)" superClass="gnu.cpp.compiler.option.warnings.wfloatequal" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="gnu.cpp.compiler.option.debugging.gprof.1958690548" name="Generate gprof information (-pg)" superClass="gnu.cpp.compiler.option.debugging.gprof" useByScannerDiscovery="false"/>
-								<option id="gnu.cpp.compiler.option.other.other.99642453" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -Wno-multichar" valueType="string"/>
+								<option id="gnu.cpp.compiler.option.other.other.99642453" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -Wno-multichar -Wno-float-equal" valueType="string"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1946997217" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.so.debug.1384284733" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.so.debug">
@@ -86,7 +86,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/direct_bt/include}&quot;"/>
 								</option>
 								<option id="gnu.c.compiler.option.misc.pic.111957654" name="Position Independent Code (-fPIC)" superClass="gnu.c.compiler.option.misc.pic" useByScannerDiscovery="false" value="true" valueType="boolean"/>
-								<option id="gnu.c.compiler.option.misc.other.1410741244" superClass="gnu.c.compiler.option.misc.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -Wno-multichar" valueType="string"/>
+								<option id="gnu.c.compiler.option.misc.other.1410741244" name="Other flags" superClass="gnu.c.compiler.option.misc.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -Wno-multichar -Wno-float-equal" valueType="string"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1736735651" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.so.debug.304323896" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.so.debug">
