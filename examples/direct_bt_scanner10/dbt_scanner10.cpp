@@ -183,21 +183,20 @@ struct MyBTSecurityDetail {
     MyBTSecurityDetail(const BDAddressAndType& addrAndType_)
     : addrAndType(addrAndType_) {}
 
-    const BTSecurityLevel& getSecLevel() const noexcept { return sec_level; }
-
-    bool isIOCapSet() const noexcept {
-        return SMPIOCapability::UNSET != io_cap;
+    constexpr bool isSecLevelOrIOCapSet() const noexcept {
+        return SMPIOCapability::UNSET != io_cap ||  BTSecurityLevel::UNSET != sec_level;
     }
-    const SMPIOCapability& getIOCap() const noexcept { return io_cap; }
+    constexpr const BTSecurityLevel& getSecLevel() const noexcept { return sec_level; }
+    constexpr const SMPIOCapability& getIOCap() const noexcept { return io_cap; }
 
-    bool isSecurityAutoEnabled() const noexcept {
+    constexpr bool isSecurityAutoEnabled() const noexcept {
         return SMPIOCapability::UNSET != io_cap_auto;
     }
-    const SMPIOCapability& getSecurityAutoIOCap() const noexcept { return io_cap_auto; }
+    constexpr const SMPIOCapability& getSecurityAutoIOCap() const noexcept { return io_cap_auto; }
 
-    int getPairingPasskey() const noexcept { return passkey; }
+    constexpr int getPairingPasskey() const noexcept { return passkey; }
 
-    bool getPairingNumericComparison() const noexcept { return true; }
+    constexpr bool getPairingNumericComparison() const noexcept { return true; }
 
     std::string toString() const noexcept {
         return "MyBTSecurityDetail["+addrAndType.toString()+", lvl "+
@@ -243,6 +242,31 @@ struct MyBTSecurityDetail {
     }
 };
 std::unordered_map<BDAddressAndType, MyBTSecurityDetail> MyBTSecurityDetail::devicesSecDetail;
+
+static void passkeyInputAndSend(std::shared_ptr<BTDevice> device) {
+#if 0
+    int passkey;
+    fprintf(stderr, "****** INPUT passkey: ");
+    std::cin >> passkey;
+    fprintf(stderr, "****** SEND passkey: %d\n", passkey);
+    device->setPairingPasskey(static_cast<uint32_t>(passkey));
+#else
+    fprintf(stderr, "****** INPUT passkey requested: Not supported at runtime -> removal\n");
+    removeDevice(device);
+#endif
+}
+static void binaryInputAndSend(std::shared_ptr<BTDevice> device) {
+#if 0
+    int v;
+    fprintf(stderr, "****** INPUT binary [0, 1]: ");
+    std::cin >> v;
+    fprintf(stderr, "****** SEND binary: %d\n", v);
+    device->setPairingNumericComparison( 0 != v );
+#else
+    fprintf(stderr, "****** INPUT binary requested: Not supported at runtime -> removal\n");
+    removeDevice(device);
+#endif
+}
 
 class MyAdapterStatusListener : public AdapterStatusListener {
 
@@ -341,22 +365,24 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 break;
             case SMPPairingState::PASSKEY_EXPECTED: {
                 const MyBTSecurityDetail* sec = MyBTSecurityDetail::get(device->getAddressAndType());
-                int passkey = 0; // dummy
                 if( nullptr != sec && sec->getPairingPasskey() != NO_PASSKEY ) {
-                    passkey = sec->getPairingPasskey();
+                    std::thread dc(&BTDevice::setPairingPasskey, device, static_cast<uint32_t>( sec->getPairingPasskey() ));
+                    dc.detach();
+                } else {
+                    std::thread dc(&::passkeyInputAndSend, device);
+                    dc.detach();
                 }
-                std::thread dc(&BTDevice::setPairingPasskey, device, static_cast<uint32_t>(passkey)); // @suppress("Invalid arguments")
-                dc.detach();
                 // next: KEY_DISTRIBUTION or FAILED
               } break;
             case SMPPairingState::NUMERIC_COMPARE_EXPECTED: {
                 const MyBTSecurityDetail* sec = MyBTSecurityDetail::get(device->getAddressAndType());
-                bool comp = true; // dummy
                 if( nullptr != sec ) {
-                    comp = sec->getPairingNumericComparison();
+                    std::thread dc(&BTDevice::setPairingNumericComparison, device, sec->getPairingNumericComparison());
+                    dc.detach();
+                } else {
+                    std::thread dc(&::binaryInputAndSend, device);
+                    dc.detach();
                 }
-                std::thread dc(&BTDevice::setPairingNumericComparison, device, comp); // @suppress("Invalid arguments")
-                dc.detach();
                 // next: KEY_DISTRIBUTION or FAILED
               } break;
             case SMPPairingState::OOB_EXPECTED:
@@ -480,9 +506,12 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
             if( sec->isSecurityAutoEnabled() ) {
                 bool res = device->setConnSecurityAuto( sec->getSecurityAutoIOCap() );
                 fprintf(stderr, "****** Connecting Device: Using SecurityDetail.SEC AUTO %s, set OK %d\n", sec->toString().c_str(), res);
-            } else {
+            } else if( sec->isSecLevelOrIOCapSet() ) {
                 bool res = device->setConnSecurityBest( sec->getSecLevel(), sec->getIOCap() );
                 fprintf(stderr, "****** Connecting Device: Using SecurityDetail.Level+IOCap %s, set OK %d\n", sec->toString().c_str(), res);
+            } else {
+                bool res = device->setConnSecurityAuto( SMPIOCapability::KEYBOARD_ONLY );
+                fprintf(stderr, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY (%s) -> set OK %d\n", sec->toString().c_str(), res);
             }
         } else {
             fprintf(stderr, "****** Connecting Device: No SecurityDetail for %s\n", device->getAddressAndType().toString().c_str());

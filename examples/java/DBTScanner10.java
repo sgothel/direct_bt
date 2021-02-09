@@ -23,6 +23,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -124,6 +126,9 @@ public class DBTScanner10 {
     static void println(final String msg) {
         System.err.printf("[%,9d] %s%s", BTUtils.elapsedTimeMillis(), msg, System.lineSeparator());
     }
+    static void print(final String msg) {
+        System.err.printf("[%,9d] %s", BTUtils.elapsedTimeMillis(), msg);
+    }
 
     static void executeOffThread(final Runnable runobj, final String threadName, final boolean detach) {
         final Thread t = new Thread( runobj, threadName );
@@ -152,8 +157,10 @@ public class DBTScanner10 {
 
         public MyBTSecurityDetail(final BDAddressAndType addrAndType) { this.addrAndType = addrAndType; }
 
+        public boolean isSecLevelOrIOCapSet() {
+            return SMPIOCapability.UNSET != io_cap ||  BTSecurityLevel.UNSET != sec_level;
+        }
         public BTSecurityLevel getSecLevel() { return sec_level; }
-
         public SMPIOCapability getIOCap() { return io_cap; }
 
         public boolean isSecurityAutoEnabled() { return SMPIOCapability.UNSET != io_cap_auto; }
@@ -182,6 +189,44 @@ public class DBTScanner10 {
             return sec_detail;
         }
         static public String allToString() { return Arrays.toString( devicesSecDetail.values().toArray() ); }
+    }
+
+    @SuppressWarnings("unused")
+    private void passkeyInputAndSend(final BTDevice device) {
+        if( false ) {
+            print("****** INPUT passkey: ");
+            final BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            try {
+                final String in = br.readLine();
+                final int passkey = Integer.valueOf(in);
+                println("****** SEND passkey: "+passkey);
+                device.setPairingPasskey(passkey);
+            } catch( final Throwable t ) {
+                t.printStackTrace();
+            }
+        } else {
+            println("****** INPUT passkey requested: Not supported at runtime -> removal");
+            removeDevice(device);
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private void binaryInputAndSend(final BTDevice device) {
+        if( false ) {
+            print("****** INPUT binary [0, 1]: ");
+            final BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            try {
+                final String in = br.readLine();
+                final int v = Integer.valueOf(in);
+                println("****** SEND binary: "+v);
+                device.setPairingNumericComparison( 0 != v );
+            } catch( final Throwable t ) {
+                t.printStackTrace();
+            }
+        } else {
+            println("****** INPUT binary requested: Not supported at runtime -> removal");
+            removeDevice(device);
+        }
     }
 
     Collection<BDAddressAndType> devicesInProcessing = Collections.synchronizedCollection(new HashSet<>());
@@ -278,23 +323,23 @@ public class DBTScanner10 {
                     // next: PASSKEY_EXPECTED... or KEY_DISTRIBUTION
                     break;
                 case PASSKEY_EXPECTED: {
-                    int passkey_ = 0; // dummy
                     final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
                     if( null != sec && sec.getPairingPasskey() != NO_PASSKEY ) {
-                        passkey_ = sec.getPairingPasskey();
+                        final int passkey = sec.getPairingPasskey();
+                        executeOffThread( () -> { device.setPairingPasskey( passkey ); }, "DBT-SetPasskey-"+device.getAddressAndType(), true /* detach */);
+                    } else {
+                        executeOffThread( () -> { passkeyInputAndSend( device ); }, "DBT-PasskeyIO-"+device.getAddressAndType(), true /* detach */);
                     }
-                    final int passkey = passkey_;
-                    executeOffThread( () -> { device.setPairingPasskey( passkey ); }, "DBT-SetPasskey-"+device.getAddressAndType(), true /* detach */);
                     // next: KEY_DISTRIBUTION or FAILED
                   } break;
                 case NUMERIC_COMPARE_EXPECTED: {
-                    boolean comp_ = true; // dummy
                     final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
                     if( null != sec ) {
-                        comp_ = sec.getPairingNumericComparison();
+                        final boolean comp = sec.getPairingNumericComparison();
+                        executeOffThread( () -> { device.setPairingNumericComparison( comp ); }, "DBT-SetNumericComp-"+device.getAddressAndType(), true /* detach */);
+                    } else {
+                        executeOffThread( () -> { binaryInputAndSend( device ); }, "DBT-BinaryIO-"+device.getAddressAndType(), true /* detach */);
                     }
-                    final boolean comp = comp_;
-                    executeOffThread( () -> { device.setPairingNumericComparison( comp ); }, "DBT-SetNumericComp-"+device.getAddressAndType(), true /* detach */);
                     // next: KEY_DISTRIBUTION or FAILED
                   } break;
                 case OOB_EXPECTED:
@@ -378,9 +423,12 @@ public class DBTScanner10 {
                 if( sec.isSecurityAutoEnabled() ) {
                     final boolean res = device.setConnSecurityAuto( sec.getSecurityAutoIOCap() );
                     println("****** Connecting Device: Using SecurityDetail.SEC AUTO "+sec+" -> set OK "+res);
-                } else {
+                } else if( sec.isSecLevelOrIOCapSet() ) {
                     final boolean res = device.setConnSecurityBest(sec.getSecLevel(), sec.getIOCap());
                     println("****** Connecting Device: Using SecurityDetail.Level+IOCap "+sec+" -> set OK "+res);
+                } else {
+                    final boolean res = device.setConnSecurityAuto( SMPIOCapability.KEYBOARD_ONLY );
+                    println("****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY ("+sec+") -> set OK "+res);
                 }
             } else {
                 println("****** Connecting Device: No SecurityDetail for "+device.getAddressAndType());
