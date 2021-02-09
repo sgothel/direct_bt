@@ -33,6 +33,7 @@
 #include <iostream>
 
 #include "SMPTypes.hpp"
+#include "BTDevice.hpp"
 
 namespace direct_bt {
 
@@ -160,6 +161,15 @@ class SMPKeyBin {
 
         void setVerbose(bool v) noexcept { verbose = v; }
 
+        /**
+         * Returns `true` if
+         *
+         *  isVersionValid() && isSizeValid() &&
+         *  not BTSecurityLevel::UNSET &&
+         *  not SMPIOCapability::UNSET &&
+         *  has valid LTK, if at all
+         *
+         */
         constexpr bool isValid() const noexcept {
             return isVersionValid() && isSizeValid() &&
                    BTSecurityLevel::UNSET != sec_level &&
@@ -188,6 +198,49 @@ class SMPKeyBin {
         bool read(const std::string path, const BDAddressAndType& addrAndType_) {
             return read(path, getFileBasename(addrAndType_));
         }
+
+        /**
+         * If this instance isValid() and initiator or responder LTK available, i.e. hasLTKInit() or hasLTKResp(),
+         * the following procedure will be applied to the given BTDevice:
+         *
+         * - Setting security to ::BTSecurityLevel::ENC_ONLY and ::SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
+         * - Setting initiator LTK from getLTKInit() via BTDevice::setLongTermKeyInfo(), if available
+         * - Setting responder LTK from getLTKResp() via BTDevice::setLongTermKeyInfo(), if available
+         *
+         * If all three operations succeed, ::HCIStatusCode::SUCCESS will be returned,
+         * otherwise the appropriate status code below.
+         *
+         * ::BTSecurityLevel::ENC_ONLY is set to avoid a new SMP ::PairingMode negotiation,
+         * which is undesired as this instances' stored LTK shall be used for ::PairingMode::PRE_PAIRED.
+         *
+         * Method may fail for any of the following reasons:
+         *
+         *  Reason                                                   | ::HCIStatusCode                             |
+         *  :------------------------------------------------------  | :------------------------------------------ |
+         *  ! isValid()                                              | ::HCIStatusCode::INVALID_PARAMS             |
+         *  ! hasLTKInit() && ! hasLTKResp()                         | ::HCIStatusCode::INVALID_PARAMS             |
+         *  BTDevice::isValid() == false                             | ::HCIStatusCode::INVALID_PARAMS             |
+         *  BTDevice has already being connected                     | ::HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
+         *  BTDevice::connectLE() or BTDevice::connectBREDR() called | ::HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
+         *  BTDevice::setLongTermKeyInfo() failed                    | ::HCIStatusCode from BT adapter             |
+         *
+         * On failure and after BTDevice::setConnSecurity() has been performed, the ::BTSecurityLevel
+         * and ::SMPIOCapability pre-connect values have been written and must be set by the caller again.
+         *
+         * @param device the BTDevice for which this instances' LTK shall be applied
+         *
+         * @see isValid()
+         * @see hasLTKInit()
+         * @see hasLTKResp()
+         * @see getLTKInit()
+         * @see getLTKResp()
+         * @see ::BTSecurityLevel
+         * @see ::SMPIOCapability
+         * @see BTDevice::isValid()
+         * @see BTDevice::setConnSecurity()
+         * @see BTDevice::setLongTermKeyInfo()
+         */
+        HCIStatusCode apply(BTDevice & device) const noexcept;
 };
 
 } // namespace direct_bt

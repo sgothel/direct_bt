@@ -392,4 +392,88 @@ public class SMPKeyBin {
             }
             return read_count;
         }
+
+        /**
+         * If this instance isValid() and initiator or responder LTK available, i.e. hasLTKInit() or hasLTKResp(),
+         * the following procedure will be applied to the given BTDevice:
+         *
+         * - Setting security to BTSecurityLevel::ENC_ONLY and SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
+         * - Setting initiator LTK from getLTKInit() via BTDevice::setLongTermKeyInfo(), if available
+         * - Setting responder LTK from getLTKResp() via BTDevice::setLongTermKeyInfo(), if available
+         *
+         * If all three operations succeed, HCIStatusCode::SUCCESS will be returned,
+         * otherwise the appropriate status code below.
+         *
+         * BTSecurityLevel::ENC_ONLY is set to avoid a new SMP PairingMode negotiation,
+         * which is undesired as this instances' stored LTK shall be used for PairingMode::PRE_PAIRED.
+         *
+         * Method may fail for any of the following reasons:
+         *
+         *  Reason                                                   | HCIStatusCode                             |
+         *  :------------------------------------------------------  | :---------------------------------------- |
+         *  ! isValid()                                              | HCIStatusCode::INVALID_PARAMS             |
+         *  ! hasLTKInit() && ! hasLTKResp()                         | HCIStatusCode::INVALID_PARAMS             |
+         *  BTDevice::isValid() == false                             | HCIStatusCode::INVALID_PARAMS             |
+         *  BTDevice has already being connected                     | HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
+         *  BTDevice::connectLE() or BTDevice::connectBREDR() called | HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
+         *  BTDevice::setLongTermKeyInfo() failed                    | HCIStatusCode from BT adapter             |
+         *
+         * On failure and after BTDevice::setConnSecurity() has been performed, the ::BTSecurityLevel
+         * and ::SMPIOCapability pre-connect values have been written and must be set by the caller again.
+         *
+         * @param device the BTDevice for which this instances' LTK shall be applied
+         *
+         * @see isValid()
+         * @see hasLTKInit()
+         * @see hasLTKResp()
+         * @see getLTKInit()
+         * @see getLTKResp()
+         * @see BTSecurityLevel
+         * @see SMPIOCapability
+         * @see BTDevice::isValid()
+         * @see BTDevice::setConnSecurity()
+         * @see BTDevice::setLongTermKeyInfo()
+         */
+        final public HCIStatusCode apply(final BTDevice device) {
+            HCIStatusCode res = HCIStatusCode.SUCCESS;
+
+            if( !isValid() || ( !hasLTKInit() && !hasLTKResp() ) ) {
+                res = HCIStatusCode.INVALID_PARAMS;
+                if( verbose ) {
+                    System.err.println("****** APPLY SMPKeyBin failed: SMPKeyBin Status: "+res+", "+toString());
+                }
+                return res;
+            }
+            if( !device.isValid() ) {
+                res = HCIStatusCode.INVALID_PARAMS;
+                if( verbose ) {
+                    System.err.println("****** APPLY SMPKeyBin failed: Device Invalid: "+res+", "+toString()+", "+device);
+                }
+                return res;
+            }
+
+            if( !device.setConnSecurity(BTSecurityLevel.ENC_ONLY, SMPIOCapability.NO_INPUT_NO_OUTPUT) ) {
+                res = HCIStatusCode.CONNECTION_ALREADY_EXISTS;
+                if( verbose ) {
+                    System.err.println("****** APPLY SMPKeyBin failed: Device Connected/ing: "+res+", "+toString()+", "+device);
+                }
+                return res;
+            }
+
+            if( hasLTKInit() ) {
+                res = device.setLongTermKeyInfo( getLTKInit() );
+                if( HCIStatusCode.SUCCESS != res && verbose ) {
+                    System.err.println("****** APPLY SMPKeyBin failed: Init-LTK Upload: "+res+", "+toString()+", "+device);
+                }
+            }
+
+            if( HCIStatusCode.SUCCESS == res && hasLTKResp() ) {
+                res = device.setLongTermKeyInfo( getLTKResp() );
+                if( HCIStatusCode.SUCCESS != res && verbose ) {
+                    System.err.println("****** APPLY SMPKeyBin failed: Resp-LTK Upload: "+res+", "+toString()+", "+device);
+                }
+            }
+
+            return res;
+        }
 };

@@ -198,3 +198,52 @@ bool SMPKeyBin::read(const std::string path, const std::string basename) {
     }
     return isValid();
 }
+
+HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
+    HCIStatusCode res = HCIStatusCode::SUCCESS;
+
+    if( !isValid() || ( !hasLTKInit() && !hasLTKResp() ) ) {
+        res = HCIStatusCode::INVALID_PARAMS;
+        if( verbose ) {
+            fprintf(stderr, "****** APPLY SMPKeyBin failed: SMPKeyBin Status: %s, %s\n",
+                    getHCIStatusCodeString(res).c_str(), this->toString().c_str());
+        }
+        return res;
+    }
+    if( !device.isValid() ) {
+        res = HCIStatusCode::INVALID_PARAMS;
+        if( verbose ) {
+            fprintf(stderr, "****** APPLY SMPKeyBin failed: Device Invalid: %s, %s, %s\n",
+                    getHCIStatusCodeString(res).c_str(), this->toString().c_str(), device.toString().c_str());
+        }
+        return res;
+    }
+
+    if( !device.setConnSecurity(BTSecurityLevel::ENC_ONLY, SMPIOCapability::NO_INPUT_NO_OUTPUT) ) {
+        res = HCIStatusCode::CONNECTION_ALREADY_EXISTS;
+        if( verbose ) {
+            fprintf(stderr, "****** APPLY SMPKeyBin failed: Device Connected/ing: %s, %s, %s\n",
+                    getHCIStatusCodeString(res).c_str(), this->toString().c_str(), device.toString().c_str());
+        }
+        return res;
+    }
+
+    if( hasLTKInit() ) {
+        res = device.setLongTermKeyInfo( getLTKInit() );
+        if( HCIStatusCode::SUCCESS != res && verbose ) {
+            fprintf(stderr, "****** APPLY SMPKeyBin failed: Init-LTK Upload: %s, %s, %s\n",
+                    getHCIStatusCodeString(res).c_str(), this->toString().c_str(), device.toString().c_str());
+        }
+    }
+
+    if( HCIStatusCode::SUCCESS == res && hasLTKResp() ) {
+        res = device.setLongTermKeyInfo( getLTKResp() );
+        if( HCIStatusCode::SUCCESS != res && verbose ) {
+            fprintf(stderr, "****** APPLY SMPKeyBin failed: Resp-LTK Upload: %s, %s, %s\n",
+                    getHCIStatusCodeString(res).c_str(), this->toString().c_str(), device.toString().c_str());
+        }
+    }
+
+    return res;
+}
+

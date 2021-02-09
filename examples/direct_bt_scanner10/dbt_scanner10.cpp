@@ -470,21 +470,8 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
     {
         SMPKeyBin smpKeyBin;
         smpKeyBin.setVerbose( true );
-        if( smpKeyBin.read(KEY_PATH, device->getAddressAndType()) &&
-            device->setConnSecurity(smpKeyBin.getSecLevel(), smpKeyBin.getIOCap()) )
-        {
-            useSMPKeyBin = true;
-
-            if( smpKeyBin.hasLTKInit() &&
-                HCIStatusCode::SUCCESS != device->setLongTermKeyInfo(smpKeyBin.getLTKInit()) )
-            {
-                useSMPKeyBin = false; // error setting LTK init
-            }
-            if( smpKeyBin.hasLTKResp() &&
-                HCIStatusCode::SUCCESS != device->setLongTermKeyInfo(smpKeyBin.getLTKResp()) )
-            {
-                useSMPKeyBin = false; // error setting LTK resp
-            }
+        if( smpKeyBin.read(KEY_PATH, device->getAddressAndType()) ) {
+            useSMPKeyBin = HCIStatusCode::SUCCESS == smpKeyBin.apply(*device);
         }
     }
     if( !useSMPKeyBin ) {
