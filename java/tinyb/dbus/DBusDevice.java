@@ -168,6 +168,9 @@ public class DBusDevice extends DBusObject implements BTDevice
     public native boolean remove() throws BTException;
 
     @Override
+    public final boolean isValid() { return super.isValid(); }
+
+    @Override
     public native boolean cancelPairing() throws BTException;
 
     @Override

@@ -555,6 +555,15 @@ public interface BTDevice extends BTObject
      */
     boolean remove() throws BTException;
 
+    /**
+     * Returns whether the device is valid, i.e. reference is valid
+     * but not necessarily {@link #getConnected() connected}.
+     * @return true if this device's references are valid and hasn't been {@link #remove()}'ed
+     * @see #remove()
+     * @since 2.2.0
+     */
+    public boolean isValid();
+
     /** Cancels an initiated pairing operation
       * @return TRUE if the paring is cancelled successfully
       */
