@@ -826,6 +826,7 @@ bool BTManager::uploadConnParam(const uint16_t dev_id, const BDAddressAndType & 
 }
 
 MgmtStatus BTManager::uploadLinkKey(const uint16_t dev_id, const bool debug_keys, const MgmtLinkKeyInfo &key) noexcept {
+#if USE_LINUX_BT_SECURITY
     MgmtLoadLinkKeyCmd req(dev_id, debug_keys, key);
     std::unique_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -833,9 +834,14 @@ MgmtStatus BTManager::uploadLinkKey(const uint16_t dev_id, const bool debug_keys
         return res1.getStatus();
     }
     return MgmtStatus::TIMEOUT;
+#else
+    return MgmtStatus::NOT_SUPPORTED;
+#endif
+
 }
 
 HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKeyInfo &key) noexcept {
+#if USE_LINUX_BT_SECURITY
     MgmtLoadLongTermKeyCmd req(dev_id, key);
     HCIStatusCode res;
     std::unique_ptr<MgmtEvent> reply = sendWithReply(req);
@@ -853,10 +859,14 @@ HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLong
     DBG_PRINT("DBTManager::uploadLongTermKeyInfo[%d]: %s, result %s", dev_id,
             req.toString().c_str(), getHCIStatusCodeString(res).c_str());
     return res;
+#else
+    return HCIStatusCode::NOT_SUPPORTED;
+#endif
 }
 
 HCIStatusCode BTManager::uploadLongTermKeyInfo(const uint16_t dev_id, const BDAddressAndType & addressAndType,
                                                 const SMPLongTermKeyInfo& ltk) noexcept {
+#if USE_LINUX_BT_SECURITY
     const MgmtLTKType key_type = getMgmtLTKType(ltk.properties);
     const MgmtLongTermKeyInfo mgmt_ltk_info { addressAndType.address, addressAndType.type, key_type,
                                               ltk.isResponder(), ltk.enc_size, ltk.ediv, ltk.rand, ltk.ltk };
@@ -877,9 +887,13 @@ HCIStatusCode BTManager::uploadLongTermKeyInfo(const uint16_t dev_id, const BDAd
     DBG_PRINT("DBTManager::uploadLongTermKeyInfo[%d]: %s -> %s, result %s", dev_id,
             ltk.toString().c_str(), req.toString().c_str(), getHCIStatusCodeString(res).c_str());
     return res;
+#else
+    return HCIStatusCode::NOT_SUPPORTED;
+#endif
 }
 
 MgmtStatus BTManager::userPasskeyReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const uint32_t passkey) noexcept {
+#if USE_LINUX_BT_SECURITY
     MgmtUserPasskeyReplyCmd cmd(dev_id, addressAndType, passkey);
     std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -888,9 +902,13 @@ MgmtStatus BTManager::userPasskeyReply(const uint16_t dev_id, const BDAddressAnd
         return res1.getStatus();
     }
     return MgmtStatus::TIMEOUT;
+#else
+    return MgmtStatus::NOT_SUPPORTED;
+#endif
 }
 
 MgmtStatus BTManager::userPasskeyNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept {
+#if USE_LINUX_BT_SECURITY
     MgmtUserPasskeyNegativeReplyCmd cmd(dev_id, addressAndType);
     std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -899,9 +917,13 @@ MgmtStatus BTManager::userPasskeyNegativeReply(const uint16_t dev_id, const BDAd
         return res1.getStatus();
     }
     return MgmtStatus::TIMEOUT;
+#else
+    return MgmtStatus::NOT_SUPPORTED;
+#endif
 }
 
 MgmtStatus BTManager::userConfirmReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool positive) noexcept {
+#if USE_LINUX_BT_SECURITY
     std::unique_ptr<MgmtEvent> res;
     if( positive ) {
         MgmtUserConfirmReplyCmd cmd(dev_id, addressAndType);
@@ -916,14 +938,22 @@ MgmtStatus BTManager::userConfirmReply(const uint16_t dev_id, const BDAddressAnd
         return res1.getStatus();
     }
     return MgmtStatus::TIMEOUT;
+#else
+    return MgmtStatus::NOT_SUPPORTED;
+#endif
 }
 
 bool BTManager::pairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPIOCapability iocap) noexcept {
+#if USE_LINUX_BT_SECURITY
     MgmtPairDeviceCmd cmd(dev_id, addressAndType, iocap);
     return send(cmd);
+#else
+    return false;
+#endif
 }
 
 MgmtStatus BTManager::unpairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool disconnect) noexcept {
+#if USE_LINUX_BT_SECURITY
     MgmtUnpairDeviceCmd cmd(dev_id, addressAndType, disconnect);
     std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
 
@@ -933,6 +963,9 @@ MgmtStatus BTManager::unpairDevice(const uint16_t dev_id, const BDAddressAndType
         return res1.getStatus();
     }
     return MgmtStatus::TIMEOUT;
+#else
+    return MgmtStatus::NOT_SUPPORTED;
+#endif
 }
 
 bool BTManager::isDeviceWhitelisted(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept {

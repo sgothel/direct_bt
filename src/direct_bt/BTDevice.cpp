@@ -1105,9 +1105,15 @@ HCIStatusCode BTDevice::setLongTermKeyInfo(const SMPLongTermKeyInfo& ltk) noexce
     } else {
         pairing_data.ltk_init = ltk;
     }
+#if USE_LINUX_BT_SECURITY
     BTManager & mngr = adapter.getManager();
     HCIStatusCode res = mngr.uploadLongTermKeyInfo(adapter.dev_id, addressAndType, ltk);
     return res;
+#elif SMP_SUPPORTED_BY_OS
+    return HCIStatusCode::NOT_SUPPORTED;
+#else
+    return HCIStatusCode::NOT_SUPPORTED;
+#endif
 }
 
 SMPSignatureResolvingKeyInfo BTDevice::getSignatureResolvingKeyInfo(const bool responder) const noexcept {
@@ -1127,6 +1133,7 @@ HCIStatusCode BTDevice::pair(const SMPIOCapability io_cap) noexcept {
         DBG_PRINT("DBTDevice::pairDevice: io %s, invalid value.", getSMPIOCapabilityString(io_cap).c_str());
         return HCIStatusCode::INVALID_PARAMS;
     }
+#if USE_LINUX_BT_SECURITY
     BTManager& mngr = adapter.getManager();
 
     DBG_PRINT("DBTDevice::pairDevice: Start: io %s, %s", getSMPIOCapabilityString(io_cap).c_str(), toString(false).c_str());
@@ -1140,6 +1147,11 @@ HCIStatusCode BTDevice::pair(const SMPIOCapability io_cap) noexcept {
     }
     DBG_PRINT("DBTDevice::pairDevice: End: io %s, %s", getSMPIOCapabilityString(io_cap).c_str(), toString(false).c_str());
     return res ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
+#elif SMP_SUPPORTED_BY_OS
+    return HCIStatusCode::NOT_SUPPORTED;
+#else
+    return HCIStatusCode::NOT_SUPPORTED;
+#endif
 }
 
 bool BTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept {
@@ -1269,11 +1281,17 @@ HCIStatusCode BTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
     jau::sc_atomic_critical sync(sync_pairing);
 
     if( isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) ) {
+#if USE_LINUX_BT_SECURITY
         BTManager& mngr = adapter.getManager();
         MgmtStatus res = mngr.userPasskeyReply(adapter.dev_id, addressAndType, passkey);
         DBG_PRINT("DBTDevice:mgmt:SMP: PASSKEY '%d', state %s, result %s",
             passkey, getSMPPairingStateString(pairing_data.state).c_str(), getMgmtStatusString(res).c_str());
         return HCIStatusCode::SUCCESS;
+#elif SMP_SUPPORTED_BY_OS
+    return HCIStatusCode::NOT_SUPPORTED;
+#else
+    return HCIStatusCode::NOT_SUPPORTED;
+#endif
     } else {
         ERR_PRINT("DBTDevice:mgmt:SMP: PASSKEY '%d', state %s, SKIPPED (wrong state)",
             passkey, getSMPPairingStateString(pairing_data.state).c_str());
@@ -1286,11 +1304,17 @@ HCIStatusCode BTDevice::setPairingPasskeyNegative() noexcept {
     jau::sc_atomic_critical sync(sync_pairing);
 
     if( isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) ) {
+#if USE_LINUX_BT_SECURITY
         BTManager& mngr = adapter.getManager();
         MgmtStatus res = mngr.userPasskeyNegativeReply(adapter.dev_id, addressAndType);
         DBG_PRINT("DBTDevice:mgmt:SMP: PASSKEY NEGATIVE, state %s, result %s",
             getSMPPairingStateString(pairing_data.state).c_str(), getMgmtStatusString(res).c_str());
         return HCIStatusCode::SUCCESS;
+#elif SMP_SUPPORTED_BY_OS
+    return HCIStatusCode::NOT_SUPPORTED;
+#else
+    return HCIStatusCode::NOT_SUPPORTED;
+#endif
     } else {
         ERR_PRINT("DBTDevice:mgmt:SMP: PASSKEY NEGATIVE, state %s, SKIPPED (wrong state)",
             getSMPPairingStateString(pairing_data.state).c_str());
@@ -1303,11 +1327,17 @@ HCIStatusCode BTDevice::setPairingNumericComparison(const bool positive) noexcep
     jau::sc_atomic_critical sync(sync_pairing);
 
     if( isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::NUMERIC_COMPARE_EXPECTED) ) {
+#if USE_LINUX_BT_SECURITY
         BTManager& mngr = adapter.getManager();
         MgmtStatus res = mngr.userConfirmReply(adapter.dev_id, addressAndType, positive);
         DBG_PRINT("DBTDevice:mgmt:SMP: CONFIRM '%d', state %s, result %s",
             positive, getSMPPairingStateString(pairing_data.state).c_str(), getMgmtStatusString(res).c_str());
         return HCIStatusCode::SUCCESS;
+#elif SMP_SUPPORTED_BY_OS
+    return HCIStatusCode::NOT_SUPPORTED;
+#else
+    return HCIStatusCode::NOT_SUPPORTED;
+#endif
     } else {
         ERR_PRINT("DBTDevice:mgmt:SMP: CONFIRM '%d', state %s, SKIPPED (wrong state)",
             positive, getSMPPairingStateString(pairing_data.state).c_str());
