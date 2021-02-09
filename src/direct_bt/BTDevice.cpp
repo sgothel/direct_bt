@@ -440,7 +440,7 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
                     if( hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT <= td_disconnect ) {
                         // timeout
                         ERR_PRINT("DBTDevice::connectLE: SEC AUTO.%d.4 Timeout Disconnect td_pairing %d ms: %s",
-                                smp_auto_count, std::to_string(td_disconnect), toString(false).c_str());
+                                smp_auto_count, td_disconnect, toString(false).c_str());
                         pairing_data.ioCap_auto = SMPIOCapability::UNSET;
                         statusConnect = HCIStatusCode::INTERNAL_TIMEOUT;
                         adapter.unlockConnect(*this);
