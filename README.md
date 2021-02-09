@@ -343,6 +343,13 @@ Changes
 
 * TODO
 
+**2.2.4**
+
+* Providing full featured `SMPKeyBin` for LTK, CSRK and secure connection param setup persistence and upload.
+* Added Auto Security mode, negotiating the security setup with any device.
+* Bugfixes in HCIHandler and ACL/SMP packet processing.
+* Enhanced robusteness of underlying C++ API and implementation.
+
 **2.2.00**
 
 * Kicked off junit testing for Java implementation
