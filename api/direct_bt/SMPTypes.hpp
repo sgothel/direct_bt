@@ -514,7 +514,7 @@ namespace direct_bt {
             bzero(reinterpret_cast<void *>(this), sizeof(SMPLongTermKeyInfo));
         }
 
-        constexpr_func_cxx20 std::string toString() const noexcept { // hex-fmt aligned with btmon
+        std::string toString() const noexcept { // hex-fmt aligned with btmon
             return "LTK[props "+getPropertyMaskString(properties)+", enc_size "+std::to_string(enc_size)+
                    ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), false /* lsbFirst */)+
                    ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), false /* lsbFirst */)+
@@ -748,10 +748,10 @@ namespace direct_bt {
             template<class T>
             static T* clone(const T& source) noexcept { return new T(source); }
 
-            uint64_t getTimestamp() const noexcept { return ts_creation; }
+            constexpr uint64_t getTimestamp() const noexcept { return ts_creation; }
 
             /** SMP Command Codes Vol 3, Part H (SM): 3.3 */
-            inline Opcode getOpcode() const noexcept {
+            constexpr Opcode getOpcode() const noexcept {
                 return static_cast<Opcode>(pdu.get_uint8_nc(0));
             }
             std::string getOpcodeString() const noexcept { return getOpcodeString(getOpcode()); }
@@ -769,7 +769,7 @@ namespace direct_bt {
              *
              * @see SMPPDUMsg::getDataSize()
              */
-            jau::nsize_t getPDUParamSize() const noexcept {
+            constexpr jau::nsize_t getPDUParamSize() const noexcept {
                 return pdu.getSize() - 1 /* opcode */;
             }
 
@@ -779,7 +779,7 @@ namespace direct_bt {
              *
              * @see SMPPDUMsg::getPDUParamSize()
              */
-            virtual jau::nsize_t getDataSize() const noexcept {
+            constexpr_cxx20 virtual jau::nsize_t getDataSize() const noexcept {
                 return getPDUParamSize();
             }
 
@@ -791,7 +791,7 @@ namespace direct_bt {
              */
             constexpr jau::nsize_t getDataOffset() const noexcept { return 1; /* default: opcode */ }
 
-            virtual std::string getName() const noexcept {
+            constexpr_cxx20 virtual std::string getName() const noexcept {
                 return "SMPPDUMsg";
             }
 
@@ -910,7 +910,7 @@ namespace direct_bt {
                 pdu.put_uint8_nc(6, direct_bt::number(responder_key_dist));
             }
 
-            jau::nsize_t getDataSize() const noexcept override {
+            constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
                 return 6;
             }
 
@@ -921,7 +921,7 @@ namespace direct_bt {
              * </pre>
              * @see IOCapability
              */
-            SMPIOCapability getIOCapability() const noexcept {
+            constexpr SMPIOCapability getIOCapability() const noexcept {
                 return static_cast<SMPIOCapability>(pdu.get_uint8_nc(1));
             }
 
@@ -932,7 +932,7 @@ namespace direct_bt {
              * </pre>
              * @see OOBDataFlag
              */
-            SMPOOBDataFlag getOOBDataFlag() const noexcept {
+            constexpr SMPOOBDataFlag getOOBDataFlag() const noexcept {
                 return static_cast<SMPOOBDataFlag>(pdu.get_uint8_nc(2));
             }
 
@@ -955,7 +955,7 @@ namespace direct_bt {
              * This value defines the maximum encryption key size in octets that the device
              * can support. The maximum key size shall be in the range 7 to 16 octets.
              */
-            uint8_t getMaxEncryptionKeySize() const noexcept {
+            constexpr uint8_t getMaxEncryptionKeySize() const noexcept {
                 return pdu.get_uint8_nc(4);
             }
             /**
@@ -985,7 +985,7 @@ namespace direct_bt {
                 return responder_key_dist;
             }
 
-            std::string getName() const noexcept override {
+            constexpr_cxx20 std::string getName() const noexcept override {
                 return "SMPPairingMsg";
             }
 
@@ -1049,7 +1049,7 @@ namespace direct_bt {
                 jau::put_uint128(pdu.get_wptr(), 1, confirm_value);
             }
 
-            jau::nsize_t getDataSize() const noexcept override {
+            constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
                 return 16;
             }
 
@@ -1066,9 +1066,9 @@ namespace direct_bt {
              * See Vol 3, Part H, 2.3.5.6 SM - Pairing algo - LE Secure Connections pairing phase 2.
              * </p>
              */
-            jau::uint128_t getConfirmValue() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128_t getConfirmValue() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
-            std::string getName() const noexcept override {
+            constexpr_cxx20 std::string getName() const noexcept override {
                 return "SMPPairConfirm";
             }
 
@@ -1144,7 +1144,7 @@ namespace direct_bt {
                 jau::put_uint128(pdu.get_wptr(), 1, random_value);
             }
 
-            jau::nsize_t getDataSize() const noexcept override {
+            constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
                 return 16;
             }
 
@@ -1160,9 +1160,9 @@ namespace direct_bt {
              * the initiating device sends Na and the responding device sends Nb.
              * </p>
              */
-            jau::uint128_t getRand() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128_t getRand() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
-            std::string getName() const noexcept override {
+            constexpr_cxx20 std::string getName() const noexcept override {
                 return "SMPPairRand";
             }
 
@@ -1221,15 +1221,15 @@ namespace direct_bt {
                 pdu.put_uint8_nc(1, number(rc));
             }
 
-            jau::nsize_t getDataSize() const noexcept override {
+            constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
                 return 1;
             }
 
-            ReasonCode getReasonCode() const noexcept {
+            constexpr ReasonCode getReasonCode() const noexcept {
                 return static_cast<ReasonCode>(pdu.get_uint8_nc(1));
             }
 
-            std::string getName() const noexcept override {
+            constexpr_cxx20 std::string getName() const noexcept override {
                 return "SMPPairFailed";
             }
 
@@ -1279,21 +1279,21 @@ namespace direct_bt {
                 jau::put_uint256(pdu.get_wptr(), 1+32, pub_key_y);
             }
 
-            jau::nsize_t getDataSize() const noexcept override {
+            constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
                 return 32+32;
             }
 
             /**
              * Returns the 256-bit Public Key X value (32 octets)
              */
-            jau::uint256_t getPubKeyX() const noexcept { return jau::get_uint256(pdu.get_ptr(), 1); }
+            constexpr jau::uint256_t getPubKeyX() const noexcept { return jau::get_uint256(pdu.get_ptr(), 1); }
 
             /**
              * Returns the 256-bit Public Key Y value (32 octets)
              */
-            jau::uint256_t getPubKeyY() const noexcept { return jau::get_uint256(pdu.get_ptr(), 1+32); }
+            constexpr jau::uint256_t getPubKeyY() const noexcept { return jau::get_uint256(pdu.get_ptr(), 1+32); }
 
-            std::string getName() const noexcept override {
+            constexpr_cxx20 std::string getName() const noexcept override {
                 return "SMPPairPubKey";
             }
 
@@ -1342,16 +1342,16 @@ namespace direct_bt {
                 jau::put_uint128(pdu.get_wptr(), 1, dhkey_check_values);
             }
 
-            jau::nsize_t getDataSize() const noexcept override {
+            constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
                 return 16;
             }
 
             /**
              * Returns the 128-bit DHKey Check value (16 octets)
              */
-            jau::uint128_t getDHKeyCheck() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128_t getDHKeyCheck() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
-            std::string getName() const noexcept override {
+            constexpr_cxx20 std::string getName() const noexcept override {
                 return "SMPPairDHKeyCheck";
             }
 
@@ -1403,15 +1403,15 @@ namespace direct_bt {
                 pdu.put_uint8_nc(1, number(tc));
             }
 
-            jau::nsize_t getDataSize() const noexcept override {
+            constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
                 return 1;
             }
 
-            TypeCode getTypeCode() const noexcept {
+            constexpr TypeCode getTypeCode() const noexcept {
                 return static_cast<TypeCode>(pdu.get_uint8_nc(1));
             }
 
-            std::string getName() const noexcept override {
+            constexpr_cxx20 std::string getName() const noexcept override {
                 return "SMPPasskeyNotify";
             }
 
@@ -1465,7 +1465,7 @@ namespace direct_bt {
                 jau::put_uint128(pdu.get_wptr(), 1, long_term_key);
             }
 
-            jau::nsize_t getDataSize() const noexcept override {
+            constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
                 return 16;
             }
 
@@ -1476,9 +1476,9 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.3 SM - LE legacy pairing - generation of LTK, EDIV and Rand.
              * </p>
              */
-            jau::uint128_t getLTK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128_t getLTK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
-            std::string getName() const noexcept override {
+            constexpr_cxx20 std::string getName() const noexcept override {
                 return "SMPEncInfo";
             }
 
@@ -1535,7 +1535,7 @@ namespace direct_bt {
                 jau::put_uint64(pdu.get_wptr(), 1+2, rand);
             }
 
-            jau::nsize_t getDataSize() const noexcept override {
+            constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
                 return 10;
             }
 
@@ -1545,7 +1545,7 @@ namespace direct_bt {
              * See Vol 3, Part H, 2.4.2.3 SM - Generation of CSRK - LE legacy pairing - generation of LTK, EDIV and Rand.
              * </p>
              */
-            uint16_t getEDIV() const noexcept { return jau::get_uint16(pdu.get_ptr(), 1); }
+            constexpr uint16_t getEDIV() const noexcept { return jau::get_uint16(pdu.get_ptr(), 1); }
 
             /**
              * Returns the 64-bit Rand value (8 octets) being distributed
@@ -1553,9 +1553,9 @@ namespace direct_bt {
              * See Vol 3, Part H, 2.4.2.3 SM - Generation of CSRK - LE legacy pairing - generation of LTK, EDIV and Rand.
              * </p>
              */
-            uint64_t getRand() const noexcept { return jau::get_uint64(pdu.get_ptr(), 1+2); }
+            constexpr uint64_t getRand() const noexcept { return jau::get_uint64(pdu.get_ptr(), 1+2); }
 
-            std::string getName() const noexcept override {
+            constexpr_cxx20 std::string getName() const noexcept override {
                 return "SMPMasterIdent";
             }
 
@@ -1612,7 +1612,7 @@ namespace direct_bt {
                 jau::put_uint128(pdu.get_wptr(), 1, identity_resolving_key);
             }
 
-            jau::nsize_t getDataSize() const noexcept override {
+            constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
                 return 16;
             }
 
@@ -1623,9 +1623,9 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.1 SM - Definition of keys and values - Generation of IRK.
              * </p>
              */
-            jau::uint128_t getIRK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128_t getIRK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
-            std::string getName() const noexcept override {
+            constexpr_cxx20 std::string getName() const noexcept override {
                 return "SMPIdentInfo";
             }
 
@@ -1678,21 +1678,21 @@ namespace direct_bt {
                 pdu.put_eui48_nc(1+1, addr);
             }
 
-            jau::nsize_t getDataSize() const noexcept override {
+            constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
                 return 1+6;
             }
 
             /**
              * Returns whether the device address is static random (true) or public (false).
              */
-            bool isStaticRandomAddress() const noexcept { return pdu.get_uint16_nc(1) == 0x01; }
+            constexpr bool isStaticRandomAddress() const noexcept { return pdu.get_uint16_nc(1) == 0x01; }
 
             /**
              * Returns the device address
              */
-            EUI48 getAddress() const noexcept { return pdu.get_eui48_nc(1+1); }
+            inline EUI48 getAddress() const noexcept { return pdu.get_eui48_nc(1+1); }
 
-            std::string getName() const noexcept override {
+            constexpr_cxx20 std::string getName() const noexcept override {
                 return "SMPIdentAddrInfo";
             }
 
@@ -1748,7 +1748,7 @@ namespace direct_bt {
                 jau::put_uint128(pdu.get_wptr(), 1, signature_key);
             }
 
-            jau::nsize_t getDataSize() const noexcept override {
+            constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
                 return 16;
             }
 
@@ -1759,9 +1759,9 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.2 SM - Definition of keys and values - Generation of CSRK.
              * </p>
              */
-            jau::uint128_t getCSRK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128_t getCSRK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
-            std::string getName() const noexcept override {
+            constexpr_cxx20 std::string getName() const noexcept override {
                 return "SMPSignInfo";
             }
 
@@ -1806,7 +1806,7 @@ namespace direct_bt {
                 pdu.put_uint8_nc(1, direct_bt::number(authReqMask));
             }
 
-            jau::nsize_t getDataSize() const noexcept override {
+            constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
                 return 1;
             }
 
@@ -1826,7 +1826,7 @@ namespace direct_bt {
                 return isSMPAuthReqBitSet(authReqMask, bit);
             }
 
-            std::string getName() const noexcept override {
+            constexpr_cxx20 std::string getName() const noexcept override {
                 return "SMPSecurityReq";
             }
 

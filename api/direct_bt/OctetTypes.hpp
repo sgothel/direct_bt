@@ -195,12 +195,12 @@ namespace direct_bt {
                 return std::string( (const char*)(_data+i) );
             }
             /** Assumes a null terminated string */
-            constexpr_func_cxx20 std::string get_string_nc(const jau::nsize_t i) const noexcept {
+            constexpr_cxx20 std::string get_string_nc(const jau::nsize_t i) const noexcept {
                 return std::string( (const char*)(_data+i) );
             }
 
             /** Assumes a string with defined length, not necessarily null terminated */
-            std::string get_string(const jau::nsize_t i, const jau::nsize_t length) const {
+            inline std::string get_string(const jau::nsize_t i, const jau::nsize_t length) const {
                 check_range(i, length);
                 return std::string( (const char*)(_data+i), length );
             }
@@ -380,12 +380,13 @@ namespace direct_bt {
                 direct_bt::put_uuid(data(), i, v, true /* littleEndian */);
             }
 
-            constexpr uint8_t * get_wptr() noexcept { return data(); }
+            inline uint8_t * get_wptr() noexcept { return data(); }
+
             uint8_t * get_wptr(const jau::nsize_t i) {
                 check_range(i, 1);
                 return data() + i;
             }
-            constexpr uint8_t * get_wptr_nc(const jau::nsize_t i) noexcept {
+            inline uint8_t * get_wptr_nc(const jau::nsize_t i) noexcept {
                 return data() + i;
             }
 
@@ -410,8 +411,8 @@ namespace direct_bt {
                 }
             }
 
-            jau::nsize_t getSize() const noexcept { return size; }
-            jau::nsize_t getOffset() const noexcept { return offset; }
+            constexpr jau::nsize_t getSize() const noexcept { return size; }
+            constexpr jau::nsize_t getOffset() const noexcept { return offset; }
             const TOctets& getParent() const noexcept { return parent; }
 
             uint8_t get_uint8(const jau::nsize_t i) const {
