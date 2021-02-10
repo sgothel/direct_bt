@@ -559,7 +559,7 @@ std::string ManufactureSpecificData::toString() const noexcept {
     X(EIRDataType,DEVICE_ID) \
     X(EIRDataType,SERVICE_UUID)
 
-std::string direct_bt::getEIRDataBitString(const EIRDataType bit) noexcept {
+static std::string _getEIRDataBitStr(const EIRDataType bit) noexcept {
     switch(bit) {
     EIRDATATYPE_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
@@ -575,7 +575,7 @@ std::string direct_bt::getEIRDataMaskString(const EIRDataType mask) noexcept {
         const EIRDataType settingBit = static_cast<EIRDataType>( one << i );
         if( EIRDataType::NONE != ( mask & settingBit ) ) {
             if( has_pre ) { out.append(", "); }
-            out.append(getEIRDataBitString(settingBit));
+            out.append(_getEIRDataBitStr(settingBit));
             has_pre = true;
         }
     }

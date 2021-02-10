@@ -86,22 +86,6 @@ std::string direct_bt::getSMPOOBDataFlagString(const SMPOOBDataFlag v) noexcept 
 }
 
 
-std::string direct_bt::getSMPAuthReqBitString(const SMPAuthReqs bit) noexcept {
-    switch(bit) {
-        case SMPAuthReqs::NONE:                return "none";
-        case SMPAuthReqs::BONDING:             return "Bonding";
-        case SMPAuthReqs::BONDING_RFU:         return "Bonding_RFU";
-        case SMPAuthReqs::MITM:                return "MITM";
-        case SMPAuthReqs::SECURE_CONNECTIONS:  return "SC";
-        case SMPAuthReqs::KEYPRESS:            return "Keypresses";
-        case SMPAuthReqs::CT2_H7_FUNC_SUPPORT: return "CT2_H7";
-        case SMPAuthReqs::RFU_1:               return "RFU_1";
-        case SMPAuthReqs::RFU_2:               return "RFU_2";
-        default: ; // fall through intended
-    }
-    return "Unknown AuthRequirements bit";
-}
-
 std::string direct_bt::getSMPAuthReqMaskString(const SMPAuthReqs mask) noexcept {
     std::string out("[");
     if( isSMPAuthReqBitSet(mask, SMPAuthReqs::BONDING) ) {
@@ -268,9 +252,9 @@ PairingMode direct_bt::getPairingMode(const bool use_sc,
     X(RFU_3) \
     X(RFU_4)
 
-#define CASE_TO_STRING_KEYDISTFMT(V) case SMPKeyType::V: return #V;
+#define CASE_TO_STRING_KEYDISTFMT(V) case direct_bt::SMPKeyType::V: return #V;
 
-std::string direct_bt::getSMPKeyTypeBitString(const SMPKeyType bit) noexcept {
+static std::string _getSMPKeyTypeBitStr(const direct_bt::SMPKeyType bit) noexcept {
     switch(bit) {
         KEYDISTFMT_ENUM(CASE_TO_STRING_KEYDISTFMT)
         default: ; // fall through intended
@@ -286,7 +270,7 @@ std::string direct_bt::getSMPKeyTypeMaskString(const SMPKeyType mask) noexcept {
         const uint8_t settingBit = one << i;
         if( 0 != ( static_cast<uint8_t>(mask) & settingBit ) ) {
             if( has_pre ) { out.append(", "); }
-            out.append( getSMPKeyTypeBitString( static_cast<SMPKeyType>(settingBit) ) );
+            out.append( _getSMPKeyTypeBitStr( static_cast<SMPKeyType>(settingBit) ) );
             has_pre = true;
         }
     }
@@ -302,7 +286,7 @@ std::string direct_bt::getSMPKeyTypeMaskString(const SMPKeyType mask) noexcept {
 
 #define CASE_TO_STRING_LTKPROPFMT(V) case SMPLongTermKeyInfo::Property::V: return #V;
 
-std::string SMPLongTermKeyInfo::getPropertyBitString(const Property bit) noexcept {
+static std::string _getPropertyBitStr(const SMPLongTermKeyInfo::Property bit) noexcept {
     switch(bit) {
         LTKPROP_ENUM(CASE_TO_STRING_LTKPROPFMT)
         default: ; // fall through intended
@@ -314,17 +298,17 @@ std::string SMPLongTermKeyInfo::getPropertyMaskString(const Property mask) noexc
     bool has_pre = false;
     std::string out("[");
     if( Property::NONE != ( mask & Property::RESPONDER ) ) {
-        out.append( getPropertyBitString( Property::RESPONDER ) );
+        out.append( _getPropertyBitStr( Property::RESPONDER ) );
         has_pre = true;
     }
     if( Property::NONE != ( mask & Property::AUTH ) ) {
         if( has_pre ) { out.append(", "); }
-        out.append( getPropertyBitString( Property::AUTH ) );
+        out.append( _getPropertyBitStr( Property::AUTH ) );
         has_pre = true;
     }
     if( Property::NONE != ( mask & Property::SC ) ) {
         if( has_pre ) { out.append(", "); }
-        out.append( getPropertyBitString( Property::SC ) );
+        out.append( _getPropertyBitStr( Property::SC ) );
         has_pre = true;
     }
     out.append("]");
@@ -342,7 +326,7 @@ bool SMPLongTermKeyInfo::isResponder() const noexcept {
 
 #define CASE_TO_STRING_CSRKPROPFMT(V) case SMPSignatureResolvingKeyInfo::Property::V: return #V;
 
-std::string SMPSignatureResolvingKeyInfo::getPropertyBitString(const Property bit) noexcept {
+static std::string _getPropertyBitStr(const SMPSignatureResolvingKeyInfo::Property bit) noexcept {
     switch(bit) {
         CSRKPROP_ENUM(CASE_TO_STRING_CSRKPROPFMT)
         default: ; // fall through intended
@@ -354,12 +338,12 @@ std::string SMPSignatureResolvingKeyInfo::getPropertyMaskString(const Property m
     bool has_pre = false;
     std::string out("[");
     if( Property::NONE != ( mask & Property::RESPONDER ) ) {
-        out.append( getPropertyBitString( Property::RESPONDER ) );
+        out.append( _getPropertyBitStr( Property::RESPONDER ) );
         has_pre = true;
     }
     if( Property::NONE != ( mask & Property::AUTH ) ) {
         if( has_pre ) { out.append(", "); }
-        out.append( getPropertyBitString( Property::AUTH ) );
+        out.append( _getPropertyBitStr( Property::AUTH ) );
         has_pre = true;
     }
     out.append("]");

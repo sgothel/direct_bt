@@ -617,7 +617,6 @@ namespace direct_bt {
     }
     constexpr bool isEIRDataTypeSet(const EIRDataType mask, const EIRDataType bit) noexcept { return EIRDataType::NONE != ( mask & bit ); }
     constexpr void setEIRDataTypeSet(EIRDataType &mask, const EIRDataType bit) noexcept { mask = mask | bit; }
-    std::string getEIRDataBitString(const EIRDataType bit) noexcept;
     std::string getEIRDataMaskString(const EIRDataType mask) noexcept;
 
     /**

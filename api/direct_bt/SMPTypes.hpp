@@ -328,7 +328,6 @@ namespace direct_bt {
     constexpr bool isSMPAuthReqBitSet(const SMPAuthReqs mask, const SMPAuthReqs bit) noexcept {
         return SMPAuthReqs::NONE != ( mask & bit );
     }
-    std::string getSMPAuthReqBitString(const SMPAuthReqs bit) noexcept;
     std::string getSMPAuthReqMaskString(const SMPAuthReqs mask) noexcept;
 
     /**
@@ -460,7 +459,6 @@ namespace direct_bt {
     constexpr bool isKeyDistBitSet(const SMPKeyType mask, const SMPKeyType bit) noexcept {
         return SMPKeyType::NONE != ( mask & bit );
     }
-    std::string getSMPKeyTypeBitString(const SMPKeyType bit) noexcept;
     std::string getSMPKeyTypeMaskString(const SMPKeyType mask) noexcept;
 
     /**
@@ -490,7 +488,6 @@ namespace direct_bt {
         static constexpr uint8_t number(const Property rhs) noexcept {
             return static_cast<uint8_t>(rhs);
         }
-        static std::string getPropertyBitString(const Property bit) noexcept;
         static std::string getPropertyMaskString(const Property mask) noexcept;
 
         /** SMPLongTermKeyInfo::Property bit mask. */
@@ -579,7 +576,6 @@ namespace direct_bt {
         static constexpr uint8_t number(const Property rhs) noexcept {
             return static_cast<uint8_t>(rhs);
         }
-        static std::string getPropertyBitString(const Property bit) noexcept;
         static std::string getPropertyMaskString(const Property mask) noexcept;
 
         /** SMPSignatureResolvingKeyInfo::Property bit mask. */
