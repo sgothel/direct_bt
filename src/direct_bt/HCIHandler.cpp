@@ -384,9 +384,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                                 jau::to_hexstring(l2cap.handle).c_str(),
                                 l2cap.toString().c_str(), smpPDU->toString().c_str());
                     }
-                } else if( l2cap.isGATT() ) {
-                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV Drop (ACL.L2CAP): GATT %s", acldata->toString(l2cap, l2cap_data).c_str());
-                } else {
+                } else if( !l2cap.isGATT() ) { // ignore handled GATT packages
                     COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV Drop (ACL.L2CAP): ???? %s", acldata->toString(l2cap, l2cap_data).c_str());
                 }
                 continue;

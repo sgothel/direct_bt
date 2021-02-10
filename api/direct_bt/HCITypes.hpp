@@ -688,7 +688,7 @@ namespace direct_bt {
 
                 constexpr bool isSMP() const noexcept { return L2CAP_CID::SMP == cid || L2CAP_CID::SMP_BREDR == cid; }
 
-                constexpr bool isGATT() const noexcept { return L2CAP_CID::SMP == cid; }
+                constexpr bool isGATT() const noexcept { return L2CAP_CID::ATT == cid; }
 
                 std::string toString() const noexcept {
                     return "l2cap[handle "+jau::to_hexstring(handle)+", flags[pb "+toString(pb_flag)+", bc "+jau::to_hexstring(bc_flag)+
