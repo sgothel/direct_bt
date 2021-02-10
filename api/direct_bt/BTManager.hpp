@@ -351,7 +351,7 @@ namespace direct_bt {
             }
 
             std::string toString() const noexcept override {
-                return "MgmtHandler[BTMode "+getBTModeString(defaultBTMode)+", "+std::to_string(adapters.size())+" adapter, "+javaObjectToString()+"]";
+                return "MgmtHandler[BTMode "+to_string(defaultBTMode)+", "+std::to_string(adapters.size())+" adapter, "+javaObjectToString()+"]";
             }
 
             /** retrieve information gathered at startup */

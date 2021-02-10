@@ -41,7 +41,7 @@ using namespace direct_bt;
 #define CASE_TO_STRING(V) case V: return #V;
 #define CASE2_TO_STRING(U,V) case U::V: return #V;
 
-BDAddressType direct_bt::getBDAddressType(const HCILEPeerAddressType hciPeerAddrType) noexcept {
+BDAddressType direct_bt::to_BDAddressType(const HCILEPeerAddressType hciPeerAddrType) noexcept {
     switch(hciPeerAddrType) {
         case HCILEPeerAddressType::PUBLIC:
             return BDAddressType::BDADDR_LE_PUBLIC;
@@ -63,15 +63,15 @@ BDAddressType direct_bt::getBDAddressType(const HCILEPeerAddressType hciPeerAddr
         X(HCILEPeerAddressType,RANDOM_STATIC_IDENTITY) \
         X(HCILEPeerAddressType,UNDEFINED)
 
-std::string direct_bt::getHCILEPeerAddressTypeString(const HCILEPeerAddressType type) noexcept {
+std::string direct_bt::to_string(const HCILEPeerAddressType type) noexcept {
     switch(type) {
         CHAR_DECL_HCILEPeerAddressType_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown HCILEPeerAddressType "+jau::uint8HexString(number(type));
+    return "Unknown HCILEPeerAddressType "+jau::to_hexstring(number(type));
 }
 
-BDAddressType direct_bt::getBDAddressType(const HCILEOwnAddressType hciOwnAddrType) noexcept {
+BDAddressType direct_bt::to_BDAddressType(const HCILEOwnAddressType hciOwnAddrType) noexcept {
     switch(hciOwnAddrType) {
         case HCILEOwnAddressType::PUBLIC:
             return BDAddressType::BDADDR_LE_PUBLIC;
@@ -93,12 +93,12 @@ BDAddressType direct_bt::getBDAddressType(const HCILEOwnAddressType hciOwnAddrTy
         X(HCILEOwnAddressType,RESOLVABLE_OR_RANDOM) \
         X(HCILEOwnAddressType,UNDEFINED)
 
-std::string direct_bt::getHCILEOwnAddressTypeString(const HCILEOwnAddressType type) noexcept {
+std::string direct_bt::to_string(const HCILEOwnAddressType type) noexcept {
     switch(type) {
         CHAR_DECL_HCILEOwnAddressType_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown HCILEOwnAddressType "+jau::uint8HexString(number(type));
+    return "Unknown HCILEOwnAddressType "+jau::to_hexstring(number(type));
 }
 
 
@@ -108,12 +108,12 @@ std::string direct_bt::getHCILEOwnAddressTypeString(const HCILEOwnAddressType ty
         X(BDAddressType,BDADDR_LE_RANDOM) \
         X(BDAddressType,BDADDR_UNDEFINED)
 
-std::string direct_bt::getBDAddressTypeString(const BDAddressType type) noexcept {
+std::string direct_bt::to_string(const BDAddressType type) noexcept {
     switch(type) {
         CHAR_DECL_BDADDRESSTYPE_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown BDAddressType "+jau::uint8HexString(number(type));
+    return "Unknown BDAddressType "+jau::to_hexstring(number(type));
 }
 
 #define CHAR_DECL_LERANDOMADDRESSTYPE_ENUM(X) \
@@ -123,12 +123,12 @@ std::string direct_bt::getBDAddressTypeString(const BDAddressType type) noexcept
         X(BLERandomAddressType,STATIC_PUBLIC) \
         X(BLERandomAddressType,UNDEFINED)
 
-std::string direct_bt::getBLERandomAddressTypeString(const BLERandomAddressType type) noexcept {
+std::string direct_bt::to_string(const BLERandomAddressType type) noexcept {
     switch(type) {
         CHAR_DECL_LERANDOMADDRESSTYPE_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown BLERandomAddressType "+jau::uint8HexString(number(type));
+    return "Unknown BLERandomAddressType "+jau::to_hexstring(number(type));
 }
 
 BLERandomAddressType EUI48::getBLERandomAddressType(const BDAddressType addressType) const noexcept {
@@ -277,13 +277,13 @@ const EUI48 direct_bt::EUI48::LOCAL_DEVICE( _EUI48_LOCAL_DEVICE );
 const BDAddressAndType direct_bt::BDAddressAndType::ANY_BREDR_DEVICE(EUI48::ANY_DEVICE, BDAddressType::BDADDR_BREDR);
 const BDAddressAndType direct_bt::BDAddressAndType::ANY_DEVICE(EUI48::ANY_DEVICE, BDAddressType::BDADDR_UNDEFINED);
 
-std::string BDAddressAndType::toString() const {
+std::string BDAddressAndType::toString() const noexcept {
     const BLERandomAddressType leRandomAddressType = getBLERandomAddressType();
     std::string leaddrtype;
     if( BLERandomAddressType::UNDEFINED != leRandomAddressType ) {
-        leaddrtype = ", random "+getBLERandomAddressTypeString(leRandomAddressType);
+        leaddrtype = ", random "+to_string(leRandomAddressType);
     }
-    return "["+address.toString()+", "+getBDAddressTypeString(type)+leaddrtype+"]";
+    return "["+address.toString()+", "+to_string(type)+leaddrtype+"]";
 }
 
 // *************************************************
@@ -294,17 +294,17 @@ static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) noe
     return static_cast<const int8_t *>( static_cast<void *>( const_cast<uint8_t*>( p ) ) );
 }
 
-std::string direct_bt::getBTModeString(const BTMode v) noexcept {
+std::string direct_bt::to_string(const BTMode v) noexcept {
     switch(v) {
         case BTMode::NONE: return "NONE";
         case BTMode::DUAL: return "DUAL";
         case BTMode::BREDR: return "BREDR";
         case BTMode::LE: return "LE";
     }
-    return "Unknown BTMode "+jau::uint8HexString(number(v));
+    return "Unknown BTMode "+jau::to_hexstring(number(v));
 }
 
-BTMode direct_bt::getBTMode(const std::string & value) noexcept {
+BTMode direct_bt::to_BTMode(const std::string & value) noexcept {
     if( "DUAL" == value ) {
         return BTMode::DUAL;
     }
@@ -317,7 +317,7 @@ BTMode direct_bt::getBTMode(const std::string & value) noexcept {
     return BTMode::NONE;
 }
 
-std::string direct_bt::getBTSecurityLevelString(const BTSecurityLevel v) noexcept {
+std::string direct_bt::to_string(const BTSecurityLevel v) noexcept {
     switch(v) {
         case BTSecurityLevel::UNSET:         return "UNSET";
         case BTSecurityLevel::NONE:          return "NONE";
@@ -325,10 +325,10 @@ std::string direct_bt::getBTSecurityLevelString(const BTSecurityLevel v) noexcep
         case BTSecurityLevel::ENC_AUTH:      return "ENC_AUTH";
         case BTSecurityLevel::ENC_AUTH_FIPS: return "ENC_AUTH_FIPS";
     }
-    return "Unknown BTSecurityLevel "+jau::uint8HexString(number(v));
+    return "Unknown BTSecurityLevel "+jau::to_hexstring(number(v));
 }
 
-std::string direct_bt::getPairingModeString(const PairingMode v) noexcept {
+std::string direct_bt::to_string(const PairingMode v) noexcept {
     switch(v) {
         case PairingMode::NONE:                return "NONE";
         case PairingMode::NEGOTIATING:         return "NEGOTIATING";
@@ -340,10 +340,10 @@ std::string direct_bt::getPairingModeString(const PairingMode v) noexcept {
         case PairingMode::OUT_OF_BAND:         return "OUT_OF_BAND";
         case PairingMode::PRE_PAIRED:          return "PRE_PAIRED";
     }
-    return "Unknown PairingMode "+jau::uint8HexString(number(v));
+    return "Unknown PairingMode "+jau::to_hexstring(number(v));
 }
 
-ScanType direct_bt::getScanType(BTMode btMode) {
+ScanType direct_bt::to_ScanType(BTMode btMode) {
     switch ( btMode ) {
         case BTMode::DUAL:
             return ScanType::DUAL;
@@ -352,7 +352,7 @@ ScanType direct_bt::getScanType(BTMode btMode) {
         case BTMode::LE:
             return ScanType::LE;
         default:
-            throw jau::IllegalArgumentException("Unsupported BTMode "+getBTModeString(btMode), E_FILE_LINE);
+            throw jau::IllegalArgumentException("Unsupported BTMode "+to_string(btMode), E_FILE_LINE);
     }
 }
 
@@ -364,12 +364,12 @@ ScanType direct_bt::getScanType(BTMode btMode) {
 
 #define SCANTYPE_CASE_TO_STRING(V) case ScanType::V: return #V;
 
-std::string direct_bt::getScanTypeString(const ScanType v) noexcept {
+std::string direct_bt::to_string(const ScanType v) noexcept {
     switch(v) {
         SCANTYPE_ENUM(SCANTYPE_CASE_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown ScanType "+jau::uint8HexString(number(v));
+    return "Unknown ScanType "+jau::to_hexstring(number(v));
 }
 
 #define AD_PDU_Type_ENUM(X) \
@@ -382,12 +382,12 @@ std::string direct_bt::getScanTypeString(const ScanType v) noexcept {
 
 #define AD_PDU_Type_CASE_TO_STRING(V) case AD_PDU_Type::V: return #V;
 
-std::string direct_bt::getAD_PDU_TypeString(const AD_PDU_Type v) noexcept {
+std::string direct_bt::to_string(const AD_PDU_Type v) noexcept {
     switch(v) {
         AD_PDU_Type_ENUM(AD_PDU_Type_CASE_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown AD_PDU_Type "+jau::uint8HexString(number(v));
+    return "Unknown AD_PDU_Type "+jau::to_hexstring(number(v));
 }
 
 #define L2CAP_CID_ENUM(X) \
@@ -405,12 +405,12 @@ std::string direct_bt::getAD_PDU_TypeString(const AD_PDU_Type v) noexcept {
 
 #define L2CAP_CID_CASE_TO_STRING(V) case L2CAP_CID::V: return #V;
 
-std::string direct_bt::getL2CAP_CIDString(const L2CAP_CID v) noexcept {
+std::string direct_bt::to_string(const L2CAP_CID v) noexcept {
     switch(v) {
         L2CAP_CID_ENUM(L2CAP_CID_CASE_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown L2CAP_CID "+jau::uint16HexString(number(v));
+    return "Unknown L2CAP_CID "+jau::to_hexstring(number(v));
 }
 
 #define L2CAP_PSM_ENUM(X) \
@@ -436,12 +436,12 @@ std::string direct_bt::getL2CAP_CIDString(const L2CAP_CID v) noexcept {
 
 #define L2CAP_PSM_CASE_TO_STRING(V) case L2CAP_PSM::V: return #V;
 
-std::string direct_bt::getL2CAP_PSMString(const L2CAP_PSM v) noexcept {
+std::string direct_bt::to_string(const L2CAP_PSM v) noexcept {
     switch(v) {
         L2CAP_PSM_ENUM(L2CAP_PSM_CASE_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown L2CAP_PSM "+jau::uint16HexString(number(v));
+    return "Unknown L2CAP_PSM "+jau::to_hexstring(number(v));
 }
 
 #define APPEARANCECAT_ENUM(X) \
@@ -506,12 +506,12 @@ std::string direct_bt::getL2CAP_PSMString(const L2CAP_PSM v) noexcept {
 
 #define APPEARANCE_CASE_TO_STRING(V) case AppearanceCat::V: return #V;
 
-std::string direct_bt::getAppearanceCatString(const AppearanceCat v) noexcept {
+std::string direct_bt::to_string(const AppearanceCat v) noexcept {
     switch(v) {
         APPEARANCECAT_ENUM(APPEARANCE_CASE_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown AppearanceCat "+jau::uint16HexString(number(v));
+    return "Unknown AppearanceCat "+jau::to_hexstring(number(v));
 }
 
 // *************************************************
@@ -564,10 +564,10 @@ static std::string _getEIRDataBitStr(const EIRDataType bit) noexcept {
     EIRDATATYPE_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown EIRDataType Bit "+jau::uint32HexString(number(bit));
+    return "Unknown EIRDataType Bit "+jau::to_hexstring(number(bit));
 }
 
-std::string direct_bt::getEIRDataMaskString(const EIRDataType mask) noexcept {
+std::string direct_bt::to_string(const EIRDataType mask) noexcept {
     const uint32_t one = 1;
     bool has_pre = false;
     std::string out("[");
@@ -587,12 +587,12 @@ std::string direct_bt::getEIRDataMaskString(const EIRDataType mask) noexcept {
 // *************************************************
 // *************************************************
 
-std::string EInfoReport::getSourceString() const noexcept {
+std::string direct_bt::to_string(EInfoReport::Source source) noexcept {
     switch (source) {
-        case Source::NA: return "N/A";
-        case Source::AD: return "AD";
-        case Source::EIR: return "EIR";
-        case Source::EIR_MGMT: return "EIR_MGMT";
+        case EInfoReport::Source::NA: return "N/A";
+        case EInfoReport::Source::AD: return "AD";
+        case EInfoReport::Source::EIR: return "EIR";
+        case EInfoReport::Source::EIR_MGMT: return "EIR_MGMT";
     }
     return "N/A";
 }
@@ -659,23 +659,23 @@ void EInfoReport::addService(std::shared_ptr<uuid_t> const &uuid) noexcept
 }
 
 std::string EInfoReport::eirDataMaskToString() const noexcept {
-    return std::string("DataSet"+ direct_bt::getEIRDataMaskString(eir_data_mask) );
+    return std::string("DataSet"+ direct_bt::to_string(eir_data_mask) );
 }
 std::string EInfoReport::toString(const bool includeServices) const noexcept {
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
-    std::string out("EInfoReport::"+getSourceString()+
-                    "[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+"/"+std::to_string(ad_address_type)+
+    std::string out("EInfoReport::"+to_string(source)+
+                    "[address["+address.toString()+", "+to_string(getAddressType())+"/"+std::to_string(ad_address_type)+
                     "], name['"+name+"'/'"+name_short+"'], "+eirDataMaskToString()+
-                    ", evt-type "+getAD_PDU_TypeString(evt_type)+", rssi "+std::to_string(rssi)+
+                    ", evt-type "+to_string(evt_type)+", rssi "+std::to_string(rssi)+
                     ", tx-power "+std::to_string(tx_power)+
-                    ", dev-class "+jau::uint32HexString(device_class)+
-                    ", appearance "+jau::uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
+                    ", dev-class "+jau::to_hexstring(device_class)+
+                    ", appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+
                     "), hash["+hash.toString()+
                     "], randomizer["+randomizer.toString()+
-                    "], device-id[source "+jau::uint16HexString(did_source)+
-                    ", vendor "+jau::uint16HexString(did_vendor)+
-                    ", product "+jau::uint16HexString(did_product)+
-                    ", version "+jau::uint16HexString(did_version)+
+                    "], device-id[source "+jau::to_hexstring(did_source)+
+                    ", vendor "+jau::to_hexstring(did_vendor)+
+                    ", product "+jau::to_hexstring(did_product)+
+                    ", version "+jau::to_hexstring(did_version)+
                     "], "+msdstr+"]");
 
     if( includeServices && services.size() > 0 ) {
@@ -841,7 +841,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
             default:
                 // FIXME: Use a data blob!!!!
                 fprintf(stderr, "%s-Element @ [%d/%d]: Warning: Unhandled type 0x%.2X with %d bytes net\n",
-                        getSourceString().c_str(), offset, data_length, elem_type, elem_len);
+                        to_string(source).c_str(), offset, data_length, elem_type, elem_len);
                 break;
         }
     }

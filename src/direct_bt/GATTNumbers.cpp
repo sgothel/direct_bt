@@ -381,7 +381,7 @@ std::string GattPeriphalPreferredConnectionParameters::toString() const noexcept
 
 std::string GattGenericAccessSvc::toString() const noexcept {
     std::string pcp(nullptr != prefConnParam ? prefConnParam->toString() : "");
-    return "'"+deviceName+"'[appearance "+jau::uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+"), "+pcp+"]";
+    return "'"+deviceName+"'[appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+"), "+pcp+"]";
 }
 
 GattPnP_ID::GattPnP_ID(const TROOctets &source) noexcept
@@ -398,10 +398,10 @@ std::shared_ptr<GattPnP_ID> GattPnP_ID::get(const TROOctets &source) noexcept {
 }
 
 std::string GattPnP_ID::toString() const noexcept {
-    return "vendor_id[source "+jau::uint8HexString(vendor_id_source)+
-            ", id "+jau::uint16HexString(vendor_id)+
-            "], product_id "+jau::uint16HexString(product_id)+
-            ", product_version "+jau::uint16HexString(product_version);
+    return "vendor_id[source "+jau::to_hexstring(vendor_id_source)+
+            ", id "+jau::to_hexstring(vendor_id)+
+            "], product_id "+jau::to_hexstring(product_id)+
+            ", product_version "+jau::to_hexstring(product_version);
 }
 
 std::string GattDeviceInformationSvc::toString() const noexcept {

@@ -101,8 +101,6 @@ namespace direct_bt {
              * org.bluez.GattCharacteristic1 :: array{string} Flags [read-only]
              * </pre>
              */
-            static std::string getPropertyString(const PropertyBitVal prop) noexcept;
-
             static std::string getPropertiesString(const PropertyBitVal properties) noexcept;
             static jau::darray<std::unique_ptr<std::string>> getPropertiesStringList(const PropertyBitVal properties) noexcept;
 
@@ -163,9 +161,6 @@ namespace direct_bt {
 
             bool hasProperties(const PropertyBitVal v) const noexcept { return v == ( properties & v ); }
 
-            std::string getPropertiesString() const noexcept {
-                return getPropertiesString(properties);
-            }
             std::string toString() const noexcept override;
 
             void clearDescriptors() noexcept {

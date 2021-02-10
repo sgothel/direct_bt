@@ -200,9 +200,9 @@ struct MyBTSecurityDetail {
 
     std::string toString() const noexcept {
         return "MyBTSecurityDetail["+addrAndType.toString()+", lvl "+
-                getBTSecurityLevelString(sec_level)+
-                ", io "+getSMPIOCapabilityString(io_cap)+
-                ", auto-io "+getSMPIOCapabilityString(io_cap_auto)+
+                to_string(sec_level)+
+                ", io "+to_string(io_cap)+
+                ", auto-io "+to_string(io_cap_auto)+
                 ", passkey "+std::to_string(passkey)+"]";
     }
 
@@ -274,11 +274,11 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         const bool initialSetting = AdapterSetting::NONE == oldmask;
         if( initialSetting ) {
-            fprintf(stderr, "****** SETTINGS_INITIAL: %s -> %s, changed %s\n", getAdapterSettingMaskString(oldmask).c_str(),
-                    getAdapterSettingMaskString(newmask).c_str(), getAdapterSettingMaskString(changedmask).c_str());
+            fprintf(stderr, "****** SETTINGS_INITIAL: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
+                    to_string(newmask).c_str(), to_string(changedmask).c_str());
         } else {
-            fprintf(stderr, "****** SETTINGS_CHANGED: %s -> %s, changed %s\n", getAdapterSettingMaskString(oldmask).c_str(),
-                    getAdapterSettingMaskString(newmask).c_str(), getAdapterSettingMaskString(changedmask).c_str());
+            fprintf(stderr, "****** SETTINGS_CHANGED: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
+                    to_string(newmask).c_str(), to_string(changedmask).c_str());
         }
         fprintf(stderr, "Status BTAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
@@ -295,7 +295,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
     void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) override {
         fprintf(stderr, "****** DISCOVERING: meta %s, changed[%s, enabled %d, keepAlive %d]: %s\n",
-                getScanTypeString(currentMeta).c_str(), getScanTypeString(changedType).c_str(), changedEnabled, keepAlive, a.toString().c_str());
+                to_string(currentMeta).c_str(), to_string(changedType).c_str(), changedEnabled, keepAlive, a.toString().c_str());
         (void)timestamp;
     }
 
@@ -332,7 +332,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
     void deviceUpdated(std::shared_ptr<BTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
         if( SHOW_UPDATE_EVENTS ) {
-            fprintf(stderr, "****** UPDATED: %s of %s\n", getEIRDataMaskString(updateMask).c_str(), device->toString(true).c_str());
+            fprintf(stderr, "****** UPDATED: %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
         }
         (void)timestamp;
     }
@@ -345,7 +345,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
     void devicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
         fprintf(stderr, "****** PAIRING STATE: state %s, mode %s, %s\n",
-            getSMPPairingStateString(state).c_str(), getPairingModeString(mode).c_str(), device->toString().c_str());
+            to_string(state).c_str(), to_string(mode).c_str(), device->toString().c_str());
         (void)timestamp;
         switch( state ) {
             case SMPPairingState::NONE:
@@ -420,8 +420,8 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
     void deviceDisconnected(std::shared_ptr<BTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         fprintf(stderr, "****** DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
-                static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
-                uint16HexString(handle).c_str(), device->toString(true).c_str());
+                static_cast<uint8_t>(reason), to_string(reason).c_str(),
+                to_hexstring(handle).c_str(), device->toString(true).c_str());
         (void)timestamp;
 
         if( REMOVE_DEVICE ) {
@@ -437,7 +437,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     }
 
     std::string toString() const override {
-        return "MyAdapterStatusListener[this "+aptrHexString(this)+"]";
+        return "MyAdapterStatusListener[this "+to_hexstring(this)+"]";
     }
 
 };
@@ -487,7 +487,7 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
 
     if( UNPAIR_DEVICE_PRE ) {
         const HCIStatusCode unpair_res = device->unpair();
-        fprintf(stderr, "****** Connecting Device: Unpair-Pre result: %s\n", getHCIStatusCodeString(unpair_res).c_str());
+        fprintf(stderr, "****** Connecting Device: Unpair-Pre result: %s\n", to_string(unpair_res).c_str());
     }
 
     device->getAdapter().stopDiscovery();
@@ -528,7 +528,7 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
         res = HCIStatusCode::SUCCESS;
     }
 
-    fprintf(stderr, "****** Connecting Device: End result %s of %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
+    fprintf(stderr, "****** Connecting Device: End result %s of %s\n", to_string(res).c_str(), device->toString().c_str());
     if( !USE_WHITELIST && 0 == getDeviceProcessingCount() && HCIStatusCode::SUCCESS != res ) {
         startDiscovery(&device->getAdapter(), "post-connect");
     }
@@ -718,7 +718,7 @@ exit:
 
         if( UNPAIR_DEVICE_POST ) {
             const HCIStatusCode unpair_res = device->unpair();
-            fprintf(stderr, "****** Processing Ready Device: Unpair-Post result: %s\n", getHCIStatusCodeString(unpair_res).c_str());
+            fprintf(stderr, "****** Processing Ready Device: Unpair-Post result: %s\n", to_string(unpair_res).c_str());
         }
 
         device->remove();
@@ -752,12 +752,12 @@ static void removeDevice(std::shared_ptr<BTDevice> device) {
 static void resetAdapter(BTAdapter *a, int mode) {
     fprintf(stderr, "****** Reset Adapter: reset[%d] start: %s\n", mode, a->toString().c_str());
     HCIStatusCode res = a->reset();
-    fprintf(stderr, "****** Reset Adapter: reset[%d] end: %s, %s\n", mode, getHCIStatusCodeString(res).c_str(), a->toString().c_str());
+    fprintf(stderr, "****** Reset Adapter: reset[%d] end: %s, %s\n", mode, to_string(res).c_str(), a->toString().c_str());
 }
 
 static bool startDiscovery(BTAdapter *a, std::string msg) {
     HCIStatusCode status = a->startDiscovery( true );
-    fprintf(stderr, "****** Start discovery (%s) result: %s\n", msg.c_str(), getHCIStatusCodeString(status).c_str());
+    fprintf(stderr, "****** Start discovery (%s) result: %s\n", msg.c_str(), to_string(status).c_str());
     return HCIStatusCode::SUCCESS == status;
 }
 
@@ -871,9 +871,9 @@ int main(int argc, char *argv[])
         } else if( !strcmp("-dbt_mgmt", argv[i]) && argc > (i+1) ) {
             setenv("direct_bt.mgmt", argv[++i], 1 /* overwrite */);
         } else if( !strcmp("-btmode", argv[i]) && argc > (i+1) ) {
-            btMode = getBTMode(argv[++i]);
+            btMode = to_BTMode(argv[++i]);
             if( BTMode::NONE != btMode ) {
-                setenv("direct_bt.mgmt.btmode", getBTModeString(btMode).c_str(), 1 /* overwrite */);
+                setenv("direct_bt.mgmt.btmode", to_string(btMode).c_str(), 1 /* overwrite */);
             }
         } else if( !strcmp("-wait", argv[i]) ) {
             waitForEnter = true;
@@ -894,30 +894,30 @@ int main(int argc, char *argv[])
         } else if( !strcmp("-passkey", argv[i]) && argc > (i+3) ) {
             const char* mac = argv[++i];
             const uint8_t atype = (uint8_t) ( atoi(argv[++i]) & 0xff );
-            const BDAddressAndType macAndType(EUI48(mac), getBDAddressType(atype));
+            const BDAddressAndType macAndType(EUI48(mac), to_BDAddressType(atype));
             MyBTSecurityDetail* sec = MyBTSecurityDetail::getOrCreate(macAndType);
             sec->passkey = atoi(argv[++i]);
             fprintf(stderr, "Set passkey in %s\n", sec->toString().c_str());
         } else if( !strcmp("-seclevel", argv[i]) && argc > (i+3) ) {
             const char* mac = argv[++i];
             const uint8_t atype = (uint8_t) ( atoi(argv[++i]) & 0xff );
-            const BDAddressAndType macAndType(EUI48(mac), getBDAddressType(atype));
+            const BDAddressAndType macAndType(EUI48(mac), to_BDAddressType(atype));
             MyBTSecurityDetail* sec = MyBTSecurityDetail::getOrCreate(macAndType);
-            sec->sec_level = getBTSecurityLevel(atoi(argv[++i]));
+            sec->sec_level = to_BTSecurityLevel(atoi(argv[++i]));
             fprintf(stderr, "Set sec_level in %s\n", sec->toString().c_str());
         } else if( !strcmp("-iocap", argv[i]) && argc > (i+3) ) {
             const char* mac = argv[++i];
             const uint8_t atype = (uint8_t) ( atoi(argv[++i]) & 0xff );
-            const BDAddressAndType macAndType(EUI48(mac), getBDAddressType(atype));
+            const BDAddressAndType macAndType(EUI48(mac), to_BDAddressType(atype));
             MyBTSecurityDetail* sec = MyBTSecurityDetail::getOrCreate(macAndType);
-            sec->io_cap = getSMPIOCapability(atoi(argv[++i]));
+            sec->io_cap = to_SMPIOCapability(atoi(argv[++i]));
             fprintf(stderr, "Set io_cap in %s\n", sec->toString().c_str());
         } else if( !strcmp("-secauto", argv[i]) && argc > (i+3) ) {
             const char* mac = argv[++i];
             const uint8_t atype = (uint8_t) ( atoi(argv[++i]) & 0xff );
-            const BDAddressAndType macAndType(EUI48(mac), getBDAddressType(atype));
+            const BDAddressAndType macAndType(EUI48(mac), to_BDAddressType(atype));
             MyBTSecurityDetail* sec = MyBTSecurityDetail::getOrCreate(macAndType);
-            sec->io_cap_auto = getSMPIOCapability(atoi(argv[++i]));
+            sec->io_cap_auto = to_SMPIOCapability(atoi(argv[++i]));
             fprintf(stderr, "Set SEC AUTO security io_cap in %s\n", sec->toString().c_str());
         } else if( !strcmp("-unpairPre", argv[i]) ) {
             UNPAIR_DEVICE_PRE = true;
@@ -969,7 +969,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
     fprintf(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
     fprintf(stderr, "QUIET %d\n", QUIET);
-    fprintf(stderr, "btmode %s\n", getBTModeString(btMode).c_str());
+    fprintf(stderr, "btmode %s\n", to_string(btMode).c_str());
     fprintf(stderr, "UNPAIR_DEVICE_PRE %d\n", UNPAIR_DEVICE_PRE);
     fprintf(stderr, "UNPAIR_DEVICE_POST %d\n", UNPAIR_DEVICE_POST);
     fprintf(stderr, "characteristic-id: %s\n", charIdentifier.c_str());

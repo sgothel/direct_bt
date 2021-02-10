@@ -220,7 +220,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
                     } catch (std::exception &e) {
                         ERR_PRINT("GATTHandler::notificationReceived-CBs %d/%zd: GATTCharacteristicListener %s: Caught exception %s",
                                 i+1, characteristicListenerList.size(),
-                                jau::aptrHexString((void*)l.get()).c_str(), e.what());
+                                jau::to_hexstring((void*)l.get()).c_str(), e.what());
                     }
                     i++;
                 });
@@ -248,7 +248,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
                     } catch (std::exception &e) {
                         ERR_PRINT("GATTHandler::indicationReceived-CBs %d/%zd: GATTCharacteristicListener %s, cfmSent %d: Caught exception %s",
                                 i+1, characteristicListenerList.size(),
-                                jau::aptrHexString((void*)l.get()).c_str(), cfmSent, e.what());
+                                jau::to_hexstring((void*)l.get()).c_str(), cfmSent, e.what());
                     }
                     i++;
                 });
@@ -531,7 +531,7 @@ bool BTGattHandler::discoverPrimaryServices(std::shared_ptr<BTGattHandler> share
         BTGattHandler *given_this = shared_this.get();
         if( given_this != this ) {
             throw jau::IllegalArgumentException("Given shared GATTHandler reference "+
-                    jau::aptrHexString(given_this)+" not matching this "+jau::aptrHexString(this), E_FILE_LINE);
+                    jau::to_hexstring(given_this)+" not matching this "+jau::to_hexstring(this), E_FILE_LINE);
         }
     }
     /***
@@ -700,8 +700,8 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) {
                     std::shared_ptr<BTGattDesc> cd( std::make_shared<BTGattDesc>(charDecl, std::move(cd_uuid), cd_handle) );
                     if( cd_handle <= charDecl->value_handle || cd_handle > cd_handle_end ) { // should never happen!
                         ERR_PRINT("GATT discoverDescriptors CD handle %s not in range ]%s..%s]: descr%s within char%s on %s",
-                                jau::uint16HexString(cd_handle).c_str(),
-                                jau::uint16HexString(charDecl->value_handle).c_str(), jau::uint16HexString(cd_handle_end).c_str(),
+                                jau::to_hexstring(cd_handle).c_str(),
+                                jau::to_hexstring(charDecl->value_handle).c_str(), jau::to_hexstring(cd_handle_end).c_str(),
                                 cd->toString().c_str(), charDecl->toString().c_str(), deviceString.c_str());
                         done = true;
                         break;
@@ -767,7 +767,7 @@ bool BTGattHandler::readValue(const uint16_t handle, POctets & res, int expected
     bool done=false;
     int offset=0;
 
-    COND_PRINT(env.DEBUG_DATA, "GATTHandler::readValue expLen %d, handle %s from %s", expectedLength, jau::uint16HexString(handle).c_str(), deviceString.c_str());
+    COND_PRINT(env.DEBUG_DATA, "GATTHandler::readValue expLen %d, handle %s from %s", expectedLength, jau::to_hexstring(handle).c_str(), deviceString.c_str());
 
     while(!done) {
         if( 0 < expectedLength && expectedLength <= offset ) {

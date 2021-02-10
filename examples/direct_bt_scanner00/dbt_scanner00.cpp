@@ -56,9 +56,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         fprintf(stderr, "****** Native Adapter SETTINGS_CHANGED: %s -> %s, changed %s\n",
-                getAdapterSettingMaskString(oldmask).c_str(),
-                getAdapterSettingMaskString(newmask).c_str(),
-                getAdapterSettingMaskString(changedmask).c_str());
+                to_string(oldmask).c_str(),
+                to_string(newmask).c_str(),
+                to_string(changedmask).c_str());
         fprintf(stderr, "Status BTAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
         (void)timestamp;
@@ -66,7 +66,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
     void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) override {
         fprintf(stderr, "****** DISCOVERING: meta %s, changed[%s, enabled %d, keepAlive %d]: %s\n",
-                getScanTypeString(currentMeta).c_str(), getScanTypeString(changedType).c_str(), changedEnabled, keepAlive, a.toString().c_str());
+                to_string(currentMeta).c_str(), to_string(changedType).c_str(), changedEnabled, keepAlive, a.toString().c_str());
         (void)timestamp;
     }
 
@@ -83,7 +83,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
     void deviceUpdated(std::shared_ptr<BTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
-        fprintf(stderr, "****** UPDATED: %s of %s\n", getEIRDataMaskString(updateMask).c_str(), device->toString(true).c_str());
+        fprintf(stderr, "****** UPDATED: %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
         (void)timestamp;
     }
     void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
@@ -93,7 +93,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     }
     void devicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
         fprintf(stderr, "****** PAIRING STATE: state %s, mode %s, %s\n",
-            getSMPPairingStateString(state).c_str(), getPairingModeString(mode).c_str(), device->toString().c_str());
+            to_string(state).c_str(), to_string(mode).c_str(), device->toString().c_str());
         (void)timestamp;
     }
     void deviceReady(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
@@ -102,14 +102,14 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     }
     void deviceDisconnected(std::shared_ptr<BTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         fprintf(stderr, "****** DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
-                static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
-                uint16HexString(handle).c_str(), device->toString(true).c_str());
+                static_cast<uint8_t>(reason), to_string(reason).c_str(),
+                to_hexstring(handle).c_str(), device->toString(true).c_str());
         (void)handle;
         (void)timestamp;
     }
 
     std::string toString() const override {
-        return "MyAdapterStatusListener[this "+aptrHexString(this)+"]";
+        return "MyAdapterStatusListener[this "+to_hexstring(this)+"]";
     }
 };
 
@@ -248,7 +248,7 @@ int main(int argc, char *argv[])
             if( doHCI_Connect ) {
                 HCIStatusCode res;
                 if( ( res = device->connectDefault() ) != HCIStatusCode::SUCCESS ) {
-                    fprintf(stderr, "Connect: Failed res %s, %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
+                    fprintf(stderr, "Connect: Failed res %s, %s\n", to_string(res).c_str(), device->toString().c_str());
                     // we tolerate the failed immediate connect, as it might happen at a later time
                 } else {
                     fprintf(stderr, "Connect: Success\n");

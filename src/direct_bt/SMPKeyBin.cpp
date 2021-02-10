@@ -33,8 +33,8 @@
 using namespace direct_bt;
 
 std::string SMPKeyBin::toString() const noexcept {
-    std::string res = "SMPKeyBin["+addrAndType.toString()+", sec "+getBTSecurityLevelString(sec_level)+
-                      ", io "+getSMPIOCapabilityString(io_cap)+
+    std::string res = "SMPKeyBin["+addrAndType.toString()+", sec "+to_string(sec_level)+
+                      ", io "+to_string(io_cap)+
                       ", ";
     if( isVersionValid() ) {
         res += "Init[";
@@ -59,7 +59,7 @@ std::string SMPKeyBin::toString() const noexcept {
         }
         res += "], ";
     }
-    res += "ver["+jau::uint16HexString(version)+", ok "+std::to_string( isVersionValid() )+
+    res += "ver["+jau::to_hexstring(version)+", ok "+std::to_string( isVersionValid() )+
            "], size["+std::to_string(size);
     if( verbose ) {
         res += ", calc "+std::to_string( calcSize() );
@@ -206,7 +206,7 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
         res = HCIStatusCode::INVALID_PARAMS;
         if( verbose ) {
             fprintf(stderr, "****** APPLY SMPKeyBin failed: SMPKeyBin Status: %s, %s\n",
-                    getHCIStatusCodeString(res).c_str(), this->toString().c_str());
+                    to_string(res).c_str(), this->toString().c_str());
         }
         return res;
     }
@@ -214,7 +214,7 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
         res = HCIStatusCode::INVALID_PARAMS;
         if( verbose ) {
             fprintf(stderr, "****** APPLY SMPKeyBin failed: Device Invalid: %s, %s, %s\n",
-                    getHCIStatusCodeString(res).c_str(), this->toString().c_str(), device.toString().c_str());
+                    to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
         }
         return res;
     }
@@ -223,7 +223,7 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
         res = HCIStatusCode::CONNECTION_ALREADY_EXISTS;
         if( verbose ) {
             fprintf(stderr, "****** APPLY SMPKeyBin failed: Device Connected/ing: %s, %s, %s\n",
-                    getHCIStatusCodeString(res).c_str(), this->toString().c_str(), device.toString().c_str());
+                    to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
         }
         return res;
     }
@@ -232,7 +232,7 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
         res = device.setLongTermKeyInfo( getLTKInit() );
         if( HCIStatusCode::SUCCESS != res && verbose ) {
             fprintf(stderr, "****** APPLY SMPKeyBin failed: Init-LTK Upload: %s, %s, %s\n",
-                    getHCIStatusCodeString(res).c_str(), this->toString().c_str(), device.toString().c_str());
+                    to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
         }
     }
 
@@ -240,7 +240,7 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
         res = device.setLongTermKeyInfo( getLTKResp() );
         if( HCIStatusCode::SUCCESS != res && verbose ) {
             fprintf(stderr, "****** APPLY SMPKeyBin failed: Resp-LTK Upload: %s, %s, %s\n",
-                    getHCIStatusCodeString(res).c_str(), this->toString().c_str(), device.toString().c_str());
+                    to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
         }
     }
 

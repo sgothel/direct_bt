@@ -64,7 +64,7 @@ BTMode MgmtEnv::getEnvBTMode() {
     if( val.empty() ) {
         val = jau::environment::getProperty("org.tinyb.btmode");
     }
-    const BTMode res = direct_bt::getBTMode(val);
+    const BTMode res = direct_bt::to_BTMode(val);
     return BTMode::NONE != res ? res : BTMode::DUAL; // fallback to default DUAL
 }
 
@@ -272,7 +272,7 @@ std::unique_ptr<AdapterInfo> BTManager::initAdapter(const uint16_t dev_id, const
             ABORT("AdapterInfo dev_id=%d != dev_id=%d: %s", adapterInfo->dev_id, dev_id, adapterInfo->toString().c_str());
         }
     }
-    DBG_PRINT("initAdapter[%d, BTMode %s]: Start: %s", dev_id, getBTModeString(btMode).c_str(), adapterInfo->toString().c_str());
+    DBG_PRINT("initAdapter[%d, BTMode %s]: Start: %s", dev_id, to_string(btMode).c_str(), adapterInfo->toString().c_str());
     current_settings = adapterInfo->getCurrentSettingMask();
 
     setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 0, current_settings);
@@ -347,7 +347,7 @@ std::unique_ptr<AdapterInfo> BTManager::initAdapter(const uint16_t dev_id, const
             ABORT("AdapterInfo dev_id=%d != dev_id=%d: %s", adapterInfo->dev_id, dev_id, adapterInfo->toString().c_str());
         }
     }
-    DBG_PRINT("initAdapter[%d, BTMode %s]: End: %s", dev_id, getBTModeString(btMode).c_str(), adapterInfo->toString().c_str());
+    DBG_PRINT("initAdapter[%d, BTMode %s]: End: %s", dev_id, to_string(btMode).c_str(), adapterInfo->toString().c_str());
 
 fail:
     return adapterInfo;
@@ -380,7 +380,7 @@ BTManager::BTManager(const BTMode _defaultBTMode) noexcept
   mgmtReaderThreadId(0), mgmtReaderRunning(false),
   allowClose( comm.isOpen() )
 {
-    WORDY_PRINT("DBTManager.ctor: BTMode %s, pid %d", getBTModeString(defaultBTMode).c_str(), BTManager::pidSelf);
+    WORDY_PRINT("DBTManager.ctor: BTMode %s, pid %d", to_string(defaultBTMode).c_str(), BTManager::pidSelf);
     if( !allowClose ) {
         ERR_PRINT("DBTManager::open: Could not open mgmt control channel");
         return;
@@ -449,7 +449,7 @@ BTManager::BTManager(const BTMode _defaultBTMode) noexcept
             if( res->getDataSize() >= expDataSize ) {
                 for(int i=0; i< num_commands; i++) {
                     const MgmtCommand::Opcode op = static_cast<MgmtCommand::Opcode>( get_uint16(data, 4+i*2, true /* littleEndian */) );
-                    DBG_PRINT("kernel op %d: %s", i, getMgmtOpcodeString(op).c_str());
+                    DBG_PRINT("kernel op %d: %s", i, toString(op).c_str());
                 }
             }
 #endif
@@ -751,8 +751,8 @@ bool BTManager::setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, co
         res = MgmtStatus::TIMEOUT;
     }
     DBG_PRINT("DBTManager::setMode[%d, %s]: %s, result %s %s", dev_id,
-            MgmtCommand::getOpcodeString(opc).c_str(), jau::uint8HexString(mode).c_str(),
-            getMgmtStatusString(res).c_str(), getAdapterSettingMaskString(current_settings).c_str());
+            MgmtCommand::getOpcodeString(opc).c_str(), jau::to_hexstring(mode).c_str(),
+            to_string(res).c_str(), to_string(current_settings).c_str());
     return MgmtStatus::SUCCESS == res;
 }
 
@@ -777,12 +777,12 @@ MgmtStatus BTManager::setDiscoverable(const uint16_t dev_id, const uint8_t state
         res = MgmtStatus::TIMEOUT;
     }
     DBG_PRINT("DBTManager::setDiscoverable[%d]: %s, result %s %s", dev_id,
-            req.toString().c_str(), getMgmtStatusString(res).c_str(), getAdapterSettingMaskString(current_settings).c_str());
+            req.toString().c_str(), to_string(res).c_str(), to_string(current_settings).c_str());
     return res;
 }
 
 ScanType BTManager::startDiscovery(const uint16_t dev_id, const BTMode btMode) noexcept {
-    return startDiscovery(dev_id, getScanType(btMode));
+    return startDiscovery(dev_id, to_ScanType(btMode));
 }
 
 ScanType BTManager::startDiscovery(const uint16_t dev_id, const ScanType scanType) noexcept {
@@ -847,9 +847,9 @@ HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLong
     std::unique_ptr<MgmtEvent> reply = sendWithReply(req);
     if( nullptr != reply ) {
         if( reply->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-            res = getHCIStatusCode( static_cast<const MgmtEvtCmdComplete *>(reply.get())->getStatus() );
+            res = to_HCIStatusCode( static_cast<const MgmtEvtCmdComplete *>(reply.get())->getStatus() );
         } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
-            res = getHCIStatusCode( static_cast<const MgmtEvtCmdStatus *>(reply.get())->getStatus() );
+            res = to_HCIStatusCode( static_cast<const MgmtEvtCmdStatus *>(reply.get())->getStatus() );
         } else {
             res = HCIStatusCode::UNKNOWN_HCI_COMMAND;
         }
@@ -857,7 +857,7 @@ HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLong
         res = HCIStatusCode::TIMEOUT;
     }
     DBG_PRINT("DBTManager::uploadLongTermKeyInfo[%d]: %s, result %s", dev_id,
-            req.toString().c_str(), getHCIStatusCodeString(res).c_str());
+            req.toString().c_str(), to_string(res).c_str());
     return res;
 #else
     return HCIStatusCode::NOT_SUPPORTED;
@@ -867,7 +867,7 @@ HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLong
 HCIStatusCode BTManager::uploadLongTermKeyInfo(const uint16_t dev_id, const BDAddressAndType & addressAndType,
                                                 const SMPLongTermKeyInfo& ltk) noexcept {
 #if USE_LINUX_BT_SECURITY
-    const MgmtLTKType key_type = getMgmtLTKType(ltk.properties);
+    const MgmtLTKType key_type = to_MgmtLTKType(ltk.properties);
     const MgmtLongTermKeyInfo mgmt_ltk_info { addressAndType.address, addressAndType.type, key_type,
                                               ltk.isResponder(), ltk.enc_size, ltk.ediv, ltk.rand, ltk.ltk };
     MgmtLoadLongTermKeyCmd req(dev_id, mgmt_ltk_info);
@@ -875,9 +875,9 @@ HCIStatusCode BTManager::uploadLongTermKeyInfo(const uint16_t dev_id, const BDAd
     std::unique_ptr<MgmtEvent> reply = sendWithReply(req);
     if( nullptr != reply ) {
         if( reply->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-            res = getHCIStatusCode( static_cast<const MgmtEvtCmdComplete *>(reply.get())->getStatus() );
+            res = to_HCIStatusCode( static_cast<const MgmtEvtCmdComplete *>(reply.get())->getStatus() );
         } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
-            res = getHCIStatusCode( static_cast<const MgmtEvtCmdStatus *>(reply.get())->getStatus() );
+            res = to_HCIStatusCode( static_cast<const MgmtEvtCmdStatus *>(reply.get())->getStatus() );
         } else {
             res = HCIStatusCode::UNKNOWN_HCI_COMMAND;
         }
@@ -885,7 +885,7 @@ HCIStatusCode BTManager::uploadLongTermKeyInfo(const uint16_t dev_id, const BDAd
         res = HCIStatusCode::TIMEOUT;
     }
     DBG_PRINT("DBTManager::uploadLongTermKeyInfo[%d]: %s -> %s, result %s", dev_id,
-            ltk.toString().c_str(), req.toString().c_str(), getHCIStatusCodeString(res).c_str());
+            ltk.toString().c_str(), req.toString().c_str(), to_string(res).c_str());
     return res;
 #else
     return HCIStatusCode::NOT_SUPPORTED;
@@ -1210,13 +1210,13 @@ bool BTManager::mgmtEvNewSettingsCB(const MgmtEvent& e) noexcept {
         const AdapterSetting new_settings = adapter->adapterInfo.setCurrentSettingMask(event.getSettings());
         DBG_PRINT("DBTManager:mgmt:NewSettings: Adapter[%d] %s -> %s - %s",
                 event.getDevID(),
-                getAdapterSettingMaskString(old_settings).c_str(),
-                getAdapterSettingMaskString(new_settings).c_str(),
+                to_string(old_settings).c_str(),
+                to_string(new_settings).c_str(),
                 e.toString().c_str());
     } else {
         DBG_PRINT("DBTManager:mgmt:NewSettings: Adapter[%d] %s -> adapter not present - %s",
                 event.getDevID(),
-                getAdapterSettingMaskString(event.getSettings()).c_str(),
+                to_string(event.getSettings()).c_str(),
                 e.toString().c_str());
     }
     return true;

@@ -58,7 +58,7 @@ namespace direct_bt {
         /** Undefined */
         BDADDR_UNDEFINED  = 0xff
     };
-    constexpr BDAddressType getBDAddressType(const uint8_t v) noexcept {
+    constexpr BDAddressType to_BDAddressType(const uint8_t v) noexcept {
         if( v <= 2 ) {
             return static_cast<BDAddressType>(v);
         }
@@ -67,7 +67,7 @@ namespace direct_bt {
     constexpr uint8_t number(const BDAddressType rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
-    std::string getBDAddressTypeString(const BDAddressType type) noexcept;
+    std::string to_string(const BDAddressType type) noexcept;
 
     /**
      * BT Core Spec v5.2:  Vol 6 LE, Part B Link Layer Specification: 1.3 Device Address
@@ -99,7 +99,7 @@ namespace direct_bt {
         UNDEFINED           = 0xff
     };
     constexpr uint8_t number(const BLERandomAddressType rhs) noexcept { return static_cast<uint8_t>(rhs); }
-    std::string getBLERandomAddressTypeString(const BLERandomAddressType type) noexcept;
+    std::string to_string(const BLERandomAddressType type) noexcept;
 
     /**
      * HCI LE Address-Type is PUBLIC: 0x00, RANDOM: 0x01
@@ -129,8 +129,8 @@ namespace direct_bt {
         UNDEFINED = 0xff /**< HCIADDR_UNDEFINED */
     };
     constexpr uint8_t number(const HCILEPeerAddressType rhs) noexcept { return static_cast<uint8_t>(rhs); }
-    BDAddressType getBDAddressType(const HCILEPeerAddressType hciPeerAddrType) noexcept;
-    std::string getHCILEPeerAddressTypeString(const HCILEPeerAddressType type) noexcept;
+    BDAddressType to_BDAddressType(const HCILEPeerAddressType hciPeerAddrType) noexcept;
+    std::string to_string(const HCILEPeerAddressType type) noexcept;
 
     enum class HCILEOwnAddressType : uint8_t {
         /** Public Device Address */
@@ -144,8 +144,8 @@ namespace direct_bt {
         UNDEFINED = 0xff
     };
     constexpr uint8_t number(const HCILEOwnAddressType rhs) noexcept { return static_cast<uint8_t>(rhs); }
-    BDAddressType getBDAddressType(const HCILEOwnAddressType hciOwnAddrType) noexcept;
-    std::string getHCILEOwnAddressTypeString(const HCILEOwnAddressType type) noexcept;
+    BDAddressType to_BDAddressType(const HCILEOwnAddressType hciOwnAddrType) noexcept;
+    std::string to_string(const HCILEOwnAddressType type) noexcept;
 
     /**
      * A 48 bit EUI-48 sub-identifier, see EUI48.
@@ -187,6 +187,7 @@ namespace direct_bt {
          */
         std::string toString() const noexcept;
     };
+    inline std::string to_string(const EUI48Sub& a) noexcept { return a.toString(); }
 
     /**
      * A packed 48 bit EUI-48 identifier, formerly known as MAC-48
@@ -276,6 +277,7 @@ namespace direct_bt {
          */
         std::string toString() const noexcept;
     } );
+    inline std::string to_string(const EUI48& a) noexcept { return a.toString(); }
 
     inline bool operator==(const EUI48& lhs, const EUI48& rhs) noexcept {
         if( &lhs == &rhs ) {
@@ -413,7 +415,7 @@ namespace direct_bt {
                 type = BDAddressType::BDADDR_UNDEFINED;
             }
 
-            std::string toString() const;
+            std::string toString() const noexcept;
     };
     inline bool operator==(const BDAddressAndType& lhs, const BDAddressAndType& rhs) noexcept {
         if( &lhs == &rhs ) {
@@ -424,6 +426,8 @@ namespace direct_bt {
     }
     inline bool operator!=(const BDAddressAndType& lhs, const BDAddressAndType& rhs) noexcept
     { return !(lhs == rhs); }
+
+    inline std::string to_string(const BDAddressAndType& a) noexcept { return a.toString(); }
 
 } // namespace direct_bt
 

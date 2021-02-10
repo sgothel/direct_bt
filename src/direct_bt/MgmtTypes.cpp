@@ -81,7 +81,7 @@ using namespace direct_bt;
 
 #define MGMT_STATUS_CASE_TO_STRING(V) case MgmtStatus::V: return #V;
 
-std::string direct_bt::getMgmtStatusString(const MgmtStatus opc) noexcept {
+std::string direct_bt::to_string(const MgmtStatus opc) noexcept {
     switch(opc) {
         MGMT_STATUS_ENUM(MGMT_STATUS_CASE_TO_STRING)
         default: ; // fall through intended
@@ -103,7 +103,7 @@ std::string direct_bt::getMgmtStatusString(const MgmtStatus opc) noexcept {
 
 #define MGMT_LINKKEYTYPE_TO_STRING(V) case MgmtLinkKeyType::V: return #V;
 
-std::string direct_bt::getMgmtLinkKeyTypeString(const MgmtLinkKeyType type) noexcept {
+std::string direct_bt::to_string(const MgmtLinkKeyType type) noexcept {
     switch(type) {
         MGMT_LINKKEYTYPE_ENUM(MGMT_LINKKEYTYPE_TO_STRING)
         default: ; // fall through intended
@@ -121,7 +121,7 @@ std::string direct_bt::getMgmtLinkKeyTypeString(const MgmtLinkKeyType type) noex
 
 #define MGMT_LTKTYPE_TO_STRING(V) case MgmtLTKType::V: return #V;
 
-std::string direct_bt::getMgmtLTKTypeString(const MgmtLTKType type) noexcept {
+std::string direct_bt::to_string(const MgmtLTKType type) noexcept {
     switch(type) {
         MGMT_LTKTYPE_ENUM(MGMT_LTKTYPE_TO_STRING)
         default: ; // fall through intended
@@ -129,7 +129,7 @@ std::string direct_bt::getMgmtLTKTypeString(const MgmtLTKType type) noexcept {
     return "Unknown MgmtLTKType";
 }
 
-MgmtLTKType direct_bt::getMgmtLTKType(const SMPLongTermKeyInfo::Property mask) noexcept {
+MgmtLTKType direct_bt::to_MgmtLTKType(const SMPLongTermKeyInfo::Property mask) noexcept {
     if( ( SMPLongTermKeyInfo::Property::AUTH & mask ) != SMPLongTermKeyInfo::Property::NONE ) {
         return ( SMPLongTermKeyInfo::Property::SC & mask ) != SMPLongTermKeyInfo::Property::NONE ?
                 MgmtLTKType::AUTHENTICATED_P256 : MgmtLTKType::AUTHENTICATED;
@@ -148,7 +148,7 @@ MgmtLTKType direct_bt::getMgmtLTKType(const SMPLongTermKeyInfo::Property mask) n
 
 #define MGMT_CSRKTYPE_TO_STRING(V) case MgmtCSRKType::V: return #V;
 
-std::string direct_bt::getMgmtCSRKTypeString(const MgmtCSRKType type) noexcept {
+std::string direct_bt::to_string(const MgmtCSRKType type) noexcept {
     switch(type) {
         MGMT_CSRKTYPE_ENUM(MGMT_CSRKTYPE_TO_STRING)
         default: ; // fall through intended
@@ -538,7 +538,7 @@ HCIStatusCode MgmtEvtDeviceDisconnected::getHCIReason(DisconnectReason mgmtReaso
     }
 }
 
-HCIStatusCode direct_bt::getHCIStatusCode(const MgmtStatus mstatus) noexcept {
+HCIStatusCode direct_bt::to_HCIStatusCode(const MgmtStatus mstatus) noexcept {
     switch(mstatus) {
         case MgmtStatus::SUCCESS:           return HCIStatusCode::SUCCESS;
         case MgmtStatus::UNKNOWN_COMMAND:   return HCIStatusCode::UNKNOWN_HCI_COMMAND;

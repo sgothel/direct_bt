@@ -146,7 +146,7 @@ bool BTAdapter::validateDevInfo() noexcept {
         HCIStatusCode status = hci.getLocalVersion(version);
         if( HCIStatusCode::SUCCESS != status ) {
             ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: POWERED, LocalVersion failed %s - %s",
-                    dev_id, getHCIStatusCodeString(status).c_str(), adapterInfo.toString().c_str());
+                    dev_id, to_string(status).c_str(), adapterInfo.toString().c_str());
             return false;
         } else {
             WORDY_PRINT("DBTAdapter::validateDevInfo: Adapter[%d]: POWERED, %s - %s",
@@ -361,20 +361,20 @@ bool BTAdapter::lockConnect(const BTDevice & device, const bool wait, const SMPI
         if( res_iocap ) {
             iocap_defaultval  = pre_io_cap;
             COND_PRINT(debug_lock, "DBTAdapter::lockConnect: Success: New lock, setIOCapability[%s -> %s], %s",
-                getSMPIOCapabilityString(pre_io_cap).c_str(), getSMPIOCapabilityString(io_cap).c_str(),
+                to_string(pre_io_cap).c_str(), to_string(io_cap).c_str(),
                 device.toString(false).c_str());
             return true;
         } else {
             // failed, unlock and exit
             COND_PRINT(debug_lock, "DBTAdapter::lockConnect: Failed: setIOCapability[%s], %s",
-                getSMPIOCapabilityString(io_cap).c_str(), device.toString(false).c_str());
+                to_string(io_cap).c_str(), device.toString(false).c_str());
             single_conn_device_ptr = nullptr;
             cv_single_conn_device.notify_all(); // notify waiting getter
             return false;
         }
 #else
         COND_PRINT(debug_lock, "DBTAdapter::lockConnect: Success: New lock, ignored io-cap: %s, %s",
-                getSMPIOCapabilityString(io_cap).c_str()
+                to_string(io_cap).c_str()
                 device.toString(false).c_str());
         return true;
 #endif
@@ -395,7 +395,7 @@ bool BTAdapter::unlockConnect(const BTDevice & device) noexcept {
             SMPIOCapability o;
             const bool res = mgmt.setIOCapability(dev_id, v, o);
             COND_PRINT(debug_lock, "DBTAdapter::unlockConnect: Success: setIOCapability[res %d: %s -> %s], %s",
-                res, getSMPIOCapabilityString(o).c_str(), getSMPIOCapabilityString(v).c_str(),
+                res, to_string(o).c_str(), to_string(v).c_str(),
                 single_conn_device_ptr->toString(false).c_str());
         } else {
             COND_PRINT(debug_lock, "DBTAdapter::unlockConnect: Success: %s",
@@ -426,7 +426,7 @@ bool BTAdapter::unlockConnectAny() noexcept {
             SMPIOCapability o;
             const bool res = mgmt.setIOCapability(dev_id, v, o);
             COND_PRINT(debug_lock, "DBTAdapter::unlockConnectAny: Success: setIOCapability[res %d: %s -> %s]; %s",
-                res, getSMPIOCapabilityString(o).c_str(), getSMPIOCapabilityString(v).c_str(),
+                res, to_string(o).c_str(), to_string(v).c_str(),
                 single_conn_device_ptr->toString(false).c_str());
         } else {
             COND_PRINT(debug_lock, "DBTAdapter::unlockConnectAny: Success: %s",
@@ -444,11 +444,11 @@ bool BTAdapter::unlockConnectAny() noexcept {
 
 HCIStatusCode BTAdapter::reset() noexcept {
     if( !isValid() ) {
-        ERR_PRINT("DBTAdapter::reset(): Adapter invalid: %s, %s", aptrHexString(this).c_str(), toString().c_str());
+        ERR_PRINT("DBTAdapter::reset(): Adapter invalid: %s, %s", to_hexstring(this).c_str(), toString().c_str());
         return HCIStatusCode::UNSPECIFIED_ERROR;
     }
     if( !hci.isOpen() ) {
-        ERR_PRINT("DBTAdapter::reset(): HCI closed: %s, %s", aptrHexString(this).c_str(), toString().c_str());
+        ERR_PRINT("DBTAdapter::reset(): HCI closed: %s, %s", to_hexstring(this).c_str(), toString().c_str());
         return HCIStatusCode::UNSPECIFIED_ERROR;
     }
 #if 0
@@ -458,7 +458,7 @@ HCIStatusCode BTAdapter::reset() noexcept {
 
     HCIStatusCode status = hci->reset();
     if( HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("DBTAdapter::reset: reset failed: %s", getHCIStatusCodeString(status).c_str());
+        ERR_PRINT("DBTAdapter::reset: reset failed: %s", to_string(status).c_str());
     } else if( wasPowered ) {
         if( !setPowered(true) ) {
             ERR_PRINT("DBTAdapter::reset: setPowered(true) failed");
@@ -552,8 +552,8 @@ void BTAdapter::checkDiscoveryState() noexcept {
         if( hasScanType(currentMetaScanType, ScanType::LE) != hasScanType(currentNativeScanType, ScanType::LE) ) {
             std::string msg("Invalid DiscoveryState: keepAlive "+std::to_string(keep_le_scan_alive.load())+
                     ", currentScanType*[native "+
-                    getScanTypeString(currentNativeScanType)+" != meta "+
-                    getScanTypeString(currentMetaScanType)+"]");
+                    to_string(currentNativeScanType)+" != meta "+
+                    to_string(currentMetaScanType)+"]");
             ERR_PRINT(msg.c_str());
             // ABORT?
         }
@@ -561,8 +561,8 @@ void BTAdapter::checkDiscoveryState() noexcept {
         if( !hasScanType(currentMetaScanType, ScanType::LE) && hasScanType(currentNativeScanType, ScanType::LE) ) {
             std::string msg("Invalid DiscoveryState: keepAlive "+std::to_string(keep_le_scan_alive.load())+
                     ", currentScanType*[native "+
-                    getScanTypeString(currentNativeScanType)+", meta "+
-                    getScanTypeString(currentMetaScanType)+"]");
+                    to_string(currentNativeScanType)+", meta "+
+                    to_string(currentMetaScanType)+"]");
             ERR_PRINT(msg.c_str());
             // ABORT?
         }
@@ -589,11 +589,11 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddr
         if( keep_le_scan_alive == keepAlive ) {
             DBG_PRINT("DBTAdapter::startDiscovery: Already discovering, unchanged keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
                     keep_le_scan_alive.load(), keepAlive,
-                    getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str());
+                    to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str());
         } else {
             DBG_PRINT("DBTAdapter::startDiscovery: Already discovering, changed keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
                     keep_le_scan_alive.load(), keepAlive,
-                    getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str());
+                    to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str());
             keep_le_scan_alive = keepAlive;
         }
         checkDiscoveryState();
@@ -602,7 +602,7 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddr
 
     DBG_PRINT("DBTAdapter::startDiscovery: Start: keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
             keep_le_scan_alive.load(), keepAlive,
-            getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str());
+            to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str());
 
     removeDiscoveredDevices();
     keep_le_scan_alive = keepAlive;
@@ -611,8 +611,8 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddr
     const HCIStatusCode status = hci.le_start_scan(true /* filter_dup */, own_mac_type, le_scan_interval, le_scan_window);
 
     DBG_PRINT("DBTAdapter::startDiscovery: End: Result %s, keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
-            getHCIStatusCodeString(status).c_str(), keep_le_scan_alive.load(), keepAlive,
-            getScanTypeString(hci.getCurrentScanType()).c_str(), getScanTypeString(currentMetaScanType).c_str());
+            to_string(status).c_str(), keep_le_scan_alive.load(), keepAlive,
+            to_string(hci.getCurrentScanType()).c_str(), to_string(currentMetaScanType).c_str());
 
     checkDiscoveryState();
 
@@ -630,7 +630,7 @@ void BTAdapter::startDiscoveryBackground() noexcept {
         // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
         const HCIStatusCode status = hci.le_enable_scan(true /* enable */);
         if( HCIStatusCode::SUCCESS != status ) {
-            ERR_PRINT("DBTAdapter::startDiscoveryBackground: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
+            ERR_PRINT("DBTAdapter::startDiscoveryBackground: le_enable_scan failed: %s", to_string(status).c_str());
         }
         checkDiscoveryState();
     }
@@ -662,14 +662,14 @@ HCIStatusCode BTAdapter::stopDiscovery() noexcept {
 
     DBG_PRINT("DBTAdapter::stopDiscovery: Start: keepAlive %d, currentScanType[native %s, meta %s], le_scan_temp_disabled %d ...",
             keep_le_scan_alive.load(),
-            getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str(),
+            to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(),
             le_scan_temp_disabled);
 
     keep_le_scan_alive = false;
     if( !hasScanType(currentMetaScanType, ScanType::LE) ) {
         DBG_PRINT("DBTAdapter::stopDiscovery: Already disabled, keepAlive %d, currentScanType[native %s, meta %s] ...",
                 keep_le_scan_alive.load(),
-                getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str());
+                to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str());
         checkDiscoveryState();
         return HCIStatusCode::SUCCESS;
     }
@@ -697,7 +697,7 @@ HCIStatusCode BTAdapter::stopDiscovery() noexcept {
         // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
         status = hci.le_enable_scan(false /* enable */);
         if( HCIStatusCode::SUCCESS != status ) {
-            ERR_PRINT("DBTAdapter::stopDiscovery: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
+            ERR_PRINT("DBTAdapter::stopDiscovery: le_enable_scan failed: %s", to_string(status).c_str());
         }
     }
 
@@ -709,8 +709,8 @@ exit:
         mgmtEvDeviceDiscoveringHCI( e );
     }
     DBG_PRINT("DBTAdapter::stopDiscovery: End: Result %s, keepAlive %d, currentScanType[native %s, meta %s], le_scan_temp_disabled %d ...",
-            getHCIStatusCodeString(status).c_str(), keep_le_scan_alive.load(),
-            getScanTypeString(hci.getCurrentScanType()).c_str(), getScanTypeString(currentMetaScanType).c_str(), le_scan_temp_disabled);
+            to_string(status).c_str(), keep_le_scan_alive.load(),
+            to_string(hci.getCurrentScanType()).c_str(), to_string(currentMetaScanType).c_str(), le_scan_temp_disabled);
 
     checkDiscoveryState();
 
@@ -796,7 +796,7 @@ std::shared_ptr<BTDevice> BTAdapter::findSharedDevice (const EUI48 & address, co
 void BTAdapter::removeDevice(BTDevice & device) noexcept {
     WORDY_PRINT("DBTAdapter::removeDevice: Start %s", toString(false).c_str());
     const HCIStatusCode status = device.disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
-    WORDY_PRINT("DBTAdapter::removeDevice: disconnect %s, %s", getHCIStatusCodeString(status).c_str(), toString(false).c_str());
+    WORDY_PRINT("DBTAdapter::removeDevice: disconnect %s, %s", to_string(status).c_str(), toString(false).c_str());
     unlockConnect(device);
     removeConnectedDevice(device); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
     removeDiscoveredDevice(device.addressAndType); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
@@ -805,9 +805,9 @@ void BTAdapter::removeDevice(BTDevice & device) noexcept {
 }
 
 std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
-    std::string out("Adapter[BTMode "+getBTModeString(btMode)+", "+getAddressString()+", '"+getName()+"', id "+std::to_string(dev_id)+
-                    ", curSettings"+getAdapterSettingMaskString(adapterInfo.getCurrentSettingMask())+
-                    ", scanType[native "+getScanTypeString(hci.getCurrentScanType())+", meta "+getScanTypeString(currentMetaScanType)+"]"
+    std::string out("Adapter[BTMode "+to_string(btMode)+", "+adapterInfo.address.toString()+", '"+getName()+"', id "+std::to_string(dev_id)+
+                    ", curSettings"+to_string(adapterInfo.getCurrentSettingMask())+
+                    ", scanType[native "+to_string(hci.getCurrentScanType())+", meta "+to_string(currentMetaScanType)+"]"
                     ", valid "+std::to_string(isValid())+", open[mgmt, "+std::to_string(mgmt.isOpen())+", hci "+std::to_string(hci.isOpen())+
                     "], "+javaObjectToString()+"]");
     device_list_t devices = getDiscoveredDevices();
@@ -845,7 +845,7 @@ void BTAdapter::sendAdapterSettingsInitial(AdapterStatusListener & asl, const ui
 {
     const AdapterSetting current_settings = adapterInfo.getCurrentSettingMask();
     COND_PRINT(debug_event, "DBTAdapter::sendAdapterSettingsInitial: NONE -> %s, changes NONE: %s",
-            getAdapterSettingMaskString(current_settings).c_str(), toString(false).c_str() );
+            to_string(current_settings).c_str(), toString(false).c_str() );
     try {
         asl.adapterSettingsChanged(*this, AdapterSetting::NONE, current_settings, AdapterSetting::NONE, timestampMS);
     } catch (std::exception &e) {
@@ -911,16 +911,16 @@ bool BTAdapter::mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSou
         const ScanType nextNativeScanType = changeScanType(currentNativeScanType, eventScanType, eventEnabled);
         DBG_PRINT("DBTAdapter:%s:DeviceDiscovering: dev_id %d, keepDiscoveringAlive %d: scanType[native %s -> %s, meta %s -> %s]): %s",
             srctkn.c_str(), dev_id, keep_le_scan_alive.load(),
-            getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(nextNativeScanType).c_str(),
-            getScanTypeString(currentMetaScanType).c_str(), getScanTypeString(nextMetaScanType).c_str(),
+            to_string(currentNativeScanType).c_str(), to_string(nextNativeScanType).c_str(),
+            to_string(currentMetaScanType).c_str(), to_string(nextMetaScanType).c_str(),
             event.toString().c_str());
         currentNativeScanType = nextNativeScanType;
         hci.setCurrentScanType(currentNativeScanType);
     } else {
         DBG_PRINT("DBTAdapter:%s:DeviceDiscovering: dev_id %d, keepDiscoveringAlive %d: scanType[native %s, meta %s -> %s]): %s",
             srctkn.c_str(), dev_id, keep_le_scan_alive.load(),
-            getScanTypeString(currentNativeScanType).c_str(),
-            getScanTypeString(currentMetaScanType).c_str(), getScanTypeString(nextMetaScanType).c_str(),
+            to_string(currentNativeScanType).c_str(),
+            to_string(currentMetaScanType).c_str(), to_string(nextMetaScanType).c_str(),
             event.toString().c_str());
     }
     currentMetaScanType = nextMetaScanType;
@@ -969,9 +969,9 @@ bool BTAdapter::mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept {
     old_settings = new_settings;
 
     COND_PRINT(debug_event, "DBTAdapter::mgmt:NewSettings: %s -> %s, changes %s: %s",
-            getAdapterSettingMaskString(old_settings_).c_str(),
-            getAdapterSettingMaskString(new_settings).c_str(),
-            getAdapterSettingMaskString(changes).c_str(), toString(false).c_str() );
+            to_string(old_settings_).c_str(),
+            to_string(new_settings).c_str(),
+            to_string(changes).c_str(), toString(false).c_str() );
 
     if( justPoweredOn ) {
         // Adapter has been powered on, ensure all hci states are reset.
@@ -1049,8 +1049,8 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     EIRDataType updateMask = device->update(ad_report);
     if( 0 == new_connect ) {
         WARN_PRINT("DBTAdapter::EventHCI:DeviceConnected(dev_id %d, already connected, updated %s): %s, handle %s -> %s,\n    %s,\n    -> %s",
-            dev_id, getEIRDataMaskString(updateMask).c_str(), event.toString().c_str(),
-            jau::uint16HexString(device->getConnectionHandle()).c_str(), jau::uint16HexString(event.getHCIHandle()).c_str(),
+            dev_id, to_string(updateMask).c_str(), event.toString().c_str(),
+            jau::to_hexstring(device->getConnectionHandle()).c_str(), jau::to_hexstring(event.getHCIHandle()).c_str(),
             ad_report.toString().c_str(),
             device->toString().c_str());
     } else {
@@ -1059,8 +1059,8 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
             device->ts_last_discovery = ad_report.getTimestamp();
         }
         COND_PRINT(debug_event, "DBTAdapter::EventHCI:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s, handle %s -> %s,\n    %s,\n    -> %s",
-            dev_id, new_connect, getEIRDataMaskString(updateMask).c_str(), event.toString().c_str(),
-            jau::uint16HexString(device->getConnectionHandle()).c_str(), jau::uint16HexString(event.getHCIHandle()).c_str(),
+            dev_id, new_connect, to_string(updateMask).c_str(), event.toString().c_str(),
+            jau::to_hexstring(device->getConnectionHandle()).c_str(), jau::to_hexstring(event.getHCIHandle()).c_str(),
             ad_report.toString().c_str(),
             device->toString().c_str());
     }
@@ -1098,7 +1098,7 @@ bool BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
     if( nullptr != device ) {
         const uint16_t handle = device->getConnectionHandle();
         COND_PRINT(debug_event, "DBTAdapter::EventHCI:ConnectFailed(dev_id %d): %s, handle %s -> zero,\n    -> %s",
-            dev_id, event.toString().c_str(), jau::uint16HexString(handle).c_str(),
+            dev_id, event.toString().c_str(), jau::to_hexstring(handle).c_str(),
             device->toString().c_str());
 
         unlockConnect(*device);
@@ -1190,7 +1190,7 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
             return true;
         }
         COND_PRINT(debug_event, "DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): %s, handle %s -> zero,\n    -> %s",
-            dev_id, event.toString().c_str(), jau::uint16HexString(event.getHCIHandle()).c_str(),
+            dev_id, event.toString().c_str(), jau::to_hexstring(event.getHCIHandle()).c_str(),
             device->toString().c_str());
 
         unlockConnect(*device);
@@ -1232,7 +1232,7 @@ bool BTAdapter::mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept {
 
     std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
-        const HCIStatusCode evtStatus = getHCIStatusCode( event.getStatus() );
+        const HCIStatusCode evtStatus = to_HCIStatusCode( event.getStatus() );
         const bool ok = HCIStatusCode::ALREADY_PAIRED == evtStatus;
         const SMPPairingState pstate = ok ? SMPPairingState::COMPLETED : SMPPairingState::NONE;
         device->updatePairingState(device, e, evtStatus, pstate);
@@ -1378,11 +1378,11 @@ bool BTAdapter::mgmtEvAuthFailedMgmt(const MgmtEvent& e) noexcept {
     std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
         WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s], %s",
-                dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),
+                dev_id, event.getAddress().toString().c_str(), to_string(event.getAddressType()).c_str(),
                 event.toString().c_str());
         return true;
     }
-    const HCIStatusCode evtStatus = getHCIStatusCode( event.getStatus() );
+    const HCIStatusCode evtStatus = to_HCIStatusCode( event.getStatus() );
     device->updatePairingState(device, e, evtStatus, SMPPairingState::FAILED);
     return true;
 }
@@ -1392,7 +1392,7 @@ bool BTAdapter::mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept {
     std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
         WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s], %s",
-                dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),
+                dev_id, event.getAddress().toString().c_str(), to_string(event.getAddressType()).c_str(),
                 event.toString().c_str());
         return true;
     }
@@ -1406,7 +1406,7 @@ bool BTAdapter::mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept {
     std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
         WORDY_PRINT("DBTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s], %s",
-                dev_id, event.getAddress().toString().c_str(), getBDAddressTypeString(event.getAddressType()).c_str(),
+                dev_id, event.getAddress().toString().c_str(), to_string(event.getAddressType()).c_str(),
                 event.toString().c_str());
         return true;
     }

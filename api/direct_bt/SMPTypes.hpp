@@ -145,7 +145,7 @@ namespace direct_bt {
          */
         COMPLETED                   = 9
     };
-    std::string getSMPPairingStateString(const SMPPairingState state) noexcept;
+    std::string to_string(const SMPPairingState state) noexcept;
 
     /**
      * Returns true if the given SMPPairingState indicated an active pairing process,
@@ -196,7 +196,7 @@ namespace direct_bt {
         /** Denoting unset value, i.e. not defined. */
         UNSET                       = 0xFF,
     };
-    constexpr SMPIOCapability getSMPIOCapability(const uint8_t v) noexcept {
+    constexpr SMPIOCapability to_SMPIOCapability(const uint8_t v) noexcept {
         if( v <= 4 ) {
             return static_cast<SMPIOCapability>(v);
         }
@@ -205,7 +205,7 @@ namespace direct_bt {
     constexpr uint8_t number(const SMPIOCapability rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
-    std::string getSMPIOCapabilityString(const SMPIOCapability ioc) noexcept;
+    std::string to_string(const SMPIOCapability ioc) noexcept;
     constexpr bool hasSMPIOCapabilityBinaryInput(const SMPIOCapability ioc) noexcept {
         return ioc == SMPIOCapability::DISPLAY_YES_NO ||
                ioc == SMPIOCapability::KEYBOARD_ONLY ||
@@ -227,7 +227,7 @@ namespace direct_bt {
     constexpr uint8_t number(const SMPOOBDataFlag rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
-    std::string getSMPOOBDataFlagString(const SMPOOBDataFlag v) noexcept;
+    std::string to_string(const SMPOOBDataFlag v) noexcept;
 
     /**
      * SMP Authentication Requirements Bits, denotes specific bits or whole protocol uint8_t bit-mask.
@@ -328,7 +328,7 @@ namespace direct_bt {
     constexpr bool isSMPAuthReqBitSet(const SMPAuthReqs mask, const SMPAuthReqs bit) noexcept {
         return SMPAuthReqs::NONE != ( mask & bit );
     }
-    std::string getSMPAuthReqMaskString(const SMPAuthReqs mask) noexcept;
+    std::string to_string(const SMPAuthReqs mask) noexcept;
 
     /**
      * Returns the PairingMode derived from both devices' sets of SMPAuthReqs, SMPIOCapability and SMPOOBDataFlag
@@ -459,7 +459,7 @@ namespace direct_bt {
     constexpr bool isKeyDistBitSet(const SMPKeyType mask, const SMPKeyType bit) noexcept {
         return SMPKeyType::NONE != ( mask & bit );
     }
-    std::string getSMPKeyTypeMaskString(const SMPKeyType mask) noexcept;
+    std::string to_string(const SMPKeyType mask) noexcept;
 
     /**
      * SMP Long Term Key Info, used for platform agnostic persistence.
@@ -488,7 +488,7 @@ namespace direct_bt {
         static constexpr uint8_t number(const Property rhs) noexcept {
             return static_cast<uint8_t>(rhs);
         }
-        static std::string getPropertyMaskString(const Property mask) noexcept;
+        static std::string getPropertyString(const Property mask) noexcept;
 
         /** SMPLongTermKeyInfo::Property bit mask. */
         Property properties;
@@ -512,7 +512,7 @@ namespace direct_bt {
         }
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
-            return "LTK[props "+getPropertyMaskString(properties)+", enc_size "+std::to_string(enc_size)+
+            return "LTK[props "+getPropertyString(properties)+", enc_size "+std::to_string(enc_size)+
                    ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), false /* lsbFirst */)+
                    ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), false /* lsbFirst */)+
                    ", ltk "+jau::bytesHexString(ltk.data, 0, sizeof(ltk), true /* lsbFirst */)+
@@ -547,6 +547,7 @@ namespace direct_bt {
     constexpr bool operator !=(const SMPLongTermKeyInfo::Property lhs, const SMPLongTermKeyInfo::Property rhs) noexcept {
         return !( lhs == rhs );
     }
+    inline std::string to_String(const SMPLongTermKeyInfo& ltk) noexcept { return ltk.toString(); }
 
     /**
      * SMP Signature Resolving Key Info, used for platform agnostic persistence.
@@ -576,7 +577,7 @@ namespace direct_bt {
         static constexpr uint8_t number(const Property rhs) noexcept {
             return static_cast<uint8_t>(rhs);
         }
-        static std::string getPropertyMaskString(const Property mask) noexcept;
+        static std::string getPropertyString(const Property mask) noexcept;
 
         /** SMPSignatureResolvingKeyInfo::Property bit mask. */
         Property properties;
@@ -590,7 +591,7 @@ namespace direct_bt {
         }
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
-            return "CSRK[props "+getPropertyMaskString(properties)+
+            return "CSRK[props "+getPropertyString(properties)+
                    ", csrk "+jau::bytesHexString(csrk.data, 0, sizeof(csrk), true /* lsbFirst */)+
                    "]";
         }
@@ -622,6 +623,7 @@ namespace direct_bt {
     constexpr bool operator !=(const SMPSignatureResolvingKeyInfo::Property lhs, const SMPSignatureResolvingKeyInfo::Property rhs) noexcept {
         return !( lhs == rhs );
     }
+    inline std::string to_String(const SMPSignatureResolvingKeyInfo& csrk) noexcept { return csrk.toString(); }
 
     /**
      * Handles the Security Manager Protocol (SMP) using Protocol Data Unit (PDU)
@@ -674,22 +676,22 @@ namespace direct_bt {
             {
                 const Opcode has = getOpcode();
                 if( expected != has ) {
-                    throw SMPOpcodeException("Has opcode "+jau::uint8HexString(number(has))+" "+getOpcodeString(has)+
-                                     ", but expected "+jau::uint8HexString(number(expected))+" "+getOpcodeString(expected), E_FILE_LINE);
+                    throw SMPOpcodeException("Has opcode "+jau::to_hexstring(number(has))+" "+getOpcodeString(has)+
+                                     ", but expected "+jau::to_hexstring(number(expected))+" "+getOpcodeString(expected), E_FILE_LINE);
                 }
             }
             void checkOpcode(const Opcode exp1, const Opcode exp2) const
             {
                 const Opcode has = getOpcode();
                 if( exp1 != has && exp2 != has ) {
-                    throw SMPOpcodeException("Has opcode "+jau::uint8HexString(number(has))+" "+getOpcodeString(has)+
-                                     ", but expected either "+jau::uint8HexString(number(exp1))+" "+getOpcodeString(exp1)+
-                                     " or  "+jau::uint8HexString(number(exp1))+" "+getOpcodeString(exp1), E_FILE_LINE);
+                    throw SMPOpcodeException("Has opcode "+jau::to_hexstring(number(has))+" "+getOpcodeString(has)+
+                                     ", but expected either "+jau::to_hexstring(number(exp1))+" "+getOpcodeString(exp1)+
+                                     " or  "+jau::to_hexstring(number(exp1))+" "+getOpcodeString(exp1), E_FILE_LINE);
                 }
             }
 
             virtual std::string baseString() const noexcept {
-                return "opcode="+jau::uint8HexString(number(getOpcode()))+" "+getOpcodeString()+
+                return "opcode="+jau::to_hexstring(number(getOpcode()))+" "+getOpcodeString(getOpcode())+
                         ", size[total="+std::to_string(pdu.getSize())+", param "+std::to_string(getPDUParamSize())+"]";
             }
             virtual std::string valueString() const noexcept {
@@ -750,7 +752,6 @@ namespace direct_bt {
             constexpr Opcode getOpcode() const noexcept {
                 return static_cast<Opcode>(pdu.get_uint8_nc(0));
             }
-            std::string getOpcodeString() const noexcept { return getOpcodeString(getOpcode()); }
 
             /**
              * Returns the actual PDU size less one octet for the opcode,
@@ -795,6 +796,7 @@ namespace direct_bt {
                 return getName()+"["+baseString()+", value["+valueString()+"]]";
             }
     };
+    inline std::string to_String(const SMPPDUMsg& m) noexcept { return m.toString(); }
 
     /**
      * Tag type to group all SMP messages covering encryption keys,
@@ -987,12 +989,12 @@ namespace direct_bt {
 
         protected:
             std::string valueString() const noexcept override {
-                return "iocap "+getSMPIOCapabilityString(getIOCapability())+
-                       ", oob "+getSMPOOBDataFlagString(getOOBDataFlag())+
-                       ", auth_req "+getSMPAuthReqMaskString(getAuthReqMask())+
+                return "iocap "+to_string(getIOCapability())+
+                       ", oob "+to_string(getOOBDataFlag())+
+                       ", auth_req "+to_string(getAuthReqMask())+
                        ", max_keysz "+std::to_string(getMaxEncryptionKeySize())+
-                       ", key_dist[init "+getSMPKeyTypeMaskString(getInitKeyDist())+
-                       ", resp "+getSMPKeyTypeMaskString(getRespKeyDist())+
+                       ", key_dist[init "+to_string(getInitKeyDist())+
+                       ", resp "+to_string(getRespKeyDist())+
                        "]";
             }
     };
@@ -1205,7 +1207,7 @@ namespace direct_bt {
             static constexpr uint8_t number(const ReasonCode rhs) noexcept {
                 return static_cast<uint8_t>(rhs);
             }
-            static std::string getPlainReasonString(const ReasonCode reasonCode) noexcept;
+            static std::string getReasonCodeString(const ReasonCode reasonCode) noexcept;
 
             SMPPairFailedMsg(const uint8_t* source, const jau::nsize_t length) : SMPPDUMsg(source, length) {
                 checkOpcode(Opcode::PAIRING_FAILED);
@@ -1232,7 +1234,7 @@ namespace direct_bt {
         protected:
             std::string valueString() const noexcept override {
                 const ReasonCode ec = getReasonCode();
-                return jau::uint8HexString(number(ec)) + ": " + getPlainReasonString(ec);
+                return jau::to_hexstring(number(ec)) + ": " + getReasonCodeString(ec);
             }
     };
 
@@ -1414,7 +1416,7 @@ namespace direct_bt {
         protected:
             std::string valueString() const noexcept override {
                 const TypeCode ec = getTypeCode();
-                return jau::uint8HexString(number(ec)) + ": " + getTypeCodeString(ec);
+                return jau::to_hexstring(number(ec)) + ": " + getTypeCodeString(ec);
             }
     };
 
@@ -1828,7 +1830,7 @@ namespace direct_bt {
 
         protected:
             std::string valueString() const noexcept override {
-                return "auth_req "+getSMPAuthReqMaskString(getAuthReqMask());
+                return "auth_req "+to_string(getAuthReqMask());
             }
     };
 

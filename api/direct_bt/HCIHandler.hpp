@@ -208,7 +208,7 @@ namespace direct_bt {
                     }
 
                     std::string toString() const {
-                        return "HCIConnection[handle "+jau::uint16HexString(handle)+
+                        return "HCIConnection[handle "+jau::to_hexstring(handle)+
                                ", address "+addressAndType.toString()+"]";
                     }
             };

@@ -484,7 +484,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityLevelImpl(JNIEnv *env, job
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        return device->setConnSecurityLevel( getBTSecurityLevel( static_cast<uint8_t>(jsec_level) ));
+        return device->setConnSecurityLevel( to_BTSecurityLevel( static_cast<uint8_t>(jsec_level) ));
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -508,7 +508,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_setConnIOCapabilityImpl(JNIEnv *env, jobj
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        return device->setConnIOCapability( getSMPIOCapability( static_cast<uint8_t>(jio_cap) ));
+        return device->setConnIOCapability( to_SMPIOCapability( static_cast<uint8_t>(jio_cap) ));
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -520,8 +520,8 @@ jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityImpl(JNIEnv *env, jobject 
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        return device->setConnSecurity( getBTSecurityLevel( static_cast<uint8_t>(jsec_level) ),
-                                        getSMPIOCapability( static_cast<uint8_t>(jio_cap) ) );
+        return device->setConnSecurity( to_BTSecurityLevel( static_cast<uint8_t>(jsec_level) ),
+                                        to_SMPIOCapability( static_cast<uint8_t>(jio_cap) ) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -569,7 +569,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityAutoImpl(JNIEnv *env, jobj
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        return device->setConnSecurityAuto( getSMPIOCapability( static_cast<uint8_t>(jio_cap) ) );
+        return device->setConnSecurityAuto( to_SMPIOCapability( static_cast<uint8_t>(jio_cap) ) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

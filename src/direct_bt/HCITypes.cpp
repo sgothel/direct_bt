@@ -141,7 +141,7 @@ namespace direct_bt {
 
 #define HCI_STATUS_CODE_CASE_TO_STRING(V) case HCIStatusCode::V: return #V;
 
-std::string getHCIStatusCodeString(const HCIStatusCode ec) noexcept {
+std::string to_string(const HCIStatusCode ec) noexcept {
     switch(ec) {
     HCI_STATUS_CODE(HCI_STATUS_CODE_CASE_TO_STRING)
         default: ; // fall through intended
@@ -149,7 +149,7 @@ std::string getHCIStatusCodeString(const HCIStatusCode ec) noexcept {
     return "Unknown HCIStatusCode";
 }
 
-std::string getHCIPacketTypeString(const HCIPacketType op) noexcept {
+std::string to_string(const HCIPacketType op) noexcept {
     switch(op) {
         case HCIPacketType::COMMAND: return "COMMAND";
         case HCIPacketType::ACLDATA: return "ACLDATA";
@@ -161,7 +161,7 @@ std::string getHCIPacketTypeString(const HCIPacketType op) noexcept {
     return "Unknown HCIPacketType";
 }
 
-std::string getHCIOGFString(const HCIOGF op) noexcept {
+std::string to_string(const HCIOGF op) noexcept {
     (void)op;
     return "";
 }
@@ -198,7 +198,7 @@ std::string getHCIOGFString(const HCIOGF op) noexcept {
 
 #define HCI_OPCODE_CASE_TO_STRING(V) case HCIOpcode::V: return #V;
 
-std::string getHCIOpcodeString(const HCIOpcode op) noexcept {
+std::string to_string(const HCIOpcode op) noexcept {
     switch(op) {
     HCI_OPCODE(HCI_OPCODE_CASE_TO_STRING)
         default: ; // fall through intended
@@ -241,7 +241,7 @@ std::string getHCIOpcodeString(const HCIOpcode op) noexcept {
 
 #define HCI_EVENTTYPE_CASE_TO_STRING(V) case HCIEventType::V: return #V;
 
-std::string getHCIEventTypeString(const HCIEventType op) noexcept {
+std::string to_string(const HCIEventType op) noexcept {
         switch(op) {
         HCI_EVENTTYPE(HCI_EVENTTYPE_CASE_TO_STRING)
             default: ; // fall through intended
@@ -288,7 +288,7 @@ std::string getHCIEventTypeString(const HCIEventType op) noexcept {
 
 #define HCI_METATYPE_CASE_TO_STRING(V) case HCIMetaEventType::V: return #V;
 
-std::string getHCIMetaEventTypeString(const HCIMetaEventType op) noexcept {
+std::string to_string(const HCIMetaEventType op) noexcept {
     switch(op) {
     HCI_METATYPE(HCI_METATYPE_CASE_TO_STRING)
         default: ; // fall through intended
@@ -328,10 +328,10 @@ std::unique_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, jau::
 
 std::string HCILocalVersion::toString() noexcept {
     return "LocalVersion[version "+std::to_string(hci_ver)+"."+std::to_string(hci_rev)+
-           ", manuf "+jau::uint16HexString(manufacturer)+", lmp "+std::to_string(lmp_ver)+"."+std::to_string(lmp_subver)+"]";
+           ", manuf "+jau::to_hexstring(manufacturer)+", lmp "+std::to_string(lmp_ver)+"."+std::to_string(lmp_subver)+"]";
 }
 
-std::string HCIACLData::l2cap_frame::getPBFlagString(const PBFlag v) noexcept {
+std::string HCIACLData::l2cap_frame::toString(const PBFlag v) noexcept {
     switch( v ) {
         case HCIACLData::l2cap_frame::PBFlag::START_NON_AUTOFLUSH_HOST: return "START_NON_AUTOFLUSH_HOST";
         case HCIACLData::l2cap_frame::PBFlag::CONTINUING_FRAGMENT:      return "CONTINUING_FRAGMENT";

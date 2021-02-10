@@ -50,7 +50,7 @@ using namespace direct_bt;
 
 #define CASE_TO_STRING_PAIRSTATE(V) case SMPPairingState::V: return #V;
 
-std::string direct_bt::getSMPPairingStateString(const SMPPairingState state) noexcept {
+std::string direct_bt::to_string(const SMPPairingState state) noexcept {
     switch(state) {
         PAIRSTATE_ENUM(CASE_TO_STRING_PAIRSTATE)
         default: ; // fall through intended
@@ -68,7 +68,7 @@ std::string direct_bt::getSMPPairingStateString(const SMPPairingState state) noe
 
 #define CASE_TO_STRING_IOCAP(V) case SMPIOCapability::V: return #V;
 
-std::string direct_bt::getSMPIOCapabilityString(const SMPIOCapability ioc) noexcept {
+std::string direct_bt::to_string(const SMPIOCapability ioc) noexcept {
     switch(ioc) {
         IOCAP_ENUM(CASE_TO_STRING_IOCAP)
         default: ; // fall through intended
@@ -76,7 +76,7 @@ std::string direct_bt::getSMPIOCapabilityString(const SMPIOCapability ioc) noexc
     return "Unknown SMP IOCapability";
 }
 
-std::string direct_bt::getSMPOOBDataFlagString(const SMPOOBDataFlag v) noexcept {
+std::string direct_bt::to_string(const SMPOOBDataFlag v) noexcept {
     switch(v) {
         case SMPOOBDataFlag::OOB_AUTH_DATA_NOT_PRESENT: return "OOB_AUTH_DATA_NOT_PRESENT";
         case SMPOOBDataFlag::OOB_AUTH_DATA_REMOTE_PRESENT: return "OOB_AUTH_DATA_REMOTE_PRESENT";
@@ -86,7 +86,7 @@ std::string direct_bt::getSMPOOBDataFlagString(const SMPOOBDataFlag v) noexcept 
 }
 
 
-std::string direct_bt::getSMPAuthReqMaskString(const SMPAuthReqs mask) noexcept {
+std::string direct_bt::to_string(const SMPAuthReqs mask) noexcept {
     std::string out("[");
     if( isSMPAuthReqBitSet(mask, SMPAuthReqs::BONDING) ) {
         out.append("Bonding");
@@ -228,10 +228,10 @@ PairingMode direct_bt::getPairingMode(const bool use_sc,
     const uint8_t ioCap_ini_int = number(ioCap_ini);
     const uint8_t ioCap_res_int = number(ioCap_res);
     if( ioCap_ini_int > 4) {
-        ABORT("Invalid ioCap_init %s, %d", getSMPIOCapabilityString(ioCap_ini).c_str(), ioCap_ini_int);
+        ABORT("Invalid ioCap_init %s, %d", to_string(ioCap_ini).c_str(), ioCap_ini_int);
     }
     if( ioCap_res_int > 4) {
-        ABORT("Invalid ioCap_resp %s, %d", getSMPIOCapabilityString(ioCap_res).c_str(), ioCap_res_int);
+        ABORT("Invalid ioCap_resp %s, %d", to_string(ioCap_res).c_str(), ioCap_res_int);
     }
     if( use_sc ) {
         return seccon_pairing[ioCap_res_int][ioCap_ini_int];
@@ -262,7 +262,7 @@ static std::string _getSMPKeyTypeBitStr(const direct_bt::SMPKeyType bit) noexcep
     return "Unknown SMPKeyDistFormat bit";
 }
 
-std::string direct_bt::getSMPKeyTypeMaskString(const SMPKeyType mask) noexcept {
+std::string direct_bt::to_string(const SMPKeyType mask) noexcept {
     const uint8_t one = 1;
     bool has_pre = false;
     std::string out("[");
@@ -294,7 +294,7 @@ static std::string _getPropertyBitStr(const SMPLongTermKeyInfo::Property bit) no
     return "Unknown SMPLongTermKeyInfo::Property bit";
 }
 
-std::string SMPLongTermKeyInfo::getPropertyMaskString(const Property mask) noexcept {
+std::string SMPLongTermKeyInfo::getPropertyString(const Property mask) noexcept {
     bool has_pre = false;
     std::string out("[");
     if( Property::NONE != ( mask & Property::RESPONDER ) ) {
@@ -334,7 +334,7 @@ static std::string _getPropertyBitStr(const SMPSignatureResolvingKeyInfo::Proper
     return "Unknown SMPSignatureResolvingKeyInfo::Property bit";
 }
 
-std::string SMPSignatureResolvingKeyInfo::getPropertyMaskString(const Property mask) noexcept {
+std::string SMPSignatureResolvingKeyInfo::getPropertyString(const Property mask) noexcept {
     bool has_pre = false;
     std::string out("[");
     if( Property::NONE != ( mask & Property::RESPONDER ) ) {
@@ -381,7 +381,7 @@ std::string SMPPDUMsg::getOpcodeString(const Opcode opc) noexcept {
     return "Unknown SMP Opcode";
 }
 
-std::string SMPPairFailedMsg::getPlainReasonString(const ReasonCode reasonCode) noexcept {
+std::string SMPPairFailedMsg::getReasonCodeString(const ReasonCode reasonCode) noexcept {
     switch(reasonCode) {
         case ReasonCode::UNDEFINED: return "Undefined";
         case ReasonCode::PASSKEY_ENTRY_FAILED: return "Passkey Entry Failed";

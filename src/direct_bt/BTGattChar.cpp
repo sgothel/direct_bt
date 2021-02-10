@@ -65,7 +65,7 @@ using namespace jau;
 
 #define CASE_TO_STRING2(V,S) case V: return #S;
 
-std::string BTGattChar::getPropertyString(const PropertyBitVal prop) noexcept {
+static std::string _getPropertyBitValStr(const BTGattChar::PropertyBitVal prop) noexcept {
     switch(prop) {
         CHAR_DECL_PROPS_ENUM(CASE_TO_STRING2)
         default: ; // fall through intended
@@ -82,7 +82,7 @@ std::string BTGattChar::getPropertiesString(const PropertyBitVal properties) noe
         const PropertyBitVal propertyBit = static_cast<PropertyBitVal>( one << i );
         if( none != ( properties & propertyBit ) ) {
             if( has_pre ) { out.append(", "); }
-            out.append(getPropertyString(propertyBit));
+            out.append(_getPropertyBitValStr(propertyBit));
             has_pre = true;
         }
     }
@@ -97,7 +97,7 @@ jau::darray<std::unique_ptr<std::string>> BTGattChar::getPropertiesStringList(co
     for(int i=0; i<8; i++) {
         const PropertyBitVal propertyBit = static_cast<PropertyBitVal>( one << i );
         if( none != ( properties & propertyBit ) ) {
-            out.push_back( std::unique_ptr<std::string>( new std::string( getPropertyString(propertyBit) ) ) );
+            out.push_back( std::unique_ptr<std::string>( new std::string( _getPropertyBitValStr(propertyBit) ) ) );
         }
     }
     return out;
@@ -130,10 +130,10 @@ std::string BTGattChar::toString() const noexcept {
         desc_str += cd->toString() + ", ";
     }
     desc_str += " ]";
-    return "[handle "+uint16HexString(handle)+", props "+uint8HexString(properties)+" "+getPropertiesString()+
-           ", value[type 0x"+value_type->toString()+", handle "+uint16HexString(value_handle)+char_name+desc_str+
+    return "[handle "+to_hexstring(handle)+", props "+to_hexstring(properties)+" "+getPropertiesString(properties)+
+           ", value[type 0x"+value_type->toString()+", handle "+to_hexstring(value_handle)+char_name+desc_str+
            "], service[type 0x"+service_uuid_str+
-           ", handle[ "+uint16HexString(service_handle)+".."+uint16HexString(service_handle_end)+" ]"+
+           ", handle[ "+to_hexstring(service_handle)+".."+to_hexstring(service_handle_end)+" ]"+
            service_name+", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"] ] ]";
 }
 
@@ -144,10 +144,10 @@ std::string BTGattChar::toShortString() const noexcept {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(value_type.get()))->value;
         char_name = ", "+GattCharacteristicTypeToString(static_cast<GattCharacteristicType>(uuid16));
     }
-    return "[handle "+uint16HexString(handle)+", props "+uint8HexString(properties)+" "+getPropertiesString()+
-           ", value[handle "+uint16HexString(value_handle)+char_name+
+    return "[handle "+to_hexstring(handle)+", props "+to_hexstring(properties)+" "+getPropertiesString(properties)+
+           ", value[handle "+to_hexstring(value_handle)+char_name+
            "], service["+
-           ", handle[ "+uint16HexString(service_handle)+".. ]"+
+           ", handle[ "+to_hexstring(service_handle)+".. ]"+
            ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"] ] ]";
 }
 

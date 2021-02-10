@@ -80,9 +80,9 @@ bool BTGattDesc::writeValue() {
 }
 
 std::string BTGattDesc::toString() const noexcept {
-    return "[type 0x"+type->toString()+", handle "+uint16HexString(handle)+", value["+value.toString()+"] ]";
+    return "[type 0x"+type->toString()+", handle "+to_hexstring(handle)+", value["+value.toString()+"] ]";
 }
 
 std::string BTGattDesc::toShortString() const noexcept {
-    return "[handle "+uint16HexString(handle)+", value["+value.toString()+"] ]";
+    return "[handle "+to_hexstring(handle)+", value["+value.toString()+"] ]";
 }

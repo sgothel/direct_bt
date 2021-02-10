@@ -97,8 +97,8 @@ namespace direct_bt {
         ALREADY_PAIRED      = 0x13,
         PERMISSION_DENIED   = 0x14
     };
-    std::string getMgmtStatusString(const MgmtStatus opc) noexcept;
-    HCIStatusCode getHCIStatusCode(const MgmtStatus mstatus) noexcept;
+    std::string to_string(const MgmtStatus opc) noexcept;
+    HCIStatusCode to_HCIStatusCode(const MgmtStatus mstatus) noexcept;
 
     enum MgmtOption : uint32_t {
         EXTERNAL_CONFIG     = 0x00000001,
@@ -130,7 +130,7 @@ namespace direct_bt {
         /** Denoting no or invalid link key type */
         NONE              = 0xff
     };
-    std::string getMgmtLinkKeyTypeString(const MgmtLinkKeyType type) noexcept;
+    std::string to_string(const MgmtLinkKeyType type) noexcept;
 
     /**
      * Long Term Key Types compatible with Mgmt's MgmtLongTermKeyInfo
@@ -149,8 +149,8 @@ namespace direct_bt {
         /** Denoting no or invalid long term key type */
         NONE                 = 0xff
     };
-    std::string getMgmtLTKTypeString(const MgmtLTKType type) noexcept;
-    MgmtLTKType getMgmtLTKType(const SMPLongTermKeyInfo::Property ltk_prop_mask) noexcept;
+    std::string to_string(const MgmtLTKType type) noexcept;
+    MgmtLTKType to_MgmtLTKType(const SMPLongTermKeyInfo::Property ltk_prop_mask) noexcept;
 
     /**
      * Signature Resolving Key Types compatible with Mgmt's MgmtSignatureResolvingKeyInfo
@@ -167,7 +167,7 @@ namespace direct_bt {
         /** Denoting no or invalid signature resolving key type */
         NONE                   = 0xff
     };
-    std::string getMgmtCSRKTypeString(const MgmtCSRKType type) noexcept;
+    std::string to_string(const MgmtCSRKType type) noexcept;
 
     /**
      * Used for MgmtLoadLinkKeyCmd and MgmtEvtNewLinkKey
@@ -184,10 +184,10 @@ namespace direct_bt {
         uint8_t pin_length;
 
         std::string toString() const noexcept {
-            return "LK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
-                   "], type "+getMgmtLinkKeyTypeString(key_type).c_str()+
+            return "LK[address["+address.toString()+", "+to_string(address_type)+
+                   "], type "+to_string(key_type)+
                    ", key "+jau::bytesHexString(key.data, 0, sizeof(key), true /* lsbFirst */)+
-                   ", pinLen "+jau::uint8HexString(pin_length)+
+                   ", pinLen "+jau::to_hexstring(pin_length)+
                    "]";
         }
     } );
@@ -220,8 +220,8 @@ namespace direct_bt {
         jau::uint128_t ltk;
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
-            return "LTK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
-                   "], type "+getMgmtLTKTypeString(key_type).c_str()+", master "+jau::uint8HexString(master)+
+            return "LTK[address["+address.toString()+", "+to_string(address_type)+
+                   "], type "+to_string(key_type)+", master "+jau::to_hexstring(master)+
                    ", enc_size "+std::to_string(enc_size)+
                    ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), false /* lsbFirst */)+
                    ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), false /* lsbFirst */)+
@@ -275,7 +275,7 @@ namespace direct_bt {
         jau::uint128_t irk;
 
         std::string toString() const noexcept {
-            return "IRK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
+            return "IRK[address["+address.toString()+", "+to_string(address_type)+
                    "], irk "+jau::bytesHexString(irk.data, 0, sizeof(irk), true /* lsbFirst */)+
                    "]";
         }
@@ -294,8 +294,8 @@ namespace direct_bt {
         jau::uint128_t csrk;
 
         std::string toString() const noexcept {
-            return "CSRK[address["+address.toString()+", "+getBDAddressTypeString(address_type)+
-                   "], type "+getMgmtCSRKTypeString(key_type).c_str()+
+            return "CSRK[address["+address.toString()+", "+to_string(address_type)+
+                   "], type "+to_string(key_type)+
                    ", csrk "+jau::bytesHexString(csrk.data, 0, sizeof(csrk), true /* lsbFirst */)+
                    "]";
         }
@@ -308,7 +308,7 @@ namespace direct_bt {
             uint64_t ts_creation;
 
             virtual std::string baseString() const noexcept {
-                return "opcode "+jau::uint16HexString(getIntOpcode())+", devID "+jau::uint16HexString(getDevID());
+                return "opcode "+jau::to_hexstring(getIntOpcode())+", devID "+jau::to_hexstring(getDevID());
             }
 
             virtual std::string valueString() const noexcept = 0;
@@ -466,21 +466,21 @@ namespace direct_bt {
             inline static void checkOpcode(const Opcode has, const Opcode min, const Opcode max)
             {
                 if( has < min || has > max ) {
-                    throw MgmtOpcodeException("Has opcode "+jau::uint16HexString(static_cast<uint16_t>(has))+
-                                     ", not within range ["+jau::uint16HexString(static_cast<uint16_t>(min))+
-                                     ".."+jau::uint16HexString(static_cast<uint16_t>(max))+"]", E_FILE_LINE);
+                    throw MgmtOpcodeException("Has opcode "+jau::to_hexstring(static_cast<uint16_t>(has))+
+                                     ", not within range ["+jau::to_hexstring(static_cast<uint16_t>(min))+
+                                     ".."+jau::to_hexstring(static_cast<uint16_t>(max))+"]", E_FILE_LINE);
                 }
             }
             static void checkOpcode(const Opcode has, const Opcode exp)
             {
                 if( has != exp ) {
-                    throw MgmtOpcodeException("Has evcode "+jau::uint16HexString(static_cast<uint16_t>(has))+
-                                     ", not matching "+jau::uint16HexString(static_cast<uint16_t>(exp)), E_FILE_LINE);
+                    throw MgmtOpcodeException("Has evcode "+jau::to_hexstring(static_cast<uint16_t>(has))+
+                                     ", not matching "+jau::to_hexstring(static_cast<uint16_t>(exp)), E_FILE_LINE);
                 }
             }
 
             virtual std::string baseString() const noexcept override {
-                return "opcode "+getOpcodeString()+", devID "+jau::uint16HexString(getDevID());
+                return "opcode "+getOpcodeString(getOpcode())+", devID "+jau::to_hexstring(getDevID());
             }
 
             virtual std::string valueString() const noexcept override {
@@ -507,7 +507,6 @@ namespace direct_bt {
             virtual ~MgmtCommand() noexcept override {}
 
             Opcode getOpcode() const noexcept { return static_cast<Opcode>( pdu.get_uint16_nc(0) ); }
-            std::string getOpcodeString() const noexcept { return getOpcodeString(getOpcode()); }
 
             const uint8_t* getParam() const noexcept { return pdu.get_ptr_nc(MGMT_HEADER_SIZE); }
 
@@ -534,7 +533,7 @@ namespace direct_bt {
     {
         protected:
             std::string valueString() const noexcept override {
-                const std::string ps = "state '"+jau::uint8HexString(getDiscoverable())+"', timeout "+std::to_string(getTimeout())+"s";
+                const std::string ps = "state '"+jau::to_hexstring(getDiscoverable())+"', timeout "+std::to_string(getTimeout())+"s";
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
             }
 
@@ -693,7 +692,7 @@ namespace direct_bt {
     {
         protected:
             std::string valueString() const noexcept override {
-                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType());
+                const std::string ps = "address "+getAddress().toString()+", addressType "+to_string(getAddressType());
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
             }
 
@@ -796,7 +795,7 @@ namespace direct_bt {
     {
         protected:
             std::string valueString() const noexcept override {
-                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
+                const std::string ps = "address "+getAddress().toString()+", addressType "+to_string(getAddressType())+
                                        ", pin "+getPinCode().toString();
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
             }
@@ -836,8 +835,8 @@ namespace direct_bt {
     {
         protected:
             std::string valueString() const noexcept override {
-                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
-                                       ", io "+getSMPIOCapabilityString(getIOCapability());
+                const std::string ps = "address "+getAddress().toString()+", addressType "+to_string(getAddressType())+
+                                       ", io "+to_string(getIOCapability());
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
             }
 
@@ -851,7 +850,7 @@ namespace direct_bt {
             }
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
-            SMPIOCapability getIOCapability() const noexcept { return getSMPIOCapability( pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1) ); }
+            SMPIOCapability getIOCapability() const noexcept { return to_SMPIOCapability( pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1) ); }
     };
 
     /**
@@ -874,7 +873,7 @@ namespace direct_bt {
     {
         protected:
             std::string valueString() const noexcept override {
-                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
+                const std::string ps = "address "+getAddress().toString()+", addressType "+to_string(getAddressType())+
                                        ", disconnect "+std::to_string(getDisconnect());
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
             }
@@ -922,8 +921,8 @@ namespace direct_bt {
     {
         protected:
             std::string valueString() const noexcept override {
-                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
-                                       ", passkey "+jau::uint16HexString(getPasskey());
+                const std::string ps = "address "+getAddress().toString()+", addressType "+to_string(getAddressType())+
+                                       ", passkey "+jau::to_hexstring(getPasskey());
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
             }
 
@@ -963,7 +962,7 @@ namespace direct_bt {
     {
         protected:
             std::string valueString() const noexcept override {
-                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
+                const std::string ps = "address "+getAddress().toString()+", addressType "+to_string(getAddressType())+
                                        ", connectionType "+std::to_string(static_cast<uint8_t>(getConnectionType()));
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
             }
@@ -1004,7 +1003,7 @@ namespace direct_bt {
         uint16_t supervision_timeout;
 
         std::string toString() const noexcept {
-            return "ConnParam[address "+address.toString()+", addressType "+getBDAddressTypeString(address_type)+
+            return "ConnParam[address "+address.toString()+", addressType "+to_string(address_type)+
                         ", interval["+std::to_string(min_interval)+".."+std::to_string(max_interval)+
                         "], latency "+std::to_string(latency)+", timeout "+std::to_string(supervision_timeout)+"]";
         }
@@ -1127,7 +1126,7 @@ namespace direct_bt {
                 DEVICE_FLAGS_CHANGED         = 0x002a,
                 ADV_MONITOR_ADDED            = 0x002b,
                 ADV_MONITOR_REMOVED          = 0x002c,
-                PAIR_DEVICE_COMPLETE        = 0x002d, // CMD_COMPLETE of PAIR_DEVICE (pending)
+                PAIR_DEVICE_COMPLETE         = 0x002d, // CMD_COMPLETE of PAIR_DEVICE (pending)
                 HCI_ENC_CHANGED              = 0x002e, // direct_bt extension HCIHandler -> listener
                 HCI_ENC_KEY_REFRESH_COMPLETE = 0x002f, // direct_bt extension HCIHandler -> listener
                 HCI_LE_REMOTE_USR_FEATURES   = 0x0030, // direct_bt extension HCIHandler -> listener
@@ -1142,21 +1141,21 @@ namespace direct_bt {
             inline static void checkOpcode(const Opcode has, const Opcode min, const Opcode max)
             {
                 if( has < min || has > max ) {
-                    throw MgmtOpcodeException("Has opcode "+jau::uint16HexString(static_cast<uint16_t>(has))+
-                                     ", not within range ["+jau::uint16HexString(static_cast<uint16_t>(min))+
-                                     ".."+jau::uint16HexString(static_cast<uint16_t>(max))+"]", E_FILE_LINE);
+                    throw MgmtOpcodeException("Has opcode "+jau::to_hexstring(static_cast<uint16_t>(has))+
+                                     ", not within range ["+jau::to_hexstring(static_cast<uint16_t>(min))+
+                                     ".."+jau::to_hexstring(static_cast<uint16_t>(max))+"]", E_FILE_LINE);
                 }
             }
             static void checkOpcode(const Opcode has, const Opcode exp)
             {
                 if( has != exp ) {
-                    throw MgmtOpcodeException("Has opcode "+jau::uint16HexString(static_cast<uint16_t>(has))+
-                                     ", not matching "+jau::uint16HexString(static_cast<uint16_t>(exp)), E_FILE_LINE);
+                    throw MgmtOpcodeException("Has opcode "+jau::to_hexstring(static_cast<uint16_t>(has))+
+                                     ", not matching "+jau::to_hexstring(static_cast<uint16_t>(exp)), E_FILE_LINE);
                 }
             }
 
             virtual std::string baseString() const noexcept override {
-                return "opcode "+getOpcodeString()+", devID "+jau::uint16HexString(getDevID());
+                return "opcode "+getOpcodeString(getOpcode())+", devID "+jau::to_hexstring(getDevID());
             }
             virtual std::string valueString() const noexcept override {
                 const jau::nsize_t d_sz = getDataSize();
@@ -1211,7 +1210,6 @@ namespace direct_bt {
             jau::nsize_t getTotalSize() const noexcept { return pdu.getSize(); }
 
             Opcode getOpcode() const noexcept { return static_cast<Opcode>( pdu.get_uint16_nc(0) ); }
-            std::string getOpcodeString() const noexcept { return getOpcodeString(getOpcode()); }
 
             virtual jau::nsize_t getDataOffset() const noexcept { return MGMT_HEADER_SIZE; }
             virtual jau::nsize_t getDataSize() const noexcept { return getParamSize(); }
@@ -1234,7 +1232,7 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                       ", addressType "+getBDAddressTypeString(getAddressType());
+                       ", addressType "+to_string(getAddressType());
             }
 
         public:
@@ -1259,7 +1257,7 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", cmd "+MgmtCommand::getOpcodeString(getCmdOpcode())+
-                       ", status "+jau::uint8HexString(static_cast<uint8_t>(getStatus()))+" "+getMgmtStatusString(getStatus());
+                       ", status "+jau::to_hexstring(static_cast<uint8_t>(getStatus()))+" "+to_string(getStatus());
             }
 
             MgmtEvtCmdComplete(const uint8_t* buffer, const jau::nsize_t buffer_len, const jau::nsize_t exp_param_size)
@@ -1323,7 +1321,7 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", cmd "+MgmtCommand::getOpcodeString(getCmdOpcode())+
-                       ", status "+jau::uint8HexString(static_cast<uint8_t>(getStatus()))+" "+getMgmtStatusString(getStatus());
+                       ", status "+jau::to_hexstring(static_cast<uint8_t>(getStatus()))+" "+to_string(getStatus());
             }
 
         public:
@@ -1350,7 +1348,7 @@ namespace direct_bt {
 
         protected:
             std::string baseString() const noexcept override {
-                return MgmtEvent::baseString()+", error-code "+jau::uint8HexString(static_cast<uint8_t>(getErrorCode()));
+                return MgmtEvent::baseString()+", error-code "+jau::to_hexstring(static_cast<uint8_t>(getErrorCode()));
             }
 
         public:
@@ -1375,7 +1373,7 @@ namespace direct_bt {
 
         protected:
             std::string baseString() const noexcept override {
-                return MgmtEvent::baseString()+", settings="+getAdapterSettingMaskString(getSettings());
+                return MgmtEvent::baseString()+", settings="+to_string(getSettings());
             }
 
         public:
@@ -1432,7 +1430,7 @@ namespace direct_bt {
     {
         protected:
             std::string baseString() const noexcept override {
-                return MgmtEvent::baseString()+", storeHint "+jau::uint8HexString(getStoreHint())+
+                return MgmtEvent::baseString()+", storeHint "+jau::to_hexstring(getStoreHint())+
                        ", "+getLinkKey().toString();
             }
 
@@ -1462,7 +1460,7 @@ namespace direct_bt {
     {
         protected:
             std::string baseString() const noexcept override {
-                return MgmtEvent::baseString()+", store "+jau::uint8HexString(getStoreHint())+
+                return MgmtEvent::baseString()+", store "+jau::to_hexstring(getStoreHint())+
                        ", "+getLongTermKey().toString();
             }
 
@@ -1498,10 +1496,10 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                       ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", flags="+jau::uint32HexString(getFlags())+
+                       ", addressType "+to_string(getAddressType())+
+                       ", flags="+jau::to_hexstring(getFlags())+
                        ", eir-size "+std::to_string(getEIRSize())+
-                       ", hci_handle "+jau::uint16HexString(hci_conn_handle);
+                       ", hci_handle "+jau::to_hexstring(hci_conn_handle);
             }
 
         public:
@@ -1572,10 +1570,10 @@ namespace direct_bt {
                 const DisconnectReason reason1 = getReason();
                 const HCIStatusCode reason2 = getHCIReason();
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                       ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", reason[mgmt["+jau::uint8HexString(static_cast<uint8_t>(reason1))+" ("+getDisconnectReasonString(reason1)+")]"+
-                       ", hci["+jau::uint8HexString(static_cast<uint8_t>(reason2))+" ("+getHCIStatusCodeString(reason2)+")]]"+
-                       ", hci_handle "+jau::uint16HexString(hci_conn_handle);
+                       ", addressType "+to_string(getAddressType())+
+                       ", reason[mgmt["+jau::to_hexstring(static_cast<uint8_t>(reason1))+" ("+getDisconnectReasonString(reason1)+")]"+
+                       ", hci["+jau::to_hexstring(static_cast<uint8_t>(reason2))+" ("+to_string(reason2)+")]]"+
+                       ", hci_handle "+jau::to_hexstring(hci_conn_handle);
             }
 
         public:
@@ -1627,9 +1625,9 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                       ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", status[mgmt["+jau::uint8HexString(static_cast<uint8_t>(getStatus()))+" ("+getMgmtStatusString(getStatus())+")]"+
-                       ", hci["+jau::uint8HexString(static_cast<uint8_t>(hciStatus))+" ("+getHCIStatusCodeString(hciStatus)+")]]";
+                       ", addressType "+to_string(getAddressType())+
+                       ", status[mgmt["+jau::to_hexstring(static_cast<uint8_t>(getStatus()))+" ("+to_string(getStatus())+")]"+
+                       ", hci["+jau::to_hexstring(static_cast<uint8_t>(hciStatus))+" ("+to_string(hciStatus)+")]]";
             }
 
         public:
@@ -1669,7 +1667,7 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                       ", addressType "+getBDAddressTypeString(getAddressType())+
+                       ", addressType "+to_string(getAddressType())+
                        ", secure "+std::to_string(getSecure());
             }
 
@@ -1699,8 +1697,8 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address["+getAddress().toString()+
-                       ", "+getBDAddressTypeString(getAddressType())+
-                       "], confirm_hint "+jau::uint8HexString(getConfirmHint())+", value "+jau::uint32HexString(getValue());
+                       ", "+to_string(getAddressType())+
+                       "], confirm_hint "+jau::to_hexstring(getConfirmHint())+", value "+jau::to_hexstring(getValue());
             }
 
         public:
@@ -1741,8 +1739,8 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address["+getAddress().toString()+
-                       ", "+getBDAddressTypeString(getAddressType())+
-                       "], status "+getMgmtStatusString(getStatus());
+                       ", "+to_string(getAddressType())+
+                       "], status "+to_string(getStatus());
             }
         public:
             MgmtEvtAuthFailed(const uint8_t* buffer, const jau::nsize_t buffer_len)
@@ -1779,8 +1777,8 @@ namespace direct_bt {
                     return MgmtEvent::baseString()+", "+eireport->toString(false /* includeServices */);
                 } else {
                     return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                           ", addressType "+getBDAddressTypeString(getAddressType())+
-                           ", rssi "+std::to_string(getRSSI())+", flags="+jau::uint32HexString(getFlags())+
+                           ", addressType "+to_string(getAddressType())+
+                           ", rssi "+std::to_string(getRSSI())+", flags="+jau::to_hexstring(getFlags())+
                            ", eir-size "+std::to_string(getEIRSize());
                 }
             }
@@ -1824,7 +1822,7 @@ namespace direct_bt {
 
         protected:
             std::string baseString() const noexcept override {
-                return MgmtEvent::baseString()+", scan-type "+getScanTypeString(getScanType())+
+                return MgmtEvent::baseString()+", scan-type "+to_string(getScanType())+
                        ", enabled "+std::to_string(getEnabled());
             }
 
@@ -1894,7 +1892,7 @@ namespace direct_bt {
     {
         protected:
             std::string baseString() const noexcept override {
-                return MgmtEvent::baseString()+", store "+jau::uint8HexString(getStoreHint())+
+                return MgmtEvent::baseString()+", store "+jau::to_hexstring(getStoreHint())+
                        ", rnd_address "+getRandomAddress().toString()+
                        +", "+getIdentityResolvingKey().toString();
             }
@@ -1928,7 +1926,7 @@ namespace direct_bt {
     {
         protected:
             std::string baseString() const noexcept override {
-                return MgmtEvent::baseString()+", store "+jau::uint8HexString(getStoreHint())+
+                return MgmtEvent::baseString()+", store "+jau::to_hexstring(getStoreHint())+
                        +", "+getSignatureResolvingKey().toString();
             }
 
@@ -1962,7 +1960,7 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                       ", addressType "+getBDAddressTypeString(getAddressType())+
+                       ", addressType "+to_string(getAddressType())+
                        ", action "+std::to_string(getAction());
             }
 
@@ -2004,7 +2002,7 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+
-                       ", store "+jau::uint8HexString(getStoreHint())+
+                       ", store "+jau::to_hexstring(getStoreHint())+
                        ", "+getConnParam().toString();
             }
 
@@ -2047,8 +2045,8 @@ namespace direct_bt {
         protected:
         std::string baseString() const noexcept override {
             return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                   ", addressType "+getBDAddressTypeString(getAddressType())+
-                   ", status "+getMgmtStatusString(getStatus());
+                   ", addressType "+to_string(getAddressType())+
+                   ", status "+to_string(getStatus());
         }
 
         public:
@@ -2102,9 +2100,9 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                       ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", status "+getHCIStatusCodeString(getHCIStatus())+
-                       ", enabled "+jau::uint8HexString(getEncEnabled());
+                       ", addressType "+to_string(getAddressType())+
+                       ", status "+to_string(getHCIStatus())+
+                       ", enabled "+jau::to_hexstring(getEncEnabled());
             }
 
         public:
@@ -2142,8 +2140,8 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                       ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", status "+getHCIStatusCodeString(getHCIStatus());
+                       ", addressType "+to_string(getAddressType())+
+                       ", status "+to_string(getHCIStatus());
             }
 
         public:
@@ -2176,8 +2174,8 @@ namespace direct_bt {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                       ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", features="+jau::uint64HexString(direct_bt::number(getFeatures()));
+                       ", addressType "+to_string(getAddressType())+
+                       ", features="+jau::to_hexstring(direct_bt::number(getFeatures()));
             }
 
         public:
@@ -2205,7 +2203,7 @@ namespace direct_bt {
             std::string valueString() const noexcept override {
                 return getAddress().toString()+", version "+std::to_string(getVersion())+
                         ", manuf "+std::to_string(getManufacturer())+
-                        ", settings[sup "+getAdapterSettingMaskString(getSupportedSetting())+", cur "+getAdapterSettingMaskString(getCurrentSetting())+
+                        ", settings[sup "+to_string(getSupportedSetting())+", cur "+to_string(getCurrentSetting())+
                         "], name '"+getName()+"', shortName '"+getShortName()+"'";
             }
 

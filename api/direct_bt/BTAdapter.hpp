@@ -411,7 +411,6 @@ namespace direct_bt {
             BTMode getBTMode() const noexcept { return adapterInfo.getCurrentBTMode(); }
 
             EUI48 const & getAddress() const noexcept { return adapterInfo.address; }
-            std::string getAddressString() const noexcept { return adapterInfo.address.toString(); }
 
             /**
              * Returns the system name.

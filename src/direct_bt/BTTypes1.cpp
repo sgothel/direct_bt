@@ -80,7 +80,7 @@ static std::string _getAdapterSettingBitStr(const AdapterSetting settingBit) noe
     return "Unknown Setting Bit";
 }
 
-std::string direct_bt::getAdapterSettingMaskString(const AdapterSetting settingMask) noexcept {
+std::string direct_bt::to_string(const AdapterSetting settingMask) noexcept {
     const uint32_t one = 1;
     bool has_pre = false;
     std::string out("[");

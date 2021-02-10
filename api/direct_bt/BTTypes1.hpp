@@ -52,7 +52,7 @@ namespace direct_bt {
             BTObject() noexcept : valid(true) {}
 
         public:
-            virtual std::string toString() const noexcept override { return "DBTObject["+aptrHexString(this)+"]"; }
+            virtual std::string toString() const noexcept override { return "BTObject["+to_hexstring(this)+"]"; }
 
             virtual ~BTObject() noexcept {
                 valid = false;
@@ -63,6 +63,7 @@ namespace direct_bt {
              */
             inline bool isValid() const noexcept { return valid.load(); }
     };
+    inline std::string to_string(const BTObject& o) noexcept { return o.toString(); }
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
@@ -92,7 +93,7 @@ namespace direct_bt {
             int8_t getMaxTxPower() const noexcept { return max_tx_power; }
 
             std::string toString() const noexcept {
-                return "address="+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
+                return "address="+getAddress().toString()+", addressType "+to_string(getAddressType())+
                        ", rssi "+std::to_string(rssi)+
                        ", tx_power[set "+std::to_string(tx_power)+", max "+std::to_string(tx_power)+"]";
             }
@@ -173,7 +174,7 @@ namespace direct_bt {
     constexpr bool isAdapterSettingBitSet(const AdapterSetting mask, const AdapterSetting bit) noexcept { return AdapterSetting::NONE != ( mask & bit ); }
 
     constexpr void setAdapterSettingMaskBit(AdapterSetting &mask, const AdapterSetting bit) noexcept { mask = mask | bit; }
-    std::string getAdapterSettingMaskString(const AdapterSetting settingBitMask) noexcept;
+    std::string to_string(const AdapterSetting settingBitMask) noexcept;
 
     /** Maps the given {@link AdapterSetting} to {@link BTMode} */
     BTMode getAdapterSettingsBTMode(const AdapterSetting settingMask) noexcept;
@@ -269,10 +270,11 @@ namespace direct_bt {
             std::string toString() const noexcept {
                 return "AdapterInfo[id "+std::to_string(dev_id)+", address "+address.toString()+", version "+std::to_string(version)+
                         ", manuf "+std::to_string(manufacturer)+
-                        ", settings[sup "+getAdapterSettingMaskString(supported_setting)+", cur "+getAdapterSettingMaskString(current_setting)+
+                        ", settings[sup "+to_string(supported_setting)+", cur "+to_string(current_setting)+
                         "], name '"+name+"', shortName '"+short_name+"']";
             }
     };
+    inline std::string to_string(const AdapterInfo& a) noexcept { return a.toString(); }
 
 } // namespace direct_bt
 

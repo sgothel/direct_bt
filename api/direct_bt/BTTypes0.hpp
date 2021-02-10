@@ -66,14 +66,14 @@ namespace direct_bt {
     constexpr uint8_t number(const BTMode rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
-    std::string getBTModeString(const BTMode v) noexcept;
+    std::string to_string(const BTMode v) noexcept;
 
     /**
      * Maps the specified name to a constant of BTMode.
      * @param name the string name to be mapped to a constant of this enum type.
      * @return the corresponding constant of this enum type, using {@link BTMode#NONE} if not supported.
      */
-    BTMode getBTMode(const std::string & value) noexcept;
+    BTMode to_BTMode(const std::string & value) noexcept;
 
     /**
      * LE Link Layer Feature Set
@@ -148,13 +148,13 @@ namespace direct_bt {
     constexpr bool operator >=(const BTSecurityLevel lhs, const BTSecurityLevel rhs) noexcept {
         return number(lhs) >= number(rhs);
     }
-    constexpr BTSecurityLevel getBTSecurityLevel(const uint8_t v) noexcept {
+    constexpr BTSecurityLevel to_BTSecurityLevel(const uint8_t v) noexcept {
         if( 1 <= v && v <= 4 ) {
             return static_cast<BTSecurityLevel>(v);
         }
         return BTSecurityLevel::UNSET;
     }
-    std::string getBTSecurityLevelString(const BTSecurityLevel v) noexcept;
+    std::string to_string(const BTSecurityLevel v) noexcept;
 
     /**
      * Bluetooth secure pairing mode
@@ -188,7 +188,7 @@ namespace direct_bt {
     constexpr uint8_t number(const PairingMode rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
-    std::string getPairingModeString(const PairingMode v) noexcept;
+    std::string to_string(const PairingMode v) noexcept;
 
     /**
      * Meta ScanType as derived from BTMode,
@@ -232,9 +232,9 @@ namespace direct_bt {
         return testType == ( current & testType );
     }
 
-    std::string getScanTypeString(const ScanType v) noexcept;
+    std::string to_string(const ScanType v) noexcept;
 
-    ScanType getScanType(BTMode btMode);
+    ScanType to_ScanType(BTMode btMode);
 
     /**
      * LE Advertising (AD) Protocol Data Unit (PDU) Types
@@ -262,7 +262,7 @@ namespace direct_bt {
     constexpr uint8_t number(const AD_PDU_Type rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
-    std::string getAD_PDU_TypeString(const AD_PDU_Type v) noexcept;
+    std::string to_string(const AD_PDU_Type v) noexcept;
 
 
     /**
@@ -304,8 +304,8 @@ namespace direct_bt {
     constexpr uint16_t number(const L2CAP_CID rhs) noexcept {
         return static_cast<uint16_t>(rhs);
     }
-    constexpr L2CAP_CID toL2CAP_CID(const uint16_t v) noexcept { return static_cast<L2CAP_CID>(v); }
-    std::string getL2CAP_CIDString(const L2CAP_CID v) noexcept;
+    constexpr L2CAP_CID to_L2CAP_CID(const uint16_t v) noexcept { return static_cast<L2CAP_CID>(v); }
+    std::string to_string(const L2CAP_CID v) noexcept;
 
     /**
      * Protocol Service Multiplexers (PSM) Assigned numbers
@@ -335,8 +335,8 @@ namespace direct_bt {
     constexpr uint16_t number(const L2CAP_PSM rhs) noexcept {
         return static_cast<uint16_t>(rhs);
     }
-    constexpr L2CAP_PSM toL2CAP_PSM(const uint16_t v) noexcept { return static_cast<L2CAP_PSM>(v); }
-    std::string getL2CAP_PSMString(const L2CAP_PSM v) noexcept;
+    constexpr L2CAP_PSM to_L2CAP_PSM(const uint16_t v) noexcept { return static_cast<L2CAP_PSM>(v); }
+    std::string to_string(const L2CAP_PSM v) noexcept;
 
     /**
      * BT Core Spec v5.2:  Vol 3, Part A L2CAP Spec: 6 State Machine
@@ -551,7 +551,7 @@ namespace direct_bt {
         OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_POD = 5188
     };
     constexpr uint16_t number(const AppearanceCat rhs) noexcept { return static_cast<uint16_t>(rhs); }
-    std::string getAppearanceCatString(const AppearanceCat v) noexcept;
+    std::string to_string(const AppearanceCat v) noexcept;
 
     // *************************************************
     // *************************************************
@@ -617,7 +617,7 @@ namespace direct_bt {
     }
     constexpr bool isEIRDataTypeSet(const EIRDataType mask, const EIRDataType bit) noexcept { return EIRDataType::NONE != ( mask & bit ); }
     constexpr void setEIRDataTypeSet(EIRDataType &mask, const EIRDataType bit) noexcept { mask = mask | bit; }
-    std::string getEIRDataMaskString(const EIRDataType mask) noexcept;
+    std::string to_string(const EIRDataType mask) noexcept;
 
     /**
      * Collection of 'Advertising Data' (AD)
@@ -755,11 +755,11 @@ namespace direct_bt {
         uint16_t getDeviceIDProduct() const noexcept { return did_product; }
         uint16_t getDeviceIDVersion() const noexcept { return did_version; }
         std::string getDeviceIDModalias() const noexcept;
-        std::string getSourceString() const noexcept;
-        std::string getAddressString() const noexcept { return address.toString(); }
         std::string eirDataMaskToString() const noexcept;
         std::string toString(const bool includeServices=true) const noexcept;
     };
+    std::string to_string(EInfoReport::Source source) noexcept;
+    inline std::string to_string(const EInfoReport& eir, const bool includeServices=true) noexcept { return eir.toString(includeServices); }
 
     // *************************************************
     // *************************************************
