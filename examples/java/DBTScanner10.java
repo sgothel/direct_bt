@@ -417,7 +417,6 @@ public class DBTScanner10 {
             }
         }
         if( !useSMPKeyBin ) {
-            // Always reuse same sec setting if reusing LTK
             final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
             if( null != sec ) {
                 if( sec.isSecurityAutoEnabled() ) {
