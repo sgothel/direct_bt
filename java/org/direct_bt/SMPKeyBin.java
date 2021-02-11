@@ -193,6 +193,9 @@ public class SMPKeyBin {
         final public static String getFileBasename(final BDAddressAndType addrAndType_) {
             return "bd_"+addrAndType_.address.toString()+":"+addrAndType_.type.value+".smpkey.bin";
         }
+        final public static String getFilePath(final String path, final BDAddressAndType addrAndType_) {
+            return path + "/" + getFileBasename(addrAndType_);
+        }
 
         @Override
         final public String toString() {
@@ -230,13 +233,28 @@ public class SMPKeyBin {
             return res.toString();
         }
 
+        final public static boolean remove(final String path, final String basename) {
+            final String fname = path+"/"+basename;
+            final File file = new File(fname);
+            try {
+                return file.delete(); // alternative to truncate, if existing
+            } catch (final Exception ex) {
+                System.err.println("****** DELETE SMPKeyBin: Failed "+fname+": "+ex.getMessage());
+                ex.printStackTrace();
+                return false;
+            }
+        }
+        final public static boolean remove(final String path, final BDAddressAndType addrAndType_) {
+            return remove(path, getFileBasename(addrAndType_));
+        }
+
         final public boolean write(final String path, final String basename) {
             if( !isValid() ) {
                 System.err.println("****** WRITE SMPKeyBin: Invalid (skipped) "+toString());
                 return false;
             }
-            final String fname = path+"/"+basename;
-            final File file = new File(fname);
+            final String filepath = path+"/"+basename;
+            final File file = new File(filepath);
             OutputStream out = null;
             try {
                 file.delete(); // alternative to truncate, if existing
@@ -275,11 +293,11 @@ public class SMPKeyBin {
                     out.write(csrk_resp_b);
                 }
                 if( verbose ) {
-                    System.err.println("****** WRITE SMPKeyBin: "+fname+": "+toString());
+                    System.err.println("****** WRITE SMPKeyBin: "+filepath+": "+toString());
                 }
                 return true;
             } catch (final Exception ex) {
-                System.err.println("****** WRITE SMPKeyBin: Failed "+fname+": "+toString()+": "+ex.getMessage());
+                System.err.println("****** WRITE SMPKeyBin: Failed "+filepath+": "+toString()+": "+ex.getMessage());
                 ex.printStackTrace();
             } finally {
                 try {

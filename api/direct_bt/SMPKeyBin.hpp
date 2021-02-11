@@ -186,16 +186,25 @@ class SMPKeyBin {
         static std::string getFileBasename(const BDAddressAndType& addrAndType_) {
             return "bd_"+addrAndType_.address.toString()+":"+std::to_string(number(addrAndType_.type))+".smpkey.bin";
         }
+        static std::string getFilePath(const std::string& path, const BDAddressAndType& addrAndType_) {
+            return path + "/" + getFileBasename(addrAndType_);
+        }
 
-        bool write(const std::string path, const std::string basename) const noexcept;
+        static bool remove(const std::string& path, const std::string& basename);
 
-        bool write(const std::string path) const noexcept {
+        static bool remove(const std::string& path, const BDAddressAndType& addrAndType_) {
+            return remove(path, getFileBasename(addrAndType_));
+        }
+
+        bool write(const std::string& path, const std::string& basename) const noexcept;
+
+        bool write(const std::string& path) const noexcept {
             return write( path, getFileBasename() );
         }
 
-        bool read(const std::string path, const std::string basename);
+        bool read(const std::string& path, const std::string& basename);
 
-        bool read(const std::string path, const BDAddressAndType& addrAndType_) {
+        bool read(const std::string& path, const BDAddressAndType& addrAndType_) {
             return read(path, getFileBasename(addrAndType_));
         }
 

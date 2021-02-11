@@ -27,8 +27,11 @@
 #include <memory>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
 
 #include "SMPKeyBin.hpp"
+
+namespace fs = std::filesystem;
 
 using namespace direct_bt;
 
@@ -69,7 +72,12 @@ std::string SMPKeyBin::toString() const noexcept {
     return res;
 }
 
-bool SMPKeyBin::write(const std::string path, const std::string basename) const noexcept {
+bool SMPKeyBin::remove(const std::string& path, const std::string& basename) {
+    const fs::path fname = path+"/"+basename;
+    return fs::remove(fname);
+}
+
+bool SMPKeyBin::write(const std::string& path, const std::string& basename) const noexcept {
     if( !isValid() ) {
         if( verbose ) {
             fprintf(stderr, "****** WRITE SMPKeyBin: Invalid (skipped) %s\n", toString().c_str());
@@ -115,7 +123,7 @@ bool SMPKeyBin::write(const std::string path, const std::string basename) const 
     return true;
 }
 
-bool SMPKeyBin::read(const std::string path, const std::string basename) {
+bool SMPKeyBin::read(const std::string& path, const std::string& basename) {
     const std::string fname = path+"/"+basename;
     std::ifstream file(fname, std::ios::binary);
     if (!file.is_open() ) {
