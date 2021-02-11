@@ -1,5 +1,5 @@
-Direct-BT LE and BREDR Library + Tiny Bluetooth LE Library
-==========================================================
+Direct-BT LE and BREDR Library
+==============================
 
 Git Repository
 ==============
@@ -21,7 +21,7 @@ to clarify semantics, further support *Direct-BT*
 and to favor a shortened naming convention,
 e.g. *BluetoothManager* to *BTManager*, *BluetoothGattCharacteristic* to *BTGattChar* etc.
 
-As of today, the Java API comprises two implementations, *Direct-BT* and *TinyB*.
+As of today, the Java API comprises two implementations, *Direct-BT* (complete) and *TinyB* (incomplete).
 
 
 Direct-BT
@@ -58,8 +58,9 @@ Some more elaboration on the implementation and its status
 > 
 > Currently only the master/client mode is supported to work with LE BT devices.
 > 
-> *LE Secure Connections* and *LE legacy pairing* is supported on *Linux/BlueZ*,
-> exposing BTSecurityLevel and SMPIOCapability setup per connection.
+> *LE Secure Connections* and *LE legacy pairing* is supported,
+> exposing BTSecurityLevel and SMPIOCapability setup per connection
+> and providing *automatic security mode negotiation*.
 >
 > BREDR support is planned and prepared for.
 >
@@ -138,6 +139,9 @@ TinyB
 - *libjavatinyb.so* for the Java binding.
 
 *TinyB* is the original implementation of the TinyB project by Intel.
+
+*TinyB* does not cover all API functionality anymore: Event driven adapter, device and GATT handling
+nor SMP Secure Connections.
 
 
 TinyB and Direct-BT
@@ -342,6 +346,10 @@ Changes
 **2.3.00 *Direct-BT* Maturity (Bluetooth LE)**
 
 * TODO
+* Tested key regeneration use-case: Pairing failure (bad key), key removal and auto security negotiation.
+* Adding SMPKeyBin file removal support.
+* Tested negative passkey/boolean input, requested via auto security negotiation. 
+* Using negative passkey response via `setPairingPasskey(passkey = 0)` for performance.
 
 **2.2.4**
 
