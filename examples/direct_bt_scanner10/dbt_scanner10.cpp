@@ -72,8 +72,6 @@ static std::atomic<int> deviceReadyCount = 0;
 static std::atomic<int> MULTI_MEASUREMENTS = 8;
 
 static bool KEEP_CONNECTED = true;
-static bool UNPAIR_DEVICE_PRE = false;
-static bool UNPAIR_DEVICE_POST = false;
 static bool GATT_PING_ENABLED = false;
 static bool REMOVE_DEVICE = true;
 
@@ -243,31 +241,6 @@ struct MyBTSecurityDetail {
 };
 std::unordered_map<BDAddressAndType, MyBTSecurityDetail> MyBTSecurityDetail::devicesSecDetail;
 
-static void passkeyInputAndSend(std::shared_ptr<BTDevice> device) {
-#if 0
-    int passkey;
-    fprintf(stderr, "****** INPUT passkey: ");
-    std::cin >> passkey;
-    fprintf(stderr, "****** SEND passkey: %d\n", passkey);
-    device->setPairingPasskey(static_cast<uint32_t>(passkey));
-#else
-    fprintf(stderr, "****** INPUT passkey requested: Not supported at runtime -> removal\n");
-    removeDevice(device);
-#endif
-}
-static void binaryInputAndSend(std::shared_ptr<BTDevice> device) {
-#if 0
-    int v;
-    fprintf(stderr, "****** INPUT binary [0, 1]: ");
-    std::cin >> v;
-    fprintf(stderr, "****** SEND binary: %d\n", v);
-    device->setPairingNumericComparison( 0 != v );
-#else
-    fprintf(stderr, "****** INPUT binary requested: Not supported at runtime -> removal\n");
-    removeDevice(device);
-#endif
-}
-
 class MyAdapterStatusListener : public AdapterStatusListener {
 
     void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
@@ -351,9 +324,12 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             case SMPPairingState::NONE:
                 // next: deviceReady(..)
                 break;
-            case SMPPairingState::FAILED:
+            case SMPPairingState::FAILED: {
+                const bool res  = SMPKeyBin::remove(KEY_PATH, device->getAddressAndType());
+                fprintf(stderr, "****** PAIRING_STATE: state %s; Remove key file %s, res %d\n",
+                        to_string(state).c_str(), SMPKeyBin::getFilePath(KEY_PATH, device->getAddressAndType()).c_str(), res);
                 // next: deviceReady() or deviceDisconnected(..)
-                break;
+            } break;
             case SMPPairingState::REQUESTED_BY_RESPONDER:
                 // next: FEATURE_EXCHANGE_STARTED
                 break;
@@ -369,7 +345,8 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                     std::thread dc(&BTDevice::setPairingPasskey, device, static_cast<uint32_t>( sec->getPairingPasskey() ));
                     dc.detach();
                 } else {
-                    std::thread dc(&::passkeyInputAndSend, device);
+                    std::thread dc(&BTDevice::setPairingPasskey, device, 0);
+                    // 3s disconnect: std::thread dc(&BTDevice::setPairingPasskeyNegative, device);
                     dc.detach();
                 }
                 // next: KEY_DISTRIBUTION or FAILED
@@ -380,7 +357,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                     std::thread dc(&BTDevice::setPairingNumericComparison, device, sec->getPairingNumericComparison());
                     dc.detach();
                 } else {
-                    std::thread dc(&::binaryInputAndSend, device);
+                    std::thread dc(&BTDevice::setPairingNumericComparison, device, false);
                     dc.detach();
                 }
                 // next: KEY_DISTRIBUTION or FAILED
@@ -485,7 +462,7 @@ class MyGATTEventListener : public AssociatedBTGattCharListener {
 static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
     fprintf(stderr, "****** Connecting Device: Start %s\n", device->toString().c_str());
 
-    if( UNPAIR_DEVICE_PRE ) {
+    {
         const HCIStatusCode unpair_res = device->unpair();
         fprintf(stderr, "****** Connecting Device: Unpair-Pre result: %s\n", to_string(unpair_res).c_str());
     }
@@ -715,8 +692,7 @@ exit:
     device->removeAllCharListener();
 
     if( !KEEP_CONNECTED ) {
-
-        if( UNPAIR_DEVICE_POST ) {
+        {
             const HCIStatusCode unpair_res = device->unpair();
             fprintf(stderr, "****** Processing Ready Device: Unpair-Post result: %s\n", to_string(unpair_res).c_str());
         }
@@ -919,10 +895,6 @@ int main(int argc, char *argv[])
             MyBTSecurityDetail* sec = MyBTSecurityDetail::getOrCreate(macAndType);
             sec->io_cap_auto = to_SMPIOCapability(atoi(argv[++i]));
             fprintf(stderr, "Set SEC AUTO security io_cap in %s\n", sec->toString().c_str());
-        } else if( !strcmp("-unpairPre", argv[i]) ) {
-            UNPAIR_DEVICE_PRE = true;
-        } else if( !strcmp("-unpairPost", argv[i]) ) {
-            UNPAIR_DEVICE_POST = true;
         } else if( !strcmp("-charid", argv[i]) && argc > (i+1) ) {
             charIdentifier = std::string(argv[++i]);
         } else if( !strcmp("-charval", argv[i]) && argc > (i+1) ) {
@@ -970,8 +942,6 @@ int main(int argc, char *argv[])
     fprintf(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
     fprintf(stderr, "QUIET %d\n", QUIET);
     fprintf(stderr, "btmode %s\n", to_string(btMode).c_str());
-    fprintf(stderr, "UNPAIR_DEVICE_PRE %d\n", UNPAIR_DEVICE_PRE);
-    fprintf(stderr, "UNPAIR_DEVICE_POST %d\n", UNPAIR_DEVICE_POST);
     fprintf(stderr, "characteristic-id: %s\n", charIdentifier.c_str());
     fprintf(stderr, "characteristic-value: %d\n", charValue);
 

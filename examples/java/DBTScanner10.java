@@ -23,8 +23,6 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -90,8 +88,6 @@ public class DBTScanner10 {
 
     AtomicInteger MULTI_MEASUREMENTS = new AtomicInteger(8);
     boolean KEEP_CONNECTED = true;
-    boolean UNPAIR_DEVICE_PRE = false;
-    boolean UNPAIR_DEVICE_POST = false;
 
     boolean GATT_PING_ENABLED = false;
     boolean REMOVE_DEVICE = true;
@@ -191,44 +187,6 @@ public class DBTScanner10 {
         static public String allToString() { return Arrays.toString( devicesSecDetail.values().toArray() ); }
     }
 
-    @SuppressWarnings("unused")
-    private void passkeyInputAndSend(final BTDevice device) {
-        if( false ) {
-            print("****** INPUT passkey: ");
-            final BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-            try {
-                final String in = br.readLine();
-                final int passkey = Integer.valueOf(in);
-                println("****** SEND passkey: "+passkey);
-                device.setPairingPasskey(passkey);
-            } catch( final Throwable t ) {
-                t.printStackTrace();
-            }
-        } else {
-            println("****** INPUT passkey requested: Not supported at runtime -> removal");
-            removeDevice(device);
-        }
-    }
-
-    @SuppressWarnings("unused")
-    private void binaryInputAndSend(final BTDevice device) {
-        if( false ) {
-            print("****** INPUT binary [0, 1]: ");
-            final BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-            try {
-                final String in = br.readLine();
-                final int v = Integer.valueOf(in);
-                println("****** SEND binary: "+v);
-                device.setPairingNumericComparison( 0 != v );
-            } catch( final Throwable t ) {
-                t.printStackTrace();
-            }
-        } else {
-            println("****** INPUT binary requested: Not supported at runtime -> removal");
-            removeDevice(device);
-        }
-    }
-
     Collection<BDAddressAndType> devicesInProcessing = Collections.synchronizedCollection(new HashSet<>());
     Collection<BDAddressAndType> devicesProcessed = Collections.synchronizedCollection(new HashSet<>());
 
@@ -310,9 +268,11 @@ public class DBTScanner10 {
                 case NONE:
                     // next: deviceReady(..)
                     break;
-                case FAILED:
+                case FAILED: {
+                    final boolean res  = SMPKeyBin.remove(KEY_PATH, device.getAddressAndType());
+                    println("****** PAIRING_STATE: state "+state+"; Remove key file "+SMPKeyBin.getFilePath(KEY_PATH, device.getAddressAndType())+", res "+res);
                     // next: deviceReady() or deviceDisconnected(..)
-                    break;
+                } break;
                 case REQUESTED_BY_RESPONDER:
                     // next: FEATURE_EXCHANGE_STARTED
                     break;
@@ -325,20 +285,19 @@ public class DBTScanner10 {
                 case PASSKEY_EXPECTED: {
                     final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
                     if( null != sec && sec.getPairingPasskey() != NO_PASSKEY ) {
-                        final int passkey = sec.getPairingPasskey();
-                        executeOffThread( () -> { device.setPairingPasskey( passkey ); }, "DBT-SetPasskey-"+device.getAddressAndType(), true /* detach */);
+                        executeOffThread( () -> { device.setPairingPasskey( sec.getPairingPasskey() ); }, "DBT-SetPasskey-"+device.getAddressAndType(), true /* detach */);
                     } else {
-                        executeOffThread( () -> { passkeyInputAndSend( device ); }, "DBT-PasskeyIO-"+device.getAddressAndType(), true /* detach */);
+                        executeOffThread( () -> { device.setPairingPasskey( 0 ); }, "DBT-SetPasskey-"+device.getAddressAndType(), true /* detach */);
+                        // 3s disconnect: executeOffThread( () -> { device.setPairingPasskeyNegative(); }, "DBT-SetPasskeyNegative-"+device.getAddressAndType(), true /* detach */);
                     }
                     // next: KEY_DISTRIBUTION or FAILED
                   } break;
                 case NUMERIC_COMPARE_EXPECTED: {
                     final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
                     if( null != sec ) {
-                        final boolean comp = sec.getPairingNumericComparison();
-                        executeOffThread( () -> { device.setPairingNumericComparison( comp ); }, "DBT-SetNumericComp-"+device.getAddressAndType(), true /* detach */);
+                        executeOffThread( () -> { device.setPairingNumericComparison( sec.getPairingNumericComparison() ); }, "DBT-SetNumericComp-"+device.getAddressAndType(), true /* detach */);
                     } else {
-                        executeOffThread( () -> { binaryInputAndSend( device ); }, "DBT-BinaryIO-"+device.getAddressAndType(), true /* detach */);
+                        executeOffThread( () -> { device.setPairingNumericComparison( false ); }, "DBT-SetNumericCompFalse-"+device.getAddressAndType(), true /* detach */);
                     }
                     // next: KEY_DISTRIBUTION or FAILED
                   } break;
@@ -398,7 +357,7 @@ public class DBTScanner10 {
     private void connectDiscoveredDevice(final BTDevice device) {
         println("****** Connecting Device: Start " + device.toString());
 
-        if( UNPAIR_DEVICE_PRE ) {
+        {
             final HCIStatusCode unpair_res = device.unpair();
             println("****** Connecting Device: Unpair-Pre result: "+unpair_res);
         }
@@ -680,7 +639,7 @@ public class DBTScanner10 {
 
         if( !KEEP_CONNECTED ) {
 
-            if( UNPAIR_DEVICE_POST ) {
+            {
                 final HCIStatusCode unpair_res = device.unpair();
                 println("****** Processing Ready Device: Unpair-Post result: "+unpair_res);
             }
@@ -926,10 +885,6 @@ public class DBTScanner10 {
                     final int io_cap_i = Integer.valueOf(args[++i]).intValue();
                     sec.io_cap_auto = SMPIOCapability.get( (byte)( io_cap_i & 0xff ) );
                     System.err.println("Set SEC AUTO security io_cap "+io_cap_i+" in "+sec);
-                } else if( arg.equals("-unpairPre") ) {
-                    test.UNPAIR_DEVICE_PRE = true;
-                } else if( arg.equals("-unpairPost") ) {
-                    test.UNPAIR_DEVICE_POST = true;
                 } else if( arg.equals("-charid") && args.length > (i+1) ) {
                     test.charIdentifier = args[++i];
                 } else if( arg.equals("-charval") && args.length > (i+1) ) {
@@ -957,7 +912,6 @@ public class DBTScanner10 {
                     "[-iocap <device_address> <(int)address_type> <int>] "+
                     "[-secauto <device_address> <(int)address_type> <int>] "+
                     "[-passkey <device_address> <(int)address_type> <digits>] " +
-                    "[-unpairPre] [-unpairPost] "+
                     "[-charid <uuid>] [-charval <byte-val>] "+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
@@ -977,8 +931,6 @@ public class DBTScanner10 {
         println("USE_WHITELIST "+test.USE_WHITELIST);
         println("SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
         println("QUIET "+test.QUIET);
-        println("UNPAIR_DEVICE_PRE "+ test.UNPAIR_DEVICE_PRE);
-        println("UNPAIR_DEVICE_POST "+ test.UNPAIR_DEVICE_POST);
         println("characteristic-id: "+test.charIdentifier);
         println("characteristic-value: "+test.charValue);
 
