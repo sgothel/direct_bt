@@ -692,9 +692,8 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                 // no change
                 claimed_state = pairing_data.state;
                 break;
-            case SMPPairingState::FAILED: {
-                // ignore here, let hciSMPMsgCallback() handle auth failure.
-                claimed_state = pairing_data.state;
+            case SMPPairingState::FAILED: { /* Next: disconnect(..) by user or auto-mode */
+                mode = PairingMode::NONE;
             } break;
             case SMPPairingState::PASSKEY_EXPECTED:
                 if( hasSMPIOCapabilityFullInput( iocap ) ) {
