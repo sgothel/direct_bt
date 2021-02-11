@@ -27,11 +27,14 @@
 #include <memory>
 #include <cstdint>
 #include <cstdio>
-#include <filesystem>
 
 #include "SMPKeyBin.hpp"
 
-namespace fs = std::filesystem;
+// #define USE_CXX17lib_FS 1
+#if USE_CXX17lib_FS
+    #include <filesystem>
+    namespace fs = std::filesystem;
+#endif
 
 using namespace direct_bt;
 
@@ -73,8 +76,13 @@ std::string SMPKeyBin::toString() const noexcept {
 }
 
 bool SMPKeyBin::remove(const std::string& path, const std::string& basename) {
+#if USE_CXX17lib_FS
     const fs::path fname = path+"/"+basename;
     return fs::remove(fname);
+#else
+    const std::string fname = path+"/"+basename;
+    return 0 == std::remove( fname.c_str() );
+#endif
 }
 
 bool SMPKeyBin::write(const std::string& path, const std::string& basename) const noexcept {
