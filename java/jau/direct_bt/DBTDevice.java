@@ -424,6 +424,12 @@ public class DBTDevice extends DBTObject implements BTDevice
     private native byte setPairingPasskeyImpl(final int passkey) throws BTException;
 
     @Override
+    public HCIStatusCode setPairingPasskeyNegative() {
+        return HCIStatusCode.get( setPairingPasskeyNegativeImpl() );
+    }
+    private native byte setPairingPasskeyNegativeImpl() throws BTException;
+
+    @Override
     public HCIStatusCode setPairingNumericComparison(final boolean equal) {
         return HCIStatusCode.get( setPairingNumericComparisonImpl(equal) );
     }

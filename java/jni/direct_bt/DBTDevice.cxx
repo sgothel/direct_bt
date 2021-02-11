@@ -593,8 +593,19 @@ jbyte Java_jau_direct_1bt_DBTDevice_setPairingPasskeyImpl(JNIEnv *env, jobject o
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        // const std::string passkey = nullptr != jpasskey ? from_jstring_to_string(env, jpasskey) : std::string();
         return number( device->setPairingPasskey( static_cast<uint32_t>(jpasskey) ) );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return static_cast<uint8_t>( HCIStatusCode::INTERNAL_FAILURE );
+}
+
+jbyte Java_jau_direct_1bt_DBTDevice_setPairingPasskeyNegativeImpl(JNIEnv *env, jobject obj) {
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        return number( device->setPairingPasskeyNegative() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

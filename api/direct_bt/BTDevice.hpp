@@ -685,6 +685,28 @@ namespace direct_bt {
              */
             HCIStatusCode setPairingPasskey(const uint32_t passkey) noexcept;
 
+            /**
+             * Method replies with a negative passkey response, i.e. rejection, see ::PairingMode::PASSKEY_ENTRY_ini.
+             * <p>
+             * You may call this method if the device shall be securely paired with ::PairingMode::PASSKEY_ENTRY_ini,
+             * i.e. when notified via AdapterStatusListener::devicePairingState() in state ::SMPPairingState::PASSKEY_EXPECTED.
+             * </p>
+             * <p>
+             * Current experience exposed a roughly 3s immediate disconnect handshake with certain devices and/or Kernel BlueZ code.
+             *
+             * Hence using setPairingPasskey() with `passkey = 0` is recommended, especially when utilizing
+             * automatic security negotiation via setConnSecurityAuto()!
+             * </p>
+             *
+             * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise ::HCIStatusCode may disclose reason for rejection.
+             * @see PairingMode
+             * @see SMPPairingState
+             * @see AdapterStatusListener::devicePairingState()
+             * @see setPairingPasskey()
+             * @see setPairingNumericComparison()
+             * @see getPairingMode()
+             * @see getPairingState()
+             */
             HCIStatusCode setPairingPasskeyNegative() noexcept;
 
             /**

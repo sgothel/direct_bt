@@ -156,6 +156,9 @@ public class DBusDevice extends DBusObject implements BTDevice
     public HCIStatusCode setPairingPasskey(final int passkey) { return HCIStatusCode.INTERNAL_FAILURE; }
 
     @Override
+    public HCIStatusCode setPairingPasskeyNegative() { return HCIStatusCode.INTERNAL_FAILURE; }
+
+    @Override
     public HCIStatusCode setPairingNumericComparison(final boolean equal) { return HCIStatusCode.INTERNAL_FAILURE; }
 
     @Override

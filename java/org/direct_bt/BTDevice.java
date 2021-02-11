@@ -458,6 +458,33 @@ public interface BTDevice extends BTObject
     HCIStatusCode setPairingPasskey(final int passkey);
 
     /**
+     * Method replies with a negative passkey response, i.e. rejection, see {@link PairingMode#PASSKEY_ENTRY_ini}.
+     * <p>
+     * You may call this method if the device shall be securely paired with {@link PairingMode#PASSKEY_ENTRY_ini},
+     * i.e. when notified via {@link AdapterStatusListener#devicePairingState(BTDevice, SMPPairingState, PairingMode, long) devicePairingState}
+     * in state {@link SMPPairingState#PASSKEY_EXPECTED}.
+     * </p>
+     * <p>
+     * Current experience exposed a roughly 3s immediate disconnect handshake with certain devices and/or Kernel BlueZ code.
+     *
+     * Hence using {@link #setPairingPasskey(int)} with {@code passkey = 0} is recommended, especially when utilizing
+     * automatic security negotiation via {@link #setConnSecurityAuto()}!
+     * </p>
+     *
+     * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
+     * @see PairingMode
+     * @see SMPPairingState
+     * @see AdapterStatusListener#devicePairingState(BTDevice, SMPPairingState, PairingMode, long)
+     * @see #setPairingPasskey(int)
+     * @see #setPairingNumericComparison(boolean)
+     * @see #getPairingMode()
+     * @see #getPairingState()
+     * @since 2.1.0
+     * @implNote not implemented in {@code tinyb.dbus}
+     */
+    HCIStatusCode setPairingPasskeyNegative();
+
+    /**
      * Method sets the numeric comparison result, see {@link PairingMode#NUMERIC_COMPARE_ini}.
      * <p>
      * Call this method if the device shall be securely paired with {@link PairingMode#NUMERIC_COMPARE_ini},
