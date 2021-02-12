@@ -27,7 +27,7 @@
 #include <mutex>
 #include <atomic>
 
-#define JAVA_MAIN_PACKAGE "org/tinyb"
+#define JAVA_MAIN_PACKAGE "org/direct_bt"
 #define JAVA_DBUS_PACKAGE "tinyb/dbus"
 
 namespace tinyb {

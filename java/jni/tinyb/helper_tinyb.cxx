@@ -106,6 +106,6 @@ TransportType tinyb::from_int_to_transport_type(int type)
 
 void tinyb::raise_java_bluetooth_exception(JNIEnv *env, BluetoothException &e)
 {
-    env->ThrowNew(env->FindClass("org/tinyb/BluetoothException"), e.what());
+    env->ThrowNew(env->FindClass("org/direct_bt/BTException"), e.what());
 }
 

@@ -33,13 +33,13 @@
 
 #include "helper_base.hpp"
 
-#define JAVA_MAIN_PACKAGE "org/tinyb"
+#define JAVA_MAIN_PACKAGE "org/direct_bt"
 
 jobject get_bluetooth_type(JNIEnv *env, const char *field_name)
 {
-    jclass b_type_enum = jau::search_class(env, JAVA_MAIN_PACKAGE "/BluetoothType");
+    jclass b_type_enum = jau::search_class(env, JAVA_MAIN_PACKAGE "/BTType");
 
-    jfieldID b_type_field = jau::search_field(env, b_type_enum, field_name, "L" JAVA_MAIN_PACKAGE "/BluetoothType;", true);
+    jfieldID b_type_field = jau::search_field(env, b_type_enum, field_name, "L" JAVA_MAIN_PACKAGE "/BTType;", true);
 
     jobject result = env->GetStaticObjectField(b_type_enum, b_type_field);
     env->DeleteLocalRef(b_type_enum);
@@ -48,11 +48,11 @@ jobject get_bluetooth_type(JNIEnv *env, const char *field_name)
 
 void raise_java_exception(JNIEnv *env, const direct_bt::BTException &e, const char* file, int line) {
     jau::print_native_caught_exception_fwd2java(e, file, line);
-    env->ThrowNew(env->FindClass("org/tinyb/BluetoothException"), e.what());
+    env->ThrowNew(env->FindClass("org/direct_bt/BTException"), e.what());
 }
 void raise_java_exception(JNIEnv *env, const tinyb::BluetoothException &e, const char* file, int line) {
     jau::print_native_caught_exception_fwd2java(e, file, line);
-    env->ThrowNew(env->FindClass("org/tinyb/BluetoothException"), e.what());
+    env->ThrowNew(env->FindClass("org/direct_bt/BTException"), e.what());
 }
 
 static std::string _unknown_exception_type_msg("Unknown exception type");
