@@ -190,6 +190,15 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
 
+    namespace impl {
+        struct StatusListenerPair {
+            /** The actual listener */
+            std::shared_ptr<AdapterStatusListener> listener;
+            /** The optional weak device reference. Weak, b/c it shall not block destruction */
+            std::weak_ptr<BTDevice> wbr_device;
+        };
+    }
+
     /**
      * BTAdapter represents one Bluetooth Controller.
      * <p>
@@ -238,17 +247,19 @@ namespace direct_bt {
             device_list_t connectedDevices;
             /** All persistent shared devices: Persistent until removal. */
             device_list_t sharedDevices; // All active shared devices. Final holder of BTDevice lifecycle!
-            typedef jau::cow_darray<std::shared_ptr<AdapterStatusListener>> statusListenerList_t;
+            typedef jau::cow_darray<impl::StatusListenerPair> statusListenerList_t;
             statusListenerList_t statusListenerList;
             mutable std::mutex mtx_discoveredDevices;
             mutable std::mutex mtx_connectedDevices;
             mutable std::mutex mtx_discovery;
             mutable std::mutex mtx_sharedDevices; // final mutex of all BTDevice lifecycle
+            mutable jau::sc_atomic_bool sync_data;
 
             bool validateDevInfo() noexcept;
 
             static std::shared_ptr<BTDevice> findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
             static std::shared_ptr<BTDevice> findDevice(device_list_t & devices, BTDevice const & device) noexcept;
+            static void printDeviceList(const std::string& prefix, const BTAdapter::device_list_t& list) noexcept;
 
             /** Private class only for private make_shared(). */
             class ctor_cookie { friend BTAdapter; ctor_cookie(const uint16_t secret) { (void)secret; } };
@@ -267,6 +278,9 @@ namespace direct_bt {
             void poweredOff() noexcept;
 
             friend std::shared_ptr<BTDevice> BTDevice::getSharedInstance() const noexcept;
+            friend void BTDevice::remove() noexcept;
+            friend BTDevice::~BTDevice() noexcept;
+
             friend std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo() noexcept;
             friend void BTDevice::sendMgmtEvDeviceDisconnected(std::unique_ptr<MgmtEvent> evt) noexcept;
             friend HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept;
@@ -336,6 +350,8 @@ namespace direct_bt {
             void sendAdapterSettingsInitial(AdapterStatusListener & asl, const uint64_t timestampMS) noexcept;
 
             void sendDeviceUpdated(std::string cause, std::shared_ptr<BTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept;
+
+            int removeAllStatusListener(const BTDevice& d);
 
         public:
 
@@ -514,6 +530,11 @@ namespace direct_bt {
             /**
              * Add the given listener to the list if not already present.
              * <p>
+             * In case the AdapterStatusListener's lifecycle and event delivery
+             * shall be constrained to this device, please use
+             * BTDevice::addStatusListener().
+             * </p>
+             * <p>
              * Returns true if the given listener is not element of the list and has been newly added,
              * otherwise false.
              * </p>
@@ -523,8 +544,16 @@ namespace direct_bt {
              * passing an empty AdapterSetting::NONE oldMask and changedMask, as well as current AdapterSetting newMask. <br>
              * This allows the receiver to be aware of this adapter's current settings.
              * </p>
+             * @see BTDevice::addStatusListener()
+             * @see removeStatusListener()
+             * @see removeAllStatusListener()
              */
             bool addStatusListener(std::shared_ptr<AdapterStatusListener> l);
+
+            /**
+             * Please use BTDevice::addStatusListener() for clarity, merely existing here to allow JNI access.
+             */
+            bool addStatusListener(const BTDevice& d, std::shared_ptr<AdapterStatusListener> l);
 
             /**
              * Remove the given listener from the list.
@@ -532,6 +561,8 @@ namespace direct_bt {
              * Returns true if the given listener is an element of the list and has been removed,
              * otherwise false.
              * </p>
+             * @see BTDevice::removeStatusListener()
+             * @see addStatusListener()
              */
             bool removeStatusListener(std::shared_ptr<AdapterStatusListener> l);
 
@@ -541,13 +572,15 @@ namespace direct_bt {
              * Returns true if the given listener is an element of the list and has been removed,
              * otherwise false.
              * </p>
+             * @see BTDevice::removeStatusListener()
+             * @see addStatusListener()
              */
             bool removeStatusListener(const AdapterStatusListener * l);
 
             /**
              * Remove all status listener from the list.
              * <p>
-             * Returns the number of removed event listener.
+             * Returns the number of removed status listener.
              * </p>
              */
             int removeAllStatusListener();
@@ -668,10 +701,17 @@ namespace direct_bt {
             std::string toString(bool includeDiscoveredDevices) const noexcept;
 
             /**
-             * This is a debug facility only, to observe consistency
-             * of the internally maintained lists of shared_ptr<BTDevice>.
+             * Print the internally maintained BTDevice lists to stderr:
+             * - sharedDevices
+             * - connectedDevice
+             * - discoveredDevices
+             * - StatusListener
+             *
+             * This is intended as a debug facility.
              */
-            void printSharedPtrListOfDevices() noexcept;
+            void printDeviceLists() noexcept;
+
+            void printStatusListenerList() noexcept;
     };
 
 } // namespace direct_bt

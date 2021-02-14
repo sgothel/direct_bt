@@ -31,6 +31,7 @@ package tinyb.dbus;
 import java.util.List;
 import java.util.Map;
 
+import org.direct_bt.AdapterStatusListener;
 import org.direct_bt.BDAddressAndType;
 import org.direct_bt.BDAddressType;
 import org.direct_bt.BTSecurityLevel;
@@ -83,6 +84,16 @@ public class DBusDevice extends DBusObject implements BTDevice
     }
 
     /* D-Bus method calls: */
+
+    @Override
+    public final boolean addStatusListener(final AdapterStatusListener l) {
+        return false; // FIXME
+    }
+
+    @Override
+    public boolean removeStatusListener(final AdapterStatusListener l) {
+        return false; // FIXME
+    }
 
     @Override
     public final HCIStatusCode disconnect() throws BTException {

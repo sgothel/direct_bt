@@ -84,6 +84,8 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     static std::atomic<int> iname_next;
     int const iname;
     BTDevice const * const deviceMatchRef;
+    jau::JavaGlobalObj listenerObjRef;
+
     std::shared_ptr<jau::JavaAnon> adapterObjRef;
     JNIGlobalRef adapterSettingsClazzRef;
     jmethodID adapterSettingsClazzCtor;
@@ -103,7 +105,6 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     jfieldID deviceClazzTSLastDiscoveryField;
     jfieldID deviceClazzTSLastUpdateField;
     jfieldID deviceClazzConnectionHandleField;
-    jau::JavaGlobalObj listenerObjRef;
     jmethodID  mAdapterSettingsChanged = nullptr;
     jmethodID  mDiscoveringChanged = nullptr;
     jmethodID  mDeviceFound = nullptr;
@@ -127,7 +128,8 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     JNIAdapterStatusListener(JNIEnv *env, BTAdapter *adapter,
                              jclass listenerClazz, jobject statusListenerObj, jmethodID  statusListenerNotifyDeleted,
                              const BTDevice * _deviceMatchRef)
-    : iname(iname_next.fetch_add(1)), deviceMatchRef(_deviceMatchRef), listenerObjRef(statusListenerObj, statusListenerNotifyDeleted)
+    : iname(iname_next.fetch_add(1)), deviceMatchRef(_deviceMatchRef),
+      listenerObjRef(statusListenerObj, statusListenerNotifyDeleted)
     {
         adapterObjRef = adapter->getJavaObject();
         jau::JavaGlobalObj::check(adapterObjRef, E_FILE_LINE);
@@ -501,7 +503,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 };
 std::atomic<int> JNIAdapterStatusListener::iname_next(0);
 
-jboolean Java_jau_direct_1bt_DBTAdapter_addStatusListener(JNIEnv *env, jobject obj, jobject statusListener, jobject jdeviceMatch)
+jboolean Java_jau_direct_1bt_DBTAdapter_addStatusListenerImpl(JNIEnv *env, jobject obj, jobject jdeviceOwnerAndMatch, jobject statusListener)
 {
     try {
         if( nullptr == statusListener ) {
@@ -517,10 +519,10 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addStatusListener(JNIEnv *env, jobject o
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
-        BTDevice * deviceMatchRef = nullptr;
-        if( nullptr != jdeviceMatch ) {
-            deviceMatchRef = jau::getJavaUplinkObject<BTDevice>(env, jdeviceMatch);
-            jau::JavaGlobalObj::check(deviceMatchRef->getJavaObject(), E_FILE_LINE);
+        BTDevice * deviceOwnerAndMatchRef = nullptr;
+        if( nullptr != jdeviceOwnerAndMatch ) {
+            deviceOwnerAndMatchRef = jau::getJavaUplinkObject<BTDevice>(env, jdeviceOwnerAndMatch);
+            jau::JavaGlobalObj::check(deviceOwnerAndMatchRef->getJavaObject(), E_FILE_LINE);
         }
 
         jclass listenerClazz = jau::search_class(env, statusListener);
@@ -536,12 +538,18 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addStatusListener(JNIEnv *env, jobject o
 
         std::shared_ptr<AdapterStatusListener> l =
                 std::shared_ptr<AdapterStatusListener>( new JNIAdapterStatusListener(env, adapter,
-                        listenerClazz, statusListener, mStatusListenerNotifyDeleted, deviceMatchRef) );
+                        listenerClazz, statusListener, mStatusListenerNotifyDeleted, deviceOwnerAndMatchRef) );
 
         env->DeleteLocalRef(listenerClazz);
 
         jau::setInstance(env, statusListener, l.get());
-        if( adapter->addStatusListener( l ) ) {
+        bool addRes;
+        if( nullptr != deviceOwnerAndMatchRef ) {
+            addRes = adapter->addStatusListener( *deviceOwnerAndMatchRef, l );
+        } else {
+            addRes = adapter->addStatusListener( l );
+        }
+        if( addRes ) {
             return JNI_TRUE;
         }
         jau::clearInstance(env, statusListener);
@@ -964,3 +972,12 @@ void Java_jau_direct_1bt_DBTAdapter_setDiscoveryFilter(JNIEnv *env, jobject obj,
     (void)transportType;
 }
 
+void Java_jau_direct_1bt_DBTAdapter_printDeviceListsImpl(JNIEnv *env, jobject obj) {
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        adapter->printDeviceLists();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}

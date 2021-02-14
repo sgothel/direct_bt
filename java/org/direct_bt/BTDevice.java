@@ -70,6 +70,38 @@ public interface BTDevice extends BTObject
     /* Bluetooth method calls: */
 
     /**
+     * Add the given {@link AdapterStatusListener} to the list if not already present,
+     * listening only for events matching this device.
+     *
+     * The AdapterStatusListener is released at remove() or this device's destruction.
+     * <p>
+     * The newly added {@link AdapterStatusListener} will receive an initial
+     * {@link AdapterStatusListener#adapterSettingsChanged(BTAdapter, AdapterSettings, AdapterSettings, AdapterSettings, long) adapterSettingsChanged}
+     * event, passing an {@link AdapterSettings empty oldMask and changedMask}, as well as {@link AdapterSettings current newMask}. <br>
+     * This allows the receiver to be aware of this adapter's current settings.
+     * </p>
+     * @param listener A {@link AdapterStatusListener} instance
+     * @param deviceMatch Optional {@link BTDevice} to be matched before calling any
+     *        {@link AdapterStatusListener} {@code device*} methods. Pass {@code null} for no filtering.
+     * @return true if the given listener is not element of the list and has been newly added, otherwise false.
+     * @since 2.3.0
+     * @implNote not implemented in {@code tinyb.dbus}
+     * @see {@link BTDevice#addStatusListener(AdapterStatusListener, BTDevice)}
+     * @see {@link #removeStatusListener(AdapterStatusListener)}
+     * @see {@link #removeAllStatusListener()}
+     */
+    public boolean addStatusListener(final AdapterStatusListener listener);
+
+    /**
+     * Remove the given {@link AdapterStatusListener} from the list.
+     * @param listener A {@link AdapterStatusListener} instance
+     * @return true if the given listener is an element of the list and has been removed, otherwise false.
+     * @since 2.3.0
+     * @implNote not implemented in {@code tinyb.dbus}
+     */
+    public boolean removeStatusListener(final AdapterStatusListener l);
+
+    /**
      * {@code jau.direct_bt}: Disconnect the LE or BREDR peer's GATT and HCI connection.
      * <p>
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.6 Disconnect command

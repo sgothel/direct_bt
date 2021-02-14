@@ -153,4 +153,9 @@ public abstract class AdapterStatusListener {
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
      */
     public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) { }
+
+    @Override
+    public String toString() {
+        return "AdapterStatusListener[anonymous]";
+    }
 };

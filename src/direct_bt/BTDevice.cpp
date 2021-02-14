@@ -83,7 +83,8 @@ BTDevice::~BTDevice() noexcept {
     DBG_PRINT("DBTDevice::dtor: ... %p %s", this, addressAndType.toString().c_str());
     advServices.clear();
     advMSD = nullptr;
-    DBG_PRINT("DBTDevice::dtor: XXX %p %s", this, addressAndType.toString().c_str());
+    adapter.removeAllStatusListener(*this);
+    DBG_PRINT("BTDevice::dtor: XXX %p %s", this, addressAndType.toString().c_str());
 }
 
 std::shared_ptr<BTDevice> BTDevice::getSharedInstance() const noexcept {
@@ -121,24 +122,26 @@ int BTDevice::findAdvService(std::shared_ptr<uuid_t> const &uuid) const noexcept
 }
 
 std::string const BTDevice::getName() const noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
-    return name;
+    jau::sc_atomic_critical sync(sync_data);
+    std::string res = name;
+    return res;
 }
 
 std::shared_ptr<ManufactureSpecificData> const BTDevice::getManufactureSpecificData() const noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
-    return advMSD;
+    jau::sc_atomic_critical sync(sync_data);
+    std::shared_ptr<ManufactureSpecificData> res = advMSD;
+    return res;
 }
 
 jau::darray<std::shared_ptr<uuid_t>> BTDevice::getAdvertisedServices() const noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
-    return advServices;
+    jau::sc_atomic_critical sync(sync_data);
+    jau::darray<std::shared_ptr<uuid_t>> res = advServices;
+    return res;
 }
 
 std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
     const uint64_t t0 = jau::getCurrentMilliseconds();
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
     std::string msdstr = nullptr != advMSD ? advMSD->toString() : "MSD[null]";
     std::string out("Device["+addressAndType.toString()+", name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
@@ -148,22 +151,26 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
             ", tx-power "+std::to_string(tx_power)+
             ", appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+
             "), "+msdstr+", "+javaObjectToString()+"]");
-    if(includeDiscoveredServices && advServices.size() > 0 ) {
-        out.append("\n");
-        const size_t size = advServices.size();
-        for (size_t i = 0; i < size; i++) {
-            const std::shared_ptr<uuid_t> & e = advServices[i];
-            if( 0 < i ) {
-                out.append("\n");
+    if( includeDiscoveredServices ) {
+        jau::darray<std::shared_ptr<uuid_t>> _advServices = getAdvertisedServices();
+        if( _advServices.size() > 0 ) {
+            out.append("\n");
+            const size_t size = _advServices.size();
+            for (size_t i = 0; i < size; i++) {
+                const std::shared_ptr<uuid_t> & e = _advServices[i];
+                if( 0 < i ) {
+                    out.append("\n");
+                }
+                out.append("  ").append(e->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(e->getTypeSize()))).append(" bytes");
             }
-            out.append("  ").append(e->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(e->getTypeSize()))).append(" bytes");
         }
     }
     return out;
 }
 
 EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
 
     EIRDataType res = EIRDataType::NONE;
     ts_last_update = data.getTimestamp();
@@ -222,7 +229,8 @@ EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
 }
 
 EIRDataType BTDevice::update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
 
     EIRDataType res = EIRDataType::NONE;
     ts_last_update = timestamp;
@@ -235,6 +243,14 @@ EIRDataType BTDevice::update(GattGenericAccessSvc const &data, const uint64_t ti
         setEIRDataTypeSet(res, EIRDataType::APPEARANCE);
     }
     return res;
+}
+
+bool BTDevice::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
+    return adapter.addStatusListener(*this, l);
+}
+
+bool BTDevice::removeStatusListener(std::shared_ptr<AdapterStatusListener> l) {
+    return adapter.removeStatusListener(l);
 }
 
 std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo() noexcept {
@@ -364,7 +380,7 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
         }
 
         {
-            jau::sc_atomic_critical sync(sync_pairing);
+            jau::sc_atomic_critical sync(sync_data);
             if( !adapter.lockConnect(*this, true /* wait */, pairing_data.ioCap_user) ) {
                 ERR_PRINT("DBTDevice::connectLE: adapter::lockConnect() failed: %s", toString(false).c_str());
                 return HCIStatusCode::INTERNAL_FAILURE;
@@ -394,7 +410,7 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
             bool pairing_timeout = false;
             {
                 std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-                jau::sc_atomic_critical sync1(sync_pairing);
+                jau::sc_atomic_critical sync1(sync_data);
 
                 while( !hasSMPPairingFinished( pairing_data.state ) ) {
                     std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
@@ -432,7 +448,7 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
                     HCIStatusCode dres = disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
                     if( HCIStatusCode::SUCCESS == dres ) {
                         while( isConnected && hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td_disconnect ) {
-                            jau::sc_atomic_critical sync2(sync_pairing);
+                            jau::sc_atomic_critical sync2(sync_data);
                             td_disconnect += hci.env.HCI_COMMAND_POLL_PERIOD;
                             std::this_thread::sleep_for(std::chrono::milliseconds(hci.env.HCI_COMMAND_POLL_PERIOD));
                         }
@@ -451,7 +467,7 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
         }
     } while( !smp_auto_done );
     if( smp_auto ) {
-        jau::sc_atomic_critical sync(sync_pairing);
+        jau::sc_atomic_critical sync(sync_data);
         if( HCIStatusCode::SUCCESS == statusConnect && SMPPairingState::FAILED == pstate ) {
             ERR_PRINT("DBTDevice::connectLE: SEC AUTO.%d.X Failed SMPPairing -> Disconnect: %s", smp_auto_count, toString(false).c_str());
             pairing_data.ioCap_auto = SMPIOCapability::UNSET;
@@ -487,7 +503,7 @@ HCIStatusCode BTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clo
     }
 
     {
-        jau::sc_atomic_critical sync(sync_pairing);
+        jau::sc_atomic_critical sync(sync_data);
         if( !adapter.lockConnect(*this, true /* wait */, pairing_data.ioCap_user) ) {
             ERR_PRINT("DBTDevice::connectBREDR: adapter::lockConnect() failed: %s", toString(false).c_str());
             return HCIStatusCode::INTERNAL_FAILURE;
@@ -520,8 +536,8 @@ HCIStatusCode BTDevice::connectDefault() noexcept
 
 void BTDevice::notifyConnected(std::shared_ptr<BTDevice> sthis, const uint16_t handle, const SMPIOCapability io_cap) noexcept {
     // coming from connected callback, update state and spawn-off connectGATT in background if appropriate (LE)
-    jau::sc_atomic_critical sync(sync_pairing);
-    DBG_PRINT("DBTDevice::notifyConnected: handle %s -> %s, io %s -> %s, %s",
+    jau::sc_atomic_critical sync(sync_data);
+    DBG_PRINT("BTDevice::notifyConnected: handle %s -> %s, io %s -> %s, %s",
               jau::to_hexstring(hciConnHandle).c_str(), jau::to_hexstring(handle).c_str(),
               to_string(pairing_data.ioCap_conn).c_str(), to_string(io_cap).c_str(),
               toString(false).c_str());
@@ -551,7 +567,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
 
     if( addressAndType.isLEAddress() && !l2cap_att.isOpen() ) {
         const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-        jau::sc_atomic_critical sync(sync_pairing);
+        jau::sc_atomic_critical sync(sync_data);
 
         DBG_PRINT("DBTDevice::processL2CAPSetup: Start %s", toString(false).c_str());
 
@@ -611,7 +627,7 @@ void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_
     DBG_PRINT("DBTDevice::processDeviceReady: %s", toString(false).c_str());
     PairingMode pmode;
     {
-        jau::sc_atomic_critical sync(sync_pairing);
+        jau::sc_atomic_critical sync(sync_data);
         pmode = pairing_data.mode;
     }
     HCIStatusCode unpair_res = HCIStatusCode::UNKNOWN;
@@ -678,7 +694,7 @@ bool BTDevice::checkPairingKeyDistributionComplete(const std::string& timestamp)
 
 bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept {
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
 
     const SMPIOCapability iocap = pairing_data.ioCap_conn;
     const MgmtEvent::Opcode mgmtEvtOpcode = evt.getOpcode();
@@ -826,7 +842,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
 
 void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept {
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
 
     const SMPPairingState old_pstate = pairing_data.state;
     const PairingMode old_pmode = pairing_data.mode;
@@ -1079,7 +1095,7 @@ void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMs
 }
 
 SMPKeyType BTDevice::getAvailableSMPKeys(const bool responder) const noexcept {
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
     if( responder ) {
         return pairing_data.keys_resp_has;
     } else {
@@ -1088,7 +1104,7 @@ SMPKeyType BTDevice::getAvailableSMPKeys(const bool responder) const noexcept {
 }
 
 SMPLongTermKeyInfo BTDevice::getLongTermKeyInfo(const bool responder) const noexcept {
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
     return responder ? pairing_data.ltk_resp : pairing_data.ltk_init;
 }
 
@@ -1098,7 +1114,7 @@ HCIStatusCode BTDevice::setLongTermKeyInfo(const SMPLongTermKeyInfo& ltk) noexce
         return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
     }
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
     if( ltk.isResponder() ) {
         pairing_data.ltk_resp = ltk;
     } else {
@@ -1116,7 +1132,7 @@ HCIStatusCode BTDevice::setLongTermKeyInfo(const SMPLongTermKeyInfo& ltk) noexce
 }
 
 SMPSignatureResolvingKeyInfo BTDevice::getSignatureResolvingKeyInfo(const bool responder) const noexcept {
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
     return responder ? pairing_data.csrk_resp : pairing_data.csrk_init;
 }
 
@@ -1138,7 +1154,7 @@ HCIStatusCode BTDevice::pair(const SMPIOCapability io_cap) noexcept {
     DBG_PRINT("DBTDevice::pairDevice: Start: io %s, %s", to_string(io_cap).c_str(), toString(false).c_str());
     mngr.uploadConnParam(adapter.dev_id, addressAndType);
 
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
     pairing_data.ioCap_conn = io_cap;
     const bool res = mngr.pairDevice(adapter.dev_id, addressAndType, io_cap);
     if( !res ) {
@@ -1164,7 +1180,7 @@ bool BTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept {
             to_string(sec_level).c_str(), toString(false).c_str());
         return false;
     }
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
     const bool res = true;
     pairing_data.sec_level_user = sec_level;
     pairing_data.ioCap_auto = SMPIOCapability::UNSET; // disable auto
@@ -1176,7 +1192,7 @@ bool BTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept {
 }
 
 BTSecurityLevel BTDevice::getConnSecurityLevel() const noexcept {
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
     return pairing_data.sec_level_conn;
 }
 
@@ -1191,7 +1207,7 @@ bool BTDevice::setConnIOCapability(const SMPIOCapability io_cap) noexcept {
                 to_string(io_cap).c_str(), toString(false).c_str());
         return false;
     }
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
     const bool res = true;
     pairing_data.ioCap_user = io_cap;
     pairing_data.ioCap_auto = SMPIOCapability::UNSET; // disable auto
@@ -1204,7 +1220,7 @@ bool BTDevice::setConnIOCapability(const SMPIOCapability io_cap) noexcept {
 }
 
 SMPIOCapability BTDevice::getConnIOCapability() const noexcept {
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
     return pairing_data.ioCap_conn;
 }
 
@@ -1215,7 +1231,7 @@ bool BTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapab
                 to_string(io_cap).c_str(), toString(false).c_str());
         return false;
     }
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
     const bool res = true;
     pairing_data.ioCap_user = io_cap;
     pairing_data.sec_level_user = sec_level;
@@ -1262,7 +1278,7 @@ bool BTDevice::setConnSecurityAuto(const SMPIOCapability iocap_auto) noexcept {
         return false;
     }
 
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
     const bool res = true;
     pairing_data.ioCap_auto = iocap_auto;
     DBG_PRINT("DBTDevice::setConnSecurityAuto: result %d: io %s, %s", res,
@@ -1271,13 +1287,13 @@ bool BTDevice::setConnSecurityAuto(const SMPIOCapability iocap_auto) noexcept {
 }
 
 bool BTDevice::isConnSecurityAutoEnabled() const noexcept {
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
     return SMPIOCapability::UNSET != pairing_data.ioCap_auto;
 }
 
 HCIStatusCode BTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
 
     if( isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) ) {
 #if USE_LINUX_BT_SECURITY
@@ -1300,7 +1316,7 @@ HCIStatusCode BTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
 
 HCIStatusCode BTDevice::setPairingPasskeyNegative() noexcept {
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
 
     if( isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) ) {
 #if USE_LINUX_BT_SECURITY
@@ -1323,7 +1339,7 @@ HCIStatusCode BTDevice::setPairingPasskeyNegative() noexcept {
 
 HCIStatusCode BTDevice::setPairingNumericComparison(const bool positive) noexcept {
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
 
     if( isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::NUMERIC_COMPARE_EXPECTED) ) {
 #if USE_LINUX_BT_SECURITY
@@ -1345,18 +1361,18 @@ HCIStatusCode BTDevice::setPairingNumericComparison(const bool positive) noexcep
 }
 
 PairingMode BTDevice::getPairingMode() const noexcept {
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
     return pairing_data.mode;
 }
 
 SMPPairingState BTDevice::getPairingState() const noexcept {
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
     return pairing_data.state;
 }
 
 void BTDevice::clearSMPStates(const bool connected) noexcept {
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_pairing);
+    jau::sc_atomic_critical sync(sync_data);
 
     DBG_PRINT("DBTDevice::clearSMPStates: Had: %s", toString(false).c_str());
 

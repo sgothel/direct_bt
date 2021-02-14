@@ -50,6 +50,8 @@ extern "C" {
 
 using namespace direct_bt;
 
+constexpr static const bool _print_device_lists = false;
+
 std::shared_ptr<BTDevice> BTAdapter::findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept {
     const jau::nsize_t size = devices.size();
     for (jau::nsize_t i = 0; i < size; ++i) {
@@ -74,6 +76,7 @@ std::shared_ptr<BTDevice> BTAdapter::findDevice(device_list_t & devices, BTDevic
 
 bool BTAdapter::addConnectedDevice(const std::shared_ptr<BTDevice> & device) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     if( nullptr != findDevice(connectedDevices, *device) ) {
         return false;
     }
@@ -83,6 +86,7 @@ bool BTAdapter::addConnectedDevice(const std::shared_ptr<BTDevice> & device) noe
 
 bool BTAdapter::removeConnectedDevice(const BTDevice & device) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     auto end = connectedDevices.end();
     for (auto it = connectedDevices.begin(); it != end; ++it) {
         if ( nullptr != *it && device == **it ) {
@@ -96,7 +100,7 @@ bool BTAdapter::removeConnectedDevice(const BTDevice & device) noexcept {
 int BTAdapter::disconnectAllDevices(const HCIStatusCode reason) noexcept {
     device_list_t devices;
     {
-        const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+        jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
         devices = connectedDevices; // copy!
     }
     const int count = devices.size();
@@ -111,6 +115,7 @@ int BTAdapter::disconnectAllDevices(const HCIStatusCode reason) noexcept {
 
 std::shared_ptr<BTDevice> BTAdapter::findConnectedDevice (const EUI48 & address, const BDAddressType & addressType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     return findDevice(connectedDevices, address, addressType);
 }
 
@@ -286,18 +291,34 @@ void BTAdapter::poweredOff() noexcept {
     DBG_PRINT("DBTAdapter::poweredOff: XXX");
 }
 
-void BTAdapter::printSharedPtrListOfDevices() noexcept {
-    {
-        const std::lock_guard<std::mutex> lock0(mtx_sharedDevices);
-        jau::printSharedPtrList("SharedDevices", sharedDevices);
+void BTAdapter::printDeviceList(const std::string& prefix, const BTAdapter::device_list_t& list) noexcept {
+    const size_t sz = list.size();
+    jau::PLAIN_PRINT(true, "- BTAdapter::%s: %zu elements", prefix.c_str(), sz);
+    int idx = 0;
+    for (auto it = list.begin(); it != list.end(); ++idx, ++it) {
+        jau::PLAIN_PRINT(true, "  - %d / %zu: %s", (idx+1), sz, (*it)->getAddressAndType().toString().c_str());
     }
+}
+void BTAdapter::printDeviceLists() noexcept {
+    device_list_t _sharedDevices, _discoveredDevices, _connectedDevices;
     {
-        const std::lock_guard<std::mutex> lock0(mtx_discoveredDevices);
-        jau::printSharedPtrList("DiscoveredDevices", discoveredDevices);
+        jau::sc_atomic_critical sync(sync_data); // lock-free simple cache-load 'snapshot'
+        // Using an expensive copy here: debug mode only
+        _sharedDevices = sharedDevices;
+        _discoveredDevices = discoveredDevices;
+        _connectedDevices = connectedDevices;
     }
-    {
-        const std::lock_guard<std::mutex> lock0(mtx_connectedDevices);
-        jau::printSharedPtrList("ConnectedDevices", connectedDevices);
+    printDeviceList("SharedDevices     ", _sharedDevices);
+    printDeviceList("ConnectedDevices  ", _connectedDevices);
+    printDeviceList("DiscoveredDevices ", _discoveredDevices);
+    printStatusListenerList();
+}
+
+void BTAdapter::printStatusListenerList() noexcept {
+    auto begin = statusListenerList.begin(); // lock mutex and copy_store
+    jau::PLAIN_PRINT(true, "- BTAdapter::StatusListener    : %zu elements", (size_t)begin.size());
+    for(int ii=0; !begin.is_end(); ++ii, ++begin ) {
+        jau::PLAIN_PRINT(true, "  - %d / %zu: %s", (ii+1), (size_t)begin.size(), begin->listener->toString().c_str());
     }
 }
 
@@ -498,45 +519,108 @@ bool BTAdapter::removeDeviceFromWhitelist(const BDAddressAndType & addressAndTyp
     return mgmt.removeDeviceFromWhitelist(dev_id, addressAndType);
 }
 
-static jau::cow_darray<std::shared_ptr<AdapterStatusListener>>::equal_comparator _adapterStatusListenerRefEqComparator =
-        [](const std::shared_ptr<AdapterStatusListener> &a, const std::shared_ptr<AdapterStatusListener> &b) -> bool { return *a == *b; };
+static jau::cow_darray<impl::StatusListenerPair>::equal_comparator _adapterStatusListenerRefEqComparator =
+        [](const impl::StatusListenerPair &a, const impl::StatusListenerPair &b) -> bool { return *a.listener == *b.listener; };
 
 bool BTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
     if( nullptr == l ) {
-        throw jau::IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
+        throw jau::IllegalArgumentException("AdapterStatusListener ref is null", E_FILE_LINE);
     }
-    const bool added = statusListenerList.push_back_unique(l, _adapterStatusListenerRefEqComparator);
+    const bool added = statusListenerList.push_back_unique(impl::StatusListenerPair{l, std::weak_ptr<BTDevice>{} },
+                                                           _adapterStatusListenerRefEqComparator);
     if( added ) {
         sendAdapterSettingsInitial(*l, jau::getCurrentMilliseconds());
     }
-    return true;
+    if( _print_device_lists || jau::environment::get().verbose ) {
+        jau::PLAIN_PRINT(true, "BTAdapter::addStatusListener.1: added %d, %s", added, toString().c_str());
+        printDeviceLists();
+    }
+    return added;
+}
+
+bool BTAdapter::addStatusListener(const BTDevice& d, std::shared_ptr<AdapterStatusListener> l) {
+    if( nullptr == l ) {
+        throw jau::IllegalArgumentException("AdapterStatusListener ref is null", E_FILE_LINE);
+    }
+
+    std::shared_ptr<BTDevice> sd = getSharedDevice(d);
+    if( nullptr == sd ) {
+        throw jau::IllegalArgumentException("Device not shared: "+d.toString(), E_FILE_LINE);
+    }
+    const bool added = statusListenerList.push_back_unique(impl::StatusListenerPair{l, sd},
+                                                           _adapterStatusListenerRefEqComparator);
+    if( added ) {
+        sendAdapterSettingsInitial(*l, jau::getCurrentMilliseconds());
+    }
+    if( _print_device_lists || jau::environment::get().verbose ) {
+        jau::PLAIN_PRINT(true, "BTAdapter::addStatusListener.2: added %d, %s", added, toString().c_str());
+        printDeviceLists();
+    }
+    return added;
 }
 
 bool BTAdapter::removeStatusListener(std::shared_ptr<AdapterStatusListener> l) {
     if( nullptr == l ) {
-        throw jau::IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
+        throw jau::IllegalArgumentException("AdapterStatusListener ref is null", E_FILE_LINE);
     }
-    const int count = statusListenerList.erase_matching(l, false /* all_matching */, _adapterStatusListenerRefEqComparator);
+    const int count = statusListenerList.erase_matching(impl::StatusListenerPair{l, std::weak_ptr<BTDevice>{}},
+                                                        false /* all_matching */,
+                                                        _adapterStatusListenerRefEqComparator);
+    if( _print_device_lists || jau::environment::get().verbose ) {
+        jau::PLAIN_PRINT(true, "BTAdapter::removeStatusListener.1: res %d, %s", count>0, toString().c_str());
+        printDeviceLists();
+    }
     return count > 0;
 }
 
 bool BTAdapter::removeStatusListener(const AdapterStatusListener * l) {
     if( nullptr == l ) {
-        throw jau::IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
+        throw jau::IllegalArgumentException("AdapterStatusListener ref is null", E_FILE_LINE);
     }
+    bool res = false;
     {
         auto begin = statusListenerList.begin(); // lock mutex and copy_store
         while ( !begin.is_end() ) {
-            if ( **begin == *l ) {
+            if ( *begin->listener == *l ) {
                 begin.erase();
-                begin.write_back();
-                return true;
+                res = true;
+                break;
             } else {
                 ++begin;
             }
         }
+        if( res ) {
+            begin.write_back();
+        }
     }
-    return false;
+    if( _print_device_lists || jau::environment::get().verbose ) {
+        jau::PLAIN_PRINT(true, "BTAdapter::removeStatusListener.2: res %d, %s", res, toString().c_str());
+        printDeviceLists();
+    }
+    return res;
+}
+
+int BTAdapter::removeAllStatusListener(const BTDevice& d) {
+    int count = 0;
+
+    int res = statusListenerList.size();
+    if( 0 < res ) {
+        auto begin = statusListenerList.begin();
+        auto it = begin.end();
+        do {
+            --it;
+            std::shared_ptr<BTDevice> sda = it->wbr_device.lock();
+            if ( nullptr != sda && *sda == d ) {
+                it.erase();
+                ++count;
+            }
+        } while( it != begin );
+
+        if( 0 < count ) {
+            begin.write_back();
+        }
+    }
+    return count;
 }
 
 int BTAdapter::removeAllStatusListener() {
@@ -600,9 +684,11 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddr
         return HCIStatusCode::SUCCESS;
     }
 
-    DBG_PRINT("DBTAdapter::startDiscovery: Start: keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
-            keep_le_scan_alive.load(), keepAlive,
-            to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str());
+    if( _print_device_lists || jau::environment::get().verbose ) {
+        jau::PLAIN_PRINT(true, "BTAdapter::startDiscovery: Start: keepAlive %d -> %d, currentScanType[native %s, meta %s] ...\n- %s",
+                keep_le_scan_alive.load(), keepAlive,
+                to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(), toString().c_str());
+    }
 
     removeDiscoveredDevices();
     keep_le_scan_alive = keepAlive;
@@ -610,9 +696,12 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddr
     // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
     const HCIStatusCode status = hci.le_start_scan(true /* filter_dup */, own_mac_type, le_scan_interval, le_scan_window);
 
-    DBG_PRINT("DBTAdapter::startDiscovery: End: Result %s, keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
-            to_string(status).c_str(), keep_le_scan_alive.load(), keepAlive,
-            to_string(hci.getCurrentScanType()).c_str(), to_string(currentMetaScanType).c_str());
+    if( _print_device_lists || jau::environment::get().verbose ) {
+        jau::PLAIN_PRINT(true, "BTAdapter::startDiscovery: End: Result %s, keepAlive %d -> %d, currentScanType[native %s, meta %s] ...\n- %s",
+                to_string(status).c_str(), keep_le_scan_alive.load(), keepAlive,
+                to_string(hci.getCurrentScanType()).c_str(), to_string(currentMetaScanType).c_str(), toString().c_str());
+        printDeviceLists();
+    }
 
     checkDiscoveryState();
 
@@ -708,9 +797,13 @@ exit:
         const MgmtEvtDiscovering e(dev_id, ScanType::LE, false);
         mgmtEvDeviceDiscoveringHCI( e );
     }
-    DBG_PRINT("DBTAdapter::stopDiscovery: End: Result %s, keepAlive %d, currentScanType[native %s, meta %s], le_scan_temp_disabled %d ...",
-            to_string(status).c_str(), keep_le_scan_alive.load(),
-            to_string(hci.getCurrentScanType()).c_str(), to_string(currentMetaScanType).c_str(), le_scan_temp_disabled);
+    if( _print_device_lists || jau::environment::get().verbose ) {
+        jau::PLAIN_PRINT(true, "BTAdapter::stopDiscovery: End: Result %s, keepAlive %d, currentScanType[native %s, meta %s], le_scan_temp_disabled %d ...\n- %s",
+                to_string(status).c_str(), keep_le_scan_alive.load(),
+                to_string(hci.getCurrentScanType()).c_str(), to_string(currentMetaScanType).c_str(), le_scan_temp_disabled,
+                toString().c_str());
+        printDeviceLists();
+    }
 
     checkDiscoveryState();
 
@@ -721,11 +814,13 @@ exit:
 
 std::shared_ptr<BTDevice> BTAdapter::findDiscoveredDevice (const EUI48 & address, const BDAddressType addressType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     return findDevice(discoveredDevices, address, addressType);
 }
 
 bool BTAdapter::addDiscoveredDevice(std::shared_ptr<BTDevice> const &device) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     if( nullptr != findDevice(discoveredDevices, *device) ) {
         // already discovered
         return false;
@@ -736,12 +831,15 @@ bool BTAdapter::addDiscoveredDevice(std::shared_ptr<BTDevice> const &device) noe
 
 bool BTAdapter::removeDiscoveredDevice(const BDAddressAndType & addressAndType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
-    for (auto it = discoveredDevices.begin(); it != discoveredDevices.end(); ) {
-        if ( nullptr != *it && addressAndType == (*it)->addressAndType ) {
-            it = discoveredDevices.erase(it);
+    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
+    for (auto it = discoveredDevices.begin(); it != discoveredDevices.end(); ++it) {
+        const BTDevice& device = **it;
+        if ( nullptr != *it && addressAndType == device.addressAndType ) {
+            if( nullptr == getSharedDevice( device ) ) {
+                removeAllStatusListener( device );
+            }
+            discoveredDevices.erase(it);
             return true;
-        } else {
-            ++it;
         }
     }
     return false;
@@ -750,13 +848,30 @@ bool BTAdapter::removeDiscoveredDevice(const BDAddressAndType & addressAndType) 
 
 int BTAdapter::removeDiscoveredDevices() noexcept {
     const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
+
     int res = discoveredDevices.size();
-    discoveredDevices.clear();
+    if( 0 < res ) {
+        auto it = discoveredDevices.end();
+        do {
+            --it;
+            const BTDevice& device = **it;
+            if( nullptr == getSharedDevice( device ) ) {
+                removeAllStatusListener( device );
+            }
+            discoveredDevices.erase(it);
+        } while( it != discoveredDevices.begin() );
+    }
+
+    if( _print_device_lists || jau::environment::get().verbose ) {
+        jau::PLAIN_PRINT(true, "BTAdapter::removeDiscoveredDevices: End: %d, %s", res, toString().c_str());
+        printDeviceLists();
+    }
     return res;
 }
 
 jau::darray<std::shared_ptr<BTDevice>> BTAdapter::getDiscoveredDevices() const noexcept {
-    const std::lock_guard<std::mutex> lock(const_cast<BTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_data); // lock-free simple cache-load 'snapshot'
     device_list_t res = discoveredDevices;
     return res;
 }
@@ -795,13 +910,19 @@ std::shared_ptr<BTDevice> BTAdapter::findSharedDevice (const EUI48 & address, co
 
 void BTAdapter::removeDevice(BTDevice & device) noexcept {
     WORDY_PRINT("DBTAdapter::removeDevice: Start %s", toString(false).c_str());
+    removeAllStatusListener(device);
+
     const HCIStatusCode status = device.disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
     WORDY_PRINT("DBTAdapter::removeDevice: disconnect %s, %s", to_string(status).c_str(), toString(false).c_str());
     unlockConnect(device);
-    removeConnectedDevice(device); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
-    removeDiscoveredDevice(device.addressAndType); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
-    WORDY_PRINT("DBTAdapter::removeDevice: End %s", toString(false).c_str());
+    removeConnectedDevice(device); // usually done in BTAdapter::mgmtEvDeviceDisconnectedHCI
+    removeDiscoveredDevice(device.addressAndType); // usually done in BTAdapter::mgmtEvDeviceDisconnectedHCI
     removeSharedDevice(device);
+
+    if( _print_device_lists || jau::environment::get().verbose ) {
+        jau::PLAIN_PRINT(true, "BTAdapter::removeDevice: End %s, %s", device.getAddressAndType().toString().c_str(), toString().c_str());
+        printDeviceLists();
+    }
 }
 
 std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
@@ -810,13 +931,15 @@ std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
                     ", scanType[native "+to_string(hci.getCurrentScanType())+", meta "+to_string(currentMetaScanType)+"]"
                     ", valid "+std::to_string(isValid())+", open[mgmt, "+std::to_string(mgmt.isOpen())+", hci "+std::to_string(hci.isOpen())+
                     "], "+javaObjectToString()+"]");
-    device_list_t devices = getDiscoveredDevices();
-    if( includeDiscoveredDevices && devices.size() > 0 ) {
-        out.append("\n");
-        for(auto it = devices.begin(); it != devices.end(); it++) {
-            std::shared_ptr<BTDevice> p = *it;
-            if( nullptr != p ) {
-                out.append("  ").append(p->toString()).append("\n");
+    if( includeDiscoveredDevices ) {
+        device_list_t devices = getDiscoveredDevices();
+        if( devices.size() > 0 ) {
+            out.append("\n");
+            for(auto it = devices.begin(); it != devices.end(); it++) {
+                std::shared_ptr<BTDevice> p = *it;
+                if( nullptr != p ) {
+                    out.append("  ").append(p->toString()).append("\n");
+                }
             }
         }
     }
@@ -829,13 +952,13 @@ void BTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings_, c
                                             const uint64_t timestampMS) noexcept
 {
     int i=0;
-    jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {
-            l->adapterSettingsChanged(*this, old_settings_, current_settings, changes, timestampMS);
+            p.listener->adapterSettingsChanged(*this, old_settings_, current_settings, changes, timestampMS);
         } catch (std::exception &e) {
-            ERR_PRINT("DBTAdapter:CB:NewSettings-CBs %d/%zd: %s of %s: Caught exception %s",
+            ERR_PRINT("BTAdapter:CB:NewSettings-CBs %d/%zd: %s of %s: Caught exception %s",
                     i+1, statusListenerList.size(),
-                    l->toString().c_str(), toString(false).c_str(), e.what());
+                    p.listener->toString().c_str(), toString().c_str(), e.what());
         }
         i++;
     });
@@ -856,15 +979,15 @@ void BTAdapter::sendAdapterSettingsInitial(AdapterStatusListener & asl, const ui
 
 void BTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<BTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept {
     int i=0;
-    jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {
-            if( l->matchDevice(*device) ) {
-                l->deviceUpdated(device, updateMask, timestamp);
+            if( p.listener->matchDevice(*device) ) {
+                p.listener->deviceUpdated(device, updateMask, timestamp);
             }
         } catch (std::exception &e) {
-            ERR_PRINT("DBTAdapter::sendDeviceUpdated-CBs (%s) %d/%zd: %s of %s: Caught exception %s",
+            ERR_PRINT("BTAdapter::sendDeviceUpdated-CBs (%s) %d/%zd: %s of %s: Caught exception %s",
                     cause.c_str(), i+1, statusListenerList.size(),
-                    l->toString().c_str(), device->toString().c_str(), e.what());
+                    p.listener->toString().c_str(), device->toString().c_str(), e.what());
         }
         i++;
     });
@@ -928,13 +1051,13 @@ bool BTAdapter::mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSou
     checkDiscoveryState();
 
     int i=0;
-    jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {
-            l->discoveringChanged(*this, currentMetaScanType, eventScanType, eventEnabled, keep_le_scan_alive, event.getTimestamp());
+            p.listener->discoveringChanged(*this, currentMetaScanType, eventScanType, eventEnabled, keep_le_scan_alive, event.getTimestamp());
         } catch (std::exception &except) {
-            ERR_PRINT("DBTAdapter:%s:DeviceDiscovering-CBs %d/%zd: %s of %s: Caught exception %s",
+            ERR_PRINT("BTAdapter:%s:DeviceDiscovering-CBs %d/%zd: %s of %s: Caught exception %s",
                     srctkn.c_str(), i+1, statusListenerList.size(),
-                    l->toString().c_str(), toString().c_str(), except.what());
+                    p.listener->toString().c_str(), toString().c_str(), except.what());
         }
         i++;
     });
@@ -1070,20 +1193,20 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         new_connect = 0; // disable deviceConnected() events
     }
     int i=0;
-    jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {
-            if( l->matchDevice(*device) ) {
+            if( p.listener->matchDevice(*device) ) {
                 if( EIRDataType::NONE != updateMask ) {
-                    l->deviceUpdated(device, updateMask, ad_report.getTimestamp());
+                    p.listener->deviceUpdated(device, updateMask, ad_report.getTimestamp());
                 }
                 if( 0 < new_connect ) {
-                    l->deviceConnected(device, event.getHCIHandle(), event.getTimestamp());
+                    p.listener->deviceConnected(device, event.getHCIHandle(), event.getTimestamp());
                 }
             }
         } catch (std::exception &except) {
-            ERR_PRINT("DBTAdapter::EventHCI:DeviceConnected-CBs %d/%zd: %s of %s: Caught exception %s",
+            ERR_PRINT("BTAdapter::EventHCI:DeviceConnected-CBs %d/%zd: %s of %s: Caught exception %s",
                     i+1, statusListenerList.size(),
-                    l->toString().c_str(), device->toString().c_str(), except.what());
+                    p.listener->toString().c_str(), device->toString().c_str(), except.what());
         }
         i++;
     });
@@ -1107,15 +1230,15 @@ bool BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
 
         if( !device->isConnSecurityAutoEnabled() ) {
             int i=0;
-            jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+            jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
                 try {
-                    if( l->matchDevice(*device) ) {
-                        l->deviceDisconnected(device, event.getHCIStatus(), handle, event.getTimestamp());
+                    if( p.listener->matchDevice(*device) ) {
+                        p.listener->deviceDisconnected(device, event.getHCIStatus(), handle, event.getTimestamp());
                     }
                 } catch (std::exception &except) {
                     ERR_PRINT("DBTAdapter::EventHCI:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",
                             i+1, statusListenerList.size(),
-                            l->toString().c_str(), device->toString().c_str(), except.what());
+                            p.listener->toString().c_str(), device->toString().c_str(), except.what());
                 }
                 i++;
             });
@@ -1199,15 +1322,15 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
 
         if( !device->isConnSecurityAutoEnabled() ) {
             int i=0;
-            jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+            jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
                 try {
-                    if( l->matchDevice(*device) ) {
-                        l->deviceDisconnected(device, event.getHCIReason(), event.getHCIHandle(), event.getTimestamp());
+                    if( p.listener->matchDevice(*device) ) {
+                        p.listener->deviceDisconnected(device, event.getHCIReason(), event.getHCIHandle(), event.getTimestamp());
                     }
                 } catch (std::exception &except) {
-                    ERR_PRINT("DBTAdapter::EventHCI:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",
+                    ERR_PRINT("BTAdapter::EventHCI:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",
                             i+1, statusListenerList.size(),
-                            l->toString().c_str(), device->toString().c_str(), except.what());
+                            p.listener->toString().c_str(), device->toString().c_str(), except.what());
                 }
                 i++;
             });
@@ -1309,22 +1432,22 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
 
         int i=0;
         bool device_used = false;
-        jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
             try {
-                if( l->matchDevice(*dev) ) {
-                    device_used = l->deviceFound(dev, eir->getTimestamp()) || device_used;
+                if( p.listener->matchDevice(*dev) ) {
+                    device_used = p.listener->deviceFound(dev, eir->getTimestamp()) || device_used;
                 }
             } catch (std::exception &except) {
-                ERR_PRINT("DBTAdapter:hci:DeviceFound: %d/%zd: %s of %s: Caught exception %s",
+                ERR_PRINT("BTAdapter:hci:DeviceFound: %d/%zd: %s of %s: Caught exception %s",
                         i+1, statusListenerList.size(),
-                        l->toString().c_str(), dev->toString().c_str(), except.what());
+                        p.listener->toString().c_str(), dev->toString().c_str(), except.what());
             }
             i++;
         });
         if( !device_used ) {
             // keep to avoid duplicate finds: removeDiscoveredDevice(dev->addressAndType);
             // and still allowing usage, as connecting will re-add to shared list
-            removeSharedDevice(*dev); // pending dtor if discovered is flushed
+            removeSharedDevice(*dev); // pending dtor until discovered is flushed
         } else if( EIRDataType::NONE != updateMask ) {
             sendDeviceUpdated("SharedDeviceFound", dev, eir->getTimestamp(), updateMask);
         }
@@ -1342,15 +1465,15 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
 
     int i=0;
     bool device_used = false;
-    jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {
-            if( l->matchDevice(*dev) ) {
-                device_used = l->deviceFound(dev, eir->getTimestamp()) || device_used;
+            if( p.listener->matchDevice(*dev) ) {
+                device_used = p.listener->deviceFound(dev, eir->getTimestamp()) || device_used;
             }
         } catch (std::exception &except) {
-            ERR_PRINT("DBTAdapter:hci:DeviceFound-CBs %d/%zd: %s of %s: Caught exception %s",
+            ERR_PRINT("BTAdapter:hci:DeviceFound-CBs %d/%zd: %s of %s: Caught exception %s",
                     i+1, statusListenerList.size(),
-                    l->toString().c_str(), dev->toString().c_str(), except.what());
+                    p.listener->toString().c_str(), dev->toString().c_str(), except.what());
         }
         i++;
     });
@@ -1438,15 +1561,15 @@ bool BTAdapter::hciSMPMsgCallback(const BDAddressAndType & addressAndType,
 void BTAdapter::sendDevicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept
 {
     int i=0;
-    jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {
-            if( l->matchDevice(*device) ) {
-                l->devicePairingState(device, state, mode, timestamp);
+            if( p.listener->matchDevice(*device) ) {
+                p.listener->devicePairingState(device, state, mode, timestamp);
             }
         } catch (std::exception &except) {
-            ERR_PRINT("DBTAdapter::sendDevicePairingState: %d/%zd: %s of %s: Caught exception %s",
+            ERR_PRINT("BTAdapter::sendDevicePairingState: %d/%zd: %s of %s: Caught exception %s",
                     i+1, statusListenerList.size(),
-                    l->toString().c_str(), device->toString().c_str(), except.what());
+                    p.listener->toString().c_str(), device->toString().c_str(), except.what());
         }
         i++;
     });
@@ -1454,18 +1577,18 @@ void BTAdapter::sendDevicePairingState(std::shared_ptr<BTDevice> device, const S
 
 void BTAdapter::sendDeviceReady(std::shared_ptr<BTDevice> device, uint64_t timestamp) noexcept {
     int i=0;
-    jau::for_each_fidelity(statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+    jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {
             // Only issue if valid && received connected confirmation (HCI) && not have called disconnect yet.
             if( device->isValid() && device->getConnected() && device->allowDisconnect ) {
-                if( l->matchDevice(*device) ) {
-                    l->deviceReady(device, timestamp);
+                if( p.listener->matchDevice(*device) ) {
+                    p.listener->deviceReady(device, timestamp);
                 }
             }
         } catch (std::exception &except) {
-            ERR_PRINT("DBTAdapter::sendDeviceReady: %d/%zd: %s of %s: Caught exception %s",
+            ERR_PRINT("BTAdapter::sendDeviceReady: %d/%zd: %s of %s: Caught exception %s",
                     i+1, statusListenerList.size(),
-                    l->toString().c_str(), device->toString().c_str(), except.what());
+                    p.listener->toString().c_str(), device->toString().c_str(), except.what());
         }
         i++;
     });

@@ -24,6 +24,8 @@
  */
 package org.direct_bt;
 
+import java.io.PrintStream;
+
 public class BTUtils {
     private static long t0;
     static {
@@ -50,6 +52,33 @@ public class BTUtils {
      * Returns elapsed monotonic time in milliseconds since module startup comparing against the given timestamp, see {@link #startupTimeMillis()}.
      */
     public static long elapsedTimeMillis(final long current_ts) { return current_ts - t0; }
+
+    /**
+     * Convenient {@link PrintStream#printf(String, Object...)} invocation, prepending the {@link #elapsedTimeMillis()} timestamp.
+     * @param out the output stream
+     * @param format the format
+     * @param args the arguments
+     */
+    public static void fprintf_td(final PrintStream out, final String format, final Object ... args) {
+        out.printf("[%,9d] ", elapsedTimeMillis());
+        out.printf(format, args);
+    }
+    /**
+     * Convenient {@link PrintStream#println(String)} invocation, prepending the {@link #elapsedTimeMillis()} timestamp.
+     * @param out the output stream
+     * @param msg the string message
+     */
+    public static void println(final PrintStream out, final String msg) {
+        out.printf("[%,9d] %s%s", elapsedTimeMillis(), msg, System.lineSeparator());
+    }
+    /**
+     * Convenient {@link PrintStream#print(String)} invocation, prepending the {@link #elapsedTimeMillis()} timestamp.
+     * @param out the output stream
+     * @param msg the string message
+     */
+    public static void print(final PrintStream out, final String msg) {
+        out.printf("[%,9d] %s", elapsedTimeMillis(), msg);
+    }
 
     /**
      * Defining the supervising timeout for LE connections to be a multiple of the maximum connection interval as follows:

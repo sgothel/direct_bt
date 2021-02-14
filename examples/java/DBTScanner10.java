@@ -119,12 +119,6 @@ public class DBTScanner10 {
         // System.err.printf("[%,9d] ", BluetoothUtils.getElapsedMillisecond());
         // System.err.printf(format, args);
     }
-    static void println(final String msg) {
-        System.err.printf("[%,9d] %s%s", BTUtils.elapsedTimeMillis(), msg, System.lineSeparator());
-    }
-    static void print(final String msg) {
-        System.err.printf("[%,9d] %s", BTUtils.elapsedTimeMillis(), msg);
-    }
 
     static void executeOffThread(final Runnable runobj, final String threadName, final boolean detach) {
         final Thread t = new Thread( runobj, threadName );
@@ -196,12 +190,12 @@ public class DBTScanner10 {
                                            final AdapterSettings newmask, final AdapterSettings changedmask, final long timestamp) {
             final boolean initialSetting = oldmask.isEmpty();
             if( initialSetting ) {
-                println("****** SETTINGS: "+oldmask+" -> "+newmask+", initial "+changedmask);
+                BTUtils.println(System.err, "****** SETTINGS: "+oldmask+" -> "+newmask+", initial "+changedmask);
             } else {
-                println("****** SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
+                BTUtils.println(System.err, "****** SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
             }
-            println("Status Adapter:");
-            println(adapter.toString());
+            BTUtils.println(System.err, "Status Adapter:");
+            BTUtils.println(System.err, adapter.toString());
             if( !initialSetting &&
                 changedmask.isSet(AdapterSettings.SettingType.POWERED) &&
                 newmask.isSet(AdapterSettings.SettingType.POWERED) )
@@ -214,17 +208,17 @@ public class DBTScanner10 {
 
         @Override
         public void discoveringChanged(final BTAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final boolean keepAlive, final long timestamp) {
-            println("****** DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", keepAlive "+keepAlive+"] on "+adapter);
+            BTUtils.println(System.err, "****** DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", keepAlive "+keepAlive+"] on "+adapter);
         }
 
         @Override
         public boolean deviceFound(final BTDevice device, final long timestamp) {
-            println("****** FOUND__: "+device.toString());
+            BTUtils.println(System.err, "****** FOUND__: "+device.toString());
 
             if( BDAddressType.BDADDR_LE_PUBLIC != device.getAddressAndType().type
                 && BLERandomAddressType.STATIC_PUBLIC != device.getAddressAndType().getBLERandomAddressType() ) {
                 // Requires BREDR or LE Secure Connection support: WIP
-                println("****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' "+device.toString());
+                BTUtils.println(System.err, "****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' "+device.toString());
                 return false;
             }
             if( !devicesInProcessing.contains( device.getAddressAndType() ) &&
@@ -235,16 +229,16 @@ public class DBTScanner10 {
                 )
               )
             {
-                println("****** FOUND__-0: Connecting "+device.toString());
+                BTUtils.println(System.err, "****** FOUND__-0: Connecting "+device.toString());
                 {
                     final long td = BTUtils.currentTimeMillis() - timestamp_t0; // adapter-init -> now
-                    println("PERF: adapter-init -> FOUND__-0 " + td + " ms");
+                    BTUtils.println(System.err, "PERF: adapter-init -> FOUND__-0 " + td + " ms");
                 }
                 executeOffThread( () -> { connectDiscoveredDevice(device); },
                                   "DBT-Connect-"+device.getAddressAndType(), true /* detach */);
                 return true;
             } else {
-                println("****** FOUND__-1: NOP "+device.toString());
+                BTUtils.println(System.err, "****** FOUND__-1: NOP "+device.toString());
                 return false;
             }
         }
@@ -252,25 +246,25 @@ public class DBTScanner10 {
         @Override
         public void deviceUpdated(final BTDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
             if( SHOW_UPDATE_EVENTS ) {
-                println("****** UPDATED: "+updateMask+" of "+device);
+                BTUtils.println(System.err, "****** UPDATED: "+updateMask+" of "+device);
             }
         }
 
         @Override
         public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
-            println("****** CONNECTED-0: "+device.toString());
+            BTUtils.println(System.err, "****** CONNECTED: "+device.toString());
         }
 
         @Override
         public void devicePairingState(final BTDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {
-            println("****** PAIRING_STATE: state "+state+", mode "+mode+": "+device);
+            BTUtils.println(System.err, "****** PAIRING_STATE: state "+state+", mode "+mode+": "+device);
             switch( state ) {
                 case NONE:
                     // next: deviceReady(..)
                     break;
                 case FAILED: {
                     final boolean res  = SMPKeyBin.remove(KEY_PATH, device.getAddressAndType());
-                    println("****** PAIRING_STATE: state "+state+"; Remove key file "+SMPKeyBin.getFilePath(KEY_PATH, device.getAddressAndType())+", res "+res);
+                    BTUtils.println(System.err, "****** PAIRING_STATE: state "+state+"; Remove key file "+SMPKeyBin.getFilePath(KEY_PATH, device.getAddressAndType())+", res "+res);
                     // next: deviceReady() or deviceDisconnected(..)
                 } break;
                 case REQUESTED_BY_RESPONDER:
@@ -326,21 +320,21 @@ public class DBTScanner10 {
               )
             {
                 deviceReadyCount.incrementAndGet();
-                println("****** READY-0: Processing["+deviceReadyCount.get()+"] "+device.toString());
+                BTUtils.println(System.err, "****** READY-0: Processing["+deviceReadyCount.get()+"] "+device.toString());
                 {
                     final long td = BTUtils.currentTimeMillis() - timestamp_t0; // adapter-init -> now
-                    println("PERF: adapter-init -> READY-0 " + td + " ms");
+                    BTUtils.println(System.err, "PERF: adapter-init -> READY-0 " + td + " ms");
                 }
                 devicesInProcessing.add(device.getAddressAndType());
                 processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
             } else {
-                println("****** READY-1: NOP " + device.toString());
+                BTUtils.println(System.err, "****** READY-1: NOP " + device.toString());
             }
         }
 
         @Override
         public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
-            println("****** DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
+            BTUtils.println(System.err, "****** DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
 
             if( REMOVE_DEVICE ) {
                 executeOffThread( () -> { removeDevice(device); }, "DBT-Remove-"+device.getAddressAndType(), true /* detach */);
@@ -352,19 +346,42 @@ public class DBTScanner10 {
                                   "DBT-Reset-"+device.getAdapter().getAddress(), true /* detach */ );
             }
         }
+
+        @Override
+        public String toString() {
+            return "AdapterStatusListener[user, per-adapter]";
+        }
     };
 
     private void connectDiscoveredDevice(final BTDevice device) {
-        println("****** Connecting Device: Start " + device.toString());
+        BTUtils.println(System.err, "****** Connecting Device: Start " + device.toString());
+
+        // Testing listener lifecycle @ device dtor
+        device.addStatusListener(new AdapterStatusListener() {
+            @Override
+            public void deviceUpdated(final BTDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
+                if( SHOW_UPDATE_EVENTS ) {
+                    BTUtils.println(System.err, "****** UPDATED(2): "+updateMask+" of "+device);
+                }
+            }
+            @Override
+            public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
+                BTUtils.println(System.err, "****** CONNECTED(2): "+device.toString());
+            }
+
+            @Override
+            public String toString() {
+                return "AdapterStatusListener[user, device "+device.getAddressAndType().toString()+"]";
+            } });
 
         {
             final HCIStatusCode unpair_res = device.unpair();
-            println("****** Connecting Device: Unpair-Pre result: "+unpair_res);
+            BTUtils.println(System.err, "****** Connecting Device: Unpair-Pre result: "+unpair_res);
         }
 
         {
             final HCIStatusCode r = device.getAdapter().stopDiscovery();
-            println("****** Connecting Device: stopDiscovery result "+r);
+            BTUtils.println(System.err, "****** Connecting Device: stopDiscovery result "+r);
         }
 
         boolean useSMPKeyBin = false;
@@ -380,18 +397,18 @@ public class DBTScanner10 {
             if( null != sec ) {
                 if( sec.isSecurityAutoEnabled() ) {
                     final boolean res = device.setConnSecurityAuto( sec.getSecurityAutoIOCap() );
-                    println("****** Connecting Device: Using SecurityDetail.SEC AUTO "+sec+" -> set OK "+res);
+                    BTUtils.println(System.err, "****** Connecting Device: Using SecurityDetail.SEC AUTO "+sec+" -> set OK "+res);
                 } else if( sec.isSecLevelOrIOCapSet() ) {
                     final boolean res = device.setConnSecurityBest(sec.getSecLevel(), sec.getIOCap());
-                    println("****** Connecting Device: Using SecurityDetail.Level+IOCap "+sec+" -> set OK "+res);
+                    BTUtils.println(System.err, "****** Connecting Device: Using SecurityDetail.Level+IOCap "+sec+" -> set OK "+res);
                 } else {
                     final boolean res = device.setConnSecurityAuto( SMPIOCapability.KEYBOARD_ONLY );
-                    println("****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY ("+sec+") -> set OK "+res);
+                    BTUtils.println(System.err, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY ("+sec+") -> set OK "+res);
                 }
             } else {
-                println("****** Connecting Device: No SecurityDetail for "+device.getAddressAndType());
+                BTUtils.println(System.err, "****** Connecting Device: No SecurityDetail for "+device.getAddressAndType());
                 final boolean res = device.setConnSecurityAuto( SMPIOCapability.KEYBOARD_ONLY );
-                println("****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK "+res);
+                BTUtils.println(System.err, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK "+res);
             }
         }
 
@@ -401,7 +418,7 @@ public class DBTScanner10 {
         } else {
             res = HCIStatusCode.SUCCESS;
         }
-        println("****** Connecting Device Command, res "+res+": End result "+res+" of " + device.toString());
+        BTUtils.println(System.err, "****** Connecting Device Command, res "+res+": End result "+res+" of " + device.toString());
         if( !USE_WHITELIST && 0 == devicesInProcessing.size() && HCIStatusCode.SUCCESS != res ) {
             startDiscovery(device.getAdapter(), "post-connect");
         }
@@ -432,11 +449,11 @@ public class DBTScanner10 {
     }
 
     private void processReadyDevice(final BTDevice device) {
-        println("****** Processing Ready Device: Start " + device.toString());
+        BTUtils.println(System.err, "****** Processing Ready Device: Start " + device.toString());
         {
             // make sure for pending connections on failed connect*(..) command
             final HCIStatusCode r = device.getAdapter().stopDiscovery();
-            println("****** Processing Ready Device: stopDiscovery result "+r);
+            BTUtils.println(System.err, "****** Processing Ready Device: stopDiscovery result "+r);
         }
 
         final long t1 = BTUtils.currentTimeMillis();
@@ -486,9 +503,9 @@ public class DBTScanner10 {
                 final long td15 = t5 - t1; // get-gatt-services
                 final long tdc5 = t5 - device.getLastDiscoveryTimestamp(); // discovered to gatt-complete
                 final long td05 = t5 - timestamp_t0; // adapter-init -> gatt-complete
-                println(System.lineSeparator()+System.lineSeparator());
-                println("PERF: GATT primary-services completed\n");
-                println("PERF:  adapter-init to processing-start " + td01 + " ms,"+System.lineSeparator()+
+                BTUtils.println(System.err, System.lineSeparator()+System.lineSeparator());
+                BTUtils.println(System.err, "PERF: GATT primary-services completed\n");
+                BTUtils.println(System.err, "PERF:  adapter-init to processing-start " + td01 + " ms,"+System.lineSeparator()+
                         "PERF:  get-gatt-services " + td15 + " ms,"+System.lineSeparator()+
                         "PERF:  discovered to gatt-complete " + tdc5 + " ms (connect " + (tdc5 - td15) + " ms),"+System.lineSeparator()+
                         "PERF:  adapter-init to gatt-complete " + td05 + " ms"+System.lineSeparator());
@@ -499,34 +516,34 @@ public class DBTScanner10 {
                 if( null != charIdentifier && charIdentifier.length() > 0 ) {
                     final BTGattChar char2 = (BTGattChar)
                             manager.find(BTType.GATT_CHARACTERISTIC, null, charIdentifier, device);
-                    println("Char UUID "+charIdentifier);
-                    println("  over device : "+char2);
+                    BTUtils.println(System.err, "Char UUID "+charIdentifier);
+                    BTUtils.println(System.err, "  over device : "+char2);
                     if( null != char2 ) {
                         final BTGattCharListener charPingPongListener = new BTGattCharListener(null) {
                             @Override
                             public void notificationReceived(final BTGattChar charDecl,
                                                              final byte[] value, final long timestamp) {
-                                println("****** PingPong GATT notificationReceived: "+charDecl+
+                                BTUtils.println(System.err, "****** PingPong GATT notificationReceived: "+charDecl+
                                         ", value "+BTUtils.bytesHexString(value, 0, -1, true));
                             }
 
                             @Override
                             public void indicationReceived(final BTGattChar charDecl,
                                                            final byte[] value, final long timestamp, final boolean confirmationSent) {
-                                println("****** PingPong GATT indicationReceived: "+charDecl+
+                                BTUtils.println(System.err, "****** PingPong GATT indicationReceived: "+charDecl+
                                         ", value "+BTUtils.bytesHexString(value, 0, -1, true));
                             }
                         };
                         final boolean enabledState[] = { false, false };
                         final boolean addedCharPingPongListenerRes = char2.addCharListener(charPingPongListener, enabledState);
                         if( !QUIET ) {
-                            println("Added CharPingPongListenerRes: "+addedCharPingPongListenerRes+", enabledState "+Arrays.toString(enabledState));
+                            BTUtils.println(System.err, "Added CharPingPongListenerRes: "+addedCharPingPongListenerRes+", enabledState "+Arrays.toString(enabledState));
                         }
                         if( addedCharPingPongListenerRes ) {
                             final byte[] cmd = { (byte)charValue }; // request device model
                             final boolean wres = char2.writeValue(cmd, false /* withResponse */);
                             if( !QUIET ) {
-                                println("Write response: "+wres);
+                                BTUtils.println(System.err, "Write response: "+wres);
                             }
                         }
                     }
@@ -537,7 +554,7 @@ public class DBTScanner10 {
                     @Override
                     public void notificationReceived(final BTGattChar charDecl,
                                                      final byte[] value, final long timestamp) {
-                        println("****** GATT notificationReceived: "+charDecl+
+                        BTUtils.println(System.err, "****** GATT notificationReceived: "+charDecl+
                                 ", value "+BTUtils.bytesHexString(value, 0, -1, true));
                         shutdownTest();
 
@@ -546,7 +563,7 @@ public class DBTScanner10 {
                     @Override
                     public void indicationReceived(final BTGattChar charDecl,
                                                    final byte[] value, final long timestamp, final boolean confirmationSent) {
-                        println("****** GATT indicationReceived: "+charDecl+
+                        BTUtils.println(System.err, "****** GATT indicationReceived: "+charDecl+
                                 ", value "+BTUtils.bytesHexString(value, 0, -1, true));
                         shutdownTest();
                     }
@@ -554,7 +571,7 @@ public class DBTScanner10 {
                 final boolean addedCharacteristicListenerRes =
                   BTGattService.addCharListenerToAll(device, primServices, myCharacteristicListener);
                 if( !QUIET ) {
-                    println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
+                    BTUtils.println(System.err, "Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
                 }
             }
 
@@ -593,7 +610,7 @@ public class DBTScanner10 {
                     }
                 }
             } catch( final Exception ex) {
-                println("Caught "+ex.getMessage());
+                BTUtils.println(System.err, "Caught "+ex.getMessage());
                 ex.printStackTrace();
             }
             // FIXME sleep 1s for potential callbacks ..
@@ -604,11 +621,11 @@ public class DBTScanner10 {
             }
             success = true;
         } catch (final Throwable t ) {
-            println("****** Processing Ready Device: Exception caught for " + device.toString() + ": "+t.getMessage());
+            BTUtils.println(System.err, "****** Processing Ready Device: Exception caught for " + device.toString() + ": "+t.getMessage());
             t.printStackTrace();
         }
 
-        println("****** Processing Ready Device: End-1: Success " + success +
+        BTUtils.println(System.err, "****** Processing Ready Device: End-1: Success " + success +
                            " on " + device.toString() + "; devInProc "+devicesInProcessing.size());
 
         devicesInProcessing.remove(device.getAddressAndType());
@@ -619,18 +636,18 @@ public class DBTScanner10 {
 
         if( KEEP_CONNECTED && GATT_PING_ENABLED && success ) {
             while( device.pingGATT() ) {
-                println("****** Processing Ready Device: pingGATT OK: "+device.getAddressAndType());
+                BTUtils.println(System.err, "****** Processing Ready Device: pingGATT OK: "+device.getAddressAndType());
                 try {
                     Thread.sleep(1000);
                 } catch (final InterruptedException e) {
                     e.printStackTrace();
                 }
             }
-            println("****** Processing Ready Device: pingGATT failed, waiting for disconnect: "+device.getAddressAndType());
+            BTUtils.println(System.err, "****** Processing Ready Device: pingGATT failed, waiting for disconnect: "+device.getAddressAndType());
             // Even w/ GATT_PING_ENABLED, we utilize disconnect event to clean up -> remove
         }
 
-        println("****** Processing Ready Device: End-2: Success " + success +
+        BTUtils.println(System.err, "****** Processing Ready Device: End-2: Success " + success +
                            " on " + device.toString() + "; devInProc "+devicesInProcessing.size());
         if( success ) {
             devicesProcessed.add(device.getAddressAndType());
@@ -641,7 +658,7 @@ public class DBTScanner10 {
 
             {
                 final HCIStatusCode unpair_res = device.unpair();
-                println("****** Processing Ready Device: Unpair-Post result: "+unpair_res);
+                BTUtils.println(System.err, "****** Processing Ready Device: Unpair-Post result: "+unpair_res);
             }
 
             device.remove();
@@ -655,12 +672,12 @@ public class DBTScanner10 {
 
         if( 0 < MULTI_MEASUREMENTS.get() ) {
             MULTI_MEASUREMENTS.decrementAndGet();
-            println("****** Processing Ready Device: MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS.get()+": "+device.getAddressAndType());
+            BTUtils.println(System.err, "****** Processing Ready Device: MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS.get()+": "+device.getAddressAndType());
         }
     }
 
     private void removeDevice(final BTDevice device) {
-        println("****** Remove Device: removing: "+device.getAddressAndType());
+        BTUtils.println(System.err, "****** Remove Device: removing: "+device.getAddressAndType());
         device.getAdapter().stopDiscovery();
 
         devicesInProcessing.remove(device.getAddressAndType());
@@ -673,24 +690,24 @@ public class DBTScanner10 {
     }
 
     private void resetAdapter(final BTAdapter adapter, final int mode) {
-        println("****** Reset Adapter: reset["+mode+"] start: "+adapter.toString());
+        BTUtils.println(System.err, "****** Reset Adapter: reset["+mode+"] start: "+adapter.toString());
         final HCIStatusCode res = adapter.reset();
-        println("****** Reset Adapter: reset["+mode+"] end: "+res+", "+adapter.toString());
+        BTUtils.println(System.err, "****** Reset Adapter: reset["+mode+"] end: "+res+", "+adapter.toString());
     }
 
     private boolean startDiscovery(final BTAdapter adapter, final String msg) {
         final HCIStatusCode status = adapter.startDiscovery( true );
-        println("****** Start discovery ("+msg+") result: "+status);
+        BTUtils.println(System.err, "****** Start discovery ("+msg+") result: "+status);
         return HCIStatusCode.SUCCESS == status;
     }
 
     private boolean initAdapter(final BTAdapter adapter) {
         if( !adapter.isPowered() ) { // should have been covered above
-            println("Adapter not powered (2): "+adapter.toString());
+            BTUtils.println(System.err, "Adapter not powered (2): "+adapter.toString());
             return false;
         }
 
-        adapter.addStatusListener(statusListener, null);
+        adapter.addStatusListener(statusListener);
         adapter.enableDiscoverableNotifications(new BooleanNotification("Discoverable", timestamp_t0));
 
         adapter.enableDiscoveringNotifications(new BooleanNotification("Discovering", timestamp_t0));
@@ -715,7 +732,7 @@ public class DBTScanner10 {
             for(final Iterator<BDAddressAndType> wliter = whitelist.iterator(); wliter.hasNext(); ) {
                 final BDAddressAndType addr = wliter.next();
                 final boolean res = adapter.addDeviceToWhitelist(addr, HCIWhitelistConnectType.HCI_AUTO_CONN_ALWAYS);
-                println("Added to whitelist: res "+res+", address "+addr);
+                BTUtils.println(System.err, "Added to whitelist: res "+res+", address "+addr);
             }
         } else {
             if( !startDiscovery(adapter, "kick-off") ) {
@@ -730,15 +747,15 @@ public class DBTScanner10 {
                 @Override
                 public void adapterAdded(final BTAdapter adapter) {
                     if( initAdapter( adapter ) ) {
-                        println("****** Adapter ADDED__: InitOK. " + adapter);
+                        BTUtils.println(System.err, "****** Adapter ADDED__: InitOK. " + adapter);
                     } else {
-                        println("****** Adapter ADDED__: Ignored " + adapter);
+                        BTUtils.println(System.err, "****** Adapter ADDED__: Ignored " + adapter);
                     }
                 }
 
                 @Override
                 public void adapterRemoved(final BTAdapter adapter) {
-                    println("****** Adapter REMOVED: " + adapter);
+                    BTUtils.println(System.err, "****** Adapter REMOVED: " + adapter);
                 }
     };
 
@@ -754,10 +771,10 @@ public class DBTScanner10 {
                 ( -1 == MULTI_MEASUREMENTS.get() && !waitForDevices.isEmpty() && devicesProcessed.containsAll(waitForDevices) )
               )
             {
-                println("****** EOL Test MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS.get()+
+                BTUtils.println(System.err, "****** EOL Test MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS.get()+
                                    ", processed "+devicesProcessed.size()+"/"+waitForDevices.size());
-                println("****** WaitForDevices "+Arrays.toString(waitForDevices.toArray()));
-                println("****** DevicesProcessed "+Arrays.toString(devicesProcessed.toArray()));
+                BTUtils.println(System.err, "****** WaitForDevices "+Arrays.toString(waitForDevices.toArray()));
+                BTUtils.println(System.err, "****** DevicesProcessed "+Arrays.toString(devicesProcessed.toArray()));
                 done = true;
             } else {
                 try {
@@ -776,11 +793,11 @@ public class DBTScanner10 {
         adapters.forEach(new Consumer<BTAdapter>() {
             @Override
             public void accept(final BTAdapter a) {
-                println("****** EOL Adapter's Devices - pre_ close: " + a);
+                BTUtils.println(System.err, "****** EOL Adapter's Devices - pre_ close: " + a);
             } } );
         {
             final int count = manager.removeChangedAdapterSetListener(myChangedAdapterSetListener);
-            println("****** EOL Removed ChangedAdapterSetCallback " + count);
+            BTUtils.println(System.err, "****** EOL Removed ChangedAdapterSetCallback " + count);
 
             // All implicit via destructor or shutdown hook!
             manager.shutdown(); /* implies: adapter.close(); */
@@ -788,7 +805,7 @@ public class DBTScanner10 {
         adapters.forEach(new Consumer<BTAdapter>() {
             @Override
             public void accept(final BTAdapter a) {
-                println("****** EOL Adapter's Devices - post close: " + a);
+                BTUtils.println(System.err, "****** EOL Adapter's Devices - post close: " + a);
             } } );
 
     }
@@ -830,7 +847,7 @@ public class DBTScanner10 {
             System.exit(-1);
             return;
         }
-        println("DirectBT BluetoothManager initialized!");
+        BTUtils.println(System.err, "DirectBT BluetoothManager initialized!");
         final DBTScanner10 test = new DBTScanner10();
 
         boolean waitForEnter=false;
@@ -851,7 +868,7 @@ public class DBTScanner10 {
                     test.waitForDevices.add(a);
                 } else if( arg.equals("-wl") && args.length > (i+1) ) {
                     final BDAddressAndType wle = new BDAddressAndType(new EUI48(args[++i]), BDAddressType.BDADDR_LE_PUBLIC);
-                    println("Whitelist + "+wle);
+                    BTUtils.println(System.err, "Whitelist + "+wle);
                     test.whitelist.add(wle);
                     test.USE_WHITELIST = true;
                 } else if( arg.equals("-passkey") && args.length > (i+3) ) {
@@ -903,7 +920,7 @@ public class DBTScanner10 {
                     test.RESET_ADAPTER_EACH_CONN = Integer.valueOf(args[++i]).intValue();
                 }
             }
-            println("Run with '[-btmode LE|BREDR|DUAL] "+
+            BTUtils.println(System.err, "Run with '[-btmode LE|BREDR|DUAL] "+
                     "[-bluetoothManager <BluetoothManager-Implementation-Class-Name>] "+
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "+
                     "[-resetEachCon connectionCount] "+
@@ -923,23 +940,23 @@ public class DBTScanner10 {
                     "[-shutdown <int>]'");
         }
 
-        println("MULTI_MEASUREMENTS "+test.MULTI_MEASUREMENTS.get());
-        println("KEEP_CONNECTED "+test.KEEP_CONNECTED);
-        println("RESET_ADAPTER_EACH_CONN "+test.RESET_ADAPTER_EACH_CONN);
-        println("GATT_PING_ENABLED "+test.GATT_PING_ENABLED);
-        println("REMOVE_DEVICE "+test.REMOVE_DEVICE);
-        println("USE_WHITELIST "+test.USE_WHITELIST);
-        println("SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
-        println("QUIET "+test.QUIET);
-        println("characteristic-id: "+test.charIdentifier);
-        println("characteristic-value: "+test.charValue);
+        BTUtils.println(System.err, "MULTI_MEASUREMENTS "+test.MULTI_MEASUREMENTS.get());
+        BTUtils.println(System.err, "KEEP_CONNECTED "+test.KEEP_CONNECTED);
+        BTUtils.println(System.err, "RESET_ADAPTER_EACH_CONN "+test.RESET_ADAPTER_EACH_CONN);
+        BTUtils.println(System.err, "GATT_PING_ENABLED "+test.GATT_PING_ENABLED);
+        BTUtils.println(System.err, "REMOVE_DEVICE "+test.REMOVE_DEVICE);
+        BTUtils.println(System.err, "USE_WHITELIST "+test.USE_WHITELIST);
+        BTUtils.println(System.err, "SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
+        BTUtils.println(System.err, "QUIET "+test.QUIET);
+        BTUtils.println(System.err, "characteristic-id: "+test.charIdentifier);
+        BTUtils.println(System.err, "characteristic-value: "+test.charValue);
 
-        println("security-details: "+MyBTSecurityDetail.allToString() );
+        BTUtils.println(System.err, "security-details: "+MyBTSecurityDetail.allToString() );
 
-        println("waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));
+        BTUtils.println(System.err, "waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));
 
         if( waitForEnter ) {
-            println("Press ENTER to continue\n");
+            BTUtils.println(System.err, "Press ENTER to continue\n");
             try{ System.in.read();
             } catch(final Exception e) { }
         }

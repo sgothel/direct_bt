@@ -221,7 +221,7 @@ public class DBusAdapter extends DBusObject implements BTAdapter
     public native boolean getDiscovering();
 
     @Override
-    public boolean addStatusListener(final AdapterStatusListener l, final BTDevice deviceMatch) {
+    public boolean addStatusListener(final AdapterStatusListener l) {
         return false; // FIXME
     }
 
@@ -279,5 +279,10 @@ public class DBusAdapter extends DBusObject implements BTAdapter
     @Override
     public String toString() {
         return "Adapter["+getAddress()+", '"+getName()+"']";
+    }
+
+    @Override
+    public final void printDeviceLists() {
+        // FIXME
     }
 }

@@ -475,19 +475,25 @@ public interface BTAdapter extends BTObject
     /**
      * Add the given {@link AdapterStatusListener} to the list if not already present.
      * <p>
+     * In case the {@link AdapterStatusListener}'s lifecycle and event delivery
+     * shall be constrained to this device, please use
+     * {@link BTDevice#addStatusListener(AdapterStatusListener)}.
+     * </p>
+     * <p>
      * The newly added {@link AdapterStatusListener} will receive an initial
      * {@link AdapterStatusListener#adapterSettingsChanged(BTAdapter, AdapterSettings, AdapterSettings, AdapterSettings, long) adapterSettingsChanged}
      * event, passing an {@link AdapterSettings empty oldMask and changedMask}, as well as {@link AdapterSettings current newMask}. <br>
      * This allows the receiver to be aware of this adapter's current settings.
      * </p>
      * @param listener A {@link AdapterStatusListener} instance
-     * @param deviceMatch Optional {@link BTDevice} to be matched before calling any
-     *        {@link AdapterStatusListener} {@code device*} methods. Pass {@code null} for no filtering.
      * @return true if the given listener is not element of the list and has been newly added, otherwise false.
-     * @since 2.0.0
+     * @since 2.3.0
      * @implNote not implemented in {@code tinyb.dbus}
+     * @see {@link BTDevice#addStatusListener(AdapterStatusListener)}
+     * @see {@link #removeStatusListener(AdapterStatusListener)}
+     * @see {@link #removeAllStatusListener()}
      */
-    public boolean addStatusListener(final AdapterStatusListener listener, final BTDevice deviceMatch);
+    public boolean addStatusListener(final AdapterStatusListener listener);
 
     /**
      * Remove the given {@link AdapterStatusListener} from the list.
@@ -556,4 +562,18 @@ public interface BTAdapter extends BTObject
      * @return The interface name of the adapter.
      */
     public String getInterfaceName();
+
+    /**
+     * Print the internally maintained BTDevice lists to stderr:
+     * - sharedDevices
+     * - connectedDevice
+     * - discoveredDevices
+     * - StatusListener
+     *
+     * This is intended as a debug facility.
+     * @since 2.3.0
+     * @implNote not implemented in {@code tinyb.dbus}
+     */
+    public void printDeviceLists();
+
 }

@@ -108,17 +108,17 @@ bool matches(jau::darray<BDAddressAndType> &cont, const BDAddressAndType &mac) {
 }
 
 void printList(const std::string &msg, jau::darray<BDAddressAndType> &cont) {
-    fprintf(stderr, "%s ", msg.c_str());
+    fprintf_td(stderr, "%s ", msg.c_str());
     jau::for_each(cont.begin(), cont.end(),
-            [](const BDAddressAndType &mac) { fprintf(stderr, "%s, ", mac.toString().c_str()); });
-    fprintf(stderr, "\n");
+            [](const BDAddressAndType &mac) { fprintf_td(stderr, "%s, ", mac.toString().c_str()); });
+    fprintf_td(stderr, "\n");
 }
 
 void printList(const std::string &msg, std::unordered_set<BDAddressAndType> &cont) {
-    fprintf(stderr, "%s ", msg.c_str());
+    fprintf_td(stderr, "%s ", msg.c_str());
     jau::for_each(cont.begin(), cont.end(),
-            [](const BDAddressAndType &mac) { fprintf(stderr, "%s, ", mac.toString().c_str()); });
-    fprintf(stderr, "\n");
+            [](const BDAddressAndType &mac) { fprintf_td(stderr, "%s, ", mac.toString().c_str()); });
+    fprintf_td(stderr, "\n");
 }
 
 static void addToDevicesProcessed(const BDAddressAndType &a) {
@@ -247,14 +247,14 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         const bool initialSetting = AdapterSetting::NONE == oldmask;
         if( initialSetting ) {
-            fprintf(stderr, "****** SETTINGS_INITIAL: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
+            fprintf_td(stderr, "****** SETTINGS_INITIAL: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
                     to_string(newmask).c_str(), to_string(changedmask).c_str());
         } else {
-            fprintf(stderr, "****** SETTINGS_CHANGED: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
+            fprintf_td(stderr, "****** SETTINGS_CHANGED: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
                     to_string(newmask).c_str(), to_string(changedmask).c_str());
         }
-        fprintf(stderr, "Status BTAdapter:\n");
-        fprintf(stderr, "%s\n", a.toString().c_str());
+        fprintf_td(stderr, "Status BTAdapter:\n");
+        fprintf_td(stderr, "%s\n", a.toString().c_str());
         (void)timestamp;
 
         if( !initialSetting &&
@@ -267,7 +267,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     }
 
     void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) override {
-        fprintf(stderr, "****** DISCOVERING: meta %s, changed[%s, enabled %d, keepAlive %d]: %s\n",
+        fprintf_td(stderr, "****** DISCOVERING: meta %s, changed[%s, enabled %d, keepAlive %d]: %s\n",
                 to_string(currentMeta).c_str(), to_string(changedType).c_str(), changedEnabled, keepAlive, a.toString().c_str());
         (void)timestamp;
     }
@@ -278,7 +278,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressAndType().type
             && BLERandomAddressType::STATIC_PUBLIC != device->getAddressAndType().getBLERandomAddressType() ) {
             // Requires BREDR or LE Secure Connection support: WIP
-            fprintf(stderr, "****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' %s\n", device->toString(true).c_str());
+            fprintf_td(stderr, "****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' %s\n", device->toString(true).c_str());
             return false;
         }
         if( !isDeviceProcessing( device->getAddressAndType() ) &&
@@ -289,35 +289,35 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             )
           )
         {
-            fprintf(stderr, "****** FOUND__-0: Connecting %s\n", device->toString(true).c_str());
+            fprintf_td(stderr, "****** FOUND__-0: Connecting %s\n", device->toString(true).c_str());
             {
                 const uint64_t td = getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
-                fprintf(stderr, "PERF: adapter-init -> FOUND__-0  %" PRIu64 " ms\n", td);
+                fprintf_td(stderr, "PERF: adapter-init -> FOUND__-0  %" PRIu64 " ms\n", td);
             }
             std::thread dc(::connectDiscoveredDevice, device); // @suppress("Invalid arguments")
             dc.detach();
             return true;
         } else {
-            fprintf(stderr, "****** FOUND__-1: NOP %s\n", device->toString(true).c_str());
+            fprintf_td(stderr, "****** FOUND__-1: NOP %s\n", device->toString(true).c_str());
             return false;
         }
     }
 
     void deviceUpdated(std::shared_ptr<BTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
         if( SHOW_UPDATE_EVENTS ) {
-            fprintf(stderr, "****** UPDATED: %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
+            fprintf_td(stderr, "****** UPDATED: %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
         }
         (void)timestamp;
     }
 
     void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
-        fprintf(stderr, "****** CONNECTED: %s\n", device->toString(true).c_str());
+        fprintf_td(stderr, "****** CONNECTED: %s\n", device->toString(true).c_str());
         (void)handle;
         (void)timestamp;
     }
 
     void devicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
-        fprintf(stderr, "****** PAIRING STATE: state %s, mode %s, %s\n",
+        fprintf_td(stderr, "****** PAIRING STATE: state %s, mode %s, %s\n",
             to_string(state).c_str(), to_string(mode).c_str(), device->toString().c_str());
         (void)timestamp;
         switch( state ) {
@@ -326,7 +326,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 break;
             case SMPPairingState::FAILED: {
                 const bool res  = SMPKeyBin::remove(KEY_PATH, device->getAddressAndType());
-                fprintf(stderr, "****** PAIRING_STATE: state %s; Remove key file %s, res %d\n",
+                fprintf_td(stderr, "****** PAIRING_STATE: state %s; Remove key file %s, res %d\n",
                         to_string(state).c_str(), SMPKeyBin::getFilePath(KEY_PATH, device->getAddressAndType()).c_str(), res);
                 // next: deviceReady() or deviceDisconnected(..)
             } break;
@@ -387,16 +387,16 @@ class MyAdapterStatusListener : public AdapterStatusListener {
           )
         {
             deviceReadyCount++;
-            fprintf(stderr, "****** READY-0: Processing[%d] %s\n", deviceReadyCount.load(), device->toString(true).c_str());
+            fprintf_td(stderr, "****** READY-0: Processing[%d] %s\n", deviceReadyCount.load(), device->toString(true).c_str());
             addToDevicesProcessing(device->getAddressAndType());
             processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
         } else {
-            fprintf(stderr, "****** READY-1: NOP %s\n", device->toString(true).c_str());
+            fprintf_td(stderr, "****** READY-1: NOP %s\n", device->toString(true).c_str());
         }
     }
 
     void deviceDisconnected(std::shared_ptr<BTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
-        fprintf(stderr, "****** DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
+        fprintf_td(stderr, "****** DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
                 static_cast<uint8_t>(reason), to_string(reason).c_str(),
                 to_hexstring(handle).c_str(), device->toString(true).c_str());
         (void)timestamp;
@@ -430,12 +430,12 @@ class MyGATTEventListener : public AssociatedBTGattCharListener {
     void notificationReceived(BTGattCharRef charDecl, const TROOctets& char_value, const uint64_t timestamp) override {
         const std::shared_ptr<BTDevice> dev = charDecl->getDeviceChecked();
         const uint64_t tR = getCurrentMilliseconds();
-        fprintf(stderr, "****** GATT Notify (td %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
+        fprintf_td(stderr, "****** GATT Notify (td %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
                 (tR-timestamp), (tR-dev->getLastDiscoveryTimestamp()), dev->toString().c_str());
         if( nullptr != charDecl ) {
-            fprintf(stderr, "****** decl %s\n", charDecl->toString().c_str());
+            fprintf_td(stderr, "****** decl %s\n", charDecl->toString().c_str());
         }
-        fprintf(stderr, "****** rawv %s\n", char_value.toString().c_str());
+        fprintf_td(stderr, "****** rawv %s\n", char_value.toString().c_str());
     }
 
     void indicationReceived(BTGattCharRef charDecl,
@@ -444,27 +444,46 @@ class MyGATTEventListener : public AssociatedBTGattCharListener {
     {
         const std::shared_ptr<BTDevice> dev = charDecl->getDeviceChecked();
         const uint64_t tR = getCurrentMilliseconds();
-        fprintf(stderr, "****** GATT Indication (confirmed %d, td(msg %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
+        fprintf_td(stderr, "****** GATT Indication (confirmed %d, td(msg %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
                 confirmationSent, (tR-timestamp), (tR-dev->getLastDiscoveryTimestamp()), dev->toString().c_str());
         if( nullptr != charDecl ) {
-            fprintf(stderr, "****** decl %s\n", charDecl->toString().c_str());
+            fprintf_td(stderr, "****** decl %s\n", charDecl->toString().c_str());
             if( _TEMPERATURE_MEASUREMENT == *charDecl->value_type ) {
                 std::shared_ptr<GattTemperatureMeasurement> temp = GattTemperatureMeasurement::get(char_value);
                 if( nullptr != temp ) {
-                    fprintf(stderr, "****** valu %s\n", temp->toString().c_str());
+                    fprintf_td(stderr, "****** valu %s\n", temp->toString().c_str());
                 }
             }
         }
-        fprintf(stderr, "****** rawv %s\n", char_value.toString().c_str());
+        fprintf_td(stderr, "****** rawv %s\n", char_value.toString().c_str());
     }
 };
 
 static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
-    fprintf(stderr, "****** Connecting Device: Start %s\n", device->toString().c_str());
+    fprintf_td(stderr, "****** Connecting Device: Start %s\n", device->toString().c_str());
+
+    // Testing listener lifecycle @ device dtor
+    class TempAdapterStatusListener : public AdapterStatusListener {
+        void deviceUpdated(std::shared_ptr<BTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
+            if( SHOW_UPDATE_EVENTS ) {
+                fprintf_td(stderr, "****** UPDATED(2): %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
+            }
+            (void)timestamp;
+        }
+        void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
+            fprintf_td(stderr, "****** CONNECTED(2): %s\n", device->toString(true).c_str());
+            (void)handle;
+            (void)timestamp;
+        }
+        std::string toString() const override {
+            return "TempAdapterStatusListener[this "+to_hexstring(this)+"]";
+        }
+    };
+    device->addStatusListener(std::shared_ptr<AdapterStatusListener>(new TempAdapterStatusListener()));
 
     {
         const HCIStatusCode unpair_res = device->unpair();
-        fprintf(stderr, "****** Connecting Device: Unpair-Pre result: %s\n", to_string(unpair_res).c_str());
+        fprintf_td(stderr, "****** Connecting Device: Unpair-Pre result: %s\n", to_string(unpair_res).c_str());
     }
 
     device->getAdapter().stopDiscovery();
@@ -482,18 +501,18 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
         if( nullptr != sec ) {
             if( sec->isSecurityAutoEnabled() ) {
                 bool res = device->setConnSecurityAuto( sec->getSecurityAutoIOCap() );
-                fprintf(stderr, "****** Connecting Device: Using SecurityDetail.SEC AUTO %s, set OK %d\n", sec->toString().c_str(), res);
+                fprintf_td(stderr, "****** Connecting Device: Using SecurityDetail.SEC AUTO %s, set OK %d\n", sec->toString().c_str(), res);
             } else if( sec->isSecLevelOrIOCapSet() ) {
                 bool res = device->setConnSecurityBest( sec->getSecLevel(), sec->getIOCap() );
-                fprintf(stderr, "****** Connecting Device: Using SecurityDetail.Level+IOCap %s, set OK %d\n", sec->toString().c_str(), res);
+                fprintf_td(stderr, "****** Connecting Device: Using SecurityDetail.Level+IOCap %s, set OK %d\n", sec->toString().c_str(), res);
             } else {
                 bool res = device->setConnSecurityAuto( SMPIOCapability::KEYBOARD_ONLY );
-                fprintf(stderr, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY (%s) -> set OK %d\n", sec->toString().c_str(), res);
+                fprintf_td(stderr, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY (%s) -> set OK %d\n", sec->toString().c_str(), res);
             }
         } else {
-            fprintf(stderr, "****** Connecting Device: No SecurityDetail for %s\n", device->getAddressAndType().toString().c_str());
+            fprintf_td(stderr, "****** Connecting Device: No SecurityDetail for %s\n", device->getAddressAndType().toString().c_str());
             bool res = device->setConnSecurityAuto( SMPIOCapability::KEYBOARD_ONLY );
-            fprintf(stderr, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK %d\n", res);
+            fprintf_td(stderr, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK %d\n", res);
         }
     }
 
@@ -505,14 +524,14 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
         res = HCIStatusCode::SUCCESS;
     }
 
-    fprintf(stderr, "****** Connecting Device: End result %s of %s\n", to_string(res).c_str(), device->toString().c_str());
+    fprintf_td(stderr, "****** Connecting Device: End result %s of %s\n", to_string(res).c_str(), device->toString().c_str());
     if( !USE_WHITELIST && 0 == getDeviceProcessingCount() && HCIStatusCode::SUCCESS != res ) {
         startDiscovery(&device->getAdapter(), "post-connect");
     }
 }
 
 static void processReadyDevice(std::shared_ptr<BTDevice> device) {
-    fprintf(stderr, "****** Processing Ready Device: Start %s\n", device->toString().c_str());
+    fprintf_td(stderr, "****** Processing Ready Device: Start %s\n", device->toString().c_str());
     device->getAdapter().stopDiscovery(); // make sure for pending connections on failed connect*(..) command
     const uint64_t t1 = getCurrentMilliseconds();
     bool success = false;
@@ -548,14 +567,14 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
     //
     // GATT Service Processing
     //
-    fprintf(stderr, "****** Processing Ready Device: GATT start: %s\n", device->getAddressAndType().toString().c_str());
+    fprintf_td(stderr, "****** Processing Ready Device: GATT start: %s\n", device->getAddressAndType().toString().c_str());
     if( !QUIET ) {
-        device->getAdapter().printSharedPtrListOfDevices();
+        device->getAdapter().printDeviceLists();
     }
     try {
         jau::darray<BTGattServiceRef> primServices = device->getGattServices();
         if( 0 == primServices.size() ) {
-            fprintf(stderr, "****** Processing Ready Device: getServices() failed %s\n", device->toString().c_str());
+            fprintf_td(stderr, "****** Processing Ready Device: getServices() failed %s\n", device->toString().c_str());
             goto exit;
         }
 
@@ -565,9 +584,9 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
             const uint64_t td15 = t5 - t1; // get-gatt-services
             const uint64_t tdc5 = t5 - device->getLastDiscoveryTimestamp(); // discovered to gatt-complete
             const uint64_t td05 = t5 - timestamp_t0; // adapter-init -> gatt-complete
-            fprintf(stderr, "\n\n\n");
-            fprintf(stderr, "PERF: GATT primary-services completed\n");
-            fprintf(stderr, "PERF:  adapter-init to processing-start %" PRIu64 " ms,\n"
+            fprintf_td(stderr, "\n\n\n");
+            fprintf_td(stderr, "PERF: GATT primary-services completed\n");
+            fprintf_td(stderr, "PERF:  adapter-init to processing-start %" PRIu64 " ms,\n"
                             "PERF:  get-gatt-services %" PRIu64 " ms,\n"
                             "PERF:  discovered to gatt-complete %" PRIu64 " ms (connect %" PRIu64 " ms),\n"
                             "PERF:  adapter-init to gatt-complete %" PRIu64 " ms\n\n",
@@ -580,21 +599,21 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
             if( nullptr != charIdentifier && charIdentifier.length() > 0 ) {
                 BTGattChar * char2 = (BTGattChar*) nullptr;
                         // manager.find(BluetoothType.GATT_CHARACTERISTIC, null, charIdentifier, device);
-                fprintf(stderr, "Char UUID %s\n", charIdentifier.c_str());
-                fprintf(stderr, "  over device : %s\n", char2->toString().c_str());
+                fprintf_td(stderr, "Char UUID %s\n", charIdentifier.c_str());
+                fprintf_td(stderr, "  over device : %s\n", char2->toString().c_str());
                 if( nullptr != char2 ) {
                     bool cccdEnableResult[2];
                     bool cccdRet = char2->addCharListener( std::shared_ptr<BTGattCharListener>( new MyGATTEventListener(char2) ),
                                                                           cccdEnableResult );
                     if( !QUIET ) {
-                        fprintf(stderr, "Added CharPingPongListenerRes Notification(%d), Indication(%d): Result %d\n",
+                        fprintf_td(stderr, "Added CharPingPongListenerRes Notification(%d), Indication(%d): Result %d\n",
                                 cccdEnableResult[0], cccdEnableResult[1], cccdRet);
                     }
                     if( cccdRet ) {
                         uint8_t cmd[] { (uint8_t)charValue }; // request device model
                         bool wres = char2->writeValueNoResp(cmd);
                         if( !QUIET ) {
-                            fprintf(stderr, "Write response: "+wres);
+                            fprintf_td(stderr, "Write response: "+wres);
                         }
                     }
                 }
@@ -604,14 +623,14 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
 
         std::shared_ptr<GattGenericAccessSvc> ga = device->getGattGenericAccess();
         if( nullptr != ga && !QUIET ) {
-            fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
+            fprintf_td(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
         }
         {
             std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
             if( nullptr != gatt && gatt->isConnected() ) {
                 std::shared_ptr<GattDeviceInformationSvc> di = gatt->getDeviceInformation(primServices);
                 if( nullptr != di && !QUIET ) {
-                    fprintf(stderr, "  DeviceInformation: %s\n\n", di->toString().c_str());
+                    fprintf_td(stderr, "  DeviceInformation: %s\n\n", di->toString().c_str());
                 }
             }
         }
@@ -619,21 +638,21 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
         for(size_t i=0; i<primServices.size(); i++) {
             BTGattService & primService = *primServices.at(i);
             if( !QUIET ) {
-                // fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
-                fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
+                // fprintf_td(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
+                fprintf_td(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
             }
             jau::darray<BTGattCharRef> & serviceCharacteristics = primService.characteristicList;
             for(size_t j=0; j<serviceCharacteristics.size(); j++) {
                 BTGattChar & serviceChar = *serviceCharacteristics.at(j);
                 if( !QUIET ) {
-                    fprintf(stderr, "  [%2.2d.%2.2d] CharDef: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
+                    fprintf_td(stderr, "  [%2.2d.%2.2d] CharDef: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
                 }
                 if( serviceChar.hasProperties(BTGattChar::PropertyBitVal::Read) ) {
                     POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0);
                     if( serviceChar.readValue(value) ) {
                         std::string sval = dfa_utf8_decode(value.get_ptr(), value.getSize());
                         if( !QUIET ) {
-                            fprintf(stderr, "  [%2.2d.%2.2d] CharVal: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
+                            fprintf_td(stderr, "  [%2.2d.%2.2d] CharVal: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
                         }
                     }
                 }
@@ -641,14 +660,14 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
                 for(size_t k=0; k<charDescList.size(); k++) {
                     BTGattDesc & charDesc = *charDescList.at(k);
                     if( !QUIET ) {
-                        fprintf(stderr, "  [%2.2d.%2.2d.%2.2d] Desc: %s\n", (int)i, (int)j, (int)k, charDesc.toString().c_str());
+                        fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d] Desc: %s\n", (int)i, (int)j, (int)k, charDesc.toString().c_str());
                     }
                 }
                 bool cccdEnableResult[2];
                 bool cccdRet = serviceChar.addCharListener( std::shared_ptr<BTGattCharListener>( new MyGATTEventListener(&serviceChar) ),
                                                                       cccdEnableResult );
                 if( !QUIET ) {
-                    fprintf(stderr, "  [%2.2d.%2.2d] addCharacteristicListener Notification(%d), Indication(%d): Result %d\n",
+                    fprintf_td(stderr, "  [%2.2d.%2.2d] addCharacteristicListener Notification(%d), Indication(%d): Result %d\n",
                             (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], cccdRet);
                 }
             }
@@ -657,11 +676,11 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         success = true;
     } catch ( std::exception & e ) {
-        fprintf(stderr, "****** Processing Ready Device: Exception caught for %s: %s\n", device->toString().c_str(), e.what());
+        fprintf_td(stderr, "****** Processing Ready Device: Exception caught for %s: %s\n", device->toString().c_str(), e.what());
     }
 
 exit:
-    fprintf(stderr, "****** Processing Ready Device: End-1: Success %d on %s; devInProc %zu\n",
+    fprintf_td(stderr, "****** Processing Ready Device: End-1: Success %d on %s; devInProc %zu\n",
             success, device->toString().c_str(), getDeviceProcessingCount());
 
     removeFromDevicesProcessing(device->getAddressAndType());
@@ -672,18 +691,18 @@ exit:
 
     if( KEEP_CONNECTED && GATT_PING_ENABLED && success ) {
         while( device->pingGATT() ) {
-            fprintf(stderr, "****** Processing Ready Device: pingGATT OK: %s\n", device->getAddressAndType().toString().c_str());
+            fprintf_td(stderr, "****** Processing Ready Device: pingGATT OK: %s\n", device->getAddressAndType().toString().c_str());
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
-        fprintf(stderr, "****** Processing Ready Device: pingGATT failed, waiting for disconnect: %s\n", device->getAddressAndType().toString().c_str());
+        fprintf_td(stderr, "****** Processing Ready Device: pingGATT failed, waiting for disconnect: %s\n", device->getAddressAndType().toString().c_str());
         // Even w/ GATT_PING_ENABLED, we utilize disconnect event to clean up -> remove
     }
 
     if( !QUIET ) {
-        device->getAdapter().printSharedPtrListOfDevices();
+        device->getAdapter().printDeviceLists();
     }
 
-    fprintf(stderr, "****** Processing Ready Device: End-2: Success %d on %s; devInProc %zu\n",
+    fprintf_td(stderr, "****** Processing Ready Device: End-2: Success %d on %s; devInProc %zu\n",
             success, device->toString().c_str(), getDeviceProcessingCount());
 
     if( success ) {
@@ -694,7 +713,7 @@ exit:
     if( !KEEP_CONNECTED ) {
         {
             const HCIStatusCode unpair_res = device->unpair();
-            fprintf(stderr, "****** Processing Ready Device: Unpair-Post result: %s\n", to_string(unpair_res).c_str());
+            fprintf_td(stderr, "****** Processing Ready Device: Unpair-Post result: %s\n", to_string(unpair_res).c_str());
         }
 
         device->remove();
@@ -708,12 +727,12 @@ exit:
 
     if( 0 < MULTI_MEASUREMENTS ) {
         MULTI_MEASUREMENTS--;
-        fprintf(stderr, "****** Processing Ready Device: MULTI_MEASUREMENTS left %d: %s\n", MULTI_MEASUREMENTS.load(), device->getAddressAndType().toString().c_str());
+        fprintf_td(stderr, "****** Processing Ready Device: MULTI_MEASUREMENTS left %d: %s\n", MULTI_MEASUREMENTS.load(), device->getAddressAndType().toString().c_str());
     }
 }
 
 static void removeDevice(std::shared_ptr<BTDevice> device) {
-    fprintf(stderr, "****** Remove Device: removing: %s\n", device->getAddressAndType().toString().c_str());
+    fprintf_td(stderr, "****** Remove Device: removing: %s\n", device->getAddressAndType().toString().c_str());
     device->getAdapter().stopDiscovery();
 
     removeFromDevicesProcessing(device->getAddressAndType());
@@ -726,20 +745,20 @@ static void removeDevice(std::shared_ptr<BTDevice> device) {
 }
 
 static void resetAdapter(BTAdapter *a, int mode) {
-    fprintf(stderr, "****** Reset Adapter: reset[%d] start: %s\n", mode, a->toString().c_str());
+    fprintf_td(stderr, "****** Reset Adapter: reset[%d] start: %s\n", mode, a->toString().c_str());
     HCIStatusCode res = a->reset();
-    fprintf(stderr, "****** Reset Adapter: reset[%d] end: %s, %s\n", mode, to_string(res).c_str(), a->toString().c_str());
+    fprintf_td(stderr, "****** Reset Adapter: reset[%d] end: %s, %s\n", mode, to_string(res).c_str(), a->toString().c_str());
 }
 
 static bool startDiscovery(BTAdapter *a, std::string msg) {
     HCIStatusCode status = a->startDiscovery( true );
-    fprintf(stderr, "****** Start discovery (%s) result: %s\n", msg.c_str(), to_string(status).c_str());
+    fprintf_td(stderr, "****** Start discovery (%s) result: %s\n", msg.c_str(), to_string(status).c_str());
     return HCIStatusCode::SUCCESS == status;
 }
 
 static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     if( !adapter->isPowered() ) { // should have been covered above
-        fprintf(stderr, "Adapter not powered (2): %s\n", adapter->toString().c_str());
+        fprintf_td(stderr, "Adapter not powered (2): %s\n", adapter->toString().c_str());
         return false;
     }
     adapter->addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
@@ -759,7 +778,7 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     if( USE_WHITELIST ) {
         for (auto it = WHITELIST.begin(); it != WHITELIST.end(); ++it) {
             bool res = adapter->addDeviceToWhitelist(*it, HCIWhitelistConnectType::HCI_AUTO_CONN_ALWAYS);
-            fprintf(stderr, "Added to WHITELIST: res %d, address %s\n", res, it->toString().c_str());
+            fprintf_td(stderr, "Added to WHITELIST: res %d, address %s\n", res, it->toString().c_str());
         }
     } else {
         if( !startDiscovery(adapter.get(), "kick-off") ) {
@@ -772,12 +791,12 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
 static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>& adapter) {
     if( added ) {
         if( initAdapter( adapter ) ) {
-            fprintf(stderr, "****** Adapter ADDED__: InitOK. %s\n", adapter->toString().c_str());
+            fprintf_td(stderr, "****** Adapter ADDED__: InitOK. %s\n", adapter->toString().c_str());
         } else {
-            fprintf(stderr, "****** Adapter ADDED__: Ignored %s\n", adapter->toString().c_str());
+            fprintf_td(stderr, "****** Adapter ADDED__: Ignored %s\n", adapter->toString().c_str());
         }
     } else {
-        fprintf(stderr, "****** Adapter REMOVED: %s\n", adapter->toString().c_str());
+        fprintf_td(stderr, "****** Adapter REMOVED: %s\n", adapter->toString().c_str());
     }
     return true;
 }
@@ -795,7 +814,7 @@ void test() {
             ( -1 == MULTI_MEASUREMENTS && !waitForDevices.empty() && allDevicesProcessed(waitForDevices) )
           )
         {
-            fprintf(stderr, "****** EOL Test MULTI_MEASUREMENTS left %d, processed %zu/%zu\n",
+            fprintf_td(stderr, "****** EOL Test MULTI_MEASUREMENTS left %d, processed %zu/%zu\n",
                     MULTI_MEASUREMENTS.load(), getDeviceProcessedCount(), (size_t)waitForDevices.size());
             printList("****** WaitForDevice ", waitForDevices);
             printDevicesProcessed("****** DevicesProcessed ");
@@ -811,18 +830,18 @@ void test() {
     jau::darray<std::shared_ptr<BTAdapter>> adapterList = mngr.getAdapters();
 
     jau::for_each_const(adapterList, [](const std::shared_ptr<BTAdapter>& adapter) {
-        fprintf(stderr, "****** EOL Adapter's Devices - pre close: %s\n", adapter->toString().c_str());
-        adapter->printSharedPtrListOfDevices();
+        fprintf_td(stderr, "****** EOL Adapter's Devices - pre close: %s\n", adapter->toString().c_str());
+        adapter->printDeviceLists();
     });
     {
         int count = mngr.removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
-        fprintf(stderr, "****** EOL Removed ChangedAdapterSetCallback %d\n", count);
+        fprintf_td(stderr, "****** EOL Removed ChangedAdapterSetCallback %d\n", count);
 
         mngr.close();
     }
     jau::for_each_const(adapterList, [](const std::shared_ptr<BTAdapter>& adapter) {
-        fprintf(stderr, "****** EOL Adapter's Devices - post close: %s\n", adapter->toString().c_str());
-        adapter->printSharedPtrListOfDevices();
+        fprintf_td(stderr, "****** EOL Adapter's Devices - post close: %s\n", adapter->toString().c_str());
+        adapter->printDeviceLists();
     });
 }
 

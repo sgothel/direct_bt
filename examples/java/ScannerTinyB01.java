@@ -210,8 +210,13 @@ public class ScannerTinyB01 {
             public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
                 System.err.println("****** DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
             }
+
+            @Override
+            public String toString() {
+                return "AdapterStatusListener[user, per-adapter]";
+            }
         };
-        adapter.addStatusListener(statusListener, null);
+        adapter.addStatusListener(statusListener);
 
         final long timestamp_t0 = BTUtils.currentTimeMillis();
 

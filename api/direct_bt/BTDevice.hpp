@@ -51,6 +51,7 @@ namespace direct_bt {
     // *************************************************
 
     class BTAdapter; // forward
+    class AdapterStatusListener; // forward
 
     class BTDevice : public BTObject
     {
@@ -77,7 +78,7 @@ namespace direct_bt {
             std::shared_ptr<BTGattHandler> gattHandler = nullptr;
             mutable std::recursive_mutex mtx_gattHandler;
             mutable std::recursive_mutex mtx_connect;
-            mutable std::recursive_mutex mtx_data;
+            mutable std::mutex mtx_data;
             std::atomic<bool> isConnected;
             std::atomic<bool> allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
 
@@ -113,8 +114,8 @@ namespace direct_bt {
             };
             PairingData pairing_data;
             mutable std::mutex mtx_pairing;
-            mutable jau::sc_atomic_bool sync_pairing;
             std::condition_variable cv_pairing_state_changed;
+            mutable jau::sc_atomic_bool sync_data;
 
             /** Private class only for private make_shared(). */
             class ctor_cookie { friend BTDevice; ctor_cookie(const uint16_t secret) { (void)secret; } };
@@ -302,6 +303,45 @@ namespace direct_bt {
             std::string toString() const noexcept override { return toString(false); }
 
             std::string toString(bool includeDiscoveredServices) const noexcept;
+
+            /**
+             * Add the given AdapterStatusListener to the list if not already present,
+             * intended to listen only for events matching this device.
+             *
+             * User needs to implement AdapterStatusListener::matchDevice() for the latter.
+             *
+             * The AdapterStatusListener is released at remove() or this device's destruction.
+             * <p>
+             * Returns true if the given listener is not element of the list and has been newly added,
+             * otherwise false.
+             * </p>
+             * <p>
+             * The newly added AdapterStatusListener will receive an initial
+             * AdapterStatusListener::adapterSettingsChanged(..) event,
+             * passing an empty AdapterSetting::NONE oldMask and changedMask, as well as current AdapterSetting newMask. <br>
+             * This allows the receiver to be aware of this adapter's current settings.
+             * </p>
+             * @since 2.3.0
+             * @see BTAdapter::addStatusListener()
+             * @see BTAdapter::removeStatusListener()
+             * @see BTAdapter::removeAllStatusListener()
+             * @see removeStatusListener()
+             */
+            bool addStatusListener(std::shared_ptr<AdapterStatusListener> l);
+
+            /**
+             * Remove the given listener from the list.
+             * <p>
+             * Returns true if the given listener is an element of the list and has been removed,
+             * otherwise false.
+             * </p>
+             * @since 2.3.0
+             * @see BTAdapter::removeStatusListener()
+             * @see BTAdapter::removeStatusListener()
+             * @see BTAdapter::removeAllStatusListener()
+             * @see addStatusListener()
+             */
+            bool removeStatusListener(std::shared_ptr<AdapterStatusListener> l);
 
             /**
              * Retrieves the current connection info for this device and returns the ConnectionInfo reference if successful,
@@ -774,6 +814,10 @@ namespace direct_bt {
              * and explicitly removes its shared references from the Adapter:
              * connected-devices, discovered-devices and shared-devices.
              * <p>
+             * All added AdapterStatusListener associated with this instance
+             * will be removed via BTAdapter::removeAllStatusListener().
+             * </p>
+             * <p>
              * This method shall be issued to ensure no device reference will
              * be leaked in a long lived adapter,
              * as only its reference within connected-devices and discovered-devices are removed at disconnect.
@@ -788,6 +832,7 @@ namespace direct_bt {
              * An application using one thread per device and rapid connect, should either use disconnect() or remove(),
              * but never issue remove() after disconnect() if the device is in use.
              * </p>
+             * @see BTAdapter::removeAllStatusListener()
              */
             void remove() noexcept;
 
