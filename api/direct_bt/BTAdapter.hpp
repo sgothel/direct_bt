@@ -91,7 +91,13 @@ namespace direct_bt {
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
             virtual void adapterSettingsChanged(BTAdapter &adapter, const AdapterSetting oldmask, const AdapterSetting newmask,
-                                                const AdapterSetting changedmask, const uint64_t timestamp) = 0;
+                                                const AdapterSetting changedmask, const uint64_t timestamp) {
+                (void)adapter;
+                (void)oldmask;
+                (void)newmask;
+                (void)changedmask;
+                (void)timestamp;
+            }
 
             /**
              * BTAdapter's discovery state has changed, i.e. enabled or disabled.
@@ -104,7 +110,14 @@ namespace direct_bt {
              *
              * changeScanType(const ScanType current, const bool enable, const ScanType enableChanged) noexcept {
              */
-            virtual void discoveringChanged(BTAdapter &adapter, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) = 0;
+            virtual void discoveringChanged(BTAdapter &adapter, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) {
+                (void)adapter;
+                (void)currentMeta;
+                (void)changedType;
+                (void)changedEnabled;
+                (void)keepAlive;
+                (void)timestamp;
+            }
 
             /**
              * A BTDevice has been newly discovered.
@@ -120,7 +133,11 @@ namespace direct_bt {
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              * @return true if the device shall be made persistent and BTDevice::remove() issued later. Otherwise false to remove device right away.
              */
-            virtual bool deviceFound(std::shared_ptr<BTDevice> device, const uint64_t timestamp) = 0;
+            virtual bool deviceFound(std::shared_ptr<BTDevice> device, const uint64_t timestamp) {
+                (void)device;
+                (void)timestamp;
+                return false;
+            }
 
             /**
              * An already discovered BTDevice has been updated.
@@ -128,7 +145,11 @@ namespace direct_bt {
              * @param updateMask the update mask of changed data
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
-            virtual void deviceUpdated(std::shared_ptr<BTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) = 0;
+            virtual void deviceUpdated(std::shared_ptr<BTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) {
+                (void)device;
+                (void)updateMask;
+                (void)timestamp;
+            }
 
             /**
              * BTDevice got connected
@@ -136,7 +157,11 @@ namespace direct_bt {
              * @param handle the new connection handle, which has been assigned to the device already
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
-            virtual void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) = 0;
+            virtual void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) {
+                (void)device;
+                (void)handle;
+                (void)timestamp;
+            }
 
             /**
              * An already connected BTDevice's ::SMPPairingState has changed.
@@ -147,7 +172,12 @@ namespace direct_bt {
              * @see BTDevice::setPairingPasskey()
              * @see BTDevice::setPairingNumericComparison()
              */
-            virtual void devicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) = 0;
+            virtual void devicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) {
+                (void)device;
+                (void)state;
+                (void)mode;
+                (void)timestamp;
+            }
 
             /**
              * BTDevice is ready for user (GATT) processing, i.e. already connected, optionally paired and ATT MTU size negotiated via connected GATT.
@@ -158,7 +188,10 @@ namespace direct_bt {
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              * @see ::SMPPairingState::COMPLETED
              */
-            virtual void deviceReady(std::shared_ptr<BTDevice> device, const uint64_t timestamp) = 0;
+            virtual void deviceReady(std::shared_ptr<BTDevice> device, const uint64_t timestamp) {
+                (void)device;
+                (void)timestamp;
+            }
 
             /**
              * BTDevice got disconnected
@@ -167,7 +200,12 @@ namespace direct_bt {
              * @param handle the disconnected connection handle, which has been unassigned from the device already
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
-            virtual void deviceDisconnected(std::shared_ptr<BTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) = 0;
+            virtual void deviceDisconnected(std::shared_ptr<BTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) {
+                (void)device;
+                (void)reason;
+                (void)handle;
+                (void)timestamp;
+            }
 
             virtual ~AdapterStatusListener() {}
 
