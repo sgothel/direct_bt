@@ -239,7 +239,7 @@ public class SMPKeyBin {
             try {
                 return file.delete(); // alternative to truncate, if existing
             } catch (final Exception ex) {
-                System.err.println("****** DELETE SMPKeyBin: Failed "+fname+": "+ex.getMessage());
+                BTUtils.println(System.err, "****** DELETE SMPKeyBin: Failed "+fname+": "+ex.getMessage());
                 ex.printStackTrace();
                 return false;
             }
@@ -250,7 +250,7 @@ public class SMPKeyBin {
 
         final public boolean write(final String path, final String basename) {
             if( !isValid() ) {
-                System.err.println("****** WRITE SMPKeyBin: Invalid (skipped) "+toString());
+                BTUtils.println(System.err, "****** WRITE SMPKeyBin: Invalid (skipped) "+toString());
                 return false;
             }
             final String filepath = path+"/"+basename;
@@ -293,11 +293,11 @@ public class SMPKeyBin {
                     out.write(csrk_resp_b);
                 }
                 if( verbose ) {
-                    System.err.println("****** WRITE SMPKeyBin: "+filepath+": "+toString());
+                    BTUtils.println(System.err, "****** WRITE SMPKeyBin: "+filepath+": "+toString());
                 }
                 return true;
             } catch (final Exception ex) {
-                System.err.println("****** WRITE SMPKeyBin: Failed "+filepath+": "+toString()+": "+ex.getMessage());
+                BTUtils.println(System.err, "****** WRITE SMPKeyBin: Failed "+filepath+": "+toString()+": "+ex.getMessage());
                 ex.printStackTrace();
             } finally {
                 try {
@@ -321,7 +321,7 @@ public class SMPKeyBin {
             try {
                 if( !file.canRead() ) {
                     if( verbose ) {
-                        System.err.println("****** READ SMPKeyBin: Failed "+fname+": Not existing or readable: "+toString());
+                        BTUtils.println(System.err, "****** READ SMPKeyBin: Failed "+fname+": Not existing or readable: "+toString());
                     }
                     return false;
                 }
@@ -382,11 +382,11 @@ public class SMPKeyBin {
                 }
 
                 if( verbose ) {
-                    System.err.println("****** READ SMPKeyBin: "+fname+": "+toString()+", remaining "+remaining);
+                    BTUtils.println(System.err, "****** READ SMPKeyBin: "+fname+": "+toString()+", remaining "+remaining);
                 }
                 return isValid();
             } catch (final Exception ex) {
-                System.err.println("****** READ SMPKeyBin: Failed "+fname+": "+toString()+": "+ex.getMessage());
+                BTUtils.println(System.err, "****** READ SMPKeyBin: Failed "+fname+": "+toString()+": "+ex.getMessage());
                 ex.printStackTrace();
             } finally {
                 try {
@@ -458,14 +458,14 @@ public class SMPKeyBin {
             if( !isValid() || ( !hasLTKInit() && !hasLTKResp() ) ) {
                 res = HCIStatusCode.INVALID_PARAMS;
                 if( verbose ) {
-                    System.err.println("****** APPLY SMPKeyBin failed: SMPKeyBin Status: "+res+", "+toString());
+                    BTUtils.println(System.err, "****** APPLY SMPKeyBin failed: SMPKeyBin Status: "+res+", "+toString());
                 }
                 return res;
             }
             if( !device.isValid() ) {
                 res = HCIStatusCode.INVALID_PARAMS;
                 if( verbose ) {
-                    System.err.println("****** APPLY SMPKeyBin failed: Device Invalid: "+res+", "+toString()+", "+device);
+                    BTUtils.println(System.err, "****** APPLY SMPKeyBin failed: Device Invalid: "+res+", "+toString()+", "+device);
                 }
                 return res;
             }
@@ -473,7 +473,7 @@ public class SMPKeyBin {
             if( !device.setConnSecurity(BTSecurityLevel.ENC_ONLY, SMPIOCapability.NO_INPUT_NO_OUTPUT) ) {
                 res = HCIStatusCode.CONNECTION_ALREADY_EXISTS;
                 if( verbose ) {
-                    System.err.println("****** APPLY SMPKeyBin failed: Device Connected/ing: "+res+", "+toString()+", "+device);
+                    BTUtils.println(System.err, "****** APPLY SMPKeyBin failed: Device Connected/ing: "+res+", "+toString()+", "+device);
                 }
                 return res;
             }
@@ -481,14 +481,14 @@ public class SMPKeyBin {
             if( hasLTKInit() ) {
                 res = device.setLongTermKeyInfo( getLTKInit() );
                 if( HCIStatusCode.SUCCESS != res && verbose ) {
-                    System.err.println("****** APPLY SMPKeyBin failed: Init-LTK Upload: "+res+", "+toString()+", "+device);
+                    BTUtils.println(System.err, "****** APPLY SMPKeyBin failed: Init-LTK Upload: "+res+", "+toString()+", "+device);
                 }
             }
 
             if( HCIStatusCode.SUCCESS == res && hasLTKResp() ) {
                 res = device.setLongTermKeyInfo( getLTKResp() );
                 if( HCIStatusCode.SUCCESS != res && verbose ) {
-                    System.err.println("****** APPLY SMPKeyBin failed: Resp-LTK Upload: "+res+", "+toString()+", "+device);
+                    BTUtils.println(System.err, "****** APPLY SMPKeyBin failed: Resp-LTK Upload: "+res+", "+toString()+", "+device);
                 }
             }
 

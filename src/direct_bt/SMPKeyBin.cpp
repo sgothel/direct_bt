@@ -88,7 +88,7 @@ bool SMPKeyBin::remove(const std::string& path, const std::string& basename) {
 bool SMPKeyBin::write(const std::string& path, const std::string& basename) const noexcept {
     if( !isValid() ) {
         if( verbose ) {
-            fprintf(stderr, "****** WRITE SMPKeyBin: Invalid (skipped) %s\n", toString().c_str());
+            jau::fprintf_td(stderr, "****** WRITE SMPKeyBin: Invalid (skipped) %s\n", toString().c_str());
         }
         return false;
     }
@@ -126,7 +126,7 @@ bool SMPKeyBin::write(const std::string& path, const std::string& basename) cons
 
     file.close();
     if( verbose ) {
-        fprintf(stderr, "****** WRITE SMPKeyBin: %s: %s\n", fname.c_str(), toString().c_str());
+        jau::fprintf_td(stderr, "****** WRITE SMPKeyBin: %s: %s\n", fname.c_str(), toString().c_str());
     }
     return true;
 }
@@ -136,7 +136,7 @@ bool SMPKeyBin::read(const std::string& path, const std::string& basename) {
     std::ifstream file(fname, std::ios::binary);
     if (!file.is_open() ) {
         if( verbose ) {
-            fprintf(stderr, "****** READ SMPKeyBin failed: %s\n", fname.c_str());
+            jau::fprintf_td(stderr, "****** READ SMPKeyBin failed: %s\n", fname.c_str());
         }
         return false;
     }
@@ -209,7 +209,7 @@ bool SMPKeyBin::read(const std::string& path, const std::string& basename) {
 
     file.close();
     if( verbose ) {
-        fprintf(stderr, "****** READ SMPKeyBin: %s: %s, remaining %u\n",
+        jau::fprintf_td(stderr, "****** READ SMPKeyBin: %s: %s, remaining %u\n",
                 fname.c_str(), toString().c_str(), remaining);
     }
     return isValid();
@@ -221,7 +221,7 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
     if( !isValid() || ( !hasLTKInit() && !hasLTKResp() ) ) {
         res = HCIStatusCode::INVALID_PARAMS;
         if( verbose ) {
-            fprintf(stderr, "****** APPLY SMPKeyBin failed: SMPKeyBin Status: %s, %s\n",
+            jau::fprintf_td(stderr, "****** APPLY SMPKeyBin failed: SMPKeyBin Status: %s, %s\n",
                     to_string(res).c_str(), this->toString().c_str());
         }
         return res;
@@ -229,7 +229,7 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
     if( !device.isValid() ) {
         res = HCIStatusCode::INVALID_PARAMS;
         if( verbose ) {
-            fprintf(stderr, "****** APPLY SMPKeyBin failed: Device Invalid: %s, %s, %s\n",
+            jau::fprintf_td(stderr, "****** APPLY SMPKeyBin failed: Device Invalid: %s, %s, %s\n",
                     to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
         }
         return res;
@@ -238,7 +238,7 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
     if( !device.setConnSecurity(BTSecurityLevel::ENC_ONLY, SMPIOCapability::NO_INPUT_NO_OUTPUT) ) {
         res = HCIStatusCode::CONNECTION_ALREADY_EXISTS;
         if( verbose ) {
-            fprintf(stderr, "****** APPLY SMPKeyBin failed: Device Connected/ing: %s, %s, %s\n",
+            jau::fprintf_td(stderr, "****** APPLY SMPKeyBin failed: Device Connected/ing: %s, %s, %s\n",
                     to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
         }
         return res;
@@ -247,7 +247,7 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
     if( hasLTKInit() ) {
         res = device.setLongTermKeyInfo( getLTKInit() );
         if( HCIStatusCode::SUCCESS != res && verbose ) {
-            fprintf(stderr, "****** APPLY SMPKeyBin failed: Init-LTK Upload: %s, %s, %s\n",
+            jau::fprintf_td(stderr, "****** APPLY SMPKeyBin failed: Init-LTK Upload: %s, %s, %s\n",
                     to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
         }
     }
@@ -255,7 +255,7 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
     if( HCIStatusCode::SUCCESS == res && hasLTKResp() ) {
         res = device.setLongTermKeyInfo( getLTKResp() );
         if( HCIStatusCode::SUCCESS != res && verbose ) {
-            fprintf(stderr, "****** APPLY SMPKeyBin failed: Resp-LTK Upload: %s, %s, %s\n",
+            jau::fprintf_td(stderr, "****** APPLY SMPKeyBin failed: Resp-LTK Upload: %s, %s, %s\n",
                     to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
         }
     }
