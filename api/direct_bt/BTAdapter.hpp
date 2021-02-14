@@ -735,7 +735,7 @@ namespace direct_bt {
             /** Returns shared BTDevice if found, otherwise nullptr */
             std::shared_ptr<BTDevice> findSharedDevice (const EUI48 & address, const BDAddressType addressType) noexcept;
 
-            std::string toString() const noexcept override { return toString(true); }
+            std::string toString() const noexcept override { return toString(false); }
             std::string toString(bool includeDiscoveredDevices) const noexcept;
 
             /**
