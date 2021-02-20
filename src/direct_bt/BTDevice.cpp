@@ -398,6 +398,7 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
                     to_string(hci_own_mac_type).c_str(),
                     toString().c_str());
             adapter.unlockConnect(*this);
+            smp_auto_done = true; // premature end of potential SMP auto-negotiation
         } else if ( HCIStatusCode::SUCCESS != statusConnect ) {
             ERR_PRINT("BTDevice::connectLE: Could not create connection: status 0x%2.2X (%s), errno %d %s, hci-atype[peer %s, own %s] on %s",
                     static_cast<uint8_t>(statusConnect), to_string(statusConnect).c_str(), errno, strerror(errno),
@@ -405,6 +406,7 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
                     to_string(hci_own_mac_type).c_str(),
                     toString().c_str());
             adapter.unlockConnect(*this);
+            smp_auto_done = true; // premature end of potential SMP auto-negotiation
         } else if( smp_auto ) { // implies HCIStatusCode::SUCCESS
             // Waiting for PairingState
             bool pairing_timeout = false;
