@@ -39,6 +39,12 @@ public class BTUtils {
     public static native long currentTimeMillis();
 
     /**
+     * Returns current wall-clock system `time of day` in seconds since Unix Epoch
+     * `00:00:00 UTC on 1 January 1970`.
+     */
+    public static native long wallClockSeconds();
+
+    /**
      * Returns the startup time in monotonic time in milliseconds of the native module.
      */
     public static long startupTimeMillis() { return t0; }

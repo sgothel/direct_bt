@@ -35,9 +35,8 @@
 
 #include "helper_base.hpp"
 
-
-static const int64_t NanoPerMilli = 1000000L;
-static const int64_t MilliPerOne = 1000L;
+static const uint64_t NanoPerMilli = 1000000UL;
+static const uint64_t MilliPerOne = 1000UL;
 
 /**
  * See <http://man7.org/linux/man-pages/man2/clock_gettime.2.html>
@@ -53,9 +52,20 @@ jlong Java_org_direct_1bt_BTUtils_currentTimeMillis(JNIEnv *env, jclass clazz) {
 
     struct timespec t;
     clock_gettime(CLOCK_MONOTONIC, &t);
-    int64_t res = t.tv_sec * MilliPerOne + t.tv_nsec / NanoPerMilli;
+    uint64_t res = static_cast<uint64_t>( t.tv_sec ) * MilliPerOne +
+                   static_cast<uint64_t>( t.tv_nsec ) / NanoPerMilli;
     return (jlong)res;
 }
+
+jlong Java_org_direct_1bt_BTUtils_wallClockSeconds(JNIEnv *env, jclass clazz) {
+    (void)env;
+    (void)clazz;
+
+    struct timespec t;
+    clock_gettime(CLOCK_REALTIME, &t);
+    return (jlong)( static_cast<uint64_t>( t.tv_sec ) );
+}
+
 
 jlong Java_org_direct_1bt_BTUtils_startupTimeMillisImpl(JNIEnv *env, jclass clazz) {
     (void)env;
