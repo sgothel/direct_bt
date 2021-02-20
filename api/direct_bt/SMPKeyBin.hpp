@@ -51,11 +51,12 @@ namespace direct_bt {
  */
 class SMPKeyBin {
     public:
-        constexpr static const uint16_t VERSION = (uint16_t)0b0101010101010101 + (uint16_t)1; // bitpattern + version
+        constexpr static const uint16_t VERSION = (uint16_t)0b0101010101010101U + (uint16_t)2U; // bitpattern + version
 
     private:
         uint16_t version;                       //  2
         uint16_t size;                          //  2
+        uint64_t ts_creation_sec;               //  8
         BDAddressAndType addrAndType;           //  7
         BTSecurityLevel sec_level;              //  1
         SMPIOCapability io_cap;                 //  1
@@ -69,7 +70,7 @@ class SMPKeyBin {
         SMPLongTermKeyInfo ltk_resp;            // 28 (optional)
         SMPSignatureResolvingKeyInfo csrk_resp; // 17 (optional)
 
-        // Min-Max: 15 - 105 bytes
+        // Min-Max: 23 - 113 bytes
 
         bool verbose;
 
@@ -77,6 +78,7 @@ class SMPKeyBin {
             uint16_t s = 0;
             s += sizeof(version);
             s += sizeof(size);
+            s += sizeof(ts_creation_sec);
             s += sizeof(addrAndType.address);
             s += sizeof(addrAndType.type);
             s += sizeof(sec_level);
@@ -101,10 +103,100 @@ class SMPKeyBin {
             return s;
         }
 
+        static bool remove_impl(const std::string& fname);
+
     public:
+        /**
+         * Create a new SMPKeyBin instance based upon given BTDevice's
+         * BTSecurityLevel, SMPPairingState, PairingMode and LTK keys.
+         *
+         * Returned SMPKeyBin shall be tested if valid via SMPKeyBin::isValid(),
+         * whether the retrieved data from BTDevice is consistent and hence
+         * having BTDevice is a well connected state.
+         *
+         * @param device the BTDevice from which all required data is derived
+         * @return a valid SMPKeyBin instance if properly connected, otherwise an invalid instance.
+         * @see BTDevice
+         * @see isValid()
+         */
+        static SMPKeyBin create(const BTDevice& device);
+
+        /**
+         * Create a new SMPKeyBin instance on the fly based upon given BTDevice's
+         * BTSecurityLevel, SMPPairingState, PairingMode and LTK keys.
+         * If valid, instance is stored to a file denoted by `path` and `BTDevice::getAddressAndType()`.
+         *
+         * Method returns `false` if resulting SMPKeyBin is not SMPKeyBin::isValid().
+         *
+         * Otherwise, method returns the SMPKeyBin::write() result.
+         *
+         * @param device the BTDevice from which all required data is derived
+         * @param path the path for the stored SMPKeyBin file.
+         * @param overwrite if `true` and file already exists, delete file first. If `false` and file exists, return `false` w/o writing.
+         * @param verbose_ set to true to have detailed write processing logged to stderr, otherwise false
+         * @return `true` if file has been successfully written, otherwise `false`.
+         * @see BTDevice
+         * @see Create()
+         * @see write()
+         * @see isValid()
+         */
+        static bool createAndWrite(const BTDevice& device, const std::string& path, const bool overwrite, const bool verbose_);
+
+        /**
+         * Create a new SMPKeyBin instance based upon stored file denoted by `fname`.
+         *
+         * Returned SMPKeyBin shall be tested if valid via SMPKeyBin::isValid(),
+         * whether the read() operation was successful and data is consistent.
+         *
+         * @param fname full path of the stored SMPKeyBin file.
+         * @param removeInvalidFile if `true` and file is invalid, remove it. Otherwise keep it alive.
+         * @param verbose_ set to true to have detailed read processing logged to stderr, otherwise false
+         * @return valid SMPKeyBin instance if file exist and read successfully, otherwise invalid SMPKeyBin instance.
+         * @see isValid()
+         * @see read()
+         */
+        static SMPKeyBin read(const std::string& fname, const bool removeInvalidFile, const bool verbose_) {
+            SMPKeyBin smpKeyBin;
+            smpKeyBin.setVerbose( verbose_ );
+            smpKeyBin.read( fname, removeInvalidFile ); // read failure -> !isValid()
+            return smpKeyBin;
+        }
+
+        /**
+         * Create a new SMPKeyBin instance on the fly based upon stored file denoted by `path` and BTDevice::getAddressAndType(),
+         * i.e. `path/` + getFileBasename().
+         *
+         * Method returns ::HCIStatusCode::INVALID_PARAMS if resulting SMPKeyBin is not SMPKeyBin::isValid().
+         *
+         * Otherwise, method returns the HCIStatusCode of SMPKeyBin::apply().
+         *
+         * @param path the path of the stored SMPKeyBin file.
+         * @param device the BTDevice for which address the stored SMPKeyBin file will be read and applied to
+         * @param removeInvalidFile if `true` and file is invalid, remove it. Otherwise keep it alive.
+         * @param verbose_ set to true to have detailed read processing logged to stderr, otherwise false
+         * @return ::HCIStatusCode::SUCCESS or error code for failure
+         * @see Read()
+         * @see isValid()
+         * @see read()
+         * @see apply()
+         */
+        static HCIStatusCode readAndApply(const std::string& path, BTDevice& device, const bool removeInvalidFile, const bool verbose_) {
+            SMPKeyBin smpKeyBin = read(getFilename(path, device.getAddressAndType()), removeInvalidFile, verbose_);
+            if( smpKeyBin.isValid() ) {
+                const HCIStatusCode res = smpKeyBin.apply(device);
+                if( HCIStatusCode::SUCCESS != res ) {
+                    jau::fprintf_td(stderr, "****** Apply SMPKeyBin: Failed %s, %s\n", to_string(res).c_str(), device.toString().c_str());
+                }
+                return res;
+            } else {
+                return HCIStatusCode::INVALID_PARAMS;
+            }
+        }
+
         SMPKeyBin(const BDAddressAndType& addrAndType_,
-                      const BTSecurityLevel sec_level_, const SMPIOCapability io_cap_)
+                  const BTSecurityLevel sec_level_, const SMPIOCapability io_cap_)
         : version(VERSION), size(0),
+          ts_creation_sec( jau::getWallClockSeconds() ),
           addrAndType(addrAndType_), sec_level(sec_level_), io_cap(io_cap_),
           keys_init(SMPKeyType::NONE), keys_resp(SMPKeyType::NONE),
           ltk_init(), csrk_init(), ltk_resp(), csrk_resp(),
@@ -113,6 +205,7 @@ class SMPKeyBin {
 
         SMPKeyBin()
         : version(VERSION), size(0),
+          ts_creation_sec(0),
           addrAndType(), sec_level(BTSecurityLevel::UNSET), io_cap(SMPIOCapability::UNSET),
           keys_init(SMPKeyType::NONE), keys_resp(SMPKeyType::NONE),
           ltk_init(), csrk_init(), ltk_resp(), csrk_resp(),
@@ -124,6 +217,9 @@ class SMPKeyBin {
 
         constexpr bool isSizeValid() const noexcept { return calcSize() == size;}
         constexpr uint16_t getSize() const noexcept { return size;}
+
+        /** Returns the creation timestamp in seconds since Unix epoch */
+        constexpr uint64_t getCreationTime() const noexcept { return ts_creation_sec; }
 
         constexpr const BDAddressAndType& getAddrAndType() const noexcept { return addrAndType; }
         constexpr BTSecurityLevel getSecLevel() const noexcept { return sec_level; }
@@ -186,35 +282,28 @@ class SMPKeyBin {
         static std::string getFileBasename(const BDAddressAndType& addrAndType_) {
             return "bd_"+addrAndType_.address.toString()+":"+std::to_string(number(addrAndType_.type))+".smpkey.bin";
         }
-        static std::string getFilePath(const std::string& path, const BDAddressAndType& addrAndType_) {
+        static std::string getFilename(const std::string& path, const BDAddressAndType& addrAndType_) {
             return path + "/" + getFileBasename(addrAndType_);
         }
 
-        static bool remove(const std::string& path, const std::string& basename);
-
         static bool remove(const std::string& path, const BDAddressAndType& addrAndType_) {
-            return remove(path, getFileBasename(addrAndType_));
+            return remove_impl(getFilename(path, addrAndType_));
         }
 
-        bool write(const std::string& path, const std::string& basename) const noexcept;
+        bool write(const std::string& fname, const bool overwrite) const noexcept;
 
-        bool write(const std::string& path) const noexcept {
-            return write( path, getFileBasename() );
-        }
-
-        bool read(const std::string& path, const std::string& basename);
-
-        bool read(const std::string& path, const BDAddressAndType& addrAndType_) {
-            return read(path, getFileBasename(addrAndType_));
-        }
+        bool read(const std::string& fname, const bool removeInvalidFile);
 
         /**
          * If this instance isValid() and initiator or responder LTK available, i.e. hasLTKInit() or hasLTKResp(),
          * the following procedure will be applied to the given BTDevice:
          *
-         * - Setting security to ::BTSecurityLevel::ENC_ONLY and ::SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
-         * - Setting initiator LTK from getLTKInit() via BTDevice::setLongTermKeyInfo(), if available
-         * - Setting responder LTK from getLTKResp() via BTDevice::setLongTermKeyInfo(), if available
+         * - If BTSecurityLevel _is_ BTSecurityLevel::NONE
+         *   + Setting security to ::BTSecurityLevel::NONE and ::SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
+         * - else if BTSecurityLevel > BTSecurityLevel::NONE
+         *   + Setting security to ::BTSecurityLevel::ENC_ONLY and ::SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
+         *   + Setting initiator LTK from getLTKInit() via BTDevice::setLongTermKeyInfo(), if available
+         *   + Setting responder LTK from getLTKResp() via BTDevice::setLongTermKeyInfo(), if available
          *
          * If all three operations succeed, ::HCIStatusCode::SUCCESS will be returned,
          * otherwise the appropriate status code below.

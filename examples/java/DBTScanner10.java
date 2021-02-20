@@ -264,7 +264,7 @@ public class DBTScanner10 {
                     break;
                 case FAILED: {
                     final boolean res  = SMPKeyBin.remove(KEY_PATH, device.getAddressAndType());
-                    BTUtils.println(System.err, "****** PAIRING_STATE: state "+state+"; Remove key file "+SMPKeyBin.getFilePath(KEY_PATH, device.getAddressAndType())+", res "+res);
+                    BTUtils.println(System.err, "****** PAIRING_STATE: state "+state+"; Remove key file "+SMPKeyBin.getFilename(KEY_PATH, device.getAddressAndType())+", res "+res);
                     // next: deviceReady() or deviceDisconnected(..)
                 } break;
                 case REQUESTED_BY_RESPONDER:
@@ -384,15 +384,8 @@ public class DBTScanner10 {
             BTUtils.println(System.err, "****** Connecting Device: stopDiscovery result "+r);
         }
 
-        boolean useSMPKeyBin = false;
+        if( HCIStatusCode.SUCCESS !=  SMPKeyBin.readAndApply(KEY_PATH, device, true /* removeInvalidFile */, true /* verbose */) )
         {
-            final SMPKeyBin smpKeyBin = new SMPKeyBin();
-            smpKeyBin.setVerbose( true );
-            if( smpKeyBin.read(KEY_PATH, device.getAddressAndType()) ) {
-                useSMPKeyBin = HCIStatusCode.SUCCESS == smpKeyBin.apply(device);
-            }
-        }
-        if( !useSMPKeyBin ) {
             final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
             if( null != sec ) {
                 if( sec.isSecurityAutoEnabled() ) {
@@ -457,35 +450,10 @@ public class DBTScanner10 {
         }
 
         final long t1 = BTUtils.currentTimeMillis();
+
+        SMPKeyBin.createAndWrite(device, KEY_PATH, false /* overwrite */, true /* verbose */);
+
         boolean success = false;
-
-        {
-            final SMPPairingState pstate = device.getPairingState();
-            final PairingMode pmode = device.getPairingMode(); // Skip PairingMode::PRE_PAIRED (write again)
-            if( SMPPairingState.COMPLETED == pstate && PairingMode.PRE_PAIRED != pmode ) {
-                final SMPKeyMask keys_resp = device.getAvailableSMPKeys(true /* responder */);
-                final SMPKeyMask keys_init = device.getAvailableSMPKeys(false /* responder */);
-
-                final SMPKeyBin smpKeyBin = new SMPKeyBin(device.getAddressAndType(),
-                                                    device.getConnSecurityLevel(), device.getConnIOCapability());
-                smpKeyBin.setVerbose( true );
-
-                if( keys_init.isSet(SMPKeyMask.KeyType.ENC_KEY) ) {
-                    smpKeyBin.setLTKInit( device.getLongTermKeyInfo(false /* responder */) );
-                }
-                if( keys_resp.isSet(SMPKeyMask.KeyType.ENC_KEY) ) {
-                    smpKeyBin.setLTKResp( device.getLongTermKeyInfo(true  /* responder */) );
-                }
-
-                if( keys_init.isSet(SMPKeyMask.KeyType.SIGN_KEY) ) {
-                    smpKeyBin.setCSRKInit( device.getSignatureResolvingKeyInfo(false /* responder */) );
-                }
-                if( keys_resp.isSet(SMPKeyMask.KeyType.SIGN_KEY) ) {
-                    smpKeyBin.setCSRKResp( device.getSignatureResolvingKeyInfo(true  /* responder */) );
-                }
-                smpKeyBin.write(KEY_PATH);
-            }
-        }
 
         //
         // GATT Service Processing

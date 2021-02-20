@@ -30,6 +30,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import org.direct_bt.SMPKeyMask.KeyType;
 
@@ -46,10 +48,11 @@ import org.direct_bt.SMPKeyMask.KeyType;
  * </p>
  */
 public class SMPKeyBin {
-        public static final short VERSION = (short)0b0101010101010101 + (short)1; // bitpattern + version
+        public static final short VERSION = (short)0b0101010101010101 + (short)2; // bitpattern + version
 
         private short version;                          //  2
-        private short  size;                            //  2
+        private short size;                             //  2
+        private long ts_creation_sec;                   //  8
         private final BDAddressAndType addrAndType;     //  7
         private BTSecurityLevel sec_level;;             //  1
         private SMPIOCapability io_cap;                 //  1
@@ -63,9 +66,9 @@ public class SMPKeyBin {
         private SMPLongTermKeyInfo ltk_resp;            // 28 (optional)
         private SMPSignatureResolvingKeyInfo csrk_resp; // 17 (optional)
 
-        private static final int byte_size_max = 105;
-        private static final int byte_size_min =  15;
-        // Min-Max: 15 - 105 bytes
+        private static final int byte_size_max = 113;
+        private static final int byte_size_min =  23;
+        // Min-Max: 23 - 113 bytes
 
         boolean verbose;
 
@@ -73,6 +76,7 @@ public class SMPKeyBin {
             short s = 0;
             s += 2; // sizeof(version);
             s += 2; // sizeof(size);
+            s += 8; // sizeof(ts_creation_sec);
             s += 6; // sizeof(addrAndType.address);
             s += 1; // sizeof(addrAndType.type);
             s += 1; // sizeof(sec_level);
@@ -97,11 +101,141 @@ public class SMPKeyBin {
             return s;
         }
 
+        /**
+         * Create a new SMPKeyBin instance based upon given BTDevice's
+         * BTSecurityLevel, SMPPairingState, PairingMode and LTK keys.
+         *
+         * Returned SMPKeyBin shall be tested if valid via {@link SMPKeyBin#isValid()},
+         * whether the retrieved data from BTDevice is consistent and hence
+         * having BTDevice is a well connected state.
+         *
+         * @param device the BTDevice from which all required data is derived
+         * @return a valid SMPKeyBin instance if properly connected, otherwise an invalid instance.
+         * @see BTDevice
+         * @see #isValid()
+         */
+        static public SMPKeyBin create(final BTDevice device) {
+            final BTSecurityLevel sec_lvl = device.getConnSecurityLevel();
+            final SMPPairingState pstate = device.getPairingState();
+            final PairingMode pmode = device.getPairingMode(); // Skip PairingMode::PRE_PAIRED (write again)
+
+            final SMPKeyBin smpKeyBin = new SMPKeyBin(device.getAddressAndType(),
+                                                      device.getConnSecurityLevel(), device.getConnIOCapability());
+
+            if( ( BTSecurityLevel.NONE.value  < sec_lvl.value && SMPPairingState.COMPLETED == pstate && PairingMode.NEGOTIATING.value < pmode.value ) ||
+                ( BTSecurityLevel.NONE.value == sec_lvl.value && SMPPairingState.NONE == pstate && PairingMode.NONE == pmode  ) )
+            {
+                final SMPKeyMask keys_resp = device.getAvailableSMPKeys(true /* responder */);
+                final SMPKeyMask keys_init = device.getAvailableSMPKeys(false /* responder */);
+
+                if( keys_init.isSet(SMPKeyMask.KeyType.ENC_KEY) ) {
+                    smpKeyBin.setLTKInit( device.getLongTermKeyInfo(false /* responder */) );
+                }
+                if( keys_resp.isSet(SMPKeyMask.KeyType.ENC_KEY) ) {
+                    smpKeyBin.setLTKResp( device.getLongTermKeyInfo(true  /* responder */) );
+                }
+
+                if( keys_init.isSet(SMPKeyMask.KeyType.SIGN_KEY) ) {
+                    smpKeyBin.setCSRKInit( device.getSignatureResolvingKeyInfo(false /* responder */) );
+                }
+                if( keys_resp.isSet(SMPKeyMask.KeyType.SIGN_KEY) ) {
+                    smpKeyBin.setCSRKResp( device.getSignatureResolvingKeyInfo(true  /* responder */) );
+                }
+            } else {
+                smpKeyBin.size = 0; // explicitly mark invalid
+            }
+            return smpKeyBin;
+        }
+
+        /**
+         * Create a new SMPKeyBin instance on the fly based upon given BTDevice's
+         * BTSecurityLevel, SMPPairingState, PairingMode and LTK keys.
+         * If valid, instance is stored to a file denoted by `path` and {@link BTDevice#getAddressAndType()}.
+         *
+         * Method returns `false` if resulting SMPKeyBin is not {@link SMPKeyBin#isValid()}.
+         *
+         * Otherwise, method returns the {@link SMPKeyBin#write(String)} result.
+         *
+         * @param device the BTDevice from which all required data is derived
+         * @param path the path for the stored SMPKeyBin file.
+         * @param overwrite if `true` and file already exists, delete file first. If `false` and file exists, return `false` w/o writing.
+         * @param verbose_ set to true to have detailed write processing logged to stderr, otherwise false
+         * @return `true` if file has been successfully written, otherwise `false`.
+         * @see BTDevice
+         * @see #create(BTDevice)
+         * @see #write(String)
+         * @see #isValid()
+         */
+        static public boolean createAndWrite(final BTDevice device, final String path, final boolean overwrite, final boolean verbose_) {
+            final SMPKeyBin smpKeyBin = SMPKeyBin.create(device);
+            if( smpKeyBin.isValid() ) {
+                smpKeyBin.setVerbose( verbose_ );
+                return smpKeyBin.write( getFilename(path, device.getAddressAndType()), overwrite );
+            } else {
+                if( verbose_ ) {
+                    BTUtils.println(System.err, "Create SMPKeyBin: Invalid "+smpKeyBin+", "+device);
+                }
+                return false;
+            }
+        }
+
+        /**
+         * Create a new SMPKeyBin instance based upon stored file denoted by `fname`.
+         *
+         * Returned SMPKeyBin shall be tested if valid via {@link SMPKeyBin#isValid()},
+         * whether the read() operation was successful and data is consistent.
+         *
+         * @param fname full path of the stored SMPKeyBin file.
+         * @param removeInvalidFile if `true` and file is invalid, remove it. Otherwise keep it alive.
+         * @param verbose_ set to true to have detailed read processing logged to stderr, otherwise false
+         * @return valid SMPKeyBin instance if file exist and read successfully, otherwise invalid SMPKeyBin instance.
+         * @see #isValid()
+         * @see #read(String, String)
+         */
+        static public SMPKeyBin read(final String fname, final boolean removeInvalidFile, final boolean verbose_) {
+            final SMPKeyBin smpKeyBin = new SMPKeyBin();
+            smpKeyBin.setVerbose( verbose_ );
+            smpKeyBin.read( fname, removeInvalidFile ); // read failure -> !isValid()
+            return smpKeyBin;
+        }
+
+        /**
+         * Create a new SMPKeyBin instance on the fly based upon stored file denoted by `path` and {@link BTDevice#getAddressAndType()},
+         * i.e. `path/` + {@link #getFileBasename(BDAddressAndType)}.
+         *
+         * Method returns HCIStatusCode#INVALID_PARAMS if resulting SMPKeyBin is not {@link SMPKeyBin#isValid()}.
+         *
+         * Otherwise, method returns the HCIStatusCode of {@link SMPKeyBin#apply(BTDevice)}.
+         *
+         * @param path the path of the stored SMPKeyBin file.
+         * @param device the BTDevice for which address the stored SMPKeyBin file will be read and applied to
+         * @param removeInvalidFile if `true` and file is invalid, remove it. Otherwise keep it alive.
+         * @param verbose_ set to true to have detailed read processing logged to stderr, otherwise false
+         * @return {@link HCIStatusCode#SUCCESS} or error code for failure
+         * @see #read(String, BDAddressAndType, boolean)
+         * @see #isValid()
+         * @see #read(String, String)
+         * @see #apply(BTDevice)
+         */
+        static public HCIStatusCode readAndApply(final String path, final BTDevice device, final boolean removeInvalidFile, final boolean verbose_) {
+            final SMPKeyBin smpKeyBin = read(getFilename(path, device.getAddressAndType()), removeInvalidFile, verbose_);
+            if( smpKeyBin.isValid() ) {
+                final HCIStatusCode res = smpKeyBin.apply(device);
+                if( HCIStatusCode.SUCCESS != res ) {
+                    BTUtils.println(System.err, "Apply SMPKeyBin: Failed "+res+", "+device);
+                }
+                return res;
+            } else {
+                return HCIStatusCode.INVALID_PARAMS;
+            }
+        }
+
         public SMPKeyBin(final BDAddressAndType addrAndType_,
                          final BTSecurityLevel sec_level_, final SMPIOCapability io_cap_)
         {
             version = VERSION;
             this.size = 0;
+            this.ts_creation_sec = BTUtils.wallClockSeconds();
             this.addrAndType = addrAndType_;
             this.sec_level = sec_level_;
             this.io_cap = io_cap_;
@@ -121,6 +255,7 @@ public class SMPKeyBin {
         public SMPKeyBin() {
             version = VERSION;
             size = 0;
+            ts_creation_sec = 0;
             addrAndType = new BDAddressAndType();
             sec_level = BTSecurityLevel.UNSET;
             io_cap = SMPIOCapability.UNSET;
@@ -142,6 +277,9 @@ public class SMPKeyBin {
 
         final public boolean isSizeValid() { return calcSize() == size;}
         final public short getSize() { return size;}
+
+        /** Returns the creation timestamp in seconds since Unix epoch */
+        final public long getCreationTime() { return ts_creation_sec; }
 
         final public BDAddressAndType getAddrAndType() { return addrAndType; }
         final public BTSecurityLevel getSecLevel() { return sec_level; }
@@ -193,7 +331,7 @@ public class SMPKeyBin {
         final public static String getFileBasename(final BDAddressAndType addrAndType_) {
             return "bd_"+addrAndType_.address.toString()+":"+addrAndType_.type.value+".smpkey.bin";
         }
-        final public static String getFilePath(final String path, final BDAddressAndType addrAndType_) {
+        final public static String getFilename(final String path, final BDAddressAndType addrAndType_) {
             return path + "/" + getFileBasename(addrAndType_);
         }
 
@@ -228,41 +366,58 @@ public class SMPKeyBin {
             if( verbose ) {
                 res.append(", calc ").append(calcSize());
             }
-            res.append(", valid ").append(isSizeValid()).append("], valid ").append(isValid()).append("]");
+            res.append(", valid ").append(isSizeValid()).append("], ");
+            {
+                final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                final Date d = new Date(ts_creation_sec*1000); // s -> ms
+                res.append(sdf.format(d));
+            }
+            res.append(", valid ").append(isValid()).append("]");
 
             return res.toString();
         }
 
-        final public static boolean remove(final String path, final String basename) {
-            final String fname = path+"/"+basename;
+        final public static boolean remove(final String path, final BDAddressAndType addrAndType_) {
+            final String fname = getFilename(path, addrAndType_);
             final File file = new File(fname);
             try {
                 return file.delete(); // alternative to truncate, if existing
             } catch (final Exception ex) {
-                BTUtils.println(System.err, "****** DELETE SMPKeyBin: Failed "+fname+": "+ex.getMessage());
+                BTUtils.println(System.err, "Remove SMPKeyBin: Failed "+fname+": "+ex.getMessage());
                 ex.printStackTrace();
                 return false;
             }
         }
-        final public static boolean remove(final String path, final BDAddressAndType addrAndType_) {
-            return remove(path, getFileBasename(addrAndType_));
-        }
 
-        final public boolean write(final String path, final String basename) {
+        final public boolean write(final String fname, final boolean overwrite) {
             if( !isValid() ) {
-                BTUtils.println(System.err, "****** WRITE SMPKeyBin: Invalid (skipped) "+toString());
+                BTUtils.println(System.err, "Write SMPKeyBin: Invalid (skipped) "+toString());
                 return false;
             }
-            final String filepath = path+"/"+basename;
-            final File file = new File(filepath);
+            final File file = new File( fname );
             OutputStream out = null;
             try {
-                file.delete(); // alternative to truncate, if existing
+                if( file.exists() ) {
+                    if( overwrite ) {
+                        if( !file.delete() ) {
+                            BTUtils.println(System.err, "Write SMPKeyBin: Failed deletion of existing file "+fname+": "+toString());
+                            return false;
+                        }
+                    } else {
+                        BTUtils.println(System.err, "Write SMPKeyBin: Not overwriting existing file "+fname+": "+toString());
+                        return false;
+                    }
+                }
+                final byte[] buffer = new byte[byte_size_max];
+
                 out = new FileOutputStream(file);
                 out.write( (byte)  version );
                 out.write( (byte)( version >> 8 ) );
                 out.write( (byte)  size );
                 out.write( (byte)( size >> 8 ) );
+
+                writeLong(ts_creation_sec, out, buffer);
+
                 out.write(addrAndType.address.b);
                 out.write(addrAndType.type.value);
                 out.write(sec_level.value);
@@ -272,32 +427,28 @@ public class SMPKeyBin {
                 out.write(keys_resp.mask);
 
                 if( hasLTKInit() ) {
-                    final byte[] ltk_init_b = new byte[SMPLongTermKeyInfo.byte_size];
-                    ltk_init.getStream(ltk_init_b, 0);
-                    out.write(ltk_init_b);
+                    ltk_init.getStream(buffer, 0);
+                    out.write(buffer, 0, SMPLongTermKeyInfo.byte_size);
                 }
                 if( hasCSRKInit() ) {
-                    final byte[] csrk_init_b = new byte[SMPSignatureResolvingKeyInfo.byte_size];
-                    csrk_init.getStream(csrk_init_b, 0);
-                    out.write(csrk_init_b);
+                    csrk_init.getStream(buffer, 0);
+                    out.write(buffer, 0, SMPSignatureResolvingKeyInfo.byte_size);
                 }
 
                 if( hasLTKResp() ) {
-                    final byte[] ltk_resp_b = new byte[SMPLongTermKeyInfo.byte_size];
-                    ltk_resp.getStream(ltk_resp_b, 0);
-                    out.write(ltk_resp_b);
+                    ltk_resp.getStream(buffer, 0);
+                    out.write(buffer, 0, SMPLongTermKeyInfo.byte_size);
                 }
                 if( hasCSRKResp() ) {
-                    final byte[] csrk_resp_b = new byte[SMPSignatureResolvingKeyInfo.byte_size];
-                    csrk_resp.getStream(csrk_resp_b, 0);
-                    out.write(csrk_resp_b);
+                    csrk_resp.getStream(buffer, 0);
+                    out.write(buffer, 0, SMPSignatureResolvingKeyInfo.byte_size);
                 }
                 if( verbose ) {
-                    BTUtils.println(System.err, "****** WRITE SMPKeyBin: "+filepath+": "+toString());
+                    BTUtils.println(System.err, "Write SMPKeyBin: "+fname+": "+toString());
                 }
                 return true;
             } catch (final Exception ex) {
-                BTUtils.println(System.err, "****** WRITE SMPKeyBin: Failed "+filepath+": "+toString()+": "+ex.getMessage());
+                BTUtils.println(System.err, "Write SMPKeyBin: Failed "+fname+": "+toString()+": "+ex.getMessage());
                 ex.printStackTrace();
             } finally {
                 try {
@@ -310,19 +461,18 @@ public class SMPKeyBin {
             }
             return false;
         }
-        final public boolean write(final String path) {
-            return write( path, getFileBasename() );
-        }
 
-        final public boolean read(final String path, final String basename) {
-            final String fname = path+"/"+basename;
+        final public boolean read(final String fname, final boolean removeInvalidFile) {
             final File file = new File(fname);
             InputStream in = null;
+            int remaining = 0;
+            boolean err = false;
             try {
                 if( !file.canRead() ) {
                     if( verbose ) {
-                        BTUtils.println(System.err, "****** READ SMPKeyBin: Failed "+fname+": Not existing or readable: "+toString());
+                        BTUtils.println(System.err, "Read SMPKeyBin: Failed "+fname+": Not existing or readable: "+toString());
                     }
+                    size = 0; // explicitly mark invalid
                     return false;
                 }
                 final byte[] buffer = new byte[byte_size_max];
@@ -332,16 +482,28 @@ public class SMPKeyBin {
                 int i=0;
                 version = (short) ( buffer[i++] | ( buffer[i++] << 8 ) );
                 size = (short) ( buffer[i++] | ( buffer[i++] << 8 ) );
-                addrAndType.address.putStream(buffer, i); i+=6;
-                addrAndType.type = BDAddressType.get(buffer[i++]);
-                sec_level = BTSecurityLevel.get(buffer[i++]);
-                io_cap = SMPIOCapability.get(buffer[i++]);
 
-                keys_init.mask = buffer[i++];
-                keys_resp.mask = buffer[i++];
+                remaining = size - 2 /* sizeof(version) */ - 2 /* sizeof(size) */;
 
-                int remaining = size - i; // i == byte_size_min == 15
-                boolean err = false;
+                if( !err && 8 <= remaining ) {
+                    ts_creation_sec = getLong(buffer, i); i+=8;
+                    remaining -= 8;
+                } else {
+                    err = true;
+                }
+                if( !err && 11 <= remaining ) {
+                    addrAndType.address.putStream(buffer, i); i+=6;
+                    addrAndType.type = BDAddressType.get(buffer[i++]);
+                    sec_level = BTSecurityLevel.get(buffer[i++]);
+                    io_cap = SMPIOCapability.get(buffer[i++]);
+
+                    keys_init.mask = buffer[i++];
+                    keys_resp.mask = buffer[i++];
+
+                    remaining -= 11;
+                } else {
+                    err = true;
+                }
 
                 if( !err && hasLTKInit() ) {
                     if( SMPLongTermKeyInfo.byte_size <= remaining ) {
@@ -380,14 +542,13 @@ public class SMPKeyBin {
                         err = true;
                     }
                 }
-
-                if( verbose ) {
-                    BTUtils.println(System.err, "****** READ SMPKeyBin: "+fname+": "+toString()+", remaining "+remaining);
+                if( !err ) {
+                    err = !isValid();
                 }
-                return isValid();
             } catch (final Exception ex) {
-                BTUtils.println(System.err, "****** READ SMPKeyBin: Failed "+fname+": "+toString()+": "+ex.getMessage());
+                BTUtils.println(System.err, "Read SMPKeyBin: Failed "+fname+": "+toString()+": "+ex.getMessage());
                 ex.printStackTrace();
+                err = true;
             } finally {
                 try {
                     if( null != in ) {
@@ -397,12 +558,21 @@ public class SMPKeyBin {
                     e.printStackTrace();
                 }
             }
-            return false;
+            if( err ) {
+                if( removeInvalidFile ) {
+                    file.delete();
+                }
+                if( verbose ) {
+                    BTUtils.println(System.err, "Read SMPKeyBin: Failed "+fname+" (removed "+removeInvalidFile+"): "+toString()+", remaining "+remaining);
+                }
+                size = 0; // explicitly mark invalid
+            } else {
+                if( verbose ) {
+                    BTUtils.println(System.err, "Read SMPKeyBin: OK "+fname+": "+toString()+", remaining "+remaining);
+                }
+            }
+            return err;
         }
-        final public boolean read(final String path, final BDAddressAndType addrAndType_) {
-            return read(path, getFileBasename(addrAndType_));
-        }
-
         final static private int read(final InputStream in, final byte[] buffer, final int rsize, final String fname) throws IOException {
             final int read_count = in.read(buffer, 0, rsize);
             if( read_count != rsize ) {
@@ -410,14 +580,30 @@ public class SMPKeyBin {
             }
             return read_count;
         }
+        final static private long getLong(final byte[] buffer, final int offset) throws IOException {
+            long res = 0;
+            for (int j = 0; j < 8; ++j) {
+                res |= ((long) buffer[offset+j] & 0xff) << j*8;
+            }
+            return res;
+        }
+        final static private void writeLong(final long value, final OutputStream out, final byte[] buffer) throws IOException {
+            for (int i = 0; i < 8; ++i) {
+                buffer[i] = (byte) (value >> i*8);
+            }
+            out.write(buffer, 0, 8);
+        }
 
         /**
          * If this instance isValid() and initiator or responder LTK available, i.e. hasLTKInit() or hasLTKResp(),
          * the following procedure will be applied to the given BTDevice:
          *
-         * - Setting security to BTSecurityLevel::ENC_ONLY and SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
-         * - Setting initiator LTK from getLTKInit() via BTDevice::setLongTermKeyInfo(), if available
-         * - Setting responder LTK from getLTKResp() via BTDevice::setLongTermKeyInfo(), if available
+         * - If BTSecurityLevel _is_ BTSecurityLevel::NONE
+         *   + Setting security to ::BTSecurityLevel::NONE and SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
+         * - else if BTSecurityLevel > BTSecurityLevel::NONE
+         *   + Setting security to ::BTSecurityLevel::ENC_ONLY and SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
+         *   + Setting initiator LTK from getLTKInit() via BTDevice::setLongTermKeyInfo(), if available
+         *   + Setting responder LTK from getLTKResp() via BTDevice::setLongTermKeyInfo(), if available
          *
          * If all three operations succeed, HCIStatusCode::SUCCESS will be returned,
          * otherwise the appropriate status code below.
@@ -455,25 +641,30 @@ public class SMPKeyBin {
         final public HCIStatusCode apply(final BTDevice device) {
             HCIStatusCode res = HCIStatusCode.SUCCESS;
 
-            if( !isValid() || ( !hasLTKInit() && !hasLTKResp() ) ) {
+            // Must be a valid SMPKeyBin instance and at least one LTK key if using encryption.
+            if( !isValid() || ( BTSecurityLevel.NONE != sec_level && !hasLTKInit() && !hasLTKResp() ) ) {
                 res = HCIStatusCode.INVALID_PARAMS;
                 if( verbose ) {
-                    BTUtils.println(System.err, "****** APPLY SMPKeyBin failed: SMPKeyBin Status: "+res+", "+toString());
+                    BTUtils.println(System.err, "Apply SMPKeyBin failed: SMPKeyBin Status: "+res+", "+toString());
                 }
                 return res;
             }
             if( !device.isValid() ) {
                 res = HCIStatusCode.INVALID_PARAMS;
                 if( verbose ) {
-                    BTUtils.println(System.err, "****** APPLY SMPKeyBin failed: Device Invalid: "+res+", "+toString()+", "+device);
+                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Device Invalid: "+res+", "+toString()+", "+device);
                 }
                 return res;
             }
 
-            if( !device.setConnSecurity(BTSecurityLevel.ENC_ONLY, SMPIOCapability.NO_INPUT_NO_OUTPUT) ) {
+            // Allow no encryption at all, i.e. BTSecurityLevel::NONE
+            final BTSecurityLevel applySecLevel = BTSecurityLevel.NONE == sec_level ?
+                                                  BTSecurityLevel.NONE : BTSecurityLevel.ENC_ONLY;
+
+            if( !device.setConnSecurity(applySecLevel, SMPIOCapability.NO_INPUT_NO_OUTPUT) ) {
                 res = HCIStatusCode.CONNECTION_ALREADY_EXISTS;
                 if( verbose ) {
-                    BTUtils.println(System.err, "****** APPLY SMPKeyBin failed: Device Connected/ing: "+res+", "+toString()+", "+device);
+                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Device Connected/ing: "+res+", "+toString()+", "+device);
                 }
                 return res;
             }
@@ -481,14 +672,14 @@ public class SMPKeyBin {
             if( hasLTKInit() ) {
                 res = device.setLongTermKeyInfo( getLTKInit() );
                 if( HCIStatusCode.SUCCESS != res && verbose ) {
-                    BTUtils.println(System.err, "****** APPLY SMPKeyBin failed: Init-LTK Upload: "+res+", "+toString()+", "+device);
+                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Init-LTK Upload: "+res+", "+toString()+", "+device);
                 }
             }
 
             if( HCIStatusCode.SUCCESS == res && hasLTKResp() ) {
                 res = device.setLongTermKeyInfo( getLTKResp() );
                 if( HCIStatusCode.SUCCESS != res && verbose ) {
-                    BTUtils.println(System.err, "****** APPLY SMPKeyBin failed: Resp-LTK Upload: "+res+", "+toString()+", "+device);
+                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Resp-LTK Upload: "+res+", "+toString()+", "+device);
                 }
             }
 

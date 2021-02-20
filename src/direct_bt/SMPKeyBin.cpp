@@ -38,6 +38,57 @@
 
 using namespace direct_bt;
 
+static bool file_exists(const std::string& name) {
+    std::ifstream f(name.c_str());
+    return f.good();
+}
+
+SMPKeyBin SMPKeyBin::create(const BTDevice& device) {
+    const BTSecurityLevel sec_lvl = device.getConnSecurityLevel();
+    const SMPPairingState pstate = device.getPairingState();
+    const PairingMode pmode = device.getPairingMode(); // Skip PairingMode::PRE_PAIRED (write again)
+
+    SMPKeyBin smpKeyBin(device.getAddressAndType(),
+                        device.getConnSecurityLevel(), device.getConnIOCapability());
+
+    if( ( BTSecurityLevel::NONE  < sec_lvl && SMPPairingState::COMPLETED == pstate && PairingMode::NEGOTIATING < pmode ) ||
+        ( BTSecurityLevel::NONE == sec_lvl && SMPPairingState::NONE == pstate && PairingMode::NONE == pmode  ) )
+    {
+        const SMPKeyType keys_resp = device.getAvailableSMPKeys(true /* responder */);
+        const SMPKeyType keys_init = device.getAvailableSMPKeys(false /* responder */);
+
+        if( ( SMPKeyType::ENC_KEY & keys_init ) != SMPKeyType::NONE ) {
+            smpKeyBin.setLTKInit( device.getLongTermKeyInfo(false /* responder */) );
+        }
+        if( ( SMPKeyType::ENC_KEY & keys_resp ) != SMPKeyType::NONE ) {
+            smpKeyBin.setLTKResp( device.getLongTermKeyInfo(true  /* responder */) );
+        }
+
+        if( ( SMPKeyType::SIGN_KEY & keys_init ) != SMPKeyType::NONE ) {
+            smpKeyBin.setCSRKInit( device.getSignatureResolvingKeyInfo(false /* responder */) );
+        }
+        if( ( SMPKeyType::SIGN_KEY & keys_resp ) != SMPKeyType::NONE ) {
+            smpKeyBin.setCSRKResp( device.getSignatureResolvingKeyInfo(true  /* responder */) );
+        }
+    } else {
+        smpKeyBin.size = 0; // explicitly mark invalid
+    }
+    return smpKeyBin;
+}
+
+bool SMPKeyBin::createAndWrite(const BTDevice& device, const std::string& path, const bool overwrite, const bool verbose_) {
+    SMPKeyBin smpKeyBin = SMPKeyBin::create(device);
+    if( smpKeyBin.isValid() ) {
+        smpKeyBin.setVerbose( verbose_ );
+        return smpKeyBin.write( getFilename(path, device.getAddressAndType()), overwrite );
+    } else {
+        if( verbose_ ) {
+            jau::fprintf_td(stderr, "Create SMPKeyBin: Invalid %s, %s\n", smpKeyBin.toString().c_str(), device.toString().c_str());
+        }
+        return false;
+    }
+}
+
 std::string SMPKeyBin::toString() const noexcept {
     std::string res = "SMPKeyBin["+addrAndType.toString()+", sec "+to_string(sec_level)+
                       ", io "+to_string(io_cap)+
@@ -71,36 +122,67 @@ std::string SMPKeyBin::toString() const noexcept {
         res += ", calc "+std::to_string( calcSize() );
     }
     res += ", valid "+std::to_string( isSizeValid() )+
-           "], valid "+std::to_string( isValid() )+"]";
+           "], ";
+    {
+        std::time_t t0 = static_cast<std::time_t>(ts_creation_sec);
+        struct std::tm tm_0;
+        if( nullptr == ::gmtime_r( &t0, &tm_0 ) ) {
+            res += "1970-01-01 00:00:00"; // 19 + 1
+        } else {
+            char b[20];
+            strftime(b, sizeof(b), "%Y-%m-%d %H:%M:%S", &tm_0);
+            res += std::string(b);
+        }
+    }
+    res += ", valid "+std::to_string( isValid() )+"]";
     return res;
 }
 
-bool SMPKeyBin::remove(const std::string& path, const std::string& basename) {
+bool SMPKeyBin::remove_impl(const std::string& fname) {
 #if USE_CXX17lib_FS
-    const fs::path fname = path+"/"+basename;
+    const fs::path fname2 = fname;
     return fs::remove(fname);
 #else
-    const std::string fname = path+"/"+basename;
     return 0 == std::remove( fname.c_str() );
 #endif
 }
 
-bool SMPKeyBin::write(const std::string& path, const std::string& basename) const noexcept {
+bool SMPKeyBin::write(const std::string& fname, const bool overwrite) const noexcept {
     if( !isValid() ) {
         if( verbose ) {
-            jau::fprintf_td(stderr, "****** WRITE SMPKeyBin: Invalid (skipped) %s\n", toString().c_str());
+            jau::fprintf_td(stderr, "Write SMPKeyBin: Invalid (skipped) %s\n", toString().c_str());
         }
         return false;
     }
-    const std::string fname = path+"/"+basename;
-    std::ofstream file(fname, std::ios::binary | std::ios::trunc);
-    uint8_t buffer[2];
+    if( file_exists(fname) ) {
+        if( overwrite ) {
+            if( !remove_impl(fname) ) {
+                jau::fprintf_td(stderr, "Write SMPKeyBin: Failed deletion of existing file %s, %s\n", fname.c_str(), toString().c_str());
+                return false;
+            }
+        } else {
+            jau::fprintf_td(stderr, "Write SMPKeyBin: Not overwriting existing file %s, %s\n", fname.c_str(), toString().c_str());
+            return false;
+        }
+    }
+    std::ofstream file(fname, std::ios::out | std::ios::binary);
+
+    if ( !file.good() || !file.is_open() ) {
+        if( verbose ) {
+            jau::fprintf_td(stderr, "Write SMPKeyBin: Failed: File not open %s: %s\n", fname.c_str(), toString().c_str());
+        }
+        return false;
+    }
+    uint8_t buffer[8];
 
     jau::put_uint16(buffer, 0, version, true /* littleEndian */);
     file.write((char*)buffer, sizeof(version));
 
     jau::put_uint16(buffer, 0, size, true /* littleEndian */);
     file.write((char*)buffer, sizeof(size));
+
+    jau::put_uint64(buffer, 0, ts_creation_sec, true /* littleEndian */);
+    file.write((char*)buffer, sizeof(ts_creation_sec));
 
     file.write((char*)&addrAndType.address, sizeof(addrAndType.address));
     file.write((char*)&addrAndType.type, sizeof(addrAndType.type));
@@ -124,24 +206,29 @@ bool SMPKeyBin::write(const std::string& path, const std::string& basename) cons
         file.write((char*)&csrk_resp, sizeof(csrk_resp));
     }
 
-    file.close();
+    const bool res = file.good() && file.is_open();
     if( verbose ) {
-        jau::fprintf_td(stderr, "****** WRITE SMPKeyBin: %s: %s\n", fname.c_str(), toString().c_str());
+        if( res ) {
+            jau::fprintf_td(stderr, "Write SMPKeyBin: Success: %s: %s\n", fname.c_str(), toString().c_str());
+        } else {
+            jau::fprintf_td(stderr, "Write SMPKeyBin: Failed: %s: %s\n", fname.c_str(), toString().c_str());
+        }
     }
-    return true;
+    file.close();
+    return res;
 }
 
-bool SMPKeyBin::read(const std::string& path, const std::string& basename) {
-    const std::string fname = path+"/"+basename;
+bool SMPKeyBin::read(const std::string& fname, const bool removeInvalidFile) {
     std::ifstream file(fname, std::ios::binary);
-    if (!file.is_open() ) {
+    if ( !file.is_open() ) {
         if( verbose ) {
-            jau::fprintf_td(stderr, "****** READ SMPKeyBin failed: %s\n", fname.c_str());
+            jau::fprintf_td(stderr, "Read SMPKeyBin failed: %s\n", fname.c_str());
         }
+        size = 0; // explicitly mark invalid
         return false;
     }
     bool err = false;
-    uint8_t buffer[2];
+    uint8_t buffer[8];
 
     file.read((char*)buffer, sizeof(version));
     version = jau::get_uint16(buffer, 0, true /* littleEndian */);
@@ -154,6 +241,14 @@ bool SMPKeyBin::read(const std::string& path, const std::string& basename) {
     }
     uint16_t remaining = size - sizeof(version) - sizeof(size);
 
+    if( !err && 8 <= remaining ) {
+        file.read((char*)buffer, sizeof(ts_creation_sec));
+        ts_creation_sec = jau::get_uint64(buffer, 0, true /* littleEndian */);
+        remaining -= 8;
+        err = file.fail();
+    } else {
+        err = true;
+    }
     if( !err && 11 <= remaining ) {
         file.read((char*)&addrAndType.address, sizeof(addrAndType.address));
         file.read((char*)&addrAndType.type, sizeof(addrAndType.type));
@@ -206,22 +301,37 @@ bool SMPKeyBin::read(const std::string& path, const std::string& basename) {
             err = true;
         }
     }
+    if( !err ) {
+        err = !isValid();
+    }
 
     file.close();
-    if( verbose ) {
-        jau::fprintf_td(stderr, "****** READ SMPKeyBin: %s: %s, remaining %u\n",
-                fname.c_str(), toString().c_str(), remaining);
+    if( err ) {
+        if( removeInvalidFile ) {
+            remove_impl( fname );
+        }
+        if( verbose ) {
+            jau::fprintf_td(stderr, "Read SMPKeyBin: Failed %s (removed %d): %s, remaining %u\n",
+                    fname.c_str(), removeInvalidFile, toString().c_str(), remaining);
+        }
+        size = 0; // explicitly mark invalid
+    } else {
+        if( verbose ) {
+            jau::fprintf_td(stderr, "Read SMPKeyBin: OK %s: %s, remaining %u\n",
+                    fname.c_str(), toString().c_str(), remaining);
+        }
     }
-    return isValid();
+    return err;
 }
 
 HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
     HCIStatusCode res = HCIStatusCode::SUCCESS;
 
-    if( !isValid() || ( !hasLTKInit() && !hasLTKResp() ) ) {
+    // Must be a valid SMPKeyBin instance and at least one LTK key if using encryption.
+    if( !isValid() || ( BTSecurityLevel::NONE != sec_level && !hasLTKInit() && !hasLTKResp() ) ) {
         res = HCIStatusCode::INVALID_PARAMS;
         if( verbose ) {
-            jau::fprintf_td(stderr, "****** APPLY SMPKeyBin failed: SMPKeyBin Status: %s, %s\n",
+            jau::fprintf_td(stderr, "Apply SMPKeyBin failed: SMPKeyBin Status: %s, %s\n",
                     to_string(res).c_str(), this->toString().c_str());
         }
         return res;
@@ -229,16 +339,20 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
     if( !device.isValid() ) {
         res = HCIStatusCode::INVALID_PARAMS;
         if( verbose ) {
-            jau::fprintf_td(stderr, "****** APPLY SMPKeyBin failed: Device Invalid: %s, %s, %s\n",
+            jau::fprintf_td(stderr, "Apply SMPKeyBin failed: Device Invalid: %s, %s, %s\n",
                     to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
         }
         return res;
     }
 
-    if( !device.setConnSecurity(BTSecurityLevel::ENC_ONLY, SMPIOCapability::NO_INPUT_NO_OUTPUT) ) {
+    // Allow no encryption at all, i.e. BTSecurityLevel::NONE
+    const BTSecurityLevel applySecLevel = BTSecurityLevel::NONE == sec_level ?
+                                          BTSecurityLevel::NONE : BTSecurityLevel::ENC_ONLY;
+
+    if( !device.setConnSecurity(applySecLevel, SMPIOCapability::NO_INPUT_NO_OUTPUT) ) {
         res = HCIStatusCode::CONNECTION_ALREADY_EXISTS;
         if( verbose ) {
-            jau::fprintf_td(stderr, "****** APPLY SMPKeyBin failed: Device Connected/ing: %s, %s, %s\n",
+            jau::fprintf_td(stderr, "Apply SMPKeyBin failed: Device Connected/ing: %s, %s, %s\n",
                     to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
         }
         return res;
@@ -247,7 +361,7 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
     if( hasLTKInit() ) {
         res = device.setLongTermKeyInfo( getLTKInit() );
         if( HCIStatusCode::SUCCESS != res && verbose ) {
-            jau::fprintf_td(stderr, "****** APPLY SMPKeyBin failed: Init-LTK Upload: %s, %s, %s\n",
+            jau::fprintf_td(stderr, "Apply SMPKeyBin failed: Init-LTK Upload: %s, %s, %s\n",
                     to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
         }
     }
@@ -255,7 +369,7 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
     if( HCIStatusCode::SUCCESS == res && hasLTKResp() ) {
         res = device.setLongTermKeyInfo( getLTKResp() );
         if( HCIStatusCode::SUCCESS != res && verbose ) {
-            jau::fprintf_td(stderr, "****** APPLY SMPKeyBin failed: Resp-LTK Upload: %s, %s, %s\n",
+            jau::fprintf_td(stderr, "Apply SMPKeyBin failed: Resp-LTK Upload: %s, %s, %s\n",
                     to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
         }
     }
