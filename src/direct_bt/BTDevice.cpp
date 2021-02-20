@@ -278,6 +278,8 @@ std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo() noexcept {
     return connInfo;
 }
 
+// #define TEST_NOENC 1
+
 HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
                                    uint16_t conn_interval_min, uint16_t conn_interval_max,
                                    uint16_t conn_latency, uint16_t supervision_timeout) noexcept
@@ -363,8 +365,14 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
                 sec_level = BTSecurityLevel::ENC_AUTH;
                 io_cap    = smp_auto_io_cap;
             } else if( BTSecurityLevel::ENC_AUTH == sec_level || BTSecurityLevel::UNSET == sec_level ) {
+#if TEST_NOENC
+                sec_level = BTSecurityLevel::NONE;
+                io_cap    = SMPIOCapability::NO_INPUT_NO_OUTPUT;
+                smp_auto_done = true;
+#else
                 sec_level = BTSecurityLevel::ENC_ONLY;
                 io_cap    = SMPIOCapability::NO_INPUT_NO_OUTPUT;
+#endif
             } else if( BTSecurityLevel::ENC_ONLY == sec_level ) {
                 sec_level = BTSecurityLevel::NONE;
                 io_cap    = SMPIOCapability::NO_INPUT_NO_OUTPUT;
