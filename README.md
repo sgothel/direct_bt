@@ -343,9 +343,16 @@ make doc
 Changes
 ============
 
-**2.3.00 *Direct-BT* Maturity (Bluetooth LE)**
+**2.3.0 *Direct-BT* Maturity (Bluetooth LE)**
 
 * TODO
+
+**2.2.5**
+
+* Complete SMPKeyBin user API: Convenient static 'one shot' entries + support no-encryption case
+* Fix leaked AdapterStatusListener
+* Fixed HCIHandler and l2cap related issues
+* Unified free function to_string(..) and member toString()
 * Tested key regeneration use-case: Pairing failure (bad key), key removal and auto security negotiation.
 * Adding SMPKeyBin file removal support.
 * Tested negative passkey/boolean input, requested via auto security negotiation. 
