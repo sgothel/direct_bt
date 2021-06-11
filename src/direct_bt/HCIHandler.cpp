@@ -553,7 +553,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
   dev_id(dev_id_),
   rbuffer(HCI_MAX_MTU),
   comm(dev_id_, HCI_CHANNEL_RAW),
-  hciEventRing(env.HCI_EVT_RING_CAPACITY), hciReaderShallStop(false),
+  hciEventRing(nullptr, env.HCI_EVT_RING_CAPACITY), hciReaderShallStop(false),
   hciReaderThreadId(0), hciReaderRunning(false),
   allowClose( comm.isOpen() ),
   btMode(btMode_),

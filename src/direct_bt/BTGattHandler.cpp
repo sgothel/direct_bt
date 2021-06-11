@@ -281,7 +281,7 @@ BTGattHandler::BTGattHandler(const std::shared_ptr<BTDevice> &device, L2CAPComm&
   deviceString(device->getAddressAndType().toString()),
   rbuffer(number(Defaults::MAX_ATT_MTU)),
   is_connected(l2cap.isOpen()), has_ioerror(false),
-  attPDURing(env.ATTPDU_RING_CAPACITY), l2capReaderShallStop(false),
+  attPDURing(nullptr, env.ATTPDU_RING_CAPACITY), l2capReaderShallStop(false),
   l2capReaderThreadId(0), l2capReaderRunning(false),
   serverMTU(number(Defaults::MIN_ATT_MTU)), usedMTU(number(Defaults::MIN_ATT_MTU))
 {

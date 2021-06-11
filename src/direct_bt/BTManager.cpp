@@ -376,7 +376,7 @@ BTManager::BTManager(const BTMode _defaultBTMode) noexcept
 : env(MgmtEnv::get()),
   defaultBTMode(BTMode::NONE != _defaultBTMode ? _defaultBTMode : env.DEFAULT_BTMODE),
   rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
-  mgmtEventRing(env.MGMT_EVT_RING_CAPACITY), mgmtReaderShallStop(false),
+  mgmtEventRing(nullptr, env.MGMT_EVT_RING_CAPACITY), mgmtReaderShallStop(false),
   mgmtReaderThreadId(0), mgmtReaderRunning(false),
   allowClose( comm.isOpen() )
 {
