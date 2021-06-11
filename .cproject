@@ -22,7 +22,7 @@
 					<folderInfo id="cdt.managedbuild.config.gnu.so.debug.368873367." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.so.debug.1276064502" name="Linux GCC" nonInternalBuilderId="cdt.managedbuild.target.gnu.builder.so.debug" superClass="cdt.managedbuild.toolchain.gnu.so.debug">
 							<targetPlatform id="cdt.managedbuild.target.gnu.platform.so.debug.1970401811" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.so.debug"/>
-							<builder autoBuildTarget="" buildPath="${workspace_loc:/direct_bt}/Debug" cleanBuildTarget="" enableAutoBuild="false" enableCleanBuild="true" enabledIncrementalBuild="true" id="org.eclipse.cdt.build.core.internal.builder.1216391278" incrementalBuildTarget="" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CDT Internal Builder" parallelBuildOn="false" superClass="org.eclipse.cdt.build.core.internal.builder"/>
+							<builder autoBuildTarget="" buildPath="${workspace_loc:/direct_bt}/Debug" cleanBuildTarget="" enableAutoBuild="false" enableCleanBuild="true" enabledIncrementalBuild="true" id="org.eclipse.cdt.build.core.internal.builder.1216391278" incrementalBuildTarget="" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CDT Internal Builder" parallelBuildOn="false" stopOnErr="false" superClass="org.eclipse.cdt.build.core.internal.builder"/>
 							<tool id="cdt.managedbuild.tool.gnu.archiver.base.704612215" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.so.debug.1624002274" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.so.debug">
 								<option id="gnu.cpp.compiler.so.debug.option.optimization.level.1251211632" name="Optimization Level" superClass="gnu.cpp.compiler.so.debug.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
@@ -148,8 +148,9 @@
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="api/direct_bt"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="api/ieee11073"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="examples/direct_bt_scanner10"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="jaulib/include"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="jaulib/src"/>
-						<entry excluding="direct_bt" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="java/jni"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="java/jni"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/direct_bt"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/ieee11073"/>
 						<entry excluding="ieee11073/" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="test"/>
@@ -391,6 +392,7 @@
 		<configuration configurationName="Release">
 			<resource resourceType="PROJECT" workspacePath="/direct_bt"/>
 		</configuration>
+		<configuration configurationName="GProf"/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets">
