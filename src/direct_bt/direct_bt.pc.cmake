@@ -4,8 +4,8 @@ libdir=${exec_prefix}/lib@LIB_SUFFIX@
 includedir=${prefix}/include/direct_bt
 
 Name: direct_bt
-Description: Tiny BLE HCI library
-Version: @tinyb_VERSION_STRING@
+Description: Direct-BT LE and BREDR library
+Version: @direct_bt_VERSION_STRING@
 
-Libs: -L${libdir} -ltinyb
+Libs: -L${libdir} -ldirect_bt
 Cflags: -I${includedir}
