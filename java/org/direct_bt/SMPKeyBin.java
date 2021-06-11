@@ -46,6 +46,16 @@ import org.direct_bt.SMPKeyMask.KeyType;
  * implementation supports mixed mode for certain devices.
  * E.g. LTK responder key only etc.
  * </p>
+ * <p>
+ * Filename as retrieved by {@link #getFileBasename(BDAddressAndType)} and {@link #getFileBasename()}
+ * has the following form '{@code bd_C0_26_DA_01_DA_B1_1-smpkey.bin}':
+ * <ul>
+ * <li>{@code 'bd_'} denotes prefix</li>
+ * <li>{@code 'C0_26_DA_01_DA_B1'} denotes the {@link EUI48} address</li>
+ * <li>{@code '_1'} denotes the {@link BDAddressType}</li>
+ * <li>{@code '-smpkey.bin'} denotes the suffix</li>
+ * </li>
+ * </p>
  */
 public class SMPKeyBin {
         public static final short VERSION = (short)0b0101010101010101 + (short)2; // bitpattern + version
@@ -325,11 +335,19 @@ public class SMPKeyBin {
                    ( !hasLTKResp() || ltk_resp.isValid() );
         }
 
+        /**
+         * Returns the base filename, see {@link SMPKeyBin} API doc for naming scheme.
+         */
         final public String getFileBasename() {
-            return "bd_"+addrAndType.address.toString()+":"+addrAndType.type.value+".smpkey.bin";
+            final String r = "bd_"+addrAndType.address.toString()+":"+addrAndType.type.value+"-smpkey.bin";
+            return r.replace(':', '_');
         }
+        /**
+         * Returns the base filename, see {@link SMPKeyBin} API doc for naming scheme.
+         */
         final public static String getFileBasename(final BDAddressAndType addrAndType_) {
-            return "bd_"+addrAndType_.address.toString()+":"+addrAndType_.type.value+".smpkey.bin";
+            final String r = "bd_"+addrAndType_.address.toString()+":"+addrAndType_.type.value+"-smpkey.bin";
+            return r.replace(':', '_');
         }
         final public static String getFilename(final String path, final BDAddressAndType addrAndType_) {
             return path + "/" + getFileBasename(addrAndType_);

@@ -48,6 +48,16 @@ namespace direct_bt {
  * implementation supports mixed mode for certain devices.
  * E.g. LTK responder key only etc.
  * </p>
+ * <p>
+ * Filename as retrieved by SMPKeyBin::getFileBasename()
+ * has the following form `bd_C0_26_DA_01_DA_B1_1-smpkey.bin`:
+ * <ul>
+ * <li>{@code 'bd_'} denotes prefix</li>
+ * <li>{@code 'C0_26_DA_01_DA_B1'} denotes the {@link EUI48} address</li>
+ * <li>{@code '_1'} denotes the {@link BDAddressType}</li>
+ * <li>{@code '-smpkey.bin'} denotes the suffix</li>
+ * </li>
+ * </p>
  */
 class SMPKeyBin {
     public:
@@ -276,12 +286,16 @@ class SMPKeyBin {
 
         std::string toString() const noexcept;
 
-        std::string getFileBasename() const noexcept {
-            return "bd_"+addrAndType.address.toString()+":"+std::to_string(number(addrAndType.type))+".smpkey.bin";
-        }
-        static std::string getFileBasename(const BDAddressAndType& addrAndType_) {
-            return "bd_"+addrAndType_.address.toString()+":"+std::to_string(number(addrAndType_.type))+".smpkey.bin";
-        }
+        /**
+         * Returns the base filename, see SMPKeyBin API doc for naming scheme.
+         */
+        std::string getFileBasename() const noexcept;
+
+        /**
+         * Returns the base filename, see SMPKeyBin API doc for naming scheme.
+         */
+        static std::string getFileBasename(const BDAddressAndType& addrAndType_);
+
         static std::string getFilename(const std::string& path, const BDAddressAndType& addrAndType_) {
             return path + "/" + getFileBasename(addrAndType_);
         }

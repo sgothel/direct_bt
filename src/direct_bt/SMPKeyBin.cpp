@@ -138,6 +138,17 @@ std::string SMPKeyBin::toString() const noexcept {
     return res;
 }
 
+std::string SMPKeyBin::getFileBasename() const noexcept {
+    std::string r("bd_"+addrAndType.address.toString()+":"+std::to_string(number(addrAndType.type))+"-smpkey.bin");
+    std::replace( r.begin(), r.end(), ':', '_');
+    return r;
+}
+std::string SMPKeyBin::getFileBasename(const BDAddressAndType& addrAndType_) {
+    std::string r("bd_"+addrAndType_.address.toString()+":"+std::to_string(number(addrAndType_.type))+"-smpkey.bin");
+    std::replace( r.begin(), r.end(), ':', '_');
+    return r;
+}
+
 bool SMPKeyBin::remove_impl(const std::string& fname) {
 #if USE_CXX17lib_FS
     const fs::path fname2 = fname;
