@@ -537,7 +537,8 @@ public class DBTAdapter extends DBTObject implements BTAdapter
         printDeviceListsImpl();
         List<WeakReference<BTDevice>> _discoveredDevices;
         synchronized(discoveredDevicesLock) {
-            _discoveredDevices = discoveredDevices;
+            // Shallow (but expensive) copy to avoid java.util.ConcurrentModificationException while iterating: debug mode only
+            _discoveredDevices = new ArrayList<WeakReference<BTDevice>>(discoveredDevices);
         }
         final int sz = _discoveredDevices.size();
         BTUtils.fprintf_td(System.err, "- BTAdapter::DiscoveredDevicesJ: %d elements%s", sz, System.lineSeparator());
