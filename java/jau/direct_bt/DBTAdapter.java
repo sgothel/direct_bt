@@ -548,7 +548,8 @@ public class DBTAdapter extends DBTObject implements BTAdapter
             if( null == d ) {
                 BTUtils.fprintf_td(System.err, "  - %d / %d: nil%s", (idx+1), sz, System.lineSeparator());
             } else {
-                BTUtils.fprintf_td(System.err, "  - %d / %d: %s%s", (idx+1), sz, d.getAddressAndType().toString(), System.lineSeparator());
+                BTUtils.fprintf_td(System.err, "  - %d / %d: %s, name '%s'%s", (idx+1), sz,
+                        d.getAddressAndType().toString(), d.getName(), System.lineSeparator());
             }
         }
     }

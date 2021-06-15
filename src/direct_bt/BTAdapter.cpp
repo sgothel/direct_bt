@@ -296,7 +296,9 @@ void BTAdapter::printDeviceList(const std::string& prefix, const BTAdapter::devi
     jau::PLAIN_PRINT(true, "- BTAdapter::%s: %zu elements", prefix.c_str(), sz);
     int idx = 0;
     for (auto it = list.begin(); it != list.end(); ++idx, ++it) {
-        jau::PLAIN_PRINT(true, "  - %d / %zu: %s", (idx+1), sz, (*it)->getAddressAndType().toString().c_str());
+        jau::PLAIN_PRINT(true, "  - %d / %zu: %s, name '%s'", (idx+1), sz,
+                (*it)->getAddressAndType().toString().c_str(),
+                (*it)->getName().c_str() );
     }
 }
 void BTAdapter::printDeviceLists() noexcept {
