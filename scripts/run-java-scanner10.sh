@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# JAVA_PROPS="-Dorg.direct_bt.debug=true -Dorg.direct_bt.verbose=true"
+
 # export direct_bt_debug=true
 # export direct_bt_debug=adapter.event=false,gatt.data=false,hci.event=false,mgmt.event=false
 # export direct_bt_debug=adapter.event,gatt.data,hci.event,mgmt.event
@@ -86,7 +88,7 @@ runit() {
 
     sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
         --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
-        -- -c "ulimit -c unlimited; $VALGRIND $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*"
+        -- -c "ulimit -c unlimited; $VALGRIND $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*"
 
 }
 
