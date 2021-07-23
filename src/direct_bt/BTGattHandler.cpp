@@ -665,9 +665,8 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     PERF_TS_T0();
 
-    bool done=false;
     const int charCount = service->characteristicList.size();
-    for(int charIter=0; !done && charIter < charCount; charIter++ ) {
+    for(int charIter=0; charIter < charCount; charIter++ ) {
         BTGattCharRef charDecl = service->characteristicList[charIter];
         charDecl->clearDescriptors();
         COND_PRINT(env.DEBUG_DATA, "GATT discoverDescriptors Characteristic[%d/%d]: %s on %s", charIter, charCount, charDecl->toString().c_str(), deviceString.c_str());
@@ -679,6 +678,8 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) {
         } else {
             cd_handle_end = service->endHandle;
         }
+
+        bool done=false;
 
         while( !done && cd_handle_iter <= cd_handle_end ) {
             const AttFindInfoReq req(cd_handle_iter, cd_handle_end);
