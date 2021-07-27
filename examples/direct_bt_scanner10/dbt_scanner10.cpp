@@ -914,7 +914,7 @@ int main(int argc, char *argv[])
                     "[-unpairPre] [-unpairPost] "
                     "[-charid <uuid>] [-charval <byte-val>] "
                     "[-dbt_verbose true|false] "
-                    "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,mgmt.event] "
+                    "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event] "
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,...] "
                     "[-dbt_hci cmd.complete.timeout=10000,cmd.status.timeout=3000,ringsize=64,...] "
                     "[-dbt_gatt cmd.read.timeout=500,cmd.write.timeout=500,cmd.init.timeout=2500,ringsize=128,...] "

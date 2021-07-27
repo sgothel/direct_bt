@@ -1391,17 +1391,10 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
     COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(dev_id %d): %s", dev_id, e.toString().c_str());
     const MgmtEvtDeviceFound &deviceFoundEvent = *static_cast<const MgmtEvtDeviceFound *>(&e);
 
-    std::shared_ptr<EInfoReport> eir = deviceFoundEvent.getEIR();
+    const EInfoReport* eir = deviceFoundEvent.getEIR();
     if( nullptr == eir ) {
-        // Sourced from Linux Mgmt or otherwise ...
-        eir = std::make_shared<EInfoReport>();
-        eir->setSource(EInfoReport::Source::EIR_MGMT);
-        eir->setTimestamp(deviceFoundEvent.getTimestamp());
-        eir->setEvtType(AD_PDU_Type::ADV_IND);
-        eir->setAddressType(deviceFoundEvent.getAddressType());
-        eir->setAddress( deviceFoundEvent.getAddress() );
-        eir->setRSSI( deviceFoundEvent.getRSSI() );
-        eir->read_data(deviceFoundEvent.getData(), deviceFoundEvent.getDataSize());
+        // Sourced from Linux Mgmt, which we don't support
+        ABORT("BTAdapter:hci:DeviceFound: Not sourced from LE_ADVERTISING_REPORT: %s", deviceFoundEvent.toString().c_str());
     } // else: Sourced from HCIHandler via LE_ADVERTISING_REPORT (default!)
 
     std::shared_ptr<BTDevice> dev = findDiscoveredDevice(eir->getAddress(), eir->getAddressType());

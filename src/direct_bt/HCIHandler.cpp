@@ -65,6 +65,7 @@ HCIEnv::HCIEnv() noexcept
   HCI_COMMAND_POLL_PERIOD( jau::environment::getInt32Property("direct_bt.hci.cmd.poll.period", 125, 50 /* min */, INT32_MAX /* max */) ),
   HCI_EVT_RING_CAPACITY( jau::environment::getInt32Property("direct_bt.hci.ringsize", 64, 64 /* min */, 1024 /* max */) ),
   DEBUG_EVENT( jau::environment::getBooleanProperty("direct_bt.debug.hci.event", false) ),
+  DEBUG_SCAN_AD_EIR( jau::environment::getBooleanProperty("direct_bt.debug.hci.scan_ad_eir", false) ),
   HCI_READ_PACKET_MAX_RETRY( HCI_EVT_RING_CAPACITY )
 {
 }
@@ -423,12 +424,12 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                 hciEventRing.putBlocking( std::move( event ) );
             } else if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
                 // issue callbacks for the translated AD events
-                jau::darray<std::shared_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
-                jau::for_each_idx(eirlist, [&](std::shared_ptr<EInfoReport> & eir) {
-                    // COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (AD EIR) %s", eir->toString().c_str());
-                    const MgmtEvtDeviceFound e(dev_id, eir);
+                jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
+                for(jau::nsize_t eircount = eirlist.size(); eircount>0; --eircount) {
+                    const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[0] ) );
+                    COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler-IO RECV (AD EIR) %s", e.getEIR()->toString().c_str());
                     sendMgmtEvent( e );
-                });
+                }
             } else {
                 // issue a callback for the translated event
                 std::unique_ptr<MgmtEvent> mevent = translate(*event);

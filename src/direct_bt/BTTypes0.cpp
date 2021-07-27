@@ -848,9 +848,9 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
     return count;
 }
 
-jau::darray<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept {
+jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept {
     jau::nsize_t const num_reports = (jau::nsize_t) data[0];
-    jau::darray<std::shared_ptr<EInfoReport>> ad_reports;
+    jau::darray<std::unique_ptr<EInfoReport>> ad_reports;
 
     if( 0 == num_reports || num_reports > 0x19 ) {
         DBG_PRINT("AD-Reports: Invalid reports count: %d", num_reports);
@@ -865,7 +865,7 @@ jau::darray<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
     const uint64_t timestamp = jau::getCurrentMilliseconds();
 
     for(i = 0; i < num_reports && i_octets < limes; i++) {
-        ad_reports.push_back( std::make_shared<EInfoReport>() );
+        ad_reports.push_back( std::make_unique<EInfoReport>() );
         ad_reports[i]->setSource(Source::AD);
         ad_reports[i]->setTimestamp(timestamp);
         ad_reports[i]->setEvtType(static_cast<AD_PDU_Type>(*i_octets++));

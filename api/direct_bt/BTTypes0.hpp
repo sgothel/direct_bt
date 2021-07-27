@@ -699,7 +699,7 @@ namespace direct_bt {
          * https://www.bluetooth.com/specifications/archived-specifications/
          * </p>
          */
-        static jau::darray<std::shared_ptr<EInfoReport>> read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept;
+        static jau::darray<std::unique_ptr<EInfoReport>> read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept;
 
         /**
          * Reads the Extended Inquiry Response (EIR) or Advertising Data (AD) segments

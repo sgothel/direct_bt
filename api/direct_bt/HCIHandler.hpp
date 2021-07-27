@@ -126,6 +126,14 @@ namespace direct_bt {
              */
             const bool DEBUG_EVENT;
 
+            /**
+             * Debug all scanned HCI 'Advertising Data' (AD) 'Extended Inquiry Response' (EIR) packages.
+             * <p>
+             * Environment variable is 'direct_bt.debug.hci.scan_ad_eir'.
+             * </p>
+             */
+            const bool DEBUG_SCAN_AD_EIR;
+
         private:
             /** Maximum number of packets to wait for until matching a sequential command. Won't block as timeout will limit. */
             const int32_t HCI_READ_PACKET_MAX_RETRY;

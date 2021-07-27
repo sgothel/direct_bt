@@ -1,15 +1,28 @@
 #!/bin/sh
 
 # export direct_bt_debug=true
-# export direct_bt_debug=adapter.event=false,gatt.data=false,hci.event=true,mgmt.event=false
-# export direct_bt_debug=adapter.event,gatt.data,hci.event,mgmt.event
+# export direct_bt_debug=adapter.event=false,gatt.data=false,hci.event=true,hci.scan_ad_eir=true,mgmt.event=false
+# export direct_bt_debug=adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event
 # export direct_bt_debug=adapter.event,gatt.data
 # export direct_bt_debug=adapter.event,hci.event
 # export direct_bt_debug=adapter.event
 #
-# ../scripts/run-dbt_scanner10.sh -wait -mac C0:26:DA:01:DA:B1 2>&1 | tee ~/scanner-h01-dbt10.log
-# ../scripts/run-dbt_scanner10.sh -wait -wl C0:26:DA:01:DA:B1 2>&1 | tee ~/scanner-h01-dbt10.log
-# ../scripts/run-dbt_scanner10.sh -wait 2>&1 | tee ~/scanner-h01-dbt10.log
+# Default logfile in ~/run-dbt_scanner10.log
+# 
+# Scan and read all devices (using default auto-sec w/ keyboard iocap)
+# ../scripts/run-dbt_scanner10.sh
+#
+# Read device C0:26:DA:01:DA:B1  (using default auto-sec w/ keyboard iocap)
+# ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1
+#
+# Read device C0:26:DA:01:DA:B1  (enforcing no security)
+# ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1 -seclevel C0:26:DA:01:DA:B1 1 1
+#
+# Read device C0:26:DA:01:DA:B1, basic debug flags enabled (using default auto-sec w/ keyboard iocap)
+# ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1 -dbt_debug true
+#
+# Read device C0:26:DA:01:DA:B1, all debug flags enabled (using default auto-sec w/ keyboard iocap)
+# ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1 -dbt_debug adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event
 #
 # To do a BT adapter removal/add via software, assuming the device is '1-4' (Bus 1.Port 4):
 #   echo '1-4' > /sys/bus/usb/drivers/usb/unbind 

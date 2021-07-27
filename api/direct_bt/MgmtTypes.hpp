@@ -1769,7 +1769,7 @@ namespace direct_bt {
     class MgmtEvtDeviceFound : public MgmtEvent
     {
         private:
-            std::shared_ptr<EInfoReport> eireport;
+            std::unique_ptr<EInfoReport> eireport;
 
         protected:
             std::string baseString() const noexcept override {
@@ -1785,24 +1785,22 @@ namespace direct_bt {
 
         public:
             MgmtEvtDeviceFound(const uint8_t* buffer, const jau::nsize_t buffer_len)
-            : MgmtEvent(buffer, buffer_len, 14)
+            : MgmtEvent(buffer, buffer_len, 14), eireport(nullptr)
             {
                 checkOpcode(getOpcode(), Opcode::DEVICE_FOUND);
-                eireport = nullptr;
             }
-            MgmtEvtDeviceFound(const uint16_t dev_id, std::shared_ptr<EInfoReport> eir)
-            : MgmtEvent(Opcode::DEVICE_FOUND, dev_id, 6+1+1+4+2+0)
+            MgmtEvtDeviceFound(const uint16_t dev_id, std::unique_ptr<EInfoReport> && eir)
+            : MgmtEvent(Opcode::DEVICE_FOUND, dev_id, 6+1+1+4+2+0), eireport(std::move(eir))
             {
-                pdu.put_eui48_nc(MGMT_HEADER_SIZE, eir->getAddress());
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(eir->getAddressType()));
-                pdu.put_int8_nc(MGMT_HEADER_SIZE+6+1, eir->getRSSI());
-                pdu.put_uint32_nc(MGMT_HEADER_SIZE+6+1+1, eir->getFlags()); // EIR flags only 8bit, Mgmt uses 32bit?
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, eireport->getAddress());
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(eireport->getAddressType()));
+                pdu.put_int8_nc(MGMT_HEADER_SIZE+6+1, eireport->getRSSI());
+                pdu.put_uint32_nc(MGMT_HEADER_SIZE+6+1+1, eireport->getFlags()); // EIR flags only 8bit, Mgmt uses 32bit?
                 pdu.put_uint16_nc(MGMT_HEADER_SIZE+6+1+1+4, 0); // eir_len
-                eireport = eir;
             }
 
-            /** Returns the EInfoReport, assuming creation occurred via HCIHandler. Otherwise nullptr. */
-            std::shared_ptr<EInfoReport> getEIR() const noexcept { return eireport; }
+            /** Returns reference to the immutable EInfoReport, assuming creation occurred via HCIHandler. Otherwise nullptr. */
+            const EInfoReport* getEIR() const noexcept { return eireport.get(); }
 
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
