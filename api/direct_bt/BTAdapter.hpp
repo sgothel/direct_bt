@@ -322,7 +322,6 @@ namespace direct_bt {
             friend std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo() noexcept;
             friend void BTDevice::sendMgmtEvDeviceDisconnected(std::unique_ptr<MgmtEvent> evt) noexcept;
             friend HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept;
-            friend void BTDevice::remove() noexcept;
             friend HCIStatusCode BTDevice::connectLE(uint16_t interval, uint16_t window,
                                                       uint16_t min_interval, uint16_t max_interval,
                                                       uint16_t latency, uint16_t supervision_timeout) noexcept;
