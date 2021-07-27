@@ -1477,12 +1477,45 @@ namespace direct_bt {
 }
 
 /** \example dbt_scanner10.cpp
- * This C++ scanner example uses the Direct-BT fully event driven workflow
+ * This _dbt_scanner10_ C++ scanner example uses the Direct-BT fully event driven workflow
  * and adds multithreading, i.e. one thread processes each found device found
  * as notified via the event listener.
- * <p>
- * This example represents the recommended utilization of Direct-BT.
- * </p>
+ *
+ * _dbt_scanner10_ represents the recommended utilization of Direct-BT.
+ *
+ * ### dbt_scanner10 Invocation Examples:
+ * Using `scripts/run-dbt_scanner10.sh` from `dist` directory:
+ * * Scan and read all devices (using default auto-sec w/ keyboard iocap)
+ *   ~~~
+ *   ../scripts/run-dbt_scanner10.sh
+ *   ~~~
+ *
+ * * Read device C0:26:DA:01:DA:B1  (using default auto-sec w/ keyboard iocap)
+ *   ~~~
+ *   ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1
+ *   ~~~
+ *
+ * * Read device C0:26:DA:01:DA:B1  (enforcing no security)
+ *   ~~~
+ *   ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1 -seclevel C0:26:DA:01:DA:B1 1 1
+ *   ~~~
+ *
+ * * Read device C0:26:DA:01:DA:B1, basic debug flags enabled (using default auto-sec w/ keyboard iocap)
+ *   ~~~
+ *   ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1 -dbt_debug true
+ *   ~~~
+ *
+ * * Read device C0:26:DA:01:DA:B1, all debug flags enabled (using default auto-sec w/ keyboard iocap)
+ *   ~~~
+ *   ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1 -dbt_debug adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event
+ *   ~~~
+ *
+ * ## Special Actions
+ * * To do a BT adapter removal/add via software, assuming the device is '1-4' (Bus 1.Port 4):
+ *   ~~~
+ *   echo '1-4' > /sys/bus/usb/drivers/usb/unbind
+ *   echo '1-4' > /sys/bus/usb/drivers/usb/bind
+ *   ~~~
  */
 
  /** \example dbt_scanner00.cpp
