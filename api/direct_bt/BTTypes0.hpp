@@ -581,6 +581,27 @@ namespace direct_bt {
     // *************************************************
 
     /**
+     * GAP Flags values, see Bluetooth Core Specification Supplement V9, Part A: 1.3, p 12 pp
+     */
+    enum class GAPFlags : uint8_t {
+        NONE                   = 0,
+        LE_Ltd_Discoverable    = (1 << 0),
+        LE_Gen_Discoverable    = (1 << 1),
+        BREDR_UNSUPPORTED      = (1 << 2),
+        DUAL_LE_BREDR_SameCtrl = (1 << 3),
+        DUAL_LE_BREDR_SameHost = (1 << 4),
+        RESERVED1              = (1 << 5),
+        RESERVED2              = (1 << 6),
+        RESERVED3              = (1 << 7)
+    };
+    constexpr uint8_t number(const GAPFlags rhs) noexcept { return static_cast<uint8_t>(rhs); }
+    std::string to_string(const GAPFlags v) noexcept;
+
+    // *************************************************
+    // *************************************************
+    // *************************************************
+
+    /**
      * Bit mask of 'Extended Inquiry Response' (EIR) data fields,
      * indicating a set of related data.
      */
@@ -647,7 +668,7 @@ namespace direct_bt {
         BDAddressType addressType = BDAddressType::BDADDR_UNDEFINED;
         EUI48 address;
 
-        uint8_t flags = 0;
+        GAPFlags flags = GAPFlags::NONE;
         std::string name;
         std::string name_short;
         int8_t rssi = 127; // The core spec defines 127 as the "not available" value
@@ -664,7 +685,7 @@ namespace direct_bt {
         uint16_t did_version = 0;
 
         void set(EIRDataType bit) noexcept { eir_data_mask = eir_data_mask | bit; }
-        void setFlags(uint8_t f) noexcept { flags = f; set(EIRDataType::FLAGS); }
+        void setFlags(GAPFlags f) noexcept { flags = f; set(EIRDataType::FLAGS); }
         void setName(const uint8_t *buffer, int buffer_len) noexcept;
         void setShortName(const uint8_t *buffer, int buffer_len) noexcept;
         void setTxPower(int8_t v) noexcept { tx_power = v; set(EIRDataType::TX_POWER); }
@@ -717,10 +738,10 @@ namespace direct_bt {
          * </pre>
          * </p>
          * <p>
-         * See Bluetooth Core Specification V5.2 [Vol. 3, Part C, 11, p 1392]
-         * and Bluetooth Core Specification Supplement V9, Part A: 1, p 9 + 2 Examples, p25..
-         * and "Assigned Numbers - Generic Access Profile"
-         * <https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/>
+         * * See Bluetooth Core Specification V5.2 [Vol. 3, Part C, Section 8]
+         * * and Bluetooth Core Specification V5.2 [Vol. 3, Part C, Section 11]
+         * * and Bluetooth Core Specification Supplement V9, Part A: Section 1 + 2 Examples, p25..
+         * * and [Assigned Numbers - Generic Access Profile](https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/)
          * </p>
          * <p>
          * https://www.bluetooth.com/specifications/archived-specifications/
@@ -734,7 +755,7 @@ namespace direct_bt {
         EIRDataType getEIRDataMask() const noexcept { return eir_data_mask; }
 
         AD_PDU_Type getEvtType() const noexcept { return evt_type; }
-        uint8_t getFlags() const noexcept { return flags; }
+        GAPFlags getFlags() const noexcept { return flags; }
         uint8_t getADAddressType() const noexcept { return ad_address_type; }
         BDAddressType getAddressType() const noexcept { return addressType; }
         EUI48 const & getAddress() const noexcept { return address; }

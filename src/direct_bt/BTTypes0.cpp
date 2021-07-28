@@ -541,6 +541,45 @@ std::string ManufactureSpecificData::toString() const noexcept {
 // *************************************************
 // *************************************************
 
+#define GAPFLAGS_ENUM(X) \
+    X(GAPFlags,NONE) \
+    X(GAPFlags,LE_Ltd_Discoverable) \
+    X(GAPFlags,LE_Gen_Discoverable) \
+    X(GAPFlags,BREDR_UNSUPPORTED) \
+    X(GAPFlags,DUAL_LE_BREDR_SameCtrl) \
+    X(GAPFlags,DUAL_LE_BREDR_SameHost) \
+    X(GAPFlags,RESERVED1) \
+    X(GAPFlags,RESERVED2) \
+    X(GAPFlags,RESERVED3)
+
+static std::string _getGAPFlagBitStr(const GAPFlags bit) noexcept {
+    switch(bit) {
+    GAPFLAGS_ENUM(CASE2_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown GAP_Flags Bit "+jau::to_hexstring(number(bit));
+}
+
+std::string direct_bt::to_string(const GAPFlags v) noexcept {
+    const int v_i = static_cast<int>(v);
+    bool has_pre = false;
+    std::string out("[");
+    for(int i=0; i<8; i++) {
+        const int settingBit = ( 1 << i );
+        if( 0 != ( v_i & settingBit ) ) {
+            if( has_pre ) { out.append(", "); }
+            out.append( _getGAPFlagBitStr( static_cast<GAPFlags>(settingBit) ) );
+            has_pre = true;
+        }
+    }
+    out.append("]");
+    return out;
+}
+
+// *************************************************
+// *************************************************
+// *************************************************
+
 #define EIRDATATYPE_ENUM(X) \
     X(EIRDataType,NONE) \
     X(EIRDataType,EVT_TYPE) \
@@ -666,7 +705,9 @@ std::string EInfoReport::toString(const bool includeServices) const noexcept {
     std::string out("EInfoReport::"+to_string(source)+
                     "[address["+address.toString()+", "+to_string(getAddressType())+"/"+std::to_string(ad_address_type)+
                     "], name['"+name+"'/'"+name_short+"'], "+eirDataMaskToString()+
-                    ", evt-type "+to_string(evt_type)+", rssi "+std::to_string(rssi)+
+                    ", evt-type "+to_string(evt_type)+
+                    ", flags"+to_string(flags)+
+                    ", rssi "+std::to_string(rssi)+
                     ", tx-power "+std::to_string(tx_power)+
                     ", dev-class "+jau::to_hexstring(device_class)+
                     ", appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+
@@ -755,7 +796,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
         switch ( static_cast<GAP_T>(elem_type) ) {
             case GAP_T::FLAGS:
                 if( 1 <= elem_len ) {
-                    setFlags(*const_uint8_to_const_int8_ptr(elem_data));
+                    setFlags(static_cast<GAPFlags>(*elem_data));
                 }
                 break;
             case GAP_T::UUID16_INCOMPLETE:
@@ -780,6 +821,8 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                 }
                 break;
             case GAP_T::NAME_LOCAL_SHORT:
+                // INFO: Bluetooth Core Specification V5.2 [Vol. 3, Part C, 8, p 1341]
+                // INFO: A remote name request is required to obtain the full name, if needed.
                 setShortName(elem_data, elem_len);
                 break;
             case GAP_T::NAME_LOCAL_COMPLETE:
@@ -840,7 +883,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                 break;
             default:
                 // FIXME: Use a data blob!!!!
-                fprintf(stderr, "%s-Element @ [%d/%d]: Warning: Unhandled type 0x%.2X with %d bytes net\n",
+                WARN_PRINT("%s-Element @ [%d/%d]: Unhandled type 0x%.2X with %d bytes net\n",
                         to_string(source).c_str(), offset, data_length, elem_type, elem_len);
                 break;
         }

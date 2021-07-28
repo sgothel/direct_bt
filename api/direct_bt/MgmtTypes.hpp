@@ -1795,7 +1795,7 @@ namespace direct_bt {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, eireport->getAddress());
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(eireport->getAddressType()));
                 pdu.put_int8_nc(MGMT_HEADER_SIZE+6+1, eireport->getRSSI());
-                pdu.put_uint32_nc(MGMT_HEADER_SIZE+6+1+1, eireport->getFlags()); // EIR flags only 8bit, Mgmt uses 32bit?
+                pdu.put_uint32_nc(MGMT_HEADER_SIZE+6+1+1, direct_bt::number(eireport->getFlags())); // EIR flags only 8bit, Mgmt uses 32bit?
                 pdu.put_uint16_nc(MGMT_HEADER_SIZE+6+1+1+4, 0); // eir_len
             }
 
