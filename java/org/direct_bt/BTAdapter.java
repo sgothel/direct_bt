@@ -174,13 +174,34 @@ public interface BTAdapter extends BTObject
      *        Using {@link #startDiscovery(boolean) startDiscovery}({@code keepAlive=true})
      *        and {@link #stopDiscovery()} is the recommended workflow
      *        for a reliable discovery process.
+     * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
      * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
      * @throws BTException
      * @since 2.0.0
+     * @since 2.2.8
      * @implNote {@code keepAlive} not implemented in {@code tinyb.dbus}
+     * @see #startDiscovery(boolean, boolean, int, int, byte)
      * @see #getDiscovering()
      */
-    public HCIStatusCode startDiscovery(final boolean keepAlive) throws BTException;
+    public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active) throws BTException;
+
+    /**
+     * Shares same implementation as {@link #startDiscovery(boolean, boolean)}, but allows setting custom scan values.
+     * @param keepAlive
+     * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
+     * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
+     * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
+     * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
+     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
+     * @throws BTException
+     * @since 2.2.8
+     * @implNote not implemented in {@code tinyb.dbus}
+     * @see #startDiscovery(boolean, boolean)
+     * @see #getDiscovering()
+     */
+    public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active,
+                                        final short le_scan_interval, final short le_scan_window,
+                                        final byte filter_policy) throws BTException;
 
     /**
      * Turns off device discovery if it is enabled.

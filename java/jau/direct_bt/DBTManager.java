@@ -269,10 +269,12 @@ public class DBTManager implements BTManager
     }
 
     @Override
-    public boolean startDiscovery() throws BTException { return HCIStatusCode.SUCCESS == startDiscovery(true); }
+    public boolean startDiscovery() throws BTException { return HCIStatusCode.SUCCESS == startDiscovery(true, false); }
 
     @Override
-    public HCIStatusCode startDiscovery(final boolean keepAlive) throws BTException { return getDefaultAdapter().startDiscovery(keepAlive); }
+    public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active) throws BTException {
+        return getDefaultAdapter().startDiscovery(keepAlive, le_scan_active);
+    }
 
     @Override
     public HCIStatusCode stopDiscovery() throws BTException { return getDefaultAdapter().stopDiscovery(); }

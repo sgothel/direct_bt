@@ -113,8 +113,14 @@ public class DBusAdapter extends DBusObject implements BTAdapter
     public native boolean startDiscovery() throws BTException;
 
     @Override
-    public synchronized HCIStatusCode startDiscovery(final boolean keepAlive) throws BTException {
-        return startDiscovery() ? HCIStatusCode.SUCCESS : HCIStatusCode.INTERNAL_FAILURE; // FIXME keepAlive
+    public synchronized HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active) throws BTException {
+        return startDiscovery() ? HCIStatusCode.SUCCESS : HCIStatusCode.INTERNAL_FAILURE; // FIXME keepAlive, le_scan_active
+    }
+    @Override
+    public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active,
+                                        final short le_scan_interval, final short le_scan_window,
+                                        final byte filter_policy) throws BTException {
+        return startDiscovery() ? HCIStatusCode.SUCCESS : HCIStatusCode.INTERNAL_FAILURE; // FIXME keepAlive, le_scan_active, ...
     }
 
     @Override

@@ -663,8 +663,13 @@ public class DBTScanner10 {
         BTUtils.println(System.err, "****** Reset Adapter: reset["+mode+"] end: "+res+", "+adapter.toString());
     }
 
+    static boolean le_scan_active = false; // default value
+    static final short le_scan_interval = (short)24; // default value
+    static final short le_scan_window = (short)24; // default value
+    static final byte filter_policy = (byte)0; // default value
+
     private boolean startDiscovery(final BTAdapter adapter, final String msg) {
-        final HCIStatusCode status = adapter.startDiscovery( true );
+        final HCIStatusCode status = adapter.startDiscovery( true, le_scan_active, le_scan_interval, le_scan_window, filter_policy );
         BTUtils.println(System.err, "****** Start discovery ("+msg+") result: "+status);
         return HCIStatusCode.SUCCESS == status;
     }
@@ -829,6 +834,8 @@ public class DBTScanner10 {
                     test.SHOW_UPDATE_EVENTS = true;
                 } else if( arg.equals("-quiet") ) {
                     test.QUIET = true;
+                } else if( arg.equals("-scanActive") ) {
+                    le_scan_active = true;
                 } else if( arg.equals("-shutdown") && args.length > (i+1) ) {
                     test.shutdownTest = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-mac") && args.length > (i+1) ) {
@@ -891,6 +898,7 @@ public class DBTScanner10 {
             BTUtils.println(System.err, "Run with '[-btmode LE|BREDR|DUAL] "+
                     "[-bluetoothManager <BluetoothManager-Implementation-Class-Name>] "+
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "+
+                    "[-scanActive]"+
                     "[-resetEachCon connectionCount] "+
                     "(-mac <device_address>)* (-wl <device_address>)* "+
                     "[-seclevel <device_address> <(int)address_type> <int>] "+

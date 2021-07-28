@@ -236,7 +236,7 @@ public class ScannerTinyB01 {
 
                 final long t0 = BTUtils.currentTimeMillis();
 
-                final HCIStatusCode discoveryStatus = adapter.startDiscovery(true);
+                final HCIStatusCode discoveryStatus = adapter.startDiscovery(true, false);
 
                 System.err.println("The discovery started: " + discoveryStatus + " for mac "+waitForDevice+", mode "+mode);
                 if( HCIStatusCode.SUCCESS != discoveryStatus ) {

@@ -751,8 +751,13 @@ static void resetAdapter(BTAdapter *a, int mode) {
     fprintf_td(stderr, "****** Reset Adapter: reset[%d] end: %s, %s\n", mode, to_string(res).c_str(), a->toString().c_str());
 }
 
+static bool le_scan_active = false; // default value
+static const uint16_t le_scan_interval = 24; // default value
+static const uint16_t le_scan_window = 24; // default value
+static const uint8_t filter_policy = 0; // default value
+
 static bool startDiscovery(BTAdapter *a, std::string msg) {
-    HCIStatusCode status = a->startDiscovery( true );
+    HCIStatusCode status = a->startDiscovery( true, le_scan_active, le_scan_interval, le_scan_window, filter_policy );
     fprintf_td(stderr, "****** Start discovery (%s) result: %s\n", msg.c_str(), to_string(status).c_str());
     return HCIStatusCode::SUCCESS == status;
 }
@@ -877,6 +882,8 @@ int main(int argc, char *argv[])
             SHOW_UPDATE_EVENTS = true;
         } else if( !strcmp("-quiet", argv[i]) ) {
             QUIET = true;
+        } else if( !strcmp("-scanActive", argv[i]) ) {
+            le_scan_active = true;
         } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
             std::string macstr = std::string(argv[++i]);
             BDAddressAndType mac(EUI48(macstr), BDAddressType::BDADDR_UNDEFINED);
@@ -937,6 +944,7 @@ int main(int argc, char *argv[])
 
     fprintf(stderr, "Run with '[-btmode LE|BREDR|DUAL] "
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "
+                    "[-scanActive]"
                     "[-resetEachCon connectionCount] "
                     "(-mac <device_address>)* (-wl <device_address>)* "
                     "[-seclevel <device_address> <(int)address_type> <int>] "
@@ -962,6 +970,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
     fprintf(stderr, "QUIET %d\n", QUIET);
     fprintf(stderr, "btmode %s\n", to_string(btMode).c_str());
+    fprintf(stderr, "scanActive %s\n", to_string(le_scan_active).c_str());
     fprintf(stderr, "characteristic-id: %s\n", charIdentifier.c_str());
     fprintf(stderr, "characteristic-value: %d\n", charValue);
 

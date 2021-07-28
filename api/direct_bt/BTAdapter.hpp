@@ -686,13 +686,16 @@ namespace direct_bt {
              * Method will always clear previous discovered devices via removeDiscoveredDevices().
              * </p>
              * @param keepAlive
-             * @param own_mac_type
+             * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
              * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
              * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
+             * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
              * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
              */
-            HCIStatusCode startDiscovery(const bool keepAlive=true, const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
-                                         const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24);
+            HCIStatusCode startDiscovery(const bool keepAlive=true,
+                                         const bool le_scan_active=false,
+                                         const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
+                                         const uint8_t filter_policy=0x00);
 
             /**
              * Closes the discovery session.

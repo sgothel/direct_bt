@@ -217,7 +217,7 @@ public class ScannerTinyB02 {
                     final Thread lalaTask = new Thread( new Runnable() {
                         @Override
                         public void run() {
-                            adapter.startDiscovery(true);
+                            adapter.startDiscovery(true, false);
                         }
                     }, "lala");
                     lalaTask.setDaemon(true); // detach thread

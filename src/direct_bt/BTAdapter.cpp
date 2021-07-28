@@ -656,8 +656,9 @@ void BTAdapter::checkDiscoveryState() noexcept {
     }
 }
 
-HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType own_mac_type,
-                                         const uint16_t le_scan_interval, const uint16_t le_scan_window)
+HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const bool le_scan_active,
+                                        const uint16_t le_scan_interval, const uint16_t le_scan_window,
+                                        const uint8_t filter_policy)
 {
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
     // ERR_PRINT("Test");
@@ -696,8 +697,12 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddr
     removeDiscoveredDevices();
     keep_le_scan_alive = keepAlive;
 
+    // TODO: Potential changing adapter address mode to random and updating 'visibleAddressAndType'!
+    const BDAddressType usedAddrType = BDAddressType::BDADDR_LE_PUBLIC;
+    const HCILEOwnAddressType own_mac_type=to_HCILEOwnAddressType(usedAddrType);
     // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
-    const HCIStatusCode status = hci.le_start_scan(true /* filter_dup */, own_mac_type, le_scan_interval, le_scan_window);
+    const HCIStatusCode status = hci.le_start_scan(true /* filter_dup */, le_scan_active, own_mac_type,
+                                                   le_scan_interval, le_scan_window, filter_policy);
 
     if( _print_device_lists || jau::environment::get().verbose ) {
         jau::PLAIN_PRINT(true, "BTAdapter::startDiscovery: End: Result %s, keepAlive %d -> %d, currentScanType[native %s, meta %s] ...\n- %s",

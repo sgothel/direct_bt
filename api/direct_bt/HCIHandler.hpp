@@ -417,15 +417,16 @@ namespace direct_bt {
              * Should not be called while LE scanning is active, otherwise HCIStatusCode::COMMAND_DISALLOWED will be returned.
              * </p>
              *
+             * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
              * @param own_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
              * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
              * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
              * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
-             * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
              */
-            HCIStatusCode le_set_scan_param(const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
+            HCIStatusCode le_set_scan_param(const bool le_scan_active=false,
+                                            const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
                                             const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
-                                            const uint8_t filter_policy=0x00, const bool le_scan_active=false) noexcept;
+                                            const uint8_t filter_policy=0x00) noexcept;
 
             /**
              * Starts or stops LE scanning.
@@ -454,16 +455,17 @@ namespace direct_bt {
              * </p>
              *
              * @param filter_dup true to filter out duplicate AD PDUs (default), otherwise all will be reported.
+             * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
              * @param own_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
              * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
              * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
              * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
-             * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
              */
             HCIStatusCode le_start_scan(const bool filter_dup=true,
+                                        const bool le_scan_active=false,
                                         const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
                                         const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
-                                        const uint8_t filter_policy=0x00, const bool le_scan_active=false) noexcept;
+                                        const uint8_t filter_policy=0x00) noexcept;
 
             /**
              * Establish a connection to the given LE peer.

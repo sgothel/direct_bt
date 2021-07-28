@@ -847,9 +847,10 @@ HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
     return status;
 }
 
-HCIStatusCode HCIHandler::le_set_scan_param(const HCILEOwnAddressType own_mac_type,
+HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
+                                            const HCILEOwnAddressType own_mac_type,
                                             const uint16_t le_scan_interval, const uint16_t le_scan_window,
-                                            const uint8_t filter_policy, const bool le_scan_active) noexcept {
+                                            const uint8_t filter_policy) noexcept {
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::le_set_scan_param: Not connected %s", toString().c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
@@ -911,9 +912,10 @@ HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_du
 }
 
 HCIStatusCode HCIHandler::le_start_scan(const bool filter_dup,
+                                        const bool le_scan_active,
                                         const HCILEOwnAddressType own_mac_type,
                                         const uint16_t le_scan_interval, const uint16_t le_scan_window,
-                                        const uint8_t filter_policy, const bool le_scan_active) noexcept {
+                                        const uint8_t filter_policy) noexcept {
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::le_start_scan: Not connected %s", toString().c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
@@ -924,7 +926,7 @@ HCIStatusCode HCIHandler::le_start_scan(const bool filter_dup,
         WARN_PRINT("HCIHandler::le_start_scan: Not allowed: LE Scan Enabled: %s", toString().c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
-    HCIStatusCode status = le_set_scan_param(own_mac_type, le_scan_interval, le_scan_window, filter_policy, le_scan_active);
+    HCIStatusCode status = le_set_scan_param(le_scan_active, own_mac_type, le_scan_interval, le_scan_window, filter_policy);
     if( HCIStatusCode::SUCCESS != status ) {
         WARN_PRINT("HCIHandler::le_start_scan: le_set_scan_param failed: %s - %s",
                 to_string(status).c_str(), toString().c_str());

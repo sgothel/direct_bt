@@ -86,6 +86,24 @@ BDAddressType direct_bt::to_BDAddressType(const HCILEOwnAddressType hciOwnAddrTy
     }
 }
 
+HCILEOwnAddressType direct_bt::to_HCILEOwnAddressType(const BDAddressType addrType) noexcept {
+    switch(addrType) {
+        case BDAddressType::BDADDR_LE_PUBLIC:
+            return HCILEOwnAddressType::PUBLIC;
+
+        case BDAddressType::BDADDR_LE_RANDOM:
+            /** FIXME: Sufficient mapping for adapter put in random address mode? */
+            return HCILEOwnAddressType::RANDOM;
+
+        case BDAddressType::BDADDR_BREDR:
+            [[fallthrough]];
+        case BDAddressType::BDADDR_UNDEFINED:
+            [[fallthrough]];
+        default:
+            return HCILEOwnAddressType::UNDEFINED;
+    }
+}
+
 #define CHAR_DECL_HCILEOwnAddressType_ENUM(X) \
         X(HCILEOwnAddressType,PUBLIC) \
         X(HCILEOwnAddressType,RANDOM) \

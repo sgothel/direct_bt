@@ -114,8 +114,8 @@ public class DBusManager implements BTManager
     public native boolean startDiscovery() throws BTException;
 
     @Override
-    public HCIStatusCode startDiscovery(final boolean keepAlive) throws BTException {
-        return startDiscovery() ? HCIStatusCode.SUCCESS : HCIStatusCode.INTERNAL_FAILURE; // FIXME keepAlive
+    public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active) throws BTException {
+        return startDiscovery() ? HCIStatusCode.SUCCESS : HCIStatusCode.INTERNAL_FAILURE; // FIXME keepAlive, le_scan_active
     }
 
     @Override

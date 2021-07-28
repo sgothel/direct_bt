@@ -283,12 +283,14 @@ public interface BTManager
      *        Using {@link #startDiscovery(boolean) startDiscovery}({@code keepAlive=true})
      *        and {@link #stopDiscovery()} is the recommended workflow
      *        for a reliable discovery process.
+     * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
      * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
      * @throws BTException
      * @since 2.0.0
+     * @since 2.2.8
      * @implNote {@code keepAlive} not implemented in tinyb.dbus
      */
-    public HCIStatusCode startDiscovery(final boolean keepAlive) throws BTException;
+    public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active) throws BTException;
 
     /**
      * Turns off device discovery on the default adapter if it is enabled.
