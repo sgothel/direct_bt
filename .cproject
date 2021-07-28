@@ -147,6 +147,8 @@
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="api/direct_bt"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="api/ieee11073"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="examples/direct_bt_scanner00"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="examples/direct_bt_scanner01"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="examples/direct_bt_scanner10"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="jaulib/include"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="jaulib/src"/>
