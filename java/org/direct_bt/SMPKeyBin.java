@@ -195,6 +195,8 @@ public class SMPKeyBin {
          * Returned SMPKeyBin shall be tested if valid via {@link SMPKeyBin#isValid()},
          * whether the read() operation was successful and data is consistent.
          *
+         * If file is invalid, it is removed.
+         *
          * @param fname full path of the stored SMPKeyBin file.
          * @param removeInvalidFile if `true` and file is invalid, remove it. Otherwise keep it alive.
          * @param verbose_ set to true to have detailed read processing logged to stderr, otherwise false
@@ -202,10 +204,10 @@ public class SMPKeyBin {
          * @see #isValid()
          * @see #read(String, String)
          */
-        static public SMPKeyBin read(final String fname, final boolean removeInvalidFile, final boolean verbose_) {
+        static public SMPKeyBin read(final String fname, final boolean verbose_) {
             final SMPKeyBin smpKeyBin = new SMPKeyBin();
             smpKeyBin.setVerbose( verbose_ );
-            smpKeyBin.read( fname, removeInvalidFile ); // read failure -> !isValid()
+            smpKeyBin.read( fname ); // read failure -> !isValid()
             return smpKeyBin;
         }
 
@@ -217,9 +219,12 @@ public class SMPKeyBin {
          *
          * Otherwise, method returns the HCIStatusCode of {@link SMPKeyBin#apply(BTDevice)}.
          *
+         * If key file is invalid or key could not be applied, i.e. not returning {@link HCIStatusCode#SUCCESS}, it is removed.
+         *
          * @param path the path of the stored SMPKeyBin file.
          * @param device the BTDevice for which address the stored SMPKeyBin file will be read and applied to
-         * @param removeInvalidFile if `true` and file is invalid, remove it. Otherwise keep it alive.
+         * @param minSecLevel minimum BTSecurityLevel the read SMPKeyBin::sec_level must be compliant to.
+         *        If SMPKeyBin::sec_level < minSecLevel method removes the key file and returns {@link HCIStatusCode#ENCRYPTION_MODE_NOT_ACCEPTED}.
          * @param verbose_ set to true to have detailed read processing logged to stderr, otherwise false
          * @return {@link HCIStatusCode#SUCCESS} or error code for failure
          * @see #read(String, BDAddressAndType, boolean)
@@ -227,12 +232,26 @@ public class SMPKeyBin {
          * @see #read(String, String)
          * @see #apply(BTDevice)
          */
-        static public HCIStatusCode readAndApply(final String path, final BTDevice device, final boolean removeInvalidFile, final boolean verbose_) {
-            final SMPKeyBin smpKeyBin = read(getFilename(path, device.getAddressAndType()), removeInvalidFile, verbose_);
+        static public HCIStatusCode readAndApply(final String path, final BTDevice device, final BTSecurityLevel minSecLevel, final boolean verbose_) {
+            final String fname = getFilename(path, device.getAddressAndType());
+            final SMPKeyBin smpKeyBin = read(fname, verbose_);
             if( smpKeyBin.isValid() ) {
+                if( smpKeyBin.sec_level.value < minSecLevel.value ) {
+                    if( smpKeyBin.verbose ) {
+                        BTUtils.fprintf_td(System.err, "SMPKeyBin::readAndApply: sec_level %s < minimum %s: Key ignored %s, removing file %s\n",
+                                smpKeyBin.sec_level.toString(),
+                                minSecLevel.toString(),
+                                smpKeyBin.toString(), fname);
+                    }
+                    remove_impl(fname);
+                    return HCIStatusCode.ENCRYPTION_MODE_NOT_ACCEPTED;
+                }
                 final HCIStatusCode res = smpKeyBin.apply(device);
                 if( HCIStatusCode.SUCCESS != res ) {
-                    BTUtils.println(System.err, "Apply SMPKeyBin: Failed "+res+", "+device);
+                    if( smpKeyBin.verbose ) {
+                        BTUtils.println(System.err, "SMPKeyBin::readAndApply: Apply failed "+res+", "+device+", removing file "+fname);
+                    }
+                    remove_impl(fname);
                 }
                 return res;
             } else {
@@ -397,7 +416,10 @@ public class SMPKeyBin {
 
         final public static boolean remove(final String path, final BDAddressAndType addrAndType_) {
             final String fname = getFilename(path, addrAndType_);
-            final File file = new File(fname);
+            return remove_impl(fname);
+        }
+        final private static boolean remove_impl(final String fname) {
+            final File file = new File( fname );
             try {
                 return file.delete(); // alternative to truncate, if existing
             } catch (final Exception ex) {
@@ -480,7 +502,7 @@ public class SMPKeyBin {
             return false;
         }
 
-        final public boolean read(final String fname, final boolean removeInvalidFile) {
+        final public boolean read(final String fname) {
             final File file = new File(fname);
             InputStream in = null;
             int remaining = 0;
@@ -577,11 +599,9 @@ public class SMPKeyBin {
                 }
             }
             if( err ) {
-                if( removeInvalidFile ) {
-                    file.delete();
-                }
+                file.delete();
                 if( verbose ) {
-                    BTUtils.println(System.err, "Read SMPKeyBin: Failed "+fname+" (removed "+removeInvalidFile+"): "+toString()+", remaining "+remaining);
+                    BTUtils.println(System.err, "Read SMPKeyBin: Failed "+fname+" (removed): "+toString()+", remaining "+remaining);
                 }
                 size = 0; // explicitly mark invalid
             } else {

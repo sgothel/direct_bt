@@ -158,17 +158,18 @@ class SMPKeyBin {
          * Returned SMPKeyBin shall be tested if valid via SMPKeyBin::isValid(),
          * whether the read() operation was successful and data is consistent.
          *
+         * If file is invalid, it is removed.
+         *
          * @param fname full path of the stored SMPKeyBin file.
-         * @param removeInvalidFile if `true` and file is invalid, remove it. Otherwise keep it alive.
          * @param verbose_ set to true to have detailed read processing logged to stderr, otherwise false
          * @return valid SMPKeyBin instance if file exist and read successfully, otherwise invalid SMPKeyBin instance.
          * @see isValid()
          * @see read()
          */
-        static SMPKeyBin read(const std::string& fname, const bool removeInvalidFile, const bool verbose_) {
+        static SMPKeyBin read(const std::string& fname, const bool verbose_) {
             SMPKeyBin smpKeyBin;
             smpKeyBin.setVerbose( verbose_ );
-            smpKeyBin.read( fname, removeInvalidFile ); // read failure -> !isValid()
+            smpKeyBin.read( fname ); // read failure -> !isValid()
             return smpKeyBin;
         }
 
@@ -180,9 +181,12 @@ class SMPKeyBin {
          *
          * Otherwise, method returns the HCIStatusCode of SMPKeyBin::apply().
          *
+         * If key file is invalid or key could not be applied, i.e. not returning ::HCIStatusCode::SUCCESS, it is removed.
+         *
          * @param path the path of the stored SMPKeyBin file.
          * @param device the BTDevice for which address the stored SMPKeyBin file will be read and applied to
-         * @param removeInvalidFile if `true` and file is invalid, remove it. Otherwise keep it alive.
+         * @param minSecLevel minimum BTSecurityLevel the read SMPKeyBin::sec_level must be compliant to.
+         *        If SMPKeyBin::sec_level < minSecLevel method removes the key file and returns ::HCIStatusCode::ENCRYPTION_MODE_NOT_ACCEPTED.
          * @param verbose_ set to true to have detailed read processing logged to stderr, otherwise false
          * @return ::HCIStatusCode::SUCCESS or error code for failure
          * @see Read()
@@ -190,18 +194,7 @@ class SMPKeyBin {
          * @see read()
          * @see apply()
          */
-        static HCIStatusCode readAndApply(const std::string& path, BTDevice& device, const bool removeInvalidFile, const bool verbose_) {
-            SMPKeyBin smpKeyBin = read(getFilename(path, device.getAddressAndType()), removeInvalidFile, verbose_);
-            if( smpKeyBin.isValid() ) {
-                const HCIStatusCode res = smpKeyBin.apply(device);
-                if( HCIStatusCode::SUCCESS != res ) {
-                    jau::fprintf_td(stderr, "****** Apply SMPKeyBin: Failed %s, %s\n", to_string(res).c_str(), device.toString().c_str());
-                }
-                return res;
-            } else {
-                return HCIStatusCode::INVALID_PARAMS;
-            }
-        }
+        static HCIStatusCode readAndApply(const std::string& path, BTDevice& device, const BTSecurityLevel minSecLevel, const bool verbose_);
 
         SMPKeyBin(const BDAddressAndType& addrAndType_,
                   const BTSecurityLevel sec_level_, const SMPIOCapability io_cap_)
@@ -306,7 +299,7 @@ class SMPKeyBin {
 
         bool write(const std::string& fname, const bool overwrite) const noexcept;
 
-        bool read(const std::string& fname, const bool removeInvalidFile);
+        bool read(const std::string& fname);
 
         /**
          * If this instance isValid() and initiator or responder LTK available, i.e. hasLTKInit() or hasLTKResp(),

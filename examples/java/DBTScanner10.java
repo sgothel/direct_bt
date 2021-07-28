@@ -375,8 +375,8 @@ public class DBTScanner10 {
             } });
 
         {
-            final HCIStatusCode unpair_res = device.unpair();
-            BTUtils.println(System.err, "****** Connecting Device: Unpair-Pre result: "+unpair_res);
+            final HCIStatusCode r = device.unpair();
+            BTUtils.println(System.err, "****** Connecting Device: Unpair-Pre result: "+r);
         }
 
         {
@@ -384,34 +384,36 @@ public class DBTScanner10 {
             BTUtils.println(System.err, "****** Connecting Device: stopDiscovery result "+r);
         }
 
-        if( HCIStatusCode.SUCCESS !=  SMPKeyBin.readAndApply(KEY_PATH, device, true /* removeInvalidFile */, true /* verbose */) )
-        {
-            final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
+        final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
+        final BTSecurityLevel req_sec_level = null != sec ? sec.getSecLevel() : BTSecurityLevel.UNSET;
+        HCIStatusCode res = SMPKeyBin.readAndApply(KEY_PATH, device, req_sec_level, true /* verbose */);
+        BTUtils.fprintf_td(System.err, "****** Connecting Device: SMPKeyBin::readAndApply(..) result %s\n", res.toString());
+        if( HCIStatusCode.SUCCESS != res ) {
             if( null != sec ) {
                 if( sec.isSecurityAutoEnabled() ) {
-                    final boolean res = device.setConnSecurityAuto( sec.getSecurityAutoIOCap() );
-                    BTUtils.println(System.err, "****** Connecting Device: Using SecurityDetail.SEC AUTO "+sec+" -> set OK "+res);
+                    final boolean r = device.setConnSecurityAuto( sec.getSecurityAutoIOCap() );
+                    BTUtils.println(System.err, "****** Connecting Device: Using SecurityDetail.SEC AUTO "+sec+" -> set OK "+r);
                 } else if( sec.isSecLevelOrIOCapSet() ) {
-                    final boolean res = device.setConnSecurityBest(sec.getSecLevel(), sec.getIOCap());
-                    BTUtils.println(System.err, "****** Connecting Device: Using SecurityDetail.Level+IOCap "+sec+" -> set OK "+res);
+                    final boolean r = device.setConnSecurityBest(sec.getSecLevel(), sec.getIOCap());
+                    BTUtils.println(System.err, "****** Connecting Device: Using SecurityDetail.Level+IOCap "+sec+" -> set OK "+r);
                 } else {
-                    final boolean res = device.setConnSecurityAuto( SMPIOCapability.KEYBOARD_ONLY );
-                    BTUtils.println(System.err, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY ("+sec+") -> set OK "+res);
+                    final boolean r = device.setConnSecurityAuto( SMPIOCapability.KEYBOARD_ONLY );
+                    BTUtils.println(System.err, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY ("+sec+") -> set OK "+r);
                 }
             } else {
                 BTUtils.println(System.err, "****** Connecting Device: No SecurityDetail for "+device.getAddressAndType());
-                final boolean res = device.setConnSecurityAuto( SMPIOCapability.KEYBOARD_ONLY );
-                BTUtils.println(System.err, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK "+res);
+                final boolean r = device.setConnSecurityAuto( SMPIOCapability.KEYBOARD_ONLY );
+                BTUtils.println(System.err, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK "+r);
             }
         }
 
-        HCIStatusCode res;
         if( !USE_WHITELIST ) {
             res = device.connect();
         } else {
             res = HCIStatusCode.SUCCESS;
         }
         BTUtils.println(System.err, "****** Connecting Device Command, res "+res+": End result "+res+" of " + device.toString());
+
         if( !USE_WHITELIST && 0 == devicesInProcessing.size() && HCIStatusCode.SUCCESS != res ) {
             startDiscovery(device.getAdapter(), "post-connect");
         }

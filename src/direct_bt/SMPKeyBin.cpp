@@ -89,6 +89,34 @@ bool SMPKeyBin::createAndWrite(const BTDevice& device, const std::string& path, 
     }
 }
 
+HCIStatusCode SMPKeyBin::readAndApply(const std::string& path, BTDevice& device, const BTSecurityLevel minSecLevel, const bool verbose_) {
+    const std::string fname = getFilename(path, device.getAddressAndType());
+    SMPKeyBin smpKeyBin = read(fname, verbose_);
+    if( smpKeyBin.isValid() ) {
+        if( smpKeyBin.sec_level < minSecLevel ) {
+            if( smpKeyBin.verbose ) {
+                jau::fprintf_td(stderr, "SMPKeyBin::readAndApply: sec_level %s < minimum %s: Key ignored %s, removing file %s\n",
+                        to_string(smpKeyBin.sec_level).c_str(),
+                        to_string(minSecLevel).c_str(),
+                        smpKeyBin.toString().c_str(), fname.c_str());
+            }
+            remove_impl(fname);
+            return HCIStatusCode::ENCRYPTION_MODE_NOT_ACCEPTED;
+        }
+        const HCIStatusCode res = smpKeyBin.apply(device);
+        if( HCIStatusCode::SUCCESS != res ) {
+            if( smpKeyBin.verbose ) {
+                jau::fprintf_td(stderr, "SMPKeyBin::readAndApply: Apply failed %s, %s, removing file %s\n",
+                        to_string(res).c_str(), device.toString().c_str(), fname.c_str());
+            }
+            remove_impl(fname);
+        }
+        return res;
+    } else {
+        return HCIStatusCode::INVALID_PARAMS;
+    }
+}
+
 std::string SMPKeyBin::toString() const noexcept {
     std::string res = "SMPKeyBin["+addrAndType.toString()+", sec "+to_string(sec_level)+
                       ", io "+to_string(io_cap)+
@@ -229,7 +257,7 @@ bool SMPKeyBin::write(const std::string& fname, const bool overwrite) const noex
     return res;
 }
 
-bool SMPKeyBin::read(const std::string& fname, const bool removeInvalidFile) {
+bool SMPKeyBin::read(const std::string& fname) {
     std::ifstream file(fname, std::ios::binary);
     if ( !file.is_open() ) {
         if( verbose ) {
@@ -318,12 +346,10 @@ bool SMPKeyBin::read(const std::string& fname, const bool removeInvalidFile) {
 
     file.close();
     if( err ) {
-        if( removeInvalidFile ) {
-            remove_impl( fname );
-        }
+        remove_impl( fname );
         if( verbose ) {
-            jau::fprintf_td(stderr, "Read SMPKeyBin: Failed %s (removed %d): %s, remaining %u\n",
-                    fname.c_str(), removeInvalidFile, toString().c_str(), remaining);
+            jau::fprintf_td(stderr, "Read SMPKeyBin: Failed %s (removed): %s, remaining %u\n",
+                    fname.c_str(), toString().c_str(), remaining);
         }
         size = 0; // explicitly mark invalid
     } else {

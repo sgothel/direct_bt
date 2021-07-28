@@ -514,42 +514,45 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
     device->addStatusListener(std::shared_ptr<AdapterStatusListener>(new TempAdapterStatusListener()));
 
     {
-        const HCIStatusCode unpair_res = device->unpair();
-        fprintf_td(stderr, "****** Connecting Device: Unpair-Pre result: %s\n", to_string(unpair_res).c_str());
+        const HCIStatusCode r = device->unpair();
+        fprintf_td(stderr, "****** Connecting Device: Unpair-Pre result: %s\n", to_string(r).c_str());
     }
 
-    device->getAdapter().stopDiscovery();
-
-    if( HCIStatusCode::SUCCESS != SMPKeyBin::readAndApply(KEY_PATH, *device, true /* removeInvalidFile */, true /* verbose */) )
     {
-        const MyBTSecurityDetail* sec = MyBTSecurityDetail::get(device->getAddressAndType());
+        const HCIStatusCode r = device->getAdapter().stopDiscovery();
+        fprintf_td(stderr, "****** Connecting Device: stopDiscovery result %s\n", to_string(r).c_str());
+    }
+
+    const MyBTSecurityDetail* sec = MyBTSecurityDetail::get(device->getAddressAndType());
+    const BTSecurityLevel req_sec_level = nullptr != sec ? sec->getSecLevel() : BTSecurityLevel::UNSET;
+    HCIStatusCode res = SMPKeyBin::readAndApply(KEY_PATH, *device, req_sec_level, true /* verbose */);
+    fprintf_td(stderr, "****** Connecting Device: SMPKeyBin::readAndApply(..) result %s\n", to_string(res).c_str());
+    if( HCIStatusCode::SUCCESS != res ) {
         if( nullptr != sec ) {
             if( sec->isSecurityAutoEnabled() ) {
-                bool res = device->setConnSecurityAuto( sec->getSecurityAutoIOCap() );
-                fprintf_td(stderr, "****** Connecting Device: Using SecurityDetail.SEC AUTO %s, set OK %d\n", sec->toString().c_str(), res);
+                bool r = device->setConnSecurityAuto( sec->getSecurityAutoIOCap() );
+                fprintf_td(stderr, "****** Connecting Device: Using SecurityDetail.SEC AUTO %s, set OK %d\n", sec->toString().c_str(), r);
             } else if( sec->isSecLevelOrIOCapSet() ) {
-                bool res = device->setConnSecurityBest( sec->getSecLevel(), sec->getIOCap() );
-                fprintf_td(stderr, "****** Connecting Device: Using SecurityDetail.Level+IOCap %s, set OK %d\n", sec->toString().c_str(), res);
+                bool r = device->setConnSecurityBest( sec->getSecLevel(), sec->getIOCap() );
+                fprintf_td(stderr, "****** Connecting Device: Using SecurityDetail.Level+IOCap %s, set OK %d\n", sec->toString().c_str(), r);
             } else {
-                bool res = device->setConnSecurityAuto( SMPIOCapability::KEYBOARD_ONLY );
-                fprintf_td(stderr, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY (%s) -> set OK %d\n", sec->toString().c_str(), res);
+                bool r = device->setConnSecurityAuto( SMPIOCapability::KEYBOARD_ONLY );
+                fprintf_td(stderr, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY (%s) -> set OK %d\n", sec->toString().c_str(), r);
             }
         } else {
             fprintf_td(stderr, "****** Connecting Device: No SecurityDetail for %s\n", device->getAddressAndType().toString().c_str());
-            bool res = device->setConnSecurityAuto( SMPIOCapability::KEYBOARD_ONLY );
-            fprintf_td(stderr, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK %d\n", res);
+            bool r = device->setConnSecurityAuto( SMPIOCapability::KEYBOARD_ONLY );
+            fprintf_td(stderr, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK %d\n", r);
         }
     }
 
-
-    HCIStatusCode res;
     if( !USE_WHITELIST ) {
         res = device->connectDefault();
     } else {
         res = HCIStatusCode::SUCCESS;
     }
-
     fprintf_td(stderr, "****** Connecting Device: End result %s of %s\n", to_string(res).c_str(), device->toString().c_str());
+
     if( !USE_WHITELIST && 0 == getDeviceProcessingCount() && HCIStatusCode::SUCCESS != res ) {
         startDiscovery(&device->getAdapter(), "post-connect");
     }
