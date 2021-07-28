@@ -48,7 +48,7 @@ static const std::string _pairingModeClassName("org/direct_bt/PairingMode");
 static const std::string _pairingModeClazzGetArgs("(B)Lorg/direct_bt/PairingMode;");
 static const std::string _pairingStateClassName("org/direct_bt/SMPPairingState");
 static const std::string _pairingStateClazzGetArgs("(B)Lorg/direct_bt/SMPPairingState;");
-static const std::string _deviceClazzCtorArgs("(JLjau/direct_bt/DBTAdapter;[BBLjava/lang/String;J)V");
+static const std::string _deviceClazzCtorArgs("(JLjau/direct_bt/DBTAdapter;[BBJ)V");
 
 static const std::string _adapterSettingsChangedMethodArgs("(Lorg/direct_bt/BTAdapter;Lorg/direct_bt/AdapterSettings;Lorg/direct_bt/AdapterSettings;Lorg/direct_bt/AdapterSettings;J)V");
 static const std::string _discoveringChangedMethodArgs("(Lorg/direct_bt/BTAdapter;Lorg/direct_bt/ScanType;Lorg/direct_bt/ScanType;ZZJ)V");
@@ -365,18 +365,15 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             jbyteArray jaddr = env->NewByteArray(sizeof(addr));
             env->SetByteArrayRegion(jaddr, 0, sizeof(addr), (const jbyte*)(addr.b));
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
-            const jstring name = jau::from_string_to_jstring(env, device->getName());
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
             jobject tmp_jdevice = env->NewObject(deviceClazzRef.getClass(), deviceClazzCtor,
                     (jlong)device.get(), jau::JavaGlobalObj::GetObject(adapterObjRef),
-                    jaddr, device->getAddressAndType().type, name, (jlong)timestamp);
+                    jaddr, device->getAddressAndType().type, (jlong)timestamp);
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             JNIGlobalRef::check(tmp_jdevice, E_FILE_LINE);
             std::shared_ptr<jau::JavaAnon> jDeviceRef1 = device->getJavaObject();
             jau::JavaGlobalObj::check(jDeviceRef1, E_FILE_LINE);
             jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef1);
             env->DeleteLocalRef(jaddr);
-            env->DeleteLocalRef(name);
             env->DeleteLocalRef(tmp_jdevice);
         }
         env->SetLongField(jdevice, deviceClazzTSLastDiscoveryField, (jlong)device->getLastDiscoveryTimestamp());

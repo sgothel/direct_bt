@@ -64,7 +64,6 @@ public class DBTDevice extends DBTObject implements BTDevice
 
     private final BDAddressAndType addressAndType;
     private final long ts_creation;
-    private volatile String name;
     volatile long ts_last_discovery;
     volatile long ts_last_update;
     volatile short hciConnHandle;
@@ -98,16 +97,8 @@ public class DBTDevice extends DBTObject implements BTDevice
     final AdapterStatusListener statusListener = new AdapterStatusListener() {
         @Override
         public void deviceUpdated(final BTDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
-            final boolean nameUpdated = updateMask.isSet( EIRDataTypeSet.DataType.NAME );
             final boolean rssiUpdated = updateMask.isSet( EIRDataTypeSet.DataType.RSSI );
             final boolean mdUpdated = updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA );
-            if( nameUpdated ) {
-                final String oldName = DBTDevice.this.name;
-                DBTDevice.this.name = getNameImpl();
-                if( DEBUG ) {
-                    System.err.println("Device.StatusListener.UPDATED: NAME: '"+oldName+"' -> '"+DBTDevice.this.name+"'");
-                }
-            }
             if( rssiUpdated || mdUpdated ) {
                 synchronized(userCallbackLock) {
                     if( rssiUpdated && null != userRSSINotificationsCB ) {
@@ -215,7 +206,7 @@ public class DBTDevice extends DBTObject implements BTDevice
     /* pp */ DBTDevice(final long nativeInstance, final DBTAdapter adptr,
                        final byte byteAddress[/*6*/],
                        final byte byteAddressType,
-                       final String name, final long ts_creation)
+                       final long ts_creation)
     {
         super(nativeInstance, compHash(java.util.Arrays.hashCode(byteAddress), 31+byteAddressType));
         this.wbr_adapter = new WeakReference<DBTAdapter>(adptr);
@@ -224,7 +215,6 @@ public class DBTDevice extends DBTObject implements BTDevice
             throw new IllegalArgumentException("Unsupported given native addresstype "+byteAddressType);
         }
         this.ts_creation = ts_creation;
-        this.name = name;
         ts_last_discovery = ts_creation;
         ts_last_update = ts_creation;
         hciConnHandle = 0;
@@ -299,7 +289,7 @@ public class DBTDevice extends DBTObject implements BTDevice
     public BDAddressAndType getAddressAndType() { return addressAndType; }
 
     @Override
-    public String getName() { return name; }
+    public String getName() { return getNameImpl(); }
 
     private native String getNameImpl();
 
@@ -673,8 +663,8 @@ public class DBTDevice extends DBTObject implements BTDevice
     public final String toString() {
         if( !isValid() ) {
             // UTF-8 271D = Cross
-            return "Device" + "\u271D" + "[address"+addressAndType+", '"+name+
-                    "', connected["+isConnected.get()+", 0x"+Integer.toHexString(hciConnHandle)+"]]";
+            return "Device" + "\u271D" + "[address"+addressAndType+
+                   ", connected["+isConnected.get()+", 0x"+Integer.toHexString(hciConnHandle)+"]]";
         }
         return toStringImpl();
     }
