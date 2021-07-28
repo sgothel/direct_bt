@@ -1396,7 +1396,7 @@ bool BTAdapter::mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept {
 }
 
 bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
-    COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(dev_id %d): %s", dev_id, e.toString().c_str());
+    // COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(dev_id %d): %s", dev_id, e.toString().c_str());
     const MgmtEvtDeviceFound &deviceFoundEvent = *static_cast<const MgmtEvtDeviceFound *>(&e);
 
     const EInfoReport* eir = deviceFoundEvent.getEIR();
@@ -1405,89 +1405,145 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
         ABORT("BTAdapter:hci:DeviceFound: Not sourced from LE_ADVERTISING_REPORT: %s", deviceFoundEvent.toString().c_str());
     } // else: Sourced from HCIHandler via LE_ADVERTISING_REPORT (default!)
 
-    std::shared_ptr<BTDevice> dev = findDiscoveredDevice(eir->getAddress(), eir->getAddressType());
-    if( nullptr != dev ) {
-        //
-        // drop existing device
-        //
-        EIRDataType updateMask = dev->update(*eir);
-        if( EIRDataType::NONE != updateMask ) {
-            COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound: Already discovered %s, sendDeviceUpdated: update-mask %s from %s",
-                    dev->getAddressAndType().toString().c_str(),
-                    direct_bt::to_string(updateMask).c_str(), eir->toString().c_str());
-            sendDeviceUpdated("DiscoveredDeviceFound", dev, eir->getTimestamp(), updateMask);
-        } else {
-            COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound: Drop already discovered %s, no-update from %s",
-                    dev->getAddressAndType().toString().c_str(), eir->toString().c_str());
-        }
-        return true;
-    }
+    /**
+     * <pre>
+     * + ------+------------+----------+----------+-------------------------------------------+
+     * | #     | discovered | shared   | update   |
+     * +-------+------------+----------+----------+-------------------------------------------+
+     * | 1.1   | false      | false    | ignored  | New undiscovered/unshared -> deviceFound(..)
+     * | 1.2   | false      | true     | ignored  | Undiscovered but shared -> deviceFound(..) [deviceUpdated(..)]
+     * | 2.1.1 | true       | false    | name     | Discovered but unshared, name changed -> deviceFound(..)
+     * | 2.1.2 | true       | false    | !name    | Discovered but unshared, no name change -> Drop(1)
+     * | 2.2.1 | true       | true     | any      | Discovered and shared, updated -> deviceUpdated(..)
+     * | 2.2.2 | true       | true     | none     | Discovered and shared, not-updated -> Drop(2)
+     * +-------+------------+----------+-----------------------------------------------------+
+     * </pre>
+     *
+     */
+    std::shared_ptr<BTDevice> dev_discovered = findDiscoveredDevice(eir->getAddress(), eir->getAddressType());
+    std::shared_ptr<BTDevice> dev_shared = findSharedDevice(eir->getAddress(), eir->getAddressType());
+    if( nullptr == dev_discovered ) {
+        if( nullptr == dev_shared ) {
+            //
+            // All new discovered device
+            //
+            dev_shared = BTDevice::make_shared(*this, *eir);
+            addDiscoveredDevice(dev_shared);
+            addSharedDevice(dev_shared);
+            COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(1.1, dev_id %d): New undiscovered/unshared %s -> deviceFound(..) %s",
+                    dev_id, dev_shared->getAddressAndType().toString().c_str(), eir->toString().c_str());
 
-    dev = findSharedDevice(eir->getAddress(), eir->getAddressType());
-    if( nullptr != dev ) {
-        //
-        // active shared device, but flushed from discovered devices
-        // - update device
-        // - issue deviceFound, allowing receivers to recognize the re-discovered device
-        // - issue deviceUpdate if data has changed, allowing receivers to act upon
-        //
-        EIRDataType updateMask = dev->update(*eir);
-        addDiscoveredDevice(dev); // re-add to discovered devices!
-        dev->ts_last_discovery = eir->getTimestamp();
-        COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound: Use already shared %s, %s",
-                dev->getAddressAndType().toString().c_str(), eir->toString().c_str());
-
-        int i=0;
-        bool device_used = false;
-        jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
-            try {
-                if( p.listener->matchDevice(*dev) ) {
-                    device_used = p.listener->deviceFound(dev, eir->getTimestamp()) || device_used;
+            int i=0;
+            bool device_used = false;
+            jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
+                try {
+                    if( p.listener->matchDevice(*dev_shared) ) {
+                        device_used = p.listener->deviceFound(dev_shared, eir->getTimestamp()) || device_used;
+                    }
+                } catch (std::exception &except) {
+                    ERR_PRINT("BTAdapter:hci:DeviceFound-CBs %d/%zd: %s of %s: Caught exception %s",
+                            i+1, statusListenerList.size(),
+                            p.listener->toString().c_str(), dev_shared->toString().c_str(), except.what());
                 }
-            } catch (std::exception &except) {
-                ERR_PRINT("BTAdapter:hci:DeviceFound: %d/%zd: %s of %s: Caught exception %s",
-                        i+1, statusListenerList.size(),
-                        p.listener->toString().c_str(), dev->toString().c_str(), except.what());
+                i++;
+            });
+            if( !device_used ) {
+                // keep to avoid duplicate finds: removeDiscoveredDevice(dev_discovered->addressAndType);
+                // and still allowing usage, as connecting will re-add to shared list
+                removeSharedDevice(*dev_shared); // pending dtor if discovered is flushed
             }
-            i++;
-        });
-        if( !device_used ) {
-            // keep to avoid duplicate finds: removeDiscoveredDevice(dev->addressAndType);
-            // and still allowing usage, as connecting will re-add to shared list
-            removeSharedDevice(*dev); // pending dtor until discovered is flushed
-        } else if( EIRDataType::NONE != updateMask ) {
-            sendDeviceUpdated("SharedDeviceFound", dev, eir->getTimestamp(), updateMask);
-        }
-        return true;
-    }
+        } else { // nullptr != dev_shared
+            //
+            // Active shared device, but flushed from discovered devices
+            // - update device
+            // - issue deviceFound(..),  allowing receivers to recognize the re-discovered device
+            // - issue deviceUpdate(..), if at least one deviceFound(..) returned true and data has changed, allowing receivers to act upon
+            // - removeSharedDevice(..), if non deviceFound(..) returned true
+            //
+            EIRDataType updateMask = dev_shared->update(*eir);
+            addDiscoveredDevice(dev_shared); // re-add to discovered devices!
+            dev_shared->ts_last_discovery = eir->getTimestamp();
+            COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(1.2, dev_id %d): Undiscovered but shared %s -> deviceFound(..) [deviceUpdated(..)] %s",
+                    dev_id, dev_shared->getAddressAndType().toString().c_str(), eir->toString().c_str());
 
-    //
-    // new device
-    //
-    dev = BTDevice::make_shared(*this, *eir);
-    addDiscoveredDevice(dev);
-    addSharedDevice(dev);
-    COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound: Use new %s, %s",
-            dev->getAddressAndType().toString().c_str(), eir->toString().c_str());
-
-    int i=0;
-    bool device_used = false;
-    jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
-        try {
-            if( p.listener->matchDevice(*dev) ) {
-                device_used = p.listener->deviceFound(dev, eir->getTimestamp()) || device_used;
+            int i=0;
+            bool device_used = false;
+            jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
+                try {
+                    if( p.listener->matchDevice(*dev_shared) ) {
+                        device_used = p.listener->deviceFound(dev_shared, eir->getTimestamp()) || device_used;
+                    }
+                } catch (std::exception &except) {
+                    ERR_PRINT("BTAdapter:hci:DeviceFound: %d/%zd: %s of %s: Caught exception %s",
+                            i+1, statusListenerList.size(),
+                            p.listener->toString().c_str(), dev_shared->toString().c_str(), except.what());
+                }
+                i++;
+            });
+            if( !device_used ) {
+                // keep to avoid duplicate finds: removeDiscoveredDevice(dev->addressAndType);
+                // and still allowing usage, as connecting will re-add to shared list
+                removeSharedDevice(*dev_shared); // pending dtor until discovered is flushed
+            } else if( EIRDataType::NONE != updateMask ) {
+                sendDeviceUpdated("SharedDeviceFound", dev_shared, eir->getTimestamp(), updateMask);
             }
-        } catch (std::exception &except) {
-            ERR_PRINT("BTAdapter:hci:DeviceFound-CBs %d/%zd: %s of %s: Caught exception %s",
-                    i+1, statusListenerList.size(),
-                    p.listener->toString().c_str(), dev->toString().c_str(), except.what());
         }
-        i++;
-    });
-    if( !device_used ) {
-        // keep to avoid duplicate finds: removeDiscoveredDevice(dev->addressAndType);
-        // and still allowing usage, as connecting will re-add to shared list
-        removeSharedDevice(*dev); // pending dtor if discovered is flushed
+    } else { // nullptr != dev_discovered
+        //
+        // Already discovered device
+        //
+        const EIRDataType updateMask = dev_discovered->update(*eir);
+        if( nullptr == dev_shared ) {
+            //
+            // Discovered but not a shared device,
+            // i.e. all user deviceFound(..) returned false - no interest/rejected.
+            //
+            if( EIRDataType::NONE != ( updateMask & EIRDataType::NAME ) ) {
+                // Name got updated, send out deviceFound(..) again
+                COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(2.1.1, dev_id %d): Discovered but unshared %s, name changed %s -> deviceFound(..) %s",
+                        dev_id, dev_discovered->getAddressAndType().toString().c_str(),
+                        direct_bt::to_string(updateMask).c_str(), eir->toString().c_str());
+                addSharedDevice(dev_discovered); // re-add to shared devices!
+                int i=0;
+                bool device_used = false;
+                jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
+                    try {
+                        if( p.listener->matchDevice(*dev_discovered) ) {
+                            device_used = p.listener->deviceFound(dev_discovered, eir->getTimestamp()) || device_used;
+                        }
+                    } catch (std::exception &except) {
+                        ERR_PRINT("BTAdapter:hci:DeviceFound: %d/%zd: %s of %s: Caught exception %s",
+                                i+1, statusListenerList.size(),
+                                p.listener->toString().c_str(), dev_discovered->toString().c_str(), except.what());
+                    }
+                    i++;
+                });
+                if( !device_used ) {
+                    // keep to avoid duplicate finds: removeDiscoveredDevice(dev_discovered->addressAndType);
+                    // and still allowing usage, as connecting will re-add to shared list
+                    removeSharedDevice(*dev_discovered); // pending dtor if discovered is flushed
+                }
+            } else {
+                // Drop: NAME didn't change
+                COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(2.1.2, dev_id %d): Discovered but unshared %s, no name change -> Drop(1) %s",
+                        dev_id, dev_discovered->getAddressAndType().toString().c_str(), eir->toString().c_str());
+            }
+        } else { // nullptr != dev_shared
+            //
+            // Discovered and shared device,
+            // i.e. at least one deviceFound(..) returned true - interest/picked.
+            //
+            if( EIRDataType::NONE != updateMask ) {
+                COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(2.2.1, dev_id %d): Discovered and shared %s, updated %s -> deviceUpdated(..) %s",
+                        dev_id, dev_shared->getAddressAndType().toString().c_str(),
+                        direct_bt::to_string(updateMask).c_str(), eir->toString().c_str());
+                sendDeviceUpdated("DiscoveredDeviceFound", dev_shared, eir->getTimestamp(), updateMask);
+            } else {
+                // Drop: No update
+                COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(2.2.2, dev_id %d): Discovered and shared %s, not-updated -> Drop(2) %s",
+                        dev_id, dev_shared->getAddressAndType().toString().c_str(), eir->toString().c_str());
+            }
+        }
     }
     return true;
 }
