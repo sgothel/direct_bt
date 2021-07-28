@@ -427,11 +427,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                 jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
                 for(jau::nsize_t eircount = eirlist.size(); eircount>0; --eircount) {
                     const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[0] ) );
-                    if( env.DEBUG_SCAN_AD_EIR ) {
-                        jau::COND_PRINT_impl("HCIHandler-IO RECV (AD EIR) %s", e.getEIR()->toString().c_str());
-                        jau::COND_PRINT_impl("HCIHandler-IO RECV (AD EIR) %s",
-                                jau::bytesHexString(event->getParam(), 0, event->getParamSize(), true /* lsbFirst */).c_str());
-                    }
+                    COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler-IO RECV (AD EIR) %s", e.getEIR()->toString().c_str());
                     sendMgmtEvent( e );
                 }
             } else {
