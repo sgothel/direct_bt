@@ -598,7 +598,7 @@ public class BTFactory {
                     System.err.println("BTAdapter["+i+"]: "+iter.next().toString()); // has full toString()
                 } else {
                     final BTAdapter a = iter.next();
-                    System.err.println("BTAdapter["+i+"]: dev_id "+a.getDevID()+", address "+a.getAddress()+", name "+a.getName());
+                    System.err.println("BTAdapter["+i+"]: dev_id "+a.getDevID()+", address "+a.getAddressAndType()+", name "+a.getName());
                 }
             }
         } catch (BTException | NoSuchMethodException | SecurityException

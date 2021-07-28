@@ -186,7 +186,14 @@ namespace direct_bt {
 
         public:
             const uint16_t dev_id;
-            const EUI48 address;
+            /**
+             * The adapter's address initially reported by the system is always its public address, i.e. BDAddressType::BDADDR_LE_PUBLIC.
+             * <p>
+             * Subsequent adapter setup using BDAddressType::BDADDR_LE_RANDOM must be handled within BTAdapter
+             * and is not reflected in AdapterInfo.
+             * </p>
+             */
+            const BDAddressAndType addressAndType;
             const uint8_t version;
             const uint16_t manufacturer;
 
@@ -212,11 +219,11 @@ namespace direct_bt {
             void setShortName(const std::string v) noexcept { short_name = v; }
 
         public:
-            AdapterInfo(const uint16_t dev_id_, const EUI48 & address_,
+            AdapterInfo(const uint16_t dev_id_, const BDAddressAndType & addressAndType_,
                         const uint8_t version_, const uint16_t manufacturer_,
                         const AdapterSetting supported_setting_, const AdapterSetting current_setting_,
                         const uint32_t dev_class_, const std::string & name_, const std::string & short_name_) noexcept
-            : dev_id(dev_id_), address(address_), version(version_),
+            : dev_id(dev_id_), addressAndType(addressAndType_), version(version_),
               manufacturer(manufacturer_),
               supported_setting(supported_setting_),
               current_setting(current_setting_), dev_class(dev_class_),
@@ -224,7 +231,7 @@ namespace direct_bt {
             { }
 
             AdapterInfo(const AdapterInfo &o) noexcept
-            : dev_id(o.dev_id), address(o.address), version(o.version),
+            : dev_id(o.dev_id), addressAndType(o.addressAndType), version(o.version),
               manufacturer(o.manufacturer),
               supported_setting(o.supported_setting),
               current_setting(o.current_setting.load()), dev_class(o.dev_class),
@@ -232,7 +239,7 @@ namespace direct_bt {
             { }
             AdapterInfo& operator=(const AdapterInfo &o) {
                 if( this != &o ) {
-                    if( dev_id != o.dev_id || address != o.address ) {
+                    if( dev_id != o.dev_id || addressAndType != o.addressAndType ) {
                         throw jau::IllegalArgumentException("Can't assign different device id's or address "+o.toString()+" -> "+toString(), E_FILE_LINE);
                     }
                     supported_setting   = o.supported_setting;
@@ -244,7 +251,7 @@ namespace direct_bt {
                 return *this;
             }
             AdapterInfo(AdapterInfo&& o) noexcept
-            : dev_id(std::move(o.dev_id)), address(std::move(o.address)), version(std::move(o.version)),
+            : dev_id(std::move(o.dev_id)), addressAndType(std::move(o.addressAndType)), version(std::move(o.version)),
               manufacturer(std::move(o.manufacturer)),
               supported_setting(std::move(o.supported_setting)),
               current_setting(o.current_setting.load()), dev_class(std::move(o.dev_class)),
@@ -268,7 +275,7 @@ namespace direct_bt {
             std::string getShortName() const noexcept { return short_name; }
 
             std::string toString() const noexcept {
-                return "AdapterInfo[id "+std::to_string(dev_id)+", address "+address.toString()+", version "+std::to_string(version)+
+                return "AdapterInfo[id "+std::to_string(dev_id)+", address "+addressAndType.toString()+", version "+std::to_string(version)+
                         ", manuf "+std::to_string(manufacturer)+
                         ", settings[sup "+to_string(supported_setting)+", cur "+to_string(current_setting)+
                         "], name '"+name+"', shortName '"+short_name+"']";

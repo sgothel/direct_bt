@@ -143,16 +143,16 @@ void Java_jau_direct_1bt_DBTManager_deleteImpl(JNIEnv *env, jobject obj, jlong n
     }
 }
 
-static const std::string _adapterClazzCtorArgs("(J[BLjava/lang/String;I)V");
+static const std::string _adapterClazzCtorArgs("(J[BBLjava/lang/String;I)V");
 static jobject _createJavaAdapter(JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, BTAdapter* adapter) {
     // prepare adapter ctor
-    const EUI48 addr = adapter->getAddress();
+    const EUI48 addr = adapter->getAddressAndType().address;
     jbyteArray jaddr = env_->NewByteArray(sizeof(addr));
     env_->SetByteArrayRegion(jaddr, 0, sizeof(addr), (const jbyte*)(addr.b));
     jau::java_exception_check_and_throw(env_, E_FILE_LINE);
     const jstring name = from_string_to_jstring(env_, adapter->getName());
     java_exception_check_and_throw(env_, E_FILE_LINE);
-    jobject jAdapter = env_->NewObject(clazz, clazz_ctor, (jlong)adapter, jaddr, name, adapter->dev_id);
+    jobject jAdapter = env_->NewObject(clazz, clazz_ctor, (jlong)adapter, jaddr, adapter->getAddressAndType().type, name, adapter->dev_id);
     java_exception_check_and_throw(env_, E_FILE_LINE);
     JNIGlobalRef::check(jAdapter, E_FILE_LINE);
     std::shared_ptr<JavaAnon> jAdapterRef = adapter->getJavaObject(); // GlobalRef

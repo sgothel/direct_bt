@@ -367,11 +367,6 @@ namespace direct_bt {
             jau::darray<std::shared_ptr<BTAdapter>> getAdapters() { return *adapters.snapshot(); }
 
             /**
-             * Returns the DBTAdapter with the given address or nullptr if not found.
-             */
-            std::shared_ptr<BTAdapter> getAdapter(const EUI48 &mac) const noexcept;
-
-            /**
              * Returns the DBTAdapter with the given dev_id, or nullptr if not found.
              */
             std::shared_ptr<BTAdapter> getAdapter(const uint16_t dev_id) const noexcept;

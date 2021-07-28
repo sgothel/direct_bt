@@ -129,7 +129,7 @@ public class ScannerTinyB02 {
             }
             adapter = adapters.get(dev_id);
             if( !adapter.isPowered() ) {
-                System.err.println("Adapter not enabled: device "+adapter.getName()+", address "+adapter.getAddress()+": "+adapter.toString());
+                System.err.println("Adapter not enabled: device "+adapter.getName()+", address "+adapter.getAddressAndType()+": "+adapter.toString());
                 System.exit(-1);
             }
         }

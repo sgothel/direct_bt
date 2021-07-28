@@ -485,7 +485,9 @@ std::shared_ptr<NameAndShortName> MgmtEvtLocalNameChanged::toNameAndShortName() 
 
 std::unique_ptr<AdapterInfo> MgmtEvtAdapterInfo::toAdapterInfo() const noexcept {
     return std::make_unique<AdapterInfo>(
-            getDevID(), getAddress(), getVersion(),
+            getDevID(),
+            BDAddressAndType(getAddress(), BDAddressType::BDADDR_LE_PUBLIC),
+            getVersion(),
             getManufacturer(), getSupportedSetting(),
             getCurrentSetting(), getDevClass(),
             getName(), getShortName());

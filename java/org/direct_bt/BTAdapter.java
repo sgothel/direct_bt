@@ -217,11 +217,36 @@ public interface BTAdapter extends BTObject
     /* D-Bus property accessors: */
 
     /**
+     * Returns the adapter's public BDAddressAndType.
+     * <p>
+     * The adapter's address as initially reported by the system is always its public address, i.e. {@link BDAddressType#BDADDR_LE_PUBLIC}.
+     * </p>
+     * @since 2.2.8
+     * @see #getVisibleAddressAndType()
+     */
+    BDAddressAndType getAddressAndType();
+
+    /**
+     * Returns the adapter's currently visible BDAddressAndType.
+     * <p>
+     * The adapter's address as initially reported by the system is always its public address, i.e. {@link BDAddressType#BDADDR_LE_PUBLIC}.
+     * </p>
+     * <p>
+     * The adapter's visible BDAddressAndType might be set to {@link BDAddressType#BDADDR_LE_RANDOM} before scanning / discovery mode (TODO).
+     * </p>
+     * @since 2.2.8
+     * @see #getAddressAndType()
+     */
+    BDAddressAndType getVisibleAddressAndType();
+
+    /**
      * Returns the hardware address of this adapter.
      * @return The hardware address of this adapter.
      * @implNote Changed to EUI48 since version 2.2.0
      * @since 2.2.0
+     * @deprecated Use {@link #getAddressAndType()} and {@link #getVisibleAddressAndType()}
      */
+    @Deprecated
     EUI48 getAddress();
 
     /**

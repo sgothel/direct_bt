@@ -2213,6 +2213,7 @@ namespace direct_bt {
             : MgmtEvtCmdComplete(buffer, buffer_len, infoDataSize())
             { }
 
+            /** The adapter address reported is always the public address, i.e. BDAddressType::BDADDR_LE_PUBLIC. */
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(getDataOffset() + 0) ); }
             uint8_t getVersion() const noexcept { return pdu.get_uint8_nc(getDataOffset()+6); }
             uint16_t getManufacturer() const noexcept { return pdu.get_uint16_nc(getDataOffset()+7); }

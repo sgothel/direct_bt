@@ -61,7 +61,7 @@ L2CAPEnv::L2CAPEnv() noexcept
 {
 }
 
-int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const L2CAP_PSM psm, const L2CAP_CID cid, const BDAddressType addrType) {
+int L2CAPComm::l2cap_open_dev(const BDAddressAndType & adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) {
     sockaddr_l2 a;
     int fd, err;
 
@@ -79,9 +79,9 @@ int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const L2CAP_PSM psm,
     bzero((void *)&a, sizeof(a));
     a.l2_family=AF_BLUETOOTH;
     a.l2_psm = jau::cpu_to_le(direct_bt::number(psm));
-    a.l2_bdaddr = adapterAddress;
+    a.l2_bdaddr = adapterAddressAndType.address;
     a.l2_cid = jau::cpu_to_le(direct_bt::number(cid));
-    a.l2_bdaddr_type = ::number(addrType);
+    a.l2_bdaddr_type = ::number(adapterAddressAndType.type);
     if ( ::bind(fd, (struct sockaddr *) &a, sizeof(a)) < 0 ) {
         ERR_PRINT("L2CAPComm::l2cap_open_dev: bind failed");
         goto failed;
@@ -106,9 +106,9 @@ int L2CAPComm::l2cap_close_dev(int dd)
 // *************************************************
 // *************************************************
 
-L2CAPComm::L2CAPComm(const EUI48& adapterAddress_, const L2CAP_PSM psm_, const L2CAP_CID cid_)
+L2CAPComm::L2CAPComm(const BDAddressAndType& adapterAddressAndType_, const L2CAP_PSM psm_, const L2CAP_CID cid_)
 : env(L2CAPEnv::get()),
-  adapterAddress(adapterAddress_),
+  adapterAddressAndType(adapterAddressAndType_),
   psm(psm_), cid(cid_),
   deviceAddressAndType(BDAddressAndType::ANY_BREDR_DEVICE),
   socket_descriptor(-1),
@@ -164,7 +164,7 @@ bool L2CAPComm::open(const BTDevice& device, const BTSecurityLevel sec_level) {
               getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
               to_string(psm).c_str(), to_string(cid).c_str());
 
-    socket_descriptor = l2cap_open_dev(adapterAddress, psm, cid, BDAddressType::BDADDR_LE_PUBLIC);
+    socket_descriptor = l2cap_open_dev(adapterAddressAndType, psm, cid);
 
     if( 0 > socket_descriptor ) {
         goto failure; // open failed

@@ -207,6 +207,7 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const A
   debug_lock(jau::environment::getBooleanProperty("direct_bt.debug.adapter.lock", false)),
   mgmt( mgmt_ ),
   adapterInfo( adapterInfo_ ),
+  visibleAddressAndType( adapterInfo_.addressAndType ),
   dev_id( adapterInfo.dev_id ),
   hci( dev_id )
 {
@@ -928,7 +929,9 @@ void BTAdapter::removeDevice(BTDevice & device) noexcept {
 }
 
 std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
-    std::string out("Adapter[BTMode "+to_string(btMode)+", "+adapterInfo.address.toString()+", '"+getName()+"', id "+std::to_string(dev_id)+
+    std::string random_address_info = adapterInfo.addressAndType != visibleAddressAndType ? " ("+visibleAddressAndType.toString()+")" : "";
+    std::string out("Adapter[BTMode "+to_string(btMode)+", "+adapterInfo.addressAndType.toString()+random_address_info+
+                    ", '"+getName()+"', id "+std::to_string(dev_id)+
                     ", curSettings"+to_string(adapterInfo.getCurrentSettingMask())+
                     ", scanType[native "+to_string(hci.getCurrentScanType())+", meta "+to_string(currentMetaScanType)+"]"
                     ", valid "+std::to_string(isValid())+", open[mgmt, "+std::to_string(mgmt.isOpen())+", hci "+std::to_string(hci.isOpen())+

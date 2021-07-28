@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.direct_bt.AdapterSettings;
 import org.direct_bt.AdapterStatusListener;
 import org.direct_bt.BDAddressAndType;
+import org.direct_bt.BDAddressType;
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTDevice;
 import org.direct_bt.BTException;
@@ -67,8 +68,15 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private static int discoverTimeoutMS = 100;
 
     private final int dev_id;
-    private final EUI48 address;
+    /**
+     * The adapter's initially reported address by the system, which always reflects its public address, i.e. BDAddressType::BDADDR_LE_PUBLIC.
+     */
+    private final BDAddressAndType addressAndType;
     private final String name;
+    /**
+     * Either the adapter's initially reported public address or a random address setup via HCI before scanning / discovery.
+     */
+    private final BDAddressAndType visibleAddressAndType;
 
     private final Object discoveryLock = new Object();
     private final Object discoveredDevicesLock = new Object();
@@ -88,12 +96,16 @@ public class DBTAdapter extends DBTObject implements BTAdapter
 
     private final List<WeakReference<BTDevice>> discoveredDevices = new ArrayList<WeakReference<BTDevice>>();
 
-    /* pp */ DBTAdapter(final long nativeInstance, final byte byteAddress[/*6*/], final String name, final int dev_id)
+    /* pp */ DBTAdapter(final long nativeInstance,
+                        final byte byteAddress[/*6*/],
+                        final byte byteAddressType,
+                        final String name, final int dev_id)
     {
-        super( nativeInstance, compHash( dev_id, java.util.Arrays.hashCode(byteAddress) ) );
+        super(nativeInstance, compHash(java.util.Arrays.hashCode(byteAddress), 31+byteAddressType));
         this.dev_id = dev_id;
-        this.address = new EUI48(byteAddress);
+        this.addressAndType = new BDAddressAndType(new EUI48(byteAddress), BDAddressType.get(byteAddressType));
         this.name = name;
+        this.visibleAddressAndType = addressAndType;
         addStatusListener(this.statusListener);
     }
 
@@ -148,14 +160,20 @@ public class DBTAdapter extends DBTObject implements BTAdapter
             return false;
         }
         final DBTAdapter other = (DBTAdapter)obj;
-        return dev_id == other.dev_id && address.equals(other.address);
+        return dev_id == other.dev_id && addressAndType.equals(other.addressAndType);
     }
 
     @Override
-    public EUI48 getAddress() { return address; }
+    public BDAddressAndType getAddressAndType() { return addressAndType; }
 
     @Override
-    public String getAddressString() { return address.toString(); }
+    public BDAddressAndType getVisibleAddressAndType() { return visibleAddressAndType; }
+
+    @Override
+    public EUI48 getAddress() { return addressAndType.address; }
+
+    @Override
+    public String getAddressString() { return addressAndType.address.toString(); }
 
     @Override
     public String getName() { return name; }
@@ -314,7 +332,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     @Override
     public String toString() {
         if( !isValid() ) {
-            return "Adapter" + "\u271D" + "["+address+", '"+name+"', id "+dev_id+"]";
+            return "Adapter" + "\u271D" + "["+addressAndType+", '"+name+"', id "+dev_id+"]";
         }
         return toStringImpl();
     }
@@ -678,7 +696,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
 
         @Override
         public String toString() {
-            return "AdapterStatusListener[adapter "+address.toString()+"]";
+            return "AdapterStatusListener[adapter "+addressAndType.toString()+"]";
         }
 
     };

@@ -621,15 +621,6 @@ std::shared_ptr<BTAdapter> BTManager::getDefaultAdapter() const noexcept {
     return nullptr;
 }
 
-std::shared_ptr<BTAdapter> BTManager::getAdapter(const EUI48 &mac) const noexcept {
-    typename adapters_t::const_iterator it = adapters.cbegin();
-    for (; !it.is_end(); ++it) {
-        if ( (*it)->adapterInfo.address == mac ) {
-            return *it;
-        }
-    }
-    return nullptr;
-}
 std::shared_ptr<BTAdapter> BTManager::getAdapter(const uint16_t dev_id) const noexcept {
     typename adapters_t::const_iterator it = adapters.cbegin();
     for (; !it.is_end(); ++it) {

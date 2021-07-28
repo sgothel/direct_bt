@@ -255,6 +255,11 @@ namespace direct_bt {
             BTManager& mgmt;
             AdapterInfo adapterInfo;
 
+            /**
+             * Either the adapter's initially reported public address or a random address setup via HCI before scanning / discovery.
+             */
+            BDAddressAndType visibleAddressAndType;
+
         public:
             /**
              * Adapter's internal temporary device id.
@@ -463,7 +468,28 @@ namespace direct_bt {
              */
             BTMode getBTMode() const noexcept { return adapterInfo.getCurrentBTMode(); }
 
-            EUI48 const & getAddress() const noexcept { return adapterInfo.address; }
+            /**
+             * Returns the adapter's public BDAddressAndType.
+             * <p>
+             * The adapter's address as initially reported by the system is always its public address, i.e. BDAddressType::BDADDR_LE_PUBLIC.
+             * </p>
+             * @since 2.2.8
+             * @see #getVisibleAddressAndType()
+             */
+            BDAddressAndType const & getAddressAndType() const noexcept { return adapterInfo.addressAndType; }
+
+            /**
+             * Returns the adapter's currently visible BDAddressAndType.
+             * <p>
+             * The adapter's address as initially reported by the system is always its public address, i.e. BDAddressType::BDADDR_LE_PUBLIC.
+             * </p>
+             * <p>
+             * The adapter's visible BDAddressAndType might be set to BDAddressType::BDADDR_LE_RANDOM before scanning / discovery mode (TODO).
+             * </p>
+             * @since 2.2.8
+             * @see #getAddressAndType()
+             */
+            BDAddressAndType const & getVisibleAddressAndType() const noexcept { return visibleAddressAndType; }
 
             /**
              * Returns the system name.

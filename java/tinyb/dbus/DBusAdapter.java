@@ -36,6 +36,7 @@ import java.util.UUID;
 
 import org.direct_bt.AdapterStatusListener;
 import org.direct_bt.BDAddressAndType;
+import org.direct_bt.BDAddressType;
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTDevice;
 import org.direct_bt.BTException;
@@ -136,10 +137,16 @@ public class DBusAdapter extends DBusObject implements BTAdapter
     /* D-Bus property accessors: */
 
     @Override
+    public native String getAddressString();
+
+    @Override
     public EUI48 getAddress() { return new EUI48(getAddressString()); }
 
     @Override
-    public native String getAddressString();
+    public BDAddressAndType getAddressAndType() { return new BDAddressAndType(getAddress(), BDAddressType.BDADDR_LE_PUBLIC); }
+
+    @Override
+    public BDAddressAndType getVisibleAddressAndType() { return getAddressAndType(); }
 
     @Override
     public native String getName();
