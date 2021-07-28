@@ -42,14 +42,14 @@ using namespace direct_bt;
 using namespace jau;
 
 #define CHAR_DECL_PROPS_ENUM(X) \
-        X(Broadcast,broadcast) \
-        X(Read,read) \
-        X(WriteNoAck,write-without-response) \
-        X(WriteWithAck,write) \
-        X(Notify,notify) \
-        X(Indicate,indicate) \
-        X(AuthSignedWrite,authenticated-signed-writes) \
-        X(ExtProps,extended-properties)
+        X(BTGattChar,Broadcast,broadcast) \
+        X(BTGattChar,Read,read) \
+        X(BTGattChar,WriteNoAck,write-without-response) \
+        X(BTGattChar,WriteWithAck,write) \
+        X(BTGattChar,Notify,notify) \
+        X(BTGattChar,Indicate,indicate) \
+        X(BTGattChar,AuthSignedWrite,authenticated-signed-writes) \
+        X(BTGattChar,ExtProps,extended-properties)
 
 /**
         "reliable-write"
@@ -63,11 +63,11 @@ using namespace jau;
         "authorize"
  */
 
-#define CASE_TO_STRING2(V,S) case V: return #S;
+#define CASE2_TO_STRING2(U,V,W) case U::V: return #W;
 
 static std::string _getPropertyBitValStr(const BTGattChar::PropertyBitVal prop) noexcept {
     switch(prop) {
-        CHAR_DECL_PROPS_ENUM(CASE_TO_STRING2)
+        CHAR_DECL_PROPS_ENUM(CASE2_TO_STRING2)
         default: ; // fall through intended
     }
     return "Unknown property";
