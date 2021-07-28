@@ -1411,10 +1411,14 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
         // drop existing device
         //
         EIRDataType updateMask = dev->update(*eir);
-        COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound: Drop already discovered %s, %s",
-                dev->getAddressAndType().toString().c_str(), eir->toString().c_str());
         if( EIRDataType::NONE != updateMask ) {
+            COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound: Already discovered %s, sendDeviceUpdated: update-mask %s from %s",
+                    dev->getAddressAndType().toString().c_str(),
+                    direct_bt::to_string(updateMask).c_str(), eir->toString().c_str());
             sendDeviceUpdated("DiscoveredDeviceFound", dev, eir->getTimestamp(), updateMask);
+        } else {
+            COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound: Drop already discovered %s, no-update from %s",
+                    dev->getAddressAndType().toString().c_str(), eir->toString().c_str());
         }
         return true;
     }
