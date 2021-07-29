@@ -67,6 +67,7 @@ public class DBTDevice extends DBTObject implements BTDevice
     volatile long ts_last_discovery;
     volatile long ts_last_update;
     volatile short hciConnHandle;
+    private volatile String name_cached;
     /* pp */ final List<WeakReference<DBTGattService>> serviceCache = new ArrayList<WeakReference<DBTGattService>>();
 
     private final AtomicBoolean isClosing = new AtomicBoolean(false);
@@ -206,7 +207,7 @@ public class DBTDevice extends DBTObject implements BTDevice
     /* pp */ DBTDevice(final long nativeInstance, final DBTAdapter adptr,
                        final byte byteAddress[/*6*/],
                        final byte byteAddressType,
-                       final long ts_creation)
+                       final long ts_creation, final String name)
     {
         super(nativeInstance, compHash(java.util.Arrays.hashCode(byteAddress), 31+byteAddressType));
         this.wbr_adapter = new WeakReference<DBTAdapter>(adptr);
@@ -218,6 +219,7 @@ public class DBTDevice extends DBTObject implements BTDevice
         ts_last_discovery = ts_creation;
         ts_last_update = ts_creation;
         hciConnHandle = 0;
+        name_cached = name;
         appearance = 0;
         initImpl();
         addStatusListener(statusListener); // associated events and lifecycle with this device
@@ -289,8 +291,15 @@ public class DBTDevice extends DBTObject implements BTDevice
     public BDAddressAndType getAddressAndType() { return addressAndType; }
 
     @Override
-    public String getName() { return getNameImpl(); }
-
+    public String getName() {
+        if( !isValid() ) {
+            return name_cached;
+        } else {
+            final String v = getNameImpl();
+            name_cached = v;
+            return v;
+        }
+    }
     private native String getNameImpl();
 
     @Override
@@ -663,8 +672,8 @@ public class DBTDevice extends DBTObject implements BTDevice
     public final String toString() {
         if( !isValid() ) {
             // UTF-8 271D = Cross
-            return "Device" + "\u271D" + "[address"+addressAndType+
-                   ", connected["+isConnected.get()+", 0x"+Integer.toHexString(hciConnHandle)+"]]";
+            return "Device" + "\u271D" + "[address"+addressAndType+", '"+name_cached+
+                    "', connected["+isConnected.get()+", 0x"+Integer.toHexString(hciConnHandle)+"]]";
         }
         return toStringImpl();
     }
