@@ -152,6 +152,13 @@ namespace direct_bt {
      * A 48 bit EUI-48 sub-identifier, see EUI48.
      */
     struct EUI48Sub {
+        /** EUI48 MAC address matching any device, i.e. `0:0:0:0:0:0`. */
+        static const EUI48Sub ANY_DEVICE;
+        /** EUI48 MAC address matching all device, i.e. `ff:ff:ff:ff:ff:ff`. */
+        static const EUI48Sub ALL_DEVICE;
+        /** EUI48 MAC address matching local device, i.e. `0:0:0:ff:ff:ff`. */
+        static const EUI48Sub LOCAL_DEVICE;
+
         /**
          * The <= 6 byte EUI48 sub-address.
          */
@@ -166,20 +173,85 @@ namespace direct_bt {
         EUI48Sub(const uint8_t * b_, const jau::nsize_t len_) noexcept;
 
         /**
+         * Fills given EUI48Sub instance via given string representation.
+         * <p>
+         * Implementation is consistent with EUI48Sub::toString().
+         * </p>
+         * @param str a string of less or equal of 17 characters representing less or equal of 6 bytes as hexadecimal numbers separated via colon,
+         * e.g. `01:02:03:0A:0B:0C`, `01:02:03:0A`, `:`, (empty).
+         * @param dest EUI48Sub to set its value
+         * @param errmsg error parsing message if returning false
+         * @return true if successful, otherwise false
+         * @see EUI48Sub::EUI48Sub
+         * @see EUI48Sub::toString()
+         */
+        static bool scanEUI48Sub(const std::string& str, EUI48Sub& dest, std::string& errmsg);
+
+        /**
          * Construct a sub EUI48 via given string representation.
          * <p>
          * Implementation is consistent with EUI48Sub::toString().
          * </p>
          * @param str a string of less or equal of 17 characters representing less or equal of 6 bytes as hexadecimal numbers separated via colon,
          * e.g. `01:02:03:0A:0B:0C`, `01:02:03:0A`, `:`, (empty).
+         * @see EUI48Sub::scanEUI48Sub()
          * @see EUI48Sub::toString()
+         * @throws jau::IllegalArgumentException if given string doesn't comply with EUI48
          */
-        EUI48Sub(const std::string mac);
+        EUI48Sub(const std::string& str);
 
         constexpr EUI48Sub(const EUI48Sub &o) noexcept = default;
         EUI48Sub(EUI48Sub &&o) noexcept = default;
         constexpr EUI48Sub& operator=(const EUI48Sub &o) noexcept = default;
         EUI48Sub& operator=(EUI48Sub &&o) noexcept = default;
+
+        constexpr std::size_t hash_code() const noexcept {
+            // 31 * x == (x << 5) - x
+            std::size_t h = length;
+            for(jau::nsize_t i=0; i<length; i++) {
+                h = ( ( h << 5 ) - h ) + b[i];
+            }
+            return h;
+        }
+
+        /**
+         * Method clears the underlying byte array {@link #b} and sets length to zero.
+         */
+        void clear() {
+            b[0] = 0; b[1] = 0; b[2] = 0;
+            b[3] = 0; b[4] = 0; b[5] = 0;
+            length = 0;
+        }
+
+        /**
+         * Find index of needle within haystack.
+         * @param haystack_b haystack data
+         * @param haystack_length haystack length
+         * @param needle_b needle data
+         * @param needle_length needle length
+         * @return index of first element of needle within haystack or -1 if not found. If the needle length is zero, 0 (found) is returned.
+         */
+        static jau::snsize_t indexOf(const uint8_t haystack_b[], const jau::nsize_t haystack_length,
+                                     const uint8_t needle_b[], const jau::nsize_t needle_length) noexcept;
+
+        /**
+         * Finds the index of given EUI48Sub needle within this instance haystack.
+         * @param needle
+         * @return index of first element of needle within this instance haystack or -1 if not found. If the needle length is zero, 0 (found) is returned.
+         */
+        jau::snsize_t indexOf(const EUI48Sub& needle) const noexcept {
+            return indexOf(b, length, needle.b, needle.length);
+        }
+
+        /**
+         * Returns true, if given EUI48Sub needle is contained in this instance haystack.
+         * <p>
+         * If the sub is zero, true is returned.
+         * </p>
+         */
+        bool contains(const EUI48Sub& needle) const noexcept {
+            return 0 <= indexOf(needle);
+        }
 
         /**
          * Returns the EUI48 sub-string representation,
@@ -189,6 +261,20 @@ namespace direct_bt {
         std::string toString() const noexcept;
     };
     inline std::string to_string(const EUI48Sub& a) noexcept { return a.toString(); }
+
+    inline bool operator==(const EUI48Sub& lhs, const EUI48Sub& rhs) noexcept {
+        if( &lhs == &rhs ) {
+            return true;
+        }
+        if( lhs.length != rhs.length ) {
+            return false;
+        }
+        return !memcmp(&lhs.b, &rhs.b, lhs.length);
+    }
+
+    inline bool operator!=(const EUI48Sub& lhs, const EUI48Sub& rhs) noexcept
+    { return !(lhs == rhs); }
+
 
     /**
      * A packed 48 bit EUI-48 identifier, formerly known as MAC-48
@@ -211,14 +297,30 @@ namespace direct_bt {
         EUI48(const uint8_t * b_) noexcept;
 
         /**
+         * Fills given EUI48 instance via given string representation.
+         * <p>
+         * Implementation is consistent with EUI48::toString().
+         * </p>
+         * @param str a string of exactly 17 characters representing 6 bytes as hexadecimal numbers separated via colon `01:02:03:0A:0B:0C`.
+         * @param dest EUI48 to set its value
+         * @param errmsg error parsing message if returning false
+         * @return true if successful, otherwise false
+         * @see EUI48::EUI48
+         * @see EUI48::toString()
+         */
+        static bool scanEUI48(const std::string& str, EUI48& dest, std::string& errmsg);
+
+        /**
          * Construct instance via given string representation.
          * <p>
          * Implementation is consistent with EUI48::toString().
          * </p>
          * @param str a string of exactly 17 characters representing 6 bytes as hexadecimal numbers separated via colon `01:02:03:0A:0B:0C`.
+         * @see EUI48::scanEUI48()
          * @see EUI48::toString()
+         * @throws jau::IllegalArgumentException if given string doesn't comply with EUI48
          */
-        EUI48(const std::string mac);
+        EUI48(const std::string& str);
 
         constexpr EUI48(const EUI48 &o) noexcept = default;
         EUI48(EUI48 &&o) noexcept = default;
@@ -259,17 +361,23 @@ namespace direct_bt {
         BLERandomAddressType getBLERandomAddressType(const BDAddressType addressType) const noexcept;
 
         /**
-         * Finds the index of given EUI48Sub.
+         * Finds the index of given EUI48Sub needle within this instance haystack.
+         * @param needle
+         * @return index of first element of needle within this instance haystack or -1 if not found. If the needle length is zero, 0 (found) is returned.
          */
-        jau::snsize_t indexOf(const EUI48Sub& other) const noexcept;
+        jau::snsize_t indexOf(const EUI48Sub& needle) const noexcept {
+            return EUI48Sub::indexOf(b, sizeof(b), needle.b, needle.length);
+        }
 
         /**
-         * Returns true, if given EUI48Sub is contained in here.
+         * Returns true, if given EUI48Sub needle is contained in this instance haystack.
          * <p>
          * If the sub is zero, true is returned.
          * </p>
          */
-        bool contains(const EUI48Sub& other) const noexcept;
+        bool contains(const EUI48Sub& needle) const noexcept {
+            return 0 <= indexOf(needle);
+        }
 
         /**
          * Returns the EUI48 string representation,
@@ -435,6 +543,12 @@ namespace direct_bt {
 // injecting specialization of std::hash to namespace std of our types above
 namespace std
 {
+    template<> struct hash<direct_bt::EUI48Sub> {
+        std::size_t operator()(direct_bt::EUI48Sub const& a) const noexcept {
+            return a.hash_code();
+        }
+    };
+
     template<> struct hash<direct_bt::EUI48> {
         std::size_t operator()(direct_bt::EUI48 const& a) const noexcept {
             return a.hash_code();

@@ -181,12 +181,13 @@ std::string EUI48Sub::toString() const noexcept {
     return str;
 }
 
-EUI48Sub::EUI48Sub(const std::string str) {
+bool EUI48Sub::scanEUI48Sub(const std::string& str, EUI48Sub& dest, std::string& errmsg) {
     const jau::nsize_t str_len = static_cast<jau::nsize_t>( str.length() );
-    length = 0;
+    dest.clear();
 
     if( 17 < str_len ) { // not exceeding byte_size
-        throw jau::IllegalArgumentException("EUI48 sub-string must be less or equal length 17 but "+std::to_string(str_len)+": "+str, E_FILE_LINE);
+        errmsg.append("EUI48 sub-string must be less or equal length 17 but "+std::to_string(str_len)+": "+str);
+        return false;
     }
     const char * str_ptr = str.c_str();
     jau::nsize_t j=0;
@@ -195,57 +196,70 @@ EUI48Sub::EUI48Sub(const std::string str) {
         if( ':' == str[j] ) {
             ++j;
         } else {
-            if ( sscanf(str_ptr+j, "%02hhx", &b_[length]) != 1 ) // b_: high->low
+            if ( sscanf(str_ptr+j, "%02hhx", &b_[dest.length]) != 1 ) // b_: high->low
             {
-                std::string msg("EUI48Sub sub-string not in format '01:02:03:0A:0B:0C' but '"+str+"', pos "+std::to_string(j)+", len "+std::to_string(str_len));
-                throw jau::IllegalArgumentException(msg, E_FILE_LINE);
+                errmsg.append("EUI48Sub sub-string not in format '01:02:03:0A:0B:0C' but '"+str+"', pos "+std::to_string(j)+", len "+std::to_string(str_len));
+                return false;
             }
             j += 2;
-            ++length;
+            ++dest.length;
         }
     }
-    for(j=0; j<length; ++j) { // swap low->high
-        b[j] = b_[length-1-j];
+    for(j=0; j<dest.length; ++j) { // swap low->high
+        dest.b[j] = b_[dest.length-1-j];
     }
     // sscanf provided host data type, in which we store the values,
     // hence no endian conversion
+    return true;
+}
+
+EUI48Sub::EUI48Sub(const std::string& str) {
+    std::string errmsg;
+    if( !scanEUI48Sub(str, *this, errmsg) ) {
+        throw jau::IllegalArgumentException(errmsg, E_FILE_LINE);
+    }
 }
 
 EUI48Sub::EUI48Sub(const uint8_t * b_, const jau::nsize_t len_) noexcept {
     length = len_;
-    memcpy(b, b_, std::max<jau::nsize_t>(sizeof(b), len_));
+    const jau::nsize_t cpsz = std::max<jau::nsize_t>(sizeof(b), len_);
+    const jau::nsize_t bzsz = sizeof(b) - cpsz;
+    memcpy(b, b_, cpsz);
+    if( bzsz > 0 ) {
+        bzero(b+cpsz, bzsz);
+    }
 }
 
-jau::snsize_t EUI48::indexOf(const EUI48Sub& other) const noexcept {
-    if( 0 == other.length ) {
+jau::snsize_t EUI48Sub::indexOf(const uint8_t haystack_b[], const jau::nsize_t haystack_length,
+                                const uint8_t needle_b[], const jau::nsize_t needle_length) noexcept {
+    if( 0 == needle_length ) {
         return 0;
     }
-    const uint8_t first = other.b[0];
-    const jau::nsize_t outerEnd = 6 - other.length + 1; // exclusive
+    if( haystack_length < needle_length ) {
+        return -1;
+    }
+    const uint8_t first = needle_b[0];
+    const jau::nsize_t outerEnd = haystack_length - needle_length + 1; // exclusive
 
     for (jau::nsize_t i = 0; i < outerEnd; i++) {
         // find first char of other
-        while( b[i] != first ) {
+        while( haystack_b[i] != first ) {
             if( ++i == outerEnd ) {
                 return -1;
             }
         }
         if( i < outerEnd ) { // otherLen chars left to match?
             // continue matching other chars
-            const jau::nsize_t innerEnd = i + other.length; // exclusive
+            const jau::nsize_t innerEnd = i + needle_length; // exclusive
             jau::nsize_t j = i, k=0;
             do {
                 if( ++j == innerEnd ) {
                     return i; // gotcha
                 }
-            } while( b[j] == other.b[++k] );
+            } while( haystack_b[j] == needle_b[++k] );
         }
     }
     return -1;
-}
-
-bool EUI48::contains(const EUI48Sub& other) const noexcept {
-    return 0 <= indexOf(other);
 }
 
 std::string EUI48::toString() const noexcept {
@@ -264,31 +278,43 @@ std::string EUI48::toString() const noexcept {
     return str;
 }
 
-EUI48::EUI48(const std::string str) {
+bool EUI48::scanEUI48(const std::string& str, EUI48& dest, std::string& errmsg) {
     if( 17 != str.length() ) {
-        std::string msg("EUI48 string not of length 17 but ");
-        msg.append(std::to_string(str.length()));
-        msg.append(": "+str);
-        throw jau::IllegalArgumentException(msg, E_FILE_LINE);
+        errmsg.append("EUI48 string not of length 17 but ");
+        errmsg.append(std::to_string(str.length()));
+        errmsg.append(": "+str);
+        return false;
     }
     if ( sscanf(str.c_str(), "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
-                     &b[5], &b[4], &b[3], &b[2], &b[1], &b[0]) != 6 )
+                &dest.b[5], &dest.b[4], &dest.b[3], &dest.b[2], &dest.b[1], &dest.b[0]) != 6 )
     {
-        std::string msg("EUI48 string not in format '01:02:03:0A:0B:0C' but '"+str+"'");
-        throw jau::IllegalArgumentException(msg, E_FILE_LINE);
+        errmsg.append("EUI48 string not in format '01:02:03:0A:0B:0C' but '"+str+"'");
+        return false;
     }
-
     // sscanf provided host data type, in which we store the values,
     // hence no endian conversion
+    return true;
+}
+
+EUI48::EUI48(const std::string& str) {
+    std::string errmsg;
+    if( !scanEUI48(str, *this, errmsg) ) {
+        throw jau::IllegalArgumentException(errmsg, E_FILE_LINE);
+    }
 }
 
 EUI48::EUI48(const uint8_t * b_) noexcept {
     memcpy(b, b_, sizeof(b));
 }
 
-const EUI48 direct_bt::EUI48::ANY_DEVICE; // default ctor is zero bytes!
 static uint8_t _EUI48_ALL_DEVICE[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 static uint8_t _EUI48_LOCAL_DEVICE[] = {0x00, 0x00, 0x00, 0xff, 0xff, 0xff};
+
+const EUI48Sub direct_bt::EUI48Sub::ANY_DEVICE; // default ctor is zero bytes!
+const EUI48Sub direct_bt::EUI48Sub::ALL_DEVICE( _EUI48_ALL_DEVICE, 6 );
+const EUI48Sub direct_bt::EUI48Sub::LOCAL_DEVICE( _EUI48_LOCAL_DEVICE, 6 );
+
+const EUI48 direct_bt::EUI48::ANY_DEVICE; // default ctor is zero bytes!
 const EUI48 direct_bt::EUI48::ALL_DEVICE( _EUI48_ALL_DEVICE );
 const EUI48 direct_bt::EUI48::LOCAL_DEVICE( _EUI48_LOCAL_DEVICE );
 
