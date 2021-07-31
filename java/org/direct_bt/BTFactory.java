@@ -619,6 +619,9 @@ public class BTFactory {
  * <p>
  * This example represents the recommended utilization of Direct-BT.
  * </p>
+ * <p>
+ * See `dbt_scanner10.cpp` for invocation examples, since both apps are fully compatible.
+ * </p>
  */
 
 /** \example ScannerTinyB00.java

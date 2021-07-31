@@ -1492,22 +1492,32 @@ namespace direct_bt {
  *
  * * Read device C0:26:DA:01:DA:B1  (using default auto-sec w/ keyboard iocap)
  *   ~~~
- *   ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1
+ *   ../scripts/run-dbt_scanner10.sh -dev C0:26:DA:01:DA:B1
  *   ~~~
  *
  * * Read device C0:26:DA:01:DA:B1  (enforcing no security)
  *   ~~~
- *   ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1 -seclevel C0:26:DA:01:DA:B1 1 1
+ *   ../scripts/run-dbt_scanner10.sh -dev C0:26:DA:01:DA:B1 -seclevel C0:26:DA:01:DA:B1 1
+ *   ~~~
+ *
+ * * Read any device containing C0:26:DA  (enforcing no security)
+ *   ~~~
+ *   ../scripts/run-dbt_scanner10.sh -dev C0:26:DA -seclevel C0:26:DA 1
+ *   ~~~
+ *
+ * * Read any device containing name `TAIDOC` (enforcing no security)
+ *   ~~~
+ *   ../scripts/run-dbt_scanner10.sh -dev 'TAIDOC' -seclevel 'TAIDOC' 1
  *   ~~~
  *
  * * Read device C0:26:DA:01:DA:B1, basic debug flags enabled (using default auto-sec w/ keyboard iocap)
  *   ~~~
- *   ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1 -dbt_debug true
+ *   ../scripts/run-dbt_scanner10.sh -dev C0:26:DA:01:DA:B1 -dbt_debug true
  *   ~~~
  *
  * * Read device C0:26:DA:01:DA:B1, all debug flags enabled (using default auto-sec w/ keyboard iocap)
  *   ~~~
- *   ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1 -dbt_debug adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event
+ *   ../scripts/run-dbt_scanner10.sh -dev C0:26:DA:01:DA:B1 -dbt_debug adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event
  *   ~~~
  *
  * ## Special Actions
