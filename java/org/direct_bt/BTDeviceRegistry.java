@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -63,13 +64,44 @@ public class BTDeviceRegistry {
             addressAndType = a;
             name = n;
         }
+
+        /**
+         * {@inheritDoc}
+         * <p>
+         * Implementation simply tests the {@link BDAddressAndType} fields for equality,
+         * `name` is ignored.
+         * </p>
+         */
+        @Override
+        public final boolean equals(final Object obj) {
+            if(this == obj) {
+                return true;
+            }
+            if (obj == null || !(obj instanceof DeviceID)) {
+                return false;
+            }
+            return addressAndType.equals(((DeviceID)obj).addressAndType);
+        }
+
+        /**
+         * {@inheritDoc}
+         * <p>
+         * Implementation simply returns the {@link BDAddressAndType} hash code,
+         * `name` is ignored.
+         * </p>
+         */
+        @Override
+        public final int hashCode() {
+            return addressAndType.hashCode();
+        }
+
         @Override
         public String toString() {
             return "["+addressAndType+", "+name+"]";
         }
     };
-    private static Collection<DeviceID> devicesInProcessing = Collections.synchronizedCollection(new ArrayList<>());
-    private static Collection<DeviceID> devicesProcessed = Collections.synchronizedCollection(new ArrayList<>());
+    private static Collection<DeviceID> devicesInProcessing = Collections.synchronizedCollection(new HashSet<DeviceID>());
+    private static Collection<DeviceID> devicesProcessed = Collections.synchronizedCollection(new HashSet<DeviceID>());
 
     public static void addToWaitForDevices(final String addrOrNameSub) {
         final EUI48Sub addr1 = new EUI48Sub();
@@ -105,13 +137,7 @@ public class BTDeviceRegistry {
         devicesProcessed.add( new DeviceID(a, n) );
     }
     public static boolean isDeviceProcessed(final BDAddressAndType a) {
-        for(final Iterator<DeviceID> it=devicesProcessed.iterator(); it.hasNext(); ) {
-            final DeviceID id = it.next();
-            if( id.addressAndType.equals(a) ) {
-                return true;
-            }
-        }
-        return false;
+        return devicesProcessed.contains( new DeviceID(a, null) );
     }
     public static int getDeviceProcessedCount() {
         return devicesProcessed.size();
@@ -141,23 +167,10 @@ public class BTDeviceRegistry {
         devicesInProcessing.add( new DeviceID(a, n) );
     }
     public static boolean removeFromDevicesProcessing(final BDAddressAndType a) {
-        for(final Iterator<DeviceID> it=devicesInProcessing.iterator(); it.hasNext(); ) {
-            final DeviceID id = it.next();
-            if ( id.addressAndType.equals(a) ) {
-                it.remove();
-                return true;
-            }
-        }
-        return false;
+        return devicesInProcessing.remove( new DeviceID(a, null) );
     }
     public static boolean isDeviceProcessing(final BDAddressAndType a) {
-        for(final Iterator<DeviceID> it=devicesInProcessing.iterator(); it.hasNext(); ) {
-            final DeviceID id = it.next();
-            if ( id.addressAndType.equals(a) ) {
-                return true;
-            }
-        }
-        return false;
+        return devicesInProcessing.contains( new DeviceID(a, null) );
     }
     public static int getDeviceProcessingCount() {
         return devicesInProcessing.size();
