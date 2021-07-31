@@ -60,24 +60,48 @@ public class EUI48 {
     /* pp */ static final int byte_size = 6;
 
     /**
+     * Fills given EUI48 instance via given string representation.
+     * <p>
+     * Implementation is consistent with {@link #toString()}.
+     * </p>
+     * @param str a string of exactly 17 characters representing 6 bytes as hexadecimal numbers separated via colon {@code "01:02:03:0A:0B:0C"}.
+     * @param dest EUI48 to set its value
+     * @param errmsg error parsing message if returning false
+     * @return true if successful, otherwise false
+     * @see #EUI48(String)
+     * @see #toString()
+     */
+    public static boolean scanEUI48(final String str, final EUI48 dest, final StringBuilder errmsg) {
+        if( 17 != str.length() ) {
+            errmsg.append("EUI48 string not of length 17 but "+str.length()+": "+str);
+            return false;
+        }
+        try {
+            for(int i=0; i<byte_size; i++) {
+                dest.b[byte_size-1-i] = Integer.valueOf(str.substring(i*2+i, i*2+i+2), 16).byteValue();
+            }
+        } catch (final NumberFormatException e) {
+            errmsg.append("EUI48 string not in format '01:02:03:0A:0B:0C' but "+str+"; "+e.getMessage());
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Construct instance via given string representation.
      * <p>
      * Implementation is consistent with {@link #toString()}.
      * </p>
      * @param str a string of exactly 17 characters representing 6 bytes as hexadecimal numbers separated via colon {@code "01:02:03:0A:0B:0C"}.
+     * @see #scanEUI48(String, byte[], StringBuilder)
      * @see #toString()
+     * @throws IllegalArgumentException if given string doesn't comply with EUI48
      */
     public EUI48(final String str) throws IllegalArgumentException {
-        if( 17 != str.length() ) {
-            throw new IllegalArgumentException("EUI48 string not of length 17 but "+str.length()+": "+str);
-        }
+        final StringBuilder errmsg = new StringBuilder();
         b = new byte[byte_size];
-        try {
-            for(int i=0; i<byte_size; i++) {
-                b[byte_size-1-i] = Integer.valueOf(str.substring(i*2+i, i*2+i+2), 16).byteValue();
-            }
-        } catch (final NumberFormatException e) {
-            throw new IllegalArgumentException("EUI48 string not in format '01:02:03:0A:0B:0C' but "+str, e);
+        if( !scanEUI48(str, this, errmsg) ) {
+            throw new IllegalArgumentException(errmsg.toString());
         }
     }
 
@@ -98,7 +122,7 @@ public class EUI48 {
         b = address;
     }
 
-    /** Construct emoty unset instance. */
+    /** Construct empty unset instance. */
     public EUI48() {
         b = new byte[byte_size];
     }
@@ -165,12 +189,8 @@ public class EUI48 {
      */
     public void clear() {
         hash = 0;
-        b[0] = 0;
-        b[1] = 0;
-        b[2] = 0;
-        b[3] = 0;
-        b[4] = 0;
-        b[5] = 0;
+        b[0] = 0; b[1] = 0; b[2] = 0;
+        b[3] = 0; b[4] = 0; b[5] = 0;
     }
 
     /**
@@ -232,32 +252,8 @@ public class EUI48 {
     /**
      * Finds the index of given EUI48Sub.
      */
-    public int indexOf(final EUI48Sub other) {
-        if( 0 == other.length ) {
-            return 0;
-        }
-        final byte first = other.b[0];
-        final int outerEnd = 6 - other.length + 1; // exclusive
-
-        for (int i = 0; i < outerEnd; i++) {
-            // find first char of other
-            while( b[i] != first ) {
-                if( ++i == outerEnd ) {
-                    return -1;
-                }
-            }
-            if( i < outerEnd ) { // otherLen chars left to match?
-                // continue matching other chars
-                final int innerEnd = i + other.length; // exclusive
-                int j = i, k=0;
-                do {
-                    if( ++j == innerEnd ) {
-                        return i; // gotcha
-                    }
-                } while( b[j] == other.b[++k] );
-            }
-        }
-        return -1;
+    public int indexOf(final EUI48Sub needle) {
+        return EUI48Sub.indexOf(b, 6, needle.b, needle.length);
     }
 
     /**
@@ -266,8 +262,8 @@ public class EUI48 {
      * If the sub is zero, true is returned.
      * </p>
      */
-    public boolean contains(final EUI48Sub other) {
-        return 0 <= indexOf(other);
+    public boolean contains(final EUI48Sub needle) {
+        return 0 <= indexOf(needle);
     }
 
     /**
