@@ -679,7 +679,7 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) {
             cd_handle_end = service->endHandle;
         }
 
-        bool done=false;
+        bool done=true;
 
         while( !done && cd_handle_iter <= cd_handle_end ) {
             const AttFindInfoReq req(cd_handle_iter, cd_handle_end);
