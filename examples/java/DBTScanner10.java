@@ -430,7 +430,7 @@ public class DBTScanner10 {
                         "PERF:  discovered to gatt-complete " + tdc5 + " ms (connect " + (tdc5 - td15) + " ms),"+System.lineSeparator()+
                         "PERF:  adapter-init to gatt-complete " + td05 + " ms"+System.lineSeparator());
             }
-            {
+            if( false ) {
                 // WIP: Implement a simple Characteristic ping-pong writeValue <-> notify transmission for stress testing.
                 final BTManager manager = device.getAdapter().getManager();
                 if( null != charIdentifier && charIdentifier.length() > 0 ) {
@@ -469,7 +469,7 @@ public class DBTScanner10 {
                     }
                 }
             }
-            {
+            if( false ) {
                 final BTGattCharListener myCharacteristicListener = new BTGattCharListener(null) {
                     @Override
                     public void notificationReceived(final BTGattChar charDecl,
@@ -503,6 +503,7 @@ public class DBTScanner10 {
                         printf("  [%02d] Service %s, uuid %s\n", i, primService.toString(), primService.getUUID());
                         printf("  [%02d] Service Characteristics\n", i);
                     }
+                    if( false ) {
                     int j=0;
                     final List<BTGattChar> serviceCharacteristics = primService.getChars();
                     for(final Iterator<BTGattChar> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
@@ -528,16 +529,19 @@ public class DBTScanner10 {
                             }
                         }
                     }
+                    }
                 }
             } catch( final Exception ex) {
                 BTUtils.println(System.err, "Caught "+ex.getMessage());
                 ex.printStackTrace();
             }
+            if( false ) {
             // FIXME sleep 1s for potential callbacks ..
             try {
                 Thread.sleep(1000);
             } catch (final InterruptedException e) {
                 e.printStackTrace();
+            }
             }
             success = true;
         } catch (final Throwable t ) {
