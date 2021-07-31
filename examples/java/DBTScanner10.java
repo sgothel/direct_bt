@@ -26,10 +26,6 @@
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -44,6 +40,7 @@ import org.direct_bt.BTMode;
 import org.direct_bt.BTSecurityLevel;
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTDevice;
+import org.direct_bt.BTDeviceRegistry;
 import org.direct_bt.BTException;
 import org.direct_bt.BTFactory;
 import org.direct_bt.BTGattChar;
@@ -51,6 +48,7 @@ import org.direct_bt.BTGattDesc;
 import org.direct_bt.BTGattService;
 import org.direct_bt.BTManager;
 import org.direct_bt.BTNotification;
+import org.direct_bt.BTSecurityRegistry;
 import org.direct_bt.BTType;
 import org.direct_bt.BTUtils;
 import org.direct_bt.EIRDataTypeSet;
@@ -61,7 +59,6 @@ import org.direct_bt.HCIWhitelistConnectType;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPIOCapability;
 import org.direct_bt.SMPKeyBin;
-import org.direct_bt.SMPKeyMask;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
 
@@ -74,12 +71,12 @@ import jau.direct_bt.DBTManager;
  * <p>
  * This example represents the recommended utilization of Direct-BT.
  * </p>
+ * <p>
+ * See `dbt_scanner10.cpp` for invocation examples, since both apps are fully compatible.
+ * </p>
  */
 public class DBTScanner10 {
-    static final int NO_PASSKEY = -1;
     static final String KEY_PATH = "keys";
-
-    final List<BDAddressAndType> waitForDevices = new ArrayList<BDAddressAndType>();
 
     long timestamp_t0;
 
@@ -137,53 +134,6 @@ public class DBTScanner10 {
         }
     }
 
-    static public class MyBTSecurityDetail {
-        public final BDAddressAndType addrAndType;
-
-        BTSecurityLevel sec_level = BTSecurityLevel.UNSET;
-        SMPIOCapability io_cap = SMPIOCapability.UNSET;
-        SMPIOCapability io_cap_auto = SMPIOCapability.UNSET;
-        int passkey = NO_PASSKEY;
-
-        public MyBTSecurityDetail(final BDAddressAndType addrAndType) { this.addrAndType = addrAndType; }
-
-        public boolean isSecLevelOrIOCapSet() {
-            return SMPIOCapability.UNSET != io_cap ||  BTSecurityLevel.UNSET != sec_level;
-        }
-        public BTSecurityLevel getSecLevel() { return sec_level; }
-        public SMPIOCapability getIOCap() { return io_cap; }
-
-        public boolean isSecurityAutoEnabled() { return SMPIOCapability.UNSET != io_cap_auto; }
-        public SMPIOCapability getSecurityAutoIOCap() { return io_cap_auto; }
-
-        public int getPairingPasskey() { return passkey; }
-
-        public boolean getPairingNumericComparison() { return true; }
-
-        @Override
-        public String toString() {
-            return "BTSecurityDetail["+addrAndType+", lvl "+sec_level+", io "+io_cap+", auto-io "+io_cap_auto+", passkey "+passkey+"]";
-        }
-
-        static private HashMap<BDAddressAndType, MyBTSecurityDetail> devicesSecDetail = new HashMap<BDAddressAndType, MyBTSecurityDetail>();
-
-        static public MyBTSecurityDetail get(final BDAddressAndType addrAndType) {
-            return devicesSecDetail.get(addrAndType);
-        }
-        static public MyBTSecurityDetail getOrCreate(final BDAddressAndType addrAndType) {
-            MyBTSecurityDetail sec_detail = devicesSecDetail.get(addrAndType);
-            if( null == sec_detail ) {
-                sec_detail = new MyBTSecurityDetail(addrAndType);
-                devicesSecDetail.put(addrAndType, sec_detail);
-            }
-            return sec_detail;
-        }
-        static public String allToString() { return Arrays.toString( devicesSecDetail.values().toArray() ); }
-    }
-
-    Collection<BDAddressAndType> devicesInProcessing = Collections.synchronizedCollection(new HashSet<>());
-    Collection<BDAddressAndType> devicesProcessed = Collections.synchronizedCollection(new HashSet<>());
-
     final AdapterStatusListener statusListener = new AdapterStatusListener() {
         @Override
         public void adapterSettingsChanged(final BTAdapter adapter, final AdapterSettings oldmask,
@@ -221,10 +171,10 @@ public class DBTScanner10 {
                 BTUtils.println(System.err, "****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' "+device.toString());
                 return false;
             }
-            if( !devicesInProcessing.contains( device.getAddressAndType() ) &&
-                ( waitForDevices.isEmpty() ||
-                  ( matches(waitForDevices, device.getAddressAndType() ) &&
-                    ( 0 < MULTI_MEASUREMENTS.get() || !devicesProcessed.contains( device.getAddressAndType() ) )
+            if( !BTDeviceRegistry.isDeviceProcessing( device.getAddressAndType() ) &&
+                ( !BTDeviceRegistry.isWaitingForAnyDevice() ||
+                  ( BTDeviceRegistry.isWaitingForDevice(device.getAddressAndType(), device.getName()) &&
+                    ( 0 < MULTI_MEASUREMENTS.get() || !BTDeviceRegistry.isDeviceProcessed(device.getAddressAndType()) )
                   )
                 )
               )
@@ -277,8 +227,8 @@ public class DBTScanner10 {
                     // next: PASSKEY_EXPECTED... or KEY_DISTRIBUTION
                     break;
                 case PASSKEY_EXPECTED: {
-                    final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
-                    if( null != sec && sec.getPairingPasskey() != NO_PASSKEY ) {
+                    final BTSecurityRegistry.Entry sec = BTSecurityRegistry.get(device.getAddressAndType().address);
+                    if( null != sec && sec.getPairingPasskey() != BTSecurityRegistry.NO_PASSKEY ) {
                         executeOffThread( () -> { device.setPairingPasskey( sec.getPairingPasskey() ); }, "DBT-SetPasskey-"+device.getAddressAndType(), true /* detach */);
                     } else {
                         executeOffThread( () -> { device.setPairingPasskey( 0 ); }, "DBT-SetPasskey-"+device.getAddressAndType(), true /* detach */);
@@ -287,7 +237,7 @@ public class DBTScanner10 {
                     // next: KEY_DISTRIBUTION or FAILED
                   } break;
                 case NUMERIC_COMPARE_EXPECTED: {
-                    final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
+                    final BTSecurityRegistry.Entry sec = BTSecurityRegistry.get(device.getAddressAndType().address);
                     if( null != sec ) {
                         executeOffThread( () -> { device.setPairingNumericComparison( sec.getPairingNumericComparison() ); }, "DBT-SetNumericComp-"+device.getAddressAndType(), true /* detach */);
                     } else {
@@ -311,10 +261,10 @@ public class DBTScanner10 {
 
         @Override
         public void deviceReady(final BTDevice device, final long timestamp) {
-            if( !devicesInProcessing.contains( device.getAddressAndType() ) &&
-                ( waitForDevices.isEmpty() ||
-                  ( matches(waitForDevices, device.getAddressAndType() ) &&
-                    ( 0 < MULTI_MEASUREMENTS.get() || !devicesProcessed.contains( device.getAddressAndType() ) )
+            if( !BTDeviceRegistry.isDeviceProcessing( device.getAddressAndType() ) &&
+                ( !BTDeviceRegistry.isWaitingForAnyDevice() ||
+                  ( BTDeviceRegistry.isWaitingForDevice(device.getAddressAndType(), device.getName()) &&
+                    ( 0 < MULTI_MEASUREMENTS.get() || !BTDeviceRegistry.isDeviceProcessed(device.getAddressAndType()) )
                   )
                 )
               )
@@ -325,7 +275,7 @@ public class DBTScanner10 {
                     final long td = BTUtils.currentTimeMillis() - timestamp_t0; // adapter-init -> now
                     BTUtils.println(System.err, "PERF: adapter-init -> READY-0 " + td + " ms");
                 }
-                devicesInProcessing.add(device.getAddressAndType());
+                BTDeviceRegistry.addToDevicesProcessing(device.getAddressAndType(), device.getName());
                 processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
             } else {
                 BTUtils.println(System.err, "****** READY-1: NOP " + device.toString());
@@ -339,7 +289,7 @@ public class DBTScanner10 {
             if( REMOVE_DEVICE ) {
                 executeOffThread( () -> { removeDevice(device); }, "DBT-Remove-"+device.getAddressAndType(), true /* detach */);
             } else {
-                devicesInProcessing.remove(device.getAddressAndType());
+                BTDeviceRegistry.removeFromDevicesProcessing(device.getAddressAndType());
             }
             if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount.get() % RESET_ADAPTER_EACH_CONN ) {
                 executeOffThread( () -> { resetAdapter(device.getAdapter(), 1); },
@@ -384,7 +334,7 @@ public class DBTScanner10 {
             BTUtils.println(System.err, "****** Connecting Device: stopDiscovery result "+r);
         }
 
-        final MyBTSecurityDetail sec = MyBTSecurityDetail.get(device.getAddressAndType());
+        final BTSecurityRegistry.Entry sec = BTSecurityRegistry.get(device.getAddressAndType().address);
         final BTSecurityLevel req_sec_level = null != sec ? sec.getSecLevel() : BTSecurityLevel.UNSET;
         HCIStatusCode res = SMPKeyBin.readAndApply(KEY_PATH, device, req_sec_level, true /* verbose */);
         BTUtils.fprintf_td(System.err, "****** Connecting Device: SMPKeyBin::readAndApply(..) result %s\n", res.toString());
@@ -414,7 +364,7 @@ public class DBTScanner10 {
         }
         BTUtils.println(System.err, "****** Connecting Device Command, res "+res+": End result "+res+" of " + device.toString());
 
-        if( !USE_WHITELIST && 0 == devicesInProcessing.size() && HCIStatusCode.SUCCESS != res ) {
+        if( !USE_WHITELIST && 0 == BTDeviceRegistry.getDeviceProcessingCount() && HCIStatusCode.SUCCESS != res ) {
             startDiscovery(device.getAdapter(), "post-connect");
         }
     }
@@ -596,11 +546,11 @@ public class DBTScanner10 {
         }
 
         BTUtils.println(System.err, "****** Processing Ready Device: End-1: Success " + success +
-                           " on " + device.toString() + "; devInProc "+devicesInProcessing.size());
+                           " on " + device.toString() + "; devInProc "+BTDeviceRegistry.getDeviceProcessingCount());
 
-        devicesInProcessing.remove(device.getAddressAndType());
+        BTDeviceRegistry.removeFromDevicesProcessing( device.getAddressAndType() );
 
-        if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
+        if( !USE_WHITELIST && 0 == BTDeviceRegistry.getDeviceProcessingCount() ) {
             startDiscovery(device.getAdapter(), "post-processing-1");
         }
 
@@ -618,9 +568,9 @@ public class DBTScanner10 {
         }
 
         BTUtils.println(System.err, "****** Processing Ready Device: End-2: Success " + success +
-                           " on " + device.toString() + "; devInProc "+devicesInProcessing.size());
+                           " on " + device.toString() + "; devInProc "+BTDeviceRegistry.getDeviceProcessingCount());
         if( success ) {
-            devicesProcessed.add(device.getAddressAndType());
+            BTDeviceRegistry.addToDevicesProcessed(device.getAddressAndType(), device.getName());
         }
         device.removeAllCharListener();
 
@@ -635,7 +585,7 @@ public class DBTScanner10 {
 
             if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount.get() % RESET_ADAPTER_EACH_CONN ) {
                 resetAdapter(device.getAdapter(), 2);
-            } else if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
+            } else if( !USE_WHITELIST && 0 == BTDeviceRegistry.getDeviceProcessingCount() ) {
                 startDiscovery(device.getAdapter(), "post-processing-2");
             }
         }
@@ -650,11 +600,11 @@ public class DBTScanner10 {
         BTUtils.println(System.err, "****** Remove Device: removing: "+device.getAddressAndType());
         device.getAdapter().stopDiscovery();
 
-        devicesInProcessing.remove(device.getAddressAndType());
+        BTDeviceRegistry.removeFromDevicesProcessing(device.getAddressAndType());
 
         device.remove();
 
-        if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
+        if( !USE_WHITELIST && 0 == BTDeviceRegistry.getDeviceProcessingCount() ) {
             startDiscovery(device.getAdapter(), "post-remove-device");
         }
     }
@@ -665,7 +615,7 @@ public class DBTScanner10 {
         BTUtils.println(System.err, "****** Reset Adapter: reset["+mode+"] end: "+res+", "+adapter.toString());
     }
 
-    static boolean le_scan_active = false; // default value
+    static boolean le_scan_active = true; // default value
     static final short le_scan_interval = (short)24; // default value
     static final short le_scan_window = (short)24; // default value
     static final byte filter_policy = (byte)0; // default value
@@ -693,15 +643,7 @@ public class DBTScanner10 {
 
         // Flush discovered devices after registering our status listener.
         // This avoids discovered devices before we have registered!
-        if( 0 == waitForDevices.size() ) {
-            // we accept all devices, so flush all discovered devices
-            adapter.removeDiscoveredDevices();
-        } else {
-            // only flush discovered devices we intend to listen to
-            for( final Iterator<BDAddressAndType> iter=waitForDevices.iterator(); iter.hasNext(); ) {
-                adapter.removeDiscoveredDevice( iter.next() );
-            }
-        }
+        adapter.removeDiscoveredDevices();
 
         if( USE_WHITELIST ) {
             for(final Iterator<BDAddressAndType> wliter = whitelist.iterator(); wliter.hasNext(); ) {
@@ -743,13 +685,13 @@ public class DBTScanner10 {
 
         while( !done ) {
             if( 0 == MULTI_MEASUREMENTS.get() ||
-                ( -1 == MULTI_MEASUREMENTS.get() && !waitForDevices.isEmpty() && devicesProcessed.containsAll(waitForDevices) )
+                ( -1 == MULTI_MEASUREMENTS.get() && BTDeviceRegistry.isWaitingForAnyDevice() && BTDeviceRegistry.allDevicesProcessed() )
               )
             {
                 BTUtils.println(System.err, "****** EOL Test MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS.get()+
-                                   ", processed "+devicesProcessed.size()+"/"+waitForDevices.size());
-                BTUtils.println(System.err, "****** WaitForDevices "+Arrays.toString(waitForDevices.toArray()));
-                BTUtils.println(System.err, "****** DevicesProcessed "+Arrays.toString(devicesProcessed.toArray()));
+                                   ", processed "+BTDeviceRegistry.getDeviceProcessedCount()+"/"+BTDeviceRegistry.getWaitForDevicesCount());
+                BTDeviceRegistry.printWaitForDevices(System.err, "****** WaitForDevices ");
+                BTDeviceRegistry.printDevicesProcessed(System.err, "****** DevicesProcessed ");
                 done = true;
             } else {
                 try {
@@ -836,46 +778,37 @@ public class DBTScanner10 {
                     test.SHOW_UPDATE_EVENTS = true;
                 } else if( arg.equals("-quiet") ) {
                     test.QUIET = true;
-                } else if( arg.equals("-scanActive") ) {
-                    le_scan_active = true;
+                } else if( arg.equals("-scanPassive") ) {
+                    le_scan_active = false;
                 } else if( arg.equals("-shutdown") && args.length > (i+1) ) {
                     test.shutdownTest = Integer.valueOf(args[++i]).intValue();
-                } else if( arg.equals("-mac") && args.length > (i+1) ) {
-                    final BDAddressAndType a = new BDAddressAndType(new EUI48(args[++i]), BDAddressType.BDADDR_UNDEFINED);
-                    test.waitForDevices.add(a);
+                } else if( arg.equals("-dev") && args.length > (i+1) ) {
+                    BTDeviceRegistry.addToWaitForDevices( args[++i] );
                 } else if( arg.equals("-wl") && args.length > (i+1) ) {
                     final BDAddressAndType wle = new BDAddressAndType(new EUI48(args[++i]), BDAddressType.BDADDR_LE_PUBLIC);
                     BTUtils.println(System.err, "Whitelist + "+wle);
                     test.whitelist.add(wle);
                     test.USE_WHITELIST = true;
-                } else if( arg.equals("-passkey") && args.length > (i+3) ) {
-                    final String mac = args[++i];
-                    final byte atype = (byte) ( Integer.valueOf(args[++i]).intValue() & 0xff );
-                    final BDAddressAndType macAndType = new BDAddressAndType(new EUI48(mac), BDAddressType.get(atype));
-                    final MyBTSecurityDetail sec = MyBTSecurityDetail.getOrCreate(macAndType);
+                } else if( arg.equals("-passkey") && args.length > (i+2) ) {
+                    final String addrOrNameSub = args[++i];
+                    final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getOrCreate(addrOrNameSub);
                     sec.passkey = Integer.valueOf(args[++i]).intValue();
                     System.err.println("Set passkey in "+sec);
-                } else if( arg.equals("-seclevel") && args.length > (i+3) ) {
-                    final String mac = args[++i];
-                    final byte atype = (byte) ( Integer.valueOf(args[++i]).intValue() & 0xff );
-                    final BDAddressAndType macAndType = new BDAddressAndType(new EUI48(mac), BDAddressType.get(atype));
-                    final MyBTSecurityDetail sec = MyBTSecurityDetail.getOrCreate(macAndType);
+                } else if( arg.equals("-seclevel") && args.length > (i+2) ) {
+                    final String addrOrNameSub = args[++i];
+                    final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getOrCreate(addrOrNameSub);
                     final int sec_level_i = Integer.valueOf(args[++i]).intValue();
                     sec.sec_level = BTSecurityLevel.get( (byte)( sec_level_i & 0xff ) );
                     System.err.println("Set sec_level "+sec_level_i+" in "+sec);
-                } else if( arg.equals("-iocap") && args.length > (i+3) ) {
-                    final String mac = args[++i];
-                    final byte atype = (byte) ( Integer.valueOf(args[++i]).intValue() & 0xff );
-                    final BDAddressAndType macAndType = new BDAddressAndType(new EUI48(mac), BDAddressType.get(atype));
-                    final MyBTSecurityDetail sec = MyBTSecurityDetail.getOrCreate(macAndType);
+                } else if( arg.equals("-iocap") && args.length > (i+2) ) {
+                    final String addrOrNameSub = args[++i];
+                    final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getOrCreate(addrOrNameSub);
                     final int io_cap_i = Integer.valueOf(args[++i]).intValue();
                     sec.io_cap = SMPIOCapability.get( (byte)( io_cap_i & 0xff ) );
                     System.err.println("Set io_cap "+io_cap_i+" in "+sec);
-                } else if( arg.equals("-secauto") && args.length > (i+3) ) {
-                    final String mac = args[++i];
-                    final byte atype = (byte) ( Integer.valueOf(args[++i]).intValue() & 0xff );
-                    final BDAddressAndType macAndType = new BDAddressAndType(new EUI48(mac), BDAddressType.get(atype));
-                    final MyBTSecurityDetail sec = MyBTSecurityDetail.getOrCreate(macAndType);
+                } else if( arg.equals("-secauto") && args.length > (i+2) ) {
+                    final String addrOrNameSub = args[++i];
+                    final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getOrCreate(addrOrNameSub);
                     final int io_cap_i = Integer.valueOf(args[++i]).intValue();
                     sec.io_cap_auto = SMPIOCapability.get( (byte)( io_cap_i & 0xff ) );
                     System.err.println("Set SEC AUTO security io_cap "+io_cap_i+" in "+sec);
@@ -900,13 +833,13 @@ public class DBTScanner10 {
             BTUtils.println(System.err, "Run with '[-btmode LE|BREDR|DUAL] "+
                     "[-bluetoothManager <BluetoothManager-Implementation-Class-Name>] "+
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "+
-                    "[-scanActive]"+
+                    "[-scanPassive]"+
                     "[-resetEachCon connectionCount] "+
-                    "(-mac <device_address>)* (-wl <device_address>)* "+
-                    "[-seclevel <device_address> <(int)address_type> <int>] "+
-                    "[-iocap <device_address> <(int)address_type> <int>] "+
-                    "[-secauto <device_address> <(int)address_type> <int>] "+
-                    "[-passkey <device_address> <(int)address_type> <digits>] " +
+                    "(-dev <device_[address|name]_sub>)* (-wl <device_address>)* "+
+                    "(-seclevel <device_[address|name]_sub> <int_sec_level>)* "+
+                    "(-iocap <device_[address|name]_sub> <int_iocap>)* "+
+                    "(-secauto <device_[address|name]_sub> <int_iocap>)* "+
+                    "(-passkey <device_[address|name]_sub> <digits>)* "+
                     "[-charid <uuid>] [-charval <byte-val>] "+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
@@ -929,9 +862,9 @@ public class DBTScanner10 {
         BTUtils.println(System.err, "characteristic-id: "+test.charIdentifier);
         BTUtils.println(System.err, "characteristic-value: "+test.charValue);
 
-        BTUtils.println(System.err, "security-details: "+MyBTSecurityDetail.allToString() );
+        BTUtils.println(System.err, "security-details: "+BTSecurityRegistry.allToString() );
 
-        BTUtils.println(System.err, "waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));
+        BTDeviceRegistry.printWaitForDevices(System.err, "waitForDevices: ");
 
         if( waitForEnter ) {
             BTUtils.println(System.err, "Press ENTER to continue\n");

@@ -44,6 +44,9 @@
 
 #include <direct_bt/DirectBT.hpp>
 
+#include <direct_bt/BTDeviceRegistry.hpp>
+#include <direct_bt/BTSecurityRegistry.hpp>
+
 extern "C" {
     #include <unistd.h>
 }
@@ -67,22 +70,32 @@ using namespace jau;
  *
  * * Read device C0:26:DA:01:DA:B1  (using default auto-sec w/ keyboard iocap)
  *   ~~~
- *   ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1
+ *   ../scripts/run-dbt_scanner10.sh -dev C0:26:DA:01:DA:B1
  *   ~~~
  *
  * * Read device C0:26:DA:01:DA:B1  (enforcing no security)
  *   ~~~
- *   ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1 -seclevel C0:26:DA:01:DA:B1 1 1
+ *   ../scripts/run-dbt_scanner10.sh -dev C0:26:DA:01:DA:B1 -seclevel C0:26:DA:01:DA:B1 1
+ *   ~~~
+ *
+ * * Read any device containing C0:26:DA  (enforcing no security)
+ *   ~~~
+ *   ../scripts/run-dbt_scanner10.sh -dev C0:26:DA -seclevel C0:26:DA 1
+ *   ~~~
+ *
+ * * Read any device containing name `TAIDOC` (enforcing no security)
+ *   ~~~
+ *   ../scripts/run-dbt_scanner10.sh -dev 'TAIDOC' -seclevel 'TAIDOC' 1
  *   ~~~
  *
  * * Read device C0:26:DA:01:DA:B1, basic debug flags enabled (using default auto-sec w/ keyboard iocap)
  *   ~~~
- *   ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1 -dbt_debug true
+ *   ../scripts/run-dbt_scanner10.sh -dev C0:26:DA:01:DA:B1 -dbt_debug true
  *   ~~~
  *
  * * Read device C0:26:DA:01:DA:B1, all debug flags enabled (using default auto-sec w/ keyboard iocap)
  *   ~~~
- *   ../scripts/run-dbt_scanner10.sh -mac C0:26:DA:01:DA:B1 -dbt_debug adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event
+ *   ../scripts/run-dbt_scanner10.sh -dev C0:26:DA:01:DA:B1 -dbt_debug adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event
  *   ~~~
  *
  * ## Special Actions
@@ -93,7 +106,6 @@ using namespace jau;
  *   ~~~
  */
 
-const static int NO_PASSKEY = -1;
 const static std::string KEY_PATH = "keys";
 
 static uint64_t timestamp_t0;
@@ -116,8 +128,6 @@ static int charValue = 0;
 static bool SHOW_UPDATE_EVENTS = false;
 static bool QUIET = false;
 
-static jau::darray<BDAddressAndType> waitForDevices;
-
 static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device);
 
 static void processReadyDevice(std::shared_ptr<BTDevice> device);
@@ -125,153 +135,6 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device);
 static void removeDevice(std::shared_ptr<BTDevice> device);
 static void resetAdapter(BTAdapter *a, int mode);
 static bool startDiscovery(BTAdapter *a, std::string msg);
-
-
-static std::unordered_set<BDAddressAndType> devicesInProcessing;
-static std::recursive_mutex mtx_devicesProcessing;
-
-static std::recursive_mutex mtx_devicesProcessed;
-static std::unordered_set<BDAddressAndType> devicesProcessed;
-
-bool matches(jau::darray<BDAddressAndType> &cont, const BDAddressAndType &mac) {
-    return cont.end() != jau::find_if(cont.begin(), cont.end(), [&](const BDAddressAndType & it)->bool {
-       return it.matches(mac);
-    });
-}
-
-void printList(const std::string &msg, jau::darray<BDAddressAndType> &cont) {
-    fprintf_td(stderr, "%s ", msg.c_str());
-    jau::for_each(cont.begin(), cont.end(),
-            [](const BDAddressAndType &mac) { fprintf_td(stderr, "%s, ", mac.toString().c_str()); });
-    fprintf_td(stderr, "\n");
-}
-
-void printList(const std::string &msg, std::unordered_set<BDAddressAndType> &cont) {
-    fprintf_td(stderr, "%s ", msg.c_str());
-    jau::for_each(cont.begin(), cont.end(),
-            [](const BDAddressAndType &mac) { fprintf_td(stderr, "%s, ", mac.toString().c_str()); });
-    fprintf_td(stderr, "\n");
-}
-
-static void addToDevicesProcessed(const BDAddressAndType &a) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
-    devicesProcessed.insert(devicesProcessed.end(), a);
-}
-static bool isDeviceProcessed(const BDAddressAndType & a) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
-    return devicesProcessed.end() != devicesProcessed.find(a);
-}
-static size_t getDeviceProcessedCount() {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
-    return devicesProcessed.size();
-}
-static bool allDevicesProcessed(jau::darray<BDAddressAndType> &cont) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
-    for (auto it = cont.begin(); it != cont.end(); ++it) {
-        if( devicesProcessed.end() == devicesProcessed.find(*it) ) {
-            return false;
-        }
-    }
-    return true;
-}
-static void printDevicesProcessed(const std::string &msg) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
-    printList(msg, devicesProcessed);
-}
-
-static void addToDevicesProcessing(const BDAddressAndType &a) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
-    devicesInProcessing.insert(devicesInProcessing.end(), a);
-}
-static bool removeFromDevicesProcessing(const BDAddressAndType &a) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
-    for (auto it = devicesInProcessing.begin(); it != devicesInProcessing.end(); ++it) {
-        if ( a == *it ) {
-            devicesInProcessing.erase(it);
-            return true;
-        }
-    }
-    return false;
-}
-static bool isDeviceProcessing(const BDAddressAndType & a) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
-    return devicesInProcessing.end() != devicesInProcessing.find(a);
-}
-static size_t getDeviceProcessingCount() {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
-    return devicesInProcessing.size();
-}
-
-struct MyBTSecurityDetail {
-    BDAddressAndType addrAndType;
-
-    BTSecurityLevel sec_level { BTSecurityLevel::UNSET };
-    SMPIOCapability io_cap { SMPIOCapability::UNSET };
-    SMPIOCapability io_cap_auto { SMPIOCapability::UNSET };
-    int passkey = NO_PASSKEY;
-
-    MyBTSecurityDetail(const BDAddressAndType& addrAndType_)
-    : addrAndType(addrAndType_) {}
-
-    constexpr bool isSecLevelOrIOCapSet() const noexcept {
-        return SMPIOCapability::UNSET != io_cap ||  BTSecurityLevel::UNSET != sec_level;
-    }
-    constexpr const BTSecurityLevel& getSecLevel() const noexcept { return sec_level; }
-    constexpr const SMPIOCapability& getIOCap() const noexcept { return io_cap; }
-
-    constexpr bool isSecurityAutoEnabled() const noexcept {
-        return SMPIOCapability::UNSET != io_cap_auto;
-    }
-    constexpr const SMPIOCapability& getSecurityAutoIOCap() const noexcept { return io_cap_auto; }
-
-    constexpr int getPairingPasskey() const noexcept { return passkey; }
-
-    constexpr bool getPairingNumericComparison() const noexcept { return true; }
-
-    std::string toString() const noexcept {
-        return "MyBTSecurityDetail["+addrAndType.toString()+", lvl "+
-                to_string(sec_level)+
-                ", io "+to_string(io_cap)+
-                ", auto-io "+to_string(io_cap_auto)+
-                ", passkey "+std::to_string(passkey)+"]";
-    }
-
-  private:
-    static std::unordered_map<BDAddressAndType, MyBTSecurityDetail> devicesSecDetail;
-
-  public:
-
-    static MyBTSecurityDetail* get(const BDAddressAndType& addrAndType) {
-        auto s = devicesSecDetail.find(addrAndType);
-        if( s != devicesSecDetail.end() ) {
-            return &(s->second);
-        } else {
-            return nullptr;
-        }
-    }
-    static MyBTSecurityDetail* getOrCreate(const BDAddressAndType& addrAndType) {
-        MyBTSecurityDetail* sec_detail = get(addrAndType);
-        if( nullptr != sec_detail ) {
-            return sec_detail;
-        } else {
-            auto i = devicesSecDetail.insert( devicesSecDetail.end(), { addrAndType, MyBTSecurityDetail(addrAndType) } );
-            return &(i->second);
-        }
-    }
-    static std::string allToString() {
-        std::string res;
-        int i=0;
-        for(auto iter = devicesSecDetail.begin(); iter != devicesSecDetail.end(); ++iter, ++i) {
-            const MyBTSecurityDetail& sec = iter->second;
-            if( 0 < i ) {
-                res += ", ";
-            }
-            res += sec.toString();
-        }
-        return res;
-    }
-};
-std::unordered_map<BDAddressAndType, MyBTSecurityDetail> MyBTSecurityDetail::devicesSecDetail;
 
 class MyAdapterStatusListener : public AdapterStatusListener {
 
@@ -313,10 +176,10 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             fprintf_td(stderr, "****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' %s\n", device->toString(true).c_str());
             return false;
         }
-        if( !isDeviceProcessing( device->getAddressAndType() ) &&
-            ( waitForDevices.empty() ||
-              ( matches(waitForDevices, device->getAddressAndType()) &&
-                ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(device->getAddressAndType()) )
+        if( !BTDeviceRegistry::isDeviceProcessing( device->getAddressAndType() ) &&
+            ( !BTDeviceRegistry::isWaitingForAnyDevice() ||
+              ( BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType(), device->getName()) &&
+                ( 0 < MULTI_MEASUREMENTS || !BTDeviceRegistry::isDeviceProcessed(device->getAddressAndType()) )
               )
             )
           )
@@ -372,8 +235,8 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 // next: PASSKEY_EXPECTED... or KEY_DISTRIBUTION
                 break;
             case SMPPairingState::PASSKEY_EXPECTED: {
-                const MyBTSecurityDetail* sec = MyBTSecurityDetail::get(device->getAddressAndType());
-                if( nullptr != sec && sec->getPairingPasskey() != NO_PASSKEY ) {
+                const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::get(device->getAddressAndType().address);
+                if( nullptr != sec && sec->getPairingPasskey() != BTSecurityRegistry::Entry::NO_PASSKEY ) {
                     std::thread dc(&BTDevice::setPairingPasskey, device, static_cast<uint32_t>( sec->getPairingPasskey() ));
                     dc.detach();
                 } else {
@@ -384,7 +247,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 // next: KEY_DISTRIBUTION or FAILED
               } break;
             case SMPPairingState::NUMERIC_COMPARE_EXPECTED: {
-                const MyBTSecurityDetail* sec = MyBTSecurityDetail::get(device->getAddressAndType());
+                const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::get(device->getAddressAndType().address);
                 if( nullptr != sec ) {
                     std::thread dc(&BTDevice::setPairingNumericComparison, device, sec->getPairingNumericComparison());
                     dc.detach();
@@ -410,17 +273,17 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
     void deviceReady(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
         (void)timestamp;
-        if( !isDeviceProcessing( device->getAddressAndType() ) &&
-            ( waitForDevices.empty() ||
-              ( matches(waitForDevices, device->getAddressAndType()) &&
-                ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(device->getAddressAndType()) )
+        if( !BTDeviceRegistry::isDeviceProcessing( device->getAddressAndType() ) &&
+            ( !BTDeviceRegistry::isWaitingForAnyDevice() ||
+              ( BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType(), device->getName()) &&
+                ( 0 < MULTI_MEASUREMENTS || !BTDeviceRegistry::isDeviceProcessed(device->getAddressAndType()) )
               )
             )
           )
         {
             deviceReadyCount++;
             fprintf_td(stderr, "****** READY-0: Processing[%d] %s\n", deviceReadyCount.load(), device->toString(true).c_str());
-            addToDevicesProcessing(device->getAddressAndType());
+            BTDeviceRegistry::addToDevicesProcessing(device->getAddressAndType(), device->getName());
             processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
         } else {
             fprintf_td(stderr, "****** READY-1: NOP %s\n", device->toString(true).c_str());
@@ -437,7 +300,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             std::thread dc(::removeDevice, device); // @suppress("Invalid arguments")
             dc.detach();
         } else {
-            removeFromDevicesProcessing(device->getAddressAndType());
+            BTDeviceRegistry::removeFromDevicesProcessing(device->getAddressAndType());
         }
         if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount % RESET_ADAPTER_EACH_CONN ) {
             std::thread dc(::resetAdapter, &device->getAdapter(), 1); // @suppress("Invalid arguments")
@@ -523,7 +386,7 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
         fprintf_td(stderr, "****** Connecting Device: stopDiscovery result %s\n", to_string(r).c_str());
     }
 
-    const MyBTSecurityDetail* sec = MyBTSecurityDetail::get(device->getAddressAndType());
+    const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::get(device->getAddressAndType().address);
     const BTSecurityLevel req_sec_level = nullptr != sec ? sec->getSecLevel() : BTSecurityLevel::UNSET;
     HCIStatusCode res = SMPKeyBin::readAndApply(KEY_PATH, *device, req_sec_level, true /* verbose */);
     fprintf_td(stderr, "****** Connecting Device: SMPKeyBin::readAndApply(..) result %s\n", to_string(res).c_str());
@@ -553,7 +416,7 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
     }
     fprintf_td(stderr, "****** Connecting Device: End result %s of %s\n", to_string(res).c_str(), device->toString().c_str());
 
-    if( !USE_WHITELIST && 0 == getDeviceProcessingCount() && HCIStatusCode::SUCCESS != res ) {
+    if( !USE_WHITELIST && 0 == BTDeviceRegistry::getDeviceProcessingCount() && HCIStatusCode::SUCCESS != res ) {
         startDiscovery(&device->getAdapter(), "post-connect");
     }
 }
@@ -685,11 +548,11 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
 
 exit:
     fprintf_td(stderr, "****** Processing Ready Device: End-1: Success %d on %s; devInProc %zu\n",
-            success, device->toString().c_str(), getDeviceProcessingCount());
+            success, device->toString().c_str(), BTDeviceRegistry::getDeviceProcessingCount());
 
-    removeFromDevicesProcessing(device->getAddressAndType());
+    BTDeviceRegistry::removeFromDevicesProcessing(device->getAddressAndType());
 
-    if( !USE_WHITELIST && 0 == getDeviceProcessingCount() ) {
+    if( !USE_WHITELIST && 0 == BTDeviceRegistry::getDeviceProcessingCount() ) {
         startDiscovery(&device->getAdapter(), "post-processing-1");
     }
 
@@ -707,10 +570,10 @@ exit:
     }
 
     fprintf_td(stderr, "****** Processing Ready Device: End-2: Success %d on %s; devInProc %zu\n",
-            success, device->toString().c_str(), getDeviceProcessingCount());
+            success, device->toString().c_str(), BTDeviceRegistry::getDeviceProcessingCount());
 
     if( success ) {
-        addToDevicesProcessed(device->getAddressAndType());
+        BTDeviceRegistry::addToDevicesProcessed(device->getAddressAndType(), device->getName());
     }
     device->removeAllCharListener();
 
@@ -724,7 +587,7 @@ exit:
 
         if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount % RESET_ADAPTER_EACH_CONN ) {
             resetAdapter(&device->getAdapter(), 2);
-        } else if( !USE_WHITELIST && 0 == getDeviceProcessingCount() ) {
+        } else if( !USE_WHITELIST && 0 == BTDeviceRegistry::getDeviceProcessingCount() ) {
             startDiscovery(&device->getAdapter(), "post-processing-2");
         }
     }
@@ -739,11 +602,11 @@ static void removeDevice(std::shared_ptr<BTDevice> device) {
     fprintf_td(stderr, "****** Remove Device: removing: %s\n", device->getAddressAndType().toString().c_str());
     device->getAdapter().stopDiscovery();
 
-    removeFromDevicesProcessing(device->getAddressAndType());
+    BTDeviceRegistry::removeFromDevicesProcessing(device->getAddressAndType());
 
     device->remove();
 
-    if( !USE_WHITELIST && 0 == getDeviceProcessingCount() ) {
+    if( !USE_WHITELIST && 0 == BTDeviceRegistry::getDeviceProcessingCount() ) {
         startDiscovery(&device->getAdapter(), "post-remove-device");
     }
 }
@@ -754,7 +617,7 @@ static void resetAdapter(BTAdapter *a, int mode) {
     fprintf_td(stderr, "****** Reset Adapter: reset[%d] end: %s, %s\n", mode, to_string(res).c_str(), a->toString().c_str());
 }
 
-static bool le_scan_active = false; // default value
+static bool le_scan_active = true; // default value
 static const uint16_t le_scan_interval = 24; // default value
 static const uint16_t le_scan_window = 24; // default value
 static const uint8_t filter_policy = 0; // default value
@@ -774,15 +637,7 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
 
     // Flush discovered devices after registering our status listener.
     // This avoids discovered devices before we have registered!
-    if( 0 == waitForDevices.size() ) {
-        // we accept all devices, so flush all discovered devices
-        adapter->removeDiscoveredDevices();
-    } else {
-        // only flush discovered devices we intend to listen to
-        jau::for_each(waitForDevices.begin(), waitForDevices.end(), [&adapter](const BDAddressAndType &mac) {
-            adapter->removeDiscoveredDevice(mac);
-        });
-    }
+    adapter->removeDiscoveredDevices();
 
     if( USE_WHITELIST ) {
         for (auto it = WHITELIST.begin(); it != WHITELIST.end(); ++it) {
@@ -820,13 +675,13 @@ void test() {
 
     while( !done ) {
         if( 0 == MULTI_MEASUREMENTS ||
-            ( -1 == MULTI_MEASUREMENTS && !waitForDevices.empty() && allDevicesProcessed(waitForDevices) )
+            ( -1 == MULTI_MEASUREMENTS && BTDeviceRegistry::isWaitingForAnyDevice() && BTDeviceRegistry::allDevicesProcessed() )
           )
         {
             fprintf_td(stderr, "****** EOL Test MULTI_MEASUREMENTS left %d, processed %zu/%zu\n",
-                    MULTI_MEASUREMENTS.load(), getDeviceProcessedCount(), (size_t)waitForDevices.size());
-            printList("****** WaitForDevice ", waitForDevices);
-            printDevicesProcessed("****** DevicesProcessed ");
+                    MULTI_MEASUREMENTS.load(), BTDeviceRegistry::getDeviceProcessedCount(), BTDeviceRegistry::getWaitForDevicesCount());
+            BTDeviceRegistry::printWaitForDevices(stderr, "****** WaitForDevice ");
+            BTDeviceRegistry::printDevicesProcessed(stderr, "****** DevicesProcessed ");
             done = true;
         } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
@@ -885,44 +740,35 @@ int main(int argc, char *argv[])
             SHOW_UPDATE_EVENTS = true;
         } else if( !strcmp("-quiet", argv[i]) ) {
             QUIET = true;
-        } else if( !strcmp("-scanActive", argv[i]) ) {
-            le_scan_active = true;
-        } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
-            std::string macstr = std::string(argv[++i]);
-            BDAddressAndType mac(EUI48(macstr), BDAddressType::BDADDR_UNDEFINED);
-            waitForDevices.push_back( mac );
+        } else if( !strcmp("-scanPassive", argv[i]) ) {
+            le_scan_active = false;
+        } else if( !strcmp("-dev", argv[i]) && argc > (i+1) ) {
+            std::string addrOrNameSub = std::string(argv[++i]);
+            BTDeviceRegistry::addToWaitForDevices( addrOrNameSub );
         } else if( !strcmp("-wl", argv[i]) && argc > (i+1) ) {
             std::string macstr = std::string(argv[++i]);
             BDAddressAndType wle(EUI48(macstr), BDAddressType::BDADDR_LE_PUBLIC);
             fprintf(stderr, "Whitelist + %s\n", wle.toString().c_str());
             WHITELIST.push_back( wle );
             USE_WHITELIST = true;
-        } else if( !strcmp("-passkey", argv[i]) && argc > (i+3) ) {
-            const char* mac = argv[++i];
-            const uint8_t atype = (uint8_t) ( atoi(argv[++i]) & 0xff );
-            const BDAddressAndType macAndType(EUI48(mac), to_BDAddressType(atype));
-            MyBTSecurityDetail* sec = MyBTSecurityDetail::getOrCreate(macAndType);
+        } else if( !strcmp("-passkey", argv[i]) && argc > (i+2) ) {
+            const std::string addrOrNameSub(argv[++i]);
+            BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
             sec->passkey = atoi(argv[++i]);
             fprintf(stderr, "Set passkey in %s\n", sec->toString().c_str());
-        } else if( !strcmp("-seclevel", argv[i]) && argc > (i+3) ) {
-            const char* mac = argv[++i];
-            const uint8_t atype = (uint8_t) ( atoi(argv[++i]) & 0xff );
-            const BDAddressAndType macAndType(EUI48(mac), to_BDAddressType(atype));
-            MyBTSecurityDetail* sec = MyBTSecurityDetail::getOrCreate(macAndType);
+        } else if( !strcmp("-seclevel", argv[i]) && argc > (i+2) ) {
+            const std::string addrOrNameSub(argv[++i]);
+            BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
             sec->sec_level = to_BTSecurityLevel(atoi(argv[++i]));
             fprintf(stderr, "Set sec_level in %s\n", sec->toString().c_str());
-        } else if( !strcmp("-iocap", argv[i]) && argc > (i+3) ) {
-            const char* mac = argv[++i];
-            const uint8_t atype = (uint8_t) ( atoi(argv[++i]) & 0xff );
-            const BDAddressAndType macAndType(EUI48(mac), to_BDAddressType(atype));
-            MyBTSecurityDetail* sec = MyBTSecurityDetail::getOrCreate(macAndType);
+        } else if( !strcmp("-iocap", argv[i]) && argc > (i+2) ) {
+            const std::string addrOrNameSub(argv[++i]);
+            BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
             sec->io_cap = to_SMPIOCapability(atoi(argv[++i]));
             fprintf(stderr, "Set io_cap in %s\n", sec->toString().c_str());
-        } else if( !strcmp("-secauto", argv[i]) && argc > (i+3) ) {
-            const char* mac = argv[++i];
-            const uint8_t atype = (uint8_t) ( atoi(argv[++i]) & 0xff );
-            const BDAddressAndType macAndType(EUI48(mac), to_BDAddressType(atype));
-            MyBTSecurityDetail* sec = MyBTSecurityDetail::getOrCreate(macAndType);
+        } else if( !strcmp("-secauto", argv[i]) && argc > (i+2) ) {
+            const std::string addrOrNameSub(argv[++i]);
+            BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
             sec->io_cap_auto = to_SMPIOCapability(atoi(argv[++i]));
             fprintf(stderr, "Set SEC AUTO security io_cap in %s\n", sec->toString().c_str());
         } else if( !strcmp("-charid", argv[i]) && argc > (i+1) ) {
@@ -947,13 +793,13 @@ int main(int argc, char *argv[])
 
     fprintf(stderr, "Run with '[-btmode LE|BREDR|DUAL] "
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "
-                    "[-scanActive]"
+                    "[-scanPassive]"
                     "[-resetEachCon connectionCount] "
-                    "(-mac <device_address>)* (-wl <device_address>)* "
-                    "[-seclevel <device_address> <(int)address_type> <int>] "
-                    "[-iocap <device_address> <(int)address_type> <int>] "
-                    "[-secauto <device_address> <(int)address_type> <int>] "
-                    "[-passkey <device_address> <(int)address_type> <digits>] "
+                    "(-dev <device_[address|name]_sub>)* (-wl <device_address>)* "
+                    "(-seclevel <device_[address|name]_sub> <int_sec_level>)* "
+                    "(-iocap <device_[address|name]_sub> <int_iocap>)* "
+                    "(-secauto <device_[address|name]_sub> <int_iocap>)* "
+                    "(-passkey <device_[address|name]_sub> <digits>)* "
                     "[-unpairPre] [-unpairPost] "
                     "[-charid <uuid>] [-charval <byte-val>] "
                     "[-dbt_verbose true|false] "
@@ -977,8 +823,8 @@ int main(int argc, char *argv[])
     fprintf(stderr, "characteristic-id: %s\n", charIdentifier.c_str());
     fprintf(stderr, "characteristic-value: %d\n", charValue);
 
-    fprintf(stderr, "security-details: %s\n", MyBTSecurityDetail::allToString().c_str());
-    printList( "waitForDevice: ", waitForDevices);
+    fprintf(stderr, "security-details: %s\n", BTSecurityRegistry::allToString().c_str());
+    BTDeviceRegistry::printWaitForDevices(stderr, "waitForDevice: ");
 
 
     if( waitForEnter ) {
