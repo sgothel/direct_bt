@@ -286,8 +286,8 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
     if( !adapter.isPowered() ) {
-        WARN_PRINT("BTDevice::connectLE: Adapter not powered: %s", adapter.toString().c_str());
-        return HCIStatusCode::UNSPECIFIED_ERROR;
+        WARN_PRINT("BTDevice::connectLE: Adapter not powered: %s, %s", adapter.toString().c_str(), toString().c_str());
+        return HCIStatusCode::NOT_POWERED;
     }
     HCILEOwnAddressType hci_own_mac_type;
     HCILEPeerAddressType hci_peer_mac_type;
@@ -493,8 +493,8 @@ HCIStatusCode BTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clo
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
     if( !adapter.isPowered() ) {
-        WARN_PRINT("BTDevice::connectBREDR: Adapter not powered: %s", adapter.toString().c_str());
-        return HCIStatusCode::UNSPECIFIED_ERROR;
+        WARN_PRINT("BTDevice::connectBREDR: Adapter not powered: %s, %s", adapter.toString().c_str(), toString().c_str());
+        return HCIStatusCode::NOT_POWERED;
     }
 
     if( isConnected ) {
@@ -1690,8 +1690,8 @@ HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept {
     }
 
     if( !adapter.isPowered() ) {
-        WARN_PRINT("BTDevice::disconnect: Adapter not powered: %s", toString().c_str());
-        res = HCIStatusCode::UNSPECIFIED_ERROR; // powered-off
+        WARN_PRINT("BTDevice::disconnect: Adapter not powered: %s, %s", adapter.toString().c_str(), toString().c_str());
+        res = HCIStatusCode::NOT_POWERED; // powered-off
         goto exit;
     }
 

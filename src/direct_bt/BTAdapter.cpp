@@ -666,7 +666,7 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const bool le_scan
 
     if( !isPowered() ) {
         WARN_PRINT("BTAdapter::startDiscovery: Adapter not powered: %s", toString(true).c_str());
-        return HCIStatusCode::UNSPECIFIED_ERROR;
+        return HCIStatusCode::NOT_POWERED;
     }
     const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
 
