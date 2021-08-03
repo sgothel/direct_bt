@@ -1490,6 +1490,8 @@ void BTDevice::disconnectGATT(const int caller) noexcept {
     DBG_PRINT("BTDevice::disconnectGATT: end");
 }
 
+#define DEBUG_308 1
+
 bool BTDevice::connectGATT(std::shared_ptr<BTDevice> sthis) noexcept {
     if( !isConnected || !allowDisconnect) {
         ERR_PRINT("BTDevice::connectGATT: Device not connected: %s", toString().c_str());
@@ -1512,6 +1514,9 @@ bool BTDevice::connectGATT(std::shared_ptr<BTDevice> sthis) noexcept {
     if( !gattHandler->isConnected() ) {
         ERR_PRINT2("BTDevice::connectGATT: Connection failed");
         gattHandler = nullptr;
+#if DEBUG_308
+        adapter.dbgSwitchAdapterPower(false);
+#endif
         return false;
     }
     return true;

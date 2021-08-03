@@ -430,7 +430,24 @@ void BTGattHandler::send(const AttPDUMsg & msg) {
     }
 }
 
+#define DEBUG_308 1
+
 std::unique_ptr<const AttPDUMsg> BTGattHandler::sendWithReply(const AttPDUMsg & msg, const int timeout) {
+#if DEBUG_308
+    errno = ETIMEDOUT;
+    IRQ_PRINT("GATTHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), deviceString.c_str());
+
+#if 0
+    std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+    if( nullptr != device ) {
+        device->getAdapter().dbgSwitchAdapterPower(false);
+    }
+#endif
+
+    has_ioerror = true;
+    disconnect(true /* disconnectDevice */, true /* ioErrorCause */);
+    throw BTException("GATTHandler::sendWithReply: nullptr result (timeout "+std::to_string(timeout)+"): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
+#else
     send( msg );
 
     // Ringbuffer read is thread safe
@@ -443,6 +460,7 @@ std::unique_ptr<const AttPDUMsg> BTGattHandler::sendWithReply(const AttPDUMsg & 
         throw BTException("GATTHandler::sendWithReply: nullptr result (timeout "+std::to_string(timeout)+"): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     return res;
+#endif
 }
 
 uint16_t BTGattHandler::exchangeMTUImpl(const uint16_t clientMaxMTU, const int32_t timeout) {

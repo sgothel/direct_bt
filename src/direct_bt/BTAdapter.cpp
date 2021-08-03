@@ -1121,6 +1121,58 @@ bool BTAdapter::mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept {
     return true;
 }
 
+void BTAdapter::dbgInjectNewAdapterSetting(const AdapterSetting settings_) noexcept {
+    DBG_PRINT("BTAdapter::dbgInjectNewAdapterSetting: %s", toString().c_str());
+    const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(settings_); // probably done by mgmt callback already
+    {
+        const BTMode _btMode = getAdapterSettingsBTMode(new_settings);
+        if( BTMode::NONE != _btMode ) {
+            btMode = _btMode;
+        }
+    }
+    const AdapterSetting old_settings_ = old_settings;
+
+    const AdapterSetting changes = getAdapterSettingMaskDiff(new_settings, old_settings_);
+
+    const bool justPoweredOn = isAdapterSettingBitSet(changes, AdapterSetting::POWERED) &&
+                               isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED);
+
+    const bool justPoweredOff = isAdapterSettingBitSet(changes, AdapterSetting::POWERED) &&
+                                !isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED);
+
+    old_settings = new_settings;
+
+    DBG_PRINT("BTAdapter::dbgInjectNewAdapterSetting: %s -> %s, changes %s: %s",
+            to_string(old_settings_).c_str(),
+            to_string(new_settings).c_str(),
+            to_string(changes).c_str(), toString().c_str() );
+
+#if 0
+    if( justPoweredOn ) {
+        // Adapter has been powered on, ensure all hci states are reset.
+        hci.clearAllStates();
+    }
+    sendAdapterSettingsChanged(old_settings_, new_settings, changes, jau::getCurrentMilliseconds());
+
+    if( justPoweredOff ) {
+        // Adapter has been powered off, close connections and cleanup off-thread.
+        std::thread bg(&BTAdapter::poweredOff, this); // @suppress("Invalid arguments")
+        bg.detach();
+    }
+#else
+    (void) justPoweredOn;
+    (void) justPoweredOff;
+#endif
+}
+void BTAdapter::dbgSwitchAdapterPower(const bool power_on) noexcept {
+    AdapterSetting settings_ = old_settings;
+    if( power_on ) {
+        setAdapterSettingMaskBit(settings_, AdapterSetting::POWERED);
+    } else {
+        clrAdapterSettingMaskBit(settings_, AdapterSetting::POWERED);
+    }
+    dbgInjectNewAdapterSetting(settings_);
+}
 bool BTAdapter::mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept {
     COND_PRINT(debug_event, "BTAdapter:mgmt:LocalNameChanged: %s", e.toString().c_str());
     const MgmtEvtLocalNameChanged &event = *static_cast<const MgmtEvtLocalNameChanged *>(&e);

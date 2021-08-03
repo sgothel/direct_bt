@@ -778,6 +778,9 @@ namespace direct_bt {
             void printDeviceLists() noexcept;
 
             void printStatusListenerList() noexcept;
+
+            void dbgSwitchAdapterPower(const bool power_on) noexcept;
+            void dbgInjectNewAdapterSetting(const AdapterSetting new_settings) noexcept;
     };
 
 } // namespace direct_bt
