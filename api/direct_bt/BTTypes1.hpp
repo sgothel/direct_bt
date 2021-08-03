@@ -153,6 +153,9 @@ namespace direct_bt {
         STATIC_ADDRESS     = 0x00008000,
         PHY_CONFIGURATION  = 0x00010000
     };
+    constexpr AdapterSetting operator ~(const AdapterSetting rhs) noexcept {
+        return static_cast<AdapterSetting> ( ~static_cast<uint32_t>(rhs) );
+    }
     constexpr AdapterSetting operator ^(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
         return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) ^ static_cast<uint32_t>(rhs) );
     }
@@ -174,6 +177,8 @@ namespace direct_bt {
     constexpr bool isAdapterSettingBitSet(const AdapterSetting mask, const AdapterSetting bit) noexcept { return AdapterSetting::NONE != ( mask & bit ); }
 
     constexpr void setAdapterSettingMaskBit(AdapterSetting &mask, const AdapterSetting bit) noexcept { mask = mask | bit; }
+    constexpr void clrAdapterSettingMaskBit(AdapterSetting &mask, const AdapterSetting bit) noexcept { mask = mask & ~bit; }
+
     std::string to_string(const AdapterSetting settingBitMask) noexcept;
 
     /** Maps the given {@link AdapterSetting} to {@link BTMode} */
