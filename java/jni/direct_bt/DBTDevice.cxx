@@ -806,7 +806,7 @@ jobject Java_jau_direct_1bt_DBTDevice_getManufacturerData(JNIEnv *env, jobject o
             result = env->NewObject(map_cls, map_ctor, 0);
         }
         if (nullptr == result) {
-            throw std::bad_alloc();
+            throw jau::OutOfMemoryError("new HashMap() returned null", E_FILE_LINE);
         }
         return result;
     } catch(...) {

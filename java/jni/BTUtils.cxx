@@ -85,7 +85,7 @@ jstring Java_org_direct_1bt_BTUtils_decodeUTF8String(JNIEnv *env, jclass clazz, 
         std::string msg("buffer.length "+std::to_string(buffer_size)+
                         " < offset "+std::to_string(offset)+
                         " + size "+std::to_string(size));
-        throw std::invalid_argument(msg.c_str());
+        throw jau::IllegalArgumentException(msg, E_FILE_LINE);
     }
 
     std::string sres;
@@ -93,7 +93,7 @@ jstring Java_org_direct_1bt_BTUtils_decodeUTF8String(JNIEnv *env, jclass clazz, 
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * buffer_ptr = criticalArray.get(jbuffer, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == buffer_ptr ) {
-            throw std::invalid_argument("GetPrimitiveArrayCritical(byte array) is null");
+            throw jau::IllegalArgumentException("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         sres = jau::dfa_utf8_decode(buffer_ptr+offset, static_cast<size_t>(size));
     }
