@@ -275,7 +275,7 @@ public class DBTScanner10 {
                     final long td = BTUtils.currentTimeMillis() - timestamp_t0; // adapter-init -> now
                     BTUtils.println(System.err, "PERF: adapter-init -> READY-0 " + td + " ms");
                 }
-                BTDeviceRegistry.addToDevicesProcessing(device.getAddressAndType(), device.getName());
+                BTDeviceRegistry.addToProcessingDevices(device.getAddressAndType(), device.getName());
                 processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
             } else {
                 BTUtils.println(System.err, "****** READY-1: NOP " + device.toString());
@@ -289,7 +289,7 @@ public class DBTScanner10 {
             if( REMOVE_DEVICE ) {
                 executeOffThread( () -> { removeDevice(device); }, "DBT-Remove-"+device.getAddressAndType(), true /* detach */);
             } else {
-                BTDeviceRegistry.removeFromDevicesProcessing(device.getAddressAndType());
+                BTDeviceRegistry.removeFromProcessingDevices(device.getAddressAndType());
             }
             if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount.get() % RESET_ADAPTER_EACH_CONN ) {
                 executeOffThread( () -> { resetAdapter(device.getAdapter(), 1); },
@@ -364,7 +364,7 @@ public class DBTScanner10 {
         }
         BTUtils.println(System.err, "****** Connecting Device Command, res "+res+": End result "+res+" of " + device.toString());
 
-        if( !USE_WHITELIST && 0 == BTDeviceRegistry.getDeviceProcessingCount() && HCIStatusCode.SUCCESS != res ) {
+        if( !USE_WHITELIST && 0 == BTDeviceRegistry.getProcessingDeviceCount() && HCIStatusCode.SUCCESS != res ) {
             startDiscovery(device.getAdapter(), "post-connect");
         }
     }
@@ -546,11 +546,11 @@ public class DBTScanner10 {
         }
 
         BTUtils.println(System.err, "****** Processing Ready Device: End-1: Success " + success +
-                           " on " + device.toString() + "; devInProc "+BTDeviceRegistry.getDeviceProcessingCount());
+                           " on " + device.toString() + "; devInProc "+BTDeviceRegistry.getProcessingDeviceCount());
 
-        BTDeviceRegistry.removeFromDevicesProcessing( device.getAddressAndType() );
+        BTDeviceRegistry.removeFromProcessingDevices( device.getAddressAndType() );
 
-        if( !USE_WHITELIST && 0 == BTDeviceRegistry.getDeviceProcessingCount() ) {
+        if( !USE_WHITELIST && 0 == BTDeviceRegistry.getProcessingDeviceCount() ) {
             startDiscovery(device.getAdapter(), "post-processing-1");
         }
 
@@ -568,9 +568,9 @@ public class DBTScanner10 {
         }
 
         BTUtils.println(System.err, "****** Processing Ready Device: End-2: Success " + success +
-                           " on " + device.toString() + "; devInProc "+BTDeviceRegistry.getDeviceProcessingCount());
+                           " on " + device.toString() + "; devInProc "+BTDeviceRegistry.getProcessingDeviceCount());
         if( success ) {
-            BTDeviceRegistry.addToDevicesProcessed(device.getAddressAndType(), device.getName());
+            BTDeviceRegistry.addToProcessedDevices(device.getAddressAndType(), device.getName());
         }
         device.removeAllCharListener();
 
@@ -585,7 +585,7 @@ public class DBTScanner10 {
 
             if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount.get() % RESET_ADAPTER_EACH_CONN ) {
                 resetAdapter(device.getAdapter(), 2);
-            } else if( !USE_WHITELIST && 0 == BTDeviceRegistry.getDeviceProcessingCount() ) {
+            } else if( !USE_WHITELIST && 0 == BTDeviceRegistry.getProcessingDeviceCount() ) {
                 startDiscovery(device.getAdapter(), "post-processing-2");
             }
         }
@@ -600,11 +600,11 @@ public class DBTScanner10 {
         BTUtils.println(System.err, "****** Remove Device: removing: "+device.getAddressAndType());
         device.getAdapter().stopDiscovery();
 
-        BTDeviceRegistry.removeFromDevicesProcessing(device.getAddressAndType());
+        BTDeviceRegistry.removeFromProcessingDevices(device.getAddressAndType());
 
         device.remove();
 
-        if( !USE_WHITELIST && 0 == BTDeviceRegistry.getDeviceProcessingCount() ) {
+        if( !USE_WHITELIST && 0 == BTDeviceRegistry.getProcessingDeviceCount() ) {
             startDiscovery(device.getAdapter(), "post-remove-device");
         }
     }
@@ -685,13 +685,13 @@ public class DBTScanner10 {
 
         while( !done ) {
             if( 0 == MULTI_MEASUREMENTS.get() ||
-                ( -1 == MULTI_MEASUREMENTS.get() && BTDeviceRegistry.isWaitingForAnyDevice() && BTDeviceRegistry.allDevicesProcessed() )
+                ( -1 == MULTI_MEASUREMENTS.get() && BTDeviceRegistry.isWaitingForAnyDevice() && BTDeviceRegistry.areAllDevicesProcessed() )
               )
             {
                 BTUtils.println(System.err, "****** EOL Test MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS.get()+
-                                   ", processed "+BTDeviceRegistry.getDeviceProcessedCount()+"/"+BTDeviceRegistry.getWaitForDevicesCount());
-                BTDeviceRegistry.printWaitForDevices(System.err, "****** WaitForDevices ");
-                BTDeviceRegistry.printDevicesProcessed(System.err, "****** DevicesProcessed ");
+                                   ", processed "+BTDeviceRegistry.getProcessedDeviceCount()+"/"+BTDeviceRegistry.getWaitForDevicesCount());
+                BTUtils.println(System.err, "****** WaitForDevices "+BTDeviceRegistry.getWaitForDevicesString());
+                BTUtils.println(System.err, "****** DevicesProcessed "+BTDeviceRegistry.getProcessedDevicesString());
                 done = true;
             } else {
                 try {
@@ -863,8 +863,7 @@ public class DBTScanner10 {
         BTUtils.println(System.err, "characteristic-value: "+test.charValue);
 
         BTUtils.println(System.err, "security-details: "+BTSecurityRegistry.allToString() );
-
-        BTDeviceRegistry.printWaitForDevices(System.err, "waitForDevices: ");
+        BTUtils.println(System.err, "waitForDevices: "+BTDeviceRegistry.getWaitForDevicesString());
 
         if( waitForEnter ) {
             BTUtils.println(System.err, "Press ENTER to continue\n");

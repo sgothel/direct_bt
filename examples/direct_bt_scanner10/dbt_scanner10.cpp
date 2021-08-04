@@ -281,7 +281,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         {
             deviceReadyCount++;
             fprintf_td(stderr, "****** READY-0: Processing[%d] %s\n", deviceReadyCount.load(), device->toString(true).c_str());
-            BTDeviceRegistry::addToDevicesProcessing(device->getAddressAndType(), device->getName());
+            BTDeviceRegistry::addToProcessingDevices(device->getAddressAndType(), device->getName());
             processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
         } else {
             fprintf_td(stderr, "****** READY-1: NOP %s\n", device->toString(true).c_str());
@@ -298,7 +298,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             std::thread dc(::removeDevice, device); // @suppress("Invalid arguments")
             dc.detach();
         } else {
-            BTDeviceRegistry::removeFromDevicesProcessing(device->getAddressAndType());
+            BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
         }
         if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount % RESET_ADAPTER_EACH_CONN ) {
             std::thread dc(::resetAdapter, &device->getAdapter(), 1); // @suppress("Invalid arguments")
@@ -414,7 +414,7 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
     }
     fprintf_td(stderr, "****** Connecting Device: End result %s of %s\n", to_string(res).c_str(), device->toString().c_str());
 
-    if( !USE_WHITELIST && 0 == BTDeviceRegistry::getDeviceProcessingCount() && HCIStatusCode::SUCCESS != res ) {
+    if( !USE_WHITELIST && 0 == BTDeviceRegistry::getProcessingDeviceCount() && HCIStatusCode::SUCCESS != res ) {
         startDiscovery(&device->getAdapter(), "post-connect");
     }
 }
@@ -546,11 +546,11 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
 
 exit:
     fprintf_td(stderr, "****** Processing Ready Device: End-1: Success %d on %s; devInProc %zu\n",
-            success, device->toString().c_str(), BTDeviceRegistry::getDeviceProcessingCount());
+            success, device->toString().c_str(), BTDeviceRegistry::getProcessingDeviceCount());
 
-    BTDeviceRegistry::removeFromDevicesProcessing(device->getAddressAndType());
+    BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
 
-    if( !USE_WHITELIST && 0 == BTDeviceRegistry::getDeviceProcessingCount() ) {
+    if( !USE_WHITELIST && 0 == BTDeviceRegistry::getProcessingDeviceCount() ) {
         startDiscovery(&device->getAdapter(), "post-processing-1");
     }
 
@@ -568,10 +568,10 @@ exit:
     }
 
     fprintf_td(stderr, "****** Processing Ready Device: End-2: Success %d on %s; devInProc %zu\n",
-            success, device->toString().c_str(), BTDeviceRegistry::getDeviceProcessingCount());
+            success, device->toString().c_str(), BTDeviceRegistry::getProcessingDeviceCount());
 
     if( success ) {
-        BTDeviceRegistry::addToDevicesProcessed(device->getAddressAndType(), device->getName());
+        BTDeviceRegistry::addToProcessedDevices(device->getAddressAndType(), device->getName());
     }
     device->removeAllCharListener();
 
@@ -585,7 +585,7 @@ exit:
 
         if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount % RESET_ADAPTER_EACH_CONN ) {
             resetAdapter(&device->getAdapter(), 2);
-        } else if( !USE_WHITELIST && 0 == BTDeviceRegistry::getDeviceProcessingCount() ) {
+        } else if( !USE_WHITELIST && 0 == BTDeviceRegistry::getProcessingDeviceCount() ) {
             startDiscovery(&device->getAdapter(), "post-processing-2");
         }
     }
@@ -600,11 +600,11 @@ static void removeDevice(std::shared_ptr<BTDevice> device) {
     fprintf_td(stderr, "****** Remove Device: removing: %s\n", device->getAddressAndType().toString().c_str());
     device->getAdapter().stopDiscovery();
 
-    BTDeviceRegistry::removeFromDevicesProcessing(device->getAddressAndType());
+    BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
 
     device->remove();
 
-    if( !USE_WHITELIST && 0 == BTDeviceRegistry::getDeviceProcessingCount() ) {
+    if( !USE_WHITELIST && 0 == BTDeviceRegistry::getProcessingDeviceCount() ) {
         startDiscovery(&device->getAdapter(), "post-remove-device");
     }
 }
@@ -673,13 +673,13 @@ void test() {
 
     while( !done ) {
         if( 0 == MULTI_MEASUREMENTS ||
-            ( -1 == MULTI_MEASUREMENTS && BTDeviceRegistry::isWaitingForAnyDevice() && BTDeviceRegistry::allDevicesProcessed() )
+            ( -1 == MULTI_MEASUREMENTS && BTDeviceRegistry::isWaitingForAnyDevice() && BTDeviceRegistry::areAllDevicesProcessed() )
           )
         {
             fprintf_td(stderr, "****** EOL Test MULTI_MEASUREMENTS left %d, processed %zu/%zu\n",
-                    MULTI_MEASUREMENTS.load(), BTDeviceRegistry::getDeviceProcessedCount(), BTDeviceRegistry::getWaitForDevicesCount());
-            BTDeviceRegistry::printWaitForDevices(stderr, "****** WaitForDevice ");
-            BTDeviceRegistry::printDevicesProcessed(stderr, "****** DevicesProcessed ");
+                    MULTI_MEASUREMENTS.load(), BTDeviceRegistry::getProcessedDeviceCount(), BTDeviceRegistry::getWaitForDevicesCount());
+            fprintf_td(stderr, "****** WaitForDevice %s\n", BTDeviceRegistry::getWaitForDevicesString().c_str());
+            fprintf_td(stderr, "****** DevicesProcessed %s\n", BTDeviceRegistry::getProcessedDevicesString().c_str());
             done = true;
         } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
@@ -822,8 +822,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "characteristic-value: %d\n", charValue);
 
     fprintf(stderr, "security-details: %s\n", BTSecurityRegistry::allToString().c_str());
-    BTDeviceRegistry::printWaitForDevices(stderr, "waitForDevice: ");
-
+    fprintf(stderr, "waitForDevice: %s\n", BTDeviceRegistry::getWaitForDevicesString().c_str());
 
     if( waitForEnter ) {
         fprintf(stderr, "Press ENTER to continue\n");

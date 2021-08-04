@@ -136,8 +136,8 @@ public class BTDeviceRegistry {
     public static int getWaitForDevicesCount() {
         return waitForDevices.size();
     }
-    public static void printWaitForDevices(final PrintStream out, final String msg) {
-        BTUtils.println(out, msg+" "+Arrays.toString(waitForDevices.toArray()));
+    public static String getWaitForDevicesString() {
+        return Arrays.toString(waitForDevices.toArray());
     }
     /**
      * Returns the reference of the current list of {@link DeviceQuery}, not a copy.
@@ -152,16 +152,16 @@ public class BTDeviceRegistry {
         waitForDevices.clear();
     }
 
-    public static void addToDevicesProcessed(final BDAddressAndType a, final String n) {
+    public static void addToProcessedDevices(final BDAddressAndType a, final String n) {
         devicesProcessed.add( new DeviceID(a, n) );
     }
     public static boolean isDeviceProcessed(final BDAddressAndType a) {
         return devicesProcessed.contains( new DeviceID(a, null) );
     }
-    public static int getDeviceProcessedCount() {
+    public static int getProcessedDeviceCount() {
         return devicesProcessed.size();
     }
-    public static boolean allDevicesProcessed() {
+    public static boolean areAllDevicesProcessed() {
         for(final Iterator<DeviceQuery> it1=waitForDevices.iterator(); it1.hasNext(); ) {
             final DeviceQuery q = it1.next();
             final Iterator<DeviceID> it2=devicesProcessed.iterator();
@@ -178,9 +178,10 @@ public class BTDeviceRegistry {
         }
         return true;
     }
-    public static void printDevicesProcessed(final PrintStream out, final String msg) {
-        BTUtils.println(out, msg+" "+Arrays.toString(devicesProcessed.toArray()));
+    public static String getProcessedDevicesString() {
+        return Arrays.toString(devicesProcessed.toArray());
     }
+
     /**
      * Returns a copy of the current collection of processed {@link DeviceID}.
      */
@@ -194,16 +195,16 @@ public class BTDeviceRegistry {
         devicesProcessed.clear();
     }
 
-    public static void addToDevicesProcessing(final BDAddressAndType a, final String n) {
+    public static void addToProcessingDevices(final BDAddressAndType a, final String n) {
         devicesInProcessing.add( new DeviceID(a, n) );
     }
-    public static boolean removeFromDevicesProcessing(final BDAddressAndType a) {
+    public static boolean removeFromProcessingDevices(final BDAddressAndType a) {
         return devicesInProcessing.remove( new DeviceID(a, null) );
     }
     public static boolean isDeviceProcessing(final BDAddressAndType a) {
         return devicesInProcessing.contains( new DeviceID(a, null) );
     }
-    public static int getDeviceProcessingCount() {
+    public static int getProcessingDeviceCount() {
         return devicesInProcessing.size();
     }
     /**

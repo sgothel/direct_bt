@@ -65,16 +65,17 @@ namespace direct_bt::BTDeviceRegistry {
     size_t getWaitForDevicesCount() {
         return waitForDevices.size();
     }
-    static void printList(FILE *out, const std::string &msg, jau::darray<DeviceQuery> &cont) {
-        jau::fprintf_td(out, "%s ", msg.c_str());
-        jau::for_each(cont.cbegin(), cont.cend(), [out](const DeviceQuery& q) {
-            fprintf(out, "%s, ", q.toString().c_str());
+    std::string getWaitForDevicesString() {
+        std::string res;
+        jau::for_each(waitForDevices.cbegin(), waitForDevices.cend(), [&res](const DeviceQuery &q) {
+            if( res.length() > 0 ) {
+                res.append( ",  " );
+            }
+            res.append( q.toString() );
         });
-        fprintf(out, "\n");
+        return res;
     }
-    void printWaitForDevices(FILE *out, const std::string &msg) {
-        printList(out, msg, waitForDevices);
-    }
+
     jau::darray<DeviceQuery>& getWaitForDevices() {
         return waitForDevices;
     }
@@ -82,7 +83,7 @@ namespace direct_bt::BTDeviceRegistry {
         waitForDevices.clear();
     }
 
-    void addToDevicesProcessed(const BDAddressAndType &a, const std::string& n) {
+    void addToProcessedDevices(const BDAddressAndType &a, const std::string& n) {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         devicesProcessed.emplace_hint(devicesProcessed.end(), a, n);
     }
@@ -90,11 +91,11 @@ namespace direct_bt::BTDeviceRegistry {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         return devicesProcessed.end() != devicesProcessed.find( DeviceID(a, "") );
     }
-    size_t getDeviceProcessedCount() {
+    size_t getProcessedDeviceCount() {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         return devicesProcessed.size();
     }
-    bool allDevicesProcessed() {
+    bool areAllDevicesProcessed() {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         for (auto it1 = waitForDevices.cbegin(); it1 != waitForDevices.cend(); ++it1) {
             const DeviceQuery& q = *it1;
@@ -113,16 +114,16 @@ namespace direct_bt::BTDeviceRegistry {
         }
         return true;
     }
-    static void printList(FILE *out, const std::string &msg, std::unordered_set<DeviceID> &cont) {
-        jau::fprintf_td(out, "%s ", msg.c_str());
-        jau::for_each(cont.cbegin(), cont.cend(), [out](const DeviceID &id) {
-            fprintf(out, "%s, ", id.toString().c_str());
-        });
-        fprintf(out, "\n");
-    }
-    void printDevicesProcessed(FILE *out, const std::string &msg) {
+    std::string getProcessedDevicesString() {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
-        printList(out, msg, devicesProcessed);
+        std::string res;
+        jau::for_each(devicesProcessed.cbegin(), devicesProcessed.cend(), [&res](const DeviceID &id) {
+            if( res.length() > 0 ) {
+                res.append( ", " );
+            }
+            res.append( id.toString() );
+        });
+        return res;
     }
     jau::darray<DeviceID> getProcessedDevices() {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
@@ -141,11 +142,11 @@ namespace direct_bt::BTDeviceRegistry {
         devicesProcessed.clear();
     }
 
-    void addToDevicesProcessing(const BDAddressAndType &a, const std::string& n) {
+    void addToProcessingDevices(const BDAddressAndType &a, const std::string& n) {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
         devicesInProcessing.emplace_hint(devicesInProcessing.end(), a, n);
     }
-    bool removeFromDevicesProcessing(const BDAddressAndType &a) {
+    bool removeFromProcessingDevices(const BDAddressAndType &a) {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
         auto it = devicesInProcessing.find( DeviceID(a, "") );
         if( devicesInProcessing.end() != it ) {
@@ -158,7 +159,7 @@ namespace direct_bt::BTDeviceRegistry {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
         return devicesInProcessing.end() != devicesInProcessing.find( DeviceID(a, "") );
     }
-    size_t getDeviceProcessingCount() {
+    size_t getProcessingDeviceCount() {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
         return devicesInProcessing.size();
     }

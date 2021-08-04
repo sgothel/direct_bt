@@ -59,7 +59,7 @@ namespace direct_bt {
         bool isWaitingForDevice(const BDAddressAndType &mac, const std::string &name);
         bool isWaitingForAnyDevice();
         size_t getWaitForDevicesCount();
-        void printWaitForDevices(FILE *out, const std::string &msg);
+        std::string getWaitForDevicesString();
         /**
          * Returns the reference of the current list of DeviceQuery, not a copy.
          */
@@ -111,11 +111,12 @@ namespace direct_bt {
         inline bool operator!=(const DeviceID& lhs, const DeviceID& rhs) noexcept
         { return !(lhs == rhs); }
 
-        void addToDevicesProcessed(const BDAddressAndType &a, const std::string& n);
+        void addToProcessedDevices(const BDAddressAndType &a, const std::string& n);
         bool isDeviceProcessed(const BDAddressAndType & a);
-        size_t getDeviceProcessedCount();
-        bool allDevicesProcessed();
-        void printDevicesProcessed(FILE *out, const std::string &msg);
+        size_t getProcessedDeviceCount();
+        bool areAllDevicesProcessed();
+        std::string getProcessedDevicesString();
+
         /**
          * Returns a copy of the current collection of processed DeviceID.
          */
@@ -125,10 +126,10 @@ namespace direct_bt {
          */
         void clearProcessedDevices();
 
-        void addToDevicesProcessing(const BDAddressAndType &a, const std::string& n);
-        bool removeFromDevicesProcessing(const BDAddressAndType &a);
+        void addToProcessingDevices(const BDAddressAndType &a, const std::string& n);
+        bool removeFromProcessingDevices(const BDAddressAndType &a);
         bool isDeviceProcessing(const BDAddressAndType & a);
-        size_t getDeviceProcessingCount();
+        size_t getProcessingDeviceCount();
         /**
          * Returns a copy of the current collection of processing DeviceID.
          */
