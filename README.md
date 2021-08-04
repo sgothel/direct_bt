@@ -347,6 +347,18 @@ Changes
 
 * TODO
 
+**2.2.9**
+
+* Move `BTDeviceRegistry` and `BTSecurityRegistry` to `direct_bt` library (from examples)
+* EUI48Sub: Complement with `hash_code()`, `clear()`, `indexOf()`, `contains()`, ...
+* SMPKeyBin: Tighten constraints, `readAndApply(..)` must validate `minSecLevel`.
+* `BTAdapter::mgmtEvDeviceFoundHCI(..)`: Clarify code path, covering name change via AD EIR.
+* Passthrough all paramter `BTAdapter::startDiscovery(..)` -> `HCIHandler::le_set_scan_param(..)`: Add `le_scan_active` and `filter_policy`. 
+  Active scanning is used to gather device name in discovery mode (AD EIR).
+* Add `-dbt_debug` argument for AD EIR `direct_bt.debug.hci.scan_ad_eir` and parse EIR GAPFlags
+* Fix BTGattHandler: Gather all Descriptors from all Characteristics (only queried 1st Char.)
+* SMPKeyBin's base filename compatibility with FAT32 Long Filename (LFN)
+
 **2.2.5**
 
 * Complete SMPKeyBin user API: Convenient static 'one shot' entries + support no-encryption case
