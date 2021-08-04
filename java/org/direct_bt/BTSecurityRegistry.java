@@ -37,6 +37,9 @@ import java.util.List;
 public class BTSecurityRegistry {
     public static final int NO_PASSKEY = -1;
 
+    /**
+     * Entry specifying SMP security details associated to a device query via {@link EUI48Sub} or {@code nameSub}.
+     */
     public static class Entry {
         public EUI48Sub addrSub;
         public String nameSub;
@@ -84,7 +87,6 @@ public class BTSecurityRegistry {
             return "BTSecurityDetail["+id+", lvl "+sec_level+", io "+io_cap+", auto-io "+io_cap_auto+", passkey "+passkey+"]";
         }
     }
-
     static private List<BTSecurityRegistry.Entry> devicesSecDetails = new ArrayList<BTSecurityRegistry.Entry>();
 
     public static BTSecurityRegistry.Entry get(final EUI48 addr) {
@@ -114,6 +116,12 @@ public class BTSecurityRegistry {
         }
         return null;
     }
+    /**
+     * Returns the reference of the current list of {@link BTSecurityRegistry.Entry}, not a copy.
+     */
+    public static List<BTSecurityRegistry.Entry> getEntries() {
+        return devicesSecDetails;
+    }
 
     public static BTSecurityRegistry.Entry getOrCreate(final String addrOrNameSub) {
         final EUI48Sub addr1 = new EUI48Sub();
@@ -133,6 +141,12 @@ public class BTSecurityRegistry {
             }
         }
         return sec;
+    }
+    /**
+     * Clears internal list
+     */
+    public static void clear() {
+        devicesSecDetails.clear();
     }
 
     public static String allToString() {

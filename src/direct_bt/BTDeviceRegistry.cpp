@@ -35,71 +35,8 @@
 using namespace direct_bt;
 
 namespace direct_bt::BTDeviceRegistry {
-    struct DeviceQuery {
-        EUI48Sub addressSub;
-        std::string nameSub;
-        DeviceQuery(const EUI48Sub& as, const std::string& ns) : addressSub(as), nameSub(ns) {}
-        DeviceQuery() : addressSub(), nameSub() {}
-        std::string toString() const {
-            if( addressSub.length>0 ) {
-                return addressSub.toString();
-            } else {
-                return "'"+nameSub+"'";
-            }
-        }
-    };
     static jau::darray<DeviceQuery> waitForDevices;
 
-    struct DeviceID {
-        BDAddressAndType addressAndType;
-        std::string name;
-
-        DeviceID(const BDAddressAndType& a, const std::string& n) : addressAndType(a), name(n) {}
-        DeviceID() : addressAndType(), name() {}
-
-        /**
-         * {@inheritDoc}
-         * <p>
-         * Implementation simply returns the BDAddressAndType hash code,
-         * `name` is ignored.
-         * </p>
-         */
-        std::size_t hash_code() const noexcept {
-            return addressAndType.hash_code();
-        }
-
-        std::string toString() const {
-            return "["+addressAndType.toString()+", '"+name+"']";
-        }
-    };
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Implementation simply tests the {@link BDAddressAndType} fields for equality,
-     * `name` is ignored.
-     * </p>
-     */
-    inline bool operator==(const DeviceID& lhs, const DeviceID& rhs) noexcept {
-        if( &lhs == &rhs ) {
-            return true;
-        }
-        return lhs.addressAndType == rhs.addressAndType;
-    }
-    inline bool operator!=(const DeviceID& lhs, const DeviceID& rhs) noexcept
-    { return !(lhs == rhs); }
-}  // namespace direct_bt::BTDeviceRegistry
-
-// injecting specialization of std::hash to namespace std of our types above
-namespace std
-{
-    template<> struct hash<direct_bt::BTDeviceRegistry::DeviceID> {
-        std::size_t operator()(direct_bt::BTDeviceRegistry::DeviceID const& a) const noexcept {
-            return a.hash_code();
-        }
-    };
-}
-
-namespace direct_bt::BTDeviceRegistry {
     static std::unordered_set<DeviceID> devicesInProcessing;
     static std::recursive_mutex mtx_devicesProcessing;
 
@@ -137,6 +74,12 @@ namespace direct_bt::BTDeviceRegistry {
     }
     void printWaitForDevices(FILE *out, const std::string &msg) {
         printList(out, msg, waitForDevices);
+    }
+    jau::darray<DeviceQuery>& getWaitForDevices() {
+        return waitForDevices;
+    }
+    void clearWaitForDevices() {
+        waitForDevices.clear();
     }
 
     void addToDevicesProcessed(const BDAddressAndType &a, const std::string& n) {
@@ -181,6 +124,22 @@ namespace direct_bt::BTDeviceRegistry {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         printList(out, msg, devicesProcessed);
     }
+    jau::darray<DeviceID> getProcessedDevices() {
+        const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
+        // std::unordered_set<DeviceID>::iterator is not suitable for:
+        // return jau::darray<DeviceID>(devicesProcessed.size(), devicesProcessed.begin(), devicesProcessed.end());
+        jau::darray<DeviceID> res(devicesProcessed.size());
+        auto first = devicesProcessed.cbegin();
+        auto last = devicesProcessed.cend();
+        for(; first != last; ++first) {
+            res.push_back(*first);
+        }
+        return res;
+    }
+    void clearProcessedDevices() {
+        const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
+        devicesProcessed.clear();
+    }
 
     void addToDevicesProcessing(const BDAddressAndType &a, const std::string& n) {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
@@ -202,6 +161,22 @@ namespace direct_bt::BTDeviceRegistry {
     size_t getDeviceProcessingCount() {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
         return devicesInProcessing.size();
+    }
+    jau::darray<DeviceID> getProcessingDevices() {
+        const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
+        // std::unordered_set<DeviceID>::iterator is not suitable for:
+        // return jau::darray<DeviceID>(devicesInProcessing.size(), devicesInProcessing.begin(), devicesInProcessing.end());
+        jau::darray<DeviceID> res(devicesInProcessing.size());
+        auto first = devicesInProcessing.cbegin();
+        auto last = devicesInProcessing.cend();
+        for(; first != last; ++first) {
+            res.push_back(*first);
+        }
+        return res;
+    }
+    void clearProcessingDevices() {
+        const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
+        devicesInProcessing.clear();
     }
 
 } // namespace direct_bt::BTDeviceRegistry

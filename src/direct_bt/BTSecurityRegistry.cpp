@@ -63,6 +63,9 @@ namespace direct_bt::BTSecurityRegistry {
         }
         return nullptr;
     }
+    jau::darray<Entry>& getEntries() {
+        return devicesSecDetails;
+    }
     Entry* getOrCreate(const std::string& addrOrNameSub) {
         EUI48Sub addr1;
         std::string errmsg;
@@ -81,6 +84,9 @@ namespace direct_bt::BTSecurityRegistry {
             }
         }
         return sec;
+    }
+    void clear() {
+        devicesSecDetails.clear();
     }
     std::string allToString() {
         std::string res;

@@ -93,7 +93,19 @@ namespace direct_bt {
         Entry* get(const EUI48& addr);
         Entry* get(const EUI48Sub& addrSub);
         Entry* get(const std::string& nameSub);
+
+        /**
+         * Returns the reference of the current list of Entry, not a copy.
+         */
+        jau::darray<Entry>& getEntries();
+
         Entry* getOrCreate(const std::string& addrOrNameSub);
+
+        /**
+         * Clears internal list
+         */
+        void clear();
+
         std::string allToString();
 
     } // namespace BTSecurityRegistry

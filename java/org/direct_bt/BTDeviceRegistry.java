@@ -39,7 +39,10 @@ import java.util.List;
  * The latter on a pattern matching basis, i.e. EUI48Sub or name-sub.
  */
 public class BTDeviceRegistry {
-    private static class DeviceQuery {
+    /**
+     * Specifies devices queries to act upon.
+     */
+    public static class DeviceQuery {
         public final EUI48Sub addressSub;
         public final String nameSub;
         public DeviceQuery(final EUI48Sub as, final String ns) {
@@ -57,7 +60,11 @@ public class BTDeviceRegistry {
     };
     private static List<DeviceQuery> waitForDevices = new ArrayList<DeviceQuery>();
 
-    private static class DeviceID {
+    /**
+     * Specifies unique device identities,
+     * using {@link BDAddressAndType} as key.
+     */
+    public static class DeviceID {
         public final BDAddressAndType addressAndType;
         public final String name;
         public DeviceID(final BDAddressAndType a, final String n) {
@@ -132,6 +139,18 @@ public class BTDeviceRegistry {
     public static void printWaitForDevices(final PrintStream out, final String msg) {
         BTUtils.println(out, msg+" "+Arrays.toString(waitForDevices.toArray()));
     }
+    /**
+     * Returns the reference of the current list of {@link DeviceQuery}, not a copy.
+     */
+    public static List<DeviceQuery> getWaitForDevices() {
+        return waitForDevices;
+    }
+    /**
+     * Clears internal list
+     */
+    public static void clearWaitForDevices() {
+        waitForDevices.clear();
+    }
 
     public static void addToDevicesProcessed(final BDAddressAndType a, final String n) {
         devicesProcessed.add( new DeviceID(a, n) );
@@ -162,6 +181,18 @@ public class BTDeviceRegistry {
     public static void printDevicesProcessed(final PrintStream out, final String msg) {
         BTUtils.println(out, msg+" "+Arrays.toString(devicesProcessed.toArray()));
     }
+    /**
+     * Returns a copy of the current collection of processed {@link DeviceID}.
+     */
+    public static List<DeviceID> getProcessedDevices() {
+        return new ArrayList<DeviceID>(devicesProcessed);
+    }
+    /**
+     * Clears internal list
+     */
+    public static void clearProcessedDevices() {
+        devicesProcessed.clear();
+    }
 
     public static void addToDevicesProcessing(final BDAddressAndType a, final String n) {
         devicesInProcessing.add( new DeviceID(a, n) );
@@ -174,5 +205,17 @@ public class BTDeviceRegistry {
     }
     public static int getDeviceProcessingCount() {
         return devicesInProcessing.size();
+    }
+    /**
+     * Returns a copy of the current collection of processing {@link DeviceID}.
+     */
+    public static List<DeviceID> getProcessingDevices() {
+        return new ArrayList<DeviceID>(devicesInProcessing);
+    }
+    /**
+     * Clears internal list
+     */
+    public static void clearProcessingDevices() {
+        devicesInProcessing.clear();
     }
 }
