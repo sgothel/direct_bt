@@ -56,7 +56,6 @@ namespace direct_bt {
         };
 
         void addToWaitForDevices(const std::string& addrOrNameSub);
-        bool isWaitingForDevice(const BDAddressAndType &mac, const std::string &name);
         bool isWaitingForAnyDevice();
         size_t getWaitForDevicesCount();
         std::string getWaitForDevicesString();
@@ -114,7 +113,7 @@ namespace direct_bt {
         void addToProcessedDevices(const BDAddressAndType &a, const std::string& n);
         bool isDeviceProcessed(const BDAddressAndType & a);
         size_t getProcessedDeviceCount();
-        bool areAllDevicesProcessed();
+
         std::string getProcessedDevicesString();
 
         /**
@@ -125,6 +124,85 @@ namespace direct_bt {
          * Clears internal list
          */
         void clearProcessedDevices();
+
+        /**
+         * Function for user defined BTDeviceRegistry::DeviceQuery matching criteria and algorithm.
+         * <p>
+         * Return {@code true} if the given {@code address} and/or {@code name} matches
+         * with the BTDeviceRegistry::DeviceQuery::addressSub and/or
+         * BTDeviceRegistry::DeviceQuery::nameSub.
+         * </p>
+         * <p>
+         * Example (lambda):
+         * <pre>
+         *    [](const EUI48& a, const std::string& n, const DeviceQuery& q)->bool {
+         *       return ( q.addressSub.length>0 && a.contains(q.addressSub) ) ||
+         *              ( q.nameSub.length()>0 && n.find(q.nameSub) != std::string::npos );
+         *    });
+         * </pre>
+         * </p>
+         */
+        typedef bool (*DeviceQueryMatchFunc)(const EUI48& address, const std::string& name, const DeviceQuery& q);
+
+        /**
+         * Returns {@code true} if the given {@code address} and/or {@code name}
+         * matches any of the BTDeviceRegistry::addToWaitForDevices() awaited devices.
+         * <p>
+         * Matching criteria and algorithm is defined by the given BTDeviceRegistry::DeviceQueryMatchFunc.
+         * </p>
+         * @see BTDeviceRegistry::isWaitingForDevice()
+         */
+        bool isWaitingForDevice(const EUI48 &address, const std::string &name, DeviceQueryMatchFunc m);
+
+        /**
+         * Returns {@code true} if the given {@code address} and/or {@code name}
+         * matches any of the BTDeviceRegistry::addToWaitForDevices() awaited devices.
+         * <p>
+         * Matching criteria is either the awaited device's BTDeviceRegistry::DeviceQuery::addressSub
+         * or BTDeviceRegistry::DeviceQuery::nameSub, whichever is set.
+         * </p>
+         * <p>
+         * Matching algorithm is a simple {@code contains} pattern match,
+         * i.e. the given {@code address} or {@code name} contains the corresponding BTDeviceRegistry::DeviceQuery element.
+         * </p>
+         * @see BTDeviceRegistry::isWaitingForDevice()
+         */
+        bool isWaitingForDevice(const EUI48 &address, const std::string &name) {
+            return isWaitingForDevice(address, name, [](const EUI48& a, const std::string& n, const DeviceQuery& q)->bool {
+                return ( q.addressSub.length>0 && a.contains(q.addressSub) ) ||
+                       ( q.nameSub.length()>0 && n.find(q.nameSub) != std::string::npos );
+            });
+        }
+
+        /**
+         * Returns {@code true} if all addToWaitForDevices() awaited devices
+         * have been addToProcessedDevices() processed.
+         * <p>
+         * Matching criteria and algorithm is defined by the given BTDeviceRegistry::DeviceQueryMatchFunc.
+         * </p>
+         * @see BTDeviceRegistry::areAllDevicesProcessed()
+         */
+        bool areAllDevicesProcessed(DeviceQueryMatchFunc m);
+
+        /**
+         * Returns {@code true} if all addToWaitForDevices() awaited devices
+         * have been addToProcessedDevices() processed.
+         * <p>
+         * Matching criteria is either the awaited device's BTDeviceRegistry::DeviceQuery::addressSub
+         * or BTDeviceRegistry::DeviceQuery::nameSub, whichever is set.
+         * </p>
+         * <p>
+         * Matching algorithm is a simple {@code contains} pattern match,
+         * i.e. the processed BTDeviceRegistry::DeviceID contains one element of BTDeviceRegistry::DeviceQuery.
+         * </p>
+         * @see BTDeviceRegistry::areAllDevicesProcessed()
+         */
+        bool areAllDevicesProcessed() {
+            return areAllDevicesProcessed( [](const EUI48& a, const std::string& n, const DeviceQuery& q)->bool {
+                                            return ( q.addressSub.length>0 && a.contains(q.addressSub) ) ||
+                                                   ( q.nameSub.length()>0 && n.find(q.nameSub) != std::string::npos );
+                                         });
+        }
 
         void addToProcessingDevices(const BDAddressAndType &a, const std::string& n);
         bool removeFromProcessingDevices(const BDAddressAndType &a);

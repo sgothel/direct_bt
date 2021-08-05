@@ -176,7 +176,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
         if( !BTDeviceRegistry::isDeviceProcessing( device->getAddressAndType() ) &&
             ( !BTDeviceRegistry::isWaitingForAnyDevice() ||
-              ( BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType(), device->getName()) &&
+              ( BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType().address, device->getName()) &&
                 ( 0 < MULTI_MEASUREMENTS || !BTDeviceRegistry::isDeviceProcessed(device->getAddressAndType()) )
               )
             )
@@ -233,7 +233,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 // next: PASSKEY_EXPECTED... or KEY_DISTRIBUTION
                 break;
             case SMPPairingState::PASSKEY_EXPECTED: {
-                const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::get(device->getAddressAndType().address);
+                const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getStartOf(device->getAddressAndType().address, "");
                 if( nullptr != sec && sec->getPairingPasskey() != BTSecurityRegistry::Entry::NO_PASSKEY ) {
                     std::thread dc(&BTDevice::setPairingPasskey, device, static_cast<uint32_t>( sec->getPairingPasskey() ));
                     dc.detach();
@@ -245,7 +245,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 // next: KEY_DISTRIBUTION or FAILED
               } break;
             case SMPPairingState::NUMERIC_COMPARE_EXPECTED: {
-                const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::get(device->getAddressAndType().address);
+                const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getStartOf(device->getAddressAndType().address, "");
                 if( nullptr != sec ) {
                     std::thread dc(&BTDevice::setPairingNumericComparison, device, sec->getPairingNumericComparison());
                     dc.detach();
@@ -273,7 +273,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
         if( !BTDeviceRegistry::isDeviceProcessing( device->getAddressAndType() ) &&
             ( !BTDeviceRegistry::isWaitingForAnyDevice() ||
-              ( BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType(), device->getName()) &&
+              ( BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType().address, device->getName()) &&
                 ( 0 < MULTI_MEASUREMENTS || !BTDeviceRegistry::isDeviceProcessed(device->getAddressAndType()) )
               )
             )
@@ -384,7 +384,7 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
         fprintf_td(stderr, "****** Connecting Device: stopDiscovery result %s\n", to_string(r).c_str());
     }
 
-    const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::get(device->getAddressAndType().address);
+    const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getStartOf(device->getAddressAndType().address, device->getName());
     const BTSecurityLevel req_sec_level = nullptr != sec ? sec->getSecLevel() : BTSecurityLevel::UNSET;
     HCIStatusCode res = SMPKeyBin::readAndApply(KEY_PATH, *device, req_sec_level, true /* verbose */);
     fprintf_td(stderr, "****** Connecting Device: SMPKeyBin::readAndApply(..) result %s\n", to_string(res).c_str());

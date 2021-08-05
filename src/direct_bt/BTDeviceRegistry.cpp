@@ -53,12 +53,6 @@ namespace direct_bt::BTDeviceRegistry {
             waitForDevices.emplace_back( addr1, addrOrNameSub );
         }
     }
-    bool isWaitingForDevice(const BDAddressAndType &mac, const std::string &name) {
-        return waitForDevices.cend() != jau::find_if(waitForDevices.cbegin(), waitForDevices.cend(), [&](const DeviceQuery & it)->bool {
-           return ( it.addressSub.length>0 && mac.address.contains(it.addressSub) ) ||
-                  ( it.nameSub.length()>0 && name.find(it.nameSub) != std::string::npos );
-        });
-    }
     bool isWaitingForAnyDevice() {
         return !waitForDevices.empty();
     }
@@ -95,25 +89,6 @@ namespace direct_bt::BTDeviceRegistry {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         return devicesProcessed.size();
     }
-    bool areAllDevicesProcessed() {
-        const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
-        for (auto it1 = waitForDevices.cbegin(); it1 != waitForDevices.cend(); ++it1) {
-            const DeviceQuery& q = *it1;
-            auto it2 = devicesProcessed.cbegin();
-            while ( it2 != devicesProcessed.cend() ) {
-                const DeviceID& id = *it2;
-                if( ( q.addressSub.length>0 && id.addressAndType.address.contains(q.addressSub) ) ||
-                    ( q.nameSub.length()>0 && id.name.find(q.nameSub) != std::string::npos ) ) {
-                    break;
-                }
-                ++it2;
-            }
-            if( it2 == devicesProcessed.cend() ) {
-                return false;
-            }
-        }
-        return true;
-    }
     std::string getProcessedDevicesString() {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         std::string res;
@@ -140,6 +115,31 @@ namespace direct_bt::BTDeviceRegistry {
     void clearProcessedDevices() {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         devicesProcessed.clear();
+    }
+
+    bool isWaitingForDevice(const EUI48 &address, const std::string &name, DeviceQueryMatchFunc m) {
+        return waitForDevices.cend() != jau::find_if(waitForDevices.cbegin(), waitForDevices.cend(), [&](const DeviceQuery & it)->bool {
+           return m(address, name, it);
+        });
+    }
+
+    bool areAllDevicesProcessed(DeviceQueryMatchFunc m) {
+        const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
+        for (auto it1 = waitForDevices.cbegin(); it1 != waitForDevices.cend(); ++it1) {
+            const DeviceQuery& q = *it1;
+            auto it2 = devicesProcessed.cbegin();
+            while ( it2 != devicesProcessed.cend() ) {
+                const DeviceID& id = *it2;
+                if( m(id.addressAndType.address, id.name, q) ) {
+                    break;
+                }
+                ++it2;
+            }
+            if( it2 == devicesProcessed.cend() ) {
+                return false;
+            }
+        }
+        return true;
     }
 
     void addToProcessingDevices(const BDAddressAndType &a, const std::string& n) {

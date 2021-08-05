@@ -25,7 +25,6 @@
 
 package org.direct_bt;
 
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -120,16 +119,6 @@ public class BTDeviceRegistry {
             waitForDevices.add( new DeviceQuery( addr1, addrOrNameSub ) );
         }
     }
-    public static boolean isWaitingForDevice(final BDAddressAndType mac, final String name) {
-        for(final Iterator<DeviceQuery> it=waitForDevices.iterator(); it.hasNext(); ) {
-            final DeviceQuery q = it.next();
-            if( ( q.addressSub.length>0 && mac.address.contains(q.addressSub) ) ||
-                ( q.nameSub.length()>0 && name.indexOf(q.nameSub) >= 0 ) ) {
-                return true;
-            }
-        }
-        return false;
-    }
     public static boolean isWaitingForAnyDevice() {
         return waitForDevices.size()>0;
     }
@@ -161,27 +150,9 @@ public class BTDeviceRegistry {
     public static int getProcessedDeviceCount() {
         return devicesProcessed.size();
     }
-    public static boolean areAllDevicesProcessed() {
-        for(final Iterator<DeviceQuery> it1=waitForDevices.iterator(); it1.hasNext(); ) {
-            final DeviceQuery q = it1.next();
-            final Iterator<DeviceID> it2=devicesProcessed.iterator();
-            while( it2.hasNext() ) {
-                final DeviceID id = it2.next();
-                if( ( q.addressSub.length>0 && id.addressAndType.address.contains(q.addressSub) ) ||
-                    ( q.nameSub.length()>0 && id.name.indexOf(q.nameSub) >= 0 ) ) {
-                    break;
-                }
-            }
-            if( !it2.hasNext() ) {
-                return false;
-            }
-        }
-        return true;
-    }
     public static String getProcessedDevicesString() {
         return Arrays.toString(devicesProcessed.toArray());
     }
-
     /**
      * Returns a copy of the current collection of processed {@link DeviceID}.
      */
@@ -194,6 +165,113 @@ public class BTDeviceRegistry {
     public static void clearProcessedDevices() {
         devicesProcessed.clear();
     }
+
+    /**
+     * Interface for user defined {@link DeviceQuery} matching criteria and algorithm.
+     */
+    public static interface DeviceQueryMatch {
+        /**
+         * Return {@code true} if the given {@code address} and/or {@code name} matches
+         * with the {@link DeviceQuery}'s {@link DeviceQuery#addressSub addressSub} and/or
+         * {@link DeviceQuery#nameSub nameSub}.
+         * <p>
+         * Example (lambda):
+         * <pre>
+         *    (final EUI48 a, final String n, final DeviceQuery q) -> {
+         *     return ( q.addressSub.length>0 && a.contains(q.addressSub) ) ||
+         *            ( q.nameSub.length()>0 && n.indexOf(q.nameSub) >= 0 );
+         *     }
+         * </pre>
+         * </p>
+         */
+        public boolean match(final EUI48 address, final String name, final DeviceQuery q);
+    }
+
+    /**
+     * Returns {@code true} if the given {@code address} and/or {@code name}
+     * {@link DeviceQueryMatch#match(EUI48, String, DeviceQuery) matches}
+     * any of the {@link #addToWaitForDevices(String) awaited devices}.
+     * <p>
+     * Matching criteria and algorithm is defined by the given {@link DeviceQueryMatch}.
+     * </p>
+     * @see #isWaitingForDevice(EUI48, String)
+     */
+    public static boolean isWaitingForDevice(final EUI48 address, final String name,
+                                             final DeviceQueryMatch m) {
+        for(final Iterator<DeviceQuery> it=waitForDevices.iterator(); it.hasNext(); ) {
+            final DeviceQuery q = it.next();
+            if( m.match(address, name, q) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /**
+     * Returns {@code true} if the given {@code address} and/or {@code name}
+     * {@link DeviceQueryMatch#match(EUI48, String, DeviceQuery) matches}
+     * any of the {@link #addToWaitForDevices(String) awaited devices}.
+     * <p>
+     * Matching criteria is either the awaited device's {@link DeviceQuery#addressSub}
+     * or {@link DeviceQuery#nameSub}, whichever is set.
+     * </p>
+     * <p>
+     * Matching algorithm is a simple {@code contains} pattern match,
+     * i.e. the given {@code address} or {@code name} contains the corresponding {@link DeviceQuery} element.
+     * </p>
+     * @see #isWaitingForDevice(EUI48, String, DeviceQueryMatch)
+     */
+    public static boolean isWaitingForDevice(final EUI48 address, final String name) {
+        return isWaitingForDevice( address, name,
+                                   (final EUI48 a, final String n, final DeviceQuery q) -> {
+                                    return ( q.addressSub.length>0 && a.contains(q.addressSub) ) ||
+                                           ( q.nameSub.length()>0 && n.indexOf(q.nameSub) >= 0 );
+                                 });
+    }
+
+    /**
+     * Returns {@code true} if all {@link #addToWaitForDevices(String) awaited devices}
+     * have been {@link #addToProcessedDevices(BDAddressAndType, String) processed}.
+     * <p>
+     * Matching criteria and algorithm is defined by the given {@link DeviceQueryMatch}.
+     * </p>
+     * @see #areAllDevicesProcessed()
+     */
+    public static boolean areAllDevicesProcessed(final DeviceQueryMatch m) {
+        for(final Iterator<DeviceQuery> it1=waitForDevices.iterator(); it1.hasNext(); ) {
+            final DeviceQuery q = it1.next();
+            final Iterator<DeviceID> it2=devicesProcessed.iterator();
+            while( it2.hasNext() ) {
+                final DeviceID id = it2.next();
+                if( m.match(id.addressAndType.address, id.name, q) ) {
+                    break;
+                }
+            }
+            if( !it2.hasNext() ) {
+                return false;
+            }
+        }
+        return true;
+    }
+    /**
+     * Returns {@code true} if all {@link #addToWaitForDevices(String) awaited devices}
+     * have been {@link #addToProcessedDevices(BDAddressAndType, String) processed}.
+     * <p>
+     * Matching criteria is either the awaited device's {@link DeviceQuery#addressSub}
+     * or {@link DeviceQuery#nameSub}, whichever is set.
+     * </p>
+     * <p>
+     * Matching algorithm is a simple {@code contains} pattern match,
+     * i.e. the processed {@link DeviceID} contains one element of {@link DeviceQuery}.
+     * </p>
+     * @see #areAllDevicesProcessed(DeviceQueryMatch)
+     */
+    public static boolean areAllDevicesProcessed() {
+        return areAllDevicesProcessed( (final EUI48 a, final String n, final DeviceQuery q) -> {
+                                        return ( q.addressSub.length>0 && a.contains(q.addressSub) ) ||
+                                               ( q.nameSub.length()>0 && n.indexOf(q.nameSub) >= 0 );
+                                     });
+    }
+
 
     public static void addToProcessingDevices(final BDAddressAndType a, final String n) {
         devicesInProcessing.add( new DeviceID(a, n) );

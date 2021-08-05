@@ -56,16 +56,6 @@ namespace direct_bt {
             Entry(const std::string& nameSub_)
             : addrSub(EUI48Sub::ALL_DEVICE), nameSub(nameSub_) {}
 
-            bool matches(const EUI48Sub& addressSub) const noexcept {
-                return addrSub.length > 0 && addressSub.contains(addrSub);
-            }
-            bool matches(const EUI48& address) const noexcept {
-                return addrSub.length > 0 && address.contains(addrSub);
-            }
-            bool matches(const std::string& name) const noexcept {
-                return nameSub.length() > 0 && name.find(nameSub) != std::string::npos;
-            }
-
             constexpr bool isSecLevelOrIOCapSet() const noexcept {
                 return SMPIOCapability::UNSET != io_cap ||  BTSecurityLevel::UNSET != sec_level;
             }
@@ -90,15 +80,146 @@ namespace direct_bt {
                         ", passkey "+std::to_string(passkey)+"]";
             }
         };
-        Entry* get(const EUI48& addr);
-        Entry* get(const EUI48Sub& addrSub);
-        Entry* get(const std::string& nameSub);
+
+        /**
+         * Function for user defined EUI48 address and name BTSecurityRegistry::Entry matching criteria and algorithm.
+         * <p>
+         * Return {@code true} if the given {@code address} or {@code name} matches
+         * with the BTSecurityRegistry::Entry.
+         * </p>
+         *
+         * @param address EUI48 address
+         * @param name optional name, maybe empty
+         * @param e Entry entry
+         */
+        typedef bool (*AddressNameEntryMatchFunc)(const EUI48& address, const std::string& name, const Entry& e);
+
+        /**
+         * Function for user defined EUI48Sub addressSub and name BTSecurityRegistry::Entry matching criteria and algorithm.
+         * <p>
+         * Return {@code true} if the given {@code addressSub} or {@code name} matches
+         * with the BTSecurityRegistry::Entry.
+         * </p>
+         *
+         * @param addressSub EUI48Sub address
+         * @param name optional name, maybe empty
+         * @param e Entry entry
+         */
+        typedef bool (*AddressSubNameEntryMatchFunc)(const EUI48Sub& addressSub, const std::string& name, const Entry& e);
+
+        /**
+         * Function for user defined std::string name BTSecurityRegistry::Entry matching criteria and algorithm.
+         * <p>
+         * Return {@code true} if the given {@code name} matches
+         * with the BTSecurityRegistry::Entry.
+         * </p>
+         *
+         * @param name
+         * @param e Entry entry
+         */
+        typedef bool (*NameEntryMatchFunc)(const std::string& name, const Entry& e);
+
+        /**
+         * Returns a matching BTSecurityRegistry::Entry with the given {@code addr} and/or {@code name}.
+         * <p>
+         * Matching criteria and algorithm is defined by the given AddressNameEntryMatchFunc.
+         * </p>
+         */
+        Entry* get(const EUI48& addr, const std::string& name, AddressNameEntryMatchFunc m);
+
+        /**
+         * Returns a matching BTSecurityRegistry::Entry with the given {@code addrSub} and/or {@code name}.
+         * <p>
+         * Matching criteria and algorithm is defined by the given AddressSubNameEntryMatchFunc.
+         * </p>
+         */
+        Entry* get(const EUI48Sub& addrSub, const std::string& name, AddressSubNameEntryMatchFunc m);
+
+        /**
+         * Returns a matching BTSecurityRegistry::Entry with the given {@code name}.
+         * <p>
+         * Matching criteria and algorithm is defined by the given NameEntryMatchFunc.
+         * </p>
+         */
+        Entry* get(const std::string& name, NameEntryMatchFunc m);
+
+        /**
+         * Returns a matching Entry,
+         * - which Entry::addrSub is set and the given {@code addr} starts with Entry::addrSub, or
+         * - which Entry::nameSub is set and the given {@code name} starts with Entry::nameSub.
+         *
+         * Otherwise {@code null} is returned.
+         */
+        Entry* getStartOf(const EUI48& addr, const std::string& name) {
+            return get(addr, name, [](const EUI48& a, const std::string& n, const Entry& e)->bool {
+               return ( e.addrSub.length > 0 && 0 == a.indexOf(e.addrSub) ) ||
+                      ( e.nameSub.length() > 0 && 0 == n.find(e.nameSub) );
+            });
+        }
+        /**
+         * Returns a matching Entry,
+         * - which Entry::addrSub is set and the given {@code addrSub} starts with Entry::addrSub, or
+         * - which Entry::nameSub is set and the given {@code name} starts with Entry::nameSub.
+         *
+         * Otherwise {@code null} is returned.
+         */
+        Entry* getStartOf(const EUI48Sub& addrSub, const std::string& name) {
+            return get(addrSub, name, [](const EUI48Sub& as, const std::string& n, const Entry& e)->bool {
+               return ( e.addrSub.length > 0 && 0 == as.indexOf(e.addrSub) ) ||
+                      ( e.nameSub.length() > 0 && 0 == n.find(e.nameSub) );
+            });
+        }
+        /**
+         * Returns a matching Entry,
+         * which Entry::nameSub is set and the given {@code name} starts with Entry::nameSub.
+         *
+         * Otherwise {@code null} is returned.
+         */
+        Entry* getStartOf(const std::string& name) {
+            return get(name, [](const std::string& n, const Entry& e)->bool {
+               return e.nameSub.length() > 0 && 0 == n.find(e.nameSub);
+            });
+        }
+
+        /**
+         * Returns a matching Entry,
+         * - which Entry::addrSub is set and the given {@code addrSub} starts with Entry::addrSub, or
+         * - which Entry::nameSub is set and the given {@code name} starts with Entry::nameSub.
+         *
+         * Otherwise {@code null} is returned.
+         */
+        Entry* getEqual(const EUI48Sub& addrSub, const std::string& name) {
+            return get(addrSub, name, [](const EUI48Sub& as, const std::string& n, const Entry& e)->bool {
+               return ( e.addrSub.length > 0 && as == e.addrSub ) ||
+                      ( e.nameSub.length() > 0 && n == e.nameSub );
+            });
+        }
+        /**
+         * Returns a matching Entry,
+         * which Entry::nameSub is set and the given {@code name} starts with Entry::nameSub.
+         *
+         * Otherwise {@code null} is returned.
+         */
+        Entry* getEqual(const std::string& name) {
+            return get(name, [](const std::string& n, const Entry& e)->bool {
+               return e.nameSub.length() > 0 && n == e.nameSub;
+            });
+        }
 
         /**
          * Returns the reference of the current list of Entry, not a copy.
          */
         jau::darray<Entry>& getEntries();
 
+        /**
+         * Determines whether the given {@code addrOrNameSub} is a EUI48Sub or just a {@code name}
+         * and retrieves an entry. If no entry exists, creates a new entry.
+         * <p>
+         * Implementation uses getEqual() to find a pre-existing entry.
+         * </p>
+         * @param addrOrNameSub either a EUI48Sub or just a name
+         * @return new or existing instance
+         */
         Entry* getOrCreate(const std::string& addrOrNameSub);
 
         /**

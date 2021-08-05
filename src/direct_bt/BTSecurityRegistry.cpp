@@ -33,51 +33,53 @@ namespace direct_bt::BTSecurityRegistry {
 
     static jau::darray<Entry> devicesSecDetails;
 
-    Entry* get(const EUI48& addr) {
+    Entry* get(const EUI48& addr, const std::string& name, AddressNameEntryMatchFunc m) {
         auto first = devicesSecDetails.begin();
         auto last = devicesSecDetails.end();
         for (; first != last; ++first) {
-            if ( first->matches(addr) ) {
+            if( m(addr, name, *first) ) {
                 return &(*first);
             }
         }
         return nullptr;
     }
-    Entry* get(const EUI48Sub& addrSub) {
+    Entry* get(const EUI48Sub& addrSub, const std::string& name, AddressSubNameEntryMatchFunc m) {
         auto first = devicesSecDetails.begin();
         auto last = devicesSecDetails.end();
         for (; first != last; ++first) {
-            if ( first->matches(addrSub) ) {
+            if( m(addrSub, name, *first) ) {
                 return &(*first);
             }
         }
         return nullptr;
     }
-    Entry* get(const std::string& nameSub) {
+    Entry* get(const std::string& name, NameEntryMatchFunc m) {
         auto first = devicesSecDetails.begin();
         auto last = devicesSecDetails.end();
         for (; first != last; ++first) {
-            if ( first->matches(nameSub) ) {
+            if( m(name, *first) ) {
                 return &(*first);
             }
         }
         return nullptr;
     }
+
     jau::darray<Entry>& getEntries() {
         return devicesSecDetails;
     }
+
     Entry* getOrCreate(const std::string& addrOrNameSub) {
         EUI48Sub addr1;
         std::string errmsg;
         Entry* sec = nullptr;
         if( EUI48Sub::scanEUI48Sub(addrOrNameSub, addr1, errmsg) ) {
-            sec = get(addr1);
+            sec = getEqual(addr1, "");
             if( nullptr == sec ) {
                 Entry& r = devicesSecDetails.emplace_back( addr1 );
                 sec = &r;
             }
         } else {
-            sec = get(addrOrNameSub);
+            sec = getEqual(addrOrNameSub);
             if( nullptr == sec ) {
                 Entry& r = devicesSecDetails.emplace_back( addrOrNameSub );
                 sec = &r;

@@ -173,7 +173,7 @@ public class DBTScanner10 {
             }
             if( !BTDeviceRegistry.isDeviceProcessing( device.getAddressAndType() ) &&
                 ( !BTDeviceRegistry.isWaitingForAnyDevice() ||
-                  ( BTDeviceRegistry.isWaitingForDevice(device.getAddressAndType(), device.getName()) &&
+                  ( BTDeviceRegistry.isWaitingForDevice(device.getAddressAndType().address, device.getName()) &&
                     ( 0 < MULTI_MEASUREMENTS.get() || !BTDeviceRegistry.isDeviceProcessed(device.getAddressAndType()) )
                   )
                 )
@@ -227,7 +227,7 @@ public class DBTScanner10 {
                     // next: PASSKEY_EXPECTED... or KEY_DISTRIBUTION
                     break;
                 case PASSKEY_EXPECTED: {
-                    final BTSecurityRegistry.Entry sec = BTSecurityRegistry.get(device.getAddressAndType().address);
+                    final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getStartOf(device.getAddressAndType().address, "");
                     if( null != sec && sec.getPairingPasskey() != BTSecurityRegistry.NO_PASSKEY ) {
                         executeOffThread( () -> { device.setPairingPasskey( sec.getPairingPasskey() ); }, "DBT-SetPasskey-"+device.getAddressAndType(), true /* detach */);
                     } else {
@@ -237,7 +237,7 @@ public class DBTScanner10 {
                     // next: KEY_DISTRIBUTION or FAILED
                   } break;
                 case NUMERIC_COMPARE_EXPECTED: {
-                    final BTSecurityRegistry.Entry sec = BTSecurityRegistry.get(device.getAddressAndType().address);
+                    final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getStartOf(device.getAddressAndType().address, "");
                     if( null != sec ) {
                         executeOffThread( () -> { device.setPairingNumericComparison( sec.getPairingNumericComparison() ); }, "DBT-SetNumericComp-"+device.getAddressAndType(), true /* detach */);
                     } else {
@@ -263,7 +263,7 @@ public class DBTScanner10 {
         public void deviceReady(final BTDevice device, final long timestamp) {
             if( !BTDeviceRegistry.isDeviceProcessing( device.getAddressAndType() ) &&
                 ( !BTDeviceRegistry.isWaitingForAnyDevice() ||
-                  ( BTDeviceRegistry.isWaitingForDevice(device.getAddressAndType(), device.getName()) &&
+                  ( BTDeviceRegistry.isWaitingForDevice(device.getAddressAndType().address, device.getName()) &&
                     ( 0 < MULTI_MEASUREMENTS.get() || !BTDeviceRegistry.isDeviceProcessed(device.getAddressAndType()) )
                   )
                 )
@@ -334,7 +334,7 @@ public class DBTScanner10 {
             BTUtils.println(System.err, "****** Connecting Device: stopDiscovery result "+r);
         }
 
-        final BTSecurityRegistry.Entry sec = BTSecurityRegistry.get(device.getAddressAndType().address);
+        final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getStartOf(device.getAddressAndType().address, device.getName());
         final BTSecurityLevel req_sec_level = null != sec ? sec.getSecLevel() : BTSecurityLevel.UNSET;
         HCIStatusCode res = SMPKeyBin.readAndApply(KEY_PATH, device, req_sec_level, true /* verbose */);
         BTUtils.fprintf_td(System.err, "****** Connecting Device: SMPKeyBin::readAndApply(..) result %s\n", res.toString());
