@@ -42,18 +42,39 @@ public class BTDeviceRegistry {
      * Specifies devices queries to act upon.
      */
     public static class DeviceQuery {
+        /**
+         * {@link DeviceQuery} type, i.e. {@link EUI48Sub} or a {@link String} name.
+         */
+        public static enum Type {
+            /** {@link DeviceQuery} type, using a sensor device {@link EUI48Sub}. */
+            EUI48SUB,
+            /** {@link DeviceQuery} type, using a sensor device {@link String} name. */
+            NAME
+        }
+
+        public final Type type;
         public final EUI48Sub addressSub;
         public final String nameSub;
-        public DeviceQuery(final EUI48Sub as, final String ns) {
+
+        public DeviceQuery(final EUI48Sub as) {
+            type = Type.EUI48SUB;
             addressSub = as;
+            nameSub = as.toString();
+        }
+        public DeviceQuery(final String ns) {
+            type = Type.NAME;
+            addressSub = EUI48Sub.ANY_DEVICE;
             nameSub = ns;
         }
+
+        public final boolean isEUI48Sub() { return Type.EUI48SUB == type; }
+
         @Override
         public String toString() {
-            if( addressSub.length>0 ) {
-                return addressSub.toString();
+            if( Type.EUI48SUB == type ) {
+                return "[a: "+addressSub.toString()+"]";
             } else {
-                return "'"+nameSub+"'";
+                return "[n: '"+nameSub+"']";
             }
         }
     };
@@ -113,10 +134,10 @@ public class BTDeviceRegistry {
         final EUI48Sub addr1 = new EUI48Sub();
         final StringBuilder errmsg = new StringBuilder();
         if( EUI48Sub.scanEUI48Sub(addrOrNameSub, addr1, errmsg) ) {
-            waitForDevices.add( new DeviceQuery( addr1, "" ) );
+            waitForDevices.add( new DeviceQuery( addr1 ) );
         } else {
             addr1.clear();
-            waitForDevices.add( new DeviceQuery( addr1, addrOrNameSub ) );
+            waitForDevices.add( new DeviceQuery( addrOrNameSub ) );
         }
     }
     public static boolean isWaitingForAnyDevice() {
@@ -178,8 +199,7 @@ public class BTDeviceRegistry {
          * Example (lambda):
          * <pre>
          *    (final EUI48 a, final String n, final DeviceQuery q) -> {
-         *     return ( q.addressSub.length>0 && a.contains(q.addressSub) ) ||
-         *            ( q.nameSub.length()>0 && n.indexOf(q.nameSub) >= 0 );
+         *     return q.isEUI48Sub() ? a.contains(q.addressSub) : n.indexOf(q.nameSub) >= 0;
          *     }
          * </pre>
          * </p>
@@ -223,8 +243,7 @@ public class BTDeviceRegistry {
     public static boolean isWaitingForDevice(final EUI48 address, final String name) {
         return isWaitingForDevice( address, name,
                                    (final EUI48 a, final String n, final DeviceQuery q) -> {
-                                    return ( q.addressSub.length>0 && a.contains(q.addressSub) ) ||
-                                           ( q.nameSub.length()>0 && n.indexOf(q.nameSub) >= 0 );
+                                    return q.isEUI48Sub() ? a.contains(q.addressSub) : n.indexOf(q.nameSub) >= 0;
                                  });
     }
 
@@ -267,8 +286,7 @@ public class BTDeviceRegistry {
      */
     public static boolean areAllDevicesProcessed() {
         return areAllDevicesProcessed( (final EUI48 a, final String n, final DeviceQuery q) -> {
-                                        return ( q.addressSub.length>0 && a.contains(q.addressSub) ) ||
-                                               ( q.nameSub.length()>0 && n.indexOf(q.nameSub) >= 0 );
+                                        return q.isEUI48Sub() ? a.contains(q.addressSub) : n.indexOf(q.nameSub) >= 0;
                                      });
     }
 

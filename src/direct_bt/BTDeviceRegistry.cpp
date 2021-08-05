@@ -47,10 +47,10 @@ namespace direct_bt::BTDeviceRegistry {
         EUI48Sub addr1;
         std::string errmsg;
         if( EUI48Sub::scanEUI48Sub(addrOrNameSub, addr1, errmsg) ) {
-            waitForDevices.emplace_back( addr1, "" );
+            waitForDevices.emplace_back( addr1 );
         } else {
             addr1.clear();
-            waitForDevices.emplace_back( addr1, addrOrNameSub );
+            waitForDevices.emplace_back( addrOrNameSub );
         }
     }
     bool isWaitingForAnyDevice() {
@@ -63,7 +63,7 @@ namespace direct_bt::BTDeviceRegistry {
         std::string res;
         jau::for_each(waitForDevices.cbegin(), waitForDevices.cend(), [&res](const DeviceQuery &q) {
             if( res.length() > 0 ) {
-                res.append( ",  " );
+                res.append( ", " );
             }
             res.append( q.toString() );
         });

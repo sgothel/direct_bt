@@ -42,15 +42,31 @@ namespace direct_bt {
          * Specifies devices queries to act upon.
          */
         struct DeviceQuery {
+            /**
+             * DeviceQuery type, i.e. EUI48Sub or a std::string  name.
+             */
+            enum class Type : int {
+                /** DeviceQuery type, using a sensor device EUI48Sub. */
+                EUI48SUB,
+                /** DeviceQuery type, using a sensor device std::string name. */
+                NAME
+            };
+
+            Type type;
             EUI48Sub addressSub;
             std::string nameSub;
-            DeviceQuery(const EUI48Sub& as, const std::string& ns) : addressSub(as), nameSub(ns) {}
-            DeviceQuery() : addressSub(), nameSub() {}
+
+            DeviceQuery(const EUI48Sub& as) : type(Type::EUI48SUB), addressSub(as), nameSub(as.toString()) {}
+
+            DeviceQuery(const std::string& ns) : type(Type::NAME), addressSub(EUI48Sub::ANY_DEVICE), nameSub(ns) {}
+
+            bool isEUI48Sub() const noexcept { return Type::EUI48SUB == type; }
+
             std::string toString() const {
-                if( addressSub.length>0 ) {
-                    return addressSub.toString();
+                if( Type::EUI48SUB == type ) {
+                    return "[a: "+addressSub.toString()+"]";
                 } else {
-                    return "'"+nameSub+"'";
+                    return "[n: '"+nameSub+"']";
                 }
             }
         };
@@ -136,8 +152,7 @@ namespace direct_bt {
          * Example (lambda):
          * <pre>
          *    [](const EUI48& a, const std::string& n, const DeviceQuery& q)->bool {
-         *       return ( q.addressSub.length>0 && a.contains(q.addressSub) ) ||
-         *              ( q.nameSub.length()>0 && n.find(q.nameSub) != std::string::npos );
+         *       return q.isEUI48Sub() ? a.contains(q.addressSub) : n.find(q.nameSub) != std::string::npos;
          *    });
          * </pre>
          * </p>
@@ -169,8 +184,7 @@ namespace direct_bt {
          */
         bool isWaitingForDevice(const EUI48 &address, const std::string &name) {
             return isWaitingForDevice(address, name, [](const EUI48& a, const std::string& n, const DeviceQuery& q)->bool {
-                return ( q.addressSub.length>0 && a.contains(q.addressSub) ) ||
-                       ( q.nameSub.length()>0 && n.find(q.nameSub) != std::string::npos );
+                return q.isEUI48Sub() ? a.contains(q.addressSub) : n.find(q.nameSub) != std::string::npos;
             });
         }
 
@@ -199,8 +213,7 @@ namespace direct_bt {
          */
         bool areAllDevicesProcessed() {
             return areAllDevicesProcessed( [](const EUI48& a, const std::string& n, const DeviceQuery& q)->bool {
-                                            return ( q.addressSub.length>0 && a.contains(q.addressSub) ) ||
-                                                   ( q.nameSub.length()>0 && n.find(q.nameSub) != std::string::npos );
+                                            return q.isEUI48Sub() ? a.contains(q.addressSub) : n.find(q.nameSub) != std::string::npos;
                                          });
         }
 
