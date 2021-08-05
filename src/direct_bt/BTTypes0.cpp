@@ -177,6 +177,8 @@ std::string EUI48Sub::toString() const noexcept {
                 str.push_back(':');
             }
         }
+    } else {
+        str.push_back(':');
     }
     return str;
 }

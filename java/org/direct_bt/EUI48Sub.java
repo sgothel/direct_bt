@@ -245,7 +245,7 @@ public class EUI48Sub {
      * <p>
      * Returns the EUI48 sub-string representation,
      * less or equal 17 characters representing less or equal 6 bytes as upper case hexadecimal numbers separated via colon,
-     * e.g. {@code "01:02:03:0A:0B:0C"}, {@code "01:02:03:0A"}, {@code ""}.
+     * e.g. {@code "01:02:03:0A:0B:0C"}, {@code "01:02:03:0A"}, {@code ":"}, {@code ""}.
      * </p>
      */
     @Override
@@ -263,7 +263,7 @@ public class EUI48Sub {
             }
             return sb.toString();
         } else {
-            return new String();
+            return new String(":");
         }
     }
 }
