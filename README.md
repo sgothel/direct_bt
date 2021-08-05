@@ -347,8 +347,9 @@ Changes
 
 * TODO
 
-**2.2.9**
+**2.2.10**
 
+* Make `BTDeviceRegistry` and `BTSecurityRegistry` universal
 * Move `BTDeviceRegistry` and `BTSecurityRegistry` to `direct_bt` library (from examples)
 * EUI48Sub: Complement with `hash_code()`, `clear()`, `indexOf()`, `contains()`, ...
 * SMPKeyBin: Tighten constraints, `readAndApply(..)` must validate `minSecLevel`.
