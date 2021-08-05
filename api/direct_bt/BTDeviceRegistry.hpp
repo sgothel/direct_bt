@@ -56,7 +56,7 @@ namespace direct_bt {
             EUI48Sub addressSub;
             std::string nameSub;
 
-            DeviceQuery(const EUI48Sub& as) : type(Type::EUI48SUB), addressSub(as), nameSub(as.toString()) {}
+            DeviceQuery(const EUI48Sub& as) : type(Type::EUI48SUB), addressSub(as), nameSub() {}
 
             DeviceQuery(const std::string& ns) : type(Type::NAME), addressSub(EUI48Sub::ANY_DEVICE), nameSub(ns) {}
 

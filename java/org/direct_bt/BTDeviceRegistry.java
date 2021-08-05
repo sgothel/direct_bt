@@ -59,7 +59,7 @@ public class BTDeviceRegistry {
         public DeviceQuery(final EUI48Sub as) {
             type = Type.EUI48SUB;
             addressSub = as;
-            nameSub = as.toString();
+            nameSub = new String();
         }
         public DeviceQuery(final String ns) {
             type = Type.NAME;
