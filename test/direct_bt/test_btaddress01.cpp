@@ -24,13 +24,17 @@ static void test_sub(const std::string& mac_str, const jau::darray<std::string>&
     jau::for_each_const(mac_sub_strs, [&i, &mac, &indices](const std::string &mac_sub_str) {
         const EUI48Sub mac_sub(mac_sub_str);
         printf("EUI48Sub mac02_sub: '%s' -> '%s'\n", mac_sub_str.c_str(), mac_sub.toString().c_str());
-        // cut-off pre- and post-colon in test string
-        std::string sub_str = mac_sub_str;
-        if( sub_str.size() > 0 && sub_str[0] == ':' ) {
-            sub_str = sub_str.substr(1, sub_str.size());
-        }
-        if( sub_str.size() > 0 && sub_str[sub_str.size()-1] == ':' ) {
-            sub_str = sub_str.substr(0, sub_str.size()-1);
+        // cut-off pre- and post-colon in test string, but leave single colon
+        std::string sub_str(mac_sub_str);
+        if( sub_str.size() == 0 ) {
+            sub_str = ":";
+        } else if( sub_str != ":" )  {
+            if( sub_str.size() > 0 && sub_str[0] == ':' ) {
+                sub_str = sub_str.substr(1, sub_str.size());
+            }
+            if( sub_str.size() > 0 && sub_str[sub_str.size()-1] == ':' ) {
+                sub_str = sub_str.substr(0, sub_str.size()-1);
+            }
         }
         REQUIRE(sub_str == mac_sub.toString());
 

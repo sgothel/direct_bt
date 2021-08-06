@@ -75,13 +75,17 @@ public class TestEUI48 extends JunitTracer {
             final String mac_sub_str = iter.next();
             final EUI48Sub mac_sub = new EUI48Sub(mac_sub_str);
             System.out.printf("EUI48Sub mac02_sub: '%s' -> '%s'\n", mac_sub_str, mac_sub.toString());
-            // cut-off pre- and post-colon in test string
-            String sub_str = mac_sub_str;
-            if( sub_str.length() > 0 && sub_str.charAt(0) == ':' ) {
-                sub_str = sub_str.substring(1, sub_str.length());
-            }
-            if( sub_str.length() > 0 && sub_str.charAt(sub_str.length()-1) == ':' ) {
-                sub_str = sub_str.substring(0, sub_str.length()-1);
+            // cut-off pre- and post-colon in test string, but leave single colon
+            String sub_str = new String(mac_sub_str);
+            if( sub_str.isEmpty() ) {
+                sub_str = ":";
+            } else if( !sub_str.equals(":") )  {
+                if( sub_str.length() > 0 && sub_str.charAt(0) == ':' ) {
+                    sub_str = sub_str.substring(1, sub_str.length());
+                }
+                if( sub_str.length() > 0 && sub_str.charAt(sub_str.length()-1) == ':' ) {
+                    sub_str = sub_str.substring(0, sub_str.length()-1);
+                }
             }
             Assert.assertEquals(sub_str, mac_sub.toString());
 
