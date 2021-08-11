@@ -1,18 +1,14 @@
-Direct-BT LE and BREDR Library
-==============================
+# Direct-BT LE and BREDR Library
 
-Git Repository
-==============
+## Git Repository
 This project's canonical repositories is hosted on [Gothel Software](https://jausoft.com/cgit/direct_bt.git/).
 
-Goals
-============
+## Goals
 This project aims to create a clean, modern and easy to use API for [Bluetooth LE and BREDR](https://www.bluetooth.com/specifications/bluetooth-core-specification/), 
 fully accessible through C++, Java and other languages.
 
 
-Version 2
-==========
+## Version 2
 Starting with version 2.1.0, the *TinyB* Java API has been refactored
 to support all new features of its new *Direct-BT* implementation.
 
@@ -24,8 +20,7 @@ e.g. *BluetoothManager* to *BTManager*, *BluetoothGattCharacteristic* to *BTGatt
 As of today, the Java API comprises two implementations, *Direct-BT* (complete) and *TinyB* (incomplete).
 
 
-Direct-BT
-----------
+## Direct-BT
 *Direct-BT* provides direct [Bluetooth LE and BREDR](https://www.bluetooth.com/specifications/bluetooth-core-specification/) programming,
 offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
 
@@ -70,7 +65,7 @@ To support other platforms than Linux/BlueZ, we will have to
 * add specialization for each new platform using their non-platform-agnostic features.
 
 
-**Direct-BT System Preparations**
+### Direct-BT System Preparations
 
 Since *Direct-BT* is not using a 3rd party Bluetooth client library or daemon/service,
 they should be disabled to allow operation without any interference.
@@ -83,10 +78,10 @@ systemctl disable bluetooth
 systemctl mask bluetooth
 ```
 
-**Direct-BT Non-Root Usage**
+### Required Permissions for Direct-BT Applications
 
 Since *Direct-BT* requires root permissions to certain Bluetooth network device facilities,
-non-root users requires to be granted such permissions.
+non-root user require to be granted such permissions.
 
 For GNU/Linux, there permissions are called [capabilities](https://linux.die.net/man/7/capabilities).
 The following capabilites are required 
@@ -94,17 +89,37 @@ The following capabilites are required
 - *CAP_NET_RAW* (Raw HCI access)
 - *CAP_NET_ADMIN* (Additional raw HCI access plus (re-)setting the adapter etc)
 
-Either root gives the application to the binary file itself via [setcap](https://linux.die.net/man/8/setcap)
+On Debian 11 we can use package `libcap2-bin`, version `1:2.44-1`, 
+which provides the binaries `/sbin/setcap` and `/sbin/getcap`.
+It depends on package `libcap2`, version `>= 1:2.33`.
+If using earlier `setcap` binaries, *your mileage may vary (YMMV)*.
+
+#### Launch as `root`
+In case your platform lacks support for mentioned `setcap`,
+you may need to execute your application as root using `sudo`, e.g.:
 
 ```
-setcap -v 'cap_net_raw,cap_net_admin+eip' dist-amd64/bin/dbt_scanner10
+LD_LIBRARY_PATH=`pwd`/dist-amd64/lib sudo dist-amd64/bin/dbt_scanner10
 ```
 
-or via [capsh](https://linux.die.net/man/1/capsh) to start the program
+#### Launch as `user` using `setcap`
+
+To launch your Direct-BT application as a user, 
+you may set the required `capabilities` before launch via [setcap](https://linux.die.net/man/8/setcap)
+
+```
+sudo setcap 'cap_net_raw,cap_net_admin+eip' dist-amd64/bin/dbt_scanner10
+LD_LIBRARY_PATH=`pwd`/dist-amd64/lib dist-amd64/bin/dbt_scanner10
+```
+
+#### Launch as `user` via `capsh`
+
+Alternatively one can set the required `capabilities` of a Direct-BT application 
+and launch it as a user via [capsh](https://linux.die.net/man/1/capsh).
 
 ```
 sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
-   --keep=1 --user=nobody --addamb=cap_net_raw,cap_net_admin+eip \
+   --keep=1 --user=$USER --addamb=cap_net_raw,cap_net_admin+eip \
    -- -c "YOUR FANCY direct_bt STUFF"
 ```
 
@@ -112,7 +127,9 @@ Notable here is that *capsh* needs to be invoked by root to hand over the capabi
 and to pass over the *cap_net_raw,cap_net_admin+eip* via *--addamb=...*
 it also needs *cap_setpcap,cap_setuid,cap_setgid+ep* beforehand.
 
-The *capsh* method is now being utilized in
+#### Examples
+
+The *capsh* method (default), *setcap* and *root* method is being utilized in
 
 - [scripts/run-dbt_scanner10.sh](https://jausoft.com/cgit/direct_bt.git/tree/scripts/run-dbt_scanner10.sh)
 - [scripts/run-java-scanner10.sh](https://jausoft.com/cgit/direct_bt.git/tree/scripts/run-java-scanner10.sh)
@@ -120,7 +137,7 @@ The *capsh* method is now being utilized in
 See *Examples* below ...
 
 
-**Direct-BT Sponsorship**
+### Sponsorship
 
 *Direct-BT* is the new implementation as provided by [Zafena ICT](https://ict.zafena.se) and [Gothel Software](https://jausoft.com/).
 
@@ -128,8 +145,7 @@ If you like to utilize *Direct-BT* in a commercial setting,
 please contact us to setup a potential support contract.
 
 
-TinyB
------
+## TinyB
 *TinyB* exposes the BLE GATT API for C++, Java and other languages, using *BlueZ* over DBus.
 
 *TinyB* does not expose the BREDR API.
@@ -144,8 +160,7 @@ TinyB
 nor SMP Secure Connections.
 
 
-TinyB and Direct-BT
--------------------
+## TinyB and Direct-BT
 Pre version 2.0.0 D-Bus implementation details of the Java[tm] classes
 of package *tinyb* has been moved to *tinyb.dbus*.
 The *tinyb.jar* jar file has been renamed to *direct_bt.jar*, avoiding conflicts.
@@ -169,9 +184,7 @@ e.g. *BluetoothManager* to *BTManager*, *BluetoothGattCharacteristic* to *BTGatt
 *since 2.x* version tags have been added to the Java interface specification for clarity.
 
 
-API Documentation
-============
-
+## API Documentation
 Up to date API documentation can be found:
 
 * [API Overview](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details) (C++)
@@ -186,9 +199,7 @@ and the [same in the Java API](https://jausoft.com/projects/direct_bt/build/docu
 A guide for getting started with *Direct-BT* on C++ and Java may follow up.
 
 
-Examples
-============
-
+## Examples
 *Direct-BT* [C++ examples](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/examples.html)
 are available, [dbt_scanner10.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_scanner10_8cpp-example.html)
 demonstrates the event driven and multithreading workflow.
@@ -205,9 +216,7 @@ from which it reads the ambient temperature. You have to pass the MAC address
 of the Sensor Tag as a first parameter to the program.
 
 
-Supported Platforms
-===================
-
+## Supported Platforms
 The following **platforms** are tested and hence supported
 
 **Debian 10 Buster (GNU/Linux)**
@@ -229,15 +238,11 @@ The following **Bluetooth Adapter** were tested
 * Raspberry Pi Bluetooth Adapter (BCM43455 on 3+, 4)
 
 
-Build Status
-============
-
+## Build Status
 *Will be updated*
 
 
-Building Binaries
-=========================
-
+## Building Binaries
 The project requires CMake 3.13+ for building and a Java JDK >= 11.
 
 This project also uses the [Jau Library](https://jausoft.com/cgit/jaulib.git/about/)
@@ -256,6 +261,7 @@ systemctl restart bluetooth.
 nor shall the *BlueZ* userspace service *bluetoothd* be active for best experience.
 
 To disable the *bluetoothd* service using systemd:
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 systemctl stop bluetooth
 systemctl disable bluetooth
@@ -263,6 +269,7 @@ systemctl mask bluetooth
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Installing build dependencies on Debian (10 or 11):
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 apt install git
 apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev 
@@ -274,6 +281,7 @@ apt install doxygen graphviz
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For a generic build use:
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 CPU_COUNT=`getconf _NPROCESSORS_ONLN`
 git clone --recurse-submodules https://jausoft.com/cgit/direct_bt.git
@@ -292,57 +300,75 @@ Our cmake configure has a number of options, *cmake-gui* or *ccmake* can show
 you all the options. The interesting ones are detailed below:
 
 Changing install path from /usr/local to /usr
+
 ~~~~~~~~~~~~~
 -DCMAKE_INSTALL_PREFIX=/usr
 ~~~~~~~~~~~~~
+
 Building debug build:
+
 ~~~~~~~~~~~~~
 -DDEBUG=ON
 ~~~~~~~~~~~~~
+
 Disable stripping native lib even in non debug build:
+
 ~~~~~~~~~~~~~
 -DUSE_STRIP=OFF
 ~~~~~~~~~~~~~
+
 Override default javac debug arguments `source,lines`:
+
 ~~~~~~~~~~~~~
 -DJAVAC_DEBUG_ARGS="source,lines,vars"
 
 -DJAVAC_DEBUG_ARGS="none"
 ~~~~~~~~~~~~~
+
 Building debug and instrumentation (sanitizer) build:
+
 ~~~~~~~~~~~~~
 -DDEBUG=ON -DINSTRUMENTATION=ON
 ~~~~~~~~~~~~~
+
 Using clang instead of gcc:
+
 ~~~~~~~~~~~~~
 -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++
 ~~~~~~~~~~~~~
+
 Cross-compiling on a different system:
+
 ~~~~~~~~~~~~~
 -DCMAKE_CXX_FLAGS:STRING=-m32 -march=i586
 -DCMAKE_C_FLAGS:STRING=-m32 -march=i586
 ~~~~~~~~~~~~~
+
 To build Java bindings:
+
 ~~~~~~~~~~~~~
 -DBUILDJAVA=ON
 ~~~~~~~~~~~~~
+
 To not build the *TinyB* implementation:
+
 ~~~~~~~~~~~~~
 -DSKIP_TINYB=ON
 ~~~~~~~~~~~~~
+
 To build examples:
+
 ~~~~~~~~~~~~~
 -DBUILDEXAMPLES=ON
 ~~~~~~~~~~~~~
+
 To build documentation run: 
+
 ~~~~~~~~~~~~~
 make doc
 ~~~~~~~~~~~~~
 
-
-Changes
-============
-
+## Changes
 **2.3.0 *Direct-BT* Maturity (Bluetooth LE)**
 
 * TODO
@@ -427,18 +453,14 @@ were created in package *org.tinyb*.
 
 * Added asynchronous methods for discovering BluetoothObjects
 
-Common issues
-============
-
+## Common issues
 If you have any issues, please go through the [Troubleshooting Guide](TROUBLESHOOTING.md). 
 
 If the solution is not there, please search for an existing issue in our [Bugzilla DB](https://jausoft.com/bugzilla/describecomponents.cgi?product=Direct-BT),
 please [contact us](https://jausoft.com/) for a new bugzilla account via email to Sven Gothel <sgothel@jausoft.com>.
 
 
-Contributing to TinyB / Direct-BT
-===================================
-
+## Contributing to TinyB / Direct-BT
 You shall agree to Developer Certificate of Origin and Sign-off your code,
 using a real name and e-mail address. 
 

@@ -1,31 +1,27 @@
-#!/bin/sh
+#!/bin/bash
 
+# Script arguments in order:
+#
+# [-setcap]         Optional 1st argument to use setcap, see below
+# [-root]           Optional 1st argument to use sudo, see below
+# [-log <filename>] Optional argument to define logfile
+# ...               All subsequent arguments are passed to the Direct-BT example
+#
+# See ../scripts/run-dbt_scanner10.sh for details
+#
 # JAVA_PROPS="-Dorg.direct_bt.debug=true -Dorg.direct_bt.verbose=true"
-
+#
 # export direct_bt_debug=true
-# export direct_bt_debug=adapter.event=false,gatt.data=false,hci.event=false,mgmt.event=false
-# export direct_bt_debug=adapter.event,gatt.data,hci.event,mgmt.event
+# export direct_bt_debug=adapter.event=false,gatt.data=false,hci.event=true,hci.scan_ad_eir=true,mgmt.event=false
+# export direct_bt_debug=adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event
+# export direct_bt_debug=adapter.event,gatt.data
 # export direct_bt_debug=adapter.event,hci.event
 # export direct_bt_debug=adapter.event
 #
-# ../scripts/run-java-scanner10.sh -wait -mac C0:26:DA:01:DA:B1 2>&1 | tee ~/scanner-h01-java10.log
-# ../scripts/run-java-scanner10.sh -wait -wl C0:26:DA:01:DA:B1 2>&1 | tee ~/scanner-h01-java10.log
-# ../scripts/run-java-scanner10.sh -wait 2>&1 | tee ~/scanner-h01-java10.log
+# See ../scripts/run-dbt_scanner10.sh for commandline invocation and non-root usage
 #
-# To do a BT adapter removal/add via software, assuming the device is '1-4' (Bus 1.Port 4):
-#   echo '1-4' > /sys/bus/usb/drivers/usb/unbind 
-#   echo '1-4' > /sys/bus/usb/drivers/usb/bind 
-#
-# Non root (we use the capsh solution here):
-#
-#   setcap -v 'cap_net_raw,cap_net_admin+eip' bin/dbt_scanner10
-#   setcap -v 'cap_net_raw,cap_net_admin+eip' /usr/bin/strace
-#   setcap 'cap_sys_ptrace+eip' /usr/bin/gdb
-#
-#   sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
-#      --keep=1 --user=nobody --addamb=cap_net_raw,cap_net_admin+eip \
-#      -- -c "YOUR FANCY direct_bt STUFF"
-#
+
+script_args="$*"
 
 username=${USER}
 
@@ -36,6 +32,16 @@ bname=`basename $0 .sh`
 if [ ! -e lib/java/direct_bt.jar -o ! -e bin/java/DBTScanner10.jar -o ! -e lib/libdirect_bt.so ] ; then
     echo run from dist directory
     exit 1
+fi
+
+run_setcap=0
+run_root=0
+if [ "$1" = "-setcap" ] ; then
+    run_setcap=1
+    shift 1
+elif [ "$1" = "-root" ] ; then
+    run_root=1
+    shift 1
 fi
 
 if [ "$1" = "-log" ] ; then
@@ -62,18 +68,47 @@ export LC_MEASUREMENT=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 
-# JAVA_CMD="java -Xcheck:jni -verbose:jni"
-JAVA_CMD="java"
+JAVA_EXE=`readlink -f $(which java)`
+# JAVA_CMD="${JAVA_EXE} -Xcheck:jni -verbose:jni"
+JAVA_CMD="${JAVA_EXE}"
 
-# VALGRIND="valgrind --tool=memcheck --leak-check=full --show-reachable=yes --error-limit=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
-# VALGRIND="valgrind --tool=helgrind --track-lockorders=yes  --ignore-thread-creation=yes --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
-# VALGRIND="valgrind --tool=drd --segment-merging=no --ignore-thread-creation=yes --trace-barrier=no --trace-cond=no --trace-fork-join=no --trace-mutex=no --trace-rwlock=no --trace-semaphore=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
-# VALGRIND="valgrind --tool=callgrind --instr-atstart=yes --collect-atstart=yes --collect-systime=yes --combine-dumps=yes --separate-threads=no --callgrind-out-file=$callgrindoutfile --log-file=$valgrindlogfile"
+# EXE_WRAPPER="valgrind --tool=memcheck --leak-check=full --show-reachable=yes --error-limit=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
+# EXE_WRAPPER="valgrind --tool=helgrind --track-lockorders=yes  --ignore-thread-creation=yes --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
+# EXE_WRAPPER="valgrind --tool=drd --segment-merging=no --ignore-thread-creation=yes --trace-barrier=no --trace-cond=no --trace-fork-join=no --trace-mutex=no --trace-rwlock=no --trace-semaphore=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
+# EXE_WRAPPER="valgrind --tool=callgrind --instr-atstart=yes --collect-atstart=yes --collect-systime=yes --combine-dumps=yes --separate-threads=no --callgrind-out-file=$callgrindoutfile --log-file=$valgrindlogfile"
+
+runit_root() {
+    echo "sudo ... "
+    ulimit -c unlimited
+    sudo $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
+    exit $?
+}
+
+runit_setcap() {
+    echo "sudo setcap 'cap_net_raw,cap_net_admin+eip' ${JAVA_EXE}"
+    trap 'sudo setcap -q -r '"${JAVA_EXE}"'' EXIT INT HUP QUIT TERM ALRM USR1
+    sudo setcap 'cap_net_raw,cap_net_admin+eip' ${JAVA_EXE}
+    sudo getcap ${JAVA_EXE}
+    ulimit -c unlimited
+    $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
+    exit $?
+}
+
+runit_capsh() {
+    echo "sudo capsh ... "
+    sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
+        --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
+        -- -c "ulimit -c unlimited; $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*"
+    exit $?
+}
 
 runit() {
+    echo "script invocation: $0 ${script_args}"
     echo username $username
-    echo COMMANDLINE $0 $*
-    echo VALGRIND $VALGRIND
+    echo run_setcap ${run_setcap}
+    echo run_root ${run_root}
+    echo DBTScanner10 commandline $*
+    echo EXE_WRAPPER $EXE_WRAPPER
     echo logbasename $logbasename
     echo logfile $logfile
     echo valgrindlogfile $valgrindlogfile
@@ -81,15 +116,17 @@ runit() {
     echo direct_bt_debug $direct_bt_debug
     echo direct_bt_verbose $direct_bt_verbose
 
-    echo $VALGRIND $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
-    # $VALGRIND $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
-
+    echo $EXE_WRAPPER $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
+    # $EXE_WRAPPER $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*
     mkdir -p keys
 
-    sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
-        --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
-        -- -c "ulimit -c unlimited; $VALGRIND $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/DBTScanner10.jar -Djava.library.path=`pwd`/lib DBTScanner10 $*"
-
+    if [ "${run_setcap}" -eq "1" ]; then
+        runit_setcap $*
+    elif [ "${run_root}" -eq "1" ]; then
+        runit_root $*
+    else
+        runit_capsh $*
+    fi
 }
 
 runit $* 2>&1 | tee $logfile

@@ -1,5 +1,12 @@
-#!/bin/sh
+#!/bin/bash
 
+# Script arguments in order:
+#
+# [-setcap]         Optional 1st argument to use setcap, see below
+# [-root]           Optional 1st argument to use sudo, see below
+# [-log <filename>] Optional argument to define logfile
+# ...               All subsequent arguments are passed to the Direct-BT example
+#
 # export direct_bt_debug=true
 # export direct_bt_debug=adapter.event=false,gatt.data=false,hci.event=true,hci.scan_ad_eir=true,mgmt.event=false
 # export direct_bt_debug=adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event
@@ -34,16 +41,28 @@
 #   echo '1-4' > /sys/bus/usb/drivers/usb/unbind 
 #   echo '1-4' > /sys/bus/usb/drivers/usb/bind 
 #
-# Non root (we use the capsh solution here):
+# Non root (we use the capsh solution per default):
+#   Debian 11: Package libcap2-bin, version 1:2.44-1, binaries: /sbin/setcap /sbin/getcap
+#   Depends: libc6 (>= 2.14), libcap2 (>= 1:2.33)
 #
-#   setcap -v 'cap_net_raw,cap_net_admin+eip' bin/dbt_scanner10
-#   setcap -v 'cap_net_raw,cap_net_admin+eip' /usr/bin/strace
-#   setcap 'cap_sys_ptrace+eip' /usr/bin/gdb
+#   Using setcap (pass '-setcap' as 1st script argument):
+#     sudo setcap 'cap_net_raw,cap_net_admin+eip' bin/dbt_scanner10
+#     sudo getcap bin/dbt_scanner10
 #
-#   sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
-#      --keep=1 --user=nobody --addamb=cap_net_raw,cap_net_admin+eip \
-#      -- -c "YOUR FANCY direct_bt STUFF"
+#   For debugging (must be explitly done):
+#     sudo setcap 'cap_net_raw,cap_net_admin+eip' /usr/bin/strace
+#     sudo setcap 'cap_sys_ptrace+eip' /usr/bin/gdb
 #
+#   Using capsh (default): 
+#     sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
+#        --keep=1 --user=nobody --addamb=cap_net_raw,cap_net_admin+eip \
+#        -- -c "YOUR FANCY direct_bt STUFF"
+#
+# Root execution in case setcap/capsh fails (pass '-root' as 1st script argument):
+#     sudo YOUR FANCY direct_bt STUFF
+#
+
+script_args="$*"
 
 username=${USER}
 
@@ -54,6 +73,16 @@ bname=`basename $0 .sh`
 if [ ! -e bin/dbt_scanner00 -o ! -e lib/libdirect_bt.so ] ; then
     echo run from dist directory
     exit 1
+fi
+
+run_setcap=0
+run_root=0
+if [ "$1" = "-setcap" ] ; then
+    run_setcap=1
+    shift 1
+elif [ "$1" = "-root" ] ; then
+    run_root=1
+    shift 1
 fi
 
 if [ "$1" = "-log" ] ; then
@@ -86,9 +115,38 @@ export LANG=en_US.UTF-8
 # export EXE_WRAPPER="valgrind --tool=drd --segment-merging=no --ignore-thread-creation=yes --trace-barrier=no --trace-cond=no --trace-fork-join=no --trace-mutex=no --trace-rwlock=no --trace-semaphore=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
 # export EXE_WRAPPER="valgrind --tool=callgrind --instr-atstart=yes --collect-atstart=yes --collect-systime=yes --combine-dumps=yes --separate-threads=no --callgrind-out-file=$callgrindoutfile --log-file=$valgrindlogfile"
 
+runit_root() {
+    echo "sudo ... "
+    ulimit -c unlimited
+    LD_LIBRARY_PATH=`pwd`/lib sudo $EXE_WRAPPER bin/dbt_scanner10 $*
+    exit $?
+}
+
+runit_setcap() {
+    exe_file=$(readlink -f bin/dbt_scanner10)
+    echo "sudo setcap 'cap_net_raw,cap_net_admin+eip' ${exe_file}"
+    trap 'sudo setcap -q -r '"${exe_file}"'' EXIT INT HUP QUIT TERM ALRM USR1
+    sudo setcap 'cap_net_raw,cap_net_admin+eip' ${exe_file}
+    sudo getcap ${exe_file}
+    ulimit -c unlimited
+    LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER ${exe_file} $*
+    exit $?
+}
+
+runit_capsh() {
+    echo "sudo capsh ... "
+    sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
+        --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
+        -- -c "ulimit -c unlimited; LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/dbt_scanner10 $*"
+    exit $?
+}
+
 runit() {
+    echo "script invocation: $0 ${script_args}"
     echo username $username
-    echo COMMANDLINE $0 $*
+    echo run_setcap ${run_setcap}
+    echo run_root ${run_root}
+    echo dbt_scanner10 commandline $*
     echo EXE_WRAPPER $EXE_WRAPPER
     echo logbasename $logbasename
     echo logfile $logfile
@@ -100,12 +158,15 @@ runit() {
     echo LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/dbt_scanner10 $*
 
     #LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/dbt_scanner10 $*
-
     mkdir -p keys
 
-    sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
-        --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
-        -- -c "ulimit -c unlimited; LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/dbt_scanner10 $*"
+    if [ "${run_setcap}" -eq "1" ]; then
+        runit_setcap $*
+    elif [ "${run_root}" -eq "1" ]; then
+        runit_root $*
+    else
+        runit_capsh $*
+    fi
 }
 
 runit $* 2>&1 | tee $logfile
