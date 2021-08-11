@@ -1,5 +1,6 @@
 build*/
 dist*/
+issues/
 
 # Object files
 *.o
