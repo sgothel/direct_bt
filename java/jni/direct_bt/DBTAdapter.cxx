@@ -351,6 +351,33 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
 
+  private:
+
+    jobject newJavaBTDevice(JNIEnv *env, std::shared_ptr<BTDevice> device, const uint64_t timestamp) {
+        // DBTDevice(final long nativeInstance, final DBTAdapter adptr, final byte byteAddress[/*6*/], final byte byteAddressType,
+        //           final long ts_creation, final String name)
+        const EUI48 addr = device->getAddressAndType().address;
+        jbyteArray jaddr = env->NewByteArray(sizeof(addr));
+        env->SetByteArrayRegion(jaddr, 0, sizeof(addr), (const jbyte*)(addr.b));
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        const jstring name = jau::from_string_to_jstring(env, device->getName());
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        jobject tmp_jdevice = env->NewObject(deviceClazzRef.getClass(), deviceClazzCtor,
+                (jlong)device.get(), jau::JavaGlobalObj::GetObject(adapterObjRef),
+                jaddr, device->getAddressAndType().type, (jlong)timestamp, name);
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        JNIGlobalRef::check(tmp_jdevice, E_FILE_LINE);
+        std::shared_ptr<jau::JavaAnon> jDeviceRef1 = device->getJavaObject();
+        jau::JavaGlobalObj::check(jDeviceRef1, E_FILE_LINE);
+        jobject jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef1);
+        env->DeleteLocalRef(jaddr);
+        env->DeleteLocalRef(name);
+        env->DeleteLocalRef(tmp_jdevice);
+        return jdevice;
+    }
+
+  public:
+
     bool deviceFound(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         jobject jdevice;
@@ -359,25 +386,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             // Reuse Java instance
             jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef0);
         } else {
-            // New Java instance
-            // Device(final long nativeInstance, final Adapter adptr, final String address, final int intAddressType, final String name)
-            const EUI48 addr = device->getAddressAndType().address;
-            jbyteArray jaddr = env->NewByteArray(sizeof(addr));
-            env->SetByteArrayRegion(jaddr, 0, sizeof(addr), (const jbyte*)(addr.b));
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
-            const jstring name = jau::from_string_to_jstring(env, device->getName());
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
-            jobject tmp_jdevice = env->NewObject(deviceClazzRef.getClass(), deviceClazzCtor,
-                    (jlong)device.get(), jau::JavaGlobalObj::GetObject(adapterObjRef),
-                    jaddr, device->getAddressAndType().type, (jlong)timestamp, name);
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
-            JNIGlobalRef::check(tmp_jdevice, E_FILE_LINE);
-            std::shared_ptr<jau::JavaAnon> jDeviceRef1 = device->getJavaObject();
-            jau::JavaGlobalObj::check(jDeviceRef1, E_FILE_LINE);
-            jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef1);
-            env->DeleteLocalRef(jaddr);
-            env->DeleteLocalRef(name);
-            env->DeleteLocalRef(tmp_jdevice);
+            jdevice = newJavaBTDevice(env, device, timestamp);
         }
         env->SetLongField(jdevice, deviceClazzTSLastDiscoveryField, (jlong)device->getLastDiscoveryTimestamp());
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
@@ -413,25 +422,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             // Reuse Java instance
             jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef0);
         } else {
-            // New Java instance
-            // Device(final long nativeInstance, final Adapter adptr, final String address, final int intAddressType, final String name)
-            const EUI48 addr = device->getAddressAndType().address;
-            jbyteArray jaddr = env->NewByteArray(sizeof(addr));
-            env->SetByteArrayRegion(jaddr, 0, sizeof(addr), (const jbyte*)(addr.b));
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
-            const jstring name = jau::from_string_to_jstring(env, device->getName());
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
-            jobject tmp_jdevice = env->NewObject(deviceClazzRef.getClass(), deviceClazzCtor,
-                    (jlong)device.get(), jau::JavaGlobalObj::GetObject(adapterObjRef),
-                    jaddr, device->getAddressAndType().type, name, (jlong)timestamp);
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
-            JNIGlobalRef::check(tmp_jdevice, E_FILE_LINE);
-            std::shared_ptr<jau::JavaAnon> jDeviceRef1 = device->getJavaObject();
-            jau::JavaGlobalObj::check(jDeviceRef1, E_FILE_LINE);
-            jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef1);
-            env->DeleteLocalRef(jaddr);
-            env->DeleteLocalRef(name);
-            env->DeleteLocalRef(tmp_jdevice);
+            jdevice = newJavaBTDevice(env, device, timestamp);
         }
         env->SetShortField(jdevice, deviceClazzConnectionHandleField, (jshort)handle);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
