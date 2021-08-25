@@ -51,6 +51,21 @@ static void test_sub(const std::string& mac_str, const jau::darray<std::string>&
     (void) indices;
 }
 
+static void test_sub(const std::string& mac_sub_str_exp, const std::string& mac_sub_str, const bool expected_result) {
+    std::string errmsg;
+    EUI48Sub mac_sub;
+    const bool res = EUI48Sub::scanEUI48Sub(mac_sub_str, mac_sub, errmsg);
+    if( res ) {
+        printf("EUI48Sub mac_sub: '%s' -> '%s'\n", mac_sub_str.c_str(), mac_sub.toString().c_str());
+        if( expected_result ) {
+            REQUIRE(mac_sub_str_exp == mac_sub.toString());
+        }
+    } else {
+        printf("EUI48Sub mac_sub: '%s' -> Error '%s'\n", mac_sub_str.c_str(), errmsg.c_str());
+    }
+    REQUIRE( expected_result == res );
+}
+
 TEST_CASE( "EUI48 Test 01", "[datatype][eui48]" ) {
     EUI48 mac01;
     INFO_STR("EUI48 size: whole0 "+std::to_string(sizeof(EUI48)));
@@ -73,5 +88,14 @@ TEST_CASE( "EUI48 Test 01", "[datatype][eui48]" ) {
         const jau::darray<std::string> mac03_sub_strs = { "01", "01:02", ":03:04", "03:04", ":04:05:", "04:05:", "04", "05:06", "06", ":", "", "06:05", mac03_str};
         const jau::darray<jau::snsize_t> mac03_sub_idxs = {  5,       4,        2,       2,         1,        1,    2,       0,    0,   0,  0,      -1,         0};
         test_sub(mac03_str, mac03_sub_strs, mac03_sub_idxs);
+    }
+    {
+        const std::string mac_sub_str = "C0:10:22:A0:10:00";
+        test_sub(mac_sub_str, mac_sub_str, true /* expected_result */);
+    }
+    {
+        const std::string mac_sub_str = "0600106";
+        const std::string dummy;
+        test_sub(dummy, mac_sub_str, false /* expected_result */);
     }
 }

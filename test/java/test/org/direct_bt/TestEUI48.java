@@ -98,6 +98,20 @@ public class TestEUI48 extends JunitTracer {
             }
         }
     }
+    static void test_sub(final String mac_sub_str_exp, final String mac_sub_str, final boolean expected_result) {
+        final StringBuilder errmsg = new StringBuilder();
+        final EUI48Sub mac_sub = new EUI48Sub ();
+        final boolean res = EUI48Sub.scanEUI48Sub(mac_sub_str, mac_sub, errmsg);
+        if( res ) {
+            System.out.printf("EUI48Sub mac_sub: '%s' -> '%s'\n", mac_sub_str, mac_sub.toString());
+            if( expected_result ) {
+                Assert.assertEquals(mac_sub_str_exp, mac_sub.toString());
+            }
+        } else {
+            System.out.printf("EUI48Sub mac_sub: '%s' -> Error '%s'\n", mac_sub_str, errmsg.toString());
+        }
+        Assert.assertEquals(expected_result, res);
+    }
 
     @Test
     public void test01_EUI48AndSub() {
@@ -115,6 +129,14 @@ public class TestEUI48 extends JunitTracer {
             final String[] mac03_sub_strs = { "01", "01:02", ":03:04", "03:04", ":04:05:", "04:05:", "04", "05:06", "06", ":", "", "06:05", mac03_str};
             final Integer[] mac03_sub_idxs = {  5,       4,        2,       2,         1,        1,    2,       0,    0,   0,  0,      -1,         0};
             test_sub(mac03_str, Arrays.asList(mac03_sub_strs), Arrays.asList(mac03_sub_idxs));
+        }
+        {
+            final String mac_sub_str = "C0:10:22:A0:10:00";
+            test_sub(mac_sub_str, mac_sub_str, true /* expected_result */);
+        }
+        {
+            final String mac_sub_str = "0600106";
+            test_sub(null, mac_sub_str, false /* expected_result */);
         }
     }
 

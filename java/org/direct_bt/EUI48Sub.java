@@ -71,15 +71,22 @@ public class EUI48Sub {
         }
         final byte b_[] = new byte[ 6 ]; // intermediate result high -> low
         int len_ = 0;
+        int j=0;
         try {
-            int j=0;
+            boolean exp_colon = false;
             while( j+1 < str_len /* && byte_count_ < byte_size */ ) { // min 2 chars left
-                if( ':' == str.charAt(j) ) {
+                final boolean is_colon = ':' == str.charAt(j);
+                if( exp_colon && !is_colon ) {
+                    errmsg.append("EUI48Sub sub-string not in format '01:02:03:0A:0B:0C', but '"+str+"', colon missing, pos "+j+", len "+str_len);
+                    return false;
+                } else if( is_colon ) {
                     ++j;
+                    exp_colon = false;
                 } else {
                     b_[len_] = Integer.valueOf(str.substring(j, j+2), 16).byteValue(); // b_: high->low
                     j += 2;
                     ++len_;
+                    exp_colon = true;
                 }
             }
             dest.length = len_;
@@ -87,7 +94,7 @@ public class EUI48Sub {
                 dest.b[j] = b_[len_-1-j];
             }
         } catch (final NumberFormatException e) {
-            errmsg.append("EUI48 sub-string not in format '01:02:03:0A:0B:0C' but "+str);
+            errmsg.append("EUI48 sub-string not in format '01:02:03:0A:0B:0C' but "+str+", pos "+j+", len "+str_len);
             return false;
         }
         return true;

@@ -193,10 +193,16 @@ bool EUI48Sub::scanEUI48Sub(const std::string& str, EUI48Sub& dest, std::string&
     }
     const char * str_ptr = str.c_str();
     jau::nsize_t j=0;
+    bool exp_colon = false;
     uint8_t b_[6]; // intermediate result high -> low
     while( j+1 < str_len /* && byte_count_ < byte_size */ ) { // min 2 chars left
-        if( ':' == str[j] ) {
+        const bool is_colon = ':' == str[j];
+        if( exp_colon && !is_colon ) {
+            errmsg.append("EUI48Sub sub-string not in format '01:02:03:0A:0B:0C', but '"+str+"', colon missing, pos "+std::to_string(j)+", len "+std::to_string(str_len));
+            return false;
+        } else if( is_colon ) {
             ++j;
+            exp_colon = false;
         } else {
             if ( sscanf(str_ptr+j, "%02hhx", &b_[dest.length]) != 1 ) // b_: high->low
             {
@@ -205,6 +211,7 @@ bool EUI48Sub::scanEUI48Sub(const std::string& str, EUI48Sub& dest, std::string&
             }
             j += 2;
             ++dest.length;
+            exp_colon = true;
         }
     }
     for(j=0; j<dest.length; ++j) { // swap low->high
