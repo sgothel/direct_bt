@@ -56,8 +56,6 @@
  */
 namespace direct_bt {
 
-    class BTGattCharListener; // forward
-
     class BTGattHandler; // forward
     class BTGattService; // forward
     typedef std::shared_ptr<BTGattService> BTGattServiceRef;
@@ -103,6 +101,61 @@ namespace direct_bt {
              */
             static std::string getPropertiesString(const PropertyBitVal properties) noexcept;
             static jau::darray<std::unique_ptr<std::string>> getPropertiesStringList(const PropertyBitVal properties) noexcept;
+
+            /**
+             * {@link BTGattChar} event listener for notification and indication events.
+             * <p>
+             * This listener instance is attached to a BTGattChar via
+             * {@link BTGattChar::addCharListener(std::shared_ptr<BTGattChar::Listener>)} or
+             * {@link BTGattChar::addCharListener(std::shared_ptr<BTGattChar::Listener>, bool[])}
+             * to listen to events associated with the BTGattChar instance.
+             * </p>
+             * <p>
+             * The listener manager maintains a unique set of listener instances without duplicates.
+             * </p>
+             * <p>
+             * Implementation will utilize a BTGattCharListener instance for the listener manager,
+             * delegating matching BTGattChar events to this instance.
+             * </p>
+             */
+            class Listener {
+                public:
+                    /**
+                     * Called from native BLE stack, initiated by a received notification associated
+                     * with the given {@link BTGattChar}.
+                     * @param charDecl {@link BTGattChar} related to this notification
+                     * @param charValue the notification value
+                     * @param timestamp the indication monotonic timestamp, see getCurrentMilliseconds()
+                     */
+                    virtual void notificationReceived(BTGattCharRef charDecl,
+                                                      const TROOctets& charValue, const uint64_t timestamp) = 0;
+
+                    /**
+                     * Called from native BLE stack, initiated by a received indication associated
+                     * with the given {@link BTGattChar}.
+                     * @param charDecl {@link BTGattChar} related to this indication
+                     * @param charValue the indication value
+                     * @param timestamp the indication monotonic timestamp, see {@link BluetoothUtils#getCurrentMilliseconds()}
+                     * @param confirmationSent if true, the native stack has sent the confirmation, otherwise user is required to do so.
+                     */
+                    virtual void indicationReceived(BTGattCharRef charDecl,
+                                                    const TROOctets& charValue, const uint64_t timestamp,
+                                                    const bool confirmationSent) = 0;
+
+                    virtual ~Listener() noexcept {}
+
+                    /**
+                     * Default comparison operator, merely testing for same memory reference.
+                     * <p>
+                     * Specializations may override.
+                     * </p>
+                     */
+                    virtual bool operator==(const Listener& rhs) const noexcept
+                    { return this == &rhs; }
+
+                    bool operator!=(const Listener& rhs) const noexcept
+                    { return !(*this == rhs); }
+            };
 
             /**
              * Characteristics's Service Handle - key to service's handle range, retrieved from Characteristics data.
@@ -225,42 +278,44 @@ namespace direct_bt {
             bool enableNotificationOrIndication(bool enabledState[2]);
 
             /**
-             * Add the given BTGattCharListener to the listener list if not already present.
+             * Add the given BTGattChar::Listener to the listener list if not already present.
              * <p>
-             * Occurring notifications and indications, if enabled via configNotificationIndication(bool, bool, bool[])
-             * or enableNotificationOrIndication(bool[]),
-             * will call the respective BTGattCharListener callback method.
+             * Occurring notifications and indications for this characteristic,
+             * if enabled via configNotificationIndication(bool, bool, bool[]) or enableNotificationOrIndication(bool[]),
+             * will call the respective BTGattChar::Listener callback method.
              * </p>
              * <p>
              * Returns true if the given listener is not element of the list and has been newly added,
              * otherwise false.
              * </p>
              * <p>
-             * Convenience delegation call to BTGattHandler via BTDevice
+             * Implementation wraps given BTGattChar::Listener into an AssociatedBTGattCharListener
+             * to restrict the listener to listen only to this BTGattChar instance.
              * </p>
              * <p>
-             * To restrict the listener to listen only to this BTGattChar instance,
-             * user has to implement BTGattCharListener::match(BTGattCharRef) accordingly.
-             * <br>
-             * For this purpose, use may derive from AssociatedBTGattCharListener,
-             * which provides these simple matching filter facilities.
+             * Convenience delegation call to BTGattHandler via BTDevice
              * </p>
              * @throws IllegalStateException if the {@link BTDevice's}'s {@link BTGattHandler} is null, i.e. not connected
+             * @see BTGattChar::enableNotificationOrIndication()
+             * @see BTGattChar::configNotificationIndication()
+             * @see BTGattChar::addCharListener()
+             * @see BTGattChar::removeCharListener()
+             * @see BTGattChar::removeAllAssociatedCharListener()
              */
-            bool addCharListener(std::shared_ptr<BTGattCharListener> l);
+            bool addCharListener(std::shared_ptr<Listener> l);
 
             /**
-             * Add the given BTGattCharListener to the listener list if not already present
+             * Add the given BTGattChar::Listener to the listener list if not already present
              * and if enabling the notification <i>or</i> indication for this characteristic at BLE level was successful.<br>
              * Notification and/or indication configuration is only performed per characteristic if changed.
              * <p>
-             * Implementation will attempt to enable notification only, if available,
-             * otherwise indication if available. <br>
+             * Implementation will enable notification if available,
+             * otherwise indication will be enabled if available. <br>
              * Implementation uses enableNotificationOrIndication(bool[]) to enable either.
              * </p>
              * <p>
-             * Occurring notifications and indications will call the respective BTGattCharListener
-             * callback method.
+             * Occurring notifications and indications for this characteristic
+             * will call the respective BTGattChar::Listener callback method.
              * </p>
              * <p>
              * Returns true if enabling the notification and/or indication was successful
@@ -268,52 +323,26 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              * <p>
-             * To restrict the listener to listen only to this BTGattChar instance,
-             * user has to implement BTGattCharListener::match(BTGattCharRef) accordingly.
-             * <br>
-             * For this purpose, use may derive from AssociatedBTGattCharListener,
-             * which provides these simple matching filter facilities.
+             * Implementation wraps given BTGattChar::Listener into an AssociatedBTGattCharListener
+             * to restrict the listener to listen only to this BTGattChar instance.
              * </p>
              * @param enabledState array of size 2, holding the resulting enabled state for notification and indication
              * using enableNotificationOrIndication(bool[])
              * @throws IllegalStateException if the {@link BTDevice's}'s {@link BTGattHandler} is null, i.e. not connected
+             * @see BTGattChar::enableNotificationOrIndication()
+             * @see BTGattChar::configNotificationIndication()
+             * @see BTGattChar::addCharListener()
+             * @see BTGattChar::removeCharListener()
+             * @see BTGattChar::removeAllAssociatedCharListener()
              */
-            bool addCharListener(std::shared_ptr<BTGattCharListener> l, bool enabledState[2]);
+            bool addCharListener(std::shared_ptr<Listener> l, bool enabledState[2]);
 
             /**
              * Disables the notification and/or indication for this characteristic at BLE level
              * if `disableIndicationNotification == true`
-             * and removes the given {@link BTGattCharListener} from the listener list.
-             * <p>
-             * Returns true if the given listener is an element of the list and has been removed,
-             * otherwise false.
-             * </p>
-             * <p>
-             * Convenience delegation call to BTGattHandler via BTDevice
-             * performing addCharListener(..)
-             * and {@link #configNotificationIndication(bool, bool, bool[]) if `disableIndicationNotification == true`
-             * </p>
-             * <p>
-             * If the BTDevice's BTGattHandler is null, i.e. not connected, `false` is being returned.
-             * </p>
-             * @param l
-             * @param disableIndicationNotification if true, disables the notification and/or indication for this characteristic
-             * using {@link #configNotificationIndication(bool, bool, bool[])
-             * @return
-             */
-            bool removeCharListener(std::shared_ptr<BTGattCharListener> l, bool disableIndicationNotification);
-
-            /**
-             * Disables the notification and/or indication for this characteristic at BLE level
-             * if `disableIndicationNotification == true`
-             * and removes all {@link BTGattCharListener} from the listener list.
+             * and removes all associated BTGattChar::Listener and {@link BTGattCharListener} from the listener list.
              * <p>
              * Returns the number of removed event listener.
-             * </p>
-             * <p>
-             * Convenience delegation call to BTGattHandler via BTDevice
-             * performing addCharListener(..)
-             * and configNotificationIndication(..) if `disableIndicationNotification == true`.
              * </p>
              * <p>
              * If the BTDevice's BTGattHandler is null, i.e. not connected, `zero` is being returned.
@@ -321,8 +350,13 @@ namespace direct_bt {
              * @param disableIndicationNotification if true, disables the notification and/or indication for this characteristic
              * using {@link #configNotificationIndication(bool, bool, bool[])
              * @return
+             * @see BTGattChar::enableNotificationOrIndication()
+             * @see BTGattChar::configNotificationIndication()
+             * @see BTGattChar::addCharListener()
+             * @see BTGattChar::removeCharListener()
+             * @see BTGattChar::removeAllAssociatedCharListener()
              */
-            int removeAllCharListener(bool disableIndicationNotification);
+            int removeAllAssociatedCharListener(bool disableIndicationNotification);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value
@@ -382,20 +416,19 @@ namespace direct_bt {
     /**
      * {@link BTGattChar} event listener for notification and indication events.
      * <p>
-     * A listener instance may be attached to a {@link BTGattChar} via
-     * {@link BTGattChar::addCharListener(std::shared_ptr<BTGattCharListener>)} to listen to events,
-     * see method's API doc for {@link BTGattChar} filtering.
+     * A listener instance may be attached to a BTGattChar instance via
+     * {@link BTGattChar::addCharListener(std::shared_ptr<BTGattChar::Listener>)} to listen to its events.
+     * </p>
+     * <p>
+     * A listener instance may be attached to a BTGattHandler via
+     * {@link BTGattHandler::addCharListener(std::shared_ptr<BTGattCharListener>)}
+     * to listen to all events of the device or the matching filtered events.
      * </p>
      * <p>
      * User may utilize {@link AssociatedBTGattCharListener} to listen to only one {@link BTGattChar}.
      * </p>
      * <p>
-     * A listener instance may be attached to a {@link BTGattHandler} via
-     * {@link BTGattHandler::addCharListener(std::shared_ptr<BTGattCharListener>)}
-     * to listen to all events of the device or the matching filtered events.
-     * </p>
-     * <p>
-     * The listener receiver maintains a unique set of listener instances without duplicates.
+     * The listener manager maintains a unique set of listener instances without duplicates.
      * </p>
      */
     class BTGattCharListener {
@@ -453,7 +486,7 @@ namespace direct_bt {
             { return !(*this == rhs); }
     };
 
-    class AssociatedBTGattCharListener : public BTGattCharListener{
+    class AssociatedBTGattCharListener : public BTGattCharListener {
         private:
             const BTGattChar * associatedChar;
 

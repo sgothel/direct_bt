@@ -126,7 +126,7 @@ public class DBTGattChar extends DBTObject implements BTGattChar
         {
             // This characteristicListener serves TinyB 'enableValueNotification(..)' and 'getValue()' (cached value)
             // backwards compatibility only!
-            final BTGattCharListener characteristicListener = new BTGattCharListener(this) {
+            final Listener characteristicListener = new Listener() {
                 @Override
                 public void notificationReceived(final BTGattChar charDecl, final byte[] value, final long timestamp) {
                     final DBTGattChar cd = (DBTGattChar)charDecl;
@@ -301,25 +301,39 @@ public class DBTGattChar extends DBTObject implements BTGattChar
         return configNotificationIndication(enableNotification, enableIndication, enabledState);
     }
 
+    static private class DelegatedBTGattCharListener extends BTGattCharListener {
+        private final Listener delegate;
+
+        public DelegatedBTGattCharListener(final BTGattChar characteristicMatch, final Listener l) {
+            super(characteristicMatch);
+            delegate = l;
+        }
+
+        @Override
+        public void notificationReceived(final BTGattChar charDecl,
+                                         final byte[] value, final long timestamp) {
+            delegate.notificationReceived(charDecl, value, timestamp);
+        }
+
+        @Override
+        public void indicationReceived(final BTGattChar charDecl,
+                                       final byte[] value, final long timestamp,
+                                       final boolean confirmationSent) {
+            delegate.indicationReceived(charDecl, value, timestamp, confirmationSent);
+        }
+    };
+
     @Override
-    public final boolean addCharListener(final BTGattCharListener listener) {
-        return getService().getDevice().addCharListener(listener);
+    public final boolean addCharListener(final Listener listener) {
+        return getService().getDevice().addCharListener( new DelegatedBTGattCharListener(this, listener) );
     }
 
     @Override
-    public final boolean addCharListener(final BTGattCharListener listener, final boolean enabledState[/*2*/]) {
+    public final boolean addCharListener(final Listener listener, final boolean enabledState[/*2*/]) {
         if( !enableNotificationOrIndication(enabledState) ) {
             return false;
         }
-        return getService().getDevice().addCharListener(listener);
-    }
-
-    @Override
-    public final boolean removeCharListener(final BTGattCharListener l, final boolean disableIndicationNotification) {
-        if( disableIndicationNotification ) {
-            configNotificationIndication(false /* enableNotification */, false /* enableIndication */, new boolean[2]);
-        }
-        return getService().getDevice().removeCharListener(l);
+        return addCharListener( listener );
     }
 
     @Override

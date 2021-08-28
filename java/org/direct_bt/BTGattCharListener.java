@@ -31,7 +31,7 @@ import java.lang.ref.WeakReference;
  * {@link BTGattChar} event listener for notification and indication events.
  * <p>
  * A listener instance may be attached to a {@link BTGattChar} via
- * {@link BTGattChar#addCharListener(BTGattCharListener)} to listen to its events.
+ * {@link BTGattChar#addCharListener(org.direct_bt.BTGattChar.Listener)} to listen to its events.
  * </p>
  * <p>
  * A listener instance may be attached to a {@link BTDevice} via
@@ -39,7 +39,7 @@ import java.lang.ref.WeakReference;
  * to listen to all events of the device or the matching filtered events.
  * </p>
  * <p>
- * One {@link BTGattCharListener} instance can only be attached to a listener receiver once at a time,
+ * One {@link BTGattCharListener} instance can only be attached to a listener manager once at a time,
  * i.e. you cannot attach the same instance more than once to a {@link BTDevice}
  * or {@link BTGattChar}.
  * <br>
@@ -50,7 +50,7 @@ import java.lang.ref.WeakReference;
  * The latter will be added to the native list of listeners.
  * This class's {@code nativeInstance} field links the Java instance to mentioned C++ listener.
  * <br>
- * Since the listener receiver maintains a unique set of listener instances without duplicates,
+ * Since the listener manager maintains a unique set of listener instances without duplicates,
  * this restriction is more esoteric.
  * </p>
  */

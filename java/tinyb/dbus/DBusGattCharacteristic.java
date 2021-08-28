@@ -37,7 +37,6 @@ import org.direct_bt.BTGattService;
 import org.direct_bt.BTManager;
 import org.direct_bt.BTNotification;
 import org.direct_bt.BTType;
-import org.direct_bt.BTGattCharListener;
 
 public class DBusGattCharacteristic extends DBusObject implements BTGattChar
 {
@@ -110,7 +109,7 @@ public class DBusGattCharacteristic extends DBusObject implements BTGattChar
     }
 
     @Override
-    public boolean addCharListener(final BTGattCharListener listener) {
+    public boolean addCharListener(final Listener listener) {
         return false; // FIXME
     }
     @Override
@@ -126,13 +125,9 @@ public class DBusGattCharacteristic extends DBusObject implements BTGattChar
         return false; // FIXME
     }
     @Override
-    public boolean addCharListener(final BTGattCharListener listener, final boolean[] enabledState)
+    public boolean addCharListener(final Listener listener, final boolean[] enabledState)
             throws IllegalStateException
     {
-        return false; // FIXME
-    }
-    @Override
-    public boolean removeCharListener(final BTGattCharListener l, final boolean disableIndicationNotification) {
         return false; // FIXME
     }
     @Override

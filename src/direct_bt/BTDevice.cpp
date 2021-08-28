@@ -1625,6 +1625,16 @@ int BTDevice::removeAllAssociatedCharListener(std::shared_ptr<BTGattChar> associ
     return gatt->removeAllAssociatedCharListener( associatedCharacteristic );
 }
 
+int BTDevice::removeAllAssociatedCharListener(const BTGattChar * associatedCharacteristic) noexcept {
+    std::shared_ptr<BTGattHandler> gatt = getGattHandler();
+    if( nullptr == gatt ) {
+        // OK to have GATTHandler being shutdown @ disable
+        DBG_PRINT("Device's GATTHandle not connected: %s", toString().c_str());
+        return false;
+    }
+    return gatt->removeAllAssociatedCharListener( associatedCharacteristic );
+}
+
 int BTDevice::removeAllCharListener() noexcept {
     std::shared_ptr<BTGattHandler> gatt = getGattHandler();
     if( nullptr == gatt ) {

@@ -373,6 +373,12 @@ make doc
 
 * TODO
 
+**2.2.13**
+
+* Revised API: BTGattChar::addCharListener(..) in C++ and Java for a more intuitive use.
+* Fix EUI48Sub::scanEUI48Sub(..): Fail on missing expected colon, i.e. after each two digits
+* Fix JNIAdapterStatusListener::deviceConnected(..): NewObject(.., deviceClazzCtor, ..) used wrong argument order
+
 **2.2.11**
 
 * Fix EUI48 unit test and refine on application permissions for launching applications 

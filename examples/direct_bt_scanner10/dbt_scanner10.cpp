@@ -314,41 +314,43 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
 static const uuid16_t _TEMPERATURE_MEASUREMENT(GattCharacteristicType::TEMPERATURE_MEASUREMENT);
 
-class MyGATTEventListener : public AssociatedBTGattCharListener {
+class MyGATTEventListener : public BTGattChar::Listener {
+  private:
+    int i, j;
+
   public:
 
-    MyGATTEventListener(const BTGattChar * characteristicMatch)
-    : AssociatedBTGattCharListener(characteristicMatch) {}
+    MyGATTEventListener(int i_, int j_) : i(i_), j(j_) {}
 
     void notificationReceived(BTGattCharRef charDecl, const TROOctets& char_value, const uint64_t timestamp) override {
-        const std::shared_ptr<BTDevice> dev = charDecl->getDeviceChecked();
         const uint64_t tR = getCurrentMilliseconds();
-        fprintf_td(stderr, "****** GATT Notify (td %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
-                (tR-timestamp), (tR-dev->getLastDiscoveryTimestamp()), dev->toString().c_str());
-        if( nullptr != charDecl ) {
-            fprintf_td(stderr, "****** decl %s\n", charDecl->toString().c_str());
+        fprintf_td(stderr, "**[%2.2d.%2.2d] Characteristic-Notify: UUID %s, td %" PRIu64 " ******\n",
+                i, j, charDecl->value_type->toUUID128String().c_str(), (tR-timestamp));
+        fprintf_td(stderr, "**[%2.2d.%2.2d]     Characteristic: %s ******\n", i, j, charDecl->toString().c_str());
+        if( _TEMPERATURE_MEASUREMENT == *charDecl->value_type ) {
+            std::shared_ptr<GattTemperatureMeasurement> temp = GattTemperatureMeasurement::get(char_value);
+            if( nullptr != temp ) {
+                fprintf_td(stderr, "**[%2.2d.%2.2d]     Value T: %s ******\n", i, j, temp->toString().c_str());
+            }
         }
-        fprintf_td(stderr, "****** rawv %s\n", char_value.toString().c_str());
+        fprintf_td(stderr, "**[%2.2d.%2.2d]     Value R: %s ******\n", i, j, char_value.toString().c_str());
     }
 
     void indicationReceived(BTGattCharRef charDecl,
                             const TROOctets& char_value, const uint64_t timestamp,
                             const bool confirmationSent) override
     {
-        const std::shared_ptr<BTDevice> dev = charDecl->getDeviceChecked();
         const uint64_t tR = getCurrentMilliseconds();
-        fprintf_td(stderr, "****** GATT Indication (confirmed %d, td(msg %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
-                confirmationSent, (tR-timestamp), (tR-dev->getLastDiscoveryTimestamp()), dev->toString().c_str());
-        if( nullptr != charDecl ) {
-            fprintf_td(stderr, "****** decl %s\n", charDecl->toString().c_str());
-            if( _TEMPERATURE_MEASUREMENT == *charDecl->value_type ) {
-                std::shared_ptr<GattTemperatureMeasurement> temp = GattTemperatureMeasurement::get(char_value);
-                if( nullptr != temp ) {
-                    fprintf_td(stderr, "****** valu %s\n", temp->toString().c_str());
-                }
+        fprintf_td(stderr, "**[%2.2d.%2.2d] Characteristic-Indication: UUID %s, td %" PRIu64 ", confirmed %d ******\n",
+                i, j, charDecl->value_type->toUUID128String().c_str(), (tR-timestamp), confirmationSent);
+        fprintf_td(stderr, "**[%2.2d.%2.2d]     Characteristic: %s ******\n", i, j, charDecl->toString().c_str());
+        if( _TEMPERATURE_MEASUREMENT == *charDecl->value_type ) {
+            std::shared_ptr<GattTemperatureMeasurement> temp = GattTemperatureMeasurement::get(char_value);
+            if( nullptr != temp ) {
+                fprintf_td(stderr, "**[%2.2d.%2.2d]     Value T: %s ******\n", i, j, temp->toString().c_str());
             }
         }
-        fprintf_td(stderr, "****** rawv %s\n", char_value.toString().c_str());
+        fprintf_td(stderr, "**[%2.2d.%2.2d]     Value R: %s ******\n", i, j, char_value.toString().c_str());
     }
 };
 
@@ -503,21 +505,22 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
         for(size_t i=0; i<primServices.size(); i++) {
             BTGattService & primService = *primServices.at(i);
             if( !QUIET ) {
-                // fprintf_td(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
-                fprintf_td(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
+                fprintf_td(stderr, "  [%2.2d] Service UUID %s\n", i, primService.type->toUUID128String().c_str());
+                fprintf_td(stderr, "  [%2.2d]         %s\n", i, primService.toString().c_str());
             }
             jau::darray<BTGattCharRef> & serviceCharacteristics = primService.characteristicList;
             for(size_t j=0; j<serviceCharacteristics.size(); j++) {
                 BTGattChar & serviceChar = *serviceCharacteristics.at(j);
                 if( !QUIET ) {
-                    fprintf_td(stderr, "  [%2.2d.%2.2d] CharDef: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
+                    fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic: UUID %s\n", i, j, serviceChar.value_type->toUUID128String().c_str());
+                    fprintf_td(stderr, "  [%2.2d.%2.2d]     %s\n", i, j, serviceChar.toString().c_str());
                 }
                 if( serviceChar.hasProperties(BTGattChar::PropertyBitVal::Read) ) {
                     POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0);
                     if( serviceChar.readValue(value) ) {
                         std::string sval = dfa_utf8_decode(value.get_ptr(), value.getSize());
                         if( !QUIET ) {
-                            fprintf_td(stderr, "  [%2.2d.%2.2d] CharVal: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
+                            fprintf_td(stderr, "  [%2.2d.%2.2d]     value: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
                         }
                     }
                 }
@@ -525,17 +528,20 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
                 for(size_t k=0; k<charDescList.size(); k++) {
                     BTGattDesc & charDesc = *charDescList.at(k);
                     if( !QUIET ) {
-                        fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d] Desc: %s\n", (int)i, (int)j, (int)k, charDesc.toString().c_str());
+                        fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d] Descriptor: UUID %s\n", i, j, k, charDesc.type->toUUID128String().c_str());
+                        fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d]     %s\n", i, j, k, charDesc.toString().c_str());
                     }
                 }
                 bool cccdEnableResult[2];
-                bool cccdRet = serviceChar.addCharListener( std::shared_ptr<BTGattCharListener>( new MyGATTEventListener(&serviceChar) ),
-                                                                      cccdEnableResult );
+                bool cccdRet = serviceChar.addCharListener( std::shared_ptr<BTGattChar::Listener>( new MyGATTEventListener(i, j) ),
+                                                            cccdEnableResult );
                 if( !QUIET ) {
-                    fprintf_td(stderr, "  [%2.2d.%2.2d] addCharacteristicListener Notification(%d), Indication(%d): Result %d\n",
+                    fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d\n",
                             (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], cccdRet);
+                    fprintf_td(stderr, "\n");
                 }
             }
+            fprintf_td(stderr, "\n");
         }
         // FIXME sleep 1s for potential callbacks ..
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));

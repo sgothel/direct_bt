@@ -248,31 +248,57 @@ bool BTGattChar::enableNotificationOrIndication(bool enabledState[2]) {
     return configNotificationIndication(enableNotification, enableIndication, enabledState);
 }
 
-bool BTGattChar::addCharListener(std::shared_ptr<BTGattCharListener> l) {
-    return getDeviceChecked()->addCharListener(l);
+class DelegatedBTGattCharListener : public BTGattCharListener {
+    private:
+        const BTGattChar * associatedChar;
+        std::shared_ptr<BTGattChar::Listener> delegate;
+
+    public:
+        DelegatedBTGattCharListener(const BTGattChar * characteristicMatch, std::shared_ptr<BTGattChar::Listener> l) noexcept
+        : associatedChar(characteristicMatch), delegate(l) { }
+
+        bool match(const BTGattChar & characteristic) noexcept override {
+            if( nullptr == associatedChar ) {
+                return true;
+            }
+            return *associatedChar == characteristic;
+        }
+
+        void notificationReceived(BTGattCharRef charDecl,
+                                  const TROOctets& charValue, const uint64_t timestamp) override {
+            delegate->notificationReceived(charDecl, charValue, timestamp);
+        }
+
+        void indicationReceived(BTGattCharRef charDecl,
+                                const TROOctets& charValue, const uint64_t timestamp,
+                                const bool confirmationSent) override {
+            delegate->indicationReceived(charDecl, charValue, timestamp, confirmationSent);
+        }
+
+        bool operator==(const DelegatedBTGattCharListener& rhs) const noexcept
+        { return delegate.get() == rhs.delegate.get(); }
+
+        bool operator!=(const DelegatedBTGattCharListener& rhs) const noexcept
+        { return !(*this == rhs); }
+};
+
+bool BTGattChar::addCharListener(std::shared_ptr<BTGattChar::Listener> l) {
+    return getDeviceChecked()->addCharListener( std::shared_ptr<BTGattCharListener>( new DelegatedBTGattCharListener(this, l) ) );
 }
 
-bool BTGattChar::addCharListener(std::shared_ptr<BTGattCharListener> l, bool enabledState[2]) {
+bool BTGattChar::addCharListener(std::shared_ptr<BTGattChar::Listener> l, bool enabledState[2]) {
     if( !enableNotificationOrIndication(enabledState) ) {
         return false;
     }
     return addCharListener(l);
 }
 
-bool BTGattChar::removeCharListener(std::shared_ptr<BTGattCharListener> l, bool disableIndicationNotification) {
+int BTGattChar::removeAllAssociatedCharListener(bool disableIndicationNotification) {
     if( disableIndicationNotification ) {
         bool enabledState[2];
         configNotificationIndication(false, false, enabledState);
     }
-    return getDeviceChecked()->removeCharListener(l);
-}
-
-int BTGattChar::removeAllCharListener(bool disableIndicationNotification) {
-    if( disableIndicationNotification ) {
-        bool enabledState[2];
-        configNotificationIndication(false, false, enabledState);
-    }
-    return getDeviceChecked()->removeAllCharListener();
+    return getDeviceChecked()->removeAllAssociatedCharListener(this);
 }
 
 bool BTGattChar::readValue(POctets & res, int expectedLength) {

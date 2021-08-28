@@ -115,11 +115,10 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
 static const uuid16_t _TEMPERATURE_MEASUREMENT(GattCharacteristicType::TEMPERATURE_MEASUREMENT);
 
-class MyGATTEventListener : public AssociatedBTGattCharListener {
+class MyGATTEventListener : public BTGattChar::Listener {
   public:
 
-    MyGATTEventListener(const BTGattChar * characteristicMatch)
-    : AssociatedBTGattCharListener(characteristicMatch) {}
+    MyGATTEventListener() {}
 
     void notificationReceived(BTGattCharRef charDecl, const TROOctets& charValue, const uint64_t timestamp) override {
         const std::shared_ptr<BTDevice> dev = charDecl->getDeviceChecked();
@@ -307,7 +306,7 @@ int main(int argc, char *argv[])
                         fprintf(stderr, "  [%2.2d.%2.2d] Config Notification(%d), Indication(%d): Result %d\n",
                                 (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], cccdRet);
                         if( cccdRet ) {
-                            serviceChar.addCharListener( std::shared_ptr<BTGattCharListener>( new MyGATTEventListener(&serviceChar) ) );
+                            serviceChar.addCharListener( std::shared_ptr<BTGattChar::Listener>( new MyGATTEventListener() ) );
                         }
                     }
                 }

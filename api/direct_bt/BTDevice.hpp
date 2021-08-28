@@ -919,6 +919,8 @@ namespace direct_bt {
              */
             int removeAllAssociatedCharListener(std::shared_ptr<BTGattChar> associatedCharacteristic) noexcept;
 
+            int removeAllAssociatedCharListener(const BTGattChar * associatedCharacteristic) noexcept;
+
             /**
              * Remove all {@link BTGattCharListener} from the list.
              * @return number of removed listener.

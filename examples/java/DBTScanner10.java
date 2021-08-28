@@ -303,6 +303,36 @@ public class DBTScanner10 {
         }
     };
 
+    class MyGATTEventListener implements BTGattChar.Listener {
+        private final int i, j;
+
+        public MyGATTEventListener(final int i_, final int j_) { i=i_; j=j_; }
+
+        @Override
+        public void notificationReceived(final BTGattChar charDecl,
+                final byte[] value, final long timestamp) {
+            final long tR = BTUtils.currentTimeMillis();
+            printf("**[%02d.%02d] Characteristic-Notify: UUID %s, td %d ******\n",
+                    i, j, charDecl.getUUID(), (tR-timestamp));
+            printf("**[%02d.%02d]     Characteristic: %s ******\n", i, j, charDecl.toString());
+            printf("**[%02d.%02d]     Value R: size %d, ro: %s ******\n", i, j, value.length, BTUtils.bytesHexString(value, 0, -1, true));
+
+            shutdownTest();
+        }
+
+        @Override
+        public void indicationReceived(final BTGattChar charDecl,
+                final byte[] value, final long timestamp, final boolean confirmationSent) {
+            final long tR = BTUtils.currentTimeMillis();
+            printf("**[%02d.%02d] Characteristic-Indication: UUID %s, td %d, confirmed %b ******\n",
+                    i, j, charDecl.getUUID(), (tR-timestamp), confirmationSent);
+            printf("**[%02d.%02d]     Characteristic: %s ******\n", i, j, charDecl.toString());
+            printf("**[%02d.%02d]     Value R: size %d, ro: %s ******\n", i, j, value.length, BTUtils.bytesHexString(value, 0, -1, true));
+
+            shutdownTest();
+        }
+    }
+
     private void connectDiscoveredDevice(final BTDevice device) {
         BTUtils.println(System.err, "****** Connecting Device: Start " + device.toString());
 
@@ -439,7 +469,7 @@ public class DBTScanner10 {
                     BTUtils.println(System.err, "Char UUID "+charIdentifier);
                     BTUtils.println(System.err, "  over device : "+char2);
                     if( null != char2 ) {
-                        final BTGattCharListener charPingPongListener = new BTGattCharListener(null) {
+                        final BTGattChar.Listener charPingPongListener = new BTGattChar.Listener() {
                             @Override
                             public void notificationReceived(final BTGattChar charDecl,
                                                              final byte[] value, final long timestamp) {
@@ -469,54 +499,29 @@ public class DBTScanner10 {
                     }
                 }
             }
-            {
-                final BTGattCharListener myCharacteristicListener = new BTGattCharListener(null) {
-                    @Override
-                    public void notificationReceived(final BTGattChar charDecl,
-                                                     final byte[] value, final long timestamp) {
-                        BTUtils.println(System.err, "****** GATT notificationReceived: "+charDecl+
-                                ", value "+BTUtils.bytesHexString(value, 0, -1, true));
-                        shutdownTest();
-
-                    }
-
-                    @Override
-                    public void indicationReceived(final BTGattChar charDecl,
-                                                   final byte[] value, final long timestamp, final boolean confirmationSent) {
-                        BTUtils.println(System.err, "****** GATT indicationReceived: "+charDecl+
-                                ", value "+BTUtils.bytesHexString(value, 0, -1, true));
-                        shutdownTest();
-                    }
-                };
-                final boolean addedCharacteristicListenerRes =
-                  BTGattService.addCharListenerToAll(device, primServices, myCharacteristicListener);
-                if( !QUIET ) {
-                    BTUtils.println(System.err, "Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
-                }
-            }
 
             try {
                 int i=0;
                 for(final Iterator<BTGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
                     final BTGattService primService = srvIter.next();
                     if( !QUIET ) {
-                        printf("  [%02d] Service %s, uuid %s\n", i, primService.toString(), primService.getUUID());
-                        printf("  [%02d] Service Characteristics\n", i);
+                        printf("  [%02d] Service UUID %s\n", i, primService.getUUID());
+                        printf("  [%02d]         %s\n", i, primService.toString());
                     }
                     int j=0;
                     final List<BTGattChar> serviceCharacteristics = primService.getChars();
                     for(final Iterator<BTGattChar> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
                         final BTGattChar serviceChar = charIter.next();
                         if( !QUIET ) {
-                            printf("  [%02d.%02d] CharDef: %s, uuid %s\n", i, j, serviceChar.toString(), serviceChar.getUUID());
+                            printf("  [%02d.%02d] Characteristic: UUID %s\n", i, j, serviceChar.getUUID());
+                            printf("  [%02d.%02d]     %s\n", i, j, serviceChar.toString());
                         }
                         final List<String> properties = Arrays.asList(serviceChar.getFlags());
                         if( properties.contains("read") ) {
                             final byte[] value = serviceChar.readValue();
                             final String svalue = BTUtils.decodeUTF8String(value, 0, value.length);
                             if( !QUIET ) {
-                                printf("  [%02d.%02d] CharVal: %s ('%s')\n",
-                                        i, j, BTUtils.bytesHexString(value, 0, -1, true), svalue);
+                                printf("  [%02d.%02d]     value: %s ('%s')\n", i, j, BTUtils.bytesHexString(value, 0, -1, true), svalue);
                             }
                         }
                         int k=0;
@@ -524,10 +529,19 @@ public class DBTScanner10 {
                         for(final Iterator<BTGattDesc> descIter = charDescList.iterator(); descIter.hasNext(); k++) {
                             final BTGattDesc charDesc = descIter.next();
                             if( !QUIET ) {
-                                printf("  [%02d.%02d.%02d] Desc: %s, uuid %s\n", i, j, k, charDesc.toString(), charDesc.getUUID());
+                                printf("  [%02d.%02d.%02d] Descriptor: UUID %s\n", i, j, k, charDesc.getUUID());
+                                printf("  [%02d.%02d.%02d]     %s\n", i, j, k, charDesc.toString());
                             }
                         }
+                        final boolean cccdEnableResult[] = { false, false };
+                        final boolean cccdRet = serviceChar.addCharListener( new MyGATTEventListener(i, j), cccdEnableResult );
+                        if( !QUIET ) {
+                            printf("  [%02d.%02d] Characteristic-Listener: Notification(%b), Indication(%b): Added %b\n",
+                                    i, j, cccdEnableResult[0], cccdEnableResult[1], cccdRet);
+                            printf("\n");
+                        }
                     }
+                    printf("\n");
                 }
             } catch( final Exception ex) {
                 BTUtils.println(System.err, "Caught "+ex.getMessage());
