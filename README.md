@@ -240,6 +240,7 @@ The following **Bluetooth Adapter** were tested
 
 * Bluetooth 5.0
   - Intel AX200 Bluetooth 5.0 (Wi-Fi 6 802.11ax (2.4Gbps) + BT 5.0)
+  - Realtek Bluetooth 5.0 (`RTK_BT_5.0`)
 
 
 ## Build Status
