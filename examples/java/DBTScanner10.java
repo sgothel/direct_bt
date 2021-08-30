@@ -351,7 +351,7 @@ public class DBTScanner10 {
 
             @Override
             public String toString() {
-                return "AdapterStatusListener[user, device "+device.getAddressAndType().toString()+"]";
+                return "TempAdapterStatusListener[user, device "+device.getAddressAndType().toString()+"]";
             } });
 
         {
@@ -365,6 +365,11 @@ public class DBTScanner10 {
         }
 
         final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getStartOf(device.getAddressAndType().address, device.getName());
+        if( null != sec ) {
+            BTUtils.println(System.err, "****** Connecting Device: Found SecurityDetail "+sec.toString()+" for "+device.toString());
+        } else {
+            BTUtils.println(System.err, "****** Connecting Device: No SecurityDetail for "+device.toString());
+        }
         final BTSecurityLevel req_sec_level = null != sec ? sec.getSecLevel() : BTSecurityLevel.UNSET;
         HCIStatusCode res = SMPKeyBin.readAndApply(KEY_PATH, device, req_sec_level, true /* verbose */);
         BTUtils.fprintf_td(System.err, "****** Connecting Device: SMPKeyBin::readAndApply(..) result %s\n", res.toString());
@@ -381,7 +386,6 @@ public class DBTScanner10 {
                     BTUtils.println(System.err, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY ("+sec+") -> set OK "+r);
                 }
             } else {
-                BTUtils.println(System.err, "****** Connecting Device: No SecurityDetail for "+device.getAddressAndType());
                 final boolean r = device.setConnSecurityAuto( SMPIOCapability.KEYBOARD_ONLY );
                 BTUtils.println(System.err, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK "+r);
             }
@@ -641,12 +645,17 @@ public class DBTScanner10 {
     }
 
     private boolean initAdapter(final BTAdapter adapter) {
+        // Even if adapter is not yet powered, listen to it and act when it gets powered-on
+        adapter.addStatusListener(statusListener);
+        // Flush discovered devices after registering our status listener.
+        // This avoids discovered devices before we have registered!
+        adapter.removeDiscoveredDevices();
+
         if( !adapter.isPowered() ) { // should have been covered above
             BTUtils.println(System.err, "Adapter not powered (2): "+adapter.toString());
             return false;
         }
 
-        adapter.addStatusListener(statusListener);
         adapter.enableDiscoverableNotifications(new BooleanNotification("Discoverable", timestamp_t0));
 
         adapter.enableDiscoveringNotifications(new BooleanNotification("Discovering", timestamp_t0));
@@ -654,10 +663,6 @@ public class DBTScanner10 {
         adapter.enablePairableNotifications(new BooleanNotification("Pairable", timestamp_t0));
 
         adapter.enablePoweredNotifications(new BooleanNotification("Powered", timestamp_t0));
-
-        // Flush discovered devices after registering our status listener.
-        // This avoids discovered devices before we have registered!
-        adapter.removeDiscoveredDevices();
 
         if( USE_WHITELIST ) {
             for(final Iterator<BDAddressAndType> wliter = whitelist.iterator(); wliter.hasNext(); ) {

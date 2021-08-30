@@ -370,6 +370,111 @@ BTMode direct_bt::to_BTMode(const std::string & value) noexcept {
     return BTMode::NONE;
 }
 
+// *************************************************
+// *************************************************
+// *************************************************
+
+#define LEFEATURES_ENUM(X) \
+    X(LE_Features,NONE) \
+    X(LE_Features,LE_Encryption) \
+    X(LE_Features,Conn_Param_Req_Proc) \
+    X(LE_Features,Ext_Rej_Ind) \
+    X(LE_Features,SlaveInit_Feat_Exchg) \
+    X(LE_Features,LE_Ping) \
+    X(LE_Features,LE_Data_Pkt_Len_Ext) \
+    X(LE_Features,LL_Privacy) \
+    X(LE_Features,Ext_Scan_Filter_Pol) \
+    X(LE_Features,LE_2M_PHY) \
+    X(LE_Features,Stable_Mod_Idx_Tx) \
+    X(LE_Features,Stable_Mod_Idx_Rx) \
+    X(LE_Features,LE_Coded_PHY) \
+    X(LE_Features,LE_Ext_Adv) \
+    X(LE_Features,LE_Per_Adv) \
+    X(LE_Features,Chan_Sel_Algo_2) \
+    X(LE_Features,LE_Pwr_Cls_1) \
+    X(LE_Features,Min_Num_Used_Chan_Proc) \
+    X(LE_Features,Conn_CTE_Req) \
+    X(LE_Features,Conn_CTE_Res) \
+    X(LE_Features,ConnLess_CTE_Tx) \
+    X(LE_Features,ConnLess_CTE_Rx) \
+    X(LE_Features,AoD) \
+    X(LE_Features,AoA) \
+    X(LE_Features,Rx_Const_Tone_Ext) \
+    X(LE_Features,Per_Adv_Sync_Tx_Sender) \
+    X(LE_Features,Per_Adv_Sync_Tx_Rec) \
+    X(LE_Features,Zzz_Clk_Acc_Upd) \
+    X(LE_Features,Rem_Pub_Key_Val) \
+    X(LE_Features,Conn_Iso_Stream_Master) \
+    X(LE_Features,Conn_Iso_Stream_Slave) \
+    X(LE_Features,Iso_Brdcst) \
+    X(LE_Features,Sync_Rx) \
+    X(LE_Features,Iso_Chan) \
+    X(LE_Features,LE_Pwr_Ctrl_Req) \
+    X(LE_Features,LE_Pwr_Chg_Ind) \
+    X(LE_Features,LE_Path_Loss_Mon)
+
+static std::string _getLEFeaturesBitStr(const LE_Features bit) noexcept {
+    switch(bit) {
+    LEFEATURES_ENUM(CASE2_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "??? "+jau::to_hexstring(number(bit));
+}
+
+std::string direct_bt::to_string(const LE_Features mask) noexcept {
+    const uint64_t one = 1;
+    bool has_pre = false;
+    std::string out("[");
+    for(int i=0; i<36; i++) {
+        const LE_Features settingBit = static_cast<LE_Features>( one << i );
+        if( LE_Features::NONE != ( mask & settingBit ) ) {
+            if( has_pre ) { out.append(", "); }
+            out.append(_getLEFeaturesBitStr(settingBit));
+            has_pre = true;
+        }
+    }
+    out.append("]");
+    return out;
+}
+
+// *************************************************
+// *************************************************
+// *************************************************
+
+#define LE_PHYs_ENUM(X) \
+    X(LE_PHYs,NONE) \
+    X(LE_PHYs,LE_1M) \
+    X(LE_PHYs,LE_2M) \
+    X(LE_PHYs,LE_CODED)
+
+static std::string _getLE_PHYsBitStr(const LE_PHYs bit) noexcept {
+    switch(bit) {
+    LE_PHYs_ENUM(CASE2_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "??? "+jau::to_hexstring(number(bit));
+}
+
+std::string direct_bt::to_string(const LE_PHYs mask) noexcept {
+    const uint8_t one = 1;
+    bool has_pre = false;
+    std::string out("[");
+    for(int i=0; i<4; i++) {
+        const LE_PHYs settingBit = static_cast<LE_PHYs>( one << i );
+        if( LE_PHYs::NONE != ( mask & settingBit ) ) {
+            if( has_pre ) { out.append(", "); }
+            out.append(_getLE_PHYsBitStr(settingBit));
+            has_pre = true;
+        }
+    }
+    out.append("]");
+    return out;
+}
+
+// *************************************************
+// *************************************************
+// *************************************************
+
 std::string direct_bt::to_string(const BTSecurityLevel v) noexcept {
     switch(v) {
         case BTSecurityLevel::UNSET:         return "UNSET";
@@ -431,7 +536,13 @@ std::string direct_bt::to_string(const ScanType v) noexcept {
     X(ADV_SCAN_IND) \
     X(ADV_NONCONN_IND) \
     X(SCAN_RSP) \
-    X(ADV_UNDEFINED)
+    X(ADV_IND2) \
+    X(DIRECT_IND2) \
+    X(SCAN_IND2) \
+    X(NONCONN_IND2) \
+    X(SCAN_RSP_to_ADV_IND) \
+    X(SCAN_RSP_to_ADV_SCAN_IND) \
+    X(UNDEFINED)
 
 #define AD_PDU_Type_CASE_TO_STRING(V) case AD_PDU_Type::V: return #V;
 
@@ -442,6 +553,48 @@ std::string direct_bt::to_string(const AD_PDU_Type v) noexcept {
     }
     return "Unknown AD_PDU_Type "+jau::to_hexstring(number(v));
 }
+
+// *************************************************
+// *************************************************
+// *************************************************
+
+#define EAD_Event_Type_ENUM(X) \
+    X(EAD_Event_Type,NONE) \
+    X(EAD_Event_Type,CONN_ADV) \
+    X(EAD_Event_Type,SCAN_ADV) \
+    X(EAD_Event_Type,DIR_ADV) \
+    X(EAD_Event_Type,SCAN_RSP) \
+    X(EAD_Event_Type,LEGACY_PDU) \
+    X(EAD_Event_Type,DATA_B0) \
+    X(EAD_Event_Type,DATA_B1)
+
+static std::string _getEAD_Event_TypeBitStr(const EAD_Event_Type bit) noexcept {
+    switch(bit) {
+    EAD_Event_Type_ENUM(CASE2_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "??? "+jau::to_hexstring(number(bit));
+}
+
+std::string direct_bt::to_string(const EAD_Event_Type mask) noexcept {
+    const uint16_t one = 1;
+    bool has_pre = false;
+    std::string out("[");
+    for(int i=0; i<8; i++) {
+        const EAD_Event_Type settingBit = static_cast<EAD_Event_Type>( one << i );
+        if( EAD_Event_Type::NONE != ( mask & settingBit ) ) {
+            if( has_pre ) { out.append(", "); }
+            out.append(_getEAD_Event_TypeBitStr(settingBit));
+            has_pre = true;
+        }
+    }
+    out.append("]");
+    return out;
+}
+
+// *************************************************
+// *************************************************
+// *************************************************
 
 #define L2CAP_CID_ENUM(X) \
     X(UNDEFINED) \
@@ -610,7 +763,7 @@ static std::string _getGAPFlagBitStr(const GAPFlags bit) noexcept {
     GAPFLAGS_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown GAP_Flags Bit "+jau::to_hexstring(number(bit));
+    return "??? "+jau::to_hexstring(number(bit));
 }
 
 std::string direct_bt::to_string(const GAPFlags v) noexcept {
@@ -636,6 +789,7 @@ std::string direct_bt::to_string(const GAPFlags v) noexcept {
 #define EIRDATATYPE_ENUM(X) \
     X(EIRDataType,NONE) \
     X(EIRDataType,EVT_TYPE) \
+    X(EIRDataType,EXT_EVT_TYPE) \
     X(EIRDataType,BDADDR_TYPE) \
     X(EIRDataType,BDADDR) \
     X(EIRDataType,FLAGS) \
@@ -656,7 +810,7 @@ static std::string _getEIRDataBitStr(const EIRDataType bit) noexcept {
     EIRDATATYPE_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown EIRDataType Bit "+jau::to_hexstring(number(bit));
+    return "??? "+jau::to_hexstring(number(bit));
 }
 
 std::string direct_bt::to_string(const EIRDataType mask) noexcept {
@@ -683,6 +837,7 @@ std::string direct_bt::to_string(EInfoReport::Source source) noexcept {
     switch (source) {
         case EInfoReport::Source::NA: return "N/A";
         case EInfoReport::Source::AD: return "AD";
+        case EInfoReport::Source::EAD: return "EAD";
         case EInfoReport::Source::EIR: return "EIR";
         case EInfoReport::Source::EIR_MGMT: return "EIR_MGMT";
     }
@@ -758,8 +913,8 @@ std::string EInfoReport::toString(const bool includeServices) const noexcept {
     std::string out("EInfoReport::"+to_string(source)+
                     "[address["+address.toString()+", "+to_string(getAddressType())+"/"+std::to_string(ad_address_type)+
                     "], name['"+name+"'/'"+name_short+"'], "+eirDataMaskToString()+
-                    ", evt-type "+to_string(evt_type)+
-                    ", flags"+to_string(flags)+
+                    ", type[evt "+to_string(evt_type)+", ead "+to_string(ead_type)+
+                    "], flags"+to_string(flags)+
                     ", rssi "+std::to_string(rssi)+
                     ", tx-power "+std::to_string(tx_power)+
                     ", dev-class "+jau::to_hexstring(device_class)+
@@ -944,6 +1099,8 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
     return count;
 }
 
+// #define AD_DEBUG 1
+
 jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept {
     jau::nsize_t const num_reports = (jau::nsize_t) data[0];
     jau::darray<std::unique_ptr<EInfoReport>> ad_reports;
@@ -955,7 +1112,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
     uint8_t const *limes = data + data_length;
     uint8_t const *i_octets = data + 1;
     uint8_t ad_data_len[0x19];
-    const jau::nsize_t segment_count = 6;
+    jau::nsize_t segment_count = 5 * num_reports; // excluding data segment
     jau::nsize_t read_segments = 0;
     jau::nsize_t i;
     const uint64_t timestamp = jau::getCurrentMilliseconds();
@@ -980,9 +1137,104 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         ad_data_len[i] = *i_octets++;
         read_segments++;
     }
-    for(i = 0; i < num_reports && i_octets + ad_data_len[i] < limes; i++) {
-        ad_reports[i]->read_data(i_octets, ad_data_len[i]);
-        i_octets += ad_data_len[i];
+    for(i = 0; i < num_reports; i++) { // adjust segement_count
+        if( 0 < ad_data_len[i] ) {
+            segment_count++;
+        }
+    }
+    for(i = 0; i < num_reports && i_octets + ad_data_len[i] <= limes; i++) {
+        if( 0 < ad_data_len[i] ) {
+            ad_reports[i]->read_data(i_octets, ad_data_len[i]);
+            i_octets += ad_data_len[i];
+            read_segments++;
+        }
+    }
+    for(i = 0; i < num_reports && i_octets < limes; i++) {
+        ad_reports[i]->setRSSI(*const_uint8_to_const_int8_ptr(i_octets));
+        i_octets++;
+        read_segments++;
+    }
+    const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
+
+    if( segment_count != read_segments || 0 > bytes_left ) {
+        if( 0 > bytes_left ) {
+            ERR_PRINT("EAD-Reports: Buffer overflow\n");
+        } else {
+            WARN_PRINT("EAD-Reports: Incomplete data segments\n");
+        }
+        WARN_PRINT("AD-Reports: %zu reports within %zu bytes: Segment read %zu < %zu, data-ptr %zd bytes to limes\n",
+                num_reports, data_length, read_segments, segment_count, bytes_left);
+        for(i=0; i<num_reports; i++) {
+            WARN_PRINT("EAD[%d]: ad_data_length %d, %s\n", (int)i, (int)ad_data_len[i], ad_reports[i]->toString(false).c_str());
+        }
+    }
+#if AD_DEBUG
+    else {
+        DBG_PRINT("AD-Reports: %zu reports within %zu bytes: Segment read %zu (%zu), data-ptr %zd bytes to limes\n",
+                num_reports, data_length, read_segments, segment_count, bytes_left);
+        for(i=0; i<num_reports; i++) {
+            DBG_PRINT("EAD[%d]: ad_data_length %d, %s\n", (int)i, (int)ad_data_len[i], ad_reports[i]->toString(false).c_str());
+        }
+    }
+#endif /* AD_DEBUG */
+    return ad_reports;
+}
+
+jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ext_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept {
+    jau::nsize_t const num_reports = (jau::nsize_t) data[0];
+    jau::darray<std::unique_ptr<EInfoReport>> ad_reports;
+
+    if( 0 == num_reports || num_reports > 0x19 ) {
+        DBG_PRINT("EAD-Reports: Invalid reports count: %d", num_reports);
+        return ad_reports;
+    }
+    uint8_t const *limes = data + data_length;
+    uint8_t const *i_octets = data + 1;
+    uint8_t ad_data_len[0x19];
+    jau::nsize_t segment_count = 12 * num_reports; // excluding data segment
+    jau::nsize_t read_segments = 0;
+    jau::nsize_t i;
+    const uint64_t timestamp = jau::getCurrentMilliseconds();
+
+    for(i = 0; i < num_reports && i_octets < limes; i++) {
+        ad_reports.push_back( std::make_unique<EInfoReport>() );
+        ad_reports[i]->setSource(Source::EAD);
+        ad_reports[i]->setTimestamp(timestamp);
+        const EAD_Event_Type ead_type_ = static_cast<EAD_Event_Type>(jau::get_uint16(i_octets, 0, true /* littleEndian */));
+        ad_reports[i]->setExtEvtType(ead_type_);
+        i_octets+=2;
+        if( isEAD_Event_TypeSet(ead_type_, EAD_Event_Type::LEGACY_PDU) ) {
+            ad_reports[i]->setEvtType(static_cast<AD_PDU_Type>(number(ead_type_)));
+        }
+        read_segments++;
+    }
+    for(i = 0; i < num_reports && i_octets < limes; i++) {
+        ad_reports[i]->setADAddressType(*i_octets++);
+        read_segments++;
+    }
+    for(i = 0; i < num_reports && i_octets + 5 < limes; i++) {
+        ad_reports[i]->setAddress( *((EUI48 const *)i_octets) );
+        i_octets += 6;
+        read_segments++;
+    }
+    for(i = 0; i < num_reports && i_octets < limes; i++) {
+        // Primary_PHY: 0x01 = LE_1M, 0x03 = LE_CODED
+        i_octets++;
+        read_segments++;
+    }
+    for(i = 0; i < num_reports && i_octets < limes; i++) {
+        // Sexondary_PHY: 0x00 None, 0x01 = LE_1M, 0x02 = LE_2M, 0x03 = LE_CODED
+        i_octets++;
+        read_segments++;
+    }
+    for(i = 0; i < num_reports && i_octets < limes; i++) {
+        // Advertising_SID
+        i_octets++;
+        read_segments++;
+    }
+    for(i = 0; i < num_reports && i_octets < limes; i++) {
+        ad_reports[i]->setTxPower(*const_uint8_to_const_int8_ptr(i_octets));
+        i_octets++;
         read_segments++;
     }
     for(i = 0; i < num_reports && i_octets < limes; i++) {
@@ -990,12 +1242,60 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         i_octets++;
         read_segments++;
     }
-    const jau::nsize_t bytes_left = static_cast<jau::nsize_t>(limes - i_octets);
-
-    if( segment_count != read_segments ) {
-        WARN_PRINT("AD-Reports: Incomplete %zu reports within %zu bytes: Segment read %zu < %zu, data-ptr %zu bytes to limes\n",
-                num_reports, data_length, read_segments, segment_count, bytes_left);
+    for(i = 0; i < num_reports && i_octets < limes; i++) {
+        // Periodic_Advertising_Interval
+        i_octets+=2;
+        read_segments++;
     }
+    for(i = 0; i < num_reports && i_octets < limes; i++) {
+        // Direct_Address_Type
+        i_octets++;
+        read_segments++;
+    }
+    for(i = 0; i < num_reports && i_octets < limes; i++) {
+        // Direct_Address
+        i_octets+=6;
+        read_segments++;
+    }
+    for(i = 0; i < num_reports && i_octets < limes; i++) {
+        ad_data_len[i] = *i_octets++;
+        read_segments++;
+    }
+    for(i = 0; i < num_reports; i++) { // adjust segement_count
+        if( 0 < ad_data_len[i] ) {
+            segment_count++;
+        }
+    }
+    for(i = 0; i < num_reports && i_octets + ad_data_len[i] <= limes; i++) {
+        if( 0 < ad_data_len[i] ) {
+            ad_reports[i]->read_data(i_octets, ad_data_len[i]);
+            i_octets += ad_data_len[i];
+            read_segments++;
+        }
+    }
+    const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
+
+    if( segment_count != read_segments || 0 > bytes_left ) {
+        if( 0 > bytes_left ) {
+            ERR_PRINT("EAD-Reports: Buffer overflow\n");
+        } else {
+            WARN_PRINT("EAD-Reports: Incomplete data segments\n");
+        }
+        WARN_PRINT("EAD-Reports: %zu reports within %zu bytes: Segment read %zu < %zu, data-ptr %zd bytes to limes\n",
+                num_reports, data_length, read_segments, segment_count, bytes_left);
+        for(i=0; i<num_reports; i++) {
+            WARN_PRINT("EAD[%d]: ad_data_length %d, %s\n", (int)i, (int)ad_data_len[i], ad_reports[i]->toString(false).c_str());
+        }
+    }
+#if AD_DEBUG
+    else {
+        DBG_PRINT("EAD-Reports: %zu reports within %zu bytes: Segment read %zu (%zu), data-ptr %zd bytes to limes\n",
+                num_reports, data_length, read_segments, segment_count, bytes_left);
+        for(i=0; i<num_reports; i++) {
+            DBG_PRINT("EAD[%d]: ad_data_length %d, %s\n", (int)i, (int)ad_data_len[i], ad_reports[i]->toString(false).c_str());
+        }
+    }
+#endif /* AD_DEBUG */
     return ad_reports;
 }
 

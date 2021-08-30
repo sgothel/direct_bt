@@ -387,6 +387,11 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
     }
 
     const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getStartOf(device->getAddressAndType().address, device->getName());
+    if( nullptr != sec ) {
+        fprintf_td(stderr, "****** Connecting Device: Found SecurityDetail %s for %s\n", sec->toString().c_str(), device->toString().c_str());
+    } else {
+        fprintf_td(stderr, "****** Connecting Device: No SecurityDetail for %s\n", device->toString().c_str());
+    }
     const BTSecurityLevel req_sec_level = nullptr != sec ? sec->getSecLevel() : BTSecurityLevel::UNSET;
     HCIStatusCode res = SMPKeyBin::readAndApply(KEY_PATH, *device, req_sec_level, true /* verbose */);
     fprintf_td(stderr, "****** Connecting Device: SMPKeyBin::readAndApply(..) result %s\n", to_string(res).c_str());
@@ -403,7 +408,6 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
                 fprintf_td(stderr, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY (%s) -> set OK %d\n", sec->toString().c_str(), r);
             }
         } else {
-            fprintf_td(stderr, "****** Connecting Device: No SecurityDetail for %s\n", device->getAddressAndType().toString().c_str());
             bool r = device->setConnSecurityAuto( SMPIOCapability::KEYBOARD_ONLY );
             fprintf_td(stderr, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK %d\n", r);
         }
@@ -430,6 +434,13 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
     SMPKeyBin::createAndWrite(*device, KEY_PATH, false /* overwrite */, true /* verbose */);
 
     bool success = false;
+
+    {
+        LE_PHYs resRx, resTx;
+        HCIStatusCode res = device->getConnectedLE_PHY(resRx, resTx);
+        fprintf_td(stderr, "****** Connected LE PHY: status %s: RX %s, TX %s\n",
+                to_string(res).c_str(), to_string(resRx).c_str(), to_string(resTx).c_str());
+    }
 
     //
     // GATT Service Processing
@@ -633,15 +644,16 @@ static bool startDiscovery(BTAdapter *a, std::string msg) {
 }
 
 static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
+    // Even if adapter is not yet powered, listen to it and act when it gets powered-on
+    adapter->addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
+    // Flush discovered devices after registering our status listener.
+    // This avoids discovered devices before we have registered!
+    adapter->removeDiscoveredDevices();
+
     if( !adapter->isPowered() ) { // should have been covered above
         fprintf_td(stderr, "Adapter not powered (2): %s\n", adapter->toString().c_str());
         return false;
     }
-    adapter->addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
-
-    // Flush discovered devices after registering our status listener.
-    // This avoids discovered devices before we have registered!
-    adapter->removeDiscoveredDevices();
 
     if( USE_WHITELIST ) {
         for (auto it = WHITELIST.begin(); it != WHITELIST.end(); ++it) {
@@ -663,6 +675,7 @@ static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>
         } else {
             fprintf_td(stderr, "****** Adapter ADDED__: Ignored %s\n", adapter->toString().c_str());
         }
+        fprintf_td(stderr, "****** Adapter Features: %s\n", direct_bt::to_string(adapter->getLEFeatures()).c_str());
     } else {
         fprintf_td(stderr, "****** Adapter REMOVED: %s\n", adapter->toString().c_str());
     }

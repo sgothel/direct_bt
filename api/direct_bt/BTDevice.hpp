@@ -68,7 +68,7 @@ namespace direct_bt {
             int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
             AppearanceCat appearance = AppearanceCat::UNKNOWN;
             jau::relaxed_atomic_uint16 hciConnHandle;
-            jau::ordered_atomic<LEFeatures, std::memory_order_relaxed> le_features;
+            jau::ordered_atomic<LE_Features, std::memory_order_relaxed> le_features;
             std::shared_ptr<ManufactureSpecificData> advMSD = nullptr;
             jau::darray<std::shared_ptr<uuid_t>> advServices;
 #if SMP_SUPPORTED_BY_OS
@@ -140,7 +140,7 @@ namespace direct_bt {
 
             void notifyDisconnected() noexcept;
             void notifyConnected(std::shared_ptr<BTDevice> sthis, const uint16_t handle, const SMPIOCapability io_cap) noexcept;
-            void notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const LEFeatures features) noexcept;
+            void notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const LE_Features features) noexcept;
 
             /**
              * Setup L2CAP channel connection to device incl. optional security encryption level off-thread.
@@ -357,6 +357,17 @@ namespace direct_bt {
              * Return true if the device has been successfully connected, otherwise false.
              */
             bool getConnected() noexcept { return isConnected.load(); }
+
+            /**
+             * Request and return LE_PHYs bit for the given connection.
+             * <pre>
+             * BT Core Spec v5.2: Vol 4, Part E, 7.8.47 LE Read PHY command (we transfer the sequential value to this bitmask for unification)
+             * </pre>
+             * @param resRx reference for the resulting receiver LE_PHYs bit
+             * @param resTx reference for the resulting transmitter LE_PHYs bit
+             * @return HCIStatusCode
+             */
+            HCIStatusCode getConnectedLE_PHY(LE_PHYs& resRx, LE_PHYs& resTx) noexcept;
 
             /**
              * Establish a HCI BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM connection to this device.

@@ -165,18 +165,27 @@ HCIHandler::HCIConnectionRef HCIHandler::removeHCIConnection(jau::darray<HCIConn
     return nullptr;
 }
 
-void HCIHandler::clearAllStates() noexcept {
+void HCIHandler::resetAllStates(const bool powered_on) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     connectionList.clear();
     disconnectCmdList.clear();
     currentScanType = ScanType::NONE;
+    zeroSupCommands();
+    if( powered_on ) {
+        initSupCommands();
+    }
 }
 
 MgmtEvent::Opcode HCIHandler::translate(HCIEventType evt, HCIMetaEventType met) noexcept {
     if( HCIEventType::LE_META == evt ) {
         switch( met ) {
-            case HCIMetaEventType::LE_CONN_COMPLETE: return MgmtEvent::Opcode::DEVICE_CONNECTED;
-            default: return MgmtEvent::Opcode::INVALID;
+            case HCIMetaEventType::LE_CONN_COMPLETE:
+                [[fallthrough]];
+            case HCIMetaEventType::LE_EXT_CONN_COMPLETE:
+                return MgmtEvent::Opcode::DEVICE_CONNECTED;
+
+            default:
+                return MgmtEvent::Opcode::INVALID;
         }
     }
     switch( evt ) {
@@ -213,6 +222,25 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                     return std::make_unique<MgmtEvtDeviceConnectFailed>(dev_id, addressAndType, status);
                 }
             }
+            case HCIMetaEventType::LE_EXT_CONN_COMPLETE: {
+                HCIStatusCode status;
+                const hci_ev_le_enh_conn_complete * ev_cc = getMetaReplyStruct<hci_ev_le_enh_conn_complete>(ev, mevt, &status);
+                if( nullptr == ev_cc ) {
+                    ERR_PRINT("HCIHandler::translate(reader): LE_EXT_CONN_COMPLETE: Null reply-struct: %s - %s",
+                            ev.toString().c_str(), toString().c_str());
+                    return nullptr;
+                }
+                const HCILEPeerAddressType hciAddrType = static_cast<HCILEPeerAddressType>(ev_cc->bdaddr_type);
+                const BDAddressAndType addressAndType(ev_cc->bdaddr, to_BDAddressType(hciAddrType));
+                const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
+                const HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, handle);
+                if( HCIStatusCode::SUCCESS == status ) {
+                    return std::make_unique<MgmtEvtDeviceConnected>(dev_id, addressAndType, handle);
+                } else {
+                    removeTrackerConnection(conn);
+                    return std::make_unique<MgmtEvtDeviceConnectFailed>(dev_id, addressAndType, status);
+                }
+            }
             case HCIMetaEventType::LE_REMOTE_FEAT_COMPLETE: {
                 HCIStatusCode status;
                 const hci_ev_le_remote_feat_complete * ev_cc = getMetaReplyStruct<hci_ev_le_remote_feat_complete>(ev, mevt, &status);
@@ -222,7 +250,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                     return nullptr;
                 }
                 const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
-                const LEFeatures features = static_cast<LEFeatures>(jau::get_uint64(ev_cc->features, 0, true /* littleEndian */));
+                const LE_Features features = static_cast<LE_Features>(jau::get_uint64(ev_cc->features, 0, true /* littleEndian */));
                 const HCIConnectionRef conn = findTrackerConnection(handle);
                 if( nullptr == conn ) {
                     WARN_PRINT("HCIHandler::translate(reader): LE_REMOTE_FEAT_COMPLETE: Not tracked conn_handle %s",
@@ -364,8 +392,10 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                 std::unique_ptr<HCIACLData> acldata = HCIACLData::getSpecialized(rbuffer.get_ptr(), len2);
                 if( nullptr == acldata ) {
                     // not valid acl-data ...
-                    WARN_PRINT("HCIHandler-IO RECV Drop (non-acl-data) %s - %s",
-                            jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
+                    if( jau::environment::get().verbose ) {
+                        WARN_PRINT("HCIHandler-IO RECV Drop (non-acl-data) %s - %s",
+                                jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
+                    }
                     continue;
                 }
                 const uint8_t* l2cap_data = nullptr; // owned by acldata
@@ -425,9 +455,19 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
             } else if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
                 // issue callbacks for the translated AD events
                 jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
-                for(jau::nsize_t eircount = eirlist.size(); eircount>0; --eircount) {
-                    const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[0] ) );
-                    COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler-IO RECV (AD EIR) %s", e.getEIR()->toString().c_str());
+                for(jau::nsize_t eircount = 0; eircount < eirlist.size(); ++eircount) {
+                    const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[eircount] ) );
+                    COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler-IO RECV (AD EIR) [%d] %s",
+                            eircount, e.getEIR()->toString().c_str());
+                    sendMgmtEvent( e );
+                }
+            } else if( event->isMetaEvent(HCIMetaEventType::LE_EXT_ADV_REPORT) ) {
+                // issue callbacks for the translated EAD events
+                jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ext_ad_reports(event->getParam(), event->getParamSize());
+                for(jau::nsize_t eircount = 0; eircount < eirlist.size(); ++eircount) {
+                    const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[eircount] ) );
+                    COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler-IO RECV (EAD EIR (ext)) [%d] %s",
+                            eircount, e.getEIR()->toString().c_str());
                     sendMgmtEvent( e );
                 }
             } else {
@@ -651,6 +691,9 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         filter_set_metaev(HCIMetaEventType::LE_CONN_COMPLETE, mask);
         filter_set_metaev(HCIMetaEventType::LE_ADVERTISING_REPORT, mask);
         filter_set_metaev(HCIMetaEventType::LE_REMOTE_FEAT_COMPLETE, mask);
+        filter_set_metaev(HCIMetaEventType::LE_EXT_CONN_COMPLETE, mask);
+        filter_set_metaev(HCIMetaEventType::LE_EXT_ADV_REPORT, mask);
+        filter_set_metaev(HCIMetaEventType::LE_CHANNEL_SEL_ALGO, mask);
 #endif
         filter_put_metaevs(mask);
     }
@@ -666,13 +709,22 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         // filter_set_opcbit(HCIOpcodeBit::IO_CAPABILITY_REQ_NEG_REPLY, mask);
         filter_set_opcbit(HCIOpcodeBit::RESET, mask);
         filter_set_opcbit(HCIOpcodeBit::READ_LOCAL_VERSION, mask);
+        filter_set_opcbit(HCIOpcodeBit::READ_LOCAL_COMMANDS, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_SET_SCAN_PARAM, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_SET_SCAN_ENABLE, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_CREATE_CONN, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_ENABLE_ENC, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_READ_PHY, mask);
+        // filter_set_opcbit(HCIOpcodeBit::LE_SET_DEFAULT_PHY, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_SET_EXT_SCAN_PARAMS, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_SET_EXT_SCAN_ENABLE, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_EXT_CREATE_CONN, mask);
 #endif
         filter_put_opcbit(mask);
     }
+
+    sup_commands_set = false;
+    initSupCommands(); // OK to fail
 
     PERF_TS_TD("HCIHandler::ctor.ok");
     WORDY_PRINT("HCIHandler.ctor: End OK - %s", toString().c_str());
@@ -685,6 +737,32 @@ fail:
     return;
 }
 
+void HCIHandler::zeroSupCommands() noexcept {
+    bzero(sup_commands, sizeof(sup_commands));
+    sup_commands_set = false;
+}
+bool HCIHandler::initSupCommands() noexcept {
+    // We avoid using a lock or an atomic-switch as we rely on sensible calls.
+    if( !isOpen() ) {
+        zeroSupCommands();
+        return false;
+    }
+    HCICommand req0(HCIOpcode::READ_LOCAL_COMMANDS, 0);
+    const hci_rp_read_local_commands * ev_cmds;
+    HCIStatusCode status;
+    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_cmds, &status);
+    if( nullptr == ev || nullptr == ev_cmds || HCIStatusCode::SUCCESS != status ) {
+        DBG_PRINT("HCIHandler::ctor: READ_LOCAL_COMMANDS: 0x%x (%s) - %s",
+                number(status), to_string(status).c_str(), toString().c_str());
+        zeroSupCommands();
+        return false;
+    } else {
+        memcpy(sup_commands, ev_cmds->commands, sizeof(sup_commands));
+        sup_commands_set = true;
+        return true;
+    }
+}
+
 void HCIHandler::close() noexcept {
     // Avoid disconnect re-entry -> potential deadlock
     bool expConn = true; // C++11, exp as value since C++20
@@ -692,7 +770,7 @@ void HCIHandler::close() noexcept {
         // not open
         DBG_PRINT("HCIHandler::close: Not connected %s", toString().c_str());
         clearAllCallbacks();
-        clearAllStates();
+        resetAllStates(false);
         comm.close();
         return;
     }
@@ -700,7 +778,7 @@ void HCIHandler::close() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("HCIHandler::close: Start %s", toString().c_str());
     clearAllCallbacks();
-    clearAllStates();
+    resetAllStates(false);
 
     // Interrupt HCIHandler's HCIComm::read(..), avoiding prolonged hang
     // and pull all underlying hci read operations!
@@ -735,7 +813,9 @@ void HCIHandler::close() noexcept {
 
 std::string HCIHandler::toString() const noexcept {
     return "HCIHandler[dev_id "+std::to_string(dev_id)+", BTMode "+to_string(btMode)+", open "+std::to_string(isOpen())+
-            ", scan "+to_string(currentScanType)+", ring[entries "+std::to_string(hciEventRing.getSize())+"]]";
+            ", scan "+to_string(currentScanType)+
+            ", ext[init "+std::to_string(sup_commands_set)+", scan "+std::to_string(use_ext_scan())+", conn "+std::to_string(use_ext_conn())+
+            "], ring[entries "+std::to_string(hciEventRing.getSize())+"]]";
 }
 
 HCIStatusCode HCIHandler::startAdapter() {
@@ -752,6 +832,7 @@ HCIStatusCode HCIHandler::startAdapter() {
                 return HCIStatusCode::INTERNAL_FAILURE;
             }
         }
+        resetAllStates(true);
         return HCIStatusCode::SUCCESS;
     #else
         #warning add implementation
@@ -779,7 +860,7 @@ HCIStatusCode HCIHandler::stopAdapter() {
         status = HCIStatusCode::INTERNAL_FAILURE;
     #endif
     if( HCIStatusCode::SUCCESS == status ) {
-        clearAllStates();
+        resetAllStates(false);
     }
     return status;
 }
@@ -815,7 +896,7 @@ HCIStatusCode HCIHandler::reset() noexcept {
         return HCIStatusCode::INTERNAL_TIMEOUT; // timeout
     }
     if( HCIStatusCode::SUCCESS == status ) {
-        clearAllStates();
+        resetAllStates(true);
     }
     return status;
 }
@@ -843,6 +924,25 @@ HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
     return status;
 }
 
+HCIStatusCode HCIHandler::le_read_local_features(LE_Features& res) noexcept {
+    if( !isOpen() ) {
+        ERR_PRINT("HCIHandler::le_read_local_features: Not connected %s", toString().c_str());
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
+    res = LE_Features::NONE;
+    HCICommand req0(HCIOpcode::LE_READ_LOCAL_FEATURES, 0);
+    const hci_rp_le_read_local_features * ev_lf;
+    HCIStatusCode status;
+    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_lf, &status);
+    if( nullptr == ev || nullptr == ev_lf || HCIStatusCode::SUCCESS != status ) {
+        ERR_PRINT("HCIHandler::le_read_local_features: LE_READ_LOCAL_FEATURES: 0x%x (%s) - %s",
+                number(status), to_string(status).c_str(), toString().c_str());
+    } else {
+        res = static_cast<LE_Features>( jau::get_uint64(ev_lf->features, 0, true /* littleEndian */) );
+    }
+    return status;
+}
+
 HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
                                             const HCILEOwnAddressType own_mac_type,
                                             const uint16_t le_scan_interval, const uint16_t le_scan_window,
@@ -856,20 +956,45 @@ HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
                 toString().c_str(), 0.625f * (float)le_scan_interval, 0.625f * (float)le_scan_window);
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
-    DBG_PRINT("HCI Scan Param: scan [interval %.3f ms, window %.3f ms] - %s",
-            0.625f * (float)le_scan_interval, 0.625f * (float)le_scan_window, toString().c_str());
+    DBG_PRINT("HCI Scan Param: scan [active %d, interval %.3f ms, window %.3f ms, filter %d] - %s",
+            le_scan_active,
+            0.625f * (float)le_scan_interval, 0.625f * (float)le_scan_window,
+            filter_policy, toString().c_str());
 
-    HCIStructCommand<hci_cp_le_set_scan_param> req0(HCIOpcode::LE_SET_SCAN_PARAM);
-    hci_cp_le_set_scan_param * cp = req0.getWStruct();
-    cp->type = le_scan_active ? LE_SCAN_ACTIVE : LE_SCAN_PASSIVE;
-    cp->interval = jau::cpu_to_le(le_scan_interval);
-    cp->window = jau::cpu_to_le(le_scan_window);
-    cp->own_address_type = static_cast<uint8_t>(own_mac_type);
-    cp->filter_policy = filter_policy;
-
-    const hci_rp_status * ev_status;
     HCIStatusCode status;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+    if( use_ext_scan() ) {
+        struct le_set_ext_scan_params {
+            __u8    own_address_type;
+            __u8    filter_policy;
+            __u8    scanning_phys;
+            hci_cp_le_scan_phy_params p1;
+            // hci_cp_le_scan_phy_params p2;
+        } __packed;
+        HCIStructCommand<le_set_ext_scan_params> req0(HCIOpcode::LE_SET_EXT_SCAN_PARAMS);
+        le_set_ext_scan_params * cp = req0.getWStruct();
+        cp->own_address_type = static_cast<uint8_t>(own_mac_type);
+        cp->filter_policy = filter_policy;
+        cp->scanning_phys = direct_bt::number(LE_PHYs::LE_1M); // TODO: Support LM_CODED?
+
+        cp->p1.type = le_scan_active ? LE_SCAN_ACTIVE : LE_SCAN_PASSIVE;
+        cp->p1.interval = jau::cpu_to_le(le_scan_interval);
+        cp->p1.window = jau::cpu_to_le(le_scan_window);
+        // TODO: Support LE_1M + LE_CODED combo?
+
+        const hci_rp_status * ev_status;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+    } else {
+        HCIStructCommand<hci_cp_le_set_scan_param> req0(HCIOpcode::LE_SET_SCAN_PARAM);
+        hci_cp_le_set_scan_param * cp = req0.getWStruct();
+        cp->type = le_scan_active ? LE_SCAN_ACTIVE : LE_SCAN_PASSIVE;
+        cp->interval = jau::cpu_to_le(le_scan_interval);
+        cp->window = jau::cpu_to_le(le_scan_window);
+        cp->own_address_type = static_cast<uint8_t>(own_mac_type);
+        cp->filter_policy = filter_policy;
+
+        const hci_rp_status * ev_status;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+    }
     return status;
 }
 
@@ -886,13 +1011,23 @@ HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_du
 
     HCIStatusCode status;
     if( currentScanType != nextScanType ) {
-        HCIStructCommand<hci_cp_le_set_scan_enable> req0(HCIOpcode::LE_SET_SCAN_ENABLE);
-        hci_cp_le_set_scan_enable * cp = req0.getWStruct();
-        cp->enable = enable ? LE_SCAN_ENABLE : LE_SCAN_DISABLE;
-        cp->filter_dup = filter_dup ? LE_SCAN_FILTER_DUP_ENABLE : LE_SCAN_FILTER_DUP_DISABLE;
-
-        const hci_rp_status * ev_status;
-        std::unique_ptr<HCIEvent> evComplete = processCommandComplete(req0, &ev_status, &status);
+        if( use_ext_scan() ) {
+            HCIStructCommand<hci_cp_le_set_ext_scan_enable> req0(HCIOpcode::LE_SET_EXT_SCAN_ENABLE);
+            hci_cp_le_set_ext_scan_enable * cp = req0.getWStruct();
+            cp->enable = enable ? LE_SCAN_ENABLE : LE_SCAN_DISABLE;
+            cp->filter_dup = LE_SCAN_FILTER_DUP_DISABLE; // filter_dup ? LE_SCAN_FILTER_DUP_ENABLE : LE_SCAN_FILTER_DUP_DISABLE;
+            // cp->duration = 0; // until disabled
+            // cp->period = 0; // until disabled
+            const hci_rp_status * ev_status;
+            std::unique_ptr<HCIEvent> evComplete = processCommandComplete(req0, &ev_status, &status);
+        } else {
+            HCIStructCommand<hci_cp_le_set_scan_enable> req0(HCIOpcode::LE_SET_SCAN_ENABLE);
+            hci_cp_le_set_scan_enable * cp = req0.getWStruct();
+            cp->enable = enable ? LE_SCAN_ENABLE : LE_SCAN_DISABLE;
+            cp->filter_dup = filter_dup ? LE_SCAN_FILTER_DUP_ENABLE : LE_SCAN_FILTER_DUP_DISABLE;
+            const hci_rp_status * ev_status;
+            std::unique_ptr<HCIEvent> evComplete = processCommandComplete(req0, &ev_status, &status);
+        }
     } else {
         status = HCIStatusCode::SUCCESS;
         WARN_PRINT("HCI Enable Scan: current %s == next %s, OK, skip command - %s",
@@ -964,22 +1099,6 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
             1.25f * (float)conn_interval_min, 1.25f * (float)conn_interval_max,
             conn_latency, supervision_timeout*10, toString().c_str());
 
-    HCIStructCommand<hci_cp_le_create_conn> req0(HCIOpcode::LE_CREATE_CONN);
-    hci_cp_le_create_conn * cp = req0.getWStruct();
-    cp->scan_interval = jau::cpu_to_le(le_scan_interval);
-    cp->scan_window = jau::cpu_to_le(le_scan_window);
-    cp->filter_policy = initiator_filter;
-    cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
-    cp->peer_addr = peer_bdaddr;
-    cp->own_address_type = static_cast<uint8_t>(own_mac_type);
-    cp->conn_interval_min = jau::cpu_to_le(conn_interval_min);
-    cp->conn_interval_max = jau::cpu_to_le(conn_interval_max);
-    cp->conn_latency = jau::cpu_to_le(conn_latency);
-    cp->supervision_timeout = jau::cpu_to_le(supervision_timeout);
-    cp->min_ce_len = jau::cpu_to_le(min_ce_length);
-    cp->max_ce_len = jau::cpu_to_le(max_ce_length);
-    const BDAddressAndType addressAndType(peer_bdaddr, to_BDAddressType(peer_mac_type));
-
     int pendingConnections = countPendingTrackerConnections();
     if( 0 < pendingConnections ) {
         DBG_PRINT("HCIHandler::le_create_conn: %d connections pending - %s", pendingConnections, toString().c_str());
@@ -995,6 +1114,7 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
             DBG_PRINT("HCIHandler::le_create_conn: pending connections resolved after %d ms - %s", td, toString().c_str());
         }
     }
+    const BDAddressAndType addressAndType(peer_bdaddr, to_BDAddressType(peer_mac_type));
     HCIConnectionRef disconn = findDisconnectCmd(addressAndType);
     if( nullptr != disconn ) {
         DBG_PRINT("HCIHandler::le_create_conn: disconnect pending %s - %s",
@@ -1014,7 +1134,60 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
     }
     HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, 0);
     HCIStatusCode status;
-    std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
+
+    if( use_ext_conn() ) {
+        struct le_ext_create_conn {
+            __u8      filter_policy;
+            __u8      own_address_type;
+            __u8      peer_addr_type;
+            bdaddr_t  peer_addr;
+            __u8      phys;
+            hci_cp_le_ext_conn_param p1;
+            // hci_cp_le_ext_conn_param p2;
+            // hci_cp_le_ext_conn_param p3;
+        } __packed;
+        HCIStructCommand<le_ext_create_conn> req0(HCIOpcode::LE_EXT_CREATE_CONN);
+        le_ext_create_conn * cp = req0.getWStruct();
+        cp->filter_policy = initiator_filter;
+        cp->own_address_type = static_cast<uint8_t>(own_mac_type);
+        cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
+        cp->peer_addr = peer_bdaddr;
+        cp->phys = direct_bt::number(LE_PHYs::LE_1M); // TODO: Support other PHYs?
+
+        cp->p1.scan_interval = jau::cpu_to_le(le_scan_interval);
+        cp->p1.scan_window = jau::cpu_to_le(le_scan_window);
+        cp->p1.conn_interval_min = jau::cpu_to_le(conn_interval_min);
+        cp->p1.conn_interval_max = jau::cpu_to_le(conn_interval_max);
+        cp->p1.conn_latency = jau::cpu_to_le(conn_latency);
+        cp->p1.supervision_timeout = jau::cpu_to_le(supervision_timeout);
+        cp->p1.min_ce_len = jau::cpu_to_le(min_ce_length);
+        cp->p1.max_ce_len = jau::cpu_to_le(max_ce_length);
+        // TODO: Support some PHYs combo settings?
+
+        std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
+        // Events on successful connection:
+        // - HCI_LE_Enhanced_Connection_Complete
+        // - HCI_LE_Channel_Selection_Algorithm
+    } else {
+        HCIStructCommand<hci_cp_le_create_conn> req0(HCIOpcode::LE_CREATE_CONN);
+        hci_cp_le_create_conn * cp = req0.getWStruct();
+        cp->scan_interval = jau::cpu_to_le(le_scan_interval);
+        cp->scan_window = jau::cpu_to_le(le_scan_window);
+        cp->filter_policy = initiator_filter;
+        cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
+        cp->peer_addr = peer_bdaddr;
+        cp->own_address_type = static_cast<uint8_t>(own_mac_type);
+        cp->conn_interval_min = jau::cpu_to_le(conn_interval_min);
+        cp->conn_interval_max = jau::cpu_to_le(conn_interval_max);
+        cp->conn_latency = jau::cpu_to_le(conn_latency);
+        cp->supervision_timeout = jau::cpu_to_le(supervision_timeout);
+        cp->min_ce_len = jau::cpu_to_le(min_ce_length);
+        cp->max_ce_len = jau::cpu_to_le(max_ce_length);
+
+        std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
+        // Events on successful connection:
+        // - HCI_LE_Connection_Complete
+    }
     if( HCIStatusCode::SUCCESS != status ) {
         removeTrackerConnection(conn);
 
@@ -1147,6 +1320,83 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const BDAddress
     }
     if( HCIStatusCode::SUCCESS == status ) {
         addOrUpdateDisconnectCmd(peerAddressAndType, conn_handle);
+    }
+    return status;
+}
+
+HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
+                                      LE_PHYs& resRx, LE_PHYs& resTx) noexcept {
+    resRx = LE_PHYs::NONE;
+    resTx = LE_PHYs::NONE;
+
+    if( !isOpen() ) {
+        ERR_PRINT("HCIHandler::le_read_phy: Not connected %s", toString().c_str());
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
+    if( 0 == conn_handle ) {
+        ERR_PRINT("HCIHandler::le_read_phy: Null conn_handle given address%s (drop) - %s",
+                  peerAddressAndType.toString().c_str(), toString().c_str());
+        return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
+    }
+    {
+        const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+        HCIConnectionRef conn = findTrackerConnection(conn_handle);
+        if( nullptr == conn ) {
+            // called w/o being connected through this HCIHandler
+            ERR_PRINT("HCIHandler::le_read_phy: Not tracked handle %s (address%s) (drop) - %s",
+                       jau::to_hexstring(conn_handle).c_str(),
+                       peerAddressAndType.toString().c_str(), toString().c_str());
+            return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
+        } else if( !conn->equals(peerAddressAndType) ) {
+            ERR_PRINT("HCIHandler::le_read_phy: Mismatch given address%s and tracked %s (drop) - %s",
+                       peerAddressAndType.toString().c_str(),
+                       conn->toString().c_str(), toString().c_str());
+            return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
+        }
+        DBG_PRINT("HCIHandler::le_read_phy: address%s, handle %s, %s - %s",
+                   peerAddressAndType.toString().c_str(),
+                   jau::to_hexstring(conn_handle).c_str(),
+                   conn->toString().c_str(), toString().c_str());
+    }
+    struct hci_cp_le_read_phy {
+        __le16   handle;
+    } __packed;
+    struct hci_rp_le_read_phy {
+        __u8     status;
+        __le16   handle;
+        __u8    tx_phys;
+        __u8    rx_phys;
+    } __packed;
+
+    HCIStatusCode status;
+
+    HCIStructCommand<hci_cp_le_read_phy> req0(HCIOpcode::LE_READ_PHY);
+    hci_cp_le_read_phy * cp = req0.getWStruct();
+    cp->handle = jau::cpu_to_le(conn_handle);
+    const hci_rp_le_read_phy * ev_phy;
+    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_phy, &status);
+
+    if( nullptr == ev || nullptr == ev_phy || HCIStatusCode::SUCCESS != status ) {
+        ERR_PRINT("HCIHandler::le_read_phy: LE_READ_PHY: 0x%x (%s) - %s",
+                number(status), to_string(status).c_str(), toString().c_str());
+    } else {
+        const uint16_t conn_handle_rcvd = jau::le_to_cpu(ev_phy->handle);
+        if( conn_handle != conn_handle_rcvd ) {
+            ERR_PRINT("HCIHandler::le_read_phy: Mismatch given address%s conn_handle (req) %s != %s (res) (drop) - %s",
+                       peerAddressAndType.toString().c_str(),
+                       jau::to_hexstring(conn_handle).c_str(), jau::to_hexstring(conn_handle_rcvd).c_str(), toString().c_str());
+            return HCIStatusCode::INTERNAL_FAILURE;
+        }
+        switch( ev_phy->tx_phys ) {
+            case 0x01: resTx = LE_PHYs::LE_1M; break;
+            case 0x02: resTx = LE_PHYs::LE_2M; break;
+            case 0x03: resTx = LE_PHYs::LE_CODED; break;
+        }
+        switch( ev_phy->rx_phys ) {
+            case 0x01: resRx = LE_PHYs::LE_1M; break;
+            case 0x02: resRx = LE_PHYs::LE_2M; break;
+            case 0x03: resRx = LE_PHYs::LE_CODED; break;
+        }
     }
     return status;
 }

@@ -254,6 +254,9 @@ namespace direct_bt {
             const bool debug_event, debug_lock;
             BTManager& mgmt;
             AdapterInfo adapterInfo;
+            LE_Features le_features;
+            bool hci_uses_ext_scan;
+            bool hci_uses_ext_conn;
 
             /**
              * Either the adapter's initially reported public address or a random address setup via HCI before scanning / discovery.
@@ -298,6 +301,7 @@ namespace direct_bt {
             mutable std::mutex mtx_sharedDevices; // final mutex of all BTDevice lifecycle
             mutable jau::sc_atomic_bool sync_data;
 
+            bool updateDataFromHCI() noexcept;
             bool validateDevInfo() noexcept;
 
             static std::shared_ptr<BTDevice> findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
@@ -451,6 +455,20 @@ namespace direct_bt {
             bool hasSecureSimplePairing() const noexcept {
                 return adapterInfo.isCurrentSettingBitSet(AdapterSetting::SSP);
             }
+
+            /**
+             * Return LE_Features for this controller.
+             * <pre>
+             * BT Core Spec v5.2: Vol 6, Part B, 4.6 (LE LL) Feature Support
+             * </pre>
+             */
+            constexpr LE_Features getLEFeatures() const noexcept { return le_features; }
+
+            /** Returns true if HCI_LE_Set_Extended_Scan_Parameters and HCI_LE_Set_Extended_Scan_Enable is supported (Bluetooth 5.0). */
+            constexpr bool hasHCIExtScan() const noexcept { return hci_uses_ext_scan; }
+
+            /** Returns true if HCI_LE_Extended_Create_Connection is supported (Bluetooth 5.0). */
+            constexpr bool hasHCIExtConn() const noexcept { return hci_uses_ext_conn; }
 
             /**
              * Returns whether the adapter is valid, i.e. reference is valid, plugged in and generally operational,

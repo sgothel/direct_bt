@@ -233,9 +233,13 @@ The following **platforms** are tested and hence supported
 
 The following **Bluetooth Adapter** were tested
 
-* Intel Bluemoon Bluetooth Adapter
-* CSR Bluetooth Adapter (CSR8510,..)
-* Raspberry Pi Bluetooth Adapter (BCM43455 on 3+, 4)
+* Bluetooth 4.0
+  - Intel Bluemoon Bluetooth Adapter
+  - CSR Bluetooth Adapter (CSR8510,..)
+  - Raspberry Pi Bluetooth Adapter (BCM43455 on 3+, 4)
+
+* Bluetooth 5.0
+  - Intel AX200 Bluetooth 5.0 (Wi-Fi 6 802.11ax (2.4Gbps) + BT 5.0)
 
 
 ## Build Status
@@ -372,6 +376,13 @@ make doc
 **2.3.0 *Direct-BT* Maturity (Bluetooth LE)**
 
 * TODO
+
+**2.2.14**
+
+* Bluetooth 5.0 Support
+  - Using HCI extended scanning and connecting if supported (old API may not work on new adapter)
+  - Parsing and translating extended and enhanced event types, etc
+  - TODO: User selection of `LE_2M` and `L2_CODED`, ... ???
 
 **2.2.13**
 

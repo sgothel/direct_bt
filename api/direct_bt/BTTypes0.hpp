@@ -76,37 +76,130 @@ namespace direct_bt {
     BTMode to_BTMode(const std::string & value) noexcept;
 
     /**
+     * HCI Supported Commands
+     * <pre>
+     * BT Core Spec v5.2: Vol 4, Part E, 6.27 (HCI) Supported Commands
+     * BT Core Spec v5.2: Vol 4, Part E, 7.4.2 Read Local Supported Commands command
+     * </pre>
+     *
+     * Unable to encode via enum and build-in integer: 64 octets = 512 bit wide!
+     *
+    enum class HCISupportedCommands : jau::uint512_t {
+        NONE                    = 0,
+        HCI_Create_Connection   = ...
+    };
+     */
+
+    /**
      * LE Link Layer Feature Set
      * <pre>
-     * BT Core Spec v5.2: Vol 6, Part B, 4.6 (LE) Features Support
+     * BT Core Spec v5.2: Vol 6, Part B, 4.6 (LE LL) Feature Support
+     *
+     * BT Core Spec v5.2: Vol 4, Part E, 7.8.3 LE Read Local Supported Features command
+     *
+     * BT Core Spec v5.2: Vol 4, Part E, 7.8.21 LE Read Remote Features command
+     * BT Core Spec v5.2: Vol 4, Part E, 7.7.65.4 LE Read Remote Features Complete event
+     *
+     * BT Core Spec v5.2: Vol 6, Part B, 7.8.115 LE Set Host Feature Command
      * </pre>
      */
-    enum class LEFeatures : uint64_t {
+    enum class LE_Features : uint64_t {
         NONE                    =                                                                  0,/**< NONE */
         LE_Encryption           = 0b0000000000000000000000000000000000000000000000000000000000000001,/**< LE_Encryption */
-        Conn_Param_Request_Proc = 0b0000000000000000000000000000000000000000000000000000000000000010 /**< Conn_Param_Request_Proc */
+        Conn_Param_Req_Proc     = 0b0000000000000000000000000000000000000000000000000000000000000010,/**< Conn_Param_Request_Proc */
+        Ext_Rej_Ind             = 0b0000000000000000000000000000000000000000000000000000000000000100,
+        SlaveInit_Feat_Exchg    = 0b0000000000000000000000000000000000000000000000000000000000001000,
+        LE_Ping                 = 0b0000000000000000000000000000000000000000000000000000000000010000,
+        LE_Data_Pkt_Len_Ext     = 0b0000000000000000000000000000000000000000000000000000000000100000,
+        LL_Privacy              = 0b0000000000000000000000000000000000000000000000000000000001000000,
+        Ext_Scan_Filter_Pol     = 0b0000000000000000000000000000000000000000000000000000000010000000,
+        LE_2M_PHY               = 0b0000000000000000000000000000000000000000000000000000000100000000,
+        Stable_Mod_Idx_Tx       = 0b0000000000000000000000000000000000000000000000000000001000000000,
+        Stable_Mod_Idx_Rx       = 0b0000000000000000000000000000000000000000000000000000010000000000,
+        LE_Coded_PHY            = 0b0000000000000000000000000000000000000000000000000000100000000000,
+        LE_Ext_Adv              = 0b0000000000000000000000000000000000000000000000000001000000000000,
+        LE_Per_Adv              = 0b0000000000000000000000000000000000000000000000000010000000000000,
+        Chan_Sel_Algo_2         = 0b0000000000000000000000000000000000000000000000000100000000000000,
+        LE_Pwr_Cls_1            = 0b0000000000000000000000000000000000000000000000001000000000000000,
+        Min_Num_Used_Chan_Proc  = 0b0000000000000000000000000000000000000000000000010000000000000000,
+        Conn_CTE_Req            = 0b0000000000000000000000000000000000000000000000100000000000000000,
+        Conn_CTE_Res            = 0b0000000000000000000000000000000000000000000001000000000000000000,
+        ConnLess_CTE_Tx         = 0b0000000000000000000000000000000000000000000010000000000000000000,
+        ConnLess_CTE_Rx         = 0b0000000000000000000000000000000000000000000100000000000000000000,
+        AoD                     = 0b0000000000000000000000000000000000000000001000000000000000000000,
+        AoA                     = 0b0000000000000000000000000000000000000000010000000000000000000000,
+        Rx_Const_Tone_Ext       = 0b0000000000000000000000000000000000000000100000000000000000000000, // bit #23
+        Per_Adv_Sync_Tx_Sender  = 0b0000000000000000000000000000000000000001000000000000000000000000,
+        Per_Adv_Sync_Tx_Rec     = 0b0000000000000000000000000000000000000010000000000000000000000000,
+        Zzz_Clk_Acc_Upd         = 0b0000000000000000000000000000000000000100000000000000000000000000,
+        Rem_Pub_Key_Val         = 0b0000000000000000000000000000000000001000000000000000000000000000,
+        Conn_Iso_Stream_Master  = 0b0000000000000000000000000000000000010000000000000000000000000000,
+        Conn_Iso_Stream_Slave   = 0b0000000000000000000000000000000000100000000000000000000000000000,
+        Iso_Brdcst              = 0b0000000000000000000000000000000001000000000000000000000000000000,
+        Sync_Rx                 = 0b0000000000000000000000000000000010000000000000000000000000000000,
+        Iso_Chan                = 0b0000000000000000000000000000000100000000000000000000000000000000,
+        LE_Pwr_Ctrl_Req         = 0b0000000000000000000000000000001000000000000000000000000000000000,
+        LE_Pwr_Chg_Ind          = 0b0000000000000000000000000000010000000000000000000000000000000000,
+        LE_Path_Loss_Mon        = 0b0000000000000000000000000000100000000000000000000000000000000000  // bit #35
     };
-    constexpr uint64_t number(const LEFeatures rhs) noexcept {
+    constexpr uint64_t number(const LE_Features rhs) noexcept {
         return static_cast<uint64_t>(rhs);
     }
-    constexpr LEFeatures operator ^(const LEFeatures lhs, const LEFeatures rhs) noexcept {
-        return static_cast<LEFeatures> ( number(lhs) ^ number(rhs) );
+    constexpr LE_Features operator ^(const LE_Features lhs, const LE_Features rhs) noexcept {
+        return static_cast<LE_Features> ( number(lhs) ^ number(rhs) );
     }
-    constexpr LEFeatures operator |(const LEFeatures lhs, const LEFeatures rhs) noexcept {
-        return static_cast<LEFeatures> ( number(lhs) | number(rhs) );
+    constexpr LE_Features operator |(const LE_Features lhs, const LE_Features rhs) noexcept {
+        return static_cast<LE_Features> ( number(lhs) | number(rhs) );
     }
-    constexpr LEFeatures operator &(const LEFeatures lhs, const LEFeatures rhs) noexcept {
-        return static_cast<LEFeatures> ( number(lhs) & number(rhs) );
+    constexpr LE_Features operator &(const LE_Features lhs, const LE_Features rhs) noexcept {
+        return static_cast<LE_Features> ( number(lhs) & number(rhs) );
     }
-    constexpr bool operator ==(const LEFeatures lhs, const LEFeatures rhs) noexcept {
+    constexpr bool operator ==(const LE_Features lhs, const LE_Features rhs) noexcept {
         return number(lhs) == number(rhs);
     }
-    constexpr bool operator !=(const LEFeatures lhs, const LEFeatures rhs) noexcept {
+    constexpr bool operator !=(const LE_Features lhs, const LE_Features rhs) noexcept {
         return !( lhs == rhs );
     }
-    constexpr bool isLEFeaturesBitSet(const LEFeatures mask, const LEFeatures bit) noexcept {
-        return LEFeatures::NONE != ( mask & bit );
+    constexpr bool isLEFeaturesBitSet(const LE_Features mask, const LE_Features bit) noexcept {
+        return LE_Features::NONE != ( mask & bit );
     }
+    std::string to_string(const LE_Features mask) noexcept;
+
+    /**
+     * LE Transport PHY bit values
+     * <pre>
+     * BT Core Spec v5.2: Vol 4, Part E, 7.8.47 LE Read PHY command (we transfer the sequential value to this bitmask for unification)
+     * BT Core Spec v5.2: Vol 4, Part E, 7.8.48 LE Set Default PHY command
+     * </pre>
+     */
+    enum class LE_PHYs : uint8_t {
+        NONE        = 0,
+        LE_1M       = 0b00000001,
+        LE_2M       = 0b00000010,
+        LE_CODED    = 0b00000100
+    };
+    constexpr uint8_t number(const LE_PHYs rhs) noexcept {
+        return static_cast<uint8_t>(rhs);
+    }
+    constexpr LE_PHYs operator ^(const LE_PHYs lhs, const LE_PHYs rhs) noexcept {
+        return static_cast<LE_PHYs> ( number(lhs) ^ number(rhs) );
+    }
+    constexpr LE_PHYs operator |(const LE_PHYs lhs, const LE_PHYs rhs) noexcept {
+        return static_cast<LE_PHYs> ( number(lhs) | number(rhs) );
+    }
+    constexpr LE_PHYs operator &(const LE_PHYs lhs, const LE_PHYs rhs) noexcept {
+        return static_cast<LE_PHYs> ( number(lhs) & number(rhs) );
+    }
+    constexpr bool operator ==(const LE_PHYs lhs, const LE_PHYs rhs) noexcept {
+        return number(lhs) == number(rhs);
+    }
+    constexpr bool operator !=(const LE_PHYs lhs, const LE_PHYs rhs) noexcept {
+        return !( lhs == rhs );
+    }
+    constexpr bool isLEPHYBitSet(const LE_PHYs mask, const LE_PHYs bit) noexcept {
+        return LE_PHYs::NONE != ( mask & bit );
+    }
+    std::string to_string(const LE_PHYs mask) noexcept;
 
     /**
      * Bluetooth Security Level.
@@ -240,6 +333,7 @@ namespace direct_bt {
      * LE Advertising (AD) Protocol Data Unit (PDU) Types
      * <p>
      * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.7.65.2 LE Advertising Report event
+     * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.7.65.13 LE Extended Advertising Report event
      * BT Core Spec v5.2: Vol 6 LE Controller, Part B Link Layer: 2.3 Advertising physical channel PDU
      * BT Core Spec v5.2: Vol 6 LE Controller, Part B Link Layer: 2.3.1 Advertising PDUs
      * </p>
@@ -249,21 +343,71 @@ namespace direct_bt {
          * Advertising Indications (ADV_IND),
          * where a peripheral device requests connection to any central device
          * (i.e., not directed at a particular central device). */
-        ADV_IND  = 0x00,
+        ADV_IND                     = 0x00,
         /** Similar to ADV_IND, yet the connection request is directed at a specific central device. */
-        ADV_DIRECT_IND = 0x01,
-        /** Similar to ADV_NONCONN_IND, with the option additional information via scan responses. */
-        ADV_SCAN_IND = 0x02,
+        ADV_DIRECT_IND              = 0x01,
+        /** Similar to ADV_IND, w/o connection requests and with the option additional information via scan responses. */
+        ADV_SCAN_IND                = 0x02,
         /** Non connectable devices, advertising information to any listening device. */
-        ADV_NONCONN_IND = 0x03,
-        SCAN_RSP = 0x04,
-        ADV_UNDEFINED = 0xff
+        ADV_NONCONN_IND             = 0x03,
+        /** Scan response PDU type. */
+        SCAN_RSP                    = 0x04,
+
+        /** EAD_Event_Type with EAD_Event_Type::LEGACY_PDU: ADV_IND variant */
+        ADV_IND2                    = 0b0010011,
+        /** EAD_Event_Type with EAD_Event_Type::LEGACY_PDU: ADV_DIRECT_IND variant */
+        DIRECT_IND2                 = 0b0010101,
+        /** EAD_Event_Type with EAD_Event_Type::LEGACY_PDU: ADV_SCAN_IND variant */
+        SCAN_IND2                   = 0b0010010,
+        /** EAD_Event_Type with EAD_Event_Type::LEGACY_PDU: ADV_NONCONN_IND variant */
+        NONCONN_IND2                = 0b0010000,
+        /** EAD_Event_Type with EAD_Event_Type::LEGACY_PDU: SCAN_RSP variant to an ADV_IND */
+        SCAN_RSP_to_ADV_IND         = 0b0011011,
+        /** EAD_Event_Type with EAD_Event_Type::LEGACY_PDU: SCAN_RSP variant to an ADV_SCAN_IND */
+        SCAN_RSP_to_ADV_SCAN_IND    = 0b0011010,
+
+        UNDEFINED                   = 0xff
     };
     constexpr uint8_t number(const AD_PDU_Type rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
     std::string to_string(const AD_PDU_Type v) noexcept;
 
+
+    /**
+     * LE Extended Advertising (EAD) Event Types
+     * <p>
+     * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.7.65.13 LE Extended Advertising Report event
+     * </p>
+     */
+    enum class EAD_Event_Type : uint16_t {
+        NONE        = 0,
+        CONN_ADV    = 0b00000001,
+        SCAN_ADV    = 0b00000010,
+        DIR_ADV     = 0b00000100,
+        SCAN_RSP    = 0b00001000,
+        LEGACY_PDU  = 0b00010000,
+        DATA_B0     = 0b00100000,
+        DATA_B1     = 0b01000000,
+    };
+    constexpr uint16_t number(const EAD_Event_Type rhs) noexcept {
+        return static_cast<uint16_t>(rhs);
+    }
+    constexpr EAD_Event_Type operator |(const EAD_Event_Type lhs, const EAD_Event_Type rhs) noexcept {
+        return static_cast<EAD_Event_Type> ( number(lhs) | number(rhs) );
+    }
+    constexpr EAD_Event_Type operator &(const EAD_Event_Type lhs, const EAD_Event_Type rhs) noexcept {
+        return static_cast<EAD_Event_Type> ( number(lhs) & number(rhs) );
+    }
+    constexpr bool operator ==(const EAD_Event_Type lhs, const EAD_Event_Type rhs) noexcept {
+        return number(lhs) == number(rhs);
+    }
+    constexpr bool operator !=(const EAD_Event_Type lhs, const EAD_Event_Type rhs) noexcept {
+        return !( lhs == rhs );
+    }
+    constexpr bool isEAD_Event_TypeSet(const EAD_Event_Type mask, const EAD_Event_Type bit) noexcept { return EAD_Event_Type::NONE != ( mask & bit ); }
+    constexpr void setEAD_Event_TypeSet(EAD_Event_Type &mask, const EAD_Event_Type bit) noexcept { mask = mask | bit; }
+    std::string to_string(const EAD_Event_Type v) noexcept;
 
     /**
      * HCI Whitelist connection type.
@@ -608,30 +752,31 @@ namespace direct_bt {
     enum class EIRDataType : uint32_t {
         NONE         = 0,
         EVT_TYPE     = (1 << 0),
-        BDADDR_TYPE  = (1 << 1),
-        BDADDR       = (1 << 2),
-        FLAGS        = (1 << 3),
-        NAME         = (1 << 4),
-        NAME_SHORT   = (1 << 5),
-        RSSI         = (1 << 6),
-        TX_POWER     = (1 << 7),
-        MANUF_DATA   = (1 << 8),
-        DEVICE_CLASS = (1 << 9),
-        APPEARANCE   = (1 << 10),
-        HASH         = (1 << 11),
-        RANDOMIZER   = (1 << 12),
-        DEVICE_ID    = (1 << 13),
+        EXT_EVT_TYPE = (1 << 1),
+        BDADDR_TYPE  = (1 << 2),
+        BDADDR       = (1 << 3),
+        FLAGS        = (1 << 4),
+        NAME         = (1 << 5),
+        NAME_SHORT   = (1 << 6),
+        RSSI         = (1 << 7),
+        TX_POWER     = (1 << 8),
+        MANUF_DATA   = (1 << 9),
+        DEVICE_CLASS = (1 << 10),
+        APPEARANCE   = (1 << 11),
+        HASH         = (1 << 12),
+        RANDOMIZER   = (1 << 13),
+        DEVICE_ID    = (1 << 14),
         SERVICE_UUID = (1 << 30)
     };
     constexpr uint32_t number(const EIRDataType rhs) noexcept { return static_cast<uint32_t>(rhs); }
     constexpr EIRDataType operator |(const EIRDataType lhs, const EIRDataType rhs) noexcept {
-        return static_cast<EIRDataType> ( static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs) );
+        return static_cast<EIRDataType> ( number(lhs) | number(rhs) );
     }
     constexpr EIRDataType operator &(const EIRDataType lhs, const EIRDataType rhs) noexcept {
-        return static_cast<EIRDataType> ( static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs) );
+        return static_cast<EIRDataType> ( number(lhs) & number(rhs) );
     }
     constexpr bool operator ==(const EIRDataType lhs, const EIRDataType rhs) noexcept {
-        return static_cast<uint32_t>(lhs) == static_cast<uint32_t>(rhs);
+        return number(lhs) == number(rhs);
     }
     constexpr bool operator !=(const EIRDataType lhs, const EIRDataType rhs) noexcept {
         return !( lhs == rhs );
@@ -641,8 +786,18 @@ namespace direct_bt {
     std::string to_string(const EIRDataType mask) noexcept;
 
     /**
-     * Collection of 'Advertising Data' (AD)
+     * Collection of 'Extended Advertising Data' (EAD), 'Advertising Data' (AD)
      * or 'Extended Inquiry Response' (EIR) information.
+     *
+     * References:
+     *
+     * - BT Core Spec v5.2: Vol 4, Part E, 7.7.65.2 LE Advertising Report event
+     * - BT Core Spec v5.2: Vol 4, Part E, 7.7.65.13 LE Extended Advertising Report event
+     * - BT Core Spec v5.2: Vol 3, Part C, 11 ADVERTISING AND SCAN RESPONSE DATA FORMAT
+     * - BT Core Spec v5.2: Vol 3, Part C, 8  EXTENDED INQUIRY RESPONSE DATA FORMAT
+     * - BT Core Spec Supplement v9, Part A: Section 1 + 2 Examples, p25..
+     * - [Assigned Numbers - Generic Access Profile](https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/)
+     *
      */
     class EInfoReport
     {
@@ -652,6 +807,8 @@ namespace direct_bt {
             NA,
             /* Advertising Data (AD) */
             AD,
+            /* Extended Advertising Data (EAD) */
+            EAD,
             /** Extended Inquiry Response (EIR) */
             EIR,
             /** Extended Inquiry Response (EIR) from Kernel Mgmt */
@@ -663,7 +820,8 @@ namespace direct_bt {
         uint64_t timestamp = 0;
         EIRDataType eir_data_mask = static_cast<EIRDataType>(0);
 
-        AD_PDU_Type evt_type = AD_PDU_Type::ADV_UNDEFINED;
+        AD_PDU_Type evt_type = AD_PDU_Type::UNDEFINED;
+        EAD_Event_Type ead_type = EAD_Event_Type::NONE;
         uint8_t ad_address_type = 0;
         BDAddressType addressType = BDAddressType::BDADDR_UNDEFINED;
         EUI48 address;
@@ -706,6 +864,7 @@ namespace direct_bt {
         void setSource(Source s) noexcept { source = s; }
         void setTimestamp(uint64_t ts) noexcept { timestamp = ts; }
         void setEvtType(AD_PDU_Type et) noexcept { evt_type = et; set(EIRDataType::EVT_TYPE); }
+        void setExtEvtType(EAD_Event_Type eadt) noexcept { ead_type = eadt; set(EIRDataType::EXT_EVT_TYPE); }
         void setADAddressType(uint8_t adAddressType) noexcept;
         void setAddressType(BDAddressType at) noexcept;
         void setAddress(EUI48 const &a) noexcept { address = a; set(EIRDataType::BDADDR); }
@@ -714,16 +873,32 @@ namespace direct_bt {
         /**
          * Reads a complete Advertising Data (AD) Report
          * and returns the number of AD reports in form of a sharable list of EInfoReport;
-         * <p>
-         * See Bluetooth Core Specification V5.2 [Vol. 4, Part E, 7.7.65.2, p 2382]
-         * <p>
+         * <pre>
+         * BT Core Spec v5.2: Vol 4, Part E, 7.7.65.2 LE Advertising Report event
+         * BT Core Spec v5.2: Vol 3, Part C, 11 ADVERTISING AND SCAN RESPONSE DATA FORMAT
+         * BT Core Spec v5.2: Vol 3, Part C, 8  EXTENDED INQUIRY RESPONSE DATA FORMAT
+         * <pre>
          * https://www.bluetooth.com/specifications/archived-specifications/
          * </p>
          */
         static jau::darray<std::unique_ptr<EInfoReport>> read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept;
 
         /**
-         * Reads the Extended Inquiry Response (EIR) or Advertising Data (AD) segments
+         * Reads a complete Extended Advertising Data (AD) Report
+         * and returns the number of AD reports in form of a sharable list of EInfoReport;
+         * <pre>
+         * BT Core Spec v5.2: Vol 4, Part E, 7.7.65.13 LE Extended Advertising Report event
+         * BT Core Spec v5.2: Vol 3, Part C, 11 ADVERTISING AND SCAN RESPONSE DATA FORMAT
+         * BT Core Spec v5.2: Vol 3, Part C, 8  EXTENDED INQUIRY RESPONSE DATA FORMAT
+         * </pre>
+         * <p>
+         * https://www.bluetooth.com/specifications/archived-specifications/
+         * </p>
+         */
+        static jau::darray<std::unique_ptr<EInfoReport>> read_ext_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept;
+
+        /**
+         * Reads the Extended Inquiry Response (EIR) or (Extended) Advertising Data (EAD or AD) segments
          * and returns the number of parsed data segments;
          * <p>
          * AD as well as EIR information is passed in little endian order
@@ -738,10 +913,14 @@ namespace direct_bt {
          * </pre>
          * </p>
          * <p>
-         * * See Bluetooth Core Specification V5.2 [Vol. 3, Part C, Section 8]
-         * * and Bluetooth Core Specification V5.2 [Vol. 3, Part C, Section 11]
-         * * and Bluetooth Core Specification Supplement V9, Part A: Section 1 + 2 Examples, p25..
-         * * and [Assigned Numbers - Generic Access Profile](https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/)
+         *
+         * References:
+         *
+         * - BT Core Spec v5.2: Vol 3, Part C, 11 ADVERTISING AND SCAN RESPONSE DATA FORMAT
+         * - BT Core Spec v5.2: Vol 3, Part C, 8  EXTENDED INQUIRY RESPONSE DATA FORMAT
+         * - BT Core Spec Supplement v9, Part A: Section 1 + 2 Examples, p25..
+         * - [Assigned Numbers - Generic Access Profile](https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/)
+         *
          * </p>
          * <p>
          * https://www.bluetooth.com/specifications/archived-specifications/
@@ -755,6 +934,7 @@ namespace direct_bt {
         EIRDataType getEIRDataMask() const noexcept { return eir_data_mask; }
 
         AD_PDU_Type getEvtType() const noexcept { return evt_type; }
+        EAD_Event_Type getExtEvtType() const noexcept { return ead_type; }
         GAPFlags getFlags() const noexcept { return flags; }
         uint8_t getADAddressType() const noexcept { return ad_address_type; }
         BDAddressType getAddressType() const noexcept { return addressType; }

@@ -175,6 +175,7 @@ std::string to_string(const HCIOGF op) noexcept {
     X(SET_EVENT_MASK) \
     X(RESET) \
     X(READ_LOCAL_VERSION) \
+    X(READ_LOCAL_COMMANDS) \
     X(LE_SET_EVENT_MASK) \
     X(LE_READ_BUFFER_SIZE) \
     X(LE_READ_LOCAL_FEATURES) \
@@ -194,7 +195,13 @@ std::string to_string(const HCIOGF op) noexcept {
     X(LE_DEL_FROM_WHITE_LIST) \
     X(LE_CONN_UPDATE) \
     X(LE_READ_REMOTE_FEATURES) \
-    X(LE_ENABLE_ENC)
+    X(LE_ENABLE_ENC) \
+    X(LE_READ_PHY) \
+    X(LE_SET_DEFAULT_PHY) \
+    X(LE_SET_EXT_SCAN_PARAMS) \
+    X(LE_SET_EXT_SCAN_ENABLE) \
+    X(LE_EXT_CREATE_CONN)
+
 
 #define HCI_OPCODE_CASE_TO_STRING(V) case HCIOpcode::V: return #V;
 
@@ -260,7 +267,7 @@ std::string to_string(const HCIEventType op) noexcept {
     X(LE_DATA_LENGTH_CHANGE) \
     X(LE_READ_LOCAL_P256_PUBKEY_COMPLETE) \
     X(LE_GENERATE_DHKEY_COMPLETE) \
-    X(LE_ENHANCED_CONN_COMPLETE) \
+    X(LE_EXT_CONN_COMPLETE) \
     X(LE_DIRECT_ADV_REPORT) \
     X(LE_PHY_UPDATE_COMPLETE) \
     X(LE_EXT_ADV_REPORT) \
@@ -348,8 +355,10 @@ std::unique_ptr<HCIACLData> HCIACLData::getSpecialized(const uint8_t * buffer, j
     }
     const jau::nsize_t paramSize = buffer_size >= number(HCIConstSizeT::ACL_HDR_SIZE) ? jau::get_uint16(buffer, 3) : 0;
     if( buffer_size < number(HCIConstSizeT::ACL_HDR_SIZE) + paramSize ) {
-        WARN_PRINT("HCIACLData::getSpecialized: length mismatch %u < ACL_HDR_SIZE(%u) + %u",
-                buffer_size, number(HCIConstSizeT::ACL_HDR_SIZE), paramSize);
+        if( jau::environment::get().verbose ) {
+            WARN_PRINT("HCIACLData::getSpecialized: length mismatch %u < ACL_HDR_SIZE(%u) + %u",
+                    buffer_size, number(HCIConstSizeT::ACL_HDR_SIZE), paramSize);
+        }
         return nullptr;
     }
     return std::make_unique<HCIACLData>(buffer, buffer_size);

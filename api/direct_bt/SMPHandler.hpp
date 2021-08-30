@@ -64,6 +64,26 @@
  * - BT Core Spec v5.2: Vol 3, Part H Security Manager Specification (SM): 2 Security Manager (SM)
  * - BT Core Spec v5.2: Vol 3, Part H Security Manager Specification (SM): 3 Security Manager Protocol (SMP)
  *
+ * Overall bookmark regarding BT Security
+ *
+ * - BT Core Spec v5.2: Vol 1, Part A Architecture: 5 Security architecture
+ * - BT Core Spec v5.2: Vol 1, Part A Architecture: 5.4 LE Security
+ * - BT Core Spec v5.2: Vol 1, Part A Architecture: 5.4.5 LE Privacy feature
+ *   - device privacy mode (mixed mode, also accept other peer address)
+ *   - network privacy mode (only private address - default!)
+ *   - add device to resolving list, implying being added to device white list!
+ *
+ * - BT Core Spec v5.2: Vol 3, Part C GAP: 10.2 LE SECURITY MODES
+ *
+ * - BT Core Spec v5.2: Vol 3, Part H Security Manager Specification (SM): 2 Security Manager (SM)
+ *   - 2.3.5 Pairing: 2.3.5.6 LE Secure Connections pairing phase 2
+ *   - 2.3.5 Pairing: 2.3.5.6.3 LE Authentication stage 1 – Passkey Entry
+ * - BT Core Spec v5.2: Vol 3, Part H Security Manager Specification (SM): 3 Security Manager Protocol (SMP)
+ *   - fixed channel over L2CAP
+ *
+ * - BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.77 LE Set Privacy Mode command
+ *
+ * - BT Core Spec v5.2: Vol 6 LE Adapter, Part B Link Layer Spec: 4.7 Resolving List
  */
 namespace direct_bt {
 

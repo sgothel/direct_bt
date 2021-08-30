@@ -40,6 +40,8 @@
 # To do a BT adapter removal/add via software, assuming the device is '1-4' (Bus 1.Port 4):
 #   echo '1-4' > /sys/bus/usb/drivers/usb/unbind 
 #   echo '1-4' > /sys/bus/usb/drivers/usb/bind 
+# To retrieve Bus and Port:
+#   lsusb -t
 #
 # Non root (we use the capsh solution per default):
 #   Debian 11: Package libcap2-bin, version 1:2.44-1, binaries: /sbin/setcap /sbin/getcap

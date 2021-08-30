@@ -53,7 +53,7 @@ BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
     (void)cc;
     ts_last_discovery = ts_creation;
     hciConnHandle = 0;
-    le_features = LEFeatures::NONE;
+    le_features = LE_Features::NONE;
     isConnected = false;
     allowDisconnect = false;
     clearSMPStates(false /* connected */);
@@ -561,9 +561,9 @@ void BTDevice::notifyConnected(std::shared_ptr<BTDevice> sthis, const uint16_t h
     (void)sthis; // not used yet
 }
 
-void BTDevice::notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const LEFeatures features) noexcept {
-    DBG_PRINT("BTDevice::notifyLEFeatures: LE_Encryption %d, %s",
-            isLEFeaturesBitSet(features, LEFeatures::LE_Encryption), toString().c_str());
+void BTDevice::notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const LE_Features features) noexcept {
+    DBG_PRINT("BTDevice::notifyLEFeatures: %s, %s",
+            direct_bt::to_string(features).c_str(), toString().c_str());
     le_features = features;
 
     if( addressAndType.isLEAddress() && !l2cap_att.isOpen() ) {
@@ -585,7 +585,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
         const SMPIOCapability io_cap_conn = pairing_data.ioCap_conn;
         BTSecurityLevel sec_level { BTSecurityLevel::UNSET };
 
-        const bool responderLikesEncryption = pairing_data.res_requested_sec || isLEFeaturesBitSet(le_features, LEFeatures::LE_Encryption);
+        const bool responderLikesEncryption = pairing_data.res_requested_sec || isLEFeaturesBitSet(le_features, LE_Features::LE_Encryption);
         if( BTSecurityLevel::UNSET != sec_level_user ) {
             sec_level = sec_level_user;
         } else if( responderLikesEncryption && SMPIOCapability::UNSET != io_cap_conn ) {
@@ -1643,6 +1643,42 @@ int BTDevice::removeAllCharListener() noexcept {
         return 0;
     }
     return gatt->removeAllCharListener();
+}
+
+HCIStatusCode BTDevice::getConnectedLE_PHY(LE_PHYs& resRx, LE_PHYs& resTx) noexcept {
+    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
+
+    HCIStatusCode res = HCIStatusCode::SUCCESS;
+    HCIHandler &hci = adapter.getHCI();
+
+    if( !isConnected ) { // should not happen
+        res = HCIStatusCode::DISCONNECTED;
+        goto errout;
+    }
+
+    if( 0 == hciConnHandle ) {
+        res = HCIStatusCode::UNSPECIFIED_ERROR;
+        goto errout;
+    }
+
+    if( !adapter.isPowered() ) {
+        res = HCIStatusCode::NOT_POWERED; // powered-off
+        goto errout;
+    }
+
+    res = hci.le_read_phy(hciConnHandle.load(), addressAndType, resRx, resTx);
+    if( HCIStatusCode::SUCCESS == res ) {
+        DBG_PRINT("BTDevice::getConnectedLE_PHY: status %s: RX %s, TX %s - %s",
+                to_string(res).c_str(),
+                to_string(resRx).c_str(), to_string(resTx).c_str(), toString().c_str());
+        return res;
+    }
+
+errout:
+    ERR_PRINT("BTDevice::getConnectedLE_PHY: status %s: RX %s, TX %s - %s",
+            to_string(res).c_str(),
+            to_string(resRx).c_str(), to_string(resTx).c_str(), toString().c_str());
+    return res;
 }
 
 void BTDevice::notifyDisconnected() noexcept {

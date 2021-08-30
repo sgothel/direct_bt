@@ -322,7 +322,7 @@ namespace direct_bt {
         LE_DATA_LENGTH_CHANGE               = 0x07,/**< LE_DATA_LENGTH_CHANGE */
         LE_READ_LOCAL_P256_PUBKEY_COMPLETE  = 0x08,/**< LE_READ_LOCAL_P256_PUBKEY_COMPLETE */
         LE_GENERATE_DHKEY_COMPLETE          = 0x09,/**< LE_GENERATE_DHKEY_COMPLETE */
-        LE_ENHANCED_CONN_COMPLETE           = 0x0A,/**< LE_ENHANCED_CONN_COMPLETE */
+        LE_EXT_CONN_COMPLETE                = 0x0A,/**< LE_ENHANCED_CONN_COMPLETE */
         LE_DIRECT_ADV_REPORT                = 0x0B,/**< LE_DIRECT_ADV_REPORT */
         LE_PHY_UPDATE_COMPLETE              = 0x0C,/**< LE_PHY_UPDATE_COMPLETE */
         LE_EXT_ADV_REPORT                   = 0x0D,/**< LE_EXT_ADV_REPORT */
@@ -374,6 +374,7 @@ namespace direct_bt {
         SET_EVENT_MASK              = 0x0C01,/**< SET_EVENT_MASK */
         RESET                       = 0x0C03,
         READ_LOCAL_VERSION          = 0x1001,
+        READ_LOCAL_COMMANDS         = 0x1002,
         LE_SET_EVENT_MASK           = 0x2001,/**< LE_SET_EVENT_MASK */
         LE_READ_BUFFER_SIZE         = 0x2002,
         LE_READ_LOCAL_FEATURES      = 0x2003,
@@ -393,7 +394,12 @@ namespace direct_bt {
         LE_DEL_FROM_WHITE_LIST      = 0x2012,
         LE_CONN_UPDATE              = 0x2013,
         LE_READ_REMOTE_FEATURES     = 0x2016,
-        LE_ENABLE_ENC               = 0x2019
+        LE_ENABLE_ENC               = 0x2019,
+        LE_READ_PHY                 = 0x2030,
+        LE_SET_DEFAULT_PHY          = 0x2031,
+        LE_SET_EXT_SCAN_PARAMS      = 0x2041,
+        LE_SET_EXT_SCAN_ENABLE      = 0x2042,
+        LE_EXT_CREATE_CONN          = 0x2043,
         // etc etc - incomplete
     };
     constexpr uint16_t number(const HCIOpcode rhs) noexcept {
@@ -410,6 +416,7 @@ namespace direct_bt {
         SET_EVENT_MASK              =  7,
         RESET                       =  8,
         READ_LOCAL_VERSION          = 10,
+        READ_LOCAL_COMMANDS         = 11,
         LE_SET_EVENT_MASK           = 20,
         LE_READ_BUFFER_SIZE         = 21,
         LE_READ_LOCAL_FEATURES      = 22,
@@ -429,7 +436,12 @@ namespace direct_bt {
         LE_DEL_FROM_WHITE_LIST      = 36,
         LE_CONN_UPDATE              = 37,
         LE_READ_REMOTE_FEATURES     = 38,
-        LE_ENABLE_ENC               = 39
+        LE_ENABLE_ENC               = 39,
+        LE_READ_PHY                 = 40,
+        LE_SET_DEFAULT_PHY          = 41,
+        LE_SET_EXT_SCAN_PARAMS      = 42,
+        LE_SET_EXT_SCAN_ENABLE      = 43,
+        LE_EXT_CREATE_CONN          = 44
         // etc etc - incomplete
     };
     constexpr uint8_t number(const HCIOpcodeBit rhs) noexcept {
@@ -559,7 +571,7 @@ namespace direct_bt {
             HCICommand(const HCIOpcode opc, const jau::nsize_t param_size)
             : HCIPacket(HCIPacketType::COMMAND, number(HCIConstSizeT::COMMAND_HDR_SIZE)+param_size)
             {
-                checkOpcode(opc, HCIOpcode::SPECIAL, HCIOpcode::LE_ENABLE_ENC);
+                checkOpcode(opc, HCIOpcode::SPECIAL, HCIOpcode::LE_EXT_CREATE_CONN);
 
                 pdu.put_uint16_nc(1, static_cast<uint16_t>(opc));
                 pdu.put_uint8_nc(3, param_size);

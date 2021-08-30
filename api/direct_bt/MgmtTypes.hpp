@@ -2177,7 +2177,7 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtHCILERemoteUserFeatures(const uint16_t dev_id, const BDAddressAndType& addressAndType, const LEFeatures features_)
+            MgmtEvtHCILERemoteUserFeatures(const uint16_t dev_id, const BDAddressAndType& addressAndType, const LE_Features features_)
             : MgmtEvent(Opcode::HCI_LE_REMOTE_USR_FEATURES, dev_id, 6+1+8)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
@@ -2188,7 +2188,7 @@ namespace direct_bt {
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
 
-            LEFeatures getFeatures() const noexcept { return static_cast<LEFeatures>(pdu.get_uint64_nc(MGMT_HEADER_SIZE+6+1)); }
+            LE_Features getFeatures() const noexcept { return static_cast<LE_Features>(pdu.get_uint64_nc(MGMT_HEADER_SIZE+6+1)); }
 
             jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+6+1+8; }
             jau::nsize_t getDataSize() const noexcept override { return 0; }

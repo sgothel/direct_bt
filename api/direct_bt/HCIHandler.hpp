@@ -255,6 +255,16 @@ namespace direct_bt {
 
             std::recursive_mutex mtx_sendReply; // for sendWith*Reply, process*Command, ..; Recurses from many..
 
+            /**
+             * Cached bitfield of Local Supported Commands, 64 octets
+             * <pre>
+             * BT Core Spec v5.2: Vol 4, Part E, 6.27 (HCI) Supported Commands
+             * BT Core Spec v5.2: Vol 4, Part E, 7.4.2 Read Local Supported Commands command
+             * </pre>
+             */
+            uint8_t sup_commands[64];
+            jau::relaxed_atomic_bool sup_commands_set;
+
             jau::sc_atomic_bool allowClose;
             std::atomic<BTMode> btMode;
 
@@ -266,6 +276,9 @@ namespace direct_bt {
 
             /** Exclusive [le] connection command (status + pending completed) one at a time */
             std::mutex mtx_connect_cmd;
+
+            void zeroSupCommands() noexcept;
+            bool initSupCommands() noexcept;
 
             /**
              * Returns a newly added HCIConnectionRef tracker connection with given parameters, if not existing yet.
@@ -362,6 +375,17 @@ namespace direct_bt {
                 return true == allowClose.load() && comm.isOpen();
             }
 
+            /** Use extended scanning if HCI_LE_Set_Extended_Scan_Parameters and HCI_LE_Set_Extended_Scan_Enable is supported (Bluetooth 5.0). */
+            bool use_ext_scan() const noexcept{
+                return 0 != ( sup_commands[37] & ( 1 << 5 ) ) &&
+                       0 != ( sup_commands[37] & ( 1 << 6 ) );
+            }
+
+            /** Use extended connection if HCI_LE_Extended_Create_Connection is supported (Bluetooth 5.0). */
+            bool use_ext_conn() const noexcept{
+                return 0 != ( sup_commands[37] & ( 1 << 7 ) );
+            }
+
             ScanType getCurrentScanType() const noexcept { return currentScanType.load(); }
             void setCurrentScanType(const ScanType v) noexcept { currentScanType = v; }
 
@@ -398,18 +422,39 @@ namespace direct_bt {
             HCIStatusCode resetAdapter();
 
             /**
+             * HCI Reset Command
+             * <pre>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
+             * </pre>
              */
             HCIStatusCode reset() noexcept;
 
             HCIStatusCode getLocalVersion(HCILocalVersion &version) noexcept;
 
             /**
+             * Request and return LE_Features for the controller.
+             * <pre>
+             * BT Core Spec v5.2: Vol 6, Part B, 4.6 (LE LL) Feature Support
+             *
+             * BT Core Spec v5.2: Vol 4, Part E, 7.8.3 LE Read Local Supported Features command
+             * </pre>
+             * @param res reference for the resulting LE_Features
+             * @return HCIStatusCode
+             */
+            HCIStatusCode le_read_local_features(LE_Features& res) noexcept;
+
+            /**
              * Sets LE scanning parameters.
-             * <p>
+             * <pre>
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.64 LE Set Extended Scan Parameters command (Bluetooth 5.0)
+             *
+             * if available, otherwise using
+             *
              * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.10 LE Set Scan Parameters command
+             *
+             *
              * BT Core Spec v5.2: Vol 6 LE, Part B Link Layer: 4.4.3 Scanning State
-             * </p>
+             * </pre>
              * <p>
              * Scan parameters control advertising (AD) Protocol Data Unit (PDU) delivery behavior.
              * </p>
@@ -430,9 +475,13 @@ namespace direct_bt {
 
             /**
              * Starts or stops LE scanning.
-             * <p>
+             * <pre>
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.65 LE Set Extended Scan Enable command (Bluetooth 5.0)
+             *
+             * if available, otherwise using
+             *
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.11 LE Set Scan Enable command
-             * </p>
+             * </pre>
              * @param enable true to enable discovery, otherwise false
              * @param filter_dup true to filter out duplicate AD PDUs (default), otherwise all will be reported.
              */
@@ -440,10 +489,12 @@ namespace direct_bt {
 
             /**
              * Start LE scanning, i.e. performs le_set_scan_param() and le_enable_scan() in one atomic operation.
-             * <p>
+             * <pre>
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.64 LE Set Extended Scan Parameters command (Bluetooth 5.0)
              * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.10 LE Set Scan Parameters command
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.65 LE Set Extended Scan Enable command (Bluetooth 5.0)
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.11 LE Set Scan Enable command
-             * </p>
+             * </pre>
              * <p>
              * Scan parameters control advertising (AD) Protocol Data Unit (PDU) delivery behavior.
              * </p>
@@ -460,6 +511,7 @@ namespace direct_bt {
              * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
              * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
              * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
+             * @see le_read_local_features()
              */
             HCIStatusCode le_start_scan(const bool filter_dup=true,
                                         const bool le_scan_active=false,
@@ -469,9 +521,13 @@ namespace direct_bt {
 
             /**
              * Establish a connection to the given LE peer.
-             * <p>
+             * <pre>
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.66 LE Extended Create Connection command (Bluetooth 5.0)
+             *
+             * if available, otherwise using
+             *
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.12 LE Create Connection command
-             * </p>
+             * </pre>
              * <p>
              * Set window to the same value as the interval, enables continuous scanning.
              * </p>
@@ -516,9 +572,9 @@ namespace direct_bt {
 
             /**
              * Establish a connection to the given BREDR (non LE).
-             * <p>
+             * <pre>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.5 Create Connection command
-             * </p>
+             * </pre>
              * <p>
              * Implementation tries to mitigate HCIStatusCode::COMMAND_DISALLOWED failure due to any pending connection commands,
              * waiting actively up to HCIEnv::HCI_COMMAND_COMPLETE_REPLY_TIMEOUT, testing every HCIEnv::HCI_COMMAND_POLL_PERIOD if resolved.<br>
@@ -540,17 +596,32 @@ namespace direct_bt {
 
             /**
              * Disconnect an established connection.
-             * <p>
+             * <pre>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.6 Disconnect command
-             * </p>
+             * </pre>
              */
             HCIStatusCode disconnect(const uint16_t conn_handle, const BDAddressAndType& addressAndType,
                                      const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION) noexcept;
 
             /**
-             * Clear all internal states, i.e. connection and disconnect lists.
+             * Request and return LE_PHYs bit for the given connection.
+             * <pre>
+             * BT Core Spec v5.2: Vol 4, Part E, 7.8.47 LE Read PHY command (we transfer the sequential value to this bitmask for unification)
+             * </pre>
+             * @param conn_handle
+             * @param addressAndType
+             * @param resRx reference for the resulting receiver LE_PHYs bit
+             * @param resTx reference for the resulting transmitter LE_PHYs bit
+             * @return HCIStatusCode
              */
-            void clearAllStates() noexcept;
+            HCIStatusCode le_read_phy(const uint16_t conn_handle, const BDAddressAndType& addressAndType,
+                                      LE_PHYs& resRx, LE_PHYs& resTx) noexcept;
+
+            /**
+             * Reset all internal states, i.e. connection and disconnect lists.
+             * @param powered_on indicates whether the adapter is powered on or not
+             */
+            void resetAllStates(const bool powered_on) noexcept;
 
 
             /** MgmtEventCallback handling  */
@@ -576,46 +647,6 @@ namespace direct_bt {
 
             /** Manually send a MgmtEvent to all of its listeners. */
             void sendMgmtEvent(const MgmtEvent& event) noexcept;
-
-            /**
-             * FIXME / TODO: Privacy Mode / Pairing / Bonding
-             *
-             * LE Secure Connections:
-             * <pre>
-             * BT Core Spec v5.2: Vol 1, Part A Architecture: 5.4 LE Security
-             * BT Core Spec v5.2: Vol 3, Part C GAP: 10.2 LE SECURITY MODES
-             * BT Core Spec v5.2: Vol 3, Part H SM: 2 Security Manager
-             * BT Core Spec v5.2: Vol 3, Part H SM: 2.3.5 Pairing: 2.3.5.6 LE Secure Connections pairing phase 2
-             * BT Core Spec v5.2: Vol 3, Part H SM: 2.3.5 Pairing: 2.3.5.6.3 LE Authentication stage 1 – Passkey Entry
-             * BT Core Spec v5.2: Vol 3, Part H SM: 3 Security Manager Protocol (SMP) fixed channel over L2CAP
-             *
-             *
-             * LE Legacy Pairing** similar to BREDR like: Secure Simple Pairing (SSP)
-             * LE Secure Connections functional equivalent to SSP, using 128 bit Long Term Key (LTK)
-             * </pre>
-             *
-             * <p>
-             * BT Core Spec v5.2: Vol 1, Part A Architecture: 5 Security architecture
-             * BT Core Spec v5.2: Vol 1, Part A Architecture: 5.4 LE Security
-             * BT Core Spec v5.2: Vol 1, Part A Architecture: 5.4.5 LE Privacy feature
-             * - device privacy mode (mixed mode, also accept other peer address)
-             * - network privacy mode (only private address - default!)
-             * -> add device to resolving list, implying being added to device white list!
-             *
-             * BT Core Spec v5.2: Vol 3, Part C GAP: 10.2 LE SECURITY MODES
-             *
-             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.77 LE Set Privacy Mode command
-             * BT Core Spec v5.2: Vol 6 LE Adapter, Part B Link Layer Spec: 4.7 Resolving List
-             * </p>
-             * FIXME: TODO
-             *
-             * @return
-             * HCIStatusCode le_set_privacy_mode();
-             *
-             * Fills buffer with random bytes, usually 16 bytes for 128 bit key.
-             * FIXME: TODO
-             * static bool generateIRK(uint8_t *buffer, int size);
-             */
     };
 
 } // namespace direct_bt
