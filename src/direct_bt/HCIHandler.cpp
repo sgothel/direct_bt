@@ -1015,7 +1015,7 @@ HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_du
             HCIStructCommand<hci_cp_le_set_ext_scan_enable> req0(HCIOpcode::LE_SET_EXT_SCAN_ENABLE);
             hci_cp_le_set_ext_scan_enable * cp = req0.getWStruct();
             cp->enable = enable ? LE_SCAN_ENABLE : LE_SCAN_DISABLE;
-            cp->filter_dup = LE_SCAN_FILTER_DUP_DISABLE; // filter_dup ? LE_SCAN_FILTER_DUP_ENABLE : LE_SCAN_FILTER_DUP_DISABLE;
+            cp->filter_dup = filter_dup ? LE_SCAN_FILTER_DUP_ENABLE : LE_SCAN_FILTER_DUP_DISABLE;
             // cp->duration = 0; // until disabled
             // cp->period = 0; // until disabled
             const hci_rp_status * ev_status;

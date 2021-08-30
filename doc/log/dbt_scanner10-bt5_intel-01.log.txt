@@ -26,7 +26,7 @@ direct_bt_verbose
 LD_LIBRARY_PATH=/usr/local/projects/zafena/direct_bt/dist-amd64/lib bin/dbt_scanner10 -dev TD1107 -seclevel TD1107 1 -dbt_debug false
 sudo capsh ... 
 Set sec_level in BTSecurityDetail['TD1107', lvl NONE, io UNSET, auto-io UNSET, passkey -1]
-pid 2336286
+pid 2483499
 Run with '[-btmode LE|BREDR|DUAL] [-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] [-scanPassive][-resetEachCon connectionCount] (-dev <device_[address|name]_sub>)* (-wl <device_address>)* (-seclevel <device_[address|name]_sub> <int_sec_level>)* (-iocap <device_[address|name]_sub> <int_iocap>)* (-secauto <device_[address|name]_sub> <int_iocap>)* (-passkey <device_[address|name]_sub> <digits>)* [-unpairPre] [-unpairPost] [-charid <uuid>] [-charval <byte-val>] [-dbt_verbose true|false] [-dbt_debug true|false|adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event] [-dbt_mgmt cmd.timeout=3000,ringsize=64,...] [-dbt_hci cmd.complete.timeout=10000,cmd.status.timeout=3000,ringsize=64,...] [-dbt_gatt cmd.read.timeout=500,cmd.write.timeout=500,cmd.init.timeout=2500,ringsize=128,...] [-dbt_l2cap reader.timeout=10000,restart.count=0,...] 
 MULTI_MEASUREMENTS 8
 KEEP_CONNECTED 1
@@ -43,250 +43,230 @@ characteristic-value: 0
 security-details: BTSecurityDetail['TD1107', lvl NONE, io UNSET, auto-io UNSET, passkey -1]
 waitForDevice: [n: 'TD1107']
 ****** TEST start
-[        1] Error @ /src/direct_bt/HCIHandler.cpp:520 sendCommand: HCIHandler::sendCommand: HCIComm write error, req HCICommand[opcode=0x1002 READ_LOCAL_COMMANDS, param[size 0, data ], tsz 4] - HCIHandler[dev_id 0, BTMode NONE, open 1, scan NONE, ext[init 0, scan 0, conn 0], ring[entries 0]]; last errno 100 Network is down
-[        1] Warning @ /src/direct_bt/HCIHandler.cpp:1459 processCommandComplete: HCIHandler::processCommandComplete Send failed: Status 0xFE (INTERNAL_FAILURE), errno 11 Resource temporarily unavailable: res nullptr, req HCICommand[opcode=0x1002 READ_LOCAL_COMMANDS, param[size 0, data ], tsz 4] - HCIHandler[dev_id 0, BTMode NONE, open 1, scan NONE, ext[init 0, scan 0, conn 0], ring[entries 0]]
-[        2] Error @ /src/direct_bt/HCIHandler.cpp:520 sendCommand: HCIHandler::sendCommand: HCIComm write error, req HCICommand[opcode=0x1002 READ_LOCAL_COMMANDS, param[size 0, data ], tsz 4] - HCIHandler[dev_id 1, BTMode NONE, open 1, scan NONE, ext[init 0, scan 0, conn 0], ring[entries 0]]; last errno 100 Network is down
-[        2] Warning @ /src/direct_bt/HCIHandler.cpp:1459 processCommandComplete: HCIHandler::processCommandComplete Send failed: Status 0xFE (INTERNAL_FAILURE), errno 100 Network is down: res nullptr, req HCICommand[opcode=0x1002 READ_LOCAL_COMMANDS, param[size 0, data ], tsz 4] - HCIHandler[dev_id 1, BTMode NONE, open 1, scan NONE, ext[init 0, scan 0, conn 0], ring[entries 0]]
-[        2] ****** SETTINGS_INITIAL: [] -> [BONDABLE, SSP, BREDR, LE, SECURE_CONN], changed []
-[        2] Status BTAdapter:
-[        2] Adapter[BTMode DUAL, [DC:FB:48:00:90:19, BDADDR_LE_PUBLIC], '', id 0, curSettings[BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native NONE, meta NONE], valid 1, hci_ext[scan 0, conn 0], open[mgmt, 1, hci 1], JavaAnon[null]]
-[        2] Adapter not powered (2): Adapter[BTMode DUAL, [DC:FB:48:00:90:19, BDADDR_LE_PUBLIC], '', id 0, curSettings[BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native NONE, meta NONE], valid 1, hci_ext[scan 0, conn 0], open[mgmt, 1, hci 1], JavaAnon[null]]
-[        2] ****** Adapter ADDED__: Ignored Adapter[BTMode DUAL, [DC:FB:48:00:90:19, BDADDR_LE_PUBLIC], '', id 0, curSettings[BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native NONE, meta NONE], valid 1, hci_ext[scan 0, conn 0], open[mgmt, 1, hci 1], JavaAnon[null]]
-[        2] ****** Adapter Features: []
-[        2] ****** SETTINGS_INITIAL: [] -> [BONDABLE, SSP, BREDR, LE, SECURE_CONN], changed []
-[        2] Status BTAdapter:
-[        2] Adapter[BTMode DUAL, [00:1A:7D:DA:71:08, BDADDR_LE_PUBLIC], 'CSR8510 A10', id 1, curSettings[BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native NONE, meta NONE], valid 1, hci_ext[scan 0, conn 0], open[mgmt, 1, hci 1], JavaAnon[null]]
-[        2] Adapter not powered (2): Adapter[BTMode DUAL, [00:1A:7D:DA:71:08, BDADDR_LE_PUBLIC], 'CSR8510 A10', id 1, curSettings[BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native NONE, meta NONE], valid 1, hci_ext[scan 0, conn 0], open[mgmt, 1, hci 1], JavaAnon[null]]
-[        2] ****** Adapter ADDED__: Ignored Adapter[BTMode DUAL, [00:1A:7D:DA:71:08, BDADDR_LE_PUBLIC], 'CSR8510 A10', id 1, curSettings[BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native NONE, meta NONE], valid 1, hci_ext[scan 0, conn 0], open[mgmt, 1, hci 1], JavaAnon[null]]
-[        2] ****** Adapter Features: []
-[   12,330] ****** SETTINGS_CHANGED: [BONDABLE, SSP, BREDR, LE, SECURE_CONN] -> [POWERED, BONDABLE, SSP, BREDR, LE, SECURE_CONN], changed [POWERED]
-[   12,330] Status BTAdapter:
-[   12,330] Adapter[BTMode DUAL, [DC:FB:48:00:90:19, BDADDR_LE_PUBLIC], '', id 0, curSettings[POWERED, BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native NONE, meta NONE], valid 1, hci_ext[scan 1, conn 1], open[mgmt, 1, hci 1], JavaAnon[null]]
-[   12,336] ****** DISCOVERING: meta LE, changed[LE, enabled 1, keepAlive 1]: Adapter[BTMode DUAL, [DC:FB:48:00:90:19, BDADDR_LE_PUBLIC], '', id 0, curSettings[POWERED, BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native LE, meta LE], valid 1, hci_ext[scan 1, conn 1], open[mgmt, 1, hci 1], JavaAnon[null]]
-[   12,336] ****** Start discovery (powered-on) result: SUCCESS
-[   12,537] ****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' Device[[74:43:E0:00:EB:12, BDADDR_LE_RANDOM, random RESOLVABLE_PRIVAT], name[''], age[total 1, ldisc 1, lup 1]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -93, tx-power 127, appearance 0xfd6f (Unknown AppearanceCat 0xfd6f), MSD[null], JavaAnon[null]]
+[        0] Error @ /src/direct_bt/HCIHandler.cpp:520 sendCommand: HCIHandler::sendCommand: HCIComm write error, req HCICommand[opcode=0x1002 READ_LOCAL_COMMANDS, param[size 0, data ], tsz 4] - HCIHandler[dev_id 1, BTMode NONE, open 1, scan NONE, ext[init 0, scan 0, conn 0], ring[entries 0]]; last errno 100 Network is down
+[        0] Warning @ /src/direct_bt/HCIHandler.cpp:1459 processCommandComplete: HCIHandler::processCommandComplete Send failed: Status 0xFE (INTERNAL_FAILURE), errno 11 Resource temporarily unavailable: res nullptr, req HCICommand[opcode=0x1002 READ_LOCAL_COMMANDS, param[size 0, data ], tsz 4] - HCIHandler[dev_id 1, BTMode NONE, open 1, scan NONE, ext[init 0, scan 0, conn 0], ring[entries 0]]
+[      301] ****** SETTINGS_INITIAL: [] -> [BONDABLE, SSP, BREDR, LE, SECURE_CONN], changed []
+[      301] Status BTAdapter:
+[      301] Adapter[BTMode DUAL, [00:1A:7D:DA:71:08, BDADDR_LE_PUBLIC], 'CSR8510 A10', id 1, curSettings[BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native NONE, meta NONE], valid 1, hci_ext[scan 0, conn 0], open[mgmt, 1, hci 1], JavaAnon[null]]
+[      301] Adapter not powered (2): Adapter[BTMode DUAL, [00:1A:7D:DA:71:08, BDADDR_LE_PUBLIC], 'CSR8510 A10', id 1, curSettings[BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native NONE, meta NONE], valid 1, hci_ext[scan 0, conn 0], open[mgmt, 1, hci 1], JavaAnon[null]]
+[      301] ****** Adapter ADDED__: Ignored Adapter[BTMode DUAL, [00:1A:7D:DA:71:08, BDADDR_LE_PUBLIC], 'CSR8510 A10', id 1, curSettings[BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native NONE, meta NONE], valid 1, hci_ext[scan 0, conn 0], open[mgmt, 1, hci 1], JavaAnon[null]]
+[      301] ****** Adapter Features: []
+[      301] ****** SETTINGS_INITIAL: [] -> [POWERED, BONDABLE, SSP, BREDR, LE, SECURE_CONN], changed []
+[      301] Status BTAdapter:
+[      301] Adapter[BTMode DUAL, [DC:FB:48:00:90:19, BDADDR_LE_PUBLIC], '', id 0, curSettings[POWERED, BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native NONE, meta NONE], valid 1, hci_ext[scan 1, conn 1], open[mgmt, 1, hci 1], JavaAnon[null]]
+[      307] ****** DISCOVERING: meta LE, changed[LE, enabled 1, keepAlive 1]: Adapter[BTMode DUAL, [DC:FB:48:00:90:19, BDADDR_LE_PUBLIC], '', id 0, curSettings[POWERED, BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native LE, meta LE], valid 1, hci_ext[scan 1, conn 1], open[mgmt, 1, hci 1], JavaAnon[null]]
+[      307] ****** Start discovery (kick-off) result: SUCCESS
+[      307] ****** Adapter ADDED__: InitOK. Adapter[BTMode DUAL, [DC:FB:48:00:90:19, BDADDR_LE_PUBLIC], '', id 0, curSettings[POWERED, BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native LE, meta LE], valid 1, hci_ext[scan 1, conn 1], open[mgmt, 1, hci 1], JavaAnon[null]]
+[      307] ****** Adapter Features: [LE_Encryption, Conn_Param_Req_Proc, Ext_Rej_Ind, SlaveInit_Feat_Exchg, LE_Ping, LE_Data_Pkt_Len_Ext, LL_Privacy, Ext_Scan_Filter_Pol, LE_2M_PHY, LE_Coded_PHY, LE_Ext_Adv, Chan_Sel_Algo_2, Rem_Pub_Key_Val]
+[      407] ****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' Device[[52:AC:AD:2C:37:37, BDADDR_LE_RANDOM, random RESOLVABLE_PRIVAT], name[''], age[total 0, ldisc 0, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -98, tx-power 127, appearance 0xfd6f (Unknown AppearanceCat 0xfd6f), MSD[null], JavaAnon[null]]
   0000fd6f-0000-1000-8000-00805f9b34fb, 2 bytes
-[   12,759] ****** FOUND__-1: NOP Device[[28:FF:B2:C1:46:19, BDADDR_LE_PUBLIC], name[''], age[total 0, ldisc 0, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -71, tx-power 0, appearance 0x0000 (UNKNOWN), MSD[company[526 526], data[size 5, capacity 5, 0100170017]], JavaAnon[null]]
+[      436] ****** FOUND__-1: NOP Device[[28:FF:B2:C1:46:19, BDADDR_LE_PUBLIC], name[''], age[total 0, ldisc 0, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -71, tx-power 0, appearance 0x0000 (UNKNOWN), MSD[company[526 526], data[size 5, capacity 5, 0100170017]], JavaAnon[null]]
   00001810-0000-1000-8000-00805f9b34fb, 2 bytes
-[   12,760] ****** FOUND__-1: NOP Device[[28:FF:B2:C1:46:19, BDADDR_LE_PUBLIC], name['BLESmart_0000035728FFB2C14619'], age[total 2, ldisc 2, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -71, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[526 526], data[size 5, capacity 5, 0100170017]], JavaAnon[null]]
+[      438] ****** FOUND__-1: NOP Device[[28:FF:B2:C1:46:19, BDADDR_LE_PUBLIC], name['BLESmart_0000035728FFB2C14619'], age[total 2, ldisc 2, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -71, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[526 526], data[size 5, capacity 5, 0100170017]], JavaAnon[null]]
   00001810-0000-1000-8000-00805f9b34fb, 2 bytes
-[   33,281] ****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' Device[[7B:7B:95:C5:2F:36, BDADDR_LE_RANDOM, random RESOLVABLE_PRIVAT], name[''], age[total 0, ldisc 0, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -100, tx-power 127, appearance 0xfd6f (Unknown AppearanceCat 0xfd6f), MSD[null], JavaAnon[null]]
+[      510] ****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' Device[[4B:FB:38:A4:D6:3A, BDADDR_LE_RANDOM, random RESOLVABLE_PRIVAT], name[''], age[total 0, ldisc 0, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -100, tx-power 127, appearance 0xfd6f (Unknown AppearanceCat 0xfd6f), MSD[null], JavaAnon[null]]
   0000fd6f-0000-1000-8000-00805f9b34fb, 2 bytes
-[   52,377] ****** FOUND__-1: NOP Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name[''], age[total 0, ldisc 0, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -85, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[null], JavaAnon[null]]
+[    6,044] ****** FOUND__-1: NOP Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name[''], age[total 0, ldisc 0, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -82, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[null], JavaAnon[null]]
   00001809-0000-1000-8000-00805f9b34fb, 2 bytes
   0000180a-0000-1000-8000-00805f9b34fb, 2 bytes
-[   52,378] ****** FOUND__-0: Connecting Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 1, ldisc 1, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -85, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
+[    6,046] ****** FOUND__-0: Connecting Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 2, ldisc 2, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -82, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
   00001809-0000-1000-8000-00805f9b34fb, 2 bytes
   0000180a-0000-1000-8000-00805f9b34fb, 2 bytes
-[   52,378] PERF: adapter-init -> FOUND__-0  52377 ms
-[   52,378] ****** Connecting Device: Start Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 1, ldisc 1, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -85, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
-[   52,378] ****** Connecting Device: Unpair-Pre result: SUCCESS
-[   52,456] ****** DISCOVERING: meta NONE, changed[LE, enabled 0, keepAlive 0]: Adapter[BTMode DUAL, [DC:FB:48:00:90:19, BDADDR_LE_PUBLIC], '', id 0, curSettings[POWERED, BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native NONE, meta NONE], valid 1, hci_ext[scan 1, conn 1], open[mgmt, 1, hci 1], JavaAnon[null]]
-[   52,456] ****** Connecting Device: stopDiscovery result SUCCESS
-[   52,456] ****** Connecting Device: No SecurityDetail for Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 79, ldisc 79, lup 78]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -85, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
-[   52,456] Read SMPKeyBin: OK keys/bd_C0_26_DA_01_DA_B1_1-smpkey.bin: SMPKeyBin[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], sec ENC_ONLY, io NO_INPUT_NO_OUTPUT, Init[LTK[props [], enc_size 16, ediv 0x8f79, rand 0xa7a72569b5f81a5c, ltk 43b6c37b3b94625200ef3377964beb52, valid 1], CSRK[props [], csrk 1cbe232e1eebb3a195eac33137bdf732]], Resp[LTK[props [RESPONDER], enc_size 16, ediv 0x3c23, rand 0x1a4de360c7d4f09d, ltk abaaf21850fbfa7709f241bfd49574a7, valid 1], CSRK[props [RESPONDER], csrk 7dfa0dd991c98762474c4fe1124c1eca]], ver[0x5557, ok 1], size[113, calc 113, valid 1], 2021-08-30 05:27:30, valid 1], remaining 0
-[   52,457] ****** Connecting Device: SMPKeyBin::readAndApply(..) result SUCCESS
-[   52,460] ****** Connecting Device: End result SUCCESS of Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 83, ldisc 83, lup 82]ms, connected[1/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -85, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
-[   52,638] ****** CONNECTED: Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 261, ldisc 261, lup 0]ms, connected[1/1, handle 0x0e01, sec[lvl UNSET, io NO_INPUT_NO_OUTPUT, auto UNSET, pairing NONE, state NONE]], rssi -85, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
+[    6,046] PERF: adapter-init -> FOUND__-0  6046 ms
+[    6,046] ****** Connecting Device: Start Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 2, ldisc 2, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -82, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
+[    6,046] ****** Connecting Device: Unpair-Pre result: SUCCESS
+[    6,055] ****** DISCOVERING: meta NONE, changed[LE, enabled 0, keepAlive 0]: Adapter[BTMode DUAL, [DC:FB:48:00:90:19, BDADDR_LE_PUBLIC], '', id 0, curSettings[POWERED, BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native NONE, meta NONE], valid 1, hci_ext[scan 1, conn 1], open[mgmt, 1, hci 1], JavaAnon[null]]
+[    6,055] ****** Connecting Device: stopDiscovery result SUCCESS
+[    6,055] ****** Connecting Device: No SecurityDetail for Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 11, ldisc 11, lup 9]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -82, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
+[    6,055] Read SMPKeyBin: OK keys/bd_C0_26_DA_01_DA_B1_1-smpkey.bin: SMPKeyBin[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], sec ENC_ONLY, io NO_INPUT_NO_OUTPUT, Init[LTK[props [], enc_size 16, ediv 0x4397, rand 0xf013b1146c4f2434, ltk a81eae95f804c6943179fdfed9eb7800, valid 1], CSRK[props [], csrk 4087a1818a36ee6351e742477180bf94]], Resp[LTK[props [RESPONDER], enc_size 16, ediv 0x7135, rand 0xf4f3b33f9fa63239, ltk 2df26455b95a14d3dc0264da36c172d9, valid 1], CSRK[props [RESPONDER], csrk 7dfa0dd991c98762474c4fe1124c1eca]], ver[0x5557, ok 1], size[113, calc 113, valid 1], 2021-08-30 06:36:47, valid 1], remaining 0
+[    6,055] ****** Connecting Device: SMPKeyBin::readAndApply(..) result SUCCESS
+[    6,059] ****** Connecting Device: End result SUCCESS of Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 15, ldisc 15, lup 13]ms, connected[1/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -82, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
+[    6,205] ****** CONNECTED: Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 161, ldisc 161, lup 0]ms, connected[1/1, handle 0x0e01, sec[lvl UNSET, io NO_INPUT_NO_OUTPUT, auto UNSET, pairing NONE, state NONE]], rssi -82, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
   00001809-0000-1000-8000-00805f9b34fb, 2 bytes
   0000180a-0000-1000-8000-00805f9b34fb, 2 bytes
-[   52,638] ****** CONNECTED(2): Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 261, ldisc 261, lup 0]ms, connected[1/1, handle 0x0e01, sec[lvl UNSET, io NO_INPUT_NO_OUTPUT, auto UNSET, pairing NONE, state NONE]], rssi -85, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
+[    6,205] ****** CONNECTED(2): Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 161, ldisc 161, lup 0]ms, connected[1/1, handle 0x0e01, sec[lvl UNSET, io NO_INPUT_NO_OUTPUT, auto UNSET, pairing NONE, state NONE]], rssi -82, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
   00001809-0000-1000-8000-00805f9b34fb, 2 bytes
   0000180a-0000-1000-8000-00805f9b34fb, 2 bytes
-[   52,832] ****** PAIRING STATE: state COMPLETED, mode PRE_PAIRED, Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 455, ldisc 455, lup 194]ms, connected[1/1, handle 0x0e01, sec[lvl ENC_ONLY, io NO_INPUT_NO_OUTPUT, auto UNSET, pairing PRE_PAIRED, state COMPLETED]], rssi -85, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
-[   52,952] ****** READY-0: Processing[1] Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 575, ldisc 575, lup 314]ms, connected[1/1, handle 0x0e01, sec[lvl ENC_ONLY, io NO_INPUT_NO_OUTPUT, auto UNSET, pairing PRE_PAIRED, state COMPLETED]], rssi -85, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
+[    6,378] ****** PAIRING STATE: state COMPLETED, mode PRE_PAIRED, Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 334, ldisc 334, lup 173]ms, connected[1/1, handle 0x0e01, sec[lvl ENC_ONLY, io NO_INPUT_NO_OUTPUT, auto UNSET, pairing PRE_PAIRED, state COMPLETED]], rssi -82, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
+[    6,497] ****** READY-0: Processing[1] Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 453, ldisc 453, lup 292]ms, connected[1/1, handle 0x0e01, sec[lvl ENC_ONLY, io NO_INPUT_NO_OUTPUT, auto UNSET, pairing PRE_PAIRED, state COMPLETED]], rssi -82, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
   00001809-0000-1000-8000-00805f9b34fb, 2 bytes
   0000180a-0000-1000-8000-00805f9b34fb, 2 bytes
-[   52,952] ****** Processing Ready Device: Start Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 575, ldisc 575, lup 314]ms, connected[1/1, handle 0x0e01, sec[lvl ENC_ONLY, io NO_INPUT_NO_OUTPUT, auto UNSET, pairing PRE_PAIRED, state COMPLETED]], rssi -85, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
-[   52,952] Write SMPKeyBin: Not overwriting existing file keys/bd_C0_26_DA_01_DA_B1_1-smpkey.bin, SMPKeyBin[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], sec ENC_ONLY, io NO_INPUT_NO_OUTPUT, Init[], Resp[], ver[0x5557, ok 1], size[23, calc 23, valid 1], 2021-08-30 05:29:17, valid 1]
-[   52,954] ****** Connected LE PHY: status SUCCESS: RX [LE_1M], TX [LE_1M]
-[   52,954] ****** Processing Ready Device: GATT start: [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC]
-[   52,954] - BTAdapter::SharedDevices     : 1 elements
-[   52,954]   - 1 / 1: [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name 'TAIDOC TD1107'
-[   52,954] - BTAdapter::ConnectedDevices  : 1 elements
-[   52,954]   - 1 / 1: [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name 'TAIDOC TD1107'
-[   52,954] - BTAdapter::DiscoveredDevices : 4 elements
-[   52,954]   - 1 / 4: [74:43:E0:00:EB:12, BDADDR_LE_RANDOM, random RESOLVABLE_PRIVAT], name ''
-[   52,954]   - 2 / 4: [28:FF:B2:C1:46:19, BDADDR_LE_PUBLIC], name 'BLESmart_0000035728FFB2C14619'
-[   52,954]   - 3 / 4: [7B:7B:95:C5:2F:36, BDADDR_LE_RANDOM, random RESOLVABLE_PRIVAT], name ''
-[   52,954]   - 4 / 4: [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name 'TAIDOC TD1107'
-[   52,954] - BTAdapter::StatusListener    : 2 elements
-[   52,954]   - 1 / 2: MyAdapterStatusListener[this 0x0000555fb4f35e50]
-[   52,954]   - 2 / 2: TempAdapterStatusListener[this 0x00007fac64000c30]
-[   54,602] 
+[    6,497] ****** Processing Ready Device: Start Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 453, ldisc 453, lup 292]ms, connected[1/1, handle 0x0e01, sec[lvl ENC_ONLY, io NO_INPUT_NO_OUTPUT, auto UNSET, pairing PRE_PAIRED, state COMPLETED]], rssi -82, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
+[    6,497] Write SMPKeyBin: Not overwriting existing file keys/bd_C0_26_DA_01_DA_B1_1-smpkey.bin, SMPKeyBin[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], sec ENC_ONLY, io NO_INPUT_NO_OUTPUT, Init[], Resp[], ver[0x5557, ok 1], size[23, calc 23, valid 1], 2021-08-30 06:37:21, valid 1]
+[    6,500] ****** Connected LE PHY: status SUCCESS: RX [LE_1M], TX [LE_1M]
+[    6,500] ****** Processing Ready Device: GATT start: [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC]
+[    6,500] - BTAdapter::SharedDevices     : 1 elements
+[    6,500]   - 1 / 1: [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name 'TAIDOC TD1107'
+[    6,500] - BTAdapter::ConnectedDevices  : 1 elements
+[    6,500]   - 1 / 1: [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name 'TAIDOC TD1107'
+[    6,500] - BTAdapter::DiscoveredDevices : 4 elements
+[    6,500]   - 1 / 4: [52:AC:AD:2C:37:37, BDADDR_LE_RANDOM, random RESOLVABLE_PRIVAT], name ''
+[    6,500]   - 2 / 4: [28:FF:B2:C1:46:19, BDADDR_LE_PUBLIC], name 'BLESmart_0000035728FFB2C14619'
+[    6,500]   - 3 / 4: [4B:FB:38:A4:D6:3A, BDADDR_LE_RANDOM, random RESOLVABLE_PRIVAT], name ''
+[    6,500]   - 4 / 4: [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name 'TAIDOC TD1107'
+[    6,500] - BTAdapter::StatusListener    : 2 elements
+[    6,500]   - 1 / 2: MyAdapterStatusListener[this 0x00005584bcc8df90]
+[    6,500]   - 2 / 2: TempAdapterStatusListener[this 0x00007f87c0000c30]
+[    8,057] 
 
 
-[   54,602] PERF: GATT primary-services completed
-[   54,602] PERF:  adapter-init to processing-start 52951 ms,
-PERF:  get-gatt-services 1650 ms,
-PERF:  discovered to gatt-complete 2225 ms (connect 575 ms),
-PERF:  adapter-init to gatt-complete 54601 ms
+[    8,057] PERF: GATT primary-services completed
+[    8,057] PERF:  adapter-init to processing-start 6497 ms,
+PERF:  get-gatt-services 1560 ms,
+PERF:  discovered to gatt-complete 2013 ms (connect 453 ms),
+PERF:  adapter-init to gatt-complete 8057 ms
 
-[   54,602]   GenericAccess: 'TAIDOC TD1107'[appearance 0x0000 (UNKNOWN), PrefConnectionParam[interval[80..160], slaveLatency 0, csTimeoutMul 1000]]
+[    8,057]   GenericAccess: 'TAIDOC TD1107'[appearance 0x0000 (UNKNOWN), PrefConnectionParam[interval[80..160], slaveLatency 0, csTimeoutMul 1000]]
 
-[   54,887]   DeviceInformation: DeviceInfo[manufacturer 'Manufacturer Name', model 'Model Number', serial 'Serial Number', systemID 'size 8, capacity 8, 0000000000000000', revisions[firmware 'V1.2.29', hardware 'Hardware Revision', software 'V1.0.0'], pnpID[vendor_id[source 0x01, id 0x000d], product_id 0x0000, product_version 0x0110], regCertData 'size 14, capacity 14, fe006578706572696d656e74616c']
+[    8,327]   DeviceInformation: DeviceInfo[manufacturer 'Manufacturer Name', model 'Model Number', serial 'Serial Number', systemID 'size 8, capacity 8, 0000000000000000', revisions[firmware 'V1.2.29', hardware 'Hardware Revision', software 'V1.0.0'], pnpID[vendor_id[source 0x01, id 0x000d], product_id 0x0000, product_version 0x0110], regCertData 'size 14, capacity 14, fe006578706572696d656e74616c']
 
-[   54,887]   [00] Service UUID 00001800-0000-1000-8000-00805f9b34fb
-[   54,887]   [00]         [type 0x1800, handle [0x0001..0x0007] - GENERIC_ACCESS, 3 characteristics]
-[   54,887]   [00.00] Characteristic: UUID 00002a00-0000-1000-8000-00805f9b34fb
-[   54,887]   [00.00]     [handle 0x0002, props 0x02 [read], value[type 0x2a00, handle 0x0003, DEVICE_NAME, descr[ [type 0x2803, handle 0x0004, value[size 5, capacity 5, 020500012a] ], [type 0x2a01, handle 0x0005, value[size 2, capacity 2, 0000] ],  ]], service[type 0x1800, handle[ 0x0002..0x0007 ], GENERIC_ACCESS, enabled[notify 0, indicate 0] ] ]
-[   54,917]   [00.00]     value: size 13, capacity 512, 544149444f4320544431313037 ('TAIDOC TD1107')
-[   54,917]   [00.00.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
-[   54,917]   [00.00.00]     [type 0x2803, handle 0x0004, value[size 5, capacity 5, 020500012a] ]
-[   54,917]   [00.00.01] Descriptor: UUID 00002a01-0000-1000-8000-00805f9b34fb
-[   54,917]   [00.00.01]     [type 0x2a01, handle 0x0005, value[size 2, capacity 2, 0000] ]
-[   54,917]   [00.00] Characteristic-Listener: Notification(0), Indication(0): Added 0
-[   54,917] 
-[   54,917]   [00.01] Characteristic: UUID 00002a01-0000-1000-8000-00805f9b34fb
-[   54,917]   [00.01]     [handle 0x0004, props 0x02 [read], value[type 0x2a01, handle 0x0005, APPEARANCE, descr[ [type 0x2803, handle 0x0006, value[size 5, capacity 5, 020700042a] ], [type 0x2a04, handle 0x0007, value[size 8, capacity 8, 5000a0000000e803] ],  ]], service[type 0x1800, handle[ 0x0004..0x0007 ], GENERIC_ACCESS, enabled[notify 0, indicate 0] ] ]
-[   54,947]   [00.01]     value: size 2, capacity 512, 0000 ('')
-[   54,947]   [00.01.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
-[   54,947]   [00.01.00]     [type 0x2803, handle 0x0006, value[size 5, capacity 5, 020700042a] ]
-[   54,947]   [00.01.01] Descriptor: UUID 00002a04-0000-1000-8000-00805f9b34fb
-[   54,947]   [00.01.01]     [type 0x2a04, handle 0x0007, value[size 8, capacity 8, 5000a0000000e803] ]
-[   54,947]   [00.01] Characteristic-Listener: Notification(0), Indication(0): Added 0
-[   54,947] 
-[   54,947]   [00.02] Characteristic: UUID 00002a04-0000-1000-8000-00805f9b34fb
-[   54,947]   [00.02]     [handle 0x0006, props 0x02 [read], value[type 0x2a04, handle 0x0007, PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS, descr[  ]], service[type 0x1800, handle[ 0x0006..0x0007 ], GENERIC_ACCESS, enabled[notify 0, indicate 0] ] ]
-[   54,977]   [00.02]     value: size 8, capacity 512, 5000a0000000e803 ('P')
-[   54,977]   [00.02] Characteristic-Listener: Notification(0), Indication(0): Added 0
-[   54,977] 
-[   54,977] 
-[   54,977]   [01] Service UUID 00001801-0000-1000-8000-00805f9b34fb
-[   54,977]   [01]         [type 0x1801, handle [0x0008..0x0008] - Unknown, 0 characteristics]
-[   54,977] 
-[   54,977]   [02] Service UUID 0000180a-0000-1000-8000-00805f9b34fb
-[   54,977]   [02]         [type 0x180a, handle [0x0009..0x001b] - DEVICE_INFORMATION, 9 characteristics]
-[   54,977]   [02.00] Characteristic: UUID 00002a23-0000-1000-8000-00805f9b34fb
-[   54,977]   [02.00]     [handle 0x000a, props 0x02 [read], value[type 0x2a23, handle 0x000b, SYSTEM_ID, descr[ [type 0x2803, handle 0x000c, value[size 5, capacity 5, 020d00242a] ], [type 0x2a24, handle 0x000d, value[size 12, capacity 12, 4d6f64656c204e756d626572] ],  ]], service[type 0x180a, handle[ 0x000a..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
-[   55,022]   [02.00]     value: size 8, capacity 512, 0000000000000000 ('')
-[   55,022]   [02.00.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
-[   55,022]   [02.00.00]     [type 0x2803, handle 0x000c, value[size 5, capacity 5, 020d00242a] ]
-[   55,022]   [02.00.01] Descriptor: UUID 00002a24-0000-1000-8000-00805f9b34fb
-[   55,022]   [02.00.01]     [type 0x2a24, handle 0x000d, value[size 12, capacity 12, 4d6f64656c204e756d626572] ]
-[   55,022]   [02.00] Characteristic-Listener: Notification(0), Indication(0): Added 0
-[   55,022] 
-[   55,022]   [02.01] Characteristic: UUID 00002a24-0000-1000-8000-00805f9b34fb
-[   55,022]   [02.01]     [handle 0x000c, props 0x02 [read], value[type 0x2a24, handle 0x000d, MODEL_NUMBER_STRING, descr[ [type 0x2803, handle 0x000e, value[size 5, capacity 5, 020f00252a] ], [type 0x2a25, handle 0x000f, value[size 13, capacity 13, 53657269616c204e756d626572] ],  ]], service[type 0x180a, handle[ 0x000c..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
-[   55,052]   [02.01]     value: size 12, capacity 512, 4d6f64656c204e756d626572 ('Model Number')
-[   55,052]   [02.01.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
-[   55,052]   [02.01.00]     [type 0x2803, handle 0x000e, value[size 5, capacity 5, 020f00252a] ]
-[   55,052]   [02.01.01] Descriptor: UUID 00002a25-0000-1000-8000-00805f9b34fb
-[   55,052]   [02.01.01]     [type 0x2a25, handle 0x000f, value[size 13, capacity 13, 53657269616c204e756d626572] ]
-[   55,052]   [02.01] Characteristic-Listener: Notification(0), Indication(0): Added 0
-[   55,052] 
-[   55,052]   [02.02] Characteristic: UUID 00002a25-0000-1000-8000-00805f9b34fb
-[   55,052]   [02.02]     [handle 0x000e, props 0x02 [read], value[type 0x2a25, handle 0x000f, SERIAL_NUMBER_STRING, descr[ [type 0x2803, handle 0x0010, value[size 5, capacity 5, 021100262a] ], [type 0x2a26, handle 0x0011, value[size 7, capacity 7, 56312e322e3239] ],  ]], service[type 0x180a, handle[ 0x000e..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
-[   55,082]   [02.02]     value: size 13, capacity 512, 53657269616c204e756d626572 ('Serial Number')
-[   55,082]   [02.02.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
-[   55,082]   [02.02.00]     [type 0x2803, handle 0x0010, value[size 5, capacity 5, 021100262a] ]
-[   55,082]   [02.02.01] Descriptor: UUID 00002a26-0000-1000-8000-00805f9b34fb
-[   55,082]   [02.02.01]     [type 0x2a26, handle 0x0011, value[size 7, capacity 7, 56312e322e3239] ]
-[   55,082]   [02.02] Characteristic-Listener: Notification(0), Indication(0): Added 0
-[   55,082] 
-[   55,082]   [02.03] Characteristic: UUID 00002a26-0000-1000-8000-00805f9b34fb
-[   55,082]   [02.03]     [handle 0x0010, props 0x02 [read], value[type 0x2a26, handle 0x0011, FIRMWARE_REVISION_STRING, descr[ [type 0x2803, handle 0x0012, value[size 5, capacity 5, 021300272a] ], [type 0x2a27, handle 0x0013, value[size 17, capacity 17, 4861726477617265205265766973696f6e] ],  ]], service[type 0x180a, handle[ 0x0010..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
-[   55,127]   [02.03]     value: size 7, capacity 512, 56312e322e3239 ('V1.2.29')
-[   55,127]   [02.03.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
-[   55,127]   [02.03.00]     [type 0x2803, handle 0x0012, value[size 5, capacity 5, 021300272a] ]
-[   55,127]   [02.03.01] Descriptor: UUID 00002a27-0000-1000-8000-00805f9b34fb
-[   55,127]   [02.03.01]     [type 0x2a27, handle 0x0013, value[size 17, capacity 17, 4861726477617265205265766973696f6e] ]
-[   55,127]   [02.03] Characteristic-Listener: Notification(0), Indication(0): Added 0
-[   55,127] 
-[   55,127]   [02.04] Characteristic: UUID 00002a27-0000-1000-8000-00805f9b34fb
-[   55,127]   [02.04]     [handle 0x0012, props 0x02 [read], value[type 0x2a27, handle 0x0013, HARDWARE_REVISION_STRING, descr[ [type 0x2803, handle 0x0014, value[size 5, capacity 5, 021500282a] ], [type 0x2a28, handle 0x0015, value[size 6, capacity 6, 56312e302e30] ],  ]], service[type 0x180a, handle[ 0x0012..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
-[   55,157]   [02.04]     value: size 17, capacity 512, 4861726477617265205265766973696f6e ('Hardware Revision')
-[   55,157]   [02.04.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
-[   55,157]   [02.04.00]     [type 0x2803, handle 0x0014, value[size 5, capacity 5, 021500282a] ]
-[   55,157]   [02.04.01] Descriptor: UUID 00002a28-0000-1000-8000-00805f9b34fb
-[   55,157]   [02.04.01]     [type 0x2a28, handle 0x0015, value[size 6, capacity 6, 56312e302e30] ]
-[   55,157]   [02.04] Characteristic-Listener: Notification(0), Indication(0): Added 0
-[   55,157] 
-[   55,157]   [02.05] Characteristic: UUID 00002a28-0000-1000-8000-00805f9b34fb
-[   55,157]   [02.05]     [handle 0x0014, props 0x02 [read], value[type 0x2a28, handle 0x0015, SOFTWARE_REVISION_STRING, descr[ [type 0x2803, handle 0x0016, value[size 5, capacity 5, 021700292a] ], [type 0x2a29, handle 0x0017, value[size 17, capacity 17, 4d616e756661637475726572204e616d65] ],  ]], service[type 0x180a, handle[ 0x0014..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
-[   55,187]   [02.05]     value: size 6, capacity 512, 56312e302e30 ('V1.0.0')
-[   55,187]   [02.05.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
-[   55,187]   [02.05.00]     [type 0x2803, handle 0x0016, value[size 5, capacity 5, 021700292a] ]
-[   55,187]   [02.05.01] Descriptor: UUID 00002a29-0000-1000-8000-00805f9b34fb
-[   55,187]   [02.05.01]     [type 0x2a29, handle 0x0017, value[size 17, capacity 17, 4d616e756661637475726572204e616d65] ]
-[   55,187]   [02.05] Characteristic-Listener: Notification(0), Indication(0): Added 0
-[   55,187] 
-[   55,187]   [02.06] Characteristic: UUID 00002a29-0000-1000-8000-00805f9b34fb
-[   55,187]   [02.06]     [handle 0x0016, props 0x02 [read], value[type 0x2a29, handle 0x0017, MANUFACTURER_NAME_STRING, descr[ [type 0x2803, handle 0x0018, value[size 5, capacity 5, 0219002a2a] ], [type 0x2a2a, handle 0x0019, value[size 14, capacity 14, fe006578706572696d656e74616c] ],  ]], service[type 0x180a, handle[ 0x0016..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
-[   55,217]   [02.06]     value: size 17, capacity 512, 4d616e756661637475726572204e616d65 ('Manufacturer Name')
-[   55,217]   [02.06.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
-[   55,217]   [02.06.00]     [type 0x2803, handle 0x0018, value[size 5, capacity 5, 0219002a2a] ]
-[   55,217]   [02.06.01] Descriptor: UUID 00002a2a-0000-1000-8000-00805f9b34fb
-[   55,217]   [02.06.01]     [type 0x2a2a, handle 0x0019, value[size 14, capacity 14, fe006578706572696d656e74616c] ]
-[   55,217]   [02.06] Characteristic-Listener: Notification(0), Indication(0): Added 0
-[   55,217] 
-[   55,217]   [02.07] Characteristic: UUID 00002a2a-0000-1000-8000-00805f9b34fb
-[   55,217]   [02.07]     [handle 0x0018, props 0x02 [read], value[type 0x2a2a, handle 0x0019, REGULATORY_CERT_DATA_LIST, descr[ [type 0x2803, handle 0x001a, value[size 5, capacity 5, 021b00502a] ], [type 0x2a50, handle 0x001b, value[size 7, capacity 7, 010d0000001001] ],  ]], service[type 0x180a, handle[ 0x0018..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
-[   55,262]   [02.07]     value: size 14, capacity 512, fe006578706572696d656e74616c ('')
-[   55,262]   [02.07.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
-[   55,262]   [02.07.00]     [type 0x2803, handle 0x001a, value[size 5, capacity 5, 021b00502a] ]
-[   55,262]   [02.07.01] Descriptor: UUID 00002a50-0000-1000-8000-00805f9b34fb
-[   55,262]   [02.07.01]     [type 0x2a50, handle 0x001b, value[size 7, capacity 7, 010d0000001001] ]
-[   55,262]   [02.07] Characteristic-Listener: Notification(0), Indication(0): Added 0
-[   55,262] 
-[   55,262]   [02.08] Characteristic: UUID 00002a50-0000-1000-8000-00805f9b34fb
-[   55,262]   [02.08]     [handle 0x001a, props 0x02 [read], value[type 0x2a50, handle 0x001b, PNP_ID, descr[  ]], service[type 0x180a, handle[ 0x001a..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
-[   55,292]   [02.08]     value: size 7, capacity 512, 010d0000001001 ('')
-[   55,292]   [02.08] Characteristic-Listener: Notification(0), Indication(0): Added 0
-[   55,292] 
-[   55,292] 
-[   55,292]   [03] Service UUID 00001809-0000-1000-8000-00805f9b34fb
-[   55,292]   [03]         [type 0x1809, handle [0x001c..0x001f] - HEALTH_THERMOMETER, 1 characteristics]
-[   55,292]   [03.00] Characteristic: UUID 00002a1c-0000-1000-8000-00805f9b34fb
-[   55,292]   [03.00]     [handle 0x001d, props 0x20 [indicate], value[type 0x2a1c, handle 0x001e, TEMPERATURE_MEASUREMENT, descr[ [type 0x2902, handle 0x001f, value[size 2, capacity 2, 0200] ],  ]], service[type 0x1809, handle[ 0x001d..0x001f ], HEALTH_THERMOMETER, enabled[notify 0, indicate 0] ] ]
-[   55,292]   [03.00.00] Descriptor: UUID 00002902-0000-1000-8000-00805f9b34fb
-[   55,292]   [03.00.00]     [type 0x2902, handle 0x001f, value[size 2, capacity 2, 0200] ]
-[   55,322]   [03.00] Characteristic-Listener: Notification(0), Indication(1): Added 1
-[   55,322] 
-[   55,322] 
-[   55,322]   [04] Service UUID 00001523-1212-efde-1523-785feabcd123
-[   55,322]   [04]         [type 0x00001523-1212-efde-1523-785feabcd123, handle [0x0020..0xffff], 1 characteristics]
-[   55,322]   [04.00] Characteristic: UUID 00001524-1212-efde-1523-785feabcd123
-[   55,322]   [04.00]     [handle 0x0021, props 0x18 [write, notify], value[type 0x00001524-1212-efde-1523-785feabcd123, handle 0x0022, descr[ [type 0x2902, handle 0x0023, value[size 2, capacity 2, 0100] ],  ]], service[type 0x00001523-1212-efde-1523-785feabcd123, handle[ 0x0021..0xffff ], enabled[notify 0, indicate 0] ] ]
-[   55,322]   [04.00.00] Descriptor: UUID 00002902-0000-1000-8000-00805f9b34fb
-[   55,322]   [04.00.00]     [type 0x2902, handle 0x0023, value[size 2, capacity 2, 0100] ]
-[   55,352]   [04.00] Characteristic-Listener: Notification(1), Indication(0): Added 1
-[   55,352] 
-[   55,352] 
-[   55,412] **[03.00] Characteristic-Indication: UUID 00002a1c-0000-1000-8000-00805f9b34fb, td 0, confirmed 1 ******
-[   55,412] **[03.00]     Characteristic: [handle 0x001d, props 0x20 [indicate], value[type 0x2a1c, handle 0x001e, TEMPERATURE_MEASUREMENT, descr[ [type 0x2902, handle 0x001f, value[size 2, capacity 2, 0200] ],  ]], service[type 0x1809, handle[ 0x001d..0x001f ], HEALTH_THERMOMETER, enabled[notify 0, indicate 1] ] ] ******
-[   55,412] **[03.00]     Value T: 35.600002 C, 2021-08-30 07:28:00, type 0 ******
-[   55,412] **[03.00]     Value R: size 13, ro: 06640100ffe507081e071c0000 ******
-[   56,352] ****** Processing Ready Device: End-1: Success 1 on Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 3975, ldisc 3975, lup 1750]ms, connected[1/1, handle 0x0e01, sec[lvl ENC_ONLY, io NO_INPUT_NO_OUTPUT, auto UNSET, pairing PRE_PAIRED, state COMPLETED]], rssi -85, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]; devInProc 1
-[   56,357] ****** DISCOVERING: meta LE, changed[LE, enabled 1, keepAlive 1]: Adapter[BTMode DUAL, [DC:FB:48:00:90:19, BDADDR_LE_PUBLIC], '', id 0, curSettings[POWERED, BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native LE, meta LE], valid 1, hci_ext[scan 1, conn 1], open[mgmt, 1, hci 1], JavaAnon[null]]
-[   56,357] ****** Start discovery (post-processing-1) result: SUCCESS
-[   56,357] - BTAdapter::SharedDevices     : 1 elements
-[   56,357]   - 1 / 1: [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name 'TAIDOC TD1107'
-[   56,357] - BTAdapter::ConnectedDevices  : 1 elements
-[   56,357]   - 1 / 1: [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name 'TAIDOC TD1107'
-[   56,357] - BTAdapter::DiscoveredDevices : 0 elements
-[   56,357] - BTAdapter::StatusListener    : 2 elements
-[   56,357]   - 1 / 2: MyAdapterStatusListener[this 0x0000555fb4f35e50]
-[   56,357]   - 2 / 2: TempAdapterStatusListener[this 0x00007fac64000c30]
-[   56,357] ****** Processing Ready Device: End-2: Success 1 on Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 3980, ldisc 3980, lup 1755]ms, connected[1/1, handle 0x0e01, sec[lvl ENC_ONLY, io NO_INPUT_NO_OUTPUT, auto UNSET, pairing PRE_PAIRED, state COMPLETED]], rssi -85, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]; devInProc 0
-[   56,357] ****** Processing Ready Device: MULTI_MEASUREMENTS left 7: [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC]
-[   56,502] ****** FOUND__-1: NOP Device[[28:FF:B2:C1:46:19, BDADDR_LE_PUBLIC], name[''], age[total 0, ldisc 0, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -72, tx-power 0, appearance 0x0000 (UNKNOWN), MSD[company[526 526], data[size 5, capacity 5, 0100170017]], JavaAnon[null]]
+[    8,327]   [00] Service UUID 00001800-0000-1000-8000-00805f9b34fb
+[    8,327]   [00]         [type 0x1800, handle [0x0001..0x0007] - GENERIC_ACCESS, 3 characteristics]
+[    8,327]   [00.00] Characteristic: UUID 00002a00-0000-1000-8000-00805f9b34fb
+[    8,327]   [00.00]     [handle 0x0002, props 0x02 [read], value[type 0x2a00, handle 0x0003, DEVICE_NAME, descr[ [type 0x2803, handle 0x0004, value[size 5, capacity 5, 020500012a] ], [type 0x2a01, handle 0x0005, value[size 2, capacity 2, 0000] ],  ]], service[type 0x1800, handle[ 0x0002..0x0007 ], GENERIC_ACCESS, enabled[notify 0, indicate 0] ] ]
+[    8,357]   [00.00]     value: size 13, capacity 512, 544149444f4320544431313037 ('TAIDOC TD1107')
+[    8,357]   [00.00.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
+[    8,357]   [00.00.00]     [type 0x2803, handle 0x0004, value[size 5, capacity 5, 020500012a] ]
+[    8,357]   [00.00.01] Descriptor: UUID 00002a01-0000-1000-8000-00805f9b34fb
+[    8,357]   [00.00.01]     [type 0x2a01, handle 0x0005, value[size 2, capacity 2, 0000] ]
+[    8,357]   [00.00] Characteristic-Listener: Notification(0), Indication(0): Added 0
+[    8,357] 
+[    8,357]   [00.01] Characteristic: UUID 00002a01-0000-1000-8000-00805f9b34fb
+[    8,357]   [00.01]     [handle 0x0004, props 0x02 [read], value[type 0x2a01, handle 0x0005, APPEARANCE, descr[ [type 0x2803, handle 0x0006, value[size 5, capacity 5, 020700042a] ], [type 0x2a04, handle 0x0007, value[size 8, capacity 8, 5000a0000000e803] ],  ]], service[type 0x1800, handle[ 0x0004..0x0007 ], GENERIC_ACCESS, enabled[notify 0, indicate 0] ] ]
+[    8,387]   [00.01]     value: size 2, capacity 512, 0000 ('')
+[    8,387]   [00.01.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
+[    8,387]   [00.01.00]     [type 0x2803, handle 0x0006, value[size 5, capacity 5, 020700042a] ]
+[    8,387]   [00.01.01] Descriptor: UUID 00002a04-0000-1000-8000-00805f9b34fb
+[    8,387]   [00.01.01]     [type 0x2a04, handle 0x0007, value[size 8, capacity 8, 5000a0000000e803] ]
+[    8,387]   [00.01] Characteristic-Listener: Notification(0), Indication(0): Added 0
+[    8,387] 
+[    8,387]   [00.02] Characteristic: UUID 00002a04-0000-1000-8000-00805f9b34fb
+[    8,387]   [00.02]     [handle 0x0006, props 0x02 [read], value[type 0x2a04, handle 0x0007, PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS, descr[  ]], service[type 0x1800, handle[ 0x0006..0x0007 ], GENERIC_ACCESS, enabled[notify 0, indicate 0] ] ]
+[    8,417]   [00.02]     value: size 8, capacity 512, 5000a0000000e803 ('P')
+[    8,417]   [00.02] Characteristic-Listener: Notification(0), Indication(0): Added 0
+[    8,417] 
+[    8,417] 
+[    8,417]   [01] Service UUID 00001801-0000-1000-8000-00805f9b34fb
+[    8,417]   [01]         [type 0x1801, handle [0x0008..0x0008] - Unknown, 0 characteristics]
+[    8,417] 
+[    8,417]   [02] Service UUID 0000180a-0000-1000-8000-00805f9b34fb
+[    8,417]   [02]         [type 0x180a, handle [0x0009..0x001b] - DEVICE_INFORMATION, 9 characteristics]
+[    8,417]   [02.00] Characteristic: UUID 00002a23-0000-1000-8000-00805f9b34fb
+[    8,417]   [02.00]     [handle 0x000a, props 0x02 [read], value[type 0x2a23, handle 0x000b, SYSTEM_ID, descr[ [type 0x2803, handle 0x000c, value[size 5, capacity 5, 020d00242a] ], [type 0x2a24, handle 0x000d, value[size 12, capacity 12, 4d6f64656c204e756d626572] ],  ]], service[type 0x180a, handle[ 0x000a..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
+[    8,447]   [02.00]     value: size 8, capacity 512, 0000000000000000 ('')
+[    8,447]   [02.00.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
+[    8,447]   [02.00.00]     [type 0x2803, handle 0x000c, value[size 5, capacity 5, 020d00242a] ]
+[    8,447]   [02.00.01] Descriptor: UUID 00002a24-0000-1000-8000-00805f9b34fb
+[    8,447]   [02.00.01]     [type 0x2a24, handle 0x000d, value[size 12, capacity 12, 4d6f64656c204e756d626572] ]
+[    8,447]   [02.00] Characteristic-Listener: Notification(0), Indication(0): Added 0
+[    8,447] 
+[    8,447]   [02.01] Characteristic: UUID 00002a24-0000-1000-8000-00805f9b34fb
+[    8,447]   [02.01]     [handle 0x000c, props 0x02 [read], value[type 0x2a24, handle 0x000d, MODEL_NUMBER_STRING, descr[ [type 0x2803, handle 0x000e, value[size 5, capacity 5, 020f00252a] ], [type 0x2a25, handle 0x000f, value[size 13, capacity 13, 53657269616c204e756d626572] ],  ]], service[type 0x180a, handle[ 0x000c..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
+[    8,477]   [02.01]     value: size 12, capacity 512, 4d6f64656c204e756d626572 ('Model Number')
+[    8,477]   [02.01.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
+[    8,477]   [02.01.00]     [type 0x2803, handle 0x000e, value[size 5, capacity 5, 020f00252a] ]
+[    8,477]   [02.01.01] Descriptor: UUID 00002a25-0000-1000-8000-00805f9b34fb
+[    8,477]   [02.01.01]     [type 0x2a25, handle 0x000f, value[size 13, capacity 13, 53657269616c204e756d626572] ]
+[    8,477]   [02.01] Characteristic-Listener: Notification(0), Indication(0): Added 0
+[    8,477] 
+[    8,477]   [02.02] Characteristic: UUID 00002a25-0000-1000-8000-00805f9b34fb
+[    8,477]   [02.02]     [handle 0x000e, props 0x02 [read], value[type 0x2a25, handle 0x000f, SERIAL_NUMBER_STRING, descr[ [type 0x2803, handle 0x0010, value[size 5, capacity 5, 021100262a] ], [type 0x2a26, handle 0x0011, value[size 7, capacity 7, 56312e322e3239] ],  ]], service[type 0x180a, handle[ 0x000e..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
+[    8,507]   [02.02]     value: size 13, capacity 512, 53657269616c204e756d626572 ('Serial Number')
+[    8,507]   [02.02.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
+[    8,507]   [02.02.00]     [type 0x2803, handle 0x0010, value[size 5, capacity 5, 021100262a] ]
+[    8,507]   [02.02.01] Descriptor: UUID 00002a26-0000-1000-8000-00805f9b34fb
+[    8,507]   [02.02.01]     [type 0x2a26, handle 0x0011, value[size 7, capacity 7, 56312e322e3239] ]
+[    8,507]   [02.02] Characteristic-Listener: Notification(0), Indication(0): Added 0
+[    8,507] 
+[    8,507]   [02.03] Characteristic: UUID 00002a26-0000-1000-8000-00805f9b34fb
+[    8,507]   [02.03]     [handle 0x0010, props 0x02 [read], value[type 0x2a26, handle 0x0011, FIRMWARE_REVISION_STRING, descr[ [type 0x2803, handle 0x0012, value[size 5, capacity 5, 021300272a] ], [type 0x2a27, handle 0x0013, value[size 17, capacity 17, 4861726477617265205265766973696f6e] ],  ]], service[type 0x180a, handle[ 0x0010..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
+[    8,537]   [02.03]     value: size 7, capacity 512, 56312e322e3239 ('V1.2.29')
+[    8,537]   [02.03.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
+[    8,537]   [02.03.00]     [type 0x2803, handle 0x0012, value[size 5, capacity 5, 021300272a] ]
+[    8,537]   [02.03.01] Descriptor: UUID 00002a27-0000-1000-8000-00805f9b34fb
+[    8,537]   [02.03.01]     [type 0x2a27, handle 0x0013, value[size 17, capacity 17, 4861726477617265205265766973696f6e] ]
+[    8,537]   [02.03] Characteristic-Listener: Notification(0), Indication(0): Added 0
+[    8,537] 
+[    8,537]   [02.04] Characteristic: UUID 00002a27-0000-1000-8000-00805f9b34fb
+[    8,537]   [02.04]     [handle 0x0012, props 0x02 [read], value[type 0x2a27, handle 0x0013, HARDWARE_REVISION_STRING, descr[ [type 0x2803, handle 0x0014, value[size 5, capacity 5, 021500282a] ], [type 0x2a28, handle 0x0015, value[size 6, capacity 6, 56312e302e30] ],  ]], service[type 0x180a, handle[ 0x0012..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
+[    8,567]   [02.04]     value: size 17, capacity 512, 4861726477617265205265766973696f6e ('Hardware Revision')
+[    8,567]   [02.04.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
+[    8,567]   [02.04.00]     [type 0x2803, handle 0x0014, value[size 5, capacity 5, 021500282a] ]
+[    8,567]   [02.04.01] Descriptor: UUID 00002a28-0000-1000-8000-00805f9b34fb
+[    8,567]   [02.04.01]     [type 0x2a28, handle 0x0015, value[size 6, capacity 6, 56312e302e30] ]
+[    8,567]   [02.04] Characteristic-Listener: Notification(0), Indication(0): Added 0
+[    8,567] 
+[    8,567]   [02.05] Characteristic: UUID 00002a28-0000-1000-8000-00805f9b34fb
+[    8,567]   [02.05]     [handle 0x0014, props 0x02 [read], value[type 0x2a28, handle 0x0015, SOFTWARE_REVISION_STRING, descr[ [type 0x2803, handle 0x0016, value[size 5, capacity 5, 021700292a] ], [type 0x2a29, handle 0x0017, value[size 17, capacity 17, 4d616e756661637475726572204e616d65] ],  ]], service[type 0x180a, handle[ 0x0014..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
+[    8,597]   [02.05]     value: size 6, capacity 512, 56312e302e30 ('V1.0.0')
+[    8,597]   [02.05.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
+[    8,597]   [02.05.00]     [type 0x2803, handle 0x0016, value[size 5, capacity 5, 021700292a] ]
+[    8,597]   [02.05.01] Descriptor: UUID 00002a29-0000-1000-8000-00805f9b34fb
+[    8,597]   [02.05.01]     [type 0x2a29, handle 0x0017, value[size 17, capacity 17, 4d616e756661637475726572204e616d65] ]
+[    8,597]   [02.05] Characteristic-Listener: Notification(0), Indication(0): Added 0
+[    8,597] 
+[    8,597]   [02.06] Characteristic: UUID 00002a29-0000-1000-8000-00805f9b34fb
+[    8,597]   [02.06]     [handle 0x0016, props 0x02 [read], value[type 0x2a29, handle 0x0017, MANUFACTURER_NAME_STRING, descr[ [type 0x2803, handle 0x0018, value[size 5, capacity 5, 0219002a2a] ], [type 0x2a2a, handle 0x0019, value[size 14, capacity 14, fe006578706572696d656e74616c] ],  ]], service[type 0x180a, handle[ 0x0016..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
+[    8,627]   [02.06]     value: size 17, capacity 512, 4d616e756661637475726572204e616d65 ('Manufacturer Name')
+[    8,627]   [02.06.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
+[    8,627]   [02.06.00]     [type 0x2803, handle 0x0018, value[size 5, capacity 5, 0219002a2a] ]
+[    8,627]   [02.06.01] Descriptor: UUID 00002a2a-0000-1000-8000-00805f9b34fb
+[    8,627]   [02.06.01]     [type 0x2a2a, handle 0x0019, value[size 14, capacity 14, fe006578706572696d656e74616c] ]
+[    8,627]   [02.06] Characteristic-Listener: Notification(0), Indication(0): Added 0
+[    8,627] 
+[    8,627]   [02.07] Characteristic: UUID 00002a2a-0000-1000-8000-00805f9b34fb
+[    8,627]   [02.07]     [handle 0x0018, props 0x02 [read], value[type 0x2a2a, handle 0x0019, REGULATORY_CERT_DATA_LIST, descr[ [type 0x2803, handle 0x001a, value[size 5, capacity 5, 021b00502a] ], [type 0x2a50, handle 0x001b, value[size 7, capacity 7, 010d0000001001] ],  ]], service[type 0x180a, handle[ 0x0018..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
+[    8,657]   [02.07]     value: size 14, capacity 512, fe006578706572696d656e74616c ('')
+[    8,657]   [02.07.00] Descriptor: UUID 00002803-0000-1000-8000-00805f9b34fb
+[    8,657]   [02.07.00]     [type 0x2803, handle 0x001a, value[size 5, capacity 5, 021b00502a] ]
+[    8,657]   [02.07.01] Descriptor: UUID 00002a50-0000-1000-8000-00805f9b34fb
+[    8,657]   [02.07.01]     [type 0x2a50, handle 0x001b, value[size 7, capacity 7, 010d0000001001] ]
+[    8,657]   [02.07] Characteristic-Listener: Notification(0), Indication(0): Added 0
+[    8,657] 
+[    8,657]   [02.08] Characteristic: UUID 00002a50-0000-1000-8000-00805f9b34fb
+[    8,657]   [02.08]     [handle 0x001a, props 0x02 [read], value[type 0x2a50, handle 0x001b, PNP_ID, descr[  ]], service[type 0x180a, handle[ 0x001a..0x001b ], DEVICE_INFORMATION, enabled[notify 0, indicate 0] ] ]
+[    8,687]   [02.08]     value: size 7, capacity 512, 010d0000001001 ('')
+[    8,687]   [02.08] Characteristic-Listener: Notification(0), Indication(0): Added 0
+[    8,687] 
+[    8,687] 
+[    8,687]   [03] Service UUID 00001809-0000-1000-8000-00805f9b34fb
+[    8,687]   [03]         [type 0x1809, handle [0x001c..0x001f] - HEALTH_THERMOMETER, 1 characteristics]
+[    8,687]   [03.00] Characteristic: UUID 00002a1c-0000-1000-8000-00805f9b34fb
+[    8,687]   [03.00]     [handle 0x001d, props 0x20 [indicate], value[type 0x2a1c, handle 0x001e, TEMPERATURE_MEASUREMENT, descr[ [type 0x2902, handle 0x001f, value[size 2, capacity 2, 0200] ],  ]], service[type 0x1809, handle[ 0x001d..0x001f ], HEALTH_THERMOMETER, enabled[notify 0, indicate 0] ] ]
+[    8,687]   [03.00.00] Descriptor: UUID 00002902-0000-1000-8000-00805f9b34fb
+[    8,687]   [03.00.00]     [type 0x2902, handle 0x001f, value[size 2, capacity 2, 0200] ]
+[    8,717]   [03.00] Characteristic-Listener: Notification(0), Indication(1): Added 1
+[    8,717] 
+[    8,717] 
+[    8,717]   [04] Service UUID 00001523-1212-efde-1523-785feabcd123
+[    8,717]   [04]         [type 0x00001523-1212-efde-1523-785feabcd123, handle [0x0020..0xffff], 1 characteristics]
+[    8,717]   [04.00] Characteristic: UUID 00001524-1212-efde-1523-785feabcd123
+[    8,717]   [04.00]     [handle 0x0021, props 0x18 [write, notify], value[type 0x00001524-1212-efde-1523-785feabcd123, handle 0x0022, descr[ [type 0x2902, handle 0x0023, value[size 2, capacity 2, 0100] ],  ]], service[type 0x00001523-1212-efde-1523-785feabcd123, handle[ 0x0021..0xffff ], enabled[notify 0, indicate 0] ] ]
+[    8,717]   [04.00.00] Descriptor: UUID 00002902-0000-1000-8000-00805f9b34fb
+[    8,717]   [04.00.00]     [type 0x2902, handle 0x0023, value[size 2, capacity 2, 0100] ]
+[    8,747]   [04.00] Characteristic-Listener: Notification(1), Indication(0): Added 1
+[    8,747] 
+[    8,747] 
+[    8,807] **[03.00] Characteristic-Indication: UUID 00002a1c-0000-1000-8000-00805f9b34fb, td 0, confirmed 1 ******
+[    8,807] **[03.00]     Characteristic: [handle 0x001d, props 0x20 [indicate], value[type 0x2a1c, handle 0x001e, TEMPERATURE_MEASUREMENT, descr[ [type 0x2902, handle 0x001f, value[size 2, capacity 2, 0200] ],  ]], service[type 0x1809, handle[ 0x001d..0x001f ], HEALTH_THERMOMETER, enabled[notify 0, indicate 1] ] ] ******
+[    8,807] **[03.00]     Value T: 35.299999 C, 2021-08-30 08:36:00, type 0 ******
+[    8,807] **[03.00]     Value R: size 13, ro: 06610100ffe507081e08240000 ******
+[    9,747] ****** Processing Ready Device: End-1: Success 1 on Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 3703, ldisc 3703, lup 1690]ms, connected[1/1, handle 0x0e01, sec[lvl ENC_ONLY, io NO_INPUT_NO_OUTPUT, auto UNSET, pairing PRE_PAIRED, state COMPLETED]], rssi -82, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]; devInProc 1
+[    9,753] ****** DISCOVERING: meta LE, changed[LE, enabled 1, keepAlive 1]: Adapter[BTMode DUAL, [DC:FB:48:00:90:19, BDADDR_LE_PUBLIC], '', id 0, curSettings[POWERED, BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native LE, meta LE], valid 1, hci_ext[scan 1, conn 1], open[mgmt, 1, hci 1], JavaAnon[null]]
+[    9,753] ****** Start discovery (post-processing-1) result: SUCCESS
+[    9,753] - BTAdapter::SharedDevices     : 1 elements
+[    9,753]   - 1 / 1: [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name 'TAIDOC TD1107'
+[    9,753] - BTAdapter::ConnectedDevices  : 1 elements
+[    9,753]   - 1 / 1: [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name 'TAIDOC TD1107'
+[    9,753] - BTAdapter::DiscoveredDevices : 0 elements
+[    9,753] - BTAdapter::StatusListener    : 2 elements
+[    9,753]   - 1 / 2: MyAdapterStatusListener[this 0x00005584bcc8df90]
+[    9,753]   - 2 / 2: TempAdapterStatusListener[this 0x00007f87c0000c30]
+[    9,753] ****** Processing Ready Device: End-2: Success 1 on Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 3709, ldisc 3709, lup 1696]ms, connected[1/1, handle 0x0e01, sec[lvl ENC_ONLY, io NO_INPUT_NO_OUTPUT, auto UNSET, pairing PRE_PAIRED, state COMPLETED]], rssi -82, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]; devInProc 0
+[    9,753] ****** Processing Ready Device: MULTI_MEASUREMENTS left 7: [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC]
+[    9,763] ****** FOUND__-1: NOP Device[[28:FF:B2:C1:46:19, BDADDR_LE_PUBLIC], name[''], age[total 0, ldisc 0, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -80, tx-power 0, appearance 0x0000 (UNKNOWN), MSD[company[526 526], data[size 5, capacity 5, 0100170017]], JavaAnon[null]]
   00001810-0000-1000-8000-00805f9b34fb, 2 bytes
-[   56,504] ****** FOUND__-1: NOP Device[[28:FF:B2:C1:46:19, BDADDR_LE_PUBLIC], name['BLESmart_0000035728FFB2C14619'], age[total 2, ldisc 2, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -72, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[526 526], data[size 5, capacity 5, 0100170017]], JavaAnon[null]]
+[    9,765] ****** FOUND__-1: NOP Device[[28:FF:B2:C1:46:19, BDADDR_LE_PUBLIC], name['BLESmart_0000035728FFB2C14619'], age[total 2, ldisc 2, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -80, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[526 526], data[size 5, capacity 5, 0100170017]], JavaAnon[null]]
   00001810-0000-1000-8000-00805f9b34fb, 2 bytes
-[   56,631] ****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' Device[[7B:7B:95:C5:2F:36, BDADDR_LE_RANDOM, random RESOLVABLE_PRIVAT], name[''], age[total 0, ldisc 0, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -94, tx-power 127, appearance 0xfd6f (Unknown AppearanceCat 0xfd6f), MSD[null], JavaAnon[null]]
+[    9,909] ****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' Device[[52:AC:AD:2C:37:37, BDADDR_LE_RANDOM, random RESOLVABLE_PRIVAT], name[''], age[total 0, ldisc 0, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -96, tx-power 127, appearance 0xfd6f (Unknown AppearanceCat 0xfd6f), MSD[null], JavaAnon[null]]
   0000fd6f-0000-1000-8000-00805f9b34fb, 2 bytes
-[   58,772] Interrupted @ /src/direct_bt/L2CAPComm.cpp:432 read: L2CAPComm::read: Error res -20; State[open 1, ioError 1], dd 8, [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], psm UNDEFINED, cid ATT; last errno 107 Transport endpoint is not connected
-[   58,772] ****** DISCONNECTED: Reason 0x8 (CONNECTION_TIMEOUT), old handle 0x0e01: Device[[C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 6395, ldisc 6395, lup 4170]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -85, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
-  00001809-0000-1000-8000-00805f9b34fb, 2 bytes
-  0000180a-0000-1000-8000-00805f9b34fb, 2 bytes
-[   58,772] ****** Remove Device: removing: [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC]
-[   58,842] ****** DISCOVERING: meta NONE, changed[LE, enabled 0, keepAlive 0]: Adapter[BTMode DUAL, [DC:FB:48:00:90:19, BDADDR_LE_PUBLIC], '', id 0, curSettings[POWERED, BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native NONE, meta NONE], valid 1, hci_ext[scan 1, conn 1], open[mgmt, 1, hci 1], JavaAnon[null]]
-[   58,849] ****** DISCOVERING: meta LE, changed[LE, enabled 1, keepAlive 1]: Adapter[BTMode DUAL, [DC:FB:48:00:90:19, BDADDR_LE_PUBLIC], '', id 0, curSettings[POWERED, BONDABLE, SSP, BREDR, LE, SECURE_CONN], scanType[native LE, meta LE], valid 1, hci_ext[scan 1, conn 1], open[mgmt, 1, hci 1], JavaAnon[null]]
-[   58,849] ****** Start discovery (post-remove-device) result: SUCCESS
-[   58,938] ****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' Device[[7B:7B:95:C5:2F:36, BDADDR_LE_RANDOM, random RESOLVABLE_PRIVAT], name[''], age[total 0, ldisc 0, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -96, tx-power 127, appearance 0xfd6f (Unknown AppearanceCat 0xfd6f), MSD[null], JavaAnon[null]]
-  0000fd6f-0000-1000-8000-00805f9b34fb, 2 bytes
-[   59,147] ****** FOUND__-1: NOP Device[[28:FF:B2:C1:46:19, BDADDR_LE_PUBLIC], name[''], age[total 0, ldisc 0, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -73, tx-power 0, appearance 0x0000 (UNKNOWN), MSD[company[526 526], data[size 5, capacity 5, 0100170017]], JavaAnon[null]]
-  00001810-0000-1000-8000-00805f9b34fb, 2 bytes
-[   59,149] ****** FOUND__-1: NOP Device[[28:FF:B2:C1:46:19, BDADDR_LE_PUBLIC], name['BLESmart_0000035728FFB2C14619'], age[total 2, ldisc 2, lup 0]ms, connected[0/0, handle 0x0000, sec[lvl UNSET, io UNSET, auto UNSET, pairing NONE, state NONE]], rssi -73, tx-power 127, appearance 0x0000 (UNKNOWN), MSD[company[526 526], data[size 5, capacity 5, 0100170017]], JavaAnon[null]]
-  00001810-0000-1000-8000-00805f9b34fb, 2 bytes
