@@ -40,6 +40,8 @@
 
 #include <jau/darray.hpp>
 
+#include "version.h"
+
 #include "BTTypes0.hpp"
 
 #include "BTDevice.hpp"

@@ -1,6 +1,7 @@
 /*
- * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
- * Copyright (c) 2015 Intel Corporation.
+ * Author: Sven Gothel <sgothel@jausoft.com>
+ * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -22,21 +23,11 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#pragma once
+#ifndef DIRECT_BT_VERSION_H_
+#define DIRECT_BT_VERSION_H_
 
-#include "BluetoothObject.hpp"
-#include "orgbluez-dbus.h"
+extern const char* DIRECT_BT_VERSION;
+extern const char* DIRECT_BT_VERSION_SHORT;
+extern const char* DIRECT_BT_VERSION_API;
 
-#include <cstring>
-#include <vector>
-#include <stdexcept>
-
-extern GDBusObjectManager *gdbus_manager;
-
-namespace tinyb {
-    std::vector<unsigned char> from_chars_to_vector(const gchar *chars);
-    std::vector<unsigned char> from_gbytes_to_vector(const GBytes *bytes);
-    GBytes *from_vector_to_gbytes(const std::vector<unsigned char>& array);
-    std::vector<unsigned char> from_iter_to_vector(GVariant *iter);
-    void handle_error(GError *error);
-};
+#endif /* DIRECT_BT_VERSION_H_ */

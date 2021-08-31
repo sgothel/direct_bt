@@ -1,5 +1,5 @@
-#include "version.h"
+#include <direct_bt/version.h>
 
-const char* gVERSION = "@VERSION@";
-const char* gVERSION_SHORT = "@VERSION_SHORT@";
-const char* gVERSION_API = "@VERSION_API@";
+const char* DIRECT_BT_VERSION = "@VERSION@";
+const char* DIRECT_BT_VERSION_SHORT = "@VERSION_SHORT@";
+const char* DIRECT_BT_VERSION_API = "@VERSION_API@";

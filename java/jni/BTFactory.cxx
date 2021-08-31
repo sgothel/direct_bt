@@ -25,18 +25,31 @@
 
 #include "org_direct_bt_BTFactory.h"
 
-#include "version.h"
+#include <direct_bt/version.h>
 
 #include "helper_base.hpp"
 
 using namespace jau;
+
+jstring Java_org_direct_1bt_BTFactory_getNativeVersion(JNIEnv *env, jclass clazz)
+{
+    try {
+        (void) clazz;
+
+        std::string api_version = std::string(DIRECT_BT_VERSION);
+        return env->NewStringUTF(api_version.c_str());
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return nullptr;
+}
 
 jstring Java_org_direct_1bt_BTFactory_getNativeAPIVersion(JNIEnv *env, jclass clazz)
 {
     try {
         (void) clazz;
 
-        std::string api_version = std::string(gVERSION_API);
+        std::string api_version = std::string(DIRECT_BT_VERSION_API);
         return env->NewStringUTF(api_version.c_str());
     } catch(...) {
         rethrow_and_raise_java_exception(env);

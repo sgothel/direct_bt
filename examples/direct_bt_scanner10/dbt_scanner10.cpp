@@ -685,6 +685,8 @@ static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>
 void test() {
     bool done = false;
 
+    fprintf_td(stderr, "DirectBT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
+
     timestamp_t0 = getCurrentMilliseconds();
 
     BTManager & mngr = BTManager::get();

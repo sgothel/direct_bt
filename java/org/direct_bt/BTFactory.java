@@ -575,7 +575,8 @@ public class BTFactory {
         }
     }
 
-    private native static String getNativeAPIVersion();
+    public native static String getNativeVersion();
+    public native static String getNativeAPIVersion();
     private native static void setenv(String name, String value, boolean overwrite);
 }
 
