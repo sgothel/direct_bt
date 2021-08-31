@@ -8,7 +8,7 @@
 #include <catch2/catch_amalgamated.hpp>
 #include <jau/test/catch2_ext.hpp>
 
-#include "ieee11073/DataTypes.hpp"
+#include <direct_bt/ieee11073/DataTypes.hpp>
 
 using namespace ieee11073;
 

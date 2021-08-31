@@ -15,7 +15,7 @@ set (direct_bt_LIB_SRCS
   ${PROJECT_SOURCE_DIR}/jaulib/src/environment.cpp
   ${PROJECT_SOURCE_DIR}/jaulib/src/debug.cpp
   ${PROJECT_SOURCE_DIR}/jaulib/src/basic_types.cpp
-  ${PROJECT_SOURCE_DIR}/src/ieee11073/DataTypes.cpp
+  ${PROJECT_SOURCE_DIR}/src/direct_bt/ieee11073/DataTypes.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/ATTPDUTypes.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/BTAdapter.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/BTDevice.cpp
