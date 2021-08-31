@@ -39,9 +39,6 @@ import java.util.List;
   */
 public interface BTGattService extends BTObject
 {
-    @Override
-    public BTGattService clone();
-
     /** Find a BTGattChar. If parameter UUID is not null,
       * the returned object will have to match it.
       * It will first check for existing objects. It will not turn on discovery
@@ -98,7 +95,6 @@ public interface BTGattService extends BTObject
      * @throws IllegalArgumentException if listener's {@link BTGattCharListener#getAssociatedChar() associated characteristic}
      * is not null.
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
      * @see BTGattChar#enableNotificationOrIndication(boolean[])
      * @see BTDevice#addCharListener(BTGattCharListener, BTGattChar)
      */
@@ -126,7 +122,6 @@ public interface BTGattService extends BTObject
      * @param listener {@link BTGattCharListener} to remove from the {@link BTDevice}.
      * @return true if successful, otherwise false
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
      * @see BTGattChar#configNotificationIndication(boolean, boolean, boolean[])
      * @see BTDevice#removeCharListener(BTGattCharListener)
      */
@@ -146,7 +141,6 @@ public interface BTGattService extends BTObject
      * Removes all {@link BTGattCharListener} from the {@link BTDevice}.
      * @return count of removed {@link BTGattCharListener}
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
      * @see BTGattChar#configNotificationIndication(boolean, boolean, boolean[])
      * @see BTDevice#removeAllCharListener()
      */

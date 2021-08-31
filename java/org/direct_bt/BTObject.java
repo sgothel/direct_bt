@@ -27,17 +27,12 @@
  */
 package org.direct_bt;
 
-public interface BTObject extends Cloneable, AutoCloseable
+public interface BTObject extends AutoCloseable
 {
     /** Returns the BluetoothType of this object
       * @return The BluetoothType of this object
       */
     public BTType getBluetoothType();
-
-    /** Returns a clone of the BluetoothObject
-      * @return A clone of the BluetoothObject
-      */
-    public BTObject clone();
 
     @Override
     public boolean equals(Object obj);

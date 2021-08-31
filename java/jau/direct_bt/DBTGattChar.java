@@ -26,18 +26,16 @@
 package jau.direct_bt;
 
 import java.lang.ref.WeakReference;
-import java.util.Arrays;
 import java.util.List;
 
 import org.direct_bt.BTException;
-import org.direct_bt.BTFactory;
 import org.direct_bt.BTGattChar;
 import org.direct_bt.BTGattDesc;
 import org.direct_bt.BTGattService;
-import org.direct_bt.BTNotification;
 import org.direct_bt.BTObject;
 import org.direct_bt.BTType;
 import org.direct_bt.BTUtils;
+import org.direct_bt.GattCharPropertySet;
 import org.direct_bt.BTGattCharListener;
 
 public class DBTGattChar extends DBTObject implements BTGattChar
@@ -55,10 +53,7 @@ public class DBTGattChar extends DBTObject implements BTGattChar
      */
     private final short handle;
 
-    /* Characteristics Property */
-    private final String[] properties;
-    private final boolean hasNotify;
-    private final boolean hasIndicate;
+    private final GattCharPropertySet properties;
 
     /* Characteristics Value Type UUID */
     private final String value_type_uuid;
@@ -76,97 +71,45 @@ public class DBTGattChar extends DBTObject implements BTGattChar
 
     /* pp */ final List<BTGattDesc> descriptorList;
 
-    private final boolean supCharValueCacheNotification;
-
     boolean enabledNotifyState = false;
     boolean enabledIndicateState = false;
 
-    private byte[] cachedValue = null;
-    private BTNotification<byte[]> valueNotificationCB = null;
-
-    private boolean updateCachedValue(final byte[] value, final boolean notify) {
-        boolean valueChanged = false;
-        if( null == cachedValue || cachedValue.length != value.length ) {
-            cachedValue = new byte[value.length];
-            valueChanged = true;
-        } else if( !Arrays.equals(value, cachedValue) ) {
-            valueChanged = true;
-        }
-        if( valueChanged ) {
-            System.arraycopy(value, 0, cachedValue, 0, value.length);
-            if( notify && null != valueNotificationCB ) {
-                valueNotificationCB.run(cachedValue);
-            }
-        }
-        return valueChanged;
-    }
-
    /* pp */ DBTGattChar(final long nativeInstance, final DBTGattService service,
-                                  final short handle, final String[] properties,
-                                  final boolean hasNotify, final boolean hasIndicate,
-                                  final String value_type_uuid, final short value_handle,
-                                  final int clientCharacteristicsConfigIndex)
+                        final short handle, final GattCharPropertySet properties,
+                        final String value_type_uuid, final short value_handle,
+                        final int clientCharacteristicsConfigIndex)
     {
         super(nativeInstance, handle /* hash */);
         this.wbr_service = new WeakReference<DBTGattService>(service);
         this.handle = handle;
 
         this.properties = properties;
-        this.hasNotify = hasNotify;
-        this.hasIndicate = hasIndicate;
         this.value_type_uuid = value_type_uuid;
         this.value_handle = value_handle;
         this.clientCharacteristicsConfigIndex = clientCharacteristicsConfigIndex;
         this.descriptorList = getDescriptorsImpl();
-        this.supCharValueCacheNotification = DBTManager.getManager().getSettings().isCharValueCacheNotificationSupported();
 
-        if( ( BTFactory.DEBUG || supCharValueCacheNotification ) &&
-            ( hasNotify || hasIndicate )
-          )
-        {
-            // This characteristicListener serves TinyB 'enableValueNotification(..)' and 'getValue()' (cached value)
-            // backwards compatibility only!
-            final Listener characteristicListener = new Listener() {
-                @Override
-                public void notificationReceived(final BTGattChar charDecl, final byte[] value, final long timestamp) {
-                    final DBTGattChar cd = (DBTGattChar)charDecl;
-                    if( !cd.equals(DBTGattChar.this) ) {
-                        throw new InternalError("Filtered GATTCharacteristicListener.notificationReceived: Wrong Characteristic: Got "+charDecl+
-                                                ", expected "+DBTGattChar.this.toString());
-                    }
-                    final boolean valueChanged;
-                    if( supCharValueCacheNotification ) {
-                        valueChanged = updateCachedValue(value, true);
-                    } else {
-                        valueChanged = true;
-                    }
-                    if( DEBUG ) {
+        if( DEBUG ) {
+            final boolean hasNotify = properties.isSet(GattCharPropertySet.Type.Notify);
+            final boolean hasIndicate = properties.isSet(GattCharPropertySet.Type.Indicate);
+
+            if( hasNotify || hasIndicate ) {
+                final Listener characteristicListener = new Listener() {
+                    @Override
+                    public void notificationReceived(final BTGattChar charDecl, final byte[] value, final long timestamp) {
                         System.err.println("GATTCharacteristicListener.notificationReceived: "+charDecl+
-                                           ", value[changed "+valueChanged+", len "+value.length+": "+BTUtils.bytesHexString(value, 0, -1, true)+"]");
+                                           ", value[len "+value.length+": "+BTUtils.bytesHexString(value, 0, -1, true)+"]");
                     }
-                }
-                @Override
-                public void indicationReceived(final BTGattChar charDecl, final byte[] value, final long timestamp,
-                                               final boolean confirmationSent) {
-                    final DBTGattChar cd = (DBTGattChar)charDecl;
-                    if( !cd.equals(DBTGattChar.this) ) {
-                        throw new InternalError("Filtered GATTCharacteristicListener.indicationReceived: Wrong Characteristic: Got "+charDecl+
-                                                ", expected "+DBTGattChar.this.toString());
-                    }
-                    final boolean valueChanged;
-                    if( supCharValueCacheNotification ) {
-                        valueChanged = updateCachedValue(value, true);
-                    } else {
-                        valueChanged = true;
-                    }
-                    if( DEBUG ) {
+                    @Override
+                    public void indicationReceived(final BTGattChar charDecl, final byte[] value, final long timestamp,
+                                                   final boolean confirmationSent) {
                         System.err.println("GATTCharacteristicListener.indicationReceived: "+charDecl+
-                                           ", value[changed "+valueChanged+", len "+value.length+": "+BTUtils.bytesHexString(value, 0, -1, true)+
+                                           ", value[len "+value.length+": "+BTUtils.bytesHexString(value, 0, -1, true)+
                                            "], confirmationSent "+confirmationSent);
                     }
-                }
-            };
-            this.addCharListener(characteristicListener); // silent, don't enable native GATT ourselves
+                };
+                this.addCharListener(characteristicListener); // silent, don't enable native GATT ourselves
+            }
         }
     }
 
@@ -218,29 +161,23 @@ public class DBTGattChar extends DBTObject implements BTGattChar
     public final BTGattService getService() { return wbr_service.get(); }
 
     @Override
-    public final String[] getFlags() { return properties; }
+    public final boolean getNotifying(final boolean enabledState[/*2*/]) {
+        enabledState[0] = enabledNotifyState;
+        enabledState[1] = enabledIndicateState;
+        return enabledNotifyState || enabledIndicateState;
+    }
 
     @Override
-    public final byte[] getValue() { return cachedValue; }
+    public final GattCharPropertySet getProperties() { return properties; }
 
     @Override
     public final byte[] readValue() throws BTException {
-        if( supCharValueCacheNotification ) {
-            final byte[] value = readValueImpl();
-            updateCachedValue(value, true);
-            return cachedValue;
-        } else {
-            return readValueImpl();
-        }
+        return readValueImpl();
     }
 
     @Override
     public final boolean writeValue(final byte[] value, final boolean withResponse) throws BTException {
-        final boolean res = writeValueImpl(value, withResponse);
-        if( supCharValueCacheNotification && res ) {
-            updateCachedValue(value, false);
-        }
-        return res;
+        return writeValueImpl(value, withResponse);
     }
 
     @Override
@@ -250,6 +187,9 @@ public class DBTGattChar extends DBTObject implements BTGattChar
     public final synchronized boolean configNotificationIndication(final boolean enableNotification, final boolean enableIndication, final boolean enabledState[/*2*/])
             throws IllegalStateException
     {
+        final boolean hasNotify = properties.isSet(GattCharPropertySet.Type.Notify);
+        final boolean hasIndicate = properties.isSet(GattCharPropertySet.Type.Indicate);
+
         if( hasNotify || hasIndicate ) {
             final boolean resEnableNotification = hasNotify && enableNotification;
             final boolean resEnableIndication = hasIndicate && enableIndication;
@@ -268,16 +208,18 @@ public class DBTGattChar extends DBTObject implements BTGattChar
             }
 
             final boolean res = configNotificationIndicationImpl(enableNotification, enableIndication, enabledState);
+            if( !res ) {
+                enabledState[0] = false;
+                enabledState[1] = false;
+            }
             if( DEBUG ) {
                 System.err.printf("GATTCharacteristic.configNotificationIndication: res %b, notification[shall %b, has %b: %b -> %b], indication[shall %b, has %b: %b -> %b]\n",
                         res,
-                        enableNotification, hasNotify, enabledNotifyState, resEnableNotification,
-                        enableIndication, hasIndicate, enabledIndicateState, resEnableIndication);
+                        enableNotification, hasNotify, enabledNotifyState, enabledState[0],
+                        enableIndication, hasIndicate, enabledIndicateState, enabledState[1]);
             }
-            if( res ) {
-                enabledNotifyState = resEnableNotification;
-                enabledIndicateState = resEnableIndication;
-            }
+            enabledNotifyState = enabledState[0];
+            enabledIndicateState = enabledState[1];
             return res;
         } else {
             enabledState[0] = false;
@@ -295,8 +237,8 @@ public class DBTGattChar extends DBTObject implements BTGattChar
     public boolean enableNotificationOrIndication(final boolean enabledState[/*2*/])
             throws IllegalStateException
     {
-        final boolean enableNotification = hasNotify;
-        final boolean enableIndication = !enableNotification && hasIndicate;
+        final boolean enableNotification = properties.isSet(GattCharPropertySet.Type.Notify);
+        final boolean enableIndication = !enableNotification && properties.isSet(GattCharPropertySet.Type.Indicate);
 
         return configNotificationIndication(enableNotification, enableIndication, enabledState);
     }
@@ -341,28 +283,12 @@ public class DBTGattChar extends DBTObject implements BTGattChar
         if( disableIndicationNotification ) {
             configNotificationIndication(false /* enableNotification */, false /* enableIndication */, new boolean[2]);
         }
-        valueNotificationCB = null;
         return getService().getDevice().removeAllAssociatedCharListener(this);
-    }
-
-    @Override
-    public final synchronized void enableValueNotifications(final BTNotification<byte[]> callback) {
-        if( !configNotificationIndication(true /* enableNotification */, true /* enableIndication */, new boolean[2]) ) {
-            valueNotificationCB = null;
-        } else {
-            valueNotificationCB = callback;
-        }
     }
 
     @Override
     public final synchronized void disableValueNotifications() {
         configNotificationIndication(false /* enableNotification */, false /* enableIndication */, new boolean[2]);
-        valueNotificationCB = null;
-    }
-
-    @Override
-    public final boolean getNotifying() {
-        return null != valueNotificationCB;
     }
 
     /**

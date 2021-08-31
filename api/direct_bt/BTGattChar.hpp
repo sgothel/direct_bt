@@ -84,14 +84,15 @@ namespace direct_bt {
         public:
             /** BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1.1 Characteristic Properties */
             enum PropertyBitVal : uint8_t {
-                Broadcast = 0x01,
-                Read = 0x02,
-                WriteNoAck = 0x04,
-                WriteWithAck = 0x08,
-                Notify = 0x10,
-                Indicate = 0x20,
-                AuthSignedWrite = 0x40,
-                ExtProps = 0x80
+                NONE            = 0,
+                Broadcast       = (1 << 0),
+                Read            = (1 << 1),
+                WriteNoAck      = (1 << 2),
+                WriteWithAck    = (1 << 3),
+                Notify          = (1 << 4),
+                Indicate        = (1 << 5),
+                AuthSignedWrite = (1 << 6),
+                ExtProps        = (1 << 7)
             };
             /**
              * Returns string values as defined in <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>

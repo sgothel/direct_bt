@@ -77,9 +77,6 @@ public interface BTGattChar extends BTObject
                                        final boolean confirmationSent);
     };
 
-    @Override
-    public BTGattChar clone();
-
     /** Find a BluetoothGattDescriptor. If parameter UUID is not null,
       * the returned object will have to match it.
       * It will first check for existing objects. It will not turn on discovery
@@ -137,7 +134,6 @@ public interface BTGattChar extends BTObject
      * and the {@link BTDevice}'s GATTHandler is null, i.e. not connected
      * @see #enableNotificationOrIndication(boolean[])
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
      */
     public boolean configNotificationIndication(final boolean enableNotification, final boolean enableIndication, final boolean enabledState[/*2*/])
             throws IllegalStateException;
@@ -163,7 +159,6 @@ public interface BTGattChar extends BTObject
      * and the {@link BTDevice}'s GATTHandler is null, i.e. not connected
      * @see #configNotificationIndication(boolean, boolean, boolean[])
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
      */
     public boolean enableNotificationOrIndication(final boolean enabledState[/*2*/])
             throws IllegalStateException;
@@ -190,7 +185,6 @@ public interface BTGattChar extends BTObject
      * @see #removeCharListener(Listener, boolean)
      * @see #removeAllAssociatedCharListener(boolean)
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
      */
     public boolean addCharListener(final Listener listener)
             throws IllegalStateException;
@@ -221,7 +215,6 @@ public interface BTGattChar extends BTObject
      * @see #removeCharListener(Listener, boolean)
      * @see #removeAllAssociatedCharListener(boolean)
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
      */
     public boolean addCharListener(final Listener listener, final boolean enabledState[/*2*/])
             throws IllegalStateException;
@@ -244,21 +237,8 @@ public interface BTGattChar extends BTObject
      * @see #addCharListener(Listener, boolean[])
      * @see #removeCharListener(Listener, boolean)
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
      */
     public int removeAllAssociatedCharListener(final boolean disableIndicationNotification);
-
-    /**
-     * Sets the given value BluetoothNotification to have its run function
-     * receive the enabled notification and/or indication sent.
-     * <p>
-     * Enables notification and/or indication for this characteristic at BLE level.
-     * </p.
-     * @param callback A BluetoothNotification<byte[]> object. Its run function will be called
-     * when a notification is issued. The run function will deliver the new value of the value
-     * property.
-     */
-    public void enableValueNotifications(BTNotification<byte[]> callback);
 
     /**
      * Disables notifications of the value and unregisters the callback object
@@ -280,7 +260,6 @@ public interface BTGattChar extends BTObject
      * @return TRUE if value was written successfully
      * @since 2.0.0
      * @implNote {@code withResponse} parameter has been added since 2.0.0
-     * @implNote tinyb.dbus does not support {@code withResponse = true}
      */
     public boolean writeValue(byte[] argValue, boolean withResponse) throws BTException;
 
@@ -296,31 +275,19 @@ public interface BTGattChar extends BTObject
       */
     public BTGattService getService();
 
-    /** Returns the cached value of this characteristic, if any.
-      * @return The cached value of this characteristic.
+    /** Returns true if notification for changes of this characteristic are activated.
+      * @param enabledState array of size 2, storage for the current enabled state for notification and indication.
+      * @return True if either notification or indication is enabled
       */
-    public byte[] getValue();
-
-    /** Returns true if notification for changes of this characteristic are
-      * activated.
-      * @return True if notificatios are activated.
-      */
-    public boolean getNotifying();
+    public boolean getNotifying(final boolean enabledState[/*2*/]);
 
     /**
-     * Returns the flags this characterstic has.
+     * Returns the properties of this characteristic.
      * <p>
-     * These flags are actually the BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1.1 Characteristic Properties
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1.1 Characteristic Properties
      * </p>
-     * <p>
-     * Returns string values as defined in <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>
-     * <pre>
-     * org.bluez.GattCharacteristic1 :: array{string} Flags [read-only]
-     * </pre>
-     * </p>
-     * @return A list of flags for this characteristic.
      */
-    public String[] getFlags();
+    public GattCharPropertySet getProperties();
 
     /** Returns a list of BluetoothGattDescriptors this characteristic exposes.
       * @return A list of BluetoothGattDescriptors exposed by this characteristic

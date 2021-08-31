@@ -46,31 +46,6 @@ public interface BTManager
          */
         boolean isDirectBT();
 
-        /**
-         * Returns true if underlying implementation is TinyB.
-         */
-        boolean isTinyB();
-
-        /**
-         * Returns whether {@link BTGattChar} API: {@link BTGattChar#getValue() value cache} and
-         * {@link BTGattChar#enableValueNotifications(BluetoothNotification) value notification}
-         * is supported.
-         * <p>
-         * This is enabled using {@link #isTinyB() TinyB}, but disabled by default using {@link #isDirectBT() Direct-BT}.
-         * </p>
-         * <p>
-         * If using {@link #isDirectBT() Direct-BT}, user are encouraged to
-         * {@link BTGattChar#addCharListener(BTGattCharListener, boolean[]) utilize BTGattCharListener}
-         * to handle value notifications when they occur w/o caching.
-         * </p>
-         * <p>
-         * If using {@link #isDirectBT() Direct-BT}, users can enable this TinyB compatibility
-         * by setting the System property {@code jau.direct_bt.characteristic.compat} to {@code true}.
-         * It defaults to {@code false}, i.e. disabled.
-         * </p>
-         */
-        boolean isCharValueCacheNotificationSupported();
-
         @Override
         String toString();
     }
@@ -88,7 +63,6 @@ public interface BTManager
      * allowing the user to perform complex operations.
      * </p>
      * @since 2.0.0
-     * @implNote Not implemented on tinyb.dbus
      * @see BTManager#addChangedAdapterSetListener(ChangedAdapterSetListener)
      * @see BTManager#removeChangedAdapterSetListener(ChangedAdapterSetListener)
      */
@@ -155,73 +129,6 @@ public interface BTManager
       */
     public BTObject  find(BTType type, String name, String identifier, BTObject parent);
 
-    /** Find a BluetoothObject of type T. If parameters name, identifier and
-      * parent are not null, the returned object will have to match them.
-      * It will first check for existing objects. It will not turn on discovery
-      * or connect to devices.
-      * @parameter name optionally specify the name of the object you are
-      * waiting for (for Adapter or Device)
-      * @parameter identifier optionally specify the identifier of the object you are
-      * waiting for (UUID for GattService, GattCharacteristic or GattDescriptor, address
-      * for Adapter or Device)
-      * @parameter parent optionally specify the parent of the object you are
-      * waiting for
-      * @parameter timeoutMS the function will return after timeout time in milliseconds, a
-      * value of zero means wait forever. If object is not found during this time null will be returned.
-      * @return An object matching the name, identifier, parent or null if not found before
-      * timeout expires or event is canceled.
-      */
-    public <T extends BTObject>  T find(String name, String identifier, BTObject parent, long timeoutMS);
-
-    /** Find a BluetoothObject of type T. If parameters name, identifier and
-      * parent are not null, the returned object will have to match them.
-      * It will first check for existing objects. It will not turn on discovery
-      * or connect to devices.
-      * @parameter name optionally specify the name of the object you are
-      * waiting for (for Adapter or Device)
-      * @parameter identifier optionally specify the identifier of the object you are
-      * waiting for (UUID for GattService, GattCharacteristic or GattDescriptor, address
-      * for Adapter or Device)
-      * @parameter parent optionally specify the parent of the object you are
-      * waiting for
-      * @return An object matching the name, identifier and parent.
-      */
-    public <T extends BTObject>  T find(String name, String identifier, BTObject parent);
-
-    /** Return a BluetoothObject of a type matching type. If parameters name,
-      * identifier and parent are not null, the returned object will have to
-      * match them. Only objects which are already in the system will be returned.
-      * @parameter type specify the type of the object you are
-      * waiting for, NONE means anything.
-      * @parameter name optionally specify the name of the object you are
-      * waiting for (for Adapter or Device)
-      * @parameter identifier optionally specify the identifier of the object you are
-      * waiting for (UUID for GattService, GattCharacteristic or GattDescriptor, address
-      * for Adapter or Device)
-      * @parameter parent optionally specify the parent of the object you are
-      * waiting for
-      * @return An object matching the name, identifier, parent or null if not found.
-      */
-    public BTObject getObject(BTType type, String name,
-                                String identifier, BTObject parent);
-
-    /** Return a List of BluetoothObject of a type matching type. If parameters name,
-      * identifier and parent are not null, the returned object will have to
-      * match them. Only objects which are already in the system will be returned.
-      * @parameter type specify the type of the object you are
-      * waiting for, NONE means anything.
-      * @parameter name optionally specify the name of the object you are
-      * waiting for (for Adapter or Device)
-      * @parameter identifier optionally specify the identifier of the object you are
-      * waiting for (UUID for GattService, GattCharacteristic or GattDescriptor, address
-      * for Adapter or Device)
-      * @parameter parent optionally specify the parent of the object you are
-      * waiting for
-      * @return A vector of object matching the name, identifier, parent.
-      */
-    public List<BTObject> getObjects(BTType type, String name,
-                                    String identifier, BTObject parent);
-
     /** Returns a list of BluetoothAdapters available in the system
       * @return A list of BluetoothAdapters available in the system
       */
@@ -235,7 +142,6 @@ public interface BTManager
      * </p>
      * @param dev_id the internal temporary adapter device id
      * @since 2.0.0
-     * @implNote Not implemented on tinyb.dbus
      */
     public BTAdapter getAdapter(final int dev_id);
 
@@ -259,22 +165,12 @@ public interface BTManager
     /**
      * Gets the default adapter to use for discovery.
      * <p>
-     * {@code jau.direct_bt}: The default adapter is either the first {@link BTAdapter#isPowered() powered} {@link BTAdapter},
+     * The default adapter is either the first {@link BTAdapter#isPowered() powered} {@link BTAdapter},
      * or function returns nullptr if none is enabled.
-     * </p>
-     * <p>
-     * <i>tinyb.dbus</i>: System default is the last detected adapter at initialization.
      * </p>
      * @return the used default adapter
      */
     public BTAdapter getDefaultAdapter();
-
-    /** Turns on device discovery on the default adapter if it is disabled.
-      * @return TRUE if discovery was successfully enabled
-      * @deprecated since 2.0.0, use {@link #startDiscovery(boolean)}.
-      */
-    @Deprecated
-    public boolean startDiscovery() throws BTException;
 
     /**
      * Turns on device discovery on the default adapter if it is disabled.
@@ -288,7 +184,6 @@ public interface BTManager
      * @throws BTException
      * @since 2.0.0
      * @since 2.2.8
-     * @implNote {@code keepAlive} not implemented in tinyb.dbus
      */
     public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active) throws BTException;
 
@@ -300,10 +195,14 @@ public interface BTManager
      */
     public HCIStatusCode stopDiscovery() throws BTException;
 
-    /** Returns if the discovers is running or not.
-      * @return TRUE if discovery is running
-      */
-    public boolean getDiscovering() throws BTException;
+    /**
+     * Returns the current meta discovering {@link ScanType} of the {@link #getDefaultAdapter()}
+     * via {@link BTAdapter#getCurrentScanType()}.
+     * @see BTAdapter#getCurrentScanType()
+     * @see #getDefaultAdapter()
+     * @since 2.3
+     */
+    public ScanType getCurrentScanType();
 
     /**
      * Add the given {@link ChangedAdapterSetListener} to this manager.
@@ -316,7 +215,6 @@ public interface BTManager
      * allowing the user to perform complex operations.
      * </p>
      * @since 2.0.0
-     * @implNote Not implemented on tinyb.dbus
      */
     void addChangedAdapterSetListener(final ChangedAdapterSetListener l);
 
@@ -325,7 +223,6 @@ public interface BTManager
      * @param l the to be removed element
      * @return the number of removed elements
      * @since 2.0.0
-     * @implNote Not implemented on tinyb.dbus
      */
     int removeChangedAdapterSetListener(final ChangedAdapterSetListener l);
 

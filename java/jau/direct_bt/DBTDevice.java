@@ -40,7 +40,6 @@ import org.direct_bt.BTException;
 import org.direct_bt.BTGattChar;
 import org.direct_bt.BTGattDesc;
 import org.direct_bt.BTGattService;
-import org.direct_bt.BTNotification;
 import org.direct_bt.BTObject;
 import org.direct_bt.BTType;
 import org.direct_bt.BTUtils;
@@ -72,135 +71,28 @@ public class DBTDevice extends DBTObject implements BTDevice
 
     private final AtomicBoolean isClosing = new AtomicBoolean(false);
 
-    private final Object userCallbackLock = new Object();
-
-    private final long blockedNotificationRef = 0;
-    private BTNotification<Boolean> userBlockedNotificationsCB = null;
-    private final AtomicBoolean isBlocked = new AtomicBoolean(false);
-
-    private final long pairedNotificationRef = 0;
-    private BTNotification<Boolean> userPairedNotificationsCB = null;
-    private final AtomicBoolean isPaired = new AtomicBoolean(false);
-
-    private final long trustedNotificationRef = 0;
-    private BTNotification<Boolean> userTrustedNotificationsCB = null;
-    private final AtomicBoolean isTrusted = new AtomicBoolean(false);
-
-    private BTNotification<Boolean> userConnectedNotificationsCB = null;
     private final AtomicBoolean isConnected = new AtomicBoolean(false);
-
-    private BTNotification<Short> userRSSINotificationsCB = null;
-    private BTNotification<Map<Short, byte[]> > userManufDataNotificationsCB = null;
-    private BTNotification<Boolean> userServicesResolvedNotificationsCB = null;
-    private final AtomicBoolean servicesResolved = new AtomicBoolean(false);
-    private short appearance = 0;
 
     final AdapterStatusListener statusListener = new AdapterStatusListener() {
         @Override
         public void deviceUpdated(final BTDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
-            final boolean rssiUpdated = updateMask.isSet( EIRDataTypeSet.DataType.RSSI );
-            final boolean mdUpdated = updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA );
-            if( rssiUpdated || mdUpdated ) {
-                synchronized(userCallbackLock) {
-                    if( rssiUpdated && null != userRSSINotificationsCB ) {
-                        userRSSINotificationsCB.run(getRSSI());
-                    }
-                    if( mdUpdated && null != userManufDataNotificationsCB ) {
-                        userManufDataNotificationsCB.run(getManufacturerData());
-                    }
-                }
-            }
         }
         @Override
         public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
             if( isConnected.compareAndSet(false, true) ) {
-                synchronized(userCallbackLock) {
-                    if( null != userConnectedNotificationsCB ) {
-                        userConnectedNotificationsCB.run(Boolean.TRUE);
-                    }
-                    if( servicesResolved.compareAndSet(false, true) ) {
-                        if( null != userServicesResolvedNotificationsCB ) {
-                            userServicesResolvedNotificationsCB.run(Boolean.TRUE);
-                        }
-                    }
-                }
+                // nop
             }
         }
         @Override
         public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
-            devicePaired(false);
-
             if( isConnected.compareAndSet(true, false) ) {
                 clearServiceCache();
-                synchronized(userCallbackLock) {
-                    if( servicesResolved.compareAndSet(true, false) ) {
-                        if( null != userServicesResolvedNotificationsCB ) {
-                            userServicesResolvedNotificationsCB.run(Boolean.FALSE);
-                        }
-                    }
-                    if( null != userConnectedNotificationsCB ) {
-                        userConnectedNotificationsCB.run(Boolean.FALSE);
-                    }
-                }
             }
         }
 
         @Override
         public String toString() {
             return "AdapterStatusListener[device "+addressAndType.toString()+"]";
-        }
-    };
-
-    final private BTNotification<Boolean> blockedNotificationsCB = new BTNotification<Boolean>() {
-        @Override
-        public void run(final Boolean value) {
-            if( DEBUG ) {
-                System.err.println("Device.BlockedNotification: "+isBlocked+" -> "+value+" on "+DBTDevice.this.toString());
-            }
-            final boolean _isBlocked = value.booleanValue();
-            if( isBlocked.compareAndSet(!_isBlocked, _isBlocked) ) {
-                synchronized(userCallbackLock) {
-                    if( null != userBlockedNotificationsCB ) {
-                        userBlockedNotificationsCB.run(value);
-                    }
-                }
-            }
-        }
-    };
-
-    final private void devicePaired(final boolean _isPaired) {
-        if( DEBUG ) {
-            System.err.println("Device.PairedNotification: "+isPaired+" -> "+_isPaired+" on "+DBTDevice.this.toString());
-        }
-        if( isPaired.compareAndSet(!_isPaired, _isPaired) ) {
-            synchronized(userCallbackLock) {
-                if( null != userPairedNotificationsCB ) {
-                    userPairedNotificationsCB.run(_isPaired);
-                }
-            }
-        }
-    }
-    final private BTNotification<Boolean> pairedNotificationsCB = new BTNotification<Boolean>() {
-        @Override
-        public void run(final Boolean value) {
-            devicePaired( value.booleanValue() );
-        }
-    };
-
-    final private BTNotification<Boolean> trustedNotificationsCB = new BTNotification<Boolean>() {
-        @Override
-        public void run(final Boolean value) {
-            if( DEBUG ) {
-                System.err.println("Device.TrustedNotification: "+isTrusted+" -> "+value+" on "+DBTDevice.this.toString());
-            }
-            final boolean _isTrusted = value.booleanValue();
-            if( isTrusted.compareAndSet(!_isTrusted, _isTrusted) ) {
-                synchronized(userCallbackLock) {
-                    if( null != userTrustedNotificationsCB ) {
-                        userTrustedNotificationsCB.run(value);
-                    }
-                }
-            }
         }
     };
 
@@ -220,11 +112,8 @@ public class DBTDevice extends DBTObject implements BTDevice
         ts_last_update = ts_creation;
         hciConnHandle = 0;
         name_cached = name;
-        appearance = 0;
         initImpl();
         addStatusListener(statusListener); // associated events and lifecycle with this device
-        enableBlockedNotificationsImpl(blockedNotificationsCB);
-        enablePairedNotificationsImpl(pairedNotificationsCB);
         // FIXME enableTrustedNotificationsImpl(trustedNotificationsCB);
     }
 
@@ -236,19 +125,6 @@ public class DBTDevice extends DBTObject implements BTDevice
         if( !isClosing.compareAndSet(false, true) ) {
             return;
         }
-        disableConnectedNotifications();
-        disableRSSINotifications();
-        disableManufacturerDataNotifications();
-        disableServicesResolvedNotifications();
-
-        disableBlockedNotifications();
-        disableBlockedNotificationsImpl();
-        disablePairedNotifications();
-        disablePairedNotificationsImpl();
-        disableServiceDataNotifications();
-        disableTrustedNotifications();
-        // FIXME disableTrustedNotificationsImpl();
-
         clearServiceCache();
 
         final DBTAdapter a = getAdapter();
@@ -285,9 +161,6 @@ public class DBTDevice extends DBTObject implements BTDevice
     public DBTAdapter getAdapter() { return wbr_adapter.get(); }
 
     @Override
-    public String getAddressString() { return addressAndType.address.toString(); }
-
-    @Override
     public BDAddressAndType getAddressAndType() { return addressAndType; }
 
     @Override
@@ -317,31 +190,6 @@ public class DBTDevice extends DBTObject implements BTDevice
         return find(UUID, 0);
     }
 
-    /* Unsupported */
-
-    @Override
-    public final boolean pair() throws BTException {
-        return false;
-    }
-
-    @Override
-    public int getBluetoothClass() { throw new UnsupportedOperationException(); } // FIXME
-
-    @Override
-    public final BTDevice clone() { throw new UnsupportedOperationException(); } // FIXME
-
-    @Override
-    public String getAlias() { return null; } // FIXME
-
-    @Override
-    public void setAlias(final String value) { throw new UnsupportedOperationException(); } // FIXME
-
-    @Override
-    public final boolean cancelPairing() throws BTException {
-        // FIXME: Not supporter (yet)
-        return false;
-    }
-
     /* internal */
 
     private native void initImpl();
@@ -356,19 +204,6 @@ public class DBTDevice extends DBTObject implements BTDevice
     @Override
     public boolean removeStatusListener(final AdapterStatusListener l) {
         return getAdapter().removeStatusListenerImpl(l);
-    }
-
-    @Override
-    public final void enableConnectedNotifications(final BTNotification<Boolean> callback) {
-        synchronized(userCallbackLock) {
-            userConnectedNotificationsCB = callback;
-        }
-    }
-    @Override
-    public final void disableConnectedNotifications() {
-        synchronized(userCallbackLock) {
-            userConnectedNotificationsCB = null;
-        }
     }
 
     @Override
@@ -539,135 +374,6 @@ public class DBTDevice extends DBTObject implements BTDevice
     }
     private native byte getPairingStateImpl();
 
-    /* DBT Java callbacks */
-
-    @Override
-    public final void enableRSSINotifications(final BTNotification<Short> callback) {
-        synchronized(userCallbackLock) {
-            userRSSINotificationsCB = callback;
-        }
-    }
-
-    @Override
-    public final void disableRSSINotifications() {
-        synchronized(userCallbackLock) {
-            userRSSINotificationsCB = null;
-        }
-    }
-
-
-    @Override
-    public final void enableManufacturerDataNotifications(final BTNotification<Map<Short, byte[]> > callback) {
-        synchronized(userCallbackLock) {
-            userManufDataNotificationsCB = callback;
-        }
-    }
-
-    @Override
-    public final void disableManufacturerDataNotifications() {
-        synchronized(userCallbackLock) {
-            userManufDataNotificationsCB = null;
-        }
-    }
-
-
-    @Override
-    public final void enableServicesResolvedNotifications(final BTNotification<Boolean> callback) {
-        synchronized(userCallbackLock) {
-            userServicesResolvedNotificationsCB = callback;
-        }
-    }
-
-    @Override
-    public void disableServicesResolvedNotifications() {
-        synchronized(userCallbackLock) {
-            userServicesResolvedNotificationsCB = null;
-        }
-    }
-
-    @Override
-    public boolean getServicesResolved () { return servicesResolved.get(); }
-
-    @Override
-    public short getAppearance() { return appearance; }
-
-    @Override
-    public void enableBlockedNotifications(final BTNotification<Boolean> callback) {
-        synchronized(userCallbackLock) {
-            userBlockedNotificationsCB = callback;
-        }
-    }
-    @Override
-    public void disableBlockedNotifications() {
-        synchronized(userCallbackLock) {
-            userBlockedNotificationsCB = null;
-        }
-    }
-    @Override
-    public boolean getBlocked() { return isBlocked.get(); }
-
-    @Override
-    public void setBlocked(final boolean value) {
-        setBlockedImpl(value);
-    }
-
-    @Override
-    public void enableServiceDataNotifications(final BTNotification<Map<String, byte[]> > callback) {
-        // FIXME: Isn't this BTGattChar data notification/indication? Then map it or drop!
-    }
-
-    @Override
-    public Map<String, byte[]> getServiceData() {
-        return null; // FIXME
-    }
-
-    @Override
-    public void disableServiceDataNotifications() {
-        // FIXME
-    }
-
-    @Override
-    public void enablePairedNotifications(final BTNotification<Boolean> callback) {
-        synchronized(userCallbackLock) {
-            userPairedNotificationsCB = callback;
-        }
-    }
-
-    @Override
-    public void disablePairedNotifications() {
-        synchronized(userCallbackLock) {
-            userPairedNotificationsCB = null;
-        }
-    }
-
-    @Override
-    public final boolean getPaired() { return isPaired.get(); }
-
-    @Override
-    public void enableTrustedNotifications(final BTNotification<Boolean> callback) {
-        synchronized(userCallbackLock) {
-            userTrustedNotificationsCB = callback;
-        }
-    }
-
-    @Override
-    public void disableTrustedNotifications() {
-        synchronized(userCallbackLock) {
-            userTrustedNotificationsCB = null;
-        }
-    }
-
-    @Override
-    public boolean getTrusted() { return isTrusted.get(); }
-
-    @Override
-    public void setTrusted(final boolean value) {
-        setTrustedImpl(value);
-    }
-
-    @Override
-    public native boolean getLegacyPairing();
-
     @Override
     public final String toString() {
         if( !isValid() ) {
@@ -677,34 +383,7 @@ public class DBTDevice extends DBTObject implements BTDevice
         }
         return toStringImpl();
     }
-
-    /* DBT native callbacks */
-
     private native String toStringImpl();
-
-    private native void enableBlockedNotificationsImpl(BTNotification<Boolean> callback);
-    private native void disableBlockedNotificationsImpl();
-    private native void setBlockedImpl(final boolean value);
-
-    // Note that this is only called natively for unpaired, i.e. paired:=false. Using deviceConnected for paired:=true.
-    private native void enablePairedNotificationsImpl(BTNotification<Boolean> callback);
-    private native void disablePairedNotificationsImpl();
-
-    /**
-     * FIXME: How to implement trusted ?
-     *
-    private native void enableTrustedNotificationsImpl(BluetoothNotification<Boolean> callback);
-    private native void disableTrustedNotificationsImpl();
-     */
-    private native void setTrustedImpl(boolean value);
-
-    /* DBT native method calls: */
-
-    @Override
-    public native boolean connectProfile(String arg_UUID) throws BTException;
-
-    @Override
-    public native boolean disconnectProfile(String arg_UUID) throws BTException;
 
     /**
      * {@inheritDoc}
@@ -760,16 +439,7 @@ public class DBTDevice extends DBTObject implements BTDevice
     /* property accessors: */
 
     @Override
-    public native String getIcon();
-
-    @Override
     public native short getRSSI();
-
-    @Override
-    public native String[] getUUIDs();
-
-    @Override
-    public native String getModalias();
 
     @Override
     public native Map<Short, byte[]> getManufacturerData();

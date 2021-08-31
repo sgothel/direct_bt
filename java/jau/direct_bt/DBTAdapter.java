@@ -27,10 +27,8 @@ package jau.direct_bt;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -46,7 +44,6 @@ import org.direct_bt.BTGattChar;
 import org.direct_bt.BTGattDesc;
 import org.direct_bt.BTGattService;
 import org.direct_bt.BTManager;
-import org.direct_bt.BTNotification;
 import org.direct_bt.BTObject;
 import org.direct_bt.BTType;
 import org.direct_bt.BTUtils;
@@ -57,7 +54,6 @@ import org.direct_bt.HCIWhitelistConnectType;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
-import org.direct_bt.TransportType;
 
 public class DBTAdapter extends DBTObject implements BTAdapter
 {
@@ -80,19 +76,13 @@ public class DBTAdapter extends DBTObject implements BTAdapter
 
     private final Object discoveryLock = new Object();
     private final Object discoveredDevicesLock = new Object();
-    private final Object userCallbackLock = new Object();
 
     private final AtomicBoolean isClosing = new AtomicBoolean(false);
 
     private final AtomicBoolean powered_state = new AtomicBoolean(false); // AdapterSettings
-    private BTNotification<Boolean> userPairableNotificationCB = null;
     private final AtomicBoolean isDiscoverable = new AtomicBoolean(false); // AdapterSettings
-    private BTNotification<Boolean> userDiscoverableNotificationCB = null;
-    private final AtomicBoolean isPairable = new AtomicBoolean(false); // AdapterSettings
-    private BTNotification<Boolean> userPoweredNotificationCB = null;
 
     private final AtomicReference<ScanType> currentMetaScanType = new AtomicReference<ScanType>(ScanType.NONE); // AdapterStatusListener and powerdOff
-    private BTNotification<Boolean> userDiscoveringNotificationCB = null;
 
     private final List<WeakReference<BTDevice>> discoveredDevices = new ArrayList<WeakReference<BTDevice>>();
 
@@ -123,10 +113,6 @@ public class DBTAdapter extends DBTObject implements BTAdapter
         }
         // mute all listener first
         removeAllStatusListener();
-        disableDiscoverableNotifications();
-        disableDiscoveringNotifications();
-        disablePairableNotifications();
-        disablePoweredNotifications();
 
         stopDiscovery();
 
@@ -168,12 +154,6 @@ public class DBTAdapter extends DBTObject implements BTAdapter
 
     @Override
     public BDAddressAndType getVisibleAddressAndType() { return visibleAddressAndType; }
-
-    @Override
-    public EUI48 getAddress() { return addressAndType.address; }
-
-    @Override
-    public String getAddressString() { return addressAndType.address.toString(); }
 
     @Override
     public String getName() { return name; }
@@ -228,105 +208,11 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     /* Unsupported */
 
     @Override
-    public long getBluetoothClass() { throw new UnsupportedOperationException(); } // FIXME
-
-    @Override
-    public final BTAdapter clone() { throw new UnsupportedOperationException(); } // FIXME
-
-    @Override
-    public String getInterfaceName() { throw new UnsupportedOperationException(); } // FIXME
-
-    @Override
-    public long getDiscoverableTimeout() { throw new UnsupportedOperationException(); } // FIXME
-
-    @Override
-    public boolean setDiscoverableTimout(final long value) { return false; } // FIXME
-
-    @Override
-    public long getPairableTimeout() { throw new UnsupportedOperationException(); } // FIXME
-
-    @Override
-    public boolean setPairableTimeout(final long value) { return false; } // FIXME
-
-    @Override
-    public String getModalias() { throw new UnsupportedOperationException(); } // FIXME
-
-    @Override
-    public String[] getUUIDs() { throw new UnsupportedOperationException(); } // FIXME
-
-
-    /* Java callbacks */
-
-    @Override
-    public void enablePoweredNotifications(final BTNotification<Boolean> callback) {
-        synchronized(userCallbackLock) {
-            userPoweredNotificationCB = callback;
-        }
-    }
-
-    @Override
-    public void disablePoweredNotifications() {
-        synchronized(userCallbackLock) {
-            userPoweredNotificationCB = null;
-        }
-    }
-
-    @Override
     public boolean getDiscoverable() { return isDiscoverable.get(); }
-
-    @Override
-    public void enableDiscoverableNotifications(final BTNotification<Boolean> callback) {
-        synchronized(userCallbackLock) {
-            userDiscoverableNotificationCB = callback;
-        }
-    }
-
-    @Override
-    public void disableDiscoverableNotifications() {
-        synchronized(userCallbackLock) {
-            userDiscoverableNotificationCB = null;
-        }
-    }
 
     @Override
     public final ScanType getCurrentScanType() {
         return currentMetaScanType.get();
-    }
-
-    @Override
-    public final boolean getDiscovering() {
-        return ScanType.NONE != currentMetaScanType.get();
-    }
-
-    @Override
-    public final void enableDiscoveringNotifications(final BTNotification<Boolean> callback) {
-        synchronized(userCallbackLock) {
-            userDiscoveringNotificationCB = callback;
-        }
-    }
-
-    @Override
-    public final void disableDiscoveringNotifications() {
-        synchronized(userCallbackLock) {
-            userDiscoveringNotificationCB = null;
-        }
-    }
-
-    @Override
-    public final boolean getPairable() { return isPairable.get(); }
-
-    @Override
-    public void enablePairableNotifications(final BTNotification<Boolean> callback) {
-        synchronized(userCallbackLock) {
-            userPairableNotificationCB = callback;
-        }
-    }
-
-    @Override
-    public void disablePairableNotifications() {
-        synchronized(userCallbackLock) {
-            userPairableNotificationCB = null;
-        }
     }
 
     @Override
@@ -389,13 +275,6 @@ public class DBTAdapter extends DBTObject implements BTAdapter
 
     @Override
     protected native void deleteImpl(long nativeInstance);
-
-    /* discovery */
-
-    @Override
-    public boolean startDiscovery() throws BTException {
-        return HCIStatusCode.SUCCESS == startDiscovery(true, false);
-    }
 
     @Override
     public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active) throws BTException {
@@ -543,22 +422,6 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     public native int removeAllStatusListener();
 
     @Override
-    public void setDiscoveryFilter(final List<UUID> uuids, final int rssi, final int pathloss, final TransportType transportType) {
-        final List<String> uuidsFmt = new ArrayList<>(uuids.size());
-        for (final UUID uuid : uuids) {
-            uuidsFmt.add(uuid.toString());
-        }
-        setDiscoveryFilter(uuidsFmt, rssi, pathloss, transportType.ordinal());
-    }
-
-    @SuppressWarnings("unchecked")
-    public void setRssiDiscoveryFilter(final int rssi) {
-        setDiscoveryFilter(Collections.EMPTY_LIST, rssi, 0, TransportType.AUTO);
-    }
-
-    private native void setDiscoveryFilter(List<String> uuids, int rssi, int pathloss, int transportType);
-
-    @Override
     public final void printDeviceLists() {
         printDeviceListsImpl();
         List<WeakReference<BTDevice>> _discoveredDevices;
@@ -598,7 +461,6 @@ public class DBTAdapter extends DBTObject implements BTAdapter
             if( initialSetting ) {
                 powered_state.set( newmask.isSet(AdapterSettings.SettingType.POWERED) );
                 isDiscoverable.set( newmask.isSet(AdapterSettings.SettingType.DISCOVERABLE) );
-                isPairable.set( newmask.isSet(AdapterSettings.SettingType.BONDABLE) );
                 return;
             }
             if( changedmask.isSet(AdapterSettings.SettingType.POWERED) ) {
@@ -607,31 +469,11 @@ public class DBTAdapter extends DBTObject implements BTAdapter
                     if( !_isPowered ) {
                         poweredOff();
                     }
-                    synchronized(userCallbackLock) {
-                        if( null != userPoweredNotificationCB ) {
-                            userPoweredNotificationCB.run(_isPowered);
-                        }
-                    }
                 }
             }
             if( changedmask.isSet(AdapterSettings.SettingType.DISCOVERABLE) ) {
                 final boolean _isDiscoverable = newmask.isSet(AdapterSettings.SettingType.DISCOVERABLE);
                 if( isDiscoverable.compareAndSet(!_isDiscoverable, _isDiscoverable) ) {
-                    synchronized(userCallbackLock) {
-                        if( null != userDiscoverableNotificationCB ) {
-                            userDiscoverableNotificationCB.run( _isDiscoverable );
-                        }
-                    }
-                }
-            }
-            if( changedmask.isSet(AdapterSettings.SettingType.BONDABLE) ) {
-                final boolean _isPairable = newmask.isSet(AdapterSettings.SettingType.BONDABLE);
-                if( isPairable.compareAndSet(!_isPairable, _isPairable) ) {
-                    synchronized(userCallbackLock) {
-                        if( null != userPairableNotificationCB ) {
-                            userPairableNotificationCB.run( _isPairable );
-                        }
-                    }
                 }
             }
         }
@@ -641,16 +483,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
                 System.err.println("Adapter.StatusListener.DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", keepAlive "+keepAlive+"] on "+adapter);
             }
             // meta ignores changes on temp disabled discovery
-            final boolean has_le_changed = currentMetaScanType.get().hasScanType(ScanType.LE) != currentMeta.hasScanType(ScanType.LE);
             currentMetaScanType.set(currentMeta);
-
-            if( changedType.hasScanType(ScanType.LE) && has_le_changed ) {
-                synchronized(userCallbackLock) {
-                    if( null != userDiscoveringNotificationCB ) {
-                        userDiscoveringNotificationCB.run(changedEnabled);
-                    }
-                }
-            }
         }
         @Override
         public boolean deviceFound(final BTDevice device, final long timestamp) {
@@ -765,13 +598,13 @@ public class DBTAdapter extends DBTObject implements BTAdapter
                 if( ( anyType || deviceType ) ) {
                     if( null != name && null != identifier &&
                         device.getName().equals(name) &&
-                        device.getAddressString().equals(identifier)
+                        device.getAddressAndType().address.toString().equals(identifier)
                       )
                     {
                         return device;
                     }
                     if( null != identifier &&
-                        device.getAddressString().equals(identifier)
+                        device.getAddressAndType().address.toString().equals(identifier)
                       )
                     {
                         return device;

@@ -30,7 +30,6 @@ import java.util.Arrays;
 
 import org.direct_bt.BTException;
 import org.direct_bt.BTGattDesc;
-import org.direct_bt.BTNotification;
 import org.direct_bt.BTType;
 
 public class DBTGattDesc extends DBTObject implements BTGattDesc
@@ -50,23 +49,12 @@ public class DBTGattDesc extends DBTObject implements BTGattDesc
     private final short handle;
 
     private byte[] cachedValue;
-    private BTNotification<byte[]> valueNotificationCB = null;
 
-    private boolean updateCachedValue(final byte[] value, final boolean notify) {
-        boolean valueChanged = false;
+    private void updateCachedValue(final byte[] value) {
         if( null == cachedValue || cachedValue.length != value.length ) {
             cachedValue = new byte[value.length];
-            valueChanged = true;
-        } else if( !Arrays.equals(value, cachedValue) ) {
-            valueChanged = true;
         }
-        if( valueChanged ) {
-            System.arraycopy(value, 0, cachedValue, 0, value.length);
-            if( notify && null != valueNotificationCB ) {
-                valueNotificationCB.run(cachedValue);
-            }
-        }
-        return valueChanged;
+        System.arraycopy(value, 0, cachedValue, 0, value.length);
     }
 
    /* pp */ DBTGattDesc(final long nativeInstance, final DBTGattChar characteristic,
@@ -84,7 +72,6 @@ public class DBTGattDesc extends DBTObject implements BTGattDesc
         if( !isValid() ) {
             return;
         }
-        disableValueNotifications();
         super.close();
     }
 
@@ -119,7 +106,7 @@ public class DBTGattDesc extends DBTObject implements BTGattDesc
     @Override
     public final byte[] readValue() {
         final byte[] value = readValueImpl();
-        updateCachedValue(value, true);
+        updateCachedValue(value);
         return cachedValue;
     }
 
@@ -127,19 +114,9 @@ public class DBTGattDesc extends DBTObject implements BTGattDesc
     public final boolean writeValue(final byte[] value) throws BTException {
         final boolean res = writeValueImpl(value);
         if( res ) {
-            updateCachedValue(value, false);
+            updateCachedValue(value);
         }
         return res;
-    }
-
-    @Override
-    public final synchronized void enableValueNotifications(final BTNotification<byte[]> callback) {
-        valueNotificationCB = callback;
-    }
-
-    @Override
-    public final synchronized void disableValueNotifications() {
-        valueNotificationCB = null;
     }
 
     /**

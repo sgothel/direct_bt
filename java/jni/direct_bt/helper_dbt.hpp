@@ -41,7 +41,7 @@ namespace direct_bt {
              * Enables or disables uuid128_t consolidation
              * for native uuid16_t and uuid32_t values before string conversion.
              * <p>
-             * Default is {@code true}, as this represent compatibility with original TinyB D-Bus behavior.
+             * Default is {@code true}.
              * </p>
              */
             bool getUnifyUUID128Bit() { return unifyUUID128Bit; }

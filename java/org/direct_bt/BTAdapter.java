@@ -39,9 +39,6 @@ import java.util.UUID;
   */
 public interface BTAdapter extends BTObject
 {
-    @Override
-    public BTAdapter clone();
-
     /**
      * Returns the used singleton {@link BTManager} instance, used to create this adapter.
      */
@@ -79,7 +76,6 @@ public interface BTAdapter extends BTObject
     /**
      * Returns true, if the adapter's device is already whitelisted.
      * @since 2.0.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean isDeviceWhitelisted(final BDAddressAndType addressAndType);
 
@@ -104,7 +100,6 @@ public interface BTAdapter extends BTObject
      *
      * @see #addDeviceToWhitelist(String, BDAddressType, HCIWhitelistConnectType)
      * @since 2.0.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
                                         final HCIWhitelistConnectType ctype,
@@ -128,7 +123,6 @@ public interface BTAdapter extends BTObject
      *
      * @see #addDeviceToWhitelist(String, BDAddressType, HCIWhitelistConnectType, short, short, short, short)
      * @since 2.0.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
                                         final HCIWhitelistConnectType ctype);
@@ -137,17 +131,9 @@ public interface BTAdapter extends BTObject
     /**
      * Remove the given device from the adapter's autoconnect whitelist.
      * @since 2.0.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean removeDeviceFromWhitelist(final BDAddressAndType addressAndType);
 
-
-    /** Turns on device discovery if it is disabled.
-      * @return TRUE if discovery was successfully enabled
-      * @deprecated since 2.0.0, use {@link #startDiscovery(boolean)}.
-      */
-    @Deprecated
-    public boolean startDiscovery() throws BTException;
 
     /**
      * Turns on device discovery if it is disabled.
@@ -179,7 +165,6 @@ public interface BTAdapter extends BTObject
      * @throws BTException
      * @since 2.0.0
      * @since 2.2.8
-     * @implNote {@code keepAlive} not implemented in {@code tinyb.dbus}
      * @see #startDiscovery(boolean, boolean, int, int, byte)
      * @see #getDiscovering()
      */
@@ -195,7 +180,6 @@ public interface BTAdapter extends BTObject
      * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
      * @throws BTException
      * @since 2.2.8
-     * @implNote not implemented in {@code tinyb.dbus}
      * @see #startDiscovery(boolean, boolean)
      * @see #getDiscovering()
      */
@@ -231,7 +215,6 @@ public interface BTAdapter extends BTObject
      * Discards matching discovered devices.
      * @return {@code true} if found and removed, otherwise false.
      * @since 2.2.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean removeDiscoveredDevice(final BDAddressAndType addressAndType);
 
@@ -260,25 +243,6 @@ public interface BTAdapter extends BTObject
      */
     BDAddressAndType getVisibleAddressAndType();
 
-    /**
-     * Returns the hardware address of this adapter.
-     * @return The hardware address of this adapter.
-     * @implNote Changed to EUI48 since version 2.2.0
-     * @since 2.2.0
-     * @deprecated Use {@link #getAddressAndType()} and {@link #getVisibleAddressAndType()}
-     */
-    @Deprecated
-    EUI48 getAddress();
-
-    /**
-     * Returns the hardware address of this adapter in its string representation.
-     * @return The hardware address of this adapter as a string.
-     * @since 2.2.0
-     * @deprecated Use {@link #getAddress()}
-     */
-    @Deprecated
-    String getAddressString();
-
     /** Returns the system name of this adapter.
       * @return The system name of this adapter.
       */
@@ -291,7 +255,6 @@ public interface BTAdapter extends BTObject
      * but may change after its destruction.
      * </p>
      * @since 2.0.0
-     * @implNote Not implemented on {@code tinyb.dbus}
      */
     public int getDevID();
 
@@ -303,12 +266,6 @@ public interface BTAdapter extends BTObject
     /** Sets the friendly name of this adapter.
       */
     public void setAlias(String value);
-
-    /** Returns the Bluetooth class of the adapter.
-      * @return The Bluetooth class of the adapter.
-      */
-    public long getBluetoothClass();
-
 
     /**
      * Returns whether the adapter is valid, plugged in and powered.
@@ -351,21 +308,6 @@ public interface BTAdapter extends BTObject
     public boolean getPoweredState();
 
     /**
-     * Enables notifications for the powered property and calls run function of the
-     * BluetoothNotification object.
-     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
-     * when a notification is issued. The run function will deliver the new value of the powered
-     * property.
-     */
-    public void enablePoweredNotifications(BTNotification<Boolean> callback);
-
-    /**
-     * Disables notifications of the powered property and unregisters the callback
-     * object passed through the corresponding enable method.
-     */
-    public void disablePoweredNotifications();
-
-    /**
      * Sets the power state the adapter.
      * @apiNote return value boolean since 2.0.0
      * @since 2.0.0
@@ -383,7 +325,6 @@ public interface BTAdapter extends BTObject
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
      * </pre>
      * @since 2.0.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     public HCIStatusCode reset();
 
@@ -393,38 +334,11 @@ public interface BTAdapter extends BTObject
     public boolean getDiscoverable();
 
     /**
-     * Enables notifications for the discoverable property and calls run function of the
-     * BluetoothNotification object.
-     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
-     * when a notification is issued. The run function will deliver the new value of the discoverable
-     * property.
-     */
-    public void enableDiscoverableNotifications(BTNotification<Boolean> callback);
-    /**
-     * Disables notifications of the discoverable property and unregisters the callback
-     * object passed through the corresponding enable method.
-     */
-    public void disableDiscoverableNotifications();
-
-    /**
      * Sets the discoverable state the adapter.
      * @apiNote return value boolean since 2.0.0
      * @since 2.0.0
      */
     public boolean setDiscoverable(boolean value);
-
-    /** Returns the discoverable timeout the adapter.
-      * @return The discoverable timeout of the adapter.
-      */
-    public long getDiscoverableTimeout();
-
-    /**
-     * Sets the discoverable timeout the adapter. A value of 0 disables
-     * the timeout.
-     * @apiNote return value boolean since 2.0.0
-     * @since 2.0.0
-     */
-    public boolean setDiscoverableTimout(long value);
 
     /**
      * This method connects to device without need of
@@ -452,26 +366,6 @@ public interface BTAdapter extends BTObject
      */
     public BTDevice connectDevice(BDAddressAndType addressAndType);
 
-    /** Returns the pairable state the adapter.
-      * @return The pairable state of the adapter.
-      */
-    public boolean getPairable();
-
-    /**
-     * Enables notifications for the pairable property and calls run function of the
-     * BluetoothNotification object.
-     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
-     * when a notification is issued. The run function will deliver the new value of the pairable
-     * property.
-     */
-    public void enablePairableNotifications(BTNotification<Boolean> callback);
-
-    /**
-     * Disables notifications of the pairable property and unregisters the callback
-     * object passed through the corresponding enable method.
-     */
-    public void disablePairableNotifications();
-
     /**
      * Sets the discoverable state the adapter.
      * @apiNote return value boolean since 2.0.0
@@ -479,24 +373,11 @@ public interface BTAdapter extends BTObject
      */
     public boolean setPairable(boolean value);
 
-    /** Returns the timeout in seconds after which pairable state turns off
-      * automatically, 0 means never.
-      * @return The pairable timeout of the adapter.
-      */
-    public long getPairableTimeout();
-
-    /**
-     * Sets the timeout after which pairable state turns off automatically, 0 means never.
-     * @apiNote return value boolean since 2.0.0
-     * @since 2.0.0
-     */
-    public boolean setPairableTimeout(long value);
-
     /**
      * Returns the current meta discovering {@link ScanType}.
-     * It can be modified through {@link #startDiscovery(boolean)} and {@link #stopDiscovery()}.
+     * It can be modified through {@link #startDiscovery(boolean, boolean)} and {@link #stopDiscovery()}.
      * <p>
-     * Note that if {@link #startDiscovery(boolean)} has been issued with keepAlive==true,
+     * Note that if {@link #startDiscovery(boolean, boolean)} has been issued with keepAlive==true,
      * the meta {@link ScanType} will still keep the desired {@link ScanType} enabled
      * even if it has been temporarily disabled.
      * </p>
@@ -505,18 +386,6 @@ public interface BTAdapter extends BTObject
      * @since 2.0.0
      */
     public ScanType getCurrentScanType();
-
-    /**
-     * Returns the meta discovering state (of the adapter).
-     * It can be modified through
-     * start_discovery/stop_discovery functions.
-     * @return The discovering state of the adapter.
-     * @deprecated since 2.0.0, use {@link #getCurrentScanType()}.
-     * @see #getCurrentScanType()
-     * @see #startDiscovery(boolean)
-     */
-    @Deprecated
-    public boolean getDiscovering();
 
     /**
      * Add the given {@link AdapterStatusListener} to the list if not already present.
@@ -534,7 +403,6 @@ public interface BTAdapter extends BTObject
      * @param listener A {@link AdapterStatusListener} instance
      * @return true if the given listener is not element of the list and has been newly added, otherwise false.
      * @since 2.3.0
-     * @implNote not implemented in {@code tinyb.dbus}
      * @see {@link BTDevice#addStatusListener(AdapterStatusListener)}
      * @see {@link #removeStatusListener(AdapterStatusListener)}
      * @see {@link #removeAllStatusListener()}
@@ -546,7 +414,6 @@ public interface BTAdapter extends BTObject
      * @param listener A {@link AdapterStatusListener} instance
      * @return true if the given listener is an element of the list and has been removed, otherwise false.
      * @since 2.0.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean removeStatusListener(final AdapterStatusListener l);
 
@@ -554,60 +421,8 @@ public interface BTAdapter extends BTObject
      * Remove all {@link AdapterStatusListener} from the list.
      * @return number of removed listener.
      * @since 2.0.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     public int removeAllStatusListener();
-
-    /**
-     * Enables notifications for the discovering property and calls run function of the
-     * BluetoothNotification object.
-     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
-     * when a notification is issued. The run function will deliver the new value of the discovering
-     * property.
-     */
-    public void enableDiscoveringNotifications(BTNotification<Boolean> callback);
-
-    /**
-     * Disables notifications of the discovering property and unregisters the discovering
-     * object passed through the corresponding enable method.
-     */
-    public void disableDiscoveringNotifications();
-
-    /** Returns the UUIDs of the adapter.
-      * @return Array containing the UUIDs of the adapter, ends with NULL.
-      */
-    public String[] getUUIDs();
-
-    /** Returns the local ID of the adapter.
-      * @return The local ID of the adapter.
-      */
-    public String getModalias();
-
-    /** This method sets the device discovery filter for the caller. When this method is called
-     * with no filter parameter, filter is removed.
-     * <p>
-     * When a remote device is found that advertises any UUID from UUIDs, it will be reported if:
-     * <ul><li>Pathloss and RSSI are both empty.</li>
-     * <li>only Pathloss param is set, device advertise TX pwer, and computed pathloss is less than Pathloss param.</li>
-     * <li>only RSSI param is set, and received RSSI is higher than RSSI param.</li>
-     * </ul>
-     * <p>
-     * If one or more discovery filters have been set, the RSSI delta-threshold,
-     * that is imposed by StartDiscovery by default, will not be applied.
-     * <p>
-     * If "auto" transport is requested, scan will use LE, BREDR, or both, depending on what's
-     * currently enabled on the controller.
-     *
-     * @param uuids a list of device UUIDs
-     * @param rssi a rssi value
-     * @param pathloss a pathloss value
-     */
-    public void setDiscoveryFilter(List<UUID> uuids, int rssi, int pathloss, TransportType transportType);
-
-    /** Returns the interface name of the adapter.
-     * @return The interface name of the adapter.
-     */
-    public String getInterfaceName();
 
     /**
      * Print the internally maintained BTDevice lists to stderr:
@@ -618,7 +433,6 @@ public interface BTAdapter extends BTObject
      *
      * This is intended as a debug facility.
      * @since 2.3.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     public void printDeviceLists();
 

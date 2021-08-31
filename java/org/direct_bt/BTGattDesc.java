@@ -36,11 +36,6 @@ package org.direct_bt;
   */
 public interface BTGattDesc extends BTObject
 {
-    @Override
-    public BTGattDesc clone();
-
-    /* D-Bus method calls: */
-
     /** Reads the value of this descriptor
       * @return A vector<uchar> containing data from this descriptor
       */
@@ -52,22 +47,6 @@ public interface BTGattDesc extends BTObject
       * @return TRUE if value was written succesfully
       */
     public boolean writeValue(byte[] argValue) throws BTException;
-
-    /**
-     * Enables notifications for the value and calls run function of the BluetoothNotification
-     * object.
-     * @param callback A BluetoothNotification<byte[]> object. Its run function will be called
-     * when a notification is issued. The run function will deliver the new value of the value
-     * property.
-     */
-    public void enableValueNotifications(BTNotification<byte[]> callback);
-    /**
-     * Disables notifications of the value and unregisters the callback object
-     * passed through the corresponding enable method.
-     */
-    public void disableValueNotifications();
-
-    /* D-Bus property accessors: */
 
     /** Get the UUID of this descriptor.
       * @return The 128 byte UUID of this descriptor, NULL if an error occurred

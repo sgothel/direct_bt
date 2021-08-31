@@ -45,6 +45,7 @@ import org.direct_bt.BTManager;
 import org.direct_bt.BTObject;
 import org.direct_bt.BTType;
 import org.direct_bt.HCIStatusCode;
+import org.direct_bt.ScanType;
 
 public class DBTManager implements BTManager
 {
@@ -142,7 +143,7 @@ public class DBTManager implements BTManager
      * Enables or disables uuid128_t consolidation
      * for native uuid16_t and uuid32_t values before string conversion.
      * <p>
-     * Default is {@code true}, as this represent compatibility with original TinyB D-Bus behavior.
+     * Default is {@code true}.
      * </p>
      * <p>
      * If desired, this value should be set once before the first call of {@link #getManager()}!
@@ -171,38 +172,6 @@ public class DBTManager implements BTManager
     public DBTObject find(final BTType type, final String name, final String identifier, final BTObject parent) {
         return find(type, name, identifier, parent, 0);
     }
-
-    @Override
-    public <T extends BTObject>  T find(final String name, final String identifier, final BTObject parent, final long timeoutMS) {
-        // Due to generic type erasure, we cannot determine the matching BluetoothType for the return parameter,
-        // hence this orig TinyB API method is rather misleading than useful.
-        throw new UnsupportedOperationException("Generic return type 'find' won't be implemented.");
-        // return (T) find(BluetoothType.NONE, name, identifier, parent, timeoutMS);
-    }
-
-    @Override
-    public <T extends BTObject>  T find(final String name, final String identifier, final BTObject parent) {
-        // Due to generic type erasure, we cannot determine the matching BluetoothType for the return parameter,
-        // hence this orig TinyB API method is rather misleading than useful.
-        throw new UnsupportedOperationException("Generic return type 'find' won't be implemented.");
-        // return (T) find(BluetoothType.NONE, name, identifier, parent, 0);
-    }
-
-    @Override
-    public BTObject getObject(final BTType type, final String name,
-                                final String identifier, final BTObject parent) {
-        return getObject(type.ordinal(), name, identifier, parent);
-    }
-    private BTObject getObject(final int type, final String name, final String identifier, final BTObject parent)
-    { throw new UnsupportedOperationException(); } // FIXME
-
-    @Override
-    public List<BTObject> getObjects(final BTType type, final String name,
-                                    final String identifier, final BTObject parent) {
-        return getObjects(type.ordinal(), name, identifier, parent);
-    }
-    private List<BTObject> getObjects(final int type, final String name, final String identifier, final BTObject parent)
-    { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
     public List<BTAdapter> getAdapters() { return new ArrayList<BTAdapter>(adapters); }
@@ -269,9 +238,6 @@ public class DBTManager implements BTManager
     }
 
     @Override
-    public boolean startDiscovery() throws BTException { return HCIStatusCode.SUCCESS == startDiscovery(true, false); }
-
-    @Override
     public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active) throws BTException {
         return getDefaultAdapter().startDiscovery(keepAlive, le_scan_active);
     }
@@ -279,9 +245,10 @@ public class DBTManager implements BTManager
     @Override
     public HCIStatusCode stopDiscovery() throws BTException { return getDefaultAdapter().stopDiscovery(); }
 
-    @SuppressWarnings("deprecation")
     @Override
-    public boolean getDiscovering() throws BTException { return getDefaultAdapter().getDiscovering(); }
+    public final ScanType getCurrentScanType() {
+        return getDefaultAdapter().getCurrentScanType();
+    }
 
     @Override
     public final void addChangedAdapterSetListener(final ChangedAdapterSetListener l) {
@@ -413,27 +380,14 @@ public class DBTManager implements BTManager
         } catch (final BTException be) {
             be.printStackTrace();
         }
-        final boolean supCharValCacheNotify;
-        {
-            final String v = System.getProperty("jau.direct_bt.characteristic.compat", "false");
-            supCharValCacheNotify = Boolean.valueOf(v);
-        }
         settings = new Settings() {
             @Override
             public final boolean isDirectBT() {
                 return true;
             }
             @Override
-            public boolean isTinyB() {
-                return false;
-            }
-            @Override
-            public boolean isCharValueCacheNotificationSupported() {
-                return supCharValCacheNotify;
-            }
-            @Override
             public String toString() {
-                return "Settings[dbt true, tinyb false, charValueCacheNotify "+isCharValueCacheNotificationSupported()+"]";
+                return "Settings[dbt true]";
             }
         };
     }
@@ -516,13 +470,13 @@ public class DBTManager implements BTManager
             if( ( anyType || adapterType ) ) {
                 if( null != name && null != identifier &&
                     adapter.getName().equals(name) &&
-                    adapter.getAddressString().equals(identifier)
+                    adapter.getAddressAndType().address.toString().equals(identifier)
                   )
                 {
                     return adapter;
                 }
                 if( null != identifier &&
-                    adapter.getAddressString().equals(identifier)
+                    adapter.getAddressAndType().address.toString().equals(identifier)
                   )
                 {
                     return adapter;

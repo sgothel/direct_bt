@@ -60,7 +60,9 @@ void Java_jau_direct_1bt_DBTGattService_deleteImpl(JNIEnv *env, jobject obj, jlo
     }
 }
 
-static const std::string _characteristicClazzCtorArgs("(JLjau/direct_bt/DBTGattService;S[Ljava/lang/String;ZZLjava/lang/String;SI)V");
+static const std::string _characteristicClazzCtorArgs("(JLjau/direct_bt/DBTGattService;SLorg/direct_bt/GattCharPropertySet;Ljava/lang/String;SI)V");
+static const std::string _gattCharPropSetClassName("org/direct_bt/GattCharPropertySet");
+static const std::string _gattCharPropSetClazzCtorArgs("(B)V");
 
 jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj) {
     try {
@@ -69,38 +71,39 @@ jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj
 
         jau::darray<std::shared_ptr<BTGattChar>> & characteristics = service->characteristicList;
 
-        // BTGattChar(final long nativeInstance, final BTGattService service,
-        //                       final short handle, final String[] properties,
-        //                       final boolean hasNotify, final boolean hasIndicate,
-        //                       final String value_type_uuid, final short value_handle,
-        //                       final int clientCharacteristicsConfigIndex)
+        jclass gattCharPropSetClazz;
+        jmethodID gattCharPropSetClazzCtor;
+        // gattCharPropSetClazzRef, gattCharPropSetClazzCtor
+        {
+            gattCharPropSetClazz = jau::search_class(env, _gattCharPropSetClassName.c_str());
+            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            if( nullptr == gattCharPropSetClazz ) {
+                throw jau::InternalError("BTDevice::java_class not found: "+_gattCharPropSetClassName, E_FILE_LINE);
+            }
+        }
+        gattCharPropSetClazzCtor = jau::search_method(env, gattCharPropSetClazz, "<init>", _gattCharPropSetClazzCtorArgs.c_str(), false);
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == gattCharPropSetClazzCtor ) {
+            throw jau::InternalError("GattCharPropertySet ctor not found: "+_gattCharPropSetClassName+".<init>"+_gattCharPropSetClazzCtorArgs, E_FILE_LINE);
+        }
 
+        /**
+            DBTGattChar(final long nativeInstance, final DBTGattService service,
+                        final short handle, final GattCharPropertySet properties,
+                        final String value_type_uuid, final short value_handle,
+                        final int clientCharacteristicsConfigIndex)
+         */
         std::function<jobject(JNIEnv*, jclass, jmethodID, BTGattChar *)> ctor_char =
-                [](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, BTGattChar *characteristic)->jobject {
+                [&gattCharPropSetClazz, &gattCharPropSetClazzCtor](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, BTGattChar *characteristic)->jobject {
                     // prepare adapter ctor
                     std::shared_ptr<BTGattService> _service = characteristic->getServiceChecked();
                     JavaGlobalObj::check(_service->getJavaObject(), E_FILE_LINE);
                     jobject jservice = JavaGlobalObj::GetObject(_service->getJavaObject());
 
-                    jau::darray<std::unique_ptr<std::string>> props = BTGattChar::getPropertiesStringList(characteristic->properties);
-                    size_t props_size = props.size();
-
-                    jobjectArray jproperties;
-                    {
-                        jclass string_class = search_class(env_, "java/lang/String");
-                        jproperties = env_->NewObjectArray((jsize)props_size, string_class, 0);
-                        java_exception_check_and_throw(env_, E_FILE_LINE);
-                        env_->DeleteLocalRef(string_class);
-                    }
-                    for (size_t i = 0; i < props_size; ++i) {
-                        jobject elem = from_string_to_jstring(env_, *props[i].get());
-                        env_->SetObjectArrayElement(jproperties, (jsize)i, elem);
-                        env_->DeleteLocalRef(elem);
-                    }
+                    jobject jGattCharPropSet = env_->NewObject(gattCharPropSetClazz, gattCharPropSetClazzCtor, (jbyte)characteristic->properties);
+                    jau::java_exception_check_and_throw(env_, E_FILE_LINE);
+                    JNIGlobalRef::check(jGattCharPropSet, E_FILE_LINE);
                     java_exception_check_and_throw(env_, E_FILE_LINE);
-
-                    const bool hasNotify = characteristic->hasProperties(BTGattChar::PropertyBitVal::Notify);
-                    const bool hasIndicate = characteristic->hasProperties(BTGattChar::PropertyBitVal::Indicate);
 
                     const jstring uuid = from_string_to_jstring(env_,
                             directBTJNISettings.getUnifyUUID128Bit() ? characteristic->value_type->toUUID128String() :
@@ -108,18 +111,20 @@ jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj
                     java_exception_check_and_throw(env_, E_FILE_LINE);
 
                     jobject jcharVal = env_->NewObject(clazz, clazz_ctor, (jlong)characteristic, jservice,
-                            characteristic->handle, jproperties, hasNotify, hasIndicate,
+                            characteristic->handle, jGattCharPropSet,
                             uuid, characteristic->value_handle, characteristic->clientCharConfigIndex);
                     java_exception_check_and_throw(env_, E_FILE_LINE);
                     JNIGlobalRef::check(jcharVal, E_FILE_LINE);
                     std::shared_ptr<JavaAnon> jCharRef = characteristic->getJavaObject(); // GlobalRef
                     JavaGlobalObj::check(jCharRef, E_FILE_LINE);
-                    env_->DeleteLocalRef(jproperties);
+                    env_->DeleteLocalRef(jGattCharPropSet);
                     env_->DeleteLocalRef(jcharVal);
                     return JavaGlobalObj::GetObject(jCharRef);
                 };
-        return convert_vector_sharedptr_to_jarraylist<jau::darray<std::shared_ptr<BTGattChar>>, BTGattChar>(
+        jobject jres = convert_vector_sharedptr_to_jarraylist<jau::darray<std::shared_ptr<BTGattChar>>, BTGattChar>(
                 env, characteristics, _characteristicClazzCtorArgs.c_str(), ctor_char);
+        env->DeleteLocalRef(gattCharPropSetClazz);
+        return jres;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

@@ -109,14 +109,6 @@ public class BTFactory {
     }
 
     /**
-     * {@link ImplementationIdentifier} for D-Bus implementation: {@value}
-     * <p>
-     * This value is exposed for convenience, user implementations are welcome.
-     * </p>
-     */
-    public static final ImplementationIdentifier DBusImplementationID = new ImplementationIdentifier("tinyb.dbus.DBusManager", "tinyb", "javatinyb");
-
-    /**
      * {@link ImplementationIdentifier} for direct_bt implementation: {@value}
      * <p>
      * This value is exposed for convenience, user implementations are welcome.
@@ -160,7 +152,6 @@ public class BTFactory {
      * System property {@code org.direct_bt.btmode}, string, default {@code DUAL} {@link BTMode#DUAL}.
      * </p>
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus.
      */
     public static final BTMode DEFAULT_BTMODE;
 
@@ -197,7 +188,6 @@ public class BTFactory {
             DEFAULT_BTMODE = btMode;
         }
         implIDs.add(DirectBTImplementationID);
-        implIDs.add(DBusImplementationID);
 
         boolean isJaulibAvail = false;
         try {
@@ -290,7 +280,7 @@ public class BTFactory {
         // Map all Java properties '[org.]direct_bt.*' and 'direct_bt.*' to native environment.
         try {
             if( DEBUG ) {
-                System.err.println("BlootoothFactory: Mapping '[org.|jau.]direct_bt.*' and 'tinyb.*' properties to native environment");
+                System.err.println("BlootoothFactory: Mapping '[org.|jau.]direct_bt.*' properties to native environment");
             }
             final Properties props = AccessController.doPrivileged(new PrivilegedAction<Properties>() {
                   @Override
@@ -302,7 +292,7 @@ public class BTFactory {
             while (enums.hasMoreElements()) {
               final String key = (String) enums.nextElement();
               if( key.startsWith("org.direct_bt.") || key.startsWith("jau.direct_bt.") ||
-                  key.startsWith("direct_bt.") || key.startsWith("tinyb.") )
+                  key.startsWith("direct_bt.") )
               {
                   final String value = props.getProperty(key);
                   if( DEBUG ) {
@@ -472,29 +462,6 @@ public class BTFactory {
     }
 
     /**
-     * Returns an initialized BluetoothManager instance using a D-Bus implementation.
-     * <p>
-     * Issues {@link #getBTManager(ImplementationIdentifier)} using {@link #DBusImplementationID}.
-     * </p>
-     * <p>
-     * The chosen implementation can't be changed within a running implementation, an exception is thrown if tried.
-     * </p>
-     * @throws BTException
-     * @throws NoSuchMethodException
-     * @throws SecurityException
-     * @throws IllegalAccessException
-     * @throws IllegalArgumentException
-     * @throws InvocationTargetException
-     * @throws ClassNotFoundException
-     */
-    public static synchronized BTManager getDBusBTManager()
-            throws BTException, NoSuchMethodException, SecurityException,
-                   IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException
-    {
-        return getBTManager(DBusImplementationID);
-    }
-
-    /**
      * Returns an initialized BluetoothManager instance using the DirectBT implementation.
      * <p>
      * Issues {@link #getBTManager(ImplementationIdentifier)} using {@link #DirectBTImplementationID}.
@@ -624,19 +591,3 @@ public class BTFactory {
  * </p>
  */
 
-/** \example ScannerTinyB00.java
- * This Java scanner example is a TinyB backward compatible and not fully event driven.
- * It simply polls found devices and shows certain results.
- * <p>
- * This example does not represent the recommended utilization of Direct-BT.
- * </p>
- */
-
-/** \example ScannerTinyB01.java
- * This Java scanner example is a TinyB backward compatible and not fully event driven.
- * It simply polls found devices and shows certain results.
- * However, the AdapterStatusListener is attached if supported.
- * <p>
- * This example does not represent the recommended utilization of Direct-BT.
- * </p>
- */

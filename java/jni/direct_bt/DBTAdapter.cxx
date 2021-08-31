@@ -62,8 +62,6 @@ static const std::string _deviceDisconnectedMethodArgs("(Lorg/direct_bt/BTDevice
 class JNIAdapterStatusListener : public AdapterStatusListener {
   private:
     /**
-        package org.tinyb;
-
         public abstract class AdapterStatusListener {
             private long nativeInstance;
 
@@ -503,7 +501,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addStatusListenerImpl(JNIEnv *env, jobje
         {
             JNIAdapterStatusListener * pre = jau::getInstanceUnchecked<JNIAdapterStatusListener>(env, statusListener);
             if( nullptr != pre ) {
-                WARN_PRINT("JNIAdapterStatusListener::addStatusListener: statusListener's nativeInstance not null, already in use");
+                throw jau::IllegalStateException("JNIAdapterStatusListener::addStatusListener: statusListener's nativeInstance not null, already in use", E_FILE_LINE);
                 return false;
             }
         }
@@ -549,7 +547,6 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addStatusListenerImpl(JNIEnv *env, jobje
         jau::clearInstance(env, statusListener);
         rethrow_and_raise_java_exception(env);
     }
-    ERR_PRINT("JNIAdapterStatusListener::addStatusListener: FAILED XX");
     return JNI_FALSE;
 }
 
@@ -953,16 +950,6 @@ jboolean Java_jau_direct_1bt_DBTAdapter_setPairable(JNIEnv *env, jobject obj, jb
         rethrow_and_raise_java_exception(env);
     }
     return JNI_FALSE;
-}
-
-void Java_jau_direct_1bt_DBTAdapter_setDiscoveryFilter(JNIEnv *env, jobject obj, jobject juuids, jint rssi, jint pathloss, jint transportType) {
-    // List<String> uuids
-    (void)env;
-    (void)obj;
-    (void)juuids;
-    (void)rssi;
-    (void)pathloss;
-    (void)transportType;
 }
 
 void Java_jau_direct_1bt_DBTAdapter_printDeviceListsImpl(JNIEnv *env, jobject obj) {

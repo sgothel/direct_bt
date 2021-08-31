@@ -44,8 +44,6 @@ static const std::string _indicationReceivedMethodArgs("(Lorg/direct_bt/BTGattCh
 class JNIGattCharListener : public BTGattCharListener {
   private:
     /**
-        package org.tinyb;
-
         public abstract class BTGattCharListener {
             long nativeInstance;
 
@@ -639,8 +637,6 @@ jobject Java_jau_direct_1bt_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj) 
         if( services.size() > 0 ) {
             std::shared_ptr<GattGenericAccessSvc> ga = device->getGattGenericAccess();
             if( nullptr != ga ) {
-                env->SetShortField(obj, getField(env, obj, "appearance", "S"), static_cast<jshort>(ga->appearance));
-                java_exception_check_and_throw(env, E_FILE_LINE);
                 DBG_PRINT("BTDevice.getServices(): GenericAccess: %s", ga->toString().c_str());
             }
         } else {
@@ -693,54 +689,6 @@ jboolean Java_jau_direct_1bt_DBTDevice_pingGATTImpl(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jstring Java_jau_direct_1bt_DBTDevice_getIcon(JNIEnv *env, jobject obj)
-{
-    try {
-        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
-        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        return nullptr; // FIXME
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return nullptr; // FIXME;
-}
-
-void Java_jau_direct_1bt_DBTDevice_setTrustedImpl(JNIEnv *env, jobject obj, jboolean value)
-{
-    try {
-        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
-        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        (void)value;
-        // FIXME
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-}
-
-void Java_jau_direct_1bt_DBTDevice_setBlockedImpl(JNIEnv *env, jobject obj, jboolean value)
-{
-    try {
-        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
-        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        (void)value;
-        // FIXME
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-}
-
-jboolean JNICALL Java_jau_direct_1bt_DBTDevice_getLegacyPairing(JNIEnv *env, jobject obj)
-{
-    try {
-        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
-        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        return JNI_FALSE; // FIXME
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return JNI_FALSE;
-}
-
 jshort Java_jau_direct_1bt_DBTDevice_getRSSI(JNIEnv *env, jobject obj)
 {
     try {
@@ -751,31 +699,6 @@ jshort Java_jau_direct_1bt_DBTDevice_getRSSI(JNIEnv *env, jobject obj)
         rethrow_and_raise_java_exception(env);
     }
     return 0;
-}
-
-
-jobjectArray Java_jau_direct_1bt_DBTDevice_getUUIDs(JNIEnv *env, jobject obj)
-{
-    try {
-        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
-        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        return nullptr; // FIXME
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return nullptr;
-}
-
-jstring Java_jau_direct_1bt_DBTDevice_getModalias(JNIEnv *env, jobject obj)
-{
-    try {
-        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
-        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        return nullptr; // FIXME
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return nullptr;
 }
 
 jobject Java_jau_direct_1bt_DBTDevice_getManufacturerData(JNIEnv *env, jobject obj)
@@ -827,6 +750,10 @@ jshort Java_jau_direct_1bt_DBTDevice_getTxPower(JNIEnv *env, jobject obj)
     return 0;
 }
 
+#if 0
+//
+// Leave below code 'in' disabled, as an example of how to bind Java callback functions to C++ callback functions ad-hoc.
+
 //
 // BooleanDeviceCBContext
 //
@@ -866,99 +793,8 @@ typedef std::shared_ptr<BooleanDeviceCBContext> BooleanDeviceCBContextRef;
 
 
 //
-// Blocked
-//
-
-static void disableBlockedNotifications(JNIEnv *env, jobject obj, BTManager &mgmt)
-{
-    InvocationFunc<bool, const MgmtEvent&> * funcptr =
-            getObjectRef<InvocationFunc<bool, const MgmtEvent&>>(env, obj, "blockedNotificationRef");
-    if( nullptr != funcptr ) {
-        FunctionDef<bool, const MgmtEvent&> funcDef( funcptr );
-        funcptr = nullptr;
-        setObjectRef(env, obj, funcptr, "blockedNotificationRef"); // clear java ref
-        int count;
-        if( 1 != ( count = mgmt.removeMgmtEventCallback(MgmtEvent::Opcode::DEVICE_BLOCKED, funcDef) ) ) {
-            throw InternalError(std::string("removeMgmtEventCallback of ")+funcDef.toString()+" not 1 but "+std::to_string(count), E_FILE_LINE);
-        }
-        if( 1 != ( count = mgmt.removeMgmtEventCallback(MgmtEvent::Opcode::DEVICE_UNBLOCKED, funcDef) ) ) {
-            throw InternalError(std::string("removeMgmtEventCallback of ")+funcDef.toString()+" not 1 but "+std::to_string(count), E_FILE_LINE);
-        }
-    }
-}
-void Java_jau_direct_1bt_DBTDevice_disableBlockedNotificationsImpl(JNIEnv *env, jobject obj)
-{
-    try {
-        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
-        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        BTManager & mgmt = device->getAdapter().getManager();
-
-        disableBlockedNotifications(env, obj, mgmt);
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-}
-void Java_jau_direct_1bt_DBTDevice_enableBlockedNotificationsImpl(JNIEnv *env, jobject obj, jobject javaCallback)
-{
-    try {
-        BTDevice *device= getJavaUplinkObject<BTDevice>(env, obj);
-        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        BTAdapter & adapter = device->getAdapter();
-        BTManager & mgmt = adapter.getManager();
-
-        disableBlockedNotifications(env, obj, mgmt);
-
-        bool(*nativeCallback)(BooleanDeviceCBContextRef&, const MgmtEvent&) =
-                [](BooleanDeviceCBContextRef& ctx_ref, const MgmtEvent& e)->bool {
-            bool isBlocked = false;
-            if( MgmtEvent::Opcode::DEVICE_BLOCKED == e.getOpcode() ) {
-                const MgmtEvtDeviceBlocked &event = *static_cast<const MgmtEvtDeviceBlocked *>(&e);
-                if( event.getAddress() != ctx_ref->addressAndType.address || event.getAddressType() != ctx_ref->addressAndType.type ) {
-                    return false; // not this device
-                }
-                isBlocked = true;
-            } else if( MgmtEvent::Opcode::DEVICE_UNBLOCKED == e.getOpcode() ) {
-                const MgmtEvtDeviceUnblocked &event = *static_cast<const MgmtEvtDeviceUnblocked *>(&e);
-                if( event.getAddress() != ctx_ref->addressAndType.address || event.getAddressType() != ctx_ref->addressAndType.type ) {
-                    return false; // not this device
-                }
-                isBlocked = false;
-            } else {
-                return false; // oops
-            }
-
-            jobject result = jni_env->NewObject(ctx_ref->boolean_cls_ref.getClass(), ctx_ref->boolean_ctor, isBlocked ? JNI_TRUE : JNI_FALSE);
-            jni_env->CallVoidMethod(*(ctx_ref->javaCallback_ref), ctx_ref->mRun, result);
-            jni_env->DeleteLocalRef(result);
-            return true;
-        };
-        jclass notification = search_class(*jni_env, javaCallback);
-        jmethodID  mRun = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
-        java_exception_check_and_throw(env, E_FILE_LINE);
-        jni_env->DeleteLocalRef(notification);
-
-        jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
-        jmethodID boolean_ctor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
-        java_exception_check_and_throw(env, E_FILE_LINE);
-
-        BooleanDeviceCBContextRef ctx_ref = std::make_shared<BooleanDeviceCBContext>(
-                device->getAddressAndType(), JNIGlobalRef(javaCallback), mRun, JNIGlobalRef(boolean_cls), boolean_ctor );
-        jni_env->DeleteLocalRef(boolean_cls);
-
-        // move BooleanDeviceCBContextRef into CaptureInvocationFunc and operator== includes javaCallback comparison
-        FunctionDef<bool, const MgmtEvent&> funcDef = bindCaptureFunc(ctx_ref, nativeCallback);
-        setObjectRef(env, obj, funcDef.cloneFunction(), "blockedNotificationRef"); // set java ref
-        mgmt.addMgmtEventCallback(adapter.dev_id, MgmtEvent::Opcode::DEVICE_BLOCKED, funcDef);
-        mgmt.addMgmtEventCallback(adapter.dev_id, MgmtEvent::Opcode::DEVICE_UNBLOCKED, funcDef);
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-}
-
-//
 // Paired
 //
-
 static void disablePairedNotifications(JNIEnv *env, jobject obj, BTManager &mgmt)
 {
     InvocationFunc<bool, const MgmtEvent&> * funcptr =
@@ -1028,3 +864,4 @@ void Java_jau_direct_1bt_DBTDevice_enablePairedNotificationsImpl(JNIEnv *env, jo
         rethrow_and_raise_java_exception(env);
     }
 }
+#endif

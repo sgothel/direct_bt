@@ -1,7 +1,7 @@
-Contributing to TinyB                           {#contributing}
-======================
+Contributing to *Direct-BT*                           {#contributing}
+===========================
 
-TinyB / Direct-BT is an opensource project and we are actively looking for people to help
+*Direct-BT* is an opensource project and we are actively looking for people to help
 with:
 
 - Contributions to functionality, extensions of API

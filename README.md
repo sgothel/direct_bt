@@ -1,5 +1,7 @@
 # Direct-BT LE and BREDR Library
 
+[Original document location](https://jausoft.com/cgit/direct_bt.git/about/).
+
 ## Git Repository
 This project's canonical repositories is hosted on [Gothel Software](https://jausoft.com/cgit/direct_bt.git/).
 
@@ -7,20 +9,7 @@ This project's canonical repositories is hosted on [Gothel Software](https://jau
 This project aims to create a clean, modern and easy to use API for [Bluetooth LE and BREDR](https://www.bluetooth.com/specifications/bluetooth-core-specification/), 
 fully accessible through C++, Java and other languages.
 
-
-## Version 2
-Starting with version 2.1.0, the *TinyB* Java API has been refactored
-to support all new features of its new *Direct-BT* implementation.
-
-Starting with version 2.2.0, the Java API has changed 
-to clarify semantics, further support *Direct-BT* 
-and to favor a shortened naming convention,
-e.g. *BluetoothManager* to *BTManager*, *BluetoothGattCharacteristic* to *BTGattChar* etc.
-
-As of today, the Java API comprises two implementations, *Direct-BT* (complete) and *TinyB* (incomplete).
-
-
-## Direct-BT
+## Overview
 *Direct-BT* provides direct [Bluetooth LE and BREDR](https://www.bluetooth.com/specifications/bluetooth-core-specification/) programming,
 offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
 
@@ -57,6 +46,8 @@ Some more elaboration on the implementation and its status
 > exposing BTSecurityLevel and SMPIOCapability setup per connection
 > and providing *automatic security mode negotiation*.
 >
+> BLE slave periphal and GATT server support is underway.
+>
 > BREDR support is planned and prepared for.
 >
 
@@ -65,7 +56,36 @@ To support other platforms than Linux/BlueZ, we will have to
 * add specialization for each new platform using their non-platform-agnostic features.
 
 
-### Direct-BT System Preparations
+## Supported Platforms
+The following **platforms** are tested and hence supported
+
+**Debian 10 Buster (GNU/Linux)**
+
+- amd64 (validated, Generic)
+- arm64 (validated, Raspberry Pi 3+ and 4)
+- arm32 (validated, Raspberry Pi 3+ and 4)
+
+**Debian 11 Bullseye (GNU/Linux)**
+
+- amd64 (validated, Generic)
+- arm64 (should work, Raspberry Pi 3+ and 4)
+- arm32 (should work, Raspberry Pi 3+ and 4)
+
+The following **Bluetooth Adapter** were tested
+
+* Bluetooth 4.0
+  - Intel Bluemoon Bluetooth Adapter
+  - CSR Bluetooth Adapter (CSR8510,..)
+  - Raspberry Pi Bluetooth Adapter (BCM43455 on 3+, 4)
+
+* Bluetooth 5.0
+  - Intel AX200 Bluetooth 5.0 (Wi-Fi 6 802.11ax (2.4Gbps) + BT 5.0)
+  - Realtek Bluetooth 5.0 (`RTK_BT_5.0`)
+
+
+## Using *Direct-BT* Applications
+
+### System Preparations
 
 Since *Direct-BT* is not using a 3rd party Bluetooth client library or daemon/service,
 they should be disabled to allow operation without any interference.
@@ -78,7 +98,7 @@ systemctl disable bluetooth
 systemctl mask bluetooth
 ```
 
-### Required Permissions for Direct-BT Applications
+### Required Permissions for *Direct-BT* Applications
 
 Since *Direct-BT* requires root permissions to certain Bluetooth network device facilities,
 non-root user require to be granted such permissions.
@@ -127,7 +147,7 @@ Notable here is that *capsh* needs to be invoked by root to hand over the capabi
 and to pass over the *cap_net_raw,cap_net_admin+eip* via *--addamb=...*
 it also needs *cap_setpcap,cap_setuid,cap_setgid+ep* beforehand.
 
-#### Examples
+### Launch Examples
 
 The *capsh* method (default), *setcap* and *root* method is being utilized in
 
@@ -137,54 +157,12 @@ The *capsh* method (default), *setcap* and *root* method is being utilized in
 See *Examples* below ...
 
 
-### Sponsorship
+## Programming with *Direct-BT*
 
-*Direct-BT* is the new implementation as provided by [Zafena ICT](https://ict.zafena.se) and [Gothel Software](https://jausoft.com/).
+### API
+Exposed API closely follows and references the [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/).
 
-If you like to utilize *Direct-BT* in a commercial setting, 
-please contact us to setup a potential support contract.
-
-
-## TinyB
-*TinyB* exposes the BLE GATT API for C++, Java and other languages, using *BlueZ* over DBus.
-
-*TinyB* does not expose the BREDR API.
-
-*TinyB* is exposed via the following native libraries
-- *libtinyb.so* for the core C++ implementation.
-- *libjavatinyb.so* for the Java binding.
-
-*TinyB* is the original implementation of the TinyB project by Intel.
-
-*TinyB* does not cover all API functionality anymore: Event driven adapter, device and GATT handling
-nor SMP Secure Connections.
-
-
-## TinyB and Direct-BT
-Pre version 2.0.0 D-Bus implementation details of the Java[tm] classes
-of package *tinyb* has been moved to *tinyb.dbus*.
-The *tinyb.jar* jar file has been renamed to *direct_bt.jar*, avoiding conflicts.
-
-Offering the fat jar *direct_bt-fat.jar*, bootstrapping its contained native libraries.
-This functionality is provided by the merged-in `jaulib` package.
-
-General interfaces matching the [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
-were created in package *org.direct_bt*. Direct-BT's C++ API and implementation 
-contains detailed references to the official specification.
-
-*org.direct_bt.BTFactory* provides a factory to instantiate the initial root
-*org.direct_bt.BTManager*, either using *Direct-BT* or *Tiny-B* (D-Bus) implementation.
-
-*TinyB*'s C++ namespace and implementation kept mostly unchanged.
-
-The new Java interface has changed. Package renamed from *org.tinyb* to *org.direct_bt* 
-and most names have been shortened, 
-e.g. *BluetoothManager* to *BTManager*, *BluetoothGattCharacteristic* to *BTGattChar* etc.
-
-*since 2.x* version tags have been added to the Java interface specification for clarity.
-
-
-## API Documentation
+#### API Documentation
 Up to date API documentation can be found:
 
 * [API Overview](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details) (C++)
@@ -199,7 +177,12 @@ and the [same in the Java API](https://jausoft.com/projects/direct_bt/build/docu
 A guide for getting started with *Direct-BT* on C++ and Java may follow up.
 
 
-## Examples
+#### Java Specifics
+*org.direct_bt.BTFactory* provides a factory to instantiate the initial root
+*org.direct_bt.BTManager*, using the *Direct-BT* implementation.
+
+
+### Examples
 *Direct-BT* [C++ examples](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/examples.html)
 are available, [dbt_scanner10.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_scanner10_8cpp-example.html)
 demonstrates the event driven and multithreading workflow.
@@ -208,59 +191,13 @@ demonstrates the event driven and multithreading workflow.
 are availble, [DBTScanner10.java](https://jausoft.com/projects/direct_bt/build/documentation/java/html/DBTScanner10_8java-example.html)
 demonstrates the event driven and multithreading workflow - matching *dbt_scanner10.cpp*.
 
-A guide for getting started with *TinyB* on Java is available from Intel:
-https://software.intel.com/en-us/java-for-bluetooth-le-apps.
 
-The hellotinyb example uses a [TI Sensor Tag](http://www.ti.com/ww/en/wireless_connectivity/sensortag2015/?INTC=SensorTag&HQS=sensortag)
-from which it reads the ambient temperature. You have to pass the MAC address
-of the Sensor Tag as a first parameter to the program.
-
-
-## Supported Platforms
-The following **platforms** are tested and hence supported
-
-**Debian 10 Buster (GNU/Linux)**
-
-- amd64 (validated, Generic)
-- arm64 (validated, Raspberry Pi 3+ and 4)
-- arm32 (validated, Raspberry Pi 3+ and 4)
-
-**Debian 11 Bullseye (GNU/Linux)**
-
-- amd64 (validated, Generic)
-- arm64 (should work, Raspberry Pi 3+ and 4)
-- arm32 (should work, Raspberry Pi 3+ and 4)
-
-The following **Bluetooth Adapter** were tested
-
-* Bluetooth 4.0
-  - Intel Bluemoon Bluetooth Adapter
-  - CSR Bluetooth Adapter (CSR8510,..)
-  - Raspberry Pi Bluetooth Adapter (BCM43455 on 3+, 4)
-
-* Bluetooth 5.0
-  - Intel AX200 Bluetooth 5.0 (Wi-Fi 6 802.11ax (2.4Gbps) + BT 5.0)
-  - Realtek Bluetooth 5.0 (`RTK_BT_5.0`)
-
-
-## Build Status
-*Will be updated*
-
-
-## Building Binaries
+## Building *Direct-BT*
 The project requires CMake 3.13+ for building and a Java JDK >= 11.
 
 This project also uses the [Jau Library](https://jausoft.com/cgit/jaulib.git/about/)
 as a git submodule, which has been extracted earlier from this project
 to better encapsulation and allow general use.
-
-*TinyB* requires GLib/GIO 2.40+. It also
-requires *BlueZ* with GATT profile activated, which is currently experimental (as
-of *BlueZ* 5.37), so you might have to run bluetoothd with the -E flag. For
-example, on a system with systemd (Fedora, poky, etc.) edit the
-bluetooth.service file (usually found in /usr/lib/systemd/system/ or
-/lib/systemd/system) and append -E to ExecStart line, restart the daemon with
-systemctl restart bluetooth.
 
 *Direct-BT* does not require GLib/GIO 
 nor shall the *BlueZ* userspace service *bluetoothd* be active for best experience.
@@ -279,7 +216,6 @@ Installing build dependencies on Debian (10 or 11):
 apt install git
 apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev 
 apt install libunwind8 libunwind-dev
-apt install libglib2.0 libglib2.0-0 libglib2.0-dev
 apt install openjdk-11-jdk openjdk-11-jre junit4
 apt install cmake cmake-extras extra-cmake-modules pkg-config
 apt install doxygen graphviz
@@ -289,7 +225,7 @@ For a generic build use:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 CPU_COUNT=`getconf _NPROCESSORS_ONLN`
-git clone --recurse-submodules https://jausoft.com/cgit/direct_bt.git
+git clone --recurse-submodules git://jausoft.com/srv/scm/direct_bt.git
 cd direct_bt
 mkdir build
 cd build
@@ -355,12 +291,6 @@ To build Java bindings:
 -DBUILDJAVA=ON
 ~~~~~~~~~~~~~
 
-To not build the *TinyB* implementation:
-
-~~~~~~~~~~~~~
--DSKIP_TINYB=ON
-~~~~~~~~~~~~~
-
 To build examples:
 
 ~~~~~~~~~~~~~
@@ -373,10 +303,47 @@ To build documentation run:
 make doc
 ~~~~~~~~~~~~~
 
+## Build Status
+*Will be updated*
+
+
+## Support & Sponsorship
+
+*Direct-BT* is the new implementation as provided by [Gothel Software](https://jausoft.com/) and [Zafena ICT](https://ict.zafena.se).
+
+If you like to utilize *Direct-BT* in a commercial setting, 
+please contact [Gothel Software](https://jausoft.com/) to setup a potential support contract.
+
+## Common issues
+If you have any issues, please go through the [Troubleshooting Guide](TROUBLESHOOTING.md). 
+
+If the solution is not there, please search for an existing issue in our [Bugzilla DB](https://jausoft.com/bugzilla/describecomponents.cgi?product=Direct-BT),
+please [contact us](https://jausoft.com/) for a new bugzilla account via email to Sven Gothel <sgothel@jausoft.com>.
+
+
+## Contributing to *Direct-BT*
+You shall agree to Developer Certificate of Origin and Sign-off your code,
+using a real name and e-mail address. 
+
+Please check the [Contribution](CONTRIBUTING.md) document for more details.
+
+## Historical Notes
+
+### *TinyB* Removal since version 2.3
+Starting with version 2.3, the previously refactored *TinyB* has been removed completely.
+
+Motivation was lack of detailed Bluetooth support, inclusive increasing diversion with *Direct-BT*.
+Furthermore, work is underway for `BLE slave periphal and GATT server` support and its mapping to *BlueZ D-Bus* is questionable
+and would be resource intensive.
+
 ## Changes
 **2.3.0 *Direct-BT* Maturity (Bluetooth LE)**
 
 * TODO
+
+**2.3.00**
+
+* Removal of *TinyB*
 
 **2.2.14**
 
@@ -472,15 +439,3 @@ were created in package *org.tinyb*.
 
 * Added asynchronous methods for discovering BluetoothObjects
 
-## Common issues
-If you have any issues, please go through the [Troubleshooting Guide](TROUBLESHOOTING.md). 
-
-If the solution is not there, please search for an existing issue in our [Bugzilla DB](https://jausoft.com/bugzilla/describecomponents.cgi?product=Direct-BT),
-please [contact us](https://jausoft.com/) for a new bugzilla account via email to Sven Gothel <sgothel@jausoft.com>.
-
-
-## Contributing to TinyB / Direct-BT
-You shall agree to Developer Certificate of Origin and Sign-off your code,
-using a real name and e-mail address. 
-
-Please check the [Contribution](CONTRIBUTING.md) document for more details.

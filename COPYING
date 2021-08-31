@@ -61,7 +61,7 @@ we assume the following SPDX-License-Identifier should be declared:
  
 ...
 
-This documentation of our usage is certainly a better than GOOG's approach: 
+This documentation of our usage is certainly better than GOOG's approach: 
 <https://android.googlesource.com/platform/system/bluetooth/+/eclair-release/bluez-clean-headers/bluetooth?autodive=0/>,
 which removes all authorship and origin.
 

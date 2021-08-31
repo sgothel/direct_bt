@@ -12,7 +12,7 @@ Package-Version: @VERSION_SHORT@
 Specification-Title: Direct-BT
 Specification-Vendor: Gothel Software
 Specification-Version: @VERSION_API@
-Implementation-Title: Direct-BT (optionally with TinyB)
+Implementation-Title: Direct-BT
 Implementation-Vendor: Gothel Software
 Implementation-Version: @VERSION@
 Implementation-Commit: @VERSION_SHA1@
@@ -24,9 +24,6 @@ Application-Library-Allowable-Codebase: *
 Main-Class: org.direct_bt.BTFactory
 
 Name: org/direct_bt/
-Sealed: true
-
-Name: tinyb/dbus/
 Sealed: true
 
 Name: jau/direct_bt/

@@ -83,7 +83,7 @@ public enum BDAddressType {
     /**
      * Maps the specified name to a constant of {@link BDAddressType}.
      * <p>
-     * According to BlueZ's D-Bus protocol, which is also followed by TinyB,
+     * According to BlueZ's D-Bus protocol,
      * the following mappings are valid:
      * <ul>
      *   <li>"{@code public}" -> {@link #BDADDR_LE_PUBLIC}</li>

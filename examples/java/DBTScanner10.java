@@ -47,12 +47,12 @@ import org.direct_bt.BTGattChar;
 import org.direct_bt.BTGattDesc;
 import org.direct_bt.BTGattService;
 import org.direct_bt.BTManager;
-import org.direct_bt.BTNotification;
 import org.direct_bt.BTSecurityRegistry;
 import org.direct_bt.BTType;
 import org.direct_bt.BTUtils;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.EUI48;
+import org.direct_bt.GattCharPropertySet;
 import org.direct_bt.BTGattCharListener;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.HCIWhitelistConnectType;
@@ -134,7 +134,7 @@ public class DBTScanner10 {
         }
     }
 
-    final AdapterStatusListener statusListener = new AdapterStatusListener() {
+    class MyAdapterStatusListener extends AdapterStatusListener {
         @Override
         public void adapterSettingsChanged(final BTAdapter adapter, final AdapterSettings oldmask,
                                            final AdapterSettings newmask, final AdapterSettings changedmask, final long timestamp) {
@@ -520,8 +520,8 @@ public class DBTScanner10 {
                             printf("  [%02d.%02d] Characteristic: UUID %s\n", i, j, serviceChar.getUUID());
                             printf("  [%02d.%02d]     %s\n", i, j, serviceChar.toString());
                         }
-                        final List<String> properties = Arrays.asList(serviceChar.getFlags());
-                        if( properties.contains("read") ) {
+                        final GattCharPropertySet properties = serviceChar.getProperties();
+                        if( properties.isSet(GattCharPropertySet.Type.Read) ) {
                             final byte[] value = serviceChar.readValue();
                             final String svalue = BTUtils.decodeUTF8String(value, 0, value.length);
                             if( !QUIET ) {
@@ -646,7 +646,7 @@ public class DBTScanner10 {
 
     private boolean initAdapter(final BTAdapter adapter) {
         // Even if adapter is not yet powered, listen to it and act when it gets powered-on
-        adapter.addStatusListener(statusListener);
+        adapter.addStatusListener(new MyAdapterStatusListener() );
         // Flush discovered devices after registering our status listener.
         // This avoids discovered devices before we have registered!
         adapter.removeDiscoveredDevices();
@@ -655,14 +655,6 @@ public class DBTScanner10 {
             BTUtils.println(System.err, "Adapter not powered (2): "+adapter.toString());
             return false;
         }
-
-        adapter.enableDiscoverableNotifications(new BooleanNotification("Discoverable", timestamp_t0));
-
-        adapter.enableDiscoveringNotifications(new BooleanNotification("Discovering", timestamp_t0));
-
-        adapter.enablePairableNotifications(new BooleanNotification("Pairable", timestamp_t0));
-
-        adapter.enablePoweredNotifications(new BooleanNotification("Powered", timestamp_t0));
 
         if( USE_WHITELIST ) {
             for(final Iterator<BDAddressAndType> wliter = whitelist.iterator(); wliter.hasNext(); ) {
@@ -890,32 +882,5 @@ public class DBTScanner10 {
             } catch(final Exception e) { }
         }
         test.runTest(manager);
-    }
-
-    static class BooleanNotification implements BTNotification<Boolean> {
-        private final long t0;
-        private final String name;
-        private boolean v;
-
-        public BooleanNotification(final String name, final long t0) {
-            this.t0 = t0;
-            this.name = name;
-            this.v = false;
-        }
-
-        @Override
-        public void run(final Boolean v) {
-            synchronized(this) {
-                final long t1 = BTUtils.currentTimeMillis();
-                this.v = v.booleanValue();
-                System.out.println("###### "+name+": "+v+" in td "+(t1-t0)+" ms!");
-                this.notifyAll();
-            }
-        }
-        public boolean getValue() {
-            synchronized(this) {
-                return v;
-            }
-        }
     }
 }

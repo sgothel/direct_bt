@@ -28,7 +28,6 @@ set (direct_bt_JNI_SRCS
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/helper_dbt.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTAdapter.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTDevice.cxx
-  ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTEvent.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTGattChar.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTGattDesc.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTGattService.cxx

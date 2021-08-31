@@ -50,10 +50,6 @@ void raise_java_exception(JNIEnv *env, const direct_bt::BTException &e, const ch
     jau::print_native_caught_exception_fwd2java(e, file, line);
     env->ThrowNew(env->FindClass("org/direct_bt/BTException"), e.what());
 }
-void raise_java_exception(JNIEnv *env, const tinyb::BluetoothException &e, const char* file, int line) {
-    jau::print_native_caught_exception_fwd2java(e, file, line);
-    env->ThrowNew(env->FindClass("org/direct_bt/BTException"), e.what());
-}
 
 static std::string _unknown_exception_type_msg("Unknown exception type");
 
@@ -79,8 +75,6 @@ void rethrow_and_raise_java_exception_impl(JNIEnv *env, const char* file, int li
     } catch (const jau::IndexOutOfBoundsException &e) {
         jau::raise_java_exception(env, e, file, line);
     } catch (const direct_bt::BTException &e) {
-        raise_java_exception(env, e, file, line);
-    } catch (const tinyb::BluetoothException &e) {
         raise_java_exception(env, e, file, line);
     } catch (const jau::RuntimeException &e) {
         jau::raise_java_exception(env, e, file, line);

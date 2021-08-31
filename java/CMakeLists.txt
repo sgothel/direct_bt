@@ -36,6 +36,3 @@ install (FILES ${direct_bt_jar_file} DESTINATION ${CMAKE_INSTALL_LIBDIR}/../lib/
 
 add_subdirectory (jni/direct_bt)
 
-if(NOT SKIP_TINYB)
-    add_subdirectory (jni/tinyb)
-endif()

@@ -40,9 +40,6 @@ import java.util.Map;
   */
 public interface BTDevice extends BTObject
 {
-    @Override
-    public BTDevice clone();
-
     /** Find a BluetoothGattService. If parameter UUID is not null,
       * the returned object will have to match it.
       * It will first check for existing objects. It will not turn on discovery
@@ -85,7 +82,6 @@ public interface BTDevice extends BTObject
      *        {@link AdapterStatusListener} {@code device*} methods. Pass {@code null} for no filtering.
      * @return true if the given listener is not element of the list and has been newly added, otherwise false.
      * @since 2.3.0
-     * @implNote not implemented in {@code tinyb.dbus}
      * @see {@link BTDevice#addStatusListener(AdapterStatusListener, BTDevice)}
      * @see {@link #removeStatusListener(AdapterStatusListener)}
      * @see {@link #removeAllStatusListener()}
@@ -97,7 +93,6 @@ public interface BTDevice extends BTObject
      * @param listener A {@link AdapterStatusListener} instance
      * @return true if the given listener is an element of the list and has been removed, otherwise false.
      * @since 2.3.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean removeStatusListener(final AdapterStatusListener l);
 
@@ -150,7 +145,6 @@ public interface BTDevice extends BTObject
      * The device is tracked by the managing adapter.
      * </p>
      * <p>
-     * {@code tinyb.dbus}: A connection to this device is established, connecting each profile
      * flagged as auto-connectable.
      * </p>
      * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
@@ -197,32 +191,17 @@ public interface BTDevice extends BTObject
      * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
      * @see BTUtils#getHCIConnSupervisorTimeout(int, int, int, int)
      * @see #connect()
-     * @since 2.1.0 change API, i.e. return value from boolean to HCIStatusCode in favor of <i>direct_bt</i>
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     HCIStatusCode connectLE(final short le_scan_interval, final short le_scan_window,
                             final short conn_interval_min, final short conn_interval_max,
                             final short conn_latency, final short supervision_timeout);
 
 
-    /** Connects a specific profile available on the device, given by UUID
-      * @param arg_UUID The UUID of the profile to be connected
-      * @return TRUE if the profile connected successfully
-      */
-    boolean connectProfile(String arg_UUID) throws BTException;
-
-    /** Disconnects a specific profile available on the device, given by UUID
-      * @param arg_UUID The UUID of the profile to be disconnected
-      * @return TRUE if the profile disconnected successfully
-      */
-    boolean disconnectProfile(String arg_UUID) throws BTException;
-
     /**
      * Returns the available {@link SMPKeyMask.KeyType} {@link SMPKeyMask} for the responder (LL slave) or initiator (LL master).
      * @param responder if true, queries the responder (LL slave) key, otherwise the initiator (LL master) key.
      * @return {@link SMPKeyMask.KeyType} {@link SMPKeyMask} result
      * @since 2.2.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     SMPKeyMask getAvailableSMPKeys(final boolean responder);
 
@@ -233,7 +212,6 @@ public interface BTDevice extends BTObject
      * @see {@link SMPPairingState#COMPLETED}
      * @see {@link AdapterStatusListener#deviceReady(BTDevice, long)}
      * @since 2.2.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     SMPLongTermKeyInfo getLongTermKeyInfo(final boolean responder);
 
@@ -245,7 +223,6 @@ public interface BTDevice extends BTObject
      * @param ltk the pre-paired encryption LTK
      * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the appropriate error code.
      * @since 2.2.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk);
 
@@ -256,20 +233,8 @@ public interface BTDevice extends BTObject
      * @see {@link SMPPairingState#COMPLETED}
      * @see {@link AdapterStatusListener#deviceReady(BTDevice, long)}
      * @since 2.2.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     SMPSignatureResolvingKeyInfo getSignatureResolvingKeyInfo(final boolean responder);
-
-    /**
-     * A secure connection to this device is established, and the device is then paired.
-     * <p>
-     * For direct_bt use {@link #setConnSecurity(BTSecurityLevel, SMPIOCapability) setConnSecurity(..) or its variants}
-     * and {@link #connectLE(short, short, short, short, short, short) connectLE(..)}.
-     * </p>
-     * @return TRUE if the device connected and paired
-     * @implNote not implemented in {@code jau.direct_bt}
-     */
-    boolean pair() throws BTException;
 
     /**
      * Unpairs this device from the adapter while staying connected.
@@ -281,7 +246,6 @@ public interface BTDevice extends BTObject
      * </p>
      * @return {@link HCIStatusCode#SUCCESS} or an appropriate error status.
      * @since 2.1.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     HCIStatusCode unpair();
 
@@ -303,7 +267,6 @@ public interface BTDevice extends BTObject
      * @param sec_level {@link BTSecurityLevel} to be applied, {@link BTSecurityLevel#UNSET} will be ignored and method fails.
      * @return
      * @since 2.1.0
-     * @implNote not implemented in {@code tinyb.dbus}
      * @see BTSecurityLevel
      * @see SMPIOCapability
      * @see #getConnSecurityLevel()
@@ -317,7 +280,6 @@ public interface BTDevice extends BTObject
     /**
      * Return the {@link BTSecurityLevel}, determined when the connection is established.
      * @since 2.1.0
-     * @implNote not implemented in {@code tinyb.dbus}
      * @see BTSecurityLevel
      * @see SMPIOCapability
      * @see #setConnSecurityLevel(BTSecurityLevel)
@@ -337,7 +299,6 @@ public interface BTDevice extends BTObject
      * </p>
      * @param io_cap {@link SMPIOCapability} to be applied, {@link SMPIOCapability#UNSET} will be ignored and method fails.
      * @since 2.1.0
-     * @implNote not implemented in {@code tinyb.dbus}
      * @see BTSecurityLevel
      * @see SMPIOCapability
      * @see #setConnSecurityLevel(BTSecurityLevel)
@@ -351,7 +312,6 @@ public interface BTDevice extends BTObject
     /**
      * Return the {@link SMPIOCapability} value, determined when the connection is established.
      * @since 2.1.0
-     * @implNote not implemented in {@code tinyb.dbus}
      * @see BTSecurityLevel
      * @see SMPIOCapability
      * @see #setConnSecurityLevel(BTSecurityLevel)
@@ -374,7 +334,6 @@ public interface BTDevice extends BTObject
      * @param sec_level {@link BTSecurityLevel} to be applied.
      * @param io_cap {@link SMPIOCapability} to be applied.
      * @since 2.1.0
-     * @implNote not implemented in {@code tinyb.dbus}
      * @see BTSecurityLevel
      * @see SMPIOCapability
      * @see #setConnSecurityLevel(BTSecurityLevel)
@@ -411,7 +370,6 @@ public interface BTDevice extends BTObject
      * @param sec_level {@link BTSecurityLevel} to be applied.
      * @param io_cap {@link SMPIOCapability} to be applied.
      * @since 2.1.0
-     * @implNote not implemented in {@code tinyb.dbus}
      * @see BTSecurityLevel
      * @see SMPIOCapability
      * @see #setConnSecurityLevel(BTSecurityLevel)
@@ -449,7 +407,6 @@ public interface BTDevice extends BTObject
      * </p>
      * @param auth_io_cap user {@link SMPIOCapability} choice for negotiation
      * @since 2.2.0
-     * @implNote not implemented in {@code tinyb.dbus}
      * @see #isConnSecurityAutoEnabled()
      * @see BTSecurityLevel
      * @see SMPIOCapability
@@ -460,7 +417,6 @@ public interface BTDevice extends BTObject
      * Returns true if automatic security negotiation has been enabled via {@link #setConnSecurityAuto(SMPIOCapability)},
      * otherwise false.
      * @since 2.2.0
-     * @implNote not implemented in {@code tinyb.dbus}
      * @see #setConnSecurityAuto(SMPIOCapability)
      */
     boolean isConnSecurityAutoEnabled();
@@ -485,7 +441,6 @@ public interface BTDevice extends BTObject
      * @see #getPairingMode()
      * @see #getPairingState()
      * @since 2.1.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     HCIStatusCode setPairingPasskey(final int passkey);
 
@@ -512,7 +467,6 @@ public interface BTDevice extends BTObject
      * @see #getPairingMode()
      * @see #getPairingState()
      * @since 2.1.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     HCIStatusCode setPairingPasskeyNegative();
 
@@ -536,7 +490,6 @@ public interface BTDevice extends BTObject
      * @see #getPairingMode()
      * @see #getPairingState()
      * @since 2.1.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     HCIStatusCode setPairingNumericComparison(final boolean equal);
 
@@ -563,7 +516,6 @@ public interface BTDevice extends BTObject
      * @see #getPairingMode()
      * @see #getPairingState()
      * @since 2.1.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     PairingMode getPairingMode();
 
@@ -580,7 +532,6 @@ public interface BTDevice extends BTObject
      * @see #getPairingMode()
      * @see #getPairingState()
      * @since 2.1.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     SMPPairingState getPairingState();
 
@@ -623,11 +574,6 @@ public interface BTDevice extends BTObject
      */
     public boolean isValid();
 
-    /** Cancels an initiated pairing operation
-      * @return TRUE if the paring is cancelled successfully
-      */
-    boolean cancelPairing() throws BTException;
-
     /** Returns a list of BluetoothGattServices available on this device.
       * @return A list of BluetoothGattServices available on this device,
       * NULL if an error occurred
@@ -648,7 +594,6 @@ public interface BTDevice extends BTObject
      * </p>
      * @return {@code true} if successful or not implemented, otherwise false in case no GATT services exists or is not connected..
      * @since 2.0.0
-     * @implNote not implemented in {@code tinyb.dbus}.
      */
     boolean pingGATT();
 
@@ -667,7 +612,6 @@ public interface BTDevice extends BTObject
      *
      * @see BTUtils#currentTimeMillis()
      * @since 2.0.0
-     * @implNote not implemented in {@code tinyb.dbus}, returns {@link #getCreationTimestamp()}
      */
     long getLastDiscoveryTimestamp();
 
@@ -677,147 +621,24 @@ public interface BTDevice extends BTObject
      *
      * @see BTUtils#currentTimeMillis()
      * @since 2.0.0
-     * @implNote not implemented in {@code tinyb.dbus}, returns {@link #getCreationTimestamp()}
      */
     long getLastUpdateTimestamp();
 
     /**
      * Returns the unique device {@link EUI48} address and {@link BDAddressType} type.
      * @since 2.2.0
-     * @implNote not fully implemented in {@code tinyb.dbus}, uses {@link BDAddressType#BDADDR_LE_PUBLIC}
      */
     BDAddressAndType getAddressAndType();
-
-    /**
-     * Returns the hardware address of this device in its string representation.
-     * @return The hardware address of this device as a string.
-     * @since 2.2.0
-     * @deprecated Use {@link #getAddressAndType()}
-     */
-    @Deprecated
-    String getAddressString();
 
     /** Returns the remote friendly name of this device.
       * @return The remote friendly name of this device, or NULL if not set.
       */
     String getName();
 
-    /** Returns an alternative friendly name of this device.
-      * @return The alternative friendly name of this device, or NULL if not set.
-      */
-    String getAlias();
-
-    /** Sets an alternative friendly name of this device.
-      */
-    void setAlias(String value);
-
-    /** Returns the Bluetooth class of the device.
-      * @return The Bluetooth class of the device.
-      */
-    int getBluetoothClass();
-
-    /** Returns the appearance of the device, as found by GAP service.
-      * @return The appearance of the device, as found by GAP service.
-      */
-    short getAppearance();
-
-    /** Returns the proposed icon name of the device.
-      * @return The proposed icon name, or NULL if not set.
-      */
-    String getIcon();
-
-    /** Returns the paired state the device.
-      * @return The paired state of the device.
-      */
-    boolean getPaired();
-
-    /**
-     * Enables notifications for the paired property and calls run function of the
-     * BluetoothNotification object.
-     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
-     * when a notification is issued. The run function will deliver the new value of the paired
-     * property.
-     */
-    void enablePairedNotifications(BTNotification<Boolean> callback);
-
-    /**
-     * Disables notifications of the paired property and unregisters the callback
-     * object passed through the corresponding enable method.
-     */
-    void disablePairedNotifications();
-
-    /** Returns the trusted state the device.
-      * @return The trusted state of the device.
-      */
-    boolean getTrusted();
-
-    /**
-     * Enables notifications for the trusted property and calls run function of the
-     * BluetoothNotification object.
-     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
-     * when a notification is issued. The run function will deliver the new value of the trusted
-     * property.
-     */
-    void enableTrustedNotifications(BTNotification<Boolean> callback);
-
-    /**
-     * Disables notifications of the trusted property and unregisters the callback
-     * object passed through the corresponding enable method.
-     */
-    void disableTrustedNotifications();
-
-    /** Sets the trusted state the device.
-      */
-    void setTrusted(boolean value);
-
-    /** Returns the blocked state the device.
-      * @return The blocked state of the device.
-      */
-    boolean getBlocked();
-
-    /**
-     * Enables notifications for the blocked property and calls run function of the
-     * BluetoothNotification object.
-     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
-     * when a notification is issued. The run function will deliver the new value of the blocked
-     * property.
-     */
-    void enableBlockedNotifications(BTNotification<Boolean> callback);
-
-    /**
-     * Disables notifications of the blocked property and unregisters the callback
-     * object passed through the corresponding enable method.
-     */
-    void disableBlockedNotifications();
-
-    /** Sets the blocked state the device.
-      */
-    void setBlocked(boolean value);
-
-    /** Returns if device uses only pre-Bluetooth 2.1 pairing mechanism.
-      * @return True if device uses only pre-Bluetooth 2.1 pairing mechanism.
-      */
-    boolean getLegacyPairing();
-
     /** Returns the Received Signal Strength Indicator of the device.
       * @return The Received Signal Strength Indicator of the device.
       */
     short getRSSI();
-
-    /**
-     * Enables notifications for the RSSI property and calls run function of the
-     * BluetoothNotification object.
-     * @param callback A BluetoothNotification<Short> object. Its run function will be called
-     * when a notification is issued. The run function will deliver the new value of the RSSI
-     * property.
-     */
-    void enableRSSINotifications(BTNotification<Short> callback);
-
-    /**
-     * Disables notifications of the RSSI property and unregisters the callback
-     * object passed through the corresponding enable method.
-     */
-    void disableRSSINotifications();
 
     /** Returns the connected state of the device.
       * @return The connected state of the device.
@@ -827,34 +648,8 @@ public interface BTDevice extends BTObject
     /**
      * Return the HCI connection handle to the LE or BREDR peer, zero if not connected.
      * @since 2.1.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     short getConnectionHandle();
-
-    /**
-     * Enables notifications for the connected property and calls run function of the
-     * BluetoothNotification object.
-     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
-     * when a notification is issued. The run function will deliver the new value of the connected
-     * property.
-     */
-    void enableConnectedNotifications(BTNotification<Boolean> callback);
-
-    /**
-     * Disables notifications of the connected property and unregisters the callback
-     * object passed through the corresponding enable method.
-     */
-    void disableConnectedNotifications();
-
-    /** Returns the UUIDs of the device.
-      * @return Array containing the UUIDs of the device, ends with NULL.
-      */
-    String[] getUUIDs();
-
-    /** Returns the local ID of the adapter.
-      * @return The local ID of the adapter.
-      */
-    String getModalias();
 
     /** Returns the adapter on which this device was discovered or
       * connected.
@@ -868,69 +663,10 @@ public interface BTDevice extends BTObject
       */
     Map<Short, byte[]> getManufacturerData();
 
-    /**
-     * Enables notifications for the manufacturer data property and calls run function of the
-     * BluetoothNotification object.
-     * @param callback A BluetoothNotification<Map<Short, byte[]> > object. Its run function will be called
-     * when a notification is issued. The run function will deliver the new value of the manufacturer data
-     * property.
-     */
-    void enableManufacturerDataNotifications(
-            BTNotification<Map<Short, byte[]>> callback);
-
-    /**
-     * Disables notifications of the manufacturer data property and unregisters the callback
-     * object passed through the corresponding enable method.
-     */
-    void disableManufacturerDataNotifications();
-
-    /** Returns a map containing service advertisement data.
-      * An entry has a UUID string key and an array of bytes.
-      * @return service advertisement data.
-      */
-    Map<String, byte[]> getServiceData();
-
-    /**
-     * Enables notifications for the service data property and calls run function of the
-     * BluetoothNotification object.
-     * @param callback A BluetoothNotification<Map<String, byte[]> > object. Its run function will be called
-     * when a notification is issued. The run function will deliver the new value of the service data
-     * property.
-     */
-    void enableServiceDataNotifications(
-            BTNotification<Map<String, byte[]>> callback);
-
-    /**
-     * Disables notifications of the service data property and unregisters the callback
-     * object passed through the corresponding enable method.
-     */
-    void disableServiceDataNotifications();
-
     /** Returns the transmission power level (0 means unknown).
       * @return the transmission power level (0 means unknown).
       */
     short getTxPower();
-
-    /** Returns true if service discovery has ended.
-      * @return true if the service discovery has ended.
-      */
-    boolean getServicesResolved();
-
-    /**
-     * Enables notifications for the services resolved property and calls run function of the
-     * BluetoothNotification object.
-     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
-     * when a notification is issued. The run function will deliver the new value of the services resolved
-     * property.
-     */
-    void enableServicesResolvedNotifications(
-            BTNotification<Boolean> callback);
-
-    /**
-     * Disables notifications of the services resolved property and unregisters the callback
-     * object passed through the corresponding enable method.
-     */
-    void disableServicesResolvedNotifications();
 
     /**
      * Add the given {@link BTGattCharListener} to the listener list if not already present.
@@ -946,7 +682,6 @@ public interface BTDevice extends BTObject
      * @see BTGattChar#configNotificationIndication(boolean, boolean, boolean[])
      * @see BTGattChar#enableNotificationOrIndication(boolean[])
      * @since 2.0.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean addCharListener(final BTGattCharListener listener)
         throws IllegalStateException;
@@ -959,7 +694,6 @@ public interface BTDevice extends BTObject
      * @param listener A {@link BTGattCharListener} instance
      * @return true if the given listener is an element of the list and has been removed, otherwise false.
      * @since 2.0.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     public boolean removeCharListener(final BTGattCharListener l);
 
@@ -972,7 +706,6 @@ public interface BTDevice extends BTObject
      * @param associatedCharacteristic the match criteria to remove any BTGattCharListener from the list
      * @return number of removed listener.
      * @since 2.0.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     public int removeAllAssociatedCharListener(final BTGattChar associatedCharacteristic);
 
@@ -980,7 +713,6 @@ public interface BTDevice extends BTObject
      * Remove all {@link BTGattCharListener} from the list.
      * @return number of removed listener.
      * @since 2.0.0
-     * @implNote not implemented in {@code tinyb.dbus}
      */
     public int removeAllCharListener();
 }
