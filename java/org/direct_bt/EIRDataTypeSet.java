@@ -40,19 +40,20 @@ public class EIRDataTypeSet {
     public enum DataType {
         NONE         (     0),
         EVT_TYPE     (1 << 0),
-        BDADDR_TYPE  (1 << 1),
-        BDADDR       (1 << 2),
-        FLAGS        (1 << 3),
-        NAME         (1 << 4),
-        NAME_SHORT   (1 << 5),
-        RSSI         (1 << 6),
-        TX_POWER     (1 << 7),
-        MANUF_DATA   (1 << 8),
-        DEVICE_CLASS (1 << 9),
-        APPEARANCE   (1 << 10),
-        HASH         (1 << 11),
-        RANDOMIZER   (1 << 12),
-        DEVICE_ID    (1 << 13),
+        EXT_EVT_TYPE (1 << 1),
+        BDADDR_TYPE  (1 << 2),
+        BDADDR       (1 << 3),
+        FLAGS        (1 << 4),
+        NAME         (1 << 5),
+        NAME_SHORT   (1 << 6),
+        RSSI         (1 << 7),
+        TX_POWER     (1 << 8),
+        MANUF_DATA   (1 << 9),
+        DEVICE_CLASS (1 << 10),
+        APPEARANCE   (1 << 11),
+        HASH         (1 << 12),
+        RANDOMIZER   (1 << 13),
+        DEVICE_ID    (1 << 14),
         SERVICE_UUID (1 << 30);
 
         DataType(final int v) { value = v; }
@@ -68,11 +69,15 @@ public class EIRDataTypeSet {
     public boolean isSet(final DataType bit) { return 0 != ( mask & bit.value ); }
     public void set(final DataType bit) { mask = mask | bit.value; }
 
+    @Override
     public String toString() {
         int count = 0;
         final StringBuilder out = new StringBuilder();
         if( isSet(DataType.EVT_TYPE) ) {
             out.append(DataType.EVT_TYPE.name()); count++;
+        }
+        if( isSet(DataType.EXT_EVT_TYPE) ) {
+            out.append(DataType.EXT_EVT_TYPE.name()); count++;
         }
         if( isSet(DataType.BDADDR_TYPE) ) {
             if( 0 < count ) { out.append(", "); }
