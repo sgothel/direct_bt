@@ -46,7 +46,7 @@ Some more elaboration on the implementation and its status
 > exposing BTSecurityLevel and SMPIOCapability setup per connection
 > and providing *automatic security mode negotiation*.
 >
-> BLE slave periphal and GATT server support is underway.
+> BLE slave peripheral and GATT server support is underway.
 >
 > BREDR support is planned and prepared for.
 >
@@ -333,7 +333,7 @@ Please check the [Contribution](CONTRIBUTING.md) document for more details.
 Starting with version 2.3, the previously refactored *TinyB* has been removed completely.
 
 Motivation was lack of detailed Bluetooth support, inclusive increasing diversion with *Direct-BT*.
-Furthermore, work is underway for `BLE slave periphal and GATT server` support and its mapping to *BlueZ D-Bus* is questionable
+Furthermore, work is underway for `BLE slave peripheral and GATT server` support and its mapping to *BlueZ D-Bus* is questionable
 and would be resource intensive.
 
 ## Changes
