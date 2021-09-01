@@ -42,9 +42,6 @@
 
 #include <direct_bt/DirectBT.hpp>
 
-#include <direct_bt/BTDeviceRegistry.hpp>
-#include <direct_bt/BTSecurityRegistry.hpp>
-
 extern "C" {
     #include <unistd.h>
 }

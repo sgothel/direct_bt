@@ -71,18 +71,18 @@ namespace direct_bt {
             }
         };
 
-        void addToWaitForDevices(const std::string& addrOrNameSub);
-        bool isWaitingForAnyDevice();
-        size_t getWaitForDevicesCount();
-        std::string getWaitForDevicesString();
+        void addToWaitForDevices(const std::string& addrOrNameSub) noexcept;
+        bool isWaitingForAnyDevice() noexcept;
+        size_t getWaitForDevicesCount() noexcept;
+        std::string getWaitForDevicesString() noexcept;
         /**
          * Returns the reference of the current list of DeviceQuery, not a copy.
          */
-        jau::darray<DeviceQuery>& getWaitForDevices();
+        jau::darray<DeviceQuery>& getWaitForDevices() noexcept;
         /**
          * Clears internal list
          */
-        void clearWaitForDevices();
+        void clearWaitForDevices() noexcept;
 
         /**
          * Specifies unique device identities,
@@ -126,20 +126,20 @@ namespace direct_bt {
         inline bool operator!=(const DeviceID& lhs, const DeviceID& rhs) noexcept
         { return !(lhs == rhs); }
 
-        void addToProcessedDevices(const BDAddressAndType &a, const std::string& n);
-        bool isDeviceProcessed(const BDAddressAndType & a);
-        size_t getProcessedDeviceCount();
+        void addToProcessedDevices(const BDAddressAndType &a, const std::string& n) noexcept;
+        bool isDeviceProcessed(const BDAddressAndType & a) noexcept;
+        size_t getProcessedDeviceCount() noexcept;
 
-        std::string getProcessedDevicesString();
+        std::string getProcessedDevicesString() noexcept;
 
         /**
          * Returns a copy of the current collection of processed DeviceID.
          */
-        jau::darray<DeviceID> getProcessedDevices();
+        jau::darray<DeviceID> getProcessedDevices() noexcept;
         /**
          * Clears internal list
          */
-        void clearProcessedDevices();
+        void clearProcessedDevices() noexcept;
 
         /**
          * Function for user defined BTDeviceRegistry::DeviceQuery matching criteria and algorithm.
@@ -167,7 +167,7 @@ namespace direct_bt {
          * </p>
          * @see BTDeviceRegistry::isWaitingForDevice()
          */
-        bool isWaitingForDevice(const EUI48 &address, const std::string &name, DeviceQueryMatchFunc m);
+        bool isWaitingForDevice(const EUI48 &address, const std::string &name, DeviceQueryMatchFunc m) noexcept;
 
         /**
          * Returns {@code true} if the given {@code address} and/or {@code name}
@@ -182,7 +182,7 @@ namespace direct_bt {
          * </p>
          * @see BTDeviceRegistry::isWaitingForDevice()
          */
-        bool isWaitingForDevice(const EUI48 &address, const std::string &name) {
+        inline bool isWaitingForDevice(const EUI48 &address, const std::string &name) noexcept {
             return isWaitingForDevice(address, name, [](const EUI48& a, const std::string& n, const DeviceQuery& q)->bool {
                 return q.isEUI48Sub() ? a.contains(q.addressSub) : n.find(q.nameSub) != std::string::npos;
             });
@@ -196,7 +196,7 @@ namespace direct_bt {
          * </p>
          * @see BTDeviceRegistry::areAllDevicesProcessed()
          */
-        bool areAllDevicesProcessed(DeviceQueryMatchFunc m);
+        bool areAllDevicesProcessed(DeviceQueryMatchFunc m) noexcept;
 
         /**
          * Returns {@code true} if all addToWaitForDevices() awaited devices
@@ -211,24 +211,24 @@ namespace direct_bt {
          * </p>
          * @see BTDeviceRegistry::areAllDevicesProcessed()
          */
-        bool areAllDevicesProcessed() {
+        inline bool areAllDevicesProcessed() noexcept {
             return areAllDevicesProcessed( [](const EUI48& a, const std::string& n, const DeviceQuery& q)->bool {
                                             return q.isEUI48Sub() ? a.contains(q.addressSub) : n.find(q.nameSub) != std::string::npos;
                                          });
         }
 
-        void addToProcessingDevices(const BDAddressAndType &a, const std::string& n);
-        bool removeFromProcessingDevices(const BDAddressAndType &a);
-        bool isDeviceProcessing(const BDAddressAndType & a);
-        size_t getProcessingDeviceCount();
+        void addToProcessingDevices(const BDAddressAndType &a, const std::string& n) noexcept;
+        bool removeFromProcessingDevices(const BDAddressAndType &a) noexcept;
+        bool isDeviceProcessing(const BDAddressAndType & a) noexcept;
+        size_t getProcessingDeviceCount() noexcept;
         /**
          * Returns a copy of the current collection of processing DeviceID.
          */
-        jau::darray<DeviceID> getProcessingDevices();
+        jau::darray<DeviceID> getProcessingDevices() noexcept;
         /**
          * Clears internal list
          */
-        void clearProcessingDevices();
+        void clearProcessingDevices() noexcept;
     }
 
 } // namespace direct_bt

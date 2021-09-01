@@ -33,7 +33,7 @@ namespace direct_bt::BTSecurityRegistry {
 
     static jau::darray<Entry> devicesSecDetails;
 
-    Entry* get(const EUI48& addr, const std::string& name, AddressNameEntryMatchFunc m) {
+    Entry* get(const EUI48& addr, const std::string& name, AddressNameEntryMatchFunc m) noexcept {
         auto first = devicesSecDetails.begin();
         auto last = devicesSecDetails.end();
         for (; first != last; ++first) {
@@ -43,7 +43,7 @@ namespace direct_bt::BTSecurityRegistry {
         }
         return nullptr;
     }
-    Entry* get(const EUI48Sub& addrSub, const std::string& name, AddressSubNameEntryMatchFunc m) {
+    Entry* get(const EUI48Sub& addrSub, const std::string& name, AddressSubNameEntryMatchFunc m) noexcept {
         auto first = devicesSecDetails.begin();
         auto last = devicesSecDetails.end();
         for (; first != last; ++first) {
@@ -53,7 +53,7 @@ namespace direct_bt::BTSecurityRegistry {
         }
         return nullptr;
     }
-    Entry* get(const std::string& name, NameEntryMatchFunc m) {
+    Entry* get(const std::string& name, NameEntryMatchFunc m) noexcept {
         auto first = devicesSecDetails.begin();
         auto last = devicesSecDetails.end();
         for (; first != last; ++first) {
@@ -64,11 +64,11 @@ namespace direct_bt::BTSecurityRegistry {
         return nullptr;
     }
 
-    jau::darray<Entry>& getEntries() {
+    jau::darray<Entry>& getEntries() noexcept {
         return devicesSecDetails;
     }
 
-    Entry* getOrCreate(const std::string& addrOrNameSub) {
+    Entry* getOrCreate(const std::string& addrOrNameSub) noexcept {
         EUI48Sub addr1;
         std::string errmsg;
         Entry* sec = nullptr;
@@ -87,10 +87,10 @@ namespace direct_bt::BTSecurityRegistry {
         }
         return sec;
     }
-    void clear() {
+    void clear() noexcept {
         devicesSecDetails.clear();
     }
-    std::string allToString() {
+    std::string allToString() noexcept {
         std::string res;
         int i=0;
         for(auto iter = devicesSecDetails.cbegin(); iter != devicesSecDetails.cend(); ++iter, ++i) {

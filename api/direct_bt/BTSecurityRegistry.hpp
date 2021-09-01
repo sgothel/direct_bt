@@ -125,7 +125,7 @@ namespace direct_bt {
          * Matching criteria and algorithm is defined by the given AddressNameEntryMatchFunc.
          * </p>
          */
-        Entry* get(const EUI48& addr, const std::string& name, AddressNameEntryMatchFunc m);
+        Entry* get(const EUI48& addr, const std::string& name, AddressNameEntryMatchFunc m) noexcept;
 
         /**
          * Returns a matching BTSecurityRegistry::Entry with the given {@code addrSub} and/or {@code name}.
@@ -133,7 +133,7 @@ namespace direct_bt {
          * Matching criteria and algorithm is defined by the given AddressSubNameEntryMatchFunc.
          * </p>
          */
-        Entry* get(const EUI48Sub& addrSub, const std::string& name, AddressSubNameEntryMatchFunc m);
+        Entry* get(const EUI48Sub& addrSub, const std::string& name, AddressSubNameEntryMatchFunc m) noexcept;
 
         /**
          * Returns a matching BTSecurityRegistry::Entry with the given {@code name}.
@@ -141,7 +141,7 @@ namespace direct_bt {
          * Matching criteria and algorithm is defined by the given NameEntryMatchFunc.
          * </p>
          */
-        Entry* get(const std::string& name, NameEntryMatchFunc m);
+        Entry* get(const std::string& name, NameEntryMatchFunc m) noexcept;
 
         /**
          * Returns a matching Entry,
@@ -150,7 +150,7 @@ namespace direct_bt {
          *
          * Otherwise {@code null} is returned.
          */
-        Entry* getStartOf(const EUI48& addr, const std::string& name) {
+        inline Entry* getStartOf(const EUI48& addr, const std::string& name) noexcept {
             return get(addr, name, [](const EUI48& a, const std::string& n, const Entry& e)->bool {
                return ( e.addrSub.length > 0 && 0 == a.indexOf(e.addrSub) ) ||
                       ( e.nameSub.length() > 0 && 0 == n.find(e.nameSub) );
@@ -163,7 +163,7 @@ namespace direct_bt {
          *
          * Otherwise {@code null} is returned.
          */
-        Entry* getStartOf(const EUI48Sub& addrSub, const std::string& name) {
+        inline Entry* getStartOf(const EUI48Sub& addrSub, const std::string& name) noexcept {
             return get(addrSub, name, [](const EUI48Sub& as, const std::string& n, const Entry& e)->bool {
                return ( e.addrSub.length > 0 && 0 == as.indexOf(e.addrSub) ) ||
                       ( e.nameSub.length() > 0 && 0 == n.find(e.nameSub) );
@@ -175,7 +175,7 @@ namespace direct_bt {
          *
          * Otherwise {@code null} is returned.
          */
-        Entry* getStartOf(const std::string& name) {
+        inline Entry* getStartOf(const std::string& name) noexcept {
             return get(name, [](const std::string& n, const Entry& e)->bool {
                return e.nameSub.length() > 0 && 0 == n.find(e.nameSub);
             });
@@ -188,7 +188,7 @@ namespace direct_bt {
          *
          * Otherwise {@code null} is returned.
          */
-        Entry* getEqual(const EUI48Sub& addrSub, const std::string& name) {
+        inline Entry* getEqual(const EUI48Sub& addrSub, const std::string& name) noexcept {
             return get(addrSub, name, [](const EUI48Sub& as, const std::string& n, const Entry& e)->bool {
                return ( e.addrSub.length > 0 && as == e.addrSub ) ||
                       ( e.nameSub.length() > 0 && n == e.nameSub );
@@ -200,7 +200,7 @@ namespace direct_bt {
          *
          * Otherwise {@code null} is returned.
          */
-        Entry* getEqual(const std::string& name) {
+        inline Entry* getEqual(const std::string& name) noexcept {
             return get(name, [](const std::string& n, const Entry& e)->bool {
                return e.nameSub.length() > 0 && n == e.nameSub;
             });
@@ -209,7 +209,7 @@ namespace direct_bt {
         /**
          * Returns the reference of the current list of Entry, not a copy.
          */
-        jau::darray<Entry>& getEntries();
+        jau::darray<Entry>& getEntries() noexcept;
 
         /**
          * Determines whether the given {@code addrOrNameSub} is a EUI48Sub or just a {@code name}
@@ -220,14 +220,14 @@ namespace direct_bt {
          * @param addrOrNameSub either a EUI48Sub or just a name
          * @return new or existing instance
          */
-        Entry* getOrCreate(const std::string& addrOrNameSub);
+        Entry* getOrCreate(const std::string& addrOrNameSub) noexcept;
 
         /**
          * Clears internal list
          */
-        void clear();
+        void clear() noexcept;
 
-        std::string allToString();
+        std::string allToString() noexcept;
 
     } // namespace BTSecurityRegistry
 

@@ -43,7 +43,7 @@ namespace direct_bt::BTDeviceRegistry {
     static std::unordered_set<DeviceID> devicesProcessed;
     static std::recursive_mutex mtx_devicesProcessed;
 
-    void addToWaitForDevices(const std::string& addrOrNameSub) {
+    void addToWaitForDevices(const std::string& addrOrNameSub) noexcept {
         EUI48Sub addr1;
         std::string errmsg;
         if( EUI48Sub::scanEUI48Sub(addrOrNameSub, addr1, errmsg) ) {
@@ -53,13 +53,13 @@ namespace direct_bt::BTDeviceRegistry {
             waitForDevices.emplace_back( addrOrNameSub );
         }
     }
-    bool isWaitingForAnyDevice() {
+    bool isWaitingForAnyDevice() noexcept {
         return !waitForDevices.empty();
     }
-    size_t getWaitForDevicesCount() {
+    size_t getWaitForDevicesCount() noexcept {
         return waitForDevices.size();
     }
-    std::string getWaitForDevicesString() {
+    std::string getWaitForDevicesString() noexcept {
         std::string res;
         jau::for_each(waitForDevices.cbegin(), waitForDevices.cend(), [&res](const DeviceQuery &q) {
             if( res.length() > 0 ) {
@@ -70,26 +70,26 @@ namespace direct_bt::BTDeviceRegistry {
         return res;
     }
 
-    jau::darray<DeviceQuery>& getWaitForDevices() {
+    jau::darray<DeviceQuery>& getWaitForDevices() noexcept {
         return waitForDevices;
     }
-    void clearWaitForDevices() {
+    void clearWaitForDevices() noexcept {
         waitForDevices.clear();
     }
 
-    void addToProcessedDevices(const BDAddressAndType &a, const std::string& n) {
+    void addToProcessedDevices(const BDAddressAndType &a, const std::string& n) noexcept {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         devicesProcessed.emplace_hint(devicesProcessed.end(), a, n);
     }
-    bool isDeviceProcessed(const BDAddressAndType & a) {
+    bool isDeviceProcessed(const BDAddressAndType & a) noexcept {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         return devicesProcessed.end() != devicesProcessed.find( DeviceID(a, "") );
     }
-    size_t getProcessedDeviceCount() {
+    size_t getProcessedDeviceCount() noexcept {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         return devicesProcessed.size();
     }
-    std::string getProcessedDevicesString() {
+    std::string getProcessedDevicesString() noexcept {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         std::string res;
         jau::for_each(devicesProcessed.cbegin(), devicesProcessed.cend(), [&res](const DeviceID &id) {
@@ -100,7 +100,7 @@ namespace direct_bt::BTDeviceRegistry {
         });
         return res;
     }
-    jau::darray<DeviceID> getProcessedDevices() {
+    jau::darray<DeviceID> getProcessedDevices() noexcept {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         // std::unordered_set<DeviceID>::iterator is not suitable for:
         // return jau::darray<DeviceID>(devicesProcessed.size(), devicesProcessed.begin(), devicesProcessed.end());
@@ -112,18 +112,18 @@ namespace direct_bt::BTDeviceRegistry {
         }
         return res;
     }
-    void clearProcessedDevices() {
+    void clearProcessedDevices() noexcept {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         devicesProcessed.clear();
     }
 
-    bool isWaitingForDevice(const EUI48 &address, const std::string &name, DeviceQueryMatchFunc m) {
+    bool isWaitingForDevice(const EUI48 &address, const std::string &name, DeviceQueryMatchFunc m) noexcept {
         return waitForDevices.cend() != jau::find_if(waitForDevices.cbegin(), waitForDevices.cend(), [&](const DeviceQuery & it)->bool {
            return m(address, name, it);
         });
     }
 
-    bool areAllDevicesProcessed(DeviceQueryMatchFunc m) {
+    bool areAllDevicesProcessed(DeviceQueryMatchFunc m) noexcept {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         for (auto it1 = waitForDevices.cbegin(); it1 != waitForDevices.cend(); ++it1) {
             const DeviceQuery& q = *it1;
@@ -142,11 +142,11 @@ namespace direct_bt::BTDeviceRegistry {
         return true;
     }
 
-    void addToProcessingDevices(const BDAddressAndType &a, const std::string& n) {
+    void addToProcessingDevices(const BDAddressAndType &a, const std::string& n) noexcept {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
         devicesInProcessing.emplace_hint(devicesInProcessing.end(), a, n);
     }
-    bool removeFromProcessingDevices(const BDAddressAndType &a) {
+    bool removeFromProcessingDevices(const BDAddressAndType &a) noexcept {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
         auto it = devicesInProcessing.find( DeviceID(a, "") );
         if( devicesInProcessing.end() != it ) {
@@ -155,15 +155,15 @@ namespace direct_bt::BTDeviceRegistry {
         }
         return false;
     }
-    bool isDeviceProcessing(const BDAddressAndType & a) {
+    bool isDeviceProcessing(const BDAddressAndType & a) noexcept {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
         return devicesInProcessing.end() != devicesInProcessing.find( DeviceID(a, "") );
     }
-    size_t getProcessingDeviceCount() {
+    size_t getProcessingDeviceCount() noexcept {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
         return devicesInProcessing.size();
     }
-    jau::darray<DeviceID> getProcessingDevices() {
+    jau::darray<DeviceID> getProcessingDevices() noexcept {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
         // std::unordered_set<DeviceID>::iterator is not suitable for:
         // return jau::darray<DeviceID>(devicesInProcessing.size(), devicesInProcessing.begin(), devicesInProcessing.end());
@@ -175,7 +175,7 @@ namespace direct_bt::BTDeviceRegistry {
         }
         return res;
     }
-    void clearProcessingDevices() {
+    void clearProcessingDevices() noexcept {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
         devicesInProcessing.clear();
     }

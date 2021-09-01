@@ -52,4 +52,7 @@
 
 #include "SMPKeyBin.hpp"
 
+#include "BTDeviceRegistry.hpp"
+#include "BTSecurityRegistry.hpp"
+
 #endif /* DIRECTBT_HPP_ */
