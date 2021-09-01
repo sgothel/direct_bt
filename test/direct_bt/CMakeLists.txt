@@ -5,9 +5,10 @@ include_directories(
 
 # These examples use the standard separate compilation
 set( SOURCES_IDIOMATIC_EXAMPLES
-    test_btaddress01.cpp
-    test_uuid.cpp
     test_attpdu01.cpp
+    test_btaddress01.cpp
+    test_misc_types.cpp
+    test_uuid.cpp
 )
 
 string( REPLACE ".cpp" "" BASENAMES_IDIOMATIC_EXAMPLES "${SOURCES_IDIOMATIC_EXAMPLES}" )

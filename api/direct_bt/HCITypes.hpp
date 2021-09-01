@@ -222,6 +222,21 @@ namespace direct_bt {
     }
     std::string to_string(const HCIStatusCode ec) noexcept;
 
+    class HCIStatusCodeCategory : public std::error_category {
+        public:
+            const char* name() const noexcept override { return "HCIStatusCode"; }
+            std::string message(int condition) const override {
+                return direct_bt::to_string( static_cast<HCIStatusCode>(condition) );
+            }
+            static HCIStatusCodeCategory& get() {
+                static HCIStatusCodeCategory s;
+                return s;
+            }
+    };
+    inline std::error_code make_error_code( HCIStatusCode e ) noexcept {
+      return std::error_code( number(e), HCIStatusCodeCategory::get() );
+    }
+
     enum class HCIConstSizeT : jau::nsize_t {
         /** HCIPacketType::COMMAND header size including HCIPacketType */
         COMMAND_HDR_SIZE  = 1+3,
@@ -1116,5 +1131,11 @@ namespace direct_bt {
     };
 
 } // namespace direct_bt
+
+namespace std
+{
+    template <>
+        struct is_error_code_enum<direct_bt::HCIStatusCode> : true_type {};
+}
 
 #endif /* HCI_TYPES_HPP_ */
