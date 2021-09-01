@@ -224,9 +224,9 @@ namespace direct_bt {
 
     class HCIStatusCodeCategory : public std::error_category {
         public:
-            const char* name() const noexcept override { return "HCIStatusCode"; }
+            const char* name() const noexcept override { return "HCI"; }
             std::string message(int condition) const override {
-                return direct_bt::to_string( static_cast<HCIStatusCode>(condition) );
+                return "HCI::"+to_string( static_cast<HCIStatusCode>(condition) );
             }
             static HCIStatusCodeCategory& get() {
                 static HCIStatusCodeCategory s;
