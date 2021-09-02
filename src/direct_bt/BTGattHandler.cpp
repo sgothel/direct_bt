@@ -984,11 +984,13 @@ std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darra
 }
 
 std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darray<BTGattServiceRef> & primServices) {
-	std::shared_ptr<GattGenericAccessSvc> res = nullptr;
-	for(size_t i=0; i<primServices.size() && nullptr == res; i++) {
-		res = getGenericAccess(primServices.at(i)->characteristicList);
+	for(size_t i=0; i<primServices.size(); i++) {
+	    BTGattServiceRef service = primServices.at(i);
+	    if( _GENERIC_ACCESS == *service->type ) {
+	        return getGenericAccess(primServices.at(i)->characteristicList);
+	    }
 	}
-	return res;
+	return nullptr;
 }
 
 bool BTGattHandler::ping() {
@@ -1094,10 +1096,12 @@ std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(ja
 }
 
 std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(jau::darray<BTGattServiceRef> & primServices) {
-    std::shared_ptr<GattDeviceInformationSvc> res = nullptr;
-    for(size_t i=0; i<primServices.size() && nullptr == res; i++) {
-        res = getDeviceInformation(primServices.at(i)->characteristicList);
+    for(size_t i=0; i<primServices.size(); i++) {
+        BTGattServiceRef service = primServices.at(i);
+        if( _DEVICE_INFORMATION == *service->type ) {
+            return getDeviceInformation(primServices.at(i)->characteristicList);
+        }
     }
-    return res;
+    return nullptr;
 }
 
