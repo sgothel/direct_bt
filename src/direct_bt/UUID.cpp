@@ -54,6 +54,23 @@ std::unique_ptr<const uuid_t> uuid_t::create(TypeSize t, uint8_t const * const b
     }
     throw jau::IllegalArgumentException("Unknown Type "+std::to_string(static_cast<jau::nsize_t>(t)), E_FILE_LINE);
 }
+std::unique_ptr<const uuid_t> uuid_t::create(const std::string& str) {
+    const size_t len = str.length();
+    switch( len ) {
+        case 4: // 16
+            return std::unique_ptr<const uuid_t>(new uuid16_t(str));
+        case 8: // 32
+            return std::unique_ptr<const uuid_t>(new uuid32_t(str));
+        case 36: // 128
+            return std::unique_ptr<const uuid_t>(new uuid128_t(str));
+        default: {
+            std::string msg("UUID string not of length 4, 8 or 36 but ");
+            msg.append(std::to_string(str.length()));
+            msg.append(": "+str);
+            throw jau::IllegalArgumentException(msg, E_FILE_LINE);
+        }
+    }
+}
 
 uuid128_t uuid_t::toUUID128(uuid128_t const & base_uuid, jau::nsize_t const uuid32_le_octet_index) const noexcept {
     switch(type) {
@@ -158,7 +175,48 @@ std::string uuid128_t::toString() const noexcept {
     return str;
 }
 
-uuid128_t::uuid128_t(const std::string str)
+uuid16_t::uuid16_t(const std::string& str)
+: uuid_t(TypeSize::UUID16_SZ), value(0)
+{
+    uint16_t part0;
+
+    if( 4 != str.length() ) {
+        std::string msg("UUID16 string not of length 4 but ");
+        msg.append(std::to_string(str.length()));
+        msg.append(": "+str);
+        throw jau::IllegalArgumentException(msg, E_FILE_LINE);
+    }
+    if ( sscanf(str.c_str(), "%04hx", &part0) != 1 ) {
+        std::string msg("UUID16 string not in format '0000' but "+str);
+        throw jau::IllegalArgumentException(msg, E_FILE_LINE);
+    }
+    // sscanf provided host data type, in which we store the values,
+    // hence no endian conversion
+    value = part0;
+}
+
+uuid32_t::uuid32_t(const std::string& str)
+: uuid_t(TypeSize::UUID32_SZ)
+{
+    uint32_t part0;
+
+    if( 8 != str.length() ) {
+        std::string msg("UUID32 string not of length 8 but ");
+        msg.append(std::to_string(str.length()));
+        msg.append(": "+str);
+        throw jau::IllegalArgumentException(msg, E_FILE_LINE);
+    }
+    // if ( sscanf(str.c_str(), "%08x-%04hx-%04hx-%04hx-%08x%04hx",
+    if ( sscanf(str.c_str(), "%08x", &part0) != 1 ) {
+        std::string msg("UUID32 string not in format '00000000' but "+str);
+        throw jau::IllegalArgumentException(msg, E_FILE_LINE);
+    }
+    // sscanf provided host data type, in which we store the values,
+    // hence no endian conversion
+    value = part0;
+}
+
+uuid128_t::uuid128_t(const std::string& str)
 : uuid_t(TypeSize::UUID128_SZ)
 {
     uint32_t part0, part4;

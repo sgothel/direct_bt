@@ -68,6 +68,7 @@ protected:
 public:
     static TypeSize toTypeSize(const jau::nsize_t size);
     static std::unique_ptr<const uuid_t> create(TypeSize const t, uint8_t const * const buffer, jau::nsize_t const byte_offset, bool const littleEndian);
+    static std::unique_ptr<const uuid_t> create(const std::string& str);
 
     virtual ~uuid_t() noexcept {}
 
@@ -102,6 +103,8 @@ public:
     uuid16_t(uint16_t const v) noexcept
     : uuid_t(TypeSize::UUID16_SZ), value(v) { }
 
+    uuid16_t(const std::string& str);
+
     uuid16_t(uint8_t const * const buffer, jau::nsize_t const byte_offset, bool const littleEndian) noexcept
     : uuid_t(TypeSize::UUID16_SZ), value(jau::get_uint16(buffer, byte_offset, littleEndian)) { }
 
@@ -128,6 +131,8 @@ public:
 
     uuid32_t(uint32_t const v) noexcept
     : uuid_t(TypeSize::UUID32_SZ), value(v) {}
+
+    uuid32_t(const std::string& str);
 
     uuid32_t(uint8_t const * const buffer, jau::nsize_t const byte_offset, bool const littleEndian) noexcept
     : uuid_t(TypeSize::UUID32_SZ), value(jau::get_uint32(buffer, byte_offset, littleEndian)) { }
@@ -158,7 +163,7 @@ public:
     uuid128_t(jau::uint128_t const v) noexcept
     : uuid_t(TypeSize::UUID128_SZ), value(v) {}
 
-    uuid128_t(const std::string str);
+    uuid128_t(const std::string& str);
 
     uuid128_t(uint8_t const * const buffer, jau::nsize_t const byte_offset, bool const littleEndian) noexcept
     : uuid_t(TypeSize::UUID128_SZ), value(jau::get_uint128(buffer, byte_offset, littleEndian)) { }

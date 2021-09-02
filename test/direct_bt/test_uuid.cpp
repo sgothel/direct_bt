@@ -59,4 +59,45 @@ TEST_CASE( "UUID Test 01", "[datatype][uuid]" ) {
         REQUIRE( 0 == memcmp(v01.data(), v02->data(), 2) );
         REQUIRE( v01.toString() == v02->toString() );
     }
+
+
+
+    {
+        const uuid16_t v01("1234");
+        REQUIRE(v01.getTypeSizeInt() == uuid_t::number( uuid_t::TypeSize::UUID16_SZ ));
+        REQUIRE(v01.getTypeSizeInt() == sizeof(v01.value));
+        REQUIRE(0x1234 == v01.value);
+        REQUIRE("1234" == v01.toString());
+    }
+    {
+        const uuid32_t v01("12345678");
+        REQUIRE(v01.getTypeSizeInt() == uuid_t::number( uuid_t::TypeSize::UUID32_SZ ));
+        REQUIRE(v01.getTypeSizeInt() == sizeof(v01.value));
+        REQUIRE(0x12345678 == v01.value);
+        REQUIRE("12345678" == v01.toString());
+    }
+    {
+        const uuid128_t v01("00001234-5678-100A-800B-00805F9B34FB");
+        REQUIRE(v01.getTypeSizeInt() == uuid_t::number( uuid_t::TypeSize::UUID128_SZ) );
+        REQUIRE(v01.getTypeSizeInt() == sizeof(v01.value));
+        REQUIRE("00001234-5678-100a-800b-00805f9b34fb" == v01.toString());
+    }
+
+
+
+    {
+        std::shared_ptr<const uuid_t> v01 = uuid_t::create("1234");
+        REQUIRE(v01->getTypeSizeInt() == uuid_t::number( uuid_t::TypeSize::UUID16_SZ ));
+        REQUIRE("1234" == v01->toString());
+    }
+    {
+        std::shared_ptr<const uuid_t> v01 = uuid_t::create("12345678");
+        REQUIRE(v01->getTypeSizeInt() == uuid_t::number( uuid_t::TypeSize::UUID32_SZ));
+        REQUIRE("12345678" == v01->toString());
+    }
+    {
+        std::shared_ptr<const uuid_t> v01 = uuid_t::create("00001234-5678-100A-800B-00805F9B34FB");
+        REQUIRE(v01->getTypeSizeInt() == uuid_t::number( uuid_t::TypeSize::UUID128_SZ ));
+        REQUIRE("00001234-5678-100a-800b-00805f9b34fb" == v01->toString());
+    }
 }
