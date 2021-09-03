@@ -120,7 +120,7 @@ export LANG=en_US.UTF-8
 runit_root() {
     echo "sudo ... "
     ulimit -c unlimited
-    LD_LIBRARY_PATH=`pwd`/lib sudo $EXE_WRAPPER bin/dbt_scanner10 $*
+    sudo LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/dbt_scanner10 $*
     exit $?
 }
 
