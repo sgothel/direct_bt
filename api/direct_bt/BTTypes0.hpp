@@ -832,7 +832,7 @@ namespace direct_bt {
         int8_t rssi = 127; // The core spec defines 127 as the "not available" value
         int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
         std::shared_ptr<ManufactureSpecificData> msd = nullptr;
-        jau::darray<std::shared_ptr<uuid_t>> services;
+        jau::darray<std::shared_ptr<const uuid_t>> services;
         uint32_t device_class = 0;
         AppearanceCat appearance = AppearanceCat::UNKNOWN;
         POctets hash;
@@ -848,7 +848,6 @@ namespace direct_bt {
         void setShortName(const uint8_t *buffer, int buffer_len) noexcept;
         void setTxPower(int8_t v) noexcept { tx_power = v; set(EIRDataType::TX_POWER); }
         void setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) noexcept;
-        void addService(std::shared_ptr<uuid_t> const &uuid) noexcept;
         void setDeviceClass(uint32_t c) noexcept { device_class= c; set(EIRDataType::DEVICE_CLASS); }
         void setAppearance(AppearanceCat a) noexcept { appearance= a; set(EIRDataType::APPEARANCE); }
         void setHash(const uint8_t * h) noexcept { hash.resize(16); memcpy(hash.get_wptr(), h, 16); set(EIRDataType::HASH); }
@@ -870,6 +869,8 @@ namespace direct_bt {
         void setAddress(EUI48 const &a) noexcept { address = a; set(EIRDataType::BDADDR); }
         void setRSSI(int8_t v) noexcept { rssi = v; set(EIRDataType::RSSI); }
 
+        void addService(const std::shared_ptr<const uuid_t>& uuid) noexcept;
+        void addService(const uuid_t& uuid) noexcept;
         /**
          * Reads a complete Advertising Data (AD) Report
          * and returns the number of AD reports in form of a sharable list of EInfoReport;
@@ -945,7 +946,7 @@ namespace direct_bt {
         int8_t getTxPower() const noexcept { return tx_power; }
 
         std::shared_ptr<ManufactureSpecificData> getManufactureSpecificData() const noexcept { return msd; }
-        jau::darray<std::shared_ptr<uuid_t>> getServices() const noexcept { return services; }
+        jau::darray<std::shared_ptr<const uuid_t>> getServices() const noexcept { return services; }
 
         uint32_t getDeviceClass() const noexcept { return device_class; }
         AppearanceCat getAppearance() const noexcept { return appearance; }

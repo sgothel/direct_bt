@@ -214,10 +214,10 @@ namespace direct_bt {
 
             uuid128_t get_uuid128(const jau::nsize_t i) const {
                 check_range(i, uuid_t::number(uuid_t::TypeSize::UUID128_SZ));
-                return uuid128_t(jau::get_uint128(_data, i, true /* littleEndian */));
+                return direct_bt::get_uuid128(_data, i, true /* littleEndian */);
             }
             inline uuid128_t get_uuid128_nc(const jau::nsize_t i) const noexcept {
-                return uuid128_t(jau::get_uint128(_data, i, true /* littleEndian */));
+                return direct_bt::get_uuid128(_data, i, true /* littleEndian */);
             }
 
             std::unique_ptr<const uuid_t> get_uuid(const jau::nsize_t i, const uuid_t::TypeSize tsize) const {
@@ -374,10 +374,10 @@ namespace direct_bt {
 
             void put_uuid(const jau::nsize_t i, const uuid_t & v) {
                 check_range(i, v.getTypeSizeInt());
-                direct_bt::put_uuid(data(), i, v, true /* littleEndian */);
+                v.put(data(), i, true /* littleEndian */);
             }
             void put_uuid_nc(const jau::nsize_t i, const uuid_t & v) noexcept {
-                direct_bt::put_uuid(data(), i, v, true /* littleEndian */);
+                v.put(data(), i, true /* littleEndian */);
             }
 
             inline uint8_t * get_wptr() noexcept { return data(); }

@@ -91,7 +91,7 @@ std::shared_ptr<BTDevice> BTDevice::getSharedInstance() const noexcept {
     return adapter.getSharedDevice(*this);
 }
 
-bool BTDevice::addAdvService(std::shared_ptr<uuid_t> const &uuid) noexcept
+bool BTDevice::addAdvService(std::shared_ptr<const uuid_t> const &uuid) noexcept
 {
     if( 0 > findAdvService(uuid) ) {
         advServices.push_back(uuid);
@@ -99,21 +99,21 @@ bool BTDevice::addAdvService(std::shared_ptr<uuid_t> const &uuid) noexcept
     }
     return false;
 }
-bool BTDevice::addAdvServices(jau::darray<std::shared_ptr<uuid_t>> const & services) noexcept
+bool BTDevice::addAdvServices(jau::darray<std::shared_ptr<const uuid_t>> const & services) noexcept
 {
     bool res = false;
     for(size_t j=0; j<services.size(); j++) {
-        const std::shared_ptr<uuid_t> uuid = services.at(j);
+        const std::shared_ptr<const uuid_t> uuid = services.at(j);
         res = addAdvService(uuid) || res;
     }
     return res;
 }
 
-int BTDevice::findAdvService(std::shared_ptr<uuid_t> const &uuid) const noexcept
+int BTDevice::findAdvService(std::shared_ptr<const uuid_t> const &uuid) const noexcept
 {
     const size_t size = advServices.size();
     for (size_t i = 0; i < size; i++) {
-        const std::shared_ptr<uuid_t> & e = advServices[i];
+        const std::shared_ptr<const uuid_t> & e = advServices[i];
         if ( nullptr != e && *uuid == *e ) {
             return i;
         }
@@ -133,9 +133,9 @@ std::shared_ptr<ManufactureSpecificData> const BTDevice::getManufactureSpecificD
     return res;
 }
 
-jau::darray<std::shared_ptr<uuid_t>> BTDevice::getAdvertisedServices() const noexcept {
+jau::darray<std::shared_ptr<const uuid_t>> BTDevice::getAdvertisedServices() const noexcept {
     jau::sc_atomic_critical sync(sync_data);
-    jau::darray<std::shared_ptr<uuid_t>> res = advServices;
+    jau::darray<std::shared_ptr<const uuid_t>> res = advServices;
     return res;
 }
 
@@ -152,12 +152,12 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
             ", appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+
             "), "+msdstr+", "+javaObjectToString()+"]");
     if( includeDiscoveredServices ) {
-        jau::darray<std::shared_ptr<uuid_t>> _advServices = getAdvertisedServices();
+        jau::darray<std::shared_ptr<const uuid_t>> _advServices = getAdvertisedServices();
         if( _advServices.size() > 0 ) {
             out.append("\n");
             const size_t size = _advServices.size();
             for (size_t i = 0; i < size; i++) {
-                const std::shared_ptr<uuid_t> & e = _advServices[i];
+                const std::shared_ptr<const uuid_t> & e = _advServices[i];
                 if( 0 < i ) {
                     out.append("\n");
                 }

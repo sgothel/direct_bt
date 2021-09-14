@@ -894,15 +894,19 @@ void EInfoReport::setDeviceID(const uint16_t source_, const uint16_t vendor, con
     set(EIRDataType::DEVICE_ID);
 }
 
-void EInfoReport::addService(std::shared_ptr<uuid_t> const &uuid) noexcept
+void EInfoReport::addService(const std::shared_ptr<const uuid_t>& uuid) noexcept
 {
     auto begin = services.begin();
-    auto it = std::find_if(begin, services.end(), [&](std::shared_ptr<uuid_t> const& p) {
+    auto it = std::find_if(begin, services.end(), [&](std::shared_ptr<const uuid_t> const& p) {
         return *p == *uuid;
     });
     if ( it == std::end(services) ) {
         services.push_back(uuid);
+        set(EIRDataType::SERVICE_UUID);
     }
+}
+void EInfoReport::addService(const uuid_t& uuid) noexcept {
+    addService( uuid.clone() );
 }
 
 std::string EInfoReport::eirDataMaskToString() const noexcept {
@@ -930,7 +934,7 @@ std::string EInfoReport::toString(const bool includeServices) const noexcept {
     if( includeServices && services.size() > 0 ) {
         out.append("\n");
         for(auto it = services.begin(); it != services.end(); it++) {
-            std::shared_ptr<uuid_t> p = *it;
+            std::shared_ptr<const uuid_t> p = *it;
             out.append("  ").append(p->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(p->getTypeSize()))).append(" bytes\n");
         }
     }
@@ -1007,35 +1011,44 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                     setFlags(static_cast<GAPFlags>(*elem_data));
                 }
                 break;
+
             case GAP_T::UUID16_INCOMPLETE:
+                [[fallthrough]];
             case GAP_T::UUID16_COMPLETE:
                 for(int j=0; j<elem_len/2; j++) {
-                    const std::shared_ptr<uuid_t> uuid( std::make_shared<uuid16_t>(elem_data, j*2, true) );
-                    addService(std::move(uuid));
+                    const std::shared_ptr<const uuid_t> uuid( std::make_shared<const uuid16_t>(elem_data, j*2, true) );
+                    addService( uuid );
                 }
                 break;
+
             case GAP_T::UUID32_INCOMPLETE:
+                [[fallthrough]];
             case GAP_T::UUID32_COMPLETE:
                 for(int j=0; j<elem_len/4; j++) {
-                    const std::shared_ptr<uuid_t> uuid( std::make_shared<uuid32_t>(elem_data, j*4, true) );
-                    addService(std::move(uuid));
+                    const std::shared_ptr<const uuid_t> uuid( std::make_shared<const uuid32_t>(elem_data, j*4, true) );
+                    addService( uuid );
                 }
                 break;
+
             case GAP_T::UUID128_INCOMPLETE:
+                [[fallthrough]];
             case GAP_T::UUID128_COMPLETE:
                 for(int j=0; j<elem_len/16; j++) {
-                    const std::shared_ptr<uuid_t> uuid( std::make_shared<uuid128_t>(elem_data, j*16, true) );
-                    addService(std::move(uuid));
+                    const std::shared_ptr<const uuid_t> uuid( std::make_shared<const uuid128_t>(elem_data, j*16, true) );
+                    addService( uuid );
                 }
                 break;
+
             case GAP_T::NAME_LOCAL_SHORT:
                 // INFO: Bluetooth Core Specification V5.2 [Vol. 3, Part C, 8, p 1341]
                 // INFO: A remote name request is required to obtain the full name, if needed.
                 setShortName(elem_data, elem_len);
                 break;
+
             case GAP_T::NAME_LOCAL_COMPLETE:
                 setName(elem_data, elem_len);
                 break;
+
             case GAP_T::TX_POWER_LEVEL:
                 if( 1 <= elem_len ) {
                     setTxPower(*const_uint8_to_const_int8_ptr(elem_data));
@@ -1049,6 +1062,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                                    ( elem_data[2] << 16 ) );
                 }
                 break;
+
             case GAP_T::DEVICE_ID:
                 if( 8 <= elem_len ) {
                     setDeviceID(
@@ -1058,30 +1072,43 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                         data[6] | ( data[7] << 8 )); // version
                 }
                 break;
+
             case GAP_T::SOLICIT_UUID16:
+                [[fallthrough]];
             case GAP_T::SOLICIT_UUID128:
+                [[fallthrough]];
             case GAP_T::SVC_DATA_UUID16:
+                [[fallthrough]];
             case GAP_T::PUB_TRGT_ADDR:
+                [[fallthrough]];
             case GAP_T::RND_TRGT_ADDR:
+                break;
+
             case GAP_T::GAP_APPEARANCE:
                 if( 2 <= elem_len ) {
                     setAppearance(static_cast<AppearanceCat>( jau::get_uint16(elem_data, 0, true /* littleEndian */) ));
                 }
                 break;
+
             case GAP_T::SSP_HASH_C192:
                 if( 16 <= elem_len ) {
                     setHash(elem_data);
                 }
                 break;
+
             case GAP_T::SSP_RANDOMIZER_R192:
                 if( 16 <= elem_len ) {
                     setRandomizer(elem_data);
                 }
                 break;
+
             case GAP_T::SOLICIT_UUID32:
+                [[fallthrough]];
             case GAP_T::SVC_DATA_UUID32:
+                [[fallthrough]];
             case GAP_T::SVC_DATA_UUID128:
                 break;
+
             case GAP_T::MANUFACTURE_SPECIFIC:
                 if( 2 <= elem_len ) {
                     const uint16_t company = jau::get_uint16(elem_data, 0, true /* littleEndian */);
@@ -1089,6 +1116,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                     setManufactureSpecificData(company, data_size > 0 ? elem_data+2 : nullptr, data_size);
                 }
                 break;
+
             default:
                 // FIXME: Use a data blob!!!!
                 WARN_PRINT("%s-Element @ [%d/%d]: Unhandled type 0x%.2X with %d bytes net\n",

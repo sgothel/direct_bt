@@ -44,25 +44,25 @@ uuid_t::TypeSize uuid_t::toTypeSize(const jau::nsize_t size) {
     throw jau::IllegalArgumentException("Given size "+std::to_string(size)+", not matching uuid16_t, uuid32_t or uuid128_t", E_FILE_LINE);
 }
 
-std::unique_ptr<const uuid_t> uuid_t::create(TypeSize t, uint8_t const * const buffer, jau::nsize_t const byte_offset, bool littleEndian) {
+std::unique_ptr<uuid_t> uuid_t::create(TypeSize t, uint8_t const * const buffer, jau::nsize_t const byte_offset, bool littleEndian) {
     if( TypeSize::UUID16_SZ == t ) {
-        return std::unique_ptr<const uuid_t>(new uuid16_t(buffer, byte_offset, littleEndian));
+        return std::unique_ptr<uuid_t>(new uuid16_t(buffer, byte_offset, littleEndian));
     } else if( TypeSize::UUID32_SZ == t ) {
-        return std::unique_ptr<const uuid_t>(new uuid32_t(buffer, byte_offset, littleEndian));
+        return std::unique_ptr<uuid_t>(new uuid32_t(buffer, byte_offset, littleEndian));
     } else if( TypeSize::UUID128_SZ == t ) {
-        return std::unique_ptr<const uuid_t>(new uuid128_t(buffer, byte_offset, littleEndian));
+        return std::unique_ptr<uuid_t>(new uuid128_t(buffer, byte_offset, littleEndian));
     }
     throw jau::IllegalArgumentException("Unknown Type "+std::to_string(static_cast<jau::nsize_t>(t)), E_FILE_LINE);
 }
-std::unique_ptr<const uuid_t> uuid_t::create(const std::string& str) {
+std::unique_ptr<uuid_t> uuid_t::create(const std::string& str) {
     const size_t len = str.length();
     switch( len ) {
         case 4: // 16
-            return std::unique_ptr<const uuid_t>(new uuid16_t(str));
+            return std::unique_ptr<uuid_t>(new uuid16_t(str));
         case 8: // 32
-            return std::unique_ptr<const uuid_t>(new uuid32_t(str));
+            return std::unique_ptr<uuid_t>(new uuid32_t(str));
         case 36: // 128
-            return std::unique_ptr<const uuid_t>(new uuid128_t(str));
+            return std::unique_ptr<uuid_t>(new uuid128_t(str));
         default: {
             std::string msg("UUID string not of length 4, 8 or 36 but ");
             msg.append(std::to_string(str.length()));
@@ -72,20 +72,24 @@ std::unique_ptr<const uuid_t> uuid_t::create(const std::string& str) {
     }
 }
 
-uuid128_t uuid_t::toUUID128(uuid128_t const & base_uuid, jau::nsize_t const uuid32_le_octet_index) const noexcept {
+std::unique_ptr<uuid_t> uuid_t::clone() const noexcept {
     switch(type) {
-        case TypeSize::UUID16_SZ: return uuid128_t(*((uuid16_t*)this), base_uuid, uuid32_le_octet_index);
-        case TypeSize::UUID32_SZ: return uuid128_t(*((uuid32_t*)this), base_uuid, uuid32_le_octet_index);
-        case TypeSize::UUID128_SZ: return uuid128_t(*((uuid128_t*)this));
+        case TypeSize::UUID16_SZ: return std::make_unique<uuid16_t>( *( static_cast<const uuid16_t*>(this) ) );
+        case TypeSize::UUID32_SZ: return std::make_unique<uuid32_t>( *( static_cast<const uuid32_t*>(this) ) );
+        case TypeSize::UUID128_SZ: return std::make_unique<uuid128_t>( *( static_cast<const uuid128_t*>(this) ) );
     }
     ABORT("Unknown Type %d", static_cast<jau::nsize_t>(type));
     abort(); // never reached
 }
 
-std::string uuid_t::toUUID128String(uuid128_t const & base_uuid, jau::nsize_t const le_octet_index) const noexcept {
-    (void)base_uuid;
-    (void)le_octet_index;
-    return "";
+uuid128_t uuid_t::toUUID128(uuid128_t const & base_uuid, jau::nsize_t const uuid32_le_octet_index) const noexcept {
+    switch(type) {
+        case TypeSize::UUID16_SZ:  return uuid128_t( *( static_cast<const uuid16_t*>(this)  ), base_uuid, uuid32_le_octet_index);
+        case TypeSize::UUID32_SZ:  return uuid128_t( *( static_cast<const uuid32_t*>(this)  ), base_uuid, uuid32_le_octet_index);
+        case TypeSize::UUID128_SZ: return uuid128_t( *( static_cast<const uuid128_t*>(this) ) );
+    }
+    ABORT("Unknown Type %d", static_cast<jau::nsize_t>(type));
+    abort(); // never reached
 }
 
 uuid128_t::uuid128_t(uuid16_t const & uuid16, uuid128_t const & base_uuid, jau::nsize_t const uuid16_le_octet_index) noexcept

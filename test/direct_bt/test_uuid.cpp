@@ -27,7 +27,7 @@ TEST_CASE( "UUID Test 01", "[datatype][uuid]" ) {
         REQUIRE(v01.getTypeSizeInt() == sizeof(v01.value.data));
         REQUIRE( 0 == memcmp(uuid128_bytes, v01.data(), 16) );
 
-        put_uuid(buffer, 0, v01, true);
+        v01.put(buffer, 0, true /* littleEndian */);
         std::shared_ptr<const uuid_t> v02 = uuid_t::create(uuid_t::TypeSize::UUID128_SZ, buffer, 0, true);
         REQUIRE(v02->getTypeSizeInt() == 16);
         REQUIRE( 0 == memcmp(v01.data(), v02->data(), 16) );
@@ -40,7 +40,7 @@ TEST_CASE( "UUID Test 01", "[datatype][uuid]" ) {
         REQUIRE(v01.getTypeSizeInt() == sizeof(v01.value));
         REQUIRE(0x12345678 == v01.value);
 
-        put_uuid(buffer, 0, v01, true);
+        v01.put(buffer, 0, true /* littleEndian */);
         std::shared_ptr<const uuid_t> v02 = uuid_t::create(uuid_t::TypeSize::UUID32_SZ, buffer, 0, true);
         REQUIRE(v02->getTypeSizeInt() == 4);
         REQUIRE( 0 == memcmp(v01.data(), v02->data(), 4) );
@@ -53,7 +53,7 @@ TEST_CASE( "UUID Test 01", "[datatype][uuid]" ) {
         REQUIRE(v01.getTypeSizeInt() == sizeof(v01.value));
         REQUIRE(0x1234 == v01.value);
 
-        put_uuid(buffer, 0, v01, true);
+        v01.put(buffer, 0, true /* littleEndian */);
         std::shared_ptr<const uuid_t> v02 = uuid_t::create(uuid_t::TypeSize::UUID16_SZ, buffer, 0, true);
         REQUIRE(v02->getTypeSizeInt() == 2);
         REQUIRE( 0 == memcmp(v01.data(), v02->data(), 2) );
