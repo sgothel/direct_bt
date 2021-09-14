@@ -749,11 +749,11 @@ std::string ManufactureSpecificData::toString() const noexcept {
 
 #define GAPFLAGS_ENUM(X) \
     X(GAPFlags,NONE) \
-    X(GAPFlags,LE_Ltd_Discoverable) \
-    X(GAPFlags,LE_Gen_Discoverable) \
-    X(GAPFlags,BREDR_UNSUPPORTED) \
-    X(GAPFlags,DUAL_LE_BREDR_SameCtrl) \
-    X(GAPFlags,DUAL_LE_BREDR_SameHost) \
+    X(GAPFlags,LE_Ltd_Disc) \
+    X(GAPFlags,LE_Gen_Disc) \
+    X(GAPFlags,BREDR_UNSUP) \
+    X(GAPFlags,Dual_SameCtrl) \
+    X(GAPFlags,Dual_SameHost) \
     X(GAPFlags,RESERVED1) \
     X(GAPFlags,RESERVED2) \
     X(GAPFlags,RESERVED3)
@@ -803,7 +803,8 @@ std::string direct_bt::to_string(const GAPFlags v) noexcept {
     X(EIRDataType,HASH) \
     X(EIRDataType,RANDOMIZER) \
     X(EIRDataType,DEVICE_ID) \
-    X(EIRDataType,SERVICE_UUID)
+    X(EIRDataType,SERVICE_UUID) \
+    X(EIRDataType,ALL)
 
 static std::string _getEIRDataBitStr(const EIRDataType bit) noexcept {
     switch(bit) {
@@ -871,9 +872,17 @@ void EInfoReport::setName(const uint8_t *buffer, int buffer_len) noexcept {
     name = jau::get_string(buffer, buffer_len, 30);
     set(EIRDataType::NAME);
 }
+void EInfoReport::setName(const std::string& name_) noexcept {
+    name = name_;
+    set(EIRDataType::NAME);
+}
 
 void EInfoReport::setShortName(const uint8_t *buffer, int buffer_len) noexcept {
     name_short = jau::get_string(buffer, buffer_len, 30);
+    set(EIRDataType::NAME_SHORT);
+}
+void EInfoReport::setShortName(const std::string& name_short_) noexcept {
+    name_short = name_short_;
     set(EIRDataType::NAME_SHORT);
 }
 
@@ -885,7 +894,10 @@ void EInfoReport::setManufactureSpecificData(uint16_t const company, uint8_t con
     }
     set(EIRDataType::MANUF_DATA);
 }
-
+void EInfoReport::setManufactureSpecificData(const ManufactureSpecificData& msd_) noexcept {
+    msd = std::make_shared<ManufactureSpecificData>(msd_);
+    set(EIRDataType::MANUF_DATA);
+}
 void EInfoReport::setDeviceID(const uint16_t source_, const uint16_t vendor, const uint16_t product, const uint16_t version) noexcept {
     did_source = source_;
     did_vendor = vendor;
@@ -939,6 +951,37 @@ std::string EInfoReport::toString(const bool includeServices) const noexcept {
         }
     }
     return out;
+}
+
+bool EInfoReport::operator==(const EInfoReport& o) const noexcept {
+    if( this == &o ) {
+        return true;
+    }
+    return o.eir_data_mask == eir_data_mask &&
+           o.evt_type == evt_type &&
+           o.ead_type == ead_type &&
+           o.flags == flags &&
+           o.ad_address_type == ad_address_type &&
+           o.address == address &&
+           o.name == name &&
+           o.name_short == name_short &&
+           o.rssi == rssi &&
+           o.tx_power == tx_power &&
+           ( ( nullptr == o.msd && nullptr == msd ) ||
+             ( nullptr != o.msd && nullptr != msd && *o.msd == *msd )
+           ) &&
+           o.device_class == device_class &&
+           o.appearance == appearance &&
+           o.hash == hash &&
+           o.randomizer == randomizer &&
+           o.did_source == did_source &&
+           o.did_vendor == did_vendor &&
+           o.did_product == did_product &&
+           o.did_version == did_version &&
+           o.services.size() == services.size() &&
+           std::equal( o.services.cbegin(), o.services.cend(), services.cbegin(),
+                       [](const std::shared_ptr<const uuid_t>&a, const std::shared_ptr<const uuid_t>&b)
+                       -> bool { return *a == *b; } );
 }
 
 std::string EInfoReport::getDeviceIDModalias() const noexcept {
@@ -1127,6 +1170,140 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
     return count;
 }
 
+#define _WARN_OOB(a) WARN_PRINT("%s: Out of buffer: count %zd + 1 + ad_sz %zd > data_len %zd -> drop %s\n", (a), count, ad_sz, data_length, toString(true).c_str());
+
+jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau::nsize_t const data_length) const noexcept {
+    jau::nsize_t count = 0;
+    uint8_t * data_i = data;
+    const EIRDataType mask = write_mask & eir_data_mask;
+
+    if( isEIRDataTypeSet(mask, EIRDataType::FLAGS) ) {
+        const jau::nsize_t ad_sz = 2;
+        if( ( count + 1 + ad_sz ) > data_length ) {
+            _WARN_OOB("FLAGS");
+            return count;
+        }
+        count    += ad_sz + 1;
+        *data_i++ = ad_sz;
+        *data_i++ = direct_bt::number( GAP_T::FLAGS );
+        *data_i++ = direct_bt::number( getFlags() );
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::NAME) ) {
+        const jau::nsize_t ad_sz = 1 + name.size();
+        if( ( count + 1 + ad_sz ) > data_length ) {
+            _WARN_OOB("NAME");
+            return count;
+        }
+        count    += ad_sz + 1;
+        *data_i++ = ad_sz;
+        *data_i++ = direct_bt::number( GAP_T::NAME_LOCAL_COMPLETE );
+        memcpy(data_i, name.c_str(), ad_sz-1);
+        data_i   += ad_sz-1;
+    } else if( isEIRDataTypeSet(mask, EIRDataType::NAME_SHORT) ) {
+        const jau::nsize_t ad_sz = 1 + name_short.size();
+        if( ( count + 1 + ad_sz ) > data_length ) {
+            _WARN_OOB("NAME_SHORT");
+            return count;
+        }
+        count    += ad_sz + 1;
+        *data_i++ = ad_sz;
+        *data_i++ = direct_bt::number( GAP_T::NAME_LOCAL_SHORT );
+        memcpy(data_i, name_short.c_str(), ad_sz-1);
+        data_i   += ad_sz-1;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::MANUF_DATA) && nullptr != msd ) {
+        const jau::nsize_t msd_data_sz = msd->getData().getSize();
+        const jau::nsize_t ad_sz = 1 + 2 + msd_data_sz;
+        if( ( count + 1 + ad_sz ) > data_length ) {
+            _WARN_OOB("MANUF_DATA");
+            return count;
+        }
+        count    += ad_sz + 1;
+        *data_i++ = ad_sz;
+        *data_i++ = direct_bt::number( GAP_T::MANUFACTURE_SPECIFIC );
+        jau::put_uint16(data_i, 0, msd->getCompany(), true /* littleEndian */);
+        data_i += 2;
+        if( 0 < msd_data_sz ) {
+            memcpy(data_i, msd->getData().get_ptr(), msd_data_sz);
+            data_i +=msd_data_sz;
+        }
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::SERVICE_UUID) ) {
+        jau::darray<std::shared_ptr<const uuid_t>> uuid16s, uuid32s, uuid128s;
+        for(auto it = services.begin(); it != services.end(); it++) {
+            std::shared_ptr<const uuid_t> p = *it;
+            switch( p->getTypeSizeInt() ) {
+                case 2:
+                    uuid16s.push_back(p);
+                    break;
+                case 4:
+                    uuid32s.push_back(p);
+                    break;
+                case 16:
+                    uuid128s.push_back(p);
+                    break;
+                default:
+                    WARN_PRINT("Undefined UUID of size %zd: %s -> drop\n", p->getTypeSizeInt(), p->toString().c_str());
+            }
+        }
+        if( uuid16s.size() > 0 ) {
+            const jau::nsize_t ad_sz = 1 + uuid16s.size() * 2;
+            if( ( count + 1 + ad_sz ) > data_length ) {
+                _WARN_OOB("UUID16");
+                return count;
+            }
+            count    += ad_sz + 1;
+            *data_i++ = ad_sz;
+            *data_i++ = direct_bt::number(GAP_T::UUID16_COMPLETE);
+            for(auto it = uuid16s.begin(); it != uuid16s.end(); it++) {
+                std::shared_ptr<const uuid_t> p = *it;
+                data_i += p->put(data_i, 0, true /* le */);
+            }
+        }
+        if( uuid32s.size() > 0 ) {
+            const jau::nsize_t ad_sz = 1 + uuid32s.size() * 4;
+            if( ( count + 1 + ad_sz ) > data_length ) {
+                _WARN_OOB("UUID32");
+                return count;
+            }
+            count    += ad_sz + 1;
+            *data_i++ = ad_sz;
+            *data_i++ = direct_bt::number(GAP_T::UUID32_COMPLETE);
+            for(auto it = uuid32s.begin(); it != uuid32s.end(); it++) {
+                std::shared_ptr<const uuid_t> p = *it;
+                data_i += p->put(data_i, 0, true /* le */);
+            }
+        }
+        if( uuid128s.size() > 0 ) {
+            const jau::nsize_t ad_sz = 1 + uuid128s.size() * 16;
+            if( ( count + 1 + ad_sz ) > data_length ) {
+                _WARN_OOB("UUID128");
+                return count;
+            }
+            count    += ad_sz + 1;
+            *data_i++ = ad_sz;
+            *data_i++ = direct_bt::number(GAP_T::UUID128_COMPLETE);
+            for(auto it = uuid128s.begin(); it != uuid128s.end(); it++) {
+                std::shared_ptr<const uuid_t> p = *it;
+                data_i += p->put(data_i, 0, true /* le */);
+            }
+        }
+    }
+    // TODO:
+    // if( isEIRDataTypeSet(mask, EIRDataType::DEVICE_CLASS) ) {}
+    // if( isEIRDataTypeSet(mask, EIRDataType::APPEARANCE) ) {}
+    // if( isEIRDataTypeSet(mask, EIRDataType::HASH) ) {}
+    // if( isEIRDataTypeSet(mask, EIRDataType::RANDOMIZER) ) {}
+    // if( isEIRDataTypeSet(mask, EIRDataType::DEVICE_ID) ) {}
+
+    // Mark end of significant part
+    if( ( count + 1 ) <= data_length ) {
+        count    += 1;
+        *data_i++ = 0; // zero length
+    }
+
+    return count;
+}
 // #define AD_DEBUG 1
 
 jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept {

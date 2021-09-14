@@ -5,6 +5,7 @@ include_directories(
 
 # These examples use the standard separate compilation
 set( SOURCES_IDIOMATIC_EXAMPLES
+    test_adeir01.cpp
     test_attpdu01.cpp
     test_btaddress01.cpp
     test_misc_types.cpp

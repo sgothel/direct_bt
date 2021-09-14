@@ -522,6 +522,8 @@ namespace direct_bt {
      */
     enum class GAP_T : uint8_t {
         // Last sync 2020-02-17 with <https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/>
+        NONE                    = 0x00,
+
         /** Flags */
         FLAGS                   = 0x01,
         /** Incomplete List of 16-bit Service Class UUID. (Supplement, Part A, section 1.1)*/
@@ -633,6 +635,7 @@ namespace direct_bt {
         /** Manufacturer id code and specific opaque data */
         MANUFACTURE_SPECIFIC    = 0xFF
     };
+    constexpr uint8_t number(const GAP_T rhs) noexcept { return static_cast<uint8_t>(rhs); }
 
     enum class AppearanceCat : uint16_t {
         UNKNOWN = 0,
@@ -703,19 +706,30 @@ namespace direct_bt {
 
     class ManufactureSpecificData
     {
-    public:
-        uint16_t const company;
-        std::string const companyName;
-        POctets data;
+        private:
+            uint16_t company;
+            std::string companyName;
+            POctets data;
 
-        ManufactureSpecificData(uint16_t const company) noexcept;
-        ManufactureSpecificData(uint16_t const company, uint8_t const * const data, jau::nsize_t const data_len) noexcept;
+        public:
+            ManufactureSpecificData(uint16_t const company) noexcept;
+            ManufactureSpecificData(uint16_t const company, uint8_t const * const data, jau::nsize_t const data_len) noexcept;
 
-        std::string toString() const noexcept;
+            ManufactureSpecificData(const ManufactureSpecificData &o) noexcept = default;
+            ManufactureSpecificData(ManufactureSpecificData &&o) noexcept = default;
+            ManufactureSpecificData& operator=(const ManufactureSpecificData &o) noexcept = default;
+            ManufactureSpecificData& operator=(ManufactureSpecificData &&o) noexcept = default;
+
+            constexpr uint16_t getCompany() const noexcept { return company; }
+            const std::string& getCompanyName() const noexcept { return companyName; }
+
+            const TROOctets& getData() const noexcept { return data; }
+
+            std::string toString() const noexcept;
     };
 
     constexpr bool operator==(const ManufactureSpecificData& lhs, const ManufactureSpecificData& rhs) noexcept
-    { return lhs.company == rhs.company && lhs.data == rhs.data; }
+    { return lhs.getCompany() == rhs.getCompany() && lhs.getData() == rhs.getData(); }
 
     constexpr bool operator!=(const ManufactureSpecificData& lhs, const ManufactureSpecificData& rhs) noexcept
     { return !(lhs == rhs); }
@@ -729,11 +743,11 @@ namespace direct_bt {
      */
     enum class GAPFlags : uint8_t {
         NONE                   = 0,
-        LE_Ltd_Discoverable    = (1 << 0),
-        LE_Gen_Discoverable    = (1 << 1),
-        BREDR_UNSUPPORTED      = (1 << 2),
-        DUAL_LE_BREDR_SameCtrl = (1 << 3),
-        DUAL_LE_BREDR_SameHost = (1 << 4),
+        LE_Ltd_Disc            = (1 << 0),
+        LE_Gen_Disc            = (1 << 1),
+        BREDR_UNSUP            = (1 << 2),
+        Dual_SameCtrl          = (1 << 3),
+        Dual_SameHost          = (1 << 4),
         RESERVED1              = (1 << 5),
         RESERVED2              = (1 << 6),
         RESERVED3              = (1 << 7)
@@ -766,7 +780,8 @@ namespace direct_bt {
         HASH         = (1 << 12),
         RANDOMIZER   = (1 << 13),
         DEVICE_ID    = (1 << 14),
-        SERVICE_UUID = (1 << 30)
+        SERVICE_UUID = (1 << 30),
+        ALL          = 0xffffffff
     };
     constexpr uint32_t number(const EIRDataType rhs) noexcept { return static_cast<uint32_t>(rhs); }
     constexpr EIRDataType operator |(const EIRDataType lhs, const EIRDataType rhs) noexcept {
@@ -843,16 +858,11 @@ namespace direct_bt {
         uint16_t did_version = 0;
 
         void set(EIRDataType bit) noexcept { eir_data_mask = eir_data_mask | bit; }
-        void setFlags(GAPFlags f) noexcept { flags = f; set(EIRDataType::FLAGS); }
+        void setTxPower(int8_t v) noexcept { tx_power = v; set(EIRDataType::TX_POWER); }
+        void setADAddressType(uint8_t adAddressType) noexcept;
         void setName(const uint8_t *buffer, int buffer_len) noexcept;
         void setShortName(const uint8_t *buffer, int buffer_len) noexcept;
-        void setTxPower(int8_t v) noexcept { tx_power = v; set(EIRDataType::TX_POWER); }
         void setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) noexcept;
-        void setDeviceClass(uint32_t c) noexcept { device_class= c; set(EIRDataType::DEVICE_CLASS); }
-        void setAppearance(AppearanceCat a) noexcept { appearance= a; set(EIRDataType::APPEARANCE); }
-        void setHash(const uint8_t * h) noexcept { hash.resize(16); memcpy(hash.get_wptr(), h, 16); set(EIRDataType::HASH); }
-        void setRandomizer(const uint8_t * r) noexcept { randomizer.resize(16); memcpy(randomizer.get_wptr(), r, 16); set(EIRDataType::RANDOMIZER); }
-        void setDeviceID(const uint16_t source, const uint16_t vendor, const uint16_t product, const uint16_t version) noexcept;
 
         int next_data_elem(uint8_t *eir_elem_len, uint8_t *eir_elem_type, uint8_t const **eir_elem_data,
                            uint8_t const * data, int offset, int const size) noexcept;
@@ -864,13 +874,23 @@ namespace direct_bt {
         void setTimestamp(uint64_t ts) noexcept { timestamp = ts; }
         void setEvtType(AD_PDU_Type et) noexcept { evt_type = et; set(EIRDataType::EVT_TYPE); }
         void setExtEvtType(EAD_Event_Type eadt) noexcept { ead_type = eadt; set(EIRDataType::EXT_EVT_TYPE); }
-        void setADAddressType(uint8_t adAddressType) noexcept;
         void setAddressType(BDAddressType at) noexcept;
         void setAddress(EUI48 const &a) noexcept { address = a; set(EIRDataType::BDADDR); }
         void setRSSI(int8_t v) noexcept { rssi = v; set(EIRDataType::RSSI); }
 
+        void setFlags(GAPFlags f) noexcept { flags = f; set(EIRDataType::FLAGS); }
+        void setName(const std::string& name_) noexcept;
+        void setShortName(const std::string& name_short_) noexcept;
+
+        void setManufactureSpecificData(const ManufactureSpecificData& msd_) noexcept;
         void addService(const std::shared_ptr<const uuid_t>& uuid) noexcept;
         void addService(const uuid_t& uuid) noexcept;
+        void setDeviceClass(uint32_t c) noexcept { device_class= c; set(EIRDataType::DEVICE_CLASS); }
+        void setAppearance(AppearanceCat a) noexcept { appearance= a; set(EIRDataType::APPEARANCE); }
+        void setHash(const uint8_t * h) noexcept { hash.resize(16); memcpy(hash.get_wptr(), h, 16); set(EIRDataType::HASH); }
+        void setRandomizer(const uint8_t * r) noexcept { randomizer.resize(16); memcpy(randomizer.get_wptr(), r, 16); set(EIRDataType::RANDOMIZER); }
+        void setDeviceID(const uint16_t source, const uint16_t vendor, const uint16_t product, const uint16_t version) noexcept;
+
         /**
          * Reads a complete Advertising Data (AD) Report
          * and returns the number of AD reports in form of a sharable list of EInfoReport;
@@ -929,6 +949,38 @@ namespace direct_bt {
          */
         int read_data(uint8_t const * data, uint8_t const data_length) noexcept;
 
+        /**
+         * Writes the Extended Inquiry Response (EIR) or (Extended) Advertising Data (EAD or AD) segments
+         * of existing EIRDataType of this instance into the given `data` up to `data_length`.
+         * <p>
+         * Only fields in the given EIRDataType `write_mask` and getEIRDataMask() will be written,
+         * hence `write_mask` allows to select the fields to be written/advertised.
+         * </p>
+         * <p>
+         * Usually only up to 31 bytes are supported to be advertised, i.e. `data_length` may be lower or equal 31.
+         * </p>
+         * <p>
+         * Elements exceeding the `data_length` will be cut off.
+         * </p>
+         * <p>
+         *
+         * References:
+         *
+         * - BT Core Spec v5.2: Vol 3, Part C, 11 ADVERTISING AND SCAN RESPONSE DATA FORMAT
+         * - BT Core Spec v5.2: Vol 3, Part C, 8  EXTENDED INQUIRY RESPONSE DATA FORMAT
+         * - BT Core Spec Supplement v9, Part A: Section 1 + 2 Examples, p25..
+         * - [Assigned Numbers - Generic Access Profile](https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/)
+         *
+         * </p>
+         *
+         * @param write_mask EIRDataType selection mask
+         * @param data destination
+         * @param data_length destination length
+         * @return number of bytes written
+         * @see read_data()
+         */
+        jau::nsize_t write_data(EIRDataType write_mask, uint8_t * data, jau::nsize_t const data_length) const noexcept;
+
         Source getSource() const noexcept { return source; }
         uint64_t getTimestamp() const noexcept { return timestamp; }
         bool isSet(EIRDataType bit) const noexcept { return EIRDataType::NONE != (eir_data_mask & bit); }
@@ -959,6 +1011,11 @@ namespace direct_bt {
         std::string getDeviceIDModalias() const noexcept;
         std::string eirDataMaskToString() const noexcept;
         std::string toString(const bool includeServices=true) const noexcept;
+
+        bool operator==(const EInfoReport& o) const noexcept;
+        bool operator!=(const EInfoReport& o) const noexcept {
+            return !( *this == o );
+        }
     };
     std::string to_string(EInfoReport::Source source) noexcept;
     inline std::string to_string(const EInfoReport& eir, const bool includeServices=true) noexcept { return eir.toString(includeServices); }
