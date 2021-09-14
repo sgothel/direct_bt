@@ -358,8 +358,9 @@ void BTAdapter::printStatusListenerList() noexcept {
     }
 }
 
-std::shared_ptr<NameAndShortName> BTAdapter::setLocalName(const std::string &name, const std::string &short_name) noexcept {
-    return mgmt.setLocalName(dev_id, name, short_name);
+HCIStatusCode BTAdapter::setName(const std::string &name, const std::string &short_name) noexcept {
+    std::shared_ptr<NameAndShortName> res = mgmt.setLocalName(dev_id, name, short_name);
+    return nullptr != res ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
 }
 
 bool BTAdapter::setDiscoverable(bool value) noexcept {
@@ -1176,19 +1177,19 @@ bool BTAdapter::updateAdapterSettings(const AdapterSetting new_settings, const b
 bool BTAdapter::mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept {
     COND_PRINT(debug_event, "BTAdapter:mgmt:LocalNameChanged: %s", e.toString().c_str());
     const MgmtEvtLocalNameChanged &event = *static_cast<const MgmtEvtLocalNameChanged *>(&e);
-    std::string old_name = localName.getName();
-    std::string old_shortName = localName.getShortName();
-    bool nameChanged = old_name != event.getName();
-    bool shortNameChanged = old_shortName != event.getShortName();
+    std::string old_name = getName();
+    std::string old_shortName = getShortName();
+    const bool nameChanged = old_name != event.getName();
+    const bool shortNameChanged = old_shortName != event.getShortName();
     if( nameChanged ) {
-        localName.setName(event.getName());
+        adapterInfo.setName(event.getName());
     }
     if( shortNameChanged ) {
-        localName.setShortName(event.getShortName());
+        adapterInfo.setShortName(event.getShortName());
     }
     COND_PRINT(debug_event, "BTAdapter:mgmt:LocalNameChanged: Local name: %d: '%s' -> '%s'; short_name: %d: '%s' -> '%s'",
-            nameChanged, old_name.c_str(), localName.getName().c_str(),
-            shortNameChanged, old_shortName.c_str(), localName.getShortName().c_str());
+            nameChanged, old_name.c_str(), getName().c_str(),
+            shortNameChanged, old_shortName.c_str(), getShortName().c_str());
     (void)nameChanged;
     (void)shortNameChanged;
     return true;

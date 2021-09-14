@@ -880,26 +880,39 @@ jbyte Java_jau_direct_1bt_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
-jstring Java_jau_direct_1bt_DBTAdapter_getAlias(JNIEnv *env, jobject obj) {
+jstring Java_jau_direct_1bt_DBTAdapter_getNameImpl(JNIEnv *env, jobject obj) {
     try {
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
-        return jau::from_string_to_jstring(env, adapter->getLocalName().getName());
+        return jau::from_string_to_jstring(env, adapter->getName());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
     return nullptr;
 }
 
-void Java_jau_direct_1bt_DBTAdapter_setAlias(JNIEnv *env, jobject obj, jstring jnewalias) {
+jstring Java_jau_direct_1bt_DBTAdapter_getShortNameImpl(JNIEnv *env, jobject obj) {
     try {
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
-        std::string newalias = jau::from_jstring_to_string(env, jnewalias);
-        adapter->setLocalName(newalias, std::string());
+        return jau::from_string_to_jstring(env, adapter->getShortName());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
+    return nullptr;
+}
+
+jbyte Java_jau_direct_1bt_DBTAdapter_setNameImpl(JNIEnv *env, jobject obj, jstring jname, jstring jshort_name) {
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        std::string name = jau::from_jstring_to_string(env, jname);
+        std::string short_name = jau::from_jstring_to_string(env, jshort_name);
+        return (jbyte) number( adapter->setName(name, short_name) );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
 jboolean Java_jau_direct_1bt_DBTAdapter_setDiscoverable(JNIEnv *env, jobject obj, jboolean value) {

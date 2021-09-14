@@ -69,7 +69,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
      * The adapter's initially reported address by the system, which always reflects its public address, i.e. BDAddressType::BDADDR_LE_PUBLIC.
      */
     private final BDAddressAndType addressAndType;
-    private final String name;
+    private String name_cached;
     /**
      * Either the adapter's initially reported public address or a random address setup via HCI before scanning / discovery.
      */
@@ -95,7 +95,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
         super(nativeInstance, compHash(java.util.Arrays.hashCode(byteAddress), 31+byteAddressType));
         this.dev_id = dev_id;
         this.addressAndType = new BDAddressAndType(new EUI48(byteAddress), BDAddressType.get(byteAddressType));
-        this.name = name;
+        this.name_cached = name;
         this.visibleAddressAndType = addressAndType;
         addStatusListener(this.statusListener);
     }
@@ -157,10 +157,37 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     public BDAddressAndType getVisibleAddressAndType() { return visibleAddressAndType; }
 
     @Override
-    public String getName() { return name; }
+    public int getDevID() { return dev_id; }
 
     @Override
-    public int getDevID() { return dev_id; }
+    public final String getName() {
+        if( !isValid() ) {
+            return name_cached;
+        } else {
+            final String v = getNameImpl();
+            name_cached = v;
+            return v;
+        }
+    }
+    private native String getNameImpl();
+
+    @Override
+    public final String getShortName() {
+        if( !isValid() ) {
+            return name_cached;
+        } else {
+            final String v = getShortNameImpl();
+            name_cached = v;
+            return v;
+        }
+    }
+    private native String getShortNameImpl();
+
+    @Override
+    public final HCIStatusCode setName(final String name, final String short_name) {
+        return HCIStatusCode.get( setNameImpl(name, short_name) );
+    }
+    private native byte setNameImpl(final String name, String short_name);
 
     @Override
     public BTType getBluetoothType() { return class_type(); }
@@ -219,7 +246,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     @Override
     public String toString() {
         if( !isValid() ) {
-            return "Adapter" + "\u271D" + "["+addressAndType+", '"+name+"', id "+dev_id+"]";
+            return "Adapter" + "\u271D" + "["+addressAndType+", '"+name_cached+"', id "+dev_id+"]";
         }
         return toStringImpl();
     }
@@ -249,12 +276,6 @@ public class DBTAdapter extends DBTObject implements BTAdapter
         return HCIStatusCode.get( resetImpl() );
     }
     private native byte resetImpl();
-
-    @Override
-    public native String getAlias();
-
-    @Override
-    public native void setAlias(final String value);
 
     @Override
     public native boolean setDiscoverable(boolean value);

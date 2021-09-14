@@ -277,8 +277,6 @@ namespace direct_bt {
             HCIHandler hci;
 
             std::atomic<AdapterSetting> old_settings;
-            std::atomic<BTMode> btMode = BTMode::NONE;
-            NameAndShortName localName;
             std::atomic<ScanType> currentMetaScanType; // = ScanType::NONE
             std::atomic<bool> keep_le_scan_alive; //  = false;
 
@@ -519,31 +517,36 @@ namespace direct_bt {
             BDAddressAndType const & getVisibleAddressAndType() const noexcept { return visibleAddressAndType; }
 
             /**
-             * Returns the system name.
+             * Returns the name.
+             * <p>
+             * Can be changed via setName() while powered-off.
+             * </p>
+             * @see setName()
              */
             std::string getName() const noexcept { return adapterInfo.getName(); }
 
             /**
-             * Returns the short system name.
+             * Returns the short name.
+             * <p>
+             * Can be changed via setName() while powered-off.
+             * </p>
+             * @see setName()
              */
             std::string getShortName() const noexcept { return adapterInfo.getShortName(); }
 
             /**
-             * Returns the local friendly name and short_name. Contains empty strings if not set.
+             * Sets the name and short-name.
              * <p>
-             * The value is being updated via SET_LOCAL_NAME management event reply.
+             * Shall be performed while powered-off.
              * </p>
-             */
-            const NameAndShortName & getLocalName() const noexcept { return localName; }
-
-            /**
-             * Sets the local friendly name.
              * <p>
-             * Returns the immediate SET_LOCAL_NAME reply if successful, otherwise nullptr.
-             * The corresponding management event will be received separately.
+             * The corresponding management event will change the name and short-name.
              * </p>
+             * @see getName()
+             * @see getShortName()
+             * @since 2.4.0
              */
-            std::shared_ptr<NameAndShortName> setLocalName(const std::string &name, const std::string &short_name) noexcept;
+            HCIStatusCode setName(const std::string &name, const std::string &short_name) noexcept;
 
             /**
              * Set the discoverable state of the adapter.

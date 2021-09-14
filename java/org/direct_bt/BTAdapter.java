@@ -243,11 +243,6 @@ public interface BTAdapter extends BTObject
      */
     BDAddressAndType getVisibleAddressAndType();
 
-    /** Returns the system name of this adapter.
-      * @return The system name of this adapter.
-      */
-    public String getName();
-
     /**
      * Returns the BluetoothAdapter's internal temporary device id
      * <p>
@@ -258,14 +253,38 @@ public interface BTAdapter extends BTObject
      */
     public int getDevID();
 
-    /** Returns the friendly name of this adapter.
-      * @return The friendly name of this adapter, or NULL if not set.
-      */
-    public String getAlias();
+    /**
+     * Returns the name.
+     * <p>
+     * Can be changed via {@link #setName(String, String)} while powered-off.
+     * </p>
+     * @see #setName(String, String)
+     */
+    public String getName();
 
-    /** Sets the friendly name of this adapter.
-      */
-    public void setAlias(String value);
+    /**
+     * Returns the short name.
+     * <p>
+     * Can be changed via {@link #setName(String, String)} while powered-off.
+     * </p>
+     * @see #setName(String, String)
+     * @since 2.4.0
+     */
+    public String getShortName();
+
+    /**
+     * Sets the name and short-name.
+     * <p>
+     * Shall be performed while powered-off.
+     * </p>
+     * <p>
+     * The corresponding management event will change the name and short-name.
+     * </p>
+     * @see #getName()
+     * @see #getShortName()
+     * @since 2.4.0
+     */
+    public HCIStatusCode setName(String name, String short_name);
 
     /**
      * Returns whether the adapter is valid, plugged in and powered.
