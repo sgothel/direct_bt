@@ -493,6 +493,17 @@ std::unique_ptr<AdapterInfo> MgmtEvtAdapterInfo::toAdapterInfo() const noexcept 
             getName(), getShortName());
 }
 
+bool MgmtEvtAdapterInfo::updateAdapterInfo(AdapterInfo& info) const noexcept {
+    if( info.dev_id != getDevID() || info.addressAndType.address != getAddress() ) {
+        return false;
+    }
+    info.setSettingMasks(getSupportedSetting(), getCurrentSetting());
+    info.setDevClass(getDevClass());
+    info.setName(getName());
+    info.setShortName(getShortName());
+    return true;
+}
+
 std::string MgmtEvtDeviceDisconnected::getDisconnectReasonString(DisconnectReason mgmtReason) noexcept {
     switch(mgmtReason) {
         case DisconnectReason::TIMEOUT: return "TIMEOUT";

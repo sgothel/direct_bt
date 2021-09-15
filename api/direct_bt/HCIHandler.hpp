@@ -255,6 +255,7 @@ namespace direct_bt {
 
             std::recursive_mutex mtx_sendReply; // for sendWith*Reply, process*Command, ..; Recurses from many..
 
+            LE_Features le_ll_feats;
             /**
              * Cached bitfield of Local Supported Commands, 64 octets
              * <pre>
@@ -276,9 +277,6 @@ namespace direct_bt {
 
             /** Exclusive [le] connection command (status + pending completed) one at a time */
             std::mutex mtx_connect_cmd;
-
-            void zeroSupCommands() noexcept;
-            bool initSupCommands() noexcept;
 
             /**
              * Returns a newly added HCIConnectionRef tracker connection with given parameters, if not existing yet.
@@ -334,18 +332,20 @@ namespace direct_bt {
             std::unique_ptr<const SMPPDUMsg> getSMPPDUMsg(const HCIACLData::l2cap_frame & l2cap, const uint8_t * l2cap_data) const noexcept;
             void hciReaderThreadImpl() noexcept;
 
-            bool sendCommand(HCICommand &req) noexcept;
+            bool sendCommand(HCICommand &req, const bool quiet=false) noexcept;
             std::unique_ptr<HCIEvent> getNextReply(HCICommand &req, int32_t & retryCount, const int32_t replyTimeoutMS) noexcept;
             std::unique_ptr<HCIEvent> getNextCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) noexcept;
 
-            std::unique_ptr<HCIEvent> processCommandStatus(HCICommand &req, HCIStatusCode *status) noexcept;
+            std::unique_ptr<HCIEvent> processCommandStatus(HCICommand &req, HCIStatusCode *status, const bool quiet=false) noexcept;
 
             template<typename hci_cmd_event_struct>
             std::unique_ptr<HCIEvent> processCommandComplete(HCICommand &req,
-                                                             const hci_cmd_event_struct **res, HCIStatusCode *status) noexcept;
+                                                             const hci_cmd_event_struct **res, HCIStatusCode *status,
+                                                             const bool quiet=false) noexcept;
             template<typename hci_cmd_event_struct>
             std::unique_ptr<HCIEvent> receiveCommandComplete(HCICommand &req,
-                                                             const hci_cmd_event_struct **res, HCIStatusCode *status) noexcept;
+                                                             const hci_cmd_event_struct **res, HCIStatusCode *status,
+                                                             const bool quiet=false) noexcept;
 
             template<typename hci_cmd_event_struct>
             const hci_cmd_event_struct* getReplyStruct(HCIEvent& event, HCIEventType evc, HCIStatusCode *status) noexcept;
@@ -355,6 +355,21 @@ namespace direct_bt {
 
         public:
             HCIHandler(const uint16_t dev_id, const BTMode btMode=BTMode::NONE) noexcept;
+
+        private:
+            void zeroSupCommands() noexcept;
+            bool initSupCommands() noexcept;
+
+        public:
+            /**
+             * Reset all internal states, i.e. connection and disconnect lists.
+             * <p>
+             * Must be explicitly called with `powered_on=true` when adapter is powered on!
+             * </p>
+             * @param powered_on indicates whether the adapter is powered on or not
+             * @see initSupCommands()
+             */
+            bool resetAllStates(const bool powered_on) noexcept;
 
             HCIHandler(const HCIHandler&) = delete;
             void operator=(const HCIHandler&) = delete;
@@ -376,14 +391,19 @@ namespace direct_bt {
             }
 
             /** Use extended scanning if HCI_LE_Set_Extended_Scan_Parameters and HCI_LE_Set_Extended_Scan_Enable is supported (Bluetooth 5.0). */
-            bool use_ext_scan() const noexcept{
+            bool use_ext_scan() const noexcept {
                 return 0 != ( sup_commands[37] & ( 1 << 5 ) ) &&
                        0 != ( sup_commands[37] & ( 1 << 6 ) );
             }
 
             /** Use extended connection if HCI_LE_Extended_Create_Connection is supported (Bluetooth 5.0). */
-            bool use_ext_conn() const noexcept{
+            bool use_ext_conn() const noexcept {
                 return 0 != ( sup_commands[37] & ( 1 << 7 ) );
+            }
+
+            /** Use extended advertising if LE_Features::LE_Ext_Adv is set (Bluetooth 5.0). */
+            bool use_ext_adv() const noexcept {
+                return isLEFeaturesBitSet(le_ll_feats, LE_Features::LE_Ext_Adv);
             }
 
             ScanType getCurrentScanType() const noexcept { return currentScanType.load(); }
@@ -432,7 +452,7 @@ namespace direct_bt {
             HCIStatusCode getLocalVersion(HCILocalVersion &version) noexcept;
 
             /**
-             * Request and return LE_Features for the controller.
+             * Return previously fetched LE_Features for the controller via initSupCommands() via resetAllStates()
              * <pre>
              * BT Core Spec v5.2: Vol 6, Part B, 4.6 (LE LL) Feature Support
              *
@@ -440,9 +460,12 @@ namespace direct_bt {
              * </pre>
              * @param res reference for the resulting LE_Features
              * @return HCIStatusCode
+             * @see initSupCommands()
+             * @see resetAllStates()
              */
-            HCIStatusCode le_read_local_features(LE_Features& res) noexcept;
+            LE_Features le_get_local_features() noexcept { return le_ll_feats; }
 
+        private:
             /**
              * Sets LE scanning parameters.
              * <pre>
@@ -473,6 +496,7 @@ namespace direct_bt {
                                             const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
                                             const uint8_t filter_policy=0x00) noexcept;
 
+        public:
             /**
              * Starts or stops LE scanning.
              * <pre>
@@ -621,7 +645,6 @@ namespace direct_bt {
              * Reset all internal states, i.e. connection and disconnect lists.
              * @param powered_on indicates whether the adapter is powered on or not
              */
-            void resetAllStates(const bool powered_on) noexcept;
 
 
             /** MgmtEventCallback handling  */

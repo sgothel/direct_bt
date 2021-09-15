@@ -127,56 +127,61 @@ bool BTAdapter::updateDataFromHCI() noexcept {
     HCILocalVersion version;
     HCIStatusCode status = hci.getLocalVersion(version);
     if( HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("BTAdapter::validateDevInfo: Adapter[%d]: POWERED, LocalVersion failed %s - %s",
+        ERR_PRINT("BTAdapter::updateDataFromHCI: Adapter[%d]: POWERED, LocalVersion failed %s - %s",
                 dev_id, to_string(status).c_str(), adapterInfo.toString().c_str());
         return false;
     }
-    LE_Features le_ll_feats;
-    if( HCIStatusCode::SUCCESS != hci.le_read_local_features(le_ll_feats) ) {
-        ERR_PRINT("BTAdapter::validateDevInfo: Adapter[%d]: le_read_local_features failed %s - %s",
-                dev_id, to_string(status).c_str(), adapterInfo.toString().c_str());
-        return false;
-    }
-    le_features = le_ll_feats;
+    le_features = hci.le_get_local_features();
     hci_uses_ext_scan = hci.use_ext_scan();
     hci_uses_ext_conn = hci.use_ext_conn();
 
     WORDY_PRINT("BTAdapter::updateDataFromHCI: Adapter[%d]: POWERED, %s - %s, hci_ext[scan %d, conn %d], features: %s",
             dev_id, version.toString().c_str(), adapterInfo.toString().c_str(),
             hci_uses_ext_scan, hci_uses_ext_conn,
-            direct_bt::to_string(le_ll_feats).c_str());
+            direct_bt::to_string(le_features).c_str());
     return true;
 }
 
-bool BTAdapter::validateDevInfo() noexcept {
+bool BTAdapter::updateDataFromAdapterInfo() noexcept {
+    BTMode btMode = getBTMode();
+    if( BTMode::NONE == btMode ) {
+        WARN_PRINT("BTAdapter::updateDataFromAdapterInfo: Adapter[%d]: BTMode invalid, BREDR nor LE set: %s", dev_id, adapterInfo.toString().c_str());
+        return false;
+    }
+    hci.setBTMode(btMode);
+    return true;
+}
+
+bool BTAdapter::initialSetup() noexcept {
     bool ok = false;
     currentMetaScanType = ScanType::NONE;
     keep_le_scan_alive = false;
 
     if( !mgmt.isOpen() ) {
-        ERR_PRINT("BTAdapter::validateDevInfo: Adapter[%d]: Manager not open", dev_id);
+        ERR_PRINT("BTAdapter::initialSetup: Adapter[%d]: Manager not open", dev_id);
         goto errout0;
     }
     if( !hci.isOpen() ) {
-        ERR_PRINT("BTAdapter::validateDevInfo: Adapter[%d]: HCIHandler closed", dev_id);
+        ERR_PRINT("BTAdapter::initialSetup: Adapter[%d]: HCIHandler closed", dev_id);
         goto errout0;
     }
 
     old_settings = adapterInfo.getCurrentSettingMask();
 
-    btMode = getBTMode();
-    if( BTMode::NONE == btMode ) {
-        ERR_PRINT("BTAdapter::validateDevInfo: Adapter[%d]: BTMode invalid, BREDR nor LE set: %s", dev_id, adapterInfo.toString().c_str());
+    if( !updateDataFromAdapterInfo() ) {
         return false;
     }
-    hci.setBTMode(btMode);
 
     if( adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
+        if( !hci.resetAllStates(true) ) {
+            return false;
+        }
         if( !updateDataFromHCI() ) {
             return false;
         }
     } else {
-        WORDY_PRINT("BTAdapter::validateDevInfo: Adapter[%d]: Not POWERED: %s", dev_id, adapterInfo.toString().c_str());
+        hci.resetAllStates(false);
+        WORDY_PRINT("BTAdapter::initialSetup: Adapter[%d]: Not POWERED: %s", dev_id, adapterInfo.toString().c_str());
     }
 
     ok = true;
@@ -226,13 +231,14 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const A
   debug_lock(jau::environment::getBooleanProperty("direct_bt.debug.adapter.lock", false)),
   mgmt( mgmt_ ),
   adapterInfo( adapterInfo_ ),
+  adapter_initialized( false ),
   le_features( LE_Features::NONE ),
   visibleAddressAndType( adapterInfo_.addressAndType ),
   dev_id( adapterInfo.dev_id ),
   hci( dev_id )
 {
     (void)cc;
-    valid = validateDevInfo();
+    valid = initialSetup();
 }
 
 BTAdapter::~BTAdapter() noexcept {
@@ -266,6 +272,13 @@ void BTAdapter::close() noexcept {
     statusListenerList.clear();
 
     poweredOff();
+
+    if( adapter_initialized ) {
+        adapter_initialized = false;
+        if( isPowered() ) {
+            setPowered(false);
+        }
+    }
 
     DBG_PRINT("BTAdapter::close: closeHCI: ...");
     hci.close();
@@ -360,8 +373,20 @@ bool BTAdapter::setBondable(bool value) noexcept {
 }
 
 bool BTAdapter::setPowered(bool value) noexcept {
+    if( value ) {
+        adapter_initialized = true;
+    }
     AdapterSetting current_settings { AdapterSetting::NONE } ;
     return mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, value ? 1 : 0, current_settings);
+}
+
+HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
+    adapter_initialized = true;
+    HCIStatusCode status = mgmt.initializeAdapter(adapterInfo, dev_id, btMode);
+    if( HCIStatusCode::SUCCESS != status ) {
+        return status;
+    }
+    return updateAdapterSettings(adapterInfo.getCurrentSettingMask(), false, 0) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
 }
 
 bool BTAdapter::lockConnect(const BTDevice & device, const bool wait, const SMPIOCapability io_cap) noexcept {
@@ -955,7 +980,7 @@ void BTAdapter::removeDevice(BTDevice & device) noexcept {
 
 std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
     std::string random_address_info = adapterInfo.addressAndType != visibleAddressAndType ? " ("+visibleAddressAndType.toString()+")" : "";
-    std::string out("Adapter[BTMode "+to_string(btMode)+", "+adapterInfo.addressAndType.toString()+random_address_info+
+    std::string out("Adapter[BTMode "+to_string(getBTMode())+", "+adapterInfo.addressAndType.toString()+random_address_info+
                     ", '"+getName()+"', id "+std::to_string(dev_id)+
                     ", curSettings"+to_string(adapterInfo.getCurrentSettingMask())+
                     ", scanType[native "+to_string(hci.getCurrentScanType())+", meta "+to_string(currentMetaScanType)+"]"
@@ -1105,12 +1130,11 @@ bool BTAdapter::mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept {
     COND_PRINT(debug_event, "BTAdapter:mgmt:NewSettings: %s", e.toString().c_str());
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(&e);
     const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(event.getSettings()); // probably done by mgmt callback already
-    {
-        const BTMode _btMode = getAdapterSettingsBTMode(new_settings);
-        if( BTMode::NONE != _btMode ) {
-            btMode = _btMode;
-        }
-    }
+
+    return updateAdapterSettings(new_settings, true, event.getTimestamp());
+}
+
+bool BTAdapter::updateAdapterSettings(const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept {
     const AdapterSetting old_settings_ = old_settings;
 
     const AdapterSetting changes = getAdapterSettingMaskDiff(new_settings, old_settings_);
@@ -1123,17 +1147,22 @@ bool BTAdapter::mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept {
 
     old_settings = new_settings;
 
-    COND_PRINT(debug_event, "BTAdapter::mgmt:NewSettings: %s -> %s, changes %s: %s",
+    COND_PRINT(debug_event, "BTAdapter::updateAdapterSettings: %s -> %s, changes %s: %s, sendEvent %d",
             to_string(old_settings_).c_str(),
             to_string(new_settings).c_str(),
-            to_string(changes).c_str(), toString().c_str() );
+            to_string(changes).c_str(), toString().c_str(), sendEvent );
+
+    updateDataFromAdapterInfo();
 
     if( justPoweredOn ) {
         // Adapter has been powered on, ensure all hci states are reset.
-        hci.resetAllStates(true);
-        updateDataFromHCI();
+        if( hci.resetAllStates(true) ) {
+            updateDataFromHCI();
+        }
     }
-    sendAdapterSettingsChanged(old_settings_, new_settings, changes, event.getTimestamp());
+    if( sendEvent ) {
+        sendAdapterSettingsChanged(old_settings_, new_settings, changes, timestamp);
+    }
 
     if( justPoweredOff ) {
         // Adapter has been powered off, close connections and cleanup off-thread.

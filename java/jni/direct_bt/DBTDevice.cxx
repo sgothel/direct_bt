@@ -718,9 +718,9 @@ jobject Java_jau_direct_1bt_DBTDevice_getManufacturerData(JNIEnv *env, jobject o
 
         if( nullptr != mdata ) {
             result = env->NewObject(map_cls, map_ctor, 1);
-            jbyteArray arr = env->NewByteArray(mdata->data.getSize());
-            env->SetByteArrayRegion(arr, 0, mdata->data.getSize(), (const jbyte *)mdata->data.get_ptr());
-            jobject key = env->NewObject(short_cls, short_ctor, mdata->company);
+            jbyteArray arr = env->NewByteArray(mdata->getData().getSize());
+            env->SetByteArrayRegion(arr, 0, mdata->getData().getSize(), (const jbyte *)mdata->getData().get_ptr());
+            jobject key = env->NewObject(short_cls, short_ctor, mdata->getCompany());
             env->CallObjectMethod(result, map_put, key, arr);
 
             env->DeleteLocalRef(arr);

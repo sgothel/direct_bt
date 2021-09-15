@@ -27,21 +27,21 @@ package org.direct_bt;
 /**
  * Bluetooth adapter operating mode
  * <p>
- * See {@link #get(int)} for its native integer mapping.
+ * See {@link #get(byte)} for its native integer mapping.
  * </p>
  * @since 2.0.0
  */
 public enum BTMode {
     /** Zero mode, neither DUAL, BREDR nor LE. Usually an error. */
-    NONE      (0),
+    NONE      ((byte)0),
     /** Dual Bluetooth mode, i.e. BREDR + LE. */
-    DUAL      (1),
+    DUAL      ((byte)1),
     /** BREDR only Bluetooth mode */
-    BREDR     (2),
+    BREDR     ((byte)2),
     /** LE only Bluetooth mode */
-    LE        (3);
+    LE        ((byte)3);
 
-    public final int value;
+    public final byte value;
 
     /**
      * Maps the specified name to a constant of BTMode.
@@ -63,16 +63,16 @@ public enum BTMode {
      * @param value the integer value to be mapped to a constant of this enum type.
      * @return the corresponding constant of this enum type, using {@link #NONE} if not supported.
      */
-    public static BTMode get(final int value) {
+    public static BTMode get(final byte value) {
         switch(value) {
-            case 0x01: return DUAL;
-            case 0x02: return BREDR;
-            case 0x03: return LE;
+            case (byte)0x01: return DUAL;
+            case (byte)0x02: return BREDR;
+            case (byte)0x03: return LE;
             default: return NONE;
         }
     }
 
-    BTMode(final int v) {
+    BTMode(final byte v) {
         value = v;
     }
 }

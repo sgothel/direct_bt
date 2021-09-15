@@ -44,6 +44,7 @@ import org.direct_bt.BTGattChar;
 import org.direct_bt.BTGattDesc;
 import org.direct_bt.BTGattService;
 import org.direct_bt.BTManager;
+import org.direct_bt.BTMode;
 import org.direct_bt.BTObject;
 import org.direct_bt.BTType;
 import org.direct_bt.BTUtils;
@@ -231,6 +232,17 @@ public class DBTAdapter extends DBTObject implements BTAdapter
 
     @Override
     public native boolean setPowered(boolean value);
+
+    @Override
+    public final HCIStatusCode initialize() {
+        return initialize(BTMode.DUAL);
+    }
+
+    @Override
+    public final HCIStatusCode initialize(final BTMode btMode) {
+        return HCIStatusCode.get( initializeImpl(btMode.value) );
+    }
+    private native byte initializeImpl(final byte btModeInt);
 
     @Override
     public final HCIStatusCode reset() {

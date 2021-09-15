@@ -2226,7 +2226,7 @@ namespace direct_bt {
             std::string getShortName() const noexcept { return pdu.get_string_nc(getDataOffset()+20+MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
 
             std::unique_ptr<AdapterInfo> toAdapterInfo() const noexcept;
-
+            bool updateAdapterInfo(AdapterInfo& info) const noexcept;
     };
 
     typedef jau::FunctionDef<bool, const MgmtEvent&> MgmtEventCallback;

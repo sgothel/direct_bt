@@ -69,7 +69,6 @@ namespace direct_bt {
 
         private:
             const bool exploding; // just to trigger exploding properties
-            static BTMode getEnvBTMode();
 
         public:
             /**
@@ -103,17 +102,6 @@ namespace direct_bt {
              * </p>
              */
             const bool DEBUG_EVENT;
-
-            /**
-             * Default {@link BTMode} when initializing new adapter
-             * <p>
-             * Environment variable is 'direct_bt.mgmt.btmode' first, then try 'org.tinyb.btmode'.
-             * </p>
-             * <p>
-             * Default is BTMode::DUAL, if non of the above environment variable is set.
-             * </p>
-             */
-            const BTMode DEFAULT_BTMODE;
 
         private:
             /** Maximum number of packets to wait for until matching a sequential command. Won't block as timeout will limit. */
@@ -230,7 +218,6 @@ namespace direct_bt {
             jau::darray<std::shared_ptr<WhitelistElem>> whitelist;
 
             const MgmtEnv & env;
-            const BTMode defaultBTMode;
 
             POctets rbuffer;
             HCIComm comm;
@@ -277,16 +264,13 @@ namespace direct_bt {
 
             /**
              * Instantiate singleton.
-             * @param btMode default {@link BTMode} when initializing new adapter. If BTMode::NONE given, MgmtEnv::DEFAULT_BTMODE is being used.
              */
-            BTManager(const BTMode defaultBTMode) noexcept;
+            BTManager() noexcept;
 
             BTManager(const BTManager&) = delete;
             void operator=(const BTManager&) = delete;
 
-            void setAdapterMode(const uint16_t dev_id, const uint8_t ssp, const uint8_t bredr, const uint8_t le) noexcept;
-            std::unique_ptr<AdapterInfo> initAdapter(const uint16_t dev_id, const BTMode btMode) noexcept;
-            void shutdownAdapter(BTAdapter& adapter) noexcept;
+            std::unique_ptr<AdapterInfo> readAdapterInfo(const uint16_t dev_id) noexcept;
 
             void processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept;
             void processAdapterRemoved(std::unique_ptr<MgmtEvent> e) noexcept;
@@ -314,10 +298,9 @@ namespace direct_bt {
              * <p>
              * First call will open and initialize the bluetooth kernel.
              * </p>
-             * @param btMode default {@link BTMode} when initializing new adapter. If BTMode::NONE given (default), MgmtEnv::DEFAULT_BTMODE is being used.
              * @return singleton instance.
              */
-            static BTManager& get(const BTMode defaultBTMode=BTMode::NONE) {
+            static BTManager& get() {
                 /**
                  * Thread safe starting with C++11 6.7:
                  *
@@ -328,7 +311,7 @@ namespace direct_bt {
                  *
                  * Avoiding non-working double checked locking.
                  */
-                static BTManager s(defaultBTMode);
+                static BTManager s;
                 return s;
             }
             ~BTManager() noexcept { close(); }
@@ -342,16 +325,13 @@ namespace direct_bt {
                 return std::string(JAVA_DBT_PACKAGE "DBTManager");
             }
 
-            /** Returns the default {@link BTMode}, adapters are tried to be initialized. */
-            BTMode getDefaultBTMode() noexcept { return defaultBTMode; }
-
             /** Returns true if this mgmt instance is open and hence valid, otherwise false */
             bool isOpen() const noexcept {
                 return comm.isOpen();
             }
 
             std::string toString() const noexcept override {
-                return "MgmtHandler[BTMode "+to_string(defaultBTMode)+", "+std::to_string(adapters.size())+" adapter, "+javaObjectToString()+"]";
+                return "MgmtHandler["+std::to_string(adapters.size())+" adapter, "+javaObjectToString()+"]";
             }
 
             /** retrieve information gathered at startup */
@@ -385,6 +365,21 @@ namespace direct_bt {
 
             bool setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, const uint8_t mode, AdapterSetting& current_settings) noexcept;
             MgmtStatus setDiscoverable(const uint16_t dev_id, const uint8_t state, const uint16_t timeout, AdapterSetting& current_settings) noexcept;
+
+            /**
+             * Initialize the adapter with default values, including power-on.
+             * <p>
+             * Method shall be issued on the desired adapter found via ChangedAdapterSetFunc.
+             * </p>
+             * <p>
+             * While initialization, the adapter is first powered-off, setup and then powered-on.
+             * </p>
+             * @param dev_id the adapter's device id
+             * @param btMode the desired adapter's BTMode, defaults to BTMode::DUAL
+             * @param adapterInfo reference for the AdapterInfo, updated to reflect the new initialized values.
+             * @return HCIStatusCode::SUCCESS or an error state
+             */
+            HCIStatusCode initializeAdapter(AdapterInfo& adapterInfo, const uint16_t dev_id, const BTMode btMode=BTMode::DUAL) noexcept;
 
             /** Start discovery on given adapter dev_id with a ScanType matching the given BTMode. Returns set ScanType. */
             ScanType startDiscovery(const uint16_t dev_id, const BTMode btMode) noexcept;

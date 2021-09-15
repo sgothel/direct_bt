@@ -254,6 +254,7 @@ namespace direct_bt {
             const bool debug_event, debug_lock;
             BTManager& mgmt;
             AdapterInfo adapterInfo;
+            jau::sc_atomic_bool adapter_initialized;
             LE_Features le_features;
             bool hci_uses_ext_scan;
             bool hci_uses_ext_conn;
@@ -302,7 +303,8 @@ namespace direct_bt {
             mutable jau::sc_atomic_bool sync_data;
 
             bool updateDataFromHCI() noexcept;
-            bool validateDevInfo() noexcept;
+            bool updateDataFromAdapterInfo() noexcept;
+            bool initialSetup() noexcept;
 
             static std::shared_ptr<BTDevice> findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
             static std::shared_ptr<BTDevice> findDevice(device_list_t & devices, BTDevice const & device) noexcept;
@@ -359,6 +361,7 @@ namespace direct_bt {
             void removeSharedDevice(const BTDevice & device) noexcept;
 
             bool mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept;
+            bool updateAdapterSettings(const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept;
             bool mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept;
@@ -416,8 +419,14 @@ namespace direct_bt {
              * Closes this instance, usually being called by destructor or when this adapter is being removed
              * as recognized and handled by BTManager.
              * <p>
+             * In case initialize() or setPowered(true) has been called, i.e. this adapter has been powered-on by the user,
+             * it will be powered-off.
+             * </p>
+             * <p>
              * Renders this adapter's BTAdapter#isValid() state to false.
              * </p>
+             * @see initialize()
+             * @see setPowered()
              */
             void close() noexcept;
 
@@ -548,8 +557,34 @@ namespace direct_bt {
 
             /**
              * Set the power state of the adapter.
+             * <p>
+             * Calling the method to power-on this adapter will allow close() to power-off the adapter.
+             * </p>
+             * @param value true will power on this adapter, otherwise this adapter will be powered-off.
+             * @return true for success
+             * @see close()
+             * @see initialize()
              */
             bool setPowered(bool value) noexcept;
+
+            /**
+             * Initialize the adapter with default values, including power-on.
+             * <p>
+             * Method shall be issued on the desired adapter found via ChangedAdapterSetFunc.
+             * </p>
+             * <p>
+             * While initialization, the adapter is first powered-off, setup and then powered-on.
+             * </p>
+             * <p>
+             * Calling the method will allow close() to power-off the adapter.
+             * </p>
+             * @param btMode the desired adapter's BTMode, defaults to BTMode::DUAL
+             * @return HCIStatusCode::SUCCESS or an error state
+             * @see close()
+             * @see setPowered()
+             * @since 2.4.0
+             */
+            HCIStatusCode initialize(const BTMode btMode=BTMode::DUAL) noexcept;
 
             /**
              * Reset the adapter.

@@ -109,12 +109,11 @@ static void _addMgmtCBOnce(JNIEnv *env, BTManager & mgmt, JNIGlobalRef jmgmtRef,
     }
 }
 
-void Java_jau_direct_1bt_DBTManager_initImpl(JNIEnv *env, jobject obj, jboolean unifyUUID128Bit, jint jbtMode)
+void Java_jau_direct_1bt_DBTManager_initImpl(JNIEnv *env, jobject obj, jboolean unifyUUID128Bit)
 {
     directBTJNISettings.setUnifyUUID128Bit(unifyUUID128Bit);
     try {
-        BTMode btMode = static_cast<BTMode>(jbtMode);
-        BTManager *manager = &BTManager::get(btMode); // special: static singleton
+        BTManager *manager = &BTManager::get(); // special: static singleton
         setInstance<BTManager>(env, obj, manager);
         java_exception_check_and_throw(env, E_FILE_LINE);
         manager->setJavaObject( std::shared_ptr<JavaAnon>( new JavaGlobalObj(obj, nullptr) ) );

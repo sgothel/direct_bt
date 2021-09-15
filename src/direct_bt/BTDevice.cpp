@@ -150,7 +150,8 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
             ", auto "+to_string(pairing_data.ioCap_auto)+", pairing "+to_string(pairing_data.mode)+", state "+to_string(pairing_data.state)+"]], rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+
             ", appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+
-            "), "+msdstr+", "+javaObjectToString()+"]");
+            "), gap "+direct_bt::to_string(gap_flags)+
+            ", "+msdstr+", "+javaObjectToString()+"]");
     if( includeDiscoveredServices ) {
         jau::darray<std::shared_ptr<const uuid_t>> _advServices = getAdvertisedServices();
         if( _advServices.size() > 0 ) {
@@ -185,6 +186,9 @@ EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
             WARN_PRINT("BTDevice::update:: BDADDR_TYPE update not supported: %s for %s",
                     data.toString().c_str(), this->toString().c_str());
         }
+    }
+    if( data.isSet(EIRDataType::FLAGS) ) {
+        gap_flags = data.getFlags();
     }
     if( data.isSet(EIRDataType::NAME) ) {
         if( 0 == name.length() || data.getName().length() > name.length() ) {

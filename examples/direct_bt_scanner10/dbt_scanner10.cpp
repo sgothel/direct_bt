@@ -105,6 +105,9 @@ const static std::string KEY_PATH = "keys";
 
 static uint64_t timestamp_t0;
 
+static EUI48 useAdapter = EUI48::ALL_DEVICE;
+static BTMode btMode = BTMode::DUAL;
+
 static int RESET_ADAPTER_EACH_CONN = 0;
 static std::atomic<int> deviceReadyCount = 0;
 
@@ -635,12 +638,29 @@ static const uint16_t le_scan_window = 24; // default value
 static const uint8_t filter_policy = 0; // default value
 
 static bool startDiscovery(BTAdapter *a, std::string msg) {
+    if( useAdapter != EUI48::ALL_DEVICE && useAdapter != a->getAddressAndType().address ) {
+        fprintf_td(stderr, "****** Start discovery (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
+        return false;
+    }
     HCIStatusCode status = a->startDiscovery( true, le_scan_active, le_scan_interval, le_scan_window, filter_policy );
-    fprintf_td(stderr, "****** Start discovery (%s) result: %s\n", msg.c_str(), to_string(status).c_str());
+    fprintf_td(stderr, "****** Start discovery (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
     return HCIStatusCode::SUCCESS == status;
 }
 
 static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
+    if( useAdapter != EUI48::ALL_DEVICE && useAdapter != adapter->getAddressAndType().address ) {
+        fprintf_td(stderr, "initAdapter: Adapter not selected: %s\n", adapter->toString().c_str());
+        return false;
+    }
+    // Initialize with defaults and power-on
+    {
+        HCIStatusCode status = adapter->initialize( btMode );
+        if( HCIStatusCode::SUCCESS != status ) {
+            fprintf_td(stderr, "initAdapter: Adapter initialization failed: %s: %s\n",
+                    to_string(status).c_str(), adapter->toString().c_str());
+            return false;
+        }
+    }
     // Even if adapter is not yet powered, listen to it and act when it gets powered-on
     adapter->addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
     // Flush discovered devices after registering our status listener.
@@ -648,17 +668,17 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     adapter->removeDiscoveredDevices();
 
     if( !adapter->isPowered() ) { // should have been covered above
-        fprintf_td(stderr, "Adapter not powered (2): %s\n", adapter->toString().c_str());
+        fprintf_td(stderr, "initAdapter: Adapter not powered (2): %s\n", adapter->toString().c_str());
         return false;
     }
 
     if( USE_WHITELIST ) {
         for (auto it = WHITELIST.begin(); it != WHITELIST.end(); ++it) {
             bool res = adapter->addDeviceToWhitelist(*it, HCIWhitelistConnectType::HCI_AUTO_CONN_ALWAYS);
-            fprintf_td(stderr, "Added to WHITELIST: res %d, address %s\n", res, it->toString().c_str());
+            fprintf_td(stderr, "initAdapter: Added to WHITELIST: res %d, address %s\n", res, it->toString().c_str());
         }
     } else {
-        if( !startDiscovery(adapter.get(), "kick-off") ) {
+        if( !startDiscovery(adapter.get(), "initAdapter") ) {
             return false;
         }
     }
@@ -729,7 +749,6 @@ void test() {
 
 int main(int argc, char *argv[])
 {
-    BTMode btMode = BTMode::DUAL;
     bool waitForEnter=false;
 
     for(int i=1; i<argc; i++) {
@@ -745,11 +764,6 @@ int main(int argc, char *argv[])
             setenv("direct_bt.hci", argv[++i], 1 /* overwrite */);
         } else if( !strcmp("-dbt_mgmt", argv[i]) && argc > (i+1) ) {
             setenv("direct_bt.mgmt", argv[++i], 1 /* overwrite */);
-        } else if( !strcmp("-btmode", argv[i]) && argc > (i+1) ) {
-            btMode = to_BTMode(argv[++i]);
-            if( BTMode::NONE != btMode ) {
-                setenv("direct_bt.mgmt.btmode", to_string(btMode).c_str(), 1 /* overwrite */);
-            }
         } else if( !strcmp("-wait", argv[i]) ) {
             waitForEnter = true;
         } else if( !strcmp("-show_update_events", argv[i]) ) {
@@ -758,6 +772,10 @@ int main(int argc, char *argv[])
             QUIET = true;
         } else if( !strcmp("-scanPassive", argv[i]) ) {
             le_scan_active = false;
+        } else if( !strcmp("-btmode", argv[i]) && argc > (i+1) ) {
+            btMode = to_BTMode(argv[++i]);
+        } else if( !strcmp("-adapter", argv[i]) && argc > (i+1) ) {
+            useAdapter = EUI48( std::string(argv[++i]) );
         } else if( !strcmp("-dev", argv[i]) && argc > (i+1) ) {
             std::string addrOrNameSub = std::string(argv[++i]);
             BTDeviceRegistry::addToWaitForDevices( addrOrNameSub );
@@ -811,6 +829,7 @@ int main(int argc, char *argv[])
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "
                     "[-scanPassive]"
                     "[-resetEachCon connectionCount] "
+                    "[-adapter <adapter_address>] "
                     "(-dev <device_[address|name]_sub>)* (-wl <device_address>)* "
                     "(-seclevel <device_[address|name]_sub> <int_sec_level>)* "
                     "(-iocap <device_[address|name]_sub> <int_iocap>)* "
@@ -834,6 +853,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
     fprintf(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
     fprintf(stderr, "QUIET %d\n", QUIET);
+    fprintf(stderr, "adapter %s\n", useAdapter.toString().c_str());
     fprintf(stderr, "btmode %s\n", to_string(btMode).c_str());
     fprintf(stderr, "scanActive %s\n", to_string(le_scan_active).c_str());
     fprintf(stderr, "characteristic-id: %s\n", charIdentifier.c_str());

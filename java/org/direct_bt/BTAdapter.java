@@ -309,10 +309,57 @@ public interface BTAdapter extends BTObject
 
     /**
      * Sets the power state the adapter.
+     * <p>
+     * Calling the method to power-on this adapter will allow close() to power-off the adapter.
+     * </p>
      * @apiNote return value boolean since 2.0.0
+     * @see #close()
+     * @see #initialize(BTMode)
      * @since 2.0.0
      */
     public boolean setPowered(boolean value);
+
+    /**
+     * Initialize the adapter with default values, including power-on.
+     * <p>
+     * Method shall be issued on the desired adapter found via {@link BTManager.ChangedAdapterSetListener}.
+     * </p>
+     * <p>
+     * While initialization, the adapter is first powered-off, setup and then powered-on.
+     * </p>
+     * <p>
+     * Calling the method will allow close() to power-off the adapter.
+     * </p>
+     * <p>
+     * This override uses {@link BTMode#DUAL}
+     * </p>
+     * @return {@link HCIStatusCode#SUCCESS} or an error state
+     * @see #initialize(BTMode)
+     * @see #close()
+     * @see #setPowered(boolean)
+     * @since 2.4.0
+     */
+    public HCIStatusCode initialize();
+
+    /**
+     * Initialize the adapter with default values, including power-on.
+     * <p>
+     * Method shall be issued on the desired adapter found via {@link BTManager.ChangedAdapterSetListener}.
+     * </p>
+     * <p>
+     * While initialization, the adapter is first powered-off, setup and then powered-on.
+     * </p>
+     * <p>
+     * Calling the method will allow close() to power-off the adapter.
+     * </p>
+     * @param btMode the desired adapter's {@link BTMode}, default shall be {@link BTMode#DUAL}
+     * @return {@link HCIStatusCode#SUCCESS} or an error state
+     * @see #initialize()
+     * @see #close()
+     * @see #setPowered(boolean)
+     * @since 2.4.0
+     */
+    public HCIStatusCode initialize(final BTMode btMode);
 
     /**
      * Reset the adapter.

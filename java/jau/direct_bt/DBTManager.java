@@ -370,11 +370,11 @@ public class DBTManager implements BTManager
         }
     }
 
-    private native void initImpl(final boolean unifyUUID128Bit, final int btMode) throws BTException;
+    private native void initImpl(final boolean unifyUUID128Bit) throws BTException;
     private native void deleteImpl(long nativeInstance);
     private DBTManager()
     {
-        initImpl(unifyUUID128Bit, BTFactory.DEFAULT_BTMODE.value);
+        initImpl(unifyUUID128Bit);
         try {
             adapters.addAll(getAdapterListImpl());
         } catch (final BTException be) {

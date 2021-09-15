@@ -147,15 +147,6 @@ public class BTFactory {
     public static final boolean DEBUG;
 
     /**
-     * Default {@link BTMode} when initializing new adapter
-     * <p>
-     * System property {@code org.direct_bt.btmode}, string, default {@code DUAL} {@link BTMode#DUAL}.
-     * </p>
-     * @since 2.0.0
-     */
-    public static final BTMode DEFAULT_BTMODE;
-
-    /**
      * True if jaulib {@link org.jau.sys.PlatformProps} has been detected.
      */
     public static final boolean JAULIB_AVAILABLE;
@@ -176,16 +167,6 @@ public class BTFactory {
         } else  {
             final String v = System.getProperty("org.direct_bt.verbose", "false");
             VERBOSE = Boolean.valueOf(v);
-        }
-        {
-            final String v = System.getProperty("org.direct_bt.btmode", "DUAL");
-            BTMode btMode = BTMode.DUAL;
-            try {
-                btMode = BTMode.get(v);
-            } catch (final IllegalArgumentException ex) {
-                System.err.println("Invalid BTMode '"+v+"': "+ex.getMessage());
-            }
-            DEFAULT_BTMODE = btMode;
         }
         implIDs.add(DirectBTImplementationID);
 

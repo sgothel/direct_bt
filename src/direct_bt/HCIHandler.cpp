@@ -165,17 +165,6 @@ HCIHandler::HCIConnectionRef HCIHandler::removeHCIConnection(jau::darray<HCIConn
     return nullptr;
 }
 
-void HCIHandler::resetAllStates(const bool powered_on) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
-    connectionList.clear();
-    disconnectCmdList.clear();
-    currentScanType = ScanType::NONE;
-    zeroSupCommands();
-    if( powered_on ) {
-        initSupCommands();
-    }
-}
-
 MgmtEvent::Opcode HCIHandler::translate(HCIEventType evt, HCIMetaEventType met) noexcept {
     if( HCIEventType::LE_META == evt ) {
         switch( met ) {
@@ -512,12 +501,14 @@ void HCIHandler::sendMgmtEvent(const MgmtEvent& event) noexcept {
     (void)invokeCount;
 }
 
-bool HCIHandler::sendCommand(HCICommand &req) noexcept {
+bool HCIHandler::sendCommand(HCICommand &req, const bool quiet) noexcept {
     COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO SENT %s", req.toString().c_str());
 
     TROOctets & pdu = req.getPDU();
     if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
-        ERR_PRINT("HCIHandler::sendCommand: HCIComm write error, req %s - %s", req.toString().c_str(), toString().c_str());
+        if( !quiet || jau::environment::get().verbose ) {
+            ERR_PRINT("HCIHandler::sendCommand: HCIComm write error, req %s - %s", req.toString().c_str(), toString().c_str());
+        }
         return false;
     }
     return true;
@@ -722,9 +713,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
 #endif
         filter_put_opcbit(mask);
     }
-
-    sup_commands_set = false;
-    initSupCommands(); // OK to fail
+    zeroSupCommands();
 
     PERF_TS_TD("HCIHandler::ctor.ok");
     WORDY_PRINT("HCIHandler.ctor: End OK - %s", toString().c_str());
@@ -740,6 +729,7 @@ fail:
 void HCIHandler::zeroSupCommands() noexcept {
     bzero(sup_commands, sizeof(sup_commands));
     sup_commands_set = false;
+    le_ll_feats = LE_Features::NONE;
 }
 bool HCIHandler::initSupCommands() noexcept {
     // We avoid using a lock or an atomic-switch as we rely on sensible calls.
@@ -747,10 +737,25 @@ bool HCIHandler::initSupCommands() noexcept {
         zeroSupCommands();
         return false;
     }
+    HCIStatusCode status;
+
+    le_ll_feats = LE_Features::NONE;
+    {
+        HCICommand req0(HCIOpcode::LE_READ_LOCAL_FEATURES, 0);
+        const hci_rp_le_read_local_features * ev_lf;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_lf, &status, true /* quiet */);
+        if( nullptr == ev || nullptr == ev_lf || HCIStatusCode::SUCCESS != status ) {
+            DBG_PRINT("HCIHandler::le_read_local_features: LE_READ_LOCAL_FEATURES: 0x%x (%s) - %s",
+                    number(status), to_string(status).c_str(), toString().c_str());
+            zeroSupCommands();
+            return false;
+        }
+        le_ll_feats = static_cast<LE_Features>( jau::get_uint64(ev_lf->features, 0, true /* littleEndian */) );
+    }
+
     HCICommand req0(HCIOpcode::READ_LOCAL_COMMANDS, 0);
     const hci_rp_read_local_commands * ev_cmds;
-    HCIStatusCode status;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_cmds, &status);
+    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_cmds, &status, true /* quiet */);
     if( nullptr == ev || nullptr == ev_cmds || HCIStatusCode::SUCCESS != status ) {
         DBG_PRINT("HCIHandler::ctor: READ_LOCAL_COMMANDS: 0x%x (%s) - %s",
                 number(status), to_string(status).c_str(), toString().c_str());
@@ -759,6 +764,20 @@ bool HCIHandler::initSupCommands() noexcept {
     } else {
         memcpy(sup_commands, ev_cmds->commands, sizeof(sup_commands));
         sup_commands_set = true;
+        return true;
+    }
+}
+
+bool HCIHandler::resetAllStates(const bool powered_on) noexcept {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+    connectionList.clear();
+    disconnectCmdList.clear();
+    currentScanType = ScanType::NONE;
+    advertisingEnabled = false;
+    zeroSupCommands();
+    if( powered_on ) {
+        return initSupCommands();
+    } else {
         return true;
     }
 }
@@ -832,8 +851,7 @@ HCIStatusCode HCIHandler::startAdapter() {
                 return HCIStatusCode::INTERNAL_FAILURE;
             }
         }
-        resetAllStates(true);
-        return HCIStatusCode::SUCCESS;
+        return resetAllStates(true) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
     #else
         #warning add implementation
     #endif
@@ -896,7 +914,7 @@ HCIStatusCode HCIHandler::reset() noexcept {
         return HCIStatusCode::INTERNAL_TIMEOUT; // timeout
     }
     if( HCIStatusCode::SUCCESS == status ) {
-        resetAllStates(true);
+        status = resetAllStates(true) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
     }
     return status;
 }
@@ -920,25 +938,6 @@ HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
         version.manufacturer = jau::le_to_cpu(ev_lv->manufacturer);
         version.lmp_ver = ev_lv->lmp_ver;
         version.lmp_subver = jau::le_to_cpu(ev_lv->lmp_subver);
-    }
-    return status;
-}
-
-HCIStatusCode HCIHandler::le_read_local_features(LE_Features& res) noexcept {
-    if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::le_read_local_features: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
-    }
-    res = LE_Features::NONE;
-    HCICommand req0(HCIOpcode::LE_READ_LOCAL_FEATURES, 0);
-    const hci_rp_le_read_local_features * ev_lf;
-    HCIStatusCode status;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_lf, &status);
-    if( nullptr == ev || nullptr == ev_lf || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("HCIHandler::le_read_local_features: LE_READ_LOCAL_FEATURES: 0x%x (%s) - %s",
-                number(status), to_string(status).c_str(), toString().c_str());
-    } else {
-        res = static_cast<LE_Features>( jau::get_uint64(ev_lf->features, 0, true /* littleEndian */) );
     }
     return status;
 }
@@ -1061,12 +1060,12 @@ HCIStatusCode HCIHandler::le_start_scan(const bool filter_dup,
     if( HCIStatusCode::SUCCESS != status ) {
         WARN_PRINT("HCIHandler::le_start_scan: le_set_scan_param failed: %s - %s",
                 to_string(status).c_str(), toString().c_str());
-    } else {
-        status = le_enable_scan(true /* enable */, filter_dup);
-        if( HCIStatusCode::SUCCESS != status ) {
-            WARN_PRINT("HCIHandler::le_start_scan: le_enable_scan failed: %s - %s",
-                    to_string(status).c_str(), toString().c_str());
-        }
+        return status;
+    }
+    status = le_enable_scan(true /* enable */, filter_dup);
+    if( HCIStatusCode::SUCCESS != status ) {
+        WARN_PRINT("HCIHandler::le_start_scan: le_enable_scan failed: %s - %s",
+                to_string(status).c_str(), toString().c_str());
     }
     return status;
 }
@@ -1401,7 +1400,7 @@ HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddres
     return status;
 }
 
-std::unique_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIStatusCode *status) noexcept
+std::unique_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIStatusCode *status, const bool quiet) noexcept
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
@@ -1436,10 +1435,12 @@ std::unique_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIS
     }
     if( nullptr == ev ) {
         // timeout exit
-        WARN_PRINT("HCIHandler::processCommandStatus %s -> Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s - %s",
-                to_string(req.getOpcode()).c_str(),
-                number(*status), to_string(*status).c_str(), errno, strerror(errno),
-                req.toString().c_str(), toString().c_str());
+        if( !quiet || jau::environment::get().verbose ) {
+            WARN_PRINT("HCIHandler::processCommandStatus %s -> Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s - %s",
+                    to_string(req.getOpcode()).c_str(),
+                    number(*status), to_string(*status).c_str(), errno, strerror(errno),
+                    req.toString().c_str(), toString().c_str());
+        }
     }
 
 exit:
@@ -1448,26 +1449,30 @@ exit:
 
 template<typename hci_cmd_event_struct>
 std::unique_ptr<HCIEvent> HCIHandler::processCommandComplete(HCICommand &req,
-                                                             const hci_cmd_event_struct **res, HCIStatusCode *status) noexcept
+                                                             const hci_cmd_event_struct **res, HCIStatusCode *status,
+                                                             const bool quiet) noexcept
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
     *res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
 
-    if( !sendCommand(req) ) {
-        WARN_PRINT("HCIHandler::processCommandComplete Send failed: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s - %s",
-                number(*status), to_string(*status).c_str(), errno, strerror(errno),
-                req.toString().c_str(), toString().c_str());
+    if( !sendCommand(req, quiet) ) {
+        if( !quiet || jau::environment::get().verbose ) {
+            WARN_PRINT("HCIHandler::processCommandComplete Send failed: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s - %s",
+                    number(*status), to_string(*status).c_str(), errno, strerror(errno),
+                    req.toString().c_str(), toString().c_str());
+        }
         return nullptr; // timeout
     }
 
-    return receiveCommandComplete(req, res, status);
+    return receiveCommandComplete(req, res, status, quiet);
 }
 
 template<typename hci_cmd_event_struct>
 std::unique_ptr<HCIEvent> HCIHandler::receiveCommandComplete(HCICommand &req,
-                                                             const hci_cmd_event_struct **res, HCIStatusCode *status) noexcept
+                                                             const hci_cmd_event_struct **res, HCIStatusCode *status,
+                                                             const bool quiet) noexcept
 {
     *res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
@@ -1477,24 +1482,30 @@ std::unique_ptr<HCIEvent> HCIHandler::receiveCommandComplete(HCICommand &req,
     std::unique_ptr<HCIEvent> ev = getNextCmdCompleteReply(req, &ev_cc);
     if( nullptr == ev ) {
         *status = HCIStatusCode::INTERNAL_TIMEOUT;
-        WARN_PRINT("HCIHandler::processCommandComplete %s -> %s: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s - %s",
-                to_string(req.getOpcode()).c_str(), to_string(evc).c_str(),
-                number(*status), to_string(*status).c_str(), errno, strerror(errno),
-                req.toString().c_str(), toString().c_str());
+        if( !quiet || jau::environment::get().verbose ) {
+            WARN_PRINT("HCIHandler::processCommandComplete %s -> %s: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s - %s",
+                    to_string(req.getOpcode()).c_str(), to_string(evc).c_str(),
+                    number(*status), to_string(*status).c_str(), errno, strerror(errno),
+                    req.toString().c_str(), toString().c_str());
+        }
         return nullptr; // timeout
     } else if( nullptr == ev_cc ) {
-        WARN_PRINT("HCIHandler::processCommandComplete %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s - %s",
-                to_string(req.getOpcode()).c_str(), to_string(evc).c_str(),
-                number(*status), to_string(*status).c_str(), errno, strerror(errno),
-                ev->toString().c_str(), req.toString().c_str(), toString().c_str());
+        if( !quiet || jau::environment::get().verbose ) {
+            WARN_PRINT("HCIHandler::processCommandComplete %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s - %s",
+                    to_string(req.getOpcode()).c_str(), to_string(evc).c_str(),
+                    number(*status), to_string(*status).c_str(), errno, strerror(errno),
+                    ev->toString().c_str(), req.toString().c_str(), toString().c_str());
+        }
         return ev;
     }
     const uint8_t returnParamSize = ev_cc->getReturnParamSize();
     if( returnParamSize < sizeof(hci_cmd_event_struct) ) {
-        WARN_PRINT("HCIHandler::processCommandComplete %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s - %s",
-                to_string(req.getOpcode()).c_str(), to_string(evc).c_str(),
-                number(*status), to_string(*status).c_str(), errno, strerror(errno),
-                ev_cc->toString().c_str(), req.toString().c_str(), toString().c_str());
+        if( !quiet || jau::environment::get().verbose ) {
+            WARN_PRINT("HCIHandler::processCommandComplete %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s - %s",
+                    to_string(req.getOpcode()).c_str(), to_string(evc).c_str(),
+                    number(*status), to_string(*status).c_str(), errno, strerror(errno),
+                    ev_cc->toString().c_str(), req.toString().c_str(), toString().c_str());
+        }
         return ev;
     }
     *res = (const hci_cmd_event_struct*)(ev_cc->getReturnParam());

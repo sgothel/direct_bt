@@ -57,17 +57,6 @@ extern "C" {
 
 using namespace direct_bt;
 
-BTMode MgmtEnv::getEnvBTMode() {
-    // Environment variable is 'direct_bt.mgmt.btmode' or 'org.tinyb.btmode'
-    // Default is BTMode::LE, if non of the above environment variable is set.
-    std::string val = jau::environment::getProperty("direct_bt.mgmt.btmode");
-    if( val.empty() ) {
-        val = jau::environment::getProperty("org.tinyb.btmode");
-    }
-    const BTMode res = direct_bt::to_BTMode(val);
-    return BTMode::NONE != res ? res : BTMode::DUAL; // fallback to default DUAL
-}
-
 MgmtEnv::MgmtEnv() noexcept
 : DEBUG_GLOBAL( jau::environment::get("direct_bt").debug ),
   exploding( jau::environment::getExplodingProperties("direct_bt.mgmt") ),
@@ -75,7 +64,6 @@ MgmtEnv::MgmtEnv() noexcept
   MGMT_COMMAND_REPLY_TIMEOUT( jau::environment::getInt32Property("direct_bt.mgmt.cmd.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
   MGMT_EVT_RING_CAPACITY( jau::environment::getInt32Property("direct_bt.mgmt.ringsize", 64, 64 /* min */, 1024 /* max */) ),
   DEBUG_EVENT( jau::environment::getBooleanProperty("direct_bt.debug.mgmt.event", false) ),
-  DEFAULT_BTMODE( getEnvBTMode() ),
   MGMT_READ_PACKET_MAX_RETRY( MGMT_EVT_RING_CAPACITY )
 {
 }
@@ -240,22 +228,8 @@ std::unique_ptr<MgmtEvent> BTManager::sendWithReply(MgmtCommand &req) noexcept {
     return nullptr;
 }
 
-std::unique_ptr<AdapterInfo> BTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) noexcept {
-    /**
-     * We weight on PairingMode::PASSKEY_ENTRY. FIXME: Have it configurable!
-     *
-     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.8
-     *
-     * See SMPTypes.cpp: getPairingMode(const bool le_sc_pairing, const SMPIOCapability ioCap_init, const SMPIOCapability ioCap_resp) noexcept
-     */
-#if USE_LINUX_BT_SECURITY
-    const uint8_t debug_keys = 0;
-    const uint8_t ssp_on_param = 0x01; // SET_SSP 0x00 disabled, 0x01 enable Secure Simple Pairing. SSP only available for BREDR >= 2.1 not single-mode LE.
-    const uint8_t sc_on_param = 0x01; // SET_SECURE_CONN 0x00 disabled, 0x01 enables SC mixed, 0x02 enables SC only mode
-#endif
-
+std::unique_ptr<AdapterInfo> BTManager::readAdapterInfo(const uint16_t dev_id) noexcept {
     std::unique_ptr<AdapterInfo> adapterInfo(nullptr); // nullptr
-    AdapterSetting current_settings;
     MgmtCommand req0(MgmtCommand::Opcode::READ_INFO, dev_id);
     {
         std::unique_ptr<MgmtEvent> res = sendWithReply(req0);
@@ -269,11 +243,48 @@ std::unique_ptr<AdapterInfo> BTManager::initAdapter(const uint16_t dev_id, const
         const MgmtEvtAdapterInfo * res1 = static_cast<MgmtEvtAdapterInfo*>(res.get());
         adapterInfo = res1->toAdapterInfo();
         if( dev_id != adapterInfo->dev_id ) {
-            ABORT("AdapterInfo dev_id=%d != dev_id=%d: %s", adapterInfo->dev_id, dev_id, adapterInfo->toString().c_str());
+            ABORT("readAdapterSettings dev_id=%d != dev_id=%d: %s", adapterInfo->dev_id, dev_id, adapterInfo->toString().c_str());
         }
     }
-    DBG_PRINT("initAdapter[%d, BTMode %s]: Start: %s", dev_id, to_string(btMode).c_str(), adapterInfo->toString().c_str());
-    current_settings = adapterInfo->getCurrentSettingMask();
+    DBG_PRINT("readAdapterSettings[%d]: End: %s", dev_id, adapterInfo->toString().c_str());
+
+fail:
+    return adapterInfo;
+}
+
+HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint16_t dev_id, const BTMode btMode) noexcept {
+    /**
+     * We weight on PairingMode::PASSKEY_ENTRY. FIXME: Have it configurable!
+     *
+     * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.8
+     *
+     * See SMPTypes.cpp: getPairingMode(const bool le_sc_pairing, const SMPIOCapability ioCap_init, const SMPIOCapability ioCap_resp) noexcept
+     */
+#if USE_LINUX_BT_SECURITY
+    const uint8_t debug_keys = 0;
+    const uint8_t ssp_on_param = 0x01; // SET_SSP 0x00 disabled, 0x01 enable Secure Simple Pairing. SSP only available for BREDR >= 2.1 not single-mode LE.
+    const uint8_t sc_on_param = 0x01; // SET_SECURE_CONN 0x00 disabled, 0x01 enables SC mixed, 0x02 enables SC only mode
+#endif
+
+    AdapterSetting current_settings;
+    MgmtCommand req0(MgmtCommand::Opcode::READ_INFO, dev_id);
+    {
+        std::unique_ptr<MgmtEvent> res = sendWithReply(req0);
+        if( nullptr == res ) {
+            goto fail;
+        }
+        if( MgmtEvent::Opcode::CMD_COMPLETE != res->getOpcode() || res->getTotalSize() < MgmtEvtAdapterInfo::getRequiredTotalSize()) {
+            ERR_PRINT("Insufficient data for adapter info: req %d, res %s", MgmtEvtAdapterInfo::getRequiredTotalSize(), res->toString().c_str());
+            goto fail;
+        }
+        const MgmtEvtAdapterInfo * res1 = static_cast<MgmtEvtAdapterInfo*>(res.get());
+        res1->updateAdapterInfo(adapterInfo);
+        if( dev_id != adapterInfo.dev_id ) {
+            ABORT("initializeAdapter dev_id=%d != dev_id=%d: %s", adapterInfo.dev_id, dev_id, adapterInfo.toString().c_str());
+        }
+    }
+    DBG_PRINT("initializeAdapter[%d, BTMode %s]: Start: %s", dev_id, to_string(btMode).c_str(), adapterInfo.toString().c_str());
+    current_settings = adapterInfo.getCurrentSettingMask();
 
     setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 0, current_settings);
 
@@ -330,9 +341,8 @@ std::unique_ptr<AdapterInfo> BTManager::initAdapter(const uint16_t dev_id, const
      * Update AdapterSettings post settings
      */
     if( AdapterSetting::NONE != current_settings ) {
-        adapterInfo->setCurrentSettingMask(current_settings);
+        adapterInfo.setCurrentSettingMask(current_settings);
     } else {
-        adapterInfo = nullptr; // flush
         std::unique_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto fail;
@@ -342,45 +352,26 @@ std::unique_ptr<AdapterInfo> BTManager::initAdapter(const uint16_t dev_id, const
             goto fail;
         }
         const MgmtEvtAdapterInfo * res1 = static_cast<MgmtEvtAdapterInfo*>(res.get());
-        adapterInfo = res1->toAdapterInfo();
-        if( dev_id != adapterInfo->dev_id ) {
-            ABORT("AdapterInfo dev_id=%d != dev_id=%d: %s", adapterInfo->dev_id, dev_id, adapterInfo->toString().c_str());
+        res1->updateAdapterInfo(adapterInfo);
+        if( dev_id != adapterInfo.dev_id ) {
+            ABORT("initializeAdapter dev_id=%d != dev_id=%d: %s", adapterInfo.dev_id, dev_id, adapterInfo.toString().c_str());
         }
     }
-    DBG_PRINT("initAdapter[%d, BTMode %s]: End: %s", dev_id, to_string(btMode).c_str(), adapterInfo->toString().c_str());
+    DBG_PRINT("initializeAdapter[%d, BTMode %s]: End: %s", dev_id, to_string(btMode).c_str(), adapterInfo.toString().c_str());
+    return HCIStatusCode::SUCCESS;
 
 fail:
-    return adapterInfo;
+    return HCIStatusCode::FAILED;
 }
 
-void BTManager::shutdownAdapter(BTAdapter& adapter) noexcept {
-    DBG_PRINT("DBTManager::shutdownAdapter: %s", adapter.toString().c_str());
-    const uint16_t dev_id = adapter.dev_id;
-    adapter.close(); // also issues removeMgmtEventCallback(dev_id);
-
-    AdapterSetting current_settings;
-    setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 0, current_settings);
-
-    setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 0, current_settings);
-    setMode(dev_id, MgmtCommand::Opcode::SET_CONNECTABLE, 0, current_settings);
-    setMode(dev_id, MgmtCommand::Opcode::SET_FAST_CONNECTABLE, 0, current_settings);
-
-    setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, 0, current_settings);
-    setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(SMPIOCapability::DISPLAY_ONLY), current_settings);
-    setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings);
-    setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
-    DBG_PRINT("DBTManager::shutdownAdapter: done: %s", adapter.toString().c_str());
-}
-
-BTManager::BTManager(const BTMode _defaultBTMode) noexcept
+BTManager::BTManager() noexcept
 : env(MgmtEnv::get()),
-  defaultBTMode(BTMode::NONE != _defaultBTMode ? _defaultBTMode : env.DEFAULT_BTMODE),
   rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
   mgmtEventRing(nullptr, env.MGMT_EVT_RING_CAPACITY), mgmtReaderShallStop(false),
   mgmtReaderThreadId(0), mgmtReaderRunning(false),
   allowClose( comm.isOpen() )
 {
-    WORDY_PRINT("DBTManager.ctor: BTMode %s, pid %d", to_string(defaultBTMode).c_str(), BTManager::pidSelf);
+    WORDY_PRINT("DBTManager.ctor: pid %d", BTManager::pidSelf);
     if( !allowClose ) {
         ERR_PRINT("DBTManager::open: Could not open mgmt control channel");
         return;
@@ -479,7 +470,7 @@ next1:
         }
         for(int i=0; i < num_adapter; i++) {
             const uint16_t dev_id = jau::get_uint16(data, 2+i*2, true /* littleEndian */);
-            std::unique_ptr<AdapterInfo> adapterInfo = initAdapter(dev_id, defaultBTMode);
+            std::unique_ptr<AdapterInfo> adapterInfo = readAdapterInfo(dev_id);
             if( nullptr != adapterInfo ) {
                 std::shared_ptr<BTAdapter> adapter = BTAdapter::make_shared(*this, *adapterInfo);
                 adapters.push_back( adapter );
@@ -558,8 +549,8 @@ void BTManager::close() noexcept {
     {
         int i=0;
         jau::for_each_fidelity(adapters, [&](std::shared_ptr<BTAdapter> & a) {
-            DBG_PRINT("DBTManager::close::shutdownAdapter: %d/%d processing: %s", i, adapters.size(), a->toString().c_str());
-            shutdownAdapter(*a);
+            DBG_PRINT("DBTManager::close -> adapter::close(): %d/%d processing: %s", i, adapters.size(), a->toString().c_str());
+            a->close(); // also issues removeMgmtEventCallback(dev_id);
             ++i;
         });
     }
@@ -1162,7 +1153,7 @@ void BTManager::clearAllCallbacks() noexcept {
 void BTManager::processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept {
     const uint16_t dev_id = e->getDevID();
 
-    std::unique_ptr<AdapterInfo> adapterInfo = initAdapter(dev_id, defaultBTMode);
+    std::unique_ptr<AdapterInfo> adapterInfo = readAdapterInfo(dev_id);
 
     if( nullptr != adapterInfo ) {
         std::shared_ptr<BTAdapter> adapter = addAdapter( *adapterInfo );

@@ -186,9 +186,6 @@ namespace direct_bt {
 
     class AdapterInfo
     {
-        friend class BTManager; // top manager
-        friend class BTAdapter; // direct manager
-
         public:
             const uint16_t dev_id;
             /**
@@ -208,20 +205,6 @@ namespace direct_bt {
             uint32_t dev_class;
             std::string name;
             std::string short_name;
-
-            /**
-             * Assigns the given 'new_setting & supported_setting' to the current_setting.
-             * @param new_setting assigned to current_setting after masking with supported_setting.
-             * @return 'new_setting & supported_setting', i.e. the new current_setting.
-             */
-            AdapterSetting setCurrentSettingMask(const AdapterSetting new_setting) noexcept {
-                const AdapterSetting _current_setting = new_setting & supported_setting;
-                current_setting = _current_setting;
-                return _current_setting;
-            }
-            void setDevClass(const uint32_t v) noexcept { dev_class = v; }
-            void setName(const std::string v) noexcept { name = v; }
-            void setShortName(const std::string v) noexcept { short_name = v; }
 
         public:
             AdapterInfo(const uint16_t dev_id_, const BDAddressAndType & addressAndType_,
@@ -263,6 +246,24 @@ namespace direct_bt {
               name(std::move(o.name)), short_name(std::move(o.short_name))
             { }
             AdapterInfo& operator=(AdapterInfo &&o) noexcept = delete;
+
+            /**
+             * Assigns the given 'new_setting & supported_setting' to the current_setting.
+             * @param new_setting assigned to current_setting after masking with supported_setting.
+             * @return 'new_setting & supported_setting', i.e. the new current_setting.
+             */
+            AdapterSetting setCurrentSettingMask(const AdapterSetting new_setting) noexcept {
+                const AdapterSetting _current_setting = new_setting & supported_setting;
+                current_setting = _current_setting;
+                return _current_setting;
+            }
+            void setSettingMasks(const AdapterSetting supported_setting_, const AdapterSetting current_setting_) noexcept {
+                supported_setting = supported_setting_;
+                current_setting = current_setting_;
+            }
+            void setDevClass(const uint32_t v) noexcept { dev_class = v; }
+            void setName(const std::string v) noexcept { name = v; }
+            void setShortName(const std::string v) noexcept { short_name = v; }
 
             constexpr const AdapterSetting& get_supportedSetting() const noexcept { return supported_setting; }
 

@@ -63,6 +63,7 @@ namespace direct_bt {
             L2CAPComm l2cap_att;
             uint64_t ts_last_discovery;
             uint64_t ts_last_update;
+            GAPFlags gap_flags;
             std::string name;
             int8_t rssi = 127; // The core spec defines 127 as the "not available" value
             int8_t tx_power = 127; // The core spec defines 127 as the "not available" value

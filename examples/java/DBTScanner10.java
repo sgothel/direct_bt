@@ -80,6 +80,9 @@ public class DBTScanner10 {
 
     long timestamp_t0;
 
+    EUI48 useAdapter = EUI48.ALL_DEVICE;
+    BTMode btMode = BTMode.DUAL;
+
     int RESET_ADAPTER_EACH_CONN = 0;
     AtomicInteger deviceReadyCount = new AtomicInteger(0);
 
@@ -639,12 +642,29 @@ public class DBTScanner10 {
     static final byte filter_policy = (byte)0; // default value
 
     private boolean startDiscovery(final BTAdapter adapter, final String msg) {
+        if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
+            BTUtils.fprintf_td(System.err, "****** Start discovery (%s): Adapter not selected: %s\n", msg, adapter.toString());
+            return false;
+        }
         final HCIStatusCode status = adapter.startDiscovery( true, le_scan_active, le_scan_interval, le_scan_window, filter_policy );
         BTUtils.println(System.err, "****** Start discovery ("+msg+") result: "+status);
         return HCIStatusCode.SUCCESS == status;
     }
 
     private boolean initAdapter(final BTAdapter adapter) {
+        if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
+            BTUtils.fprintf_td(System.err, "initAdapter: Adapter not selected: %s\n", adapter.toString());
+            return false;
+        }
+        // Initialize with defaults and power-on
+        {
+            final HCIStatusCode status = adapter.initialize( btMode );
+            if( HCIStatusCode.SUCCESS != status ) {
+                BTUtils.fprintf_td(System.err, "initAdapter: Adapter initialization failed: %s: %s\n",
+                        status.toString(), adapter.toString());
+                return false;
+            }
+        }
         // Even if adapter is not yet powered, listen to it and act when it gets powered-on
         adapter.addStatusListener(new MyAdapterStatusListener() );
         // Flush discovered devices after registering our status listener.
@@ -652,7 +672,7 @@ public class DBTScanner10 {
         adapter.removeDiscoveredDevices();
 
         if( !adapter.isPowered() ) { // should have been covered above
-            BTUtils.println(System.err, "Adapter not powered (2): "+adapter.toString());
+            BTUtils.println(System.err, "initAdapter: Adapter not powered (2): "+adapter.toString());
             return false;
         }
 
@@ -660,10 +680,10 @@ public class DBTScanner10 {
             for(final Iterator<BDAddressAndType> wliter = whitelist.iterator(); wliter.hasNext(); ) {
                 final BDAddressAndType addr = wliter.next();
                 final boolean res = adapter.addDeviceToWhitelist(addr, HCIWhitelistConnectType.HCI_AUTO_CONN_ALWAYS);
-                BTUtils.println(System.err, "Added to whitelist: res "+res+", address "+addr);
+                BTUtils.println(System.err, "initAdapter: Added to whitelist: res "+res+", address "+addr);
             }
         } else {
-            if( !startDiscovery(adapter, "kick-off") ) {
+            if( !startDiscovery(adapter, "initAdapter") ) {
                 return false;
             }
         }
@@ -758,10 +778,6 @@ public class DBTScanner10 {
                 System.setProperty("direct_bt.hci", args[++i]);
             } else if( arg.equals("-dbt_mgmt") && args.length > (i+1) ) {
                 System.setProperty("direct_bt.mgmt", args[++i]);
-            } else if( arg.equals("-btmode") && args.length > (i+1) ) {
-                final BTMode btmode = BTMode.get(args[++i]);
-                System.setProperty("org.tinyb.btmode", btmode.toString());
-                System.err.println("Setting 'org.tinyb.btmode' to "+btmode.toString());
             }
         }
         final BTManager manager;
@@ -796,6 +812,10 @@ public class DBTScanner10 {
                     le_scan_active = false;
                 } else if( arg.equals("-shutdown") && args.length > (i+1) ) {
                     test.shutdownTest = Integer.valueOf(args[++i]).intValue();
+                } else if( arg.equals("-btmode") && args.length > (i+1) ) {
+                    test.btMode = BTMode.get(args[++i]);
+                } else if( arg.equals("-adapter") && args.length > (i+1) ) {
+                    test.useAdapter = new EUI48( args[++i] );
                 } else if( arg.equals("-dev") && args.length > (i+1) ) {
                     BTDeviceRegistry.addToWaitForDevices( args[++i] );
                 } else if( arg.equals("-wl") && args.length > (i+1) ) {
@@ -845,10 +865,10 @@ public class DBTScanner10 {
                 }
             }
             BTUtils.println(System.err, "Run with '[-btmode LE|BREDR|DUAL] "+
-                    "[-bluetoothManager <BluetoothManager-Implementation-Class-Name>] "+
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "+
                     "[-scanPassive]"+
                     "[-resetEachCon connectionCount] "+
+                    "[-adapter <adapter_address>] "+
                     "(-dev <device_[address|name]_sub>)* (-wl <device_address>)* "+
                     "(-seclevel <device_[address|name]_sub> <int_sec_level>)* "+
                     "(-iocap <device_[address|name]_sub> <int_iocap>)* "+
@@ -873,6 +893,9 @@ public class DBTScanner10 {
         BTUtils.println(System.err, "USE_WHITELIST "+test.USE_WHITELIST);
         BTUtils.println(System.err, "SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
         BTUtils.println(System.err, "QUIET "+test.QUIET);
+        BTUtils.println(System.err, "adapter "+test.useAdapter);
+        BTUtils.println(System.err, "btmode' to "+test.btMode.toString());
+
         BTUtils.println(System.err, "characteristic-id: "+test.charIdentifier);
         BTUtils.println(System.err, "characteristic-value: "+test.charValue);
 
