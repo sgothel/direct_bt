@@ -9,3 +9,10 @@ add_custom_command(TARGET DBTScanner10
 )
 add_dependencies(DBTScanner10 direct_bt_jar)
 
+add_jar(DBTPeripheral00 SOURCES DBTPeripheral00.java INCLUDE_JARS direct_bt_jar ENTRY_POINT Notification)
+add_custom_command(TARGET DBTPeripheral00
+        POST_BUILD
+        COMMAND cp "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/DBTPeripheral00.dir/DBTPeripheral00.class" "${CMAKE_CURRENT_BINARY_DIR}"
+)
+add_dependencies(DBTPeripheral00 direct_bt_jar)
+

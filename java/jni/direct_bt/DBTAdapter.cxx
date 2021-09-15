@@ -987,3 +987,42 @@ void Java_jau_direct_1bt_DBTAdapter_printDeviceListsImpl(JNIEnv *env, jobject ob
         rethrow_and_raise_java_exception(env);
     }
 }
+
+jbyte Java_jau_direct_1bt_DBTAdapter_startAdvertisingImpl(JNIEnv *env, jobject obj,
+                                                          jshort adv_interval_min, jshort adv_interval_max, jbyte jadv_type, jbyte adv_chan_map,
+                                                          jbyte filter_policy) {
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        const AD_PDU_Type adv_type = static_cast<AD_PDU_Type>(jadv_type);
+        HCIStatusCode res = adapter->startAdvertising(adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy);
+        return (jbyte) number(res);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+}
+
+jbyte Java_jau_direct_1bt_DBTAdapter_stopAdvertisingImpl(JNIEnv *env, jobject obj) {
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        HCIStatusCode res = adapter->stopAdvertising();
+        return (jbyte) number(res);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+}
+
+jboolean Java_jau_direct_1bt_DBTAdapter_isAdvertising(JNIEnv *env, jobject obj) {
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        return adapter->isAdvertising() ? JNI_TRUE : JNI_FALSE;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+

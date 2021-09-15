@@ -696,4 +696,30 @@ public class DBTAdapter extends DBTObject implements BTAdapter
             return null;
         }
     }
+
+    @Override
+    public final HCIStatusCode startAdvertising(final short adv_interval_min,
+                                                final short adv_interval_max, final byte adv_type, final byte adv_chan_map,
+                                                final byte filter_policy) {
+        return HCIStatusCode.get( startAdvertisingImpl(adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy) );
+    }
+    private native byte startAdvertisingImpl(final short adv_interval_min,
+                                             final short adv_interval_max, final byte adv_type, final byte adv_chan_map,
+                                             final byte filter_policy);
+
+    @Override
+    public final HCIStatusCode startAdvertising() {
+        return startAdvertising((short)0x0800, (short)0x0800, (byte)0, // AD_PDU_Type::ADV_IND,
+                                (byte)0x07, (byte)0x00);
+    }
+
+    @Override
+    public final HCIStatusCode stopAdvertising() {
+        return HCIStatusCode.get( stopAdvertisingImpl() );
+    }
+    private native byte stopAdvertisingImpl();
+
+    @Override
+    public native boolean isAdvertising();
+
 }

@@ -589,7 +589,8 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
   hciReaderThreadId(0), hciReaderRunning(false),
   allowClose( comm.isOpen() ),
   btMode(btMode_),
-  currentScanType(ScanType::NONE)
+  currentScanType(ScanType::NONE),
+  advertisingEnabled(false)
 {
     WORDY_PRINT("HCIHandler.ctor: Start pid %d - %s", HCIHandler::pidSelf, toString().c_str());
     if( !allowClose ) {
@@ -701,12 +702,20 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         filter_set_opcbit(HCIOpcodeBit::RESET, mask);
         filter_set_opcbit(HCIOpcodeBit::READ_LOCAL_VERSION, mask);
         filter_set_opcbit(HCIOpcodeBit::READ_LOCAL_COMMANDS, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_SET_ADV_PARAM, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_SET_ADV_DATA, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_SET_SCAN_RSP_DATA, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_SET_ADV_ENABLE, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_SET_SCAN_PARAM, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_SET_SCAN_ENABLE, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_CREATE_CONN, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_ENABLE_ENC, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_READ_PHY, mask);
         // filter_set_opcbit(HCIOpcodeBit::LE_SET_DEFAULT_PHY, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_SET_EXT_ADV_PARAMS, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_SET_EXT_ADV_DATA, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_SET_EXT_SCAN_RSP_DATA, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_SET_EXT_ADV_ENABLE, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_SET_EXT_SCAN_PARAMS, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_SET_EXT_SCAN_ENABLE, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_EXT_CREATE_CONN, mask);
@@ -832,8 +841,8 @@ void HCIHandler::close() noexcept {
 
 std::string HCIHandler::toString() const noexcept {
     return "HCIHandler[dev_id "+std::to_string(dev_id)+", BTMode "+to_string(btMode)+", open "+std::to_string(isOpen())+
-            ", scan "+to_string(currentScanType)+
-            ", ext[init "+std::to_string(sup_commands_set)+", scan "+std::to_string(use_ext_scan())+", conn "+std::to_string(use_ext_conn())+
+            ", adv "+std::to_string(advertisingEnabled)+", scan "+to_string(currentScanType)+
+            ", ext[init "+std::to_string(sup_commands_set)+", adv "+std::to_string(use_ext_adv())+", scan "+std::to_string(use_ext_scan())+", conn "+std::to_string(use_ext_conn())+
             "], ring[entries "+std::to_string(hciEventRing.getSize())+"]]";
 }
 
@@ -1004,6 +1013,10 @@ HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_du
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
+    if( advertisingEnabled ) {
+        WARN_PRINT("HCIHandler::le_enable_scan: Not allowed: Advertising is enabled %s", toString().c_str());
+        return HCIStatusCode::COMMAND_DISALLOWED;
+    }
     ScanType nextScanType = changeScanType(currentScanType, ScanType::LE, enable);
     DBG_PRINT("HCI Enable Scan: enable %s -> %s, filter_dup %d - %s",
             to_string(currentScanType).c_str(), to_string(nextScanType).c_str(), filter_dup, toString().c_str());
@@ -1052,6 +1065,10 @@ HCIStatusCode HCIHandler::le_start_scan(const bool filter_dup,
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
+    if( advertisingEnabled ) {
+        WARN_PRINT("HCIHandler::le_start_scan: Not allowed: Advertising is enabled %s", toString().c_str());
+        return HCIStatusCode::COMMAND_DISALLOWED;
+    }
     if( hasScanType(currentScanType, ScanType::LE) ) {
         WARN_PRINT("HCIHandler::le_start_scan: Not allowed: LE Scan Enabled: %s", toString().c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
@@ -1086,6 +1103,10 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::le_create_conn: Not connected %s", toString().c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
+    }
+    if( advertisingEnabled ) {
+        WARN_PRINT("HCIHandler::le_create_conn: Not allowed: Advertising is enabled %s", toString().c_str());
+        return HCIStatusCode::COMMAND_DISALLOWED;
     }
 
     const uint16_t min_ce_length = 0x0000;
@@ -1212,6 +1233,10 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::create_conn: Not connected %s", toString().c_str());
         return HCIStatusCode::INTERNAL_FAILURE;
+    }
+    if( advertisingEnabled ) {
+        WARN_PRINT("HCIHandler::create_conn: Not allowed: Advertising is enabled %s", toString().c_str());
+        return HCIStatusCode::COMMAND_DISALLOWED;
     }
 
     HCIStructCommand<hci_cp_create_conn> req0(HCIOpcode::CREATE_CONN);
@@ -1397,6 +1422,241 @@ HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddres
             case 0x03: resRx = LE_PHYs::LE_CODED; break;
         }
     }
+    return status;
+}
+
+HCIStatusCode HCIHandler::le_set_adv_param(const EUI48 &peer_bdaddr,
+                                           const HCILEOwnAddressType own_mac_type,
+                                           const HCILEOwnAddressType peer_mac_type,
+                                           const uint16_t adv_interval_min, const uint16_t adv_interval_max,
+                                           const AD_PDU_Type adv_type,
+                                           const uint8_t adv_chan_map,
+                                           const uint8_t filter_policy) noexcept {
+    DBG_PRINT("HCI Adv Param: adv-interval[%.3f ms .. %.3f ms], filter %d - %s",
+            0.625f * (float)adv_interval_min, 0.625f * (float)adv_interval_max,
+            filter_policy, toString().c_str());
+
+    HCIStatusCode status;
+    if( use_ext_adv() ) {
+        HCIStructCommand<hci_cp_le_set_ext_adv_params> req0(HCIOpcode::LE_SET_EXT_ADV_PARAMS);
+        hci_cp_le_set_ext_adv_params * cp = req0.getWStruct();
+        cp->handle = 0x00; // TODO: Support more than one advertising sets?
+        AD_PDU_Type adv_type2;
+        switch( adv_type ) {
+            case AD_PDU_Type::ADV_IND:
+                [[fallthrough]];
+            case AD_PDU_Type::SCAN_IND2:
+                adv_type2 = AD_PDU_Type::SCAN_IND2;
+                break;
+
+            case AD_PDU_Type::ADV_SCAN_IND:
+                [[fallthrough]];
+            case AD_PDU_Type::ADV_IND2:
+                adv_type2 = AD_PDU_Type::ADV_IND2;
+                break;
+
+            case AD_PDU_Type::ADV_NONCONN_IND:
+                [[fallthrough]];
+            case AD_PDU_Type::NONCONN_IND2:
+                adv_type2 = AD_PDU_Type::NONCONN_IND2;
+                break;
+
+            default:
+                WARN_PRINT("HCIHandler::le_set_adv_param: Invalid AD_PDU_Type %x (%s)", adv_type, to_string(adv_type).c_str());
+                return HCIStatusCode::INVALID_PARAMS;
+        }
+        cp->evt_properties = number(adv_type2);
+        jau::put_uint16(cp->min_interval, 0, adv_interval_min, true /* littleEndian */);
+        jau::put_uint16(cp->max_interval, 0, adv_interval_max, true /* littleEndian */);
+        cp->channel_map = adv_chan_map;
+        cp->own_addr_type = static_cast<uint8_t>(own_mac_type);
+        cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
+        cp->peer_addr = peer_bdaddr;
+        cp->filter_policy = filter_policy;
+        cp->tx_power = 0x7f; // Host has no preference (default); -128 to +20 [dBm]
+        cp->primary_phy = direct_bt::number(LE_PHYs::LE_1M);
+        // TODO: Support LE_1M + LE_CODED combo? Then must not use legacy PDU adv_type!
+        // cp->secondary_max_skip;
+        cp->secondary_phy = direct_bt::number(LE_PHYs::LE_1M);
+        cp->sid = 0x00; // TODO: Support more than one advertising SID subfield?
+        cp->notif_enable = 0x01;
+        const hci_rp_le_set_ext_adv_params * ev_reply;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_reply, &status);
+        // Not using `ev_reply->tx_power` yet.
+    } else {
+        HCIStructCommand<hci_cp_le_set_adv_param> req0(HCIOpcode::LE_SET_ADV_PARAM);
+        hci_cp_le_set_adv_param * cp = req0.getWStruct();
+        cp->min_interval = jau::cpu_to_le(adv_interval_min);
+        cp->max_interval = jau::cpu_to_le(adv_interval_max);
+        cp->type = number(adv_type);
+        cp->own_address_type = static_cast<uint8_t>(own_mac_type);
+        cp->direct_addr_type = static_cast<uint8_t>(peer_mac_type);
+        cp->direct_addr = peer_bdaddr;
+        cp->channel_map = adv_chan_map;
+        cp->filter_policy = filter_policy;
+        const hci_rp_status * ev_status;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+    }
+    return status;
+}
+
+
+HCIStatusCode HCIHandler::le_set_adv_data(const EInfoReport &eir, const EIRDataType mask) noexcept {
+    DBG_PRINT("HCI Adv Data: %d", eir.toString(true).c_str());
+
+    HCIStatusCode status;
+    if( use_ext_adv() ) {
+        HCIStructCommand<hci_cp_le_set_ext_adv_data> req0(HCIOpcode::LE_SET_EXT_ADV_DATA);
+        hci_cp_le_set_ext_adv_data * cp = req0.getWStruct();
+        cp->handle = 0x00; // TODO: Support more than one advertising sets?
+        cp->operation = LE_SET_ADV_DATA_OP_COMPLETE;
+        cp->frag_pref = LE_SET_ADV_DATA_NO_FRAG;
+        cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
+        const hci_rp_status * ev_status;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+    } else {
+        HCIStructCommand<hci_cp_le_set_adv_data> req0(HCIOpcode::LE_SET_ADV_DATA);
+        hci_cp_le_set_adv_data * cp = req0.getWStruct();
+        cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
+        const hci_rp_status * ev_status;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+    }
+    return status;
+}
+
+HCIStatusCode HCIHandler::le_set_scanrsp_data(const EInfoReport &eir, const EIRDataType mask) noexcept {
+    DBG_PRINT("HCI Adv Data: %d", eir.toString(true).c_str());
+
+    HCIStatusCode status;
+    if( use_ext_adv() ) {
+        HCIStructCommand<hci_cp_le_set_ext_scan_rsp_data> req0(HCIOpcode::LE_SET_EXT_SCAN_RSP_DATA);
+        hci_cp_le_set_ext_scan_rsp_data * cp = req0.getWStruct();
+        cp->handle = 0x00; // TODO: Support more than one advertising sets?
+        cp->operation = LE_SET_ADV_DATA_OP_COMPLETE;
+        cp->frag_pref = LE_SET_ADV_DATA_NO_FRAG;
+        cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
+        const hci_rp_status * ev_status;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+    } else {
+        HCIStructCommand<hci_cp_le_set_scan_rsp_data> req0(HCIOpcode::LE_SET_SCAN_RSP_DATA);
+        hci_cp_le_set_scan_rsp_data * cp = req0.getWStruct();
+        cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
+        const hci_rp_status * ev_status;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+    }
+    return status;
+}
+
+HCIStatusCode HCIHandler::le_enable_adv(const bool enable) noexcept {
+    if( !isOpen() ) {
+        ERR_PRINT("HCIHandler::le_enable_adv: Not connected %s", toString().c_str());
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
+    const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
+    if( advertisingEnabled == enable ) {
+        WARN_PRINT("HCIHandler::le_start_adv: Ignored: Advertising already enabled %s", toString().c_str());
+        return HCIStatusCode::SUCCESS;
+    }
+    HCIStatusCode status = HCIStatusCode::SUCCESS;
+
+    if( use_ext_adv() ) {
+        const hci_rp_status * ev_status;
+        if( enable ) {
+            struct hci_cp_le_set_ext_adv_enable_1 {
+                __u8  enable;
+                __u8  num_of_sets;
+                hci_cp_ext_adv_set sets[1];
+            } __packed;
+
+            HCIStructCommand<hci_cp_le_set_ext_adv_enable_1> req0(HCIOpcode::LE_SET_EXT_SCAN_RSP_DATA);
+            hci_cp_le_set_ext_adv_enable_1 * cp = req0.getWStruct();
+            cp->enable = 0x01;
+            cp->num_of_sets = 1;
+            cp->sets[0].handle = 0x00;
+            cp->sets[0].duration = 0; // continue adv until host disables
+            cp->sets[0].max_events = 0; // no maximum number of adv events
+            std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+        } else {
+            HCIStructCommand<hci_cp_le_set_ext_adv_enable> req0(HCIOpcode::LE_SET_EXT_SCAN_RSP_DATA);
+            hci_cp_le_set_ext_adv_enable * cp = req0.getWStruct();
+            cp->enable = 0x01;
+            cp->num_of_sets = 0; // disable all advertising sets
+            std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+        }
+    } else {
+        struct hci_cp_le_set_adv_enable {
+            uint8_t enable;
+        } __packed;
+        HCIStructCommand<hci_cp_le_set_adv_enable> req0(HCIOpcode::LE_SET_ADV_ENABLE);
+        hci_cp_le_set_adv_enable * cp = req0.getWStruct();
+        cp->enable = enable ? 0x01 : 0x00;
+        const hci_rp_status * ev_status;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+    }
+    if( HCIStatusCode::SUCCESS == status ) {
+        advertisingEnabled = enable;
+    }
+    return status;
+}
+
+HCIStatusCode HCIHandler::le_start_adv(const EInfoReport &eir,
+                                       const EIRDataType adv_mask, const EIRDataType scanrsp_mask,
+                                       const EUI48 &peer_bdaddr,
+                                       const HCILEOwnAddressType own_mac_type,
+                                       const HCILEOwnAddressType peer_mac_type,
+                                       const uint16_t adv_interval_min, const uint16_t adv_interval_max,
+                                       const AD_PDU_Type adv_type,
+                                       const uint8_t adv_chan_map,
+                                       const uint8_t filter_policy) noexcept
+{
+    if( !isOpen() ) {
+        ERR_PRINT("HCIHandler::le_start_adv: Not connected %s", toString().c_str());
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
+    const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
+
+    if( advertisingEnabled ) {
+        WARN_PRINT("HCIHandler::le_start_adv: Not allowed: Advertising is enabled %s", toString().c_str());
+        return HCIStatusCode::COMMAND_DISALLOWED;
+    }
+
+    // In depth check whether advertising is allowed:
+    // - no connection exists (TODO)
+    // - scanning disabled (OK)
+    if( ScanType::NONE != currentScanType ) {
+        WARN_PRINT("HCIHandler::le_start_adv: Not allowed: %s", toString().c_str());
+        return HCIStatusCode::COMMAND_DISALLOWED;
+    }
+
+    HCIStatusCode status = le_set_adv_data(eir, adv_mask);
+    if( HCIStatusCode::SUCCESS != status ) {
+        WARN_PRINT("HCIHandler::le_set_adv_data: le_set_scanrsp_data: %s - %s",
+                to_string(status).c_str(), toString().c_str());
+        return status;
+    }
+
+    status = le_set_scanrsp_data(eir, scanrsp_mask);
+    if( HCIStatusCode::SUCCESS != status ) {
+        WARN_PRINT("HCIHandler::le_start_adv: le_set_scanrsp_data: %s - %s",
+                to_string(status).c_str(), toString().c_str());
+        return status;
+    }
+    status = le_set_adv_param(peer_bdaddr, own_mac_type, peer_mac_type,
+
+                              adv_interval_min, adv_interval_max,
+                              adv_type, adv_chan_map, filter_policy);
+    if( HCIStatusCode::SUCCESS != status ) {
+        WARN_PRINT("HCIHandler::le_start_adv: le_set_adv_param: %s - %s",
+                to_string(status).c_str(), toString().c_str());
+        return status;
+    }
+
+    status = le_enable_adv(true);
+    if( HCIStatusCode::SUCCESS != status ) {
+        WARN_PRINT("HCIHandler::le_start_adv: le_enable_adv failed: %s - %s",
+                to_string(status).c_str(), toString().c_str());
+    }
+
     return status;
 }
 

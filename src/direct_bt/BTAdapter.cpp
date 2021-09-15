@@ -979,13 +979,84 @@ void BTAdapter::removeDevice(BTDevice & device) noexcept {
     }
 }
 
+// *************************************************
+
+HCIStatusCode BTAdapter::startAdvertising(const uint16_t adv_interval_min, const uint16_t adv_interval_max,
+                               const AD_PDU_Type adv_type,
+                               const uint8_t adv_chan_map,
+                               const uint8_t filter_policy) noexcept {
+    if( !adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
+        WARN_PRINT("BTAdapter::startAdvertising: Powered off: %s", toString(true).c_str());
+        hci.setCurrentScanType(ScanType::NONE);
+        currentMetaScanType = ScanType::NONE;
+        return HCIStatusCode::UNSPECIFIED_ERROR;
+    }
+    if( !hci.isOpen() ) {
+        ERR_PRINT("BTAdapter::startAdvertising: HCI closed: %s", toString(true).c_str());
+        return HCIStatusCode::UNSPECIFIED_ERROR;
+    }
+
+    EInfoReport eir;
+    eir.setFlags(GAPFlags::LE_Gen_Disc);
+    eir.setName(getName());
+    // eir.setManufactureSpecificData(msd); // 2 + 4
+    // eir.addService(uuid_01);
+
+    const EIRDataType mask_adv = EIRDataType::FLAGS | EIRDataType::NAME | EIRDataType::MANUF_DATA;
+
+    // Only services (scan resp)
+    const EIRDataType mask_scanrsp = EIRDataType::SERVICE_UUID;
+
+    const EUI48 peer_bdaddr=EUI48::ANY_DEVICE;
+    const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC;
+    const HCILEOwnAddressType peer_mac_type=HCILEOwnAddressType::PUBLIC;
+
+    HCIStatusCode status = hci.le_start_adv(eir, mask_adv, mask_scanrsp,
+                                            peer_bdaddr, own_mac_type, peer_mac_type,
+                                            adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy);
+    if( HCIStatusCode::SUCCESS != status ) {
+        ERR_PRINT("BTAdapter::stopAdvertising: le_start_adv failed: %s", to_string(status).c_str());
+    }
+    return status;
+}
+
+/**
+ * Closes the advertising session.
+ * <p>
+ * This adapter's HCIHandler instance is used to stop advertising,
+ * see HCIHandler::le_enable_adv().
+ * </p>
+ * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
+ */
+HCIStatusCode BTAdapter::stopAdvertising() noexcept {
+    if( !adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
+        WARN_PRINT("BTAdapter::stopAdvertising: Powered off: %s", toString(true).c_str());
+        hci.setCurrentScanType(ScanType::NONE);
+        currentMetaScanType = ScanType::NONE;
+        return HCIStatusCode::UNSPECIFIED_ERROR;
+    }
+    if( !hci.isOpen() ) {
+        ERR_PRINT("BTAdapter::stopAdvertising: HCI closed: %s", toString(true).c_str());
+        return HCIStatusCode::UNSPECIFIED_ERROR;
+    }
+
+    HCIStatusCode status = hci.le_enable_adv(false /* enable */);
+    if( HCIStatusCode::SUCCESS != status ) {
+        ERR_PRINT("BTAdapter::stopAdvertising: le_enable_adv failed: %s", to_string(status).c_str());
+    }
+    return status;
+}
+
+// *************************************************
+
 std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
     std::string random_address_info = adapterInfo.addressAndType != visibleAddressAndType ? " ("+visibleAddressAndType.toString()+")" : "";
     std::string out("Adapter[BTMode "+to_string(getBTMode())+", "+adapterInfo.addressAndType.toString()+random_address_info+
                     ", '"+getName()+"', id "+std::to_string(dev_id)+
                     ", curSettings"+to_string(adapterInfo.getCurrentSettingMask())+
-                    ", scanType[native "+to_string(hci.getCurrentScanType())+", meta "+to_string(currentMetaScanType)+"]"
                     ", valid "+std::to_string(isValid())+
+                    ", adv "+std::to_string(hci.isAdvertising())+
+                    ", scanType[native "+to_string(hci.getCurrentScanType())+", meta "+to_string(currentMetaScanType)+"]"
                     ", hci_ext[scan "+std::to_string(hci_uses_ext_scan)+", conn "+std::to_string(hci_uses_ext_conn)+
                     "], open[mgmt, "+std::to_string(mgmt.isOpen())+", hci "+std::to_string(hci.isOpen())+
                     "], "+javaObjectToString()+"]");
@@ -1223,7 +1294,8 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         }
     }
     if( nullptr == device ) {
-        // a whitelist auto-connect w/o previous discovery
+        // (1) a whitelist auto-connect w/o previous discovery, or
+        // (2) we are a peripheral being connected by a remote client
         device = BTDevice::make_shared(*this, ad_report);
         addDiscoveredDevice(device);
         addSharedDevice(device);

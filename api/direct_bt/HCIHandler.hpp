@@ -270,6 +270,7 @@ namespace direct_bt {
             std::atomic<BTMode> btMode;
 
             std::atomic<ScanType> currentScanType;
+            jau::sc_atomic_bool advertisingEnabled;
 
             jau::darray<HCIConnectionRef> connectionList;
             jau::darray<HCIConnectionRef> disconnectCmdList;
@@ -408,6 +409,8 @@ namespace direct_bt {
 
             ScanType getCurrentScanType() const noexcept { return currentScanType.load(); }
             void setCurrentScanType(const ScanType v) noexcept { currentScanType = v; }
+
+            bool isAdvertising() const noexcept { return advertisingEnabled.load(); }
 
             std::string toString() const noexcept;
 
@@ -641,11 +644,135 @@ namespace direct_bt {
             HCIStatusCode le_read_phy(const uint16_t conn_handle, const BDAddressAndType& addressAndType,
                                       LE_PHYs& resRx, LE_PHYs& resTx) noexcept;
 
+        private:
             /**
-             * Reset all internal states, i.e. connection and disconnect lists.
-             * @param powered_on indicates whether the adapter is powered on or not
+             * Sets LE advertising parameters.
+             * <pre>
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.53 LE Set Extended Advertising Parameters command (Bluetooth 5.0)
+             *
+             * if available, otherwise using
+             *
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.5 LE Set Advertising Parameters command
+             * </pre>
+             * <p>
+             * Scan parameters control advertising (AD) Protocol Data Unit (PDU) delivery behavior.
+             * </p>
+             * <p>
+             * Should not be called while LE scanning is active, otherwise HCIStatusCode::COMMAND_DISALLOWED will be returned.
+             * </p>
+             *
+             * @param peer_bdaddr EUI48 of directed peer, defaults to EUI48::ANY_DEVICE (zero address)
+             * @param own_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
+             * @param peer_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
+             * @param adv_interval_min in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+             * @param adv_interval_max in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+             * @param adv_type see AD_PDU_Type, default ::AD_PDU_Type::ADV_IND
+             * @param adv_chan_map bit 0: chan 37, bit 1: chan 38, bit 2: chan 39, default is 0x07 (all 3 channels enabled)
+             * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
              */
+            HCIStatusCode le_set_adv_param(const EUI48 &peer_bdaddr=EUI48::ANY_DEVICE,
+                                           const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
+                                           const HCILEOwnAddressType peer_mac_type=HCILEOwnAddressType::PUBLIC,
+                                           const uint16_t adv_interval_min=0x0800, const uint16_t adv_interval_max=0x0800,
+                                           const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND,
+                                           const uint8_t adv_chan_map=0x07,
+                                           const uint8_t filter_policy=0x00) noexcept;
 
+            /**
+             * Sets LE advertising data
+             * <pre>
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.54 LE Set Extended Advertising Data command (Bluetooth 5.0)
+             *
+             * if available, otherwise using
+             *
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.7 LE Set Advertising Data command
+             * </pre>
+             *
+             * @param eir EInfoReport full ADV EIR
+             * @param mask EIRDataType mask for EInfoReport to select advertisement EIR PDU data, defaults to EIRDataType::FLAGS | EIRDataType::NAME | EIRDataType::MANUF_DATA
+             * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
+             */
+            HCIStatusCode le_set_adv_data(const EInfoReport &eir,
+                                          const EIRDataType mask = EIRDataType::FLAGS | EIRDataType::NAME | EIRDataType::MANUF_DATA) noexcept;
+
+            /**
+             * Sets LE scan-response data (active scanning)
+             * <pre>
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.55 LE Set Extended Scan Response Data command (Bluetooth 5.0)
+             *
+             * if available, otherwise using
+             *
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.8 LE Set Scan Response Data command
+             * </pre>
+             *
+             * @param eir EInfoReport full ADV EIR
+             * @param mask EIRDataType mask for EInfoReport to select scan-response EIR PDU data, defaults to EIRDataType::SERVICE_UUID
+             * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
+             */
+            HCIStatusCode le_set_scanrsp_data(const EInfoReport &eir,
+                                              const EIRDataType mask = EIRDataType::SERVICE_UUID) noexcept;
+
+        public:
+            /**
+             * Enables or disabled advertising.
+             * <pre>
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.56 LE Set Extended Advertising Enable command (Bluetooth 5.0)
+             *
+             * if available, otherwise using
+             *
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.9 LE Set Advertising Enable command
+             * </pre>
+             * @param enable
+             * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
+             * @since 2.4.0
+             */
+            HCIStatusCode le_enable_adv(const bool enable) noexcept;
+
+            /**
+             * Starts advertising
+             * <pre>
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.53 LE Set Extended Advertising Parameters command (Bluetooth 5.0)
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.54 LE Set Extended Advertising Data command (Bluetooth 5.0)
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.55 LE Set Extended Scan Response Data command (Bluetooth 5.0)
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.56 LE Set Extended Advertising Enable command (Bluetooth 5.0)
+             *
+             * if available, otherwise using
+             *
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.5 LE Set Advertising Parameters command
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.7 LE Set Advertising Data command
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.8 LE Set Scan Response Data command
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.9 LE Set Advertising Enable command
+             * </pre>
+             * <p>
+             * TODO:
+             * - Random address for privacy if desired!
+             * - Consider SMP (security)
+             * </p>
+             *
+             * @param eir EInfoReport full ADV EIR
+             * @param adv_mask EIRDataType mask for EInfoReport to select advertisement EIR PDU data, defaults to EIRDataType::FLAGS | EIRDataType::NAME | EIRDataType::MANUF_DATA
+             * @param scanrsp_mask EIRDataType mask for EInfoReport to select scan-response (active scanning) EIR PDU data, defaults to EIRDataType::SERVICE_UUID
+             * @param peer_bdaddr EUI48 of directed peer, defaults to EUI48::ANY_DEVICE (zero address)
+             * @param own_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
+             * @param peer_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
+             * @param adv_interval_min in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+             * @param adv_interval_max in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+             * @param adv_type see AD_PDU_Type, default ::AD_PDU_Type::ADV_IND
+             * @param adv_chan_map bit 0: chan 37, bit 1: chan 38, bit 2: chan 39, default is 0x07 (all 3 channels enabled)
+             * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
+             * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
+             * @since 2.4.0
+             */
+            HCIStatusCode le_start_adv(const EInfoReport &eir,
+                                       const EIRDataType adv_mask = EIRDataType::FLAGS | EIRDataType::NAME | EIRDataType::MANUF_DATA,
+                                       const EIRDataType scanrsp_mask = EIRDataType::SERVICE_UUID,
+                                       const EUI48 &peer_bdaddr=EUI48::ANY_DEVICE,
+                                       const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
+                                       const HCILEOwnAddressType peer_mac_type=HCILEOwnAddressType::PUBLIC,
+                                       const uint16_t adv_interval_min=0x0800, const uint16_t adv_interval_max=0x0800,
+                                       const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND,
+                                       const uint8_t adv_chan_map=0x07,
+                                       const uint8_t filter_policy=0x00) noexcept;
 
             /** MgmtEventCallback handling  */
 

@@ -705,7 +705,7 @@ namespace direct_bt {
             int removeAllStatusListener();
 
             /**
-             * Starts a new discovery session.
+             * Starts discovery.
              * <p>
              * Returns HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state;
              * </p>
@@ -736,7 +736,7 @@ namespace direct_bt {
              * </p>
              * <p>
              * This adapter's HCIHandler instance is used to initiate scanning,
-             * see HCIHandler::le_set_scan_param() and HCIHandler::le_enable_scan().
+             * see HCIHandler::le_start_scan().
              * </p>
              * <p>
              * Method will always clear previous discovered devices via removeDiscoveredDevices().
@@ -754,7 +754,7 @@ namespace direct_bt {
                                          const uint8_t filter_policy=0x00);
 
             /**
-             * Closes the discovery session.
+             * Ends discovery.
              * <p>
              * This adapter's HCIHandler instance is used to stop scanning,
              * see HCIHandler::le_enable_scan().
@@ -818,6 +818,76 @@ namespace direct_bt {
 
             /** Returns shared BTDevice if found, otherwise nullptr */
             std::shared_ptr<BTDevice> findSharedDevice (const EUI48 & address, const BDAddressType addressType) noexcept;
+
+            /**
+             * Starts advertising
+             * <pre>
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.53 LE Set Extended Advertising Parameters command (Bluetooth 5.0)
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.54 LE Set Extended Advertising Data command (Bluetooth 5.0)
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.55 LE Set Extended Scan Response Data command (Bluetooth 5.0)
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.56 LE Set Extended Advertising Enable command (Bluetooth 5.0)
+             *
+             * if available, otherwise using
+             *
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.5 LE Set Advertising Parameters command
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.7 LE Set Advertising Data command
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.8 LE Set Scan Response Data command
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.9 LE Set Advertising Enable command
+             * </pre>
+             * <p>
+             * This adapter's HCIHandler instance is used to initiate scanning,
+             * see HCIHandler::le_start_adv().
+             * </p>
+             * <p>
+             * TODO:
+             * - Random address for privacy if desired!
+             * - Consider SMP (security)
+             * </p>
+             *
+             * @param adv_interval_min in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+             * @param adv_interval_max in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+             * @param adv_type see AD_PDU_Type, default ::AD_PDU_Type::ADV_IND
+             * @param adv_chan_map bit 0: chan 37, bit 1: chan 38, bit 2: chan 39, default is 0x07 (all 3 channels enabled)
+             * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
+             * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
+             * @see stopAdvertising()
+             * @see isAdvertising()
+             * @since 2.4.0
+             */
+            HCIStatusCode startAdvertising(const uint16_t adv_interval_min=0x0800, const uint16_t adv_interval_max=0x0800,
+                                           const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND,
+                                           const uint8_t adv_chan_map=0x07,
+                                           const uint8_t filter_policy=0x00) noexcept;
+
+            /**
+             * Ends advertising.
+             * <pre>
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.56 LE Set Extended Advertising Enable command (Bluetooth 5.0)
+             *
+             * if available, otherwise using
+             *
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.9 LE Set Advertising Enable command
+             * </pre>
+             * <p>
+             * This adapter's HCIHandler instance is used to stop scanning,
+             * see HCIHandler::le_enable_adv().
+             * </p>
+             * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
+             * @see startAdvertising()
+             * @see isAdvertising()
+             * @since 2.4.0
+             */
+            HCIStatusCode stopAdvertising() noexcept;
+
+            /**
+             * Returns the adapter's current advertising state. It can be modified through startAdvertising(..) and stopAdvertising().
+             * @see startAdvertising()
+             * @see stopAdvertising()
+             * @since 2.4.0
+             */
+            bool isAdvertising() const noexcept {
+                return hci.isAdvertising();
+            }
 
             std::string toString() const noexcept override { return toString(false); }
             std::string toString(bool includeDiscoveredDevices) const noexcept;

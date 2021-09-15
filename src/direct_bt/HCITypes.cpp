@@ -198,6 +198,10 @@ std::string to_string(const HCIOGF op) noexcept {
     X(LE_ENABLE_ENC) \
     X(LE_READ_PHY) \
     X(LE_SET_DEFAULT_PHY) \
+    X(LE_SET_EXT_ADV_PARAMS) \
+    X(LE_SET_EXT_ADV_DATA) \
+    X(LE_SET_EXT_SCAN_RSP_DATA) \
+    X(LE_SET_EXT_ADV_ENABLE) \
     X(LE_SET_EXT_SCAN_PARAMS) \
     X(LE_SET_EXT_SCAN_ENABLE) \
     X(LE_EXT_CREATE_CONN)
