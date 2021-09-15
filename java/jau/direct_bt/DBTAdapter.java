@@ -46,6 +46,7 @@ import org.direct_bt.BTGattService;
 import org.direct_bt.BTManager;
 import org.direct_bt.BTMode;
 import org.direct_bt.BTObject;
+import org.direct_bt.BTRole;
 import org.direct_bt.BTType;
 import org.direct_bt.BTUtils;
 import org.direct_bt.EIRDataTypeSet;
@@ -102,6 +103,18 @@ public class DBTAdapter extends DBTObject implements BTAdapter
 
     @Override
     public final BTManager getManager() { return DBTManager.getManager(); }
+
+    @Override
+    public final BTRole getRole() {
+        return BTRole.get(getRoleImpl());
+    }
+    private native byte getRoleImpl();
+
+    @Override
+    public final BTMode getBTMode() {
+        return BTMode.get(getBTModeImpl());
+    }
+    private native byte getBTModeImpl();
 
     @Override
     public void close() {

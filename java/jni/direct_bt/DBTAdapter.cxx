@@ -789,6 +789,28 @@ jbyte Java_jau_direct_1bt_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject obj)
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
+jbyte Java_jau_direct_1bt_DBTAdapter_getRoleImpl(JNIEnv *env, jobject obj)
+{
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        return (jbyte) number( adapter->getRole() );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number( BTRole::None );
+}
+
+jbyte Java_jau_direct_1bt_DBTAdapter_getBTModeImpl(JNIEnv *env, jobject obj)
+{
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        return (jbyte) number( adapter->getBTMode() );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number( BTMode::NONE );
+}
+
 jobject Java_jau_direct_1bt_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, jobject obj)
 {
     try {

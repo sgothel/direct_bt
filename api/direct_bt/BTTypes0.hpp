@@ -51,6 +51,23 @@ namespace direct_bt {
 
 
     /**
+     * Bluetooth device roles from the perspective of the link layer (connection initiator).
+     * @since 2.4.0
+     */
+    enum class BTRole : uint8_t {
+        /** Undefined role. */
+        None       = 0,
+        /** Master or *central* role, discovering remote devices and initiating connection. This is a GATT client. */
+        Master     = 1,
+        /** Slave or *peripheral* role, advertising and waiting for connections to accept. This is a GATT server. */
+        Slave      = 2
+    };
+    constexpr uint8_t number(const BTRole rhs) noexcept {
+        return static_cast<uint8_t>(rhs);
+    }
+    std::string to_string(const BTRole v) noexcept;
+
+    /**
      * Bluetooth adapter operating mode
      */
     enum class BTMode : uint8_t {

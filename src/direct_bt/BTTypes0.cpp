@@ -347,6 +347,15 @@ static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) noe
     return static_cast<const int8_t *>( static_cast<void *>( const_cast<uint8_t*>( p ) ) );
 }
 
+std::string direct_bt::to_string(const BTRole v) noexcept {
+    switch(v) {
+        case BTRole::None: return "None";
+        case BTRole::Master: return "Master";
+        case BTRole::Slave: return "Slave";
+    }
+    return "Unknown BTRole "+jau::to_hexstring(number(v));
+}
+
 std::string direct_bt::to_string(const BTMode v) noexcept {
     switch(v) {
         case BTMode::NONE: return "NONE";

@@ -32,12 +32,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
-  * Provides access to Bluetooth adapters.
-  *
-  * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
-  * @see [BlueZ device API](http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/device-api.txt)
-  *
-  */
+ * BTDevice represents one Bluetooth device.
+ *
+ * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
+ */
 public interface BTDevice extends BTObject
 {
     /** Find a BluetoothGattService. If parameter UUID is not null,

@@ -160,6 +160,7 @@ bool BTAdapter::updateDataFromAdapterInfo() noexcept {
 bool BTAdapter::initialSetup() noexcept {
     bool ok = false;
     currentMetaScanType = ScanType::NONE;
+    btRole = BTRole::Master;
     keep_le_scan_alive = false;
 
     if( !mgmt.isOpen() ) {
@@ -240,6 +241,7 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const A
   le_features( LE_Features::NONE ),
   visibleAddressAndType( adapterInfo_.addressAndType ),
   dev_id( adapterInfo.dev_id ),
+  btRole (BTRole::Master),
   hci( dev_id )
 {
     (void)cc;
@@ -330,6 +332,7 @@ void BTAdapter::poweredOff(const bool active) noexcept {
     hci.resetAllStates(false);
 
     currentMetaScanType = ScanType::NONE;
+    btRole = BTRole::Master;
 
     if( active ) {
         unlockConnectAny();
@@ -745,6 +748,7 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const bool le_scan
 
     if( hasScanType(currentNativeScanType, ScanType::LE) ) {
         removeDiscoveredDevices();
+        btRole = BTRole::Master;
         if( keep_le_scan_alive == keepAlive ) {
             DBG_PRINT("BTAdapter::startDiscovery: Already discovering, unchanged keepAlive %d -> %d, currentScanType[native %s, meta %s] ...\n- %s",
                     keep_le_scan_alive.load(), keepAlive,
@@ -1054,6 +1058,8 @@ HCIStatusCode BTAdapter::startAdvertising(const uint16_t adv_interval_min, const
                                             adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy);
     if( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("BTAdapter::stopAdvertising: le_start_adv failed: %s - %s", to_string(status).c_str(), toString(true).c_str());
+    } else {
+        btRole = BTRole::Slave;
     }
     return status;
 }
@@ -1093,7 +1099,7 @@ HCIStatusCode BTAdapter::stopAdvertising() noexcept {
 
 std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
     std::string random_address_info = adapterInfo.addressAndType != visibleAddressAndType ? " ("+visibleAddressAndType.toString()+")" : "";
-    std::string out("Adapter[BTMode "+to_string(getBTMode())+", "+adapterInfo.addressAndType.toString()+random_address_info+
+    std::string out("Adapter[BTMode "+to_string(getBTMode())+", "+to_string(getRole())+", "+adapterInfo.addressAndType.toString()+random_address_info+
                     ", '"+getName()+"', id "+std::to_string(dev_id)+
                     ", curSettings"+to_string(adapterInfo.getCurrentSettingMask())+
                     ", valid "+std::to_string(isValid())+
@@ -1218,6 +1224,9 @@ bool BTAdapter::mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSou
             event.toString().c_str());
     }
     currentMetaScanType = nextMetaScanType;
+    if( isDiscovering() ) {
+        btRole = BTRole::Master;
+    }
 
     checkDiscoveryState();
 

@@ -53,6 +53,11 @@ namespace direct_bt {
     class BTAdapter; // forward
     class AdapterStatusListener; // forward
 
+    /**
+     * BTDevice represents one Bluetooth device.
+     *
+     * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
+     */
     class BTDevice : public BTObject
     {
         friend BTAdapter; // managing us: ctor and update(..) during discovery

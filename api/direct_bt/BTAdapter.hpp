@@ -240,11 +240,19 @@ namespace direct_bt {
     /**
      * BTAdapter represents one Bluetooth Controller.
      * <p>
+     * BTAdapter roles:
+     *
+     * - ::BTRole::Master when discovery is enabled via startDiscovery(), but also per default at construction.
+     * - ::BTRole::Slave once advertising is enabled via startAdvertising(), explicit until next startDiscovery().
+     * </p>
+     * <p>
      * Controlling Environment variables:
      * <pre>
      * - 'direct_bt.debug.adapter.event': Debug messages about events, see debug_events
      * </pre>
      * </p>
+     *
+     * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
      */
     class BTAdapter : public BTObject
     {
@@ -260,7 +268,7 @@ namespace direct_bt {
             bool hci_uses_ext_conn;
 
             /**
-             * Either the adapter's initially reported public address or a random address setup via HCI before scanning / discovery.
+             * Either the adapter's initially reported public address or a random address setup via HCI before discovery or advertising.
              */
             BDAddressAndType visibleAddressAndType;
 
@@ -274,6 +282,7 @@ namespace direct_bt {
             const uint16_t dev_id;
 
         private:
+            std::atomic<BTRole> btRole; // = BTRole::Master (default)
             HCIHandler hci;
 
             std::atomic<AdapterSetting> old_settings;
@@ -492,6 +501,12 @@ namespace direct_bt {
             bool isValid() const noexcept {
                 return BTObject::isValid();
             }
+
+            /**
+             * Return the current BTRole of this adapter.
+             * @since 2.4.0
+             */
+            BTRole getRole() const noexcept { return btRole; }
 
             /**
              * Returns the current BTMode of this adapter.

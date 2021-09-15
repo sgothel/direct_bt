@@ -31,10 +31,15 @@ package org.direct_bt;
 import java.util.List;
 
 /**
-  * Provides access to Bluetooth adapters.
+  * BTAdapter represents one Bluetooth Controller.
+  * <p>
+  * BTAdapter roles:
+  *
+  * - {@link BTRole#Master} discovery is enabled via {@link #startDiscovery(boolean, boolean, short, short, byte) startDiscovery(..)}, but also per default at construction.
+  * - {@link BTRole#Slave} once advertising is enabled via {@link #startAdvertising(short, short, byte, byte, byte) startAdvertising(..)}, explicit until next {@link #startDiscovery(boolean, boolean, short, short, byte) startDiscovery(..)}.
+  * </p>
   *
   * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
-  * @see [BlueZ adapter API](http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/adapter-api.txt)
   */
 public interface BTAdapter extends BTObject
 {
@@ -42,6 +47,18 @@ public interface BTAdapter extends BTObject
      * Returns the used singleton {@link BTManager} instance, used to create this adapter.
      */
     public BTManager getManager();
+
+    /**
+     * Return the current {@link BTRole} of this adapter.
+     * @since 2.4.0
+     */
+    public BTRole getRole();
+
+    /**
+     * Returns the current {@link BTMode} of this adapter.
+     * @since 2.4.0
+     */
+    public BTMode getBTMode();
 
     /** Find a BluetoothDevice. If parameters name and address are not null,
       * the returned object will have to match them.
