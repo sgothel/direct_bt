@@ -1581,7 +1581,7 @@ HCIStatusCode HCIHandler::le_enable_adv(const bool enable) noexcept {
                 hci_cp_ext_adv_set sets[1];
             } __packed;
 
-            HCIStructCommand<hci_cp_le_set_ext_adv_enable_1> req0(HCIOpcode::LE_SET_EXT_SCAN_RSP_DATA);
+            HCIStructCommand<hci_cp_le_set_ext_adv_enable_1> req0(HCIOpcode::LE_SET_EXT_ADV_ENABLE);
             hci_cp_le_set_ext_adv_enable_1 * cp = req0.getWStruct();
             cp->enable = 0x01;
             cp->num_of_sets = 1;
@@ -1590,7 +1590,7 @@ HCIStatusCode HCIHandler::le_enable_adv(const bool enable) noexcept {
             cp->sets[0].max_events = 0; // no maximum number of adv events
             std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
         } else {
-            HCIStructCommand<hci_cp_le_set_ext_adv_enable> req0(HCIOpcode::LE_SET_EXT_SCAN_RSP_DATA);
+            HCIStructCommand<hci_cp_le_set_ext_adv_enable> req0(HCIOpcode::LE_SET_EXT_ADV_ENABLE);
             hci_cp_le_set_ext_adv_enable * cp = req0.getWStruct();
             cp->enable = 0x01;
             cp->num_of_sets = 0; // disable all advertising sets
