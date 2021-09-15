@@ -29,7 +29,6 @@
 package org.direct_bt;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
   * Provides access to Bluetooth adapters.
@@ -518,6 +517,15 @@ public interface BTAdapter extends BTObject
      * @since 2.0.0
      */
     public ScanType getCurrentScanType();
+
+    /**
+     * Returns true if the meta discovering state is not {@link ScanType#NONE}.
+     * It can be modified through {@link #startDiscovery(boolean, boolean)} and {@link #stopDiscovery()}.
+     * @see startDiscovery()
+     * @see stopDiscovery()
+     * @since 2.4.0
+     */
+    public boolean isDiscovering();
 
     /**
      * Add the given {@link AdapterStatusListener} to the list if not already present.

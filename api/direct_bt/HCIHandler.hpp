@@ -311,6 +311,7 @@ namespace direct_bt {
             HCIConnectionRef findTrackerConnection(const uint16_t handle) noexcept;
             HCIConnectionRef removeTrackerConnection(const HCIConnectionRef conn) noexcept;
             int countPendingTrackerConnections() noexcept;
+            int getTrackerConnectionCount() noexcept;
 
             HCIConnectionRef removeHCIConnection(jau::darray<HCIConnectionRef> &list, const uint16_t handle) noexcept;
             HCIConnectionRef removeTrackerConnection(const uint16_t handle) noexcept {

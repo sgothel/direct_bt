@@ -244,6 +244,11 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     }
 
     @Override
+    public final boolean isDiscovering() {
+        return ScanType.NONE != currentMetaScanType.get();
+    }
+
+    @Override
     public String toString() {
         if( !isValid() ) {
             return "Adapter" + "\u271D" + "["+addressAndType+", '"+name_cached+"', id "+dev_id+"]";

@@ -319,10 +319,14 @@ namespace direct_bt {
             /**
              * Closes all device connections, stops discovery and cleans up all references.
              * <p>
-             * To be called at destructor or when powered off.
+             * To be called at
+             *
+             * - destructor or when powered off (active = true)
+             * - when `!isPowered()` is detected in methods (active = false)
              * </p>
+             * @param active true to actively stopDiscovery and disconnect devices etc, otherwise this is an all passive operation
              */
-            void poweredOff() noexcept;
+            void poweredOff(const bool active) noexcept;
 
             friend std::shared_ptr<BTDevice> BTDevice::getSharedInstance() const noexcept;
             friend void BTDevice::remove() noexcept;
@@ -349,6 +353,7 @@ namespace direct_bt {
             bool removeConnectedDevice(const BTDevice & device) noexcept;
             int disconnectAllDevices(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
             std::shared_ptr<BTDevice> findConnectedDevice (const EUI48 & address, const BDAddressType & addressType) noexcept;
+            int getConnectedDeviceCount() const noexcept;
 
             bool addDiscoveredDevice(std::shared_ptr<BTDevice> const &device) noexcept;
 
@@ -778,7 +783,8 @@ namespace direct_bt {
             }
 
             /**
-             * Returns the adapter's current native discovering ScanType. It can be modified through startDiscovery(..) and stopDiscovery().
+             * Returns the adapter's current native discovering ScanType.
+             * It can be modified through startDiscovery(..) and stopDiscovery().
              * @see startDiscovery()
              * @see stopDiscovery()
              */
@@ -787,11 +793,13 @@ namespace direct_bt {
             }
 
             /**
-             * Returns the meta discovering state. It can be modified through startDiscovery(..) and stopDiscovery().
+             * Returns true if the meta discovering state is not ::ScanType::NONE.
+             * It can be modified through startDiscovery(..) and stopDiscovery().
              * @see startDiscovery()
              * @see stopDiscovery()
+             * @since 2.4.0
              */
-            bool getDiscovering() const noexcept {
+            bool isDiscovering() const noexcept {
                 return ScanType::NONE != currentMetaScanType;
             }
 

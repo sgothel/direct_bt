@@ -152,6 +152,10 @@ int HCIHandler::countPendingTrackerConnections() noexcept {
     }
     return count;
 }
+int HCIHandler::getTrackerConnectionCount() noexcept {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+    return connectionList.size();
+}
 HCIHandler::HCIConnectionRef HCIHandler::removeHCIConnection(jau::darray<HCIConnectionRef> &list, const uint16_t handle) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     auto end = list.end();
@@ -1013,8 +1017,8 @@ HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_du
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
-    if( advertisingEnabled ) {
-        WARN_PRINT("HCIHandler::le_enable_scan: Not allowed: Advertising is enabled %s", toString().c_str());
+    if( enable && advertisingEnabled ) {
+        WARN_PRINT("HCIHandler::le_enable_scan(true): Not allowed: Advertising is enabled %s", toString().c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
     ScanType nextScanType = changeScanType(currentScanType, ScanType::LE, enable);
@@ -1553,10 +1557,19 @@ HCIStatusCode HCIHandler::le_enable_adv(const bool enable) noexcept {
         return HCIStatusCode::INTERNAL_FAILURE;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    if( advertisingEnabled == enable ) {
-        WARN_PRINT("HCIHandler::le_start_adv: Ignored: Advertising already enabled %s", toString().c_str());
-        return HCIStatusCode::SUCCESS;
+
+    if( enable ) {
+        if( ScanType::NONE != currentScanType ) {
+            WARN_PRINT("HCIHandler::le_enable_adv(true): Not allowed (scan enabled): %s", toString().c_str());
+            return HCIStatusCode::COMMAND_DISALLOWED;
+        }
+        const int connCount = getTrackerConnectionCount();
+        if( 0 < connCount ) {
+            WARN_PRINT("HCIHandler::le_enable_adv(true): Not allowed (%d connections open/pending): %s", connCount, toString().c_str());
+            return HCIStatusCode::COMMAND_DISALLOWED;
+        }
     }
+
     HCIStatusCode status = HCIStatusCode::SUCCESS;
 
     if( use_ext_adv() ) {
@@ -1615,16 +1628,13 @@ HCIStatusCode HCIHandler::le_start_adv(const EInfoReport &eir,
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
-    if( advertisingEnabled ) {
-        WARN_PRINT("HCIHandler::le_start_adv: Not allowed: Advertising is enabled %s", toString().c_str());
+    if( ScanType::NONE != currentScanType ) {
+        WARN_PRINT("HCIHandler::le_start_adv: Not allowed (scan enabled): %s", toString().c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
-
-    // In depth check whether advertising is allowed:
-    // - no connection exists (TODO)
-    // - scanning disabled (OK)
-    if( ScanType::NONE != currentScanType ) {
-        WARN_PRINT("HCIHandler::le_start_adv: Not allowed: %s", toString().c_str());
+    const int connCount = getTrackerConnectionCount();
+    if( 0 < connCount ) {
+        WARN_PRINT("HCIHandler::le_start_adv: Not allowed (%d connections open/pending): %s", connCount, toString().c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
 
