@@ -415,8 +415,12 @@ namespace direct_bt {
 
             std::string toString() const noexcept;
 
+        private:
             /**
              * Bring up this adapter into a POWERED functional state.
+             * <p>
+             * Currently used in resetAdapter() only.
+             * </p>
              */
             HCIStatusCode startAdapter();
 
@@ -429,9 +433,13 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
              * </pre>
              * </p>
+             * <p>
+             * Currently used in resetAdapter() only.
+             * </p>
              */
             HCIStatusCode stopAdapter();
 
+        public:
             /**
              * Reset the adapter.
              * <p>
@@ -468,6 +476,26 @@ namespace direct_bt {
              * @see resetAllStates()
              */
             LE_Features le_get_local_features() noexcept { return le_ll_feats; }
+
+            /**
+             * Request supported LE_Features from remote device.
+             * <pre>
+             * BT Core Spec v5.2: Vol 6, Part B, 4.6 (LE LL) Feature Support
+             *
+             * BT Core Spec v5.2: Vol 4, Part E, 7.8.21 LE Read Remote Features command
+             * </pre>
+             *
+             * Method returns immediate without result.
+             *
+             * Result is being delivered off-thread via HCIMetaEventType::LE_REMOTE_FEAT_COMPLETE, see
+             * <pre>
+             * BT Core Spec v5.2: Vol 4, Part E, 7.7.65.4 LE Read Remote Features Complete event
+             * </pre>
+             *
+             *
+             * @return HCIStatusCode
+             */
+            HCIStatusCode le_read_remote_features(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType) noexcept;
 
         private:
             /**
@@ -628,7 +656,7 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.6 Disconnect command
              * </pre>
              */
-            HCIStatusCode disconnect(const uint16_t conn_handle, const BDAddressAndType& addressAndType,
+            HCIStatusCode disconnect(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
                                      const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION) noexcept;
 
             /**
@@ -642,7 +670,7 @@ namespace direct_bt {
              * @param resTx reference for the resulting transmitter LE_PHYs bit
              * @return HCIStatusCode
              */
-            HCIStatusCode le_read_phy(const uint16_t conn_handle, const BDAddressAndType& addressAndType,
+            HCIStatusCode le_read_phy(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
                                       LE_PHYs& resRx, LE_PHYs& resTx) noexcept;
 
         private:

@@ -693,7 +693,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
 #endif
         filter_put_metaevs(mask);
     }
-    // Mandatory own HCIOpcodeBit/HCIOpcode filter
+    // Own HCIOpcodeBit/HCIOpcode filter (not functional yet!)
     {
         uint64_t mask = 0;
 #if FILTER_ALL_EVENTS
@@ -713,6 +713,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         filter_set_opcbit(HCIOpcodeBit::LE_SET_SCAN_PARAM, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_SET_SCAN_ENABLE, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_CREATE_CONN, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_READ_REMOTE_FEATURES, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_ENABLE_ENC, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_READ_PHY, mask);
         // filter_set_opcbit(HCIOpcodeBit::LE_SET_DEFAULT_PHY, mask);
@@ -779,6 +780,50 @@ bool HCIHandler::initSupCommands() noexcept {
         sup_commands_set = true;
         return true;
     }
+}
+
+HCIStatusCode HCIHandler::le_read_remote_features(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType) noexcept {
+    if( !isOpen() ) {
+        ERR_PRINT("HCIHandler::le_read_remote_features: Not connected %s", toString().c_str());
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
+    if( 0 == conn_handle ) {
+        ERR_PRINT("HCIHandler::le_read_remote_features: Null conn_handle given address%s (drop) - %s",
+                  peerAddressAndType.toString().c_str(), toString().c_str());
+        return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
+    }
+    {
+        const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+        HCIConnectionRef conn = findTrackerConnection(conn_handle);
+        if( nullptr == conn ) {
+            // called w/o being connected through this HCIHandler
+            ERR_PRINT("HCIHandler::le_read_remote_features: Not tracked handle %s (address%s) (drop) - %s",
+                       jau::to_hexstring(conn_handle).c_str(),
+                       peerAddressAndType.toString().c_str(), toString().c_str());
+            return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
+        } else if( !conn->equals(peerAddressAndType) ) {
+            ERR_PRINT("HCIHandler::le_read_remote_features: Mismatch given address%s and tracked %s (drop) - %s",
+                       peerAddressAndType.toString().c_str(),
+                       conn->toString().c_str(), toString().c_str());
+            return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
+        }
+        DBG_PRINT("HCIHandler::le_read_remote_features: address%s, handle %s, %s - %s",
+                   peerAddressAndType.toString().c_str(),
+                   jau::to_hexstring(conn_handle).c_str(),
+                   conn->toString().c_str(), toString().c_str());
+    }
+    HCIStatusCode status;
+
+    HCIStructCommand<hci_cp_le_read_remote_features> req0(HCIOpcode::LE_READ_REMOTE_FEATURES);
+    hci_cp_le_read_remote_features * cp = req0.getWStruct();
+    cp->handle = jau::cpu_to_le(conn_handle);
+    std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
+
+    if( nullptr == ev || HCIStatusCode::SUCCESS != status ) {
+        ERR_PRINT("HCIHandler::le_read_remote_features: LE_READ_PHY: 0x%x (%s) - %s",
+                number(status), to_string(status).c_str(), toString().c_str());
+    }
+    return status;
 }
 
 bool HCIHandler::resetAllStates(const bool powered_on) noexcept {
