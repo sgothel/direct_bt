@@ -1372,12 +1372,12 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         }
     }
     if( nullptr == device ) {
-        // (1) a whitelist auto-connect w/o previous discovery, or
-        // (2) we are a peripheral being connected by a remote client
+        // (new_connect = 3) a whitelist auto-connect w/o previous discovery, or
+        // (new_connect = 4) we are a peripheral being connected by a remote client
         device = BTDevice::make_shared(*this, ad_report);
         addDiscoveredDevice(device);
         addSharedDevice(device);
-        new_connect = 3;
+        new_connect = BTRole::Master == getRole() ? 3 : 4;
     }
 
     const SMPIOCapability io_cap_conn = mgmt.getIOCapability(dev_id);
@@ -1403,7 +1403,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     device->notifyConnected(device, event.getHCIHandle(), io_cap_conn);
 
     if( device->isConnSecurityAutoEnabled() ) {
-        new_connect = 0; // disable deviceConnected() events
+        new_connect = 0; // disable deviceConnected() events for BTRole::Master for SMP-Auto
     }
     int i=0;
     jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
@@ -1423,6 +1423,22 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         }
         i++;
     });
+
+    if( BTRole::Slave == getRole() ) {
+        // For BTRole::Master, BlueZ Kernel does request LE_Features already
+        // Hence we have to trigger sending LE_Features for BTRole::Slave ourselves
+        //
+        // This is mandatory to trigger BTDevice::notifyLEFeatures() via our mgmtEvHCILERemoteUserFeaturesHCI()
+        // to proceed w/ post-connection and eventually issue deviceRead().
+
+        // Replied with: Command Status 0x0f (timeout) and Status 0x0c (disallowed),
+        // despite core-spec states valid for both master and slave.
+        // hci.le_read_remote_features(event.getHCIHandle(), device->getAddressAndType());
+
+        // Hence .. fake it until we make it
+        const LE_Features lf = LE_Features::NONE;
+        device->notifyLEFeatures(device, lf);
+    }
     return true;
 }
 

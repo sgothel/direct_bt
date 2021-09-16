@@ -1300,6 +1300,11 @@ bool BTDevice::setConnSecurityAuto(const SMPIOCapability iocap_auto) noexcept {
                 toString().c_str());
         return false;
     }
+    if( BTRole::Master == getRole() ) {
+        DBG_PRINT("BTDevice::setConnSecurityAuto: Not allowed with remote device in master mode: %s",
+                to_string(iocap_auto).c_str(), toString().c_str());
+        return false;
+    }
 
     jau::sc_atomic_critical sync(sync_data);
     const bool res = true;
