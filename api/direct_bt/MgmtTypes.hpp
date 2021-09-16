@@ -1192,11 +1192,8 @@ namespace direct_bt {
             : MgmtMsg(number(opc), dev_id, param_size)
             {
                 // checkOpcode(opc, READ_VERSION, SET_BLOCKED_KEYS);
-
-                pdu.put_uint16_nc(0, static_cast<uint16_t>(opc));
-                pdu.put_uint16_nc(2, dev_id);
-                pdu.put_uint16_nc(4, param_size);
             }
+
             MgmtEvent(const Opcode opc, const uint16_t dev_id, const uint16_t param_size, const uint8_t* param)
             : MgmtEvent(opc, dev_id, param_size)
             {
