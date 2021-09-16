@@ -312,23 +312,27 @@ BTGattHandler::BTGattHandler(const std::shared_ptr<BTDevice> &device, L2CAPComm&
         }
     }
 
-    // First point of failure if device exposes no GATT functionality. Allow a longer timeout!
-    uint16_t mtu = 0;
-    try {
-        mtu = exchangeMTUImpl(number(Defaults::MAX_ATT_MTU), env.GATT_INITIAL_COMMAND_REPLY_TIMEOUT);
-    } catch (std::exception &e) {
-        ERR_PRINT2("GattHandler.ctor: exchangeMTU failed: %s", e.what());
-    } catch (std::string &msg) {
-        ERR_PRINT2("GattHandler.ctor: exchangeMTU failed: %s", msg.c_str());
-    } catch (const char *msg) {
-        ERR_PRINT2("GattHandler.ctor: exchangeMTU failed: %s", msg);
-    }
-    if( 0 == mtu ) {
-        ERR_PRINT2("GATTHandler::ctor: Zero serverMTU -> disconnect: %s", deviceString.c_str());
-        disconnect(true /* disconnectDevice */, false /* ioErrorCause */);
+    if( GATTRole::Client == getRole() ) {
+        // First point of failure if remote device exposes no GATT functionality. Allow a longer timeout!
+        uint16_t mtu = 0;
+        try {
+            mtu = exchangeMTUImpl(number(Defaults::MAX_ATT_MTU), env.GATT_INITIAL_COMMAND_REPLY_TIMEOUT);
+        } catch (std::exception &e) {
+            ERR_PRINT2("GattHandler.ctor: exchangeMTU failed: %s", e.what());
+        } catch (std::string &msg) {
+            ERR_PRINT2("GattHandler.ctor: exchangeMTU failed: %s", msg.c_str());
+        } catch (const char *msg) {
+            ERR_PRINT2("GattHandler.ctor: exchangeMTU failed: %s", msg);
+        }
+        if( 0 == mtu ) {
+            ERR_PRINT2("GATTHandler::ctor: Zero serverMTU -> disconnect: %s", toString().c_str());
+            disconnect(true /* disconnectDevice */, false /* ioErrorCause */);
+        } else {
+            serverMTU = mtu;
+            usedMTU = std::min(number(Defaults::MAX_ATT_MTU), (int)serverMTU);
+        }
     } else {
-        serverMTU = mtu;
-        usedMTU = std::min(number(Defaults::MAX_ATT_MTU), (int)serverMTU);
+        // FIXME: Negotiate .. try MAX_ATT_MTU
     }
 }
 
