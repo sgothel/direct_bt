@@ -367,6 +367,40 @@ namespace direct_bt {
             static constexpr bool bit_test(const Opcode lhs, const Opcode rhs) noexcept {
                 return 0 != ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
             }
+            static constexpr bool is_req(const Opcode rhs) noexcept {
+                switch(rhs) {
+                    case Opcode::EXCHANGE_MTU_REQ:
+                        [[fallthrough]];
+                    case Opcode::FIND_INFORMATION_REQ:
+                        [[fallthrough]];
+                    case Opcode::FIND_BY_TYPE_VALUE_REQ:
+                        [[fallthrough]];
+                    case Opcode::READ_BY_TYPE_REQ:
+                        [[fallthrough]];
+                    case Opcode::READ_REQ:
+                        [[fallthrough]];
+                    case Opcode::READ_BLOB_REQ:
+                        [[fallthrough]];
+                    case Opcode::READ_MULTIPLE_REQ:
+                        [[fallthrough]];
+                    case Opcode::READ_BY_GROUP_TYPE_REQ:
+                        [[fallthrough]];
+                    case Opcode::WRITE_REQ:
+                        [[fallthrough]];
+                    case Opcode::WRITE_CMD:
+                        [[fallthrough]];
+                    case Opcode::PREPARE_WRITE_REQ:
+                        [[fallthrough]];
+                    case Opcode::EXECUTE_WRITE_REQ:
+                        [[fallthrough]];
+                    case Opcode::READ_MULTIPLE_VARIABLE_REQ:
+                        [[fallthrough]];
+                    case Opcode::SIGNED_WRITE_CMD:
+                        return true;
+                    default:
+                        return false;
+                }
+            }
 
         protected:
             void checkOpcode(const Opcode expected) const
@@ -389,7 +423,7 @@ namespace direct_bt {
 
             virtual std::string baseString() const noexcept {
                 return "opcode="+jau::to_hexstring(number(getOpcode()))+" "+getOpcodeString(getOpcode())+
-                        ", size[total="+std::to_string(pdu.getSize())+", param "+std::to_string(getPDUParamSize())+"]";
+                        ", req "+std::to_string(is_request)+", size[total="+std::to_string(pdu.getSize())+", param "+std::to_string(getPDUParamSize())+"]";
             }
             virtual std::string valueString() const noexcept {
                 return "size "+std::to_string(getPDUValueSize())+", data "
@@ -399,6 +433,9 @@ namespace direct_bt {
         public:
             /** actual received PDU */
             POctets pdu;
+
+            /** flags a request PDU, i.e. a command etc, initiated by a GATT client */
+            const bool is_request;
 
             /** creation timestamp in milliseconds */
             const uint64_t ts_creation;
@@ -413,14 +450,18 @@ namespace direct_bt {
 
             /** Persistent memory, w/ ownership ..*/
             AttPDUMsg(const uint8_t* source, const jau::nsize_t size)
-                : pdu(source, std::max<jau::nsize_t>(1, size)), ts_creation(jau::getCurrentMilliseconds())
+                : pdu(source, std::max<jau::nsize_t>(1, size)),
+                  is_request( is_req( getOpcode() ) ),
+                  ts_creation(jau::getCurrentMilliseconds())
             {
                 pdu.check_range(0, getPDUMinSize());
             }
 
             /** Persistent memory, w/ ownership ..*/
             AttPDUMsg(const Opcode opc, const jau::nsize_t size)
-                : pdu(std::max<jau::nsize_t>(1, size)), ts_creation(jau::getCurrentMilliseconds())
+                : pdu(std::max<jau::nsize_t>(1, size)),
+                  is_request( is_req( opc ) ),
+                  ts_creation(jau::getCurrentMilliseconds())
             {
                 pdu.put_uint8_nc(0, number(opc));
                 pdu.check_range(0, getPDUMinSize());
@@ -637,7 +678,7 @@ namespace direct_bt {
     {
         public:
             AttExchangeMTU(const uint8_t* source, const jau::nsize_t length) : AttPDUMsg(source, length) {
-                checkOpcode(Opcode::EXCHANGE_MTU_RSP);
+                checkOpcode(Opcode::EXCHANGE_MTU_RSP, Opcode::EXCHANGE_MTU_REQ);
             }
 
             AttExchangeMTU(const uint16_t mtuSize)

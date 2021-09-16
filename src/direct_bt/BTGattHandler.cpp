@@ -255,7 +255,11 @@ void BTGattHandler::l2capReaderThreadImpl() {
             } else if( AttPDUMsg::Opcode::MULTIPLE_HANDLE_VALUE_NTF == opc ) {
                 // FIXME TODO ..
                 ERR_PRINT("GATTHandler::reader: MULTI-NTF not implemented: %s", attPDU->toString().c_str());
+            } else if( attPDU->is_request ) {
+                // FIXME TODO ..
+                COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: REQ: Drop: %s", attPDU->toString().c_str());
             } else {
+                COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: Ring: %s", attPDU->toString().c_str());
                 attPDURing.putBlocking( std::move(attPDU) );
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
