@@ -1477,7 +1477,7 @@ namespace direct_bt {
 }
 
 /** \example dbt_scanner10.cpp
- * This _dbt_scanner10_ C++ scanner example uses the Direct-BT fully event driven workflow
+ * This _dbt_scanner10_ C++ scanner ::BTRole::Master example uses the Direct-BT fully event driven workflow
  * and adds multithreading, i.e. one thread processes each found device found
  * as notified via the event listener.
  *
@@ -1493,6 +1493,11 @@ namespace direct_bt {
  * * Read device C0:26:DA:01:DA:B1  (using default auto-sec w/ keyboard iocap)
  *   ~~~
  *   ../scripts/run-dbt_scanner10.sh -dev C0:26:DA:01:DA:B1
+ *   ~~~
+ *
+ * * Read device C0:26:DA:01:DA:B1  (using default auto-sec w/ keyboard iocap) from adapter 01:02:03:04:05:06
+ *   ~~~
+ *   ../scripts/run-dbt_scanner10.sh -adapter adapter 01:02:03:04:05:06 -dev C0:26:DA:01:DA:B1
  *   ~~~
  *
  * * Read device C0:26:DA:01:DA:B1  (enforcing no security)
@@ -1526,6 +1531,10 @@ namespace direct_bt {
  *   echo '1-4' > /sys/bus/usb/drivers/usb/unbind
  *   echo '1-4' > /sys/bus/usb/drivers/usb/bind
  *   ~~~
+ */
+
+/** \example dbt_peripheral00.cpp
+ * This _dbt_peripheral00__ C++ peripheral ::BTRole::Slave example uses the Direct-BT fully event driven workflow.
  */
 
  /** \example dbt_scanner00.cpp

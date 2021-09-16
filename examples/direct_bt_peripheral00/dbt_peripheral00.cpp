@@ -50,7 +50,7 @@ using namespace direct_bt;
 using namespace jau;
 
 /** \file
- * This _dbt_peripheral00__ C++ peripheral example uses the Direct-BT fully event driven workflow.
+ * This _dbt_peripheral00__ C++ peripheral ::BTRole::Slave example uses the Direct-BT fully event driven workflow.
  */
 
 const static std::string KEY_PATH = "keys";

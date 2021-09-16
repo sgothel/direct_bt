@@ -37,6 +37,7 @@ import org.direct_bt.BDAddressAndType;
 import org.direct_bt.BDAddressType;
 import org.direct_bt.BLERandomAddressType;
 import org.direct_bt.BTMode;
+import org.direct_bt.BTRole;
 import org.direct_bt.BTSecurityLevel;
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTDevice;
@@ -53,7 +54,6 @@ import org.direct_bt.BTUtils;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.EUI48;
 import org.direct_bt.GattCharPropertySet;
-import org.direct_bt.BTGattCharListener;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.HCIWhitelistConnectType;
 import org.direct_bt.PairingMode;
@@ -65,7 +65,7 @@ import org.direct_bt.ScanType;
 import jau.direct_bt.DBTManager;
 
 /**
- * This Java scanner example uses the Direct-BT fully event driven workflow
+ * This Java scanner {@link BTRole::Master} example uses the Direct-BT fully event driven workflow
  * and adds multithreading, i.e. one thread processes each found device found
  * as notified via the event listener.
  * <p>

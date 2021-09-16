@@ -31,6 +31,7 @@ import org.direct_bt.AdapterSettings;
 import org.direct_bt.AdapterStatusListener;
 import org.direct_bt.BDAddressAndType;
 import org.direct_bt.BTMode;
+import org.direct_bt.BTRole;
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTDevice;
 import org.direct_bt.BTException;
@@ -47,7 +48,7 @@ import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
 
 /**
- * This Java peripheral example uses the Direct-BT fully event driven workflow.
+ * This Java peripheral {@link BTRole::Slave} example uses the Direct-BT fully event driven workflow.
  */
 public class DBTPeripheral00 {
     static final String KEY_PATH = "keys";

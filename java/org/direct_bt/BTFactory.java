@@ -562,7 +562,7 @@ public class BTFactory {
 }
 
 /** \example DBTScanner10.java
- * This Java scanner example uses the Direct-BT fully event driven workflow
+ * This Java scanner {@link BTRole::Master} example uses the Direct-BT fully event driven workflow
  * and adds multithreading, i.e. one thread processes each found device found
  * as notified via the event listener.
  * <p>
@@ -571,5 +571,9 @@ public class BTFactory {
  * <p>
  * See `dbt_scanner10.cpp` for invocation examples, since both apps are fully compatible.
  * </p>
+ */
+
+/** \example DBTPeripheral00.java
+ * This Java peripheral {@link BTRole::Slave} example uses the Direct-BT fully event driven workflow.
  */
 
