@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * BTDevice represents one Bluetooth device.
+ * BTDevice represents one remote Bluetooth device.
  *
  * @anchor BTDeviceRoles
  * Invariable remote BTDevice roles (see {@link #getRole()})
