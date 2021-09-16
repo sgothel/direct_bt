@@ -158,18 +158,13 @@ bool BTAdapter::updateDataFromAdapterInfo() noexcept {
 }
 
 bool BTAdapter::initialSetup() noexcept {
-    bool ok = false;
-    currentMetaScanType = ScanType::NONE;
-    btRole = BTRole::Master;
-    keep_le_scan_alive = false;
-
     if( !mgmt.isOpen() ) {
         ERR_PRINT("BTAdapter::initialSetup: Adapter[%d]: Manager not open", dev_id);
-        goto errout0;
+        return false;
     }
     if( !hci.isOpen() ) {
         ERR_PRINT("BTAdapter::initialSetup: Adapter[%d]: HCIHandler closed", dev_id);
-        goto errout0;
+        return false;
     }
 
     old_settings = adapterInfo.getCurrentSettingMask();
@@ -189,47 +184,68 @@ bool BTAdapter::initialSetup() noexcept {
         hci.resetAllStates(false);
         WORDY_PRINT("BTAdapter::initialSetup: Adapter[%d]: Not POWERED: %s", dev_id, adapterInfo.toString().c_str());
     }
-
-    ok = true;
-    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
-    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewSettingsMgmt)) && ok;
-    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLocalNameChangedMgmt)) && ok;
-    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvPinCodeRequestMgmt));
-    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_CONFIRM_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvUserConfirmRequestMgmt));
-    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvUserPasskeyRequestMgmt));
-    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::AUTH_FAILED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvAuthFailedMgmt));
-    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceUnpairedMgmt));
-    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvPairDeviceCompleteMgmt));
-    ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewLongTermKeyMgmt));
-
-    if( !ok ) {
-        ERR_PRINT("Could not add all required MgmtEventCallbacks to DBTManager: %s", toString().c_str());
-        return false;
-    }
-
-#if 0
-    mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDisconnectedMgmt));
-#endif
-
-    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDiscoveringHCI)) && ok;
-    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceConnectedHCI)) && ok;
-    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvConnectFailedHCI)) && ok;
-    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDisconnectedHCI)) && ok;
-    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceFoundHCI)) && ok;
-    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_REMOTE_USR_FEATURES, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI)) && ok;
-    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_CHANGED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCIEncryptionChangedHCI)) && ok;
-    ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI)) && ok;
-
-    if( !ok ) {
-        ERR_PRINT("Could not add all required MgmtEventCallbacks to HCIHandler: %s of %s", hci.toString().c_str(), toString().c_str());
-        return false; // dtor local HCIHandler w/ closing
-    }
-    hci.addSMPMsgCallback(jau::bindMemberFunc(this, &BTAdapter::hciSMPMsgCallback));
+    WORDY_PRINT("BTAdapter::initialSetup: Adapter[%d]: Done: %s - %s", dev_id, adapterInfo.toString().c_str(), toString().c_str());
 
     return true;
+}
 
-errout0:
-    return false;
+bool BTAdapter::enableListening(const bool enable) noexcept {
+    if( enable ) {
+        if( !mgmt.isOpen() ) {
+            ERR_PRINT("BTAdapter::enableListening: Adapter[%d]: Manager not open", dev_id);
+            return false;
+        }
+        if( !hci.isOpen() ) {
+            ERR_PRINT("BTAdapter::enableListening: Adapter[%d]: HCIHandler closed", dev_id);
+            return false;
+        }
+
+        // just be sure ..
+        mgmt.removeMgmtEventCallback(dev_id);
+        hci.clearAllCallbacks();
+
+        bool ok = true;
+        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
+        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewSettingsMgmt)) && ok;
+        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLocalNameChangedMgmt)) && ok;
+        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvPinCodeRequestMgmt));
+        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_CONFIRM_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvUserConfirmRequestMgmt));
+        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvUserPasskeyRequestMgmt));
+        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::AUTH_FAILED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvAuthFailedMgmt));
+        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceUnpairedMgmt));
+        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvPairDeviceCompleteMgmt));
+        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewLongTermKeyMgmt));
+
+        if( !ok ) {
+            ERR_PRINT("BTAdapter::enableListening: Could not add all required MgmtEventCallbacks to DBTManager: %s", toString().c_str());
+            return false;
+        }
+
+    #if 0
+        mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDisconnectedMgmt));
+    #endif
+
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDiscoveringHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceConnectedHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvConnectFailedHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDisconnectedHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceFoundHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_REMOTE_USR_FEATURES, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_CHANGED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCIEncryptionChangedHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI)) && ok;
+
+        if( !ok ) {
+            ERR_PRINT("BTAdapter::enableListening: Could not add all required MgmtEventCallbacks to HCIHandler: %s of %s", hci.toString().c_str(), toString().c_str());
+            return false; // dtor local HCIHandler w/ closing
+        }
+        hci.addSMPMsgCallback(jau::bindMemberFunc(this, &BTAdapter::hciSMPMsgCallback));
+    } else {
+        mgmt.removeMgmtEventCallback(dev_id);
+        hci.clearAllCallbacks();
+    }
+    WORDY_PRINT("BTAdapter::enableListening: Adapter[%d]: Done: %s - %s", dev_id, adapterInfo.toString().c_str(), toString().c_str());
+
+    return true;
 }
 
 BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const AdapterInfo& adapterInfo_) noexcept
@@ -241,8 +257,10 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const A
   le_features( LE_Features::NONE ),
   visibleAddressAndType( adapterInfo_.addressAndType ),
   dev_id( adapterInfo.dev_id ),
-  btRole (BTRole::Master),
-  hci( dev_id )
+  btRole ( BTRole::Master ),
+  hci( dev_id ),
+  currentMetaScanType( ScanType::NONE ),
+  keep_le_scan_alive( false )
 {
     (void)cc;
     valid = initialSetup();
@@ -252,6 +270,7 @@ BTAdapter::~BTAdapter() noexcept {
     if( !isValid() ) {
         DBG_PRINT("BTAdapter::dtor: dev_id %d, invalid, %p", dev_id, this);
         mgmt.removeAdapter(this); // remove this instance from manager
+        hci.clearAllCallbacks();
         return;
     }
     DBG_PRINT("BTAdapter::dtor: ... %p %s", this, toString().c_str());
@@ -276,6 +295,7 @@ void BTAdapter::close() noexcept {
         int count = mgmt.removeMgmtEventCallback(dev_id);
         DBG_PRINT("BTAdapter::close removeMgmtEventCallback: %d callbacks", count);
     }
+    hci.clearAllCallbacks();
     statusListenerList.clear();
 
     poweredOff(true /* active */);
@@ -401,9 +421,16 @@ HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
     adapter_initialized = true;
     HCIStatusCode status = mgmt.initializeAdapter(adapterInfo, dev_id, btMode);
     if( HCIStatusCode::SUCCESS != status ) {
+        ERR_PRINT("BTAdapter::initialize: Adapter[%d]: Failed initializeAdapter(): res0 %s, %s - %s",
+                dev_id, to_string(status).c_str(), adapterInfo.toString().c_str(), toString().c_str());
         return status;
     }
-    return updateAdapterSettings(adapterInfo.getCurrentSettingMask(), false, 0) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
+    if( !enableListening(true) ) {
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
+    status = updateAdapterSettings(adapterInfo.getCurrentSettingMask(), false, 0) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
+    WORDY_PRINT("BTAdapter::initialize: Adapter[%d]: Done: res0 %s - %s", dev_id, to_string(status).c_str(), toString().c_str());
+    return status;
 }
 
 bool BTAdapter::lockConnect(const BTDevice & device, const bool wait, const SMPIOCapability io_cap) noexcept {
@@ -1526,13 +1553,6 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
         WORDY_PRINT("BTAdapter::EventHCI:DeviceDisconnected(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
-    return true;
-}
-
-bool BTAdapter::mgmtEvDeviceDisconnectedMgmt(const MgmtEvent& e) noexcept {
-    COND_PRINT(debug_event, "BTAdapter:mgmt:DeviceDisconnected: %s", e.toString().c_str());
-    const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(&e);
-    (void)event;
     return true;
 }
 

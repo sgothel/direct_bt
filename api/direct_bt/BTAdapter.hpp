@@ -316,6 +316,7 @@ namespace direct_bt {
             bool updateDataFromHCI() noexcept;
             bool updateDataFromAdapterInfo() noexcept;
             bool initialSetup() noexcept;
+            bool enableListening(const bool enable) noexcept;
 
             static std::shared_ptr<BTDevice> findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
             static std::shared_ptr<BTDevice> findDevice(device_list_t & devices, BTDevice const & device) noexcept;
@@ -381,7 +382,6 @@ namespace direct_bt {
             bool mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept;
-            bool mgmtEvDeviceDisconnectedMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept;
 
