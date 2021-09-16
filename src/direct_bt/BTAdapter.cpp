@@ -419,7 +419,7 @@ bool BTAdapter::setPowered(bool value) noexcept {
 
 HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
     adapter_initialized = true;
-    HCIStatusCode status = mgmt.initializeAdapter(adapterInfo, dev_id, btMode);
+    HCIStatusCode status = mgmt.initializeAdapter(adapterInfo, dev_id, BTRole::None /* unused */, btMode);
     if( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("BTAdapter::initialize: Adapter[%d]: Failed initializeAdapter(): res0 %s, %s - %s",
                 dev_id, to_string(status).c_str(), adapterInfo.toString().c_str(), toString().c_str());

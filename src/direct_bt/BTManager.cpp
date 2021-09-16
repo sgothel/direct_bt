@@ -252,7 +252,8 @@ fail:
     return adapterInfo;
 }
 
-HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint16_t dev_id, const BTMode btMode) noexcept {
+HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint16_t dev_id,
+                                           const BTRole btRole, const BTMode btMode) noexcept {
     /**
      * We weight on PairingMode::PASSKEY_ENTRY. FIXME: Have it configurable!
      *
@@ -330,7 +331,16 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
     setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 0, current_settings);
 #endif
 
-    setMode(dev_id, MgmtCommand::Opcode::SET_CONNECTABLE, 0, current_settings);
+#if 0
+    if( BTRole::Slave == btRole ) {
+        setMode(dev_id, MgmtCommand::Opcode::SET_CONNECTABLE, 1, current_settings);
+    } else {
+        setMode(dev_id, MgmtCommand::Opcode::SET_CONNECTABLE, 0, current_settings);
+    }
+#else
+    (void)btRole;
+    setMode(dev_id, MgmtCommand::Opcode::SET_CONNECTABLE, 0, current_settings); // '1' not required for BTRole::Slave
+#endif
     setMode(dev_id, MgmtCommand::Opcode::SET_FAST_CONNECTABLE, 0, current_settings);
 
     removeDeviceFromWhitelist(dev_id, BDAddressAndType::ANY_BREDR_DEVICE); // flush whitelist!

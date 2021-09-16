@@ -196,7 +196,7 @@ namespace direct_bt {
             static const pid_t pidSelf;
 
         private:
-            friend BTAdapter::~BTAdapter() noexcept;
+            friend BTAdapter;
 
 #if USE_LINUX_BT_SECURITY
             /** Default initialization with ::SMPIOCapability::NO_INPUT_NO_OUTPUT for PairingMode::JUST_WORKS. */
@@ -374,12 +374,14 @@ namespace direct_bt {
              * <p>
              * While initialization, the adapter is first powered-off, setup and then powered-on.
              * </p>
-             * @param dev_id the adapter's device id
-             * @param btMode the desired adapter's BTMode, defaults to BTMode::DUAL
              * @param adapterInfo reference for the AdapterInfo, updated to reflect the new initialized values.
+             * @param dev_id the adapter's device id
+             * @param btRole the desired adapter's BTRole (currently ignored)
+             * @param btMode the desired adapter's BTMode
              * @return HCIStatusCode::SUCCESS or an error state
              */
-            HCIStatusCode initializeAdapter(AdapterInfo& adapterInfo, const uint16_t dev_id, const BTMode btMode=BTMode::DUAL) noexcept;
+            HCIStatusCode initializeAdapter(AdapterInfo& adapterInfo, const uint16_t dev_id,
+                                            const BTRole btRole, const BTMode btMode) noexcept;
 
             /** Start discovery on given adapter dev_id with a ScanType matching the given BTMode. Returns set ScanType. */
             ScanType startDiscovery(const uint16_t dev_id, const BTMode btMode) noexcept;
