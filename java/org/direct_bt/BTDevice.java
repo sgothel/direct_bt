@@ -34,6 +34,16 @@ import java.util.Map;
 /**
  * BTDevice represents one Bluetooth device.
  *
+ * @anchor BTDeviceRoles
+ * Invariable remote BTDevice roles (see {@link #getRole()})
+ *
+ * - {@link BTRole::Master}: The remote device has discovered us and maybe is connected to us. The remote device acts as a GATT client.
+ * - {@link BTRole::Slave}: The remote device has advertised and maybe we are connected to it. The remote device acts as a GATT server.
+ *
+ * Note the local {@link BTAdapter}'s [opposite role](@ref BTAdapterRoles).
+ *
+ * @see BTAdapter
+ * @see [BTAdapter roles](@ref BTAdapterRoles).
  * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
  */
 public interface BTDevice extends BTObject
@@ -654,6 +664,13 @@ public interface BTDevice extends BTObject
       * @return The adapter.
       */
     BTAdapter getAdapter();
+
+    /**
+     * Return the fixed {@link BTRole} of this remote {@link BTDevice}.
+     * @see @ref BTDeviceRoles
+     * @since 2.4.0
+     */
+    BTRole getRole();
 
     /** Returns a map containing manufacturer specific advertisement data.
       * An entry has a uint16_t key and an array of bytes.

@@ -31,14 +31,19 @@ package org.direct_bt;
 import java.util.List;
 
 /**
-  * BTAdapter represents one Bluetooth Controller.
+  * BTAdapter represents one local Bluetooth Controller.
   * <p>
-  * BTAdapter roles:
+  * @anchor BTAdapterRoles
+  * Local BTAdapter roles (see {@link #getRole()}):
   *
-  * - {@link BTRole#Master} discovery is enabled via {@link #startDiscovery(boolean, boolean, short, short, byte) startDiscovery(..)}, but also per default at construction.
-  * - {@link BTRole#Slave} once advertising is enabled via {@link #startAdvertising(short, short, byte, byte, byte) startAdvertising(..)}, explicit until next {@link #startDiscovery(boolean, boolean, short, short, byte) startDiscovery(..)}.
+  * - {@link BTRole::Master}: The local adapter is discovering remote {@link BTRole::Slave} {@link BTDevice}s and may initiate connections. Enabled via {@link #startDiscovery(boolean, boolean, short, short, byte) startDiscovery(..)}, but also per default at construction.
+  * - {@link BTRole::Slave}: The local adapter is advertising to remote {@link BTRole::Master} {@link BTDevice}s and may accept connections. Enabled explicitly via {@link #startAdvertising(short, short, byte, byte, byte) startAdvertising(..)} until {@link #startDiscovery(boolean, boolean, short, short, byte) startDiscovery(..)}.
+  *
+  * Note the remote {@link BTDevice}'s [opposite role](@ref BTDeviceRoles).
   * </p>
   *
+  * @see BTDevice
+  * @see [BTDevice roles](@ref BTDeviceRoles).
   * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
   */
 public interface BTAdapter extends BTObject
@@ -50,6 +55,7 @@ public interface BTAdapter extends BTObject
 
     /**
      * Return the current {@link BTRole} of this adapter.
+     * @see @ref BTAdapterRoles
      * @since 2.4.0
      */
     public BTRole getRole();
@@ -152,12 +158,30 @@ public interface BTAdapter extends BTObject
 
 
     /**
-     * Turns on device discovery if it is disabled.
-     * <p>
-     * {@code jau.direct_bt}'s implementation will always issue {@link #removeDiscoveredDevices()},
-     * ensuring all scanned devices will be found after calling this method. Regardless whether
-     * discovery is already running.
-     * </p>
+     * Starts discovery using all default arguments, see {@link #startDiscovery(boolean, boolean, short, short, byte)} for details.
+     *
+     * @param keepAlive
+     * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
+     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
+     * @throws BTException
+     * @since 2.2.8
+     * @see #startDiscovery(boolean, boolean, int, int, byte)
+     * @see #getDiscovering()
+     */
+    public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active) throws BTException;
+
+    /**
+     * Starts discovery.
+     *
+     * Returns {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state;
+     *
+     * if `keepAlive` is `true`, discovery state will be re-enabled
+     * in case the underlying Bluetooth implementation disables it.
+     * Default is `true`.
+     *
+     * Using {@link #startDiscovery(boolean, boolean, short, short, byte) startDiscovery(keepAlive=true, ...) and {@link #stopDiscovery()}
+     * is the recommended workflow for a reliable discovery process.
+     *
      * <pre>
      * + --+-------+--------+-----------+----------------------------------------------------+
      * | # | meta  | native | keepAlive | Note
@@ -171,24 +195,16 @@ public interface BTAdapter extends BTObject
      * +---+-------+--------+-----------+----------------------------------------------------+
      * </pre>
      *
-     * @param keepAlive if {@code true}, indicates that discovery shall be restarted
-     *        if stopped by the underlying Bluetooth implementation (BlueZ, ..).
-     *        Using {@link #startDiscovery(boolean) startDiscovery}({@code keepAlive=true})
-     *        and {@link #stopDiscovery()} is the recommended workflow
-     *        for a reliable discovery process.
-     * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
-     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
-     * @throws BTException
-     * @since 2.0.0
-     * @since 2.2.8
-     * @see #startDiscovery(boolean, boolean, int, int, byte)
-     * @see #getDiscovering()
-     */
-    public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active) throws BTException;
-
-    /**
-     * Shares same implementation as {@link #startDiscovery(boolean, boolean)}, but allows setting custom scan values.
-     * @param keepAlive
+     * Default parameter values are chosen for using public address resolution
+     * and usual discovery intervals etc.
+     *
+     * Method will always clear previous discovered devices via {@link #removeDiscoveredDevices()}.
+     *
+     * Method fails if isAdvertising().
+     *
+     * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to {@link BTRole#Master}.
+     *
+     * @param keepAlive see above
      * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
      * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
      * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
@@ -197,7 +213,9 @@ public interface BTAdapter extends BTObject
      * @throws BTException
      * @since 2.2.8
      * @see #startDiscovery(boolean, boolean)
-     * @see #getDiscovering()
+     * @see #isDiscovering()
+     * @see isAdvertising()
+     * @see @ref BTAdapterRoles
      */
     public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active,
                                         final short le_scan_interval, final short le_scan_window,
@@ -251,6 +269,10 @@ public interface BTAdapter extends BTObject
      * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.9 LE Set Advertising Enable command
      * </pre>
      *
+     * Method fails if isDiscovering() or has any open or pending connected remote {@link BTDevice}s.
+     *
+     * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to ::BTRole::Slave.
+     *
      * @param adv_interval_min in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
      * @param adv_interval_max in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
      * @param adv_type see AD_PDU_Type, default 0x00, i.e. ::AD_PDU_Type::ADV_IND
@@ -260,17 +282,22 @@ public interface BTAdapter extends BTObject
      * @see #startAdvertising()
      * @see #stopAdvertising()
      * @see #isAdvertising()
+     * @see isDiscovering()
+     * @see @ref BTAdapterRoles
      * @since 2.4.0
      */
     HCIStatusCode startAdvertising(final short adv_interval_min, final short adv_interval_max,
                                    final byte adv_type, final byte adv_chan_map, final byte filter_policy);
 
     /**
-     * Starts advertising using all default arguments.
+     * Starts advertising using all default arguments, see {@link #startAdvertising(short, short, byte, byte, byte)} for details.
+     *
      * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
      * @see #startAdvertising(short, short, byte, byte, byte)
      * @see #stopAdvertising()
      * @see #isAdvertising()
+     * @see isDiscovering()
+     * @see @ref BTAdapterRoles
      * @since 2.4.0
      */
     HCIStatusCode startAdvertising(); /* {

@@ -45,7 +45,7 @@
 using namespace direct_bt;
 
 BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
-: adapter(a),
+: adapter(a), btRole(!a.getRole()),
   l2cap_att(adapter.getAddressAndType(), L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT),
   ts_creation(r.getTimestamp()),
   addressAndType{r.getAddress(), r.getAddressType()}
@@ -89,6 +89,14 @@ BTDevice::~BTDevice() noexcept {
 
 std::shared_ptr<BTDevice> BTDevice::getSharedInstance() const noexcept {
     return adapter.getSharedDevice(*this);
+}
+
+GATTRole BTDevice::getLocalGATTRole() const noexcept {
+    switch( btRole ) {
+        case BTRole::Master: return GATTRole::Server;
+        case BTRole::Slave: return GATTRole::Client;
+        default: return GATTRole::None;
+    }
 }
 
 bool BTDevice::addAdvService(std::shared_ptr<const uuid_t> const &uuid) noexcept
@@ -143,7 +151,7 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
     const uint64_t t0 = jau::getCurrentMilliseconds();
     jau::sc_atomic_critical sync(sync_data);
     std::string msdstr = nullptr != advMSD ? advMSD->toString() : "MSD[null]";
-    std::string out("Device["+addressAndType.toString()+", name['"+name+
+    std::string out("Device["+to_string(getRole())+", "+addressAndType.toString()+", name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
             "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", handle "+jau::to_hexstring(hciConnHandle)+
             ", sec[lvl "+to_string(pairing_data.sec_level_conn)+", io "+to_string(pairing_data.ioCap_conn)+
@@ -654,15 +662,16 @@ void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
-    const bool res1 = connectGATT(sthis); // may close connection and hence clear pairing_data
+    const bool gatt_res = connectGATT(sthis); // may close connection and hence clear pairing_data
 
-    if( !res1 && PairingMode::PRE_PAIRED == pmode ) {
+    if( !gatt_res && PairingMode::PRE_PAIRED == pmode ) {
         // Need to repair as GATT communication failed
         unpair_res = unpair();
     }
     DBG_PRINT("BTDevice::processDeviceReady: ready[GATT %d, unpair %s], %s",
-            res1, to_string(unpair_res).c_str(), toString().c_str());
-    if( res1 ) {
+            gatt_res, to_string(unpair_res).c_str(), toString().c_str());
+
+    if( gatt_res ) {
         adapter.sendDeviceReady(sthis, timestamp);
     }
 }

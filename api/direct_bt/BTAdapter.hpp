@@ -238,20 +238,24 @@ namespace direct_bt {
     }
 
     /**
-     * BTAdapter represents one Bluetooth Controller.
-     * <p>
-     * BTAdapter roles:
+     * BTAdapter represents one local Bluetooth Controller.
      *
-     * - ::BTRole::Master when discovery is enabled via startDiscovery(), but also per default at construction.
-     * - ::BTRole::Slave once advertising is enabled via startAdvertising(), explicit until next startDiscovery().
-     * </p>
-     * <p>
+     * @anchor BTAdapterRoles
+     * Local BTAdapter roles (see getRole()):
+     *
+     * - {@link BTRole::Master}: The local adapter is discovering remote ::BTRole::Slave {@link BTDevice}s and may initiate connections. Enabled via startDiscovery(), but also per default at construction.
+     * - {@link BTRole::Slave}: The local adapter is advertising to remote ::BTRole::Master {@link BTDevice}s and may accept connections. Enabled explicitly via startAdvertising() until startDiscovery().
+     *
+     * Note the remote {@link BTDevice}'s [opposite role](@ref BTDeviceRoles).
+     *
      * Controlling Environment variables:
      * <pre>
      * - 'direct_bt.debug.adapter.event': Debug messages about events, see debug_events
      * </pre>
-     * </p>
      *
+     * @see BTDevice
+     * @see [BTDevice roles](@ref BTDeviceRoles).
+     * @see [BTGattHandler roles](@ref BTGattHandlerRoles).
      * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
      */
     class BTAdapter : public BTObject
@@ -504,6 +508,8 @@ namespace direct_bt {
 
             /**
              * Return the current BTRole of this adapter.
+             * @see BTRole
+             * @see @ref BTAdapterRoles
              * @since 2.4.0
              */
             BTRole getRole() const noexcept { return btRole; }
@@ -726,18 +732,16 @@ namespace direct_bt {
 
             /**
              * Starts discovery.
-             * <p>
+             *
              * Returns HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state;
-             * </p>
-             * <p>
+             *
              * if `keepAlive` is `true`, discovery state will be re-enabled
-             * in case the underlying Bluetooth implementation (BlueZ, ..) disabled it.
+             * in case the underlying Bluetooth implementation disables it.
              * Default is `true`.
-             * </p>
-             * <p>
+             *
              * Using startDiscovery(keepAlive=true) and stopDiscovery()
              * is the recommended workflow for a reliable discovery process.
-             * </p>
+             *
              * <pre>
              * + --+-------+--------+-----------+----------------------------------------------------+
              * | # | meta  | native | keepAlive | Note
@@ -750,23 +754,29 @@ namespace direct_bt {
              * | 5 | false | false  | true      | [4] -> [5] requires manual DISCOVERING event
              * +---+-------+--------+-----------+----------------------------------------------------+
              * </pre>
-             * <p>
-             * Remaining default parameter values are chosen for using public address resolution
+             *
+             * Default parameter values are chosen for using public address resolution
              * and usual discovery intervals etc.
-             * </p>
-             * <p>
+             *
+             * Method will always clear previous discovered devices via removeDiscoveredDevices().
+             *
+             * Method fails if isAdvertising().
+             *
+             * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to ::BTRole::Master.
+             *
              * This adapter's HCIHandler instance is used to initiate scanning,
              * see HCIHandler::le_start_scan().
-             * </p>
-             * <p>
-             * Method will always clear previous discovered devices via removeDiscoveredDevices().
-             * </p>
+             *
              * @param keepAlive
              * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
              * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
              * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
              * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
              * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
+             * @see stopDiscovery()
+             * @see isDiscovering()
+             * @see isAdvertising()
+             * @see @ref BTAdapterRoles
              */
             HCIStatusCode startDiscovery(const bool keepAlive=true,
                                          const bool le_scan_active=false,
@@ -780,6 +790,8 @@ namespace direct_bt {
              * see HCIHandler::le_enable_scan().
              * </p>
              * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
+             * @see startDiscovery()
+             * @see isDiscovering()
              */
             HCIStatusCode stopDiscovery() noexcept;
 
@@ -857,15 +869,20 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.8 LE Set Scan Response Data command
              * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.9 LE Set Advertising Enable command
              * </pre>
-             * <p>
+             *
+             * Method fails if isDiscovering() or has any open or pending connected remote {@link BTDevice}s.
+             *
+             *
+             * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to ::BTRole::Slave.
+             *
+             *
              * This adapter's HCIHandler instance is used to initiate scanning,
              * see HCIHandler::le_start_adv().
-             * </p>
-             * <p>
+             *
+             *
              * TODO:
              * - Random address for privacy if desired!
              * - Consider SMP (security)
-             * </p>
              *
              * @param adv_interval_min in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
              * @param adv_interval_max in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
@@ -875,6 +892,8 @@ namespace direct_bt {
              * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
              * @see stopAdvertising()
              * @see isAdvertising()
+             * @see isDiscovering()
+             * @see @ref BTAdapterRoles
              * @since 2.4.0
              */
             HCIStatusCode startAdvertising(const uint16_t adv_interval_min=0x0800, const uint16_t adv_interval_max=0x0800,

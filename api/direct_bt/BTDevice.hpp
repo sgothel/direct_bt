@@ -54,8 +54,19 @@ namespace direct_bt {
     class AdapterStatusListener; // forward
 
     /**
-     * BTDevice represents one Bluetooth device.
+     * BTDevice represents one remote Bluetooth device.
      *
+     * @anchor BTDeviceRoles
+     * Invariable remote BTDevice roles (see getRole()):
+     *
+     * - {@link BTRole::Master}: The remote device has discovered us and maybe is connected to us. The remote device acts as a ::GATTRole::Client.
+     * - {@link BTRole::Slave}: The remote device has advertised and maybe we are connected to it. The remote device acts as a ::GATTRole::Server.
+     *
+     * Note the local {@link BTAdapter}'s [opposite role](@ref BTAdapterRoles).
+     *
+     * @see BTAdapter
+     * @see [BTAdapter roles](@ref BTAdapterRoles).
+     * @see [BTGattHandler roles](@ref BTGattHandlerRoles).
      * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
      */
     class BTDevice : public BTObject
@@ -65,6 +76,7 @@ namespace direct_bt {
 
         private:
             BTAdapter & adapter;
+            BTRole btRole;
             L2CAPComm l2cap_att;
             uint64_t ts_last_discovery;
             uint64_t ts_last_update;
@@ -250,6 +262,22 @@ namespace direct_bt {
 
             /** Returns the shared pointer of this instance managed by the adapter. */
             std::shared_ptr<BTDevice> getSharedInstance() const noexcept;
+
+            /**
+             * Return the fixed BTRole of this remote BTDevice.
+             * @see BTRole
+             * @see @ref BTDeviceRoles
+             * @since 2.4.0
+             */
+            BTRole getRole() const noexcept { return btRole; }
+
+            /**
+             * Return the local GATTRole operating for the remote BTDevice.
+             * @see @ref BTGattHandlerRoles
+             * @see @ref BTDeviceRoles
+             * @since 2.4.0
+             */
+            GATTRole getLocalGATTRole() const noexcept;
 
             /**
              * Returns the timestamp in monotonic milliseconds when this device instance has been created,

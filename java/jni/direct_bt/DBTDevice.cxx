@@ -313,6 +313,17 @@ void Java_jau_direct_1bt_DBTDevice_deleteImpl(JNIEnv *env, jobject obj, jlong na
     }
 }
 
+jbyte Java_jau_direct_1bt_DBTDevice_getRoleImpl(JNIEnv *env, jobject obj)
+{
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        return (jbyte) number( device->getRole() );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number( BTRole::None );
+}
+
 jbyte Java_jau_direct_1bt_DBTDevice_disconnectImpl(JNIEnv *env, jobject obj)
 {
     try {

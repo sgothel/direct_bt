@@ -25,10 +25,12 @@
 package org.direct_bt;
 
 /**
- * Bluetooth device roles from the perspective of the link layer (connection initiator).
+ * Bluetooth roles from the perspective of the link layer (connection initiator).
  * <p>
  * See {@link #get(byte)} for its native integer mapping.
  * </p>
+ * @see [BTAdapter roles](@ref BTAdapterRoles).
+ * @see [BTDevice roles](@ref BTDeviceRoles).
  * @since 2.4.0
  */
 public enum BTRole {

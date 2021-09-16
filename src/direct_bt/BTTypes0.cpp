@@ -356,6 +356,15 @@ std::string direct_bt::to_string(const BTRole v) noexcept {
     return "Unknown BTRole "+jau::to_hexstring(number(v));
 }
 
+std::string direct_bt::to_string(const GATTRole v) noexcept {
+    switch(v) {
+        case GATTRole::None: return "None";
+        case GATTRole::Client: return "Client";
+        case GATTRole::Server: return "Server";
+    }
+    return "Unknown GATTRole "+jau::to_hexstring(number(v));
+}
+
 std::string direct_bt::to_string(const BTMode v) noexcept {
     switch(v) {
         case BTMode::NONE: return "NONE";

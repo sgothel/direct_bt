@@ -130,12 +130,24 @@ namespace direct_bt {
 
     /**
      * A thread safe GATT handler associated to one device via one L2CAP connection.
-     * <p>
+     *
      * Implementation utilizes a lock free ringbuffer receiving data within its separate thread.
-     * </p>
-     * <p>
+     *
      * Controlling Environment variables, see {@link BTGattEnv}.
-     * </p>
+     *
+     * @anchor BTGattHandlerRoles
+     * Local GATTRole to a remote BTDevice, (see getRole()):
+     *
+     * - {@link GATTRole::Server}: The remote device in ::BTRole::Master role running a ::GATTRole::Client. We acts as a ::GATTRole::Server.
+     * - {@link GATTRole::Client}: The remote device in ::BTRole::Slave role running a ::GATTRole::Server. We acts as a ::GATTRole::Client.
+     *
+     * See [BTDevice roles](@ref BTDeviceRoles) and [BTAdapter roles](@ref BTAdapterRoles).
+     *
+     * @see GATTRole
+     * @see [BTAdapter roles](@ref BTAdapterRoles).
+     * @see [BTDevice roles](@ref BTDeviceRoles).
+     * @see [BTGattHandler roles](@ref BTGattHandlerRoles).
+     * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
      */
     class BTGattHandler {
         public:
@@ -153,6 +165,7 @@ namespace direct_bt {
 
             /** BTGattHandler's device weak back-reference */
             std::weak_ptr<BTDevice> wbr_device;
+            GATTRole role;
             L2CAPComm& l2cap;
 
             const std::string deviceString;
@@ -249,6 +262,14 @@ namespace direct_bt {
 
             std::shared_ptr<BTDevice> getDeviceUnchecked() const noexcept { return wbr_device.lock(); }
             std::shared_ptr<BTDevice> getDeviceChecked() const;
+
+            /**
+             * Return the local GATTRole to the remote BTDevice.
+             * @see GATTRole
+             * @see [BTGattHandler roles](@ref BTGattHandlerRoles).
+             * @since 2.4.0
+             */
+            GATTRole getRole() const noexcept { return role; }
 
             bool isConnected() const noexcept { return is_connected ; }
             bool hasIOError() const noexcept { return has_ioerror; }
@@ -536,6 +557,8 @@ namespace direct_bt {
              * @return `true` if successful, otherwise false in case no GATT services exists etc.
              */
             bool ping();
+
+            std::string toString() const noexcept;
     };
 
 } // namespace direct_bt

@@ -51,21 +51,50 @@ namespace direct_bt {
 
 
     /**
-     * Bluetooth device roles from the perspective of the link layer (connection initiator).
+     * Bluetooth roles from the perspective of the link layer (connection initiator).
+     * @see [BTAdapter roles](@ref BTAdapterRoles).
+     * @see [BTDevice roles](@ref BTDeviceRoles).
      * @since 2.4.0
      */
     enum class BTRole : uint8_t {
         /** Undefined role. */
         None       = 0,
-        /** Master or *central* role, discovering remote devices and initiating connection. This is a GATT client. */
+        /** Master or *central* role, discovering remote devices and initiating connection. This is a ::GATTRole::Client. */
         Master     = 1,
-        /** Slave or *peripheral* role, advertising and waiting for connections to accept. This is a GATT server. */
+        /** Slave or *peripheral* role, advertising and waiting for connections to accept. This is a ::GATTRole::Server. */
         Slave      = 2
     };
     constexpr uint8_t number(const BTRole rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
+    constexpr BTRole operator !(const BTRole rhs) noexcept {
+        switch(rhs) {
+            case BTRole::Master: return BTRole::Slave;
+            case BTRole::Slave: return BTRole::Master;
+            default: return BTRole::None;
+        }
+    }
     std::string to_string(const BTRole v) noexcept;
+
+    /**
+     * Bluetooth GATT roles
+     * @see [BTGattHandler roles](@ref BTGattHandlerRoles).
+     * @see [BTAdapter roles](@ref BTAdapterRoles).
+     * @see [BTDevice roles](@ref BTDeviceRoles).
+     * @since 2.4.0
+     */
+    enum class GATTRole : uint8_t {
+        /** Undefined role. */
+        None       = 0,
+        /** Local GATT server role to a remote BTDevice ::BTRole::Master running a ::GATTRole::Client. Local BTAdapter is in ::BTRole::Slave role. */
+        Server     = 1,
+        /** Local GATT client role to a remote BTDevice ::BTRole::Slave running a ::GATTRole::Server. Local BTAdapter is in ::BTRole::Master role. */
+        Client     = 2
+    };
+    constexpr uint8_t number(const GATTRole rhs) noexcept {
+        return static_cast<uint8_t>(rhs);
+    }
+    std::string to_string(const GATTRole v) noexcept;
 
     /**
      * Bluetooth adapter operating mode

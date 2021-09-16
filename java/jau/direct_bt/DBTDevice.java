@@ -41,6 +41,7 @@ import org.direct_bt.BTGattChar;
 import org.direct_bt.BTGattDesc;
 import org.direct_bt.BTGattService;
 import org.direct_bt.BTObject;
+import org.direct_bt.BTRole;
 import org.direct_bt.BTType;
 import org.direct_bt.BTUtils;
 import org.direct_bt.EIRDataTypeSet;
@@ -159,6 +160,12 @@ public class DBTDevice extends DBTObject implements BTDevice
 
     @Override
     public DBTAdapter getAdapter() { return wbr_adapter.get(); }
+
+    @Override
+    public final BTRole getRole() {
+        return BTRole.get(getRoleImpl());
+    }
+    private native byte getRoleImpl();
 
     @Override
     public BDAddressAndType getAddressAndType() { return addressAndType; }
