@@ -490,6 +490,13 @@ public interface BTAdapter extends BTObject
     public HCIStatusCode initialize(final BTMode btMode);
 
     /**
+     * Returns true, if this adapter has already been {@link #initialize(BTMode)} 'ed. Otherwise false.
+     *
+     * This helps avoiding re-initializing, if not so desired.
+     */
+    boolean isInitialized();
+
+    /**
      * Reset the adapter.
      * <p>
      * The semantics are specific to the HCI host implementation,

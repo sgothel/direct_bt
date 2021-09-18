@@ -616,6 +616,13 @@ namespace direct_bt {
             HCIStatusCode initialize(const BTMode btMode=BTMode::DUAL) noexcept;
 
             /**
+             * Returns true, if this adapter has already been initialize() 'ed. Otherwise false.
+             *
+             * This helps avoiding re-initializing, if not so desired.
+             */
+            bool isInitialized() const noexcept { return adapter_initialized.load(); }
+
+            /**
              * Reset the adapter.
              * <p>
              * The semantics are specific to the HCI host implementation,

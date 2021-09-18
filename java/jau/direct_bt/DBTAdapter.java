@@ -290,6 +290,9 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private native byte initializeImpl(final byte btModeInt);
 
     @Override
+    public final native boolean isInitialized();
+
+    @Override
     public final HCIStatusCode reset() {
         return HCIStatusCode.get( resetImpl() );
     }

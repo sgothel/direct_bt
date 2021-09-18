@@ -890,6 +890,17 @@ jbyte Java_jau_direct_1bt_DBTAdapter_initializeImpl(JNIEnv *env, jobject obj, jb
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
+jboolean Java_jau_direct_1bt_DBTAdapter_isInitialized(JNIEnv *env, jobject obj) {
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        return adapter->isInitialized();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
 jbyte Java_jau_direct_1bt_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {
     try {
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);

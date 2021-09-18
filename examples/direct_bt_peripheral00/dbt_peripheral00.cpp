@@ -217,24 +217,26 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
         fprintf_td(stderr, "initAdapter: Adapter not selected: %s\n", adapter->toString().c_str());
         return false;
     }
-    // setName(..) ..
-    if( adapter->setPowered(false) ) {
-        const HCIStatusCode status = adapter->setName(adapter_name, adapter_short_name);
-        if( HCIStatusCode::SUCCESS == status ) {
-            fprintf_td(stderr, "initAdapter: setLocalName OK: %s\n", adapter->toString().c_str());
+    if( !adapter->isInitialized() ) {
+        // setName(..) ..
+        if( adapter->setPowered(false) ) {
+            const HCIStatusCode status = adapter->setName(adapter_name, adapter_short_name);
+            if( HCIStatusCode::SUCCESS == status ) {
+                fprintf_td(stderr, "initAdapter: setLocalName OK: %s\n", adapter->toString().c_str());
+            } else {
+                fprintf_td(stderr, "initAdapter: setLocalName failed: %s\n", adapter->toString().c_str());
+            }
         } else {
-            fprintf_td(stderr, "initAdapter: setLocalName failed: %s\n", adapter->toString().c_str());
+            fprintf_td(stderr, "initAdapter: setPowered failed: %s\n", adapter->toString().c_str());
         }
-    } else {
-        fprintf_td(stderr, "initAdapter: setPowered failed: %s\n", adapter->toString().c_str());
-    }
-    // Initialize with defaults and power-on
-    {
-        const HCIStatusCode status = adapter->initialize( btMode );
-        if( HCIStatusCode::SUCCESS != status ) {
-            fprintf_td(stderr, "initAdapter: Adapter initialization failed: %s: %s\n",
-                    to_string(status).c_str(), adapter->toString().c_str());
-            return false;
+        // Initialize with defaults and power-on
+        {
+            const HCIStatusCode status = adapter->initialize( btMode );
+            if( HCIStatusCode::SUCCESS != status ) {
+                fprintf_td(stderr, "initAdapter: Adapter initialization failed: %s: %s\n",
+                        to_string(status).c_str(), adapter->toString().c_str());
+                return false;
+            }
         }
     }
     // Even if adapter is not yet powered, listen to it and act when it gets powered-on

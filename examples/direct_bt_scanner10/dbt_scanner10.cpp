@@ -658,7 +658,7 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
         return false;
     }
     // Initialize with defaults and power-on
-    {
+    if( !adapter->isInitialized() ) {
         HCIStatusCode status = adapter->initialize( btMode );
         if( HCIStatusCode::SUCCESS != status ) {
             fprintf_td(stderr, "initAdapter: Adapter initialization failed: %s: %s\n",

@@ -234,24 +234,26 @@ public class DBTPeripheral00 {
             BTUtils.fprintf_td(System.err, "initAdapter: Adapter not selected: %s\n", adapter.toString());
             return false;
         }
-        // setName(..) ..
-        if( adapter.setPowered(false) ) {
-            final HCIStatusCode status = adapter.setName(adapter_name, adapter_short_name);
-            if( HCIStatusCode.SUCCESS == status ) {
-                BTUtils.fprintf_td(System.err, "initAdapter: setLocalName OK: %s\n", adapter.toString());
+        if( !adapter.isInitialized() ) {
+            // setName(..) ..
+            if( adapter.setPowered(false) ) {
+                final HCIStatusCode status = adapter.setName(adapter_name, adapter_short_name);
+                if( HCIStatusCode.SUCCESS == status ) {
+                    BTUtils.fprintf_td(System.err, "initAdapter: setLocalName OK: %s\n", adapter.toString());
+                } else {
+                    BTUtils.fprintf_td(System.err, "initAdapter: setLocalName failed: %s\n", adapter.toString());
+                }
             } else {
-                BTUtils.fprintf_td(System.err, "initAdapter: setLocalName failed: %s\n", adapter.toString());
+                BTUtils.fprintf_td(System.err, "initAdapter: setPowered failed: %s\n", adapter.toString());
             }
-        } else {
-            BTUtils.fprintf_td(System.err, "initAdapter: setPowered failed: %s\n", adapter.toString());
-        }
-        // Initialize with defaults and power-on
-        {
-            final HCIStatusCode status = adapter.initialize( btMode );
-            if( HCIStatusCode.SUCCESS != status ) {
-                BTUtils.fprintf_td(System.err, "initAdapter: Adapter initialization failed: %s: %s\n",
-                        status.toString(), adapter.toString());
-                return false;
+            // Initialize with defaults and power-on
+            {
+                final HCIStatusCode status = adapter.initialize( btMode );
+                if( HCIStatusCode.SUCCESS != status ) {
+                    BTUtils.fprintf_td(System.err, "initAdapter: Adapter initialization failed: %s: %s\n",
+                            status.toString(), adapter.toString());
+                    return false;
+                }
             }
         }
         // Even if adapter is not yet powered, listen to it and act when it gets powered-on
