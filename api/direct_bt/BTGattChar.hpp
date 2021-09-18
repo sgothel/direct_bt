@@ -215,6 +215,14 @@ namespace direct_bt {
 
             bool hasProperties(const PropertyBitVal v) const noexcept { return v == ( properties & v ); }
 
+            /**
+             * Find a BTGattDesc by its desc_uuid.
+             *
+             * @parameter desc_uuid the UUID of the desired BTGattDesc
+             * @return The matching descriptor or null if not found
+             */
+            std::shared_ptr<BTGattDesc> findGattDesc(const jau::uuid_t& desc_uuid) noexcept;
+
             std::string toString() const noexcept override;
 
             void clearDescriptors() noexcept {

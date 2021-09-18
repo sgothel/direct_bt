@@ -902,9 +902,9 @@ namespace direct_bt {
             /**
              * Find a BTGattService by its service_uuid.
              *
-             * It will check objects for a connected device and caches them, using getGattService().
+             * It will check objects of a connected device using getGattService().
              *
-             * It will not turn on discovery or connect to devices.
+             * It will not turn on discovery or connect to this remote device.
              *
              * @parameter service_uuid the jau::uuid_t of the desired BTGattService
              * @return The matching service or null if not found
@@ -914,9 +914,9 @@ namespace direct_bt {
             /**
              * Find a BTGattChar by its service_uuid and char_uuid.
              *
-             * It will check objects for a connected device and caches them, using getGattService().
+             * It will check objects of this connected device using getGattService().
              *
-             * It will not turn on discovery or connect to devices.
+             * It will not turn on discovery or connect to this remote device.
              *
              * @parameter service_uuid the jau::uuid_t of the intermediate BTGattService
              * @parameter char_uuid the jau::uuid_t of the desired BTGattChar, within the intermediate BTGattService.

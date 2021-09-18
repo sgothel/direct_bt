@@ -77,31 +77,13 @@ public interface BTGattChar extends BTObject
                                        final boolean confirmationSent);
     };
 
-    /** Find a BluetoothGattDescriptor. If parameter UUID is not null,
-      * the returned object will have to match it.
-      * It will first check for existing objects. It will not turn on discovery
-      * or connect to devices.
-      * @parameter UUID optionally specify the UUID of the BluetoothGattDescriptor you are
-      * waiting for
-      * @parameter timeoutMS the function will return after timeout time in milliseconds, a
-      * value of zero means wait forever. If object is not found during this time null will be returned.
-      * @return An object matching the UUID or null if not found before
-      * timeout expires or event is canceled.
-      */
-    public BTGattDesc find(final String UUID, final long timeoutMS);
-
-    /** Find a BluetoothGattDescriptor. If parameter UUID is not null,
-      * the returned object will have to match it.
-      * It will first check for existing objects. It will not turn on discovery
-      * or connect to devices.
-      * @parameter UUID optionally specify the UUID of the BluetoothGattDescriptor you are
-      * waiting for
-      * @return An object matching the UUID or null if not found before
-      * timeout expires or event is canceled.
-      */
-    public BTGattDesc find(final String UUID);
-
-    /* D-Bus method calls: */
+    /**
+     * Find a {@link BTGattDesc} by its desc_uuid.
+     *
+     * @parameter desc_uuid the UUID of the desired {@link BTGattDesc}
+     * @return The matching descriptor or null if not found
+     */
+    BTGattDesc findGattDesc(final String desc_uuid);
 
     /** Reads the value of this characteristic.
       * @return A std::vector<unsgined char> containing the value of this characteristic.

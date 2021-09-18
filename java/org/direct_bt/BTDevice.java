@@ -51,9 +51,9 @@ public interface BTDevice extends BTObject
     /**
      * Find a {@link BTGattService} by its service_uuid.
      *
-     * It will check objects for a connected device and caches them.
+     * It will check objects of this connected device.
      *
-     * It will not turn on discovery or connect to devices.
+     * It will not turn on discovery or connect to this remote device.
      *
      * @parameter service_uuid the UUID of the desired {@link BTGattService}
      * @return The matching service or null if not found
@@ -63,9 +63,9 @@ public interface BTDevice extends BTObject
     /**
      * Find a {@link BTGattChar} by its service_uuid and char_uuid.
      *
-     * It will check objects for a connected device and caches them.
+     * It will check objects of this connected device.
      *
-     * It will not turn on discovery or connect to devices.
+     * It will not turn on discovery or connect to this remote device.
      *
      * @parameter service_uuid the UUID of the intermediate {@link BTGattService}
      * @parameter char_uuid the UUID of the desired {@link BTGattChar}, within the intermediate {@link BTGattService}.

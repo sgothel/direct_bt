@@ -103,6 +103,17 @@ jau::darray<std::unique_ptr<std::string>> BTGattChar::getPropertiesStringList(co
     return out;
 }
 
+std::shared_ptr<BTGattDesc> BTGattChar::findGattDesc(const jau::uuid_t& desc_uuid) noexcept {
+    const size_t descriptors_size = descriptorList.size();
+    for(size_t j = 0; j < descriptors_size; j++) {
+        direct_bt::BTGattDescRef descriptor = descriptorList[j];
+        if( nullptr != descriptor && desc_uuid == *(descriptor->type) ) {
+            return descriptor;
+        }
+    }
+    return nullptr;
+}
+
 std::string BTGattChar::toString() const noexcept {
     uint16_t service_handle_end = 0xffff;
     BTGattServiceRef serviceRef = getServiceUnchecked();

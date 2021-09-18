@@ -42,14 +42,10 @@ public interface BTGattService extends BTObject
     /**
      * Find a {@link BTGattChar} by its char_uuid.
      *
-     * It will check objects for a connected device and caches them.
-     *
-     * It will not turn on discovery or connect to devices.
-     *
      * @parameter char_uuid the UUID of the desired {@link BTGattChar}
      * @return The matching characteristic or null if not found
      */
-    public BTGattChar findGattChar(String char_uuid);
+    BTGattChar findGattChar(String char_uuid);
 
     /** Get the UUID of this service
       * @return The 128 byte UUID of this service, NULL if an error occurred

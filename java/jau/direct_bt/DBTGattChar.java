@@ -145,16 +145,11 @@ public class DBTGattChar extends DBTObject implements BTGattChar
     { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
-    public BTGattDesc find(final String UUID, final long timeoutMS) {
+    public BTGattDesc findGattDesc(final String desc_uuid) {
         if( !checkServiceCache() ) {
             return null;
         }
-        return (DBTGattDesc) findInCache(UUID, BTType.GATT_DESCRIPTOR);
-    }
-
-    @Override
-    public BTGattDesc find(final String UUID) {
-        return find(UUID, 0);
+        return (DBTGattDesc) findInCache(desc_uuid, BTType.GATT_DESCRIPTOR);
     }
 
     @Override
