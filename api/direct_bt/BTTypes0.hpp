@@ -758,12 +758,12 @@ namespace direct_bt {
             jau::POctets data;
 
         public:
-            ManufactureSpecificData(uint16_t const company) noexcept;
-            ManufactureSpecificData(uint16_t const company, uint8_t const * const data, jau::nsize_t const data_len) noexcept;
+            ManufactureSpecificData(uint16_t const company);
+            ManufactureSpecificData(uint16_t const company, uint8_t const * const data, jau::nsize_t const data_len);
 
-            ManufactureSpecificData(const ManufactureSpecificData &o) noexcept = default;
+            ManufactureSpecificData(const ManufactureSpecificData &o) = default;
             ManufactureSpecificData(ManufactureSpecificData &&o) noexcept = default;
-            ManufactureSpecificData& operator=(const ManufactureSpecificData &o) noexcept = default;
+            ManufactureSpecificData& operator=(const ManufactureSpecificData &o) = default;
             ManufactureSpecificData& operator=(ManufactureSpecificData &&o) noexcept = default;
 
             constexpr uint16_t getCompany() const noexcept { return company; }
@@ -908,7 +908,7 @@ namespace direct_bt {
         void setADAddressType(uint8_t adAddressType) noexcept;
         void setName(const uint8_t *buffer, int buffer_len) noexcept;
         void setShortName(const uint8_t *buffer, int buffer_len) noexcept;
-        void setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) noexcept;
+        void setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len);
 
         int next_data_elem(uint8_t *eir_elem_len, uint8_t *eir_elem_type, uint8_t const **eir_elem_data,
                            uint8_t const * data, int offset, int const size) noexcept;
@@ -928,7 +928,7 @@ namespace direct_bt {
         void setName(const std::string& name_) noexcept;
         void setShortName(const std::string& name_short_) noexcept;
 
-        void setManufactureSpecificData(const ManufactureSpecificData& msd_) noexcept;
+        void setManufactureSpecificData(const ManufactureSpecificData& msd_);
         void addService(const std::shared_ptr<const jau::uuid_t>& uuid) noexcept;
         void addService(const jau::uuid_t& uuid) noexcept;
         void setDeviceClass(uint32_t c) noexcept { device_class= c; set(EIRDataType::DEVICE_CLASS); }

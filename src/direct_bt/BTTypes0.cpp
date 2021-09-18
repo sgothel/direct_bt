@@ -582,11 +582,11 @@ static std::string bt_compidtostr(const uint16_t companyid) noexcept {
     return std::to_string(companyid);
 }
 
-ManufactureSpecificData::ManufactureSpecificData(uint16_t const company_) noexcept
+ManufactureSpecificData::ManufactureSpecificData(uint16_t const company_)
 : company(company_), companyName(std::string(bt_compidtostr(company_))), data(/* intentional zero sized */) {
 }
 
-ManufactureSpecificData::ManufactureSpecificData(uint16_t const company_, uint8_t const * const data_, jau::nsize_t const data_len) noexcept
+ManufactureSpecificData::ManufactureSpecificData(uint16_t const company_, uint8_t const * const data_, jau::nsize_t const data_len)
 : company(company_), companyName(std::string(bt_compidtostr(company_))), data(data_, data_len) {
 }
 
@@ -740,7 +740,7 @@ void EInfoReport::setShortName(const std::string& name_short_) noexcept {
     set(EIRDataType::NAME_SHORT);
 }
 
-void EInfoReport::setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) noexcept {
+void EInfoReport::setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) {
     if( nullptr == data || 0 >= data_len ) {
         msd = std::make_shared<ManufactureSpecificData>(company);
     } else {
@@ -748,7 +748,7 @@ void EInfoReport::setManufactureSpecificData(uint16_t const company, uint8_t con
     }
     set(EIRDataType::MANUF_DATA);
 }
-void EInfoReport::setManufactureSpecificData(const ManufactureSpecificData& msd_) noexcept {
+void EInfoReport::setManufactureSpecificData(const ManufactureSpecificData& msd_) {
     msd = std::make_shared<ManufactureSpecificData>(msd_);
     set(EIRDataType::MANUF_DATA);
 }
