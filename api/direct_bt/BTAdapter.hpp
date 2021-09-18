@@ -591,6 +591,7 @@ namespace direct_bt {
              * </p>
              * @param value true will power on this adapter, otherwise this adapter will be powered-off.
              * @return true for success
+             * @see isInitialized()
              * @see close()
              * @see initialize()
              */
@@ -609,6 +610,7 @@ namespace direct_bt {
              * </p>
              * @param btMode the desired adapter's BTMode, defaults to BTMode::DUAL
              * @return HCIStatusCode::SUCCESS or an error state
+             * @see isInitialized()
              * @see close()
              * @see setPowered()
              * @since 2.4.0
@@ -619,6 +621,9 @@ namespace direct_bt {
              * Returns true, if this adapter has already been initialize() 'ed. Otherwise false.
              *
              * This helps avoiding re-initializing, if not so desired.
+             *
+             * @see initialize()
+             * @since 2.4.0
              */
             bool isInitialized() const noexcept { return adapter_initialized.load(); }
 

@@ -443,6 +443,7 @@ public interface BTAdapter extends BTObject
      * @apiNote return value boolean since 2.0.0
      * @see #close()
      * @see #initialize(BTMode)
+     * @see #isInitialized()
      * @since 2.0.0
      */
     boolean setPowered(boolean value);
@@ -463,6 +464,7 @@ public interface BTAdapter extends BTObject
      * </p>
      * @return {@link HCIStatusCode#SUCCESS} or an error state
      * @see #initialize(BTMode)
+     * @see #isInitialized()
      * @see #close()
      * @see #setPowered(boolean)
      * @since 2.4.0
@@ -482,6 +484,7 @@ public interface BTAdapter extends BTObject
      * </p>
      * @param btMode the desired adapter's {@link BTMode}, default shall be {@link BTMode#DUAL}
      * @return {@link HCIStatusCode#SUCCESS} or an error state
+     * @see #isInitialized()
      * @see #initialize()
      * @see #close()
      * @see #setPowered(boolean)
@@ -493,6 +496,9 @@ public interface BTAdapter extends BTObject
      * Returns true, if this adapter has already been {@link #initialize(BTMode)} 'ed. Otherwise false.
      *
      * This helps avoiding re-initializing, if not so desired.
+     *
+     * @see #initialize(BTMode)
+     * @since 2.4.0
      */
     boolean isInitialized();
 

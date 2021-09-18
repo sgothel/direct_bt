@@ -344,6 +344,7 @@ and would be resource intensive.
 **2.4.0**
 
 * TODO ...
+* Aligned `BTGatt* findGatt*()` methods across Java/C++
 * Moved `EUI48`, `EUI48Sub` (C++/Java) and `uuid_t`, `Octets` (C++) to `jaulib` for general use.
 * Added BTRole and GATTRole for full master/client and slave/server support.
 * Added BTAdapter advertising support
