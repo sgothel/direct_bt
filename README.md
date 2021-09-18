@@ -337,11 +337,21 @@ Furthermore, work is underway for `BLE slave peripheral and GATT server` support
 and would be resource intensive.
 
 ## Changes
-**2.3.0 *Direct-BT* Maturity (Bluetooth LE)**
+**3.0.0 *Direct-BT* Maturity (Bluetooth LE)**
 
 * TODO
 
-**2.3.00**
+**2.4.0**
+
+* TODO ...
+* Moved `EUI48`, `EUI48Sub` (C++/Java) and `uuid_t`, `Octets` (C++) to `jaulib` for general use.
+* Added BTRole and GATTRole for full master/client and slave/server support.
+* Added BTAdapter advertising support
+* Only use and program selected BTAdapter via BTAdapter::initialize() (required now)
+  - Supports using multiple applications, each using one adapter, or
+  - One application using multiple adapter for different tasks and BTRole
+
+**2.3.0**
 
 * Removal of *TinyB*
 
