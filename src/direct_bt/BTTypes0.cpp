@@ -1180,8 +1180,8 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
 
             default:
                 // FIXME: Use a data blob!!!!
-                WARN_PRINT("%s-Element @ [%d/%d]: Unhandled type 0x%.2X with %d bytes net\n",
-                        to_string(source).c_str(), offset, data_length, elem_type, elem_len);
+                DBG_PRINT("%s-Element @ [%d/%d]: Unhandled type 0x%.2X with %d bytes net\n",
+                          to_string(source).c_str(), offset, data_length, elem_type, elem_len);
                 break;
         }
     }
