@@ -39,27 +39,27 @@ public interface BTGattDesc extends BTObject
     /** Reads the value of this descriptor
       * @return A vector<uchar> containing data from this descriptor
       */
-    public byte[] readValue();
+    byte[] readValue();
 
     /** Writes the value of this descriptor.
       * @param[in] arg_value The data as vector<uchar>
       * to be written packed in a GBytes struct
       * @return TRUE if value was written succesfully
       */
-    public boolean writeValue(byte[] argValue) throws BTException;
+    boolean writeValue(byte[] argValue) throws BTException;
 
     /** Get the UUID of this descriptor.
       * @return The 128 byte UUID of this descriptor, NULL if an error occurred
       */
-    public String getUUID();
+    String getUUID();
 
     /** Returns the characteristic to which this descriptor belongs to.
       * @return The characteristic.
       */
-    public BTGattChar getCharacteristic();
+    BTGattChar getCharacteristic();
 
     /** Returns the cached value of this descriptor, if any.
       * @return The cached value of this descriptor.
       */
-    public byte[] getValue();
+    byte[] getValue();
 }

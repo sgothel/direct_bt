@@ -51,20 +51,20 @@ public interface BTAdapter extends BTObject
     /**
      * Returns the used singleton {@link BTManager} instance, used to create this adapter.
      */
-    public BTManager getManager();
+    BTManager getManager();
 
     /**
      * Return the current {@link BTRole} of this adapter.
      * @see @ref BTAdapterRoles
      * @since 2.4.0
      */
-    public BTRole getRole();
+    BTRole getRole();
 
     /**
      * Returns the current {@link BTMode} of this adapter.
      * @since 2.4.0
      */
-    public BTMode getBTMode();
+    BTMode getBTMode();
 
     /** Find a BluetoothDevice. If parameters name and address are not null,
       * the returned object will have to match them.
@@ -79,7 +79,7 @@ public interface BTAdapter extends BTObject
       * @return An object matching the name and address or null if not found before
       * timeout expires.
       */
-    public BTDevice find(String name, BDAddressAndType addressAndType, long timeoutMS);
+    BTDevice find(String name, BDAddressAndType addressAndType, long timeoutMS);
 
     /** Find a BluetoothDevice. If parameters name and address are not null,
       * the returned object will have to match them.
@@ -91,7 +91,7 @@ public interface BTAdapter extends BTObject
       * waiting for
       * @return An object matching the name and address.
       */
-    public BTDevice find(String name, BDAddressAndType addressAndType);
+    BTDevice find(String name, BDAddressAndType addressAndType);
 
     /* Bluetooth specific API */
 
@@ -99,7 +99,7 @@ public interface BTAdapter extends BTObject
      * Returns true, if the adapter's device is already whitelisted.
      * @since 2.0.0
      */
-    public boolean isDeviceWhitelisted(final BDAddressAndType addressAndType);
+    boolean isDeviceWhitelisted(final BDAddressAndType addressAndType);
 
     /**
      * Add the given device to the adapter's autoconnect whitelist.
@@ -123,10 +123,10 @@ public interface BTAdapter extends BTObject
      * @see #addDeviceToWhitelist(String, BDAddressType, HCIWhitelistConnectType)
      * @since 2.0.0
      */
-    public boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
-                                        final HCIWhitelistConnectType ctype,
-                                        final short conn_interval_min, final short conn_interval_max,
-                                        final short conn_latency, final short timeout);
+    boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
+                                 final HCIWhitelistConnectType ctype,
+                                 final short conn_interval_min, final short conn_interval_max,
+                                 final short conn_latency, final short timeout);
 
     /**
      * Add the given device to the adapter's autoconnect whitelist.
@@ -146,15 +146,15 @@ public interface BTAdapter extends BTObject
      * @see #addDeviceToWhitelist(String, BDAddressType, HCIWhitelistConnectType, short, short, short, short)
      * @since 2.0.0
      */
-    public boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
-                                        final HCIWhitelistConnectType ctype);
+    boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
+                                 final HCIWhitelistConnectType ctype);
 
 
     /**
      * Remove the given device from the adapter's autoconnect whitelist.
      * @since 2.0.0
      */
-    public boolean removeDeviceFromWhitelist(final BDAddressAndType addressAndType);
+    boolean removeDeviceFromWhitelist(final BDAddressAndType addressAndType);
 
 
     /**
@@ -168,7 +168,7 @@ public interface BTAdapter extends BTObject
      * @see #startDiscovery(boolean, boolean, int, int, byte)
      * @see #getDiscovering()
      */
-    public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active) throws BTException;
+    HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active) throws BTException;
 
     /**
      * Starts discovery.
@@ -217,9 +217,9 @@ public interface BTAdapter extends BTObject
      * @see isAdvertising()
      * @see @ref BTAdapterRoles
      */
-    public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active,
-                                        final short le_scan_interval, final short le_scan_window,
-                                        final byte filter_policy) throws BTException;
+    HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active,
+                                 final short le_scan_interval, final short le_scan_window,
+                                 final byte filter_policy) throws BTException;
 
     /**
      * Turns off device discovery if it is enabled.
@@ -227,13 +227,13 @@ public interface BTAdapter extends BTObject
      * @apiNote return {@link HCIStatusCode} since 2.0.0
      * @since 2.0.0
      */
-    public HCIStatusCode stopDiscovery() throws BTException;
+    HCIStatusCode stopDiscovery() throws BTException;
 
     /** Returns a list of discovered BluetoothDevices from this adapter.
       * @return A list of discovered BluetoothDevices on this adapter,
       * NULL if an error occurred
       */
-    public List<BTDevice> getDiscoveredDevices();
+    List<BTDevice> getDiscoveredDevices();
 
     /**
      * Remove all the discovered devices found on this adapter.
@@ -243,14 +243,14 @@ public interface BTAdapter extends BTObject
      * @since 2.2.0
      * @implNote Changed from 'removeDiscoveredDevices()' for clarity since version 2.2.0
      */
-    public int removeDiscoveredDevices() throws BTException;
+    int removeDiscoveredDevices() throws BTException;
 
     /**
      * Discards matching discovered devices.
      * @return {@code true} if found and removed, otherwise false.
      * @since 2.2.0
      */
-    public boolean removeDiscoveredDevice(final BDAddressAndType addressAndType);
+    boolean removeDiscoveredDevice(final BDAddressAndType addressAndType);
 
 
     /**
@@ -360,7 +360,7 @@ public interface BTAdapter extends BTObject
      * </p>
      * @since 2.0.0
      */
-    public int getDevID();
+    int getDevID();
 
     /**
      * Returns the name.
@@ -369,7 +369,7 @@ public interface BTAdapter extends BTObject
      * </p>
      * @see #setName(String, String)
      */
-    public String getName();
+    String getName();
 
     /**
      * Returns the short name.
@@ -379,7 +379,7 @@ public interface BTAdapter extends BTObject
      * @see #setName(String, String)
      * @since 2.4.0
      */
-    public String getShortName();
+    String getShortName();
 
     /**
      * Sets the name and short-name.
@@ -393,7 +393,7 @@ public interface BTAdapter extends BTObject
      * @see #getShortName()
      * @since 2.4.0
      */
-    public HCIStatusCode setName(String name, String short_name);
+    HCIStatusCode setName(String name, String short_name);
 
     /**
      * Returns whether the adapter is valid, plugged in and powered.
@@ -402,7 +402,7 @@ public interface BTAdapter extends BTObject
      * @see #isValid()
      * @since 2.0.0
      */
-    public boolean isPowered();
+    boolean isPowered();
 
     /**
      * Returns whether the adapter is suspended, i.e. valid and plugged in, but not powered.
@@ -410,7 +410,7 @@ public interface BTAdapter extends BTObject
      * @see #isPowered()
      * @see #isValid()
      */
-    public boolean isSuspended();
+    boolean isSuspended();
 
     /**
      * Returns whether the adapter is valid, i.e. reference is valid, plugged in and generally operational,
@@ -420,7 +420,7 @@ public interface BTAdapter extends BTObject
      * @see #isSuspended()
      * @since 2.0.0
      */
-    public boolean isValid();
+    boolean isValid();
 
     /**
      * Returns the power state the adapter.
@@ -433,7 +433,7 @@ public interface BTAdapter extends BTObject
      * @see #isSuspended()
      * @see #isValid()
      */
-    public boolean getPoweredState();
+    boolean getPoweredState();
 
     /**
      * Sets the power state the adapter.
@@ -445,7 +445,7 @@ public interface BTAdapter extends BTObject
      * @see #initialize(BTMode)
      * @since 2.0.0
      */
-    public boolean setPowered(boolean value);
+    boolean setPowered(boolean value);
 
     /**
      * Initialize the adapter with default values, including power-on.
@@ -467,7 +467,7 @@ public interface BTAdapter extends BTObject
      * @see #setPowered(boolean)
      * @since 2.4.0
      */
-    public HCIStatusCode initialize();
+    HCIStatusCode initialize();
 
     /**
      * Initialize the adapter with default values, including power-on.
@@ -487,7 +487,7 @@ public interface BTAdapter extends BTObject
      * @see #setPowered(boolean)
      * @since 2.4.0
      */
-    public HCIStatusCode initialize(final BTMode btMode);
+    HCIStatusCode initialize(final BTMode btMode);
 
     /**
      * Returns true, if this adapter has already been {@link #initialize(BTMode)} 'ed. Otherwise false.
@@ -508,19 +508,19 @@ public interface BTAdapter extends BTObject
      * </pre>
      * @since 2.0.0
      */
-    public HCIStatusCode reset();
+    HCIStatusCode reset();
 
     /** Returns the discoverable state the adapter.
       * @return The discoverable state of the adapter.
       */
-    public boolean getDiscoverable();
+    boolean getDiscoverable();
 
     /**
      * Sets the discoverable state the adapter.
      * @apiNote return value boolean since 2.0.0
      * @since 2.0.0
      */
-    public boolean setDiscoverable(boolean value);
+    boolean setDiscoverable(boolean value);
 
     /**
      * This method connects to device without need of
@@ -546,14 +546,14 @@ public interface BTAdapter extends BTObject
      *                <li>{@code random} - Random address</li>
      *                </ul>
      */
-    public BTDevice connectDevice(BDAddressAndType addressAndType);
+    BTDevice connectDevice(BDAddressAndType addressAndType);
 
     /**
      * Sets the discoverable state the adapter.
      * @apiNote return value boolean since 2.0.0
      * @since 2.0.0
      */
-    public boolean setPairable(boolean value);
+    boolean setPairable(boolean value);
 
     /**
      * Returns the current meta discovering {@link ScanType}.
@@ -567,7 +567,7 @@ public interface BTAdapter extends BTObject
      * @see #stopDiscovery()
      * @since 2.0.0
      */
-    public ScanType getCurrentScanType();
+    ScanType getCurrentScanType();
 
     /**
      * Returns true if the meta discovering state is not {@link ScanType#NONE}.
@@ -576,7 +576,7 @@ public interface BTAdapter extends BTObject
      * @see stopDiscovery()
      * @since 2.4.0
      */
-    public boolean isDiscovering();
+    boolean isDiscovering();
 
     /**
      * Add the given {@link AdapterStatusListener} to the list if not already present.
@@ -598,7 +598,7 @@ public interface BTAdapter extends BTObject
      * @see {@link #removeStatusListener(AdapterStatusListener)}
      * @see {@link #removeAllStatusListener()}
      */
-    public boolean addStatusListener(final AdapterStatusListener listener);
+    boolean addStatusListener(final AdapterStatusListener listener);
 
     /**
      * Remove the given {@link AdapterStatusListener} from the list.
@@ -606,14 +606,14 @@ public interface BTAdapter extends BTObject
      * @return true if the given listener is an element of the list and has been removed, otherwise false.
      * @since 2.0.0
      */
-    public boolean removeStatusListener(final AdapterStatusListener l);
+    boolean removeStatusListener(final AdapterStatusListener l);
 
     /**
      * Remove all {@link AdapterStatusListener} from the list.
      * @return number of removed listener.
      * @since 2.0.0
      */
-    public int removeAllStatusListener();
+    int removeAllStatusListener();
 
     /**
      * Print the internally maintained BTDevice lists to stderr:
@@ -625,6 +625,6 @@ public interface BTAdapter extends BTObject
      * This is intended as a debug facility.
      * @since 2.3.0
      */
-    public void printDeviceLists();
+    void printDeviceLists();
 
 }

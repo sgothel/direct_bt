@@ -95,7 +95,7 @@ public interface BTDevice extends BTObject
      * @see {@link #removeStatusListener(AdapterStatusListener)}
      * @see {@link #removeAllStatusListener()}
      */
-    public boolean addStatusListener(final AdapterStatusListener listener);
+    boolean addStatusListener(final AdapterStatusListener listener);
 
     /**
      * Remove the given {@link AdapterStatusListener} from the list.
@@ -103,7 +103,7 @@ public interface BTDevice extends BTObject
      * @return true if the given listener is an element of the list and has been removed, otherwise false.
      * @since 2.3.0
      */
-    public boolean removeStatusListener(final AdapterStatusListener l);
+    boolean removeStatusListener(final AdapterStatusListener l);
 
     /**
      * {@code jau.direct_bt}: Disconnect the LE or BREDR peer's GATT and HCI connection.
@@ -581,7 +581,7 @@ public interface BTDevice extends BTObject
      * @see #remove()
      * @since 2.2.0
      */
-    public boolean isValid();
+    boolean isValid();
 
     /** Returns a list of BluetoothGattServices available on this device.
       * @return A list of BluetoothGattServices available on this device,
@@ -699,7 +699,7 @@ public interface BTDevice extends BTObject
      * @see BTGattChar#enableNotificationOrIndication(boolean[])
      * @since 2.0.0
      */
-    public boolean addCharListener(final BTGattCharListener listener)
+    boolean addCharListener(final BTGattCharListener listener)
         throws IllegalStateException;
 
     /**
@@ -711,7 +711,7 @@ public interface BTDevice extends BTObject
      * @return true if the given listener is an element of the list and has been removed, otherwise false.
      * @since 2.0.0
      */
-    public boolean removeCharListener(final BTGattCharListener l);
+    boolean removeCharListener(final BTGattCharListener l);
 
     /**
      * Remove all {@link BTGattCharListener} from the list, which are associated to the given {@link BTGattChar}.
@@ -723,12 +723,12 @@ public interface BTDevice extends BTObject
      * @return number of removed listener.
      * @since 2.0.0
      */
-    public int removeAllAssociatedCharListener(final BTGattChar associatedCharacteristic);
+    int removeAllAssociatedCharListener(final BTGattChar associatedCharacteristic);
 
     /**
      * Remove all {@link BTGattCharListener} from the list.
      * @return number of removed listener.
      * @since 2.0.0
      */
-    public int removeAllCharListener();
+    int removeAllCharListener();
 }

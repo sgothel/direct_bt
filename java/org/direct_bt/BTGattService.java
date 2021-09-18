@@ -50,22 +50,22 @@ public interface BTGattService extends BTObject
     /** Get the UUID of this service
       * @return The 128 byte UUID of this service, NULL if an error occurred
       */
-    public String getUUID();
+    String getUUID();
 
     /** Returns the device to which this service belongs to.
       * @return The device.
       */
-    public BTDevice getDevice();
+    BTDevice getDevice();
 
     /** Returns true if this service is a primary service, false if secondary.
       * @return true if this service is a primary service, false if secondary.
       */
-    public boolean getPrimary();
+    boolean getPrimary();
 
     /** Returns a list of BTGattChar this service exposes.
       * @return A list of BTGattChar exposed by this service
       */
-    public List<BTGattChar> getChars();
+    List<BTGattChar> getChars();
 
     /**
      * Adds the given {@link BTGattCharListener} to the {@link BTDevice}

@@ -61,8 +61,8 @@ public interface BTGattChar extends BTObject
          * @param value the notification value
          * @param timestamp the indication monotonic timestamp, see {@link BTUtils#currentTimeMillis()}
          */
-        public void notificationReceived(final BTGattChar charDecl,
-                                         final byte[] value, final long timestamp);
+        void notificationReceived(final BTGattChar charDecl,
+                                  final byte[] value, final long timestamp);
 
         /**
          * Called from native BLE stack, initiated by a received indication associated
@@ -72,9 +72,9 @@ public interface BTGattChar extends BTObject
          * @param timestamp the indication monotonic timestamp, see {@link BTUtils#currentTimeMillis()}
          * @param confirmationSent if true, the native stack has sent the confirmation, otherwise user is required to do so.
          */
-        public void indicationReceived(final BTGattChar charDecl,
-                                       final byte[] value, final long timestamp,
-                                       final boolean confirmationSent);
+        void indicationReceived(final BTGattChar charDecl,
+                                final byte[] value, final long timestamp,
+                                final boolean confirmationSent);
     };
 
     /**
@@ -88,7 +88,7 @@ public interface BTGattChar extends BTObject
     /** Reads the value of this characteristic.
       * @return A std::vector<unsgined char> containing the value of this characteristic.
       */
-    public byte[] readValue() throws BTException;
+    byte[] readValue() throws BTException;
 
     /**
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
@@ -117,7 +117,7 @@ public interface BTGattChar extends BTObject
      * @see #enableNotificationOrIndication(boolean[])
      * @since 2.0.0
      */
-    public boolean configNotificationIndication(final boolean enableNotification, final boolean enableIndication, final boolean enabledState[/*2*/])
+    boolean configNotificationIndication(final boolean enableNotification, final boolean enableIndication, final boolean enabledState[/*2*/])
             throws IllegalStateException;
 
     /**
@@ -142,7 +142,7 @@ public interface BTGattChar extends BTObject
      * @see #configNotificationIndication(boolean, boolean, boolean[])
      * @since 2.0.0
      */
-    public boolean enableNotificationOrIndication(final boolean enabledState[/*2*/])
+    boolean enableNotificationOrIndication(final boolean enabledState[/*2*/])
             throws IllegalStateException;
 
     /**
@@ -168,7 +168,7 @@ public interface BTGattChar extends BTObject
      * @see #removeAllAssociatedCharListener(boolean)
      * @since 2.0.0
      */
-    public boolean addCharListener(final Listener listener)
+    boolean addCharListener(final Listener listener)
             throws IllegalStateException;
 
     /**
@@ -198,7 +198,7 @@ public interface BTGattChar extends BTObject
      * @see #removeAllAssociatedCharListener(boolean)
      * @since 2.0.0
      */
-    public boolean addCharListener(final Listener listener, final boolean enabledState[/*2*/])
+    boolean addCharListener(final Listener listener, final boolean enabledState[/*2*/])
             throws IllegalStateException;
 
     /**
@@ -220,14 +220,14 @@ public interface BTGattChar extends BTObject
      * @see #removeCharListener(Listener, boolean)
      * @since 2.0.0
      */
-    public int removeAllAssociatedCharListener(final boolean disableIndicationNotification);
+    int removeAllAssociatedCharListener(final boolean disableIndicationNotification);
 
     /**
      * Disables notifications of the value and unregisters the callback object
      * passed through the corresponding enable method. It disables notifcations
      * at BLE level for this characteristic.
      */
-    public void disableValueNotifications();
+    void disableValueNotifications();
 
     /**
      * Writes the value of this characteristic,
@@ -243,25 +243,25 @@ public interface BTGattChar extends BTObject
      * @since 2.0.0
      * @implNote {@code withResponse} parameter has been added since 2.0.0
      */
-    public boolean writeValue(byte[] argValue, boolean withResponse) throws BTException;
+    boolean writeValue(byte[] argValue, boolean withResponse) throws BTException;
 
     /* D-Bus property accessors: */
 
     /** Get the UUID of this characteristic.
       * @return The 128 byte UUID of this characteristic, NULL if an error occurred
       */
-    public String getUUID();
+    String getUUID();
 
     /** Returns the service to which this characteristic belongs to.
       * @return The service.
       */
-    public BTGattService getService();
+    BTGattService getService();
 
     /** Returns true if notification for changes of this characteristic are activated.
       * @param enabledState array of size 2, storage for the current enabled state for notification and indication.
       * @return True if either notification or indication is enabled
       */
-    public boolean getNotifying(final boolean enabledState[/*2*/]);
+    boolean getNotifying(final boolean enabledState[/*2*/]);
 
     /**
      * Returns the properties of this characteristic.
@@ -269,11 +269,11 @@ public interface BTGattChar extends BTObject
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1.1 Characteristic Properties
      * </p>
      */
-    public GattCharPropertySet getProperties();
+    GattCharPropertySet getProperties();
 
     /** Returns a list of BluetoothGattDescriptors this characteristic exposes.
       * @return A list of BluetoothGattDescriptors exposed by this characteristic
       * NULL if an error occurred
       */
-    public List<BTGattDesc> getDescriptors();
+    List<BTGattDesc> getDescriptors();
 }
