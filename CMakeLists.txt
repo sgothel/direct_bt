@@ -7,7 +7,8 @@ else()
     message(STATUS "CMake ${CMAKE_VERSION} >= 3.18.0, good.")
 endif()
 
-FIND_PACKAGE (Threads REQUIRED)
+set (THREADS_PREFER_PTHREAD_FLAG ON)
+find_package (Threads REQUIRED)
 
 # set(CMAKE_MESSAGE_LOG_LEVEL DEBUG)
 
