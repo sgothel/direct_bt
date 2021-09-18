@@ -89,11 +89,17 @@ namespace direct_bt {
     enum class BLERandomAddressType : uint8_t {
         /** Non-resolvable private random device address 0b00 */
         UNRESOLVABLE_PRIVAT = 0x00,
-        /** Resolvable private random device address 0b01 */
+        /**
+         * Resolvable private random device address 0b01.
+         *
+         * Requires Local Identity Resolving Key (IRK) or the Peer Identity Resolving Key (IRK).
+         *
+         * EUI48: 24 bits hash = ag(IRK, prand), 24 bits prand.
+         */
         RESOLVABLE_PRIVAT   = 0x01,
         /** Reserved for future use 0b10 */
         RESERVED            = 0x02,
-        /** Static public 'random' device address 0b11 */
+        /** Static public 'random' device address 0b11. Not changing between power-cycles. */
         STATIC_PUBLIC       = 0x03,
         /** Undefined, e.g. address not of type {@link BDAddressType::BDADDR_LE_RANDOM} */
         UNDEFINED           = 0xff
