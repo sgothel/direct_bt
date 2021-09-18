@@ -26,6 +26,8 @@ package org.direct_bt;
 
 import java.io.PrintStream;
 
+import org.jau.util.BasicTypes;
+
 public class BTUtils {
     private static long t0;
     static {
@@ -123,40 +125,8 @@ public class BTUtils {
     public static String bytesHexString(final byte[] bytes, final int offset, final int length,
                                         final boolean lsbFirst)
     {
-        final int byte_len = 0 <= length ? length : bytes.length - offset;
-        if( byte_len > ( bytes.length - offset ) ) {
-            throw new IllegalArgumentException("byte[] ( "+bytes.length+" - "+offset+" ) < "+length+" bytes");
-        }
-        // final char[] hex_array = lowerCase ? HEX_ARRAY_LOW : HEX_ARRAY_BIG;
-        final char[] hex_array = HEX_ARRAY_LOW;
-        final char[] hexChars;
-        final int char_offset;
-
-        if( lsbFirst ) {
-            // LSB left -> MSB right, no leading `0x`
-            char_offset = 0;
-            hexChars = new char[byte_len * 2];
-            for (int j = 0; j < byte_len; j++) {
-                final int v = bytes[offset + j] & 0xFF;
-                hexChars[char_offset + j * 2] = hex_array[v >>> 4];
-                hexChars[char_offset + j * 2 + 1] = hex_array[v & 0x0F];
-            }
-        } else {
-            // MSB left -> LSB right, with leading `0x`
-            char_offset = 2;
-            hexChars = new char[2 + byte_len * 2];
-            hexChars[0] = '0';
-            hexChars[1] = 'x';
-            for (int j = byte_len-1; j >= 0; j--) {
-                final int v = bytes[offset + j] & 0xFF;
-                hexChars[char_offset + j * 2] = hex_array[v >>> 4];
-                hexChars[char_offset + j * 2 + 1] = hex_array[v & 0x0F];
-            }
-        }
-        return new String(hexChars);
+        return BasicTypes.bytesHexString(bytes, offset, length, lsbFirst);
     }
-    private static final char[] HEX_ARRAY_LOW = "0123456789abcdef".toCharArray();
-    private static final char[] HEX_ARRAY_BIG = "0123456789ABCDEF".toCharArray();
 
     /**
      * Produce a hexadecimal string representation of the given byte value.
@@ -167,11 +137,7 @@ public class BTUtils {
      */
     public static StringBuilder byteHexString(final StringBuilder sb, final byte value, final boolean lowerCase)
     {
-        final char[] hex_array = lowerCase ? HEX_ARRAY_LOW : HEX_ARRAY_BIG;
-        final int v = value & 0xFF;
-        sb.append(hex_array[v >>> 4]);
-        sb.append(hex_array[v & 0x0F]);
-        return sb;
+        return BasicTypes.byteHexString(sb, value, lowerCase);
     }
 
     /**

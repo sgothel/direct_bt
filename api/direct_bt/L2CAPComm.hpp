@@ -35,8 +35,8 @@
 #include <atomic>
 
 #include <jau/environment.hpp>
+#include <jau/uuid.hpp>
 
-#include "UUID.hpp"
 #include "BTTypes0.hpp"
 
 /**

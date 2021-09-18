@@ -8,6 +8,9 @@ file(GLOB_RECURSE JAVA_SOURCES "*.java")
 
 add_jar(direct_bt_jar 
         ${JAVA_SOURCES}
+        ${PROJECT_SOURCE_DIR}/jaulib/java_base/org/jau/util/BasicTypes.java
+        ${PROJECT_SOURCE_DIR}/jaulib/java_net/org/jau/net/EUI48.java
+        ${PROJECT_SOURCE_DIR}/jaulib/java_net/org/jau/net/EUI48Sub.java
         INCLUDE_JARS ${jaulib_fat_jar_file}
         MANIFEST ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt
         OUTPUT_NAME direct_bt

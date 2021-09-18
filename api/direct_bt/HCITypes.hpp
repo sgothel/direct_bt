@@ -34,10 +34,10 @@
 #include <mutex>
 
 #include <jau/basic_types.hpp>
+#include <jau/octets.hpp>
 
 #include "BTTypes0.hpp"
 #include "BTIoctl.hpp"
-#include "OctetTypes.hpp"
 #include "HCIIoctl.hpp"
 
 #include "SMPTypes.hpp"
@@ -489,7 +489,7 @@ namespace direct_bt {
         template<typename T> friend class HCIStructCmdCompleteMetaEvtWrap;
 
         protected:
-            POctets pdu;
+            jau::POctets pdu;
 
             inline static void checkPacketType(const HCIPacketType type) {
                 switch(type) {
@@ -545,7 +545,7 @@ namespace direct_bt {
             constexpr jau::nsize_t getTotalSize() const noexcept { return pdu.getSize(); }
 
             /** Return the underlying octets read only */
-            TROOctets & getPDU() noexcept { return pdu; }
+            jau::TROOctets & getPDU() noexcept { return pdu; }
 
             HCIPacketType getPacketType() noexcept { return static_cast<HCIPacketType>(pdu.get_uint8_nc(0)); }
 

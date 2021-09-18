@@ -30,9 +30,9 @@
 
 #include <jau/basic_types.hpp>
 #include <jau/darray.hpp>
+#include <jau/octets.hpp>
+#include <jau/uuid.hpp>
 
-#include "UUID.hpp"
-#include "OctetTypes.hpp"
 #include "BTTypes0.hpp"
 #include "ieee11073/DataTypes.hpp"
 
@@ -230,7 +230,7 @@ const GattCharacteristicSpec * findGattCharSpec(const uint16_t uuid16) noexcept;
 /**
  * Converts a GATT Name (not null-terminated) UTF8 to a null-terminated C++ string
  */
-std::string GattNameToString(const TROOctets &v) noexcept;
+std::string GattNameToString(const jau::TROOctets &v) noexcept;
 
 /**
  * <i>Peripheral Preferred Connection Parameters</i> is a GATT Characteristic.
@@ -248,9 +248,9 @@ struct GattPeriphalPreferredConnectionParameters {
     /** mandatory [10..3200] */
     const uint16_t connectionSupervisionTimeoutMultiplier;
 
-    static std::shared_ptr<GattPeriphalPreferredConnectionParameters> get(const TROOctets &source) noexcept;
+    static std::shared_ptr<GattPeriphalPreferredConnectionParameters> get(const jau::TROOctets &source) noexcept;
 
-    GattPeriphalPreferredConnectionParameters(const TROOctets &source) noexcept;
+    GattPeriphalPreferredConnectionParameters(const jau::TROOctets &source) noexcept;
 
     std::string toString() const noexcept;
 };
@@ -293,12 +293,12 @@ struct GattPnP_ID {
     const uint16_t product_id;
     const uint16_t product_version;
 
-    static std::shared_ptr<GattPnP_ID> get(const TROOctets &source) noexcept;
+    static std::shared_ptr<GattPnP_ID> get(const jau::TROOctets &source) noexcept;
 
     GattPnP_ID() noexcept
     : vendor_id_source(0), vendor_id(0), product_id(0), product_version(0) {}
 
-    GattPnP_ID(const TROOctets &source) noexcept;
+    GattPnP_ID(const jau::TROOctets &source) noexcept;
 
     GattPnP_ID(const uint8_t vendor_id_source_, const uint16_t vendor_id_, const uint16_t product_id_, const uint16_t product_version_) noexcept
     : vendor_id_source(vendor_id_source_), vendor_id(vendor_id_), product_id(product_id_), product_version(product_version_) {}
@@ -315,7 +315,7 @@ struct GattPnP_ID {
 class GattDeviceInformationSvc {
     public:
         /** Optional */
-        const POctets systemID;
+        const jau::POctets systemID;
         /** Optional */
         const std::string modelNumber;
         /** Optional */
@@ -329,13 +329,13 @@ class GattDeviceInformationSvc {
         /** Optional */
         const std::string manufacturer;
         /** Optional */
-        const POctets regulatoryCertDataList;
+        const jau::POctets regulatoryCertDataList;
         /** Optional */
         const std::shared_ptr<GattPnP_ID> pnpID;
 
-        GattDeviceInformationSvc(const POctets &systemID_, const std::string &modelNumber_, const std::string &serialNumber_,
+        GattDeviceInformationSvc(const jau::POctets &systemID_, const std::string &modelNumber_, const std::string &serialNumber_,
                           const std::string &firmwareRevision_, const std::string &hardwareRevision_, const std::string &softwareRevision_,
-                          const std::string &manufacturer_, const POctets &regulatoryCertDataList_, const std::shared_ptr<GattPnP_ID> &pnpID_) noexcept
+                          const std::string &manufacturer_, const jau::POctets &regulatoryCertDataList_, const std::shared_ptr<GattPnP_ID> &pnpID_) noexcept
         : systemID(systemID_), modelNumber(modelNumber_), serialNumber(serialNumber_), firmwareRevision(firmwareRevision_),
           hardwareRevision(hardwareRevision_), softwareRevision(softwareRevision_), manufacturer(manufacturer_),
           regulatoryCertDataList(regulatoryCertDataList_), pnpID(pnpID_) {}
@@ -371,10 +371,10 @@ class GattTemperatureMeasurement {
         /** Temperature Type, if HAS_TEMP_TYPE is set: Format ????. 1 byte (!?). */
         const uint8_t temperature_type;
 
-        static std::shared_ptr<GattTemperatureMeasurement> get(const TROOctets &source) noexcept;
+        static std::shared_ptr<GattTemperatureMeasurement> get(const jau::TROOctets &source) noexcept;
 
-        static std::shared_ptr<GattTemperatureMeasurement> get(const TOctetSlice &source) noexcept {
-            const TROOctets o(source.get_ptr(0), source.getSize());
+        static std::shared_ptr<GattTemperatureMeasurement> get(const jau::TOctetSlice &source) noexcept {
+            const jau::TROOctets o(source.get_ptr(0), source.getSize());
             return get(o);
         }
 

@@ -52,7 +52,6 @@ import org.direct_bt.BTSecurityRegistry;
 import org.direct_bt.BTType;
 import org.direct_bt.BTUtils;
 import org.direct_bt.EIRDataTypeSet;
-import org.direct_bt.EUI48;
 import org.direct_bt.GattCharPropertySet;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.HCIWhitelistConnectType;
@@ -61,6 +60,7 @@ import org.direct_bt.SMPIOCapability;
 import org.direct_bt.SMPKeyBin;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
+import org.jau.net.EUI48;
 
 import jau.direct_bt.DBTManager;
 

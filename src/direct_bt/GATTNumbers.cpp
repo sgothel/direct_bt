@@ -346,24 +346,24 @@ const GattCharacteristicSpec * direct_bt::findGattCharSpec(const uint16_t uuid16
 /********************************************************/
 /********************************************************/
 
-std::string direct_bt::GattNameToString(const TROOctets &v) noexcept {
+std::string direct_bt::GattNameToString(const jau::TROOctets &v) noexcept {
 	const jau::nsize_t str_len = v.getSize();
 	if( 0 == str_len ) {
 	    return std::string(); // empty
 	}
-	POctets s(str_len+1); // dtor releases chunk
+	jau::POctets s(str_len+1); // dtor releases chunk
 	memcpy(s.get_wptr(), v.get_ptr(), str_len);
 	s.put_uint8_nc(str_len, 0); // EOS
 	return std::string((const char*)s.get_ptr());
 }
 
-GattPeriphalPreferredConnectionParameters::GattPeriphalPreferredConnectionParameters(const TROOctets &source) noexcept
+GattPeriphalPreferredConnectionParameters::GattPeriphalPreferredConnectionParameters(const jau::TROOctets &source) noexcept
 : minConnectionInterval(source.get_uint16(0)), maxConnectionInterval(source.get_uint16(2)),
   slaveLatency(source.get_uint16(4)), connectionSupervisionTimeoutMultiplier(source.get_uint16(6))
 {
 }
 
-std::shared_ptr<GattPeriphalPreferredConnectionParameters> GattPeriphalPreferredConnectionParameters::get(const TROOctets &source) noexcept {
+std::shared_ptr<GattPeriphalPreferredConnectionParameters> GattPeriphalPreferredConnectionParameters::get(const jau::TROOctets &source) noexcept {
     const jau::nsize_t reqSize = 8;
     if( source.getSize() < reqSize ) {
         ERR_PRINT("GattPeriphalPreferredConnectionParameters: Insufficient data, less than %d bytes in %s", reqSize, source.toString().c_str());
@@ -384,11 +384,11 @@ std::string GattGenericAccessSvc::toString() const noexcept {
     return "'"+deviceName+"'[appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+"), "+pcp+"]";
 }
 
-GattPnP_ID::GattPnP_ID(const TROOctets &source) noexcept
+GattPnP_ID::GattPnP_ID(const jau::TROOctets &source) noexcept
 : vendor_id_source(source.get_uint8(0)), vendor_id(source.get_uint16(1)),
   product_id(source.get_uint16(3)), product_version(source.get_uint16(5)) {}
 
-std::shared_ptr<GattPnP_ID> GattPnP_ID::get(const TROOctets &source) noexcept {
+std::shared_ptr<GattPnP_ID> GattPnP_ID::get(const jau::TROOctets &source) noexcept {
     const jau::nsize_t reqSize = 7;
     if( source.getSize() < reqSize ) {
         ERR_PRINT("GattPnP_ID: Insufficient data, less than %d bytes in %s", reqSize, source.toString().c_str());
@@ -411,7 +411,7 @@ std::string GattDeviceInformationSvc::toString() const noexcept {
             "'], pnpID["+pnp+"], regCertData '"+regulatoryCertDataList.toString()+"']";
 }
 
-std::shared_ptr<GattTemperatureMeasurement> GattTemperatureMeasurement::get(const TROOctets &source) noexcept {
+std::shared_ptr<GattTemperatureMeasurement> GattTemperatureMeasurement::get(const jau::TROOctets &source) noexcept {
     const jau::nsize_t size = source.getSize();
     jau::nsize_t reqSize = 1 + 4; // max size = 13
     if( reqSize > size ) {

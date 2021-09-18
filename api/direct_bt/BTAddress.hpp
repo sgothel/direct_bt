@@ -33,6 +33,10 @@
 
 #include <jau/packed_attribute.hpp>
 #include <jau/ordered_atomic.hpp>
+#include <jau/eui48.hpp>
+
+using jau::EUI48;
+using jau::EUI48Sub;
 
 namespace direct_bt {
 
@@ -154,263 +158,6 @@ namespace direct_bt {
     HCILEOwnAddressType to_HCILEOwnAddressType(const BDAddressType addrType) noexcept;
     std::string to_string(const HCILEOwnAddressType type) noexcept;
 
-    /**
-     * A 48 bit EUI-48 sub-identifier, see EUI48.
-     */
-    struct EUI48Sub {
-        /** EUI48 MAC address matching any device, i.e. `0:0:0:0:0:0`. */
-        static const EUI48Sub ANY_DEVICE;
-        /** EUI48 MAC address matching all device, i.e. `ff:ff:ff:ff:ff:ff`. */
-        static const EUI48Sub ALL_DEVICE;
-        /** EUI48 MAC address matching local device, i.e. `0:0:0:ff:ff:ff`. */
-        static const EUI48Sub LOCAL_DEVICE;
-
-        /**
-         * The <= 6 byte EUI48 sub-address.
-         */
-        uint8_t b[6]; // == sizeof(EUI48)
-
-        /**
-         * The actual length in bytes of the EUI48 sub-address, less or equal 6 bytes.
-         */
-        jau::nsize_t length;
-
-        constexpr EUI48Sub() noexcept : b{0}, length{0} { }
-        EUI48Sub(const uint8_t * b_, const jau::nsize_t len_) noexcept;
-
-        /**
-         * Fills given EUI48Sub instance via given string representation.
-         * <p>
-         * Implementation is consistent with EUI48Sub::toString().
-         * </p>
-         * @param str a string of less or equal of 17 characters representing less or equal of 6 bytes as hexadecimal numbers separated via colon,
-         * e.g. `01:02:03:0A:0B:0C`, `01:02:03:0A`, `:`, (empty).
-         * @param dest EUI48Sub to set its value
-         * @param errmsg error parsing message if returning false
-         * @return true if successful, otherwise false
-         * @see EUI48Sub::EUI48Sub
-         * @see EUI48Sub::toString()
-         */
-        static bool scanEUI48Sub(const std::string& str, EUI48Sub& dest, std::string& errmsg);
-
-        /**
-         * Construct a sub EUI48 via given string representation.
-         * <p>
-         * Implementation is consistent with EUI48Sub::toString().
-         * </p>
-         * @param str a string of less or equal of 17 characters representing less or equal of 6 bytes as hexadecimal numbers separated via colon,
-         * e.g. `01:02:03:0A:0B:0C`, `01:02:03:0A`, `:`, (empty).
-         * @see EUI48Sub::scanEUI48Sub()
-         * @see EUI48Sub::toString()
-         * @throws jau::IllegalArgumentException if given string doesn't comply with EUI48
-         */
-        EUI48Sub(const std::string& str);
-
-        constexpr EUI48Sub(const EUI48Sub &o) noexcept = default;
-        EUI48Sub(EUI48Sub &&o) noexcept = default;
-        constexpr EUI48Sub& operator=(const EUI48Sub &o) noexcept = default;
-        EUI48Sub& operator=(EUI48Sub &&o) noexcept = default;
-
-        constexpr std::size_t hash_code() const noexcept {
-            // 31 * x == (x << 5) - x
-            std::size_t h = length;
-            for(jau::nsize_t i=0; i<length; i++) {
-                h = ( ( h << 5 ) - h ) + b[i];
-            }
-            return h;
-        }
-
-        /**
-         * Method clears the underlying byte array {@link #b} and sets length to zero.
-         */
-        void clear() {
-            b[0] = 0; b[1] = 0; b[2] = 0;
-            b[3] = 0; b[4] = 0; b[5] = 0;
-            length = 0;
-        }
-
-        /**
-         * Find index of needle within haystack.
-         * @param haystack_b haystack data
-         * @param haystack_length haystack length
-         * @param needle_b needle data
-         * @param needle_length needle length
-         * @return index of first element of needle within haystack or -1 if not found. If the needle length is zero, 0 (found) is returned.
-         */
-        static jau::snsize_t indexOf(const uint8_t haystack_b[], const jau::nsize_t haystack_length,
-                                     const uint8_t needle_b[], const jau::nsize_t needle_length) noexcept;
-
-        /**
-         * Finds the index of given EUI48Sub needle within this instance haystack.
-         * @param needle
-         * @return index of first element of needle within this instance haystack or -1 if not found. If the needle length is zero, 0 (found) is returned.
-         */
-        jau::snsize_t indexOf(const EUI48Sub& needle) const noexcept {
-            return indexOf(b, length, needle.b, needle.length);
-        }
-
-        /**
-         * Returns true, if given EUI48Sub needle is contained in this instance haystack.
-         * <p>
-         * If the sub is zero, true is returned.
-         * </p>
-         */
-        bool contains(const EUI48Sub& needle) const noexcept {
-            return 0 <= indexOf(needle);
-        }
-
-        /**
-         * Returns the EUI48 sub-string representation,
-         * less or equal 17 characters representing less or equal 6 bytes as upper case hexadecimal numbers separated via colon,
-         * e.g. `01:02:03:0A:0B:0C`, `01:02:03:0A`, `:`, (empty).
-         */
-        std::string toString() const noexcept;
-    };
-    inline std::string to_string(const EUI48Sub& a) noexcept { return a.toString(); }
-
-    inline bool operator==(const EUI48Sub& lhs, const EUI48Sub& rhs) noexcept {
-        if( &lhs == &rhs ) {
-            return true;
-        }
-        if( lhs.length != rhs.length ) {
-            return false;
-        }
-        return !memcmp(&lhs.b, &rhs.b, lhs.length);
-    }
-
-    inline bool operator!=(const EUI48Sub& lhs, const EUI48Sub& rhs) noexcept
-    { return !(lhs == rhs); }
-
-
-    /**
-     * A packed 48 bit EUI-48 identifier, formerly known as MAC-48
-     * or simply network device MAC address (Media Access Control address).
-     */
-    __pack ( struct EUI48 {
-        /** EUI48 MAC address matching any device, i.e. `0:0:0:0:0:0`. */
-        static const EUI48 ANY_DEVICE;
-        /** EUI48 MAC address matching all device, i.e. `ff:ff:ff:ff:ff:ff`. */
-        static const EUI48 ALL_DEVICE;
-        /** EUI48 MAC address matching local device, i.e. `0:0:0:ff:ff:ff`. */
-        static const EUI48 LOCAL_DEVICE;
-
-        /**
-         * The 6 byte EUI48 address.
-         */
-        uint8_t b[6]; // == sizeof(EUI48)
-
-        constexpr EUI48() noexcept : b{0}  { }
-        EUI48(const uint8_t * b_) noexcept;
-
-        /**
-         * Fills given EUI48 instance via given string representation.
-         * <p>
-         * Implementation is consistent with EUI48::toString().
-         * </p>
-         * @param str a string of exactly 17 characters representing 6 bytes as hexadecimal numbers separated via colon `01:02:03:0A:0B:0C`.
-         * @param dest EUI48 to set its value
-         * @param errmsg error parsing message if returning false
-         * @return true if successful, otherwise false
-         * @see EUI48::EUI48
-         * @see EUI48::toString()
-         */
-        static bool scanEUI48(const std::string& str, EUI48& dest, std::string& errmsg);
-
-        /**
-         * Construct instance via given string representation.
-         * <p>
-         * Implementation is consistent with EUI48::toString().
-         * </p>
-         * @param str a string of exactly 17 characters representing 6 bytes as hexadecimal numbers separated via colon `01:02:03:0A:0B:0C`.
-         * @see EUI48::scanEUI48()
-         * @see EUI48::toString()
-         * @throws jau::IllegalArgumentException if given string doesn't comply with EUI48
-         */
-        EUI48(const std::string& str);
-
-        constexpr EUI48(const EUI48 &o) noexcept = default;
-        EUI48(EUI48 &&o) noexcept = default;
-        constexpr EUI48& operator=(const EUI48 &o) noexcept = default;
-        EUI48& operator=(EUI48 &&o) noexcept = default;
-
-        constexpr std::size_t hash_code() const noexcept {
-            // 31 * x == (x << 5) - x
-            std::size_t h = b[0];
-            h = ( ( h << 5 ) - h ) + b[1];
-            h = ( ( h << 5 ) - h ) + b[2];
-            h = ( ( h << 5 ) - h ) + b[3];
-            h = ( ( h << 5 ) - h ) + b[4];
-            h = ( ( h << 5 ) - h ) + b[5];
-            return h;
-        }
-
-        /**
-         * Method clears the underlying byte array {@link #b}.
-         */
-        void clear() {
-            b[0] = 0; b[1] = 0; b[2] = 0;
-            b[3] = 0; b[4] = 0; b[5] = 0;
-        }
-
-        /**
-         * Returns the BLERandomAddressType.
-         * <p>
-         * If ::BDAddressType is ::BDAddressType::BDADDR_LE_RANDOM,
-         * method shall return a valid value other than ::BLERandomAddressType::UNDEFINED.
-         * </p>
-         * <p>
-         * If BDAddressType is not ::BDAddressType::BDADDR_LE_RANDOM,
-         * method shall return ::BLERandomAddressType::UNDEFINED.
-         * </p>
-         * @since 2.2.0
-         */
-        BLERandomAddressType getBLERandomAddressType(const BDAddressType addressType) const noexcept;
-
-        /**
-         * Finds the index of given EUI48Sub needle within this instance haystack.
-         * @param needle
-         * @return index of first element of needle within this instance haystack or -1 if not found. If the needle length is zero, 0 (found) is returned.
-         */
-        jau::snsize_t indexOf(const EUI48Sub& needle) const noexcept {
-            return EUI48Sub::indexOf(b, sizeof(b), needle.b, needle.length);
-        }
-
-        /**
-         * Returns true, if given EUI48Sub needle is contained in this instance haystack.
-         * <p>
-         * If the sub is zero, true is returned.
-         * </p>
-         */
-        bool contains(const EUI48Sub& needle) const noexcept {
-            return 0 <= indexOf(needle);
-        }
-
-        /**
-         * Returns the EUI48 string representation,
-         * exactly 17 characters representing 6 bytes as upper case hexadecimal numbers separated via colon `01:02:03:0A:0B:0C`.
-         * @see EUI48::EUI48()
-         */
-        std::string toString() const noexcept;
-    } );
-    inline std::string to_string(const EUI48& a) noexcept { return a.toString(); }
-
-    inline bool operator==(const EUI48& lhs, const EUI48& rhs) noexcept {
-        if( &lhs == &rhs ) {
-            return true;
-        }
-        //return !memcmp(&lhs, &rhs, sizeof(EUI48));
-        const uint8_t * a = lhs.b;
-        const uint8_t * b = rhs.b;
-        return a[0] == b[0] &&
-               a[1] == b[1] &&
-               a[2] == b[2] &&
-               a[3] == b[3] &&
-               a[4] == b[4] &&
-               a[5] == b[5];
-    }
-
-    inline bool operator!=(const EUI48& lhs, const EUI48& rhs) noexcept
-    { return !(lhs == rhs); }
 
     /**
      * Unique Bluetooth EUI48 address and ::BDAddressType tuple.
@@ -431,14 +178,14 @@ namespace direct_bt {
              */
             static const BDAddressAndType ANY_DEVICE;
 
-            EUI48 address;
+            jau::EUI48 address;
             BDAddressType type;
 
         private:
             jau::relaxed_atomic_size_t hash = 0; // default 0, cache
 
         public:
-            BDAddressAndType(const EUI48 & address_, BDAddressType type_)
+            BDAddressAndType(const jau::EUI48 & address_, BDAddressType type_)
             : address(address_), type(type_) {}
 
             constexpr BDAddressAndType() noexcept : address(), type{BDAddressType::BDADDR_UNDEFINED} { }
@@ -473,6 +220,20 @@ namespace direct_bt {
             /**
              * Returns the BLERandomAddressType.
              * <p>
+             * If ::BDAddressType is ::BDAddressType::BDADDR_LE_RANDOM,
+             * method shall return a valid value other than ::BLERandomAddressType::UNDEFINED.
+             * </p>
+             * <p>
+             * If BDAddressType is not ::BDAddressType::BDADDR_LE_RANDOM,
+             * method shall return ::BLERandomAddressType::UNDEFINED.
+             * </p>
+             * @since 2.2.0
+             */
+            static BLERandomAddressType getBLERandomAddressType(const jau::EUI48& address, const BDAddressType addressType) noexcept;
+
+            /**
+             * Returns the BLERandomAddressType.
+             * <p>
              * If type is ::BDAddressType::BDADDR_LE_RANDOM},
              * method shall return a valid value other than ::BLERandomAddressType::UNDEFINED.
              * </p>
@@ -483,8 +244,9 @@ namespace direct_bt {
              * @since 2.0.0
              */
             BLERandomAddressType getBLERandomAddressType() const noexcept {
-                return address.getBLERandomAddressType(type);
+                return getBLERandomAddressType(address, type);
             }
+
 
             /**
              * Returns true if both devices match, i.e. equal address
@@ -549,18 +311,6 @@ namespace direct_bt {
 // injecting specialization of std::hash to namespace std of our types above
 namespace std
 {
-    template<> struct hash<direct_bt::EUI48Sub> {
-        std::size_t operator()(direct_bt::EUI48Sub const& a) const noexcept {
-            return a.hash_code();
-        }
-    };
-
-    template<> struct hash<direct_bt::EUI48> {
-        std::size_t operator()(direct_bt::EUI48 const& a) const noexcept {
-            return a.hash_code();
-        }
-    };
-
     template<> struct hash<direct_bt::BDAddressAndType> {
         std::size_t operator()(direct_bt::BDAddressAndType const& a) const noexcept {
             return a.hash_code();

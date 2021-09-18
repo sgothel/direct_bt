@@ -508,7 +508,7 @@ void HCIHandler::sendMgmtEvent(const MgmtEvent& event) noexcept {
 bool HCIHandler::sendCommand(HCICommand &req, const bool quiet) noexcept {
     COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO SENT %s", req.toString().c_str());
 
-    TROOctets & pdu = req.getPDU();
+    jau::TROOctets & pdu = req.getPDU();
     if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
         if( !quiet || jau::environment::get().verbose ) {
             ERR_PRINT("HCIHandler::sendCommand: HCIComm write error, req %s - %s", req.toString().c_str(), toString().c_str());

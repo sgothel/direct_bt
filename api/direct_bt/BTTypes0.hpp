@@ -33,10 +33,10 @@
 
 #include <jau/basic_types.hpp>
 #include <jau/darray.hpp>
+#include <jau/octets.hpp>
+#include <jau/uuid.hpp>
 
-#include "OctetTypes.hpp"
 #include "BTAddress.hpp"
-#include "UUID.hpp"
 
 namespace direct_bt {
 
@@ -755,7 +755,7 @@ namespace direct_bt {
         private:
             uint16_t company;
             std::string companyName;
-            POctets data;
+            jau::POctets data;
 
         public:
             ManufactureSpecificData(uint16_t const company) noexcept;
@@ -769,7 +769,7 @@ namespace direct_bt {
             constexpr uint16_t getCompany() const noexcept { return company; }
             const std::string& getCompanyName() const noexcept { return companyName; }
 
-            const TROOctets& getData() const noexcept { return data; }
+            const jau::TROOctets& getData() const noexcept { return data; }
 
             std::string toString() const noexcept;
     };
@@ -885,7 +885,7 @@ namespace direct_bt {
         EAD_Event_Type ead_type = EAD_Event_Type::NONE;
         uint8_t ad_address_type = 0;
         BDAddressType addressType = BDAddressType::BDADDR_UNDEFINED;
-        EUI48 address;
+        jau::EUI48 address;
 
         GAPFlags flags = GAPFlags::NONE;
         std::string name;
@@ -893,11 +893,11 @@ namespace direct_bt {
         int8_t rssi = 127; // The core spec defines 127 as the "not available" value
         int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
         std::shared_ptr<ManufactureSpecificData> msd = nullptr;
-        jau::darray<std::shared_ptr<const uuid_t>> services;
+        jau::darray<std::shared_ptr<const jau::uuid_t>> services;
         uint32_t device_class = 0;
         AppearanceCat appearance = AppearanceCat::UNKNOWN;
-        POctets hash;
-        POctets randomizer;
+        jau::POctets hash;
+        jau::POctets randomizer;
         uint16_t did_source = 0;
         uint16_t did_vendor = 0;
         uint16_t did_product = 0;
@@ -921,7 +921,7 @@ namespace direct_bt {
         void setEvtType(AD_PDU_Type et) noexcept { evt_type = et; set(EIRDataType::EVT_TYPE); }
         void setExtEvtType(EAD_Event_Type eadt) noexcept { ead_type = eadt; set(EIRDataType::EXT_EVT_TYPE); }
         void setAddressType(BDAddressType at) noexcept;
-        void setAddress(EUI48 const &a) noexcept { address = a; set(EIRDataType::BDADDR); }
+        void setAddress(jau::EUI48 const &a) noexcept { address = a; set(EIRDataType::BDADDR); }
         void setRSSI(int8_t v) noexcept { rssi = v; set(EIRDataType::RSSI); }
 
         void setFlags(GAPFlags f) noexcept { flags = f; set(EIRDataType::FLAGS); }
@@ -929,8 +929,8 @@ namespace direct_bt {
         void setShortName(const std::string& name_short_) noexcept;
 
         void setManufactureSpecificData(const ManufactureSpecificData& msd_) noexcept;
-        void addService(const std::shared_ptr<const uuid_t>& uuid) noexcept;
-        void addService(const uuid_t& uuid) noexcept;
+        void addService(const std::shared_ptr<const jau::uuid_t>& uuid) noexcept;
+        void addService(const jau::uuid_t& uuid) noexcept;
         void setDeviceClass(uint32_t c) noexcept { device_class= c; set(EIRDataType::DEVICE_CLASS); }
         void setAppearance(AppearanceCat a) noexcept { appearance= a; set(EIRDataType::APPEARANCE); }
         void setHash(const uint8_t * h) noexcept { hash.resize(16); memcpy(hash.get_wptr(), h, 16); set(EIRDataType::HASH); }
@@ -1037,19 +1037,19 @@ namespace direct_bt {
         GAPFlags getFlags() const noexcept { return flags; }
         uint8_t getADAddressType() const noexcept { return ad_address_type; }
         BDAddressType getAddressType() const noexcept { return addressType; }
-        EUI48 const & getAddress() const noexcept { return address; }
+        jau::EUI48 const & getAddress() const noexcept { return address; }
         std::string const & getName() const noexcept { return name; }
         std::string const & getShortName() const noexcept{ return name_short; }
         int8_t getRSSI() const noexcept { return rssi; }
         int8_t getTxPower() const noexcept { return tx_power; }
 
         std::shared_ptr<ManufactureSpecificData> getManufactureSpecificData() const noexcept { return msd; }
-        jau::darray<std::shared_ptr<const uuid_t>> getServices() const noexcept { return services; }
+        jau::darray<std::shared_ptr<const jau::uuid_t>> getServices() const noexcept { return services; }
 
         uint32_t getDeviceClass() const noexcept { return device_class; }
         AppearanceCat getAppearance() const noexcept { return appearance; }
-        const TROOctets & getHash() const noexcept { return hash; }
-        const TROOctets & getRandomizer() const noexcept { return randomizer; }
+        const jau::TROOctets & getHash() const noexcept { return hash; }
+        const jau::TROOctets & getRandomizer() const noexcept { return randomizer; }
         uint16_t getDeviceIDSource() const noexcept { return did_source; }
         uint16_t getDeviceIDVendor() const noexcept { return did_vendor; }
         uint16_t getDeviceIDProduct() const noexcept { return did_product; }

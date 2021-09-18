@@ -33,6 +33,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
+import org.jau.net.EUI48;
+import org.jau.net.EUI48Sub;
+
 /**
  * Application toolkit providing BT device registration of processed and awaited devices.
  * The latter on a pattern matching basis, i.e. EUI48Sub or name-sub.

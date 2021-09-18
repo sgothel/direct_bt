@@ -149,11 +149,11 @@ std::string direct_bt::to_string(const BLERandomAddressType type) noexcept {
     return "Unknown BLERandomAddressType "+jau::to_hexstring(number(type));
 }
 
-BLERandomAddressType EUI48::getBLERandomAddressType(const BDAddressType addressType) const noexcept {
+BLERandomAddressType BDAddressAndType::getBLERandomAddressType(const jau::EUI48& address, const BDAddressType addressType) noexcept {
     if( BDAddressType::BDADDR_LE_RANDOM != addressType ) {
         return BLERandomAddressType::UNDEFINED;
     }
-    const uint8_t high2 = ( b[5] >> 6 ) & 0x03;
+    const uint8_t high2 = ( address.b[5] >> 6 ) & 0x03;
     switch( high2 ) {
         case 0x00: return BLERandomAddressType::UNRESOLVABLE_PRIVAT;
         case 0x01: return BLERandomAddressType::RESOLVABLE_PRIVAT;
@@ -163,172 +163,8 @@ BLERandomAddressType EUI48::getBLERandomAddressType(const BDAddressType addressT
     }
 }
 
-std::string EUI48Sub::toString() const noexcept {
-    // str_len = 2 * len + ( len - 1 )
-    // str_len = 3 * len - 1
-    // len = ( str_len + 1 ) / 3
-    std::string str;
-    if( 0 < length ) {
-        str.reserve(3 * length - 1);
-
-        for(int i=length-1; 0 <= i; i--) {
-            jau::byteHexString(str, b[i], false /* lowerCase */);
-            if( 0 < i ) {
-                str.push_back(':');
-            }
-        }
-    } else {
-        str.push_back(':');
-    }
-    return str;
-}
-
-bool EUI48Sub::scanEUI48Sub(const std::string& str, EUI48Sub& dest, std::string& errmsg) {
-    const jau::nsize_t str_len = static_cast<jau::nsize_t>( str.length() );
-    dest.clear();
-
-    if( 17 < str_len ) { // not exceeding byte_size
-        errmsg.append("EUI48 sub-string must be less or equal length 17 but "+std::to_string(str_len)+": "+str);
-        return false;
-    }
-    const char * str_ptr = str.c_str();
-    jau::nsize_t j=0;
-    bool exp_colon = false;
-    uint8_t b_[6]; // intermediate result high -> low
-    while( j+1 < str_len /* && byte_count_ < byte_size */ ) { // min 2 chars left
-        const bool is_colon = ':' == str[j];
-        if( exp_colon && !is_colon ) {
-            errmsg.append("EUI48Sub sub-string not in format '01:02:03:0A:0B:0C', but '"+str+"', colon missing, pos "+std::to_string(j)+", len "+std::to_string(str_len));
-            return false;
-        } else if( is_colon ) {
-            ++j;
-            exp_colon = false;
-        } else {
-            if ( sscanf(str_ptr+j, "%02hhx", &b_[dest.length]) != 1 ) // b_: high->low
-            {
-                errmsg.append("EUI48Sub sub-string not in format '01:02:03:0A:0B:0C' but '"+str+"', pos "+std::to_string(j)+", len "+std::to_string(str_len));
-                return false;
-            }
-            j += 2;
-            ++dest.length;
-            exp_colon = true;
-        }
-    }
-    for(j=0; j<dest.length; ++j) { // swap low->high
-        dest.b[j] = b_[dest.length-1-j];
-    }
-    // sscanf provided host data type, in which we store the values,
-    // hence no endian conversion
-    return true;
-}
-
-EUI48Sub::EUI48Sub(const std::string& str) {
-    std::string errmsg;
-    if( !scanEUI48Sub(str, *this, errmsg) ) {
-        throw jau::IllegalArgumentException(errmsg, E_FILE_LINE);
-    }
-}
-
-EUI48Sub::EUI48Sub(const uint8_t * b_, const jau::nsize_t len_) noexcept {
-    length = len_;
-    const jau::nsize_t cpsz = std::max<jau::nsize_t>(sizeof(b), len_);
-    const jau::nsize_t bzsz = sizeof(b) - cpsz;
-    memcpy(b, b_, cpsz);
-    if( bzsz > 0 ) {
-        bzero(b+cpsz, bzsz);
-    }
-}
-
-jau::snsize_t EUI48Sub::indexOf(const uint8_t haystack_b[], const jau::nsize_t haystack_length,
-                                const uint8_t needle_b[], const jau::nsize_t needle_length) noexcept {
-    if( 0 == needle_length ) {
-        return 0;
-    }
-    if( haystack_length < needle_length ) {
-        return -1;
-    }
-    const uint8_t first = needle_b[0];
-    const jau::nsize_t outerEnd = haystack_length - needle_length + 1; // exclusive
-
-    for (jau::nsize_t i = 0; i < outerEnd; i++) {
-        // find first char of other
-        while( haystack_b[i] != first ) {
-            if( ++i == outerEnd ) {
-                return -1;
-            }
-        }
-        if( i < outerEnd ) { // otherLen chars left to match?
-            // continue matching other chars
-            const jau::nsize_t innerEnd = i + needle_length; // exclusive
-            jau::nsize_t j = i, k=0;
-            do {
-                if( ++j == innerEnd ) {
-                    return i; // gotcha
-                }
-            } while( haystack_b[j] == needle_b[++k] );
-        }
-    }
-    return -1;
-}
-
-std::string EUI48::toString() const noexcept {
-    // str_len = 2 * len + ( len - 1 )
-    // str_len = 3 * len - 1
-    // len = ( str_len + 1 ) / 3
-    std::string str;
-    str.reserve(17); // 6 * 2 + ( 6 - 1 )
-
-    for(int i=6-1; 0 <= i; i--) {
-        jau::byteHexString(str, b[i], false /* lowerCase */);
-        if( 0 < i ) {
-            str.push_back(':');
-        }
-    }
-    return str;
-}
-
-bool EUI48::scanEUI48(const std::string& str, EUI48& dest, std::string& errmsg) {
-    if( 17 != str.length() ) {
-        errmsg.append("EUI48 string not of length 17 but ");
-        errmsg.append(std::to_string(str.length()));
-        errmsg.append(": "+str);
-        return false;
-    }
-    if ( sscanf(str.c_str(), "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
-                &dest.b[5], &dest.b[4], &dest.b[3], &dest.b[2], &dest.b[1], &dest.b[0]) != 6 )
-    {
-        errmsg.append("EUI48 string not in format '01:02:03:0A:0B:0C' but '"+str+"'");
-        return false;
-    }
-    // sscanf provided host data type, in which we store the values,
-    // hence no endian conversion
-    return true;
-}
-
-EUI48::EUI48(const std::string& str) {
-    std::string errmsg;
-    if( !scanEUI48(str, *this, errmsg) ) {
-        throw jau::IllegalArgumentException(errmsg, E_FILE_LINE);
-    }
-}
-
-EUI48::EUI48(const uint8_t * b_) noexcept {
-    memcpy(b, b_, sizeof(b));
-}
-
-static uint8_t _EUI48_ALL_DEVICE[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-static uint8_t _EUI48_LOCAL_DEVICE[] = {0x00, 0x00, 0x00, 0xff, 0xff, 0xff};
-
-const EUI48Sub direct_bt::EUI48Sub::ANY_DEVICE; // default ctor is zero bytes!
-const EUI48Sub direct_bt::EUI48Sub::ALL_DEVICE( _EUI48_ALL_DEVICE, 6 );
-const EUI48Sub direct_bt::EUI48Sub::LOCAL_DEVICE( _EUI48_LOCAL_DEVICE, 6 );
-
-const EUI48 direct_bt::EUI48::ANY_DEVICE; // default ctor is zero bytes!
-const EUI48 direct_bt::EUI48::ALL_DEVICE( _EUI48_ALL_DEVICE );
-const EUI48 direct_bt::EUI48::LOCAL_DEVICE( _EUI48_LOCAL_DEVICE );
-
-const BDAddressAndType direct_bt::BDAddressAndType::ANY_BREDR_DEVICE(EUI48::ANY_DEVICE, BDAddressType::BDADDR_BREDR);
-const BDAddressAndType direct_bt::BDAddressAndType::ANY_DEVICE(EUI48::ANY_DEVICE, BDAddressType::BDADDR_UNDEFINED);
+const BDAddressAndType direct_bt::BDAddressAndType::ANY_BREDR_DEVICE(jau::EUI48::ANY_DEVICE, BDAddressType::BDADDR_BREDR);
+const BDAddressAndType direct_bt::BDAddressAndType::ANY_DEVICE(jau::EUI48::ANY_DEVICE, BDAddressType::BDADDR_UNDEFINED);
 
 std::string BDAddressAndType::toString() const noexcept {
     const BLERandomAddressType leRandomAddressType = getBLERandomAddressType();
@@ -924,10 +760,10 @@ void EInfoReport::setDeviceID(const uint16_t source_, const uint16_t vendor, con
     set(EIRDataType::DEVICE_ID);
 }
 
-void EInfoReport::addService(const std::shared_ptr<const uuid_t>& uuid) noexcept
+void EInfoReport::addService(const std::shared_ptr<const jau::uuid_t>& uuid) noexcept
 {
     auto begin = services.begin();
-    auto it = std::find_if(begin, services.end(), [&](std::shared_ptr<const uuid_t> const& p) {
+    auto it = std::find_if(begin, services.end(), [&](std::shared_ptr<const jau::uuid_t> const& p) {
         return *p == *uuid;
     });
     if ( it == std::end(services) ) {
@@ -935,7 +771,7 @@ void EInfoReport::addService(const std::shared_ptr<const uuid_t>& uuid) noexcept
         set(EIRDataType::SERVICE_UUID);
     }
 }
-void EInfoReport::addService(const uuid_t& uuid) noexcept {
+void EInfoReport::addService(const jau::uuid_t& uuid) noexcept {
     addService( uuid.clone() );
 }
 
@@ -964,7 +800,7 @@ std::string EInfoReport::toString(const bool includeServices) const noexcept {
     if( includeServices && services.size() > 0 ) {
         out.append("\n");
         for(auto it = services.begin(); it != services.end(); it++) {
-            std::shared_ptr<const uuid_t> p = *it;
+            std::shared_ptr<const jau::uuid_t> p = *it;
             out.append("  ").append(p->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(p->getTypeSize()))).append(" bytes\n");
         }
     }
@@ -998,7 +834,7 @@ bool EInfoReport::operator==(const EInfoReport& o) const noexcept {
            o.did_version == did_version &&
            o.services.size() == services.size() &&
            std::equal( o.services.cbegin(), o.services.cend(), services.cbegin(),
-                       [](const std::shared_ptr<const uuid_t>&a, const std::shared_ptr<const uuid_t>&b)
+                       [](const std::shared_ptr<const jau::uuid_t>&a, const std::shared_ptr<const jau::uuid_t>&b)
                        -> bool { return *a == *b; } );
 }
 
@@ -1077,7 +913,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                 [[fallthrough]];
             case GAP_T::UUID16_COMPLETE:
                 for(int j=0; j<elem_len/2; j++) {
-                    const std::shared_ptr<const uuid_t> uuid( std::make_shared<const uuid16_t>(elem_data, j*2, true) );
+                    const std::shared_ptr<const jau::uuid_t> uuid( std::make_shared<const jau::uuid16_t>(elem_data, j*2, true) );
                     addService( uuid );
                 }
                 break;
@@ -1086,7 +922,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                 [[fallthrough]];
             case GAP_T::UUID32_COMPLETE:
                 for(int j=0; j<elem_len/4; j++) {
-                    const std::shared_ptr<const uuid_t> uuid( std::make_shared<const uuid32_t>(elem_data, j*4, true) );
+                    const std::shared_ptr<const jau::uuid_t> uuid( std::make_shared<const jau::uuid32_t>(elem_data, j*4, true) );
                     addService( uuid );
                 }
                 break;
@@ -1095,7 +931,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                 [[fallthrough]];
             case GAP_T::UUID128_COMPLETE:
                 for(int j=0; j<elem_len/16; j++) {
-                    const std::shared_ptr<const uuid_t> uuid( std::make_shared<const uuid128_t>(elem_data, j*16, true) );
+                    const std::shared_ptr<const jau::uuid_t> uuid( std::make_shared<const jau::uuid128_t>(elem_data, j*16, true) );
                     addService( uuid );
                 }
                 break;
@@ -1247,9 +1083,9 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
         }
     }
     if( isEIRDataTypeSet(mask, EIRDataType::SERVICE_UUID) ) {
-        jau::darray<std::shared_ptr<const uuid_t>> uuid16s, uuid32s, uuid128s;
+        jau::darray<std::shared_ptr<const jau::uuid_t>> uuid16s, uuid32s, uuid128s;
         for(auto it = services.begin(); it != services.end(); it++) {
-            std::shared_ptr<const uuid_t> p = *it;
+            std::shared_ptr<const jau::uuid_t> p = *it;
             switch( p->getTypeSizeInt() ) {
                 case 2:
                     uuid16s.push_back(p);
@@ -1274,7 +1110,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
             *data_i++ = ad_sz;
             *data_i++ = direct_bt::number(GAP_T::UUID16_COMPLETE);
             for(auto it = uuid16s.begin(); it != uuid16s.end(); it++) {
-                std::shared_ptr<const uuid_t> p = *it;
+                std::shared_ptr<const jau::uuid_t> p = *it;
                 data_i += p->put(data_i, 0, true /* le */);
             }
         }
@@ -1288,7 +1124,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
             *data_i++ = ad_sz;
             *data_i++ = direct_bt::number(GAP_T::UUID32_COMPLETE);
             for(auto it = uuid32s.begin(); it != uuid32s.end(); it++) {
-                std::shared_ptr<const uuid_t> p = *it;
+                std::shared_ptr<const jau::uuid_t> p = *it;
                 data_i += p->put(data_i, 0, true /* le */);
             }
         }
@@ -1302,7 +1138,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
             *data_i++ = ad_sz;
             *data_i++ = direct_bt::number(GAP_T::UUID128_COMPLETE);
             for(auto it = uuid128s.begin(); it != uuid128s.end(); it++) {
-                std::shared_ptr<const uuid_t> p = *it;
+                std::shared_ptr<const jau::uuid_t> p = *it;
                 data_i += p->put(data_i, 0, true /* le */);
             }
         }
@@ -1352,7 +1188,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         read_segments++;
     }
     for(i = 0; i < num_reports && i_octets + 5 < limes; i++) {
-        ad_reports[i]->setAddress( *((EUI48 const *)i_octets) );
+        ad_reports[i]->setAddress( *((jau::EUI48 const *)i_octets) );
         i_octets += 6;
         read_segments++;
     }
@@ -1436,7 +1272,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ext_ad_reports(uint8
         read_segments++;
     }
     for(i = 0; i < num_reports && i_octets + 5 < limes; i++) {
-        ad_reports[i]->setAddress( *((EUI48 const *)i_octets) );
+        ad_reports[i]->setAddress( *((jau::EUI48 const *)i_octets) );
         i_octets += 6;
         read_segments++;
     }

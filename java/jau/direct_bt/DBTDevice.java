@@ -45,7 +45,6 @@ import org.direct_bt.BTRole;
 import org.direct_bt.BTType;
 import org.direct_bt.BTUtils;
 import org.direct_bt.EIRDataTypeSet;
-import org.direct_bt.EUI48;
 import org.direct_bt.BTGattCharListener;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.PairingMode;
@@ -54,6 +53,7 @@ import org.direct_bt.SMPKeyMask;
 import org.direct_bt.SMPLongTermKeyInfo;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.SMPSignatureResolvingKeyInfo;
+import org.jau.net.EUI48;
 
 public class DBTDevice extends DBTObject implements BTDevice
 {

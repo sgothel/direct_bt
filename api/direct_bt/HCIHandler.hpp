@@ -38,10 +38,10 @@
 #include <jau/environment.hpp>
 #include <jau/ringbuffer.hpp>
 #include <jau/java_uplink.hpp>
+#include <jau/octets.hpp>
 
 #include "BTTypes0.hpp"
 #include "BTIoctl.hpp"
-#include "OctetTypes.hpp"
 #include "HCIComm.hpp"
 #include "HCITypes.hpp"
 #include "MgmtTypes.hpp"
@@ -225,7 +225,7 @@ namespace direct_bt {
             static MgmtEvent::Opcode translate(HCIEventType evt, HCIMetaEventType met) noexcept;
 
             const uint16_t dev_id;
-            POctets rbuffer;
+            jau::POctets rbuffer;
             HCIComm comm;
             hci_ufilter filter_mask;
             std::atomic<uint32_t> metaev_filter_mask;

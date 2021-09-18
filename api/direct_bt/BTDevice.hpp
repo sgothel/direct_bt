@@ -88,7 +88,7 @@ namespace direct_bt {
             jau::relaxed_atomic_uint16 hciConnHandle;
             jau::ordered_atomic<LE_Features, std::memory_order_relaxed> le_features;
             std::shared_ptr<ManufactureSpecificData> advMSD = nullptr;
-            jau::darray<std::shared_ptr<const uuid_t>> advServices;
+            jau::darray<std::shared_ptr<const jau::uuid_t>> advServices;
 #if SMP_SUPPORTED_BY_OS
             std::shared_ptr<SMPHandler> smpHandler = nullptr;
             std::recursive_mutex mtx_smpHandler;
@@ -144,14 +144,14 @@ namespace direct_bt {
             }
 
             /** Add advertised service (GAP discovery) */
-            bool addAdvService(std::shared_ptr<const uuid_t> const &uuid) noexcept;
+            bool addAdvService(std::shared_ptr<const jau::uuid_t> const &uuid) noexcept;
             /** Add advertised service (GAP discovery) */
-            bool addAdvServices(jau::darray<std::shared_ptr<const uuid_t>> const & services) noexcept;
+            bool addAdvServices(jau::darray<std::shared_ptr<const jau::uuid_t>> const & services) noexcept;
             /**
              * Find advertised service (GAP discovery) index
              * @return index >= 0 if found, otherwise -1
              */
-            int findAdvService(std::shared_ptr<const uuid_t> const &uuid) const noexcept;
+            int findAdvService(const jau::uuid_t& uuid) const noexcept;
 
             EIRDataType update(EInfoReport const & data) noexcept;
             EIRDataType update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept;
@@ -332,7 +332,7 @@ namespace direct_bt {
              * use {@link #getGattService()}.
              * </p>
              */
-            jau::darray<std::shared_ptr<const uuid_t>> getAdvertisedServices() const noexcept;
+            jau::darray<std::shared_ptr<const jau::uuid_t>> getAdvertisedServices() const noexcept;
 
             std::string toString() const noexcept override { return toString(false); }
 
@@ -905,7 +905,7 @@ namespace direct_bt {
              * Implementation calls getGattService().
              * </p>
              */
-            std::shared_ptr<BTGattService> findGattService(std::shared_ptr<uuid_t> const &uuid);
+            std::shared_ptr<BTGattService> findGattService(const jau::uuid_t& uuid);
 
             /** Returns the shared GenericAccess instance, retrieved by {@link #getGattService()} or nullptr if not available. */
             std::shared_ptr<GattGenericAccessSvc> getGattGenericAccess();

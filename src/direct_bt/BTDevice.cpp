@@ -99,30 +99,30 @@ GATTRole BTDevice::getLocalGATTRole() const noexcept {
     }
 }
 
-bool BTDevice::addAdvService(std::shared_ptr<const uuid_t> const &uuid) noexcept
+bool BTDevice::addAdvService(std::shared_ptr<const jau::uuid_t> const &uuid) noexcept
 {
-    if( 0 > findAdvService(uuid) ) {
+    if( 0 > findAdvService(*uuid) ) {
         advServices.push_back(uuid);
         return true;
     }
     return false;
 }
-bool BTDevice::addAdvServices(jau::darray<std::shared_ptr<const uuid_t>> const & services) noexcept
+bool BTDevice::addAdvServices(jau::darray<std::shared_ptr<const jau::uuid_t>> const & services) noexcept
 {
     bool res = false;
     for(size_t j=0; j<services.size(); j++) {
-        const std::shared_ptr<const uuid_t> uuid = services.at(j);
+        const std::shared_ptr<const jau::uuid_t> uuid = services.at(j);
         res = addAdvService(uuid) || res;
     }
     return res;
 }
 
-int BTDevice::findAdvService(std::shared_ptr<const uuid_t> const &uuid) const noexcept
+int BTDevice::findAdvService(const jau::uuid_t& uuid) const noexcept
 {
     const size_t size = advServices.size();
     for (size_t i = 0; i < size; i++) {
-        const std::shared_ptr<const uuid_t> & e = advServices[i];
-        if ( nullptr != e && *uuid == *e ) {
+        const std::shared_ptr<const jau::uuid_t> & e = advServices[i];
+        if ( nullptr != e && uuid == *e ) {
             return i;
         }
     }
@@ -141,9 +141,9 @@ std::shared_ptr<ManufactureSpecificData> const BTDevice::getManufactureSpecificD
     return res;
 }
 
-jau::darray<std::shared_ptr<const uuid_t>> BTDevice::getAdvertisedServices() const noexcept {
+jau::darray<std::shared_ptr<const jau::uuid_t>> BTDevice::getAdvertisedServices() const noexcept {
     jau::sc_atomic_critical sync(sync_data);
-    jau::darray<std::shared_ptr<const uuid_t>> res = advServices;
+    jau::darray<std::shared_ptr<const jau::uuid_t>> res = advServices;
     return res;
 }
 
@@ -161,12 +161,12 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
             "), gap "+direct_bt::to_string(gap_flags)+
             ", "+msdstr+", "+javaObjectToString()+"]");
     if( includeDiscoveredServices ) {
-        jau::darray<std::shared_ptr<const uuid_t>> _advServices = getAdvertisedServices();
+        jau::darray<std::shared_ptr<const jau::uuid_t>> _advServices = getAdvertisedServices();
         if( _advServices.size() > 0 ) {
             out.append("\n");
             const size_t size = _advServices.size();
             for (size_t i = 0; i < size; i++) {
-                const std::shared_ptr<const uuid_t> & e = _advServices[i];
+                const std::shared_ptr<const jau::uuid_t> & e = _advServices[i];
                 if( 0 < i ) {
                     out.append("\n");
                 }
@@ -1571,12 +1571,12 @@ jau::darray<std::shared_ptr<BTGattService>> BTDevice::getGattServices() noexcept
     return gattServices;
 }
 
-std::shared_ptr<BTGattService> BTDevice::findGattService(std::shared_ptr<uuid_t> const &uuid) {
+std::shared_ptr<BTGattService> BTDevice::findGattService(const jau::uuid_t& uuid) {
     const jau::darray<std::shared_ptr<BTGattService>> & gattServices = getGattServices(); // reference of the GATTHandler's list
     const size_t size = gattServices.size();
     for (size_t i = 0; i < size; i++) {
         const std::shared_ptr<BTGattService> & e = gattServices[i];
-        if ( nullptr != e && *uuid == *(e->type) ) {
+        if ( nullptr != e && uuid == *(e->type) ) {
             return e;
         }
     }

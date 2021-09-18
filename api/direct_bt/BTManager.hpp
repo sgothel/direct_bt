@@ -39,10 +39,10 @@
 #include <jau/java_uplink.hpp>
 #include <jau/darray.hpp>
 #include <jau/cow_darray.hpp>
+#include <jau/octets.hpp>
 
 #include "BTTypes0.hpp"
 #include "BTIoctl.hpp"
-#include "OctetTypes.hpp"
 #include "HCIComm.hpp"
 #include "MgmtTypes.hpp"
 #include "BTAdapter.hpp"
@@ -219,7 +219,7 @@ namespace direct_bt {
 
             const MgmtEnv & env;
 
-            POctets rbuffer;
+            jau::POctets rbuffer;
             HCIComm comm;
 
             jau::ringbuffer<std::unique_ptr<MgmtEvent>, std::nullptr_t, jau::nsize_t> mgmtEventRing;

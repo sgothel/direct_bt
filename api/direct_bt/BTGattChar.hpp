@@ -35,10 +35,10 @@
 #include <atomic>
 
 #include <jau/java_uplink.hpp>
+#include <jau/octets.hpp>
+#include <jau/uuid.hpp>
 
-#include "UUID.hpp"
 #include "BTTypes0.hpp"
-#include "OctetTypes.hpp"
 #include "ATTPDUTypes.hpp"
 
 #include "BTTypes1.hpp"
@@ -129,7 +129,7 @@ namespace direct_bt {
                      * @param timestamp the indication monotonic timestamp, see getCurrentMilliseconds()
                      */
                     virtual void notificationReceived(BTGattCharRef charDecl,
-                                                      const TROOctets& charValue, const uint64_t timestamp) = 0;
+                                                      const jau::TROOctets& charValue, const uint64_t timestamp) = 0;
 
                     /**
                      * Called from native BLE stack, initiated by a received indication associated
@@ -140,7 +140,7 @@ namespace direct_bt {
                      * @param confirmationSent if true, the native stack has sent the confirmation, otherwise user is required to do so.
                      */
                     virtual void indicationReceived(BTGattCharRef charDecl,
-                                                    const TROOctets& charValue, const uint64_t timestamp,
+                                                    const jau::TROOctets& charValue, const uint64_t timestamp,
                                                     const bool confirmationSent) = 0;
 
                     virtual ~Listener() noexcept {}
@@ -186,7 +186,7 @@ namespace direct_bt {
             const uint16_t value_handle;
 
             /* Characteristics Value Type UUID */
-            std::unique_ptr<const uuid_t> value_type;
+            std::unique_ptr<const jau::uuid_t> value_type;
 
             /** List of Characteristic Descriptions as shared reference */
             jau::darray<BTGattDescRef> descriptorList;
@@ -195,7 +195,7 @@ namespace direct_bt {
             int clientCharConfigIndex = -1;
 
             BTGattChar(const BTGattServiceRef & service_, const uint16_t service_handle_, const uint16_t handle_,
-                               const PropertyBitVal properties_, const uint16_t value_handle_, std::unique_ptr<const uuid_t> && value_type_) noexcept
+                               const PropertyBitVal properties_, const uint16_t value_handle_, std::unique_ptr<const jau::uuid_t> && value_type_) noexcept
             : wbr_service(service_), service_handle(service_handle_), handle(handle_),
               properties(properties_), value_handle(value_handle_), value_type(std::move(value_type_)) {}
 
@@ -382,7 +382,7 @@ namespace direct_bt {
              * If the BTDevice's BTGattHandler is null, i.e. not connected, an IllegalStateException is thrown.
              * </p>
              */
-            bool readValue(POctets & res, int expectedLength=-1);
+            bool readValue(jau::POctets & res, int expectedLength=-1);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
@@ -393,7 +393,7 @@ namespace direct_bt {
              * If the BTDevice's BTGattHandler is null, i.e. not connected, an IllegalStateException is thrown.
              * </p>
              */
-            bool writeValue(const TROOctets & value);
+            bool writeValue(const jau::TROOctets & value);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response
@@ -404,7 +404,7 @@ namespace direct_bt {
              * If the BTDevice's BTGattHandler is null, i.e. not connected, an IllegalStateException is thrown.
              * </p>
              */
-            bool writeValueNoResp(const TROOctets & value);
+            bool writeValueNoResp(const jau::TROOctets & value);
     };
     typedef std::shared_ptr<BTGattChar> BTGattCharRef;
 
@@ -458,7 +458,7 @@ namespace direct_bt {
              * @param timestamp the indication monotonic timestamp, see getCurrentMilliseconds()
              */
             virtual void notificationReceived(BTGattCharRef charDecl,
-                                              const TROOctets& charValue, const uint64_t timestamp) = 0;
+                                              const jau::TROOctets& charValue, const uint64_t timestamp) = 0;
 
             /**
              * Called from native BLE stack, initiated by a received indication associated
@@ -469,7 +469,7 @@ namespace direct_bt {
              * @param confirmationSent if true, the native stack has sent the confirmation, otherwise user is required to do so.
              */
             virtual void indicationReceived(BTGattCharRef charDecl,
-                                            const TROOctets& charValue, const uint64_t timestamp,
+                                            const jau::TROOctets& charValue, const uint64_t timestamp,
                                             const bool confirmationSent) = 0;
 
             virtual ~BTGattCharListener() noexcept {}

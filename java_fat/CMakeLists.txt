@@ -32,14 +32,21 @@ add_custom_command (OUTPUT ${direct_bt_fat_jar_file} ${direct_bt_java_src_file}
                             -D _archives:FILEPATH="${jaulib_fat_jar_file}"
                             -P ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/ExtractArchiveList.cmake
 
+                    COMMAND ${CMAKE_COMMAND}
+                            -D_srcdir=${CMAKE_CURRENT_BINARY_DIR}/../java/${CMAKE_FILES_DIRECTORY}/direct_bt_jar.dir/jau
+                            -D_dstdir=${CMAKE_CURRENT_BINARY_DIR}/temp
+                            -P ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/DirCopy.cmake
+                    COMMAND ${CMAKE_COMMAND}
+                            -D_srcdir=${CMAKE_CURRENT_BINARY_DIR}/../java/${CMAKE_FILES_DIRECTORY}/direct_bt_jar.dir/org
+                            -D_dstdir=${CMAKE_CURRENT_BINARY_DIR}/temp
+                            -P ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/DirCopy.cmake
+
                     COMMAND ${JAR}
                        --create --file ${direct_bt_fat_jar_file}
                        --manifest ${CMAKE_CURRENT_BINARY_DIR}/manifest-fat.txt
                        -C ${CMAKE_CURRENT_BINARY_DIR}/temp/ jau
                        -C ${CMAKE_CURRENT_BINARY_DIR}/temp/ org
                        -C ${CMAKE_CURRENT_BINARY_DIR}/temp/ natives
-                       -C ${CMAKE_CURRENT_BINARY_DIR}/../java/${CMAKE_FILES_DIRECTORY}/direct_bt_jar.dir/ jau
-                       -C ${CMAKE_CURRENT_BINARY_DIR}/../java/${CMAKE_FILES_DIRECTORY}/direct_bt_jar.dir/ org
                        -C ${CMAKE_CURRENT_BINARY_DIR}/ natives
 
                     COMMAND ${JAR}

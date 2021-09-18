@@ -25,6 +25,8 @@
 
 package org.direct_bt;
 
+import org.jau.net.EUI48;
+
 /**
  * Unique Bluetooth {@link EUI48} address and {@link BDAddressType} tuple.
  * <p>
@@ -73,6 +75,26 @@ public class BDAddressAndType {
     /**
      * Returns the {@link BLERandomAddressType}.
      * <p>
+     * If {@link BDAddressType} is {@link BDAddressType::BDADDR_LE_RANDOM},
+     * method shall return a valid value other than {@link BLERandomAddressType::UNDEFINED}.
+     * </p>
+     * <p>
+     * If {@link BDAddressType} is not {@link BDAddressType::BDADDR_LE_RANDOM},
+     * method shall return {@link BLERandomAddressType::UNDEFINED}.
+     * </p>
+     * @since 2.2.0
+     */
+    public static BLERandomAddressType getBLERandomAddressType(final EUI48 address, final BDAddressType addressType) {
+        if( BDAddressType.BDADDR_LE_RANDOM != addressType ) {
+            return BLERandomAddressType.UNDEFINED;
+        }
+        final byte high2 = (byte) ( ( address.b[5] >> 6 ) & 0x03 );
+        return BLERandomAddressType.get(high2);
+    }
+
+    /**
+     * Returns the {@link BLERandomAddressType}.
+     * <p>
      * If {@link #type} is {@link BDAddressType::BDADDR_LE_RANDOM},
      * method shall return a valid value other than {@link BLERandomAddressType::UNDEFINED}.
      * </p>
@@ -83,7 +105,7 @@ public class BDAddressAndType {
      * @since 2.0.0
      */
     public BLERandomAddressType getBLERandomAddressType() {
-        return address.getBLERandomAddressType(type);
+        return getBLERandomAddressType(address, type);
     }
 
     /**

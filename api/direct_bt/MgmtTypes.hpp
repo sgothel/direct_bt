@@ -34,11 +34,11 @@
 
 #include <jau/function_def.hpp>
 #include <jau/cow_darray.hpp>
+#include <jau/octets.hpp>
 #include <jau/packed_attribute.hpp>
 
 #include "BTTypes0.hpp"
 #include "BTIoctl.hpp"
-#include "OctetTypes.hpp"
 #include "HCIComm.hpp"
 
 #include "BTTypes1.hpp"
@@ -304,7 +304,7 @@ namespace direct_bt {
     class MgmtMsg
     {
         protected:
-            POctets pdu;
+            jau::POctets pdu;
             uint64_t ts_creation;
 
             virtual std::string baseString() const noexcept {
@@ -358,7 +358,7 @@ namespace direct_bt {
             jau::nsize_t getTotalSize() const noexcept { return pdu.getSize(); }
 
             /** Return the underlying octets read only */
-            TROOctets & getPDU() noexcept { return pdu; }
+            jau::TROOctets & getPDU() noexcept { return pdu; }
 
             uint16_t getIntOpcode() const noexcept { return pdu.get_uint16_nc(0); }
             uint16_t getDevID() const noexcept { return pdu.get_uint16_nc(2); }
@@ -802,7 +802,7 @@ namespace direct_bt {
 
         public:
             MgmtPinCodeReplyCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType,
-                                const uint8_t pin_len, const TROOctets &pin_code)
+                                const uint8_t pin_len, const jau::TROOctets &pin_code)
             : MgmtCommand(Opcode::PIN_CODE_REPLY, dev_id, 6+1+1+16)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
@@ -813,7 +813,7 @@ namespace direct_bt {
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
             uint8_t getPinLength() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1); }
-            TROOctets getPinCode() const noexcept { return POctets(pdu.get_ptr_nc(MGMT_HEADER_SIZE+6+1+1), getPinLength()); }
+            jau::TROOctets getPinCode() const noexcept { return jau::POctets(pdu.get_ptr_nc(MGMT_HEADER_SIZE+6+1+1), getPinLength()); }
     };
 
     /**

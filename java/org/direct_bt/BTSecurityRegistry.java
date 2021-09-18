@@ -30,6 +30,9 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import org.jau.net.EUI48;
+import org.jau.net.EUI48Sub;
+
 /**
  * Application toolkit providing BT security setup and its device association
  * on a pattern matching basis, i.e. EUI48Sub or name-sub.

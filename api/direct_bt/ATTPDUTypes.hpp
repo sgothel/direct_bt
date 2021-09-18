@@ -36,11 +36,11 @@
 #include <atomic>
 
 #include <jau/basic_types.hpp>
+#include <jau/octets.hpp>
+#include <jau/uuid.hpp>
 
-#include "UUID.hpp"
 #include "BTTypes0.hpp"
 
-#include "OctetTypes.hpp"
 
 /**
  * - - - - - - - - - - - - - - -
@@ -432,7 +432,7 @@ namespace direct_bt {
 
         public:
             /** actual received PDU */
-            POctets pdu;
+            jau::POctets pdu;
 
             /** flags a request PDU, i.e. a command etc, initiated by a GATT client */
             const bool is_request;
@@ -753,7 +753,7 @@ namespace direct_bt {
     class AttReadRsp: public AttPDUMsg
     {
         private:
-            const TOctetSlice view;
+            const jau::TOctetSlice view;
 
             constexpr static jau::nsize_t pdu_value_offset = 1;
 
@@ -770,7 +770,7 @@ namespace direct_bt {
 
             constexpr uint8_t const * getValuePtr() const noexcept { return pdu.get_ptr_nc( pdu_value_offset ); }
 
-            constexpr TOctetSlice const & getValue() const noexcept { return view; }
+            constexpr jau::TOctetSlice const & getValue() const noexcept { return view; }
 
             constexpr_cxx20 std::string getName() const noexcept override {
                 return "AttReadRsp";
@@ -836,7 +836,7 @@ namespace direct_bt {
     class AttReadBlobRsp: public AttPDUMsg
     {
         private:
-            const TOctetSlice view;
+            const jau::TOctetSlice view;
 
             constexpr static jau::nsize_t pdu_value_offset = 1;
 
@@ -853,7 +853,7 @@ namespace direct_bt {
 
             constexpr uint8_t const * getValuePtr() const noexcept { return pdu.get_ptr_nc( pdu_value_offset ); }
 
-            constexpr TOctetSlice const & getValue() const noexcept { return view; }
+            constexpr jau::TOctetSlice const & getValue() const noexcept { return view; }
 
             constexpr_cxx20 std::string getName() const noexcept override {
                 return "AttReadBlobRsp";
@@ -881,12 +881,12 @@ namespace direct_bt {
     class AttWriteReq : public AttPDUMsg
     {
         private:
-            const TOctetSlice view;
+            const jau::TOctetSlice view;
 
             constexpr static jau::nsize_t pdu_value_offset = 1 + 2;
 
         public:
-            AttWriteReq(const uint16_t handle, const TROOctets & value)
+            AttWriteReq(const uint16_t handle, const jau::TROOctets & value)
             : AttPDUMsg(Opcode::WRITE_REQ, 1+2+value.getSize()), view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16_nc(1, handle);
@@ -902,7 +902,7 @@ namespace direct_bt {
 
             constexpr uint8_t const * getValuePtr() const noexcept { return pdu.get_ptr_nc( pdu_value_offset ); }
 
-            constexpr TOctetSlice const & getValue() const noexcept { return view; }
+            constexpr jau::TOctetSlice const & getValue() const noexcept { return view; }
 
             constexpr_cxx20 std::string getName() const noexcept override {
                 return "AttWriteReq";
@@ -953,12 +953,12 @@ namespace direct_bt {
     class AttWriteCmd : public AttPDUMsg
     {
         private:
-            const TOctetSlice view;
+            const jau::TOctetSlice view;
 
             constexpr static jau::nsize_t pdu_value_offset = 1 + 2;
 
         public:
-            AttWriteCmd(const uint16_t handle, const TROOctets & value)
+            AttWriteCmd(const uint16_t handle, const jau::TROOctets & value)
             : AttPDUMsg(Opcode::WRITE_CMD, 1+2+value.getSize()), view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16_nc(1, handle);
@@ -974,7 +974,7 @@ namespace direct_bt {
 
             constexpr uint8_t const * getValuePtr() const noexcept { return pdu.get_ptr_nc( pdu_value_offset ); }
 
-            constexpr TOctetSlice const & getValue() const noexcept { return view; }
+            constexpr jau::TOctetSlice const & getValue() const noexcept { return view; }
 
             constexpr_cxx20 std::string getName() const noexcept override {
                 return "AttWriteCmd";
@@ -1005,7 +1005,7 @@ namespace direct_bt {
     class AttHandleValueRcv: public AttPDUMsg
     {
         private:
-            const TOctetSlice view;
+            const jau::TOctetSlice view;
 
             constexpr static jau::nsize_t pdu_value_offset = 1 + 2;
 
@@ -1022,7 +1022,7 @@ namespace direct_bt {
 
             constexpr uint8_t const * getValuePtr() const noexcept { return pdu.get_ptr_nc( pdu_value_offset ); }
 
-            TOctetSlice const & getValue() const noexcept { return view; }
+            jau::TOctetSlice const & getValue() const noexcept { return view; }
 
             bool isNotification() const noexcept {
                 return Opcode::HANDLE_VALUE_NTF == getOpcode();
@@ -1136,15 +1136,15 @@ namespace direct_bt {
     class AttReadByNTypeReq : public AttPDUMsg
     {
         private:
-            constexpr_cxx20 uuid_t::TypeSize getUUIFormat() const {
-                return uuid_t::toTypeSize(this->getPDUValueSize());
+            constexpr_cxx20 jau::uuid_t::TypeSize getUUIFormat() const {
+                return jau::uuid_t::toTypeSize(this->getPDUValueSize());
             }
 
         public:
-            AttReadByNTypeReq(const bool groupTypeReq, const uint16_t startHandle, const uint16_t endHandle, const uuid_t & uuid)
+            AttReadByNTypeReq(const bool groupTypeReq, const uint16_t startHandle, const uint16_t endHandle, const jau::uuid_t & uuid)
             : AttPDUMsg(groupTypeReq ? Opcode::READ_BY_GROUP_TYPE_REQ : Opcode::READ_BY_TYPE_REQ, 1+2+2+uuid.getTypeSizeInt())
             {
-                if( uuid.getTypeSize() != uuid_t::TypeSize::UUID16_SZ && uuid.getTypeSize()!= uuid_t::TypeSize::UUID128_SZ ) {
+                if( uuid.getTypeSize() != jau::uuid_t::TypeSize::UUID16_SZ && uuid.getTypeSize()!= jau::uuid_t::TypeSize::UUID128_SZ ) {
                     throw jau::IllegalArgumentException("Only UUID16 and UUID128 allowed: "+uuid.toString(), E_FILE_LINE);
                 }
                 pdu.put_uint16_nc(1, startHandle);
@@ -1163,7 +1163,7 @@ namespace direct_bt {
                 return "AttReadByNTypeReq";
             }
 
-            std::unique_ptr<const uuid_t> getNType() const {
+            std::unique_ptr<const jau::uuid_t> getNType() const {
                 return pdu.get_uuid( getPDUValueOffset(), getUUIFormat() );
             }
 
@@ -1202,7 +1202,7 @@ namespace direct_bt {
              */
             class Element {
                 private:
-                    const TOctetSlice view;
+                    const jau::TOctetSlice view;
 
                 public:
                     Element(const AttReadByTypeRsp & p, const jau::nsize_t idx)
@@ -1301,7 +1301,7 @@ namespace direct_bt {
              */
             class Element {
                 private:
-                    const TOctetSlice view;
+                    const jau::TOctetSlice view;
 
                 public:
                     Element(const AttReadByGroupTypeRsp & p, const jau::nsize_t idx)
@@ -1436,12 +1436,12 @@ namespace direct_bt {
     class AttFindInfoRsp: public AttElementList
     {
         private:
-            uuid_t::TypeSize getUUIFormat() const {
+            jau::uuid_t::TypeSize getUUIFormat() const {
                 const int f = pdu.get_uint8_nc(1);
                 if( 0x01 == f ) {
-                    return uuid_t::TypeSize::UUID16_SZ;
+                    return jau::uuid_t::TypeSize::UUID16_SZ;
                 } else if( 0x02 == f ) {
-                    return uuid_t::TypeSize::UUID128_SZ;
+                    return jau::uuid_t::TypeSize::UUID128_SZ;
                 }
                 throw AttValueException("PDUFindInfoRsp: Invalid format "+std::to_string(f)+", not UUID16 (1) or UUID128 (2)", E_FILE_LINE);
             }
@@ -1453,7 +1453,7 @@ namespace direct_bt {
             class Element {
                 public:
                     const uint16_t handle;
-                    const std::unique_ptr<const uuid_t> uuid;
+                    const std::unique_ptr<const jau::uuid_t> uuid;
 
                     Element(const AttFindInfoRsp & p, const jau::nsize_t idx)
                     : handle( p.getElementHandle(idx) ), uuid( p.getElementValue(idx) )
@@ -1483,7 +1483,7 @@ namespace direct_bt {
              * </p>
              */
             jau::nsize_t getElementValueSize() const override {
-                return uuid_t::number(getUUIFormat());
+                return jau::uuid_t::number(getUUIFormat());
             }
 
             jau::nsize_t getElementCount() const override {
@@ -1498,7 +1498,7 @@ namespace direct_bt {
                 return pdu.get_uint16( getElementPDUOffset(elementIdx) );
             }
 
-            std::unique_ptr<const uuid_t> getElementValue(const jau::nsize_t elementIdx) const {
+            std::unique_ptr<const jau::uuid_t> getElementValue(const jau::nsize_t elementIdx) const {
                 return pdu.get_uuid( getElementPDUOffset(elementIdx) + 2, getUUIFormat() );
             }
 

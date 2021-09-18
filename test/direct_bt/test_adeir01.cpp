@@ -8,7 +8,7 @@
 #include <catch2/catch_amalgamated.hpp>
 #include <jau/test/catch2_ext.hpp>
 
-#include <direct_bt/UUID.hpp>
+#include <jau/uuid.hpp>
 // #include <direct_bt/BTAddress.hpp>
 // #include <direct_bt/BTTypes1.hpp>
 #include <direct_bt/ATTPDUTypes.hpp>
@@ -24,11 +24,11 @@ TEST_CASE( "AD EIR PDU Test 01", "[datatype][AD][EIR]" ) {
     const std::vector<uint8_t> msd_data = { 0x01, 0x02 };
     ManufactureSpecificData msd(0x0001, msd_data.data(), msd_data.size());
 
-    const uuid16_t uuid_01 = uuid16_t(0x1234);
-    const uuid16_t uuid_02 = uuid16_t(0x0a0b);
+    const jau::uuid16_t uuid_01 = jau::uuid16_t(0x1234);
+    const jau::uuid16_t uuid_02 = jau::uuid16_t(0x0a0b);
     {
-        std::shared_ptr<const uuid_t> const p1 = std::make_shared<uuid16_t>( uuid_01 );
-        std::shared_ptr<const uuid_t> const p2 = uuid_02.clone();
+        std::shared_ptr<const jau::uuid_t> const p1 = std::make_shared<jau::uuid16_t>( uuid_01 );
+        std::shared_ptr<const jau::uuid_t> const p2 = uuid_02.clone();
         std::cout << "uuid_01: " << uuid_01.toString() << ", [" << p1->toString() << "]" << std::endl;
         std::cout << "uuid_02: " << uuid_02.toString() << ", [" << p2->toString() << "]" << std::endl;
     }
@@ -67,12 +67,12 @@ TEST_CASE( "AD EIR PDU Test 02", "[datatype][AD][EIR]" ) {
     const std::vector<uint8_t> msd_data = { 0x01, 0x02, 0x03, 0x04, 0x05 };
     ManufactureSpecificData msd(0x0001, msd_data.data(), msd_data.size());
 
-    const uuid16_t uuid_01(0x1234);
-    const uuid16_t uuid_02(0x0a0b);
-    const uuid32_t uuid_11(0xabcd1234);
-    const uuid128_t uuid_21("00001234-5678-100a-8000-00805F9B34FB");
+    const jau::uuid16_t uuid_01(0x1234);
+    const jau::uuid16_t uuid_02(0x0a0b);
+    const jau::uuid32_t uuid_11(0xabcd1234);
+    const jau::uuid128_t uuid_21("00001234-5678-100a-8000-00805F9B34FB");
     {
-        std::shared_ptr<const uuid_t> const p1 = uuid_21.clone();
+        std::shared_ptr<const jau::uuid_t> const p1 = uuid_21.clone();
         std::cout << "uuid_21: " << uuid_21.toString() << ", [" << p1->toString() << "]" << std::endl;
     }
 

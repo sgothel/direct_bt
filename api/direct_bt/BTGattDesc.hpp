@@ -26,6 +26,8 @@
 #ifndef BT_GATT_DESCRIPTOR_HPP_
 #define BT_GATT_DESCRIPTOR_HPP_
 
+#include <jau/octets.hpp>
+#include <jau/uuid.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
@@ -34,9 +36,7 @@
 #include <mutex>
 #include <atomic>
 
-#include "UUID.hpp"
 #include "BTTypes0.hpp"
-#include "OctetTypes.hpp"
 #include "ATTPDUTypes.hpp"
 
 #include "BTTypes1.hpp"
@@ -67,9 +67,9 @@ namespace direct_bt {
             std::string toShortString() const noexcept;
 
         public:
-            static const uuid16_t TYPE_EXT_PROP;
-            static const uuid16_t TYPE_USER_DESC;
-            static const uuid16_t TYPE_CCC_DESC;
+            static const jau::uuid16_t TYPE_EXT_PROP;
+            static const jau::uuid16_t TYPE_USER_DESC;
+            static const jau::uuid16_t TYPE_CCC_DESC;
 
             /**
              * Following UUID16 GATT profile attribute types are listed under:
@@ -99,7 +99,7 @@ namespace direct_bt {
             };
 
             /** Type of descriptor */
-            std::unique_ptr<const uuid_t> type;
+            std::unique_ptr<const jau::uuid_t> type;
 
             /**
              * Characteristic Descriptor Handle
@@ -110,9 +110,9 @@ namespace direct_bt {
             const uint16_t handle;
 
             /* Characteristics Descriptor's Value */
-            POctets value;
+            jau::POctets value;
 
-            BTGattDesc(const BTGattCharRef & characteristic, std::unique_ptr<const uuid_t> && type_,
+            BTGattDesc(const BTGattCharRef & characteristic, std::unique_ptr<const jau::uuid_t> && type_,
                            const uint16_t handle_) noexcept
             : wbr_char(characteristic), type(std::move(type_)), handle(handle_), value(/* intentional zero sized */) {}
 

@@ -38,8 +38,8 @@
 #include <jau/environment.hpp>
 #include <jau/ringbuffer.hpp>
 #include <jau/cow_darray.hpp>
+#include <jau/uuid.hpp>
 
-#include "UUID.hpp"
 #include "BTTypes0.hpp"
 #include "L2CAPComm.hpp"
 #include "ATTPDUTypes.hpp"
@@ -170,7 +170,7 @@ namespace direct_bt {
 
             const std::string deviceString;
             std::recursive_mutex mtx_command;
-            POctets rbuffer;
+            jau::POctets rbuffer;
 
             jau::sc_atomic_bool is_connected; // reflects state
             jau::relaxed_atomic_bool has_ioerror;  // reflects state
@@ -383,7 +383,7 @@ namespace direct_bt {
              * if required until the response returns zero.
              * </p>
              */
-            bool readValue(const uint16_t handle, POctets & res, int expectedLength=-1);
+            bool readValue(const uint16_t handle, jau::POctets & res, int expectedLength=-1);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value
@@ -402,7 +402,7 @@ namespace direct_bt {
              * if required until the response returns zero.
              * </p>
              */
-            bool readCharacteristicValue(const BTGattChar & c, POctets & res, int expectedLength=-1);
+            bool readCharacteristicValue(const BTGattChar & c, jau::POctets & res, int expectedLength=-1);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.1 Read Characteristic Descriptor
@@ -426,7 +426,7 @@ namespace direct_bt {
             /**
              * Generic write GATT value and long value
              */
-            bool writeValue(const uint16_t handle, const TROOctets & value, const bool withResponse);
+            bool writeValue(const uint16_t handle, const jau::TROOctets & value, const bool withResponse);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.3 Write Characteristic Descriptors
@@ -442,12 +442,12 @@ namespace direct_bt {
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
              */
-            bool writeCharacteristicValue(const BTGattChar & c, const TROOctets & value);
+            bool writeCharacteristicValue(const BTGattChar & c, const jau::TROOctets & value);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response
              */
-            bool writeCharacteristicValueNoResp(const BTGattChar & c, const TROOctets & value);
+            bool writeCharacteristicValueNoResp(const BTGattChar & c, const jau::TROOctets & value);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration

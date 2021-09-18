@@ -191,7 +191,7 @@ static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) noex
 bool BTManager::send(MgmtCommand &req) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO SENT %s", req.toString().c_str());
-    TROOctets & pdu = req.getPDU();
+    jau::TROOctets & pdu = req.getPDU();
     if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
         ERR_PRINT("DBTManager::sendWithReply: HCIComm write error, req %s", req.toString().c_str());
         return false;

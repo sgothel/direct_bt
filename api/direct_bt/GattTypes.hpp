@@ -35,10 +35,10 @@
 #include <atomic>
 
 #include <jau/java_uplink.hpp>
+#include <jau/octets.hpp>
+#include <jau/uuid.hpp>
 
-#include "UUID.hpp"
 #include "BTTypes0.hpp"
-#include "OctetTypes.hpp"
 #include "ATTPDUTypes.hpp"
 
 /* Only to resolve high level service and characteristic names */

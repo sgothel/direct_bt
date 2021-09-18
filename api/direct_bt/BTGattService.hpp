@@ -36,10 +36,10 @@
 
 #include <jau/java_uplink.hpp>
 #include <jau/darray.hpp>
+#include <jau/octets.hpp>
+#include <jau/uuid.hpp>
 
-#include "UUID.hpp"
 #include "BTTypes0.hpp"
-#include "OctetTypes.hpp"
 #include "ATTPDUTypes.hpp"
 
 #include "BTTypes1.hpp"
@@ -91,13 +91,13 @@ namespace direct_bt {
             const uint16_t endHandle;
 
             /** Service type UUID */
-            std::unique_ptr<const uuid_t> type;
+            std::unique_ptr<const jau::uuid_t> type;
 
             /** List of Characteristic Declarations as shared reference */
             jau::darray<BTGattCharRef> characteristicList;
 
             BTGattService(const std::shared_ptr<BTGattHandler> &handler_, const bool isPrimary_,
-                        const uint16_t startHandle_, const uint16_t endHandle_, std::unique_ptr<const uuid_t> && type_) noexcept
+                        const uint16_t startHandle_, const uint16_t endHandle_, std::unique_ptr<const jau::uuid_t> && type_) noexcept
             : wbr_handler(handler_), isPrimary(isPrimary_), startHandle(startHandle_), endHandle(endHandle_), type(std::move(type_)), characteristicList() {
                 characteristicList.reserve(10);
             }

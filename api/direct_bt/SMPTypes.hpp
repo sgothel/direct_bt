@@ -34,8 +34,8 @@
 #include <mutex>
 
 #include <jau/basic_types.hpp>
+#include <jau/octets.hpp>
 
-#include "OctetTypes.hpp"
 #include "BTTypes0.hpp"
 
 /**
@@ -700,7 +700,7 @@ namespace direct_bt {
             }
 
             /** actual received PDU */
-            POctets pdu;
+            jau::POctets pdu;
 
             /** creation timestamp in milliseconds */
             uint64_t ts_creation;

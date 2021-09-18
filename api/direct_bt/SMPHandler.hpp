@@ -39,8 +39,8 @@
 #include <jau/function_def.hpp>
 #include <jau/darray.hpp>
 #include <jau/cow_darray.hpp>
+#include <jau/uuid.hpp>
 
-#include "UUID.hpp"
 #include "BTTypes0.hpp"
 #include "L2CAPComm.hpp"
 #include "SMPTypes.hpp"
@@ -192,7 +192,7 @@ namespace direct_bt {
 
             const std::string deviceString;
             std::recursive_mutex mtx_command;
-            POctets rbuffer;
+            jau::POctets rbuffer;
 
             L2CAPComm l2cap;
             jau::sc_atomic_bool is_connected; // reflects state

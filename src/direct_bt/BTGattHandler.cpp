@@ -207,8 +207,8 @@ void BTGattHandler::l2capReaderThreadImpl() {
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
                 COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: NTF: %s, listener %zd", a->toString().c_str(), characteristicListenerList.size());
                 BTGattCharRef decl = findCharacterisicsByValueHandle(a->getHandle());
-                const TOctetSlice& a_value_view = a->getValue();
-                const TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.getSize()); // just a view, still owned by attPDU
+                const jau::TOctetSlice& a_value_view = a->getValue();
+                const jau::TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.getSize()); // just a view, still owned by attPDU
                 // const std::shared_ptr<TROOctets> data( std::make_shared<POctets>(a->getValue()) );
                 const uint64_t timestamp = a->ts_creation;
                 int i=0;
@@ -235,8 +235,8 @@ void BTGattHandler::l2capReaderThreadImpl() {
                     cfmSent = true;
                 }
                 BTGattCharRef decl = findCharacterisicsByValueHandle(a->getHandle());
-                const TOctetSlice& a_value_view = a->getValue();
-                const TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.getSize()); // just a view, still owned by attPDU
+                const jau::TOctetSlice& a_value_view = a->getValue();
+                const jau::TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.getSize()); // just a view, still owned by attPDU
                 // const std::shared_ptr<TROOctets> data( std::make_shared<POctets>(a->getValue()) );
                 const uint64_t timestamp = a->ts_creation;
                 int i=0;
@@ -550,7 +550,7 @@ bool BTGattHandler::discoverPrimaryServices(std::shared_ptr<BTGattHandler> share
      * and the error code is set to Attribute Not Found or when the End Group Handle
      * in the Read by Type Group Response is 0xFFFF.
      */
-    const uuid16_t groupType = uuid16_t(GattAttributeType::PRIMARY_SERVICE);
+    const jau::uuid16_t groupType = jau::uuid16_t(GattAttributeType::PRIMARY_SERVICE);
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     PERF_TS_T0();
 
@@ -574,7 +574,7 @@ bool BTGattHandler::discoverPrimaryServices(std::shared_ptr<BTGattHandler> share
                 result.push_back( BTGattServiceRef( new BTGattService( shared_this, true,
                         p->pdu.get_uint16(ePDUOffset), // start-handle
                         p->pdu.get_uint16(ePDUOffset + 2), // end-handle
-                        p->pdu.get_uuid( ePDUOffset + 2 + 2, uuid_t::toTypeSize(esz-2-2) ) // uuid
+                        p->pdu.get_uuid( ePDUOffset + 2 + 2, jau::uuid_t::toTypeSize(esz-2-2) ) // uuid
                     ) ) );
                 COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discovered[%d/%d]: %s on %s", i,
                         count, result.at(result.size()-1)->toString().c_str(), toString().c_str());
@@ -608,7 +608,7 @@ bool BTGattHandler::discoverCharacteristics(BTGattServiceRef & service) {
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
      * </p>
      */
-    const uuid16_t characteristicTypeReq = uuid16_t(GattAttributeType::CHARACTERISTIC);
+    const jau::uuid16_t characteristicTypeReq = jau::uuid16_t(GattAttributeType::CHARACTERISTIC);
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     COND_PRINT(env.DEBUG_DATA, "GATT discoverCharacteristics Service: %s on %s", service->toString().c_str(), toString().c_str());
 
@@ -639,7 +639,7 @@ bool BTGattHandler::discoverCharacteristics(BTGattServiceRef & service) {
                     p->getElementHandle(e_iter), // Characteristic Handle
                     static_cast<BTGattChar::PropertyBitVal>(p->pdu.get_uint8(ePDUOffset  + 2)), // Characteristics Property
                     p->pdu.get_uint16(ePDUOffset + 2 + 1), // Characteristics Value Handle
-                    p->pdu.get_uuid(ePDUOffset   + 2 + 1 + 2, uuid_t::toTypeSize(esz-2-1-2) ) ) ) ); // Characteristics Value Type UUID
+                    p->pdu.get_uuid(ePDUOffset   + 2 + 1 + 2, jau::uuid_t::toTypeSize(esz-2-1-2) ) ) ) ); // Characteristics Value Type UUID
                 COND_PRINT(env.DEBUG_DATA, "GATT C discovered[%d/%d]: char%s on %s", e_iter, e_count,
                         service->characteristicList.at(service->characteristicList.size()-1)->toString().c_str(), toString().c_str());
             }
@@ -705,7 +705,7 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) {
                     // handle: handle of Characteristic Descriptor.
                     // value: Characteristic Descriptor UUID.
                     const uint16_t cd_handle = p->getElementHandle(e_iter);
-                    std::unique_ptr<const uuid_t> cd_uuid = p->getElementValue(e_iter);
+                    std::unique_ptr<const jau::uuid_t> cd_uuid = p->getElementValue(e_iter);
 
                     std::shared_ptr<BTGattDesc> cd( std::make_shared<BTGattDesc>(charDecl, std::move(cd_uuid), cd_handle) );
                     if( cd_handle <= charDecl->value_handle || cd_handle > cd_handle_end ) { // should never happen!
@@ -759,7 +759,7 @@ bool BTGattHandler::readDescriptorValue(BTGattDesc & desc, int expectedLength) {
     return res;
 }
 
-bool BTGattHandler::readCharacteristicValue(const BTGattChar & decl, POctets & resValue, int expectedLength) {
+bool BTGattHandler::readCharacteristicValue(const BTGattChar & decl, jau::POctets & resValue, int expectedLength) {
     COND_PRINT(env.DEBUG_DATA, "GATTHandler::readCharacteristicValue expLen %d, decl %s", expectedLength, decl.toString().c_str());
     const bool res = readValue(decl.value_handle, resValue, expectedLength);
     if( !res ) {
@@ -768,7 +768,7 @@ bool BTGattHandler::readCharacteristicValue(const BTGattChar & decl, POctets & r
     return res;
 }
 
-bool BTGattHandler::readValue(const uint16_t handle, POctets & res, int expectedLength) {
+bool BTGattHandler::readValue(const uint16_t handle, jau::POctets & res, int expectedLength) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value */
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
@@ -797,7 +797,7 @@ bool BTGattHandler::readValue(const uint16_t handle, POctets & res, int expected
         COND_PRINT(env.DEBUG_DATA, "GATT RV recv: %s from %s", pdu->toString().c_str(), toString().c_str());
         if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_RSP ) {
             const AttReadRsp * p = static_cast<const AttReadRsp*>(pdu.get());
-            const TOctetSlice & v = p->getValue();
+            const jau::TOctetSlice & v = p->getValue();
             res += v;
             offset += v.getSize();
             if( p->getPDUValueSize() < p->getMaxPDUValueSize(usedMTU) ) {
@@ -805,7 +805,7 @@ bool BTGattHandler::readValue(const uint16_t handle, POctets & res, int expected
             }
         } else if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_BLOB_RSP ) {
             const AttReadBlobRsp * p = static_cast<const AttReadBlobRsp*>(pdu.get());
-            const TOctetSlice & v = p->getValue();
+            const jau::TOctetSlice & v = p->getValue();
             if( 0 == v.getSize() ) {
                 done = true; // OK by spec: No more data - end of communication
             } else {
@@ -855,7 +855,7 @@ bool BTGattHandler::writeDescriptorValue(const BTGattDesc & cd) {
     return res;
 }
 
-bool BTGattHandler::writeCharacteristicValue(const BTGattChar & c, const TROOctets & value) {
+bool BTGattHandler::writeCharacteristicValue(const BTGattChar & c, const jau::TROOctets & value) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value */
     COND_PRINT(env.DEBUG_DATA, "GATTHandler::writeCharacteristicValue desc %s, value %s", c.toString().c_str(), value.toString().c_str());
     const bool res = writeValue(c.value_handle, value, true);
@@ -865,13 +865,13 @@ bool BTGattHandler::writeCharacteristicValue(const BTGattChar & c, const TROOcte
     return res;
 }
 
-bool BTGattHandler::writeCharacteristicValueNoResp(const BTGattChar & c, const TROOctets & value) {
+bool BTGattHandler::writeCharacteristicValueNoResp(const BTGattChar & c, const jau::TROOctets & value) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response */
     COND_PRINT(env.DEBUG_DATA, "GATT writeCharacteristicValueNoResp decl %s, value %s", c.toString().c_str(), value.toString().c_str());
     return writeValue(c.value_handle, value, false); // complete or exception
 }
 
-bool BTGattHandler::writeValue(const uint16_t handle, const TROOctets & value, const bool withResponse) {
+bool BTGattHandler::writeValue(const uint16_t handle, const jau::TROOctets & value, const bool withResponse) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.11 Characteristic Value Indication */
@@ -941,25 +941,25 @@ bool BTGattHandler::configNotificationIndication(BTGattDesc & cccd, const bool e
 /*********************************************************************************************************************/
 /*********************************************************************************************************************/
 
-static const uuid16_t _GENERIC_ACCESS(GattServiceType::GENERIC_ACCESS);
-static const uuid16_t _DEVICE_NAME(GattCharacteristicType::DEVICE_NAME);
-static const uuid16_t _APPEARANCE(GattCharacteristicType::APPEARANCE);
-static const uuid16_t _PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS(GattCharacteristicType::PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS);
+static const jau::uuid16_t _GENERIC_ACCESS(GattServiceType::GENERIC_ACCESS);
+static const jau::uuid16_t _DEVICE_NAME(GattCharacteristicType::DEVICE_NAME);
+static const jau::uuid16_t _APPEARANCE(GattCharacteristicType::APPEARANCE);
+static const jau::uuid16_t _PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS(GattCharacteristicType::PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS);
 
-static const uuid16_t _DEVICE_INFORMATION(GattServiceType::DEVICE_INFORMATION);
-static const uuid16_t _SYSTEM_ID(GattCharacteristicType::SYSTEM_ID);
-static const uuid16_t _MODEL_NUMBER_STRING(GattCharacteristicType::MODEL_NUMBER_STRING);
-static const uuid16_t _SERIAL_NUMBER_STRING(GattCharacteristicType::SERIAL_NUMBER_STRING);
-static const uuid16_t _FIRMWARE_REVISION_STRING(GattCharacteristicType::FIRMWARE_REVISION_STRING);
-static const uuid16_t _HARDWARE_REVISION_STRING(GattCharacteristicType::HARDWARE_REVISION_STRING);
-static const uuid16_t _SOFTWARE_REVISION_STRING(GattCharacteristicType::SOFTWARE_REVISION_STRING);
-static const uuid16_t _MANUFACTURER_NAME_STRING(GattCharacteristicType::MANUFACTURER_NAME_STRING);
-static const uuid16_t _REGULATORY_CERT_DATA_LIST(GattCharacteristicType::REGULATORY_CERT_DATA_LIST);
-static const uuid16_t _PNP_ID(GattCharacteristicType::PNP_ID);
+static const jau::uuid16_t _DEVICE_INFORMATION(GattServiceType::DEVICE_INFORMATION);
+static const jau::uuid16_t _SYSTEM_ID(GattCharacteristicType::SYSTEM_ID);
+static const jau::uuid16_t _MODEL_NUMBER_STRING(GattCharacteristicType::MODEL_NUMBER_STRING);
+static const jau::uuid16_t _SERIAL_NUMBER_STRING(GattCharacteristicType::SERIAL_NUMBER_STRING);
+static const jau::uuid16_t _FIRMWARE_REVISION_STRING(GattCharacteristicType::FIRMWARE_REVISION_STRING);
+static const jau::uuid16_t _HARDWARE_REVISION_STRING(GattCharacteristicType::HARDWARE_REVISION_STRING);
+static const jau::uuid16_t _SOFTWARE_REVISION_STRING(GattCharacteristicType::SOFTWARE_REVISION_STRING);
+static const jau::uuid16_t _MANUFACTURER_NAME_STRING(GattCharacteristicType::MANUFACTURER_NAME_STRING);
+static const jau::uuid16_t _REGULATORY_CERT_DATA_LIST(GattCharacteristicType::REGULATORY_CERT_DATA_LIST);
+static const jau::uuid16_t _PNP_ID(GattCharacteristicType::PNP_ID);
 
 std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darray<BTGattCharRef> & genericAccessCharDeclList) {
     std::shared_ptr<GattGenericAccessSvc> res = nullptr;
-    POctets value(number(Defaults::MAX_ATT_MTU), 0);
+    jau::POctets value(number(Defaults::MAX_ATT_MTU), 0);
     std::string deviceName = "";
     AppearanceCat appearance = AppearanceCat::UNKNOWN;
     std::shared_ptr<GattPeriphalPreferredConnectionParameters> prefConnParam = nullptr;
@@ -1008,7 +1008,7 @@ bool BTGattHandler::ping() {
 
     for(size_t i=0; isOK && i<services.size(); i++) {
         jau::darray<BTGattCharRef> & genericAccessCharDeclList = services.at(i)->characteristicList;
-        POctets value(32, 0);
+        jau::POctets value(32, 0);
 
         for(size_t j=0; isOK && j<genericAccessCharDeclList.size(); j++) {
             const BTGattChar & charDecl = *genericAccessCharDeclList.at(j);
@@ -1036,16 +1036,16 @@ bool BTGattHandler::ping() {
 
 std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(jau::darray<BTGattCharRef> & characteristicDeclList) {
     std::shared_ptr<GattDeviceInformationSvc> res = nullptr;
-    POctets value(number(Defaults::MAX_ATT_MTU), 0);
+    jau::POctets value(number(Defaults::MAX_ATT_MTU), 0);
 
-    POctets systemID(8, 0);
+    jau::POctets systemID(8, 0);
     std::string modelNumber;
     std::string serialNumber;
     std::string firmwareRevision;
     std::string hardwareRevision;
     std::string softwareRevision;
     std::string manufacturer;
-    POctets regulatoryCertDataList(128, 0);
+    jau::POctets regulatoryCertDataList(128, 0);
     std::shared_ptr<GattPnP_ID> pnpID = nullptr;
     bool found = false;
 

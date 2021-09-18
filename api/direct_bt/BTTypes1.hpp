@@ -31,8 +31,8 @@
 
 #include <jau/java_uplink.hpp>
 #include <jau/basic_types.hpp>
+#include <jau/uuid.hpp>
 
-#include "UUID.hpp"
 #include "BTAddress.hpp"
 #include "BTTypes0.hpp"
 
@@ -74,7 +74,7 @@ namespace direct_bt {
     class ConnectionInfo
     {
         private:
-            EUI48 address;
+            jau::EUI48 address;
             BDAddressType addressType;
             int8_t rssi;
             int8_t tx_power;
@@ -83,10 +83,10 @@ namespace direct_bt {
         public:
             static jau::nsize_t minimumDataSize() noexcept { return 6 + 1 + 1 + 1 + 1; }
 
-            ConnectionInfo(const EUI48 &address_, BDAddressType addressType_, int8_t rssi_, int8_t tx_power_, int8_t max_tx_power_) noexcept
+            ConnectionInfo(const jau::EUI48 &address_, BDAddressType addressType_, int8_t rssi_, int8_t tx_power_, int8_t max_tx_power_) noexcept
             : address(address_), addressType(addressType_), rssi(rssi_), tx_power(tx_power_), max_tx_power(max_tx_power_) {}
 
-            const EUI48 getAddress() const noexcept { return address; }
+            const jau::EUI48 getAddress() const noexcept { return address; }
             BDAddressType getAddressType() const noexcept { return addressType; }
             int8_t getRSSI() const noexcept { return rssi; }
             int8_t getTxPower() const noexcept { return tx_power; }

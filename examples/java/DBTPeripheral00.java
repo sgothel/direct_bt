@@ -40,12 +40,12 @@ import org.direct_bt.BTManager;
 import org.direct_bt.BTSecurityRegistry;
 import org.direct_bt.BTUtils;
 import org.direct_bt.EIRDataTypeSet;
-import org.direct_bt.EUI48;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPKeyBin;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
+import org.jau.net.EUI48;
 
 /**
  * This Java peripheral {@link BTRole::Slave} example uses the Direct-BT fully event driven workflow.
