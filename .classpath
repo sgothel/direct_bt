@@ -4,6 +4,9 @@
 	<classpathentry kind="src" path="test/java"/>
 	<classpathentry kind="src" path="java"/>
 	<classpathentry kind="src" path="jaulib/java"/>
+	<classpathentry kind="src" path="jaulib/test/java/jau"/>
+	<classpathentry kind="src" path="jaulib/java_base"/>
+	<classpathentry kind="src" path="jaulib/java_net"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
 		<attributes>
 			<attribute name="module" value="true"/>
