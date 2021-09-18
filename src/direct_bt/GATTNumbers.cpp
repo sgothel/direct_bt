@@ -352,7 +352,18 @@ std::string direct_bt::GattNameToString(const jau::TROOctets &v) noexcept {
 	    return std::string(); // empty
 	}
 	jau::POctets s(str_len+1); // dtor releases chunk
-	memcpy(s.get_wptr(), v.get_ptr(), str_len);
+	{
+	    // Prelim checking to avoid g++ 8.3 showing a warning: pointer overflow between offset 0 and size
+        uint8_t const * const v_p = v.get_ptr();
+        if( nullptr == v_p ) {
+            return std::string(); // empty
+        }
+        uint8_t * const s_p = s.get_wptr();
+        if( nullptr == s_p ) {
+            return std::string(); // empty
+        }
+        memcpy(s_p, v_p, str_len);
+	}
 	s.put_uint8_nc(str_len, 0); // EOS
 	return std::string((const char*)s.get_ptr());
 }

@@ -448,6 +448,11 @@ std::shared_ptr<ConnectionInfo> MgmtEvtCmdComplete::toConnectionInfo() const noe
     }
 
     const uint8_t *data = getData();
+    if( nullptr == data ) {
+        // Prelim checking to avoid g++ [8 - 10] giving a warning: '-Wnull-dereference' (impossible here!)
+        ERR_PRINT("Data nullptr: %s", toString().c_str());
+        return nullptr;
+    }
     EUI48 address = EUI48( data );
     BDAddressType addressType = static_cast<BDAddressType>( jau::get_uint8(data, 6) );
     int8_t rssi = jau::get_int8(data, 7);
