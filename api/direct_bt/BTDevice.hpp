@@ -892,20 +892,37 @@ namespace direct_bt {
              * </p>
              * <p>
              * If this method has been called for the first time or no services has been detected yet,
-             * a list of GATTService will be discovered.
+             * a list of GATTService will be retrieved.
              * <br>
-             * In case no GATT connection has been established it will be created via connectGATT().
+             * A GATT connection will be created via connectGATT() if not established yet.
              * </p>
              */
             jau::darray<std::shared_ptr<BTGattService>> getGattServices() noexcept;
 
             /**
-             * Returns the matching GATTService for the given uuid.
-             * <p>
-             * Implementation calls getGattService().
-             * </p>
+             * Find a BTGattService by its service_uuid.
+             *
+             * It will check objects for a connected device and caches them, using getGattService().
+             *
+             * It will not turn on discovery or connect to devices.
+             *
+             * @parameter service_uuid the jau::uuid_t of the desired BTGattService
+             * @return The matching service or null if not found
              */
-            std::shared_ptr<BTGattService> findGattService(const jau::uuid_t& uuid);
+            std::shared_ptr<BTGattService> findGattService(const jau::uuid_t& service_uuid) noexcept;
+
+            /**
+             * Find a BTGattChar by its service_uuid and char_uuid.
+             *
+             * It will check objects for a connected device and caches them, using getGattService().
+             *
+             * It will not turn on discovery or connect to devices.
+             *
+             * @parameter service_uuid the jau::uuid_t of the intermediate BTGattService
+             * @parameter char_uuid the jau::uuid_t of the desired BTGattChar, within the intermediate BTGattService.
+             * @return The matching characteristic or null if not found
+             */
+            std::shared_ptr<BTGattChar> findGattChar(const jau::uuid_t& service_uuid, const jau::uuid_t& char_uuid) noexcept;
 
             /** Returns the shared GenericAccess instance, retrieved by {@link #getGattService()} or nullptr if not available. */
             std::shared_ptr<GattGenericAccessSvc> getGattGenericAccess();

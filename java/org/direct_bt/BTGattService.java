@@ -39,31 +39,17 @@ import java.util.List;
   */
 public interface BTGattService extends BTObject
 {
-    /** Find a BTGattChar. If parameter UUID is not null,
-      * the returned object will have to match it.
-      * It will first check for existing objects. It will not turn on discovery
-      * or connect to devices.
-      * @parameter UUID optionally specify the UUID of the BTGattChar you are
-      * waiting for
-      * @parameter timeoutMS the function will return after timeout time in milliseconds, a
-      * value of zero means wait forever. If object is not found during this time null will be returned.
-      * @return An object matching the UUID or null if not found before
-      * timeout expires or event is canceled.
-      */
-    public BTGattChar find(String UUID, long timeoutMS);
-
-    /** Find a BTGattChar. If parameter UUID is not null,
-      * the returned object will have to match it.
-      * It will first check for existing objects. It will not turn on discovery
-      * or connect to devices.
-      * @parameter UUID optionally specify the UUID of the BluetoothGattDescriptor you are
-      * waiting for
-      * @return An object matching the UUID or null if not found before
-      * timeout expires or event is canceled.
-      */
-    public BTGattChar find(String UUID);
-
-    /* D-Bus property accessors: */
+    /**
+     * Find a {@link BTGattChar} by its char_uuid.
+     *
+     * It will check objects for a connected device and caches them.
+     *
+     * It will not turn on discovery or connect to devices.
+     *
+     * @parameter char_uuid the UUID of the desired {@link BTGattChar}
+     * @return The matching characteristic or null if not found
+     */
+    public BTGattChar findGattChar(String char_uuid);
 
     /** Get the UUID of this service
       * @return The 128 byte UUID of this service, NULL if an error occurred

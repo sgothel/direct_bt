@@ -115,6 +115,14 @@ namespace direct_bt {
             std::shared_ptr<BTDevice> getDeviceUnchecked() const noexcept;
             std::shared_ptr<BTDevice> getDeviceChecked() const;
 
+            /**
+             * Find a BTGattChar by its char_uuid.
+             *
+             * @parameter char_uuid the jau::uuid_t of the desired BTGattChar, within this BTGattService.
+             * @return The matching characteristic or null if not found
+             */
+            std::shared_ptr<BTGattChar> findGattChar(const jau::uuid_t& char_uuid) noexcept;
+
             std::string toString() const noexcept override;
     };
 

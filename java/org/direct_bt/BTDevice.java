@@ -48,29 +48,30 @@ import java.util.Map;
  */
 public interface BTDevice extends BTObject
 {
-    /** Find a BluetoothGattService. If parameter UUID is not null,
-      * the returned object will have to match it.
-      * It will first check for existing objects. It will not turn on discovery
-      * or connect to devices.
-      * @parameter UUID optionally specify the UUID of the BluetoothGattService you are
-      * waiting for
-      * @parameter timeoutMS the function will return after timeout time in milliseconds, a
-      * value of zero means wait forever. If object is not found during this time null will be returned.
-      * @return An object matching the UUID or null if not found before
-      * timeout expires or event is canceled.
-      */
-    BTGattService find(String UUID, long timeoutMS);
+    /**
+     * Find a {@link BTGattService} by its service_uuid.
+     *
+     * It will check objects for a connected device and caches them.
+     *
+     * It will not turn on discovery or connect to devices.
+     *
+     * @parameter service_uuid the UUID of the desired {@link BTGattService}
+     * @return The matching service or null if not found
+     */
+    BTGattService findGattService(String service_uuid);
 
-    /** Find a BluetoothGattService. If parameter UUID is not null,
-      * the returned object will have to match it.
-      * It will first check for existing objects. It will not turn on discovery
-      * or connect to devices.
-      * @parameter UUID optionally specify the UUID of the BluetoothGattService you are
-      * waiting for
-      * @return An object matching the UUID or null if not found before
-      * timeout expires or event is canceled.
-      */
-    BTGattService find(String UUID);
+    /**
+     * Find a {@link BTGattChar} by its service_uuid and char_uuid.
+     *
+     * It will check objects for a connected device and caches them.
+     *
+     * It will not turn on discovery or connect to devices.
+     *
+     * @parameter service_uuid the UUID of the intermediate {@link BTGattService}
+     * @parameter char_uuid the UUID of the desired {@link BTGattChar}, within the intermediate {@link BTGattService}.
+     * @return The matching characteristic or null if not found
+     */
+    BTGattChar findGattChar(String service_uuid, String char_uuid);
 
     /* Bluetooth method calls: */
 

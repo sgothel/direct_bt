@@ -188,13 +188,17 @@ public class DBTDevice extends DBTObject implements BTDevice
     static BTType class_type() { return BTType.DEVICE; }
 
     @Override
-    public BTGattService find(final String UUID, final long timeoutMS) {
-        return (DBTGattService) findInCache(UUID, BTType.GATT_SERVICE);
+    public BTGattService findGattService(final String service_uuid) {
+        return (BTGattService) findInCache(service_uuid, BTType.GATT_SERVICE);
     }
 
     @Override
-    public BTGattService find(final String UUID) {
-        return find(UUID, 0);
+    public BTGattChar findGattChar(final String service_uuid, final String char_uuid) {
+        final BTGattService s = findGattService(service_uuid);
+        if( null == s ) {
+            return null;
+        }
+        return s.findGattChar(char_uuid);
     }
 
     /* internal */
