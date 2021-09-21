@@ -242,12 +242,14 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
         return false;
     }
     // adapter is powered-on
-    adapter->addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
+    std::shared_ptr<AdapterStatusListener> asl(new MyAdapterStatusListener());
+    adapter->addStatusListener( asl );
     // Flush discovered devices after registering our status listener.
     // This avoids discovered devices before we have registered!
     adapter->removeDiscoveredDevices();
 
     if( !startAdvertising(adapter.get(), "initAdapter") ) {
+        adapter->removeStatusListener( asl );
         return false;
     }
     return true;

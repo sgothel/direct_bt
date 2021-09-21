@@ -260,12 +260,14 @@ public class DBTPeripheral00 {
             return false;
         }
         // adapter is powered-on
-        adapter.addStatusListener(new MyAdapterStatusListener() );
+        final AdapterStatusListener asl = new MyAdapterStatusListener();
+        adapter.addStatusListener( asl );
         // Flush discovered devices after registering our status listener.
         // This avoids discovered devices before we have registered!
         adapter.removeDiscoveredDevices();
 
         if( !startAdvertising(adapter, "initAdapter") ) {
+            adapter.removeStatusListener( asl );
             return false;
         }
         return true;

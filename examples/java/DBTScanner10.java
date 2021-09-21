@@ -670,7 +670,8 @@ public class DBTScanner10 {
             return false;
         }
         // adapter is powered-on
-        adapter.addStatusListener(new MyAdapterStatusListener() );
+        final AdapterStatusListener asl = new MyAdapterStatusListener();
+        adapter.addStatusListener( asl );
         // Flush discovered devices after registering our status listener.
         // This avoids discovered devices before we have registered!
         adapter.removeDiscoveredDevices();
@@ -683,6 +684,7 @@ public class DBTScanner10 {
             }
         } else {
             if( !startDiscovery(adapter, "initAdapter") ) {
+                adapter.removeStatusListener( asl );
                 return false;
             }
         }
