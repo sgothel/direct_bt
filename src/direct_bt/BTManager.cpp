@@ -255,7 +255,8 @@ fail:
 HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint16_t dev_id,
                                            const BTRole btRole, const BTMode btMode) noexcept {
     /**
-     * We weight on PairingMode::PASSKEY_ENTRY. FIXME: Have it configurable!
+     * We set BTManager::defaultIOCapability, i.e. SMPIOCapability::NO_INPUT_NO_OUTPUT,
+     * which may be overridden for each connection by BTDevice/BTAdapter!
      *
      * BT Core Spec v5.2: Vol 3, Part H (SM): 2.3.5.1 Selecting key generation method Table 2.8
      *
@@ -367,7 +368,12 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
             ABORT("initializeAdapter dev_id=%d != dev_id=%d: %s", adapterInfo.dev_id, dev_id, adapterInfo.toString().c_str());
         }
     }
-    DBG_PRINT("initializeAdapter[%d, BTMode %s]: End: %s", dev_id, to_string(btMode).c_str(), adapterInfo.toString().c_str());
+    if( !adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
+        DBG_PRINT("initializeAdapter[%d, BTMode %s]: Fail: Couldn't power-on: %s",
+                dev_id, to_string(btMode).c_str(), adapterInfo.toString().c_str());
+        goto fail;
+    }
+    DBG_PRINT("initializeAdapter[%d, BTMode %s]: OK: %s", dev_id, to_string(btMode).c_str(), adapterInfo.toString().c_str());
     return HCIStatusCode::SUCCESS;
 
 fail:

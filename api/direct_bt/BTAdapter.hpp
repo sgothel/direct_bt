@@ -378,7 +378,7 @@ namespace direct_bt {
             void removeSharedDevice(const BTDevice & device) noexcept;
 
             bool mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept;
-            bool updateAdapterSettings(const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept;
+            void updateAdapterSettings(const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept;
             bool mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept;
@@ -586,16 +586,18 @@ namespace direct_bt {
 
             /**
              * Set the power state of the adapter.
-             * <p>
-             * Calling the method to power-on this adapter will allow close() to power-off the adapter.
-             * </p>
-             * @param value true will power on this adapter, otherwise this adapter will be powered-off.
-             * @return true for success
+             *
+             * Powering on this adapter successfully, will allow close() to power-off the adapter.
+             *
+             * In case current power state is already as desired, method will not change the power state.
+             *
+             * @param power_on true will power on this adapter if it is powered-off and vice versa.
+             * @return true if successfully powered-on, -off or unchanged, false on failure
              * @see isInitialized()
              * @see close()
              * @see initialize()
              */
-            bool setPowered(bool value) noexcept;
+            bool setPowered(bool power_on) noexcept;
 
             /**
              * Initialize the adapter with default values, including power-on.
@@ -609,7 +611,7 @@ namespace direct_bt {
              * Calling the method will allow close() to power-off the adapter.
              * </p>
              * @param btMode the desired adapter's BTMode, defaults to BTMode::DUAL
-             * @return HCIStatusCode::SUCCESS or an error state
+             * @return HCIStatusCode::SUCCESS or an error state on failure (e.g. power-on)
              * @see isInitialized()
              * @see close()
              * @see setPowered()

@@ -82,6 +82,7 @@ public class DBTScanner10 {
 
     EUI48 useAdapter = EUI48.ALL_DEVICE;
     BTMode btMode = BTMode.DUAL;
+    BTAdapter chosenAdapter = null;
 
     int RESET_ADAPTER_EACH_CONN = 0;
     AtomicInteger deviceReadyCount = new AtomicInteger(0);
@@ -664,17 +665,15 @@ public class DBTScanner10 {
                         status.toString(), adapter.toString());
                 return false;
             }
+        } else if( !adapter.setPowered( true ) ) {
+            BTUtils.fprintf_td(System.err, "initAdapter: Already initialized adapter power-on failed:: %s\n", adapter.toString());
+            return false;
         }
-        // Even if adapter is not yet powered, listen to it and act when it gets powered-on
+        // adapter is powered-on
         adapter.addStatusListener(new MyAdapterStatusListener() );
         // Flush discovered devices after registering our status listener.
         // This avoids discovered devices before we have registered!
         adapter.removeDiscoveredDevices();
-
-        if( !adapter.isPowered() ) { // should have been covered above
-            BTUtils.println(System.err, "initAdapter: Adapter not powered (2): "+adapter.toString());
-            return false;
-        }
 
         if( USE_WHITELIST ) {
             for(final Iterator<BDAddressAndType> wliter = whitelist.iterator(); wliter.hasNext(); ) {
@@ -694,16 +693,26 @@ public class DBTScanner10 {
             new BTManager.ChangedAdapterSetListener() {
                 @Override
                 public void adapterAdded(final BTAdapter adapter) {
-                    if( initAdapter( adapter ) ) {
-                        BTUtils.println(System.err, "****** Adapter ADDED__: InitOK. " + adapter);
+                    if( null == chosenAdapter ) {
+                        if( initAdapter( adapter ) ) {
+                            chosenAdapter = adapter;
+                            BTUtils.println(System.err, "****** Adapter ADDED__: InitOK: " + adapter);
+                        } else {
+                            BTUtils.println(System.err, "****** Adapter ADDED__: Ignored: " + adapter);
+                        }
                     } else {
-                        BTUtils.println(System.err, "****** Adapter ADDED__: Ignored " + adapter);
+                        BTUtils.println(System.err, "****** Adapter ADDED__: Ignored (other): " + adapter);
                     }
                 }
 
                 @Override
                 public void adapterRemoved(final BTAdapter adapter) {
-                    BTUtils.println(System.err, "****** Adapter REMOVED: " + adapter);
+                    if( null != chosenAdapter && adapter == chosenAdapter ) {
+                        chosenAdapter = null;
+                        BTUtils.println(System.err, "****** Adapter REMOVED: " + adapter);
+                    } else {
+                        BTUtils.println(System.err, "****** Adapter REMOVED (other): " + adapter);
+                    }
                 }
     };
 
@@ -732,6 +741,7 @@ public class DBTScanner10 {
                 }
             }
         }
+        chosenAdapter = null;
 
         //
         // just a manually controlled pull down to show status, not required

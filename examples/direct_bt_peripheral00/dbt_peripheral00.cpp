@@ -61,6 +61,7 @@ static EUI48 useAdapter = EUI48::ALL_DEVICE;
 static BTMode btMode = BTMode::DUAL;
 static std::string adapter_name = "TestDev001_N";
 static std::string adapter_short_name = "TDev001N";
+static std::shared_ptr<BTAdapter> chosenAdapter = nullptr;
 
 static bool SHOW_UPDATE_EVENTS = false;
 
@@ -230,25 +231,21 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
             fprintf_td(stderr, "initAdapter: setPowered failed: %s\n", adapter->toString().c_str());
         }
         // Initialize with defaults and power-on
-        {
-            const HCIStatusCode status = adapter->initialize( btMode );
-            if( HCIStatusCode::SUCCESS != status ) {
-                fprintf_td(stderr, "initAdapter: Adapter initialization failed: %s: %s\n",
-                        to_string(status).c_str(), adapter->toString().c_str());
-                return false;
-            }
+        const HCIStatusCode status = adapter->initialize( btMode );
+        if( HCIStatusCode::SUCCESS != status ) {
+            fprintf_td(stderr, "initAdapter: Adapter initialization failed: %s: %s\n",
+                    to_string(status).c_str(), adapter->toString().c_str());
+            return false;
         }
+    } else if( !adapter->setPowered( true ) ) {
+        fprintf_td(stderr, "initAdapter: Already initialized adapter power-on failed:: %s\n", adapter->toString().c_str());
+        return false;
     }
-    // Even if adapter is not yet powered, listen to it and act when it gets powered-on
+    // adapter is powered-on
     adapter->addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
     // Flush discovered devices after registering our status listener.
     // This avoids discovered devices before we have registered!
     adapter->removeDiscoveredDevices();
-
-    if( !adapter->isPowered() ) { // should have been covered above
-        fprintf_td(stderr, "initAdapter: Adapter not powered (2): %s\n", adapter->toString().c_str());
-        return false;
-    }
 
     if( !startAdvertising(adapter.get(), "initAdapter") ) {
         return false;
@@ -258,14 +255,24 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
 
 static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>& adapter) {
     if( added ) {
-        if( initAdapter( adapter ) ) {
-            fprintf_td(stderr, "****** Adapter ADDED__: InitOK. %s\n", adapter->toString().c_str());
+        if( nullptr == chosenAdapter ) {
+            if( initAdapter( adapter ) ) {
+                chosenAdapter = adapter;
+                fprintf_td(stderr, "****** Adapter ADDED__: InitOK: %s\n", adapter->toString().c_str());
+            } else {
+                fprintf_td(stderr, "****** Adapter ADDED__: Ignored: %s\n", adapter->toString().c_str());
+            }
+            fprintf_td(stderr, "****** Adapter Features: %s\n", direct_bt::to_string(adapter->getLEFeatures()).c_str());
         } else {
-            fprintf_td(stderr, "****** Adapter ADDED__: Ignored %s\n", adapter->toString().c_str());
+            fprintf_td(stderr, "****** Adapter ADDED__: Ignored (other): %s\n", adapter->toString().c_str());
         }
-        fprintf_td(stderr, "****** Adapter Features: %s\n", direct_bt::to_string(adapter->getLEFeatures()).c_str());
     } else {
-        fprintf_td(stderr, "****** Adapter REMOVED: %s\n", adapter->toString().c_str());
+        if( nullptr != chosenAdapter && adapter == chosenAdapter ) {
+            chosenAdapter = nullptr;
+            fprintf_td(stderr, "****** Adapter REMOVED: %s\n", adapter->toString().c_str());
+        } else {
+            fprintf_td(stderr, "****** Adapter REMOVED (other): %s\n", adapter->toString().c_str());
+        }
     }
     return true;
 }
@@ -283,6 +290,7 @@ void test() {
     while( !done ) {
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     }
+    chosenAdapter = nullptr;
 }
 
 #include <cstdio>

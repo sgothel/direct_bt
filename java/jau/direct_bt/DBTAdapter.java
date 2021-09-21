@@ -276,7 +276,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private native String toStringImpl();
 
     @Override
-    public native boolean setPowered(boolean value);
+    public native boolean setPowered(boolean power_on);
 
     @Override
     public final HCIStatusCode initialize() {

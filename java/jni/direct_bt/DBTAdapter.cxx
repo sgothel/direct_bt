@@ -866,11 +866,11 @@ jboolean Java_jau_direct_1bt_DBTAdapter_removeDiscoveredDeviceImpl1(JNIEnv *env,
 // misc
 //
 
-jboolean Java_jau_direct_1bt_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jboolean value) {
+jboolean Java_jau_direct_1bt_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jboolean power_on) {
     try {
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
-        return adapter->setPowered(JNI_TRUE == value ? true : false) ? JNI_TRUE : JNI_FALSE;
+        return adapter->setPowered(JNI_TRUE == power_on ? true : false) ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

@@ -409,12 +409,26 @@ bool BTAdapter::setBondable(bool value) noexcept {
     return mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, value ? 1 : 0, current_settings);
 }
 
-bool BTAdapter::setPowered(bool value) noexcept {
-    if( value ) {
-        adapter_initialized = true;
+bool BTAdapter::setPowered(bool power_on) noexcept {
+    AdapterSetting settings = adapterInfo.getCurrentSettingMask();
+    if( (  power_on &&  isAdapterSettingBitSet(settings, AdapterSetting::POWERED) ) ||
+        ( !power_on && !isAdapterSettingBitSet(settings, AdapterSetting::POWERED) ) ) {
+        // unchanged
+        if( power_on ) {
+            adapter_initialized = true;
+        }
+        return true;
     }
-    AdapterSetting current_settings { AdapterSetting::NONE } ;
-    return mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, value ? 1 : 0, current_settings);
+    if( !mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, power_on ? 1 : 0, settings) ) {
+        return false;
+    }
+    const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(settings);
+    updateAdapterSettings(new_settings, false, 0);
+    if( power_on && isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED) ) {
+        adapter_initialized = true;
+        return true;
+    }
+    return !power_on && !isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED);
 }
 
 HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
@@ -428,9 +442,9 @@ HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
     if( !enableListening(true) ) {
         return HCIStatusCode::INTERNAL_FAILURE;
     }
-    status = updateAdapterSettings(adapterInfo.getCurrentSettingMask(), false, 0) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
-    WORDY_PRINT("BTAdapter::initialize: Adapter[%d]: Done: res0 %s - %s", dev_id, to_string(status).c_str(), toString().c_str());
-    return status;
+    updateAdapterSettings(adapterInfo.getCurrentSettingMask(), false, 0);
+    WORDY_PRINT("BTAdapter::initialize: Adapter[%d]: OK: %s", dev_id, toString().c_str());
+    return HCIStatusCode::SUCCESS;
 }
 
 bool BTAdapter::lockConnect(const BTDevice & device, const bool wait, const SMPIOCapability io_cap) noexcept {
@@ -1281,10 +1295,11 @@ bool BTAdapter::mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(&e);
     const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(event.getSettings()); // probably done by mgmt callback already
 
-    return updateAdapterSettings(new_settings, true, event.getTimestamp());
+    updateAdapterSettings(new_settings, true, event.getTimestamp());
+    return true;
 }
 
-bool BTAdapter::updateAdapterSettings(const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept {
+void BTAdapter::updateAdapterSettings(const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept {
     const AdapterSetting old_settings_ = old_settings;
 
     const AdapterSetting changes = getAdapterSettingMaskDiff(new_settings, old_settings_);
@@ -1310,7 +1325,7 @@ bool BTAdapter::updateAdapterSettings(const AdapterSetting new_settings, const b
             updateDataFromHCI();
         }
     }
-    if( sendEvent ) {
+    if( sendEvent && AdapterSetting::NONE != changes ) {
         sendAdapterSettingsChanged(old_settings_, new_settings, changes, timestamp);
     }
 
@@ -1319,8 +1334,6 @@ bool BTAdapter::updateAdapterSettings(const AdapterSetting new_settings, const b
         std::thread bg(&BTAdapter::poweredOff, this, true); // @suppress("Invalid arguments")
         bg.detach();
     }
-
-    return true;
 }
 
 bool BTAdapter::mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept {

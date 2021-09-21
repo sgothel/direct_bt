@@ -378,7 +378,7 @@ namespace direct_bt {
              * @param dev_id the adapter's device id
              * @param btRole the desired adapter's BTRole (currently ignored)
              * @param btMode the desired adapter's BTMode
-             * @return HCIStatusCode::SUCCESS or an error state
+             * @return HCIStatusCode::SUCCESS or an error state on failure (e.g. power-on)
              */
             HCIStatusCode initializeAdapter(AdapterInfo& adapterInfo, const uint16_t dev_id,
                                             const BTRole btRole, const BTMode btMode) noexcept;
