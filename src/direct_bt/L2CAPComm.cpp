@@ -476,19 +476,19 @@ errout:
         has_ioerror = true;
 
         if( env.L2CAP_RESTART_COUNT_ON_ERROR < 0 ) {
-            ABORT("L2CAPComm::read: Error res %d (%s); %s, dd %d, %s, psm %s, cid %s",
-                  err_res, getExitCodeString(err_res).c_str(),
+            ABORT("L2CAPComm::read: Error res %d (%s), len %d; %s, dd %d, %s, psm %s, cid %s",
+                  err_res, getExitCodeString(err_res).c_str(), len,
                   getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
                   to_string(psm).c_str(), to_string(cid).c_str());
         } else {
-            IRQ_PRINT("L2CAPComm::read: Error res %d (%s); %s, dd %d, %s, psm %s, cid %s",
-                  err_res, getExitCodeString(err_res).c_str(),
+            IRQ_PRINT("L2CAPComm::read: Error res %d (%s), len %d; %s, dd %d, %s, psm %s, cid %s",
+                  err_res, getExitCodeString(err_res).c_str(), len,
                   getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
                   to_string(psm).c_str(), to_string(cid).c_str());
         }
     } else {
-        DBG_PRINT("L2CAPComm::read: Failed res %d (%s); %s, dd %d, %s, psm %s, cid %s",
-              err_res, getExitCodeString(err_res).c_str(),
+        DBG_PRINT("L2CAPComm::read: Failed res %d (%s), len %d; %s, dd %d, %s, psm %s, cid %s",
+              err_res, getExitCodeString(err_res).c_str(), len,
               getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
               to_string(psm).c_str(), to_string(cid).c_str());
     }
@@ -542,19 +542,19 @@ errout:
         has_ioerror = true;
 
         if( env.L2CAP_RESTART_COUNT_ON_ERROR < 0 ) {
-            ABORT("L2CAPComm::write: Error res %d (%s); %s, dd %d, %s, psm %s, cid %s",
-                  err_res, getExitCodeString(err_res).c_str(),
+            ABORT("L2CAPComm::write: Error res %d (%s), len %d; %s, dd %d, %s, psm %s, cid %s",
+                  err_res, getExitCodeString(err_res).c_str(), len,
                   getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
                   to_string(psm).c_str(), to_string(cid).c_str());
         } else {
-            IRQ_PRINT("L2CAPComm::write: Error res %d (%s); %s, dd %d, %s, psm %s, cid %s",
-                  err_res, getExitCodeString(err_res).c_str(),
+            IRQ_PRINT("L2CAPComm::write: Error res %d (%s), len %d; %s, dd %d, %s, psm %s, cid %s",
+                  err_res, getExitCodeString(err_res).c_str(), len,
                   getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
                   to_string(psm).c_str(), to_string(cid).c_str());
         }
     } else {
-        DBG_PRINT("L2CAPComm::write: Failed res %d (%s); %s, dd %d, %s, psm %s, cid %s",
-              err_res, getExitCodeString(err_res).c_str(),
+        DBG_PRINT("L2CAPComm::write: Failed res %d (%s), len %d; %s, dd %d, %s, psm %s, cid %s",
+              err_res, getExitCodeString(err_res).c_str(), len,
               getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
               to_string(psm).c_str(), to_string(cid).c_str());
     }
