@@ -138,8 +138,16 @@ namespace direct_bt {
                 return getExitCodeString( toExitCode( ecn ) );
             }
 
-            static std::string getStateString(bool isConnected, bool hasIOError) {
-                return "State[open "+std::to_string(isConnected)+", ioError "+std::to_string(hasIOError)+"]";
+            static std::string getStateString(bool isOpen, bool hasIOError) {
+                return "State[open "+std::to_string(isOpen)+
+                        ", ioError "+std::to_string(hasIOError)+
+                        ", errno "+std::to_string(errno)+" ("+std::string(strerror(errno))+")]";
+            }
+            static std::string getStateString(bool isOpen, bool isInterrupted, bool hasIOError) {
+                return "State[open "+std::to_string(isOpen)+
+                       ", isIRQed "+std::to_string(isInterrupted)+
+                       ", ioError "+std::to_string(hasIOError)+
+                       ", errno "+std::to_string(errno)+" ("+std::string(strerror(errno))+")]";
             }
 
         private:
@@ -196,7 +204,7 @@ namespace direct_bt {
             inline int getSocketDescriptor() const noexcept { return socket_descriptor; }
 
             bool hasIOError() const { return has_ioerror; }
-            std::string getStateString() const { return getStateString(is_open, has_ioerror); }
+            std::string getStateString() const { return getStateString(is_open, interrupt_flag, has_ioerror); }
 
             /** Return the recursive write mutex for multithreading access. */
             std::recursive_mutex & mutex_write() { return mtx_write; }
