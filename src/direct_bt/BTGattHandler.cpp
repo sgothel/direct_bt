@@ -262,7 +262,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
                 COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: Ring: %s", attPDU->toString().c_str());
                 attPDURing.putBlocking( std::move(attPDU) );
             }
-        } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
+        } else if( 0 > len && ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
             IRQ_PRINT("GATTHandler::reader: l2cap read error -> Stop; l2cap.read %d (%s); %s",
                     len, L2CAPComm::getExitCodeString(len).c_str(),
                     getStateString().c_str());
