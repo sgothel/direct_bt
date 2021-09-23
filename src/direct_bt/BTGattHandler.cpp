@@ -81,13 +81,13 @@ std::shared_ptr<BTDevice> BTGattHandler::getDeviceChecked() const {
 }
 
 bool BTGattHandler::validateConnected() noexcept {
-    bool l2capIsConnected = l2cap.isOpen();
-    bool l2capHasIOError = l2cap.hasIOError();
+    const bool l2capIsConnected = l2cap.isOpen();
+    const bool l2capHasIOError = l2cap.hasIOError();
 
     if( has_ioerror || l2capHasIOError ) {
-        has_ioerror = true; // propagate l2capHasIOError -> has_ioerror
         ERR_PRINT("IOError state: GattHandler %s, l2cap %s: %s",
                 getStateString().c_str(), l2cap.getStateString().c_str(), toString().c_str());
+        has_ioerror = true; // propagate l2capHasIOError -> has_ioerror
         return false;
     }
 
