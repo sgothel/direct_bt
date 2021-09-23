@@ -117,6 +117,27 @@ namespace direct_bt {
             };
             static constexpr int number(const Defaults d) { return static_cast<int>(d); }
 
+            enum class ExitCode : jau::snsize_t {
+                SUCCESS             =  0,
+                NOT_OPEN            = -1,
+                INTERRUPTED         = -2,
+                INVALID_SOCKET_DD   = -3,
+                POLL_ERROR          = -10,
+                POLL_TIMEOUT        = -11,
+                READ_ERROR          = -20,
+                WRITE_ERROR         = -30
+            };
+            static constexpr jau::snsize_t number(const ExitCode rhs) noexcept {
+                return static_cast<jau::snsize_t>(rhs);
+            }
+            static constexpr ExitCode toExitCode(const jau::snsize_t rhs) noexcept {
+                return rhs >= 0 ? ExitCode::SUCCESS : static_cast<ExitCode>(rhs);
+            }
+            static std::string getExitCodeString(const ExitCode ec) noexcept;
+            static std::string getExitCodeString(const jau::snsize_t ecn) noexcept {
+                return getExitCodeString( toExitCode( ecn ) );
+            }
+
             static std::string getStateString(bool isConnected, bool hasIOError) {
                 return "State[open "+std::to_string(isConnected)+", ioError "+std::to_string(hasIOError)+"]";
             }
@@ -198,10 +219,20 @@ namespace direct_bt {
              */
             BTSecurityLevel getBTSecurityLevel();
 
-            /** Generic read, w/o locking suitable for a unique ringbuffer sink. Using L2CAPEnv::L2CAP_READER_POLL_TIMEOUT.*/
+            /**
+             * Generic read, w/o locking suitable for a unique ringbuffer sink. Using L2CAPEnv::L2CAP_READER_POLL_TIMEOUT.
+             * @param buffer
+             * @param capacity
+             * @return number of bytes read if >= 0, otherwise L2CAPComm::ExitCode error code.
+             */
             jau::snsize_t read(uint8_t* buffer, const jau::nsize_t capacity);
 
-            /** Generic write, locking {@link #mutex_write()}. */
+            /**
+             * Generic write, locking {@link #mutex_write()}.
+             * @param buffer
+             * @param length
+             * @return number of bytes written if >= 0, otherwise L2CAPComm::ExitCode error code.
+             */
             jau::snsize_t write(const uint8_t *buffer, const jau::nsize_t length);
     };
 

@@ -138,6 +138,8 @@ bool L2CAPComm::open(const BTDevice& device, const BTSecurityLevel sec_level) {
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
 
+    has_ioerror = false; // always clear last ioerror flag (should be redundant)
+
     /**
      * bt_io_connect ( create_io ) with source address
      * - fd = socket(.._)
@@ -244,6 +246,7 @@ bool L2CAPComm::close() noexcept {
         DBG_PRINT("L2CAPComm::close: Not connected: %s, dd %d, %s, psm %s, cid %s",
                   getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
                   to_string(psm).c_str(), to_string(cid).c_str());
+        has_ioerror = false; // always clear last ioerror flag (should be redundant)
         return true;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
@@ -371,47 +374,94 @@ BTSecurityLevel L2CAPComm::getBTSecurityLevelImpl() {
     return sec_level;
 }
 
+#define EXITCODE_ENUM(X) \
+        X(ExitCode, SUCCESS) \
+        X(ExitCode, NOT_OPEN) \
+        X(ExitCode, INTERRUPTED) \
+        X(ExitCode, INVALID_SOCKET_DD) \
+        X(ExitCode, POLL_ERROR) \
+        X(ExitCode, POLL_TIMEOUT) \
+        X(ExitCode, READ_ERROR) \
+        X(ExitCode, WRITE_ERROR)
+
+#define CASE2_TO_STRING(U,V) case U::V: return #V;
+
+std::string L2CAPComm::getExitCodeString(const ExitCode ec) noexcept {
+    if( number(ec) >= 0 ) {
+        return "SUCCESS";
+    }
+    switch(ec) {
+        EXITCODE_ENUM(CASE2_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown ExitCode";
+}
+
 jau::snsize_t L2CAPComm::read(uint8_t* buffer, const jau::nsize_t capacity) {
     const int32_t timeoutMS = env.L2CAP_READER_POLL_TIMEOUT;
     jau::snsize_t len = 0;
     jau::snsize_t err_res = 0;
 
-    tid_read = pthread_self(); // temporary safe tid to allow interruption
-
+    if( !is_open ) {
+        err_res = number(ExitCode::NOT_OPEN);
+        goto errout;
+    }
+    if( interrupt_flag ) {
+        err_res = number(ExitCode::INTERRUPTED);
+        goto errout;
+    }
     if( 0 > socket_descriptor ) {
-        err_res = -1; // invalid socket_descriptor or capacity
+        err_res = number(ExitCode::INVALID_SOCKET_DD);
         goto errout;
     }
     if( 0 == capacity ) {
         goto done;
     }
 
+    tid_read = pthread_self(); // temporary safe tid to allow interruption
+
     if( timeoutMS ) {
         struct pollfd p;
         int n;
 
         p.fd = socket_descriptor; p.events = POLLIN;
-        while ( !interrupt_flag && (n = poll(&p, 1, timeoutMS)) < 0 ) {
-            if ( !interrupt_flag && ( errno == EAGAIN || errno == EINTR ) ) {
+        while ( is_open && !interrupt_flag && ( n = poll( &p, 1, timeoutMS ) ) < 0 ) {
+            if( !is_open ) {
+                err_res = number(ExitCode::NOT_OPEN);
+                goto errout;
+            }
+            if( interrupt_flag ) {
+                err_res = number(ExitCode::INTERRUPTED);
+                goto errout;
+            }
+            if ( errno == EAGAIN || errno == EINTR ) {
                 // cont temp unavail or interruption
                 continue;
             }
-            err_res = -10; // poll error !(ETIMEDOUT || EAGAIN || EINTR)
+            err_res = number(ExitCode::POLL_ERROR);
             goto errout;
         }
         if (!n) {
-            err_res = -11; // poll error ETIMEDOUT
+            err_res = number(ExitCode::POLL_TIMEOUT);
             errno = ETIMEDOUT;
             goto errout;
         }
     }
 
-    while ((len = ::read(socket_descriptor, buffer, capacity)) < 0) {
-        if (errno == EAGAIN || errno == EINTR ) {
+    while ( is_open && !interrupt_flag && ( len = ::read(socket_descriptor, buffer, capacity) ) < 0 ) {
+        if( !is_open ) {
+            err_res = number(ExitCode::NOT_OPEN);
+            goto errout;
+        }
+        if( interrupt_flag ) {
+            err_res = number(ExitCode::INTERRUPTED);
+            goto errout;
+        }
+        if ( errno == EAGAIN || errno == EINTR ) {
             // cont temp unavail or interruption
             continue;
         }
-        err_res = -20; // read error
+        err_res = number(ExitCode::READ_ERROR);
         goto errout;
     }
 
@@ -421,19 +471,26 @@ done:
 
 errout:
     tid_read = 0;
-    if( errno != ETIMEDOUT ) {
+    if( is_open && !interrupt_flag && errno != ETIMEDOUT ) {
+        // Only report as ioerror if open, not intentionally interrupted and no timeout!
         has_ioerror = true;
-        if( is_open ) {
-            if( env.L2CAP_RESTART_COUNT_ON_ERROR < 0 ) {
-                ABORT("L2CAPComm::read: Error res %d; %s, dd %d, %s, psm %s, cid %s",
-                      err_res, getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
-                      to_string(psm).c_str(), to_string(cid).c_str());
-            } else {
-                IRQ_PRINT("L2CAPComm::read: Error res %d; %s, dd %d, %s, psm %s, cid %s",
-                      err_res, getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
-                      to_string(psm).c_str(), to_string(cid).c_str());
-            }
+
+        if( env.L2CAP_RESTART_COUNT_ON_ERROR < 0 ) {
+            ABORT("L2CAPComm::read: Error res %d (%s); %s, dd %d, %s, psm %s, cid %s",
+                  err_res, getExitCodeString(err_res).c_str(),
+                  getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
+                  to_string(psm).c_str(), to_string(cid).c_str());
+        } else {
+            IRQ_PRINT("L2CAPComm::read: Error res %d (%s); %s, dd %d, %s, psm %s, cid %s",
+                  err_res, getExitCodeString(err_res).c_str(),
+                  getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
+                  to_string(psm).c_str(), to_string(cid).c_str());
         }
+    } else {
+        DBG_PRINT("L2CAPComm::read: Failed res %d (%s); %s, dd %d, %s, psm %s, cid %s",
+              err_res, getExitCodeString(err_res).c_str(),
+              getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
+              to_string(psm).c_str(), to_string(cid).c_str());
     }
     return err_res;
 }
@@ -443,19 +500,36 @@ jau::snsize_t L2CAPComm::write(const uint8_t * buffer, const jau::nsize_t length
     jau::snsize_t len = 0;
     jau::snsize_t err_res = 0;
 
+    if( !is_open ) {
+        err_res = number(ExitCode::NOT_OPEN);
+        goto errout;
+    }
+    if( interrupt_flag ) {
+        err_res = number(ExitCode::INTERRUPTED);
+        goto errout;
+    }
     if( 0 > socket_descriptor ) {
-        err_res = -1; // invalid socket_descriptor or capacity
+        err_res = number(ExitCode::INVALID_SOCKET_DD);
         goto errout;
     }
     if( 0 == length ) {
         goto done;
     }
 
-    while( ( len = ::write(socket_descriptor, buffer, length) ) < 0 ) {
+    while ( is_open && !interrupt_flag && ( len = ::write(socket_descriptor, buffer, length) ) < 0 ) {
+        if( !is_open ) {
+            err_res = number(ExitCode::NOT_OPEN);
+            goto errout;
+        }
+        if( interrupt_flag ) {
+            err_res = number(ExitCode::INTERRUPTED);
+            goto errout;
+        }
         if( EAGAIN == errno || EINTR == errno ) {
+            // cont temp unavail or interruption
             continue;
         }
-        err_res = -10; // write error !(EAGAIN || EINTR)
+        err_res = number(ExitCode::WRITE_ERROR);
         goto errout;
     }
 
@@ -463,17 +537,26 @@ done:
     return len;
 
 errout:
-    has_ioerror = true;
-    if( is_open ) {
+    if( is_open && !interrupt_flag ) {
+        // Only report as ioerror if open and not intentionally interrupted!
+        has_ioerror = true;
+
         if( env.L2CAP_RESTART_COUNT_ON_ERROR < 0 ) {
-            ABORT("L2CAPComm::write: Error res %d; %s, dd %d, %s, psm %s, cid %s",
-                  err_res, getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
+            ABORT("L2CAPComm::write: Error res %d (%s); %s, dd %d, %s, psm %s, cid %s",
+                  err_res, getExitCodeString(err_res).c_str(),
+                  getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
                   to_string(psm).c_str(), to_string(cid).c_str());
         } else {
-            IRQ_PRINT("L2CAPComm::write: Error res %d; %s, dd %d, %s, psm %s, cid %s",
-                  err_res, getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
+            IRQ_PRINT("L2CAPComm::write: Error res %d (%s); %s, dd %d, %s, psm %s, cid %s",
+                  err_res, getExitCodeString(err_res).c_str(),
+                  getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
                   to_string(psm).c_str(), to_string(cid).c_str());
         }
+    } else {
+        DBG_PRINT("L2CAPComm::write: Failed res %d (%s); %s, dd %d, %s, psm %s, cid %s",
+              err_res, getExitCodeString(err_res).c_str(),
+              getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
+              to_string(psm).c_str(), to_string(cid).c_str());
     }
     return err_res;
 }

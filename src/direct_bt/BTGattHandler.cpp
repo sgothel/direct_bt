@@ -263,9 +263,11 @@ void BTGattHandler::l2capReaderThreadImpl() {
                 attPDURing.putBlocking( std::move(attPDU) );
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
-            IRQ_PRINT("GATTHandler::reader: l2cap read error -> Stop; l2cap.read %d", len);
+            IRQ_PRINT("GATTHandler::reader: l2cap read error -> Stop; l2cap.read %d (%s)", len, L2CAPComm::getExitCodeString(len).c_str());
             l2capReaderShallStop = true;
             has_ioerror = true;
+        } else {
+            DBG_PRINT("GATTHandler::reader: l2cap read failed: l2cap.read %d (%s)", len, L2CAPComm::getExitCodeString(len).c_str());
         }
     }
     {
@@ -424,7 +426,9 @@ void BTGattHandler::send(const AttPDUMsg & msg) {
     // Thread safe l2cap.write(..) operation..
     const ssize_t res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.getSize());
     if( 0 > res ) {
-        IRQ_PRINT("GATTHandler::send: l2cap write error -> disconnect: %s to %s", msg.toString().c_str(), toString().c_str());
+        IRQ_PRINT("GATTHandler::send: l2cap write error -> disconnect: l2cap.write %d (%s); %s to %s",
+                res, L2CAPComm::getExitCodeString(res).c_str(),
+                msg.toString().c_str(), toString().c_str());
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
         throw BTException("GATTHandler::send: l2cap write error: req "+msg.toString()+" to "+toString(), E_FILE_LINE);
