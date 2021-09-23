@@ -103,6 +103,15 @@ namespace direct_bt {
                                  ) / 10;
     }
 
+    /**
+     * Supervisor timeout shall be in the range `[0 - ((supervision_timeout_ms / (conn_interval_max_ms*2)) - 1)]`.
+     * @param supervision_timeout_ms
+     * @param conn_interval_max_ms
+     * @return maximum supervisor timeout, applicable to given parameter
+     */
+    constexpr int32_t getHCIMaxConnLatency(const int16_t supervision_timeout_ms, const int16_t conn_interval_max_ms) {
+        return ((supervision_timeout_ms / (conn_interval_max_ms*2)) - 1);
+    }
 
     enum class HCIConstU16 : uint16_t {
         INDEX_NONE             = 0xFFFF,
