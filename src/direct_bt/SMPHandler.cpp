@@ -140,11 +140,15 @@ void SMPHandler::l2capReaderThreadImpl() {
                 smpPDURing.putBlocking( std::move(smpPDU) );
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
-            IRQ_PRINT("SMPHandler::reader: l2cap read error -> Stop; l2cap.read %d (%s)", len, L2CAPComm::getExitCodeString(len).c_str());
+            IRQ_PRINT("SMPHandler::reader: l2cap read error -> Stop; l2cap.read %d (%s); %s",
+                    len, L2CAPComm::getExitCodeString(len).c_str(),
+                    getStateString().c_str());
             l2capReaderShallStop = true;
             has_ioerror = true;
         } else {
-            DBG_PRINT("SMPHandler::reader: l2cap read failed: l2cap.read %d (%s)", len, L2CAPComm::getExitCodeString(len).c_str());
+            DBG_PRINT("SMPHandler::reader: l2cap read: l2cap.read %d (%s); %s",
+                    len, L2CAPComm::getExitCodeString(len).c_str(),
+                    getStateString().c_str());
         }
     }
     {
@@ -284,21 +288,21 @@ void SMPHandler::send(const SMPPDUMsg & msg) {
     }
 
     // Thread safe l2cap.write(..) operation..
-    const ssize_t res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.getSize());
+    const jau::snsize_t res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.getSize());
     if( 0 > res ) {
-        IRQ_PRINT("SMPHandler::send: l2cap write error -> disconnect: l2cap.write %d (%s); %s to %s",
-                res, L2CAPComm::getExitCodeString(res).c_str(),
+        IRQ_PRINT("SMPHandler::send: l2cap write error -> disconnect: l2cap.write %d (%s); %s; %s to %s",
+                res, L2CAPComm::getExitCodeString(res).c_str(), getStateString().c_str(),
                 msg.toString().c_str(), deviceString.c_str());
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
         throw BTException("SMPHandler::send: l2cap write error: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     if( static_cast<size_t>(res) != msg.pdu.getSize() ) {
-        ERR_PRINT("SMPHandler::send: l2cap write count error, %zd != %zu: %s -> disconnect: %s",
+        ERR_PRINT("SMPHandler::send: l2cap write count error, %d != %zu: %s -> disconnect: %s",
                 res, msg.pdu.getSize(), msg.toString().c_str(), deviceString.c_str());
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
-        throw BTException("SMPHandler::send: l2cap write count error, "+std::to_string(res)+" != "+std::to_string(res)
+        throw BTException("SMPHandler::send: l2cap write count error, "+std::to_string(res)+" != "+std::to_string(msg.pdu.getSize())
                                  +": "+msg.toString()+" -> disconnect: "+deviceString, E_FILE_LINE);
     }
 }
