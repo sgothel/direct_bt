@@ -442,10 +442,10 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
     bool success = false;
 
     {
-        LE_PHYs resRx, resTx;
-        HCIStatusCode res = device->getConnectedLE_PHY(resRx, resTx);
-        fprintf_td(stderr, "****** Connected LE PHY: status %s: RX %s, TX %s\n",
-                to_string(res).c_str(), to_string(resRx).c_str(), to_string(resTx).c_str());
+        LE_PHYs resTx, resRx;
+        HCIStatusCode res = device->getConnectedLE_PHY(resTx, resRx);
+        fprintf_td(stderr, "****** Connected LE PHY: status %s: Tx %s, Rx %s\n",
+                to_string(res).c_str(), to_string(resTx).c_str(), to_string(resRx).c_str());
     }
 
     //

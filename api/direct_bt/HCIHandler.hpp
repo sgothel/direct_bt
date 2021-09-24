@@ -680,16 +680,17 @@ namespace direct_bt {
             /**
              * Request and return LE_PHYs bit for the given connection.
              * <pre>
-             * BT Core Spec v5.2: Vol 4, Part E, 7.8.47 LE Read PHY command (we transfer the sequential value to this bitmask for unification)
+             * BT Core Spec v5.2: Vol 4, Part E, 7.8.47 LE Read PHY command
              * </pre>
              * @param conn_handle
              * @param addressAndType
-             * @param resRx reference for the resulting receiver LE_PHYs bit
              * @param resTx reference for the resulting transmitter LE_PHYs bit
+             * @param resRx reference for the resulting receiver LE_PHYs bit
              * @return HCIStatusCode
+             * @since 2.4.0
              */
             HCIStatusCode le_read_phy(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
-                                      LE_PHYs& resRx, LE_PHYs& resTx) noexcept;
+                                      LE_PHYs& resTx, LE_PHYs& resRx) noexcept;
 
         private:
             /**

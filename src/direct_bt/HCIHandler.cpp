@@ -1386,9 +1386,9 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const BDAddress
 }
 
 HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
-                                      LE_PHYs& resRx, LE_PHYs& resTx) noexcept {
-    resRx = LE_PHYs::NONE;
+                                      LE_PHYs& resTx, LE_PHYs& resRx) noexcept {
     resTx = LE_PHYs::NONE;
+    resRx = LE_PHYs::NONE;
 
     HCIStatusCode status = check_open_connection("le_read_phy", conn_handle, peerAddressAndType);
     if( HCIStatusCode::SUCCESS != status ) {

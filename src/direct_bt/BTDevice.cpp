@@ -1664,40 +1664,24 @@ int BTDevice::removeAllCharListener() noexcept {
     return gatt->removeAllCharListener();
 }
 
-HCIStatusCode BTDevice::getConnectedLE_PHY(LE_PHYs& resRx, LE_PHYs& resTx) noexcept {
+HCIStatusCode BTDevice::getConnectedLE_PHY(LE_PHYs& resTx, LE_PHYs& resRx) noexcept {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
 
-    HCIStatusCode res = HCIStatusCode::SUCCESS;
-    HCIHandler &hci = adapter.getHCI();
-
     if( !isConnected ) { // should not happen
-        res = HCIStatusCode::DISCONNECTED;
-        goto errout;
+        return HCIStatusCode::DISCONNECTED;
     }
 
     if( 0 == hciConnHandle ) {
-        res = HCIStatusCode::UNSPECIFIED_ERROR;
-        goto errout;
+        return HCIStatusCode::UNSPECIFIED_ERROR;
     }
 
-    if( !adapter.isPowered() ) {
-        res = HCIStatusCode::NOT_POWERED; // powered-off
-        goto errout;
+    if( !adapter.isPowered() ) { // isValid() && hci.isOpen() && POWERED
+        return HCIStatusCode::NOT_POWERED; // powered-off
     }
 
-    res = hci.le_read_phy(hciConnHandle.load(), addressAndType, resRx, resTx);
-    if( HCIStatusCode::SUCCESS == res ) {
-        DBG_PRINT("BTDevice::getConnectedLE_PHY: status %s: RX %s, TX %s - %s",
-                to_string(res).c_str(),
-                to_string(resRx).c_str(), to_string(resTx).c_str(), toString().c_str());
-        return res;
-    }
+    HCIHandler &hci = adapter.getHCI();
+    return hci.le_read_phy(hciConnHandle.load(), addressAndType, resTx, resRx);
 
-errout:
-    ERR_PRINT("BTDevice::getConnectedLE_PHY: status %s: RX %s, TX %s - %s",
-            to_string(res).c_str(),
-            to_string(resRx).c_str(), to_string(resTx).c_str(), toString().c_str());
-    return res;
 }
 
 void BTDevice::notifyDisconnected() noexcept {

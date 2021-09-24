@@ -393,17 +393,6 @@ namespace direct_bt {
             bool getConnected() noexcept { return isConnected.load(); }
 
             /**
-             * Request and return LE_PHYs bit for the given connection.
-             * <pre>
-             * BT Core Spec v5.2: Vol 4, Part E, 7.8.47 LE Read PHY command (we transfer the sequential value to this bitmask for unification)
-             * </pre>
-             * @param resRx reference for the resulting receiver LE_PHYs bit
-             * @param resTx reference for the resulting transmitter LE_PHYs bit
-             * @return HCIStatusCode
-             */
-            HCIStatusCode getConnectedLE_PHY(LE_PHYs& resRx, LE_PHYs& resTx) noexcept;
-
-            /**
              * Establish a HCI BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM connection to this device.
              * <p>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.12 LE Create Connection command
@@ -498,6 +487,18 @@ namespace direct_bt {
 
             /** Return the HCI connection handle to the LE or BREDR peer, zero if not connected. */
             uint16_t getConnectionHandle() const noexcept { return hciConnHandle; }
+
+            /**
+             * Request and return LE_PHYs bit for the given connection.
+             * <pre>
+             * BT Core Spec v5.2: Vol 4, Part E, 7.8.47 LE Read PHY command
+             * </pre>
+             * @param resTx reference for the resulting transmitter LE_PHYs bit
+             * @param resRx reference for the resulting receiver LE_PHYs bit
+             * @return HCIStatusCode
+             * @since 2.4.0
+             */
+            HCIStatusCode getConnectedLE_PHY(LE_PHYs& resTx, LE_PHYs& resRx) noexcept;
 
             /**
              * Disconnect the LE or BREDR peer's GATT and HCI connection.
