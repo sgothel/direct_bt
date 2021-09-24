@@ -33,7 +33,7 @@ package org.direct_bt;
 public class EIRDataTypeSet {
 
     /**
-     * Bits representing 'Extended Inquiry Response' (EIR) data fields.
+     * Each enum represents a 'Extended Inquiry Response' (EIR) data field type bit.
      *
      * @since 2.0.0
      */
@@ -73,67 +73,11 @@ public class EIRDataTypeSet {
     public String toString() {
         int count = 0;
         final StringBuilder out = new StringBuilder();
-        if( isSet(DataType.EVT_TYPE) ) {
-            out.append(DataType.EVT_TYPE.name()); count++;
-        }
-        if( isSet(DataType.EXT_EVT_TYPE) ) {
-            out.append(DataType.EXT_EVT_TYPE.name()); count++;
-        }
-        if( isSet(DataType.BDADDR_TYPE) ) {
-            if( 0 < count ) { out.append(", "); }
-            out.append(DataType.BDADDR_TYPE.name()); count++;
-        }
-        if( isSet(DataType.BDADDR) ) {
-            if( 0 < count ) { out.append(", "); }
-            out.append(DataType.BDADDR.name()); count++;
-        }
-        if( isSet(DataType.FLAGS) ) {
-            if( 0 < count ) { out.append(", "); }
-            out.append(DataType.FLAGS.name()); count++;
-        }
-        if( isSet(DataType.NAME) ) {
-            if( 0 < count ) { out.append(", "); }
-            out.append(DataType.NAME.name()); count++;
-        }
-        if( isSet(DataType.NAME_SHORT) ) {
-            if( 0 < count ) { out.append(", "); }
-            out.append(DataType.NAME_SHORT.name()); count++;
-        }
-        if( isSet(DataType.RSSI) ) {
-            if( 0 < count ) { out.append(", "); }
-            out.append(DataType.RSSI.name()); count++;
-        }
-        if( isSet(DataType.TX_POWER) ) {
-            if( 0 < count ) { out.append(", "); }
-            out.append(DataType.TX_POWER.name()); count++;
-        }
-        if( isSet(DataType.MANUF_DATA) ) {
-            if( 0 < count ) { out.append(", "); }
-            out.append(DataType.MANUF_DATA.name()); count++;
-        }
-        if( isSet(DataType.DEVICE_CLASS) ) {
-            if( 0 < count ) { out.append(", "); }
-            out.append(DataType.DEVICE_CLASS.name()); count++;
-        }
-        if( isSet(DataType.APPEARANCE) ) {
-            if( 0 < count ) { out.append(", "); }
-            out.append(DataType.APPEARANCE.name()); count++;
-        }
-        if( isSet(DataType.HASH) ) {
-            if( 0 < count ) { out.append(", "); }
-            out.append(DataType.HASH.name()); count++;
-        }
-        if( isSet(DataType.RANDOMIZER) ) {
-            if( 0 < count ) { out.append(", "); }
-            out.append(DataType.RANDOMIZER.name()); count++;
-        }
-        if( isSet(DataType.DEVICE_ID) ) {
-            if( 0 < count ) { out.append(", "); }
-            out.append(DataType.DEVICE_ID.name()); count++;
-        }
-        if( isSet(DataType.SERVICE_UUID) ) {
-            if( 0 < count ) { out.append(", "); }
-            out.append(DataType.SERVICE_UUID.name()); count++;
+        for (final DataType dt : DataType.values()) {
+            if( isSet(dt) ) {
+                if( 0 < count ) { out.append(", "); }
+                out.append(dt.name()); count++;
+            }
         }
         if( 1 < count ) {
             out.insert(0, "[");
