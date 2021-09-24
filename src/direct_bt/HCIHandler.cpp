@@ -782,38 +782,53 @@ bool HCIHandler::initSupCommands() noexcept {
     }
 }
 
-HCIStatusCode HCIHandler::le_read_remote_features(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType) noexcept {
+HCIStatusCode HCIHandler::check_open_connection(const std::string& caller,
+                                                const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
+                                                const bool addUntrackedConn) {
     if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::le_read_remote_features: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+        ERR_PRINT("HCIHandler::%s: Not connected %s", caller.c_str(), toString().c_str());
+        return HCIStatusCode::DISCONNECTED;
     }
     if( 0 == conn_handle ) {
-        ERR_PRINT("HCIHandler::le_read_remote_features: Null conn_handle given address%s (drop) - %s",
-                  peerAddressAndType.toString().c_str(), toString().c_str());
+        ERR_PRINT("HCIHandler::%s: Null conn_handle given address%s (drop) - %s",
+                caller.c_str(), peerAddressAndType.toString().c_str(), toString().c_str());
         return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
     }
-    {
-        const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
-        HCIConnectionRef conn = findTrackerConnection(conn_handle);
-        if( nullptr == conn ) {
-            // called w/o being connected through this HCIHandler
-            ERR_PRINT("HCIHandler::le_read_remote_features: Not tracked handle %s (address%s) (drop) - %s",
-                       jau::to_hexstring(conn_handle).c_str(),
+    const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+    HCIConnectionRef conn = findTrackerConnection(conn_handle);
+    if( nullptr == conn ) {
+        // called w/o being connected through this HCIHandler
+        if( addUntrackedConn ) {
+            // add unknown connection to tracker
+            conn = addOrUpdateTrackerConnection(peerAddressAndType, conn_handle);
+            WORDY_PRINT("HCIHandler::%s: Not tracked address%s, added %s - %s",
+                       caller.c_str(), peerAddressAndType.toString().c_str(),
+                       conn->toString().c_str(), toString().c_str());
+        } else {
+            ERR_PRINT("HCIHandler::%s: Not tracked handle %s (address%s) (drop) - %s",
+                       caller.c_str(), jau::to_hexstring(conn_handle).c_str(),
                        peerAddressAndType.toString().c_str(), toString().c_str());
             return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
-        } else if( !conn->equals(peerAddressAndType) ) {
-            ERR_PRINT("HCIHandler::le_read_remote_features: Mismatch given address%s and tracked %s (drop) - %s",
-                       peerAddressAndType.toString().c_str(),
-                       conn->toString().c_str(), toString().c_str());
-            return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
         }
-        DBG_PRINT("HCIHandler::le_read_remote_features: address%s, handle %s, %s - %s",
-                   peerAddressAndType.toString().c_str(),
-                   jau::to_hexstring(conn_handle).c_str(),
+    } else if( !conn->equals(peerAddressAndType) ) {
+        ERR_PRINT("HCIHandler::%s: Mismatch given address%s and tracked %s (drop) - %s",
+                   caller.c_str(), peerAddressAndType.toString().c_str(),
                    conn->toString().c_str(), toString().c_str());
+        return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
     }
-    HCIStatusCode status;
+    DBG_PRINT("HCIHandler::%s: address%s, handle %s, %s - %s",
+               caller.c_str(), peerAddressAndType.toString().c_str(),
+               jau::to_hexstring(conn_handle).c_str(),
+               conn->toString().c_str(), toString().c_str());
 
+    return HCIStatusCode::SUCCESS;
+}
+
+HCIStatusCode HCIHandler::le_read_remote_features(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType) noexcept {
+    HCIStatusCode status = check_open_connection("le_read_remote_features", conn_handle, peerAddressAndType);
+    if( HCIStatusCode::SUCCESS != status ) {
+        return status;
+    }
     HCIStructCommand<hci_cp_le_read_remote_features> req0(HCIOpcode::LE_READ_REMOTE_FEATURES);
     hci_cp_le_read_remote_features * cp = req0.getWStruct();
     cp->handle = jau::cpu_to_le(conn_handle);
@@ -1348,37 +1363,10 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
 HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
                                      const HCIStatusCode reason) noexcept
 {
-    if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::create_conn: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+    HCIStatusCode status = check_open_connection("disconnect", conn_handle, peerAddressAndType, true /* addUntrackedConn */);
+    if( HCIStatusCode::SUCCESS != status ) {
+        return status;
     }
-    if( 0 == conn_handle ) {
-        ERR_PRINT("HCIHandler::disconnect: Null conn_handle given address%s (drop) - %s",
-                  peerAddressAndType.toString().c_str(), toString().c_str());
-        return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
-    }
-    {
-        const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
-        HCIConnectionRef conn = findTrackerConnection(conn_handle);
-        if( nullptr == conn ) {
-            // disconnect called w/o being connected through this HCIHandler
-            conn = addOrUpdateTrackerConnection(peerAddressAndType, conn_handle);
-            WORDY_PRINT("HCIHandler::disconnect: Not tracked address%s, added %s - %s",
-                       peerAddressAndType.toString().c_str(),
-                       conn->toString().c_str(), toString().c_str());
-        } else if( !conn->equals(peerAddressAndType) ) {
-            ERR_PRINT("HCIHandler::disconnect: Mismatch given address%s and tracked %s (drop) - %s",
-                       peerAddressAndType.toString().c_str(),
-                       conn->toString().c_str(), toString().c_str());
-            return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
-        }
-        DBG_PRINT("HCIHandler::disconnect: address%s, handle %s, %s - %s",
-                   peerAddressAndType.toString().c_str(),
-                   jau::to_hexstring(conn_handle).c_str(),
-                   conn->toString().c_str(), toString().c_str());
-    }
-
-    HCIStatusCode status;
 
     // Always issue DISCONNECT command, even in case of an ioError (lost-connection),
     // see Issue #124 fast re-connect on CSR adapter.
@@ -1402,35 +1390,11 @@ HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddres
     resRx = LE_PHYs::NONE;
     resTx = LE_PHYs::NONE;
 
-    if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::le_read_phy: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+    HCIStatusCode status = check_open_connection("le_read_phy", conn_handle, peerAddressAndType);
+    if( HCIStatusCode::SUCCESS != status ) {
+        return status;
     }
-    if( 0 == conn_handle ) {
-        ERR_PRINT("HCIHandler::le_read_phy: Null conn_handle given address%s (drop) - %s",
-                  peerAddressAndType.toString().c_str(), toString().c_str());
-        return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
-    }
-    {
-        const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
-        HCIConnectionRef conn = findTrackerConnection(conn_handle);
-        if( nullptr == conn ) {
-            // called w/o being connected through this HCIHandler
-            ERR_PRINT("HCIHandler::le_read_phy: Not tracked handle %s (address%s) (drop) - %s",
-                       jau::to_hexstring(conn_handle).c_str(),
-                       peerAddressAndType.toString().c_str(), toString().c_str());
-            return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
-        } else if( !conn->equals(peerAddressAndType) ) {
-            ERR_PRINT("HCIHandler::le_read_phy: Mismatch given address%s and tracked %s (drop) - %s",
-                       peerAddressAndType.toString().c_str(),
-                       conn->toString().c_str(), toString().c_str());
-            return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
-        }
-        DBG_PRINT("HCIHandler::le_read_phy: address%s, handle %s, %s - %s",
-                   peerAddressAndType.toString().c_str(),
-                   jau::to_hexstring(conn_handle).c_str(),
-                   conn->toString().c_str(), toString().c_str());
-    }
+
     struct hci_cp_le_read_phy {
         __le16   handle;
     } __packed;
@@ -1440,8 +1404,6 @@ HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddres
         __u8    tx_phys;
         __u8    rx_phys;
     } __packed;
-
-    HCIStatusCode status;
 
     HCIStructCommand<hci_cp_le_read_phy> req0(HCIOpcode::LE_READ_PHY);
     hci_cp_le_read_phy * cp = req0.getWStruct();

@@ -477,6 +477,24 @@ namespace direct_bt {
              */
             LE_Features le_get_local_features() noexcept { return le_ll_feats; }
 
+        private:
+
+            /**
+             * Return HCIStatusCode::SUCCESS if isOpen() and the conn_handle is tracked
+             * and matching the give peerAddressAndType
+             *
+             * @param caller caller method base-name for DBG_ or ERR_PRINT.
+             * @param conn_handle
+             * @param peerAddressAndType
+             * @param addUntrackedConn true adds connection if not tracked,
+             *                         otherwise return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS (default)
+             * @return
+             */
+            HCIStatusCode check_open_connection(const std::string& caller,
+                                                const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
+                                                const bool addUntrackedConn = false);
+
+        public:
             /**
              * Request supported LE_Features from remote device.
              * <pre>
