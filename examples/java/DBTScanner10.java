@@ -511,7 +511,7 @@ public class DBTScanner10 {
                             }
                         };
                         final boolean enabledState[] = { false, false };
-                        final boolean addedCharPingPongListenerRes = char2.addCharListener(charPingPongListener, enabledState);
+                        final boolean addedCharPingPongListenerRes = null != char2.addCharListener(charPingPongListener, enabledState);
                         if( !QUIET ) {
                             BTUtils.println(System.err, "Added CharPingPongListenerRes: "+addedCharPingPongListenerRes+", enabledState "+Arrays.toString(enabledState));
                         }
@@ -560,7 +560,7 @@ public class DBTScanner10 {
                             }
                         }
                         final boolean cccdEnableResult[] = { false, false };
-                        final boolean cccdRet = serviceChar.addCharListener( new MyGATTEventListener(i, j), cccdEnableResult );
+                        final boolean cccdRet = null != serviceChar.addCharListener( new MyGATTEventListener(i, j), cccdEnableResult );
                         if( !QUIET ) {
                             printf("  [%02d.%02d] Characteristic-Listener: Notification(%b), Indication(%b): Added %b\n",
                                     i, j, cccdEnableResult[0], cccdEnableResult[1], cccdRet);

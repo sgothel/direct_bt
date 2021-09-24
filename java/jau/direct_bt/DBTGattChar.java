@@ -36,6 +36,7 @@ import org.direct_bt.BTObject;
 import org.direct_bt.BTType;
 import org.direct_bt.BTUtils;
 import org.direct_bt.GattCharPropertySet;
+import org.direct_bt.BTGattChar.Listener;
 import org.direct_bt.BTGattCharListener;
 
 public class DBTGattChar extends DBTObject implements BTGattChar
@@ -238,6 +239,11 @@ public class DBTGattChar extends DBTObject implements BTGattChar
         return configNotificationIndication(enableNotification, enableIndication, enabledState);
     }
 
+    @Override
+    public boolean disableIndicationNotification() throws IllegalStateException {
+        return configNotificationIndication(false /* enableNotification */, false /* enableIndication */, new boolean[2]);
+    }
+
     static private class DelegatedBTGattCharListener extends BTGattCharListener {
         private final Listener delegate;
 
@@ -261,29 +267,30 @@ public class DBTGattChar extends DBTObject implements BTGattChar
     };
 
     @Override
-    public final boolean addCharListener(final Listener listener) {
-        return getService().getDevice().addCharListener( new DelegatedBTGattCharListener(this, listener) );
+    public final BTGattCharListener addCharListener(final Listener listener) {
+        final BTGattCharListener wl = new DelegatedBTGattCharListener(this, listener);
+        return getService().getDevice().addCharListener( wl ) ? wl : null;
     }
 
     @Override
-    public final boolean addCharListener(final Listener listener, final boolean enabledState[/*2*/]) {
+    public final BTGattCharListener addCharListener(final Listener listener, final boolean enabledState[/*2*/]) {
         if( !enableNotificationOrIndication(enabledState) ) {
-            return false;
+            return null;
         }
         return addCharListener( listener );
     }
 
     @Override
-    public final int removeAllAssociatedCharListener(final boolean disableIndicationNotification) {
-        if( disableIndicationNotification ) {
-            configNotificationIndication(false /* enableNotification */, false /* enableIndication */, new boolean[2]);
-        }
-        return getService().getDevice().removeAllAssociatedCharListener(this);
+    public final boolean removeCharListener(final BTGattCharListener listener) {
+        return getService().getDevice().removeCharListener( listener );
     }
 
     @Override
-    public final synchronized void disableValueNotifications() {
-        configNotificationIndication(false /* enableNotification */, false /* enableIndication */, new boolean[2]);
+    public final int removeAllAssociatedCharListener(final boolean shallDisableIndicationNotification) {
+        if( shallDisableIndicationNotification ) {
+            disableIndicationNotification();
+        }
+        return getService().getDevice().removeAllAssociatedCharListener(this);
     }
 
     /**

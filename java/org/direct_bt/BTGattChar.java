@@ -92,29 +92,33 @@ public interface BTGattChar extends BTObject
 
     /**
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
-     * <p>
+     *
      * Method enables notification and/or indication for this characteristic at BLE level.
-     * </p>
-     * <p>
+     *
      * Implementation masks this Characteristic properties PropertyBitVal::Notify and PropertyBitVal::Indicate
      * with the respective user request parameters, hence removes unsupported requests.
-     * </p>
-     * <p>
+     *
      * Notification and/or indication configuration is only performed per characteristic if changed.
-     * </p>
-     * <p>
+     *
      * It is recommended to utilize notification over indication, as its link-layer handshake
      * and higher potential bandwidth may deliver material higher performance.
-     * </p>
+     *
      * @param enableNotification
      * @param enableIndication
      * @param enabledState array of size 2, holding the resulting enabled state for notification and indication.
      * @return false if this characteristic has no PropertyBitVal::Notify or PropertyBitVal::Indication present,
      * or there is no GATTDescriptor of type ClientCharacteristicConfiguration, or if the operation has failed.
      * Otherwise returns true.
+     *
      * @throws IllegalStateException if notification or indication is set to be enabled
      * and the {@link BTDevice}'s GATTHandler is null, i.e. not connected
+     *
+     * @see #disableIndicationNotification()
      * @see #enableNotificationOrIndication(boolean[])
+     * @see #configNotificationIndication(boolean, boolean, boolean[])
+     * @see #addCharListener(Listener)
+     * @see #removeCharListener(Listener)
+     * @see #removeAllAssociatedCharListener(boolean)
      * @since 2.0.0
      */
     boolean configNotificationIndication(final boolean enableNotification, final boolean enableIndication, final boolean enabledState[/*2*/])
@@ -122,84 +126,141 @@ public interface BTGattChar extends BTObject
 
     /**
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
-     * <p>
+     *
      * Method will attempt to enable notification on the BLE level, if available,
      * otherwise indication if available.
-     * </p>
-     * <p>
+     *
      * Notification and/or indication configuration is only performed per characteristic if changed.
-     * </p>
-     * <p>
+     *
      * It is recommended to utilize notification over indication, as its link-layer handshake
      * and higher potential bandwidth may deliver material higher performance.
-     * </p>
+     *
      * @param enabledState array of size 2, holding the resulting enabled state for notification and indication.
      * @return false if this characteristic has no PropertyBitVal::Notify or PropertyBitVal::Indication present,
      * or there is no GATTDescriptor of type ClientCharacteristicConfiguration, or if the operation has failed.
      * Otherwise returns true.
+     *
      * @throws IllegalStateException if notification or indication is set to be enabled
      * and the {@link BTDevice}'s GATTHandler is null, i.e. not connected
+     *
+     * @see #disableIndicationNotification()
+     * @see #enableNotificationOrIndication(boolean[])
      * @see #configNotificationIndication(boolean, boolean, boolean[])
+     * @see #addCharListener(Listener)
+     * @see #removeCharListener(Listener)
+     * @see #removeAllAssociatedCharListener(boolean)
      * @since 2.0.0
      */
     boolean enableNotificationOrIndication(final boolean enabledState[/*2*/])
             throws IllegalStateException;
 
     /**
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
+     *
+     * Method will attempt to disable notification and indication on the BLE level.
+     *
+     * Notification and/or indication configuration is only performed per characteristic if changed.
+     *
+     * @return false if this characteristic has no PropertyBitVal::Notify or PropertyBitVal::Indication present,
+     * or there is no BTGattDesc of type ClientCharacteristicConfiguration, or if the operation has failed.
+     * Otherwise returns true.
+     *
+     * @throws IllegalStateException if notification or indication is set to be enabled
+     * and the {@link BTDevice}'s GATTHandler is null, i.e. not connected
+     *
+     * @see #disableIndicationNotification()
+     * @see #enableNotificationOrIndication(boolean[])
+     * @see #configNotificationIndication(boolean, boolean, boolean[])
+     * @see #addCharListener(Listener)
+     * @see #removeCharListener(Listener)
+     * @see #removeAllAssociatedCharListener(boolean)
+     * @since 2.4.0
+     */
+    boolean disableIndicationNotification() throws IllegalStateException;
+
+    /**
      * Add the given {@link BTGattChar.Listener} to the listener list if not already present.
-     * <p>
+     *
      * Occurring notifications and indications for this characteristic,
      * if enabled via {@link #configNotificationIndication(boolean, boolean, boolean[])}
      * or {@link #enableNotificationOrIndication(boolean[])},
      * will call the respective {@link BTGattChar.Listener} callback method.
-     * </p>
-     * <p>
+     *
      * Implementation wraps given {@link BTGattChar.Listener} into a {@link BTGattCharListener}
      * to restrict the listener to listen only to this BTGattChar instance.
-     * </p>
+     *
+     * {@link #removeCharListener(BTGattCharListener)} must be utilized with the returned {@link BTGattCharListener}.
+     *
      * @param listener A {@link BTGattChar.Listener} instance, listening to this {@link BTGattChar}'s events
-     * @return true if the given listener is not element of the list and has been newly added, otherwise false.
+     * @return if successful, {@link BTGattCharListener} instance wrapping the given {@link BTGattChar.Listener} is returned, otherwise null.
      * @throws IllegalStateException if the DBTDevice's GATTHandler is null, i.e. not connected
      * @throws IllegalStateException if the given {@link BTGattChar.Listener} is already in use, i.e. added.
+     * @see #disableIndicationNotification()
      * @see #enableNotificationOrIndication(boolean[])
      * @see #configNotificationIndication(boolean, boolean, boolean[])
-     * @see #addCharListener(Listener, boolean[])
-     * @see #removeCharListener(Listener, boolean)
+     * @see #addCharListener(Listener)
+     * @see #removeCharListener(Listener)
      * @see #removeAllAssociatedCharListener(boolean)
-     * @since 2.0.0
+     * @since 2.4.0
      */
-    boolean addCharListener(final Listener listener)
+    BTGattCharListener addCharListener(final Listener listener)
             throws IllegalStateException;
 
     /**
      * Add the given {@link BTGattChar.Listener} to the listener list if not already present
      * and if enabling the notification <i>or</i> indication for this characteristic at BLE level was successful.<br>
      * Notification and/or indication configuration is only performed per characteristic if changed.
-     * <p>
+     *
      * Implementation will enable notification if available,
      * otherwise indication will be enabled if available. <br>
      * Implementation uses {@link #enableNotificationOrIndication(boolean[])} to enable either.
-     * </p>
-     * <p>
+     *
      * Occurring notifications and indications for this characteristic
      * will call the respective {@link BTGattChar.Listener} callback method.
-     * </p>
+     *
+     * Implementation wraps given {@link BTGattChar.Listener} into a {@link BTGattCharListener}
+     * to restrict the listener to listen only to this BTGattChar instance.
+     *
+     * {@link #removeCharListener(BTGattCharListener)} must be utilized with the returned {@link BTGattCharListener}.
+     *
      * @param listener A {@link BTGattChar.Listener} instance, listening to this {@link BTGattChar}'s events
      * @param enabledState array of size 2, holding the resulting enabled state for notification and indication
      * using {@link #enableNotificationOrIndication(boolean[])}
-     * @return true if enabling the notification and/or indication was successful
-     * and if the given listener is not element of the list and has been newly added, otherwise false.
+     * @return if enabling the notification and/or indication was successful
+     * and if the given listener is not element of the list and has been newly added,
+     * {@link BTGattCharListener} instance wrapping the given {@link BTGattChar.Listener} is returned, otherwise null.
      * @throws IllegalStateException if the {@link BTDevice}'s GATTHandler is null, i.e. not connected
      * @throws IllegalStateException if the given {@link BTGattChar.Listener} is already in use, i.e. added.
+     * @see #disableIndicationNotification()
      * @see #enableNotificationOrIndication(boolean[])
      * @see #configNotificationIndication(boolean, boolean, boolean[])
      * @see #addCharListener(Listener)
-     * @see #removeCharListener(Listener, boolean)
+     * @see #removeCharListener(Listener)
      * @see #removeAllAssociatedCharListener(boolean)
-     * @since 2.0.0
+     * @since 2.4.0
      */
-    boolean addCharListener(final Listener listener, final boolean enabledState[/*2*/])
+    BTGattCharListener addCharListener(final Listener listener, final boolean enabledState[/*2*/])
             throws IllegalStateException;
+
+    /**
+     * Remove the given associated {@link BTGattCharListener} from the listener list if present.
+     *
+     * To disables the notification and/or indication for this characteristic at BLE level
+     * use {@link #disableIndicationNotification()} when desired.
+     *
+     * @param listener returned {@link BTGattCharListener} from {@link #addCharListener(Listener)} ...
+     * @return true if successful, otherwise false.
+     *
+     * @throws IllegalStateException if the {@link BTDevice's}'s {@link BTGattHandler} is null, i.e. not connected
+     *
+     * @see #disableIndicationNotification()
+     * @see #enableNotificationOrIndication(boolean[])
+     * @see #configNotificationIndication(boolean, boolean, boolean[])
+     * @see #addCharListener(Listener)
+     * @see #removeCharListener(Listener)
+     * @see #removeAllAssociatedCharListener(boolean)
+     */
+    boolean removeCharListener(final BTGattCharListener listener);
 
     /**
      * Disables the notification and/or indication for this characteristic BLE level
@@ -210,24 +271,19 @@ public interface BTGattChar extends BTObject
      * If the DBTDevice's GATTHandler is null, i.e. not connected, {@code false} is being returned.
      * </p>
      *
-     * @param disableIndicationNotification if true, disables the notification and/or indication for this characteristic
-     * using {@link #configNotificationIndication(boolean, boolean, boolean[])}
+     * @param shallDisableIndicationNotification if true, disables the notification and/or indication for this characteristic
+     * using {@link #disableIndicationNotification()}
      * @return number of removed listener.
+     *
+     * @see #disableIndicationNotification()
+     * @see #enableNotificationOrIndication(boolean[])
      * @see #configNotificationIndication(boolean, boolean, boolean[])
-     * @see BTDevice#removeAllAssociatedCharListener(BTGattChar)
      * @see #addCharListener(Listener)
-     * @see #addCharListener(Listener, boolean[])
-     * @see #removeCharListener(Listener, boolean)
+     * @see #removeCharListener(Listener)
+     * @see #removeAllAssociatedCharListener(boolean)
      * @since 2.0.0
      */
-    int removeAllAssociatedCharListener(final boolean disableIndicationNotification);
-
-    /**
-     * Disables notifications of the value and unregisters the callback object
-     * passed through the corresponding enable method. It disables notifcations
-     * at BLE level for this characteristic.
-     */
-    void disableValueNotifications();
+    int removeAllAssociatedCharListener(final boolean shallDisableIndicationNotification);
 
     /**
      * Writes the value of this characteristic,
