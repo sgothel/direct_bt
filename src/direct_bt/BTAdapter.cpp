@@ -329,10 +329,18 @@ void BTAdapter::close() noexcept {
 
 void BTAdapter::poweredOff(const bool active) noexcept {
     if( !isValid() ) {
-        DBG_PRINT("BTAdapter::poweredOff(active %d): dev_id %d, invalid, %p", active, dev_id, this);
+        ERR_PRINT("BTAdapter invalid: dev_id %d, %p", dev_id, this);
         return;
     }
-    DBG_PRINT("BTAdapter::poweredOff(active %d): ... %p %s", active, this, toString().c_str());
+    if( !hci.isOpen() ) {
+        ERR_PRINT("BTAdapter HCI closed %s", toString().c_str());
+        return;
+    }
+    if( !active ) {
+        ERR_PRINT("BTAdapter Powered-Off %s", toString().c_str());
+    } else {
+        DBG_PRINT("BTAdapter::poweredOff(active %d): ... %p, %s", active, this, toString().c_str());
+    }
     keep_le_scan_alive = false;
 
     if( active ) {
@@ -605,8 +613,7 @@ bool BTAdapter::isDeviceWhitelisted(const BDAddressAndType & addressAndType) noe
 bool BTAdapter::addDeviceToWhitelist(const BDAddressAndType & addressAndType, const HCIWhitelistConnectType ctype,
                                       const uint16_t conn_interval_min, const uint16_t conn_interval_max,
                                       const uint16_t conn_latency, const uint16_t timeout) {
-    if( !isPowered() ) {
-        ERR_PRINT("BTAdapter::startDiscovery: Adapter not powered: %s", toString().c_str());
+    if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
         poweredOff(false /* active */);
         return false;
     }
@@ -768,12 +775,7 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const bool le_scan
     // ERR_PRINT("Test");
     // throw jau::RuntimeException("Test", E_FILE_LINE);
 
-    if( !hci.isOpen() ) {
-        ERR_PRINT("BTAdapter::startDiscovery: HCI closed: %s", toString(true).c_str());
-        return HCIStatusCode::UNSPECIFIED_ERROR;
-    }
-    if( !isPowered() ) {
-        WARN_PRINT("BTAdapter::startDiscovery: Adapter not powered: %s", toString(true).c_str());
+    if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
         poweredOff(false /* active */);
         return HCIStatusCode::NOT_POWERED;
     }
@@ -834,12 +836,7 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const bool le_scan
 
 void BTAdapter::startDiscoveryBackground() noexcept {
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
-    if( !hci.isOpen() ) {
-        ERR_PRINT("BTAdapter::startDiscoveryBackground: HCI closed: %s", toString(true).c_str());
-        return;
-    }
-    if( !isPowered() ) {
-        WARN_PRINT("BTAdapter::startDiscoveryBackground: Adapter not powered: %s", toString(true).c_str());
+    if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
         poweredOff(false /* active */);
         return;
     }
@@ -857,6 +854,10 @@ void BTAdapter::startDiscoveryBackground() noexcept {
 HCIStatusCode BTAdapter::stopDiscovery() noexcept {
     // We allow !isEnabled, to utilize method for adjusting discovery state and notifying listeners
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to stop BREDR, LE or DUAL scanning!
+    if( !isValid() ) {
+        ERR_PRINT("BTAdapter::stopDiscovery: Adapter invalid: %s, %s", to_hexstring(this).c_str(), toString().c_str());
+        return HCIStatusCode::UNSPECIFIED_ERROR;
+    }
     const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     /**
      * Need to send mgmtEvDeviceDiscoveringMgmt(..)
@@ -893,13 +894,7 @@ HCIStatusCode BTAdapter::stopDiscovery() noexcept {
     }
 
     HCIStatusCode status;
-    if( !hci.isOpen() ) {
-        ERR_PRINT("BTAdapter::stopDiscovery: HCI closed: %s", toString(true).c_str());
-        status = HCIStatusCode::UNSPECIFIED_ERROR;
-        goto exit;
-    }
-    if( !isPowered() ) {
-        WARN_PRINT("BTAdapter::stopDiscovery: Powered off: %s", toString(true).c_str());
+    if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
         poweredOff(false /* active */);
         status = HCIStatusCode::NOT_POWERED;
         goto exit;
@@ -1059,12 +1054,7 @@ HCIStatusCode BTAdapter::startAdvertising(const uint16_t adv_interval_min, const
                                const AD_PDU_Type adv_type,
                                const uint8_t adv_chan_map,
                                const uint8_t filter_policy) noexcept {
-    if( !hci.isOpen() ) {
-        ERR_PRINT("BTAdapter::startAdvertising: HCI closed: %s", toString(true).c_str());
-        return HCIStatusCode::UNSPECIFIED_ERROR;
-    }
-    if( !isPowered() ) {
-        WARN_PRINT("BTAdapter::startAdvertising: Powered off: %s", toString(true).c_str());
+    if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
         poweredOff(false /* active */);
         return HCIStatusCode::NOT_POWERED;
     }
@@ -1114,19 +1104,9 @@ HCIStatusCode BTAdapter::startAdvertising(const uint16_t adv_interval_min, const
  * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
  */
 HCIStatusCode BTAdapter::stopAdvertising() noexcept {
-    if( !hci.isOpen() ) {
-        ERR_PRINT("BTAdapter::stopDiscovery: HCI closed: %s", toString(true).c_str());
-        return HCIStatusCode::UNSPECIFIED_ERROR;
-    }
-    if( !isPowered() ) {
-        WARN_PRINT("BTAdapter::stopDiscovery: Adapter not powered: %s", toString(true).c_str());
+    if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
         poweredOff(false /* active */);
         return HCIStatusCode::NOT_POWERED;
-    }
-
-    if( !hci.isOpen() ) {
-        ERR_PRINT("BTAdapter::stopAdvertising: HCI closed: %s", toString(true).c_str());
-        return HCIStatusCode::UNSPECIFIED_ERROR;
     }
 
     HCIStatusCode status = hci.le_enable_adv(false /* enable */);

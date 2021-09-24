@@ -297,7 +297,7 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
                                    uint16_t conn_latency, uint16_t supervision_timeout) noexcept
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
-    if( !adapter.isPowered() ) {
+    if( !adapter.isPowered() ) { // isValid() && hci.isOpen() && POWERED
         WARN_PRINT("BTDevice::connectLE: Adapter not powered: %s, %s", adapter.toString().c_str(), toString().c_str());
         return HCIStatusCode::NOT_POWERED;
     }
@@ -497,7 +497,7 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
 HCIStatusCode BTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch) noexcept
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
-    if( !adapter.isPowered() ) {
+    if( !adapter.isPowered() ) { // isValid() && hci.isOpen() && POWERED
         WARN_PRINT("BTDevice::connectBREDR: Adapter not powered: %s, %s", adapter.toString().c_str(), toString().c_str());
         return HCIStatusCode::NOT_POWERED;
     }
@@ -1754,7 +1754,7 @@ HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept {
         goto exit;
     }
 
-    if( !adapter.isPowered() ) {
+    if( !adapter.isPowered() ) { // isValid() && hci.isOpen() && POWERED
         WARN_PRINT("BTDevice::disconnect: Adapter not powered: %s, %s", adapter.toString().c_str(), toString().c_str());
         res = HCIStatusCode::NOT_POWERED; // powered-off
         goto exit;
