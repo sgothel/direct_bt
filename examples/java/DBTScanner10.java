@@ -55,6 +55,8 @@ import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.GattCharPropertySet;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.HCIWhitelistConnectType;
+import org.direct_bt.LE_Features;
+import org.direct_bt.LE_PHYs;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPIOCapability;
 import org.direct_bt.SMPKeyBin;
@@ -445,6 +447,22 @@ public class DBTScanner10 {
 
         boolean success = false;
 
+        {
+            final LE_PHYs Tx = new LE_PHYs(LE_PHYs.PHY.LE_2M);
+            final LE_PHYs Rx = new LE_PHYs(LE_PHYs.PHY.LE_2M);
+
+            final HCIStatusCode res = device.setConnectedLE_PHY(true /* tryTx */, true /* tryRx */, Tx, Rx);
+            BTUtils.fprintf_td(System.err, "****** Set Connected LE PHY: status %s: Tx %s, Rx %s\n",
+                                res.toString(), Tx.toString(), Rx.toString());
+        }
+        {
+            final LE_PHYs resTx[] = { new LE_PHYs() };
+            final LE_PHYs resRx[] = { new LE_PHYs() };
+            final HCIStatusCode res = device.getConnectedLE_PHY(resTx, resRx);
+            BTUtils.fprintf_td(System.err, "****** Got Connected LE PHY: status %s: Tx %s, Rx %s\n",
+                    res.toString(), resTx[0].toString(), resRx[0].toString());
+        }
+
         //
         // GATT Service Processing
         //
@@ -670,6 +688,19 @@ public class DBTScanner10 {
             return false;
         }
         // adapter is powered-on
+        BTUtils.fprintf_td(System.err, "initAdapter: %s\n", adapter.toString());
+        {
+            final LE_Features le_feats = adapter.getLEFeatures();
+            BTUtils.fprintf_td(System.err, "initAdapter: LE_Features %s\n", le_feats.toString());
+        }
+        {
+            final LE_PHYs Tx = new LE_PHYs(LE_PHYs.PHY.LE_2M);
+            final LE_PHYs Rx = new LE_PHYs(LE_PHYs.PHY.LE_2M);
+
+            final HCIStatusCode res = adapter.setDefaultLE_PHY(true /* tryTx */, true /* tryRx */, Tx, Rx);
+            BTUtils.fprintf_td(System.err, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
+                                res.toString(), Tx.toString(), Rx.toString());
+        }
         final AdapterStatusListener asl = new MyAdapterStatusListener();
         adapter.addStatusListener( asl );
         // Flush discovered devices after registering our status listener.

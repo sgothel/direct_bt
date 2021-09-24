@@ -677,10 +677,15 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
         return false;
     }
     // adapter is powered-on
+    fprintf_td(stderr, "initAdapter: %s\n", adapter->toString().c_str());
+    {
+        const LE_Features le_feats = adapter->getLEFeatures();
+        fprintf_td(stderr, "initAdapter: LE_Features %s\n", to_string(le_feats).c_str());
+    }
     {
         LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
         HCIStatusCode res = adapter->setDefaultLE_PHY(true /* tryRx */, true /* tryRx */, Tx, Rx);
-        fprintf_td(stderr, "****** Set Default LE PHY: status %s: Tx %s, Rx %s\n",
+        fprintf_td(stderr, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
                 to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
     }
     std::shared_ptr<AdapterStatusListener> asl(new MyAdapterStatusListener());
@@ -712,7 +717,6 @@ static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>
             } else {
                 fprintf_td(stderr, "****** Adapter ADDED__: Ignored: %s\n", adapter->toString().c_str());
             }
-            fprintf_td(stderr, "****** Adapter Features: %s\n", direct_bt::to_string(adapter->getLEFeatures()).c_str());
         } else {
             fprintf_td(stderr, "****** Adapter ADDED__: Ignored (other): %s\n", adapter->toString().c_str());
         }

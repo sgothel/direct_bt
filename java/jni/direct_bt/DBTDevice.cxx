@@ -324,6 +324,90 @@ jbyte Java_jau_direct_1bt_DBTDevice_getRoleImpl(JNIEnv *env, jobject obj)
     return (jbyte) number( BTRole::None );
 }
 
+jbyte Java_jau_direct_1bt_DBTDevice_getConnectedLE_1PHYImpl(JNIEnv *env, jobject obj,
+                                                            jbyteArray jresTx, jbyteArray jresRx) {
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        if( nullptr == jresTx ) {
+            throw IllegalArgumentException("resTx byte array null", E_FILE_LINE);
+        }
+        if( nullptr == jresRx ) {
+            throw IllegalArgumentException("resRx byte array null", E_FILE_LINE);
+        }
+
+        const size_t resTx_size = env->GetArrayLength(jresTx);
+        if( 1 > resTx_size ) {
+            throw IllegalArgumentException("resTx byte array "+std::to_string(resTx_size)+" < 1", E_FILE_LINE);
+        }
+        const size_t resRx_size = env->GetArrayLength(jresRx);
+        if( 1 > resRx_size ) {
+            throw IllegalArgumentException("resRx byte array "+std::to_string(resRx_size)+" < 1", E_FILE_LINE);
+        }
+
+        JNICriticalArray<uint8_t, jbyteArray> criticalArrayTx(env); // RAII - release
+        uint8_t * resTx_ptr = criticalArrayTx.get(jresTx, criticalArrayTx.Mode::UPDATE_AND_RELEASE);
+        if( NULL == resTx_ptr ) {
+            throw InternalError("GetPrimitiveArrayCritical(resTx byte array) is null", E_FILE_LINE);
+        }
+        JNICriticalArray<uint8_t, jbyteArray> criticalArrayRx(env); // RAII - release
+        uint8_t * resRx_ptr = criticalArrayRx.get(jresRx, criticalArrayTx.Mode::UPDATE_AND_RELEASE);
+        if( NULL == resRx_ptr ) {
+            throw InternalError("GetPrimitiveArrayCritical(resRx byte array) is null", E_FILE_LINE);
+        }
+
+        LE_PHYs& resTx = *reinterpret_cast<LE_PHYs *>(resTx_ptr);
+        LE_PHYs& resRx = *reinterpret_cast<LE_PHYs *>(resRx_ptr);
+
+        return number( device->getConnectedLE_PHY(resTx, resRx) );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+}
+
+jbyte Java_jau_direct_1bt_DBTDevice_setConnectedLE_1PHYImpl(JNIEnv *env, jobject obj,
+                                                            jboolean tryTx, jboolean tryRx,
+                                                            jbyte jTx, jbyte jRx) {
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        const LE_PHYs Tx = static_cast<LE_PHYs>(jTx);
+        const LE_PHYs Rx = static_cast<LE_PHYs>(jRx);
+
+        return number ( device->setConnectedLE_PHY(tryTx, tryRx, Tx, Rx) );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+}
+
+jbyte Java_jau_direct_1bt_DBTDevice_getTxPhysImpl(JNIEnv *env, jobject obj) {
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        return number( device->getTxPhys() );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+}
+
+jbyte Java_jau_direct_1bt_DBTDevice_getRxPhysImpl(JNIEnv *env, jobject obj) {
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        return number( device->getRxPhys() );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+}
+
 jbyte Java_jau_direct_1bt_DBTDevice_disconnectImpl(JNIEnv *env, jobject obj)
 {
     try {

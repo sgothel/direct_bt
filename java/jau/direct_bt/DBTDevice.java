@@ -47,6 +47,7 @@ import org.direct_bt.BTUtils;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.BTGattCharListener;
 import org.direct_bt.HCIStatusCode;
+import org.direct_bt.LE_PHYs;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPIOCapability;
 import org.direct_bt.SMPKeyMask;
@@ -222,6 +223,40 @@ public class DBTDevice extends DBTObject implements BTDevice
 
     @Override
     public final short getConnectionHandle() { return hciConnHandle; }
+
+    @Override
+    public HCIStatusCode getConnectedLE_PHY(final LE_PHYs[] resTx, final LE_PHYs[] resRx) {
+        // pre-init
+        resTx[0] = new LE_PHYs(LE_PHYs.PHY.LE_1M);
+        resRx[0] = new LE_PHYs(LE_PHYs.PHY.LE_1M);
+        final byte[] t = { resTx[0].mask };
+        final byte[] r = { resRx[0].mask };
+        final HCIStatusCode res = HCIStatusCode.get( getConnectedLE_PHYImpl(t, r) );
+        resTx[0] = new LE_PHYs(t[0]);
+        resRx[0] = new LE_PHYs(r[0]);
+        return res;
+    }
+    private native byte getConnectedLE_PHYImpl(byte[] resTx, byte[] resRx);
+
+    @Override
+    public HCIStatusCode setConnectedLE_PHY(final boolean tryTx, final boolean tryRx,
+                                            final LE_PHYs Tx, final LE_PHYs Rx) {
+        return HCIStatusCode.get( setConnectedLE_PHYImpl(tryTx, tryRx, Tx.mask, Rx.mask) );
+    }
+    private native byte setConnectedLE_PHYImpl(final boolean tryTx, final boolean tryRx,
+                                               final byte Tx, final byte Rx);
+
+    @Override
+    public final LE_PHYs getTxPhys() {
+        return new LE_PHYs( getTxPhysImpl() );
+    }
+    private native byte getTxPhysImpl();
+
+    @Override
+    public final LE_PHYs getRxPhys() {
+        return new LE_PHYs( getRxPhysImpl() );
+    }
+    private native byte getRxPhysImpl();
 
     @Override
     public final HCIStatusCode disconnect() {
@@ -415,7 +450,7 @@ public class DBTDevice extends DBTObject implements BTDevice
 
     @Override
     public final boolean isValid() { return super.isValid() /* && isValidImpl() */; }
-    // public native boolean isValidImpl();
+    // private native boolean isValidImpl();
 
     @Override
     public List<BTGattService> getServices() {

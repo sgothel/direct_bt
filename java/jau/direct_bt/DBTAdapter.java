@@ -52,6 +52,8 @@ import org.direct_bt.BTUtils;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.HCIWhitelistConnectType;
+import org.direct_bt.LE_Features;
+import org.direct_bt.LE_PHYs;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
@@ -299,6 +301,13 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private native byte resetImpl();
 
     @Override
+    public final HCIStatusCode setDefaultLE_PHY(final boolean tryTx, final boolean tryRx, final LE_PHYs Tx, final LE_PHYs Rx) {
+        return HCIStatusCode.get( setDefaultLE_PHYImpl(tryTx, tryRx, Tx.mask, Rx.mask) );
+    }
+    private native byte setDefaultLE_PHYImpl(final boolean tryTx, final boolean tryRx,
+                                             final byte Tx, final byte Rx);
+
+    @Override
     public native boolean setDiscoverable(boolean value);
 
     @Override
@@ -315,15 +324,21 @@ public class DBTAdapter extends DBTObject implements BTAdapter
 
     @Override
     public final boolean isPowered() { return isValid() && isPoweredImpl(); }
-    public native boolean isPoweredImpl();
+    private native boolean isPoweredImpl();
 
     @Override
     public final boolean isSuspended() { return isValid() && isSuspendedImpl(); }
-    public native boolean isSuspendedImpl();
+    private native boolean isSuspendedImpl();
 
     @Override
     public final boolean isValid() { return super.isValid() && isValidImpl(); }
-    public native boolean isValidImpl();
+    private native boolean isValidImpl();
+
+    @Override
+    public final LE_Features getLEFeatures() {
+        return new LE_Features( getLEFeaturesImpl() );
+    }
+    private native long getLEFeaturesImpl();
 
     /* internal */
 

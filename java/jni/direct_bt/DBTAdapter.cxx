@@ -765,6 +765,17 @@ jboolean Java_jau_direct_1bt_DBTAdapter_isValidImpl(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
+jlong Java_jau_direct_1bt_DBTAdapter_getLEFeaturesImpl(JNIEnv *env, jobject obj)
+{
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        return (jlong) number( adapter->getLEFeatures() );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
 jbyte Java_jau_direct_1bt_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj, jboolean keepAlive, jboolean le_scan_active,
                                                         jshort le_scan_interval, jshort le_scan_window,
                                                         jbyte filter_policy)
@@ -907,6 +918,23 @@ jbyte Java_jau_direct_1bt_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         HCIStatusCode res = adapter->reset();
         return (jbyte) number(res);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+}
+
+jbyte Java_jau_direct_1bt_DBTAdapter_setDefaultLE_1PHYImpl(JNIEnv *env, jobject obj,
+                                                           jboolean tryTx, jboolean tryRx,
+                                                           jbyte jTx, jbyte jRx) {
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+
+        const LE_PHYs Tx = static_cast<LE_PHYs>(jTx);
+        const LE_PHYs Rx = static_cast<LE_PHYs>(jRx);
+
+        return number ( adapter->setDefaultLE_PHY(tryTx, tryRx, Tx, Rx) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

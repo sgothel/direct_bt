@@ -660,6 +660,68 @@ public interface BTDevice extends BTObject
      */
     short getConnectionHandle();
 
+    /**
+     * Request and return LE_PHYs bit for the given connection.
+     * <pre>
+     * BT Core Spec v5.2: Vol 4, Part E, 7.8.47 LE Read PHY command
+     * </pre>
+     * @param resRx array for one resulting receiver LE_PHYs bit
+     * @param resTx array for one resulting transmitter LE_PHYs bit
+     * @return HCIStatusCode
+     * @see #getTxPhys()
+     * @see #getRxPhys()
+     * @see #getConnectedLE_PHY(LE_PHYs[], LE_PHYs[])
+     * @see #setConnectedLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
+     * @see BTAdapter#setDefaultLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
+     * @since 2.4.0
+     */
+    HCIStatusCode getConnectedLE_PHY(LE_PHYs[/*1*/] resRx, LE_PHYs[/*1*/] resTx);
+
+    /**
+     * Return the Tx LE_PHYs as notified via LE_PHY_UPDATE_COMPLETE
+     * or retrieved via {@link #getConnectedLE_PHY(LE_PHYs[], LE_PHYs[])}.
+     * @see #getTxPhys()
+     * @see #getRxPhys()
+     * @see #getConnectedLE_PHY(LE_PHYs[], LE_PHYs[])
+     * @see #setConnectedLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
+     * @see BTAdapter#setDefaultLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
+     * @since 2.4.0
+     */
+    LE_PHYs getTxPhys();
+
+    /**
+     * Return the Rx LE_PHYs as notified via LE_PHY_UPDATE_COMPLETE
+     * or retrieved via {@link #getConnectedLE_PHY(LE_PHYs[], LE_PHYs[])}.
+     * @see #getTxPhys()
+     * @see #getRxPhys()
+     * @see #getConnectedLE_PHY(LE_PHYs[], LE_PHYs[])
+     * @see #setConnectedLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
+     * @see BTAdapter#setDefaultLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
+     * @since 2.4.0
+     */
+    LE_PHYs getRxPhys();
+
+
+    /**
+     * Sets preference of used LE_PHYs for the given connection.
+     *
+     * BT Core Spec v5.2: Vol 4, Part E, 7.8.49 LE Set PHY command
+     *
+     * @param tryTx if true, host has preference for given Tx LE_PHYs
+     * @param tryRx if true, host has preference for given Rx LE_PHYs
+     * @param Tx transmitter LE_PHYs of preference if tryTx is true, otherwise ignored
+     * @param Rx receiver LE_PHYs of preference if tryRx is true, otherwise ignored
+     * @return
+     * @see #getTxPhys()
+     * @see #getRxPhys()
+     * @see #getConnectedLE_PHY(LE_PHYs[], LE_PHYs[])
+     * @see #setConnectedLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
+     * @see BTAdapter#setDefaultLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
+     * @since 2.4.0
+     */
+    HCIStatusCode setConnectedLE_PHY(final boolean tryTx, final boolean tryRx,
+                                     final LE_PHYs Tx, final LE_PHYs Rx);
+
     /** Returns the adapter on which this device was discovered or
       * connected.
       * @return The adapter.
