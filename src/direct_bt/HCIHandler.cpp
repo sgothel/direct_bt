@@ -913,7 +913,7 @@ std::string HCIHandler::toString() const noexcept {
 HCIStatusCode HCIHandler::startAdapter() {
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::startAdapter: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+        return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     #ifdef __linux__
@@ -934,7 +934,7 @@ HCIStatusCode HCIHandler::startAdapter() {
 HCIStatusCode HCIHandler::stopAdapter() {
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::stopAdapter: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+        return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     HCIStatusCode status;
@@ -959,7 +959,7 @@ HCIStatusCode HCIHandler::stopAdapter() {
 HCIStatusCode HCIHandler::resetAdapter() {
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::resetAdapter: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+        return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     #ifdef __linux__
@@ -975,7 +975,7 @@ HCIStatusCode HCIHandler::resetAdapter() {
 HCIStatusCode HCIHandler::reset() noexcept {
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::reset: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+        return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     HCICommand req0(HCIOpcode::RESET, 0);
@@ -995,7 +995,7 @@ HCIStatusCode HCIHandler::reset() noexcept {
 HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::getLocalVersion: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+        return HCIStatusCode::DISCONNECTED;
     }
     HCICommand req0(HCIOpcode::READ_LOCAL_VERSION, 0);
     const hci_rp_read_local_version * ev_lv;
@@ -1021,7 +1021,7 @@ HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
                                             const uint8_t filter_policy) noexcept {
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::le_set_scan_param: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+        return HCIStatusCode::DISCONNECTED;
     }
     if( hasScanType(currentScanType, ScanType::LE) ) {
         WARN_PRINT("HCIHandler::le_set_scan_param: Not allowed: LE Scan Enabled: %s - tried scan [interval %.3f ms, window %.3f ms]",
@@ -1073,7 +1073,7 @@ HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
 HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_dup) noexcept {
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::le_enable_scan: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+        return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
@@ -1125,7 +1125,7 @@ HCIStatusCode HCIHandler::le_start_scan(const bool filter_dup,
                                         const uint8_t filter_policy) noexcept {
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::le_start_scan: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+        return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
@@ -1166,7 +1166,7 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
 
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::le_create_conn: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+        return HCIStatusCode::DISCONNECTED;
     }
     if( advertisingEnabled ) {
         WARN_PRINT("HCIHandler::le_create_conn: Not allowed: Advertising is enabled %s", toString().c_str());
@@ -1296,7 +1296,7 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
 
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::create_conn: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+        return HCIStatusCode::DISCONNECTED;
     }
     if( advertisingEnabled ) {
         WARN_PRINT("HCIHandler::create_conn: Not allowed: Advertising is enabled %s", toString().c_str());
@@ -1561,7 +1561,7 @@ HCIStatusCode HCIHandler::le_set_scanrsp_data(const EInfoReport &eir, const EIRD
 HCIStatusCode HCIHandler::le_enable_adv(const bool enable) noexcept {
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::le_enable_adv: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+        return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
@@ -1631,7 +1631,7 @@ HCIStatusCode HCIHandler::le_start_adv(const EInfoReport &eir,
 {
     if( !isOpen() ) {
         ERR_PRINT("HCIHandler::le_start_adv: Not connected %s", toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
+        return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
