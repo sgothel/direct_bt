@@ -442,9 +442,15 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
     bool success = false;
 
     {
+        LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
+        HCIStatusCode res = device->setConnectedLE_PHY(true /* tryTx */, true /* tryRx */, Tx, Rx);
+        fprintf_td(stderr, "****** Set Connected LE PHY: status %s: Tx %s, Rx %s\n",
+                to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
+    }
+    {
         LE_PHYs resTx, resRx;
         HCIStatusCode res = device->getConnectedLE_PHY(resTx, resRx);
-        fprintf_td(stderr, "****** Connected LE PHY: status %s: Tx %s, Rx %s\n",
+        fprintf_td(stderr, "****** Got Connected LE PHY: status %s: Tx %s, Rx %s\n",
                 to_string(res).c_str(), to_string(resTx).c_str(), to_string(resRx).c_str());
     }
 
@@ -671,6 +677,12 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
         return false;
     }
     // adapter is powered-on
+    {
+        LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
+        HCIStatusCode res = adapter->setDefaultLE_PHY(true /* tryRx */, true /* tryRx */, Tx, Rx);
+        fprintf_td(stderr, "****** Set Default LE PHY: status %s: Tx %s, Rx %s\n",
+                to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
+    }
     std::shared_ptr<AdapterStatusListener> asl(new MyAdapterStatusListener());
     adapter->addStatusListener( asl );
     // Flush discovered devices after registering our status listener.

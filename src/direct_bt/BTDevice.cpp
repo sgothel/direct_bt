@@ -154,8 +154,10 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
     std::string out("Device["+to_string(getRole())+", "+addressAndType.toString()+", name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
             "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", handle "+jau::to_hexstring(hciConnHandle)+
-            ", sec[lvl "+to_string(pairing_data.sec_level_conn)+", io "+to_string(pairing_data.ioCap_conn)+
-            ", auto "+to_string(pairing_data.ioCap_auto)+", pairing "+to_string(pairing_data.mode)+", state "+to_string(pairing_data.state)+"]], rssi "+std::to_string(getRSSI())+
+            ", phy[Tx "+direct_bt::to_string(le_phy_tx)+", Rx "+direct_bt::to_string(le_phy_rx)+
+            "], sec[lvl "+to_string(pairing_data.sec_level_conn)+", io "+to_string(pairing_data.ioCap_conn)+
+            ", auto "+to_string(pairing_data.ioCap_auto)+", pairing "+to_string(pairing_data.mode)+", state "+to_string(pairing_data.state)+
+            "]], rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+
             ", appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+
             "), gap "+direct_bt::to_string(gap_flags)+
@@ -575,6 +577,13 @@ void BTDevice::notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const LE_Featur
         std::thread bg(&BTDevice::processL2CAPSetup, this, sthis); // @suppress("Invalid arguments")
         bg.detach();
     }
+}
+
+void BTDevice::notifyLEPhyUpdateComplete(const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
+    DBG_PRINT("BTDevice::notifyLEPhyUpdateComplete: [Tx %s, Rx %s], %s",
+            direct_bt::to_string(Tx).c_str(), direct_bt::to_string(Rx).c_str(), toString().c_str());
+    le_phy_tx = Tx;
+    le_phy_rx = Rx;
 }
 
 void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
@@ -1680,8 +1689,32 @@ HCIStatusCode BTDevice::getConnectedLE_PHY(LE_PHYs& resTx, LE_PHYs& resRx) noexc
     }
 
     HCIHandler &hci = adapter.getHCI();
-    return hci.le_read_phy(hciConnHandle.load(), addressAndType, resTx, resRx);
+    HCIStatusCode res = hci.le_read_phy(hciConnHandle.load(), addressAndType, resTx, resRx);
+    if( HCIStatusCode::SUCCESS == res ) {
+        le_phy_tx = resTx;
+        le_phy_rx = resRx;
+    }
+    return res;
+}
 
+HCIStatusCode BTDevice::setConnectedLE_PHY(const bool tryTx, const bool tryRx,
+                                           const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
+    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
+
+    if( !isConnected ) { // should not happen
+        return HCIStatusCode::DISCONNECTED;
+    }
+
+    if( 0 == hciConnHandle ) {
+        return HCIStatusCode::UNSPECIFIED_ERROR;
+    }
+
+    if( !adapter.isPowered() ) { // isValid() && hci.isOpen() && POWERED
+        return HCIStatusCode::NOT_POWERED; // powered-off
+    }
+
+    HCIHandler &hci = adapter.getHCI();
+    return hci.le_set_phy(hciConnHandle.load(), addressAndType, tryTx, tryRx, Tx, Rx);
 }
 
 void BTDevice::notifyDisconnected() noexcept {

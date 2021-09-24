@@ -421,6 +421,7 @@ namespace direct_bt {
         LE_ENABLE_ENC               = 0x2019,
         LE_READ_PHY                 = 0x2030,
         LE_SET_DEFAULT_PHY          = 0x2031,
+        LE_SET_PHY                  = 0x2032,
         LE_SET_EXT_ADV_PARAMS       = 0x2036,
         LE_SET_EXT_ADV_DATA         = 0x2037,
         LE_SET_EXT_SCAN_RSP_DATA    = 0x2038,
@@ -467,13 +468,14 @@ namespace direct_bt {
         LE_ENABLE_ENC               = 39,
         LE_READ_PHY                 = 40,
         LE_SET_DEFAULT_PHY          = 41,
-        LE_SET_EXT_ADV_PARAMS       = 42,
-        LE_SET_EXT_ADV_DATA         = 43,
-        LE_SET_EXT_SCAN_RSP_DATA    = 44,
-        LE_SET_EXT_ADV_ENABLE       = 45,
-        LE_SET_EXT_SCAN_PARAMS      = 46,
-        LE_SET_EXT_SCAN_ENABLE      = 47,
-        LE_EXT_CREATE_CONN          = 48
+        LE_SET_PHY                  = 42,
+        LE_SET_EXT_ADV_PARAMS       = 44,
+        LE_SET_EXT_ADV_DATA         = 45,
+        LE_SET_EXT_SCAN_RSP_DATA    = 46,
+        LE_SET_EXT_ADV_ENABLE       = 47,
+        LE_SET_EXT_SCAN_PARAMS      = 48,
+        LE_SET_EXT_SCAN_ENABLE      = 49,
+        LE_EXT_CREATE_CONN          = 50
         // etc etc - incomplete
     };
     constexpr uint8_t number(const HCIOpcodeBit rhs) noexcept {

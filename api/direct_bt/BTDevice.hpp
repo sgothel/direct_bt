@@ -87,6 +87,8 @@ namespace direct_bt {
             AppearanceCat appearance = AppearanceCat::UNKNOWN;
             jau::relaxed_atomic_uint16 hciConnHandle;
             jau::ordered_atomic<LE_Features, std::memory_order_relaxed> le_features;
+            jau::ordered_atomic<LE_PHYs, std::memory_order_relaxed> le_phy_tx;
+            jau::ordered_atomic<LE_PHYs, std::memory_order_relaxed> le_phy_rx;
             std::shared_ptr<ManufactureSpecificData> advMSD = nullptr;
             jau::darray<std::shared_ptr<const jau::uuid_t>> advServices;
 #if SMP_SUPPORTED_BY_OS
@@ -159,6 +161,7 @@ namespace direct_bt {
             void notifyDisconnected() noexcept;
             void notifyConnected(std::shared_ptr<BTDevice> sthis, const uint16_t handle, const SMPIOCapability io_cap) noexcept;
             void notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const LE_Features features) noexcept;
+            void notifyLEPhyUpdateComplete(const LE_PHYs Tx, const LE_PHYs Rx) noexcept;
 
             /**
              * Setup L2CAP channel connection to device incl. optional security encryption level off-thread.
@@ -496,9 +499,59 @@ namespace direct_bt {
              * @param resTx reference for the resulting transmitter LE_PHYs bit
              * @param resRx reference for the resulting receiver LE_PHYs bit
              * @return HCIStatusCode
+             * @see getTxPhys()
+             * @see getRxPhys()
+             * @see getConnectedLE_PHY()
+             * @see setConnectedLE_PHY()
+             * @see BTAdapter::setDefaultLE_PHY()
              * @since 2.4.0
              */
             HCIStatusCode getConnectedLE_PHY(LE_PHYs& resTx, LE_PHYs& resRx) noexcept;
+
+            /**
+             * Return the Tx LE_PHYs as notified via HCIMetaEventType::LE_PHY_UPDATE_COMPLETE
+             * or retrieved via getConnectedLE_PHY()
+             * @see getTxPhys()
+             * @see getRxPhys()
+             * @see getConnectedLE_PHY()
+             * @see setConnectedLE_PHY()
+             * @see BTAdapter::setDefaultLE_PHY()
+             * @since 2.4.0
+             */
+            LE_PHYs getTxPhys() const noexcept { return le_phy_tx; }
+
+            /**
+             * Return the Rx LE_PHYs as notified via HCIMetaEventType::LE_PHY_UPDATE_COMPLETE
+             * or retrieved via getConnectedLE_PHY()
+             * @see getTxPhys()
+             * @see getRxPhys()
+             * @see getConnectedLE_PHY()
+             * @see setConnectedLE_PHY()
+             * @see BTAdapter::setDefaultLE_PHY()
+             * @since 2.4.0
+             */
+            LE_PHYs getRxPhys() const noexcept { return le_phy_rx; }
+
+            /**
+             * Sets preference of used LE_PHYs for the given connection.
+             *
+             * - BT Core Spec v5.2: Vol 4, Part E, 7.8.49 LE Set PHY command
+             * - BT Core Spec v5.2: Vol 4, Part E, 7.7.65.12 LE PHY Update Complete event
+             *
+             * @param tryTx if true, host has preference for given Tx LE_PHYs
+             * @param tryRx if true, host has preference for given Rx LE_PHYs
+             * @param Tx transmitter LE_PHYs of preference if tryTx is true, otherwise ignored
+             * @param Rx receiver LE_PHYs of preference if tryRx is true, otherwise ignored
+             * @return
+             * @see getTxPhys()
+             * @see getRxPhys()
+             * @see getConnectedLE_PHY()
+             * @see setConnectedLE_PHY()
+             * @see BTAdapter::setDefaultLE_PHY()
+             * @since 2.4.0
+             */
+            HCIStatusCode setConnectedLE_PHY(const bool tryTx, const bool tryRx,
+                                             const LE_PHYs Tx, const LE_PHYs Rx) noexcept;
 
             /**
              * Disconnect the LE or BREDR peer's GATT and HCI connection.

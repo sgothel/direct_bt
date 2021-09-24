@@ -257,6 +257,36 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 }
                 return std::make_unique<MgmtEvtHCILERemoteUserFeatures>(dev_id, conn->getAddressAndType(), features);
             }
+            case HCIMetaEventType::LE_PHY_UPDATE_COMPLETE: {
+                HCIStatusCode status;
+                struct le_phy_update_complete {
+                    uint8_t  status;
+                    uint16_t handle;
+                    uint8_t  tx;
+                    uint8_t  rx;
+                } __packed;
+                const le_phy_update_complete * ev_cc = getMetaReplyStruct<le_phy_update_complete>(ev, mevt, &status);
+                if( nullptr == ev_cc ) {
+                    ERR_PRINT("HCIHandler::translate(reader): LE_PHY_UPDATE_COMPLETE: Null reply-struct: %s - %s",
+                            ev.toString().c_str(), toString().c_str());
+                    return nullptr;
+                }
+                const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
+                const LE_PHYs Tx = static_cast<LE_PHYs>(ev_cc->tx);
+                const LE_PHYs Rx = static_cast<LE_PHYs>(ev_cc->rx);
+                const HCIConnectionRef conn = findTrackerConnection(handle);
+                if( nullptr == conn ) {
+                    WARN_PRINT("HCIHandler::translate(reader): LE_PHY_UPDATE_COMPLETE: Not tracked conn_handle %s",
+                            jau::to_hexstring(handle).c_str());
+                    return nullptr;
+                }
+                if( HCIStatusCode::SUCCESS != status ) {
+                    WARN_PRINT("HCIHandler::translate(reader): LE_PHY_UPDATE_COMPLETE: Failed: Status %s, Handle %s: %s",
+                            to_string(status).c_str(), jau::to_hexstring(handle).c_str(), conn->toString().c_str());
+                    return nullptr;
+                }
+                return std::make_unique<MgmtEvtLEPhyUpdateComplete>(dev_id, conn->getAddressAndType(), Tx, Rx);
+            }
             default:
                 return nullptr;
         }
@@ -688,8 +718,10 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         filter_set_metaev(HCIMetaEventType::LE_ADVERTISING_REPORT, mask);
         filter_set_metaev(HCIMetaEventType::LE_REMOTE_FEAT_COMPLETE, mask);
         filter_set_metaev(HCIMetaEventType::LE_EXT_CONN_COMPLETE, mask);
+        filter_set_metaev(HCIMetaEventType::LE_PHY_UPDATE_COMPLETE, mask);
         filter_set_metaev(HCIMetaEventType::LE_EXT_ADV_REPORT, mask);
-        filter_set_metaev(HCIMetaEventType::LE_CHANNEL_SEL_ALGO, mask);
+        // filter_set_metaev(HCIMetaEventType::LE_CHANNEL_SEL_ALGO, mask);
+
 #endif
         filter_put_metaevs(mask);
     }
@@ -716,7 +748,8 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         filter_set_opcbit(HCIOpcodeBit::LE_READ_REMOTE_FEATURES, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_ENABLE_ENC, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_READ_PHY, mask);
-        // filter_set_opcbit(HCIOpcodeBit::LE_SET_DEFAULT_PHY, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_SET_DEFAULT_PHY, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_SET_PHY, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_SET_EXT_ADV_PARAMS, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_SET_EXT_ADV_DATA, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_SET_EXT_SCAN_RSP_DATA, mask);
@@ -1046,7 +1079,7 @@ HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
         le_set_ext_scan_params * cp = req0.getWStruct();
         cp->own_address_type = static_cast<uint8_t>(own_mac_type);
         cp->filter_policy = filter_policy;
-        cp->scanning_phys = direct_bt::number(LE_PHYs::LE_1M); // TODO: Support LM_CODED?
+        cp->scanning_phys = direct_bt::number(LE_PHYs::LE_1M); // Only scan on LE_1M for compatibility
 
         cp->p1.type = le_scan_active ? LE_SCAN_ACTIVE : LE_SCAN_PASSIVE;
         cp->p1.interval = jau::cpu_to_le(le_scan_interval);
@@ -1236,7 +1269,7 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
         cp->own_address_type = static_cast<uint8_t>(own_mac_type);
         cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
         cp->peer_addr = peer_bdaddr;
-        cp->phys = direct_bt::number(LE_PHYs::LE_1M); // TODO: Support other PHYs?
+        cp->phys = direct_bt::number(LE_PHYs::LE_1M); // Only scan on LE_1M for compatibility
 
         cp->p1.scan_interval = jau::cpu_to_le(le_scan_interval);
         cp->p1.scan_window = jau::cpu_to_le(le_scan_window);
@@ -1387,6 +1420,11 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const BDAddress
 
 HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
                                       LE_PHYs& resTx, LE_PHYs& resRx) noexcept {
+    if( !isLEFeaturesBitSet(le_ll_feats, LE_Features::LE_2M_PHY) ) {
+        resTx = LE_PHYs::LE_1M;
+        resRx = LE_PHYs::LE_1M;
+        return HCIStatusCode::SUCCESS;
+    }
     resTx = LE_PHYs::NONE;
     resRx = LE_PHYs::NONE;
 
@@ -1432,6 +1470,87 @@ HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddres
             case 0x02: resRx = LE_PHYs::LE_2M; break;
             case 0x03: resRx = LE_PHYs::LE_CODED; break;
         }
+    }
+    return status;
+}
+
+HCIStatusCode HCIHandler::le_set_default_phy(const bool tryTx, const bool tryRx,
+                                             const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
+    if( !isLEFeaturesBitSet(le_ll_feats, LE_Features::LE_2M_PHY) ) {
+        if( tryTx && isLEPHYBitSet(Tx, LE_PHYs::LE_2M) ) {
+            WARN_PRINT("HCIHandler::le_set_default_phy: LE_2M_PHY no supported, requested Tx %s", to_string(Tx).c_str());
+            return HCIStatusCode::INVALID_PARAMS;
+        }
+        if( tryRx && isLEPHYBitSet(Rx, LE_PHYs::LE_2M) ) {
+            WARN_PRINT("HCIHandler::le_set_default_phy: LE_2M_PHY no supported, requested Rx %s", to_string(Rx).c_str());
+            return HCIStatusCode::INVALID_PARAMS;
+        }
+    }
+
+    if( !isOpen() ) {
+        ERR_PRINT("HCIHandler::set_default_phy: Not connected %s", toString().c_str());
+        return HCIStatusCode::DISCONNECTED;
+    }
+
+    HCIStatusCode status;
+    HCIStructCommand<hci_cp_le_set_default_phy> req0(HCIOpcode::LE_SET_DEFAULT_PHY);
+    hci_cp_le_set_default_phy * cp = req0.getWStruct();
+    cp->all_phys = ( tryTx && Tx != LE_PHYs::NONE ? 0b000 : 0b001 ) |
+                   ( tryRx && Rx != LE_PHYs::NONE ? 0b000 : 0b010 );
+    cp->tx_phys = number( Tx );
+    cp->rx_phys = number( Rx );
+
+    const hci_rp_status * ev_status;
+    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+
+    if( nullptr == ev || nullptr == ev || HCIStatusCode::SUCCESS != status ) {
+        ERR_PRINT("HCIHandler::le_set_default_phy: LE_SET_PHY: 0x%x (%s) - %s",
+                number(status), to_string(status).c_str(), toString().c_str());
+    }
+    return status;
+}
+
+HCIStatusCode HCIHandler::le_set_phy(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
+                                     const bool tryTx, const bool tryRx,
+                                     const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
+    if( !isLEFeaturesBitSet(le_ll_feats, LE_Features::LE_2M_PHY) ) {
+        if( tryTx && isLEPHYBitSet(Tx, LE_PHYs::LE_2M) ) {
+            WARN_PRINT("HCIHandler::le_set_phy: LE_2M_PHY no supported, requested Tx %s", to_string(Tx).c_str());
+            return HCIStatusCode::INVALID_PARAMS;
+        }
+        if( tryRx && isLEPHYBitSet(Rx, LE_PHYs::LE_2M) ) {
+            WARN_PRINT("HCIHandler::le_set_phy: LE_2M_PHY no supported, requested Rx %s", to_string(Rx).c_str());
+            return HCIStatusCode::INVALID_PARAMS;
+        }
+    }
+
+    HCIStatusCode status = check_open_connection("le_set_phy", conn_handle, peerAddressAndType);
+    if( HCIStatusCode::SUCCESS != status ) {
+        return status;
+    }
+
+    struct hci_cp_le_set_phy {
+        uint16_t handle;
+        __u8    all_phys;
+        __u8    tx_phys;
+        __u8    rx_phys;
+        uint16_t phy_options;
+    } __packed;
+
+    HCIStructCommand<hci_cp_le_set_phy> req0(HCIOpcode::LE_SET_PHY);
+    hci_cp_le_set_phy * cp = req0.getWStruct();
+    cp->handle = jau::cpu_to_le(conn_handle);
+    cp->all_phys = ( tryTx && Tx != LE_PHYs::NONE ? 0b000 : 0b001 ) |
+                   ( tryRx && Rx != LE_PHYs::NONE ? 0b000 : 0b010 );
+    cp->tx_phys = number( Tx );
+    cp->rx_phys = number( Rx );
+    cp->phy_options = 0;
+
+    std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
+
+    if( nullptr == ev || nullptr == ev || HCIStatusCode::SUCCESS != status ) {
+        ERR_PRINT("HCIHandler::le_set_phy: LE_SET_PHY: 0x%x (%s) - %s",
+                number(status), to_string(status).c_str(), toString().c_str());
     }
     return status;
 }

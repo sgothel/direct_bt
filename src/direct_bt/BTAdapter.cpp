@@ -231,6 +231,7 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDisconnectedHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceFoundHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_REMOTE_USR_FEATURES, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_PHY_UPDATE_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCILEPhyUpdateCompleteHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_CHANGED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCIEncryptionChangedHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI)) && ok;
 
@@ -604,6 +605,16 @@ HCIStatusCode BTAdapter::reset() noexcept {
 #else
     return hci.resetAdapter();
 #endif
+}
+
+
+HCIStatusCode BTAdapter::setDefaultLE_PHY(const bool tryTx, const bool tryRx,
+                                          const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
+    if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
+        poweredOff(false /* active */);
+        return HCIStatusCode::NOT_POWERED;
+    }
+    return hci.le_set_default_phy(tryTx, tryRx, Tx, Rx);
 }
 
 bool BTAdapter::isDeviceWhitelisted(const BDAddressAndType & addressAndType) noexcept {
@@ -1519,6 +1530,23 @@ bool BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
 
     } else {
         WORDY_PRINT("BTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): Device not tracked: %s",
+            dev_id, event.toString().c_str());
+    }
+    return true;
+}
+
+bool BTAdapter::mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept {
+    const MgmtEvtLEPhyUpdateComplete &event = *static_cast<const MgmtEvtLEPhyUpdateComplete *>(&e);
+
+    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr != device ) {
+        COND_PRINT(debug_event, "BTAdapter::EventHCI:LEPhyUpdateComplete(dev_id %d): %s, %s",
+            dev_id, event.toString().c_str(), device->toString().c_str());
+
+        device->notifyLEPhyUpdateComplete(event.getTx(), event.getRx());
+
+    } else {
+        WORDY_PRINT("BTAdapter::EventHCI:LEPhyUpdateComplete(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
     return true;

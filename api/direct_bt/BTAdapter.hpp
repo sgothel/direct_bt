@@ -391,6 +391,7 @@ namespace direct_bt {
             bool mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept;
             bool mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noexcept;
             bool mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept;
+            bool mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept;
             bool mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept;
 
 
@@ -641,6 +642,25 @@ namespace direct_bt {
              * </pre>
              */
             HCIStatusCode reset() noexcept;
+
+            /**
+             * Sets default preference of LE_PHYs.
+             *
+             * BT Core Spec v5.2: Vol 4, Part E, 7.8.49 LE Set PHY command
+             *
+             * @param tryTx if true, host has preference for given Tx LE_PHYs
+             * @param tryRx if true, host has preference for given Rx LE_PHYs
+             * @param Tx transmitter LE_PHYs of preference if tryTx is true, otherwise ignored
+             * @param Rx receiver LE_PHYs of preference if tryRx is true, otherwise ignored
+             * @return
+             * @see BTDevice::getTxPhys()
+             * @see BTDevice::getRxPhys()
+             * @see BTDevice::getConnectedLE_PHY()
+             * @see BTDevice::setConnectedLE_PHY()
+             * @since 2.4.0
+             */
+            HCIStatusCode setDefaultLE_PHY(const bool tryTx, const bool tryRx,
+                                           const LE_PHYs Tx, const LE_PHYs Rx) noexcept;
 
             /**
              * Returns a reference to the used singleton BTManager instance, used to create this adapter.
