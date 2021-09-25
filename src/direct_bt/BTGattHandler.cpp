@@ -269,7 +269,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
             l2capReaderShallStop = true;
             has_ioerror = true;
         } else {
-            jau::INFO_PRINT("GATTHandler::reader: l2cap read: l2cap.read %d (%s); %s",
+            WORDY_PRINT("GATTHandler::reader: l2cap read: l2cap.read %d (%s); %s",
                     len, L2CAPComm::getRWExitCodeString(len).c_str(),
                     getStateString().c_str());
         }
