@@ -336,11 +336,12 @@ namespace direct_bt {
              * To be called at
              *
              * - destructor or when powered off (active = true)
+             * - AdapterSetting changed, POWERED disabled, just powered off (active = false)
              * - when `!isPowered()` is detected in methods (active = false)
              * </p>
-             * @param active true to actively stopDiscovery and disconnect devices etc, otherwise this is an all passive operation
+             * @param active true if still powered and actively stopDiscovery and disconnect devices, otherwise this is a passive operation
              */
-            void poweredOff(const bool active) noexcept;
+            void poweredOff(bool active) noexcept;
 
             friend std::shared_ptr<BTDevice> BTDevice::getSharedInstance() const noexcept;
             friend void BTDevice::remove() noexcept;

@@ -328,19 +328,23 @@ void BTAdapter::close() noexcept {
     DBG_PRINT("BTAdapter::close: XXX");
 }
 
-void BTAdapter::poweredOff(const bool active) noexcept {
+void BTAdapter::poweredOff(bool active) noexcept {
     if( !isValid() ) {
         ERR_PRINT("BTAdapter invalid: dev_id %d, %p", dev_id, this);
         return;
     }
-    if( !hci.isOpen() ) {
-        ERR_PRINT("BTAdapter HCI closed %s", toString().c_str());
-        return;
-    }
     if( !active ) {
-        ERR_PRINT("BTAdapter Powered-Off %s", toString().c_str());
+        jau::INFO_PRINT("BTAdapter Powered-Off %s", toString().c_str());
+        jau::print_backtrace(true /* skip_anon_frames */, 4 /* max_frames */, 2 /* skip_frames: print_b*() + get_b*() */);
     } else {
         DBG_PRINT("BTAdapter::poweredOff(active %d): ... %p, %s", active, this, toString().c_str());
+    }
+    if( !hci.isOpen() ) {
+        jau::INFO_PRINT("BTAdapter::poweredOff: HCI closed: active %d -> 0: %s", active, toString().c_str());
+        active = false;
+    } else if( active && !adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
+        jau::INFO_PRINT("BTAdapter::poweredOff: !POWERED: active %d -> 0: %s", active, toString().c_str());
+        active = false;
     }
     keep_le_scan_alive = false;
 
@@ -363,9 +367,7 @@ void BTAdapter::poweredOff(const bool active) noexcept {
     currentMetaScanType = ScanType::NONE;
     btRole = BTRole::Master;
 
-    if( active ) {
-        unlockConnectAny();
-    }
+    unlockConnectAny();
 
     DBG_PRINT("BTAdapter::poweredOff(active %d): XXX %s", active, toString().c_str());
 }
@@ -1322,7 +1324,7 @@ void BTAdapter::updateAdapterSettings(const AdapterSetting new_settings, const b
 
     if( justPoweredOff ) {
         // Adapter has been powered off, close connections and cleanup off-thread.
-        std::thread bg(&BTAdapter::poweredOff, this, true); // @suppress("Invalid arguments")
+        std::thread bg(&BTAdapter::poweredOff, this, false); // @suppress("Invalid arguments")
         bg.detach();
     }
 }
