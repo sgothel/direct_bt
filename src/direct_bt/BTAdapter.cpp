@@ -927,8 +927,14 @@ HCIStatusCode BTAdapter::stopDiscovery() noexcept {
     }
 
 exit:
+    if( HCIStatusCode::SUCCESS != status ) {
+        // Sync nativeDiscoveryState with  currentMetaScanType,
+        // the latter git set to NONE via mgmtEvDeviceDiscoveringHCI(..) below.
+        // Resolves checkDiscoveryState error message @ HCI command failure.
+        hci.setCurrentScanType( ScanType::NONE );
+    }
     if( le_scan_temp_disabled || HCIStatusCode::SUCCESS != status ) {
-        // In case of discoveryTempDisabled, power-off, le_enable_scane failure
+        // In case of discoveryTempDisabled, power-off, le_enable_scan failure
         // or already closed HCIHandler, send the event directly.
         const MgmtEvtDiscovering e(dev_id, ScanType::LE, false);
         mgmtEvDeviceDiscoveringHCI( e );
