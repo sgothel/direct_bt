@@ -487,7 +487,7 @@ errout:
                   to_string(psm).c_str(), to_string(cid).c_str());
         }
     } else {
-        DBG_PRINT("L2CAPComm::read: Failed res %d (%s), len %d; %s, dd %d, %s, psm %s, cid %s",
+        jau::INFO_PRINT("L2CAPComm::read: Failed res %d (%s), len %d; %s, dd %d, %s, psm %s, cid %s",
               err_res, getExitCodeString(err_res).c_str(), len,
               getStateString().c_str(), socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
               to_string(psm).c_str(), to_string(cid).c_str());

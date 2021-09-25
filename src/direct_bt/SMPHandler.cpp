@@ -146,9 +146,9 @@ void SMPHandler::l2capReaderThreadImpl() {
             l2capReaderShallStop = true;
             has_ioerror = true;
         } else {
-            DBG_PRINT("SMPHandler::reader: l2cap read: l2cap.read %d (%s); %s",
-                    len, L2CAPComm::getExitCodeString(len).c_str(),
-                    getStateString().c_str());
+            jau::INFO_PRINT("SMPHandler::reader: l2cap read: l2cap.read %d (%s); %s",
+                            len, L2CAPComm::getExitCodeString(len).c_str(),
+                            getStateString().c_str());
         }
     }
     {
