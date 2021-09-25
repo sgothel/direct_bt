@@ -141,13 +141,13 @@ void SMPHandler::l2capReaderThreadImpl() {
             }
         } else if( 0 > len && ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
             IRQ_PRINT("SMPHandler::reader: l2cap read error -> Stop; l2cap.read %d (%s); %s",
-                    len, L2CAPComm::getExitCodeString(len).c_str(),
+                    len, L2CAPComm::getRWExitCodeString(len).c_str(),
                     getStateString().c_str());
             l2capReaderShallStop = true;
             has_ioerror = true;
         } else {
             jau::INFO_PRINT("SMPHandler::reader: l2cap read: l2cap.read %d (%s); %s",
-                            len, L2CAPComm::getExitCodeString(len).c_str(),
+                            len, L2CAPComm::getRWExitCodeString(len).c_str(),
                             getStateString().c_str());
         }
     }
@@ -291,7 +291,7 @@ void SMPHandler::send(const SMPPDUMsg & msg) {
     const jau::snsize_t res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.getSize());
     if( 0 > res ) {
         IRQ_PRINT("SMPHandler::send: l2cap write error -> disconnect: l2cap.write %d (%s); %s; %s to %s",
-                res, L2CAPComm::getExitCodeString(res).c_str(), getStateString().c_str(),
+                res, L2CAPComm::getRWExitCodeString(res).c_str(), getStateString().c_str(),
                 msg.toString().c_str(), deviceString.c_str());
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected

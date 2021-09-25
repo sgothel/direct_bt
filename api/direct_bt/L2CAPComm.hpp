@@ -117,25 +117,28 @@ namespace direct_bt {
             };
             static constexpr int number(const Defaults d) { return static_cast<int>(d); }
 
-            enum class ExitCode : jau::snsize_t {
-                SUCCESS             =  0,
-                NOT_OPEN            = -1,
-                INTERRUPTED         = -2,
-                INVALID_SOCKET_DD   = -3,
-                POLL_ERROR          = -10,
-                POLL_TIMEOUT        = -11,
-                READ_ERROR          = -20,
-                WRITE_ERROR         = -30
+            /**
+             * Exit code for read() and write() operations
+             */
+            enum class RWExitCode : jau::snsize_t {
+                SUCCESS             =  0, /**< SUCCESS */
+                NOT_OPEN            = -1, /**< NOT_OPEN */
+                INTERRUPTED         = -2, /**< INTERRUPTED */
+                INVALID_SOCKET_DD   = -3, /**< INVALID_SOCKET_DD */
+                POLL_ERROR          = -10,/**< POLL_ERROR */
+                POLL_TIMEOUT        = -11,/**< POLL_TIMEOUT */
+                READ_ERROR          = -20,/**< READ_ERROR */
+                WRITE_ERROR         = -30 /**< WRITE_ERROR */
             };
-            static constexpr jau::snsize_t number(const ExitCode rhs) noexcept {
+            static constexpr jau::snsize_t number(const RWExitCode rhs) noexcept {
                 return static_cast<jau::snsize_t>(rhs);
             }
-            static constexpr ExitCode toExitCode(const jau::snsize_t rhs) noexcept {
-                return rhs >= 0 ? ExitCode::SUCCESS : static_cast<ExitCode>(rhs);
+            static constexpr RWExitCode toRWExitCode(const jau::snsize_t rhs) noexcept {
+                return rhs >= 0 ? RWExitCode::SUCCESS : static_cast<RWExitCode>(rhs);
             }
-            static std::string getExitCodeString(const ExitCode ec) noexcept;
-            static std::string getExitCodeString(const jau::snsize_t ecn) noexcept {
-                return getExitCodeString( toExitCode( ecn ) );
+            static std::string getRWExitCodeString(const RWExitCode ec) noexcept;
+            static std::string getRWExitCodeString(const jau::snsize_t ecn) noexcept {
+                return getRWExitCodeString( toRWExitCode( ecn ) );
             }
 
             static std::string getStateString(bool isOpen, bool hasIOError) {

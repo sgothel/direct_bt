@@ -374,24 +374,24 @@ BTSecurityLevel L2CAPComm::getBTSecurityLevelImpl() {
     return sec_level;
 }
 
-#define EXITCODE_ENUM(X) \
-        X(ExitCode, SUCCESS) \
-        X(ExitCode, NOT_OPEN) \
-        X(ExitCode, INTERRUPTED) \
-        X(ExitCode, INVALID_SOCKET_DD) \
-        X(ExitCode, POLL_ERROR) \
-        X(ExitCode, POLL_TIMEOUT) \
-        X(ExitCode, READ_ERROR) \
-        X(ExitCode, WRITE_ERROR)
+#define RWEXITCODE_ENUM(X) \
+        X(RWExitCode, SUCCESS) \
+        X(RWExitCode, NOT_OPEN) \
+        X(RWExitCode, INTERRUPTED) \
+        X(RWExitCode, INVALID_SOCKET_DD) \
+        X(RWExitCode, POLL_ERROR) \
+        X(RWExitCode, POLL_TIMEOUT) \
+        X(RWExitCode, READ_ERROR) \
+        X(RWExitCode, WRITE_ERROR)
 
 #define CASE2_TO_STRING(U,V) case U::V: return #V;
 
-std::string L2CAPComm::getExitCodeString(const ExitCode ec) noexcept {
+std::string L2CAPComm::getRWExitCodeString(const RWExitCode ec) noexcept {
     if( number(ec) >= 0 ) {
         return "SUCCESS";
     }
     switch(ec) {
-        EXITCODE_ENUM(CASE2_TO_STRING)
+        RWEXITCODE_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
     }
     return "Unknown ExitCode";
@@ -403,15 +403,15 @@ jau::snsize_t L2CAPComm::read(uint8_t* buffer, const jau::nsize_t capacity) {
     jau::snsize_t err_res = 0;
 
     if( !is_open ) {
-        err_res = number(ExitCode::NOT_OPEN);
+        err_res = number(RWExitCode::NOT_OPEN);
         goto errout;
     }
     if( interrupt_flag ) {
-        err_res = number(ExitCode::INTERRUPTED);
+        err_res = number(RWExitCode::INTERRUPTED);
         goto errout;
     }
     if( 0 > socket_descriptor ) {
-        err_res = number(ExitCode::INVALID_SOCKET_DD);
+        err_res = number(RWExitCode::INVALID_SOCKET_DD);
         goto errout;
     }
     if( 0 == capacity ) {
@@ -427,22 +427,22 @@ jau::snsize_t L2CAPComm::read(uint8_t* buffer, const jau::nsize_t capacity) {
         p.fd = socket_descriptor; p.events = POLLIN;
         while ( is_open && !interrupt_flag && ( n = poll( &p, 1, timeoutMS ) ) < 0 ) {
             if( !is_open ) {
-                err_res = number(ExitCode::NOT_OPEN);
+                err_res = number(RWExitCode::NOT_OPEN);
                 goto errout;
             }
             if( interrupt_flag ) {
-                err_res = number(ExitCode::INTERRUPTED);
+                err_res = number(RWExitCode::INTERRUPTED);
                 goto errout;
             }
             if ( errno == EAGAIN || errno == EINTR ) {
                 // cont temp unavail or interruption
                 continue;
             }
-            err_res = number(ExitCode::POLL_ERROR);
+            err_res = number(RWExitCode::POLL_ERROR);
             goto errout;
         }
         if (!n) {
-            err_res = number(ExitCode::POLL_TIMEOUT);
+            err_res = number(RWExitCode::POLL_TIMEOUT);
             errno = ETIMEDOUT;
             goto errout;
         }
@@ -450,18 +450,18 @@ jau::snsize_t L2CAPComm::read(uint8_t* buffer, const jau::nsize_t capacity) {
 
     while ( is_open && !interrupt_flag && ( len = ::read(socket_descriptor, buffer, capacity) ) < 0 ) {
         if( !is_open ) {
-            err_res = number(ExitCode::NOT_OPEN);
+            err_res = number(RWExitCode::NOT_OPEN);
             goto errout;
         }
         if( interrupt_flag ) {
-            err_res = number(ExitCode::INTERRUPTED);
+            err_res = number(RWExitCode::INTERRUPTED);
             goto errout;
         }
         if ( errno == EAGAIN || errno == EINTR ) {
             // cont temp unavail or interruption
             continue;
         }
-        err_res = number(ExitCode::READ_ERROR);
+        err_res = number(RWExitCode::READ_ERROR);
         goto errout;
     }
 
@@ -501,15 +501,15 @@ jau::snsize_t L2CAPComm::write(const uint8_t * buffer, const jau::nsize_t length
     jau::snsize_t err_res = 0;
 
     if( !is_open ) {
-        err_res = number(ExitCode::NOT_OPEN);
+        err_res = number(RWExitCode::NOT_OPEN);
         goto errout;
     }
     if( interrupt_flag ) {
-        err_res = number(ExitCode::INTERRUPTED);
+        err_res = number(RWExitCode::INTERRUPTED);
         goto errout;
     }
     if( 0 > socket_descriptor ) {
-        err_res = number(ExitCode::INVALID_SOCKET_DD);
+        err_res = number(RWExitCode::INVALID_SOCKET_DD);
         goto errout;
     }
     if( 0 == length ) {
@@ -518,18 +518,18 @@ jau::snsize_t L2CAPComm::write(const uint8_t * buffer, const jau::nsize_t length
 
     while ( is_open && !interrupt_flag && ( len = ::write(socket_descriptor, buffer, length) ) < 0 ) {
         if( !is_open ) {
-            err_res = number(ExitCode::NOT_OPEN);
+            err_res = number(RWExitCode::NOT_OPEN);
             goto errout;
         }
         if( interrupt_flag ) {
-            err_res = number(ExitCode::INTERRUPTED);
+            err_res = number(RWExitCode::INTERRUPTED);
             goto errout;
         }
         if( EAGAIN == errno || EINTR == errno ) {
             // cont temp unavail or interruption
             continue;
         }
-        err_res = number(ExitCode::WRITE_ERROR);
+        err_res = number(RWExitCode::WRITE_ERROR);
         goto errout;
     }
 
