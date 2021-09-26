@@ -29,7 +29,9 @@ sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`
 bname=`basename $0 .sh`
 
-if [ ! -e lib/java/direct_bt.jar -o ! -e bin/java/DBTPeripheral00.jar -o ! -e lib/libdirect_bt.so ] ; then
+exename=`echo $bname | sed 's/^run-//g'`
+
+if [ ! -e lib/java/direct_bt.jar -o ! -e bin/java/${exename}.jar -o ! -e lib/libdirect_bt.so ] ; then
     echo run from dist directory
     exit 1
 fi
@@ -79,8 +81,7 @@ JAVA_CMD="${JAVA_EXE}"
 
 runit_root() {
     echo "sudo ... "
-    ulimit -c unlimited
-    sudo $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/DBTPeripheral00.jar -Djava.library.path=`pwd`/lib DBTPeripheral00 $*
+    sudo -- bash -c "ulimit -c unlimited; $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} $*"
     exit $?
 }
 
@@ -90,7 +91,7 @@ runit_setcap() {
     sudo setcap 'cap_net_raw,cap_net_admin+eip' ${JAVA_EXE}
     sudo getcap ${JAVA_EXE}
     ulimit -c unlimited
-    $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/DBTPeripheral00.jar -Djava.library.path=`pwd`/lib DBTPeripheral00 $*
+    $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} $*
     exit $?
 }
 
@@ -98,7 +99,7 @@ runit_capsh() {
     echo "sudo capsh ... "
     sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
         --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
-        -- -c "ulimit -c unlimited; $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/DBTPeripheral00.jar -Djava.library.path=`pwd`/lib DBTPeripheral00 $*"
+        -- -c "ulimit -c unlimited; $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} $*"
     exit $?
 }
 
@@ -107,7 +108,7 @@ runit() {
     echo username $username
     echo run_setcap ${run_setcap}
     echo run_root ${run_root}
-    echo DBTPeripheral00 commandline $*
+    echo ${exename} commandline $*
     echo EXE_WRAPPER $EXE_WRAPPER
     echo logbasename $logbasename
     echo logfile $logfile
@@ -116,8 +117,8 @@ runit() {
     echo direct_bt_debug $direct_bt_debug
     echo direct_bt_verbose $direct_bt_verbose
 
-    echo $EXE_WRAPPER $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/DBTPeripheral00.jar -Djava.library.path=`pwd`/lib DBTPeripheral00 $*
-    # $EXE_WRAPPER $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/DBTPeripheral00.jar -Djava.library.path=`pwd`/lib DBTPeripheral00 $*
+    echo $EXE_WRAPPER $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} $*
+    # $EXE_WRAPPER $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} $*
     mkdir -p keys
 
     if [ "${run_setcap}" -eq "1" ]; then
