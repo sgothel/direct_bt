@@ -1,0 +1,42 @@
+Intel AX201
+
+Bluetooth 5
+
+ID 8087:0026 Intel Corp. AX201
+
+Firmware
+    intel/ibt-19-32-4.sfi
+    Firmware revision 0.4 build 164 week 35 2021
+
+Ubuntu 18.04.5 LTS
+Linux 5.13.7-surface #1 SMP Sun Aug 1 14:15:56 UTC 2021 x86_64 x86_64 x86_64 GNU/Linux
+[    4.664881] iwlwifi 0000:00:14.3: enabling device (0000 -> 0002)
+[    4.675166] iwlwifi 0000:00:14.3: api flags index 2 larger than supported by driver
+[    4.675186] iwlwifi 0000:00:14.3: TLV_FW_FSEQ_VERSION: FSEQ Version: 89.3.35.37
+[    4.675489] iwlwifi 0000:00:14.3: loaded firmware version 63.c04f3485.0 Qu-c0-hr-b0-63.ucode op_mode iwlmvm
+[    4.731975] iwlwifi 0000:00:14.3: Detected Intel(R) Wi-Fi 6 AX203, REV=0x338
+[    4.940145] iwlwifi 0000:00:14.3 wlp0s20f3: renamed from wlan0
+
+[    4.604340] Bluetooth: Core ver 2.22
+[    4.604361] Bluetooth: HCI device and connection manager initialized
+[    4.604365] Bluetooth: HCI socket layer initialized
+[    4.604367] Bluetooth: L2CAP socket layer initialized
+[    4.604370] Bluetooth: SCO socket layer initialized
+[    4.619273] Bluetooth: hci0: unexpected event for opcode 0x0000
+[    4.619393] Bluetooth: hci2: Bootloader revision 0.4 build 0 week 11 2017
+[    4.620333] Bluetooth: hci2: Device revision is 2
+[    4.620335] Bluetooth: hci2: Secure boot is enabled
+[    4.620336] Bluetooth: hci2: OTP lock is enabled
+[    4.620337] Bluetooth: hci2: API lock is enabled
+[    4.620338] Bluetooth: hci2: Debug lock is disabled
+[    4.620339] Bluetooth: hci2: Minimum firmware build 1 week 10 2014
+[    4.622539] Bluetooth: hci2: Found device firmware: intel/ibt-19-32-4.sfi
+[    6.321712] Bluetooth: hci2: Waiting for firmware download to complete
+[    6.322267] Bluetooth: hci2: Firmware loaded in 1659887 usecs
+[    6.322332] Bluetooth: hci2: Waiting for device to boot
+[    6.337338] Bluetooth: hci2: Device booted in 14668 usecs
+[    6.337506] Bluetooth: hci2: Found Intel DDC parameters: intel/ibt-19-32-4.ddc
+[    6.339339] Bluetooth: hci2: Applying Intel DDC parameters completed
+[    6.342382] Bluetooth: hci2: Firmware revision 0.4 build 164 week 35 2021
+[    6.402267] Bluetooth: hci2: MSFT filter_enable is already on
+

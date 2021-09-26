@@ -74,14 +74,16 @@ The following **platforms** are tested and hence supported
 The following **Bluetooth Adapter** were tested
 
 * Bluetooth 4.0
-  - Intel Bluemoon Bluetooth Adapter
-  - CSR Bluetooth Adapter (CSR8510,..)
-  - Raspberry Pi Bluetooth Adapter (BCM43455 on 3+, 4)
+  - Intel Bluemoon Bluetooth Adapter (Internal, ID: 8087:0a2a)
+  - Intel Wireless (Internal, ID: 8087:07dc)
+  - CSR Bluetooth Adapter (USB-A, ID: 0a12:0001, CSR8510)
+  - Raspberry Pi Bluetooth Adapter (Internal, BCM43455 on 3+, 4)
 
 * Bluetooth 5.0
-  - Intel AX200 Bluetooth 5.0 (Wi-Fi 6 802.11ax (2.4Gbps) + BT 5.0)
+  - Intel AX200 (Internal, ID 8087:0029)
   - Realtek Bluetooth 5.0 (`RTK_BT_5.0`)
 
+Please check the [adapter list](doc/adapter/adapter.md) for more details.
 
 ## Using *Direct-BT* Applications
 

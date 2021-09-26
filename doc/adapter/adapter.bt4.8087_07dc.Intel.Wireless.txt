@@ -1,0 +1,24 @@
+Intel Bluetooth wireless interface
+
+Bluetooth 4
+
+ID 8087:07dc Intel Corp. Bluetooth wireless interface
+
+Linux svenson 5.10.0-8-amd64 #1 SMP Debian 5.10.46-4 (2021-08-03) x86_64 GNU/Linux
+[    4.057632] Bluetooth: Core ver 2.22
+[    4.057661] Bluetooth: HCI device and connection manager initialized
+[    4.057664] Bluetooth: HCI socket layer initialized
+[    4.057667] Bluetooth: L2CAP socket layer initialized
+[    4.057670] Bluetooth: SCO socket layer initialized
+[    4.101209] Bluetooth: hci0: read Intel version: 370710018002030d00
+[    4.104962] Bluetooth: hci0: Intel Bluetooth firmware file: intel/ibt-hw-37.7.10-fw-1.80.2.3.d.bseq
+[    4.232176] Bluetooth: hci0: unexpected event for opcode 0xfc2f
+[    4.248186] Bluetooth: hci0: Intel BT fw patch 0x57 completed & activated
+[    4.334284] Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+[    4.334285] Bluetooth: BNEP filters: protocol multicast
+[    4.334288] Bluetooth: BNEP socket layer initialized
+[   23.347910] Bluetooth: RFCOMM TTY layer initialized
+[   23.347918] Bluetooth: RFCOMM socket layer initialized
+[   23.347923] Bluetooth: RFCOMM ver 1.11
+[  250.584916] Bluetooth: hci0: command 0x0406 tx timeout
+

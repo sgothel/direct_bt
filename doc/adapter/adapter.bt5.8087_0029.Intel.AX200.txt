@@ -1,0 +1,39 @@
+Intel AX200
+
+Bluetooth 5
+
+ID 8087:0029 Intel Corp. AX200 Bluetooth
+
+Firmware
+    intel/ibt-20-1-3.sfi
+    Firmware revision 0.0 build 121 week 7 2021
+
+Debian GNU/Linux 11
+Linux risa 5.10.0-8-amd64 #1 SMP Debian 5.10.46-4 (2021-08-03) x86_64 GNU/Linux
+Aug 21 20:50:27 risa kernel: Bluetooth: Core ver 2.22
+Aug 21 20:50:27 risa kernel: Bluetooth: HCI device and connection manager initialized
+Aug 21 20:50:27 risa kernel: Bluetooth: HCI socket layer initialized
+Aug 21 20:50:27 risa kernel: Bluetooth: L2CAP socket layer initialized
+Aug 21 20:50:27 risa kernel: Bluetooth: SCO socket layer initialized
+Aug 21 20:50:27 risa kernel: Bluetooth: hci0: Reading Intel version information failed (-110)
+Aug 21 20:50:27 risa kernel: Bluetooth: hci0: Intel Read version failed (-110)
+Aug 21 20:50:27 risa kernel: Bluetooth: hci0: command 0xfc05 tx timeout
+Aug 21 20:50:27 risa kernel: Bluetooth: hci0: Intel reset sent to retry FW download
+Aug 21 20:50:27 risa kernel: Bluetooth: hci0: Bootloader revision 0.3 build 0 week 24 2017
+Aug 21 20:50:27 risa kernel: Bluetooth: hci0: Device revision is 1
+Aug 21 20:50:27 risa kernel: Bluetooth: hci0: Secure boot is enabled
+Aug 21 20:50:27 risa kernel: Bluetooth: hci0: OTP lock is enabled
+Aug 21 20:50:27 risa kernel: Bluetooth: hci0: API lock is enabled
+Aug 21 20:50:27 risa kernel: Bluetooth: hci0: Debug lock is disabled
+Aug 21 20:50:27 risa kernel: Bluetooth: hci0: Minimum firmware build 1 week 10 2014
+Aug 21 20:50:27 risa kernel: Bluetooth: hci0: Found device firmware: intel/ibt-20-1-3.sfi
+Aug 21 20:50:24 risa systemd[1]: Reached target Bluetooth.
+Aug 21 20:50:28 risa kernel: Bluetooth: hci0: Waiting for firmware download to complete
+Aug 21 20:50:28 risa kernel: Bluetooth: hci0: Firmware loaded in 1343640 usecs
+Aug 21 20:50:28 risa kernel: Bluetooth: hci0: Waiting for device to boot
+Aug 21 20:50:28 risa kernel: Bluetooth: hci0: Device booted in 15119 usecs
+Aug 21 20:50:28 risa kernel: Bluetooth: hci0: Found Intel DDC parameters: intel/ibt-20-1-3.ddc
+Aug 21 20:50:28 risa kernel: Bluetooth: hci0: Applying Intel DDC parameters completed
+Aug 21 20:50:28 risa kernel: Bluetooth: hci0: Firmware revision 0.0 build 121 week 7 2021
+Aug 25 12:34:11 risa systemd[7824]: Reached target Bluetooth.
+
