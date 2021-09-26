@@ -15,7 +15,8 @@
     - Intel Bluemoon Bluetooth Adapter (Internal, ID: 8087:0a2a)
   
   - *BCM* Chipsets
-    - Raspberry Pi Bluetooth Adapter (Internal, BCM43455 on 3+, 4)
+    - Raspberry Pi 3+ Bluetooth Adapter (Internal, BCM43455)
+    - Raspberry Pi 4  Bluetooth Adapter (Internal, BCM4345C0)
 
 ## Bluetooth 5
 
