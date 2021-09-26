@@ -514,6 +514,11 @@ namespace direct_bt {
             int removeAllCharListener() noexcept ;
 
             /**
+             * Return event listener count.
+             */
+            jau::nsize_t getCharListenerCount() const noexcept { return characteristicListenerList.size(); }
+
+            /**
              * Enable or disable sending an immediate confirmation for received indication events from the device.
              * <p>
              * Default value is true.

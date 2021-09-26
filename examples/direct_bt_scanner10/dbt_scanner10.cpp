@@ -454,6 +454,14 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
                 to_string(res).c_str(), to_string(resTx).c_str(), to_string(resRx).c_str());
     }
 
+    struct GattCharAndListener {
+        BTGattCharRef gattCharRef;
+        std::shared_ptr<BTGattChar::Listener> listenerRef;
+    };
+
+    // Validate consistency of GATTHandler [add|remove]CharListener()
+    std::vector<GattCharAndListener> gattCharAndListenerList;
+
     //
     // GATT Service Processing
     //
@@ -525,6 +533,7 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
             }
         }
 
+
         for(size_t i=0; i<primServices.size(); i++) {
             BTGattService & primService = *primServices.at(i);
             if( !QUIET ) {
@@ -533,21 +542,21 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
             }
             jau::darray<BTGattCharRef> & serviceCharacteristics = primService.characteristicList;
             for(size_t j=0; j<serviceCharacteristics.size(); j++) {
-                BTGattChar & serviceChar = *serviceCharacteristics.at(j);
+                BTGattCharRef & serviceChar = serviceCharacteristics.at(j);
                 if( !QUIET ) {
-                    fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic: UUID %s\n", i, j, serviceChar.value_type->toUUID128String().c_str());
-                    fprintf_td(stderr, "  [%2.2d.%2.2d]     %s\n", i, j, serviceChar.toString().c_str());
+                    fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic: UUID %s\n", i, j, serviceChar->value_type->toUUID128String().c_str());
+                    fprintf_td(stderr, "  [%2.2d.%2.2d]     %s\n", i, j, serviceChar->toString().c_str());
                 }
-                if( serviceChar.hasProperties(BTGattChar::PropertyBitVal::Read) ) {
+                if( serviceChar->hasProperties(BTGattChar::PropertyBitVal::Read) ) {
                     POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0);
-                    if( serviceChar.readValue(value) ) {
+                    if( serviceChar->readValue(value) ) {
                         std::string sval = dfa_utf8_decode(value.get_ptr(), value.getSize());
                         if( !QUIET ) {
                             fprintf_td(stderr, "  [%2.2d.%2.2d]     value: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
                         }
                     }
                 }
-                jau::darray<BTGattDescRef> & charDescList = serviceChar.descriptorList;
+                jau::darray<BTGattDescRef> & charDescList = serviceChar->descriptorList;
                 for(size_t k=0; k<charDescList.size(); k++) {
                     BTGattDesc & charDesc = *charDescList.at(k);
                     if( !QUIET ) {
@@ -556,11 +565,15 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
                     }
                 }
                 bool cccdEnableResult[2];
-                bool cccdRet = serviceChar.addCharListener( std::shared_ptr<BTGattChar::Listener>( new MyGATTEventListener(i, j) ),
-                                                            cccdEnableResult );
+                std::shared_ptr<BTGattChar::Listener> cl = std::make_shared<MyGATTEventListener>(i, j);
+                bool cccdRet = serviceChar->addCharListener( cl, cccdEnableResult );
+                if( cccdRet ) {
+                    // Validate consistency of GATTHandler [add|remove]CharListener()
+                    gattCharAndListenerList.push_back( GattCharAndListener{ serviceChar, cl } );
+                }
                 if( !QUIET ) {
-                    fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d\n",
-                            (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], cccdRet);
+                    fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d; %u charListener\n",
+                            (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], cccdRet, device->getGattHandler()->getCharListenerCount());
                     fprintf_td(stderr, "\n");
                 }
             }
@@ -574,8 +587,14 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
     }
 
 exit:
-    fprintf_td(stderr, "****** Processing Ready Device: End-1: Success %d on %s; devInProc %zu\n",
-            success, device->toString().c_str(), BTDeviceRegistry::getProcessingDeviceCount());
+    const size_t totalCharListener = device->getGattHandler()->getCharListenerCount();
+    fprintf_td(stderr, "****** Processing Ready Device: End-1: Success %d on %s; devInProc %zu; %zu charListener\n",
+            success, device->toString().c_str(), BTDeviceRegistry::getProcessingDeviceCount(), totalCharListener);
+
+    // Validate consistency of GATTHandler [add|remove]CharListener()
+    if( totalCharListener != gattCharAndListenerList.size() ) {
+        ERR_PRINT("Char-Listener %zu actual != %zu cached\n", totalCharListener, gattCharAndListenerList.size());
+    }
 
     BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
 
@@ -602,7 +621,18 @@ exit:
     if( success ) {
         BTDeviceRegistry::addToProcessedDevices(device->getAddressAndType(), device->getName());
     }
-    device->removeAllCharListener();
+
+    // Validate consistency of GATTHandler [add|remove]CharListener()
+    {
+        //device->removeAllCharListener();
+        for( GattCharAndListener gcl : gattCharAndListenerList ) {
+            gcl.gattCharRef->removeCharListener(gcl.listenerRef);
+        }
+        gattCharAndListenerList.clear();
+        if( 0 != gattCharAndListenerList.size() ) {
+            ERR_PRINT("Char-Listener not zero but %zu\n", gattCharAndListenerList.size());
+        }
+    }
 
     if( !KEEP_CONNECTED ) {
         {

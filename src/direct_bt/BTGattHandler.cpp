@@ -347,10 +347,12 @@ BTGattHandler::BTGattHandler(const std::shared_ptr<BTDevice> &device, L2CAPComm&
 }
 
 BTGattHandler::~BTGattHandler() noexcept {
+    DBG_PRINT("GATTHandler::dtor: Start: %s", toString().c_str());
     disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
     characteristicListenerList.clear();
     services.clear();
     genericAccess = nullptr;
+    DBG_PRINT("GATTHandler::dtor: End: %s", toString().c_str());
 }
 
 bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause) noexcept {
@@ -1123,5 +1125,5 @@ std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(ja
 }
 
 std::string BTGattHandler::toString() const noexcept {
-    return "GattHndlr["+to_string(getRole())+", "+deviceString+"]";
+    return "GattHndlr["+to_string(getRole())+", "+std::to_string(characteristicListenerList.size())+" listener, "+deviceString+", "+getStateString()+"]";
 }
