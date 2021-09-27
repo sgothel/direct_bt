@@ -29,7 +29,6 @@ buildit() {
     make -j $CPU_COUNT install
     if [ $? -eq 0 ] ; then
         echo "REBUILD SUCCESS $bname $archabi"
-        cp -a examples/* $rootdir/dist-$archabi/bin
         cd $rootdir
         return 0
     else

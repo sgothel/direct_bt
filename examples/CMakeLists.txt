@@ -3,21 +3,22 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/api
 )
 
-add_executable (dbt_scanner00 direct_bt_scanner00/dbt_scanner00.cpp)
-target_link_libraries (dbt_scanner00 direct_bt)
-add_dependencies(dbt_scanner00 direct_bt)
+# These examples use the standard separate compilation
+set( SOURCES_IDIOMATIC_EXAMPLES
+    dbt_scanner00.cpp
+    dbt_scanner01.cpp
+    dbt_scanner10.cpp
+    dbt_peripheral00.cpp
+)
 
-add_executable (dbt_scanner01 direct_bt_scanner01/dbt_scanner01.cpp)
-target_link_libraries (dbt_scanner01 direct_bt)
-add_dependencies(dbt_scanner01 direct_bt)
+string( REPLACE ".cpp" "" BASENAMES_IDIOMATIC_EXAMPLES "${SOURCES_IDIOMATIC_EXAMPLES}" )
+set( TARGETS_IDIOMATIC_EXAMPLES ${BASENAMES_IDIOMATIC_EXAMPLES} )
 
-add_executable (dbt_scanner10 direct_bt_scanner10/dbt_scanner10.cpp)
-target_link_libraries (dbt_scanner10 direct_bt)
-add_dependencies(dbt_scanner10 direct_bt)
+foreach( name ${TARGETS_IDIOMATIC_EXAMPLES} )
+    add_executable(${name} ${name}.cpp)
+    target_link_libraries(${name} direct_bt)
+    add_dependencies(${name} direct_bt)
+endforeach()
 
-add_executable (dbt_peripheral00 direct_bt_peripheral00/dbt_peripheral00.cpp)
-target_link_libraries (dbt_peripheral00 direct_bt)
-add_dependencies(dbt_peripheral00 direct_bt)
-
-install(TARGETS dbt_scanner00 dbt_scanner01 dbt_scanner10 dbt_peripheral00 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS ${TARGETS_IDIOMATIC_EXAMPLES} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 

@@ -46,7 +46,6 @@ buildit() {
     make -j $CPU_COUNT install test
     if [ $? -eq 0 ] ; then
         echo "BUILD SUCCESS $bname $archabi"
-        cp -a examples/* $rootdir/dist-$archabi/bin
         cd $rootdir
         return 0
     else
