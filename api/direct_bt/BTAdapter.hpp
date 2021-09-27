@@ -818,6 +818,10 @@ namespace direct_bt {
                                          const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
                                          const uint8_t filter_policy=0x00);
 
+        private:
+            HCIStatusCode stopDiscovery(const bool forceDiscoveringEvent) noexcept;
+
+        public:
             /**
              * Ends discovery.
              * <p>
@@ -828,7 +832,7 @@ namespace direct_bt {
              * @see startDiscovery()
              * @see isDiscovering()
              */
-            HCIStatusCode stopDiscovery() noexcept;
+            HCIStatusCode stopDiscovery() noexcept { return stopDiscovery(false); }
 
             /**
              * Returns the current meta discovering ScanType. It can be modified through startDiscovery(..) and stopDiscovery().

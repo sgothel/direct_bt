@@ -348,7 +348,7 @@ void BTAdapter::poweredOff(bool active) noexcept {
     keep_le_scan_alive = false;
 
     if( active ) {
-        stopDiscovery();
+        stopDiscovery(true /* forceDiscoveringEvent */);
     }
 
     // Removes all device references from the lists: connectedDevices, discoveredDevices, sharedDevices
@@ -763,7 +763,7 @@ void BTAdapter::checkDiscoveryState() noexcept {
             std::string msg("Invalid DiscoveryState: keepAlive "+std::to_string(keep_le_scan_alive.load())+
                     ", currentScanType*[native "+
                     to_string(currentNativeScanType)+" != meta "+
-                    to_string(currentMetaScanType)+"]");
+                    to_string(currentMetaScanType)+"], "+toString());
             ERR_PRINT(msg.c_str());
             // ABORT?
         }
@@ -772,7 +772,7 @@ void BTAdapter::checkDiscoveryState() noexcept {
             std::string msg("Invalid DiscoveryState: keepAlive "+std::to_string(keep_le_scan_alive.load())+
                     ", currentScanType*[native "+
                     to_string(currentNativeScanType)+", meta "+
-                    to_string(currentMetaScanType)+"]");
+                    to_string(currentMetaScanType)+"], "+toString());
             ERR_PRINT(msg.c_str());
             // ABORT?
         }
@@ -863,7 +863,7 @@ void BTAdapter::startDiscoveryBackground() noexcept {
     }
 }
 
-HCIStatusCode BTAdapter::stopDiscovery() noexcept {
+HCIStatusCode BTAdapter::stopDiscovery(const bool forceDiscoveringEvent) noexcept {
     // We allow !isEnabled, to utilize method for adjusting discovery state and notifying listeners
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to stop BREDR, LE or DUAL scanning!
     if( !isValid() ) {
@@ -891,10 +891,10 @@ HCIStatusCode BTAdapter::stopDiscovery() noexcept {
                                        !hasScanType(currentNativeScanType, ScanType::LE) && // false
                                        keep_le_scan_alive;                                  // true
 
-    DBG_PRINT("BTAdapter::stopDiscovery: Start: keepAlive %d, currentScanType[native %s, meta %s], le_scan_temp_disabled %d ...",
+    DBG_PRINT("BTAdapter::stopDiscovery: Start: keepAlive %d, currentScanType[native %s, meta %s], le_scan_temp_disabled %d, forceDiscEvent %d ...",
             keep_le_scan_alive.load(),
             to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(),
-            le_scan_temp_disabled);
+            le_scan_temp_disabled, forceDiscoveringEvent);
 
     keep_le_scan_alive = false;
     if( !hasScanType(currentMetaScanType, ScanType::LE) ) {
@@ -932,7 +932,7 @@ exit:
         // Resolves checkDiscoveryState error message @ HCI command failure.
         hci.setCurrentScanType( ScanType::NONE );
     }
-    if( le_scan_temp_disabled || HCIStatusCode::SUCCESS != status ) {
+    if( le_scan_temp_disabled || forceDiscoveringEvent || HCIStatusCode::SUCCESS != status ) {
         // In case of discoveryTempDisabled, power-off, le_enable_scan failure
         // or already closed HCIHandler, send the event directly.
         const MgmtEvtDiscovering e(dev_id, ScanType::LE, false);
