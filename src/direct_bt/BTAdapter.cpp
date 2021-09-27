@@ -333,11 +333,10 @@ void BTAdapter::poweredOff(bool active) noexcept {
         ERR_PRINT("BTAdapter invalid: dev_id %d, %p", dev_id, this);
         return;
     }
+    DBG_PRINT("BTAdapter::poweredOff(active %d): ... %p, %s", active, this, toString().c_str());
     if( !active ) {
         jau::INFO_PRINT("BTAdapter Powered-Off %s", toString().c_str());
         jau::print_backtrace(true /* skip_anon_frames */, 4 /* max_frames */, 2 /* skip_frames: print_b*() + get_b*() */);
-    } else {
-        DBG_PRINT("BTAdapter::poweredOff(active %d): ... %p, %s", active, this, toString().c_str());
     }
     if( !hci.isOpen() ) {
         jau::INFO_PRINT("BTAdapter::poweredOff: HCI closed: active %d -> 0: %s", active, toString().c_str());
@@ -434,7 +433,7 @@ bool BTAdapter::setPowered(bool power_on) noexcept {
         return false;
     }
     const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(settings);
-    updateAdapterSettings(new_settings, false, 0);
+    updateAdapterSettings(false /* off_thread */, new_settings, false, 0);
     if( power_on && isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED) ) {
         adapter_initialized = true;
         return true;
@@ -453,7 +452,7 @@ HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
     if( !enableListening(true) ) {
         return HCIStatusCode::INTERNAL_FAILURE;
     }
-    updateAdapterSettings(adapterInfo.getCurrentSettingMask(), false, 0);
+    updateAdapterSettings(false /* off_thread */, adapterInfo.getCurrentSettingMask(), false, 0);
     WORDY_PRINT("BTAdapter::initialize: Adapter[%d]: OK: %s", dev_id, toString().c_str());
     return HCIStatusCode::SUCCESS;
 }
@@ -1294,11 +1293,11 @@ bool BTAdapter::mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(&e);
     const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(event.getSettings()); // probably done by mgmt callback already
 
-    updateAdapterSettings(new_settings, true, event.getTimestamp());
+    updateAdapterSettings(true /* off_thread */, new_settings, true, event.getTimestamp());
     return true;
 }
 
-void BTAdapter::updateAdapterSettings(const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept {
+void BTAdapter::updateAdapterSettings(const bool off_thread, const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept {
     const AdapterSetting old_settings_ = old_settings;
 
     const AdapterSetting changes = getAdapterSettingMaskDiff(new_settings, old_settings_);
@@ -1311,10 +1310,10 @@ void BTAdapter::updateAdapterSettings(const AdapterSetting new_settings, const b
 
     old_settings = new_settings;
 
-    COND_PRINT(debug_event, "BTAdapter::updateAdapterSettings: %s -> %s, changes %s: %s, sendEvent %d",
+    COND_PRINT(debug_event, "BTAdapter::updateAdapterSettings: %s -> %s, changes %s: %s, sendEvent %d, offThread %d",
             to_string(old_settings_).c_str(),
             to_string(new_settings).c_str(),
-            to_string(changes).c_str(), toString().c_str(), sendEvent );
+            to_string(changes).c_str(), toString().c_str(), sendEvent, off_thread );
 
     updateDataFromAdapterInfo();
 
@@ -1330,8 +1329,12 @@ void BTAdapter::updateAdapterSettings(const AdapterSetting new_settings, const b
 
     if( justPoweredOff ) {
         // Adapter has been powered off, close connections and cleanup off-thread.
-        std::thread bg(&BTAdapter::poweredOff, this, false); // @suppress("Invalid arguments")
-        bg.detach();
+        if( off_thread ) {
+            std::thread bg(&BTAdapter::poweredOff, this, false); // @suppress("Invalid arguments")
+            bg.detach();
+        } else {
+            poweredOff(false);
+        }
     }
 }
 

@@ -379,7 +379,7 @@ namespace direct_bt {
             void removeSharedDevice(const BTDevice & device) noexcept;
 
             bool mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept;
-            void updateAdapterSettings(const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept;
+            void updateAdapterSettings(const bool off_thread, const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept;
             bool mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept;
