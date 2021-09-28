@@ -1434,69 +1434,72 @@ HCIStatusCode BTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_data);
 
-    if( isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) ) {
+    if( !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) &&
+        !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::KEY_DISTRIBUTION) )
+    {
+        WARN_PRINT("BTDevice:mgmt:SMP: PASSKEY '%u', state %s, wrong state", passkey, to_string(pairing_data.state).c_str());
+    }
 #if USE_LINUX_BT_SECURITY
+    {
         BTManager& mngr = adapter.getManager();
         MgmtStatus res = mngr.userPasskeyReply(adapter.dev_id, addressAndType, passkey);
         DBG_PRINT("BTDevice:mgmt:SMP: PASSKEY '%d', state %s, result %s",
             passkey, to_string(pairing_data.state).c_str(), to_string(res).c_str());
         return HCIStatusCode::SUCCESS;
+    }
 #elif SMP_SUPPORTED_BY_OS
     return HCIStatusCode::NOT_SUPPORTED;
 #else
     return HCIStatusCode::NOT_SUPPORTED;
 #endif
-    } else {
-        ERR_PRINT("BTDevice:mgmt:SMP: PASSKEY '%d', state %s, SKIPPED (wrong state)",
-            passkey, to_string(pairing_data.state).c_str());
-        return HCIStatusCode::UNKNOWN;
-    }
 }
 
 HCIStatusCode BTDevice::setPairingPasskeyNegative() noexcept {
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_data);
 
-    if( isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) ) {
+    if( !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) &&
+        !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::KEY_DISTRIBUTION) )
+    {
+        WARN_PRINT("BTDevice:mgmt:SMP: PASSKEY_NEGATIVE, state %s, wrong state", to_string(pairing_data.state).c_str());
+    }
 #if USE_LINUX_BT_SECURITY
+    {
         BTManager& mngr = adapter.getManager();
         MgmtStatus res = mngr.userPasskeyNegativeReply(adapter.dev_id, addressAndType);
         DBG_PRINT("BTDevice:mgmt:SMP: PASSKEY NEGATIVE, state %s, result %s",
             to_string(pairing_data.state).c_str(), to_string(res).c_str());
         return HCIStatusCode::SUCCESS;
+    }
 #elif SMP_SUPPORTED_BY_OS
     return HCIStatusCode::NOT_SUPPORTED;
 #else
     return HCIStatusCode::NOT_SUPPORTED;
 #endif
-    } else {
-        ERR_PRINT("BTDevice:mgmt:SMP: PASSKEY NEGATIVE, state %s, SKIPPED (wrong state)",
-            to_string(pairing_data.state).c_str());
-        return HCIStatusCode::UNKNOWN;
-    }
 }
 
 HCIStatusCode BTDevice::setPairingNumericComparison(const bool positive) noexcept {
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_data);
 
-    if( isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::NUMERIC_COMPARE_EXPECTED) ) {
+    if( !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::NUMERIC_COMPARE_EXPECTED) &&
+        !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::KEY_DISTRIBUTION) )
+    {
+        WARN_PRINT("BTDevice:mgmt:SMP: CONFIRM '%d', state %s, wrong state", positive, to_string(pairing_data.state).c_str());
+    }
 #if USE_LINUX_BT_SECURITY
+    {
         BTManager& mngr = adapter.getManager();
         MgmtStatus res = mngr.userConfirmReply(adapter.dev_id, addressAndType, positive);
         DBG_PRINT("BTDevice:mgmt:SMP: CONFIRM '%d', state %s, result %s",
             positive, to_string(pairing_data.state).c_str(), to_string(res).c_str());
         return HCIStatusCode::SUCCESS;
+    }
 #elif SMP_SUPPORTED_BY_OS
     return HCIStatusCode::NOT_SUPPORTED;
 #else
     return HCIStatusCode::NOT_SUPPORTED;
 #endif
-    } else {
-        ERR_PRINT("BTDevice:mgmt:SMP: CONFIRM '%d', state %s, SKIPPED (wrong state)",
-            positive, to_string(pairing_data.state).c_str());
-        return HCIStatusCode::UNKNOWN;
-    }
 }
 
 PairingMode BTDevice::getPairingMode() const noexcept {
