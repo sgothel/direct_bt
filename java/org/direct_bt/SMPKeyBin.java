@@ -39,10 +39,12 @@ import org.direct_bt.SMPKeyMask.KeyType;
  * Storage for SMP keys including the required connection parameter.
  *
  * Storage for a device's {@link BDAddressAndType}, its security connection setup {@link BTSecurityLevel} + {@link SMPIOCapability}
- * and optionally the initiator and responder {@link SMPLongTermKeyInfo LTK} and {@link SMPSignatureResolvingKeyInfo CSRK} within one file.
+ * and optionally the initiator and responder {@link SMPLongTermKeyInfo LTK}, {@link SMPSignatureResolvingKeyInfo CSRK}
+ * and {@link SMPLinkKeyInfo LK} within one file.
  * <p>
- * Since the {@link SMPLongTermKeyInfo LTK} and {@link SMPSignatureResolvingKeyInfo CSRK}
- * can be optionally set due to their availability per initiator and responder,
+ * Since the {@link SMPLongTermKeyInfo LTK}, {@link SMPSignatureResolvingKeyInfo CSRK}
+ * and {@link SMPLinkKeyInfo LK}
+ * are optionally set depending on their availability per initiator and responder,
  * implementation supports mixed mode for certain devices.
  * E.g. LTK responder key only etc.
  * </p>
@@ -58,7 +60,7 @@ import org.direct_bt.SMPKeyMask.KeyType;
  * </p>
  */
 public class SMPKeyBin {
-        public static final short VERSION = (short)0b0101010101010101 + (short)2; // bitpattern + version
+        public static final short VERSION = (short)0b0101010101010101 + (short)3; // bitpattern + version
 
         private short version;                          //  2
         private short size;                             //  2
@@ -72,9 +74,11 @@ public class SMPKeyBin {
 
         private SMPLongTermKeyInfo ltk_init;            // 28 (optional)
         private SMPSignatureResolvingKeyInfo csrk_init; // 17 (optional)
+        private SMPLinkKeyInfo               lk_init;   // 18 (optional)
 
         private SMPLongTermKeyInfo ltk_resp;            // 28 (optional)
         private SMPSignatureResolvingKeyInfo csrk_resp; // 17 (optional)
+        private SMPLinkKeyInfo               lk_resp;   // 18 (optional)
 
         private static final int byte_size_max = 113;
         private static final int byte_size_min =  23;
@@ -96,17 +100,23 @@ public class SMPKeyBin {
             s += 1; // sizeof(keys_resp);
 
             if( hasLTKInit() ) {
-                s += 28; // sizeof(ltk_init);
+                s += SMPLongTermKeyInfo.byte_size; // sizeof(ltk_init);
             }
             if( hasCSRKInit() ) {
-                s += 17; // sizeof(csrk_init);
+                s += SMPSignatureResolvingKeyInfo.byte_size; // sizeof(csrk_init);
+            }
+            if( hasLKInit() ) {
+                s += SMPLinkKeyInfo.byte_size; // sizeof(lk_init);
             }
 
             if( hasLTKResp() ) {
-                s += 28; // sizeof(ltk_resp);
+                s += SMPLongTermKeyInfo.byte_size; // sizeof(ltk_resp);
             }
             if( hasCSRKResp() ) {
-                s += 17; // sizeof(csrk_resp);
+                s += SMPSignatureResolvingKeyInfo.byte_size; // sizeof(csrk_resp);
+            }
+            if( hasLKResp() ) {
+                s += SMPLinkKeyInfo.byte_size; // sizeof(lk_resp);
             }
             return s;
         }
@@ -150,6 +160,13 @@ public class SMPKeyBin {
                 }
                 if( keys_resp.isSet(SMPKeyMask.KeyType.SIGN_KEY) ) {
                     smpKeyBin.setCSRKResp( device.getSignatureResolvingKeyInfo(true  /* responder */) );
+                }
+
+                if( keys_init.isSet(SMPKeyMask.KeyType.LINK_KEY) ) {
+                    smpKeyBin.setLKInit( device.getLinkKeyInfo(false /* responder */) );
+                }
+                if( keys_resp.isSet(SMPKeyMask.KeyType.LINK_KEY) ) {
+                    smpKeyBin.setLKResp( device.getLinkKeyInfo(true  /* responder */) );
                 }
             } else {
                 smpKeyBin.size = 0; // explicitly mark invalid
@@ -274,9 +291,11 @@ public class SMPKeyBin {
 
             this.ltk_init = new SMPLongTermKeyInfo();
             this.csrk_init = new SMPSignatureResolvingKeyInfo();
+            this.lk_init = new SMPLinkKeyInfo();
 
             this.ltk_resp = new SMPLongTermKeyInfo();
             this.csrk_resp = new SMPSignatureResolvingKeyInfo();
+            this.lk_resp = new SMPLinkKeyInfo();
 
             this.size = calcSize();
         }
@@ -294,9 +313,11 @@ public class SMPKeyBin {
 
             ltk_init = new SMPLongTermKeyInfo();
             csrk_init = new SMPSignatureResolvingKeyInfo();
+            lk_init = new SMPLinkKeyInfo();
 
             ltk_resp = new SMPLongTermKeyInfo();
             csrk_resp = new SMPSignatureResolvingKeyInfo();
+            lk_resp = new SMPLinkKeyInfo();
 
             size = calcSize();
         }
@@ -316,8 +337,10 @@ public class SMPKeyBin {
 
         final public boolean hasLTKInit() { return keys_init.isSet(KeyType.ENC_KEY); }
         final public boolean hasCSRKInit() { return keys_init.isSet(KeyType.SIGN_KEY); }
+        final public boolean hasLKInit() { return keys_init.isSet(KeyType.LINK_KEY); }
         final public SMPLongTermKeyInfo getLTKInit() { return ltk_init; }
         final public SMPSignatureResolvingKeyInfo getCSRKInit() { return csrk_init; }
+        final public SMPLinkKeyInfo getLKInit() { return lk_init; }
         final public void setLTKInit(final SMPLongTermKeyInfo v) {
             ltk_init = v;
             keys_init.set(KeyType.ENC_KEY);
@@ -328,11 +351,18 @@ public class SMPKeyBin {
             keys_init.set(KeyType.SIGN_KEY);
             size = calcSize();
         }
+        final public void setLKInit(final SMPLinkKeyInfo v) {
+            lk_init = v;
+            keys_init.set(KeyType.LINK_KEY);
+            size = calcSize();
+        }
 
         final public boolean hasLTKResp() { return keys_resp.isSet(KeyType.ENC_KEY); }
         final public boolean hasCSRKResp() { return keys_resp.isSet(KeyType.SIGN_KEY); }
+        final public boolean hasLKResp() { return keys_resp.isSet(KeyType.LINK_KEY); }
         final public SMPLongTermKeyInfo getLTKResp() { return ltk_resp; }
         final public SMPSignatureResolvingKeyInfo getCSRKResp() { return csrk_resp; }
+        final public SMPLinkKeyInfo getLKResp() { return lk_resp; }
         final public void setLTKResp(final SMPLongTermKeyInfo v) {
             ltk_resp = v;
             keys_resp.set(KeyType.ENC_KEY);
@@ -343,6 +373,11 @@ public class SMPKeyBin {
             keys_resp.set(KeyType.SIGN_KEY);
             size = calcSize();
         }
+        final public void setLKResp(final SMPLinkKeyInfo v) {
+            lk_resp = v;
+            keys_resp.set(KeyType.LINK_KEY);
+            size = calcSize();
+        }
 
         final public void setVerbose(final boolean v) { verbose = v; }
 
@@ -351,7 +386,9 @@ public class SMPKeyBin {
                    BTSecurityLevel.UNSET != sec_level &&
                    SMPIOCapability.UNSET != io_cap &&
                    ( !hasLTKInit() || ltk_init.isValid() ) &&
-                   ( !hasLTKResp() || ltk_resp.isValid() );
+                   ( !hasLTKResp() || ltk_resp.isValid() ) &&
+                   ( !hasLKInit()  || lk_init.isValid() )  &&
+                   ( !hasLKResp()  || lk_resp.isValid() );
         }
 
         /**
@@ -377,25 +414,45 @@ public class SMPKeyBin {
             final StringBuilder res = new StringBuilder();
             res.append("SMPKeyBin[").append(addrAndType.toString()).append(", sec ").append(sec_level).append(", io ").append(io_cap).append(", ");
             if( isVersionValid() ) {
+                boolean comma = false;
                 res.append("Init[");
                 if( hasLTKInit() && null != ltk_init ) {
                     res.append(ltk_init.toString());
+                    comma = true;
                 }
                 if( hasCSRKInit() && null != csrk_init ) {
-                    if( hasLTKInit() ) {
+                    if( comma ) {
                         res.append(", ");
                     }
                     res.append(csrk_init.toString());
+                    comma = true;
                 }
+                if( hasLKInit() && null != lk_init ) {
+                    if( comma ) {
+                        res.append(", ");
+                    }
+                    res.append(lk_init.toString());
+                    comma = true;
+                }
+                comma = false;
                 res.append("], Resp[");
                 if( hasLTKResp() && null != ltk_resp ) {
                     res.append(ltk_resp.toString());
+                    comma = true;
                 }
                 if( hasCSRKResp() && null != csrk_resp ) {
-                    if( hasLTKResp() ) {
+                    if( comma ) {
                         res.append(", ");
                     }
                     res.append(csrk_resp.toString());
+                    comma = true;
+                }
+                if( hasLKResp() && null != lk_resp ) {
+                    if( comma ) {
+                        res.append(", ");
+                    }
+                    res.append(lk_resp.toString());
+                    comma = true;
                 }
                 res.append("], ");
             }
@@ -474,6 +531,10 @@ public class SMPKeyBin {
                     csrk_init.getStream(buffer, 0);
                     out.write(buffer, 0, SMPSignatureResolvingKeyInfo.byte_size);
                 }
+                if( hasLKInit() ) {
+                    lk_init.getStream(buffer, 0);
+                    out.write(buffer, 0, SMPLinkKeyInfo.byte_size);
+                }
 
                 if( hasLTKResp() ) {
                     ltk_resp.getStream(buffer, 0);
@@ -483,6 +544,11 @@ public class SMPKeyBin {
                     csrk_resp.getStream(buffer, 0);
                     out.write(buffer, 0, SMPSignatureResolvingKeyInfo.byte_size);
                 }
+                if( hasLKResp() ) {
+                    lk_resp.getStream(buffer, 0);
+                    out.write(buffer, 0, SMPLinkKeyInfo.byte_size);
+                }
+
                 if( verbose ) {
                     BTUtils.println(System.err, "Write SMPKeyBin: "+fname+": "+toString());
                 }
@@ -563,6 +629,15 @@ public class SMPKeyBin {
                         err = true;
                     }
                 }
+                if( !err && hasLKInit() ) {
+                    if( SMPLinkKeyInfo.byte_size <= remaining ) {
+                        read(in, buffer, SMPLinkKeyInfo.byte_size, fname);
+                        lk_init.putStream(buffer, 0);
+                        remaining -= SMPLinkKeyInfo.byte_size;
+                    } else {
+                        err = true;
+                    }
+                }
 
                 if( !err && hasLTKResp() ) {
                     if( SMPLongTermKeyInfo.byte_size <= remaining ) {
@@ -582,6 +657,16 @@ public class SMPKeyBin {
                         err = true;
                     }
                 }
+                if( !err && hasLKResp() ) {
+                    if( SMPLinkKeyInfo.byte_size <= remaining ) {
+                        read(in, buffer, SMPLinkKeyInfo.byte_size, fname);
+                        lk_resp.putStream(buffer, 0);
+                        remaining -= SMPLinkKeyInfo.byte_size;
+                    } else {
+                        err = true;
+                    }
+                }
+
                 if( !err ) {
                     err = !isValid();
                 }
@@ -651,14 +736,15 @@ public class SMPKeyBin {
          *
          * Method may fail for any of the following reasons:
          *
-         *  Reason                                                   | HCIStatusCode                             |
-         *  :------------------------------------------------------  | :---------------------------------------- |
-         *  ! isValid()                                              | HCIStatusCode::INVALID_PARAMS             |
-         *  ! hasLTKInit() && ! hasLTKResp()                         | HCIStatusCode::INVALID_PARAMS             |
-         *  BTDevice::isValid() == false                             | HCIStatusCode::INVALID_PARAMS             |
-         *  BTDevice has already being connected                     | HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
-         *  BTDevice::connectLE() or BTDevice::connectBREDR() called | HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
-         *  BTDevice::setLongTermKeyInfo() failed                    | HCIStatusCode from BT adapter             |
+         *  Reason                                                     | HCIStatusCode                             |
+         *  :--------------------------------------------------------  | :---------------------------------------- |
+         *  ! isValid()                                                | HCIStatusCode::INVALID_PARAMS             |
+         *  ! hasLTKInit() && ! hasLTKResp()                           | HCIStatusCode::INVALID_PARAMS             |
+         *  } BTDevice::isValid() == false                             | HCIStatusCode::INVALID_PARAMS             |
+         *  | BTDevice has already being connected                     | HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
+         *  | BTDevice::connectLE() or BTDevice::connectBREDR() called | HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
+         *  | BTDevice::setLongTermKeyInfo() failed                    | HCIStatusCode from BT adapter             |
+         *  | BTDevice::setLinkKeyInfo() failed                        | ::HCIStatusCode from BT adapter           |
          *
          * On failure and after BTDevice::setConnSecurity() has been performed, the ::BTSecurityLevel
          * and ::SMPIOCapability pre-connect values have been written and must be set by the caller again.
@@ -670,11 +756,16 @@ public class SMPKeyBin {
          * @see hasLTKResp()
          * @see getLTKInit()
          * @see getLTKResp()
+         * @see hasLKInit()
+         * @see hasLKResp()
+         * @see getLKInit()
+         * @see getLKResp()
          * @see BTSecurityLevel
          * @see SMPIOCapability
          * @see BTDevice::isValid()
          * @see BTDevice::setConnSecurity()
          * @see BTDevice::setLongTermKeyInfo()
+         * @see BTDevice::setLinkKeyInfo()
          */
         final public HCIStatusCode apply(final BTDevice device) {
             HCIStatusCode res = HCIStatusCode.SUCCESS;
@@ -713,11 +804,23 @@ public class SMPKeyBin {
                     BTUtils.println(System.err, "Apply SMPKeyBin failed: Init-LTK Upload: "+res+", "+toString()+", "+device);
                 }
             }
-
             if( HCIStatusCode.SUCCESS == res && hasLTKResp() ) {
                 res = device.setLongTermKeyInfo( getLTKResp() );
                 if( HCIStatusCode.SUCCESS != res && verbose ) {
                     BTUtils.println(System.err, "Apply SMPKeyBin failed: Resp-LTK Upload: "+res+", "+toString()+", "+device);
+                }
+            }
+
+            if( HCIStatusCode.SUCCESS == res && hasLKInit() ) {
+                res = device.setLinkKeyInfo( getLKInit() );
+                if( HCIStatusCode.SUCCESS != res && verbose ) {
+                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Init-LK Upload: "+res+", "+toString()+", "+device);
+                }
+            }
+            if( HCIStatusCode.SUCCESS == res && hasLKResp() ) {
+                res = device.setLinkKeyInfo( getLKResp() );
+                if( HCIStatusCode.SUCCESS != res && verbose ) {
+                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Resp-LK Upload: "+res+", "+toString()+", "+device);
                 }
             }
 

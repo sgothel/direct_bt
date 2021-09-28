@@ -56,7 +56,10 @@ std::shared_ptr<BTDevice> BTAdapter::findDevice(device_list_t & devices, const E
     const jau::nsize_t size = devices.size();
     for (jau::nsize_t i = 0; i < size; ++i) {
         std::shared_ptr<BTDevice> & e = devices[i];
-        if ( nullptr != e && address == e->getAddressAndType().address && addressType == e->getAddressAndType().type) {
+        if ( nullptr != e && address == e->getAddressAndType().address &&
+             ( addressType == e->getAddressAndType().type || addressType == BDAddressType::BDADDR_UNDEFINED )
+           )
+        {
             return e;
         }
     }
@@ -215,6 +218,7 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceUnpairedMgmt));
         ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvPairDeviceCompleteMgmt));
         ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewLongTermKeyMgmt));
+        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LINK_KEY, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewLinkKeyMgmt));
 
         if( !ok ) {
             ERR_PRINT("BTAdapter::enableListening: Could not add all required MgmtEventCallbacks to DBTManager: %s", toString().c_str());
@@ -1634,6 +1638,26 @@ bool BTAdapter::mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept {
         }
     } else {
         WORDY_PRINT("BTAdapter::mgmt:NewLongTermKey(dev_id %d): Device not tracked: %s",
+            dev_id, event.toString().c_str());
+    }
+    return true;
+}
+
+bool BTAdapter::mgmtEvNewLinkKeyMgmt(const MgmtEvent& e) noexcept {
+    const MgmtEvtNewLinkKey& event = *static_cast<const MgmtEvtNewLinkKey *>(&e);
+    const MgmtLinkKeyInfo& lk_info = event.getLinkKey();
+    // lk_info.address_type might be wrongly reported by mgmt, i.e. BDADDR_BREDR, use any.
+    std::shared_ptr<BTDevice> device = findConnectedDevice(lk_info.address, BDAddressType::BDADDR_UNDEFINED);
+    if( nullptr != device ) {
+        const bool ok = lk_info.key_type != MgmtLinkKeyType::NONE;
+        if( ok ) {
+            device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::COMPLETED);
+        } else {
+            WORDY_PRINT("BTAdapter::mgmt:NewLinkKey(dev_id %d): Invalid LK: %s",
+                dev_id, event.toString().c_str());
+        }
+    } else {
+        WORDY_PRINT("BTAdapter::mgmt:NewLinkKey(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
     return true;

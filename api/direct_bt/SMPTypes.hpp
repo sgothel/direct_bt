@@ -626,6 +626,66 @@ namespace direct_bt {
     inline std::string to_String(const SMPSignatureResolvingKeyInfo& csrk) noexcept { return csrk.toString(); }
 
     /**
+     * Local SMP Link Key Info, used for platform agnostic persistence,
+     * mapping to platform specific MgmtLoadLinkKeyCmd and MgmtEvtNewLinkKey.
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
+     */
+    __pack( struct SMPLinkKeyInfo {
+        /**
+         * Link Key Types compatible with Mgmt's MgmtLinkKeyType and hence MgmtLinkKeyInfo
+         */
+        enum class KeyType : uint8_t {
+            /** Combination key */
+            COMBI             = 0x00,
+            /** Local Unit key */
+            LOCAL_UNIT        = 0x01,
+            /** Remote Unit key */
+            REMOTE_UNIT       = 0x02,
+            /** Debug Combination key */
+            DBG_COMBI         = 0x03,
+            /** Unauthenticated Combination key from P-192 */
+            UNAUTH_COMBI_P192 = 0x04,
+            /** Authenticated Combination key from P-192 */
+            AUTH_COMBI_P192   = 0x05,
+            /** Changed Combination key */
+            CHANGED_COMBI     = 0x06,
+            /** Unauthenticated Combination key from P-256 */
+            UNAUTH_COMBI_P256 = 0x07,
+            /** Authenticated Combination key from P-256 */
+            AUTH_COMBI_P256   = 0x08,
+            /** Denoting no or invalid link key type */
+            NONE              = 0xff
+        };
+        static constexpr uint8_t number(const KeyType rhs) noexcept {
+            return static_cast<uint8_t>(rhs);
+        }
+        static std::string getTypeString(const KeyType type) noexcept;
+
+        bool responder;
+        KeyType type;
+        jau::uint128_t key;
+        uint8_t pin_length;
+
+        constexpr bool isValid() const noexcept { return KeyType::NONE != type; }
+
+        bool isResponder() const noexcept { return responder; }
+
+        void clear() noexcept {
+            bzero(reinterpret_cast<void *>(this), sizeof(SMPLinkKeyInfo));
+        }
+
+        std::string toString() const noexcept { // hex-fmt aligned with btmon
+            return "LK[resp "+std::to_string(responder)+", type "+getTypeString(type)+
+                   ", key "+jau::bytesHexString(key.data, 0, sizeof(key), true /* lsbFirst */)+
+                   ", plen "+std::to_string(pin_length)+
+                   "]";
+        }
+    } );
+
+    /**
      * Handles the Security Manager Protocol (SMP) using Protocol Data Unit (PDU)
      * encoded messages over L2CAP channel.
      * <p>

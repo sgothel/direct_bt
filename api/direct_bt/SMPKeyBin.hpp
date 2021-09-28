@@ -41,10 +41,12 @@ namespace direct_bt {
  * Storage for SMP keys including the required connection parameter.
  *
  * Storage for a device's BDAddressAndType, its security connection setup ::BTSecurityLevel + ::SMPIOCapability
- * and optionally the initiator and responder SMPLongTermKeyInfo (LTK) and SMPSignatureResolvingKeyInfo (CSRK) within one file.
+ * and optionally the initiator and responder SMPLongTermKeyInfo (LTK), SMPSignatureResolvingKeyInfo (CSRK)
+ * and SMPLinkKeyInfo (LK) within one file.
  * <p>
- * Since the SMPLongTermKeyInfo (LTK) and SMPSignatureResolvingKeyInfo (CSRK)
- * can be optionally set due to their availability per initiator and responder,
+ * Since the SMPLongTermKeyInfo (LTK), SMPSignatureResolvingKeyInfo (CSRK)
+ * and SMPLinkKeyInfo (LK)
+ * are optionally set depending on their availability per initiator and responder,
  * implementation supports mixed mode for certain devices.
  * E.g. LTK responder key only etc.
  * </p>
@@ -61,7 +63,7 @@ namespace direct_bt {
  */
 class SMPKeyBin {
     public:
-        constexpr static const uint16_t VERSION = (uint16_t)0b0101010101010101U + (uint16_t)2U; // bitpattern + version
+        constexpr static const uint16_t VERSION = (uint16_t)0b0101010101010101U + (uint16_t)3U; // bitpattern + version
 
     private:
         uint16_t version;                       //  2
@@ -74,11 +76,13 @@ class SMPKeyBin {
         SMPKeyType keys_init;                   //  1
         SMPKeyType keys_resp;                   //  1
 
-        SMPLongTermKeyInfo ltk_init;            // 28 (optional)
+        SMPLongTermKeyInfo           ltk_init;  // 28 (optional)
         SMPSignatureResolvingKeyInfo csrk_init; // 17 (optional)
+        SMPLinkKeyInfo               lk_init;   // 19 (optional)
 
-        SMPLongTermKeyInfo ltk_resp;            // 28 (optional)
+        SMPLongTermKeyInfo           ltk_resp;  // 28 (optional)
         SMPSignatureResolvingKeyInfo csrk_resp; // 17 (optional)
+        SMPLinkKeyInfo               lk_resp;   // 19 (optional)
 
         // Min-Max: 23 - 113 bytes
 
@@ -103,12 +107,18 @@ class SMPKeyBin {
             if( hasCSRKInit() ) {
                 s += sizeof(csrk_init);
             }
+            if( hasLKInit() ) {
+                s += sizeof(lk_init);
+            }
 
             if( hasLTKResp() ) {
                 s += sizeof(ltk_resp);
             }
             if( hasCSRKResp() ) {
                 s += sizeof(csrk_resp);
+            }
+            if( hasLKResp() ) {
+                s += sizeof(lk_resp);
             }
             return s;
         }
@@ -202,7 +212,8 @@ class SMPKeyBin {
           ts_creation_sec( jau::getWallClockSeconds() ),
           addrAndType(addrAndType_), sec_level(sec_level_), io_cap(io_cap_),
           keys_init(SMPKeyType::NONE), keys_resp(SMPKeyType::NONE),
-          ltk_init(), csrk_init(), ltk_resp(), csrk_resp(),
+          ltk_init(), csrk_init(), lk_init(),
+          ltk_resp(), csrk_resp(), lk_resp(),
           verbose(false)
         { size = calcSize(); }
 
@@ -211,7 +222,8 @@ class SMPKeyBin {
           ts_creation_sec(0),
           addrAndType(), sec_level(BTSecurityLevel::UNSET), io_cap(SMPIOCapability::UNSET),
           keys_init(SMPKeyType::NONE), keys_resp(SMPKeyType::NONE),
-          ltk_init(), csrk_init(), ltk_resp(), csrk_resp(),
+          ltk_init(), csrk_init(), lk_init(),
+          ltk_resp(), csrk_resp(), lk_resp(),
           verbose(false)
         { size = calcSize(); }
 
@@ -230,8 +242,10 @@ class SMPKeyBin {
 
         constexpr bool hasLTKInit() const noexcept { return ( SMPKeyType::ENC_KEY & keys_init ) != SMPKeyType::NONE; }
         constexpr bool hasCSRKInit() const noexcept { return ( SMPKeyType::SIGN_KEY & keys_init ) != SMPKeyType::NONE; }
+        constexpr bool hasLKInit() const noexcept { return ( SMPKeyType::LINK_KEY & keys_init ) != SMPKeyType::NONE; }
         constexpr const SMPLongTermKeyInfo& getLTKInit() const noexcept { return ltk_init; }
         constexpr const SMPSignatureResolvingKeyInfo& getCSRKInit() const noexcept { return csrk_init; }
+        constexpr const SMPLinkKeyInfo& getLKInit() const noexcept { return lk_init; }
         void setLTKInit(const SMPLongTermKeyInfo& v) noexcept {
             ltk_init = v;
             keys_init |= SMPKeyType::ENC_KEY;
@@ -242,11 +256,18 @@ class SMPKeyBin {
             keys_init |= SMPKeyType::SIGN_KEY;
             size = calcSize();
         }
+        void setLKInit(const SMPLinkKeyInfo& v) noexcept {
+            lk_init = v;
+            keys_init |= SMPKeyType::LINK_KEY;
+            size = calcSize();
+        }
 
         constexpr bool hasLTKResp() const noexcept { return ( SMPKeyType::ENC_KEY & keys_resp ) != SMPKeyType::NONE; }
         constexpr bool hasCSRKResp() const noexcept { return ( SMPKeyType::SIGN_KEY & keys_resp ) != SMPKeyType::NONE; }
+        constexpr bool hasLKResp() const noexcept { return ( SMPKeyType::LINK_KEY & keys_resp ) != SMPKeyType::NONE; }
         constexpr const SMPLongTermKeyInfo& getLTKResp() const noexcept { return ltk_resp; }
         constexpr const SMPSignatureResolvingKeyInfo& getCSRKResp() const noexcept { return csrk_resp; }
+        constexpr const SMPLinkKeyInfo& getLKResp() const noexcept { return lk_resp; }
         void setLTKResp(const SMPLongTermKeyInfo& v) noexcept {
             ltk_resp = v;
             keys_resp |= SMPKeyType::ENC_KEY;
@@ -255,6 +276,11 @@ class SMPKeyBin {
         void setCSRKResp(const SMPSignatureResolvingKeyInfo& v) noexcept {
             csrk_resp = v;
             keys_resp |= SMPKeyType::SIGN_KEY;
+            size = calcSize();
+        }
+        void setLKResp(const SMPLinkKeyInfo& v) noexcept {
+            lk_resp = v;
+            keys_resp |= SMPKeyType::LINK_KEY;
             size = calcSize();
         }
 
@@ -274,7 +300,9 @@ class SMPKeyBin {
                    BTSecurityLevel::UNSET != sec_level &&
                    SMPIOCapability::UNSET != io_cap &&
                    ( !hasLTKInit() || ltk_init.isValid() ) &&
-                   ( !hasLTKResp() || ltk_resp.isValid() );
+                   ( !hasLTKResp() || ltk_resp.isValid() ) &&
+                   ( !hasLKInit()  || lk_init.isValid() )  &&
+                   ( !hasLKResp()  || lk_resp.isValid() );
         }
 
         std::string toString() const noexcept;
@@ -320,14 +348,15 @@ class SMPKeyBin {
          *
          * Method may fail for any of the following reasons:
          *
-         *  Reason                                                   | ::HCIStatusCode                             |
-         *  :------------------------------------------------------  | :------------------------------------------ |
-         *  ! isValid()                                              | ::HCIStatusCode::INVALID_PARAMS             |
-         *  ! hasLTKInit() && ! hasLTKResp()                         | ::HCIStatusCode::INVALID_PARAMS             |
-         *  BTDevice::isValid() == false                             | ::HCIStatusCode::INVALID_PARAMS             |
-         *  BTDevice has already being connected                     | ::HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
-         *  BTDevice::connectLE() or BTDevice::connectBREDR() called | ::HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
-         *  BTDevice::setLongTermKeyInfo() failed                    | ::HCIStatusCode from BT adapter             |
+         *  Reason                                                     | ::HCIStatusCode                             |
+         *  :--------------------------------------------------------  | :------------------------------------------ |
+         *  ! isValid()                                                | ::HCIStatusCode::INVALID_PARAMS             |
+         *  | hasLTKInit() && ! hasLTKResp()                           | ::HCIStatusCode::INVALID_PARAMS             |
+         *  | BTDevice::isValid() == false                             | ::HCIStatusCode::INVALID_PARAMS             |
+         *  | BTDevice has already being connected                     | ::HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
+         *  | BTDevice::connectLE() or BTDevice::connectBREDR() called | ::HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
+         *  | BTDevice::setLongTermKeyInfo() failed                    | ::HCIStatusCode from BT adapter             |
+         *  | BTDevice::setLinkKeyInfo() failed                        | ::HCIStatusCode from BT adapter             |
          *
          * On failure and after BTDevice::setConnSecurity() has been performed, the ::BTSecurityLevel
          * and ::SMPIOCapability pre-connect values have been written and must be set by the caller again.
@@ -339,11 +368,16 @@ class SMPKeyBin {
          * @see hasLTKResp()
          * @see getLTKInit()
          * @see getLTKResp()
+         * @see hasLKInit()
+         * @see hasLKResp()
+         * @see getLKInit()
+         * @see getLKResp()
          * @see ::BTSecurityLevel
          * @see ::SMPIOCapability
          * @see BTDevice::isValid()
          * @see BTDevice::setConnSecurity()
          * @see BTDevice::setLongTermKeyInfo()
+         * @see BTDevice::setLinkKeyInfo()
          */
         HCIStatusCode apply(BTDevice & device) const noexcept;
 };

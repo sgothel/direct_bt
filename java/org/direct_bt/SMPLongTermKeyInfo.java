@@ -140,9 +140,6 @@ public class SMPLongTermKeyInfo {
 
     /** Construct instance via given source byte array */
     public SMPLongTermKeyInfo(final byte source[], final int pos) {
-        if( byte_size > ( source.length - pos ) ) {
-            throw new IllegalArgumentException("Stream ( "+source.length+" - "+pos+" ) < "+byte_size+" bytes");
-        }
         ediv       = new byte[2];
         rand       = new byte[8];
         ltk        = new byte[16];

@@ -354,6 +354,28 @@ bool SMPSignatureResolvingKeyInfo::isResponder() const noexcept {
     return ( SMPSignatureResolvingKeyInfo::Property::RESPONDER & properties ) != SMPSignatureResolvingKeyInfo::Property::NONE;
 }
 
+#define SMP_LINKKEYTYPE_ENUM(X) \
+    X(COMBI) \
+    X(LOCAL_UNIT) \
+    X(REMOTE_UNIT) \
+    X(DBG_COMBI) \
+    X(UNAUTH_COMBI_P192) \
+    X(AUTH_COMBI_P192) \
+    X(CHANGED_COMBI) \
+    X(UNAUTH_COMBI_P256) \
+    X(AUTH_COMBI_P256) \
+    X(NONE)
+
+#define SMP_LINKKEYTYPE_TO_STRING(V) case SMPLinkKeyInfo::KeyType::V: return #V;
+
+std::string SMPLinkKeyInfo::getTypeString(const KeyType type) noexcept {
+    switch(type) {
+        SMP_LINKKEYTYPE_ENUM(SMP_LINKKEYTYPE_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown SMPLinkKeyType";
+}
+
 #define OPCODE_ENUM(X) \
         X(UNDEFINED) \
         X(PAIRING_REQUEST) \

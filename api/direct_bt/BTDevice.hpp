@@ -131,6 +131,9 @@ namespace direct_bt {
 
                 // CSRK
                 SMPSignatureResolvingKeyInfo csrk_init, csrk_resp;
+
+                // Link Key
+                SMPLinkKeyInfo lk_init, lk_resp;
             };
             PairingData pairing_data;
             mutable std::mutex mtx_pairing;
@@ -191,6 +194,7 @@ namespace direct_bt {
             bool connectSMP(std::shared_ptr<BTDevice> sthis, const BTSecurityLevel sec_level) noexcept;
 
             bool checkPairingKeyDistributionComplete(const std::string& timestamp) const noexcept;
+            void printKeyDistributionStatus(const std::string& timestamp, const std::string& prefix) const noexcept;
 
             bool updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
 
@@ -600,7 +604,7 @@ namespace direct_bt {
             SMPLongTermKeyInfo getLongTermKeyInfo(const bool responder) const noexcept;
 
             /**
-             * Sets the long term ket (LTK) info of this device to reuse pre-paired encryption.
+             * Sets the Long Term Key (LTK) info of this device to reuse pre-paired encryption.
              * <p>
              * Must be called before connecting to this device, otherwise HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned.
              * </p>
@@ -617,6 +621,27 @@ namespace direct_bt {
              * @see AdapterStatusListener::deviceReady()
              */
             SMPSignatureResolvingKeyInfo getSignatureResolvingKeyInfo(const bool responder) const noexcept;
+
+            /**
+             * Returns a copy of the Link Key (LK) info, valid after connection and SMP pairing has been completed.
+             * @param responder true will return the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
+             * @return the resulting key
+             * @see ::SMPPairingState::COMPLETED
+             * @see AdapterStatusListener::deviceReady()
+             * @since 2.4.0
+             */
+            SMPLinkKeyInfo getLinkKeyInfo(const bool responder) const noexcept;
+
+            /**
+             * Sets the Link Key (LK) info of this device to reuse pre-paired encryption.
+             * <p>
+             * Must be called before connecting to this device, otherwise HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned.
+             * </p>
+             * @param lk the pre-paired encryption LK
+             * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+             * @since 2.4.0
+             */
+            HCIStatusCode setLinkKeyInfo(const SMPLinkKeyInfo& lk) noexcept;
 
             /**
              * Unpairs this device from the adapter while staying connected.

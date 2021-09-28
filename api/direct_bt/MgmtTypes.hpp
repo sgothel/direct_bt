@@ -170,29 +170,6 @@ namespace direct_bt {
     std::string to_string(const MgmtCSRKType type) noexcept;
 
     /**
-     * Used for MgmtLoadLinkKeyCmd and MgmtEvtNewLinkKey
-     * <p>
-     * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
-     * </p>
-     */
-    __pack( struct MgmtLinkKeyInfo {
-        EUI48 address;
-        BDAddressType address_type;
-        MgmtLinkKeyType key_type;
-        jau::uint128_t key;
-        uint8_t pin_length;
-
-        std::string toString() const noexcept {
-            return "LK[address["+address.toString()+", "+to_string(address_type)+
-                   "], type "+to_string(key_type)+
-                   ", key "+jau::bytesHexString(key.data, 0, sizeof(key), true /* lsbFirst */)+
-                   ", pinLen "+jau::to_hexstring(pin_length)+
-                   "]";
-        }
-    } );
-
-    /**
      * Used for MgmtLoadLongTermKeyCmd and MgmtEvtNewLongTermKey
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
@@ -298,6 +275,42 @@ namespace direct_bt {
                    "], type "+to_string(key_type)+
                    ", csrk "+jau::bytesHexString(csrk.data, 0, sizeof(csrk), true /* lsbFirst */)+
                    "]";
+        }
+    } );
+
+    /**
+     * Used for MgmtLoadLinkKeyCmd and MgmtEvtNewLinkKey
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
+     */
+    __pack( struct MgmtLinkKeyInfo {
+        EUI48 address;
+        BDAddressType address_type;
+        MgmtLinkKeyType key_type;
+        jau::uint128_t key;
+        uint8_t pin_length;
+
+        std::string toString() const noexcept {
+            return "LK[address["+address.toString()+", "+to_string(address_type)+
+                   "], type "+to_string(key_type)+
+                   ", key "+jau::bytesHexString(key.data, 0, sizeof(key), true /* lsbFirst */)+
+                   ", pinLen "+jau::to_hexstring(pin_length)+
+                   "]";
+        }
+
+        /**
+         * Convert this instance into its platform agnostic SMPLinkKeyInfo type.
+         */
+        SMPLinkKeyInfo toSMPLinkKeyInfo(const bool isResponder) const noexcept {
+            direct_bt::SMPLinkKeyInfo res;
+            res.clear();
+            res.responder = isResponder;
+            res.type = static_cast<SMPLinkKeyInfo::KeyType>(key_type);
+            res.key = key;
+            res.pin_length = pin_length;
+            return res;
         }
     } );
 

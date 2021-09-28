@@ -25,33 +25,49 @@
 
 package org.direct_bt;
 
+
 /**
- * SMP Signature Resolving Key Info, used for platform agnostic persistence.
+ * Local SMP Link Key Info, used for platform agnostic persistence,
+ * mapping to platform specific link keys format.
  * <p>
  * Notable: No endian wise conversion shall occur on this data,
  *          since the encryption values are interpreted as a byte stream.
  * </p>
  * <p>
- * Byte layout must be synchronized with native direct_bt::SMPSignatureResolvingKeyInfo
+ * Byte layout must be synchronized with native direct_bt::SMPLinkKeyInfo
  * </p>
- * @since 2.2.0
+ * @since 2.4.0
  */
-public class SMPSignatureResolvingKeyInfo {
+public class SMPLinkKeyInfo {
     /**
-     * {@link SMPSignatureResolvingKeyInfo} Property Bits
+     * Link Key Types compatible with Mgmt's MgmtLinkKeyType and hence MgmtLinkKeyInfo
      */
-    static public enum PropertyType {
-        /** No specific property */
-        NONE((byte)0),
-        /** Responder Key (LL slave). Absence indicates Initiator Key (LL master). */
-        RESPONDER((byte)0x01),
-        /** Authentication used. */
-        AUTH((byte)0x02);
+    static public enum KeyType {
+        /** Combination key */
+        COMBI((byte)0x00),
+        /** Local Unit key */
+        LOCAL_UNIT((byte)0x01),
+        /** Remote Unit key */
+        REMOTE_UNIT((byte)0x02),
+        /** Debug Combination key */
+        DBG_COMBI((byte)0x03),
+        /** Unauthenticated Combination key from P-192 */
+        UNAUTH_COMBI_P192((byte)0x04),
+        /** Authenticated Combination key from P-192 */
+        AUTH_COMBI_P192((byte)0x05),
+        /** Changed Combination key */
+        CHANGED_COMBI((byte)0x06),
+        /** Unauthenticated Combination key from P-256 */
+        UNAUTH_COMBI_P256((byte)0x07),
+        /** Authenticated Combination key from P-256 */
+        AUTH_COMBI_P256((byte)0x08),
+        /** Denoting no or invalid link key type */
+        NONE((byte)0xff);
 
         public final byte value;
 
         /**
-         * Maps the specified name to a constant of {@link PropertyType}.
+         * Maps the specified name to a constant of {@link KeyType}.
          * <p>
          * Implementation simply returns {@link #valueOf(String)}.
          * This maps the constant names itself to their respective constant.
@@ -61,84 +77,69 @@ public class SMPSignatureResolvingKeyInfo {
          * @throws IllegalArgumentException if the specified name can't be mapped to a constant of this enum type
          *                                  as described above.
          */
-        public static PropertyType get(final String name) throws IllegalArgumentException {
+        public static KeyType get(final String name) throws IllegalArgumentException {
             return valueOf(name);
         }
 
         /**
-         * Maps the specified integer value to a constant of {@link PropertyType}.
+         * Maps the specified integer value to a constant of {@link KeyType}.
          * @param value the integer value to be mapped to a constant of this enum type.
          * @return the corresponding constant of this enum type, using {@link #NONE} if not supported.
          */
-        public static PropertyType get(final byte value) {
+        public static KeyType get(final byte value) {
             switch(value) {
-                case (byte) 0x01: return RESPONDER;
-                case (byte) 0x02: return AUTH;
+                case (byte) 0x00: return COMBI;
+                case (byte) 0x01: return LOCAL_UNIT;
+                case (byte) 0x02: return REMOTE_UNIT;
+                case (byte) 0x03: return DBG_COMBI;
+                case (byte) 0x04: return UNAUTH_COMBI_P192;
+                case (byte) 0x05: return AUTH_COMBI_P192;
+                case (byte) 0x06: return CHANGED_COMBI;
+                case (byte) 0x07: return UNAUTH_COMBI_P256;
+                case (byte) 0x08: return AUTH_COMBI_P256;
                 default: return NONE;
             }
         }
 
-        PropertyType(final byte v) {
+        KeyType(final byte v) {
             value = v;
         }
     }
 
-    /**
-     * {@link SMPSignatureResolvingKeyInfo} {@link PropertyType} Bit Mask
-     */
-    static public class Properties {
-        /** The {@link PropertyType} bit mask */
-        public byte mask;
+    /** Responder (ll slave) flag. */
+    public boolean responder;
 
-        public Properties(final byte v) {
-            mask = v;
-        }
+    /** {@link KeyType} value. */
+    public KeyType type;
 
-        public boolean isEmpty() { return 0 == mask; }
-        public boolean isSet(final PropertyType bit) { return 0 != ( mask & bit.value ); }
-        public void set(final PropertyType bit) { mask = (byte) ( mask | bit.value ); }
+    /** Link key. */
+    public byte key[/*16*/];
 
-        @Override
-        public String toString() {
-            int count = 0;
-            final StringBuilder out = new StringBuilder();
-            if( isSet(PropertyType.RESPONDER) ) {
-                out.append(PropertyType.RESPONDER.name()); count++;
-            }
-            if( isSet(PropertyType.AUTH) ) {
-                if( 0 < count ) { out.append(", "); }
-                out.append(PropertyType.AUTH.name()); count++;
-            }
-            return "["+out.toString()+"]";
-        }
-    }
-
-    /** {@link Properties} bit mask. 1 octet or 8 bits. */
-    public Properties properties;
-
-    /** Connection Signature Resolving Key (CSRK) */
-    public byte csrk[/*16*/];
+    /** Pin length */
+    public byte pin_length;
 
     /**
      * Size of the byte stream representation in bytes
      * @see #getStream(byte[], int)
      */
-    public static final int byte_size = 1+16;
+    public static final int byte_size = 1+1+16+1;
 
     /** Construct instance via given source byte array */
-    public SMPSignatureResolvingKeyInfo(final byte source[], final int pos) {
-        csrk = new byte[16];
+    public SMPLinkKeyInfo(final byte source[], final int pos) {
+        key = new byte[16];
         putStream(source, pos);
     }
 
     /** Construct emoty unset instance. */
-    public SMPSignatureResolvingKeyInfo() {
-        properties = new Properties((byte)0);
-        csrk        = new byte[16];
+    public SMPLinkKeyInfo() {
+        responder = false;
+        type = KeyType.NONE;
+        key = new byte[16];
+        pin_length = 0;
     }
 
     /**
-     * Method transfers all bytes representing a SMPSignatureResolvingKeyInfo from the given
+     * Method transfers all bytes representing a SMPLinkKeyInfo from the given
      * source array at the given position into this instance.
      * <p>
      * Implementation is consistent with {@link #getStream(byte[], int)}.
@@ -151,35 +152,42 @@ public class SMPSignatureResolvingKeyInfo {
         if( byte_size > ( source.length - pos ) ) {
             throw new IllegalArgumentException("Stream ( "+source.length+" - "+pos+" ) < "+byte_size+" bytes");
         }
-        properties = new Properties(source[pos++]);
-        System.arraycopy(source, pos, csrk, 0, 16); pos+=16;
+        responder = (byte)0 != source[pos++];
+        type = KeyType.get(source[pos++]);
+        System.arraycopy(source, pos, key, 0, 16); pos+=16;
+        pin_length = source[pos++];
     }
 
     /**
      * Method transfers all bytes representing this instance into the given
      * destination array at the given position.
      * <p>
-     * Implementation is consistent with {@link #SMPSignatureResolvingKeyInfo(byte[], int)}.
+     * Implementation is consistent with {@link #SMPLinkKeyInfo(byte[], int)}.
      * </p>
      * @param sink the destination array
      * @param pos starting position in the destination array
-     * @see #SMPSignatureResolvingKeyInfo(byte[], int)
+     * @see #SMPLinkKeyInfo(byte[], int)
      * @see #putStream(byte[], int)
      */
     public final void getStream(final byte[] sink, int pos) {
         if( byte_size > ( sink.length - pos ) ) {
             throw new IllegalArgumentException("Stream ( "+sink.length+" - "+pos+" ) < "+byte_size+" bytes");
         }
-        sink[pos++] = properties.mask;
-        System.arraycopy(csrk,  0, sink, pos, 16); pos+=16;
+        sink[pos++] = responder ? (byte)1 : (byte)0;
+        sink[pos++] = type.value;
+        System.arraycopy(key,  0, sink, pos, 16); pos+=16;
+        sink[pos++] = pin_length;
     }
 
-    public final boolean isResponder() { return properties.isSet(PropertyType.RESPONDER); }
+    public final boolean isValid() { return KeyType.NONE != type; }
+
+    public final boolean isResponder() { return responder; }
 
     @Override
     public String toString() { // hex-fmt aligned with btmon
-        return "CSRK[props "+properties.toString()+
-               ", csrk "+BTUtils.bytesHexString(csrk, 0, -1, true /* lsbFirst */)+
+        return "LK[res "+responder+", type "+type.toString()+
+               ", key "+BTUtils.bytesHexString(key, 0, -1, true /* lsbFirst */)+
+               ", plen "+pin_length+
                "]";
     }
 

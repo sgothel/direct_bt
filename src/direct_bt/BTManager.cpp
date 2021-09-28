@@ -823,21 +823,6 @@ bool BTManager::uploadConnParam(const uint16_t dev_id, const BDAddressAndType & 
     return false;
 }
 
-MgmtStatus BTManager::uploadLinkKey(const uint16_t dev_id, const bool debug_keys, const MgmtLinkKeyInfo &key) noexcept {
-#if USE_LINUX_BT_SECURITY
-    MgmtLoadLinkKeyCmd req(dev_id, debug_keys, key);
-    std::unique_ptr<MgmtEvent> res = sendWithReply(req);
-    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-        return res1.getStatus();
-    }
-    return MgmtStatus::TIMEOUT;
-#else
-    return MgmtStatus::NOT_SUPPORTED;
-#endif
-
-}
-
 HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKeyInfo &key) noexcept {
 #if USE_LINUX_BT_SECURITY
     MgmtLoadLongTermKeyCmd req(dev_id, key);
@@ -862,13 +847,21 @@ HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLong
 #endif
 }
 
-HCIStatusCode BTManager::uploadLongTermKeyInfo(const uint16_t dev_id, const BDAddressAndType & addressAndType,
+HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const BDAddressAndType & addressAndType,
                                                 const SMPLongTermKeyInfo& ltk) noexcept {
 #if USE_LINUX_BT_SECURITY
     const MgmtLTKType key_type = to_MgmtLTKType(ltk.properties);
     const MgmtLongTermKeyInfo mgmt_ltk_info { addressAndType.address, addressAndType.type, key_type,
                                               ltk.isResponder(), ltk.enc_size, ltk.ediv, ltk.rand, ltk.ltk };
-    MgmtLoadLongTermKeyCmd req(dev_id, mgmt_ltk_info);
+    return uploadLongTermKey(dev_id, mgmt_ltk_info);
+#else
+    return HCIStatusCode::NOT_SUPPORTED;
+#endif
+}
+
+HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const MgmtLinkKeyInfo &key) noexcept {
+#if USE_LINUX_BT_SECURITY
+    MgmtLoadLinkKeyCmd req(dev_id, false /* debug_keys */, key);
     HCIStatusCode res;
     std::unique_ptr<MgmtEvent> reply = sendWithReply(req);
     if( nullptr != reply ) {
@@ -882,9 +875,19 @@ HCIStatusCode BTManager::uploadLongTermKeyInfo(const uint16_t dev_id, const BDAd
     } else {
         res = HCIStatusCode::TIMEOUT;
     }
-    DBG_PRINT("DBTManager::uploadLongTermKeyInfo[%d]: %s -> %s, result %s", dev_id,
-            ltk.toString().c_str(), req.toString().c_str(), to_string(res).c_str());
+    DBG_PRINT("DBTManager::uploadLinkKeyInfo[%d]: %s, result %s", dev_id,
+            req.toString().c_str(), to_string(res).c_str());
     return res;
+#else
+    return HCIStatusCode::NOT_SUPPORTED;
+#endif
+}
+
+HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLinkKeyInfo& lk) noexcept {
+#if USE_LINUX_BT_SECURITY
+    const MgmtLinkKeyInfo mgmt_lk_info { addressAndType.address, addressAndType.type, static_cast<MgmtLinkKeyType>(lk.type),
+                                         lk.key, lk.pin_length };
+    return uploadLinkKey(dev_id, mgmt_lk_info);
 #else
     return HCIStatusCode::NOT_SUPPORTED;
 #endif

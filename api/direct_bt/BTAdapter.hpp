@@ -385,6 +385,7 @@ namespace direct_bt {
             bool mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept;
             bool mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept;
+            bool mgmtEvNewLinkKeyMgmt(const MgmtEvent& e) noexcept;
 
             bool mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept;
             bool mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept;

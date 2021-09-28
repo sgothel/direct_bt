@@ -51,6 +51,7 @@ import org.direct_bt.LE_PHYs;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPIOCapability;
 import org.direct_bt.SMPKeyMask;
+import org.direct_bt.SMPLinkKeyInfo;
 import org.direct_bt.SMPLongTermKeyInfo;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.SMPSignatureResolvingKeyInfo;
@@ -327,6 +328,22 @@ public class DBTDevice extends DBTObject implements BTDevice
         return new SMPSignatureResolvingKeyInfo(stream, 0);
     }
     private final native void getSignatureResolvingKeyInfoImpl(final boolean responder, final byte[] sink);
+
+    @Override
+    public final SMPLinkKeyInfo getLinkKeyInfo(final boolean responder) {
+        final byte[] stream = new byte[SMPLinkKeyInfo.byte_size];
+        getLinkKeyInfoImpl(responder, stream);
+        return new SMPLinkKeyInfo(stream, 0);
+    }
+    private final native void getLinkKeyInfoImpl(final boolean responder, final byte[] sink);
+
+    @Override
+    public final HCIStatusCode setLinkKeyInfo(final SMPLinkKeyInfo lk) {
+        final byte[] stream = new byte[SMPLinkKeyInfo.byte_size];
+        lk.getStream(stream, 0);
+        return HCIStatusCode.get( setLinkKeyInfoImpl(stream) );
+    }
+    private final native byte setLinkKeyInfoImpl(final byte[] source);
 
     @Override
     public final HCIStatusCode unpair() {

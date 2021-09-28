@@ -246,6 +246,27 @@ public interface BTDevice extends BTObject
     SMPSignatureResolvingKeyInfo getSignatureResolvingKeyInfo(final boolean responder);
 
     /**
+     * Returns a copy of the Link Key (LK) info, valid after connection and SMP pairing has been completed.
+     * @param responder true will return the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
+     * @return the resulting key
+     * @see {@link SMPPairingState#COMPLETED}
+     * @see {@link AdapterStatusListener#deviceReady(BTDevice, long)}
+     * @since 2.4.0
+     */
+    SMPLinkKeyInfo getLinkKeyInfo(final boolean responder);
+
+    /**
+     * Sets the Link Key (LK) info of this device to reuse pre-paired encryption.
+     * <p>
+     * Must be called before connecting to this device, otherwise {@link HCIStatusCode#CONNECTION_ALREADY_EXISTS} will be returned.
+     * </p>
+     * @param lk the pre-paired encryption LK
+     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the appropriate error code.
+     * @since 2.4.0
+     */
+    HCIStatusCode setLinkKeyInfo(final SMPLinkKeyInfo lk);
+
+    /**
      * Unpairs this device from the adapter while staying connected.
      * <p>
      * All keys will be cleared within the adapter and host implementation.<br>
