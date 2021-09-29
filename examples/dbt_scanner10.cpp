@@ -504,8 +504,8 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
                 std::shared_ptr<BTGattChar::Listener> cl = std::make_shared<MyGATTEventListener>(i, j);
                 bool cccdRet = serviceChar->addCharListener( cl, cccdEnableResult );
                 if( !QUIET ) {
-                    fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d; %u charListener\n",
-                            (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], cccdRet, device->getGattHandler()->getCharListenerCount());
+                    fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d\n",
+                            (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], cccdRet);
                     fprintf_td(stderr, "\n");
                 }
             }
@@ -519,9 +519,8 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
     }
 
 exit:
-    const size_t totalCharListener = device->getGattHandler()->getCharListenerCount();
-    fprintf_td(stderr, "****** Processing Ready Device: End-1: Success %d on %s; devInProc %zu; %zu charListener\n",
-            success, device->toString().c_str(), BTDeviceRegistry::getProcessingDeviceCount(), totalCharListener);
+    fprintf_td(stderr, "****** Processing Ready Device: End-1: Success %d on %s; devInProc %zu\n",
+            success, device->toString().c_str(), BTDeviceRegistry::getProcessingDeviceCount());
 
     BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
 
