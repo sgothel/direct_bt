@@ -66,7 +66,15 @@
 #     sudo YOUR FANCY direct_bt STUFF
 #
 
-script_args="$*"
+# Only reliable way, but Linux specific
+THIS_SHELL=`readlink /proc/$$/exe`
+#THIS_SHELL=`ps -hp $$ | awk '{ print $5 }'`
+if [ "$(basename ${THIS_SHELL})" != "bash" ]; then
+    echo "$0 must run in bash to preserve command-line quotes, not ${THIS_SHELL}"
+    exit 1
+fi
+
+script_args="$@"
 
 username=${USER}
 
@@ -122,27 +130,28 @@ export LANG=en_US.UTF-8
 # export EXE_WRAPPER="valgrind --tool=callgrind --instr-atstart=yes --collect-atstart=yes --collect-systime=yes --combine-dumps=yes --separate-threads=no --callgrind-out-file=$callgrindoutfile --log-file=$valgrindlogfile"
 
 runit_root() {
-    echo "sudo ... "
-    sudo -- bash -c "ulimit -c unlimited; LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/${exename} $*"
+    echo "sudo ... ${*@Q}"
+    sudo -- bash -c "ulimit -c unlimited; LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/${exename} ${*@Q}"
     exit $?
 }
 
 runit_setcap() {
+    echo "sudo setcap ... " "$@"
     exe_file=$(readlink -f bin/${exename})
     echo "sudo setcap 'cap_net_raw,cap_net_admin+eip' ${exe_file}"
     trap 'sudo setcap -q -r '"${exe_file}"'' EXIT INT HUP QUIT TERM ALRM USR1
     sudo setcap 'cap_net_raw,cap_net_admin+eip' ${exe_file}
     sudo getcap ${exe_file}
     ulimit -c unlimited
-    LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER ${exe_file} $*
+    LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER ${exe_file} "$@"
     exit $?
 }
 
 runit_capsh() {
-    echo "sudo capsh ... "
+    echo "sudo capsh ... ${*@Q}"
     sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
         --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
-        -- -c "ulimit -c unlimited; LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/${exename} $*"
+        -- -c "ulimit -c unlimited; LD_LIBRARY_PATH=`pwd`/lib "$EXE_WRAPPER" bin/${exename} ${*@Q}"
     exit $?
 }
 
@@ -152,7 +161,7 @@ runit() {
     echo username $username
     echo run_setcap ${run_setcap}
     echo run_root ${run_root}
-    echo ${exename} commandline $*
+    echo ${exename} commandline "$@"
     echo EXE_WRAPPER $EXE_WRAPPER
     echo logbasename $logbasename
     echo logfile $logfile
@@ -161,19 +170,17 @@ runit() {
     echo direct_bt_debug $direct_bt_debug
     echo direct_bt_verbose $direct_bt_verbose
 
-    echo LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/${exename} $*
-
-    #LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/${exename} $*
+    echo LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/${exename} "$@"
     mkdir -p keys
 
     if [ "${run_setcap}" -eq "1" ]; then
-        runit_setcap $*
+        runit_setcap "$@"
     elif [ "${run_root}" -eq "1" ]; then
-        runit_root $*
+        runit_root "$@"
     else
-        runit_capsh $*
+        runit_capsh "$@"
     fi
 }
 
-runit $* 2>&1 | tee $logfile
+runit "$@" 2>&1 | tee $logfile
 
