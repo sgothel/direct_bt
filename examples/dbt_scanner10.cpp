@@ -46,6 +46,8 @@ extern "C" {
     #include <unistd.h>
 }
 
+#include "dbt_constants.hpp"
+
 using namespace direct_bt;
 using namespace jau;
 
@@ -105,8 +107,6 @@ using namespace jau;
  *   echo '1-4' > /sys/bus/usb/drivers/usb/bind
  *   ~~~
  */
-
-const static std::string KEY_PATH = "keys";
 
 static uint64_t timestamp_t0;
 

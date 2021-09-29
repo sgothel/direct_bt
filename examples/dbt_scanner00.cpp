@@ -33,6 +33,8 @@ extern "C" {
     #include <unistd.h>
 }
 
+#include "dbt_constants.hpp"
+
 using namespace direct_bt;
 using namespace jau;
 
