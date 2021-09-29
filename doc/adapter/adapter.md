@@ -24,11 +24,9 @@
 
   - *Intel* Chipsets
     - Intel AX200 (Internal, ID 8087:0029)
+    - Intel AX201 (Internal, ID 8087:0026)
 
 ### Unknown if working with *Direct-BT*
-
-  - *Intel* Chipsets
-    - Intel AX201 (Internal, ID 8087:0026)
 
   - *RTL8761* Chipsets
     - Asus BT-500 (USB-A, ID 0b05:190e)
