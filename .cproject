@@ -146,10 +146,7 @@
 					</folderInfo>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="api/direct_bt"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="examples/direct_bt_peripheral00"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="examples/direct_bt_scanner00"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="examples/direct_bt_scanner01"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="examples/direct_bt_scanner10"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="examples"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="jaulib/include"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="jaulib/java_jni"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="jaulib/src"/>
@@ -370,7 +367,6 @@
 					</folderInfo>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="api/direct_bt"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="examples/direct_bt_scanner10"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="jaulib/test"/>
 						<entry excluding="direct_bt" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="java/jni"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/direct_bt"/>
