@@ -126,9 +126,6 @@ static bool REMOVE_DEVICE = true;
 static bool USE_WHITELIST = false;
 static jau::darray<BDAddressAndType> WHITELIST;
 
-static std::string charIdentifier = "";
-static int charValue = 0;
-
 static bool SHOW_UPDATE_EVENTS = false;
 static bool QUIET = false;
 
@@ -174,12 +171,6 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     bool deviceFound(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
         (void)timestamp;
 
-        if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressAndType().type
-            && BLERandomAddressType::STATIC_PUBLIC != device->getAddressAndType().getBLERandomAddressType() ) {
-            // Requires BREDR or LE Secure Connection support: WIP
-            fprintf_td(stderr, "****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' %s\n", device->toString(true).c_str());
-            return false;
-        }
         if( !BTDeviceRegistry::isDeviceProcessing( device->getAddressAndType() ) &&
             ( !BTDeviceRegistry::isWaitingForAnyDevice() ||
               ( BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType().address, device->getName()) &&
@@ -363,25 +354,6 @@ class MyGATTEventListener : public BTGattChar::Listener {
 static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
     fprintf_td(stderr, "****** Connecting Device: Start %s\n", device->toString().c_str());
 
-    // Testing listener lifecycle @ device dtor
-    class TempAdapterStatusListener : public AdapterStatusListener {
-        void deviceUpdated(std::shared_ptr<BTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
-            if( SHOW_UPDATE_EVENTS ) {
-                fprintf_td(stderr, "****** UPDATED(2): %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
-            }
-            (void)timestamp;
-        }
-        void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
-            fprintf_td(stderr, "****** CONNECTED(2): %s\n", device->toString(true).c_str());
-            (void)handle;
-            (void)timestamp;
-        }
-        std::string toString() const override {
-            return "TempAdapterStatusListener[this "+to_hexstring(this)+"]";
-        }
-    };
-    device->addStatusListener(std::shared_ptr<AdapterStatusListener>(new TempAdapterStatusListener()));
-
     {
         const HCIStatusCode r = device->unpair();
         fprintf_td(stderr, "****** Connecting Device: Unpair-Pre result: %s\n", to_string(r).c_str());
@@ -454,14 +426,6 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
                 to_string(res).c_str(), to_string(resTx).c_str(), to_string(resRx).c_str());
     }
 
-    struct GattCharAndListener {
-        BTGattCharRef gattCharRef;
-        std::shared_ptr<BTGattChar::Listener> listenerRef;
-    };
-
-    // Validate consistency of GATTHandler [add|remove]CharListener()
-    std::vector<GattCharAndListener> gattCharAndListenerList;
-
     //
     // GATT Service Processing
     //
@@ -490,34 +454,6 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
                             "PERF:  adapter-init to gatt-complete %" PRIu64 " ms\n\n",
                             td01, td15, tdc5, (tdc5 - td15), td05);
         }
-#if 0
-        {
-            // WIP: Implement a simple Characteristic ping-pong writeValue <-> notify transmission for stress testing.
-            BTManager & manager = device->getAdapter().getManager();
-            if( nullptr != charIdentifier && charIdentifier.length() > 0 ) {
-                BTGattChar * char2 = (BTGattChar*) nullptr;
-                        // manager.find(BluetoothType.GATT_CHARACTERISTIC, null, charIdentifier, device);
-                fprintf_td(stderr, "Char UUID %s\n", charIdentifier.c_str());
-                fprintf_td(stderr, "  over device : %s\n", char2->toString().c_str());
-                if( nullptr != char2 ) {
-                    bool cccdEnableResult[2];
-                    bool cccdRet = char2->addCharListener( std::shared_ptr<BTGattCharListener>( new MyGATTEventListener(char2) ),
-                                                                          cccdEnableResult );
-                    if( !QUIET ) {
-                        fprintf_td(stderr, "Added CharPingPongListenerRes Notification(%d), Indication(%d): Result %d\n",
-                                cccdEnableResult[0], cccdEnableResult[1], cccdRet);
-                    }
-                    if( cccdRet ) {
-                        uint8_t cmd[] { (uint8_t)charValue }; // request device model
-                        bool wres = char2->writeValueNoResp(cmd);
-                        if( !QUIET ) {
-                            fprintf_td(stderr, "Write response: "+wres);
-                        }
-                    }
-                }
-            }
-        }
-#endif
 
         std::shared_ptr<GattGenericAccessSvc> ga = device->getGattGenericAccess();
         if( nullptr != ga && !QUIET ) {
@@ -567,10 +503,6 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
                 bool cccdEnableResult[2];
                 std::shared_ptr<BTGattChar::Listener> cl = std::make_shared<MyGATTEventListener>(i, j);
                 bool cccdRet = serviceChar->addCharListener( cl, cccdEnableResult );
-                if( cccdRet ) {
-                    // Validate consistency of GATTHandler [add|remove]CharListener()
-                    gattCharAndListenerList.push_back( GattCharAndListener{ serviceChar, cl } );
-                }
                 if( !QUIET ) {
                     fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d; %u charListener\n",
                             (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], cccdRet, device->getGattHandler()->getCharListenerCount());
@@ -590,11 +522,6 @@ exit:
     const size_t totalCharListener = device->getGattHandler()->getCharListenerCount();
     fprintf_td(stderr, "****** Processing Ready Device: End-1: Success %d on %s; devInProc %zu; %zu charListener\n",
             success, device->toString().c_str(), BTDeviceRegistry::getProcessingDeviceCount(), totalCharListener);
-
-    // Validate consistency of GATTHandler [add|remove]CharListener()
-    if( totalCharListener != gattCharAndListenerList.size() ) {
-        ERR_PRINT("Char-Listener %zu actual != %zu cached\n", totalCharListener, gattCharAndListenerList.size());
-    }
 
     BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
 
@@ -621,18 +548,7 @@ exit:
     if( success ) {
         BTDeviceRegistry::addToProcessedDevices(device->getAddressAndType(), device->getName());
     }
-
-    // Validate consistency of GATTHandler [add|remove]CharListener()
-    {
-        //device->removeAllCharListener();
-        for( GattCharAndListener gcl : gattCharAndListenerList ) {
-            gcl.gattCharRef->removeCharListener(gcl.listenerRef);
-        }
-        gattCharAndListenerList.clear();
-        if( 0 != gattCharAndListenerList.size() ) {
-            ERR_PRINT("Char-Listener not zero but %zu\n", gattCharAndListenerList.size());
-        }
-    }
+    device->removeAllCharListener();
 
     if( !KEEP_CONNECTED ) {
         {
@@ -815,6 +731,8 @@ int main(int argc, char *argv[])
     bool waitForEnter=false;
 
     for(int i=1; i<argc; i++) {
+        fprintf(stderr, "arg[%d/%d]: '%s'\n", i, argc, argv[i]);
+
         if( !strcmp("-dbt_debug", argv[i]) && argc > (i+1) ) {
             setenv("direct_bt.debug", argv[++i], 1 /* overwrite */);
         } else if( !strcmp("-dbt_verbose", argv[i]) && argc > (i+1) ) {
@@ -868,10 +786,6 @@ int main(int argc, char *argv[])
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
             sec->io_cap_auto = to_SMPIOCapability(atoi(argv[++i]));
             fprintf(stderr, "Set SEC AUTO security io_cap in %s\n", sec->toString().c_str());
-        } else if( !strcmp("-charid", argv[i]) && argc > (i+1) ) {
-            charIdentifier = std::string(argv[++i]);
-        } else if( !strcmp("-charval", argv[i]) && argc > (i+1) ) {
-            charValue = atoi(argv[++i]);
         } else if( !strcmp("-disconnect", argv[i]) ) {
             KEEP_CONNECTED = false;
         } else if( !strcmp("-enableGATTPing", argv[i]) ) {
@@ -899,7 +813,6 @@ int main(int argc, char *argv[])
                     "(-secauto <device_[address|name]_sub> <int_iocap>)* "
                     "(-passkey <device_[address|name]_sub> <digits>)* "
                     "[-unpairPre] [-unpairPost] "
-                    "[-charid <uuid>] [-charval <byte-val>] "
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event] "
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,...] "
@@ -919,8 +832,6 @@ int main(int argc, char *argv[])
     fprintf(stderr, "adapter %s\n", useAdapter.toString().c_str());
     fprintf(stderr, "btmode %s\n", to_string(btMode).c_str());
     fprintf(stderr, "scanActive %s\n", to_string(le_scan_active).c_str());
-    fprintf(stderr, "characteristic-id: %s\n", charIdentifier.c_str());
-    fprintf(stderr, "characteristic-value: %d\n", charValue);
 
     fprintf(stderr, "security-details: %s\n", BTSecurityRegistry::allToString().c_str());
     fprintf(stderr, "waitForDevice: %s\n", BTDeviceRegistry::getWaitForDevicesString().c_str());

@@ -97,9 +97,6 @@ public class DBTScanner10 {
     boolean USE_WHITELIST = false;
     final List<BDAddressAndType> whitelist = new ArrayList<BDAddressAndType>();
 
-    String charIdentifier = null;
-    int charValue = 0;
-
     boolean SHOW_UPDATE_EVENTS = false;
     boolean QUIET = false;
 
@@ -171,12 +168,6 @@ public class DBTScanner10 {
         public boolean deviceFound(final BTDevice device, final long timestamp) {
             BTUtils.println(System.err, "****** FOUND__: "+device.toString());
 
-            if( BDAddressType.BDADDR_LE_PUBLIC != device.getAddressAndType().type
-                && BLERandomAddressType.STATIC_PUBLIC != device.getAddressAndType().getBLERandomAddressType() ) {
-                // Requires BREDR or LE Secure Connection support: WIP
-                BTUtils.println(System.err, "****** FOUND__-2: Skip non 'public LE' and non 'random static public LE' "+device.toString());
-                return false;
-            }
             if( !BTDeviceRegistry.isDeviceProcessing( device.getAddressAndType() ) &&
                 ( !BTDeviceRegistry.isWaitingForAnyDevice() ||
                   ( BTDeviceRegistry.isWaitingForDevice(device.getAddressAndType().address, device.getName()) &&
@@ -485,45 +476,6 @@ public class DBTScanner10 {
                         "PERF:  get-gatt-services " + td15 + " ms,"+System.lineSeparator()+
                         "PERF:  discovered to gatt-complete " + tdc5 + " ms (connect " + (tdc5 - td15) + " ms),"+System.lineSeparator()+
                         "PERF:  adapter-init to gatt-complete " + td05 + " ms"+System.lineSeparator());
-            }
-            {
-                // WIP: Implement a simple Characteristic ping-pong writeValue <-> notify transmission for stress testing.
-                final BTManager manager = device.getAdapter().getManager();
-                if( null != charIdentifier && charIdentifier.length() > 0 ) {
-                    final BTGattChar char2 = (BTGattChar)
-                            manager.find(BTType.GATT_CHARACTERISTIC, null, charIdentifier, device);
-                    BTUtils.println(System.err, "Char UUID "+charIdentifier);
-                    BTUtils.println(System.err, "  over device : "+char2);
-                    if( null != char2 ) {
-                        final BTGattChar.Listener charPingPongListener = new BTGattChar.Listener() {
-                            @Override
-                            public void notificationReceived(final BTGattChar charDecl,
-                                                             final byte[] value, final long timestamp) {
-                                BTUtils.println(System.err, "****** PingPong GATT notificationReceived: "+charDecl+
-                                        ", value "+BTUtils.bytesHexString(value, 0, -1, true));
-                            }
-
-                            @Override
-                            public void indicationReceived(final BTGattChar charDecl,
-                                                           final byte[] value, final long timestamp, final boolean confirmationSent) {
-                                BTUtils.println(System.err, "****** PingPong GATT indicationReceived: "+charDecl+
-                                        ", value "+BTUtils.bytesHexString(value, 0, -1, true));
-                            }
-                        };
-                        final boolean enabledState[] = { false, false };
-                        final boolean addedCharPingPongListenerRes = null != char2.addCharListener(charPingPongListener, enabledState);
-                        if( !QUIET ) {
-                            BTUtils.println(System.err, "Added CharPingPongListenerRes: "+addedCharPingPongListenerRes+", enabledState "+Arrays.toString(enabledState));
-                        }
-                        if( addedCharPingPongListenerRes ) {
-                            final byte[] cmd = { (byte)charValue }; // request device model
-                            final boolean wres = char2.writeValue(cmd, false /* withResponse */);
-                            if( !QUIET ) {
-                                BTUtils.println(System.err, "Write response: "+wres);
-                            }
-                        }
-                    }
-                }
             }
 
             try {
@@ -889,10 +841,6 @@ public class DBTScanner10 {
                     final int io_cap_i = Integer.valueOf(args[++i]).intValue();
                     sec.io_cap_auto = SMPIOCapability.get( (byte)( io_cap_i & 0xff ) );
                     System.err.println("Set SEC AUTO security io_cap "+io_cap_i+" in "+sec);
-                } else if( arg.equals("-charid") && args.length > (i+1) ) {
-                    test.charIdentifier = args[++i];
-                } else if( arg.equals("-charval") && args.length > (i+1) ) {
-                    test.charValue = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-disconnect") ) {
                     test.KEEP_CONNECTED = false;
                 } else if( arg.equals("-enableGATTPing") ) {
@@ -917,7 +865,6 @@ public class DBTScanner10 {
                     "(-iocap <device_[address|name]_sub> <int_iocap>)* "+
                     "(-secauto <device_[address|name]_sub> <int_iocap>)* "+
                     "(-passkey <device_[address|name]_sub> <digits>)* "+
-                    "[-charid <uuid>] [-charval <byte-val>] "+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event] "+
@@ -938,9 +885,6 @@ public class DBTScanner10 {
         BTUtils.println(System.err, "QUIET "+test.QUIET);
         BTUtils.println(System.err, "adapter "+test.useAdapter);
         BTUtils.println(System.err, "btmode' to "+test.btMode.toString());
-
-        BTUtils.println(System.err, "characteristic-id: "+test.charIdentifier);
-        BTUtils.println(System.err, "characteristic-value: "+test.charValue);
 
         BTUtils.println(System.err, "security-details: "+BTSecurityRegistry.allToString() );
         BTUtils.println(System.err, "waitForDevices: "+BTDeviceRegistry.getWaitForDevicesString());
