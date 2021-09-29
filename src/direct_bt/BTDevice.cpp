@@ -157,7 +157,7 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
             ", phy[Tx "+direct_bt::to_string(le_phy_tx)+", Rx "+direct_bt::to_string(le_phy_rx)+
             "], sec[lvl "+to_string(pairing_data.sec_level_conn)+", io "+to_string(pairing_data.ioCap_conn)+
             ", auto "+to_string(pairing_data.ioCap_auto)+", pairing "+to_string(pairing_data.mode)+", state "+to_string(pairing_data.state)+
-            "]], rssi "+std::to_string(getRSSI())+
+            ", sc "+std::to_string(pairing_data.use_sc)+"]], rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+
             ", appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+
             "), gap "+direct_bt::to_string(gap_flags)+
