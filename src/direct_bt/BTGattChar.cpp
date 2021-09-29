@@ -41,6 +41,23 @@
 using namespace direct_bt;
 using namespace jau;
 
+/**
+ * Simple access and provision of a typename string representation
+ * at compile time like RTTI via jau::type_name_cue.
+ */
+JAU_TYPENAME_CUE(direct_bt::BTGattCharListener)
+
+/**
+ * Simple access and provision of a typename string representation
+ * at compile time like RTTI via jau::type_name_cue.
+ */
+JAU_TYPENAME_CUE(direct_bt::AssociatedBTGattCharListener)
+
+const char * BTGattCharListener::type_name() const noexcept { return jau::type_name_cue<BTGattCharListener>::name(); }
+
+const char * AssociatedBTGattCharListener::type_name() const noexcept { return jau::type_name_cue<AssociatedBTGattCharListener>::name(); }
+
+
 #define CHAR_DECL_PROPS_ENUM(X) \
         X(BTGattChar,Broadcast,broadcast) \
         X(BTGattChar,Read,read) \
@@ -273,6 +290,8 @@ class DelegatedBTGattCharListener : public BTGattCharListener {
         DelegatedBTGattCharListener(const BTGattChar * characteristicMatch, std::shared_ptr<BTGattChar::Listener> l) noexcept
         : associatedChar(characteristicMatch), delegate(l) { }
 
+        const char * type_name() const noexcept override;
+
         bool match(const BTGattChar & characteristic) noexcept override {
             if( nullptr == associatedChar ) {
                 return true;
@@ -291,12 +310,35 @@ class DelegatedBTGattCharListener : public BTGattCharListener {
             delegate->indicationReceived(charDecl, charValue, timestamp, confirmationSent);
         }
 
-        bool operator==(const DelegatedBTGattCharListener& rhs) const noexcept
-        { return delegate.get() == rhs.delegate.get(); }
+        std::string toString() override {
+            return std::string(type_name())+"["+jau::to_string(this)+", delegate "+jau::to_string(delegate.get())+"]";
+        }
+
+        /**
+         * Comparison operator merely testing for same memory reference of the delegate.
+         */
+        bool operator==(const BTGattCharListener& rhs) const noexcept override;
 
         bool operator!=(const DelegatedBTGattCharListener& rhs) const noexcept
         { return !(*this == rhs); }
 };
+
+/**
+ * Simple access and provision of a typename string representation
+ * at compile time like RTTI via jau::type_name_cue.
+ */
+JAU_TYPENAME_CUE(DelegatedBTGattCharListener)
+
+const char * DelegatedBTGattCharListener::type_name() const noexcept { return jau::type_name_cue<DelegatedBTGattCharListener>::name(); }
+
+bool DelegatedBTGattCharListener::operator==(const BTGattCharListener& rhs) const noexcept
+{
+    if( 0 != strcmp(rhs.type_name(), jau::type_name_cue<DelegatedBTGattCharListener>::name()) ) {
+        return false;
+    }
+    const DelegatedBTGattCharListener& rhs2 = static_cast<const DelegatedBTGattCharListener&>(rhs);
+    return delegate.get() == rhs2.delegate.get();
+}
 
 bool BTGattChar::addCharListener(std::shared_ptr<BTGattChar::Listener> l) {
     return getDeviceChecked()->addCharListener( std::make_shared<DelegatedBTGattCharListener>( this, l ) );

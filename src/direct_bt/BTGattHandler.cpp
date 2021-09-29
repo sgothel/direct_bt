@@ -134,6 +134,15 @@ bool BTGattHandler::removeCharListener(const BTGattCharListener * l) noexcept {
     return false;
 }
 
+void BTGattHandler::printCharListener() noexcept {
+    jau::INFO_PRINT("BTGattHandler: %u listener", characteristicListenerList.size());
+    int i=0;
+    auto it = characteristicListenerList.begin(); // lock mutex and copy_store
+    for (; !it.is_end(); ++it, ++i ) {
+        jau::INFO_PRINT("[%d]: %s", i, (*it)->toString().c_str());
+    }
+}
+
 int BTGattHandler::removeAllAssociatedCharListener(std::shared_ptr<BTGattChar> associatedCharacteristic) noexcept {
     if( nullptr == associatedCharacteristic ) {
         ERR_PRINT("Given GATTCharacteristic ref is null");

@@ -9,6 +9,7 @@ set( SOURCES_IDIOMATIC_EXAMPLES
     dbt_scanner01.cpp
     dbt_scanner10.cpp
     dbt_peripheral00.cpp
+    dbt_test_gattcharlifecycle01.cpp
 )
 
 string( REPLACE ".cpp" "" BASENAMES_IDIOMATIC_EXAMPLES "${SOURCES_IDIOMATIC_EXAMPLES}" )

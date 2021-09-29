@@ -490,7 +490,6 @@ namespace direct_bt {
              * </p>
              */
             bool removeCharListener(const BTGattCharListener * l) noexcept;
-
             
             /**
              * Remove all {@link BTGattCharListener} from the list, which are associated to the given {@link BTGattChar}.
@@ -517,6 +516,13 @@ namespace direct_bt {
              * Return event listener count.
              */
             jau::nsize_t getCharListenerCount() const noexcept { return characteristicListenerList.size(); }
+
+            /**
+             * Print a list of all BTGattCharListener.
+             *
+             * This is merely a facility for debug and analysis.
+             */
+            void printCharListener() noexcept;
 
             /**
              * Enable or disable sending an immediate confirmation for received indication events from the device.

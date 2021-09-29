@@ -259,6 +259,7 @@ public interface BTGattChar extends BTObject
      * @see #addCharListener(Listener)
      * @see #removeCharListener(Listener)
      * @see #removeAllAssociatedCharListener(boolean)
+     * @since 2.4.0
      */
     boolean removeCharListener(final BTGattCharListener listener);
 

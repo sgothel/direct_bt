@@ -385,6 +385,7 @@ namespace direct_bt {
              * @see BTGattChar::addCharListener()
              * @see BTGattChar::removeCharListener()
              * @see BTGattChar::removeAllAssociatedCharListener()
+             * @since 2.4.0
              */
             bool removeCharListener(std::shared_ptr<Listener> l);
 
@@ -485,6 +486,14 @@ namespace direct_bt {
     class BTGattCharListener {
         public:
             /**
+             * Returns a unique string denominating the type of this instance.
+             *
+             * Simple access and provision of a typename string representation
+             * at compile time like RTTI via jau::type_name_cue.
+             */
+            virtual const char * type_name() const noexcept;
+
+            /**
              * Custom filter for all event methods,
              * which will not be called if this method returns false.
              * <p>
@@ -524,6 +533,11 @@ namespace direct_bt {
 
             virtual ~BTGattCharListener() noexcept {}
 
+            /** Return a simple description about this instance. */
+            virtual std::string toString() {
+                return std::string(type_name())+"["+jau::to_string(this)+"]";
+            }
+
             /**
              * Default comparison operator, merely testing for same memory reference.
              * <p>
@@ -547,6 +561,8 @@ namespace direct_bt {
              */
             AssociatedBTGattCharListener(const BTGattChar * characteristicMatch) noexcept
             : associatedChar(characteristicMatch) { }
+
+            const char * type_name() const noexcept override;
 
             bool match(const BTGattChar & characteristic) noexcept override {
                 if( nullptr == associatedChar ) {
