@@ -71,7 +71,7 @@ The following **platforms** are tested and hence supported
 - arm64 (should work, Raspberry Pi 3+ and 4)
 - arm32 (should work, Raspberry Pi 3+ and 4)
 
-## Tested **Bluetooth Adapter**
+## Tested *Bluetooth Adapter*
 
 * Bluetooth 4.0
   - Intel Bluemoon Bluetooth Adapter (Internal, ID: 8087:0a2a)
