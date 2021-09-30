@@ -35,6 +35,9 @@
     - Devices
       - CSL - Bluetooth 5.0 USB Adapter Nano (USB-A, ID: 0bda:8771, RTL8761B)
       - Asus BT-500 (USB-A, ID 0b05:190e, RTL8761B)
+      - LogiLink BT0048 (USB-A, ID 0bda:8771, RTL8761B)
+      - TP-Link UB500 (USB-A, ID 2357:0604, RTL8761B)
+        - Requires [Kernel Patch 2021-09-30](https://lore.kernel.org/lkml/20210930082239.3699395-1-nick@flinny.org/T/)
     - Firmware
       - Files `rtl8761b_fw.bin` (Kernel 5.10) or `rtl8761bu_fw.bin` (Kernel 5.14), sources
         - [linux-firmware](https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/log/rtl_bt/rtl8761b_fw.bin), version 0x0d99646b (2021-06-09).
@@ -55,6 +58,4 @@
     - SOOMFON Bluetooth Dongle (USB-A)
     - Maxuni Bluetooth Adapter USB 5.0 (USB-A, ID: ???)
 
-  - Unknown Chipsets
-    - TP-Link UB500 
   
