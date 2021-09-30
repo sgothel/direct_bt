@@ -32,7 +32,9 @@
 ### Not working with *Direct-BT*
   Kernel/System: 5.10.0-8-amd64 / Debian 11
 
+
   - *RTL8761B* Chipsets
+    - Perhaps fixed in Kernel [5.11 and 5.10.5-1](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=979505)
     - CSL - Bluetooth 5.0 USB Adapter Nano (USB-A, ID: 0bda:8771, RTL8761B)
       - Firmware `rtl8761b_fw.bin` and `rtl8761b_config.bin` sources
         - [linux-firmware](https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/log/rtl_bt/rtl8761b_fw.bin), version 0x0d99646b (2021-06-09).
