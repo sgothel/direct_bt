@@ -33,8 +33,8 @@
   - *Realtek* RTL8761B Chipsets 
     Needs manual power-up, depending on firmware (see below).
     - Devices
-      - CSL - Bluetooth 5.0 USB Adapter Nano (USB-A, ID: 0bda:8771, RTL8761B)
       - Asus BT-500 (USB-A, ID 0b05:190e, RTL8761B)
+      - CSL - Bluetooth 5.0 USB Adapter Nano (USB-A, ID: 0bda:8771, RTL8761B)
       - LogiLink BT0048 (USB-A, ID 0bda:8771, RTL8761B)
       - TP-Link UB500 (USB-A, ID 2357:0604, RTL8761B)
         - Requires [Kernel Patch 2021-09-30](https://lore.kernel.org/lkml/20210930082239.3699395-1-nick@flinny.org/T/)
