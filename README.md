@@ -59,30 +59,32 @@ To support other platforms than Linux/BlueZ, we will have to
 ## Supported Platforms
 The following **platforms** are tested and hence supported
 
-**Debian 10 Buster (GNU/Linux)**
-
-- amd64 (validated, Generic)
-- arm64 (validated, Raspberry Pi 3+ and 4)
-- arm32 (validated, Raspberry Pi 3+ and 4)
-
 **Debian 11 Bullseye (GNU/Linux)**
-
 - amd64 (validated, Generic)
 - arm64 (should work, Raspberry Pi 3+ and 4)
 - arm32 (should work, Raspberry Pi 3+ and 4)
 
+**Debian 10 Buster (GNU/Linux)**
+- amd64 (validated, Generic)
+- arm64 (validated, Raspberry Pi 3+ and 4)
+- arm32 (validated, Raspberry Pi 3+ and 4)
+
+**Ubuntu 18.04 (GNU/Linux)**
+- amd64 (validated, Generic)
+
 ## Tested *Bluetooth Adapter*
 
 * Bluetooth 4.0
-  - Intel Bluemoon Bluetooth Adapter (Internal, ID: 8087:0a2a)
-  - Intel Wireless (Internal, ID: 8087:07dc)
-  - CSR Bluetooth Adapter (USB-A, ID: 0a12:0001, CSR8510)
-  - Raspberry Pi Bluetooth Adapter (Internal, BCM43455 on 3+, 4)
+  - Intel Bluemoon Bluetooth Adapter (Internal, ID: 8087:0a2a) *OK*
+  - Intel Wireless (Internal, ID: 8087:07dc) *OK*
+  - CSR Bluetooth Adapter (USB-A, ID: 0a12:0001, CSR8510) *OK*
+  - Raspberry Pi Bluetooth Adapter (Internal, BCM43455 on 3+, 4) *OK*
+  - Asus BT-400 Broadcom BCM20702A Bluetooth (USB-A, ID 0b05:17cb, BCM20702A1) *OK*
 
 * Bluetooth 5.0
-  - Intel AX200 (Internal, ID 8087:0029)
-  - Intel AX201 (Internal, ID 8087:0026)
-  - Realtek Bluetooth 5.0 (`RTK_BT_5.0`)
+  - Intel AX200 (Internal, ID 8087:0029) *OK*
+  - Intel AX201 (Internal, ID 8087:0026) *OK*
+  - ~~Realtek RTL8761B~~ *Issues*
 
 Please check the [adapter list](doc/adapter/adapter.md) for more details.
 
@@ -196,8 +198,6 @@ demonstrates the event driven and multithreading workflow - matching *dbt_scanne
 
 
 ## Building *Direct-BT*
-The project requires CMake 3.13+ for building and a Java JDK >= 11.
-
 This project also uses the [Jau Library](https://jausoft.com/cgit/jaulib.git/about/)
 as a git submodule, which has been extracted earlier from this project
 to better encapsulation and allow general use.
@@ -213,6 +213,15 @@ systemctl disable bluetooth
 systemctl mask bluetooth
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+### Build dependencies
+- CMake 3.13+ but >= 3.18 is recommended
+- GCC >= 8.3.0 (g++)
+  - or clang >= 10.0
+- libunwind8 >= 1.2.1
+- For Java support
+  - OpenJDK >= 11.
+  - junit4 >= 4.12
+
 Installing build dependencies on Debian (10 or 11):
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
@@ -224,6 +233,7 @@ apt install cmake cmake-extras extra-cmake-modules pkg-config
 apt install doxygen graphviz
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+### Building...
 For a generic build use:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}

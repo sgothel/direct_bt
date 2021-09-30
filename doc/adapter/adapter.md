@@ -14,9 +14,12 @@
     - Intel Wireless (Internal, ID: 8087:07dc)
     - Intel Bluemoon Bluetooth Adapter (Internal, ID: 8087:0a2a)
   
-  - *BCM* Chipsets
+  - *BCM4345* Chipsets
     - Raspberry Pi 3+ Bluetooth Adapter (Internal, BCM43455)
     - Raspberry Pi 4  Bluetooth Adapter (Internal, BCM4345C0)
+
+  - *BCM20702A* Chipsets
+    - Asus BT-400 Broadcom BCM20702A Bluetooth (USB-A, ID 0b05:17cb, BCM20702A1)
 
 ## Bluetooth 5
 
@@ -26,13 +29,25 @@
     - Intel AX200 (Internal, ID 8087:0029)
     - Intel AX201 (Internal, ID 8087:0026)
 
+### Not working with *Direct-BT*
+  - *RTL8761B* Chipsets
+    - CSL - Bluetooth 5.0 USB Adapter Nano (USB-A, ID: 0bda:8771, RTL8761B)
+      - Firmware `rtl8761b_fw.bin` and `rtl8761b_config.bin` sources
+        - [linux-firmware](https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/log/rtl_bt/rtl8761b_fw.bin), version 0x0d99646b (2021-06-09).
+          - Mgmt-Cmd SET_POWERED is not working!
+        - [Realtek-OpenSource](https://github.com/Realtek-OpenSource/android_hardware_realtek/tree/rtk1395/bt/rtkbt/Firmware/BT), version 0x097bec43 (2020-01-10). See [install notes here](https://linuxreviews.org/Realtek_RTL8761B).
+          - Mgmt-Cmd SET_POWERED works.
+      - Warning: BTTypes0.cpp:1346 read_ext_ad_reports: EAD[0]
+
+    - Asus BT-500 (USB-A, ID 0b05:190e)
+      - Unknown firmware (not reported)
+      - Warning: BTTypes0.cpp:1346 read_ext_ad_reports: EAD[0]
+
 ### Unknown if working with *Direct-BT*
 
-  - *RTL8761* Chipsets
-    - Asus BT-500 (USB-A, ID 0b05:190e)
+  - Other *RTL8761* Chipsets
     - LogiLink BT0054 (USB-A/C, ID: 0bda:8771, or is it RTL8761A/B?)
     - LogiLink BT0058 (USB-A, ID: ???)
-    - CSL - Bluetooth 5.0 USB Adapter Nano (USB-A, ID: ???, RTL8761B)
     - SOOMFON Bluetooth Dongle (USB-A)
     - Maxuni Bluetooth Adapter USB 5.0 (USB-A, ID: ???)
 
