@@ -1,0 +1,16 @@
+LogiLink BT0048 ID 0bda:8771 (Realtek Semiconductor Corp. Bluetooth Radio)
+[Fri Oct  1 00:08:47 2021] usb 1-4: new full-speed USB device number 22 using xhci_hcd
+[Fri Oct  1 00:08:47 2021] usb 1-4: New USB device found, idVendor=0bda, idProduct=8771, bcdDevice= 2.00
+[Fri Oct  1 00:08:47 2021] usb 1-4: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[Fri Oct  1 00:08:47 2021] usb 1-4: Product: Bluetooth Radio
+[Fri Oct  1 00:08:47 2021] usb 1-4: Manufacturer: Realtek
+[Fri Oct  1 00:08:47 2021] usb 1-4: SerialNumber: 00E04C239987
+[Fri Oct  1 00:08:48 2021] Bluetooth: hci1: RTL: examining hci_ver=0a hci_rev=000b lmp_ver=0a lmp_subver=8761
+[Fri Oct  1 00:08:48 2021] Bluetooth: hci1: RTL: rom_version status=0 version=1
+[Fri Oct  1 00:08:48 2021] Bluetooth: hci1: RTL: loading rtl_bt/rtl8761b_fw.bin
+[Fri Oct  1 00:08:48 2021] bluetooth hci1: firmware: direct-loading firmware rtl_bt/rtl8761b_fw.bin
+[Fri Oct  1 00:08:48 2021] Bluetooth: hci1: RTL: loading rtl_bt/rtl8761b_config.bin
+[Fri Oct  1 00:08:48 2021] bluetooth hci1: firmware: direct-loading firmware rtl_bt/rtl8761b_config.bin
+[Fri Oct  1 00:08:48 2021] Bluetooth: hci1: RTL: cfg_sz 14, total sz 11678
+[Fri Oct  1 00:08:48 2021] Bluetooth: hci1: RTL: fw version 0x097bec43
+

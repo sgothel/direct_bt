@@ -1,0 +1,7 @@
+[Thu Sep 30 23:57:54 2021] usb 1-4: new full-speed USB device number 21 using xhci_hcd
+[Thu Sep 30 23:57:54 2021] usb 1-4: New USB device found, idVendor=2357, idProduct=0604, bcdDevice= 2.00
+[Thu Sep 30 23:57:54 2021] usb 1-4: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[Thu Sep 30 23:57:54 2021] usb 1-4: Product: TP-Link UB500 Adapter
+[Thu Sep 30 23:57:54 2021] usb 1-4: Manufacturer:  
+[Thu Sep 30 23:57:54 2021] usb 1-4: SerialNumber: E848B8C82000
+
