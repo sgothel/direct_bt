@@ -1,6 +1,22 @@
+Kernel/System: 5.14.8-051408-generic / Ubuntu 18.04
+Firmware: Files rtl8761bu_*; Version 0x0999646b (2021-06-09)
+Source: <https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/log/rtl_bt/rtl8761bu_fw.bin>
+[Do Sep 30 11:28:04 2021] usb 1-3: new full-speed USB device number 6 using xhci_hcd
+[Do Sep 30 11:28:04 2021] usb 1-3: New USB device found, idVendor=0bda, idProduct=8771, bcdDevice= 2.00
+[Do Sep 30 11:28:04 2021] usb 1-3: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[Do Sep 30 11:28:04 2021] usb 1-3: Product: Bluetooth Radio
+[Do Sep 30 11:28:04 2021] usb 1-3: Manufacturer: Realtek
+[Do Sep 30 11:28:04 2021] usb 1-3: SerialNumber: 00E04C239987
+[Do Sep 30 11:28:04 2021] Bluetooth: hci1: RTL: examining hci_ver=0a hci_rev=000b lmp_ver=0a lmp_subver=8761
+[Do Sep 30 11:28:04 2021] Bluetooth: hci1: RTL: rom_version status=0 version=1
+[Do Sep 30 11:28:04 2021] Bluetooth: hci1: RTL: loading rtl_bt/rtl8761bu_fw.bin
+[Do Sep 30 11:28:04 2021] Bluetooth: hci1: RTL: loading rtl_bt/rtl8761bu_config.bin
+[Do Sep 30 11:28:04 2021] Bluetooth: hci1: RTL: cfg_sz 6, total sz 20522
+[Do Sep 30 11:28:04 2021] Bluetooth: hci1: RTL: fw version 0x0999646b
+
 Kernel/System: 5.10.0-8-amd64 / Debian 11
-Firmware: Version 0x0d99646b (2021-06-09)
-Source: https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/log/rtl_bt/rtl8761b_fw.bin
+Firmware: Files rtl8761b_*; Version 0x0d99646b (2021-06-09)
+Source: <https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/log/rtl_bt/rtl8761b_fw.bin>
 Note: Mgmt-Cmd SET_POWERED is not working!
 [Thu Sep 30 10:07:52 2021] usb 1-4: new full-speed USB device number 12 using xhci_hcd
 [Thu Sep 30 10:07:52 2021] usb 1-4: New USB device found, idVendor=0bda, idProduct=8771, bcdDevice= 2.00
@@ -18,8 +34,8 @@ Note: Mgmt-Cmd SET_POWERED is not working!
 [Thu Sep 30 10:07:52 2021] Bluetooth: hci1: RTL: fw version 0x0d99646b
 
 Kernel/System: 5.10.0-8-amd64 / Debian 11
-Firmware: Version 0x097bec43 (2020-01-10)
-Source: https://github.com/Realtek-OpenSource/android_hardware_realtek/tree/rtk1395/bt/rtkbt/Firmware/BT
+Firmware: Files: rtl8761b_*; Version 0x097bec43 (2020-01-10)
+Source: <https://github.com/Realtek-OpenSource/android_hardware_realtek/tree/rtk1395/bt/rtkbt/Firmware/BT>
 Note: Mgmt-Cmd SET_POWERED works.
 [Thu Sep 30 09:00:17 2021] usb 1-3: USB disconnect, device number 10
 [Thu Sep 30 09:00:24 2021] usb 1-4: new full-speed USB device number 11 using xhci_hcd

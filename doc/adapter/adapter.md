@@ -30,21 +30,21 @@
     - Intel AX201 (Internal, ID 8087:0026)
 
 ### Not working with *Direct-BT*
-  Kernel/System: 5.10.0-8-amd64 / Debian 11
+  Kernel/System
+  - 5.10.0-8-amd64 / Debian 11
+  - 5.14.8-amd64 / Ubuntu 18.04
 
-
+  Adapter
   - *RTL8761B* Chipsets
-    - Perhaps fixed in Kernel [5.11 and 5.10.5-1](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=979505)
-    - CSL - Bluetooth 5.0 USB Adapter Nano (USB-A, ID: 0bda:8771, RTL8761B)
-      - Firmware `rtl8761b_fw.bin` and `rtl8761b_config.bin` sources
+    - Devices
+      - CSL - Bluetooth 5.0 USB Adapter Nano (USB-A, ID: 0bda:8771, RTL8761B)
+      - Asus BT-500 (USB-A, ID 0b05:190e, RTL8761B)
+    - Firmware
+      - Files `rtl8761b_fw.bin` (Kernel 5.10) or `rtl8761bu_fw.bin` (Kernel 5.14), sources
         - [linux-firmware](https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/log/rtl_bt/rtl8761b_fw.bin), version 0x0d99646b (2021-06-09).
           - Mgmt-Cmd SET_POWERED is not working!
         - [Realtek-OpenSource](https://github.com/Realtek-OpenSource/android_hardware_realtek/tree/rtk1395/bt/rtkbt/Firmware/BT), version 0x097bec43 (2020-01-10). See [install notes here](https://linuxreviews.org/Realtek_RTL8761B).
           - Mgmt-Cmd SET_POWERED works.
-      - Warning: BTTypes0.cpp:1346 read_ext_ad_reports: EAD[0]
-
-    - Asus BT-500 (USB-A, ID 0b05:190e)
-      - Unknown firmware (not reported)
       - Warning: BTTypes0.cpp:1346 read_ext_ad_reports: EAD[0]
 
 ### Unknown if working with *Direct-BT*
