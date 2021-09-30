@@ -1,4 +1,4 @@
-LogiLink BT0048 ID 0bda:8771 (Realtek Semiconductor Corp. Bluetooth Radio)
+LogiLink BT0058 ID 0bda:8771 (Realtek Semiconductor Corp. Bluetooth Radio)
 [Fri Oct  1 00:08:47 2021] usb 1-4: new full-speed USB device number 22 using xhci_hcd
 [Fri Oct  1 00:08:47 2021] usb 1-4: New USB device found, idVendor=0bda, idProduct=8771, bcdDevice= 2.00
 [Fri Oct  1 00:08:47 2021] usb 1-4: New USB device strings: Mfr=1, Product=2, SerialNumber=3
