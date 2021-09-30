@@ -1171,71 +1171,75 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
     uint8_t const *limes = data + data_length;
     uint8_t const *i_octets = data + 1;
     uint8_t ad_data_len[0x19];
-    jau::nsize_t segment_count = 5 * num_reports; // excluding data segment
-    jau::nsize_t read_segments = 0;
     jau::nsize_t i;
     const uint64_t timestamp = jau::getCurrentMilliseconds();
 
-    for(i = 0; i < num_reports && i_octets < limes; i++) {
+    const int seg4_size = 1 + 1 + 6 + 1;
+
+    for(i = 0; i < num_reports && i_octets < limes; i++) { // seg 1
         ad_reports.push_back( std::make_unique<EInfoReport>() );
         ad_reports[i]->setSource(Source::AD);
         ad_reports[i]->setTimestamp(timestamp);
+
+        if( i_octets + seg4_size > limes ) {
+            const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
+            WARN_PRINT("AD-Reports: Insufficient data length (1) %zu: report %zu/%zu: min_data_len %zu > bytes-left %zu (Drop)",
+                    data_length, i, num_reports, seg4_size, bytes_left);
+            ad_reports.pop_back();
+            goto errout;
+        }
+
+        // seg 1: 1
         ad_reports[i]->setEvtType(static_cast<AD_PDU_Type>(*i_octets++));
-        read_segments++;
-    }
-    for(i = 0; i < num_reports && i_octets < limes; i++) {
+
+        // seg 2: 1
         ad_reports[i]->setADAddressType(*i_octets++);
-        read_segments++;
-    }
-    for(i = 0; i < num_reports && i_octets + 5 < limes; i++) {
+
+        // seg 3: 6
         ad_reports[i]->setAddress( *((jau::EUI48 const *)i_octets) );
         i_octets += 6;
-        read_segments++;
-    }
-    for(i = 0; i < num_reports && i_octets < limes; i++) {
+
+        // seg 4: 1
         ad_data_len[i] = *i_octets++;
-        read_segments++;
-    }
-    for(i = 0; i < num_reports; i++) { // adjust segement_count
-        if( 0 < ad_data_len[i] ) {
-            segment_count++;
+
+        // seg 5: ADV Response Data (EAD-Report)
+        if( i_octets + ad_data_len[i] + 1 > limes ) {
+            const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
+            WARN_PRINT("AD-Reports: Insufficient data length (2) %zu: report %zu/%zu: eir_data_len + rssi %zu > bytes-left %zu (Drop)",
+                    data_length, i, num_reports, (ad_data_len[i] + 1), bytes_left);
+            ad_reports.pop_back();
+            goto errout;
         }
-    }
-    for(i = 0; i < num_reports && i_octets + ad_data_len[i] <= limes; i++) {
         if( 0 < ad_data_len[i] ) {
             ad_reports[i]->read_data(i_octets, ad_data_len[i]);
             i_octets += ad_data_len[i];
-            read_segments++;
         }
-    }
-    for(i = 0; i < num_reports && i_octets < limes; i++) {
+
+        // seg 6: 1
         ad_reports[i]->setRSSI(*const_uint8_to_const_int8_ptr(i_octets));
         i_octets++;
-        read_segments++;
     }
-    const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
 
-    if( segment_count != read_segments || 0 > bytes_left ) {
+errout:
+    {
+        const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
+        const jau::snsize_t bytes_took = static_cast<jau::snsize_t>(i_octets - data);
         if( 0 > bytes_left ) {
-            ERR_PRINT("EAD-Reports: Buffer overflow\n");
-        } else {
-            WARN_PRINT("EAD-Reports: Incomplete data segments\n");
+            ERR_PRINT("AD-Reports: Buffer overflow: %zu reports, bytes[consumed %zu, left %zu, total %zu]",
+                    num_reports, bytes_took, bytes_left, data_length);
         }
-        WARN_PRINT("AD-Reports: %zu reports within %zu bytes: Segment read %zu < %zu, data-ptr %zd bytes to limes\n",
-                num_reports, data_length, read_segments, segment_count, bytes_left);
-        for(i=0; i<num_reports; i++) {
-            WARN_PRINT("EAD[%d]: ad_data_length %d, %s\n", (int)i, (int)ad_data_len[i], ad_reports[i]->toString(false).c_str());
+#ifdef AD_DEBUG
+        else {
+            DBG_PRINT("AD-Reports: %zu reports, bytes[consumed %zu, left %zu, total %zu]",
+                    num_reports, bytes_took, bytes_left, data_length);
         }
+        if( jau::environment::get().debug ) {
+            for(i=0; i<num_reports; i++) {
+                jau::INFO_PRINT("AD[%d]: ad_data_length %d, %s\n", (int)i, (int)ad_data_len[i], ad_reports[i]->toString(false).c_str());
+            }
+        }
+#endif
     }
-#if AD_DEBUG
-    else {
-        DBG_PRINT("AD-Reports: %zu reports within %zu bytes: Segment read %zu (%zu), data-ptr %zd bytes to limes\n",
-                num_reports, data_length, read_segments, segment_count, bytes_left);
-        for(i=0; i<num_reports; i++) {
-            DBG_PRINT("EAD[%d]: ad_data_length %d, %s\n", (int)i, (int)ad_data_len[i], ad_reports[i]->toString(false).c_str());
-        }
-    }
-#endif /* AD_DEBUG */
     return ad_reports;
 }
 
@@ -1250,111 +1254,110 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ext_ad_reports(uint8
     uint8_t const *limes = data + data_length;
     uint8_t const *i_octets = data + 1;
     uint8_t ad_data_len[0x19];
-    jau::nsize_t segment_count = 12 * num_reports; // excluding data segment
-    jau::nsize_t read_segments = 0;
     jau::nsize_t i;
     const uint64_t timestamp = jau::getCurrentMilliseconds();
 
-    for(i = 0; i < num_reports && i_octets < limes; i++) {
+    const int seg12_size = 2 + 1 + 6 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 6 + 1;
+
+    for(i = 0; i < num_reports; i++) {
         ad_reports.push_back( std::make_unique<EInfoReport>() );
         ad_reports[i]->setSource(Source::EAD);
         ad_reports[i]->setTimestamp(timestamp);
-        const EAD_Event_Type ead_type_ = static_cast<EAD_Event_Type>(jau::get_uint16(i_octets, 0, true /* littleEndian */));
-        ad_reports[i]->setExtEvtType(ead_type_);
-        i_octets+=2;
-        if( isEAD_Event_TypeSet(ead_type_, EAD_Event_Type::LEGACY_PDU) ) {
-            ad_reports[i]->setEvtType(static_cast<AD_PDU_Type>(number(ead_type_)));
+
+        if( i_octets + seg12_size > limes ) {
+            const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
+            WARN_PRINT("EAD-Reports: Insufficient data length (1) %zu: report %zu/%zu: min_data_len %zu > bytes-left %zu (Drop)",
+                    data_length, i, num_reports, seg12_size, bytes_left);
+            ad_reports.pop_back();
+            goto errout;
         }
-        read_segments++;
-    }
-    for(i = 0; i < num_reports && i_octets < limes; i++) {
+
+        // seg 1: 2
+        {
+            const EAD_Event_Type ead_type_ = static_cast<EAD_Event_Type>(jau::get_uint16(i_octets, 0, true /* littleEndian */));
+            ad_reports[i]->setExtEvtType(ead_type_);
+            i_octets+=2;
+            if( isEAD_Event_TypeSet(ead_type_, EAD_Event_Type::LEGACY_PDU) ) {
+                ad_reports[i]->setEvtType(static_cast<AD_PDU_Type>(number(ead_type_)));
+            }
+        }
+
+        // seg 2: 1
         ad_reports[i]->setADAddressType(*i_octets++);
-        read_segments++;
-    }
-    for(i = 0; i < num_reports && i_octets + 5 < limes; i++) {
+
+        // seg 3: 6
         ad_reports[i]->setAddress( *((jau::EUI48 const *)i_octets) );
         i_octets += 6;
-        read_segments++;
-    }
-    for(i = 0; i < num_reports && i_octets < limes; i++) {
+
+        // seg 4: 1
         // Primary_PHY: 0x01 = LE_1M, 0x03 = LE_CODED
         i_octets++;
-        read_segments++;
-    }
-    for(i = 0; i < num_reports && i_octets < limes; i++) {
+
+        // seg 5: 1
         // Sexondary_PHY: 0x00 None, 0x01 = LE_1M, 0x02 = LE_2M, 0x03 = LE_CODED
         i_octets++;
-        read_segments++;
-    }
-    for(i = 0; i < num_reports && i_octets < limes; i++) {
+
+        // seg 6: 1
         // Advertising_SID
         i_octets++;
-        read_segments++;
-    }
-    for(i = 0; i < num_reports && i_octets < limes; i++) {
+
+        // seg 7: 1
         ad_reports[i]->setTxPower(*const_uint8_to_const_int8_ptr(i_octets));
         i_octets++;
-        read_segments++;
-    }
-    for(i = 0; i < num_reports && i_octets < limes; i++) {
+
+        // seg 8: 1
         ad_reports[i]->setRSSI(*const_uint8_to_const_int8_ptr(i_octets));
         i_octets++;
-        read_segments++;
-    }
-    for(i = 0; i < num_reports && i_octets < limes; i++) {
+
+        // seg 9: 2
         // Periodic_Advertising_Interval
         i_octets+=2;
-        read_segments++;
-    }
-    for(i = 0; i < num_reports && i_octets < limes; i++) {
+
+        // seg 10: 1
         // Direct_Address_Type
         i_octets++;
-        read_segments++;
-    }
-    for(i = 0; i < num_reports && i_octets < limes; i++) {
+
+        // seg 11: 6
         // Direct_Address
         i_octets+=6;
-        read_segments++;
-    }
-    for(i = 0; i < num_reports && i_octets < limes; i++) {
+
+        // seg 12: 1
         ad_data_len[i] = *i_octets++;
-        read_segments++;
-    }
-    for(i = 0; i < num_reports; i++) { // adjust segement_count
-        if( 0 < ad_data_len[i] ) {
-            segment_count++;
+
+        // seg 13: ADV Response Data (EAD-Report)
+        if( i_octets + ad_data_len[i] > limes ) {
+            const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
+            WARN_PRINT("EAD-Reports: Insufficient data length (2) %zu: report %zu/%zu: eir_data_len %zu > bytes-left %zu (Drop)",
+                    data_length, i, num_reports, ad_data_len[i], bytes_left);
+            ad_reports.pop_back();
+            goto errout;
         }
-    }
-    for(i = 0; i < num_reports && i_octets + ad_data_len[i] <= limes; i++) {
         if( 0 < ad_data_len[i] ) {
             ad_reports[i]->read_data(i_octets, ad_data_len[i]);
             i_octets += ad_data_len[i];
-            read_segments++;
         }
     }
-    const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
 
-    if( segment_count != read_segments || 0 > bytes_left ) {
+errout:
+    {
+        const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
+        const jau::snsize_t bytes_took = static_cast<jau::snsize_t>(i_octets - data);
         if( 0 > bytes_left ) {
-            ERR_PRINT("EAD-Reports: Buffer overflow\n");
-        } else {
-            WARN_PRINT("EAD-Reports: Incomplete data segments\n");
+            ERR_PRINT("EAD-Reports: Buffer overflow: %zu reports, bytes[consumed %zu, left %zu, total %zu]",
+                    num_reports, bytes_took, bytes_left, data_length);
         }
-        WARN_PRINT("EAD-Reports: %zu reports within %zu bytes: Segment read %zu < %zu, data-ptr %zd bytes to limes\n",
-                num_reports, data_length, read_segments, segment_count, bytes_left);
-        for(i=0; i<num_reports; i++) {
-            WARN_PRINT("EAD[%d]: ad_data_length %d, %s\n", (int)i, (int)ad_data_len[i], ad_reports[i]->toString(false).c_str());
+#ifdef AD_DEBUG
+        else {
+            DBG_PRINT("EAD-Reports: %zu reports, bytes[consumed %zu, left %zu, total %zu]",
+                    num_reports, bytes_took, bytes_left, data_length);
         }
+        if( jau::environment::get().debug ) {
+            for(i=0; i<num_reports; i++) {
+                jau::INFO_PRINT("EAD[%d]: ad_data_length %d, %s\n", (int)i, (int)ad_data_len[i], ad_reports[i]->toString(false).c_str());
+            }
+        }
+#endif
     }
-#if AD_DEBUG
-    else {
-        DBG_PRINT("EAD-Reports: %zu reports within %zu bytes: Segment read %zu (%zu), data-ptr %zd bytes to limes\n",
-                num_reports, data_length, read_segments, segment_count, bytes_left);
-        for(i=0; i<num_reports; i++) {
-            DBG_PRINT("EAD[%d]: ad_data_length %d, %s\n", (int)i, (int)ad_data_len[i], ad_reports[i]->toString(false).c_str());
-        }
-    }
-#endif /* AD_DEBUG */
     return ad_reports;
 }
 
