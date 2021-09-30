@@ -18,7 +18,8 @@
     - Raspberry Pi 3+ Bluetooth Adapter (Internal, BCM43455)
     - Raspberry Pi 4  Bluetooth Adapter (Internal, BCM4345C0)
 
-  - *BCM20702A* Chipsets
+  - *BCM20xxxx* Chipsets
+    - Broadcom Corp. BCM2046B1, part of BCM2046 Bluetooth (Internal, ID 0a5c:4500)
     - Asus BT-400 Broadcom BCM20702A Bluetooth (USB-A, ID 0b05:17cb, BCM20702A1)
 
 ## Bluetooth 5

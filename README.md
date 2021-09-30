@@ -80,6 +80,7 @@ The following **platforms** are tested and hence supported
   - CSR Bluetooth Adapter (USB-A, ID: 0a12:0001, CSR8510) *OK*
   - Raspberry Pi Bluetooth Adapter (Internal, BCM43455 on 3+, 4) *OK*
   - Asus BT-400 Broadcom BCM20702A Bluetooth (USB-A, ID 0b05:17cb, BCM20702A1) *OK*
+  - Broadcom Corp. BCM2046B1, part of BCM2046 Bluetooth (Internal, ID 0a5c:4500) *OK*
 
 * Bluetooth 5.0
   - Intel AX200 (Internal, ID 8087:0029) *OK*
