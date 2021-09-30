@@ -1,3 +1,4 @@
+Kernel/System: 5.10.0-8-amd64 / Debian 11
 Firmware: Version 0x0d99646b (2021-06-09)
 Source: https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/log/rtl_bt/rtl8761b_fw.bin
 Note: Mgmt-Cmd SET_POWERED is not working!
@@ -16,6 +17,7 @@ Note: Mgmt-Cmd SET_POWERED is not working!
 [Thu Sep 30 10:07:52 2021] Bluetooth: hci1: RTL: cfg_sz 25, total sz 21389
 [Thu Sep 30 10:07:52 2021] Bluetooth: hci1: RTL: fw version 0x0d99646b
 
+Kernel/System: 5.10.0-8-amd64 / Debian 11
 Firmware: Version 0x097bec43 (2020-01-10)
 Source: https://github.com/Realtek-OpenSource/android_hardware_realtek/tree/rtk1395/bt/rtkbt/Firmware/BT
 Note: Mgmt-Cmd SET_POWERED works.

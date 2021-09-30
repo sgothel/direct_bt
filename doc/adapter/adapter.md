@@ -30,6 +30,8 @@
     - Intel AX201 (Internal, ID 8087:0026)
 
 ### Not working with *Direct-BT*
+  Kernel/System: 5.10.0-8-amd64 / Debian 11
+
   - *RTL8761B* Chipsets
     - CSL - Bluetooth 5.0 USB Adapter Nano (USB-A, ID: 0bda:8771, RTL8761B)
       - Firmware `rtl8761b_fw.bin` and `rtl8761b_config.bin` sources
