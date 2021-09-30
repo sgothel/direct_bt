@@ -59,7 +59,7 @@ public interface BTGattChar extends BTObject
          * with the given {@link BTGattChar}.
          * @param charDecl {@link BTGattChar} related to this notification
          * @param value the notification value
-         * @param timestamp the indication monotonic timestamp, see {@link BTUtils#currentTimeMillis()}
+         * @param timestamp monotonic timestamp at reception, see {@link BTUtils#currentTimeMillis()}
          */
         void notificationReceived(final BTGattChar charDecl,
                                   final byte[] value, final long timestamp);
@@ -69,7 +69,7 @@ public interface BTGattChar extends BTObject
          * with the given {@link BTGattChar}.
          * @param charDecl {@link BTGattChar} related to this indication
          * @param value the indication value
-         * @param timestamp the indication monotonic timestamp, see {@link BTUtils#currentTimeMillis()}
+         * @param timestamp monotonic timestamp at reception, see {@link BTUtils#currentTimeMillis()}
          * @param confirmationSent if true, the native stack has sent the confirmation, otherwise user is required to do so.
          */
         void indicationReceived(final BTGattChar charDecl,

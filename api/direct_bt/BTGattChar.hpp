@@ -126,7 +126,7 @@ namespace direct_bt {
                      * with the given {@link BTGattChar}.
                      * @param charDecl {@link BTGattChar} related to this notification
                      * @param charValue the notification value
-                     * @param timestamp the indication monotonic timestamp, see getCurrentMilliseconds()
+                     * @param timestamp monotonic timestamp at reception, see getCurrentMilliseconds()
                      */
                     virtual void notificationReceived(BTGattCharRef charDecl,
                                                       const jau::TROOctets& charValue, const uint64_t timestamp) = 0;
@@ -136,7 +136,7 @@ namespace direct_bt {
                      * with the given {@link BTGattChar}.
                      * @param charDecl {@link BTGattChar} related to this indication
                      * @param charValue the indication value
-                     * @param timestamp the indication monotonic timestamp, see {@link BluetoothUtils#getCurrentMilliseconds()}
+                     * @param timestamp monotonic timestamp at reception, see {@link BluetoothUtils#getCurrentMilliseconds()}
                      * @param confirmationSent if true, the native stack has sent the confirmation, otherwise user is required to do so.
                      */
                     virtual void indicationReceived(BTGattCharRef charDecl,
@@ -514,7 +514,7 @@ namespace direct_bt {
              * with the given {@link BTGattChar}.
              * @param charDecl {@link BTGattChar} related to this notification
              * @param charValue the notification value
-             * @param timestamp the indication monotonic timestamp, see getCurrentMilliseconds()
+             * @param timestamp monotonic timestamp at reception, see getCurrentMilliseconds()
              */
             virtual void notificationReceived(BTGattCharRef charDecl,
                                               const jau::TROOctets& charValue, const uint64_t timestamp) = 0;
@@ -524,7 +524,7 @@ namespace direct_bt {
              * with the given {@link BTGattChar}.
              * @param charDecl {@link BTGattChar} related to this indication
              * @param charValue the indication value
-             * @param timestamp the indication monotonic timestamp, see {@link BluetoothUtils#getCurrentMilliseconds()}
+             * @param timestamp monotonic timestamp at reception, see {@link BluetoothUtils#getCurrentMilliseconds()}
              * @param confirmationSent if true, the native stack has sent the confirmation, otherwise user is required to do so.
              */
             virtual void indicationReceived(BTGattCharRef charDecl,
