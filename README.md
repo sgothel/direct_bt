@@ -33,20 +33,25 @@ or via its [Java API](https://jausoft.com/projects/direct_bt/build/documentation
 
 *Direct-BT* is C++17 conform and shall upgrade towards C++20 when widely available on all target platforms.
 
-Some more elaboration on the implementation and its status
+Some elaboration on the implementation details
 > The host-side of HCI, L2CAP etc is usually implemented within the OS, e.g. *Linux/BlueZ* Kernel.
 > These layers communicate with the actual BT controller and the user application, acting as the middleman.
 > 
 > *Direct-BT* offers packet types and handler facilities for HCI, L2CAP, SMP, ATT-PDU and GATT (as well to *Linux/BlueZ-Mngr*)
 > to communicate with these universal host-side Bluetooth layers and hence to reach-out to devices.
+>
+
+### Implementation Status
+> LE master/client mode is fully supported to work with LE BT devices.
+>
+> The LE slave/server mode is in progress (peripheral):
+>   - BTRole separation implemented
+>   - Advertising implemented
+>   - GATT Server in progress
 > 
-> Currently only the master/client mode is supported to work with LE BT devices.
-> 
-> *LE Secure Connections* and *LE legacy pairing* is supported,
+> *SMP LE Secure Connections* and *LE legacy pairing* is fully supported,
 > exposing BTSecurityLevel and SMPIOCapability setup per connection
 > and providing *automatic security mode negotiation*.
->
-> BLE slave peripheral and GATT server support is underway.
 >
 > BREDR support is planned and prepared for.
 >
@@ -157,8 +162,8 @@ it also needs *cap_setpcap,cap_setuid,cap_setgid+ep* beforehand.
 
 The *capsh* method (default), *setcap* and *root* method is being utilized in
 
-- [scripts/run-dbt_scanner10.sh](https://jausoft.com/cgit/direct_bt.git/tree/scripts/run-dbt_scanner10.sh)
-- [scripts/run-java-scanner10.sh](https://jausoft.com/cgit/direct_bt.git/tree/scripts/run-java-scanner10.sh)
+- [scripts/run-dbt_scanner10.sh](https://jausoft.com/cgit/direct_bt.git/tree/scripts/run-native-example.sh)
+- [scripts/run-java-scanner10.sh](https://jausoft.com/cgit/direct_bt.git/tree/scripts/run-java-example.sh)
 
 See *Examples* below ...
 
@@ -214,7 +219,7 @@ systemctl disable bluetooth
 systemctl mask bluetooth
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-### Build dependencies
+### Build Dependencies
 - CMake 3.13+ but >= 3.18 is recommended
 - GCC >= 8.3.0 (g++)
   - or clang >= 10.0
@@ -234,7 +239,12 @@ apt install cmake cmake-extras extra-cmake-modules pkg-config
 apt install doxygen graphviz
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-### Building...
+### Build Procedure
+The following is covered with [a convenient build script](https://jausoft.com/cgit/direct_bt.git/tree/scripts/build.sh).
+
+A [cross-build script](https://jausoft.com/cgit/direct_bt.git/tree/scripts/build-cross.sh)
+using chroot into a target system is also available.
+
 For a generic build use:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
