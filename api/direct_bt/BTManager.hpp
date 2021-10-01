@@ -88,6 +88,14 @@ namespace direct_bt {
             const int32_t MGMT_COMMAND_REPLY_TIMEOUT;
 
             /**
+             * Timeout for mgmt SET_POWER command reply, defaults to max(MGMT_COMMAND_REPLY_TIMEOUT, 6s).
+             * <p>
+             * Environment variable is 'direct_bt.mgmt.setpower.timeout'.
+             * </p>
+             */
+            const int32_t MGMT_SET_POWER_COMMAND_TIMEOUT;
+
+            /**
              * Small ringbuffer capacity for synchronized commands, defaults to 64 messages.
              * <p>
              * Environment variable is 'direct_bt.mgmt.ringsize'.
@@ -257,8 +265,25 @@ namespace direct_bt {
             /**
              * In case response size check or devID and optional opcode validation fails,
              * function returns NULL.
+             *
+             * @param req the command request
+             * @param timeoutMS timeout in milliseconds
+             * @return the resulting event or nullptr on failure (timeout)
              */
-            std::unique_ptr<MgmtEvent> sendWithReply(MgmtCommand &req) noexcept;
+            std::unique_ptr<MgmtEvent> sendWithReply(MgmtCommand &req, const int timeoutMS) noexcept;
+
+            /**
+             * In case response size check or devID and optional opcode validation fails,
+             * function returns NULL.
+             *
+             * This override uses a timeout of MgmtEnv::MGMT_COMMAND_REPLY_TIMEOUT (usually 3s).
+             *
+             * @param req the command request
+             * @return the resulting event or nullptr on failure (timeout)
+             */
+            std::unique_ptr<MgmtEvent> sendWithReply(MgmtCommand &req) noexcept {
+                return sendWithReply(req, env.MGMT_COMMAND_REPLY_TIMEOUT);
+            }
 
             bool send(MgmtCommand &req) noexcept;
 

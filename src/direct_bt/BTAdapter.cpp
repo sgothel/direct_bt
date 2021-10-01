@@ -448,7 +448,7 @@ HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
     // Also fails if unable to power-on and not powered-on!
     HCIStatusCode status = mgmt.initializeAdapter(adapterInfo, dev_id, BTRole::None /* unused */, btMode);
     if( HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("BTAdapter::initialize: Adapter[%d]: Failed initializing (1): res0 %s, powered[before %d, now %d], %s - %s",
+        WARN_PRINT("BTAdapter::initialize: Adapter[%d]: Failed initializing (1): res0 %s, powered[before %d, now %d], %s - %s",
                 dev_id, to_string(status).c_str(),
                 was_powered, adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED),
                 adapterInfo.toString().c_str(), toString().c_str());
