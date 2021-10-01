@@ -375,6 +375,9 @@ and would be resource intensive.
 **2.4.0**
 
 * TODO ...
+* Passed validation of [multiple BT5 adapter](doc/adapter/adapter.md).
+* Fixed `EInfoReport::read_[ext_]ad_reports()` multiple reports 
+* Added Link-Key support in our SMP processing and SMPKeyBin, supporting non-legacy SC.
 * Aligned `BTGatt* findGatt*()` methods across Java/C++
 * Moved `EUI48`, `EUI48Sub` (C++/Java) and `uuid_t`, `Octets` (C++) to `jaulib` for general use.
 * Added BTRole and GATTRole for full master/client and slave/server support.
