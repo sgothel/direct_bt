@@ -242,9 +242,6 @@ apt install doxygen graphviz
 ### Build Procedure
 The following is covered with [a convenient build script](https://jausoft.com/cgit/direct_bt.git/tree/scripts/build.sh).
 
-A [cross-build script](https://jausoft.com/cgit/direct_bt.git/tree/scripts/build-cross.sh)
-using chroot into a target system is also available.
-
 For a generic build use:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
@@ -326,6 +323,16 @@ To build documentation run:
 ~~~~~~~~~~~~~
 make doc
 ~~~~~~~~~~~~~
+
+### Cross Build
+Also provided is a [cross-build script](https://jausoft.com/cgit/direct_bt.git/tree/scripts/build-cross.sh)
+using chroot into a target system using QEMU User space emulation](https://qemu-project.gitlab.io/qemu/user/main.html)
+and [Linux kernel binfmt_misc](https://wiki.debian.org/QemuUserEmulation)
+to run on other architectures than the host.
+
+You may use [our pi-gen branch](https://jausoft.com/cgit/pi-gen.git/about/) to produce 
+a Raspi-arm64, Raspi-armhf or PC-amd64 target image.
+
 
 ## Build Status
 *Will be updated*
