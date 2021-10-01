@@ -266,9 +266,17 @@ namespace direct_bt {
             const bool debug_event, debug_lock;
             BTManager& mgmt;
             AdapterInfo adapterInfo;
+
+            /** Flag signaling whether initialize() has been called, regardless of success. */
             jau::sc_atomic_bool adapter_initialized;
+            /** Flag signaling whether initialize() has powered-on this adapter. */
+            jau::sc_atomic_bool adapter_poweredon_at_init;
+
             LE_Features le_features;
+
+            /** BT5: Using extended scanning. */
             bool hci_uses_ext_scan;
+            /** BT5: Using extended connect. */
             bool hci_uses_ext_conn;
 
             /**
@@ -438,7 +446,7 @@ namespace direct_bt {
              * Closes this instance, usually being called by destructor or when this adapter is being removed
              * as recognized and handled by BTManager.
              * <p>
-             * In case initialize() or setPowered(true) has been called, i.e. this adapter has been powered-on by the user,
+             * In case initialize() has powered-on this adapter and was not powered-on before,
              * it will be powered-off.
              * </p>
              * <p>
@@ -590,8 +598,6 @@ namespace direct_bt {
             /**
              * Set the power state of the adapter.
              *
-             * Powering on this adapter successfully, will allow close() to power-off the adapter.
-             *
              * In case current power state is already as desired, method will not change the power state.
              *
              * @param power_on true will power on this adapter if it is powered-off and vice versa.
@@ -611,7 +617,8 @@ namespace direct_bt {
              * While initialization, the adapter is first powered-off, setup and then powered-on.
              * </p>
              * <p>
-             * Calling the method will allow close() to power-off the adapter.
+             * Calling the method will allow close() to power-off the adapter,
+             * if not powered on before.
              * </p>
              * @param btMode the desired adapter's BTMode, defaults to BTMode::DUAL
              * @return HCIStatusCode::SUCCESS or an error state on failure (e.g. power-on)
@@ -623,9 +630,7 @@ namespace direct_bt {
             HCIStatusCode initialize(const BTMode btMode=BTMode::DUAL) noexcept;
 
             /**
-             * Returns true, if this adapter has already been initialize() 'ed. Otherwise false.
-             *
-             * This helps avoiding re-initializing, if not so desired.
+             * Returns true, if initialize() has already been called for this adapter, otherwise false.
              *
              * @see initialize()
              * @since 2.4.0

@@ -447,8 +447,6 @@ public interface BTAdapter extends BTObject
     /**
      * Sets the power state the adapter.
      *
-     * Powering on this adapter successfully, will allow {@link #close()} to power-off the adapter.
-     *
      * In case current power state is already as desired, method will not change the power state.
      *
      * @param power_on true will power on this adapter if it is powered-off and vice versa.
@@ -471,7 +469,8 @@ public interface BTAdapter extends BTObject
      * While initialization, the adapter is first powered-off, setup and then powered-on.
      * </p>
      * <p>
-     * Calling the method will allow close() to power-off the adapter.
+     * Calling the method will allow close() to power-off the adapter,
+     * if not powered on before.
      * </p>
      * <p>
      * This override uses {@link BTMode#DUAL}
@@ -494,7 +493,8 @@ public interface BTAdapter extends BTObject
      * While initialization, the adapter is first powered-off, setup and then powered-on.
      * </p>
      * <p>
-     * Calling the method will allow close() to power-off the adapter.
+     * Calling the method will allow close() to power-off the adapter,
+     * if not powered on before.
      * </p>
      * @param btMode the desired adapter's {@link BTMode}, default shall be {@link BTMode#DUAL}
      * @return {@link HCIStatusCode#SUCCESS} or an error state on failure (e.g. power-on)
@@ -507,9 +507,7 @@ public interface BTAdapter extends BTObject
     HCIStatusCode initialize(final BTMode btMode);
 
     /**
-     * Returns true, if this adapter has already been {@link #initialize(BTMode)} 'ed. Otherwise false.
-     *
-     * This helps avoiding re-initializing, if not so desired.
+     * Returns true, if {@link #initialize(BTMode)} has already been called for this adapter, otherwise false.
      *
      * @see #initialize(BTMode)
      * @since 2.4.0

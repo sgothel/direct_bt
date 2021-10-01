@@ -258,7 +258,7 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const A
   debug_lock(jau::environment::getBooleanProperty("direct_bt.debug.adapter.lock", false)),
   mgmt( mgmt_ ),
   adapterInfo( adapterInfo_ ),
-  adapter_initialized( false ),
+  adapter_initialized( false ), adapter_poweredon_at_init( false ),
   le_features( LE_Features::NONE ),
   visibleAddressAndType( adapterInfo_.addressAndType ),
   dev_id( adapterInfo.dev_id ),
@@ -305,8 +305,8 @@ void BTAdapter::close() noexcept {
 
     poweredOff(true /* active */);
 
-    if( adapter_initialized ) {
-        adapter_initialized = false;
+    if( adapter_poweredon_at_init ) {
+        adapter_poweredon_at_init = false;
         if( isPowered() ) {
             setPowered(false);
         }
@@ -428,36 +428,42 @@ bool BTAdapter::setPowered(bool power_on) noexcept {
     if( (  power_on &&  isAdapterSettingBitSet(settings, AdapterSetting::POWERED) ) ||
         ( !power_on && !isAdapterSettingBitSet(settings, AdapterSetting::POWERED) ) ) {
         // unchanged
-        if( power_on ) {
-            adapter_initialized = true;
-        }
         return true;
     }
     if( !mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, power_on ? 1 : 0, settings) ) {
         return false;
     }
     const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(settings);
-    updateAdapterSettings(false /* off_thread */, new_settings, false, 0);
+    updateAdapterSettings(false /* off_thread */, new_settings, false /* sendEvent */, 0);
     if( power_on && isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED) ) {
-        adapter_initialized = true;
         return true;
     }
     return !power_on && !isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED);
 }
 
 HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
+    const bool was_powered = adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED);
     adapter_initialized = true;
+
+    // Also fails if unable to power-on and not powered-on!
     HCIStatusCode status = mgmt.initializeAdapter(adapterInfo, dev_id, BTRole::None /* unused */, btMode);
     if( HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("BTAdapter::initialize: Adapter[%d]: Failed initializeAdapter(): res0 %s, %s - %s",
-                dev_id, to_string(status).c_str(), adapterInfo.toString().c_str(), toString().c_str());
+        ERR_PRINT("BTAdapter::initialize: Adapter[%d]: Failed initializing (1): res0 %s, powered[before %d, now %d], %s - %s",
+                dev_id, to_string(status).c_str(),
+                was_powered, adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED),
+                adapterInfo.toString().c_str(), toString().c_str());
         return status;
+    }
+    const bool is_powered = adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED);
+    if( !was_powered ) {
+        adapter_poweredon_at_init = true;
     }
     if( !enableListening(true) ) {
         return HCIStatusCode::INTERNAL_FAILURE;
     }
-    updateAdapterSettings(false /* off_thread */, adapterInfo.getCurrentSettingMask(), false, 0);
-    WORDY_PRINT("BTAdapter::initialize: Adapter[%d]: OK: %s", dev_id, toString().c_str());
+    updateAdapterSettings(false /* off_thread */, adapterInfo.getCurrentSettingMask(), false /* sendEvent */, 0);
+    WORDY_PRINT("BTAdapter::initialize: Adapter[%d]: OK: powered[before %d, init_on %d, now %d], %s", dev_id,
+            was_powered, adapter_poweredon_at_init.load(), is_powered, toString().c_str());
     return HCIStatusCode::SUCCESS;
 }
 
@@ -1297,7 +1303,7 @@ bool BTAdapter::mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(&e);
     const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(event.getSettings()); // probably done by mgmt callback already
 
-    updateAdapterSettings(true /* off_thread */, new_settings, true, event.getTimestamp());
+    updateAdapterSettings(true /* off_thread */, new_settings, true /* sendEvent */, event.getTimestamp());
     return true;
 }
 
