@@ -1202,7 +1202,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         // seg 4: 1
         ad_data_len[i] = *i_octets++;
 
-        // seg 5: ADV Response Data (EAD-Report)
+        // seg 5: ADV Response Data (EIR)
         if( i_octets + ad_data_len[i] + 1 > limes ) {
             const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
             WARN_PRINT("AD-Reports: Insufficient data length (2) %zu: report %zu/%zu: eir_data_len + rssi %zu > bytes-left %zu (Drop)",
@@ -1290,15 +1290,15 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ext_ad_reports(uint8
         i_octets += 6;
 
         // seg 4: 1
-        // Primary_PHY: 0x01 = LE_1M, 0x03 = LE_CODED
+        // Primary_PHY: 0x01 = LE_1M, 0x03 = LE_CODED (TODO)
         i_octets++;
 
         // seg 5: 1
-        // Sexondary_PHY: 0x00 None, 0x01 = LE_1M, 0x02 = LE_2M, 0x03 = LE_CODED
+        // Sexondary_PHY: 0x00 None, 0x01 = LE_1M, 0x02 = LE_2M, 0x03 = LE_CODED (TODO)
         i_octets++;
 
         // seg 6: 1
-        // Advertising_SID
+        // Advertising_SID (TODO)
         i_octets++;
 
         // seg 7: 1
@@ -1310,21 +1310,21 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ext_ad_reports(uint8
         i_octets++;
 
         // seg 9: 2
-        // Periodic_Advertising_Interval
+        // Periodic_Advertising_Interval (TODO)
         i_octets+=2;
 
         // seg 10: 1
-        // Direct_Address_Type
+        // Direct_Address_Type (TODO)
         i_octets++;
 
         // seg 11: 6
-        // Direct_Address
+        // Direct_Address (TODO)
         i_octets+=6;
 
         // seg 12: 1
         ad_data_len[i] = *i_octets++;
 
-        // seg 13: ADV Response Data (EAD-Report)
+        // seg 13: ADV Response Data (EIR)
         if( i_octets + ad_data_len[i] > limes ) {
             const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
             WARN_PRINT("EAD-Reports: Insufficient data length (2) %zu: report %zu/%zu: eir_data_len %zu > bytes-left %zu (Drop)",
