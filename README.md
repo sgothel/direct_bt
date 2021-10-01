@@ -326,7 +326,7 @@ make doc
 
 ### Cross Build
 Also provided is a [cross-build script](https://jausoft.com/cgit/direct_bt.git/tree/scripts/build-cross.sh)
-using chroot into a target system using QEMU User space emulation](https://qemu-project.gitlab.io/qemu/user/main.html)
+using chroot into a target system using [QEMU User space emulation](https://qemu-project.gitlab.io/qemu/user/main.html)
 and [Linux kernel binfmt_misc](https://wiki.debian.org/QemuUserEmulation)
 to run on other architectures than the host.
 
