@@ -90,7 +90,7 @@ The following **platforms** are tested and hence supported
 * Bluetooth 5.0
   - Intel AX200 (Internal, ID 8087:0029) *OK*
   - Intel AX201 (Internal, ID 8087:0026) *OK*
-  - Realtek RTL8761B *OK* (needs manual power-up, depending on firmware)
+  - Realtek RTL8761B *OK* (May need manual power-up, depending on firmware)
 
 Please check the [adapter list](doc/adapter/adapter.md) for more details.
 

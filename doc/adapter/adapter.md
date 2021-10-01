@@ -30,10 +30,16 @@
     - Intel AX200 (Internal, ID 8087:0029)
     - Intel AX201 (Internal, ID 8087:0026)
 
+  - *Realtek* RTL8761BU Chipsets 
+    May need manual power-up, depending on firmware (see below incl. RTL8761B notes).
+      - Asus BT-500 (USB-A, ID 0b05:190e, RTL8761BU)
+        - Firmware via [ASUS](https://www.asus.com/us/Networking-IoT-Servers/Adapters/All-series/USB-BT500/HelpDesk_Download/)
+        or [linux-firmware](https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/log/rtl_bt/rtl8761bu_fw.bin).
+        - May require Kernel 5.14 to load RTL8761BU firmware, see below.
+
   - *Realtek* RTL8761B Chipsets 
-    Needs manual power-up, depending on firmware (see below).
+    May need manual power-up, depending on firmware (see below).
     - Devices
-      - Asus BT-500 (USB-A, ID 0b05:190e, RTL8761B)
       - CSL - Bluetooth 5.0 USB Adapter Nano (USB-A, ID: 0bda:8771, RTL8761B)
       - LogiLink BT0054 or BT0058 (USB-A, ID 0bda:8771, RTL8761B)
       - TP-Link UB500 (USB-A, ID 2357:0604, RTL8761B)
