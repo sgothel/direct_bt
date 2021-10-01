@@ -31,26 +31,36 @@
     - Intel AX201 (Internal, ID 8087:0026)
 
   - *Realtek* RTL8761BU Chipsets 
-    May need manual power-up, depending on firmware (see below incl. RTL8761B notes).
-      - Asus BT-500 (USB-A, ID 0b05:190e, RTL8761BU)
+      - ID 0b05:190e, USB-A, Asus BT-500 (RTL8761BU)
+        - Works well with Debian 12 (Kernel 5.14.0, using rtl8761bu_fw.bin firmware)
+        - For older platforms, see below.
         - Firmware via [ASUS](https://www.asus.com/us/Networking-IoT-Servers/Adapters/All-series/USB-BT500/HelpDesk_Download/)
         or [linux-firmware](https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/log/rtl_bt/rtl8761bu_fw.bin).
-        - May require Kernel 5.14 to load RTL8761BU firmware, see below.
 
-  - *Realtek* RTL8761B Chipsets 
+      - ID 0bda:8771, USB-A, Generic RTL8761BU
+
+        May need manual power-up, depending on firmware (see below).
+
+        - Products:
+          - CSL - Bluetooth 5.0 USB Adapter Nano
+          - LogiLink BT0054 or BT0058
+
+        - Firmware
+          - Files `rtl8761b_fw.bin` (Kernel 5.10) or `rtl8761bu_fw.bin` (Kernel 5.14), sources
+            - [linux-firmware](https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/log/rtl_bt/rtl8761b_fw.bin), version 0x0d99646b (2021-06-09).
+              - Mgmt-Cmd SET_POWERED is not working!
+            - [Realtek-OpenSource](https://github.com/Realtek-OpenSource/android_hardware_realtek/tree/rtk1395/bt/rtkbt/Firmware/BT), version 0x097bec43 (2020-01-10). See [install notes here](https://linuxreviews.org/Realtek_RTL8761B).
+              - Mgmt-Cmd SET_POWERED works.
+
+  - *Realtek* RTL8761?? Chipsets 
+
     May need manual power-up, depending on firmware (see below).
-    - Devices
-      - CSL - Bluetooth 5.0 USB Adapter Nano (USB-A, ID: 0bda:8771, RTL8761B)
-      - LogiLink BT0054 or BT0058 (USB-A, ID 0bda:8771, RTL8761B)
-      - TP-Link UB500 (USB-A, ID 2357:0604, RTL8761B)
-        - Requires [Kernel Patch 2021-09-30](https://lore.kernel.org/lkml/20210930082239.3699395-1-nick@flinny.org/T/)
-    - Firmware
-      - Files `rtl8761b_fw.bin` (Kernel 5.10) or `rtl8761bu_fw.bin` (Kernel 5.14), sources
-        - [linux-firmware](https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/log/rtl_bt/rtl8761b_fw.bin), version 0x0d99646b (2021-06-09).
-          - Mgmt-Cmd SET_POWERED is not working!
-        - [Realtek-OpenSource](https://github.com/Realtek-OpenSource/android_hardware_realtek/tree/rtk1395/bt/rtkbt/Firmware/BT), version 0x097bec43 (2020-01-10). See [install notes here](https://linuxreviews.org/Realtek_RTL8761B).
-          - Mgmt-Cmd SET_POWERED works.
 
+    Expected to work fine on Kernel 5.14+ systems, like Debian 12.
+
+    - Devices
+      - TP-Link UB500 (USB-A, ID 2357:0604, RTL8761B??)
+        - Requires [Kernel Patch 2021-09-30](https://lore.kernel.org/lkml/20210930082239.3699395-1-nick@flinny.org/T/)
 
 ### Not working with *Direct-BT*
 

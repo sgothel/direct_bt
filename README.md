@@ -64,6 +64,9 @@ To support other platforms than Linux/BlueZ, we will have to
 ## Supported Platforms
 The following **platforms** are tested and hence supported
 
+**Debian 12 Bookworm (GNU/Linux)**
+- amd64 (validated, Generic)
+
 **Debian 11 Bullseye (GNU/Linux)**
 - amd64 (validated, Generic)
 - arm64 (should work, Raspberry Pi 3+ and 4)
@@ -90,7 +93,8 @@ The following **platforms** are tested and hence supported
 * Bluetooth 5.0
   - Intel AX200 (Internal, ID 8087:0029) *OK*
   - Intel AX201 (Internal, ID 8087:0026) *OK*
-  - Realtek RTL8761B *OK* (May need manual power-up, depending on firmware)
+  - Asus BT-500 (USB-A, ID 0b05:190e, RTL8761BU) *OK on Debian12/Kernel 5.14)*
+  - Realtek RTL8761BU *OK* (May need manual power-up, depending on firmware)
 
 Please check the [adapter list](doc/adapter/adapter.md) for more details.
 
