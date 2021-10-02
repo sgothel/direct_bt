@@ -701,9 +701,9 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) {
         uint16_t cd_handle_iter = charDecl->value_handle + 1; // Start @ Characteristic Value Handle + 1
         uint16_t cd_handle_end;
         if( charIter+1 < charCount ) {
-            cd_handle_end = service->characteristicList.at(charIter+1)->value_handle;
+            cd_handle_end = service->characteristicList.at(charIter+1)->handle - 1; // // Next Characteristic Handle (excluding)
         } else {
-            cd_handle_end = service->endHandle;
+            cd_handle_end = service->endHandle; // End of service handle (including)
         }
 
         bool done=false;
