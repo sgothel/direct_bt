@@ -473,14 +473,18 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
         for(size_t i=0; i<primServices.size(); i++) {
             BTGattService & primService = *primServices.at(i);
             if( !QUIET ) {
-                fprintf_td(stderr, "  [%2.2d] Service UUID %s\n", i, primService.type->toUUID128String().c_str());
+                fprintf_td(stderr, "  [%2.2d] Service UUID %s (%s)\n", i,
+                        primService.type->toUUID128String().c_str(),
+                        primService.type->getTypeSizeString().c_str());
                 fprintf_td(stderr, "  [%2.2d]         %s\n", i, primService.toString().c_str());
             }
             jau::darray<BTGattCharRef> & serviceCharacteristics = primService.characteristicList;
             for(size_t j=0; j<serviceCharacteristics.size(); j++) {
                 BTGattCharRef & serviceChar = serviceCharacteristics.at(j);
                 if( !QUIET ) {
-                    fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic: UUID %s\n", i, j, serviceChar->value_type->toUUID128String().c_str());
+                    fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic: UUID %s (%s)\n", i, j,
+                            serviceChar->value_type->toUUID128String().c_str(),
+                            serviceChar->value_type->getTypeSizeString().c_str());
                     fprintf_td(stderr, "  [%2.2d.%2.2d]     %s\n", i, j, serviceChar->toString().c_str());
                 }
                 if( serviceChar->hasProperties(BTGattChar::PropertyBitVal::Read) ) {
@@ -496,7 +500,9 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
                 for(size_t k=0; k<charDescList.size(); k++) {
                     BTGattDesc & charDesc = *charDescList.at(k);
                     if( !QUIET ) {
-                        fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d] Descriptor: UUID %s\n", i, j, k, charDesc.type->toUUID128String().c_str());
+                        fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d] Descriptor: UUID %s (%s)\n", i, j, k,
+                                charDesc.type->toUUID128String().c_str(),
+                                charDesc.type->getTypeSizeString().c_str());
                         fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d]     %s\n", i, j, k, charDesc.toString().c_str());
                     }
                 }
