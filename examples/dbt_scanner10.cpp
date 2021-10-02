@@ -501,12 +501,15 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
                     }
                 }
                 bool cccdEnableResult[2];
-                std::shared_ptr<BTGattChar::Listener> cl = std::make_shared<MyGATTEventListener>(i, j);
-                bool cccdRet = serviceChar->addCharListener( cl, cccdEnableResult );
-                if( !QUIET ) {
-                    fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d\n",
-                            (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], cccdRet);
-                    fprintf_td(stderr, "\n");
+                if( serviceChar->enableNotificationOrIndication( cccdEnableResult ) ) {
+                    // ClientCharConfigDescriptor (CCD) is available
+                    std::shared_ptr<BTGattChar::Listener> cl = std::make_shared<MyGATTEventListener>(i, j);
+                    bool clAdded = serviceChar->addCharListener( cl );
+                    if( !QUIET ) {
+                        fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d\n",
+                                (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], clAdded);
+                        fprintf_td(stderr, "\n");
+                    }
                 }
             }
             fprintf_td(stderr, "\n");

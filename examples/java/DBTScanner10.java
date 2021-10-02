@@ -512,11 +512,14 @@ public class DBTScanner10 {
                             }
                         }
                         final boolean cccdEnableResult[] = { false, false };
-                        final boolean cccdRet = null != serviceChar.addCharListener( new MyGATTEventListener(i, j), cccdEnableResult );
-                        if( !QUIET ) {
-                            printf("  [%02d.%02d] Characteristic-Listener: Notification(%b), Indication(%b): Added %b\n",
-                                    i, j, cccdEnableResult[0], cccdEnableResult[1], cccdRet);
-                            printf("\n");
+                        if( serviceChar.enableNotificationOrIndication( cccdEnableResult ) ) {
+                            // ClientCharConfigDescriptor (CCD) is available
+                            final boolean clAdded = null != serviceChar.addCharListener( new MyGATTEventListener(i, j) );
+                            if( !QUIET ) {
+                                printf("  [%02d.%02d] Characteristic-Listener: Notification(%b), Indication(%b): Added %b\n",
+                                        i, j, cccdEnableResult[0], cccdEnableResult[1], clAdded);
+                                printf("\n");
+                            }
                         }
                     }
                     printf("\n");
