@@ -132,37 +132,34 @@ std::shared_ptr<BTGattDesc> BTGattChar::findGattDesc(const jau::uuid_t& desc_uui
 }
 
 std::string BTGattChar::toString() const noexcept {
-    uint16_t service_handle_end = 0xffff;
-    BTGattServiceRef serviceRef = getServiceUnchecked();
-    std::string service_uuid_str = "";
-    std::string service_name = "";
     std::string char_name = "";
-    std::string desc_str = ", descr[ ";
+    std::string desc_str;
 
-    if( nullptr != serviceRef ) {
-        std::unique_ptr<const uuid_t> & service_uuid = serviceRef->type;
-        service_uuid_str = service_uuid->toString();
-        service_handle_end = serviceRef->endHandle;
-
-        if( uuid_t::TypeSize::UUID16_SZ == service_uuid->getTypeSize() ) {
-            const uint16_t uuid16 = (static_cast<const uuid16_t*>(service_uuid.get()))->value;
-            service_name = ", "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
-        }
-    }
     if( uuid_t::TypeSize::UUID16_SZ == value_type->getTypeSize() ) {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(value_type.get()))->value;
         char_name = ", "+GattCharacteristicTypeToString(static_cast<GattCharacteristicType>(uuid16));
     }
-    for(size_t i=0; i<descriptorList.size(); i++) {
-        const BTGattDescRef cd = descriptorList[i];
-        desc_str += cd->toString() + ", ";
+    if( 0 < descriptorList.size() ) {
+        bool comma = false;
+        desc_str = ", descr[";
+        for(size_t i=0; i<descriptorList.size(); i++) {
+            const BTGattDescRef cd = descriptorList[i];
+            if( comma ) {
+                desc_str += ", ";
+            }
+            desc_str += "handle "+to_hexstring(cd->handle);
+            comma = true;
+        }
+        desc_str += "]";
     }
-    desc_str += " ]";
+
+    std::string notify_str;
+    if( hasProperties(BTGattChar::PropertyBitVal::Notify) || hasProperties(BTGattChar::PropertyBitVal::Indicate) ) {
+        notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
+    }
     return "[handle "+to_hexstring(handle)+", props "+to_hexstring(properties)+" "+getPropertiesString(properties)+
            ", value[type 0x"+value_type->toString()+", handle "+to_hexstring(value_handle)+char_name+desc_str+
-           "], service[type 0x"+service_uuid_str+
-           ", handle[ "+to_hexstring(service_handle)+".."+to_hexstring(service_handle_end)+" ]"+
-           service_name+", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"] ] ]";
+           "]"+notify_str+"]";
 }
 
 std::string BTGattChar::toShortString() const noexcept {
@@ -172,11 +169,13 @@ std::string BTGattChar::toShortString() const noexcept {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(value_type.get()))->value;
         char_name = ", "+GattCharacteristicTypeToString(static_cast<GattCharacteristicType>(uuid16));
     }
+    std::string notify_str;
+    if( hasProperties(BTGattChar::PropertyBitVal::Notify) || hasProperties(BTGattChar::PropertyBitVal::Indicate) ) {
+        notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
+    }
     return "[handle "+to_hexstring(handle)+", props "+to_hexstring(properties)+" "+getPropertiesString(properties)+
            ", value[handle "+to_hexstring(value_handle)+char_name+
-           "], service["+
-           ", handle[ "+to_hexstring(service_handle)+".. ]"+
-           ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"] ] ]";
+           "]"+notify_str+"]";
 }
 
 std::shared_ptr<BTGattService> BTGattChar::getServiceChecked() const {

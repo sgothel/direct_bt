@@ -654,7 +654,6 @@ bool BTGattHandler::discoverCharacteristics(BTGattServiceRef & service) {
                 const int esz = p->getElementTotalSize();
                 service->characteristicList.push_back( BTGattCharRef( new BTGattChar(
                     service,
-                    p->pdu.get_uint16(ePDUOffset), // Characteristics's Service Handle
                     p->getElementHandle(e_iter), // Characteristic Handle
                     static_cast<BTGattChar::PropertyBitVal>(p->pdu.get_uint8(ePDUOffset  + 2)), // Characteristics Property
                     p->pdu.get_uint16(ePDUOffset + 2 + 1), // Characteristics Value Handle

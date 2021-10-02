@@ -159,14 +159,6 @@ namespace direct_bt {
             };
 
             /**
-             * Characteristics's Service Handle - key to service's handle range, retrieved from Characteristics data.
-             * <p>
-             * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
-             * </p>
-             */
-            const uint16_t service_handle;
-
-            /**
              * Characteristic Handle of this instance.
              * <p>
              * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
@@ -194,9 +186,9 @@ namespace direct_bt {
             /* Optional Client Characteristic Configuration index within descriptorList */
             int clientCharConfigIndex = -1;
 
-            BTGattChar(const BTGattServiceRef & service_, const uint16_t service_handle_, const uint16_t handle_,
+            BTGattChar(const BTGattServiceRef & service_, const uint16_t handle_,
                                const PropertyBitVal properties_, const uint16_t value_handle_, std::unique_ptr<const jau::uuid_t> && value_type_) noexcept
-            : wbr_service(service_), service_handle(service_handle_), handle(handle_),
+            : wbr_service(service_), handle(handle_),
               properties(properties_), value_handle(value_handle_), value_type(std::move(value_type_)) {}
 
             std::string get_java_class() const noexcept override {
