@@ -634,10 +634,10 @@ bool BTGattHandler::discoverCharacteristics(BTGattServiceRef & service) {
     PERF_TS_T0();
 
     bool done=false;
-    uint16_t handle=service->startHandle;
+    uint16_t handle=service->handle;
     service->characteristicList.clear();
     while(!done) {
-        const AttReadByNTypeReq req(false /* group */, handle, service->endHandle, characteristicTypeReq);
+        const AttReadByNTypeReq req(false /* group */, handle, service->end_handle, characteristicTypeReq);
         COND_PRINT(env.DEBUG_DATA, "GATT C discover send: %s to %s", req.toString().c_str(), toString().c_str());
 
         std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT); // valid reply or exception
@@ -662,7 +662,7 @@ bool BTGattHandler::discoverCharacteristics(BTGattServiceRef & service) {
                         service->characteristicList.at(service->characteristicList.size()-1)->toString().c_str(), toString().c_str());
             }
             handle = p->getElementHandle(e_count-1); // Last Characteristic Handle
-            if( handle < service->endHandle ) {
+            if( handle < service->end_handle ) {
                 handle++;
             } else {
                 done = true; // OK by spec: End of communication
@@ -703,7 +703,7 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) {
         if( charIter+1 < charCount ) {
             cd_handle_end = service->characteristicList.at(charIter+1)->handle - 1; // // Next Characteristic Handle (excluding)
         } else {
-            cd_handle_end = service->endHandle; // End of service handle (including)
+            cd_handle_end = service->end_handle; // End of service handle (including)
         }
 
         bool done=false;
@@ -996,7 +996,7 @@ std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darra
             }
         } else if( _APPEARANCE == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) && value.getSize() >= 2 ) {
-            	appearance = static_cast<AppearanceCat>(value.get_uint16(0)); // manatory
+            	appearance = static_cast<AppearanceCat>(value.get_uint16(0)); // mandatory
             }
         } else if( _PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {

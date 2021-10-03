@@ -80,8 +80,8 @@ std::string BTGattService::toString() const noexcept {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(type.get()))->value;
         name = " - "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
     }
-    return "[type 0x"+type->toString()+", handle ["+to_hexstring(startHandle)+".."+to_hexstring(endHandle)+"]"+
-                name+", "+std::to_string(characteristicList.size())+" characteristics]";
+    return "Srvc[type 0x"+type->toString()+", handle ["+to_hexstring(handle)+".."+to_hexstring(end_handle)+"]"+
+                name+", "+std::to_string(characteristicList.size())+" chars]";
 }
 
 std::string BTGattService::toShortString() const noexcept {
@@ -90,6 +90,6 @@ std::string BTGattService::toShortString() const noexcept {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(type.get()))->value;
         name = " - "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
     }
-    return "[handle ["+to_hexstring(startHandle)+".."+to_hexstring(endHandle)+"]"+
+    return "Srvc[handle ["+to_hexstring(handle)+".."+to_hexstring(end_handle)+"]"+
                 name+", "+std::to_string(characteristicList.size())+" characteristics]";
 }

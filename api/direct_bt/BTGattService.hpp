@@ -72,7 +72,7 @@ namespace direct_bt {
             std::string toShortString() const noexcept;
 
         public:
-            const bool isPrimary;
+            const bool primary;
 
             /**
              * Service start handle
@@ -80,15 +80,15 @@ namespace direct_bt {
              * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
              * </p>
              */
-            const uint16_t startHandle;
+            const uint16_t handle;
 
             /**
-             * Service end handle
+             * Service end handle, inclusive.
              * <p>
              * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
              * </p>
              */
-            const uint16_t endHandle;
+            const uint16_t end_handle;
 
             /** Service type UUID */
             std::unique_ptr<const jau::uuid_t> type;
@@ -98,7 +98,7 @@ namespace direct_bt {
 
             BTGattService(const std::shared_ptr<BTGattHandler> &handler_, const bool isPrimary_,
                         const uint16_t startHandle_, const uint16_t endHandle_, std::unique_ptr<const jau::uuid_t> && type_) noexcept
-            : wbr_handler(handler_), isPrimary(isPrimary_), startHandle(startHandle_), endHandle(endHandle_), type(std::move(type_)), characteristicList() {
+            : wbr_handler(handler_), primary(isPrimary_), handle(startHandle_), end_handle(endHandle_), type(std::move(type_)), characteristicList() {
                 characteristicList.reserve(10);
             }
 
@@ -127,7 +127,7 @@ namespace direct_bt {
     };
 
     inline bool operator==(const BTGattService& lhs, const BTGattService& rhs) noexcept
-    { return lhs.startHandle == rhs.startHandle && lhs.endHandle == rhs.endHandle; /** unique attribute handles */ }
+    { return lhs.handle == rhs.handle && lhs.end_handle == rhs.end_handle; /** unique attribute handles */ }
 
     inline bool operator!=(const BTGattService& lhs, const BTGattService& rhs) noexcept
     { return !(lhs == rhs); }

@@ -157,9 +157,9 @@ std::string BTGattChar::toString() const noexcept {
     if( hasProperties(BTGattChar::PropertyBitVal::Notify) || hasProperties(BTGattChar::PropertyBitVal::Indicate) ) {
         notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
     }
-    return "[handle "+to_hexstring(handle)+", props "+to_hexstring(properties)+" "+getPropertiesString(properties)+
+    return "Char[handle "+to_hexstring(handle)+", props "+to_hexstring(properties)+" "+getPropertiesString(properties)+
            ", value[type 0x"+value_type->toString()+", handle "+to_hexstring(value_handle)+char_name+desc_str+
-           "]"+notify_str+"]";
+           "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
 }
 
 std::string BTGattChar::toShortString() const noexcept {
@@ -173,9 +173,9 @@ std::string BTGattChar::toShortString() const noexcept {
     if( hasProperties(BTGattChar::PropertyBitVal::Notify) || hasProperties(BTGattChar::PropertyBitVal::Indicate) ) {
         notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
     }
-    return "[handle "+to_hexstring(handle)+", props "+to_hexstring(properties)+" "+getPropertiesString(properties)+
+    return "Char[handle "+to_hexstring(handle)+", props "+to_hexstring(properties)+" "+getPropertiesString(properties)+
            ", value[handle "+to_hexstring(value_handle)+char_name+
-           "]"+notify_str+"]";
+           "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
 }
 
 std::shared_ptr<BTGattService> BTGattChar::getServiceChecked() const {

@@ -798,14 +798,14 @@ jobject Java_jau_direct_1bt_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj) 
                     std::shared_ptr<BTDevice> _device = service->getDeviceChecked();
                     JavaGlobalObj::check(_device->getJavaObject(), E_FILE_LINE);
                     jobject jdevice = JavaGlobalObj::GetObject(_device->getJavaObject());
-                    const jboolean isPrimary = service->isPrimary;
+                    const jboolean isPrimary = service->primary;
                     const jstring juuid = from_string_to_jstring(env_,
                             directBTJNISettings.getUnifyUUID128Bit() ? service->type->toUUID128String() :
                                                                        service->type->toString());
                     java_exception_check_and_throw(env_, E_FILE_LINE);
 
                     jobject jservice = env_->NewObject(clazz, clazz_ctor, (jlong)service, jdevice, isPrimary,
-                            juuid, service->startHandle, service->endHandle);
+                            juuid, service->handle, service->end_handle);
                     java_exception_check_and_throw(env_, E_FILE_LINE);
                     JNIGlobalRef::check(jservice, E_FILE_LINE);
                     std::shared_ptr<JavaAnon> jServiceRef = service->getJavaObject(); // GlobalRef
