@@ -379,6 +379,7 @@ and would be resource intensive.
 **2.4.0**
 
 * TODO ...
+* Added EUI48 endian conversion when passing/receiving to Bluetooth
 * Passed validation of [multiple BT5 adapter](doc/adapter/adapter.md).
 * Fixed `EInfoReport::read_[ext_]ad_reports()` multiple reports 
 * Added Link-Key support in our SMP processing and SMPKeyBin, supporting non-legacy SC.
