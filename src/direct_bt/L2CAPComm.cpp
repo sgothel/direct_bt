@@ -79,7 +79,7 @@ int L2CAPComm::l2cap_open_dev(const BDAddressAndType & adapterAddressAndType, co
     bzero((void *)&a, sizeof(a));
     a.l2_family=AF_BLUETOOTH;
     a.l2_psm = jau::cpu_to_le(direct_bt::number(psm));
-    a.l2_bdaddr = adapterAddressAndType.address;
+    a.l2_bdaddr = jau::cpu_to_le(adapterAddressAndType.address);
     a.l2_cid = jau::cpu_to_le(direct_bt::number(cid));
     a.l2_bdaddr_type = ::number(adapterAddressAndType.type);
     if ( ::bind(fd, (struct sockaddr *) &a, sizeof(a)) < 0 ) {
@@ -191,7 +191,7 @@ bool L2CAPComm::open(const BTDevice& device, const BTSecurityLevel sec_level) {
     bzero((void *)&req, sizeof(req));
     req.l2_family = AF_BLUETOOTH;
     req.l2_psm = jau::cpu_to_le(direct_bt::number(psm));
-    req.l2_bdaddr = deviceAddressAndType.address;
+    req.l2_bdaddr = jau::cpu_to_le(deviceAddressAndType.address);
     req.l2_cid = jau::cpu_to_le(direct_bt::number(cid));
     req.l2_bdaddr_type = ::number(deviceAddressAndType.type);
 

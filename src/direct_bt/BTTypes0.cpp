@@ -1198,7 +1198,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         ad_reports[i]->setADAddressType(*i_octets++);
 
         // seg 3: 6
-        ad_reports[i]->setAddress( *((jau::EUI48 const *)i_octets) );
+        ad_reports[i]->setAddress( jau::le_to_cpu( *((jau::EUI48 const *)i_octets) ) );
         i_octets += 6;
 
         // seg 4: 1
@@ -1288,7 +1288,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ext_ad_reports(uint8
         ad_reports[i]->setADAddressType(*i_octets++);
 
         // seg 3: 6
-        ad_reports[i]->setAddress( *((jau::EUI48 const *)i_octets) );
+        ad_reports[i]->setAddress( jau::le_to_cpu( *((jau::EUI48 const *)i_octets) ) );
         i_octets += 6;
 
         // seg 4: 1

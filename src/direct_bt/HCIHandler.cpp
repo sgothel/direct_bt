@@ -205,7 +205,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                     return nullptr;
                 }
                 const HCILEPeerAddressType hciAddrType = static_cast<HCILEPeerAddressType>(ev_cc->bdaddr_type);
-                const BDAddressAndType addressAndType(ev_cc->bdaddr, to_BDAddressType(hciAddrType));
+                const BDAddressAndType addressAndType(jau::le_to_cpu(ev_cc->bdaddr), to_BDAddressType(hciAddrType));
                 const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
                 const HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, handle);
                 if( HCIStatusCode::SUCCESS == status ) {
@@ -224,7 +224,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                     return nullptr;
                 }
                 const HCILEPeerAddressType hciAddrType = static_cast<HCILEPeerAddressType>(ev_cc->bdaddr_type);
-                const BDAddressAndType addressAndType(ev_cc->bdaddr, to_BDAddressType(hciAddrType));
+                const BDAddressAndType addressAndType(jau::le_to_cpu(ev_cc->bdaddr), to_BDAddressType(hciAddrType));
                 const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
                 const HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, handle);
                 if( HCIStatusCode::SUCCESS == status ) {
@@ -300,7 +300,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                         ev.toString().c_str(), toString().c_str());
                 return nullptr;
             }
-            const BDAddressAndType addressAndType(ev_cc->bdaddr, BDAddressType::BDADDR_BREDR);
+            const BDAddressAndType addressAndType(jau::le_to_cpu(ev_cc->bdaddr), BDAddressType::BDADDR_BREDR);
             HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, ev_cc->handle);
             if( HCIStatusCode::SUCCESS == status ) {
                 return std::make_unique<MgmtEvtDeviceConnected>(dev_id, conn->getAddressAndType(), conn->getHandle());
@@ -1268,7 +1268,7 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
         cp->filter_policy = initiator_filter;
         cp->own_address_type = static_cast<uint8_t>(own_mac_type);
         cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
-        cp->peer_addr = peer_bdaddr;
+        cp->peer_addr = jau::cpu_to_le(peer_bdaddr);
         cp->phys = direct_bt::number(LE_PHYs::LE_1M); // Only scan on LE_1M for compatibility
 
         cp->p1.scan_interval = jau::cpu_to_le(le_scan_interval);
@@ -1292,7 +1292,7 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
         cp->scan_window = jau::cpu_to_le(le_scan_window);
         cp->filter_policy = initiator_filter;
         cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
-        cp->peer_addr = peer_bdaddr;
+        cp->peer_addr = jau::cpu_to_le(peer_bdaddr);
         cp->own_address_type = static_cast<uint8_t>(own_mac_type);
         cp->conn_interval_min = jau::cpu_to_le(conn_interval_min);
         cp->conn_interval_max = jau::cpu_to_le(conn_interval_max);
@@ -1338,7 +1338,7 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
 
     HCIStructCommand<hci_cp_create_conn> req0(HCIOpcode::CREATE_CONN);
     hci_cp_create_conn * cp = req0.getWStruct();
-    cp->bdaddr = bdaddr;
+    cp->bdaddr = jau::cpu_to_le(bdaddr);
     cp->pkt_type = jau::cpu_to_le((uint16_t)(pkt_type & (uint16_t)ACL_PTYPE_MASK)); /* TODO OK excluding SCO_PTYPE_MASK   (HCI_HV1 | HCI_HV2 | HCI_HV3) ? */
     cp->pscan_rep_mode = 0x02; /* TODO magic? */
     cp->pscan_mode = 0x00; /* TODO magic? */
@@ -1596,12 +1596,15 @@ HCIStatusCode HCIHandler::le_set_adv_param(const EUI48 &peer_bdaddr,
                 return HCIStatusCode::INVALID_PARAMS;
         }
         cp->evt_properties = number(adv_type2);
+        // Actually .. but struct uses uint8_t[3] duh ..
+        // cp->min_interval = jau::cpu_to_le(adv_interval_min);
+        // cp->max_interval = jau::cpu_to_le(adv_interval_max);
         jau::put_uint16(cp->min_interval, 0, adv_interval_min, true /* littleEndian */);
         jau::put_uint16(cp->max_interval, 0, adv_interval_max, true /* littleEndian */);
         cp->channel_map = adv_chan_map;
         cp->own_addr_type = static_cast<uint8_t>(own_mac_type);
         cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
-        cp->peer_addr = peer_bdaddr;
+        cp->peer_addr = jau::cpu_to_le(peer_bdaddr);
         cp->filter_policy = filter_policy;
         cp->tx_power = 0x7f; // Host has no preference (default); -128 to +20 [dBm]
         cp->primary_phy = direct_bt::number(LE_PHYs::LE_1M);
@@ -1621,7 +1624,7 @@ HCIStatusCode HCIHandler::le_set_adv_param(const EUI48 &peer_bdaddr,
         cp->type = number(adv_type);
         cp->own_address_type = static_cast<uint8_t>(own_mac_type);
         cp->direct_addr_type = static_cast<uint8_t>(peer_mac_type);
-        cp->direct_addr = peer_bdaddr;
+        cp->direct_addr = jau::cpu_to_le(peer_bdaddr);
         cp->channel_map = adv_chan_map;
         cp->filter_policy = filter_policy;
         const hci_rp_status * ev_status;
