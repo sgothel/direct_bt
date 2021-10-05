@@ -1474,14 +1474,13 @@ HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddres
     return status;
 }
 
-HCIStatusCode HCIHandler::le_set_default_phy(const bool tryTx, const bool tryRx,
-                                             const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
+HCIStatusCode HCIHandler::le_set_default_phy(const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
     if( !isLEFeaturesBitSet(le_ll_feats, LE_Features::LE_2M_PHY) ) {
-        if( tryTx && isLEPHYBitSet(Tx, LE_PHYs::LE_2M) ) {
+        if( isLEPHYBitSet(Tx, LE_PHYs::LE_2M) ) {
             WARN_PRINT("HCIHandler::le_set_default_phy: LE_2M_PHY no supported, requested Tx %s", to_string(Tx).c_str());
             return HCIStatusCode::INVALID_PARAMS;
         }
-        if( tryRx && isLEPHYBitSet(Rx, LE_PHYs::LE_2M) ) {
+        if( isLEPHYBitSet(Rx, LE_PHYs::LE_2M) ) {
             WARN_PRINT("HCIHandler::le_set_default_phy: LE_2M_PHY no supported, requested Rx %s", to_string(Rx).c_str());
             return HCIStatusCode::INVALID_PARAMS;
         }
@@ -1495,8 +1494,8 @@ HCIStatusCode HCIHandler::le_set_default_phy(const bool tryTx, const bool tryRx,
     HCIStatusCode status;
     HCIStructCommand<hci_cp_le_set_default_phy> req0(HCIOpcode::LE_SET_DEFAULT_PHY);
     hci_cp_le_set_default_phy * cp = req0.getWStruct();
-    cp->all_phys = ( tryTx && Tx != LE_PHYs::NONE ? 0b000 : 0b001 ) |
-                   ( tryRx && Rx != LE_PHYs::NONE ? 0b000 : 0b010 );
+    cp->all_phys = ( Tx != LE_PHYs::NONE ? 0b000 : 0b001 ) |
+                   ( Rx != LE_PHYs::NONE ? 0b000 : 0b010 );
     cp->tx_phys = number( Tx );
     cp->rx_phys = number( Rx );
 
@@ -1511,14 +1510,13 @@ HCIStatusCode HCIHandler::le_set_default_phy(const bool tryTx, const bool tryRx,
 }
 
 HCIStatusCode HCIHandler::le_set_phy(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
-                                     const bool tryTx, const bool tryRx,
                                      const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
     if( !isLEFeaturesBitSet(le_ll_feats, LE_Features::LE_2M_PHY) ) {
-        if( tryTx && isLEPHYBitSet(Tx, LE_PHYs::LE_2M) ) {
+        if( isLEPHYBitSet(Tx, LE_PHYs::LE_2M) ) {
             WARN_PRINT("HCIHandler::le_set_phy: LE_2M_PHY no supported, requested Tx %s", to_string(Tx).c_str());
             return HCIStatusCode::INVALID_PARAMS;
         }
-        if( tryRx && isLEPHYBitSet(Rx, LE_PHYs::LE_2M) ) {
+        if( isLEPHYBitSet(Rx, LE_PHYs::LE_2M) ) {
             WARN_PRINT("HCIHandler::le_set_phy: LE_2M_PHY no supported, requested Rx %s", to_string(Rx).c_str());
             return HCIStatusCode::INVALID_PARAMS;
         }
@@ -1540,8 +1538,8 @@ HCIStatusCode HCIHandler::le_set_phy(const uint16_t conn_handle, const BDAddress
     HCIStructCommand<hci_cp_le_set_phy> req0(HCIOpcode::LE_SET_PHY);
     hci_cp_le_set_phy * cp = req0.getWStruct();
     cp->handle = jau::cpu_to_le(conn_handle);
-    cp->all_phys = ( tryTx && Tx != LE_PHYs::NONE ? 0b000 : 0b001 ) |
-                   ( tryRx && Rx != LE_PHYs::NONE ? 0b000 : 0b010 );
+    cp->all_phys = ( Tx != LE_PHYs::NONE ? 0b000 : 0b001 ) |
+                   ( Rx != LE_PHYs::NONE ? 0b000 : 0b010 );
     cp->tx_phys = number( Tx );
     cp->rx_phys = number( Rx );
     cp->phy_options = 0;

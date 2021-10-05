@@ -702,15 +702,12 @@ namespace direct_bt {
              *
              * BT Core Spec v5.2: Vol 4, Part E, 7.8.48 LE Set Default PHY command
              *
-             * @param tryTx if true, host has preference for given Tx LE_PHYs
-             * @param tryRx if true, host has preference for given Rx LE_PHYs
-             * @param Tx transmitter LE_PHYs of preference if tryTx is true, otherwise ignored
-             * @param Rx receiver LE_PHYs of preference if tryRx is true, otherwise ignored
+             * @param Tx transmitter LE_PHYs bit mask of preference if not set to LE_PHYs::NONE (ignored).
+             * @param Rx receiver LE_PHYs bit mask of preference if not set to LE_PHYs::NONE (ignored).
              * @return
              * @since 2.4.0
              */
-            HCIStatusCode le_set_default_phy(const bool tryTx, const bool tryRx,
-                                             const LE_PHYs Tx, const LE_PHYs Rx) noexcept;
+            HCIStatusCode le_set_default_phy(const LE_PHYs Tx, const LE_PHYs Rx) noexcept;
 
             /**
              * Sets preference of used LE_PHYs for the given connection.
@@ -720,15 +717,12 @@ namespace direct_bt {
              *
              * @param conn_handle
              * @param peerAddressAndType
-             * @param tryTx if true, host has preference for given Tx LE_PHYs
-             * @param tryRx if true, host has preference for given Rx LE_PHYs
-             * @param Tx transmitter LE_PHYs of preference if tryTx is true, otherwise ignored
-             * @param Rx receiver LE_PHYs of preference if tryRx is true, otherwise ignored
+             * @param Tx transmitter LE_PHYs bit mask of preference if not set to LE_PHYs::NONE (ignored).
+             * @param Rx receiver LE_PHYs bit mask of preference if not set to LE_PHYs::NONE (ignored).
              * @return
              * @since 2.4.0
              */
             HCIStatusCode le_set_phy(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
-                                     const bool tryTx, const bool tryRx,
                                      const LE_PHYs Tx, const LE_PHYs Rx) noexcept;
 
         private:

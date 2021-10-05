@@ -692,8 +692,8 @@ public interface BTDevice extends BTObject
      * @see #getTxPhys()
      * @see #getRxPhys()
      * @see #getConnectedLE_PHY(LE_PHYs[], LE_PHYs[])
-     * @see #setConnectedLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
-     * @see BTAdapter#setDefaultLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
+     * @see #setConnectedLE_PHY(LE_PHYs, LE_PHYs)
+     * @see BTAdapter#setDefaultLE_PHY(LE_PHYs, LE_PHYs)
      * @since 2.4.0
      */
     HCIStatusCode getConnectedLE_PHY(LE_PHYs[/*1*/] resRx, LE_PHYs[/*1*/] resTx);
@@ -704,8 +704,8 @@ public interface BTDevice extends BTObject
      * @see #getTxPhys()
      * @see #getRxPhys()
      * @see #getConnectedLE_PHY(LE_PHYs[], LE_PHYs[])
-     * @see #setConnectedLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
-     * @see BTAdapter#setDefaultLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
+     * @see #setConnectedLE_PHY(LE_PHYs, LE_PHYs)
+     * @see BTAdapter#setDefaultLE_PHY(LE_PHYs, LE_PHYs)
      * @since 2.4.0
      */
     LE_PHYs getTxPhys();
@@ -716,8 +716,8 @@ public interface BTDevice extends BTObject
      * @see #getTxPhys()
      * @see #getRxPhys()
      * @see #getConnectedLE_PHY(LE_PHYs[], LE_PHYs[])
-     * @see #setConnectedLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
-     * @see BTAdapter#setDefaultLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
+     * @see #setConnectedLE_PHY(LE_PHYs, LE_PHYs)
+     * @see BTAdapter#setDefaultLE_PHY(LE_PHYs, LE_PHYs)
      * @since 2.4.0
      */
     LE_PHYs getRxPhys();
@@ -728,20 +728,16 @@ public interface BTDevice extends BTObject
      *
      * BT Core Spec v5.2: Vol 4, Part E, 7.8.49 LE Set PHY command
      *
-     * @param tryTx if true, host has preference for given Tx LE_PHYs
-     * @param tryRx if true, host has preference for given Rx LE_PHYs
-     * @param Tx transmitter LE_PHYs of preference if tryTx is true, otherwise ignored
-     * @param Rx receiver LE_PHYs of preference if tryRx is true, otherwise ignored
+     * @param Tx transmitter LE_PHYs bit mask of preference if not set to zero {@link LE_PHYs#mask} (ignored).
+     * @param Rx receiver LE_PHYs bit mask of preference if not set to zero {@link LE_PHYs#mask} (ignored).
      * @return
      * @see #getTxPhys()
      * @see #getRxPhys()
      * @see #getConnectedLE_PHY(LE_PHYs[], LE_PHYs[])
-     * @see #setConnectedLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
-     * @see BTAdapter#setDefaultLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
+     * @see BTAdapter#setDefaultLE_PHY(LE_PHYs, LE_PHYs)
      * @since 2.4.0
      */
-    HCIStatusCode setConnectedLE_PHY(final boolean tryTx, final boolean tryRx,
-                                     final LE_PHYs Tx, final LE_PHYs Rx);
+    HCIStatusCode setConnectedLE_PHY(final LE_PHYs Tx, final LE_PHYs Rx);
 
     /** Returns the adapter on which this device was discovered or
       * connected.

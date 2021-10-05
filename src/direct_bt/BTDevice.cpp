@@ -1811,8 +1811,7 @@ HCIStatusCode BTDevice::getConnectedLE_PHY(LE_PHYs& resTx, LE_PHYs& resRx) noexc
     return res;
 }
 
-HCIStatusCode BTDevice::setConnectedLE_PHY(const bool tryTx, const bool tryRx,
-                                           const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
+HCIStatusCode BTDevice::setConnectedLE_PHY(const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
 
     if( !isConnected ) { // should not happen
@@ -1828,7 +1827,7 @@ HCIStatusCode BTDevice::setConnectedLE_PHY(const bool tryTx, const bool tryRx,
     }
 
     HCIHandler &hci = adapter.getHCI();
-    return hci.le_set_phy(hciConnHandle.load(), addressAndType, tryTx, tryRx, Tx, Rx);
+    return hci.le_set_phy(hciConnHandle.load(), addressAndType, Tx, Rx);
 }
 
 void BTDevice::notifyDisconnected() noexcept {

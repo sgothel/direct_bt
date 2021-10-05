@@ -25,7 +25,6 @@
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,9 +34,7 @@ import org.direct_bt.AdapterSettings;
 import org.direct_bt.AdapterStatusListener;
 import org.direct_bt.BDAddressAndType;
 import org.direct_bt.BDAddressType;
-import org.direct_bt.BLERandomAddressType;
 import org.direct_bt.BTMode;
-import org.direct_bt.BTRole;
 import org.direct_bt.BTSecurityLevel;
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTDevice;
@@ -49,7 +46,6 @@ import org.direct_bt.BTGattDesc;
 import org.direct_bt.BTGattService;
 import org.direct_bt.BTManager;
 import org.direct_bt.BTSecurityRegistry;
-import org.direct_bt.BTType;
 import org.direct_bt.BTUtils;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.GattCharPropertySet;
@@ -442,7 +438,7 @@ public class DBTScanner10 {
             final LE_PHYs Tx = new LE_PHYs(LE_PHYs.PHY.LE_2M);
             final LE_PHYs Rx = new LE_PHYs(LE_PHYs.PHY.LE_2M);
 
-            final HCIStatusCode res = device.setConnectedLE_PHY(true /* tryTx */, true /* tryRx */, Tx, Rx);
+            final HCIStatusCode res = device.setConnectedLE_PHY(Tx, Rx);
             BTUtils.fprintf_td(System.err, "****** Set Connected LE PHY: status %s: Tx %s, Rx %s\n",
                                 res.toString(), Tx.toString(), Rx.toString());
         }
@@ -652,7 +648,7 @@ public class DBTScanner10 {
             final LE_PHYs Tx = new LE_PHYs(LE_PHYs.PHY.LE_2M);
             final LE_PHYs Rx = new LE_PHYs(LE_PHYs.PHY.LE_2M);
 
-            final HCIStatusCode res = adapter.setDefaultLE_PHY(true /* tryTx */, true /* tryRx */, Tx, Rx);
+            final HCIStatusCode res = adapter.setDefaultLE_PHY(Tx, Rx);
             BTUtils.fprintf_td(System.err, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
                                 res.toString(), Tx.toString(), Rx.toString());
         }

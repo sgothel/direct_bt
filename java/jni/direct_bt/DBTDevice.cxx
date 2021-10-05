@@ -368,7 +368,6 @@ jbyte Java_jau_direct_1bt_DBTDevice_getConnectedLE_1PHYImpl(JNIEnv *env, jobject
 }
 
 jbyte Java_jau_direct_1bt_DBTDevice_setConnectedLE_1PHYImpl(JNIEnv *env, jobject obj,
-                                                            jboolean tryTx, jboolean tryRx,
                                                             jbyte jTx, jbyte jRx) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
@@ -377,7 +376,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_setConnectedLE_1PHYImpl(JNIEnv *env, jobject
         const LE_PHYs Tx = static_cast<LE_PHYs>(jTx);
         const LE_PHYs Rx = static_cast<LE_PHYs>(jRx);
 
-        return number ( device->setConnectedLE_PHY(tryTx, tryRx, Tx, Rx) );
+        return number ( device->setConnectedLE_PHY(Tx, Rx) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

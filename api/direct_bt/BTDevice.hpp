@@ -542,10 +542,8 @@ namespace direct_bt {
              * - BT Core Spec v5.2: Vol 4, Part E, 7.8.49 LE Set PHY command
              * - BT Core Spec v5.2: Vol 4, Part E, 7.7.65.12 LE PHY Update Complete event
              *
-             * @param tryTx if true, host has preference for given Tx LE_PHYs
-             * @param tryRx if true, host has preference for given Rx LE_PHYs
-             * @param Tx transmitter LE_PHYs of preference if tryTx is true, otherwise ignored
-             * @param Rx receiver LE_PHYs of preference if tryRx is true, otherwise ignored
+             * @param Tx transmitter LE_PHYs bit mask of preference if not set to LE_PHYs::NONE (ignored).
+             * @param Rx receiver LE_PHYs bit mask of preference if not set to LE_PHYs::NONE (ignored).
              * @return
              * @see getTxPhys()
              * @see getRxPhys()
@@ -554,8 +552,7 @@ namespace direct_bt {
              * @see BTAdapter::setDefaultLE_PHY()
              * @since 2.4.0
              */
-            HCIStatusCode setConnectedLE_PHY(const bool tryTx, const bool tryRx,
-                                             const LE_PHYs Tx, const LE_PHYs Rx) noexcept;
+            HCIStatusCode setConnectedLE_PHY(const LE_PHYs Tx, const LE_PHYs Rx) noexcept;
 
             /**
              * Disconnect the LE or BREDR peer's GATT and HCI connection.

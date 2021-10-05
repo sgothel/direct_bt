@@ -619,13 +619,12 @@ HCIStatusCode BTAdapter::reset() noexcept {
 }
 
 
-HCIStatusCode BTAdapter::setDefaultLE_PHY(const bool tryTx, const bool tryRx,
-                                          const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
+HCIStatusCode BTAdapter::setDefaultLE_PHY(const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
     if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
         poweredOff(false /* active */);
         return HCIStatusCode::NOT_POWERED;
     }
-    return hci.le_set_default_phy(tryTx, tryRx, Tx, Rx);
+    return hci.le_set_default_phy(Tx, Rx);
 }
 
 bool BTAdapter::isDeviceWhitelisted(const BDAddressAndType & addressAndType) noexcept {

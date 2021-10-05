@@ -241,12 +241,10 @@ public class DBTDevice extends DBTObject implements BTDevice
     private native byte getConnectedLE_PHYImpl(byte[] resTx, byte[] resRx);
 
     @Override
-    public HCIStatusCode setConnectedLE_PHY(final boolean tryTx, final boolean tryRx,
-                                            final LE_PHYs Tx, final LE_PHYs Rx) {
-        return HCIStatusCode.get( setConnectedLE_PHYImpl(tryTx, tryRx, Tx.mask, Rx.mask) );
+    public HCIStatusCode setConnectedLE_PHY(final LE_PHYs Tx, final LE_PHYs Rx) {
+        return HCIStatusCode.get( setConnectedLE_PHYImpl(Tx.mask, Rx.mask) );
     }
-    private native byte setConnectedLE_PHYImpl(final boolean tryTx, final boolean tryRx,
-                                               final byte Tx, final byte Rx);
+    private native byte setConnectedLE_PHYImpl(final byte Tx, final byte Rx);
 
     @Override
     public final LE_PHYs getTxPhys() {

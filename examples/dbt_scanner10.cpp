@@ -415,7 +415,7 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
 
     {
         LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
-        HCIStatusCode res = device->setConnectedLE_PHY(true /* tryTx */, true /* tryRx */, Tx, Rx);
+        HCIStatusCode res = device->setConnectedLE_PHY(Tx, Rx);
         fprintf_td(stderr, "****** Set Connected LE PHY: status %s: Tx %s, Rx %s\n",
                 to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
     }
@@ -638,7 +638,7 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     }
     {
         LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
-        HCIStatusCode res = adapter->setDefaultLE_PHY(true /* tryRx */, true /* tryRx */, Tx, Rx);
+        HCIStatusCode res = adapter->setDefaultLE_PHY(Tx, Rx);
         fprintf_td(stderr, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
                 to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
     }

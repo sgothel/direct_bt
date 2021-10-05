@@ -925,7 +925,6 @@ jbyte Java_jau_direct_1bt_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {
 }
 
 jbyte Java_jau_direct_1bt_DBTAdapter_setDefaultLE_1PHYImpl(JNIEnv *env, jobject obj,
-                                                           jboolean tryTx, jboolean tryRx,
                                                            jbyte jTx, jbyte jRx) {
     try {
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
@@ -934,7 +933,7 @@ jbyte Java_jau_direct_1bt_DBTAdapter_setDefaultLE_1PHYImpl(JNIEnv *env, jobject 
         const LE_PHYs Tx = static_cast<LE_PHYs>(jTx);
         const LE_PHYs Rx = static_cast<LE_PHYs>(jRx);
 
-        return number ( adapter->setDefaultLE_PHY(tryTx, tryRx, Tx, Rx) );
+        return number ( adapter->setDefaultLE_PHY(Tx, Rx) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

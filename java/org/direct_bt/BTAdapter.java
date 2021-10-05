@@ -533,18 +533,16 @@ public interface BTAdapter extends BTObject
      *
      * BT Core Spec v5.2: Vol 4, Part E, 7.8.49 LE Set PHY command
      *
-     * @param tryTx if true, host has preference for given Tx LE_PHYs
-     * @param tryRx if true, host has preference for given Rx LE_PHYs
-     * @param Tx transmitter LE_PHYs of preference if tryTx is true, otherwise ignored
-     * @param Rx receiver LE_PHYs of preference if tryRx is true, otherwise ignored
+     * @param Tx transmitter LE_PHYs bit mask of preference if not set to zero {@link LE_PHYs#mask} (ignored).
+     * @param Rx receiver LE_PHYs bit mask of preference if not set to zero {@link LE_PHYs#mask} (ignored).
      * @return
      * @see BTDevice#getTxPhys()
      * @see BTDevice#getRxPhys()
      * @see BTDevice#getConnectedLE_PHY(LE_PHYs[], LE_PHYs[])
-     * @see BTDevice#setConnectedLE_PHY(boolean, boolean, LE_PHYs, LE_PHYs)
+     * @see BTDevice#setConnectedLE_PHY(LE_PHYs, LE_PHYs)
      * @since 2.4.0
      */
-    HCIStatusCode setDefaultLE_PHY(final boolean tryTx, final boolean tryRx, final LE_PHYs Tx, final LE_PHYs Rx);
+    HCIStatusCode setDefaultLE_PHY(final LE_PHYs Tx, final LE_PHYs Rx);
 
     /** Returns the discoverable state the adapter.
       * @return The discoverable state of the adapter.

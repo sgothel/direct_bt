@@ -31,7 +31,6 @@ import org.direct_bt.AdapterSettings;
 import org.direct_bt.AdapterStatusListener;
 import org.direct_bt.BDAddressAndType;
 import org.direct_bt.BTMode;
-import org.direct_bt.BTRole;
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTDevice;
 import org.direct_bt.BTException;

@@ -302,11 +302,10 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private native byte resetImpl();
 
     @Override
-    public final HCIStatusCode setDefaultLE_PHY(final boolean tryTx, final boolean tryRx, final LE_PHYs Tx, final LE_PHYs Rx) {
-        return HCIStatusCode.get( setDefaultLE_PHYImpl(tryTx, tryRx, Tx.mask, Rx.mask) );
+    public final HCIStatusCode setDefaultLE_PHY(final LE_PHYs Tx, final LE_PHYs Rx) {
+        return HCIStatusCode.get( setDefaultLE_PHYImpl(Tx.mask, Rx.mask) );
     }
-    private native byte setDefaultLE_PHYImpl(final boolean tryTx, final boolean tryRx,
-                                             final byte Tx, final byte Rx);
+    private native byte setDefaultLE_PHYImpl(final byte Tx, final byte Rx);
 
     @Override
     public native boolean setDiscoverable(boolean value);
