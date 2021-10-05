@@ -207,7 +207,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
             break;
         }
 
-        len = l2cap.read(rbuffer.get_wptr(), rbuffer.getSize());
+        len = l2cap.read(rbuffer.get_wptr(), rbuffer.size());
         if( 0 < len ) {
             std::unique_ptr<const AttPDUMsg> attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), static_cast<jau::nsize_t>(len));
             const AttPDUMsg::Opcode opc = attPDU->getOpcode();
@@ -217,7 +217,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
                 COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: NTF: %s, listener %zd", a->toString().c_str(), characteristicListenerList.size());
                 BTGattCharRef decl = findCharacterisicsByValueHandle(a->getHandle());
                 const jau::TOctetSlice& a_value_view = a->getValue();
-                const jau::TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.getSize()); // just a view, still owned by attPDU
+                const jau::TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.size(), a_value_view.byte_order()); // just a view, still owned by attPDU
                 // const std::shared_ptr<TROOctets> data( std::make_shared<POctets>(a->getValue()) );
                 const uint64_t timestamp = a->ts_creation;
                 int i=0;
@@ -245,7 +245,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
                 }
                 BTGattCharRef decl = findCharacterisicsByValueHandle(a->getHandle());
                 const jau::TOctetSlice& a_value_view = a->getValue();
-                const jau::TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.getSize()); // just a view, still owned by attPDU
+                const jau::TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.size(), a_value_view.byte_order()); // just a view, still owned by attPDU
                 // const std::shared_ptr<TROOctets> data( std::make_shared<POctets>(a->getValue()) );
                 const uint64_t timestamp = a->ts_creation;
                 int i=0;
@@ -285,7 +285,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
     }
     {
         const std::lock_guard<std::mutex> lock(mtx_l2capReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        WORDY_PRINT("GATTHandler::reader: Ended. Ring has %u entries flushed", attPDURing.getSize());
+        WORDY_PRINT("GATTHandler::reader: Ended. Ring has %u entries flushed", attPDURing.size());
         attPDURing.clear();
         l2capReaderRunning = false;
         cv_l2capReaderInit.notify_all();
@@ -299,7 +299,7 @@ BTGattHandler::BTGattHandler(const std::shared_ptr<BTDevice> &device, L2CAPComm&
   role(device->getLocalGATTRole()),
   l2cap(l2cap_att),
   deviceString(device->getAddressAndType().toString()),
-  rbuffer(number(Defaults::MAX_ATT_MTU)),
+  rbuffer(number(Defaults::MAX_ATT_MTU), jau::endian::little),
   is_connected(l2cap.isOpen()), has_ioerror(false),
   attPDURing(nullptr, env.ATTPDU_RING_CAPACITY), l2capReaderShallStop(false),
   l2capReaderThreadId(0), l2capReaderRunning(false),
@@ -433,13 +433,13 @@ void BTGattHandler::send(const AttPDUMsg & msg) {
     if( !validateConnected() ) {
         throw jau::IllegalStateException("GATTHandler::send: Invalid IO State: req "+msg.toString()+" to "+toString(), E_FILE_LINE);
     }
-    if( msg.pdu.getSize() > usedMTU ) {
-        throw jau::IllegalArgumentException("clientMaxMTU "+std::to_string(msg.pdu.getSize())+" > usedMTU "+std::to_string(usedMTU)+
+    if( msg.pdu.size() > usedMTU ) {
+        throw jau::IllegalArgumentException("clientMaxMTU "+std::to_string(msg.pdu.size())+" > usedMTU "+std::to_string(usedMTU)+
                                        " to "+toString(), E_FILE_LINE);
     }
 
     // Thread safe l2cap.write(..) operation..
-    const jau::snsize_t res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.getSize());
+    const jau::snsize_t res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.size());
     if( 0 > res ) {
         IRQ_PRINT("GATTHandler::send: l2cap write error -> disconnect: l2cap.write %d (%s); %s; %s to %s",
                 res, L2CAPComm::getRWExitCodeString(res).c_str(), getStateString().c_str(),
@@ -448,12 +448,12 @@ void BTGattHandler::send(const AttPDUMsg & msg) {
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
         throw BTException("GATTHandler::send: l2cap write error: req "+msg.toString()+" to "+toString(), E_FILE_LINE);
     }
-    if( static_cast<size_t>(res) != msg.pdu.getSize() ) {
+    if( static_cast<size_t>(res) != msg.pdu.size() ) {
         ERR_PRINT("GATTHandler::send: l2cap write count error, %d != %zu: %s -> disconnect: %s",
-                res, msg.pdu.getSize(), msg.toString().c_str(), toString().c_str());
+                res, msg.pdu.size(), msg.toString().c_str(), toString().c_str());
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
-        throw BTException("GATTHandler::send: l2cap write count error, "+std::to_string(res)+" != "+std::to_string(msg.pdu.getSize())
+        throw BTException("GATTHandler::send: l2cap write count error, "+std::to_string(res)+" != "+std::to_string(msg.pdu.size())
                                  +": "+msg.toString()+" -> disconnect: "+toString(), E_FILE_LINE);
     }
 }
@@ -817,18 +817,18 @@ bool BTGattHandler::readValue(const uint16_t handle, jau::POctets & res, int exp
             const AttReadRsp * p = static_cast<const AttReadRsp*>(pdu.get());
             const jau::TOctetSlice & v = p->getValue();
             res += v;
-            offset += v.getSize();
+            offset += v.size();
             if( p->getPDUValueSize() < p->getMaxPDUValueSize(usedMTU) ) {
                 done = true; // No full ATT_MTU PDU used - end of communication
             }
         } else if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_BLOB_RSP ) {
             const AttReadBlobRsp * p = static_cast<const AttReadBlobRsp*>(pdu.get());
             const jau::TOctetSlice & v = p->getValue();
-            if( 0 == v.getSize() ) {
+            if( 0 == v.size() ) {
                 done = true; // OK by spec: No more data - end of communication
             } else {
                 res += v;
-                offset += v.getSize();
+                offset += v.size();
                 if( p->getPDUValueSize() < p->getMaxPDUValueSize(usedMTU) ) {
                     done = true; // No full ATT_MTU PDU used - end of communication
                 }
@@ -895,13 +895,13 @@ bool BTGattHandler::writeValue(const uint16_t handle, const jau::TROOctets & val
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.11 Characteristic Value Indication */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.3 Write Characteristic Descriptor */
 
-    if( value.getSize() <= 0 ) {
+    if( value.size() <= 0 ) {
         WARN_PRINT("GATT writeValue size <= 0, no-op: %s", value.toString().c_str());
         return false;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
 
-    // FIXME TODO: Long Value if value.getSize() > ( ATT_MTU - 3 )
+    // FIXME TODO: Long Value if value.size() > ( ATT_MTU - 3 )
     PERF2_TS_T0();
 
     if( !withResponse ) {
@@ -977,7 +977,7 @@ static const jau::uuid16_t _PNP_ID(GattCharacteristicType::PNP_ID);
 
 std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darray<BTGattCharRef> & genericAccessCharDeclList) {
     std::shared_ptr<GattGenericAccessSvc> res = nullptr;
-    jau::POctets value(number(Defaults::MAX_ATT_MTU), 0);
+    jau::POctets value(number(Defaults::MAX_ATT_MTU), 0, jau::endian::little);
     std::string deviceName = "";
     AppearanceCat appearance = AppearanceCat::UNKNOWN;
     std::shared_ptr<GattPeriphalPreferredConnectionParameters> prefConnParam = nullptr;
@@ -995,7 +995,7 @@ std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darra
             	deviceName = GattNameToString(value); // mandatory
             }
         } else if( _APPEARANCE == *charDecl.value_type ) {
-            if( readCharacteristicValue(charDecl, value.resize(0)) && value.getSize() >= 2 ) {
+            if( readCharacteristicValue(charDecl, value.resize(0)) && value.size() >= 2 ) {
             	appearance = static_cast<AppearanceCat>(value.get_uint16(0)); // mandatory
             }
         } else if( _PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS == *charDecl.value_type ) {
@@ -1026,7 +1026,7 @@ bool BTGattHandler::ping() {
 
     for(size_t i=0; isOK && i<services.size(); i++) {
         jau::darray<BTGattCharRef> & genericAccessCharDeclList = services.at(i)->characteristicList;
-        jau::POctets value(32, 0);
+        jau::POctets value(32, 0, jau::endian::little);
 
         for(size_t j=0; isOK && j<genericAccessCharDeclList.size(); j++) {
             const BTGattChar & charDecl = *genericAccessCharDeclList.at(j);
@@ -1054,16 +1054,16 @@ bool BTGattHandler::ping() {
 
 std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(jau::darray<BTGattCharRef> & characteristicDeclList) {
     std::shared_ptr<GattDeviceInformationSvc> res = nullptr;
-    jau::POctets value(number(Defaults::MAX_ATT_MTU), 0);
+    jau::POctets value(number(Defaults::MAX_ATT_MTU), 0, jau::endian::little);
 
-    jau::POctets systemID(8, 0);
+    jau::POctets systemID(8, 0, jau::endian::little);
     std::string modelNumber;
     std::string serialNumber;
     std::string firmwareRevision;
     std::string hardwareRevision;
     std::string softwareRevision;
     std::string manufacturer;
-    jau::POctets regulatoryCertDataList(128, 0);
+    jau::POctets regulatoryCertDataList(128, 0, jau::endian::little);
     std::shared_ptr<GattPnP_ID> pnpID = nullptr;
     bool found = false;
 

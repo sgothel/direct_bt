@@ -252,7 +252,7 @@ class MyGATTEventListener : public BTGattChar::Listener {
                 i, j, charDecl->value_type->toUUID128String().c_str(), (tR-timestamp));
         fprintf_td(stderr, "**[%2.2d.%2.2d]     Characteristic: %s ******\n", i, j, charDecl->toString().c_str());
         fprintf_td(stderr, "**[%2.2d.%2.2d]     Value R: %s ******\n", i, j, char_value.toString().c_str());
-        sink_ref->insert(sink_ref->end(), char_value.get_ptr(), char_value.get_ptr()+char_value.getSize());
+        sink_ref->insert(sink_ref->end(), char_value.get_ptr(), char_value.get_ptr()+char_value.size());
     }
 
     void indicationReceived(BTGattCharRef charDecl,
@@ -264,7 +264,7 @@ class MyGATTEventListener : public BTGattChar::Listener {
                 i, j, charDecl->value_type->toUUID128String().c_str(), (tR-timestamp), confirmationSent);
         fprintf_td(stderr, "**[%2.2d.%2.2d]     Characteristic: %s ******\n", i, j, charDecl->toString().c_str());
         fprintf_td(stderr, "**[%2.2d.%2.2d]     Value R: %s ******\n", i, j, char_value.toString().c_str());
-        sink_ref->insert(sink_ref->end(), char_value.get_ptr(), char_value.get_ptr()+char_value.getSize());
+        sink_ref->insert(sink_ref->end(), char_value.get_ptr(), char_value.get_ptr()+char_value.size());
     }
 };
 

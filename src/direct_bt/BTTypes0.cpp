@@ -583,12 +583,14 @@ static std::string bt_compidtostr(const uint16_t companyid) noexcept {
 }
 
 ManufactureSpecificData::ManufactureSpecificData(uint16_t const company_)
-: company(company_), companyName(std::string(bt_compidtostr(company_))), data(/* intentional zero sized */) {
-}
+: company(company_), companyName(std::string(bt_compidtostr(company_))),
+  data(jau::endian::little /* intentional zero sized */)
+{ }
 
 ManufactureSpecificData::ManufactureSpecificData(uint16_t const company_, uint8_t const * const data_, jau::nsize_t const data_len)
-: company(company_), companyName(std::string(bt_compidtostr(company_))), data(data_, data_len) {
-}
+: company(company_), companyName(std::string(bt_compidtostr(company_))),
+  data(data_, data_len, jau::endian::little)
+{ }
 
 std::string ManufactureSpecificData::toString() const noexcept {
   std::string out("MSD[company[");
@@ -1066,7 +1068,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
         data_i   += ad_sz-1;
     }
     if( isEIRDataTypeSet(mask, EIRDataType::MANUF_DATA) && nullptr != msd ) {
-        const jau::nsize_t msd_data_sz = msd->getData().getSize();
+        const jau::nsize_t msd_data_sz = msd->getData().size();
         const jau::nsize_t ad_sz = 1 + 2 + msd_data_sz;
         if( ( count + 1 + ad_sz ) > data_length ) {
             _WARN_OOB("MANUF_DATA");

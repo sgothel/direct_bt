@@ -96,7 +96,7 @@ void BTManager::mgmtReaderThreadImpl() noexcept {
             break;
         }
 
-        len = comm.read(rbuffer.get_wptr(), rbuffer.getSize(), env.MGMT_READER_THREAD_POLL_TIMEOUT);
+        len = comm.read(rbuffer.get_wptr(), rbuffer.size(), env.MGMT_READER_THREAD_POLL_TIMEOUT);
         if( 0 < len ) {
             const jau::nsize_t len2 = static_cast<jau::nsize_t>(len);
             const jau::nsize_t paramSize = len2 >= MGMT_HEADER_SIZE ? rbuffer.get_uint16_nc(4) : 0;
@@ -133,7 +133,7 @@ void BTManager::mgmtReaderThreadImpl() noexcept {
     }
     {
         const std::lock_guard<std::mutex> lock(mtx_mgmtReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        WORDY_PRINT("DBTManager::reader: Ended. Ring has %u entries flushed", mgmtEventRing.getSize());
+        WORDY_PRINT("DBTManager::reader: Ended. Ring has %u entries flushed", mgmtEventRing.size());
         mgmtEventRing.clear();
         mgmtReaderRunning = false;
         cv_mgmtReaderInit.notify_all();
@@ -195,7 +195,7 @@ bool BTManager::send(MgmtCommand &req) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO SENT %s", req.toString().c_str());
     jau::TROOctets & pdu = req.getPDU();
-    if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
+    if ( comm.write( pdu.get_ptr(), pdu.size() ) < 0 ) {
         ERR_PRINT("DBTManager::sendWithReply: HCIComm write error, req %s", req.toString().c_str());
         return false;
     }
@@ -385,7 +385,7 @@ fail:
 
 BTManager::BTManager() noexcept
 : env(MgmtEnv::get()),
-  rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
+  rbuffer(ClientMaxMTU, jau::endian::little), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
   mgmtEventRing(nullptr, env.MGMT_EVT_RING_CAPACITY), mgmtReaderShallStop(false),
   mgmtReaderThreadId(0), mgmtReaderRunning(false),
   allowClose( comm.isOpen() )

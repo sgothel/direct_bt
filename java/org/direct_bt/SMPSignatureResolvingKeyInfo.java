@@ -121,14 +121,14 @@ public class SMPSignatureResolvingKeyInfo {
 
     /**
      * Size of the byte stream representation in bytes
-     * @see #getStream(byte[], int)
+     * @see #put(byte[], int)
      */
     public static final int byte_size = 1+16;
 
     /** Construct instance via given source byte array */
     public SMPSignatureResolvingKeyInfo(final byte source[], final int pos) {
         csrk = new byte[16];
-        putStream(source, pos);
+        get(source, pos);
     }
 
     /** Construct emoty unset instance. */
@@ -141,13 +141,13 @@ public class SMPSignatureResolvingKeyInfo {
      * Method transfers all bytes representing a SMPSignatureResolvingKeyInfo from the given
      * source array at the given position into this instance.
      * <p>
-     * Implementation is consistent with {@link #getStream(byte[], int)}.
+     * Implementation is consistent with {@link #put(byte[], int)}.
      * </p>
      * @param source the source array
      * @param pos starting position in the source array
-     * @see #getStream(byte[], int)
+     * @see #put(byte[], int)
      */
-    public void putStream(final byte[] source, int pos) {
+    public void get(final byte[] source, int pos) {
         if( byte_size > ( source.length - pos ) ) {
             throw new IllegalArgumentException("Stream ( "+source.length+" - "+pos+" ) < "+byte_size+" bytes");
         }
@@ -164,9 +164,9 @@ public class SMPSignatureResolvingKeyInfo {
      * @param sink the destination array
      * @param pos starting position in the destination array
      * @see #SMPSignatureResolvingKeyInfo(byte[], int)
-     * @see #putStream(byte[], int)
+     * @see #get(byte[], int)
      */
-    public final void getStream(final byte[] sink, int pos) {
+    public final void put(final byte[] sink, int pos) {
         if( byte_size > ( sink.length - pos ) ) {
             throw new IllegalArgumentException("Stream ( "+sink.length+" - "+pos+" ) < "+byte_size+" bytes");
         }

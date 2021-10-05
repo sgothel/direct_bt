@@ -406,7 +406,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
             break;
         }
 
-        len = comm.read(rbuffer.get_wptr(), rbuffer.getSize(), env.HCI_READER_THREAD_POLL_TIMEOUT);
+        len = comm.read(rbuffer.get_wptr(), rbuffer.size(), env.HCI_READER_THREAD_POLL_TIMEOUT);
         if( 0 < len ) {
             const jau::nsize_t len2 = static_cast<jau::nsize_t>(len);
             const HCIPacketType pc = static_cast<HCIPacketType>( rbuffer.get_uint8_nc(0) );
@@ -509,7 +509,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
     }
     {
         const std::lock_guard<std::mutex> lock(mtx_hciReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        WORDY_PRINT("HCIHandler::reader: Ended. Ring has %u entries flushed - %s", hciEventRing.getSize(), toString().c_str());
+        WORDY_PRINT("HCIHandler::reader: Ended. Ring has %u entries flushed - %s", hciEventRing.size(), toString().c_str());
         hciEventRing.clear();
         hciReaderRunning = false;
         cv_hciReaderInit.notify_all();
@@ -539,7 +539,7 @@ bool HCIHandler::sendCommand(HCICommand &req, const bool quiet) noexcept {
     COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO SENT %s", req.toString().c_str());
 
     jau::TROOctets & pdu = req.getPDU();
-    if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
+    if ( comm.write( pdu.get_ptr(), pdu.size() ) < 0 ) {
         if( !quiet || jau::environment::get().verbose ) {
             ERR_PRINT("HCIHandler::sendCommand: HCIComm write error, req %s - %s", req.toString().c_str(), toString().c_str());
         }
@@ -617,7 +617,7 @@ std::unique_ptr<HCIEvent> HCIHandler::getNextCmdCompleteReply(HCICommand &req, H
 HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
 : env(HCIEnv::get()),
   dev_id(dev_id_),
-  rbuffer(HCI_MAX_MTU),
+  rbuffer(HCI_MAX_MTU, jau::endian::little),
   comm(dev_id_, HCI_CHANNEL_RAW),
   hciEventRing(nullptr, env.HCI_EVT_RING_CAPACITY), hciReaderShallStop(false),
   hciReaderThreadId(0), hciReaderRunning(false),
@@ -940,7 +940,7 @@ std::string HCIHandler::toString() const noexcept {
     return "HCIHandler[dev_id "+std::to_string(dev_id)+", BTMode "+to_string(btMode)+", open "+std::to_string(isOpen())+
             ", adv "+std::to_string(advertisingEnabled)+", scan "+to_string(currentScanType)+
             ", ext[init "+std::to_string(sup_commands_set)+", adv "+std::to_string(use_ext_adv())+", scan "+std::to_string(use_ext_scan())+", conn "+std::to_string(use_ext_conn())+
-            "], ring[entries "+std::to_string(hciEventRing.getSize())+"]]";
+            "], ring[entries "+std::to_string(hciEventRing.size())+"]]";
 }
 
 HCIStatusCode HCIHandler::startAdapter() {

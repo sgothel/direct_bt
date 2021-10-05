@@ -51,6 +51,8 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/direct_bt/api/tinyb}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/direct_bt/jaulib/include/catch2}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/direct_bt/build-amd64/java/CMakeFiles/direct_bt_jar.dir/jni}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/direct_bt/test/direct_bt}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/direct_bt/jaulib/test}&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.warnings.toerrors.1901215746" name="Warnings as errors (-Werror)" superClass="gnu.cpp.compiler.option.warnings.toerrors" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="gnu.cpp.compiler.option.warnings.pedantic.975393834" name="Pedantic (-pedantic)" superClass="gnu.cpp.compiler.option.warnings.pedantic" useByScannerDiscovery="false" value="false" valueType="boolean"/>
@@ -150,6 +152,7 @@
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="jaulib/include"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="jaulib/java_jni"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="jaulib/src"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="jaulib/test"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="java/jni"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/direct_bt"/>
 						<entry excluding="ieee11073/" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="test"/>

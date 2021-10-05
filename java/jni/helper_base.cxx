@@ -58,8 +58,6 @@ void rethrow_and_raise_java_exception_impl(JNIEnv *env, const char* file, int li
     try {
         // std::rethrow_exception(e);
         throw; // re-throw current exception
-    } catch (const std::bad_alloc &e) {
-        jau::raise_java_exception(env, e, file, line);
     } catch (const jau::OutOfMemoryError &e) {
         jau::raise_java_exception(env, e, file, line);
     } catch (const jau::InternalError &e) {
@@ -77,6 +75,8 @@ void rethrow_and_raise_java_exception_impl(JNIEnv *env, const char* file, int li
     } catch (const direct_bt::BTException &e) {
         raise_java_exception(env, e, file, line);
     } catch (const jau::RuntimeException &e) {
+        jau::raise_java_exception(env, e, file, line);
+    } catch (const std::bad_alloc &e) {
         jau::raise_java_exception(env, e, file, line);
     } catch (const std::runtime_error &e) {
         jau::raise_java_exception(env, e, file, line);

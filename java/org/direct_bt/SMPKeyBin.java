@@ -30,10 +30,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteOrder;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.direct_bt.SMPKeyMask.KeyType;
+import org.jau.net.EUI48;
 
 /**
  * Storage for SMP keys including the required connection parameter.
@@ -47,6 +49,9 @@ import org.direct_bt.SMPKeyMask.KeyType;
  * are optionally set depending on their availability per initiator and responder,
  * implementation supports mixed mode for certain devices.
  * E.g. LTK responder key only etc.
+ * </p>
+ * <p>
+ * Data is stored in {@link ByteOrder#LITTLE_ENDIAN} format, native to Bluetooth.
  * </p>
  * <p>
  * Filename as retrieved by {@link #getFileBasename(BDAddressAndType)} and {@link #getFileBasename()}
@@ -514,8 +519,10 @@ public class SMPKeyBin {
                 out.write( (byte)( size >> 8 ) );
 
                 writeLong(ts_creation_sec, out, buffer);
-
-                out.write(addrAndType.address.b);
+                {
+                    addrAndType.address.put(buffer, 0, ByteOrder.LITTLE_ENDIAN);
+                    out.write(buffer, 0, addrAndType.address.b.length);
+                }
                 out.write(addrAndType.type.value);
                 out.write(sec_level.value);
                 out.write(io_cap.value);
@@ -524,28 +531,28 @@ public class SMPKeyBin {
                 out.write(keys_resp.mask);
 
                 if( hasLTKInit() ) {
-                    ltk_init.getStream(buffer, 0);
+                    ltk_init.put(buffer, 0);
                     out.write(buffer, 0, SMPLongTermKeyInfo.byte_size);
                 }
                 if( hasCSRKInit() ) {
-                    csrk_init.getStream(buffer, 0);
+                    csrk_init.put(buffer, 0);
                     out.write(buffer, 0, SMPSignatureResolvingKeyInfo.byte_size);
                 }
                 if( hasLKInit() ) {
-                    lk_init.getStream(buffer, 0);
+                    lk_init.put(buffer, 0);
                     out.write(buffer, 0, SMPLinkKeyInfo.byte_size);
                 }
 
                 if( hasLTKResp() ) {
-                    ltk_resp.getStream(buffer, 0);
+                    ltk_resp.put(buffer, 0);
                     out.write(buffer, 0, SMPLongTermKeyInfo.byte_size);
                 }
                 if( hasCSRKResp() ) {
-                    csrk_resp.getStream(buffer, 0);
+                    csrk_resp.put(buffer, 0);
                     out.write(buffer, 0, SMPSignatureResolvingKeyInfo.byte_size);
                 }
                 if( hasLKResp() ) {
-                    lk_resp.getStream(buffer, 0);
+                    lk_resp.put(buffer, 0);
                     out.write(buffer, 0, SMPLinkKeyInfo.byte_size);
                 }
 
@@ -598,7 +605,7 @@ public class SMPKeyBin {
                     err = true;
                 }
                 if( !err && 11 <= remaining ) {
-                    addrAndType.address.putStream(buffer, i); i+=6;
+                    addrAndType.address = new EUI48(buffer, i, ByteOrder.LITTLE_ENDIAN); i+=6;
                     addrAndType.type = BDAddressType.get(buffer[i++]);
                     sec_level = BTSecurityLevel.get(buffer[i++]);
                     io_cap = SMPIOCapability.get(buffer[i++]);
@@ -614,7 +621,7 @@ public class SMPKeyBin {
                 if( !err && hasLTKInit() ) {
                     if( SMPLongTermKeyInfo.byte_size <= remaining ) {
                         read(in, buffer, SMPLongTermKeyInfo.byte_size, fname);
-                        ltk_init.putStream(buffer, 0);
+                        ltk_init.get(buffer, 0);
                         remaining -= SMPLongTermKeyInfo.byte_size;
                     } else {
                         err = true;
@@ -623,7 +630,7 @@ public class SMPKeyBin {
                 if( !err && hasCSRKInit() ) {
                     if( SMPSignatureResolvingKeyInfo.byte_size <= remaining ) {
                         read(in, buffer, SMPSignatureResolvingKeyInfo.byte_size, fname);
-                        csrk_init.putStream(buffer, 0);
+                        csrk_init.get(buffer, 0);
                         remaining -= SMPSignatureResolvingKeyInfo.byte_size;
                     } else {
                         err = true;
@@ -632,7 +639,7 @@ public class SMPKeyBin {
                 if( !err && hasLKInit() ) {
                     if( SMPLinkKeyInfo.byte_size <= remaining ) {
                         read(in, buffer, SMPLinkKeyInfo.byte_size, fname);
-                        lk_init.putStream(buffer, 0);
+                        lk_init.get(buffer, 0);
                         remaining -= SMPLinkKeyInfo.byte_size;
                     } else {
                         err = true;
@@ -642,7 +649,7 @@ public class SMPKeyBin {
                 if( !err && hasLTKResp() ) {
                     if( SMPLongTermKeyInfo.byte_size <= remaining ) {
                         read(in, buffer, SMPLongTermKeyInfo.byte_size, fname);
-                        ltk_resp.putStream(buffer, 0);
+                        ltk_resp.get(buffer, 0);
                         remaining -= SMPLongTermKeyInfo.byte_size;
                     } else {
                         err = true;
@@ -651,7 +658,7 @@ public class SMPKeyBin {
                 if( !err && hasCSRKResp() ) {
                     if( SMPSignatureResolvingKeyInfo.byte_size <= remaining ) {
                         read(in, buffer, SMPSignatureResolvingKeyInfo.byte_size, fname);
-                        csrk_resp.putStream(buffer, 0);
+                        csrk_resp.get(buffer, 0);
                         remaining -= SMPSignatureResolvingKeyInfo.byte_size;
                     } else {
                         err = true;
@@ -660,7 +667,7 @@ public class SMPKeyBin {
                 if( !err && hasLKResp() ) {
                     if( SMPLinkKeyInfo.byte_size <= remaining ) {
                         read(in, buffer, SMPLinkKeyInfo.byte_size, fname);
-                        lk_resp.putStream(buffer, 0);
+                        lk_resp.get(buffer, 0);
                         remaining -= SMPLinkKeyInfo.byte_size;
                     } else {
                         err = true;

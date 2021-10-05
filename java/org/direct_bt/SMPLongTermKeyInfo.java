@@ -134,7 +134,7 @@ public class SMPLongTermKeyInfo {
 
     /**
      * Size of the byte stream representation in bytes (28)
-     * @see #getStream(byte[], int)
+     * @see #put(byte[], int)
      */
     public static final int byte_size = 1+1+2+8+16;
 
@@ -143,7 +143,7 @@ public class SMPLongTermKeyInfo {
         ediv       = new byte[2];
         rand       = new byte[8];
         ltk        = new byte[16];
-        putStream(source, pos);
+        get(source, pos);
     }
 
     /** Construct emoty unset instance. */
@@ -159,13 +159,13 @@ public class SMPLongTermKeyInfo {
      * Method transfers all bytes representing a SMPLongTermKeyInfo from the given
      * source array at the given position into this instance.
      * <p>
-     * Implementation is consistent with {@link #getStream(byte[], int)}.
+     * Implementation is consistent with {@link #put(byte[], int)}.
      * </p>
      * @param source the source array
      * @param pos starting position in the source array
-     * @see #getStream(byte[], int)
+     * @see #put(byte[], int)
      */
-    public void putStream(final byte[] source, int pos) {
+    public void get(final byte[] source, int pos) {
         if( byte_size > ( source.length - pos ) ) {
             throw new IllegalArgumentException("Stream ( "+source.length+" - "+pos+" ) < "+byte_size+" bytes");
         }
@@ -186,9 +186,9 @@ public class SMPLongTermKeyInfo {
      * @param sink the destination array
      * @param pos starting position in the destination array
      * @see #SMPLongTermKeyInfo(byte[], int)
-     * @see #putStream(byte[], int)
+     * @see #get(byte[], int)
      */
-    public final void getStream(final byte[] sink, int pos) {
+    public final void put(final byte[] sink, int pos) {
         if( byte_size > ( sink.length - pos ) ) {
             throw new IllegalArgumentException("Stream ( "+sink.length+" - "+pos+" ) < "+byte_size+" bytes");
         }

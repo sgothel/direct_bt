@@ -335,7 +335,8 @@ namespace direct_bt {
             }
 
             MgmtMsg(const uint16_t opc, const uint16_t dev_id, const uint16_t param_size)
-            : pdu(MGMT_HEADER_SIZE+param_size), ts_creation(jau::getCurrentMilliseconds())
+            : pdu(MGMT_HEADER_SIZE+param_size, jau::endian::little),
+              ts_creation(jau::getCurrentMilliseconds())
             {
                 pdu.put_uint16_nc(0, opc);
                 pdu.put_uint16_nc(2, dev_id);
@@ -343,7 +344,8 @@ namespace direct_bt {
             }
 
             MgmtMsg(const uint8_t* buffer, const jau::nsize_t buffer_len)
-            : pdu(buffer, buffer_len), ts_creation(jau::getCurrentMilliseconds())
+            : pdu(buffer, buffer_len, jau::endian::little),
+              ts_creation(jau::getCurrentMilliseconds())
             {}
 
             virtual ~MgmtMsg() {}
@@ -368,7 +370,7 @@ namespace direct_bt {
 
             uint64_t getTimestamp() const noexcept { return ts_creation; }
 
-            jau::nsize_t getTotalSize() const noexcept { return pdu.getSize(); }
+            jau::nsize_t getTotalSize() const noexcept { return pdu.size(); }
 
             /** Return the underlying octets read only */
             jau::TROOctets & getPDU() noexcept { return pdu; }
@@ -826,7 +828,7 @@ namespace direct_bt {
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
             uint8_t getPinLength() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1); }
-            jau::TROOctets getPinCode() const noexcept { return jau::POctets(pdu.get_ptr_nc(MGMT_HEADER_SIZE+6+1+1), getPinLength()); }
+            jau::TROOctets getPinCode() const noexcept { return jau::POctets(pdu.get_ptr_nc(MGMT_HEADER_SIZE+6+1+1), getPinLength(), jau::endian::little); }
     };
 
     /**
@@ -1218,7 +1220,7 @@ namespace direct_bt {
 
             virtual ~MgmtEvent() noexcept override {}
 
-            jau::nsize_t getTotalSize() const noexcept { return pdu.getSize(); }
+            jau::nsize_t getTotalSize() const noexcept { return pdu.size(); }
 
             Opcode getOpcode() const noexcept { return static_cast<Opcode>( pdu.get_uint16_nc(0) ); }
 

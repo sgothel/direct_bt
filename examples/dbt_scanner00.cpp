@@ -297,9 +297,9 @@ int main(int argc, char *argv[])
                         BTGattChar & serviceChar = *serviceCharacteristics.at(j);
                         fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
                         if( serviceChar.hasProperties(BTGattChar::PropertyBitVal::Read) ) {
-                            POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0);
+                            POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::endian::little);
                             if( serviceChar.readValue(value) ) {
-                                std::string sval = dfa_utf8_decode(value.get_ptr(), value.getSize());
+                                std::string sval = dfa_utf8_decode(value.get_ptr(), value.size());
                                 fprintf(stderr, "  [%2.2d.%2.2d] Value: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
                             }
                         }

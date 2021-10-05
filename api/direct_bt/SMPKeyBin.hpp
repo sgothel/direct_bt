@@ -51,6 +51,9 @@ namespace direct_bt {
  * E.g. LTK responder key only etc.
  * </p>
  * <p>
+ * Data is stored in endian::little format, native to Bluetooth.
+ * </p>
+ * <p>
  * Filename as retrieved by SMPKeyBin::getFileBasename()
  * has the following form `bd_C0_26_DA_01_DA_B1_1-smpkey.bin`:
  * <ul>

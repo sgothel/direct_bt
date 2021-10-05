@@ -423,7 +423,7 @@ namespace direct_bt {
 
             virtual std::string baseString() const noexcept {
                 return "opcode="+jau::to_hexstring(number(getOpcode()))+" "+getOpcodeString(getOpcode())+
-                        ", req "+std::to_string(is_request)+", size[total="+std::to_string(pdu.getSize())+", param "+std::to_string(getPDUParamSize())+"]";
+                        ", req "+std::to_string(is_request)+", size[total="+std::to_string(pdu.size())+", param "+std::to_string(getPDUParamSize())+"]";
             }
             virtual std::string valueString() const noexcept {
                 return "size "+std::to_string(getPDUValueSize())+", data "
@@ -450,7 +450,7 @@ namespace direct_bt {
 
             /** Persistent memory, w/ ownership ..*/
             AttPDUMsg(const uint8_t* source, const jau::nsize_t size)
-                : pdu(source, std::max<jau::nsize_t>(1, size)),
+                : pdu(source, std::max<jau::nsize_t>(1, size), jau::endian::little),
                   is_request( is_req( getOpcode() ) ),
                   ts_creation(jau::getCurrentMilliseconds())
             {
@@ -459,7 +459,7 @@ namespace direct_bt {
 
             /** Persistent memory, w/ ownership ..*/
             AttPDUMsg(const Opcode opc, const jau::nsize_t size)
-                : pdu(std::max<jau::nsize_t>(1, size)),
+                : pdu(std::max<jau::nsize_t>(1, size), jau::endian::little),
                   is_request( is_req( opc ) ),
                   ts_creation(jau::getCurrentMilliseconds())
             {
@@ -514,7 +514,7 @@ namespace direct_bt {
              * </p>
              */
             constexpr jau::nsize_t getPDUParamSize() const noexcept {
-                return pdu.getSize() - getAuthSigSize() - 1 /* opcode */;
+                return pdu.size() - getAuthSigSize() - 1 /* opcode */;
             }
 
             /**
@@ -887,10 +887,10 @@ namespace direct_bt {
 
         public:
             AttWriteReq(const uint16_t handle, const jau::TROOctets & value)
-            : AttPDUMsg(Opcode::WRITE_REQ, 1+2+value.getSize()), view(pdu, getPDUValueOffset(), getPDUValueSize())
+            : AttPDUMsg(Opcode::WRITE_REQ, 1+2+value.size()), view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16_nc(1, handle);
-                for(jau::nsize_t i=0; i<value.getSize(); i++) {
+                for(jau::nsize_t i=0; i<value.size(); i++) {
                     pdu.put_uint8_nc(3+i, value.get_uint8_nc(i));
                 }
             }
@@ -959,10 +959,10 @@ namespace direct_bt {
 
         public:
             AttWriteCmd(const uint16_t handle, const jau::TROOctets & value)
-            : AttPDUMsg(Opcode::WRITE_CMD, 1+2+value.getSize()), view(pdu, getPDUValueOffset(), getPDUValueSize())
+            : AttPDUMsg(Opcode::WRITE_CMD, 1+2+value.size()), view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16_nc(1, handle);
-                for(jau::nsize_t i=0; i<value.getSize(); i++) {
+                for(jau::nsize_t i=0; i<value.size(); i++) {
                     pdu.put_uint8_nc(3+i, value.get_uint8_nc(i));
                 }
             }
@@ -1212,7 +1212,7 @@ namespace direct_bt {
 
                     constexpr uint8_t const * getValuePtr() const noexcept { return view.get_ptr_nc(2 /* handle size */); }
 
-                    constexpr jau::nsize_t getValueSize() const noexcept { return view.getSize() - 2 /* handle size */; }
+                    constexpr jau::nsize_t getValueSize() const noexcept { return view.size() - 2 /* handle size */; }
 
                     std::string toString() const {
                         return "handle "+jau::to_hexstring(getHandle())+
@@ -1313,7 +1313,7 @@ namespace direct_bt {
 
                     constexpr uint8_t const * getValuePtr() const noexcept { return view.get_ptr_nc(4 /* handle size */); }
 
-                    constexpr jau::nsize_t getValueSize() const noexcept { return view.getSize() - 4 /* handle size */; }
+                    constexpr jau::nsize_t getValueSize() const noexcept { return view.size() - 4 /* handle size */; }
             };
 
             AttReadByGroupTypeRsp(const uint8_t* source, const jau::nsize_t length)

@@ -114,7 +114,9 @@ namespace direct_bt {
 
             BTGattDesc(const BTGattCharRef & characteristic, std::unique_ptr<const jau::uuid_t> && type_,
                            const uint16_t handle_) noexcept
-            : wbr_char(characteristic), type(std::move(type_)), handle(handle_), value(/* intentional zero sized */) {}
+            : wbr_char(characteristic), type(std::move(type_)), handle(handle_),
+              value(jau::endian::little /* intentional zero sized */)
+            { }
 
             std::string get_java_class() const noexcept override {
                 return java_class();

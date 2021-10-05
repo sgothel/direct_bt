@@ -914,7 +914,7 @@ namespace direct_bt {
                            uint8_t const * data, int offset, int const size) noexcept;
 
     public:
-        EInfoReport() noexcept : hash(16, 0), randomizer(16, 0) {}
+        EInfoReport() noexcept : hash(16, 0, jau::endian::little), randomizer(16, 0, jau::endian::little) {}
 
         void setSource(Source s) noexcept { source = s; }
         void setTimestamp(uint64_t ts) noexcept { timestamp = ts; }

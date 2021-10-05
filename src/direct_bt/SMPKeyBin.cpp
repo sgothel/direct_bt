@@ -250,7 +250,10 @@ bool SMPKeyBin::write(const std::string& fname, const bool overwrite) const noex
     jau::put_uint64(buffer, 0, ts_creation_sec, true /* littleEndian */);
     file.write((char*)buffer, sizeof(ts_creation_sec));
 
-    file.write((char*)&addrAndType.address, sizeof(addrAndType.address));
+    {
+        addrAndType.address.put(buffer, 0, jau::endian::little);
+        file.write((char*)buffer, sizeof(addrAndType.address.b));
+    }
     file.write((char*)&addrAndType.type, sizeof(addrAndType.type));
     file.write((char*)&sec_level, sizeof(sec_level));
     file.write((char*)&io_cap, sizeof(io_cap));
@@ -322,7 +325,10 @@ bool SMPKeyBin::read(const std::string& fname) {
         err = true;
     }
     if( !err && 11 <= remaining ) {
-        file.read((char*)&addrAndType.address, sizeof(addrAndType.address));
+        {
+            file.read((char*)buffer, sizeof(addrAndType.address.b));
+            addrAndType.address = jau::EUI48(buffer, jau::endian::little);
+        }
         file.read((char*)&addrAndType.type, sizeof(addrAndType.type));
         file.read((char*)&sec_level, sizeof(sec_level));
         file.read((char*)&io_cap, sizeof(io_cap));

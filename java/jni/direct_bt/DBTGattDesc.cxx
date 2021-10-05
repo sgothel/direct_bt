@@ -68,7 +68,7 @@ jbyteArray Java_jau_direct_1bt_DBTGattDesc_readValueImpl(JNIEnv *env, jobject ob
             ERR_PRINT("Characteristic readValue failed: %s", descriptor->toString().c_str());
             return env->NewByteArray((jsize)0);
         }
-        const size_t value_size = descriptor->value.getSize();
+        const size_t value_size = descriptor->value.size();
         jbyteArray jres = env->NewByteArray((jsize)value_size);
         env->SetByteArrayRegion(jres, 0, (jsize)value_size, (const jbyte *)descriptor->value.get_ptr());
         java_exception_check_and_throw(env, E_FILE_LINE);
@@ -97,7 +97,7 @@ jboolean Java_jau_direct_1bt_DBTGattDesc_writeValueImpl(JNIEnv *env, jobject obj
         if( NULL == value_ptr ) {
             throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
-        TROOctets value(value_ptr, value_size);
+        TROOctets value(value_ptr, value_size, jau::endian::little);
         descriptor->value = value; // copy data
 
         if( !descriptor->writeValue() ) {

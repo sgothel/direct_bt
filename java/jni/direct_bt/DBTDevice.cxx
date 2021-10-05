@@ -109,7 +109,7 @@ class JNIGattCharListener : public BTGattCharListener {
         JNIEnv *env = *jni_env;
         jobject jCharDecl = jau::JavaGlobalObj::GetObject(jCharDeclRef);
 
-        const size_t value_size = charValue.getSize();
+        const size_t value_size = charValue.size();
         jbyteArray jval = env->NewByteArray((jsize)value_size);
         env->SetByteArrayRegion(jval, 0, (jsize)value_size, (const jbyte *)charValue.get_ptr());
         java_exception_check_and_throw(env, E_FILE_LINE);
@@ -130,7 +130,7 @@ class JNIGattCharListener : public BTGattCharListener {
         JNIEnv *env = *jni_env;
         jobject jCharDecl = jau::JavaGlobalObj::GetObject(jCharDeclRef);
 
-        const size_t value_size = charValue.getSize();
+        const size_t value_size = charValue.size();
         jbyteArray jval = env->NewByteArray((jsize)value_size);
         env->SetByteArrayRegion(jval, 0, (jsize)value_size, (const jbyte *)charValue.get_ptr());
         java_exception_check_and_throw(env, E_FILE_LINE);
@@ -864,8 +864,8 @@ jobject Java_jau_direct_1bt_DBTDevice_getManufacturerData(JNIEnv *env, jobject o
 
         if( nullptr != mdata ) {
             result = env->NewObject(map_cls, map_ctor, 1);
-            jbyteArray arr = env->NewByteArray(mdata->getData().getSize());
-            env->SetByteArrayRegion(arr, 0, mdata->getData().getSize(), (const jbyte *)mdata->getData().get_ptr());
+            jbyteArray arr = env->NewByteArray(mdata->getData().size());
+            env->SetByteArrayRegion(arr, 0, mdata->getData().size(), (const jbyte *)mdata->getData().get_ptr());
             jobject key = env->NewObject(short_cls, short_ctor, mdata->getCompany());
             env->CallObjectMethod(result, map_put, key, arr);
 

@@ -85,7 +85,7 @@ jobject Java_jau_direct_1bt_DBTGattChar_getDescriptorsImpl(JNIEnv *env, jobject 
                                                                        descriptor->type->toString());
                     java_exception_check_and_throw(env_, E_FILE_LINE);
 
-                    const size_t value_size = descriptor->value.getSize();
+                    const size_t value_size = descriptor->value.size();
                     jbyteArray jval = env_->NewByteArray((jsize)value_size);
                     env_->SetByteArrayRegion(jval, 0, (jsize)value_size, (const jbyte *)descriptor->value.get_ptr());
                     java_exception_check_and_throw(env_, E_FILE_LINE);
@@ -114,13 +114,13 @@ jbyteArray Java_jau_direct_1bt_DBTGattChar_readValueImpl(JNIEnv *env, jobject ob
         BTGattChar *characteristic = getJavaUplinkObject<BTGattChar>(env, obj);
         JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
 
-        POctets res(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0);
+        POctets res(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::endian::little);
         if( !characteristic->readValue(res) ) {
             ERR_PRINT("Characteristic readValue failed: %s", characteristic->toString().c_str());
             return env->NewByteArray((jsize)0);
         }
 
-        const size_t value_size = res.getSize();
+        const size_t value_size = res.size();
         jbyteArray jres = env->NewByteArray((jsize)value_size);
         env->SetByteArrayRegion(jres, 0, (jsize)value_size, (const jbyte *)res.get_ptr());
         java_exception_check_and_throw(env, E_FILE_LINE);
@@ -149,7 +149,7 @@ jboolean Java_jau_direct_1bt_DBTGattChar_writeValueImpl(JNIEnv *env, jobject obj
         if( NULL == value_ptr ) {
             throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
-        TROOctets value(value_ptr, value_size);
+        TROOctets value(value_ptr, value_size, jau::endian::little);
         bool res;
         if( withResponse ) {
             res = characteristic->writeValue(value);

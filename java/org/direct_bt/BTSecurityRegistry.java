@@ -25,6 +25,7 @@
 
 package org.direct_bt;
 
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -179,7 +180,7 @@ public class BTSecurityRegistry {
      */
     public static BTSecurityRegistry.Entry getStartOf(final EUI48 addr, final String name) {
         return get(addr, name, (final EUI48 a, final String n, final BTSecurityRegistry.Entry e) -> {
-           return ( e.addrSub.length > 0 && 0 == a.indexOf(e.addrSub) ) ||
+           return ( e.addrSub.length > 0 && 0 == a.indexOf(e.addrSub, ByteOrder.BIG_ENDIAN) ) ||
                   (e.nameSub.length() > 0 && n.startsWith(e.nameSub) );
         });
     }
@@ -192,7 +193,7 @@ public class BTSecurityRegistry {
      */
     public static BTSecurityRegistry.Entry getStartOf(final EUI48Sub addrSub, final String name) {
         return get(addrSub, name, (final EUI48Sub as, final String n, final BTSecurityRegistry.Entry e) -> {
-           return ( e.addrSub.length > 0 && 0 == as.indexOf(e.addrSub) ) ||
+           return ( e.addrSub.length > 0 && 0 == as.indexOf(e.addrSub, ByteOrder.BIG_ENDIAN) ) ||
                   ( e.nameSub.length() > 0 && n.startsWith(e.nameSub) );
         });
     }

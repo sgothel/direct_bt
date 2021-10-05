@@ -524,7 +524,7 @@ namespace direct_bt {
 
         public:
             HCIPacket(const HCIPacketType type, const jau::nsize_t total_packet_size)
-            : pdu(total_packet_size)
+            : pdu(total_packet_size, jau::endian::little)
             {
                 if( 0 == total_packet_size ) {
                     throw jau::IndexOutOfBoundsException(1, total_packet_size, E_FILE_LINE);
@@ -534,7 +534,7 @@ namespace direct_bt {
 
             /** Persistent memory, w/ ownership ..*/
             HCIPacket(const uint8_t *packet_data, const jau::nsize_t total_packet_size)
-            : pdu(packet_data, total_packet_size)
+            : pdu(packet_data, total_packet_size, jau::endian::little)
             {
                 if( 0 == total_packet_size ) {
                     throw jau::IndexOutOfBoundsException(1, total_packet_size, E_FILE_LINE);
@@ -553,7 +553,7 @@ namespace direct_bt {
             template<class T>
             static T* clone(const T& source) noexcept { return new T(source); }
 
-            constexpr jau::nsize_t getTotalSize() const noexcept { return pdu.getSize(); }
+            constexpr jau::nsize_t getTotalSize() const noexcept { return pdu.size(); }
 
             /** Return the underlying octets read only */
             jau::TROOctets & getPDU() noexcept { return pdu; }

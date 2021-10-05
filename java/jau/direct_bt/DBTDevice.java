@@ -26,6 +26,7 @@
 package jau.direct_bt;
 
 import java.lang.ref.WeakReference;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -106,7 +107,7 @@ public class DBTDevice extends DBTObject implements BTDevice
     {
         super(nativeInstance, compHash(java.util.Arrays.hashCode(byteAddress), 31+byteAddressType));
         this.wbr_adapter = new WeakReference<DBTAdapter>(adptr);
-        this.addressAndType = new BDAddressAndType(new EUI48(byteAddress), BDAddressType.get(byteAddressType));
+        this.addressAndType = new BDAddressAndType(new EUI48(byteAddress, ByteOrder.nativeOrder()), BDAddressType.get(byteAddressType));
         if( BDAddressType.BDADDR_UNDEFINED == addressAndType.type ) {
             throw new IllegalArgumentException("Unsupported given native addresstype "+byteAddressType);
         }
@@ -316,7 +317,7 @@ public class DBTDevice extends DBTObject implements BTDevice
     @Override
     public final HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk) {
         final byte[] stream = new byte[SMPLongTermKeyInfo.byte_size];
-        ltk.getStream(stream, 0);
+        ltk.put(stream, 0);
         return HCIStatusCode.get( setLongTermKeyInfoImpl(stream) );
     }
     private final native byte setLongTermKeyInfoImpl(final byte[] source);
@@ -340,7 +341,7 @@ public class DBTDevice extends DBTObject implements BTDevice
     @Override
     public final HCIStatusCode setLinkKeyInfo(final SMPLinkKeyInfo lk) {
         final byte[] stream = new byte[SMPLinkKeyInfo.byte_size];
-        lk.getStream(stream, 0);
+        lk.put(stream, 0);
         return HCIStatusCode.get( setLinkKeyInfoImpl(stream) );
     }
     private final native byte setLinkKeyInfoImpl(final byte[] source);

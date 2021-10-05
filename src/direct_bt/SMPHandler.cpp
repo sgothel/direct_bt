@@ -120,7 +120,7 @@ void SMPHandler::l2capReaderThreadImpl() {
             break;
         }
 
-        len = l2cap.read(rbuffer.get_wptr(), rbuffer.getSize());
+        len = l2cap.read(rbuffer.get_wptr(), rbuffer.size());
         if( 0 < len ) {
             std::unique_ptr<const SMPPDUMsg> smpPDU = SMPPDUMsg::getSpecialized(rbuffer.get_ptr(), static_cast<jau::nsize_t>(len));
             const SMPPDUMsg::Opcode opc = smpPDU->getOpcode();
@@ -153,7 +153,7 @@ void SMPHandler::l2capReaderThreadImpl() {
     }
     {
         const std::lock_guard<std::mutex> lock(mtx_l2capReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        WORDY_PRINT("SMPHandler::reader: Ended. Ring has %u entries flushed", smpPDURing.getSize());
+        WORDY_PRINT("SMPHandler::reader: Ended. Ring has %u entries flushed", smpPDURing.size());
         smpPDURing.clear();
         l2capReaderRunning = false;
         cv_l2capReaderInit.notify_all();
@@ -163,7 +163,8 @@ void SMPHandler::l2capReaderThreadImpl() {
 
 SMPHandler::SMPHandler(const std::shared_ptr<BTDevice> &device) noexcept
 : env(SMPEnv::get()),
-  wbr_device(device), deviceString(device->getAddressAndType().toString()), rbuffer(number(Defaults::SMP_MTU_BUFFER_SZ)),
+  wbr_device(device), deviceString(device->getAddressAndType().toString()),
+  rbuffer(number(Defaults::SMP_MTU_BUFFER_SZ), jau::endian::little),
   l2cap(device->getAdapter().getAddressAndType(), L2CAP_PSM::UNDEFINED, L2CAP_CID::SMP),
   is_connected(l2cap.open(*device)), has_ioerror(false),
   smpPDURing(nullptr, env.SMPPDU_RING_CAPACITY), l2capReaderShallStop(false),
@@ -282,13 +283,13 @@ void SMPHandler::send(const SMPPDUMsg & msg) {
     if( !validateConnected() ) {
         throw jau::IllegalStateException("SMPHandler::send: Invalid IO State: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
-    if( msg.pdu.getSize() > mtu ) {
-        throw jau::IllegalArgumentException("clientMaxMTU "+std::to_string(msg.pdu.getSize())+" > usedMTU "+std::to_string(mtu)+
+    if( msg.pdu.size() > mtu ) {
+        throw jau::IllegalArgumentException("clientMaxMTU "+std::to_string(msg.pdu.size())+" > usedMTU "+std::to_string(mtu)+
                                        " to "+deviceString, E_FILE_LINE);
     }
 
     // Thread safe l2cap.write(..) operation..
-    const jau::snsize_t res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.getSize());
+    const jau::snsize_t res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.size());
     if( 0 > res ) {
         IRQ_PRINT("SMPHandler::send: l2cap write error -> disconnect: l2cap.write %d (%s); %s; %s to %s",
                 res, L2CAPComm::getRWExitCodeString(res).c_str(), getStateString().c_str(),
@@ -297,12 +298,12 @@ void SMPHandler::send(const SMPPDUMsg & msg) {
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
         throw BTException("SMPHandler::send: l2cap write error: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
-    if( static_cast<size_t>(res) != msg.pdu.getSize() ) {
+    if( static_cast<size_t>(res) != msg.pdu.size() ) {
         ERR_PRINT("SMPHandler::send: l2cap write count error, %d != %zu: %s -> disconnect: %s",
-                res, msg.pdu.getSize(), msg.toString().c_str(), deviceString.c_str());
+                res, msg.pdu.size(), msg.toString().c_str(), deviceString.c_str());
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
-        throw BTException("SMPHandler::send: l2cap write count error, "+std::to_string(res)+" != "+std::to_string(msg.pdu.getSize())
+        throw BTException("SMPHandler::send: l2cap write count error, "+std::to_string(res)+" != "+std::to_string(msg.pdu.size())
                                  +": "+msg.toString()+" -> disconnect: "+deviceString, E_FILE_LINE);
     }
 }

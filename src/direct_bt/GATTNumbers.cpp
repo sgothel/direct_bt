@@ -347,11 +347,11 @@ const GattCharacteristicSpec * direct_bt::findGattCharSpec(const uint16_t uuid16
 /********************************************************/
 
 std::string direct_bt::GattNameToString(const jau::TROOctets &v) noexcept {
-	const jau::nsize_t str_len = v.getSize();
+	const jau::nsize_t str_len = v.size();
 	if( 0 == str_len ) {
 	    return std::string(); // empty
 	}
-	jau::POctets s(str_len+1); // dtor releases chunk
+	jau::POctets s(str_len+1, jau::endian::little); // dtor releases chunk
 	{
 	    // Prelim checking to avoid g++ 8.3 showing a warning: pointer overflow between offset 0 and size
         uint8_t const * const v_p = v.get_ptr();
@@ -376,7 +376,7 @@ GattPeriphalPreferredConnectionParameters::GattPeriphalPreferredConnectionParame
 
 std::shared_ptr<GattPeriphalPreferredConnectionParameters> GattPeriphalPreferredConnectionParameters::get(const jau::TROOctets &source) noexcept {
     const jau::nsize_t reqSize = 8;
-    if( source.getSize() < reqSize ) {
+    if( source.size() < reqSize ) {
         ERR_PRINT("GattPeriphalPreferredConnectionParameters: Insufficient data, less than %d bytes in %s", reqSize, source.toString().c_str());
         return nullptr;
     }
@@ -401,7 +401,7 @@ GattPnP_ID::GattPnP_ID(const jau::TROOctets &source) noexcept
 
 std::shared_ptr<GattPnP_ID> GattPnP_ID::get(const jau::TROOctets &source) noexcept {
     const jau::nsize_t reqSize = 7;
-    if( source.getSize() < reqSize ) {
+    if( source.size() < reqSize ) {
         ERR_PRINT("GattPnP_ID: Insufficient data, less than %d bytes in %s", reqSize, source.toString().c_str());
         return nullptr;
     }
@@ -423,7 +423,7 @@ std::string GattDeviceInformationSvc::toString() const noexcept {
 }
 
 std::shared_ptr<GattTemperatureMeasurement> GattTemperatureMeasurement::get(const jau::TROOctets &source) noexcept {
-    const jau::nsize_t size = source.getSize();
+    const jau::nsize_t size = source.size();
     jau::nsize_t reqSize = 1 + 4; // max size = 13
     if( reqSize > size ) {
         // min size: flags + temperatureValue

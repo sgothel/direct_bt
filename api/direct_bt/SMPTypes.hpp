@@ -752,7 +752,7 @@ namespace direct_bt {
 
             virtual std::string baseString() const noexcept {
                 return "opcode="+jau::to_hexstring(number(getOpcode()))+" "+getOpcodeString(getOpcode())+
-                        ", size[total="+std::to_string(pdu.getSize())+", param "+std::to_string(getPDUParamSize())+"]";
+                        ", size[total="+std::to_string(pdu.size())+", param "+std::to_string(getPDUParamSize())+"]";
             }
             virtual std::string valueString() const noexcept {
                 return "size "+std::to_string(getDataSize())+", data "
@@ -776,14 +776,16 @@ namespace direct_bt {
 
             /** Persistent memory, w/ ownership ..*/
             SMPPDUMsg(const uint8_t* source, const jau::nsize_t size)
-                : pdu(source, std::max<jau::nsize_t>(1, size)), ts_creation(jau::getCurrentMilliseconds())
+                : pdu(source, std::max<jau::nsize_t>(1, size), jau::endian::little),
+                  ts_creation(jau::getCurrentMilliseconds())
             {
                 pdu.check_range(0, getDataOffset()+getDataSize());
             }
 
             /** Persistent memory, w/ ownership ..*/
             SMPPDUMsg(const Opcode opc, const jau::nsize_t size)
-                : pdu(std::max<jau::nsize_t>(1, size)), ts_creation(jau::getCurrentMilliseconds())
+                : pdu(std::max<jau::nsize_t>(1, size), jau::endian::little),
+                  ts_creation(jau::getCurrentMilliseconds())
             {
                 pdu.put_uint8_nc(0, number(opc));
                 pdu.check_range(0, getDataOffset()+getDataSize());
@@ -827,7 +829,7 @@ namespace direct_bt {
              * @see SMPPDUMsg::getDataSize()
              */
             constexpr jau::nsize_t getPDUParamSize() const noexcept {
-                return pdu.getSize() - 1 /* opcode */;
+                return pdu.size() - 1 /* opcode */;
             }
 
             /**

@@ -453,7 +453,7 @@ std::shared_ptr<ConnectionInfo> MgmtEvtCmdComplete::toConnectionInfo() const noe
         ERR_PRINT("Data nullptr: %s", toString().c_str());
         return nullptr;
     }
-    EUI48 address = EUI48( data );
+    EUI48 address = EUI48( data, jau::endian::native );
     BDAddressType addressType = static_cast<BDAddressType>( jau::get_uint8(data, 6) );
     int8_t rssi = jau::get_int8(data, 7);
     int8_t tx_power = jau::get_int8(data, 8);

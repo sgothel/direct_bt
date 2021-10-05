@@ -26,6 +26,7 @@
 package jau.direct_bt;
 
 import java.lang.ref.WeakReference;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -97,7 +98,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     {
         super(nativeInstance, compHash(java.util.Arrays.hashCode(byteAddress), 31+byteAddressType));
         this.dev_id = dev_id;
-        this.addressAndType = new BDAddressAndType(new EUI48(byteAddress), BDAddressType.get(byteAddressType));
+        this.addressAndType = new BDAddressAndType(new EUI48(byteAddress, ByteOrder.nativeOrder()), BDAddressType.get(byteAddressType));
         this.name_cached = name;
         this.visibleAddressAndType = addressAndType;
         addStatusListener(this.statusListener);
