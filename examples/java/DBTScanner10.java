@@ -206,8 +206,8 @@ public class DBTScanner10 {
                     // next: deviceReady(..)
                     break;
                 case FAILED: {
-                    final boolean res  = SMPKeyBin.remove(KEY_PATH, device.getAddressAndType());
-                    BTUtils.println(System.err, "****** PAIRING_STATE: state "+state+"; Remove key file "+SMPKeyBin.getFilename(KEY_PATH, device.getAddressAndType())+", res "+res);
+                    final boolean res  = SMPKeyBin.remove(KEY_PATH, device);
+                    BTUtils.println(System.err, "****** PAIRING_STATE: state "+state+"; Remove key file "+SMPKeyBin.getFilename(KEY_PATH, device)+", res "+res);
                     // next: deviceReady() or deviceDisconnected(..)
                 } break;
                 case REQUESTED_BY_RESPONDER:

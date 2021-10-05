@@ -38,7 +38,9 @@ import org.direct_bt.SMPKeyMask.KeyType;
 import org.jau.net.EUI48;
 
 /**
- * Storage for SMP keys including the required connection parameter.
+ * Storage for SMP keys including required connection parameter per local adapter and remote device.
+ *
+ * File format version 4.
  *
  * Storage for a device's {@link BDAddressAndType}, its security connection setup {@link BTSecurityLevel} + {@link SMPIOCapability}
  * and optionally the initiator and responder {@link SMPLongTermKey LTK}, {@link SMPSignatureResolvingKey CSRK}
@@ -55,22 +57,25 @@ import org.jau.net.EUI48;
  * </p>
  * <p>
  * Filename as retrieved by {@link #getFileBasename(BDAddressAndType)} and {@link #getFileBasename()}
- * has the following form '{@code bd_C0_26_DA_01_DA_B1_1-smpkey.bin}':
+ * has the following form {@code bd_010203040506_C026DA01DAB11.key}:
  * <ul>
- * <li>{@code 'bd_'} denotes prefix</li>
- * <li>{@code 'C0_26_DA_01_DA_B1'} denotes the {@link EUI48} address</li>
- * <li>{@code '_1'} denotes the {@link BDAddressType}</li>
- * <li>{@code '-smpkey.bin'} denotes the suffix</li>
+ * <li>{@code 'bd_'} prefix</li>
+ * <li>{@code '010203040506'} local {@link EUI48} adapter address</li>
+ * <li>{@code '_'} separator</li>
+ * <li>{@code 'C026DA01DAB1'} remote {@link EUI48} device address</li>
+ * <li>{@code '1'} {@link BDAddressType}</li>
+ * <li>{@code '.key'} suffix</li>
  * </li>
  * </p>
  */
 public class SMPKeyBin {
-        public static final short VERSION = (short)0b0101010101010101 + (short)3; // bitpattern + version
+        public static final short VERSION = (short)0b0101010101010101 + (short)4; // bitpattern + version
 
         private short version;                          //  2
         private short size;                             //  2
         private long ts_creation_sec;                   //  8
-        private final BDAddressAndType addrAndType;     //  7
+        private final BDAddressAndType localAddress;    //  7
+        private final BDAddressAndType remoteAddress;   //  7
         private BTSecurityLevel sec_level;;             //  1
         private SMPIOCapability io_cap;                 //  1
 
@@ -85,9 +90,10 @@ public class SMPKeyBin {
         private SMPSignatureResolvingKey csrk_resp;     // 17 (optional)
         private SMPLinkKey               lk_resp;       // 18 (optional)
 
-        private static final int byte_size_max = 113;
-        private static final int byte_size_min =  23;
-        // Min-Max: 23 - 113 bytes
+        private static final int byte_size_max = 156;
+        private static final int byte_size_min =  30;
+
+        // Min-Max: 30 - 156 bytes
 
         boolean verbose;
 
@@ -96,8 +102,10 @@ public class SMPKeyBin {
             s += 2; // sizeof(version);
             s += 2; // sizeof(size);
             s += 8; // sizeof(ts_creation_sec);
-            s += 6; // sizeof(addrAndType.address);
-            s += 1; // sizeof(addrAndType.type);
+            s += 6; // sizeof(localAddress.address);
+            s += 1; // sizeof(localAddress.type);
+            s += 6; // sizeof(remoteAddress.address);
+            s += 1; // sizeof(remoteAddress.type);
             s += 1; // sizeof(sec_level);
             s += 1; // sizeof(io_cap);
 
@@ -144,7 +152,7 @@ public class SMPKeyBin {
             final SMPPairingState pstate = device.getPairingState();
             final PairingMode pmode = device.getPairingMode(); // Skip PairingMode::PRE_PAIRED (write again)
 
-            final SMPKeyBin smpKeyBin = new SMPKeyBin(device.getAddressAndType(),
+            final SMPKeyBin smpKeyBin = new SMPKeyBin(device.getAdapter().getAddressAndType(), device.getAddressAndType(),
                                                       device.getConnSecurityLevel(), device.getConnIOCapability());
 
             if( ( BTSecurityLevel.NONE.value  < sec_lvl.value && SMPPairingState.COMPLETED == pstate && PairingMode.NEGOTIATING.value < pmode.value ) ||
@@ -202,7 +210,7 @@ public class SMPKeyBin {
             final SMPKeyBin smpKeyBin = SMPKeyBin.create(device);
             if( smpKeyBin.isValid() ) {
                 smpKeyBin.setVerbose( verbose_ );
-                return smpKeyBin.write( getFilename(path, device.getAddressAndType()), overwrite );
+                return smpKeyBin.write( getFilename(path, device), overwrite );
             } else {
                 if( verbose_ ) {
                     BTUtils.println(System.err, "Create SMPKeyBin: Invalid "+smpKeyBin+", "+device);
@@ -255,7 +263,7 @@ public class SMPKeyBin {
          * @see #apply(BTDevice)
          */
         static public HCIStatusCode readAndApply(final String path, final BTDevice device, final BTSecurityLevel minSecLevel, final boolean verbose_) {
-            final String fname = getFilename(path, device.getAddressAndType());
+            final String fname = getFilename(path, device);
             final SMPKeyBin smpKeyBin = read(fname, verbose_);
             if( smpKeyBin.isValid() ) {
                 if( smpKeyBin.sec_level.value < minSecLevel.value ) {
@@ -281,13 +289,15 @@ public class SMPKeyBin {
             }
         }
 
-        public SMPKeyBin(final BDAddressAndType addrAndType_,
+        public SMPKeyBin(final BDAddressAndType localAddress_,
+                         final BDAddressAndType remoteAddress_,
                          final BTSecurityLevel sec_level_, final SMPIOCapability io_cap_)
         {
             version = VERSION;
             this.size = 0;
             this.ts_creation_sec = BTUtils.wallClockSeconds();
-            this.addrAndType = addrAndType_;
+            this.localAddress = remoteAddress_;
+            this.remoteAddress = remoteAddress_;
             this.sec_level = sec_level_;
             this.io_cap = io_cap_;
 
@@ -309,7 +319,8 @@ public class SMPKeyBin {
             version = VERSION;
             size = 0;
             ts_creation_sec = 0;
-            addrAndType = new BDAddressAndType();
+            localAddress = new BDAddressAndType();
+            remoteAddress = new BDAddressAndType();
             sec_level = BTSecurityLevel.UNSET;
             io_cap = SMPIOCapability.UNSET;
 
@@ -336,7 +347,8 @@ public class SMPKeyBin {
         /** Returns the creation timestamp in seconds since Unix epoch */
         final public long getCreationTime() { return ts_creation_sec; }
 
-        final public BDAddressAndType getAddrAndType() { return addrAndType; }
+        final public BDAddressAndType getLocalAddrAndType() { return localAddress; }
+        final public BDAddressAndType getRemoteAddrAndType() { return remoteAddress; }
         final public BTSecurityLevel getSecLevel() { return sec_level; }
         final public SMPIOCapability getIOCap() { return io_cap; }
 
@@ -400,24 +412,27 @@ public class SMPKeyBin {
          * Returns the base filename, see {@link SMPKeyBin} API doc for naming scheme.
          */
         final public String getFileBasename() {
-            final String r = "bd_"+addrAndType.address.toString()+":"+addrAndType.type.value+"-smpkey.bin";
-            return r.replace(':', '_');
+            final String r = "bd_"+localAddress.address.toString()+"_"+remoteAddress.address.toString()+remoteAddress.type.value+".key";
+            return r.replace(":", "");
         }
         /**
          * Returns the base filename, see {@link SMPKeyBin} API doc for naming scheme.
          */
-        final public static String getFileBasename(final BDAddressAndType addrAndType_) {
-            final String r = "bd_"+addrAndType_.address.toString()+":"+addrAndType_.type.value+"-smpkey.bin";
-            return r.replace(':', '_');
+        final public static String getFileBasename(final BDAddressAndType localAddress_, final BDAddressAndType remoteAddress_) {
+            final String r = "bd_"+localAddress_.address.toString()+"_"+remoteAddress_.address.toString()+remoteAddress_.type.value+".key";
+            return r.replace(":", "");
         }
-        final public static String getFilename(final String path, final BDAddressAndType addrAndType_) {
-            return path + "/" + getFileBasename(addrAndType_);
+        final public static String getFilename(final String path, final BDAddressAndType localAddress_, final BDAddressAndType remoteAddress_) {
+            return path + "/" + getFileBasename(localAddress_, remoteAddress_);
+        }
+        final public static String getFilename(final String path, final BTDevice remoteDevice) {
+            return getFilename(path, remoteDevice.getAdapter().getAddressAndType(), remoteDevice.getAddressAndType());
         }
 
         @Override
         final public String toString() {
             final StringBuilder res = new StringBuilder();
-            res.append("SMPKeyBin[").append(addrAndType.toString()).append(", sec ").append(sec_level).append(", io ").append(io_cap).append(", ");
+            res.append("SMPKeyBin[").append(remoteAddress.toString()).append(", sec ").append(sec_level).append(", io ").append(io_cap).append(", ");
             if( isVersionValid() ) {
                 boolean comma = false;
                 res.append("Init[");
@@ -476,8 +491,11 @@ public class SMPKeyBin {
             return res.toString();
         }
 
-        final public static boolean remove(final String path, final BDAddressAndType addrAndType_) {
-            final String fname = getFilename(path, addrAndType_);
+        final public static boolean remove(final String path, final BTDevice remoteDevice_) {
+            return remove(path, remoteDevice_.getAdapter().getAddressAndType(), remoteDevice_.getAddressAndType());
+        }
+        final public static boolean remove(final String path, final BDAddressAndType localAddress_, final BDAddressAndType remoteAddress_) {
+            final String fname = getFilename(path, localAddress_, remoteAddress_);
             return remove_impl(fname);
         }
         final private static boolean remove_impl(final String fname) {
@@ -520,10 +538,15 @@ public class SMPKeyBin {
 
                 writeLong(ts_creation_sec, out, buffer);
                 {
-                    addrAndType.address.put(buffer, 0, ByteOrder.LITTLE_ENDIAN);
-                    out.write(buffer, 0, addrAndType.address.b.length);
+                    localAddress.address.put(buffer, 0, ByteOrder.LITTLE_ENDIAN);
+                    out.write(buffer, 0, localAddress.address.b.length);
                 }
-                out.write(addrAndType.type.value);
+                out.write(localAddress.type.value);
+                {
+                    remoteAddress.address.put(buffer, 0, ByteOrder.LITTLE_ENDIAN);
+                    out.write(buffer, 0, remoteAddress.address.b.length);
+                }
+                out.write(remoteAddress.type.value);
                 out.write(sec_level.value);
                 out.write(io_cap.value);
 
@@ -604,16 +627,18 @@ public class SMPKeyBin {
                 } else {
                     err = true;
                 }
-                if( !err && 11 <= remaining ) {
-                    addrAndType.address = new EUI48(buffer, i, ByteOrder.LITTLE_ENDIAN); i+=6;
-                    addrAndType.type = BDAddressType.get(buffer[i++]);
+                if( !err && 7+7+4 <= remaining ) {
+                    localAddress.address = new EUI48(buffer, i, ByteOrder.LITTLE_ENDIAN); i+=6;
+                    localAddress.type = BDAddressType.get(buffer[i++]);
+                    remoteAddress.address = new EUI48(buffer, i, ByteOrder.LITTLE_ENDIAN); i+=6;
+                    remoteAddress.type = BDAddressType.get(buffer[i++]);
                     sec_level = BTSecurityLevel.get(buffer[i++]);
                     io_cap = SMPIOCapability.get(buffer[i++]);
 
                     keys_init.mask = buffer[i++];
                     keys_resp.mask = buffer[i++];
 
-                    remaining -= 11;
+                    remaining -= 7+7+4;
                 } else {
                     err = true;
                 }

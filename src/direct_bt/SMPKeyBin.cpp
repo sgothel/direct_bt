@@ -29,6 +29,7 @@
 #include <cstdio>
 
 #include "SMPKeyBin.hpp"
+#include "BTAdapter.hpp"
 
 // #define USE_CXX17lib_FS 1
 #if USE_CXX17lib_FS
@@ -48,7 +49,7 @@ SMPKeyBin SMPKeyBin::create(const BTDevice& device) {
     const SMPPairingState pstate = device.getPairingState();
     const PairingMode pmode = device.getPairingMode(); // Skip PairingMode::PRE_PAIRED (write again)
 
-    SMPKeyBin smpKeyBin(device.getAddressAndType(),
+    SMPKeyBin smpKeyBin(device.getAdapter().getAddressAndType(), device.getAddressAndType(),
                         device.getConnSecurityLevel(), device.getConnIOCapability());
 
     if( ( BTSecurityLevel::NONE  < sec_lvl && SMPPairingState::COMPLETED == pstate && PairingMode::NEGOTIATING < pmode ) ||
@@ -87,7 +88,7 @@ bool SMPKeyBin::createAndWrite(const BTDevice& device, const std::string& path, 
     SMPKeyBin smpKeyBin = SMPKeyBin::create(device);
     if( smpKeyBin.isValid() ) {
         smpKeyBin.setVerbose( verbose_ );
-        return smpKeyBin.write( getFilename(path, device.getAddressAndType()), overwrite );
+        return smpKeyBin.write( getFilename(path, device), overwrite );
     } else {
         if( verbose_ ) {
             jau::fprintf_td(stderr, "Create SMPKeyBin: Invalid %s, %s\n", smpKeyBin.toString().c_str(), device.toString().c_str());
@@ -97,7 +98,7 @@ bool SMPKeyBin::createAndWrite(const BTDevice& device, const std::string& path, 
 }
 
 HCIStatusCode SMPKeyBin::readAndApply(const std::string& path, BTDevice& device, const BTSecurityLevel minSecLevel, const bool verbose_) {
-    const std::string fname = getFilename(path, device.getAddressAndType());
+    const std::string fname = getFilename(path, device);
     SMPKeyBin smpKeyBin = read(fname, verbose_);
     if( smpKeyBin.isValid() ) {
         if( smpKeyBin.sec_level < minSecLevel ) {
@@ -125,7 +126,7 @@ HCIStatusCode SMPKeyBin::readAndApply(const std::string& path, BTDevice& device,
 }
 
 std::string SMPKeyBin::toString() const noexcept {
-    std::string res = "SMPKeyBin["+addrAndType.toString()+", sec "+to_string(sec_level)+
+    std::string res = "SMPKeyBin[local "+localAddress.toString()+", remote "+remoteAddress.toString()+", sec "+to_string(sec_level)+
                       ", io "+to_string(io_cap)+
                       ", ";
     if( isVersionValid() ) {
@@ -194,14 +195,19 @@ std::string SMPKeyBin::toString() const noexcept {
 }
 
 std::string SMPKeyBin::getFileBasename() const noexcept {
-    std::string r("bd_"+addrAndType.address.toString()+":"+std::to_string(number(addrAndType.type))+"-smpkey.bin");
-    std::replace( r.begin(), r.end(), ':', '_');
+    std::string r("bd_"+localAddress.address.toString()+"_"+remoteAddress.address.toString()+std::to_string(number(remoteAddress.type))+".key");
+    auto it = std::remove( r.begin(), r.end(), ':');
+    r.erase(it, r.end());
     return r;
 }
-std::string SMPKeyBin::getFileBasename(const BDAddressAndType& addrAndType_) {
-    std::string r("bd_"+addrAndType_.address.toString()+":"+std::to_string(number(addrAndType_.type))+"-smpkey.bin");
-    std::replace( r.begin(), r.end(), ':', '_');
+std::string SMPKeyBin::getFileBasename(const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_) {
+    std::string r("bd_"+localAddress_.address.toString()+"_"+remoteAddress_.address.toString()+std::to_string(number(remoteAddress_.type))+".key");
+    auto it = std::remove( r.begin(), r.end(), ':');
+    r.erase(it, r.end());
     return r;
+}
+std::string SMPKeyBin::getFilename(const std::string& path, const BTDevice& remoteDevice) {
+    return getFilename(path, remoteDevice.getAdapter().getAddressAndType(), remoteDevice.getAddressAndType());
 }
 
 bool SMPKeyBin::remove_impl(const std::string& fname) {
@@ -211,6 +217,9 @@ bool SMPKeyBin::remove_impl(const std::string& fname) {
 #else
     return 0 == std::remove( fname.c_str() );
 #endif
+}
+bool SMPKeyBin::remove(const std::string& path, const BTDevice& remoteDevice) {
+    return remove(path, remoteDevice.getAdapter().getAddressAndType(), remoteDevice.getAddressAndType());
 }
 
 bool SMPKeyBin::write(const std::string& fname, const bool overwrite) const noexcept {
@@ -251,10 +260,15 @@ bool SMPKeyBin::write(const std::string& fname, const bool overwrite) const noex
     file.write((char*)buffer, sizeof(ts_creation_sec));
 
     {
-        addrAndType.address.put(buffer, 0, jau::endian::little);
-        file.write((char*)buffer, sizeof(addrAndType.address.b));
+        localAddress.address.put(buffer, 0, jau::endian::little);
+        file.write((char*)buffer, sizeof(localAddress.address.b));
     }
-    file.write((char*)&addrAndType.type, sizeof(addrAndType.type));
+    file.write((char*)&localAddress.type, sizeof(localAddress.type));
+    {
+        remoteAddress.address.put(buffer, 0, jau::endian::little);
+        file.write((char*)buffer, sizeof(remoteAddress.address.b));
+    }
+    file.write((char*)&remoteAddress.type, sizeof(remoteAddress.type));
     file.write((char*)&sec_level, sizeof(sec_level));
     file.write((char*)&io_cap, sizeof(io_cap));
 
@@ -324,23 +338,28 @@ bool SMPKeyBin::read(const std::string& fname) {
     } else {
         err = true;
     }
-    if( !err && 11 <= remaining ) {
+    if( !err && 7+7+4 <= remaining ) {
         {
-            file.read((char*)buffer, sizeof(addrAndType.address.b));
-            addrAndType.address = jau::EUI48(buffer, jau::endian::little);
+            file.read((char*)buffer, sizeof(localAddress.address.b));
+            localAddress.address = jau::EUI48(buffer, jau::endian::little);
         }
-        file.read((char*)&addrAndType.type, sizeof(addrAndType.type));
+        file.read((char*)&localAddress.type, sizeof(localAddress.type));
+        {
+            file.read((char*)buffer, sizeof(remoteAddress.address.b));
+            remoteAddress.address = jau::EUI48(buffer, jau::endian::little);
+        }
+        file.read((char*)&remoteAddress.type, sizeof(remoteAddress.type));
         file.read((char*)&sec_level, sizeof(sec_level));
         file.read((char*)&io_cap, sizeof(io_cap));
 
         file.read((char*)&keys_init, sizeof(keys_init));
         file.read((char*)&keys_resp, sizeof(keys_resp));
-        remaining -= 11;
+        remaining -= 7+7+4;
         err = file.fail();
     } else {
         err = true;
     }
-    addrAndType.clearHash();
+    remoteAddress.clearHash();
 
     if( !err && hasLTKInit() ) {
         if( sizeof(ltk_init) <= remaining ) {

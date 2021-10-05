@@ -151,9 +151,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 // next: deviceReady(..)
                 break;
             case SMPPairingState::FAILED: {
-                const bool res  = SMPKeyBin::remove(KEY_PATH, device->getAddressAndType());
+                const bool res  = SMPKeyBin::remove(KEY_PATH, *device);
                 fprintf_td(stderr, "****** PAIRING_STATE: state %s; Remove key file %s, res %d\n",
-                        to_string(state).c_str(), SMPKeyBin::getFilename(KEY_PATH, device->getAddressAndType()).c_str(), res);
+                        to_string(state).c_str(), SMPKeyBin::getFilename(KEY_PATH, *device).c_str(), res);
                 // next: deviceReady() or deviceDisconnected(..)
             } break;
             case SMPPairingState::REQUESTED_BY_RESPONDER:

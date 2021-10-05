@@ -38,7 +38,9 @@
 namespace direct_bt {
 
 /**
- * Storage for SMP keys including the required connection parameter.
+ * Storage for SMP keys including required connection parameter per local adapter and remote device.
+ *
+ * File format version 4.
  *
  * Storage for a device's BDAddressAndType, its security connection setup ::BTSecurityLevel + ::SMPIOCapability
  * and optionally the initiator and responder SMPLongTermKeyInfo (LTK), SMPSignatureResolvingKeyInfo (CSRK)
@@ -55,24 +57,27 @@ namespace direct_bt {
  * </p>
  * <p>
  * Filename as retrieved by SMPKeyBin::getFileBasename()
- * has the following form `bd_C0_26_DA_01_DA_B1_1-smpkey.bin`:
+ * has the following form `bd_010203040506_C026DA01DAB11.key`:
  * <ul>
- * <li>{@code 'bd_'} denotes prefix</li>
- * <li>{@code 'C0_26_DA_01_DA_B1'} denotes the {@link EUI48} address</li>
- * <li>{@code '_1'} denotes the {@link BDAddressType}</li>
- * <li>{@code '-smpkey.bin'} denotes the suffix</li>
+ * <li>{@code 'bd_'} prefix</li>
+ * <li>{@code '010203040506'} local {@link EUI48} adapter address</li>
+ * <li>{@code '_'} separator</li>
+ * <li>{@code 'C026DA01DAB1'} remote {@link EUI48} device address</li>
+ * <li>{@code '1'} {@link BDAddressType}</li>
+ * <li>{@code '.key'} suffix</li>
  * </li>
  * </p>
  */
 class SMPKeyBin {
     public:
-        constexpr static const uint16_t VERSION = (uint16_t)0b0101010101010101U + (uint16_t)3U; // bitpattern + version
+        constexpr static const uint16_t VERSION = (uint16_t)0b0101010101010101U + (uint16_t)4U; // bitpattern + version
 
     private:
         uint16_t version;                       //  2
         uint16_t size;                          //  2
         uint64_t ts_creation_sec;               //  8
-        BDAddressAndType addrAndType;           //  7
+        BDAddressAndType localAddress;          //  7
+        BDAddressAndType remoteAddress;         //  7
         BTSecurityLevel sec_level;              //  1
         SMPIOCapability io_cap;                 //  1
 
@@ -87,7 +92,7 @@ class SMPKeyBin {
         SMPSignatureResolvingKey csrk_resp;     // 17 (optional)
         SMPLinkKey               lk_resp;       // 19 (optional)
 
-        // Min-Max: 23 - 113 bytes
+        // Min-Max: 30 - 156 bytes
 
         bool verbose;
 
@@ -96,8 +101,10 @@ class SMPKeyBin {
             s += sizeof(version);
             s += sizeof(size);
             s += sizeof(ts_creation_sec);
-            s += sizeof(addrAndType.address);
-            s += sizeof(addrAndType.type);
+            s += sizeof(localAddress.address);
+            s += sizeof(localAddress.type);
+            s += sizeof(remoteAddress.address);
+            s += sizeof(remoteAddress.type);
             s += sizeof(sec_level);
             s += sizeof(io_cap);
 
@@ -209,11 +216,13 @@ class SMPKeyBin {
          */
         static HCIStatusCode readAndApply(const std::string& path, BTDevice& device, const BTSecurityLevel minSecLevel, const bool verbose_);
 
-        SMPKeyBin(const BDAddressAndType& addrAndType_,
+        SMPKeyBin(const BDAddressAndType& localAddress_,
+                  const BDAddressAndType& remoteAddress_,
                   const BTSecurityLevel sec_level_, const SMPIOCapability io_cap_)
         : version(VERSION), size(0),
           ts_creation_sec( jau::getWallClockSeconds() ),
-          addrAndType(addrAndType_), sec_level(sec_level_), io_cap(io_cap_),
+          localAddress(localAddress_), remoteAddress(remoteAddress_),
+          sec_level(sec_level_), io_cap(io_cap_),
           keys_init(SMPKeyType::NONE), keys_resp(SMPKeyType::NONE),
           ltk_init(), csrk_init(), lk_init(),
           ltk_resp(), csrk_resp(), lk_resp(),
@@ -223,7 +232,8 @@ class SMPKeyBin {
         SMPKeyBin()
         : version(VERSION), size(0),
           ts_creation_sec(0),
-          addrAndType(), sec_level(BTSecurityLevel::UNSET), io_cap(SMPIOCapability::UNSET),
+          localAddress(), remoteAddress(),
+          sec_level(BTSecurityLevel::UNSET), io_cap(SMPIOCapability::UNSET),
           keys_init(SMPKeyType::NONE), keys_resp(SMPKeyType::NONE),
           ltk_init(), csrk_init(), lk_init(),
           ltk_resp(), csrk_resp(), lk_resp(),
@@ -239,7 +249,8 @@ class SMPKeyBin {
         /** Returns the creation timestamp in seconds since Unix epoch */
         constexpr uint64_t getCreationTime() const noexcept { return ts_creation_sec; }
 
-        constexpr const BDAddressAndType& getAddrAndType() const noexcept { return addrAndType; }
+        constexpr const BDAddressAndType& getLocalAddrAndType() const noexcept { return localAddress; }
+        constexpr const BDAddressAndType& getRemoteAddrAndType() const noexcept { return remoteAddress; }
         constexpr BTSecurityLevel getSecLevel() const noexcept { return sec_level; }
         constexpr SMPIOCapability getIOCap() const noexcept { return io_cap; }
 
@@ -318,15 +329,17 @@ class SMPKeyBin {
         /**
          * Returns the base filename, see SMPKeyBin API doc for naming scheme.
          */
-        static std::string getFileBasename(const BDAddressAndType& addrAndType_);
+        static std::string getFileBasename(const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_);
 
-        static std::string getFilename(const std::string& path, const BDAddressAndType& addrAndType_) {
-            return path + "/" + getFileBasename(addrAndType_);
+        static std::string getFilename(const std::string& path, const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_) {
+            return path + "/" + getFileBasename(localAddress_, remoteAddress_);
         }
+        static std::string getFilename(const std::string& path, const BTDevice& remoteDevice);
 
-        static bool remove(const std::string& path, const BDAddressAndType& addrAndType_) {
-            return remove_impl(getFilename(path, addrAndType_));
+        static bool remove(const std::string& path, const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_) {
+            return remove_impl(getFilename(path, localAddress_, remoteAddress_));
         }
+        static bool remove(const std::string& path, const BTDevice& remoteDevice);
 
         bool write(const std::string& fname, const bool overwrite) const noexcept;
 
