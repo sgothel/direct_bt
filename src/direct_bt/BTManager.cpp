@@ -852,7 +852,7 @@ HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLong
 }
 
 HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const BDAddressAndType & addressAndType,
-                                                const SMPLongTermKeyInfo& ltk) noexcept {
+                                                const SMPLongTermKey& ltk) noexcept {
 #if USE_LINUX_BT_SECURITY
     const MgmtLTKType key_type = to_MgmtLTKType(ltk.properties);
     const MgmtLongTermKeyInfo mgmt_ltk_info { addressAndType.address, addressAndType.type, key_type,
@@ -887,7 +887,7 @@ HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const MgmtLinkKeyI
 #endif
 }
 
-HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLinkKeyInfo& lk) noexcept {
+HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLinkKey& lk) noexcept {
 #if USE_LINUX_BT_SECURITY
     const MgmtLinkKeyInfo mgmt_lk_info { addressAndType.address, addressAndType.type, static_cast<MgmtLinkKeyType>(lk.type),
                                          lk.key, lk.pin_length };

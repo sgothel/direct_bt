@@ -284,17 +284,17 @@ std::string direct_bt::to_string(const SMPKeyType mask) noexcept {
     X(AUTH) \
     X(SC)
 
-#define CASE_TO_STRING_LTKPROPFMT(V) case SMPLongTermKeyInfo::Property::V: return #V;
+#define CASE_TO_STRING_LTKPROPFMT(V) case SMPLongTermKey::Property::V: return #V;
 
-static std::string _getPropertyBitStr(const SMPLongTermKeyInfo::Property bit) noexcept {
+static std::string _getPropertyBitStr(const SMPLongTermKey::Property bit) noexcept {
     switch(bit) {
         LTKPROP_ENUM(CASE_TO_STRING_LTKPROPFMT)
         default: ; // fall through intended
     }
-    return "Unknown SMPLongTermKeyInfo::Property bit";
+    return "Unknown SMPLongTermKey::Property bit";
 }
 
-std::string SMPLongTermKeyInfo::getPropertyString(const Property mask) noexcept {
+std::string SMPLongTermKey::getPropertyString(const Property mask) noexcept {
     bool has_pre = false;
     std::string out("[");
     if( Property::NONE != ( mask & Property::RESPONDER ) ) {
@@ -315,8 +315,8 @@ std::string SMPLongTermKeyInfo::getPropertyString(const Property mask) noexcept 
     return out;
 }
 
-bool SMPLongTermKeyInfo::isResponder() const noexcept {
-    return ( SMPLongTermKeyInfo::Property::RESPONDER & properties ) != SMPLongTermKeyInfo::Property::NONE;
+bool SMPLongTermKey::isResponder() const noexcept {
+    return ( SMPLongTermKey::Property::RESPONDER & properties ) != SMPLongTermKey::Property::NONE;
 }
 
 #define CSRKPROP_ENUM(X) \
@@ -324,17 +324,17 @@ bool SMPLongTermKeyInfo::isResponder() const noexcept {
     X(RESPONDER) \
     X(AUTH)
 
-#define CASE_TO_STRING_CSRKPROPFMT(V) case SMPSignatureResolvingKeyInfo::Property::V: return #V;
+#define CASE_TO_STRING_CSRKPROPFMT(V) case SMPSignatureResolvingKey::Property::V: return #V;
 
-static std::string _getPropertyBitStr(const SMPSignatureResolvingKeyInfo::Property bit) noexcept {
+static std::string _getPropertyBitStr(const SMPSignatureResolvingKey::Property bit) noexcept {
     switch(bit) {
         CSRKPROP_ENUM(CASE_TO_STRING_CSRKPROPFMT)
         default: ; // fall through intended
     }
-    return "Unknown SMPSignatureResolvingKeyInfo::Property bit";
+    return "Unknown SMPSignatureResolvingKey::Property bit";
 }
 
-std::string SMPSignatureResolvingKeyInfo::getPropertyString(const Property mask) noexcept {
+std::string SMPSignatureResolvingKey::getPropertyString(const Property mask) noexcept {
     bool has_pre = false;
     std::string out("[");
     if( Property::NONE != ( mask & Property::RESPONDER ) ) {
@@ -350,8 +350,8 @@ std::string SMPSignatureResolvingKeyInfo::getPropertyString(const Property mask)
     return out;
 }
 
-bool SMPSignatureResolvingKeyInfo::isResponder() const noexcept {
-    return ( SMPSignatureResolvingKeyInfo::Property::RESPONDER & properties ) != SMPSignatureResolvingKeyInfo::Property::NONE;
+bool SMPSignatureResolvingKey::isResponder() const noexcept {
+    return ( SMPSignatureResolvingKey::Property::RESPONDER & properties ) != SMPSignatureResolvingKey::Property::NONE;
 }
 
 #define SMP_LINKKEYTYPE_ENUM(X) \
@@ -366,9 +366,9 @@ bool SMPSignatureResolvingKeyInfo::isResponder() const noexcept {
     X(AUTH_COMBI_P256) \
     X(NONE)
 
-#define SMP_LINKKEYTYPE_TO_STRING(V) case SMPLinkKeyInfo::KeyType::V: return #V;
+#define SMP_LINKKEYTYPE_TO_STRING(V) case SMPLinkKey::KeyType::V: return #V;
 
-std::string SMPLinkKeyInfo::getTypeString(const KeyType type) noexcept {
+std::string SMPLinkKey::getTypeString(const KeyType type) noexcept {
     switch(type) {
         SMP_LINKKEYTYPE_ENUM(SMP_LINKKEYTYPE_TO_STRING)
         default: ; // fall through intended

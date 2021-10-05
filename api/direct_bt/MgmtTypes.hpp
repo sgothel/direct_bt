@@ -150,7 +150,7 @@ namespace direct_bt {
         NONE                 = 0xff
     };
     std::string to_string(const MgmtLTKType type) noexcept;
-    MgmtLTKType to_MgmtLTKType(const SMPLongTermKeyInfo::Property ltk_prop_mask) noexcept;
+    MgmtLTKType to_MgmtLTKType(const SMPLongTermKey::Property ltk_prop_mask) noexcept;
 
     /**
      * Signature Resolving Key Types compatible with Mgmt's MgmtSignatureResolvingKeyInfo
@@ -209,11 +209,11 @@ namespace direct_bt {
         /**
          * Convert this instance into its platform agnostic SMPLongTermKeyInfo type.
          */
-        SMPLongTermKeyInfo toSMPLongTermKeyInfo() const noexcept {
-            direct_bt::SMPLongTermKeyInfo res;
+        SMPLongTermKey toSMPLongTermKeyInfo() const noexcept {
+            direct_bt::SMPLongTermKey res;
             res.clear();
             if( master ) {
-                res.properties |= SMPLongTermKeyInfo::Property::RESPONDER;
+                res.properties |= SMPLongTermKey::Property::RESPONDER;
             }
             switch( key_type ) {
                 case MgmtLTKType::NONE:
@@ -222,17 +222,17 @@ namespace direct_bt {
                 case MgmtLTKType::UNAUTHENTICATED: //      = 0x00, // master ? SMP_LTK : SMP_LTK_SLAVE
                     break;
                 case MgmtLTKType::AUTHENTICATED: //        = 0x01, // master ? SMP_LTK : SMP_LTK_SLAVE
-                    res.properties |= SMPLongTermKeyInfo::Property::AUTH;
+                    res.properties |= SMPLongTermKey::Property::AUTH;
                     break;
                 case MgmtLTKType::UNAUTHENTICATED_P256: // = 0x02, // SMP_LTK_P256
-                    res.properties |= SMPLongTermKeyInfo::Property::SC;
+                    res.properties |= SMPLongTermKey::Property::SC;
                     break;
                 case MgmtLTKType::AUTHENTICATED_P256: //   = 0x03, // SMP_LTK_P256
-                    res.properties |= SMPLongTermKeyInfo::Property::SC;
-                    res.properties |= SMPLongTermKeyInfo::Property::AUTH;
+                    res.properties |= SMPLongTermKey::Property::SC;
+                    res.properties |= SMPLongTermKey::Property::AUTH;
                     break;
                 case MgmtLTKType::DEBUG_P256: //           = 0x04, // SMP_LTK_P256_DEBUG
-                    res.properties |= SMPLongTermKeyInfo::Property::SC;
+                    res.properties |= SMPLongTermKey::Property::SC;
                     break;
             }
             res.enc_size = enc_size;
@@ -303,11 +303,11 @@ namespace direct_bt {
         /**
          * Convert this instance into its platform agnostic SMPLinkKeyInfo type.
          */
-        SMPLinkKeyInfo toSMPLinkKeyInfo(const bool isResponder) const noexcept {
-            direct_bt::SMPLinkKeyInfo res;
+        SMPLinkKey toSMPLinkKeyInfo(const bool isResponder) const noexcept {
+            direct_bt::SMPLinkKey res;
             res.clear();
             res.responder = isResponder;
-            res.type = static_cast<SMPLinkKeyInfo::KeyType>(key_type);
+            res.type = static_cast<SMPLinkKey::KeyType>(key_type);
             res.key = key;
             res.pin_length = pin_length;
             return res;

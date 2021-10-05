@@ -462,18 +462,18 @@ namespace direct_bt {
     std::string to_string(const SMPKeyType mask) noexcept;
 
     /**
-     * SMP Long Term Key Info, used for platform agnostic persistence.
+     * SMP Long Term Key, used for platform agnostic persistence.
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
      *          since the encryption values are interpreted as a byte stream.
      * </p>
      * <p>
-     * Byte layout must be synchronized with java org.tinyb.SMPLongTermKeyInfo
+     * Byte layout must be synchronized with java org.tinyb.SMPLongTermKey
      * </p>
      */
-    __pack( struct SMPLongTermKeyInfo {
+    __pack( struct SMPLongTermKey {
         /**
-         * SMPLongTermKeyInfo Property Bits
+         * SMPLongTermKey Property Bits
          */
         enum class Property : uint8_t {
             /** No specific property */
@@ -490,7 +490,7 @@ namespace direct_bt {
         }
         static std::string getPropertyString(const Property mask) noexcept;
 
-        /** SMPLongTermKeyInfo::Property bit mask. */
+        /** SMPLongTermKey::Property bit mask. */
         Property properties;
         /** Encryption Size, zero if key is invalid. */
         uint8_t enc_size;
@@ -508,7 +508,7 @@ namespace direct_bt {
         bool isResponder() const noexcept;
 
         void clear() noexcept {
-            bzero(reinterpret_cast<void *>(this), sizeof(SMPLongTermKeyInfo));
+            bzero(reinterpret_cast<void *>(this), sizeof(SMPLongTermKey));
         }
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
@@ -520,37 +520,37 @@ namespace direct_bt {
                    "]";
         }
     } );
-    constexpr SMPLongTermKeyInfo::Property operator ^(const SMPLongTermKeyInfo::Property lhs, const SMPLongTermKeyInfo::Property rhs) noexcept {
-        return static_cast<SMPLongTermKeyInfo::Property> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
+    constexpr SMPLongTermKey::Property operator ^(const SMPLongTermKey::Property lhs, const SMPLongTermKey::Property rhs) noexcept {
+        return static_cast<SMPLongTermKey::Property> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
     }
-    constexpr SMPLongTermKeyInfo::Property& operator ^=(SMPLongTermKeyInfo::Property& store, const SMPLongTermKeyInfo::Property& rhs) noexcept {
-        store = static_cast<SMPLongTermKeyInfo::Property> ( static_cast<uint8_t>(store) ^ static_cast<uint8_t>(rhs) );
+    constexpr SMPLongTermKey::Property& operator ^=(SMPLongTermKey::Property& store, const SMPLongTermKey::Property& rhs) noexcept {
+        store = static_cast<SMPLongTermKey::Property> ( static_cast<uint8_t>(store) ^ static_cast<uint8_t>(rhs) );
         return store;
     }
-    constexpr SMPLongTermKeyInfo::Property operator |(const SMPLongTermKeyInfo::Property lhs, const SMPLongTermKeyInfo::Property rhs) noexcept {
-        return static_cast<SMPLongTermKeyInfo::Property> ( static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs) );
+    constexpr SMPLongTermKey::Property operator |(const SMPLongTermKey::Property lhs, const SMPLongTermKey::Property rhs) noexcept {
+        return static_cast<SMPLongTermKey::Property> ( static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs) );
     }
-    constexpr SMPLongTermKeyInfo::Property& operator |=(SMPLongTermKeyInfo::Property& store, const SMPLongTermKeyInfo::Property& rhs) noexcept {
-        store = static_cast<SMPLongTermKeyInfo::Property> ( static_cast<uint8_t>(store) | static_cast<uint8_t>(rhs) );
+    constexpr SMPLongTermKey::Property& operator |=(SMPLongTermKey::Property& store, const SMPLongTermKey::Property& rhs) noexcept {
+        store = static_cast<SMPLongTermKey::Property> ( static_cast<uint8_t>(store) | static_cast<uint8_t>(rhs) );
         return store;
     }
-    constexpr SMPLongTermKeyInfo::Property operator &(const SMPLongTermKeyInfo::Property lhs, const SMPLongTermKeyInfo::Property rhs) noexcept {
-        return static_cast<SMPLongTermKeyInfo::Property> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
+    constexpr SMPLongTermKey::Property operator &(const SMPLongTermKey::Property lhs, const SMPLongTermKey::Property rhs) noexcept {
+        return static_cast<SMPLongTermKey::Property> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
     }
-    constexpr SMPLongTermKeyInfo::Property& operator &=(SMPLongTermKeyInfo::Property& store, const SMPLongTermKeyInfo::Property& rhs) noexcept {
-        store = static_cast<SMPLongTermKeyInfo::Property> ( static_cast<uint8_t>(store) & static_cast<uint8_t>(rhs) );
+    constexpr SMPLongTermKey::Property& operator &=(SMPLongTermKey::Property& store, const SMPLongTermKey::Property& rhs) noexcept {
+        store = static_cast<SMPLongTermKey::Property> ( static_cast<uint8_t>(store) & static_cast<uint8_t>(rhs) );
         return store;
     }
-    constexpr bool operator ==(const SMPLongTermKeyInfo::Property lhs, const SMPLongTermKeyInfo::Property rhs) noexcept {
+    constexpr bool operator ==(const SMPLongTermKey::Property lhs, const SMPLongTermKey::Property rhs) noexcept {
         return static_cast<uint8_t>(lhs) == static_cast<uint8_t>(rhs);
     }
-    constexpr bool operator !=(const SMPLongTermKeyInfo::Property lhs, const SMPLongTermKeyInfo::Property rhs) noexcept {
+    constexpr bool operator !=(const SMPLongTermKey::Property lhs, const SMPLongTermKey::Property rhs) noexcept {
         return !( lhs == rhs );
     }
-    inline std::string to_String(const SMPLongTermKeyInfo& ltk) noexcept { return ltk.toString(); }
+    inline std::string to_String(const SMPLongTermKey& ltk) noexcept { return ltk.toString(); }
 
     /**
-     * SMP Signature Resolving Key Info, used for platform agnostic persistence.
+     * SMP Signature Resolving Key, used for platform agnostic persistence.
      * <p>
      * One way for ATT Signed Write.
      * </p>
@@ -559,12 +559,12 @@ namespace direct_bt {
      *          since the encryption values are interpreted as a byte stream.
      * </p>
      * <p>
-     * Byte layout must be synchronized with java org.tinyb.SMPSignatureResolvingKeyInfo
+     * Byte layout must be synchronized with java org.tinyb.SMPSignatureResolvingKey
      * </p>
      */
-    __pack( struct SMPSignatureResolvingKeyInfo {
+    __pack( struct SMPSignatureResolvingKey {
         /**
-         * SMPLongTermKeyInfo Property Bits
+         * SMPLongTermKey Property Bits
          */
         enum class Property : uint8_t {
             /** No specific property */
@@ -579,7 +579,7 @@ namespace direct_bt {
         }
         static std::string getPropertyString(const Property mask) noexcept;
 
-        /** SMPSignatureResolvingKeyInfo::Property bit mask. */
+        /** SMPSignatureResolvingKey::Property bit mask. */
         Property properties;
         /** Connection Signature Resolving Key (CSRK) */
         jau::uint128_t csrk;
@@ -587,7 +587,7 @@ namespace direct_bt {
         bool isResponder() const noexcept;
 
         void clear() noexcept {
-            bzero(reinterpret_cast<void *>(this), sizeof(SMPLongTermKeyInfo));
+            bzero(reinterpret_cast<void *>(this), sizeof(SMPLongTermKey));
         }
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
@@ -596,46 +596,49 @@ namespace direct_bt {
                    "]";
         }
     } );
-    constexpr SMPSignatureResolvingKeyInfo::Property operator ^(const SMPSignatureResolvingKeyInfo::Property lhs, const SMPSignatureResolvingKeyInfo::Property rhs) noexcept {
-        return static_cast<SMPSignatureResolvingKeyInfo::Property> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
+    constexpr SMPSignatureResolvingKey::Property operator ^(const SMPSignatureResolvingKey::Property lhs, const SMPSignatureResolvingKey::Property rhs) noexcept {
+        return static_cast<SMPSignatureResolvingKey::Property> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
     }
-    constexpr SMPSignatureResolvingKeyInfo::Property& operator ^=(SMPSignatureResolvingKeyInfo::Property& store, const SMPSignatureResolvingKeyInfo::Property& rhs) noexcept {
-        store = static_cast<SMPSignatureResolvingKeyInfo::Property> ( static_cast<uint8_t>(store) ^ static_cast<uint8_t>(rhs) );
+    constexpr SMPSignatureResolvingKey::Property& operator ^=(SMPSignatureResolvingKey::Property& store, const SMPSignatureResolvingKey::Property& rhs) noexcept {
+        store = static_cast<SMPSignatureResolvingKey::Property> ( static_cast<uint8_t>(store) ^ static_cast<uint8_t>(rhs) );
         return store;
     }
-    constexpr SMPSignatureResolvingKeyInfo::Property operator |(const SMPSignatureResolvingKeyInfo::Property lhs, const SMPSignatureResolvingKeyInfo::Property rhs) noexcept {
-        return static_cast<SMPSignatureResolvingKeyInfo::Property> ( static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs) );
+    constexpr SMPSignatureResolvingKey::Property operator |(const SMPSignatureResolvingKey::Property lhs, const SMPSignatureResolvingKey::Property rhs) noexcept {
+        return static_cast<SMPSignatureResolvingKey::Property> ( static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs) );
     }
-    constexpr SMPSignatureResolvingKeyInfo::Property& operator |=(SMPSignatureResolvingKeyInfo::Property& store, const SMPSignatureResolvingKeyInfo::Property& rhs) noexcept {
-        store = static_cast<SMPSignatureResolvingKeyInfo::Property> ( static_cast<uint8_t>(store) | static_cast<uint8_t>(rhs) );
+    constexpr SMPSignatureResolvingKey::Property& operator |=(SMPSignatureResolvingKey::Property& store, const SMPSignatureResolvingKey::Property& rhs) noexcept {
+        store = static_cast<SMPSignatureResolvingKey::Property> ( static_cast<uint8_t>(store) | static_cast<uint8_t>(rhs) );
         return store;
     }
-    constexpr SMPSignatureResolvingKeyInfo::Property operator &(const SMPSignatureResolvingKeyInfo::Property lhs, const SMPSignatureResolvingKeyInfo::Property rhs) noexcept {
-        return static_cast<SMPSignatureResolvingKeyInfo::Property> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
+    constexpr SMPSignatureResolvingKey::Property operator &(const SMPSignatureResolvingKey::Property lhs, const SMPSignatureResolvingKey::Property rhs) noexcept {
+        return static_cast<SMPSignatureResolvingKey::Property> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
     }
-    constexpr SMPSignatureResolvingKeyInfo::Property& operator &=(SMPSignatureResolvingKeyInfo::Property& store, const SMPSignatureResolvingKeyInfo::Property& rhs) noexcept {
-        store = static_cast<SMPSignatureResolvingKeyInfo::Property> ( static_cast<uint8_t>(store) & static_cast<uint8_t>(rhs) );
+    constexpr SMPSignatureResolvingKey::Property& operator &=(SMPSignatureResolvingKey::Property& store, const SMPSignatureResolvingKey::Property& rhs) noexcept {
+        store = static_cast<SMPSignatureResolvingKey::Property> ( static_cast<uint8_t>(store) & static_cast<uint8_t>(rhs) );
         return store;
     }
-    constexpr bool operator ==(const SMPSignatureResolvingKeyInfo::Property lhs, const SMPSignatureResolvingKeyInfo::Property rhs) noexcept {
+    constexpr bool operator ==(const SMPSignatureResolvingKey::Property lhs, const SMPSignatureResolvingKey::Property rhs) noexcept {
         return static_cast<uint8_t>(lhs) == static_cast<uint8_t>(rhs);
     }
-    constexpr bool operator !=(const SMPSignatureResolvingKeyInfo::Property lhs, const SMPSignatureResolvingKeyInfo::Property rhs) noexcept {
+    constexpr bool operator !=(const SMPSignatureResolvingKey::Property lhs, const SMPSignatureResolvingKey::Property rhs) noexcept {
         return !( lhs == rhs );
     }
-    inline std::string to_String(const SMPSignatureResolvingKeyInfo& csrk) noexcept { return csrk.toString(); }
+    inline std::string to_String(const SMPSignatureResolvingKey& csrk) noexcept { return csrk.toString(); }
 
     /**
-     * Local SMP Link Key Info, used for platform agnostic persistence,
+     * Local SMP Link Key, used for platform agnostic persistence,
      * mapping to platform specific MgmtLoadLinkKeyCmd and MgmtEvtNewLinkKey.
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
      *          since the encryption values are interpreted as a byte stream.
      * </p>
+     * <p>
+     * Byte layout must be synchronized with java org.tinyb.SMPLinkKey
+     * </p>
      */
-    __pack( struct SMPLinkKeyInfo {
+    __pack( struct SMPLinkKey {
         /**
-         * Link Key Types compatible with Mgmt's MgmtLinkKeyType and hence MgmtLinkKeyInfo
+         * Link Key type compatible with Mgmt's MgmtLinkKeyType and hence MgmtLinkKeyInfo
          */
         enum class KeyType : uint8_t {
             /** Combination key */
@@ -674,7 +677,7 @@ namespace direct_bt {
         bool isResponder() const noexcept { return responder; }
 
         void clear() noexcept {
-            bzero(reinterpret_cast<void *>(this), sizeof(SMPLinkKeyInfo));
+            bzero(reinterpret_cast<void *>(this), sizeof(SMPLinkKey));
         }
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon

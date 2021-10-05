@@ -26,19 +26,19 @@
 package org.direct_bt;
 
 /**
- * SMP Long Term Key Info, used for platform agnostic persistence.
+ * SMP Signature Resolving Key, used for platform agnostic persistence.
  * <p>
  * Notable: No endian wise conversion shall occur on this data,
  *          since the encryption values are interpreted as a byte stream.
  * </p>
  * <p>
- * Byte layout must be synchronized with native direct_bt::SMPLongTermKeyInfo
+ * Byte layout must be synchronized with native direct_bt::SMPSignatureResolvingKeyInfo
  * </p>
  * @since 2.2.0
  */
-public class SMPLongTermKeyInfo {
+public class SMPSignatureResolvingKey {
     /**
-     * {@link SMPLongTermKeyInfo} Property Bits
+     * {@link SMPSignatureResolvingKey} Property Bits
      */
     static public enum PropertyType {
         /** No specific property */
@@ -46,9 +46,7 @@ public class SMPLongTermKeyInfo {
         /** Responder Key (LL slave). Absence indicates Initiator Key (LL master). */
         RESPONDER((byte)0x01),
         /** Authentication used. */
-        AUTH((byte)0x02),
-        /** Secure Connection used. */
-        SC((byte)0x04);
+        AUTH((byte)0x02);
 
         public final byte value;
 
@@ -76,7 +74,6 @@ public class SMPLongTermKeyInfo {
             switch(value) {
                 case (byte) 0x01: return RESPONDER;
                 case (byte) 0x02: return AUTH;
-                case (byte) 0x04: return SC;
                 default: return NONE;
             }
         }
@@ -87,7 +84,7 @@ public class SMPLongTermKeyInfo {
     }
 
     /**
-     * {@link SMPLongTermKeyInfo} {@link PropertyType} Bit Mask
+     * {@link SMPSignatureResolvingKey} {@link PropertyType} Bit Mask
      */
     static public class Properties {
         /** The {@link PropertyType} bit mask */
@@ -112,10 +109,6 @@ public class SMPLongTermKeyInfo {
                 if( 0 < count ) { out.append(", "); }
                 out.append(PropertyType.AUTH.name()); count++;
             }
-            if( isSet(PropertyType.SC) ) {
-                if( 0 < count ) { out.append(", "); }
-                out.append(PropertyType.SC.name()); count++;
-            }
             return "["+out.toString()+"]";
         }
     }
@@ -123,40 +116,29 @@ public class SMPLongTermKeyInfo {
     /** {@link Properties} bit mask. 1 octet or 8 bits. */
     public Properties properties;
 
-    /** Encryption Size, 1 octets or 8 bits. Is zero if key is invalid. */
-    public byte enc_size;
-    /** Encryption Diversifier, 2 octets or 16 bits. */
-    public byte ediv[/*2*/];
-    /** Random Number, 8 octets or 64 bits. */
-    public byte rand[/*8*/];
-    /** Long Term Key (LTK), 16 octets or 128 bits. */
-    public byte ltk[/*16*/];
+    /** Connection Signature Resolving Key (CSRK) */
+    public byte csrk[/*16*/];
 
     /**
-     * Size of the byte stream representation in bytes (28)
+     * Size of the byte stream representation in bytes
      * @see #put(byte[], int)
      */
-    public static final int byte_size = 1+1+2+8+16;
+    public static final int byte_size = 1+16;
 
     /** Construct instance via given source byte array */
-    public SMPLongTermKeyInfo(final byte source[], final int pos) {
-        ediv       = new byte[2];
-        rand       = new byte[8];
-        ltk        = new byte[16];
+    public SMPSignatureResolvingKey(final byte source[], final int pos) {
+        csrk = new byte[16];
         get(source, pos);
     }
 
     /** Construct emoty unset instance. */
-    public SMPLongTermKeyInfo() {
+    public SMPSignatureResolvingKey() {
         properties = new Properties((byte)0);
-        enc_size   = (byte)0;
-        ediv       = new byte[2];
-        rand       = new byte[8];
-        ltk        = new byte[16];
+        csrk        = new byte[16];
     }
 
     /**
-     * Method transfers all bytes representing a SMPLongTermKeyInfo from the given
+     * Method transfers all bytes representing a SMPSignatureResolvingKeyInfo from the given
      * source array at the given position into this instance.
      * <p>
      * Implementation is consistent with {@link #put(byte[], int)}.
@@ -170,22 +152,18 @@ public class SMPLongTermKeyInfo {
             throw new IllegalArgumentException("Stream ( "+source.length+" - "+pos+" ) < "+byte_size+" bytes");
         }
         properties = new Properties(source[pos++]);
-        enc_size   = source[pos++];
-        ediv[0]    = source[pos++];
-        ediv[1]    = source[pos++];
-        System.arraycopy(source, pos, rand, 0,  8); pos+=8;
-        System.arraycopy(source, pos, ltk,  0, 16); pos+=16;
+        System.arraycopy(source, pos, csrk, 0, 16); pos+=16;
     }
 
     /**
      * Method transfers all bytes representing this instance into the given
      * destination array at the given position.
      * <p>
-     * Implementation is consistent with {@link #SMPLongTermKeyInfo(byte[], int)}.
+     * Implementation is consistent with {@link #SMPSignatureResolvingKeyInfo(byte[], int)}.
      * </p>
      * @param sink the destination array
      * @param pos starting position in the destination array
-     * @see #SMPLongTermKeyInfo(byte[], int)
+     * @see #SMPSignatureResolvingKeyInfo(byte[], int)
      * @see #get(byte[], int)
      */
     public final void put(final byte[] sink, int pos) {
@@ -193,24 +171,15 @@ public class SMPLongTermKeyInfo {
             throw new IllegalArgumentException("Stream ( "+sink.length+" - "+pos+" ) < "+byte_size+" bytes");
         }
         sink[pos++] = properties.mask;
-        sink[pos++] = enc_size;
-        sink[pos++] = ediv[0];
-        sink[pos++] = ediv[1];
-        System.arraycopy(rand, 0, sink, pos,  8); pos+=8;
-        System.arraycopy(ltk,  0, sink, pos, 16); pos+=16;
+        System.arraycopy(csrk,  0, sink, pos, 16); pos+=16;
     }
-
-    public final boolean isValid() { return 0 != enc_size; }
 
     public final boolean isResponder() { return properties.isSet(PropertyType.RESPONDER); }
 
     @Override
     public String toString() { // hex-fmt aligned with btmon
-        return "LTK[props "+properties.toString()+", enc_size "+enc_size+
-               ", ediv "+BTUtils.bytesHexString(ediv, 0, -1, false /* lsbFirst */)+
-               ", rand "+BTUtils.bytesHexString(rand, 0, -1, false /* lsbFirst */)+
-               ", ltk "+BTUtils.bytesHexString(ltk, 0, -1, true /* lsbFirst */)+
-               ", valid "+isValid()+
+        return "CSRK[props "+properties.toString()+
+               ", csrk "+BTUtils.bytesHexString(csrk, 0, -1, true /* lsbFirst */)+
                "]";
     }
 

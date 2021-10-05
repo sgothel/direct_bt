@@ -58,24 +58,24 @@ SMPKeyBin SMPKeyBin::create(const BTDevice& device) {
         const SMPKeyType keys_init = device.getAvailableSMPKeys(false /* responder */);
 
         if( ( SMPKeyType::ENC_KEY & keys_init ) != SMPKeyType::NONE ) {
-            smpKeyBin.setLTKInit( device.getLongTermKeyInfo(false /* responder */) );
+            smpKeyBin.setLTKInit( device.getLongTermKey(false /* responder */) );
         }
         if( ( SMPKeyType::ENC_KEY & keys_resp ) != SMPKeyType::NONE ) {
-            smpKeyBin.setLTKResp( device.getLongTermKeyInfo(true  /* responder */) );
+            smpKeyBin.setLTKResp( device.getLongTermKey(true  /* responder */) );
         }
 
         if( ( SMPKeyType::SIGN_KEY & keys_init ) != SMPKeyType::NONE ) {
-            smpKeyBin.setCSRKInit( device.getSignatureResolvingKeyInfo(false /* responder */) );
+            smpKeyBin.setCSRKInit( device.getSignatureResolvingKey(false /* responder */) );
         }
         if( ( SMPKeyType::SIGN_KEY & keys_resp ) != SMPKeyType::NONE ) {
-            smpKeyBin.setCSRKResp( device.getSignatureResolvingKeyInfo(true  /* responder */) );
+            smpKeyBin.setCSRKResp( device.getSignatureResolvingKey(true  /* responder */) );
         }
 
         if( ( SMPKeyType::LINK_KEY & keys_init ) != SMPKeyType::NONE ) {
-            smpKeyBin.setLKInit( device.getLinkKeyInfo(false /* responder */) );
+            smpKeyBin.setLKInit( device.getLinkKey(false /* responder */) );
         }
         if( ( SMPKeyType::LINK_KEY & keys_resp ) != SMPKeyType::NONE ) {
-            smpKeyBin.setLKResp( device.getLinkKeyInfo(true  /* responder */) );
+            smpKeyBin.setLKResp( device.getLinkKey(true  /* responder */) );
         }
     } else {
         smpKeyBin.size = 0; // explicitly mark invalid
@@ -454,14 +454,14 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
     }
 
     if( hasLTKInit() ) {
-        res = device.setLongTermKeyInfo( getLTKInit() );
+        res = device.setLongTermKey( getLTKInit() );
         if( HCIStatusCode::SUCCESS != res && verbose ) {
             jau::fprintf_td(stderr, "Apply SMPKeyBin failed: Init-LTK Upload: %s, %s, %s\n",
                     to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
         }
     }
     if( HCIStatusCode::SUCCESS == res && hasLTKResp() ) {
-        res = device.setLongTermKeyInfo( getLTKResp() );
+        res = device.setLongTermKey( getLTKResp() );
         if( HCIStatusCode::SUCCESS != res && verbose ) {
             jau::fprintf_td(stderr, "Apply SMPKeyBin failed: Resp-LTK Upload: %s, %s, %s\n",
                     to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
@@ -469,14 +469,14 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
     }
 
     if( HCIStatusCode::SUCCESS == res && hasLKInit() ) {
-        res = device.setLinkKeyInfo( getLKInit() );
+        res = device.setLinkKey( getLKInit() );
         if( HCIStatusCode::SUCCESS != res && verbose ) {
             jau::fprintf_td(stderr, "Apply SMPKeyBin failed: Init-LK Upload: %s, %s, %s\n",
                     to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
         }
     }
     if( HCIStatusCode::SUCCESS == res && hasLKResp() ) {
-        res = device.setLinkKeyInfo( getLKResp() );
+        res = device.setLinkKey( getLKResp() );
         if( HCIStatusCode::SUCCESS != res && verbose ) {
             jau::fprintf_td(stderr, "Apply SMPKeyBin failed: Resp-LK Upload: %s, %s, %s\n",
                     to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());

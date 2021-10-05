@@ -463,10 +463,10 @@ namespace direct_bt {
             /** Security commands */
 
             HCIStatusCode uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKeyInfo &key) noexcept;
-            HCIStatusCode uploadLongTermKey(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLongTermKeyInfo& ltk) noexcept;
+            HCIStatusCode uploadLongTermKey(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLongTermKey& ltk) noexcept;
 
             HCIStatusCode uploadLinkKey(const uint16_t dev_id, const MgmtLinkKeyInfo &key) noexcept;
-            HCIStatusCode uploadLinkKey(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLinkKeyInfo& lk) noexcept;
+            HCIStatusCode uploadLinkKey(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLinkKey& lk) noexcept;
 
             MgmtStatus userPasskeyReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const uint32_t passkey) noexcept;
             MgmtStatus userPasskeyNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept;

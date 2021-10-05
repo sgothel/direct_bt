@@ -79,13 +79,13 @@ class SMPKeyBin {
         SMPKeyType keys_init;                   //  1
         SMPKeyType keys_resp;                   //  1
 
-        SMPLongTermKeyInfo           ltk_init;  // 28 (optional)
-        SMPSignatureResolvingKeyInfo csrk_init; // 17 (optional)
-        SMPLinkKeyInfo               lk_init;   // 19 (optional)
+        SMPLongTermKey           ltk_init;      // 28 (optional)
+        SMPSignatureResolvingKey csrk_init;     // 17 (optional)
+        SMPLinkKey               lk_init;       // 19 (optional)
 
-        SMPLongTermKeyInfo           ltk_resp;  // 28 (optional)
-        SMPSignatureResolvingKeyInfo csrk_resp; // 17 (optional)
-        SMPLinkKeyInfo               lk_resp;   // 19 (optional)
+        SMPLongTermKey           ltk_resp;      // 28 (optional)
+        SMPSignatureResolvingKey csrk_resp;     // 17 (optional)
+        SMPLinkKey               lk_resp;       // 19 (optional)
 
         // Min-Max: 23 - 113 bytes
 
@@ -246,20 +246,20 @@ class SMPKeyBin {
         constexpr bool hasLTKInit() const noexcept { return ( SMPKeyType::ENC_KEY & keys_init ) != SMPKeyType::NONE; }
         constexpr bool hasCSRKInit() const noexcept { return ( SMPKeyType::SIGN_KEY & keys_init ) != SMPKeyType::NONE; }
         constexpr bool hasLKInit() const noexcept { return ( SMPKeyType::LINK_KEY & keys_init ) != SMPKeyType::NONE; }
-        constexpr const SMPLongTermKeyInfo& getLTKInit() const noexcept { return ltk_init; }
-        constexpr const SMPSignatureResolvingKeyInfo& getCSRKInit() const noexcept { return csrk_init; }
-        constexpr const SMPLinkKeyInfo& getLKInit() const noexcept { return lk_init; }
-        void setLTKInit(const SMPLongTermKeyInfo& v) noexcept {
+        constexpr const SMPLongTermKey& getLTKInit() const noexcept { return ltk_init; }
+        constexpr const SMPSignatureResolvingKey& getCSRKInit() const noexcept { return csrk_init; }
+        constexpr const SMPLinkKey& getLKInit() const noexcept { return lk_init; }
+        void setLTKInit(const SMPLongTermKey& v) noexcept {
             ltk_init = v;
             keys_init |= SMPKeyType::ENC_KEY;
             size = calcSize();
         }
-        void setCSRKInit(const SMPSignatureResolvingKeyInfo& v) noexcept {
+        void setCSRKInit(const SMPSignatureResolvingKey& v) noexcept {
             csrk_init = v;
             keys_init |= SMPKeyType::SIGN_KEY;
             size = calcSize();
         }
-        void setLKInit(const SMPLinkKeyInfo& v) noexcept {
+        void setLKInit(const SMPLinkKey& v) noexcept {
             lk_init = v;
             keys_init |= SMPKeyType::LINK_KEY;
             size = calcSize();
@@ -268,20 +268,20 @@ class SMPKeyBin {
         constexpr bool hasLTKResp() const noexcept { return ( SMPKeyType::ENC_KEY & keys_resp ) != SMPKeyType::NONE; }
         constexpr bool hasCSRKResp() const noexcept { return ( SMPKeyType::SIGN_KEY & keys_resp ) != SMPKeyType::NONE; }
         constexpr bool hasLKResp() const noexcept { return ( SMPKeyType::LINK_KEY & keys_resp ) != SMPKeyType::NONE; }
-        constexpr const SMPLongTermKeyInfo& getLTKResp() const noexcept { return ltk_resp; }
-        constexpr const SMPSignatureResolvingKeyInfo& getCSRKResp() const noexcept { return csrk_resp; }
-        constexpr const SMPLinkKeyInfo& getLKResp() const noexcept { return lk_resp; }
-        void setLTKResp(const SMPLongTermKeyInfo& v) noexcept {
+        constexpr const SMPLongTermKey& getLTKResp() const noexcept { return ltk_resp; }
+        constexpr const SMPSignatureResolvingKey& getCSRKResp() const noexcept { return csrk_resp; }
+        constexpr const SMPLinkKey& getLKResp() const noexcept { return lk_resp; }
+        void setLTKResp(const SMPLongTermKey& v) noexcept {
             ltk_resp = v;
             keys_resp |= SMPKeyType::ENC_KEY;
             size = calcSize();
         }
-        void setCSRKResp(const SMPSignatureResolvingKeyInfo& v) noexcept {
+        void setCSRKResp(const SMPSignatureResolvingKey& v) noexcept {
             csrk_resp = v;
             keys_resp |= SMPKeyType::SIGN_KEY;
             size = calcSize();
         }
-        void setLKResp(const SMPLinkKeyInfo& v) noexcept {
+        void setLKResp(const SMPLinkKey& v) noexcept {
             lk_resp = v;
             keys_resp |= SMPKeyType::LINK_KEY;
             size = calcSize();

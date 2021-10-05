@@ -485,7 +485,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getAvailableSMPKeysImpl(JNIEnv *env, jobject
     return 0;
 }
 
-void Java_jau_direct_1bt_DBTDevice_getLongTermKeyInfoImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
+void Java_jau_direct_1bt_DBTDevice_getLongTermKeyImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
@@ -494,22 +494,22 @@ void Java_jau_direct_1bt_DBTDevice_getLongTermKeyInfoImpl(JNIEnv *env, jobject o
             throw IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t sink_size = env->GetArrayLength(jsink);
-        if( sizeof(SMPLongTermKeyInfo) > sink_size ) {
-            throw IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPLongTermKeyInfo)), E_FILE_LINE);
+        if( sizeof(SMPLongTermKey) > sink_size ) {
+            throw IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
         if( NULL == sink_ptr ) {
             throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
-        SMPLongTermKeyInfo& ltk_sink = *reinterpret_cast<SMPLongTermKeyInfo *>(sink_ptr);
-        ltk_sink = device->getLongTermKeyInfo(JNI_TRUE == responder); // assign data of new key copy to JNI critical-array
+        SMPLongTermKey& ltk_sink = *reinterpret_cast<SMPLongTermKey *>(sink_ptr);
+        ltk_sink = device->getLongTermKey(JNI_TRUE == responder); // assign data of new key copy to JNI critical-array
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
 }
 
-jbyte Java_jau_direct_1bt_DBTDevice_setLongTermKeyInfoImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
+jbyte Java_jau_direct_1bt_DBTDevice_setLongTermKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
@@ -518,17 +518,17 @@ jbyte Java_jau_direct_1bt_DBTDevice_setLongTermKeyInfoImpl(JNIEnv *env, jobject 
             throw IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t source_size = env->GetArrayLength(jsource);
-        if( sizeof(SMPLongTermKeyInfo) > source_size ) {
-            throw IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPLongTermKeyInfo)), E_FILE_LINE);
+        if( sizeof(SMPLongTermKey) > source_size ) {
+            throw IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == source_ptr ) {
             throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
-        const SMPLongTermKeyInfo& ltk = *reinterpret_cast<SMPLongTermKeyInfo *>(source_ptr);
+        const SMPLongTermKey& ltk = *reinterpret_cast<SMPLongTermKey *>(source_ptr);
 
-        const HCIStatusCode res = device->setLongTermKeyInfo(ltk);
+        const HCIStatusCode res = device->setLongTermKey(ltk);
         return (jbyte) number(res);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -536,7 +536,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_setLongTermKeyInfoImpl(JNIEnv *env, jobject 
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
-void Java_jau_direct_1bt_DBTDevice_getSignatureResolvingKeyInfoImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
+void Java_jau_direct_1bt_DBTDevice_getSignatureResolvingKeyImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
@@ -545,22 +545,22 @@ void Java_jau_direct_1bt_DBTDevice_getSignatureResolvingKeyInfoImpl(JNIEnv *env,
             throw IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t sink_size = env->GetArrayLength(jsink);
-        if( sizeof(SMPSignatureResolvingKeyInfo) > sink_size ) {
-            throw IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPSignatureResolvingKeyInfo)), E_FILE_LINE);
+        if( sizeof(SMPSignatureResolvingKey) > sink_size ) {
+            throw IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPSignatureResolvingKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
         if( NULL == sink_ptr ) {
             throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
-        SMPSignatureResolvingKeyInfo& csrk_sink = *reinterpret_cast<SMPSignatureResolvingKeyInfo *>(sink_ptr);
-        csrk_sink = device->getSignatureResolvingKeyInfo(JNI_TRUE == responder); // assign data of new key copy to JNI critical-array
+        SMPSignatureResolvingKey& csrk_sink = *reinterpret_cast<SMPSignatureResolvingKey *>(sink_ptr);
+        csrk_sink = device->getSignatureResolvingKey(JNI_TRUE == responder); // assign data of new key copy to JNI critical-array
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
 }
 
-void Java_jau_direct_1bt_DBTDevice_getLinkKeyInfoImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
+void Java_jau_direct_1bt_DBTDevice_getLinkKeyImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
@@ -569,22 +569,22 @@ void Java_jau_direct_1bt_DBTDevice_getLinkKeyInfoImpl(JNIEnv *env, jobject obj, 
             throw IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t sink_size = env->GetArrayLength(jsink);
-        if( sizeof(SMPLinkKeyInfo) > sink_size ) {
-            throw IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPLinkKeyInfo)), E_FILE_LINE);
+        if( sizeof(SMPLinkKey) > sink_size ) {
+            throw IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPLinkKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
         if( NULL == sink_ptr ) {
             throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
-        SMPLinkKeyInfo& lk_sink = *reinterpret_cast<SMPLinkKeyInfo *>(sink_ptr);
-        lk_sink = device->getLinkKeyInfo(JNI_TRUE == responder); // assign data of new key copy to JNI critical-array
+        SMPLinkKey& lk_sink = *reinterpret_cast<SMPLinkKey *>(sink_ptr);
+        lk_sink = device->getLinkKey(JNI_TRUE == responder); // assign data of new key copy to JNI critical-array
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
 }
 
-jbyte Java_jau_direct_1bt_DBTDevice_setLinkKeyInfoImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
+jbyte Java_jau_direct_1bt_DBTDevice_setLinkKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
@@ -593,17 +593,17 @@ jbyte Java_jau_direct_1bt_DBTDevice_setLinkKeyInfoImpl(JNIEnv *env, jobject obj,
             throw IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t source_size = env->GetArrayLength(jsource);
-        if( sizeof(SMPLinkKeyInfo) > source_size ) {
-            throw IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPLinkKeyInfo)), E_FILE_LINE);
+        if( sizeof(SMPLinkKey) > source_size ) {
+            throw IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPLinkKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == source_ptr ) {
             throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
-        const SMPLinkKeyInfo& lk = *reinterpret_cast<SMPLinkKeyInfo *>(source_ptr);
+        const SMPLinkKey& lk = *reinterpret_cast<SMPLinkKey *>(source_ptr);
 
-        const HCIStatusCode res = device->setLinkKeyInfo(lk);
+        const HCIStatusCode res = device->setLinkKey(lk);
         return (jbyte) number(res);
     } catch(...) {
         rethrow_and_raise_java_exception(env);

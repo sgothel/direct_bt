@@ -215,17 +215,17 @@ public interface BTDevice extends BTObject
     SMPKeyMask getAvailableSMPKeys(final boolean responder);
 
     /**
-     * Returns a copy of the long term key (LTK) info, valid after connection and SMP pairing has been completed.
+     * Returns a copy of the long term key (LTK), valid after connection and SMP pairing has been completed.
      * @param responder true will return the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
-     * @return the resulting key. {@link SMPLongTermKeyInfo#enc_size} will be zero if invalid.
+     * @return the resulting key. {@link SMPLongTermKey#enc_size} will be zero if invalid.
      * @see {@link SMPPairingState#COMPLETED}
      * @see {@link AdapterStatusListener#deviceReady(BTDevice, long)}
      * @since 2.2.0
      */
-    SMPLongTermKeyInfo getLongTermKeyInfo(final boolean responder);
+    SMPLongTermKey getLongTermKey(final boolean responder);
 
     /**
-     * Sets the long term ket (LTK) info of this device to reuse pre-paired encryption.
+     * Sets the long term ket (LTK) of this device to reuse pre-paired encryption.
      * <p>
      * Must be called before connecting to this device, otherwise {@link HCIStatusCode#CONNECTION_ALREADY_EXISTS} will be returned.
      * </p>
@@ -233,30 +233,30 @@ public interface BTDevice extends BTObject
      * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the appropriate error code.
      * @since 2.2.0
      */
-    HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk);
+    HCIStatusCode setLongTermKey(final SMPLongTermKey ltk);
 
     /**
-     * Returns a copy of the Signature Resolving Key (LTK) info, valid after connection and SMP pairing has been completed.
+     * Returns a copy of the Signature Resolving Key (LTK), valid after connection and SMP pairing has been completed.
      * @param responder true will return the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
      * @return the resulting key
      * @see {@link SMPPairingState#COMPLETED}
      * @see {@link AdapterStatusListener#deviceReady(BTDevice, long)}
      * @since 2.2.0
      */
-    SMPSignatureResolvingKeyInfo getSignatureResolvingKeyInfo(final boolean responder);
+    SMPSignatureResolvingKey getSignatureResolvingKey(final boolean responder);
 
     /**
-     * Returns a copy of the Link Key (LK) info, valid after connection and SMP pairing has been completed.
+     * Returns a copy of the Link Key (LK), valid after connection and SMP pairing has been completed.
      * @param responder true will return the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
      * @return the resulting key
      * @see {@link SMPPairingState#COMPLETED}
      * @see {@link AdapterStatusListener#deviceReady(BTDevice, long)}
      * @since 2.4.0
      */
-    SMPLinkKeyInfo getLinkKeyInfo(final boolean responder);
+    SMPLinkKey getLinkKey(final boolean responder);
 
     /**
-     * Sets the Link Key (LK) info of this device to reuse pre-paired encryption.
+     * Sets the Link Key (LK) of this device to reuse pre-paired encryption.
      * <p>
      * Must be called before connecting to this device, otherwise {@link HCIStatusCode#CONNECTION_ALREADY_EXISTS} will be returned.
      * </p>
@@ -264,7 +264,7 @@ public interface BTDevice extends BTObject
      * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the appropriate error code.
      * @since 2.4.0
      */
-    HCIStatusCode setLinkKeyInfo(final SMPLinkKeyInfo lk);
+    HCIStatusCode setLinkKey(final SMPLinkKey lk);
 
     /**
      * Unpairs this device from the adapter while staying connected.

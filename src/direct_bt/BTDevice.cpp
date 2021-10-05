@@ -811,7 +811,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                         // SMP pairing has started, mngr issued new LTK command
                         const MgmtEvtNewLongTermKey& event = *static_cast<const MgmtEvtNewLongTermKey *>(&evt);
                         const MgmtLongTermKeyInfo& mgmt_ltk = event.getLongTermKey();
-                        const SMPLongTermKeyInfo smp_ltk = mgmt_ltk.toSMPLongTermKeyInfo();
+                        const SMPLongTermKey smp_ltk = mgmt_ltk.toSMPLongTermKeyInfo();
                         if( smp_ltk.isValid() ) {
                             const std::string timestamp = jau::to_decstring(jau::environment::getElapsedMillisecond(evt.getTimestamp()), ',', 9);
 
@@ -852,7 +852,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                         const MgmtEvtNewLinkKey& event = *static_cast<const MgmtEvtNewLinkKey *>(&evt);
                         const MgmtLinkKeyInfo& mgmt_lk = event.getLinkKey();
                         const BTRole hostRole = !btRole;
-                        const SMPLinkKeyInfo smp_lk = mgmt_lk.toSMPLinkKeyInfo( BTRole::Slave == hostRole /* isResponder */ );
+                        const SMPLinkKey smp_lk = mgmt_lk.toSMPLinkKeyInfo( BTRole::Slave == hostRole /* isResponder */ );
                         if( smp_lk.isValid() ) {
                             const std::string timestamp = jau::to_decstring(jau::environment::getElapsedMillisecond(evt.getTimestamp()), ',', 9);
 
@@ -1043,12 +1043,12 @@ void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMs
             const SMPEncInfoMsg & msg1 = *static_cast<const SMPEncInfoMsg *>( &msg );
             if( HCIACLData::l2cap_frame::PBFlag::START_AUTOFLUSH == source.pb_flag ) {
                 // from responder (LL slave)
-                pairing_data.ltk_resp.properties |= SMPLongTermKeyInfo::Property::RESPONDER;
+                pairing_data.ltk_resp.properties |= SMPLongTermKey::Property::RESPONDER;
                 if( BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn ) {
-                    pairing_data.ltk_resp.properties |= SMPLongTermKeyInfo::Property::AUTH;
+                    pairing_data.ltk_resp.properties |= SMPLongTermKey::Property::AUTH;
                 }
                 if( pairing_data.use_sc ) {
-                    pairing_data.ltk_resp.properties |= SMPLongTermKeyInfo::Property::SC;
+                    pairing_data.ltk_resp.properties |= SMPLongTermKey::Property::SC;
                 }
                 pairing_data.ltk_resp.enc_size = pairing_data.maxEncsz_resp;
                 pairing_data.ltk_resp.ltk = msg1.getLTK();
@@ -1056,10 +1056,10 @@ void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMs
                 // from initiator (LL master)
                 // pairing_data.ltk_resp.properties |= SMPLongTermKeyInfo::Property::INITIATOR;
                 if( BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn ) {
-                    pairing_data.ltk_init.properties |= SMPLongTermKeyInfo::Property::AUTH;
+                    pairing_data.ltk_init.properties |= SMPLongTermKey::Property::AUTH;
                 }
                 if( pairing_data.use_sc ) {
-                    pairing_data.ltk_init.properties |= SMPLongTermKeyInfo::Property::SC;
+                    pairing_data.ltk_init.properties |= SMPLongTermKey::Property::SC;
                 }
                 pairing_data.ltk_init.enc_size = pairing_data.maxEncsz_init;
                 pairing_data.ltk_init.ltk = msg1.getLTK();
@@ -1117,9 +1117,9 @@ void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMs
                 // from responder (LL slave)
                 pairing_data.keys_resp_has |= SMPKeyType::SIGN_KEY;
 
-                pairing_data.csrk_resp.properties |= SMPSignatureResolvingKeyInfo::Property::RESPONDER;
+                pairing_data.csrk_resp.properties |= SMPSignatureResolvingKey::Property::RESPONDER;
                 if( BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn ) {
-                    pairing_data.csrk_resp.properties |= SMPSignatureResolvingKeyInfo::Property::AUTH;
+                    pairing_data.csrk_resp.properties |= SMPSignatureResolvingKey::Property::AUTH;
                 }
                 pairing_data.csrk_resp.csrk = msg1.getCSRK();
             } else {
@@ -1128,7 +1128,7 @@ void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMs
 
                 // pairing_data.csrk_init.properties |= SMPSignatureResolvingKeyInfo::Property::INITIATOR;
                 if( BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn ) {
-                    pairing_data.csrk_init.properties |= SMPSignatureResolvingKeyInfo::Property::AUTH;
+                    pairing_data.csrk_init.properties |= SMPSignatureResolvingKey::Property::AUTH;
                 }
                 pairing_data.csrk_init.csrk = msg1.getCSRK();
             }
@@ -1195,12 +1195,12 @@ SMPKeyType BTDevice::getAvailableSMPKeys(const bool responder) const noexcept {
     }
 }
 
-SMPLongTermKeyInfo BTDevice::getLongTermKeyInfo(const bool responder) const noexcept {
+SMPLongTermKey BTDevice::getLongTermKey(const bool responder) const noexcept {
     jau::sc_atomic_critical sync(sync_data);
     return responder ? pairing_data.ltk_resp : pairing_data.ltk_init;
 }
 
-HCIStatusCode BTDevice::setLongTermKeyInfo(const SMPLongTermKeyInfo& ltk) noexcept {
+HCIStatusCode BTDevice::setLongTermKey(const SMPLongTermKey& ltk) noexcept {
     if( isConnected ) {
         ERR_PRINT("BTDevice::setLongTermKeyInfo: Already connected: %s", toString().c_str());
         return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
@@ -1222,17 +1222,17 @@ HCIStatusCode BTDevice::setLongTermKeyInfo(const SMPLongTermKeyInfo& ltk) noexce
 #endif
 }
 
-SMPSignatureResolvingKeyInfo BTDevice::getSignatureResolvingKeyInfo(const bool responder) const noexcept {
+SMPSignatureResolvingKey BTDevice::getSignatureResolvingKey(const bool responder) const noexcept {
     jau::sc_atomic_critical sync(sync_data);
     return responder ? pairing_data.csrk_resp : pairing_data.csrk_init;
 }
 
-SMPLinkKeyInfo BTDevice::getLinkKeyInfo(const bool responder) const noexcept {
+SMPLinkKey BTDevice::getLinkKey(const bool responder) const noexcept {
     jau::sc_atomic_critical sync(sync_data);
     return responder ? pairing_data.lk_resp : pairing_data.lk_init;
 }
 
-HCIStatusCode BTDevice::setLinkKeyInfo(const SMPLinkKeyInfo& lk) noexcept {
+HCIStatusCode BTDevice::setLinkKey(const SMPLinkKey& lk) noexcept {
     if( isConnected ) {
         ERR_PRINT("BTDevice::setLinkKeyInfo: Already connected: %s", toString().c_str());
         return HCIStatusCode::CONNECTION_ALREADY_EXISTS;

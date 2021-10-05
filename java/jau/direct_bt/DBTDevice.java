@@ -52,10 +52,10 @@ import org.direct_bt.LE_PHYs;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPIOCapability;
 import org.direct_bt.SMPKeyMask;
-import org.direct_bt.SMPLinkKeyInfo;
-import org.direct_bt.SMPLongTermKeyInfo;
+import org.direct_bt.SMPLinkKey;
+import org.direct_bt.SMPLongTermKey;
 import org.direct_bt.SMPPairingState;
-import org.direct_bt.SMPSignatureResolvingKeyInfo;
+import org.direct_bt.SMPSignatureResolvingKey;
 import org.jau.net.EUI48;
 
 public class DBTDevice extends DBTObject implements BTDevice
@@ -307,44 +307,44 @@ public class DBTDevice extends DBTObject implements BTDevice
     private final native byte getAvailableSMPKeysImpl(final boolean responder);
 
     @Override
-    public final SMPLongTermKeyInfo getLongTermKeyInfo(final boolean responder) {
-        final byte[] stream = new byte[SMPLongTermKeyInfo.byte_size];
-        getLongTermKeyInfoImpl(responder, stream);
-        return new SMPLongTermKeyInfo(stream, 0);
+    public final SMPLongTermKey getLongTermKey(final boolean responder) {
+        final byte[] stream = new byte[SMPLongTermKey.byte_size];
+        getLongTermKeyImpl(responder, stream);
+        return new SMPLongTermKey(stream, 0);
     }
-    private final native void getLongTermKeyInfoImpl(final boolean responder, final byte[] sink);
+    private final native void getLongTermKeyImpl(final boolean responder, final byte[] sink);
 
     @Override
-    public final HCIStatusCode setLongTermKeyInfo(final SMPLongTermKeyInfo ltk) {
-        final byte[] stream = new byte[SMPLongTermKeyInfo.byte_size];
+    public final HCIStatusCode setLongTermKey(final SMPLongTermKey ltk) {
+        final byte[] stream = new byte[SMPLongTermKey.byte_size];
         ltk.put(stream, 0);
-        return HCIStatusCode.get( setLongTermKeyInfoImpl(stream) );
+        return HCIStatusCode.get( setLongTermKeyImpl(stream) );
     }
-    private final native byte setLongTermKeyInfoImpl(final byte[] source);
+    private final native byte setLongTermKeyImpl(final byte[] source);
 
     @Override
-    public final SMPSignatureResolvingKeyInfo getSignatureResolvingKeyInfo(final boolean responder) {
-        final byte[] stream = new byte[SMPSignatureResolvingKeyInfo.byte_size];
-        getSignatureResolvingKeyInfoImpl(responder, stream);
-        return new SMPSignatureResolvingKeyInfo(stream, 0);
+    public final SMPSignatureResolvingKey getSignatureResolvingKey(final boolean responder) {
+        final byte[] stream = new byte[SMPSignatureResolvingKey.byte_size];
+        getSignatureResolvingKeyImpl(responder, stream);
+        return new SMPSignatureResolvingKey(stream, 0);
     }
-    private final native void getSignatureResolvingKeyInfoImpl(final boolean responder, final byte[] sink);
+    private final native void getSignatureResolvingKeyImpl(final boolean responder, final byte[] sink);
 
     @Override
-    public final SMPLinkKeyInfo getLinkKeyInfo(final boolean responder) {
-        final byte[] stream = new byte[SMPLinkKeyInfo.byte_size];
-        getLinkKeyInfoImpl(responder, stream);
-        return new SMPLinkKeyInfo(stream, 0);
+    public final SMPLinkKey getLinkKey(final boolean responder) {
+        final byte[] stream = new byte[SMPLinkKey.byte_size];
+        getLinkKeyImpl(responder, stream);
+        return new SMPLinkKey(stream, 0);
     }
-    private final native void getLinkKeyInfoImpl(final boolean responder, final byte[] sink);
+    private final native void getLinkKeyImpl(final boolean responder, final byte[] sink);
 
     @Override
-    public final HCIStatusCode setLinkKeyInfo(final SMPLinkKeyInfo lk) {
-        final byte[] stream = new byte[SMPLinkKeyInfo.byte_size];
+    public final HCIStatusCode setLinkKey(final SMPLinkKey lk) {
+        final byte[] stream = new byte[SMPLinkKey.byte_size];
         lk.put(stream, 0);
-        return HCIStatusCode.get( setLinkKeyInfoImpl(stream) );
+        return HCIStatusCode.get( setLinkKeyImpl(stream) );
     }
-    private final native byte setLinkKeyInfoImpl(final byte[] source);
+    private final native byte setLinkKeyImpl(final byte[] source);
 
     @Override
     public final HCIStatusCode unpair() {
