@@ -379,6 +379,8 @@ and would be resource intensive.
 **2.4.0**
 
 * TODO ...
+* SMPKeyBin v4, added localAddress (adapter) to filename + bin-fmt.
+* Simplified `SMP*Key` class names and `set[Default|Connected]LE_PHY()` args.
 * Added EUI48 endian conversion when passing/receiving to Bluetooth
 * Passed validation of [multiple BT5 adapter](doc/adapter/adapter.md).
 * Fixed `EInfoReport::read_[ext_]ad_reports()` multiple reports 
