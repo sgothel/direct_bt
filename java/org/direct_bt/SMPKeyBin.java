@@ -266,6 +266,22 @@ public class SMPKeyBin {
             final String fname = getFilename(path, device);
             final SMPKeyBin smpKeyBin = read(fname, verbose_);
             if( smpKeyBin.isValid() ) {
+                if( !smpKeyBin.getLocalAddrAndType().equals( device.getAdapter().getAddressAndType() ) ) {
+                    if( smpKeyBin.verbose ) {
+                        BTUtils.println(System.err, "SMPKeyBin::readAndApply: Local address mismatch: Has "+device.getAdapter().getAddressAndType().toString()+
+                                        ", read "+smpKeyBin.getLocalAddrAndType().toString()+", removing file "+fname+": "+smpKeyBin.toString());
+                    }
+                    remove_impl(fname);
+                    return HCIStatusCode.INVALID_PARAMS;
+                }
+                if( !smpKeyBin.getRemoteAddrAndType().equals( device.getAddressAndType() ) ) {
+                    if( smpKeyBin.verbose ) {
+                        BTUtils.println(System.err, "SMPKeyBin::readAndApply: Remote address mismatch: Has "+device.getAddressAndType().toString()+
+                                        ", read "+smpKeyBin.getRemoteAddrAndType().toString()+", removing file "+fname+": "+smpKeyBin.toString());
+                    }
+                    remove_impl(fname);
+                    return HCIStatusCode.INVALID_PARAMS;
+                }
                 if( smpKeyBin.sec_level.value < minSecLevel.value ) {
                     if( smpKeyBin.verbose ) {
                         BTUtils.fprintf_td(System.err, "SMPKeyBin::readAndApply: sec_level %s < minimum %s: Key ignored %s, removing file %s\n",
@@ -296,7 +312,7 @@ public class SMPKeyBin {
             version = VERSION;
             this.size = 0;
             this.ts_creation_sec = BTUtils.wallClockSeconds();
-            this.localAddress = remoteAddress_;
+            this.localAddress = localAddress_;
             this.remoteAddress = remoteAddress_;
             this.sec_level = sec_level_;
             this.io_cap = io_cap_;
@@ -432,7 +448,7 @@ public class SMPKeyBin {
         @Override
         final public String toString() {
             final StringBuilder res = new StringBuilder();
-            res.append("SMPKeyBin[").append(remoteAddress.toString()).append(", sec ").append(sec_level).append(", io ").append(io_cap).append(", ");
+            res.append("SMPKeyBin[local").append(localAddress.toString()).append(", remote ").append(remoteAddress.toString()).append(", sec ").append(sec_level).append(", io ").append(io_cap).append(", ");
             if( isVersionValid() ) {
                 boolean comma = false;
                 res.append("Init[");

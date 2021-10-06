@@ -101,6 +101,28 @@ HCIStatusCode SMPKeyBin::readAndApply(const std::string& path, BTDevice& device,
     const std::string fname = getFilename(path, device);
     SMPKeyBin smpKeyBin = read(fname, verbose_);
     if( smpKeyBin.isValid() ) {
+        if( smpKeyBin.getLocalAddrAndType() != device.getAdapter().getAddressAndType() ) {
+            if( smpKeyBin.verbose ) {
+                jau::fprintf_td(stderr, "SMPKeyBin::readAndApply: Local address mismatch: Has %s, read %s, removing file %s: %s\n",
+                        device.getAdapter().getAddressAndType().toString().c_str(),
+                        smpKeyBin.getLocalAddrAndType().toString().c_str(),
+                        fname.c_str(),
+                        smpKeyBin.toString().c_str());
+            }
+            remove_impl(fname);
+            return HCIStatusCode::INVALID_PARAMS;
+        }
+        if( smpKeyBin.getRemoteAddrAndType() != device.getAddressAndType() ) {
+            if( smpKeyBin.verbose ) {
+                jau::fprintf_td(stderr, "SMPKeyBin::readAndApply: Remote address mismatch: Has %s, read %s, removing file %s: %s\n",
+                        device.getAddressAndType().toString().c_str(),
+                        smpKeyBin.getRemoteAddrAndType().toString().c_str(),
+                        fname.c_str(),
+                        smpKeyBin.toString().c_str());
+            }
+            remove_impl(fname);
+            return HCIStatusCode::INVALID_PARAMS;
+        }
         if( smpKeyBin.sec_level < minSecLevel ) {
             if( smpKeyBin.verbose ) {
                 jau::fprintf_td(stderr, "SMPKeyBin::readAndApply: sec_level %s < minimum %s: Key ignored %s, removing file %s\n",
