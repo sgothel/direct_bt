@@ -1655,7 +1655,7 @@ HCIStatusCode HCIHandler::le_set_adv_data(const EInfoReport &eir, const EIRDataT
         HCIStructCommand<hci_cp_le_set_adv_data> req0(HCIOpcode::LE_SET_ADV_DATA);
         hci_cp_le_set_adv_data * cp = req0.getWStruct();
         cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
-        req0.trimParamSize( req0.getParamSize() + cp->length - sizeof(cp->data) );
+        // No param-size trimming for BT4, fixed 31 bytes
 
         const hci_rp_status * ev_status;
         std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
@@ -1686,7 +1686,7 @@ HCIStatusCode HCIHandler::le_set_scanrsp_data(const EInfoReport &eir, const EIRD
         HCIStructCommand<hci_cp_le_set_scan_rsp_data> req0(HCIOpcode::LE_SET_SCAN_RSP_DATA);
         hci_cp_le_set_scan_rsp_data * cp = req0.getWStruct();
         cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
-        req0.trimParamSize( req0.getParamSize() + cp->length - sizeof(cp->data) );
+        // No param-size trimming for BT4, fixed 31 bytes
 
         const hci_rp_status * ev_status;
         std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
