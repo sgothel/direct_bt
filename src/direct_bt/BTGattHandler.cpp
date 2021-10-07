@@ -186,6 +186,57 @@ bool BTGattHandler::getSendIndicationConfirmation() noexcept {
     return sendIndicationConfirmation;
 }
 
+void BTGattHandler::processAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) {
+    switch( pdu->getOpcode() ) {
+        case AttPDUMsg::Opcode::EXCHANGE_MTU_REQ: {
+            const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
+            const uint16_t clientMTU = p->getMTUSize();
+            usedMTU = std::min((int)serverMTU, (int)clientMTU);
+            const AttExchangeMTU res(AttPDUMsg::ReqRespType::RESPONSE, usedMTU);
+            COND_PRINT(env.DEBUG_DATA, "GATT-Req: MTU recv: %u, %s  -> %u %s from %s",
+                    clientMTU, pdu->toString().c_str(),
+                    usedMTU.load(), res.toString().c_str(), toString().c_str());
+            send(res);
+            return;
+        }
+        case AttPDUMsg::Opcode::FIND_INFORMATION_REQ:
+            [[fallthrough]];
+        case AttPDUMsg::Opcode::FIND_BY_TYPE_VALUE_REQ:
+            [[fallthrough]];
+        case AttPDUMsg::Opcode::READ_BY_TYPE_REQ:
+            [[fallthrough]];
+        case AttPDUMsg::Opcode::READ_REQ:
+            [[fallthrough]];
+        case AttPDUMsg::Opcode::READ_BLOB_REQ:
+            [[fallthrough]];
+        case AttPDUMsg::Opcode::READ_MULTIPLE_REQ:
+            [[fallthrough]];
+        case AttPDUMsg::Opcode::READ_BY_GROUP_TYPE_REQ:
+            [[fallthrough]];
+        case AttPDUMsg::Opcode::WRITE_REQ:
+            [[fallthrough]];
+        case AttPDUMsg::Opcode::WRITE_CMD:
+            [[fallthrough]];
+        case AttPDUMsg::Opcode::PREPARE_WRITE_REQ:
+            [[fallthrough]];
+        case AttPDUMsg::Opcode::EXECUTE_WRITE_REQ:
+            [[fallthrough]];
+        case AttPDUMsg::Opcode::READ_MULTIPLE_VARIABLE_REQ:
+            [[fallthrough]];
+        case AttPDUMsg::Opcode::SIGNED_WRITE_CMD: {
+            AttErrorRsp rsp(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu->getOpcode(), 0);
+            WARN_PRINT("GATT Req: Ignored: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+            send(rsp);
+            return;
+        }
+        default:
+            AttErrorRsp rsp(AttErrorRsp::ErrorCode::FORBIDDEN_VALUE, pdu->getOpcode(), 0);
+            ERR_PRINT("GATT Req: Unhandled: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+            send(rsp);
+            return;
+    }
+}
+
 void BTGattHandler::l2capReaderThreadImpl() {
     {
         const std::lock_guard<std::mutex> lock(mtx_l2capReaderLifecycle); // RAII-style acquire and relinquish via destructor
@@ -211,8 +262,12 @@ void BTGattHandler::l2capReaderThreadImpl() {
         if( 0 < len ) {
             std::unique_ptr<const AttPDUMsg> attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), static_cast<jau::nsize_t>(len));
             const AttPDUMsg::Opcode opc = attPDU->getOpcode();
+            const AttPDUMsg::OpcodeType opc_type = AttPDUMsg::get_type(opc);
 
-            if( AttPDUMsg::Opcode::HANDLE_VALUE_NTF == opc ) {
+            if( AttPDUMsg::Opcode::MULTIPLE_HANDLE_VALUE_NTF == opc ) { // AttPDUMsg::OpcodeType::NOTIFICATION
+                // FIXME TODO ..
+                ERR_PRINT("GATTHandler::reader: MULTI-NTF not implemented: %s", attPDU->toString().c_str());
+            } else if( AttPDUMsg::Opcode::HANDLE_VALUE_NTF == opc ) { // AttPDUMsg::OpcodeType::NOTIFICATION
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
                 COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: NTF: %s, listener %zd", a->toString().c_str(), characteristicListenerList.size());
                 BTGattCharRef decl = findCharacterisicsByValueHandle(a->getHandle());
@@ -233,7 +288,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
                     }
                     i++;
                 });
-            } else if( AttPDUMsg::Opcode::HANDLE_VALUE_IND == opc ) {
+            } else if( AttPDUMsg::Opcode::HANDLE_VALUE_IND == opc ) { // AttPDUMsg::OpcodeType::INDICATION
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
                 COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: IND: %s, sendIndicationConfirmation %d, listener %zd",
                         a->toString().c_str(), sendIndicationConfirmation.load(), characteristicListenerList.size());
@@ -261,15 +316,13 @@ void BTGattHandler::l2capReaderThreadImpl() {
                     }
                     i++;
                 });
-            } else if( AttPDUMsg::Opcode::MULTIPLE_HANDLE_VALUE_NTF == opc ) {
-                // FIXME TODO ..
-                ERR_PRINT("GATTHandler::reader: MULTI-NTF not implemented: %s", attPDU->toString().c_str());
-            } else if( attPDU->is_request ) {
-                // FIXME TODO ..
-                COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: REQ: Drop: %s", attPDU->toString().c_str());
-            } else {
+            } else if( AttPDUMsg::OpcodeType::RESPONSE == opc_type ) {
                 COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: Ring: %s", attPDU->toString().c_str());
                 attPDURing.putBlocking( std::move(attPDU) );
+            } else if( AttPDUMsg::OpcodeType::REQUEST == opc_type ) {
+                processAttPDUReq( std::move( attPDU ) );
+            } else {
+                ERR_PRINT("GATTHandler::reader: Unhandled: %s", attPDU->toString().c_str());
             }
         } else if( 0 > len && ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
             IRQ_PRINT("GATTHandler::reader: l2cap read error -> Stop; l2cap.read %d (%s); %s",
@@ -351,7 +404,8 @@ BTGattHandler::BTGattHandler(const std::shared_ptr<BTDevice> &device, L2CAPComm&
             usedMTU = std::min(number(Defaults::MAX_ATT_MTU), (int)serverMTU);
         }
     } else {
-        // FIXME: Negotiate .. try MAX_ATT_MTU
+        serverMTU = number(Defaults::MAX_ATT_MTU);
+        usedMTU = number(Defaults::MIN_ATT_MTU); // until negotiated!
     }
 }
 
@@ -480,19 +534,19 @@ uint16_t BTGattHandler::exchangeMTUImpl(const uint16_t clientMaxMTU, const int32
     if( clientMaxMTU > number(Defaults::MAX_ATT_MTU) ) {
         throw jau::IllegalArgumentException("clientMaxMTU "+std::to_string(clientMaxMTU)+" > ClientMaxMTU "+std::to_string(number(Defaults::MAX_ATT_MTU)), E_FILE_LINE);
     }
-    const AttExchangeMTU req(clientMaxMTU);
+    const AttExchangeMTU req(AttPDUMsg::ReqRespType::REQUEST, clientMaxMTU);
     // called by ctor only, no locking: const std::lock_guard<std::recursive_mutex> lock(mtx_command);
     PERF_TS_T0();
 
     uint16_t mtu = 0;
-    DBG_PRINT("GATT MTU send: %s to %s", req.toString().c_str(), toString().c_str());
+    DBG_PRINT("GATT MTU-REQ send: %s to %s", req.toString().c_str(), toString().c_str());
 
     std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, timeout); // valid reply or exception
 
     if( pdu->getOpcode() == AttPDUMsg::Opcode::EXCHANGE_MTU_RSP ) {
         const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
         mtu = p->getMTUSize();
-        DBG_PRINT("GATT MTU recv: %u, %s from %s", mtu, pdu->toString().c_str(), toString().c_str());
+        DBG_PRINT("GATT MTU-RSP recv: %u, %s from %s", mtu, pdu->toString().c_str(), toString().c_str());
     } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ERROR_RSP ) {
         /**
          * If the ATT_ERROR_RSP PDU is sent by the server

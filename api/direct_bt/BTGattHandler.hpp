@@ -195,6 +195,7 @@ namespace direct_bt {
 
             bool validateConnected() noexcept;
 
+            void processAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu);
             void l2capReaderThreadImpl();
 
             /**
