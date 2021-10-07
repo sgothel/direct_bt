@@ -142,6 +142,7 @@ bool BTAdapter::updateDataFromHCI() noexcept {
     le_features = hci.le_get_local_features();
     hci_uses_ext_scan = hci.use_ext_scan();
     hci_uses_ext_conn = hci.use_ext_conn();
+    hci_uses_ext_adv  = hci.use_ext_adv();
 
     WORDY_PRINT("BTAdapter::updateDataFromHCI: Adapter[%d]: POWERED, %s - %s, hci_ext[scan %d, conn %d], features: %s",
             dev_id, version.toString().c_str(), adapterInfo.toString().c_str(),
@@ -1097,16 +1098,24 @@ HCIStatusCode BTAdapter::startAdvertising(const uint16_t adv_interval_min, const
     }
 
     EInfoReport eir;
+    EIRDataType mask_adv = EIRDataType::NONE;
+    EIRDataType mask_scanrsp = EIRDataType::NONE;
+
     eir.setFlags(GAPFlags::LE_Gen_Disc);
     eir.setName(getName());
-    // eir.setManufactureSpecificData(msd); // 2 + 4
-    // eir.addService(uuid_01);
-
-    const EIRDataType mask_adv = EIRDataType::FLAGS | EIRDataType::NAME | EIRDataType::MANUF_DATA;
-
-    // Only services (scan resp)
-    const EIRDataType mask_scanrsp = EIRDataType::SERVICE_UUID;
-
+    if( hasHCIExtAdv() ) {
+        // 251 bytes
+        // TODO: Add UUIDs ..
+        // eir.addService(uuid);
+        // eir.setManufactureSpecificData(msd); // 2 + 4
+        // eir.addService(uuid_01);
+        mask_adv = EIRDataType::FLAGS | EIRDataType::NAME | EIRDataType::SERVICE_UUID;
+        mask_scanrsp = EIRDataType::MANUF_DATA;
+    } else {
+        // 31 bytes
+        mask_adv = EIRDataType::FLAGS | EIRDataType::NAME;
+        mask_scanrsp = EIRDataType::SERVICE_UUID;
+    }
     const EUI48 peer_bdaddr=EUI48::ANY_DEVICE;
     const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC;
     const HCILEOwnAddressType peer_mac_type=HCILEOwnAddressType::PUBLIC;
@@ -1154,6 +1163,7 @@ std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
                     ", adv "+std::to_string(hci.isAdvertising())+
                     ", scanType[native "+to_string(hci.getCurrentScanType())+", meta "+to_string(currentMetaScanType)+"]"
                     ", hci_ext[scan "+std::to_string(hci_uses_ext_scan)+", conn "+std::to_string(hci_uses_ext_conn)+
+                    ", adv "+std::to_string(hci_uses_ext_adv)+
                     "], open[mgmt, "+std::to_string(mgmt.isOpen())+", hci "+std::to_string(hci.isOpen())+
                     "], "+javaObjectToString()+"]");
     if( includeDiscoveredDevices ) {

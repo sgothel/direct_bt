@@ -278,6 +278,8 @@ namespace direct_bt {
             bool hci_uses_ext_scan;
             /** BT5: Using extended connect. */
             bool hci_uses_ext_conn;
+            /** BT5: Using extended advertising. */
+            bool hci_uses_ext_adv;
 
             /**
              * Either the adapter's initially reported public address or a random address setup via HCI before discovery or advertising.
@@ -505,6 +507,9 @@ namespace direct_bt {
 
             /** Returns true if HCI_LE_Extended_Create_Connection is supported (Bluetooth 5.0). */
             constexpr bool hasHCIExtConn() const noexcept { return hci_uses_ext_conn; }
+
+            /** Returns true if HCI_LE_Extended_Advertising Data is supported (Bluetooth 5.0). */
+            constexpr bool hasHCIExtAdv() const noexcept { return hci_uses_ext_adv; }
 
             /**
              * Returns whether the adapter is valid, i.e. reference is valid, plugged in and generally operational,
