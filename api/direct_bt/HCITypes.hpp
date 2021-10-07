@@ -606,6 +606,9 @@ namespace direct_bt {
             : HCIPacket(HCIPacketType::COMMAND, number(HCIConstSizeT::COMMAND_HDR_SIZE)+param_size)
             {
                 checkOpcode(opc, HCIOpcode::SPECIAL, HCIOpcode::LE_EXT_CREATE_CONN);
+                if( 255 < param_size ) {
+                    throw jau::IllegalArgumentException("HCICommand param size "+std::to_string(param_size)+" > 255", E_FILE_LINE);
+                }
 
                 pdu.put_uint16_nc(1, static_cast<uint16_t>(opc));
                 pdu.put_uint8_nc(3, param_size);
@@ -625,6 +628,18 @@ namespace direct_bt {
             HCIOpcode getOpcode() const noexcept { return static_cast<HCIOpcode>( pdu.get_uint16_nc(1) ); }
             jau::nsize_t getParamSize() const noexcept { return pdu.get_uint8_nc(3); }
             const uint8_t* getParam() const noexcept { return pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)); }
+
+            void trimParamSize(const jau::nsize_t param_size) {
+                if( 255 < param_size ) {
+                    throw jau::IllegalArgumentException("HCICommand new param size "+std::to_string(param_size)+" > 255", E_FILE_LINE);
+                }
+                if( getParamSize() < param_size ) {
+                    throw jau::IllegalArgumentException("HCICommand new param size "+std::to_string(param_size)+" > old "+std::to_string(getParamSize()), E_FILE_LINE);
+                }
+                const jau::nsize_t new_total_packet_size = number(HCIConstSizeT::COMMAND_HDR_SIZE)+param_size;
+                pdu.resize( new_total_packet_size );
+                pdu.put_uint8_nc(3, param_size);
+            }
     };
 
     /**

@@ -1645,14 +1645,21 @@ HCIStatusCode HCIHandler::le_set_adv_data(const EInfoReport &eir, const EIRDataT
         cp->operation = LE_SET_ADV_DATA_OP_COMPLETE;
         cp->frag_pref = LE_SET_ADV_DATA_NO_FRAG;
         cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
+        req0.trimParamSize( req0.getParamSize() + cp->length - sizeof(cp->data) );
+
         const hci_rp_status * ev_status;
         std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+
     } else {
+
         HCIStructCommand<hci_cp_le_set_adv_data> req0(HCIOpcode::LE_SET_ADV_DATA);
         hci_cp_le_set_adv_data * cp = req0.getWStruct();
         cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
+        req0.trimParamSize( req0.getParamSize() + cp->length - sizeof(cp->data) );
+
         const hci_rp_status * ev_status;
         std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+
     }
     return status;
 }
@@ -1662,20 +1669,28 @@ HCIStatusCode HCIHandler::le_set_scanrsp_data(const EInfoReport &eir, const EIRD
 
     HCIStatusCode status;
     if( use_ext_adv() ) {
+
         HCIStructCommand<hci_cp_le_set_ext_scan_rsp_data> req0(HCIOpcode::LE_SET_EXT_SCAN_RSP_DATA);
         hci_cp_le_set_ext_scan_rsp_data * cp = req0.getWStruct();
         cp->handle = 0x00; // TODO: Support more than one advertising sets?
         cp->operation = LE_SET_ADV_DATA_OP_COMPLETE;
         cp->frag_pref = LE_SET_ADV_DATA_NO_FRAG;
         cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
+        req0.trimParamSize( req0.getParamSize() + cp->length - sizeof(cp->data) );
+
         const hci_rp_status * ev_status;
         std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+
     } else {
+
         HCIStructCommand<hci_cp_le_set_scan_rsp_data> req0(HCIOpcode::LE_SET_SCAN_RSP_DATA);
         hci_cp_le_set_scan_rsp_data * cp = req0.getWStruct();
         cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
+        req0.trimParamSize( req0.getParamSize() + cp->length - sizeof(cp->data) );
+
         const hci_rp_status * ev_status;
         std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+
     }
     return status;
 }
