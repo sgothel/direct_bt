@@ -95,55 +95,6 @@ const DBGattService GenericAccess (
         }
     );
 
-void lala() {
-    const std::shared_ptr<BTGattHandler> handler;
-
-    /**
-     *   - H 1: Service [type 0x1800, handle [0x0001..0x0007] - GENERIC_ACCESS, 3 characteristics]
-     *
-     *     - H 2,3: Characteristic [handle 0x0002, props 0x02 [read], value[type 0x2a00, handle 0x0003, DEVICE_NAME]
-     *       - H 4: Descriptor [type 0x2803, handle 0x0004, value[...]]
-     *       - H 5: Descriptor [type 0x2801, handle 0x0005, value[...]]
-     *
-     *     - H 4,5: Characteristic [handle 0x0004, props 0x02 [read], value[type 0x2a01, handle 0x0005, SOMETHING]
-     *       - H 6: Descriptor [type 0x2803, handle 0x0006, value[...]]
-     *       - H 7: Descriptor [type 0x2804, handle 0x0007, value[...]]
-     *
-     *     - Characteristic [handle 0x0006, props 0x02 [read], value[type 0x2a04, handle 0x0007, SOMETHING]
-     *
-     *
-     * Char.S1C1   : handles[c1hs..c1he]
-     * Descr.S1C1D1: handles[d1hs..d1he]
-     */
-    {
-        uint16_t handle=1;
-        BTGattServiceRef s1( std::make_shared<BTGattService>(
-                                handler, true /* isPrimary_ */,
-                                handle /* startHandle_ */, handle+6 /* endHandle_ */,
-                                std::make_unique<const jau::uuid16_t>(GattServiceType::GENERIC_ACCESS) /* type_ */) );
-
-        BTGattCharRef s1c1( std::make_shared<BTGattChar>(
-                                s1, handle+1 /* const uint16_t handle_ */,
-                                BTGattChar::PropertyBitVal::Read,
-                                handle+2 /* value_handle_*/,
-                                std::make_unique<const jau::uuid16_t>(GattCharacteristicType::DEVICE_NAME) /* value_type_ */) );
-        handle += 2;
-        BTGattCharRef s1c2( std::make_shared<BTGattChar>(
-                                s1, handle+1 /* const uint16_t handle_ */,
-                                BTGattChar::PropertyBitVal::Read,
-                                handle+2 /* value_handle_*/,
-                                std::make_unique<const jau::uuid16_t>(GattCharacteristicType::APPEARANCE) /* value_type_ */) );
-        handle += 2;
-    }
-    {
-        DBGattChar ga_c1( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::DEVICE_NAME) /* value_type_ */,
-                    BTGattChar::PropertyBitVal::Read,
-                    /* descriptors: */ { },
-                    make_poctets("Synthethic Sensor 01") /* value */ );
-
-    }
-
-}
 
 class MyAdapterStatusListener : public AdapterStatusListener {
 
