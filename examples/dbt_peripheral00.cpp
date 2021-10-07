@@ -41,6 +41,8 @@
 #include <jau/darray.hpp>
 
 #include <direct_bt/DirectBT.hpp>
+#include <direct_bt/GattNumbers.hpp>
+#include <direct_bt/DBGattServer.hpp>
 
 extern "C" {
     #include <unistd.h>
@@ -66,6 +68,82 @@ static std::shared_ptr<BTAdapter> chosenAdapter = nullptr;
 static bool SHOW_UPDATE_EVENTS = false;
 
 static bool startAdvertising(BTAdapter *a, std::string msg);
+
+static jau::POctets make_poctets(const char* name) {
+    return jau::POctets( (const uint8_t*)name, (nsize_t)strlen(name), endian::little );
+}
+static jau::POctets make_poctets(const uint16_t v) {
+    jau::POctets p( 2, endian::little);
+    p.put_uint16_nc(0, v);
+    return p;
+}
+
+const DBGattService GenericAccess (
+        true /* primary */,
+        std::make_unique<const jau::uuid16_t>(GattServiceType::GENERIC_ACCESS) /* type_ */,
+        /* characteristics: */ {
+             DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::DEVICE_NAME) /* value_type_ */,
+                         BTGattChar::PropertyBitVal::Read,
+                         /* descriptors: */ { },
+                         make_poctets("Synthethic Sensor 01") /* value */
+            ),
+            DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::APPEARANCE) /* value_type_ */,
+                        BTGattChar::PropertyBitVal::Read,
+                        /* descriptors: */ { },
+                        make_poctets((uint16_t)0) /* value */
+           )
+        }
+    );
+
+void lala() {
+    const std::shared_ptr<BTGattHandler> handler;
+
+    /**
+     *   - H 1: Service [type 0x1800, handle [0x0001..0x0007] - GENERIC_ACCESS, 3 characteristics]
+     *
+     *     - H 2,3: Characteristic [handle 0x0002, props 0x02 [read], value[type 0x2a00, handle 0x0003, DEVICE_NAME]
+     *       - H 4: Descriptor [type 0x2803, handle 0x0004, value[...]]
+     *       - H 5: Descriptor [type 0x2801, handle 0x0005, value[...]]
+     *
+     *     - H 4,5: Characteristic [handle 0x0004, props 0x02 [read], value[type 0x2a01, handle 0x0005, SOMETHING]
+     *       - H 6: Descriptor [type 0x2803, handle 0x0006, value[...]]
+     *       - H 7: Descriptor [type 0x2804, handle 0x0007, value[...]]
+     *
+     *     - Characteristic [handle 0x0006, props 0x02 [read], value[type 0x2a04, handle 0x0007, SOMETHING]
+     *
+     *
+     * Char.S1C1   : handles[c1hs..c1he]
+     * Descr.S1C1D1: handles[d1hs..d1he]
+     */
+    {
+        uint16_t handle=1;
+        BTGattServiceRef s1( std::make_shared<BTGattService>(
+                                handler, true /* isPrimary_ */,
+                                handle /* startHandle_ */, handle+6 /* endHandle_ */,
+                                std::make_unique<const jau::uuid16_t>(GattServiceType::GENERIC_ACCESS) /* type_ */) );
+
+        BTGattCharRef s1c1( std::make_shared<BTGattChar>(
+                                s1, handle+1 /* const uint16_t handle_ */,
+                                BTGattChar::PropertyBitVal::Read,
+                                handle+2 /* value_handle_*/,
+                                std::make_unique<const jau::uuid16_t>(GattCharacteristicType::DEVICE_NAME) /* value_type_ */) );
+        handle += 2;
+        BTGattCharRef s1c2( std::make_shared<BTGattChar>(
+                                s1, handle+1 /* const uint16_t handle_ */,
+                                BTGattChar::PropertyBitVal::Read,
+                                handle+2 /* value_handle_*/,
+                                std::make_unique<const jau::uuid16_t>(GattCharacteristicType::APPEARANCE) /* value_type_ */) );
+        handle += 2;
+    }
+    {
+        DBGattChar ga_c1( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::DEVICE_NAME) /* value_type_ */,
+                    BTGattChar::PropertyBitVal::Read,
+                    /* descriptors: */ { },
+                    make_poctets("Synthethic Sensor 01") /* value */ );
+
+    }
+
+}
 
 class MyAdapterStatusListener : public AdapterStatusListener {
 
@@ -242,6 +320,18 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
         return false;
     }
     // adapter is powered-on
+    fprintf_td(stderr, "initAdapter: %s\n", adapter->toString().c_str());
+    {
+        const LE_Features le_feats = adapter->getLEFeatures();
+        fprintf_td(stderr, "initAdapter: LE_Features %s\n", to_string(le_feats).c_str());
+    }
+    {
+        LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
+        HCIStatusCode res = adapter->setDefaultLE_PHY(Tx, Rx);
+        fprintf_td(stderr, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
+                to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
+    }
+
     std::shared_ptr<AdapterStatusListener> asl(new MyAdapterStatusListener());
     adapter->addStatusListener( asl );
     // Flush discovered devices after registering our status listener.
