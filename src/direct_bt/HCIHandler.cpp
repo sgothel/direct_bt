@@ -1571,16 +1571,18 @@ HCIStatusCode HCIHandler::le_set_adv_param(const EUI48 &peer_bdaddr,
         cp->handle = 0x00; // TODO: Support more than one advertising sets?
         AD_PDU_Type adv_type2;
         switch( adv_type ) {
+            // Connectable
             case AD_PDU_Type::ADV_IND:
                 [[fallthrough]];
-            case AD_PDU_Type::SCAN_IND2:
-                adv_type2 = AD_PDU_Type::SCAN_IND2;
-                break;
-
             case AD_PDU_Type::ADV_SCAN_IND:
                 [[fallthrough]];
             case AD_PDU_Type::ADV_IND2:
                 adv_type2 = AD_PDU_Type::ADV_IND2;
+                break;
+
+            // Non Connectable
+            case AD_PDU_Type::SCAN_IND2:
+                adv_type2 = AD_PDU_Type::SCAN_IND2;
                 break;
 
             case AD_PDU_Type::ADV_NONCONN_IND:
