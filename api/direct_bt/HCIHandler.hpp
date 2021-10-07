@@ -766,8 +766,13 @@ namespace direct_bt {
              *
              * if available, otherwise using
              *
-             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.7 LE Set Advertising Data command
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.7 LE Set Advertising Data command (Bluetooth 4.0)
              * </pre>
+             *
+             * Advertising_Data_Length:
+             * - Bluetooth 4.0: 0 -  31 octets
+             * - Bluetooth 5.0: 0 - 251 octets, i.e. max-param 255 - 4 bytes cp-args
+             *
              *
              * @param eir EInfoReport full ADV EIR
              * @param mask EIRDataType mask for EInfoReport to select advertisement EIR PDU data, defaults to EIRDataType::FLAGS | EIRDataType::NAME | EIRDataType::MANUF_DATA
@@ -783,8 +788,12 @@ namespace direct_bt {
              *
              * if available, otherwise using
              *
-             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.8 LE Set Scan Response Data command
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.8 LE Set Scan Response Data command (Bluetooth 4.0)
              * </pre>
+             *
+             * Advertising_Data_Length:
+             * - Bluetooth 4.0: 0 -  31 octets
+             * - Bluetooth 5.0: 0 - 251 octets, i.e. max-param 255 - 4 bytes cp-args
              *
              * @param eir EInfoReport full ADV EIR
              * @param mask EIRDataType mask for EInfoReport to select scan-response EIR PDU data, defaults to EIRDataType::SERVICE_UUID
