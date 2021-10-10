@@ -332,7 +332,7 @@ namespace direct_bt {
             : services(initlist)
             { }
 
-            DBGattService* findService(const jau::uuid_t& type) noexcept {
+            DBGattService* findGattService(const jau::uuid_t& type) noexcept {
                 for(DBGattService& s : services) {
                     if( type.equivalent( *s.type ) ) {
                         return &s;
@@ -341,7 +341,7 @@ namespace direct_bt {
                 return nullptr;
             }
             DBGattChar* findGattChar(const jau::uuid_t&  service_uuid, const jau::uuid_t& char_uuid) noexcept {
-                DBGattService* service = findService(service_uuid);
+                DBGattService* service = findGattService(service_uuid);
                 if( nullptr == service ) {
                     return nullptr;
                 }
@@ -349,7 +349,7 @@ namespace direct_bt {
             }
 
             bool addService(DBGattService& s) noexcept {
-                if( nullptr != findService(*s.type) ) {
+                if( nullptr != findGattService(*s.type) ) {
                     // already shared
                     return false;
                 }
