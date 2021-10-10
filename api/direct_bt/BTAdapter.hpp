@@ -43,6 +43,8 @@
 
 #include "HCIHandler.hpp"
 
+#include "DBGattServer.hpp"
+
 namespace direct_bt {
 
     class BTAdapter; // forward
@@ -317,6 +319,9 @@ namespace direct_bt {
             device_list_t sharedDevices; // All active shared devices. Final holder of BTDevice lifecycle!
             typedef jau::cow_darray<impl::StatusListenerPair> statusListenerList_t;
             statusListenerList_t statusListenerList;
+
+            DBGattServerRef gattServerData = nullptr;
+
             mutable std::mutex mtx_discoveredDevices;
             mutable std::mutex mtx_connectedDevices;
             mutable std::mutex mtx_discovery;
@@ -920,7 +925,8 @@ namespace direct_bt {
              * Method fails if isDiscovering() or has any open or pending connected remote {@link BTDevice}s.
              *
              *
-             * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to ::BTRole::Slave.
+             * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to ::BTRole::Slave
+             * and treat connected BTDevice as ::BTRole::Master while service ::GATTRole::Server.
              *
              *
              * This adapter's HCIHandler instance is used to initiate scanning,
@@ -931,6 +937,7 @@ namespace direct_bt {
              * - Random address for privacy if desired!
              * - Consider SMP (security)
              *
+             * @param gattServerData_ the DBGattServer data to be advertised and offered via GattHandler as ::GATTRole::Server.
              * @param adv_interval_min in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
              * @param adv_interval_max in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
              * @param adv_type see AD_PDU_Type, default ::AD_PDU_Type::ADV_IND
@@ -943,7 +950,8 @@ namespace direct_bt {
              * @see @ref BTAdapterRoles
              * @since 2.4.0
              */
-            HCIStatusCode startAdvertising(const uint16_t adv_interval_min=0x0800, const uint16_t adv_interval_max=0x0800,
+            HCIStatusCode startAdvertising(DBGattServerRef gattServerData_,
+                                           const uint16_t adv_interval_min=0x0800, const uint16_t adv_interval_max=0x0800,
                                            const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND,
                                            const uint8_t adv_chan_map=0x07,
                                            const uint8_t filter_policy=0x00) noexcept;

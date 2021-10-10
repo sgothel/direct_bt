@@ -1078,7 +1078,8 @@ void BTAdapter::removeDevice(BTDevice & device) noexcept {
 
 // *************************************************
 
-HCIStatusCode BTAdapter::startAdvertising(const uint16_t adv_interval_min, const uint16_t adv_interval_max,
+HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
+                               const uint16_t adv_interval_min, const uint16_t adv_interval_max,
                                const AD_PDU_Type adv_type,
                                const uint8_t adv_chan_map,
                                const uint8_t filter_policy) noexcept {
@@ -1103,12 +1104,14 @@ HCIStatusCode BTAdapter::startAdvertising(const uint16_t adv_interval_min, const
 
     eir.setFlags(GAPFlags::LE_Gen_Disc);
     eir.setName(getName());
+    if( nullptr != gattServerData_ ) {
+        for(DBGattService& s : gattServerData_->services) {
+            eir.addService(s.type);
+        }
+    }
     if( hasHCIExtAdv() ) {
         // 251 bytes
-        // TODO: Add UUIDs ..
-        // eir.addService(uuid);
         // eir.setManufactureSpecificData(msd); // 2 + 4
-        // eir.addService(uuid_01);
         mask_adv = EIRDataType::FLAGS | EIRDataType::NAME | EIRDataType::SERVICE_UUID;
         mask_scanrsp = EIRDataType::MANUF_DATA;
     } else {
@@ -1126,6 +1129,7 @@ HCIStatusCode BTAdapter::startAdvertising(const uint16_t adv_interval_min, const
     if( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("BTAdapter::stopAdvertising: le_start_adv failed: %s - %s", to_string(status).c_str(), toString(true).c_str());
     } else {
+        gattServerData = gattServerData_;
         btRole = BTRole::Slave;
     }
     return status;

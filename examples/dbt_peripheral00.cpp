@@ -78,22 +78,23 @@ static jau::POctets make_poctets(const uint16_t v) {
     return p;
 }
 
-const DBGattService GenericAccess (
-        true /* primary */,
-        std::make_unique<const jau::uuid16_t>(GattServiceType::GENERIC_ACCESS) /* type_ */,
-        /* characteristics: */ {
-             DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::DEVICE_NAME) /* value_type_ */,
-                         BTGattChar::PropertyBitVal::Read,
-                         /* descriptors: */ { },
-                         make_poctets("Synthethic Sensor 01") /* value */
-            ),
-            DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::APPEARANCE) /* value_type_ */,
-                        BTGattChar::PropertyBitVal::Read,
-                        /* descriptors: */ { },
-                        make_poctets((uint16_t)0) /* value */
-           )
-        }
-    );
+// DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
+DBGattServerRef dbGattServer( new DBGattServer(
+        /* services: */
+        { DBGattService ( true /* primary */,
+                        std::make_unique<const jau::uuid16_t>(GattServiceType::GENERIC_ACCESS) /* type_ */,
+                        /* characteristics: */ {
+                            DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::DEVICE_NAME) /* value_type_ */,
+                                         BTGattChar::PropertyBitVal::Read,
+                                         /* descriptors: */ { },
+                                         make_poctets("Synthethic Sensor 01") /* value */
+                            ),
+                            DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::APPEARANCE) /* value_type_ */,
+                                        BTGattChar::PropertyBitVal::Read,
+                                        /* descriptors: */ { },
+                                        make_poctets((uint16_t)0) /* value */
+                           ) }
+        ) } ) );
 
 
 class MyAdapterStatusListener : public AdapterStatusListener {
@@ -236,7 +237,8 @@ static bool startAdvertising(BTAdapter *a, std::string msg) {
         fprintf_td(stderr, "****** Start advertising (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
         return false;
     }
-    HCIStatusCode status = a->startAdvertising(adv_interval_min, adv_interval_max,
+    HCIStatusCode status = a->startAdvertising(dbGattServer,
+                                               adv_interval_min, adv_interval_max,
                                                adv_type, adv_chan_map, filter_policy);
     fprintf_td(stderr, "****** Start advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
     return HCIStatusCode::SUCCESS == status;

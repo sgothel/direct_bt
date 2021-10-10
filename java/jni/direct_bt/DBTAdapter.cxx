@@ -1055,7 +1055,7 @@ jbyte Java_jau_direct_1bt_DBTAdapter_startAdvertisingImpl(JNIEnv *env, jobject o
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         const AD_PDU_Type adv_type = static_cast<AD_PDU_Type>(jadv_type);
-        HCIStatusCode res = adapter->startAdvertising(adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy);
+        HCIStatusCode res = adapter->startAdvertising(nullptr /* FIXME */, adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy);
         return (jbyte) number(res);
     } catch(...) {
         rethrow_and_raise_java_exception(env);

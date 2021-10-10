@@ -257,6 +257,15 @@ namespace direct_bt {
               characteristics(characteristics_)
             { }
 
+            DBGattChar* findGattChar(const jau::uuid_t& char_uuid) noexcept {
+                for(DBGattChar& c : characteristics) {
+                    if( char_uuid.equivalent( *c.value_type ) ) {
+                        return &c;
+                    }
+                }
+                return nullptr;
+            }
+
             /**
              * Sets all handles of this service instance and all its owned childs,
              * i.e. DBGattChars elements and its DBGattDesc elements.
@@ -294,25 +303,79 @@ namespace direct_bt {
     inline bool operator!=(const DBGattService& lhs, const DBGattService& rhs) noexcept
     { return !(lhs == rhs); }
 
-    typedef jau::darray<DBGattService> Services;
-
     /**
-     * Sets all handles of all service instances and all its owned childs,
-     * i.e. DBGattChars elements and its DBGattDesc elements.
+     * Representing a complete list of Gatt Service objects from the ::GATTRole::Server perspective,
+     * i.e. the Gatt Server database.
      *
-     * @param start_handle a valid and unique start handle number > 0
-     * @return number of set handles, i.e. `( end_handle - handle ) + 1`
+     * One instance shall be attached to BTAdapter and hence BTGattHandler
+     * when operating in Gatt Server mode, i.e. ::GATTRole::Server.
+     *
+     * This class is not thread safe and only intended to be prepared
+     * by the user at startup and processed by the Gatt Server facility.
+     *
+     * @since 2.4.0
      */
-    inline int setServicesHandles(const uint16_t start_handle, Services srvcs) {
-        int c = 0;
-        uint16_t h = start_handle;
-        for(DBGattService s : srvcs) {
-            int l = s.setHandles(h);
-            c += l;
-            h += l; // end + 1 for next service
-        }
-        return c;
-    }
+    class DBGattServer {
+        public:
+            /** List of Services */
+            jau::darray<DBGattService> services;
+
+            DBGattServer()
+            : services()
+            { }
+
+            DBGattServer(jau::darray<DBGattService>& service_)
+            : services(service_)
+            { }
+
+            DBGattServer(std::initializer_list<DBGattService> initlist)
+            : services(initlist)
+            { }
+
+            DBGattService* findService(const jau::uuid_t& type) noexcept {
+                for(DBGattService& s : services) {
+                    if( type.equivalent( *s.type ) ) {
+                        return &s;
+                    }
+                }
+                return nullptr;
+            }
+            DBGattChar* findGattChar(const jau::uuid_t&  service_uuid, const jau::uuid_t& char_uuid) noexcept {
+                DBGattService* service = findService(service_uuid);
+                if( nullptr == service ) {
+                    return nullptr;
+                }
+                return service->findGattChar(char_uuid);
+            }
+
+            bool addService(DBGattService& s) noexcept {
+                if( nullptr != findService(*s.type) ) {
+                    // already shared
+                    return false;
+                }
+                services.push_back(s);
+                return true;
+            }
+
+            /**
+             * Sets all handles of all service instances and all its owned childs,
+             * i.e. DBGattChars elements and its DBGattDesc elements.
+             *
+             * @param start_handle a valid and unique start handle number > 0
+             * @return number of set handles, i.e. `( end_handle - handle ) + 1`
+             */
+            int setServicesHandles(const uint16_t start_handle) {
+                int c = 0;
+                uint16_t h = start_handle;
+                for(DBGattService& s : services) {
+                    int l = s.setHandles(h);
+                    c += l;
+                    h += l; // end + 1 for next service
+                }
+                return c;
+            }
+    };
+    typedef std::shared_ptr<DBGattServer> DBGattServerRef;
 
 } // namespace direct_bt
 
