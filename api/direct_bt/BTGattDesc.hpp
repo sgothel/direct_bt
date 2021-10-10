@@ -57,6 +57,8 @@ namespace direct_bt {
     typedef std::shared_ptr<BTGattChar> BTGattCharRef;
 
     /**
+     * Representing a Gatt Characteristic Descriptor object from the ::GATTRole::Client perspective.
+     *
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3 Characteristic Descriptor
      */
     class BTGattDesc : public BTObject {

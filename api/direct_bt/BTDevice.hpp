@@ -973,7 +973,7 @@ namespace direct_bt {
              * A GATT connection will be created via connectGATT() if not established yet.
              * </p>
              */
-            jau::darray<std::shared_ptr<BTGattService>> getGattServices() noexcept;
+            jau::darray<BTGattServiceRef> getGattServices() noexcept;
 
             /**
              * Find a BTGattService by its service_uuid.
@@ -985,7 +985,7 @@ namespace direct_bt {
              * @parameter service_uuid the jau::uuid_t of the desired BTGattService
              * @return The matching service or null if not found
              */
-            std::shared_ptr<BTGattService> findGattService(const jau::uuid_t& service_uuid) noexcept;
+            BTGattServiceRef findGattService(const jau::uuid_t& service_uuid) noexcept;
 
             /**
              * Find a BTGattChar by its service_uuid and char_uuid.
@@ -998,7 +998,7 @@ namespace direct_bt {
              * @parameter char_uuid the jau::uuid_t of the desired BTGattChar, within the intermediate BTGattService.
              * @return The matching characteristic or null if not found
              */
-            std::shared_ptr<BTGattChar> findGattChar(const jau::uuid_t& service_uuid, const jau::uuid_t& char_uuid) noexcept;
+            BTGattCharRef findGattChar(const jau::uuid_t& service_uuid, const jau::uuid_t& char_uuid) noexcept;
 
             /** Returns the shared GenericAccess instance, retrieved by {@link #getGattService()} or nullptr if not available. */
             std::shared_ptr<GattGenericAccessSvc> getGattGenericAccess();

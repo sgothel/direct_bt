@@ -59,7 +59,11 @@
 namespace direct_bt {
 
     /**
+     * Representing a Gatt Characteristic Descriptor object from the ::GATTRole::Server perspective.
+     *
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3 Characteristic Descriptor
+     *
+     * @since 2.4.0
      */
     class DBGattDesc {
         public:
@@ -98,16 +102,18 @@ namespace direct_bt {
     { return !(lhs == rhs); }
 
     /**
-     * <p>
-     * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1 Characteristic Declaration Attribute Value
-     * </p>
+     * Representing a Gatt Characteristic object from the ::GATTRole::Server perspective.
+     *
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3 Characteristic Definition
+     *
      * handle -> CDAV value
-     * <p>
+     *
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
      *
-     * Here the handle is a service's characteristics-declaration
+     * The handle represents a service's characteristics-declaration
      * and the value the Characteristics Property, Characteristics Value Handle _and_ Characteristics UUID.
-     * </p>
+     *
+     * @since 2.4.0
      */
     class DBGattChar {
         private:
@@ -147,10 +153,10 @@ namespace direct_bt {
             /* Characteristics Property */
             BTGattChar::PropertyBitVal properties;
 
-            /** List of Characteristic Descriptions as shared reference */
+            /** List of Characteristic Descriptions. */
             jau::darray<DBGattDesc> descriptors;
 
-            /* Characteristics Descriptor's Value */
+            /* Characteristics's Value */
             jau::POctets value;
 
             /* Optional Client Characteristic Configuration index within descriptorList */
@@ -204,12 +210,21 @@ namespace direct_bt {
     { return !(lhs == rhs); }
 
     /**
-     * Representing a complete [Primary] Service Declaration
+     * Representing a Gatt Service object from the ::GATTRole::Server perspective.
+     *
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 3.1 Service Definition
+     *
+     * Includes a complete [Primary] Service Declaration
      * including its list of Characteristic Declarations,
      * which also may include its client config if available.
+     *
+     * @since 2.4.0
      */
     class DBGattService {
         public:
+            /**
+             * Indicate whether this service is a primary service.
+             */
             bool primary;
 
             /**
@@ -231,7 +246,7 @@ namespace direct_bt {
             /** Service type UUID */
             std::shared_ptr<const jau::uuid_t> type;
 
-            /** List of Characteristic Declarations as shared reference */
+            /** List of Characteristic Declarations. */
             jau::darray<DBGattChar> characteristics;
 
             DBGattService(const bool primary_,

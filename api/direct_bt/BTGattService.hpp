@@ -60,7 +60,11 @@ namespace direct_bt {
     class BTDevice; // forward
 
     /**
-     * Representing a complete [Primary] Service Declaration
+     * Representing a Gatt Service object from the ::GATTRole::Client perspective.
+     *
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 3.1 Service Definition
+     *
+     * Includes a complete [Primary] Service Declaration
      * including its list of Characteristic Declarations,
      * which also may include its client config if available.
      */

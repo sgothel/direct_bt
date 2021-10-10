@@ -61,16 +61,16 @@ namespace direct_bt {
     typedef std::shared_ptr<BTGattService> BTGattServiceRef;
 
     /**
-     * <p>
-     * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1 Characteristic Declaration Attribute Value
-     * </p>
+     * Representing a Gatt Characteristic object from the ::GATTRole::Client perspective.
+     *
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3 Characteristic Definition
+     *
      * handle -> CDAV value
-     * <p>
+     *
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
      *
-     * Here the handle is a service's characteristics-declaration
+     * The handle represents a service's characteristics-declaration
      * and the value the Characteristics Property, Characteristics Value Handle _and_ Characteristics UUID.
-     * </p>
      */
     class BTGattChar : public BTObject {
         private:

@@ -1623,7 +1623,7 @@ std::shared_ptr<BTGattHandler> BTDevice::getGattHandler() noexcept {
     return gattHandler;
 }
 
-jau::darray<std::shared_ptr<BTGattService>> BTDevice::getGattServices() noexcept {
+jau::darray<BTGattServiceRef> BTDevice::getGattServices() noexcept {
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh ) {
         ERR_PRINT("BTDevice::getGATTServices: GATTHandler nullptr");
@@ -1661,7 +1661,7 @@ jau::darray<std::shared_ptr<BTGattService>> BTDevice::getGattServices() noexcept
     return gattServices;
 }
 
-std::shared_ptr<BTGattService> BTDevice::findGattService(const jau::uuid_t& service_uuid) noexcept {
+BTGattServiceRef BTDevice::findGattService(const jau::uuid_t& service_uuid) noexcept {
     const jau::darray<std::shared_ptr<BTGattService>> & services = getGattServices(); // reference of the GATTHandler's list
     const size_t services_size = services.size();
     for (size_t i = 0; i < services_size; i++) {
