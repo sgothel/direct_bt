@@ -541,18 +541,6 @@ public interface BTAdapter extends BTObject
      */
     HCIStatusCode setDefaultLE_PHY(final LE_PHYs Tx, final LE_PHYs Rx);
 
-    /** Returns the discoverable state the adapter.
-      * @return The discoverable state of the adapter.
-      */
-    boolean getDiscoverable();
-
-    /**
-     * Sets the discoverable state the adapter.
-     * @apiNote return value boolean since 2.0.0
-     * @since 2.0.0
-     */
-    boolean setDiscoverable(boolean value);
-
     /**
      * This method connects to device without need of
      * performing General Discovery. Connection mechanism is
@@ -578,13 +566,6 @@ public interface BTAdapter extends BTObject
      *                </ul>
      */
     BTDevice connectDevice(BDAddressAndType addressAndType);
-
-    /**
-     * Sets the discoverable state the adapter.
-     * @apiNote return value boolean since 2.0.0
-     * @since 2.0.0
-     */
-    boolean setPairable(boolean value);
 
     /**
      * Returns the current meta discovering {@link ScanType}.

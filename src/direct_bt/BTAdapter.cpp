@@ -414,16 +414,6 @@ HCIStatusCode BTAdapter::setName(const std::string &name, const std::string &sho
     return nullptr != res ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
 }
 
-bool BTAdapter::setDiscoverable(bool value) noexcept {
-    AdapterSetting current_settings { AdapterSetting::NONE } ;
-    return MgmtStatus::SUCCESS == mgmt.setDiscoverable(dev_id, value ? 0x01 : 0x00, 10 /* timeout seconds */, current_settings);
-}
-
-bool BTAdapter::setBondable(bool value) noexcept {
-    AdapterSetting current_settings { AdapterSetting::NONE } ;
-    return mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, value ? 1 : 0, current_settings);
-}
-
 bool BTAdapter::setPowered(bool power_on) noexcept {
     AdapterSetting settings = adapterInfo.getCurrentSettingMask();
     if( (  power_on &&  isAdapterSettingBitSet(settings, AdapterSetting::POWERED) ) ||

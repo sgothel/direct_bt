@@ -80,7 +80,6 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private final AtomicBoolean isClosing = new AtomicBoolean(false);
 
     private final AtomicBoolean powered_state = new AtomicBoolean(false); // AdapterSettings
-    private final AtomicBoolean isDiscoverable = new AtomicBoolean(false); // AdapterSettings
 
     private final AtomicReference<ScanType> currentMetaScanType = new AtomicReference<ScanType>(ScanType.NONE); // AdapterStatusListener and powerdOff
 
@@ -242,9 +241,6 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     /* Unsupported */
 
     @Override
-    public boolean getDiscoverable() { return isDiscoverable.get(); }
-
-    @Override
     public final ScanType getCurrentScanType() {
         return currentMetaScanType.get();
     }
@@ -298,16 +294,10 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private native byte setDefaultLE_PHYImpl(final byte Tx, final byte Rx);
 
     @Override
-    public native boolean setDiscoverable(boolean value);
-
-    @Override
     public final BTDevice connectDevice(final BDAddressAndType addressAndType) {
         return connectDeviceImpl(addressAndType.address.b, addressAndType.type.value);
     }
     private native BTDevice connectDeviceImpl(byte[] address, byte addressType);
-
-    @Override
-    public native boolean setPairable(boolean value);
 
     @Override
     public boolean getPoweredState() { return powered_state.get(); }
@@ -519,7 +509,6 @@ public class DBTAdapter extends DBTObject implements BTAdapter
             }
             if( initialSetting ) {
                 powered_state.set( newmask.isSet(AdapterSettings.SettingType.POWERED) );
-                isDiscoverable.set( newmask.isSet(AdapterSettings.SettingType.DISCOVERABLE) );
                 return;
             }
             if( changedmask.isSet(AdapterSettings.SettingType.POWERED) ) {
@@ -528,11 +517,6 @@ public class DBTAdapter extends DBTObject implements BTAdapter
                     if( !_isPowered ) {
                         poweredOff();
                     }
-                }
-            }
-            if( changedmask.isSet(AdapterSettings.SettingType.DISCOVERABLE) ) {
-                final boolean _isDiscoverable = newmask.isSet(AdapterSettings.SettingType.DISCOVERABLE);
-                if( isDiscoverable.compareAndSet(!_isDiscoverable, _isDiscoverable) ) {
                 }
             }
         }

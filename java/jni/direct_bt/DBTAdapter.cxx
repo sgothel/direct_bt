@@ -975,17 +975,6 @@ jbyte Java_jau_direct_1bt_DBTAdapter_setNameImpl(JNIEnv *env, jobject obj, jstri
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
-jboolean Java_jau_direct_1bt_DBTAdapter_setDiscoverable(JNIEnv *env, jobject obj, jboolean value) {
-    try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
-        return adapter->setDiscoverable(JNI_TRUE == value ? true : false) ? JNI_TRUE : JNI_FALSE;
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return JNI_FALSE;
-}
-
 jobject Java_jau_direct_1bt_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
     try {
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
@@ -1025,17 +1014,6 @@ jobject Java_jau_direct_1bt_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject ob
         rethrow_and_raise_java_exception(env);
     }
     return nullptr;
-}
-
-jboolean Java_jau_direct_1bt_DBTAdapter_setPairable(JNIEnv *env, jobject obj, jboolean value) {
-    try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
-        return adapter->setBondable(JNI_TRUE == value ? true : false) ? JNI_TRUE : JNI_FALSE;
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return JNI_FALSE;
 }
 
 void Java_jau_direct_1bt_DBTAdapter_printDeviceListsImpl(JNIEnv *env, jobject obj) {

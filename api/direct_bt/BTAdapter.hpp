@@ -596,16 +596,6 @@ namespace direct_bt {
             HCIStatusCode setName(const std::string &name, const std::string &short_name) noexcept;
 
             /**
-             * Set the discoverable state of the adapter.
-             */
-            bool setDiscoverable(bool value) noexcept;
-
-            /**
-             * Set the bondable (aka pairable) state of the adapter.
-             */
-            bool setBondable(bool value) noexcept;
-
-            /**
              * Set the power state of the adapter.
              *
              * In case current power state is already as desired, method will not change the power state.
