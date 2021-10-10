@@ -64,11 +64,9 @@ std::shared_ptr<BTDevice> BTGattService::getDeviceChecked() const {
 }
 
 std::shared_ptr<BTGattChar> BTGattService::findGattChar(const jau::uuid_t& char_uuid) noexcept {
-    const size_t characteristics_size = characteristicList.size();
-    for(size_t j = 0; j < characteristics_size; j++) {
-        direct_bt::BTGattCharRef characteristic = characteristicList[j];
-        if( nullptr != characteristic && char_uuid == *(characteristic->value_type) ) {
-            return characteristic;
+    for(BTGattCharRef& c : characteristicList) {
+        if( nullptr != c && char_uuid.equivalent( *(c->value_type) ) ) {
+            return c;
         }
     }
     return nullptr;

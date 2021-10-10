@@ -122,7 +122,7 @@ int BTDevice::findAdvService(const jau::uuid_t& uuid) const noexcept
     const size_t size = advServices.size();
     for (size_t i = 0; i < size; i++) {
         const std::shared_ptr<const jau::uuid_t> & e = advServices[i];
-        if ( nullptr != e && uuid == *e ) {
+        if ( nullptr != e && uuid.equivalent(*e) ) {
             return i;
         }
     }
@@ -1663,18 +1663,16 @@ jau::darray<BTGattServiceRef> BTDevice::getGattServices() noexcept {
 
 BTGattServiceRef BTDevice::findGattService(const jau::uuid_t& service_uuid) noexcept {
     const jau::darray<std::shared_ptr<BTGattService>> & services = getGattServices(); // reference of the GATTHandler's list
-    const size_t services_size = services.size();
-    for (size_t i = 0; i < services_size; i++) {
-        const direct_bt::BTGattServiceRef & service = services[i];
-        if ( nullptr != service && service_uuid == *(service->type) ) {
-            return service;
+    for(const BTGattServiceRef& s : services) {
+        if ( nullptr != s && service_uuid.equivalent( *(s->type) ) ) {
+            return s;
         }
     }
     return nullptr;
 }
 
-std::shared_ptr<BTGattChar> BTDevice::findGattChar(const jau::uuid_t&  service_uuid, const jau::uuid_t& char_uuid) noexcept {
-    const direct_bt::BTGattServiceRef & service = findGattService(service_uuid);
+BTGattCharRef BTDevice::findGattChar(const jau::uuid_t&  service_uuid, const jau::uuid_t& char_uuid) noexcept {
+    BTGattServiceRef service = findGattService(service_uuid);
     if( nullptr == service ) {
         return nullptr;
     }
