@@ -1629,14 +1629,14 @@ jau::darray<BTGattServiceRef> BTDevice::getGattServices() noexcept {
         ERR_PRINT("BTDevice::getGATTServices: GATTHandler nullptr");
         return jau::darray<std::shared_ptr<BTGattService>>();
     }
-    jau::darray<std::shared_ptr<BTGattService>> gattServices = gh->getServices();
-    if( gattServices.size() > 0 ) { // reuse previous discovery result
-        return gattServices;
+
+    if( gh->getServices().size() > 0 ) { // reuse previous discovery result
+        return gh->getServices(); // copy
     }
     try {
-        gattServices = gh->discoverCompletePrimaryServices(gh); // same reference of the GATTHandler's list
+        jau::darray<BTGattServiceRef>& gattServices = gh->discoverCompletePrimaryServices(gh);
         if( gattServices.size() == 0 ) { // nothing discovered
-            return gattServices;
+            return gattServices; // copy empty list
         }
 
         // discovery success, parse GenericAccess
@@ -1655,10 +1655,11 @@ jau::darray<BTGattServiceRef> BTDevice::getGattServices() noexcept {
                 }
             }
         }
+        return gattServices; // copy
     } catch (std::exception &e) {
         WARN_PRINT("BTDevice::getGATTServices: Caught exception: '%s' on %s", e.what(), toString().c_str());
     }
-    return gattServices;
+    return jau::darray<BTGattServiceRef>();
 }
 
 BTGattServiceRef BTDevice::findGattService(const jau::uuid_t& service_uuid) noexcept {
