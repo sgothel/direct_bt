@@ -80,9 +80,7 @@ jobject Java_jau_direct_1bt_DBTGattChar_getDescriptorsImpl(JNIEnv *env, jobject 
                     JavaGlobalObj::check(_characteristic->getJavaObject(), E_FILE_LINE);
                     jobject jcharacteristic = JavaGlobalObj::GetObject(_characteristic->getJavaObject());
 
-                    const jstring juuid = from_string_to_jstring(env_,
-                            directBTJNISettings.getUnifyUUID128Bit() ? descriptor->type->toUUID128String() :
-                                                                       descriptor->type->toString());
+                    const jstring juuid = from_string_to_jstring(env_, descriptor->type->toUUID128String());
                     java_exception_check_and_throw(env_, E_FILE_LINE);
 
                     const size_t value_size = descriptor->value.size();

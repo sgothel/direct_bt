@@ -105,9 +105,7 @@ jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj
                     JNIGlobalRef::check(jGattCharPropSet, E_FILE_LINE);
                     java_exception_check_and_throw(env_, E_FILE_LINE);
 
-                    const jstring uuid = from_string_to_jstring(env_,
-                            directBTJNISettings.getUnifyUUID128Bit() ? characteristic->value_type->toUUID128String() :
-                                                                       characteristic->value_type->toString());
+                    const jstring uuid = from_string_to_jstring(env_, characteristic->value_type->toUUID128String());
                     java_exception_check_and_throw(env_, E_FILE_LINE);
 
                     jobject jcharVal = env_->NewObject(clazz, clazz_ctor, (jlong)characteristic, jservice,

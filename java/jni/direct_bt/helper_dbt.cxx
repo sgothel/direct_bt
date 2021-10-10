@@ -32,8 +32,6 @@
 
 using namespace direct_bt;
 
-DirectBTJNISettings direct_bt::directBTJNISettings;
-
 static std::string jStringEmpty("");
 static std::string jAddressTypePublic("public");
 static std::string jAddressTypeRandom("random");

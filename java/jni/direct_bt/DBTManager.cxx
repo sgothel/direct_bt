@@ -109,9 +109,8 @@ static void _addMgmtCBOnce(JNIEnv *env, BTManager & mgmt, JNIGlobalRef jmgmtRef,
     }
 }
 
-void Java_jau_direct_1bt_DBTManager_initImpl(JNIEnv *env, jobject obj, jboolean unifyUUID128Bit)
+void Java_jau_direct_1bt_DBTManager_initImpl(JNIEnv *env, jobject obj)
 {
-    directBTJNISettings.setUnifyUUID128Bit(unifyUUID128Bit);
     try {
         BTManager *manager = &BTManager::get(); // special: static singleton
         setInstance<BTManager>(env, obj, manager);
