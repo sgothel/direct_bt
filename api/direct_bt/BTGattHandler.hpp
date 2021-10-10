@@ -44,6 +44,7 @@
 #include "L2CAPComm.hpp"
 #include "ATTPDUTypes.hpp"
 #include "GattTypes.hpp"
+#include "DBGattServer.hpp"
 
 /**
  * - - - - - - - - - - - - - - -
@@ -187,6 +188,9 @@ namespace direct_bt {
             jau::relaxed_atomic_bool sendIndicationConfirmation = true;
             typedef jau::cow_darray<std::shared_ptr<BTGattCharListener>> characteristicListenerList_t;
             characteristicListenerList_t characteristicListenerList;
+
+            /** Pass through user Gatt-Server database, non-nullptr if ::GATTRole::Server */
+            DBGattServerRef gattServerData;
 
             uint16_t serverMTU;
             std::atomic<uint16_t> usedMTU; // concurrent use in ctor(set), send and l2capReaderThreadImpl

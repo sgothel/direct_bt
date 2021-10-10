@@ -261,6 +261,8 @@ void BTGattHandler::l2capReaderThreadImpl() {
         len = l2cap.read(rbuffer.get_wptr(), rbuffer.size());
         if( 0 < len ) {
             std::unique_ptr<const AttPDUMsg> attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), static_cast<jau::nsize_t>(len));
+            // DBG_PRINT("GATTHandler::reader: Got %s", attPDU->toString().c_str());
+
             const AttPDUMsg::Opcode opc = attPDU->getOpcode();
             const AttPDUMsg::OpcodeType opc_type = AttPDUMsg::get_type(opc);
 
@@ -356,6 +358,7 @@ BTGattHandler::BTGattHandler(const std::shared_ptr<BTDevice> &device, L2CAPComm&
   is_connected(l2cap.isOpen()), has_ioerror(false),
   attPDURing(nullptr, env.ATTPDU_RING_CAPACITY), l2capReaderShallStop(false),
   l2capReaderThreadId(0), l2capReaderRunning(false),
+  gattServerData( GATTRole::Server == role ? device->getAdapter().getGATTServerData() : nullptr ),
   serverMTU(number(Defaults::MIN_ATT_MTU)), usedMTU(number(Defaults::MIN_ATT_MTU))
 {
     if( !validateConnected() ) {

@@ -976,6 +976,14 @@ namespace direct_bt {
                 return hci.isAdvertising();
             }
 
+            /**
+             * Return the user's DBGattServer shared reference if in ::BTRole::Slave
+             * as set via startAdvertising().
+             *
+             * Returns nullptr if in ::BTRole::Master.
+             */
+            DBGattServerRef getGATTServerData() { return gattServerData; }
+
             std::string toString() const noexcept override { return toString(false); }
             std::string toString(bool includeDiscoveredDevices) const noexcept;
 
