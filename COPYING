@@ -1,8 +1,7 @@
 The MIT License (MIT)
-Copyright © 2015-2016 Intel Corporation
 Copyright © 2020 Gothel Software e.K.
 Copyright © 2020 ZAFENA AB
-
+Copyright © 2015-2016 Intel Corporation
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -27,8 +26,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Direct-BT Sub-Module License & Copyright
-========================================
+Direct-BT License & Copyright
+===============================
 The MIT License (MIT) (see above)
 Copyright © 2020 Gothel Software e.K.
 Copyright © 2020 ZAFENA AB
@@ -64,4 +63,27 @@ we assume the following SPDX-License-Identifier should be declared:
 This documentation of our usage is certainly better than GOOG's approach: 
 <https://android.googlesource.com/platform/system/bluetooth/+/eclair-release/bluez-clean-headers/bluetooth?autodive=0/>,
 which removes all authorship and origin.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Copyright Intel Corporation 
+============================
+Direct-BT was initially developed as an 
+alternative implementation to TinyB's Java API.
+
+The latter was developed by the Intel Corporation
+and licensed under the MIT license.
+Main authors of TinyB were:
+- Petre Eftime <petre.p.eftime@intel.com>
+- Andrei Vasiliu <andrei.vasiliu@intel.com>
+
+Today, TinyB has been removed from this project.
+
+This copyright notice shall stay,
+since some code fragments and portions of the infrastructure 
+contains their work.
+
+See also README.md: 'Direct-BT Origins'.
 

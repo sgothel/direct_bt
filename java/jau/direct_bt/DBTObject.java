@@ -26,7 +26,6 @@
 package jau.direct_bt;
 
 import org.direct_bt.BTObject;
-import org.direct_bt.BTType;
 
 public abstract class DBTObject extends DBTNativeDownlink implements BTObject
 {
@@ -49,8 +48,6 @@ public abstract class DBTObject extends DBTNativeDownlink implements BTObject
         this.hashValue = hashValue;
     }
 
-    static BTType class_type() { return BTType.NONE; }
-
     @Override
     public abstract boolean equals(final Object obj);
 
@@ -69,9 +66,4 @@ public abstract class DBTObject extends DBTNativeDownlink implements BTObject
     public synchronized void close() {
         delete();
     }
-
-    @Override
-    public BTObject clone()
-    { throw new UnsupportedOperationException(); } // FIXME
-
 }

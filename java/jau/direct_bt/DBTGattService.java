@@ -33,7 +33,6 @@ import org.direct_bt.BTGattChar;
 import org.direct_bt.BTGattDesc;
 import org.direct_bt.BTGattService;
 import org.direct_bt.BTObject;
-import org.direct_bt.BTType;
 
 public class DBTGattService extends DBTObject implements BTGattService
 {
@@ -72,20 +71,23 @@ public class DBTGattService extends DBTObject implements BTGattService
     public String getUUID() { return type_uuid; }
 
     @Override
-    public BTType getBluetoothType() { return class_type(); }
-
-    static BTType class_type() { return BTType.GATT_SERVICE; }
-
-    @Override
     public final BTGattService clone()
     { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
     public BTGattChar findGattChar(final String char_uuid) {
-        if( !checkServiceCache() ) {
+        final DBTDevice device = wbr_device.get();
+        if( null != device ) {
             return null;
         }
-        return (DBTGattChar) findInCache(char_uuid, BTType.GATT_CHARACTERISTIC);
+        final int characteristicSize = charList.size();
+        for(int charIdx = 0; charIdx < characteristicSize; charIdx++ ) {
+            final DBTGattChar characteristic = (DBTGattChar) charList.get(charIdx);
+            if( characteristic.getUUID().equals(char_uuid) ) {
+                return characteristic;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -129,59 +131,4 @@ public class DBTGattService extends DBTObject implements BTGattService
 
     @Override
     protected native void deleteImpl(long nativeInstance);
-
-    /* local functionality */
-
-    /* pp */ boolean checkServiceCache() {
-        final DBTDevice device = wbr_device.get();
-        return null != device && device.checkServiceCache(false);
-    }
-
-    /**
-     * Returns the matching {@link DBTObject} from the internal cache if found,
-     * otherwise {@code null}.
-     * <p>
-     * The returned {@link DBTObject} may be of type
-     * <ul>
-     *   <li>{@link DBTGattChar}</li>
-     *   <li>{@link DBTGattDesc}</li>
-     * </ul>
-     * or alternatively in {@link BTObject} space
-     * <ul>
-     *   <li>{@link BTType#GATT_CHARACTERISTIC} -> {@link BTGattChar}</li>
-     *   <li>{@link BTType#GATT_DESCRIPTOR} -> {@link BTGattDesc}</li>
-     * </ul>
-     * </p>
-     * @param uuid UUID of the desired
-     * {@link BTType#GATT_CHARACTERISTIC characteristic} or {@link BTType#GATT_DESCRIPTOR descriptor} to be found.
-     * Maybe {@code null}, in which case the first object of the desired type is being returned - if existing.
-     * @param type specify the type of the object to be found, either
-     * {@link BTType#GATT_CHARACTERISTIC characteristic}
-     * or {@link BTType#GATT_DESCRIPTOR descriptor}.
-     * {@link BTType#NONE none} means anything.
-     */
-    /* pp */ DBTObject findInCache(final String uuid, final BTType type) {
-        final boolean anyType = BTType.NONE == type;
-        final boolean charType = BTType.GATT_CHARACTERISTIC== type;
-        final boolean descType = BTType.GATT_DESCRIPTOR == type;
-
-        if( !anyType && !charType && !descType ) {
-            return null;
-        }
-        final int characteristicSize = charList.size();
-        for(int charIdx = 0; charIdx < characteristicSize; charIdx++ ) {
-            final DBTGattChar characteristic = (DBTGattChar) charList.get(charIdx);
-            if( ( anyType || charType ) && ( null == uuid || characteristic.getUUID().equals(uuid) ) ) {
-                return characteristic;
-            }
-            if( anyType || descType ) {
-                final DBTObject dbtObj = characteristic.findInCache(uuid, type);
-                if( null != dbtObj ) {
-                    return dbtObj;
-                }
-            }
-        }
-        return null;
-    }
-
 }

@@ -35,17 +35,9 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.direct_bt.BTAdapter;
-import org.direct_bt.BTDevice;
 import org.direct_bt.BTException;
 import org.direct_bt.BTFactory;
-import org.direct_bt.BTGattChar;
-import org.direct_bt.BTGattDesc;
-import org.direct_bt.BTGattService;
 import org.direct_bt.BTManager;
-import org.direct_bt.BTObject;
-import org.direct_bt.BTType;
-import org.direct_bt.HCIStatusCode;
-import org.direct_bt.ScanType;
 
 public class DBTManager implements BTManager
 {
@@ -156,23 +148,6 @@ public class DBTManager implements BTManager
     private final List<BTAdapter> adapters = new CopyOnWriteArrayList<BTAdapter>();
     private final List<ChangedAdapterSetListener> changedAdapterSetListenerList = new CopyOnWriteArrayList<ChangedAdapterSetListener>();
 
-    private final Settings settings;
-
-    @Override
-    public final Settings getSettings() { return settings; }
-
-    public BTType getBluetoothType() { return BTType.NONE; }
-
-    @Override
-    public DBTObject find(final BTType type, final String name, final String identifier, final BTObject parent, final long timeoutMS) {
-        return findInCache((DBTObject)parent, type, name, identifier);
-    }
-
-    @Override
-    public DBTObject find(final BTType type, final String name, final String identifier, final BTObject parent) {
-        return find(type, name, identifier, parent, 0);
-    }
-
     @Override
     public List<BTAdapter> getAdapters() { return new ArrayList<BTAdapter>(adapters); }
 
@@ -185,40 +160,6 @@ public class DBTManager implements BTManager
             }
         }
         return null;
-    }
-
-    @Override
-    public List<BTDevice> getDevices() { return getDefaultAdapter().getDiscoveredDevices(); }
-
-    /**
-     * {@inheritDoc}
-     * <p>
-     * This call could be a quite expensive service query, see below.
-     * </p>
-     * <p>
-     * This implementation returns all {@link BTGattService} from all {@link BTDevice}s
-     * from the {@link #getDefaultAdapter()} using {@link BTDevice#getServices()}.
-     * </p>
-     * <p>
-     * This implementation does not {@link BTAdapter#startDiscovery() start} an explicit discovery,
-     * but previous {@link BTAdapter#getDiscoveredDevices() discovered devices} are being queried.
-     * </p>
-     */
-    @Override
-    public List<BTGattService> getServices() {
-        final List<BTGattService> res = new ArrayList<BTGattService>();
-        for(final Iterator<BTAdapter> iterA=adapters.iterator(); iterA.hasNext(); ) {
-            final BTAdapter adapter = iterA.next();
-            final List<BTDevice> devices = adapter.getDiscoveredDevices();
-            for(final Iterator<BTDevice> iterD=devices.iterator(); iterD.hasNext(); ) {
-                final BTDevice device = iterD.next();
-                final List<BTGattService> devServices = device.getServices();
-                if( null != devServices ) {
-                    res.addAll(devServices);
-                }
-            }
-        }
-        return res;
     }
 
     @Override
@@ -235,19 +176,6 @@ public class DBTManager implements BTManager
             }
         }
         return null;
-    }
-
-    @Override
-    public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active) throws BTException {
-        return getDefaultAdapter().startDiscovery(keepAlive, le_scan_active);
-    }
-
-    @Override
-    public HCIStatusCode stopDiscovery() throws BTException { return getDefaultAdapter().stopDiscovery(); }
-
-    @Override
-    public final ScanType getCurrentScanType() {
-        return getDefaultAdapter().getCurrentScanType();
     }
 
     @Override
@@ -380,16 +308,6 @@ public class DBTManager implements BTManager
         } catch (final BTException be) {
             be.printStackTrace();
         }
-        settings = new Settings() {
-            @Override
-            public final boolean isDirectBT() {
-                return true;
-            }
-            @Override
-            public String toString() {
-                return "Settings[dbt true]";
-            }
-        };
     }
 
     /** Returns an instance of BluetoothManager, to be used instead of constructor.
@@ -417,130 +335,4 @@ public class DBTManager implements BTManager
         adapters.clear();
         deleteImpl(nativeInstance);
     }
-
-    /**
-     * Returns the matching {@link DBTObject} from the internal cache if found,
-     * otherwise {@code null}.
-     * <p>
-     * The returned {@link DBTObject} may be of type
-     * <ul>
-     *   <li>{@link DBTAdapter}</li>
-     *   <li>{@link DBTDevice}</li>
-     *   <li>{@link DBTGattService}</li>
-     *   <li>{@link DBTGattChar}</li>
-     *   <li>{@link DBTGattDesc}</li>
-     * </ul>
-     * or alternatively in {@link BTObject} space
-     * <ul>
-     *   <li>{@link BTType#ADAPTER} -> {@link BTAdapter}</li>
-     *   <li>{@link BTType#DEVICE} -> {@link BTDevice}</li>
-     *   <li>{@link BTType#GATT_SERVICE} -> {@link BTGattService}</li>
-     *   <li>{@link BTType#GATT_CHARACTERISTIC} -> {@link BTGattChar}</li>
-     *   <li>{@link BTType#GATT_DESCRIPTOR} -> {@link BTGattDesc}</li>
-     * </ul>
-     * </p>
-     * @param name name of the desired {@link BTType#ADAPTER adapter} or {@link BTType#DEVICE device}.
-     * Maybe {@code null}.
-     * @param identifier EUI48 address of the desired {@link BTType#ADAPTER adapter} or {@link BTType#DEVICE device}
-     * or UUID of the desired {@link BTType#GATT_SERVICE service},
-     * {@link BTType#GATT_CHARACTERISTIC characteristic} or {@link BTType#GATT_DESCRIPTOR descriptor} to be found.
-     * Maybe {@code null}, in which case the first object of the desired type is being returned - if existing.
-     * @param type specify the type of the object to be found, either
-     * {@link BTType#ADAPTER adapter}, {@link BTType#DEVICE device},
-     * {@link BTType#GATT_SERVICE service}, {@link BTType#GATT_CHARACTERISTIC characteristic}
-     * or {@link BTType#GATT_DESCRIPTOR descriptor}.
-     * {@link BTType#NONE none} means anything.
-     */
-    /* pp */ DBTObject findInCache(final String name, final String identifier, final BTType type) {
-        final boolean anyType = BTType.NONE == type;
-        final boolean adapterType = BTType.ADAPTER == type;
-
-        if( null == name && null == identifier && ( anyType || adapterType ) ) {
-            // special case for 1st valid adapter
-            if( adapters.size() > 0 ) {
-                return (DBTAdapter) adapters.get(0);
-            }
-            return null; // no adapter
-        }
-        for(final Iterator<BTAdapter> iter = adapters.iterator(); iter.hasNext(); ) {
-            final DBTAdapter adapter = (DBTAdapter) iter.next();
-            if( !adapter.isValid() ) {
-                continue;
-            }
-            if( ( anyType || adapterType ) ) {
-                if( null != name && null != identifier &&
-                    adapter.getName().equals(name) &&
-                    adapter.getAddressAndType().address.toString().equals(identifier)
-                  )
-                {
-                    return adapter;
-                }
-                if( null != identifier &&
-                    adapter.getAddressAndType().address.toString().equals(identifier)
-                  )
-                {
-                    return adapter;
-                }
-                if( null != name &&
-                    adapter.getName().equals(name)
-                  )
-                {
-                    return adapter;
-                }
-            }
-            final DBTObject dbtObj = adapter.findInCache(name, identifier, type);
-            if( null != dbtObj ) {
-                return dbtObj;
-            }
-        }
-        return null;
-    }
-
-    /* pp */ DBTObject findInCache(final DBTObject parent, final BTType type, final String name, final String identifier) {
-        if( null == parent ) {
-            return findInCache(name, identifier, type);
-        }
-        final boolean anyType = BTType.NONE == type;
-        final boolean deviceType = BTType.DEVICE == type;
-        final boolean serviceType = BTType.GATT_SERVICE == type;
-        final boolean charType = BTType.GATT_CHARACTERISTIC== type;
-        final boolean descType = BTType.GATT_DESCRIPTOR == type;
-
-        final BTType parentType = parent.getBluetoothType();
-
-        if( BTType.ADAPTER == parentType &&
-            ( anyType || deviceType || serviceType || charType || descType )
-          )
-        {
-            return ((DBTAdapter) parent).findInCache(name, identifier, type);
-        }
-        if( BTType.DEVICE == parentType &&
-            ( anyType || serviceType || charType || descType )
-          )
-        {
-            return ((DBTDevice) parent).findInCache(identifier, type);
-        }
-        if( BTType.GATT_SERVICE == parentType &&
-            ( anyType || charType || descType )
-          )
-        {
-            final DBTGattService service = (DBTGattService) parent;
-            if( !service.checkServiceCache() ) {
-                return null;
-            }
-            return service.findInCache(identifier, type);
-        }
-        if( BTType.GATT_CHARACTERISTIC == parentType &&
-            ( anyType || descType )
-          )
-        {
-            final DBTGattChar characteristic = (DBTGattChar) parent;
-            if( !characteristic.checkServiceCache() ) {
-                return null;
-            }
-            return characteristic.findInCache(identifier, type);
-        }
-        return null;
-    }
-
 }

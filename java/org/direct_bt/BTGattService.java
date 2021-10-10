@@ -3,9 +3,6 @@
  * Copyright (c) 2020 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
- * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
- * Copyright (c) 2016 Intel Corporation.
- *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -32,11 +29,14 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
-  * Provides access to Bluetooth GATT characteristic.
-  *
-  * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
-  * @see [BlueZ GATT API](http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/gatt-api.txt)
-  */
+ * Representing a Gatt Service object from the GATT client perspective.
+ *
+ * BT Core Spec v5.2: Vol 3, Part G GATT: 3.1 Service Definition
+ *
+ * Includes a complete [Primary] Service Declaration
+ * including its list of Characteristic Declarations,
+ * which also may include its client config if available.
+ */
 public interface BTGattService extends BTObject
 {
     /**

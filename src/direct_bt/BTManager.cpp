@@ -783,37 +783,6 @@ MgmtStatus BTManager::setDiscoverable(const uint16_t dev_id, const uint8_t state
     return res;
 }
 
-ScanType BTManager::startDiscovery(const uint16_t dev_id, const BTMode btMode) noexcept {
-    return startDiscovery(dev_id, to_ScanType(btMode));
-}
-
-ScanType BTManager::startDiscovery(const uint16_t dev_id, const ScanType scanType) noexcept {
-    MgmtUint8Cmd req(MgmtCommand::Opcode::START_DISCOVERY, dev_id, number(scanType));
-    std::unique_ptr<MgmtEvent> res = sendWithReply(req);
-    ScanType type = ScanType::NONE;
-    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-        if( MgmtStatus::SUCCESS == res1.getStatus() && 1 <= res1.getDataSize() ) {
-            const uint8_t *p = res1.getData();
-            if( nullptr == p ) { // G++ 10: -Werror=null-dereference
-                ERR_PRINT("DBTManager::startDiscovery: Impossible MgmtEvtCmdComplete data nullptr: %s - %s", res1.toString().c_str(), req.toString().c_str());
-                return type;
-            }
-            type = static_cast<ScanType>( p[0] );
-        }
-    }
-    return type;
-}
-bool BTManager::stopDiscovery(const uint16_t dev_id, const ScanType type) noexcept {
-    MgmtUint8Cmd req(MgmtCommand::Opcode::STOP_DISCOVERY, dev_id, number(type));
-    std::unique_ptr<MgmtEvent> res = sendWithReply(req);
-    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-        return MgmtStatus::SUCCESS == res1.getStatus();
-    }
-    return false;
-}
-
 bool BTManager::uploadConnParam(const uint16_t dev_id, const BDAddressAndType & addressAndType,
                                  const uint16_t conn_min_interval, const uint16_t conn_max_interval,
                                  const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
@@ -948,15 +917,6 @@ MgmtStatus BTManager::userConfirmReply(const uint16_t dev_id, const BDAddressAnd
 #endif
 }
 
-bool BTManager::pairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPIOCapability iocap) noexcept {
-#if USE_LINUX_BT_SECURITY
-    MgmtPairDeviceCmd cmd(dev_id, addressAndType, iocap);
-    return send(cmd);
-#else
-    return false;
-#endif
-}
-
 MgmtStatus BTManager::unpairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool disconnect) noexcept {
 #if USE_LINUX_BT_SECURITY
     MgmtUnpairDeviceCmd cmd(dev_id, addressAndType, disconnect);
@@ -1054,33 +1014,6 @@ bool BTManager::removeDeviceFromWhitelist(const uint16_t dev_id, const BDAddress
         }
     }
     return false;
-}
-
-bool BTManager::disconnect(const bool ioErrorCause,
-                            const uint16_t dev_id, const BDAddressAndType & addressAndType,
-                            const HCIStatusCode reason) noexcept {
-    bool bres = false;
-
-    // Always issue DISCONNECT command, even in case of an ioError (lost-connection),
-    // see Issue #124 fast re-connect on CSR adapter.
-    // This will always notify the adapter of a disconnected device.
-    {
-        MgmtDisconnectCmd req(dev_id, addressAndType);
-        std::unique_ptr<MgmtEvent> res = sendWithReply(req);
-        if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-            const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-            if( MgmtStatus::SUCCESS == res1.getStatus() ) {
-                bres = true;
-            }
-        }
-    }
-    if( !ioErrorCause ) {
-        // In case of an ioError (lost-connection), don't wait for the lagging
-        // DISCONN_COMPLETE event but send it directly.
-        const MgmtEvtDeviceDisconnected e(dev_id, addressAndType, reason, 0xffff);
-        sendMgmtEvent(e);
-    }
-    return bres;
 }
 
 std::shared_ptr<ConnectionInfo> BTManager::getConnectionInfo(const uint16_t dev_id, const BDAddressAndType& addressAndType) noexcept {

@@ -26,11 +26,9 @@
 package jau.direct_bt;
 
 import java.lang.ref.WeakReference;
-import java.util.Arrays;
 
 import org.direct_bt.BTException;
 import org.direct_bt.BTGattDesc;
-import org.direct_bt.BTType;
 
 public class DBTGattDesc extends DBTObject implements BTGattDesc
 {
@@ -87,15 +85,6 @@ public class DBTGattDesc extends DBTObject implements BTGattDesc
 
     @Override
     public String getUUID() { return type_uuid; }
-
-    @Override
-    public BTType getBluetoothType() { return class_type(); }
-
-    static BTType class_type() { return BTType.GATT_DESCRIPTOR; }
-
-    @Override
-    public final BTGattDesc clone()
-    { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
     public final DBTGattChar getCharacteristic() { return wbr_characteristic.get(); }

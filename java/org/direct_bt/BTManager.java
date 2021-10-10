@@ -3,9 +3,6 @@
  * Copyright (c) 2020 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
- * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
- * Copyright (c) 2016 Intel Corporation.
- *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -32,25 +29,6 @@ import java.util.List;
 
 public interface BTManager
 {
-    /**
-     * Interface allowing to retrieve certain settings
-     * of the implementation.
-     * <p>
-     * In case this interface will have to add a multitude of settings in the future,
-     * we will revise the API using a more efficient bitfield approach.
-     * </p>
-     */
-    public static interface Settings {
-        /**
-         * Returns true if underlying implementation is Direct-BT.
-         */
-        boolean isDirectBT();
-
-        @Override
-        String toString();
-    }
-
-
     /**
      * Event listener to receive change events regarding the system's {@link BTAdapter} set,
      * e.g. a removed or added {@link BTAdapter} due to user interaction or 'cold reset'.
@@ -84,51 +62,6 @@ public interface BTManager
         void adapterRemoved(final BTAdapter adapter);
     }
 
-    /**
-     * Returns this implmentation's {@link Settings}.
-     */
-    public Settings getSettings();
-
-    /** Find a BluetoothObject of a type matching type. If parameters name,
-      * identifier and parent are not null, the returned object will have to
-      * match them.
-      * It will first check for existing objects. It will not turn on discovery
-      * or connect to devices.
-      * @parameter type specify the type of the object you are
-      * waiting for, NONE means anything.
-      * @parameter name optionally specify the name of the object you are
-      * waiting for (for Adapter or Device)
-      * @parameter identifier optionally specify the identifier of the object you are
-      * waiting for (UUID for GattService, GattCharacteristic or GattDescriptor, address
-      * for Adapter or Device)
-      * @parameter parent optionally specify the parent of the object you are
-      * waiting for
-      * @parameter timeoutMS the function will return after timeout time in milliseconds, a
-      * value of zero means wait forever. If object is not found during this time null will be returned.
-      * @return An object matching the name, identifier, parent or null if not found before
-      * timeout expires or event is canceled.
-      */
-    public BTObject find(BTType type, String name, String identifier, BTObject parent, long timeoutMS);
-
-
-    /** Find a BluetoothObject of a type matching type. If parameters name,
-      * identifier and parent are not null, the returned object will have to
-      * match them.
-      * It will first check for existing objects. It will not turn on discovery
-      * or connect to devices.
-      * @parameter type specify the type of the object you are
-      * waiting for, NONE means anything.
-      * @parameter name optionally specify the name of the object you are
-      * waiting for (for Adapter or Device)
-      * @parameter identifier optionally specify the identifier of the object you are
-      * waiting for (UUID for GattService, GattCharacteristic or GattDescriptor, address
-      * for Adapter or Device)
-      * @parameter parent optionally specify the parent of the object you are
-      * waiting for
-      * @return An object matching the name, identifier and parent.
-      */
-    public BTObject  find(BTType type, String name, String identifier, BTObject parent);
-
     /** Returns a list of BluetoothAdapters available in the system
       * @return A list of BluetoothAdapters available in the system
       */
@@ -144,16 +77,6 @@ public interface BTManager
      * @since 2.0.0
      */
     public BTAdapter getAdapter(final int dev_id);
-
-    /** Returns a list of discovered BluetoothDevices
-      * @return A list of discovered BluetoothDevices
-      */
-    public List<BTDevice> getDevices();
-
-    /** Returns a list of available BluetoothGattServices
-      * @return A list of available BluetoothGattServices
-      */
-    public List<BTGattService> getServices();
 
     /**
      * Sets a default adapter to use for discovery.
@@ -171,38 +94,6 @@ public interface BTManager
      * @return the used default adapter
      */
     public BTAdapter getDefaultAdapter();
-
-    /**
-     * Turns on device discovery on the default adapter if it is disabled.
-     * @param keepAlive if {@code true}, indicates that discovery shall be restarted
-     *        if stopped by the underlying Bluetooth implementation (BlueZ, ..).
-     *        Using {@link #startDiscovery(boolean) startDiscovery}({@code keepAlive=true})
-     *        and {@link #stopDiscovery()} is the recommended workflow
-     *        for a reliable discovery process.
-     * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
-     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
-     * @throws BTException
-     * @since 2.0.0
-     * @since 2.2.8
-     */
-    public HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active) throws BTException;
-
-    /**
-     * Turns off device discovery on the default adapter if it is enabled.
-     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
-     * @apiNote return {@link HCIStatusCode} since 2.0.0
-     * @since 2.0.0
-     */
-    public HCIStatusCode stopDiscovery() throws BTException;
-
-    /**
-     * Returns the current meta discovering {@link ScanType} of the {@link #getDefaultAdapter()}
-     * via {@link BTAdapter#getCurrentScanType()}.
-     * @see BTAdapter#getCurrentScanType()
-     * @see #getDefaultAdapter()
-     * @since 2.3
-     */
-    public ScanType getCurrentScanType();
 
     /**
      * Add the given {@link ChangedAdapterSetListener} to this manager.

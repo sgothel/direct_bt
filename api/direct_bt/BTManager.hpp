@@ -408,13 +408,6 @@ namespace direct_bt {
             HCIStatusCode initializeAdapter(AdapterInfo& adapterInfo, const uint16_t dev_id,
                                             const BTRole btRole, const BTMode btMode) noexcept;
 
-            /** Start discovery on given adapter dev_id with a ScanType matching the given BTMode. Returns set ScanType. */
-            ScanType startDiscovery(const uint16_t dev_id, const BTMode btMode) noexcept;
-            /** Start discovery on given adapter dev_id with given ScanType. Returns set ScanType. */
-            ScanType startDiscovery(const uint16_t dev_id, const ScanType type) noexcept;
-            /** Stop discovery on given adapter dev_id. */
-            bool stopDiscovery(const uint16_t dev_id, const ScanType type) noexcept;
-
             /**
              * Uploads given connection parameter for given device to the kernel.
              *
@@ -453,10 +446,6 @@ namespace direct_bt {
             /** Remove all previously added devices from the autoconnect whitelist. Returns number of removed devices. */
             int removeAllDevicesFromWhitelist() noexcept;
 
-            bool disconnect(const bool ioErrorCause,
-                            const uint16_t dev_id, const BDAddressAndType & addressAndType,
-                            const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
-
             std::shared_ptr<ConnectionInfo> getConnectionInfo(const uint16_t dev_id, const BDAddressAndType& addressAndType) noexcept;
             std::shared_ptr<NameAndShortName> setLocalName(const uint16_t dev_id, const std::string & name, const std::string & short_name) noexcept;
 
@@ -472,7 +461,6 @@ namespace direct_bt {
             MgmtStatus userPasskeyNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept;
             MgmtStatus userConfirmReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool positive) noexcept;
 
-            bool pairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPIOCapability iocap) noexcept;
             MgmtStatus unpairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool disconnect) noexcept;
 
             /** MgmtEventCallback handling  */

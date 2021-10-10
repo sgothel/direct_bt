@@ -1,7 +1,4 @@
-/*
- * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
- * Copyright (c) 2016 Intel Corporation.
- *
+/**
  * Author: Sven Gothel <sgothel@jausoft.com>
  * Copyright (c) 2020 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
@@ -34,17 +31,6 @@
 #include "helper_base.hpp"
 
 #define JAVA_MAIN_PACKAGE "org/direct_bt"
-
-jobject get_bluetooth_type(JNIEnv *env, const char *field_name)
-{
-    jclass b_type_enum = jau::search_class(env, JAVA_MAIN_PACKAGE "/BTType");
-
-    jfieldID b_type_field = jau::search_field(env, b_type_enum, field_name, "L" JAVA_MAIN_PACKAGE "/BTType;", true);
-
-    jobject result = env->GetStaticObjectField(b_type_enum, b_type_field);
-    env->DeleteLocalRef(b_type_enum);
-    return result;
-}
 
 void raise_java_exception(JNIEnv *env, const direct_bt::BTException &e, const char* file, int line) {
     jau::print_native_caught_exception_fwd2java(e, file, line);

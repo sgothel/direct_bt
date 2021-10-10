@@ -13,6 +13,8 @@ fully accessible through C++, Java and other languages.
 *Direct-BT* provides direct [Bluetooth LE and BREDR](https://www.bluetooth.com/specifications/bluetooth-core-specification/) programming,
 offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
 
+Below you can find a few notes about [*Direct-BT* Origins](#direct_bt_origins).
+
 You will find a [detailed overview of *Direct-BT*](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details) (C++)
 and the [same in the Java API](https://jausoft.com/projects/direct_bt/build/documentation/java/html/namespaceorg_1_1direct__bt.html#details).
 
@@ -364,12 +366,72 @@ Please check the [Contribution](CONTRIBUTING.md) document for more details.
 
 ## Historical Notes
 
-### *TinyB* Removal since version 2.3
-Starting with version 2.3, the previously refactored *TinyB* has been removed completely.
+<a name="direct_bt_origins"></a>
 
-Motivation was lack of detailed Bluetooth support, inclusive increasing diversion with *Direct-BT*.
-Furthermore, work is underway for `BLE slave peripheral and GATT server` support and its mapping to *BlueZ D-Bus* is questionable
-and would be resource intensive.
+### *Direct-BT* Origins
+*Direct-BT* development started around April 2020,
+initially as an alternative *TinyB* Java-API implementation.
+
+The work was motivated due to strict 
+performance, discovery- and connection timing requirements,
+as well as being able to handle multiple devices concurrently 
+using a real-time event driven low-overhead architecture.
+
+Zafena's [POC-Workstation](https://www.zafena.se/en/product/zafena-552-poc-workstation/)
+was originally implemented using *TinyB* and hence the D-Bus layer to the *BlueZ* client library.
+
+Real time knowledge when devices are discovered and connected
+were not available and *cloaked* by the caching mechanism.
+Advertising package details were not exposed.
+
+Connections attempts often took up to 10 seconds to be completed.
+Detailed information from the *Bluetooth* layer were inaccessible
+including detailed error states. 
+
+Fine grained control about discovery and connection parameter 
+were not exposed by the D-Bus API and hence *TinyB*.
+
+In Januaray 2020 we tried to remedy certain aspects to meet our goals,
+but concluded to require direct *Bluetooth* control
+via the *BlueZ*/*Linux* kernel implementation.
+
+*Direct-BT* was born.
+
+We then implemented data types for
+- *HCI Packets* to handle HCI communication to the adapter
+- *Mgmt Packets* to support *BlueZ*/Linux communication
+- *ATT PDU Messages* to handle GATT communication to the remote device
+- *SMP Packets* to implement *Secure Connections (SC)* 
+
+Last but not least we added 
+- *Bluetooth* version 5 support
+- GATT-Server support to enable implementing peripheral devices,
+  as well as to allow self-testing of *Direct-BT*.
+
+Today, *Direct-BT*'s C++ and Java API match 1:1
+and shall not contain legacy API artifacts.
+
+### *TinyB* Removal since version 2.3
+Heading towards feature completion for *Direct-BT*, 
+we completely removed the previously refactored *TinyB*.
+
+Detailing full *Bluetooth* support in *Direct-BT* including the addition
+of GATT-Server support rendered *TinyB* an obstacle for the public API.
+
+However, *TinyB* inspired us and was a great reference implementation while developing and testing *Direct-BT*.
+
+We like to thank the authors of *TinyB* for their great work helping others and us moving forward.
+Thank you!
+
+### *TinyB*
+*TinyB* was developed by the *Intel Corporation*
+and its main authors were
+- Petre Eftime <petre.p.eftime@intel.com>
+- Andrei Vasiliu <andrei.vasiliu@intel.com>
+
+*TinyB* was licensed under the *The MIT License (MIT)*
+and the *Intel Corporation* holds its copyright
+from the year 2016.
 
 ## Changes
 **3.0.0 *Direct-BT* Maturity (Bluetooth LE)**

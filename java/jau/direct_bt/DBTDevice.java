@@ -39,11 +39,8 @@ import org.direct_bt.BTSecurityLevel;
 import org.direct_bt.BTDevice;
 import org.direct_bt.BTException;
 import org.direct_bt.BTGattChar;
-import org.direct_bt.BTGattDesc;
 import org.direct_bt.BTGattService;
-import org.direct_bt.BTObject;
 import org.direct_bt.BTRole;
-import org.direct_bt.BTType;
 import org.direct_bt.BTUtils;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.BTGattCharListener;
@@ -186,13 +183,23 @@ public class DBTDevice extends DBTObject implements BTDevice
     private native String getNameImpl();
 
     @Override
-    public BTType getBluetoothType() { return class_type(); }
-
-    static BTType class_type() { return BTType.DEVICE; }
-
-    @Override
     public BTGattService findGattService(final String service_uuid) {
-        return (BTGattService) findInCache(service_uuid, BTType.GATT_SERVICE);
+        synchronized(serviceCache) {
+            if( !checkServiceCache(true) ) {
+                return null;
+            }
+            for(int srvIdx = serviceCache.size() - 1; srvIdx >= 0; srvIdx-- ) {
+                final DBTGattService service = serviceCache.get(srvIdx).get();
+                if( null == service ) {
+                    serviceCache.remove(srvIdx); // remove dead ref
+                    continue; // cont w/ next service
+                }
+                if( service.getUUID().equals(service_uuid) ) {
+                    return service;
+                }
+            }
+            return null;
+        }
     }
 
     @Override
@@ -567,77 +574,6 @@ public class DBTDevice extends DBTObject implements BTDevice
                 }
             }
             return true;
-        }
-    }
-
-    /**
-     * Returns the matching {@link DBTObject} from the internal cache if found,
-     * otherwise {@code null}.
-     * <p>
-     * The returned {@link DBTObject} may be of type
-     * <ul>
-     *   <li>{@link DBTGattService}</li>
-     *   <li>{@link DBTGattChar}</li>
-     *   <li>{@link DBTGattDesc}</li>
-     * </ul>
-     * or alternatively in {@link BTObject} space
-     * <ul>
-     *   <li>{@link BTType#GATT_SERVICE} -> {@link BTGattService}</li>
-     *   <li>{@link BTType#GATT_CHARACTERISTIC} -> {@link BTGattChar}</li>
-     *   <li>{@link BTType#GATT_DESCRIPTOR} -> {@link BTGattDesc}</li>
-     * </ul>
-     * </p>
-     * @param uuid UUID of the desired {@link BTType#GATT_SERVICE service},
-     * {@link BTType#GATT_CHARACTERISTIC characteristic} or {@link BTType#GATT_DESCRIPTOR descriptor} to be found.
-     * Maybe {@code null}, in which case the first object of the desired type is being returned - if existing.
-     * @param type specify the type of the object to be found, either
-     * {@link BTType#GATT_SERVICE service}, {@link BTType#GATT_CHARACTERISTIC characteristic}
-     * or {@link BTType#GATT_DESCRIPTOR descriptor}.
-     * {@link BTType#NONE none} means anything.
-     */
-    /* pp */ DBTObject findInCache(final String uuid, final BTType type) {
-        final boolean anyType = BTType.NONE == type;
-        final boolean serviceType = BTType.GATT_SERVICE == type;
-        final boolean charType = BTType.GATT_CHARACTERISTIC== type;
-        final boolean descType = BTType.GATT_DESCRIPTOR == type;
-
-        if( !anyType && !serviceType && !charType && !descType ) {
-            return null;
-        }
-        synchronized(serviceCache) {
-            if( !checkServiceCache(true) ) {
-                return null;
-            }
-
-            if( null == uuid && ( anyType || serviceType ) ) {
-                // special case for 1st valid service ref
-                while( !serviceCache.isEmpty() ) {
-                    final DBTGattService service = serviceCache.get(0).get();
-                    if( null == service ) {
-                        serviceCache.remove(0);
-                    } else {
-                        return service;
-                    }
-                }
-                return null; // empty valid service refs
-            }
-            for(int srvIdx = serviceCache.size() - 1; srvIdx >= 0; srvIdx-- ) {
-                final DBTGattService service = serviceCache.get(srvIdx).get();
-                if( null == service ) {
-                    serviceCache.remove(srvIdx); // remove dead ref
-                    continue; // cont w/ next service
-                }
-                if( ( anyType || serviceType ) && service.getUUID().equals(uuid) ) {
-                    return service;
-                }
-                if( anyType || charType || descType ) {
-                    final DBTObject dbtObj = service.findInCache(uuid, type);
-                    if( null != dbtObj ) {
-                        return dbtObj;
-                    }
-                }
-            }
-            return null;
         }
     }
 }

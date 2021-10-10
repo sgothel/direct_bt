@@ -538,16 +538,10 @@ public class BTFactory {
         try {
             final BTManager mngr = getDirectBTManager();
             final List<BTAdapter> adapters = mngr.getAdapters();
-            System.err.println("BTManager: Settings "+mngr.getSettings().toString()+", adapters "+adapters.size());
-            final boolean isDBT = mngr.getSettings().isDirectBT();
+            System.err.println("BTManager: adapters "+adapters.size());
             int i=0;
             for(final Iterator<BTAdapter> iter = adapters.iterator(); iter.hasNext(); ++i) {
-                if( isDBT ) {
-                    System.err.println("BTAdapter["+i+"]: "+iter.next().toString()); // has full toString()
-                } else {
-                    final BTAdapter a = iter.next();
-                    System.err.println("BTAdapter["+i+"]: dev_id "+a.getDevID()+", address "+a.getAddressAndType()+", name "+a.getName());
-                }
+                System.err.println("BTAdapter["+i+"]: "+iter.next().toString()); // has full toString()
             }
         } catch (BTException | NoSuchMethodException | SecurityException
                 | IllegalAccessException | IllegalArgumentException

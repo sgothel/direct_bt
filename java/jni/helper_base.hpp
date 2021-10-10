@@ -1,7 +1,4 @@
-/*
- * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
- * Copyright (c) 2016 Intel Corporation.
- *
+/**
  * Author: Sven Gothel <sgothel@jausoft.com>
  * Copyright (c) 2020 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
@@ -37,8 +34,6 @@
 #include <jau/jni/helper_jni.hpp>
 
 #include "direct_bt/BTTypes0.hpp"
-
-jobject get_bluetooth_type(JNIEnv *env, const char *field_name);
 
 void raise_java_exception(JNIEnv *env, const direct_bt::BTException &e, const char* file, int line);
 

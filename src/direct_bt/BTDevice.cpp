@@ -1270,39 +1270,6 @@ HCIStatusCode BTDevice::setLinkKey(const SMPLinkKey& lk) noexcept {
 #endif
 }
 
-HCIStatusCode BTDevice::pair(const SMPIOCapability io_cap) noexcept {
-    /**
-     * Experimental only.
-     * <pre>
-     *   adapter.stopDiscovery(): Renders pairDevice(..) to fail: Busy!
-     *   pairDevice(..) behaves quite instable within our connected workflow: Not used!
-     * </pre>
-     */
-    if( SMPIOCapability::UNSET == io_cap ) {
-        DBG_PRINT("BTDevice::pairDevice: io %s, invalid value.", to_string(io_cap).c_str());
-        return HCIStatusCode::INVALID_PARAMS;
-    }
-#if USE_LINUX_BT_SECURITY
-    BTManager& mngr = adapter.getManager();
-
-    DBG_PRINT("BTDevice::pairDevice: Start: io %s, %s", to_string(io_cap).c_str(), toString().c_str());
-    mngr.uploadConnParam(adapter.dev_id, addressAndType);
-
-    jau::sc_atomic_critical sync(sync_data);
-    pairing_data.ioCap_conn = io_cap;
-    const bool res = mngr.pairDevice(adapter.dev_id, addressAndType, io_cap);
-    if( !res ) {
-        pairing_data.ioCap_conn = SMPIOCapability::UNSET;
-    }
-    DBG_PRINT("BTDevice::pairDevice: End: io %s, %s", to_string(io_cap).c_str(), toString().c_str());
-    return res ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
-#elif SMP_SUPPORTED_BY_OS
-    return HCIStatusCode::NOT_SUPPORTED;
-#else
-    return HCIStatusCode::NOT_SUPPORTED;
-#endif
-}
-
 bool BTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept {
     if( BTSecurityLevel::UNSET == sec_level ) {
         DBG_PRINT("DBTAdapter::setConnSecurityLevel: lvl %s, invalid value.", to_string(sec_level).c_str());

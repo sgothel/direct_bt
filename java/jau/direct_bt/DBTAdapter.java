@@ -41,14 +41,9 @@ import org.direct_bt.BDAddressType;
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTDevice;
 import org.direct_bt.BTException;
-import org.direct_bt.BTGattChar;
-import org.direct_bt.BTGattDesc;
-import org.direct_bt.BTGattService;
 import org.direct_bt.BTManager;
 import org.direct_bt.BTMode;
-import org.direct_bt.BTObject;
 import org.direct_bt.BTRole;
-import org.direct_bt.BTType;
 import org.direct_bt.BTUtils;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.HCIStatusCode;
@@ -204,11 +199,6 @@ public class DBTAdapter extends DBTObject implements BTAdapter
         return HCIStatusCode.get( setNameImpl(name, short_name) );
     }
     private native byte setNameImpl(final String name, String short_name);
-
-    @Override
-    public BTType getBluetoothType() { return class_type(); }
-
-    static BTType class_type() { return BTType.ADAPTER; }
 
     @Override
     public BTDevice find(final String name, final BDAddressAndType addressAndType, final long timeoutMS) {
@@ -610,91 +600,6 @@ public class DBTAdapter extends DBTObject implements BTAdapter
         }
 
     };
-
-    /**
-     * Returns the matching {@link DBTObject} from the internal cache if found,
-     * otherwise {@code null}.
-     * <p>
-     * The returned {@link DBTObject} may be of type
-     * <ul>
-     *   <li>{@link DBTDevice}</li>
-     *   <li>{@link DBTGattService}</li>
-     *   <li>{@link DBTGattChar}</li>
-     *   <li>{@link DBTGattDesc}</li>
-     * </ul>
-     * or alternatively in {@link BTObject} space
-     * <ul>
-     *   <li>{@link BTType#DEVICE} -> {@link BTDevice}</li>
-     *   <li>{@link BTType#GATT_SERVICE} -> {@link BTGattService}</li>
-     *   <li>{@link BTType#GATT_CHARACTERISTIC} -> {@link BTGattChar}</li>
-     *   <li>{@link BTType#GATT_DESCRIPTOR} -> {@link BTGattDesc}</li>
-     * </ul>
-     * </p>
-     * @param name name of the desired {@link BTType#DEVICE device}.
-     * Maybe {@code null}.
-     * @param identifier EUI48 address of the desired {@link BTType#DEVICE device}
-     * or UUID of the desired {@link BTType#GATT_SERVICE service},
-     * {@link BTType#GATT_CHARACTERISTIC characteristic} or {@link BTType#GATT_DESCRIPTOR descriptor} to be found.
-     * Maybe {@code null}, in which case the first object of the desired type is being returned - if existing.
-     * @param type specify the type of the object to be found, either
-     * {@link BTType#DEVICE device},
-     * {@link BTType#GATT_SERVICE service}, {@link BTType#GATT_CHARACTERISTIC characteristic}
-     * or {@link BTType#GATT_DESCRIPTOR descriptor}.
-     * {@link BTType#NONE none} means anything.
-     */
-    /* pp */ DBTObject findInCache(final String name, final String identifier, final BTType type) {
-        final boolean anyType = BTType.NONE == type;
-        final boolean deviceType = BTType.DEVICE == type;
-        final boolean serviceType = BTType.GATT_SERVICE == type;
-        final boolean charType = BTType.GATT_CHARACTERISTIC== type;
-        final boolean descType = BTType.GATT_DESCRIPTOR == type;
-
-        if( !anyType && !deviceType && !serviceType && !charType && !descType ) {
-            return null;
-        }
-        synchronized(discoveredDevicesLock) {
-            cleanDiscoveredDevice();
-
-            if( null == name && null == identifier && ( anyType || deviceType ) ) {
-                // special case for 1st valid device
-                if( discoveredDevices.size() > 0 ) {
-                    return (DBTDevice) discoveredDevices.get(0).get();
-                }
-                return null; // no device
-            }
-            for(int devIdx = discoveredDevices.size() - 1; devIdx >= 0; devIdx-- ) {
-                final DBTDevice device = (DBTDevice) discoveredDevices.get(devIdx).get();
-                if( ( anyType || deviceType ) ) {
-                    if( null != name && null != identifier &&
-                        device.getName().equals(name) &&
-                        device.getAddressAndType().address.toString().equals(identifier)
-                      )
-                    {
-                        return device;
-                    }
-                    if( null != identifier &&
-                        device.getAddressAndType().address.toString().equals(identifier)
-                      )
-                    {
-                        return device;
-                    }
-                    if( null != name &&
-                        device.getName().equals(name)
-                      )
-                    {
-                        return device;
-                    }
-                }
-                if( anyType || serviceType || charType || descType ) {
-                    final DBTObject dbtObj = device.findInCache(identifier, type);
-                    if( null != dbtObj ) {
-                        return dbtObj;
-                    }
-                }
-            }
-            return null;
-        }
-    }
 
     /* pp */ DBTDevice findDeviceInCache(final String name, final BDAddressAndType addressAndType) {
         synchronized(discoveredDevicesLock) {
