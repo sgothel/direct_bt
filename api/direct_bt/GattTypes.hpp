@@ -61,11 +61,14 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.4 Summary of GATT Profile Attribute Types
      */
     enum GattAttributeType : uint16_t {
-        /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services */
+        /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services, using AttPDUMsg::Opcode::READ_BY_GROUP_TYPE_REQ */
         PRIMARY_SERVICE                             = 0x2800,
         SECONDARY_SERVICE                           = 0x2801,
+
+        /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.5.1 Find Included Services, using AttPDUMsg::Opcode::READ_BY_TYPE_REQ */
         INCLUDE_DECLARATION                         = 0x2802,
-        /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service */
+
+        /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service, using , using AttPDUMsg::Opcode::READ_BY_TYPE_REQ */
         CHARACTERISTIC                              = 0x2803,
 
         CHARACTERISTIC_APPEARANCE                   = 0x2A01,
