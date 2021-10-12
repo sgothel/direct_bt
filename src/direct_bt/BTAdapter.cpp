@@ -1095,6 +1095,7 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
     eir.setFlags(GAPFlags::LE_Gen_Disc);
     eir.setName(getName());
     if( nullptr != gattServerData_ ) {
+        gattServerData_->setServicesHandles();
         for(DBGattService& s : gattServerData_->services) {
             eir.addService(s.type);
         }

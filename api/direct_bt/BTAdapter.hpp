@@ -928,6 +928,7 @@ namespace direct_bt {
              * - Consider SMP (security)
              *
              * @param gattServerData_ the DBGattServer data to be advertised and offered via GattHandler as ::GATTRole::Server.
+             *        Its handles will be setup via DBGattServer::setServicesHandles().
              * @param adv_interval_min in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
              * @param adv_interval_max in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
              * @param adv_type see AD_PDU_Type, default ::AD_PDU_Type::ADV_IND
@@ -938,6 +939,7 @@ namespace direct_bt {
              * @see isAdvertising()
              * @see isDiscovering()
              * @see @ref BTAdapterRoles
+             * @see DBGattServer::setServicesHandles()
              * @since 2.4.0
              */
             HCIStatusCode startAdvertising(DBGattServerRef gattServerData_,

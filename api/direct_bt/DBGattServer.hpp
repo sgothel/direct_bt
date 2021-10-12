@@ -140,6 +140,14 @@ namespace direct_bt {
             uint16_t handle;
 
             /**
+             * Characteristic end handle, inclusive.
+             * <p>
+             * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
+             * </p>
+             */
+            uint16_t end_handle;
+
+            /**
              * Characteristics Value Handle.
              * <p>
              * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
@@ -166,7 +174,7 @@ namespace direct_bt {
                        const BTGattChar::PropertyBitVal properties_,
                        const jau::darray<DBGattDesc>& descriptors_,
                        const jau::TROOctets & value_) noexcept
-            : handle(0), value_handle(0),
+            : handle(0), end_handle(0), value_handle(0),
               value_type(value_type_),
               properties(properties_),
               descriptors(descriptors_),
@@ -191,8 +199,9 @@ namespace direct_bt {
                 if( hasProperties(BTGattChar::PropertyBitVal::Notify) || hasProperties(BTGattChar::PropertyBitVal::Indicate) ) {
                     notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
                 }
-                return "Char[handle "+jau::to_hexstring(handle)+", props "+jau::to_hexstring(properties)+" "+BTGattChar::getPropertiesString(properties)+
-                       ", value[handle "+jau::to_hexstring(value_handle)+
+                return "Char[handle ["+jau::to_hexstring(handle)+".."+jau::to_hexstring(end_handle)+
+                       "], props "+jau::to_hexstring(properties)+" "+BTGattChar::getPropertiesString(properties)+
+                       ", value[type 0x"+value_type->toString()+", handle "+jau::to_hexstring(value_handle)+", "+value.toString()+
                        "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
             }
 
@@ -287,6 +296,7 @@ namespace direct_bt {
                     for(DBGattDesc& d : c.descriptors) {
                         d.handle = h++;
                     }
+                    c.end_handle = h-1;
                 }
                 end_handle = h;
                 return ( end_handle - handle ) + 1;
@@ -361,18 +371,41 @@ namespace direct_bt {
              * Sets all handles of all service instances and all its owned childs,
              * i.e. DBGattChars elements and its DBGattDesc elements.
              *
-             * @param start_handle a valid and unique start handle number > 0
+             * Start handle is `1`.
+             *
+             * Method is being called by BTAdapter when advertising is enabled
+             * via BTAdapter::startAdvertising().
+             *
              * @return number of set handles, i.e. `( end_handle - handle ) + 1`
+             * @see BTAdapter::startAdvertising()
              */
-            int setServicesHandles(const uint16_t start_handle) {
+            int setServicesHandles() {
                 int c = 0;
-                uint16_t h = start_handle;
+                uint16_t h = 1;
                 for(DBGattService& s : services) {
                     int l = s.setHandles(h);
                     c += l;
                     h += l; // end + 1 for next service
                 }
                 return c;
+            }
+
+            std::string toFullString() {
+                std::string res = toString()+"\n";
+                for(DBGattService& s : services) {
+                    res.append("  ").append(s.toString()).append("\n");
+                    for(DBGattChar& c : s.characteristics) {
+                        res.append("    ").append(c.toString()).append("\n");
+                        for(DBGattDesc& d : c.descriptors) {
+                            res.append("      ").append(d.toString()).append("\n");
+                        }
+                    }
+                }
+                return res;
+            }
+            std::string toString() const noexcept {
+                return "DBSrv["+std::to_string(services.size())+" services]";
+
             }
     };
     typedef std::shared_ptr<DBGattServer> DBGattServerRef;
