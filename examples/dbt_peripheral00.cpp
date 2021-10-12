@@ -87,14 +87,41 @@ DBGattServerRef dbGattServer( new DBGattServer(
                             DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::DEVICE_NAME) /* value_type_ */,
                                          BTGattChar::PropertyBitVal::Read,
                                          /* descriptors: */ { },
-                                         make_poctets("Synthethic Sensor 01") /* value */
-                            ),
+                                         make_poctets("Synthethic Sensor 01") /* value */ ),
                             DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::APPEARANCE) /* value_type_ */,
                                         BTGattChar::PropertyBitVal::Read,
                                         /* descriptors: */ { },
-                                        make_poctets((uint16_t)0) /* value */
-                           ) }
-        ) } ) );
+                                        make_poctets((uint16_t)0) /* value */ )
+                        } ),
+          DBGattService ( true /* primary */,
+                            std::make_unique<const jau::uuid16_t>(GattServiceType::DEVICE_INFORMATION) /* type_ */,
+                            /* characteristics: */ {
+                                DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::MANUFACTURER_NAME_STRING) /* value_type_ */,
+                                             BTGattChar::PropertyBitVal::Read,
+                                             /* descriptors: */ { },
+                                             make_poctets("Gothel Software") /* value */ ),
+                                DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::MODEL_NUMBER_STRING) /* value_type_ */,
+                                            BTGattChar::PropertyBitVal::Read,
+                                            /* descriptors: */ { },
+                                            make_poctets("2.4.0-pre") /* value */ ),
+                                DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::SERIAL_NUMBER_STRING) /* value_type_ */,
+                                            BTGattChar::PropertyBitVal::Read,
+                                            /* descriptors: */ { },
+                                            make_poctets("sn:0123456789") /* value */ ),
+                                DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::HARDWARE_REVISION_STRING) /* value_type_ */,
+                                            BTGattChar::PropertyBitVal::Read,
+                                            /* descriptors: */ { },
+                                            make_poctets("hw:0123456789") /* value */ ),
+                                DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::FIRMWARE_REVISION_STRING) /* value_type_ */,
+                                            BTGattChar::PropertyBitVal::Read,
+                                            /* descriptors: */ { },
+                                            make_poctets("fw:0123456789") /* value */ ),
+                                DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::SOFTWARE_REVISION_STRING) /* value_type_ */,
+                                            BTGattChar::PropertyBitVal::Read,
+                                            /* descriptors: */ { },
+                                            make_poctets("sw:0123456789") /* value */ )
+                            } ),
+        } ) );
 
 
 class MyAdapterStatusListener : public AdapterStatusListener {
@@ -241,6 +268,7 @@ static bool startAdvertising(BTAdapter *a, std::string msg) {
                                                adv_interval_min, adv_interval_max,
                                                adv_type, adv_chan_map, filter_policy);
     fprintf_td(stderr, "****** Start advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
+    fprintf_td(stderr, "%s", dbGattServer->toFullString().c_str());
     return HCIStatusCode::SUCCESS == status;
 }
 
