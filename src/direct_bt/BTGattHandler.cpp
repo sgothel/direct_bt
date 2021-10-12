@@ -186,34 +186,349 @@ bool BTGattHandler::getSendIndicationConfirmation() noexcept {
     return sendIndicationConfirmation;
 }
 
-void BTGattHandler::processAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) {
+void BTGattHandler::replyWriteReq(const AttWriteReq * pdu) {
+    AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu->getOpcode(), 0);
+    WARN_PRINT("GATT-Req: WRITE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+    send(err);
+}
+
+void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
+    /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value */
+    /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value */
+    uint16_t handle = 0;
+    uint16_t value_offset = 0;
+    bool isBlobReq;
+    if( AttPDUMsg::Opcode::READ_REQ == pdu->getOpcode() ) {
+        const AttReadReq * req = static_cast<const AttReadReq*>(pdu);
+        handle = req->getHandle();
+        isBlobReq = false;
+    } else if( AttPDUMsg::Opcode::READ_BLOB_REQ == pdu->getOpcode() ) {
+        const AttReadBlobReq * req = static_cast<const AttReadBlobReq*>(pdu);
+        handle = req->getHandle();
+        value_offset = req->getValueOffset();
+        isBlobReq = true;
+    } else {
+        AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu->getOpcode(), 0);
+        WARN_PRINT("GATT-Req: READ: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+        return;
+    }
+    if( 0 == handle ) {
+        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+        return;
+    }
+    const jau::nsize_t rspMaxSize = usedMTU.load()-1;
+    (void)rspMaxSize;
+    (void)value_offset;
+
+    if( nullptr != gattServerData ) {
+        for(DBGattService& s : gattServerData->services) {
+            if( s.handle <= handle && handle <= s.end_handle ) {
+                for(DBGattChar& c : s.characteristics) {
+                    if( c.handle <= handle && handle <= c.end_handle ) {
+                        if( handle == c.value_handle ) {
+                            // FIXME value_offset and rspMaxSize!
+                            AttReadNRsp rsp(isBlobReq, c.value);
+                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                            send(rsp);
+                            return;
+                        }
+                        for(DBGattDesc& d : c.descriptors) {
+                            if( handle == d.handle ) {
+                                AttReadNRsp rsp(isBlobReq, d.value);
+                                COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                                send(rsp);
+                                return;
+                            }
+                        }
+                    } // if characteristics-range
+                } // for characteristics
+            } // if service-range
+        } // for services
+    }
+    AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
+    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+    send(err);
+}
+
+void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
+    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.1 ATT_FIND_INFORMATION_REQ
+    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.2 ATT_FIND_INFORMATION_RSP
+    // BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
+    if( 0 == pdu->getStartHandle() ) {
+        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+        return;
+    }
+    if( pdu->getStartHandle() > pdu->getEndHandle() ) {
+        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), pdu->getStartHandle());
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+        return;
+    }
+    jau::nsize_t total_count = 0;
+    const uint16_t end_handle = pdu->getEndHandle();
+    const uint16_t start_handle = pdu->getStartHandle();
+
+    const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(255, usedMTU.load()-2);
+    AttFindInfoRsp rsp(usedMTU); // maximum size
+    jau::nsize_t rspElemSize = 0;
+    jau::uuid_t::TypeSize rspFormat = jau::uuid_t::TypeSize::UUID16_SZ;
+    jau::nsize_t rspSize = 0;
+    jau::nsize_t rspCount = 0;
+
+    if( nullptr != gattServerData ) {
+        for(DBGattService& s : gattServerData->services) {
+            for(DBGattChar& c : s.characteristics) {
+                for(DBGattDesc& d : c.descriptors) {
+                    if( start_handle <= d.handle && d.handle <= end_handle ) {
+                        const jau::nsize_t size = 2 + d.type->getTypeSizeInt();
+                        if( 0 == rspElemSize ) {
+                            // initial setting or reset
+                            rspElemSize = size;
+                            rspFormat = d.type->getTypeSize();
+                        }
+                        if( rspSize + size >= rspMaxSize || rspElemSize != size ) {
+                            // send if rsp is full - or - element size changed
+                            rsp.setElementSize(rspFormat, rspCount);
+                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                            send(rsp);
+                            return; // Client shall issue additional FIND_INFORMATION_REQ
+                        }
+                        rsp.setElementHandle(rspCount, d.handle);
+                        rsp.setElementValueUUID(rspCount, *d.type);
+                        ++rspCount;
+                        ++total_count;
+                    }
+                }
+            }
+        }
+    }
+    if( 0 < rspSize ) {
+        rsp.setElementSize(rspFormat, rspCount);
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+        send(rsp);
+    } else if( 0 == total_count ) {
+        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+    }
+}
+
+void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
+    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.1 ATT_READ_BY_TYPE_REQ
+    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.2 ATT_READ_BY_TYPE_RSP
+    // BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
+    if( 0 == pdu->getStartHandle() ) {
+        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+        return;
+    }
+    if( pdu->getStartHandle() > pdu->getEndHandle() ) {
+        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), pdu->getStartHandle());
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+        return;
+    }
+    const jau::uuid16_t uuid_characteristic = jau::uuid16_t(GattAttributeType::CHARACTERISTIC);
+    const jau::uuid16_t uuid_incl_service = jau::uuid16_t(GattAttributeType::INCLUDE_DECLARATION);
+    uint16_t req_type;
+    if( pdu->getNType()->equivalent( uuid_characteristic ) ) {
+        req_type = GattAttributeType::CHARACTERISTIC;
+    } else if( pdu->getNType()->equivalent( uuid_incl_service ) ) {
+        req_type = GattAttributeType::INCLUDE_DECLARATION;
+    } else {
+        // not handled
+        req_type = 0;
+    }
+    jau::nsize_t total_count = 0;
+    if( GattAttributeType::CHARACTERISTIC == req_type ) {
+        const uint16_t end_handle = pdu->getEndHandle();
+        const uint16_t start_handle = pdu->getStartHandle();
+
+        const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(253, usedMTU.load()-4);
+        AttReadByTypeRsp rsp(usedMTU); // maximum size
+        jau::nsize_t rspElemSize = 0;
+        jau::nsize_t rspSize = 0;
+        jau::nsize_t rspCount = 0;
+
+        if( nullptr != gattServerData ) {
+            for(DBGattService& s : gattServerData->services) {
+                for(DBGattChar& c : s.characteristics) {
+                    if( start_handle <= c.handle && c.handle <= end_handle ) {
+                        const jau::nsize_t size = 2 + 1 + 2 + c.value_type->getTypeSizeInt();
+                        if( 0 == rspElemSize ) {
+                            // initial setting or reset
+                            rspElemSize = size;
+                        }
+                        if( rspSize + size >= rspMaxSize || rspElemSize != size ) {
+                            // send if rsp is full - or - element size changed
+                            rsp.setElementSize(rspElemSize, rspCount);
+                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                            send(rsp);
+                            return; // Client shall issue additional READ_BY_TYPE_REQ
+                        }
+                        jau::nsize_t ePDUOffset = rsp.getElementPDUOffset(rspCount);
+                        rsp.setElementHandle(rspCount, c.handle); // Characteristic Handle
+                        ePDUOffset += 2;
+                        rsp.pdu.put_uint8_nc(ePDUOffset, c.properties); // Characteristics Property
+                        ePDUOffset += 1;
+                        rsp.pdu.put_uint16_nc(ePDUOffset, c.value_handle); // Characteristics Value Handle
+                        ePDUOffset += 2;
+                        c.value_type->put(rsp.pdu.get_wptr_nc(ePDUOffset), 0, true /* littleEndian */); // Characteristics Value Type UUID
+                        ePDUOffset += c.value_type->getTypeSizeInt();
+                        rspSize += size;
+                        ++rspCount;
+                        ++total_count;
+                    }
+                }
+            }
+        }
+        if( 0 < rspSize ) {
+            rsp.setElementSize(rspElemSize, rspCount);
+            COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+            send(rsp);
+        } else if( 0 == total_count ) {
+            AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
+            COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+            send(err);
+        }
+    } else {
+        // TODO: Add other group types ???
+        AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu->getOpcode(), 0);
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+    }
+}
+
+void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
+    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.9 ATT_READ_BY_GROUP_TYPE_REQ
+    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.10 ATT_READ_BY_GROUP_TYPE_RSP
+    // BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
+    if( 0 == pdu->getStartHandle() ) {
+        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+        return;
+    }
+    if( pdu->getStartHandle() > pdu->getEndHandle() ) {
+        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), pdu->getStartHandle());
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+        return;
+    }
+    const jau::uuid16_t uuid_prim_service = jau::uuid16_t(GattAttributeType::PRIMARY_SERVICE);
+    const jau::uuid16_t uuid_secd_service = jau::uuid16_t(GattAttributeType::SECONDARY_SERVICE);
+    uint16_t req_group_type;
+    if( pdu->getNType()->equivalent( uuid_prim_service ) ) {
+        req_group_type = GattAttributeType::PRIMARY_SERVICE;
+    } else if( pdu->getNType()->equivalent( uuid_secd_service ) ) {
+        req_group_type = GattAttributeType::SECONDARY_SERVICE;
+    } else {
+        // not handled
+        req_group_type = 0;
+    }
+    jau::nsize_t total_count = 0;
+    if( 0 != req_group_type ) {
+        const uint16_t end_handle = pdu->getEndHandle();
+        const uint16_t start_handle = pdu->getStartHandle();
+
+        const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(251, usedMTU.load()-6);
+        AttReadByGroupTypeRsp rsp(usedMTU); // maximum size
+        jau::nsize_t rspElemSize = 0;
+        jau::nsize_t rspSize = 0;
+        jau::nsize_t rspCount = 0;
+
+        if( nullptr != gattServerData ) {
+            for(DBGattService& s : gattServerData->services) {
+                if( ( ( GattAttributeType::PRIMARY_SERVICE   == req_group_type &&  s.primary ) ||
+                      ( GattAttributeType::SECONDARY_SERVICE == req_group_type && !s.primary )
+                    ) &&
+                    start_handle <= s.handle && s.handle <= end_handle )
+                {
+                    const jau::nsize_t size = 2 + 2 + s.type->getTypeSizeInt();
+                    if( 0 == rspElemSize ) {
+                        // initial setting or reset
+                        rspElemSize = size;
+                    }
+                    if( rspSize + size >= rspMaxSize || rspElemSize != size ) {
+                        // send if rsp is full - or - element size changed
+                        rsp.setElementSize(rspElemSize, rspCount);
+                        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                        send(rsp);
+                        return; // Client shall issue additional READ_BY_TYPE_REQ
+                    }
+                    rsp.setElementStartHandle(rspCount, s.handle);
+                    rsp.setElementEndHandle(rspCount, s.end_handle);
+                    rsp.setElementValueUUID(rspCount, *s.type);
+                    rspSize += size;
+                    ++rspCount;
+                    ++total_count;
+                }
+            }
+        }
+        if( 0 < rspSize ) {
+            rsp.setElementSize(rspElemSize, rspCount);
+            COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+            send(rsp);
+        } else if( 0 == total_count ) {
+            AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
+            COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+            send(err);
+        }
+    } else {
+        // TODO: Add other group types ???
+        AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu->getOpcode(), 0);
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+    }
+}
+
+void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) {
     switch( pdu->getOpcode() ) {
         case AttPDUMsg::Opcode::EXCHANGE_MTU_REQ: {
             const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
             const uint16_t clientMTU = p->getMTUSize();
             usedMTU = std::min((int)serverMTU, (int)clientMTU);
-            const AttExchangeMTU res(AttPDUMsg::ReqRespType::RESPONSE, usedMTU);
+            const AttExchangeMTU rsp(AttPDUMsg::ReqRespType::RESPONSE, usedMTU);
             COND_PRINT(env.DEBUG_DATA, "GATT-Req: MTU recv: %u, %s  -> %u %s from %s",
                     clientMTU, pdu->toString().c_str(),
-                    usedMTU.load(), res.toString().c_str(), toString().c_str());
-            send(res);
+                    usedMTU.load(), rsp.toString().c_str(), toString().c_str());
+            send(rsp);
             return;
         }
-        case AttPDUMsg::Opcode::FIND_INFORMATION_REQ:
-            [[fallthrough]];
-        case AttPDUMsg::Opcode::FIND_BY_TYPE_VALUE_REQ:
-            [[fallthrough]];
-        case AttPDUMsg::Opcode::READ_BY_TYPE_REQ:
-            [[fallthrough]];
+        case AttPDUMsg::Opcode::READ_BY_TYPE_REQ: {
+            replyReadByTypeReq( static_cast<const AttReadByNTypeReq*>( pdu.get() ) );
+            return;
+        }
+        case AttPDUMsg::Opcode::READ_BY_GROUP_TYPE_REQ: {
+            replyReadByGroupTypeReq( static_cast<const AttReadByNTypeReq*>( pdu.get() ) );
+            return;
+        }
+        case AttPDUMsg::Opcode::FIND_INFORMATION_REQ: {
+            replyFindInfoReq( static_cast<const AttFindInfoReq*>( pdu.get() ) );
+            return;
+        }
         case AttPDUMsg::Opcode::READ_REQ:
             [[fallthrough]];
-        case AttPDUMsg::Opcode::READ_BLOB_REQ:
+        case AttPDUMsg::Opcode::READ_BLOB_REQ: {
+            replyReadReq( pdu.get() );
+            return;
+        }
+        case AttPDUMsg::Opcode::WRITE_REQ: {
+            replyWriteReq( static_cast<const AttWriteReq*>( pdu.get() ) );
+            return;
+        }
+
+        // TODO: Add support for the following requests
+
+        case AttPDUMsg::Opcode::FIND_BY_TYPE_VALUE_REQ:
             [[fallthrough]];
         case AttPDUMsg::Opcode::READ_MULTIPLE_REQ:
-            [[fallthrough]];
-        case AttPDUMsg::Opcode::READ_BY_GROUP_TYPE_REQ:
-            [[fallthrough]];
-        case AttPDUMsg::Opcode::WRITE_REQ:
             [[fallthrough]];
         case AttPDUMsg::Opcode::WRITE_CMD:
             [[fallthrough]];
@@ -322,7 +637,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
                 COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: Ring: %s", attPDU->toString().c_str());
                 attPDURing.putBlocking( std::move(attPDU) );
             } else if( AttPDUMsg::OpcodeType::REQUEST == opc_type ) {
-                processAttPDUReq( std::move( attPDU ) );
+                replyAttPDUReq( std::move( attPDU ) );
             } else {
                 ERR_PRINT("GATTHandler::reader: Unhandled: %s", attPDU->toString().c_str());
             }
@@ -490,8 +805,9 @@ void BTGattHandler::send(const AttPDUMsg & msg) {
     if( !validateConnected() ) {
         throw jau::IllegalStateException("GATTHandler::send: Invalid IO State: req "+msg.toString()+" to "+toString(), E_FILE_LINE);
     }
-    if( msg.pdu.size() > usedMTU ) {
-        throw jau::IllegalArgumentException("clientMaxMTU "+std::to_string(msg.pdu.size())+" > usedMTU "+std::to_string(usedMTU)+
+    // [1 .. ATT_MTU-1] BT Core Spec v5.2: Vol 3, Part F 3.2.9 Long attribute values
+    if( msg.pdu.size() >= usedMTU ) {
+        throw jau::IllegalArgumentException("clientMaxMTU "+std::to_string(msg.pdu.size())+" >= usedMTU "+std::to_string(usedMTU)+
                                        " to "+toString(), E_FILE_LINE);
     }
 
@@ -642,11 +958,11 @@ bool BTGattHandler::discoverPrimaryServices(std::shared_ptr<BTGattHandler> share
 
         if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_BY_GROUP_TYPE_RSP ) {
             const AttReadByGroupTypeRsp * p = static_cast<const AttReadByGroupTypeRsp*>(pdu.get());
+            const int esz = p->getElementSize();
             const int count = p->getElementCount();
 
             for(int i=0; i<count; i++) {
                 const int ePDUOffset = p->getElementPDUOffset(i);
-                const int esz = p->getElementTotalSize();
                 result.push_back( BTGattServiceRef( new BTGattService( shared_this, true,
                         p->pdu.get_uint16(ePDUOffset), // start-handle
                         p->pdu.get_uint16(ePDUOffset + 2), // end-handle
@@ -702,13 +1018,13 @@ bool BTGattHandler::discoverCharacteristics(BTGattServiceRef & service) {
 
         if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_BY_TYPE_RSP ) {
             const AttReadByTypeRsp * p = static_cast<const AttReadByTypeRsp*>(pdu.get());
+            const int esz = p->getElementSize();
             const int e_count = p->getElementCount();
 
             for(int e_iter=0; e_iter<e_count; e_iter++) {
                 // handle: handle for the Characteristics declaration
                 // value: Characteristics Property, Characteristics Value Handle _and_ Characteristics UUID
                 const int ePDUOffset = p->getElementPDUOffset(e_iter);
-                const int esz = p->getElementTotalSize();
                 service->characteristicList.push_back( BTGattCharRef( new BTGattChar(
                     service,
                     p->getElementHandle(e_iter), // Characteristic Handle
@@ -871,7 +1187,7 @@ bool BTGattHandler::readValue(const uint16_t handle, jau::POctets & res, int exp
 
         COND_PRINT(env.DEBUG_DATA, "GATT RV recv: %s from %s", pdu->toString().c_str(), toString().c_str());
         if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_RSP ) {
-            const AttReadRsp * p = static_cast<const AttReadRsp*>(pdu.get());
+            const AttReadNRsp * p = static_cast<const AttReadNRsp*>(pdu.get());
             const jau::TOctetSlice & v = p->getValue();
             res += v;
             offset += v.size();
@@ -879,7 +1195,7 @@ bool BTGattHandler::readValue(const uint16_t handle, jau::POctets & res, int exp
                 done = true; // No full ATT_MTU PDU used - end of communication
             }
         } else if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_BLOB_RSP ) {
-            const AttReadBlobRsp * p = static_cast<const AttReadBlobRsp*>(pdu.get());
+            const AttReadNRsp * p = static_cast<const AttReadNRsp*>(pdu.get());
             const jau::TOctetSlice & v = p->getValue();
             if( 0 == v.size() ) {
                 done = true; // OK by spec: No more data - end of communication

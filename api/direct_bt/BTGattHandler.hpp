@@ -199,23 +199,33 @@ namespace direct_bt {
 
             bool validateConnected() noexcept;
 
-            void processAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu);
+            void replyWriteReq(const AttWriteReq * pdu);
+            void replyReadReq(const AttPDUMsg * pdu);
+            void replyFindInfoReq(const AttFindInfoReq * pdu);
+            void replyReadByTypeReq(const AttReadByNTypeReq * pdu);
+            void replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu);
+            void replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu);
+
             void l2capReaderThreadImpl();
+
 
             /**
              * Sends the given AttPDUMsg to the connected device via l2cap.
-             * <p>
+             *
              * Implementation throws an IllegalStateException if not connected,
-             * a IllegalArgumentException if message size exceeds usedMTU.
-             * </p>
-             * <p>
+             * a IllegalArgumentException if message size exceeds usedMTU-1.
+             *
+             * ATT_MTU range
+             * - ATT_MTU minimum is 23 bytes (Vol 3, Part G: 5.2.1)
+             * - ATT_MTU is negotiated, maximum is 512 bytes (Vol 3, Part F: 3.2.8-9)
+             * - ATT Value sent: [1 .. ATT_MTU-1] (Vol 3, Part F: 3.2.8-9)
+             *
              * Implementation disconnect() and throws an BluetoothException
              * if an l2cap write errors occurs.
-             * </p>
-             * <p>
+             *
              * In case method completes, the message has been send out successfully.
-             * </p>
              * @param msg the message to be send
+             * @see exchangeMTUImpl()
              */
             void send(const AttPDUMsg & msg);
 
@@ -243,9 +253,10 @@ namespace direct_bt {
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.4.2 MTU Exchange
-             * <p>
+             *
              * Returns the server-mtu if successful, otherwise 0.
-             * </p>
+             *
+             * @see send()
              */
             uint16_t exchangeMTUImpl(const uint16_t clientMaxMTU, const int32_t timeout);
 
