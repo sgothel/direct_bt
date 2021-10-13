@@ -39,7 +39,6 @@
 #include "BTGattHandler.hpp"
 
 using namespace direct_bt;
-using namespace jau;
 
 const std::shared_ptr<jau::uuid_t> BTGattDesc::TYPE_EXT_PROP( std::make_shared<jau::uuid16_t>(Type::CHARACTERISTIC_EXTENDED_PROPERTIES) );
 const std::shared_ptr<jau::uuid_t> BTGattDesc::TYPE_USER_DESC( std::make_shared<jau::uuid16_t>(Type::CHARACTERISTIC_USER_DESCRIPTION) );
@@ -48,7 +47,7 @@ const std::shared_ptr<jau::uuid_t> BTGattDesc::TYPE_CCC_DESC( std::make_shared<j
 std::shared_ptr<BTGattChar> BTGattDesc::getGattCharChecked() const {
     std::shared_ptr<BTGattChar> ref = wbr_char.lock();
     if( nullptr == ref ) {
-        throw IllegalStateException("GATTDescriptor's characteristic already destructed: "+toShortString(), E_FILE_LINE);
+        throw jau::IllegalStateException("GATTDescriptor's characteristic already destructed: "+toShortString(), E_FILE_LINE);
     }
     return ref;
 }
@@ -65,7 +64,7 @@ bool BTGattDesc::readValue(int expectedLength) {
     std::shared_ptr<BTDevice> device = getDeviceChecked();
     std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
     if( nullptr == gatt ) {
-        throw IllegalStateException("Descriptor's device GATTHandle not connected: "+toShortString(), E_FILE_LINE);
+        throw jau::IllegalStateException("Descriptor's device GATTHandle not connected: "+toShortString(), E_FILE_LINE);
     }
     return gatt->readDescriptorValue(*this, expectedLength);
 }
@@ -74,15 +73,15 @@ bool BTGattDesc::writeValue() {
     std::shared_ptr<BTDevice> device = getDeviceChecked();
     std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
     if( nullptr == gatt ) {
-        throw IllegalStateException("Descriptor's device GATTHandle not connected: "+toShortString(), E_FILE_LINE);
+        throw jau::IllegalStateException("Descriptor's device GATTHandle not connected: "+toShortString(), E_FILE_LINE);
     }
     return gatt->writeDescriptorValue(*this);
 }
 
 std::string BTGattDesc::toString() const noexcept {
-    return "Desc[type 0x"+type->toString()+", handle "+to_hexstring(handle)+", value["+value.toString()+"]]";
+    return "Desc[type 0x"+type->toString()+", handle "+jau::to_hexstring(handle)+", value["+value.toString()+"]]";
 }
 
 std::string BTGattDesc::toShortString() const noexcept {
-    return "Desc[handle "+to_hexstring(handle)+", value["+value.toString()+"]]";
+    return "Desc[handle "+jau::to_hexstring(handle)+", value["+value.toString()+"]]";
 }
