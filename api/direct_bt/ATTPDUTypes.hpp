@@ -1610,6 +1610,14 @@ namespace direct_bt {
                 }
                 throw AttValueException("AttFindInfoRsp: Invalid format "+std::to_string(format)+", not UUID16 (1) or UUID128 (2)", E_FILE_LINE);
             }
+            static uint8_t toFormatCode(const jau::uuid_t::TypeSize tsz) {
+                switch( tsz ) {
+                    case jau::uuid_t::TypeSize::UUID16_SZ: return 0x01;
+                    case jau::uuid_t::TypeSize::UUID128_SZ: return 0x02;
+                    default: break;
+                }
+                throw AttValueException("AttFindInfoRsp: Invalid TypeSize "+jau::uuid_t::getTypeSizeString(tsz)+", not UUID16_SZ (1) or UUID128_SZ (2)", E_FILE_LINE);
+            }
             static jau::nsize_t getElementSize2(jau::uuid_t::TypeSize tsz) {
                 return 2 /* handle */ + jau::uuid_t::number( tsz );
             }
@@ -1684,15 +1692,15 @@ namespace direct_bt {
              * @param element_length
              * @param count
              */
-            void setElementSize(const jau::uuid_t::TypeSize format, const jau::nsize_t count) {
-                const jau::nsize_t element_length = getElementSize2( format );
+            void setElementSize(const jau::uuid_t::TypeSize tsz, const jau::nsize_t count) {
+                const jau::nsize_t element_length = getElementSize2( tsz );
                 const jau::nsize_t new_size = getPDUValueOffset() + element_length * count;
                 if( pdu.size() < new_size ) {
                     throw jau::IllegalArgumentException("AttFindInfoRsp: "+std::to_string(getPDUValueOffset())+
                             " + element[len "+std::to_string(element_length)+
                             " * count "+std::to_string(count)+" > pdu "+std::to_string(pdu.size()), E_FILE_LINE);
                 }
-                pdu.put_uint8_nc(1, element_length);
+                pdu.put_uint8_nc(1, toFormatCode(tsz));
                 pdu.resize( new_size );
                 if( getPDUValueSize() % getElementSize() != 0 ) {
                     throw AttValueException("AttFindInfoRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
@@ -1708,7 +1716,7 @@ namespace direct_bt {
                 return pdu.get_uint16( getElementPDUOffset(elementIdx) );
             }
             void setElementHandle(const jau::nsize_t elementIdx, const uint16_t h) {
-                pdu.put_uint16_nc( getElementPDUOffset(elementIdx) + 2, h );
+                pdu.put_uint16_nc( getElementPDUOffset(elementIdx), h );
             }
 
             std::unique_ptr<const jau::uuid_t> getElementValue(const jau::nsize_t elementIdx) const {
