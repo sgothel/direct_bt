@@ -67,6 +67,9 @@ public class DBTGattChar extends DBTObject implements BTGattChar
     /* Optional Client Characteristic Configuration index within descriptorList */
     private final int clientCharacteristicsConfigIndex;
 
+    /* Optional Characteristic User Description index within descriptorList */
+    private final int userDescriptionIndex;
+
     /* pp */ final List<BTGattDesc> descriptorList;
 
     boolean enabledNotifyState = false;
@@ -75,7 +78,8 @@ public class DBTGattChar extends DBTObject implements BTGattChar
    /* pp */ DBTGattChar(final long nativeInstance, final DBTGattService service,
                         final short handle, final GattCharPropertySet properties,
                         final String value_type_uuid, final short value_handle,
-                        final int clientCharacteristicsConfigIndex)
+                        final int clientCharacteristicsConfigIndex,
+                        final int userDescriptionIndex)
     {
         super(nativeInstance, handle /* hash */);
         this.wbr_service = new WeakReference<DBTGattService>(service);
@@ -85,6 +89,7 @@ public class DBTGattChar extends DBTObject implements BTGattChar
         this.value_type_uuid = value_type_uuid;
         this.value_handle = value_handle;
         this.clientCharacteristicsConfigIndex = clientCharacteristicsConfigIndex;
+        this.userDescriptionIndex = userDescriptionIndex;
         this.descriptorList = getDescriptorsImpl();
 
         if( DEBUG ) {
@@ -311,6 +316,9 @@ public class DBTGattChar extends DBTObject implements BTGattChar
 
     /** Returns optional Client Characteristic Configuration index within descriptorList */
     public final int getClientCharacteristicsConfigIndex() { return clientCharacteristicsConfigIndex; }
+
+    /** Returns optional Characteristic User Description index within descriptorList */
+    public final int getUserDescriptionIndex() { return userDescriptionIndex; }
 
     @Override
     public final String toString() {

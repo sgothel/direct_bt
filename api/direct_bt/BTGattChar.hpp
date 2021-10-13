@@ -186,6 +186,9 @@ namespace direct_bt {
             /* Optional Client Characteristic Configuration index within descriptorList */
             int clientCharConfigIndex = -1;
 
+            /* Optional Characteristic User Description index within descriptorList */
+            int userDescriptionIndex = -1;
+
             BTGattChar(const BTGattServiceRef & service_, const uint16_t handle_,
                                const PropertyBitVal properties_, const uint16_t value_handle_, std::unique_ptr<const jau::uuid_t> && value_type_) noexcept
             : wbr_service(service_), handle(handle_),
@@ -220,6 +223,7 @@ namespace direct_bt {
             void clearDescriptors() noexcept {
                 descriptorList.clear();
                 clientCharConfigIndex = -1;
+                userDescriptionIndex = -1;
             }
 
             BTGattDescRef getClientCharConfig() const noexcept {
@@ -227,6 +231,13 @@ namespace direct_bt {
                     return nullptr;
                 }
                 return descriptorList.at(static_cast<size_t>(clientCharConfigIndex)); // abort if out of bounds
+            }
+
+            BTGattDescRef getUserDescription() const noexcept {
+                if( 0 > userDescriptionIndex ) {
+                    return nullptr;
+                }
+                return descriptorList.at(static_cast<size_t>(userDescriptionIndex)); // abort if out of bounds
             }
 
             /**

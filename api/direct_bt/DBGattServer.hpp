@@ -94,6 +94,9 @@ namespace direct_bt {
 
             /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration (Characteristic Descriptor, optional, single, uint16_t bitfield) */
             bool isClientCharConfig() const noexcept{ return *BTGattDesc::TYPE_CCC_DESC == *type; }
+
+            /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.2 Characteristic User Description */
+            bool isUserDescription() const noexcept{ return *BTGattDesc::TYPE_USER_DESC == *type; }
     };
     inline bool operator==(const DBGattDesc& lhs, const DBGattDesc& rhs) noexcept
     { return lhs.handle == rhs.handle; /** unique attribute handles */ }
@@ -170,6 +173,9 @@ namespace direct_bt {
             /* Optional Client Characteristic Configuration index within descriptorList */
             int clientCharConfigIndex;
 
+            /* Optional Characteristic User Description index within descriptorList */
+            int userDescriptionIndex;
+
             DBGattChar(const std::shared_ptr<const jau::uuid_t>& value_type_,
                        const BTGattChar::PropertyBitVal properties_,
                        const jau::darray<DBGattDesc>& descriptors_,
@@ -179,14 +185,16 @@ namespace direct_bt {
               properties(properties_),
               descriptors(descriptors_),
               value(value_),
-              clientCharConfigIndex(-1)
+              clientCharConfigIndex(-1),
+              userDescriptionIndex(-1)
             {
                 int i=0;
                 // C++11: Range-based for loop: [begin, end[
                 for(DBGattDesc& d : descriptors) {
-                    if( d.isClientCharConfig() ) {
+                    if( 0 > clientCharConfigIndex && d.isClientCharConfig() ) {
                         clientCharConfigIndex=i;
-                        break;
+                    } else if( 0 > userDescriptionIndex && d.isUserDescription() ) {
+                        userDescriptionIndex=i;
                     }
                     ++i;
                 }
@@ -210,6 +218,13 @@ namespace direct_bt {
                     return nullptr;
                 }
                 return &descriptors.at(static_cast<size_t>(clientCharConfigIndex)); // abort if out of bounds
+            }
+
+            const DBGattDesc* getUserDescription() const noexcept {
+                if( 0 > userDescriptionIndex ) {
+                    return nullptr;
+                }
+                return &descriptors.at(static_cast<size_t>(userDescriptionIndex)); // abort if out of bounds
             }
     };
     inline bool operator==(const DBGattChar& lhs, const DBGattChar& rhs) noexcept

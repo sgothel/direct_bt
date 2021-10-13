@@ -110,7 +110,9 @@ jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj
 
                     jobject jcharVal = env_->NewObject(clazz, clazz_ctor, (jlong)characteristic, jservice,
                             characteristic->handle, jGattCharPropSet,
-                            uuid, characteristic->value_handle, characteristic->clientCharConfigIndex);
+                            uuid, characteristic->value_handle,
+                            characteristic->clientCharConfigIndex,
+                            characteristic->userDescriptionIndex);
                     java_exception_check_and_throw(env_, E_FILE_LINE);
                     JNIGlobalRef::check(jcharVal, E_FILE_LINE);
                     std::shared_ptr<JavaAnon> jCharRef = characteristic->getJavaObject(); // GlobalRef

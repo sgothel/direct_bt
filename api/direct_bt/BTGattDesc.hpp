@@ -140,6 +140,9 @@ namespace direct_bt {
             /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration (Characteristic Descriptor, optional, single, uint16_t bitfield) */
             bool isClientCharConfig() const noexcept{ return *TYPE_CCC_DESC == *type; }
 
+            /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.2 Characteristic User Description */
+            bool isUserDescription() const noexcept{ return *TYPE_USER_DESC == *type; }
+
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.1 Read Characteristic Descriptor
              * <p>

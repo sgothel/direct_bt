@@ -41,9 +41,9 @@
 using namespace direct_bt;
 using namespace jau;
 
-const uuid16_t BTGattDesc::TYPE_EXT_PROP(Type::CHARACTERISTIC_EXTENDED_PROPERTIES);
-const uuid16_t BTGattDesc::TYPE_USER_DESC(Type::CHARACTERISTIC_USER_DESCRIPTION);
-const uuid16_t BTGattDesc::TYPE_CCC_DESC(Type::CLIENT_CHARACTERISTIC_CONFIGURATION);
+const std::shared_ptr<jau::uuid_t> BTGattDesc::TYPE_EXT_PROP( std::make_shared<jau::uuid16_t>(Type::CHARACTERISTIC_EXTENDED_PROPERTIES) );
+const std::shared_ptr<jau::uuid_t> BTGattDesc::TYPE_USER_DESC( std::make_shared<jau::uuid16_t>(Type::CHARACTERISTIC_USER_DESCRIPTION) );
+const std::shared_ptr<jau::uuid_t> BTGattDesc::TYPE_CCC_DESC( std::make_shared<jau::uuid16_t>(Type::CLIENT_CHARACTERISTIC_CONFIGURATION) );
 
 std::shared_ptr<BTGattChar> BTGattDesc::getGattCharChecked() const {
     std::shared_ptr<BTGattChar> ref = wbr_char.lock();

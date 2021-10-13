@@ -1116,6 +1116,8 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) {
                     }
                     if( cd->isClientCharConfig() ) {
                         charDecl->clientCharConfigIndex = charDecl->descriptorList.size();
+                    } else if( cd->isUserDescription() ) {
+                        charDecl->userDescriptionIndex = charDecl->descriptorList.size();
                     }
                     charDecl->descriptorList.push_back(cd);
                     COND_PRINT(env.DEBUG_DATA, "GATT CD discovered[%d/%d]: %s", e_iter, e_count, cd->toString().c_str());
