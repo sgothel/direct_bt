@@ -37,6 +37,7 @@
 #include <jau/java_uplink.hpp>
 #include <jau/octets.hpp>
 #include <jau/uuid.hpp>
+#include <jau/dfa_utf8_decode.hpp>
 
 #include "BTTypes0.hpp"
 #include "ATTPDUTypes.hpp"
@@ -203,13 +204,19 @@ namespace direct_bt {
             bool hasProperties(const BTGattChar::PropertyBitVal v) const noexcept { return v == ( properties & v ); }
 
             std::string toString() const noexcept {
-                std::string notify_str;
+                std::string char_name, notify_str;
+                {
+                    const DBGattDesc* ud = getUserDescription();
+                    if( nullptr != ud ) {
+                        char_name = ", '" + jau::dfa_utf8_decode( ud->value.get_ptr(), ud->value.size() ) + "'";
+                    }
+                }
                 if( hasProperties(BTGattChar::PropertyBitVal::Notify) || hasProperties(BTGattChar::PropertyBitVal::Indicate) ) {
                     notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
                 }
                 return "Char[handle ["+jau::to_hexstring(handle)+".."+jau::to_hexstring(end_handle)+
                        "], props "+jau::to_hexstring(properties)+" "+BTGattChar::getPropertiesString(properties)+
-                       ", value[type 0x"+value_type->toString()+", handle "+jau::to_hexstring(value_handle)+", "+value.toString()+
+                       char_name+", value[type 0x"+value_type->toString()+", handle "+jau::to_hexstring(value_handle)+", "+value.toString()+
                        "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
             }
 

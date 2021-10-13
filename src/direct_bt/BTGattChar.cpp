@@ -32,6 +32,7 @@
 
 #include  <algorithm>
 
+#include <jau/dfa_utf8_decode.hpp>
 #include <jau/debug.hpp>
 
 #include "BTDevice.hpp"
@@ -139,6 +140,12 @@ std::string BTGattChar::toString() const noexcept {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(value_type.get()))->value;
         char_name = ", "+GattCharacteristicTypeToString(static_cast<GattCharacteristicType>(uuid16));
     }
+    {
+        BTGattDescRef ud = getUserDescription();
+        if( nullptr != ud ) {
+            char_name.append( ", '" + dfa_utf8_decode( ud->value.get_ptr(), ud->value.size() ) + "'");
+        }
+    }
     if( 0 < descriptorList.size() ) {
         bool comma = false;
         desc_str = ", descr[";
@@ -158,23 +165,29 @@ std::string BTGattChar::toString() const noexcept {
         notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
     }
     return "Char[handle "+to_hexstring(handle)+", props "+to_hexstring(properties)+" "+getPropertiesString(properties)+
-           ", value[type 0x"+value_type->toString()+", handle "+to_hexstring(value_handle)+char_name+desc_str+
+            char_name+", value[type 0x"+value_type->toString()+", handle "+to_hexstring(value_handle)+desc_str+
            "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
 }
 
 std::string BTGattChar::toShortString() const noexcept {
-    std::string char_name = "";
+    std::string char_name;
 
     if( uuid_t::TypeSize::UUID16_SZ == value_type->getTypeSize() ) {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(value_type.get()))->value;
         char_name = ", "+GattCharacteristicTypeToString(static_cast<GattCharacteristicType>(uuid16));
+    }
+    {
+        BTGattDescRef ud = getUserDescription();
+        if( nullptr != ud ) {
+            char_name.append( ", '" + dfa_utf8_decode( ud->value.get_ptr(), ud->value.size() ) + "'");
+        }
     }
     std::string notify_str;
     if( hasProperties(BTGattChar::PropertyBitVal::Notify) || hasProperties(BTGattChar::PropertyBitVal::Indicate) ) {
         notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
     }
     return "Char[handle "+to_hexstring(handle)+", props "+to_hexstring(properties)+" "+getPropertiesString(properties)+
-           ", value[handle "+to_hexstring(value_handle)+char_name+
+            char_name+", value[handle "+to_hexstring(value_handle)+
            "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
 }
 
