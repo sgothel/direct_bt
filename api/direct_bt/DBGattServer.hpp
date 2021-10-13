@@ -90,10 +90,10 @@ namespace direct_bt {
             }
 
             /** Value is uint16_t bitfield */
-            bool isExtendedProperties() const noexcept { return BTGattDesc::TYPE_EXT_PROP == *type; }
+            bool isExtendedProperties() const noexcept { return *BTGattDesc::TYPE_EXT_PROP == *type; }
 
             /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration (Characteristic Descriptor, optional, single, uint16_t bitfield) */
-            bool isClientCharConfig() const noexcept{ return BTGattDesc::TYPE_CCC_DESC == *type; }
+            bool isClientCharConfig() const noexcept{ return *BTGattDesc::TYPE_CCC_DESC == *type; }
     };
     inline bool operator==(const DBGattDesc& lhs, const DBGattDesc& rhs) noexcept
     { return lhs.handle == rhs.handle; /** unique attribute handles */ }
@@ -205,7 +205,7 @@ namespace direct_bt {
                        "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
             }
 
-            DBGattDesc* getClientCharConfig() noexcept {
+            const DBGattDesc* getClientCharConfig() const noexcept {
                 if( 0 > clientCharConfigIndex ) {
                     return nullptr;
                 }

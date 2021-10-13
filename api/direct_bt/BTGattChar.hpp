@@ -222,7 +222,7 @@ namespace direct_bt {
                 clientCharConfigIndex = -1;
             }
 
-            BTGattDescRef getClientCharConfig() noexcept {
+            BTGattDescRef getClientCharConfig() const noexcept {
                 if( 0 > clientCharConfigIndex ) {
                     return nullptr;
                 }

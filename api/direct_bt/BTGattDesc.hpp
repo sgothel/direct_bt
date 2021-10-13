@@ -69,9 +69,9 @@ namespace direct_bt {
             std::string toShortString() const noexcept;
 
         public:
-            static const jau::uuid16_t TYPE_EXT_PROP;
-            static const jau::uuid16_t TYPE_USER_DESC;
-            static const jau::uuid16_t TYPE_CCC_DESC;
+            static const std::shared_ptr<jau::uuid_t> TYPE_EXT_PROP;
+            static const std::shared_ptr<jau::uuid_t> TYPE_USER_DESC;
+            static const std::shared_ptr<jau::uuid_t> TYPE_CCC_DESC;
 
             /**
              * Following UUID16 GATT profile attribute types are listed under:
@@ -135,10 +135,10 @@ namespace direct_bt {
             virtual std::string toString() const noexcept override;
 
             /** Value is uint16_t bitfield */
-            bool isExtendedProperties() const noexcept { return TYPE_EXT_PROP == *type; }
+            bool isExtendedProperties() const noexcept { return *TYPE_EXT_PROP == *type; }
 
             /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration (Characteristic Descriptor, optional, single, uint16_t bitfield) */
-            bool isClientCharConfig() const noexcept{ return TYPE_CCC_DESC == *type; }
+            bool isClientCharConfig() const noexcept{ return *TYPE_CCC_DESC == *type; }
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.1 Read Characteristic Descriptor
