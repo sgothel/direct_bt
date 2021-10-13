@@ -61,8 +61,8 @@ const char * AssociatedBTGattCharListener::type_name() const noexcept { return j
 #define CHAR_DECL_PROPS_ENUM(X) \
         X(BTGattChar,Broadcast,broadcast) \
         X(BTGattChar,Read,read) \
-        X(BTGattChar,WriteNoAck,write-without-response) \
-        X(BTGattChar,WriteWithAck,write) \
+        X(BTGattChar,WriteNoAck,write-noack) \
+        X(BTGattChar,WriteWithAck,write-ack) \
         X(BTGattChar,Notify,notify) \
         X(BTGattChar,Indicate,indicate) \
         X(BTGattChar,AuthSignedWrite,authenticated-signed-writes) \
