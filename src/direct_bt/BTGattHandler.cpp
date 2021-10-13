@@ -300,6 +300,7 @@ void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
                         }
                         rsp.setElementHandle(rspCount, d.handle);
                         rsp.setElementValueUUID(rspCount, *d.type);
+                        rspSize += size;
                         ++rspCount;
                         ++total_count;
                     }
