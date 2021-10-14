@@ -215,7 +215,7 @@ namespace direct_bt {
                     notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
                 }
                 return "Char[handle ["+jau::to_hexstring(handle)+".."+jau::to_hexstring(end_handle)+
-                       "], props "+jau::to_hexstring(properties)+" "+BTGattChar::getPropertiesString(properties)+
+                       "], props "+jau::to_hexstring(properties)+" "+to_string(properties)+
                        char_name+", value[type 0x"+value_type->toString()+", handle "+jau::to_hexstring(value_handle)+", "+value.toString()+
                        "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
             }
@@ -320,7 +320,7 @@ namespace direct_bt {
                     }
                     c.end_handle = h-1;
                 }
-                end_handle = h;
+                end_handle = h-1;
                 return ( end_handle - handle ) + 1;
             }
             std::string toString() const noexcept {
