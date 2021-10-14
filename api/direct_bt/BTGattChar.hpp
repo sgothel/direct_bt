@@ -94,14 +94,7 @@ namespace direct_bt {
                 AuthSignedWrite = (1 << 6),
                 ExtProps        = (1 << 7)
             };
-            /**
-             * Returns string values as defined in <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>
-             * <pre>
-             * org.bluez.GattCharacteristic1 :: array{string} Flags [read-only]
-             * </pre>
-             */
-            static std::string getPropertiesString(const PropertyBitVal properties) noexcept;
-            static jau::darray<std::unique_ptr<std::string>> getPropertiesStringList(const PropertyBitVal properties) noexcept;
+            static std::string toPropertiesString(const PropertyBitVal properties) noexcept;
 
             /**
              * {@link BTGattChar} event listener for notification and indication events.
@@ -467,6 +460,23 @@ namespace direct_bt {
 
     inline bool operator!=(const BTGattChar& lhs, const BTGattChar& rhs) noexcept
     { return !(lhs == rhs); }
+
+    constexpr uint8_t number(const BTGattChar::PropertyBitVal rhs) noexcept {
+        return static_cast<uint8_t>(rhs);
+    }
+    constexpr BTGattChar::PropertyBitVal operator |(const BTGattChar::PropertyBitVal lhs, const BTGattChar::PropertyBitVal rhs) noexcept {
+        return static_cast<BTGattChar::PropertyBitVal> ( number(lhs) | number(rhs) );
+    }
+    constexpr BTGattChar::PropertyBitVal operator &(const BTGattChar::PropertyBitVal lhs, const BTGattChar::PropertyBitVal rhs) noexcept {
+        return static_cast<BTGattChar::PropertyBitVal> ( number(lhs) & number(rhs) );
+    }
+    constexpr bool operator ==(const BTGattChar::PropertyBitVal lhs, const BTGattChar::PropertyBitVal rhs) noexcept {
+        return number(lhs) == number(rhs);
+    }
+    constexpr bool operator !=(const BTGattChar::PropertyBitVal lhs, const BTGattChar::PropertyBitVal rhs) noexcept {
+        return !( lhs == rhs );
+    }
+    std::string to_string(const BTGattChar::PropertyBitVal mask) noexcept;
 
     /**
      * {@link BTGattChar} event listener for notification and indication events.

@@ -91,33 +91,20 @@ static std::string _getPropertyBitValStr(const BTGattChar::PropertyBitVal prop) 
     return "Unknown property";
 }
 
-std::string BTGattChar::getPropertiesString(const PropertyBitVal properties) noexcept {
-    const PropertyBitVal none = static_cast<PropertyBitVal>(0);
+std::string direct_bt::to_string(const BTGattChar::PropertyBitVal mask) noexcept {
+    const BTGattChar::PropertyBitVal none = static_cast<BTGattChar::PropertyBitVal>(0);
     const uint8_t one = 1;
     bool has_pre = false;
     std::string out("[");
     for(int i=0; i<8; i++) {
-        const PropertyBitVal propertyBit = static_cast<PropertyBitVal>( one << i );
-        if( none != ( properties & propertyBit ) ) {
+        const BTGattChar::PropertyBitVal propertyBit = static_cast<BTGattChar::PropertyBitVal>( one << i );
+        if( none != ( mask & propertyBit ) ) {
             if( has_pre ) { out.append(", "); }
             out.append(_getPropertyBitValStr(propertyBit));
             has_pre = true;
         }
     }
     out.append("]");
-    return out;
-}
-
-jau::darray<std::unique_ptr<std::string>> BTGattChar::getPropertiesStringList(const PropertyBitVal properties) noexcept {
-    jau::darray<std::unique_ptr<std::string>> out;
-    const PropertyBitVal none = static_cast<PropertyBitVal>(0);
-    const uint8_t one = 1;
-    for(int i=0; i<8; i++) {
-        const PropertyBitVal propertyBit = static_cast<PropertyBitVal>( one << i );
-        if( none != ( properties & propertyBit ) ) {
-            out.push_back( std::unique_ptr<std::string>( new std::string( _getPropertyBitValStr(propertyBit) ) ) );
-        }
-    }
     return out;
 }
 
@@ -164,7 +151,7 @@ std::string BTGattChar::toString() const noexcept {
     if( hasProperties(BTGattChar::PropertyBitVal::Notify) || hasProperties(BTGattChar::PropertyBitVal::Indicate) ) {
         notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
     }
-    return "Char[handle "+to_hexstring(handle)+", props "+to_hexstring(properties)+" "+getPropertiesString(properties)+
+    return "Char[handle "+to_hexstring(handle)+", props "+to_hexstring(properties)+" "+to_string(properties)+
             char_name+", value[type 0x"+value_type->toString()+", handle "+to_hexstring(value_handle)+desc_str+
            "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
 }
@@ -186,7 +173,7 @@ std::string BTGattChar::toShortString() const noexcept {
     if( hasProperties(BTGattChar::PropertyBitVal::Notify) || hasProperties(BTGattChar::PropertyBitVal::Indicate) ) {
         notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
     }
-    return "Char[handle "+to_hexstring(handle)+", props "+to_hexstring(properties)+" "+getPropertiesString(properties)+
+    return "Char[handle "+to_hexstring(handle)+", props "+to_hexstring(properties)+" "+to_string(properties)+
             char_name+", value[handle "+to_hexstring(value_handle)+
            "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
 }
