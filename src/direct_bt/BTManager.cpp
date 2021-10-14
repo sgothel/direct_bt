@@ -69,6 +69,11 @@ MgmtEnv::MgmtEnv() noexcept
   DEBUG_EVENT( jau::environment::getBooleanProperty("direct_bt.debug.mgmt.event", false) ),
   MGMT_READ_PACKET_MAX_RETRY( MGMT_EVT_RING_CAPACITY )
 {
+    // Kick off singleton initialization of all environments.
+    HCIEnv::get();
+    L2CAPEnv::get();
+    BTGattEnv::get();
+    SMPEnv::get();
 }
 
 const pid_t BTManager::pidSelf = getpid();
