@@ -1160,6 +1160,12 @@ namespace direct_bt {
             virtual jau::nsize_t getElementSize() const = 0;
 
             /**
+             * Fixate element length
+             * @param element_length
+             */
+            virtual void setElementSize(const uint8_t element_length) = 0;
+
+            /**
              * Net element-value size, i.e. element size less handles.
              * <p>
              * element := { uint16_t startHandle, uint16_t endHandle, uint8_t value[value-size] }
@@ -1174,6 +1180,26 @@ namespace direct_bt {
                  * - `getPDUParamSize() - getPDUValueOffset() + 1`
                  */
                 return getPDUValueSize()  / getElementSize();
+            }
+
+            /**
+             * Fixate element length and element count
+             * @param element_length
+             * @param count
+             */
+            void setElementCount(const jau::nsize_t count) {
+                const jau::nsize_t element_length = getElementSize();
+                const jau::nsize_t new_size = getPDUValueOffset() + element_length * count;
+                if( pdu.size() < new_size ) {
+                    throw jau::IllegalArgumentException(getName()+": "+std::to_string(getPDUValueOffset())+
+                            " + element[len "+std::to_string(element_length)+
+                            " * count "+std::to_string(count)+" > pdu "+std::to_string(pdu.size()), E_FILE_LINE);
+                }
+                pdu.resize( new_size );
+                if( getPDUValueSize() % getElementSize() != 0 ) {
+                    throw AttValueException(getName()+": Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
+                            " not multiple of element-size "+std::to_string(getElementSize()), E_FILE_LINE);
+                }
             }
 
             jau::nsize_t getElementPDUOffset(const jau::nsize_t elementIdx) const {
@@ -1327,6 +1353,14 @@ namespace direct_bt {
             }
 
             /**
+             * Fixate element length
+             * @param element_length
+             */
+            void setElementSize(const uint8_t element_length) override {
+                pdu.put_uint8_nc(1, element_length);
+            }
+
+            /**
              * Net element-value size, i.e. element size less handle.
              * <p>
              * element := { uint16_t handle, uint8_t value[value-size] }
@@ -1348,26 +1382,6 @@ namespace direct_bt {
             : AttElementList(Opcode::READ_BY_TYPE_RSP, total_length)
             {
                 pdu.put_uint8_nc(1, 2 + 1 + 2 + 2); // dummy element_size: handle + property + handle + uuid
-            }
-
-            /**
-             * Fixate element length and element count
-             * @param element_length
-             * @param count
-             */
-            void setElementSize(const uint8_t element_length, const jau::nsize_t count) {
-                const jau::nsize_t new_size = getPDUValueOffset() + element_length * count;
-                if( pdu.size() < new_size ) {
-                    throw jau::IllegalArgumentException("AttReadByTypeRsp: "+std::to_string(getPDUValueOffset())+
-                            " + element[len "+std::to_string(element_length)+
-                            " * count "+std::to_string(count)+" > pdu "+std::to_string(pdu.size()), E_FILE_LINE);
-                }
-                pdu.put_uint8_nc(1, element_length);
-                pdu.resize( new_size );
-                if( getPDUValueSize() % getElementSize() != 0 ) {
-                    throw AttValueException("AttReadByGroupTypeRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
-                            " not multiple of element-size "+std::to_string(getElementSize()), E_FILE_LINE);
-                }
             }
 
             Element getElement(const jau::nsize_t elementIdx) const {
@@ -1456,6 +1470,14 @@ namespace direct_bt {
             }
 
             /**
+             * Fixate element length
+             * @param element_length
+             */
+            void setElementSize(const uint8_t element_length) override {
+                pdu.put_uint8_nc(1, element_length);
+            }
+
+            /**
              * Net element-value size, i.e. element size less handles.
              * <p>
              * element := { uint16_t startHandle, uint16_t endHandle, uint8_t value[value-size] }
@@ -1477,26 +1499,6 @@ namespace direct_bt {
             : AttElementList(Opcode::READ_BY_GROUP_TYPE_RSP, total_length)
             {
                 pdu.put_uint8_nc(1, 2+2+2); // dummy element_size: handle + handle + uuid
-            }
-
-            /**
-             * Fixate element length and element count
-             * @param element_length
-             * @param count
-             */
-            void setElementSize(const uint8_t element_length, const jau::nsize_t count) {
-                const jau::nsize_t new_size = getPDUValueOffset() + element_length * count;
-                if( pdu.size() < new_size ) {
-                    throw jau::IllegalArgumentException("AttReadByGroupTypeRsp: "+std::to_string(getPDUValueOffset())+
-                            " + element[len "+std::to_string(element_length)+
-                            " * count "+std::to_string(count)+" > pdu "+std::to_string(pdu.size()), E_FILE_LINE);
-                }
-                pdu.put_uint8_nc(1, element_length);
-                pdu.resize( new_size );
-                if( getPDUValueSize() % getElementSize() != 0 ) {
-                    throw AttValueException("AttReadByGroupTypeRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
-                            " not multiple of element-size "+std::to_string(getElementSize()), E_FILE_LINE);
-                }
             }
 
             Element getElement(const jau::nsize_t elementIdx) const {
@@ -1602,7 +1604,7 @@ namespace direct_bt {
     class AttFindInfoRsp: public AttElementList
     {
         private:
-            static jau::uuid_t::TypeSize getUUIDFormat(const uint8_t format) {
+            static jau::uuid_t::TypeSize toTypeSize(const uint8_t format) {
                 if( 0x01 == format ) {
                     return jau::uuid_t::TypeSize::UUID16_SZ;
                 } else if( 0x02 == format ) {
@@ -1610,6 +1612,7 @@ namespace direct_bt {
                 }
                 throw AttValueException("AttFindInfoRsp: Invalid format "+std::to_string(format)+", not UUID16 (1) or UUID128 (2)", E_FILE_LINE);
             }
+
             static uint8_t toFormatCode(const jau::uuid_t::TypeSize tsz) {
                 switch( tsz ) {
                     case jau::uuid_t::TypeSize::UUID16_SZ: return 0x01;
@@ -1617,9 +1620,6 @@ namespace direct_bt {
                     default: break;
                 }
                 throw AttValueException("AttFindInfoRsp: Invalid TypeSize "+jau::uuid_t::getTypeSizeString(tsz)+", not UUID16_SZ (1) or UUID128_SZ (2)", E_FILE_LINE);
-            }
-            static jau::nsize_t getElementSize2(jau::uuid_t::TypeSize tsz) {
-                return 2 /* handle */ + jau::uuid_t::number( tsz );
             }
 
         public:
@@ -1656,11 +1656,11 @@ namespace direct_bt {
              * </p>
              */
             jau::nsize_t getElementSize() const override {
-                return 2 + getElementValueSize();
+                return 2 /* handle */ + getElementValueSize();
             }
 
             jau::uuid_t::TypeSize getElementValueFormat() const {
-                return getUUIDFormat( pdu.get_uint8_nc(1) );
+                return toTypeSize( pdu.get_uint8_nc(1) );
             }
 
             /**
@@ -1671,6 +1671,16 @@ namespace direct_bt {
              */
             jau::nsize_t getElementValueSize() const override {
                 return jau::uuid_t::number(getElementValueFormat());
+            }
+
+            /**
+             * Fixate element length
+             * @param element_length
+             */
+            void setElementSize(const uint8_t element_length) override {
+                const jau::nsize_t tsz_i = element_length - 2 /* handle */;
+                const jau::uuid_t::TypeSize tsz = jau::uuid_t::toTypeSize(tsz_i);
+                pdu.put_uint8_nc(1, toFormatCode(tsz));
             }
 
             /**
@@ -1685,27 +1695,6 @@ namespace direct_bt {
             : AttElementList(Opcode::FIND_INFORMATION_RSP, total_length)
             {
                 pdu.put_uint8_nc(1, 2); // dummy format: uuid16_t
-            }
-
-            /**
-             * Fixate element length and element count
-             * @param element_length
-             * @param count
-             */
-            void setElementSize(const jau::uuid_t::TypeSize tsz, const jau::nsize_t count) {
-                const jau::nsize_t element_length = getElementSize2( tsz );
-                const jau::nsize_t new_size = getPDUValueOffset() + element_length * count;
-                if( pdu.size() < new_size ) {
-                    throw jau::IllegalArgumentException("AttFindInfoRsp: "+std::to_string(getPDUValueOffset())+
-                            " + element[len "+std::to_string(element_length)+
-                            " * count "+std::to_string(count)+" > pdu "+std::to_string(pdu.size()), E_FILE_LINE);
-                }
-                pdu.put_uint8_nc(1, toFormatCode(tsz));
-                pdu.resize( new_size );
-                if( getPDUValueSize() % getElementSize() != 0 ) {
-                    throw AttValueException("AttFindInfoRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
-                            " not multiple of element-size "+std::to_string(getElementSize()), E_FILE_LINE);
-                }
             }
 
             Element getElement(const jau::nsize_t elementIdx) const {

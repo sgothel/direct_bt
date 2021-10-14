@@ -276,7 +276,6 @@ void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
     const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(255, usedMTU.load()-2);
     AttFindInfoRsp rsp(usedMTU); // maximum size
     jau::nsize_t rspElemSize = 0;
-    jau::uuid_t::TypeSize rspFormat = jau::uuid_t::TypeSize::UUID16_SZ;
     jau::nsize_t rspSize = 0;
     jau::nsize_t rspCount = 0;
 
@@ -289,11 +288,11 @@ void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
                         if( 0 == rspElemSize ) {
                             // initial setting or reset
                             rspElemSize = size;
-                            rspFormat = d.type->getTypeSize();
+                            rsp.setElementSize(rspElemSize);
                         }
                         if( rspSize + size >= rspMaxSize || rspElemSize != size ) {
                             // send if rsp is full - or - element size changed
-                            rsp.setElementSize(rspFormat, rspCount);
+                            rsp.setElementCount(rspCount);
                             COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
                             send(rsp);
                             return; // Client shall issue additional FIND_INFORMATION_REQ
@@ -309,7 +308,7 @@ void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
         }
     }
     if( 0 < rspSize ) {
-        rsp.setElementSize(rspFormat, rspCount);
+        rsp.setElementCount(rspCount);
         COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
         send(rsp);
     } else if( 0 == total_count ) {
@@ -365,10 +364,11 @@ void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
                         if( 0 == rspElemSize ) {
                             // initial setting or reset
                             rspElemSize = size;
+                            rsp.setElementSize(rspElemSize);
                         }
                         if( rspSize + size >= rspMaxSize || rspElemSize != size ) {
                             // send if rsp is full - or - element size changed
-                            rsp.setElementSize(rspElemSize, rspCount);
+                            rsp.setElementCount(rspCount);
                             COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
                             send(rsp);
                             return; // Client shall issue additional READ_BY_TYPE_REQ
@@ -390,7 +390,7 @@ void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
             }
         }
         if( 0 < rspSize ) {
-            rsp.setElementSize(rspElemSize, rspCount);
+            rsp.setElementCount(rspCount);
             COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
             send(rsp);
         } else if( 0 == total_count ) {
@@ -455,10 +455,11 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
                     if( 0 == rspElemSize ) {
                         // initial setting or reset
                         rspElemSize = size;
+                        rsp.setElementSize(rspElemSize);
                     }
                     if( rspSize + size >= rspMaxSize || rspElemSize != size ) {
                         // send if rsp is full - or - element size changed
-                        rsp.setElementSize(rspElemSize, rspCount);
+                        rsp.setElementCount(rspCount);
                         COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
                         send(rsp);
                         return; // Client shall issue additional READ_BY_TYPE_REQ
@@ -473,7 +474,7 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
             }
         }
         if( 0 < rspSize ) {
-            rsp.setElementSize(rspElemSize, rspCount);
+            rsp.setElementCount(rspCount);
             COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
             send(rsp);
         } else if( 0 == total_count ) {
