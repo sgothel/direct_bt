@@ -612,7 +612,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
         len = l2cap.read(rbuffer.get_wptr(), rbuffer.size());
         if( 0 < len ) {
             std::unique_ptr<const AttPDUMsg> attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), static_cast<jau::nsize_t>(len));
-            // DBG_PRINT("GATTHandler::reader: Got %s", attPDU->toString().c_str());
+            COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: Got %s", attPDU->toString().c_str());
 
             const AttPDUMsg::Opcode opc = attPDU->getOpcode();
             const AttPDUMsg::OpcodeType opc_type = AttPDUMsg::get_type(opc);
