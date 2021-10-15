@@ -222,7 +222,6 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
     }
     const jau::nsize_t rspMaxSize = usedMTU.load()-1;
     (void)rspMaxSize;
-    (void)value_offset;
 
     if( nullptr != gattServerData ) {
         for(DBGattService& s : gattServerData->services) {
@@ -247,16 +246,21 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
                 for(DBGattChar& c : s.characteristics) {
                     if( c.handle <= handle && handle <= c.end_handle ) {
                         if( handle == c.value_handle ) {
-                            // FIXME value_offset and rspMaxSize!
-                            AttReadNRsp rsp(isBlobReq, c.value);
-                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                            AttReadNRsp rsp(isBlobReq, c.value, value_offset);
+                            if( rsp.getPDUValueSize() > rspMaxSize ) {
+                                rsp.pdu.resize(usedMTU); // requires another READ_BLOB_REQ
+                            }
+                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.2: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
                             send(rsp);
                             return;
                         }
                         for(DBGattDesc& d : c.descriptors) {
                             if( handle == d.handle ) {
-                                AttReadNRsp rsp(isBlobReq, d.value);
-                                COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                                AttReadNRsp rsp(isBlobReq, d.value, value_offset);
+                                if( rsp.getPDUValueSize() > rspMaxSize ) {
+                                    rsp.pdu.resize(usedMTU); // requires another READ_BLOB_REQ
+                                }
+                                COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
                                 send(rsp);
                                 return;
                             }
@@ -318,7 +322,6 @@ void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
                         rsp.setElementValueUUID(rspCount, *d.type);
                         rspSize += size;
                         ++rspCount;
-                        ++total_count;
                     }
                 }
             }
