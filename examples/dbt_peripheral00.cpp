@@ -67,7 +67,8 @@ static std::shared_ptr<BTAdapter> chosenAdapter = nullptr;
 
 static bool SHOW_UPDATE_EVENTS = false;
 
-static bool startAdvertising(BTAdapter *a, std::string msg);
+bool startAdvertising(BTAdapter *a, std::string msg);
+bool stopAdvertising(BTAdapter *a, std::string msg);
 
 static jau::POctets make_poctets(const char* name) {
     return jau::POctets( (const uint8_t*)name, (nsize_t)strlen(name), endian::little );
@@ -191,6 +192,10 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
     void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** CONNECTED: %s\n", device->toString(true).c_str());
+
+        // std::thread sd(::stopAdvertising, &device->getAdapter(), "device-connected"); // @suppress("Invalid arguments")
+        // sd.detach();
+
         (void)handle;
         (void)timestamp;
     }
@@ -264,6 +269,10 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         fprintf_td(stderr, "****** DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
                 static_cast<uint8_t>(reason), to_string(reason).c_str(),
                 to_hexstring(handle).c_str(), device->toString(true).c_str());
+
+        std::thread sd(::startAdvertising, &device->getAdapter(), "device-disconnected"); // @suppress("Invalid arguments")
+        sd.detach();
+
         (void)timestamp;
     }
 
@@ -279,7 +288,7 @@ static const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND;
 static const uint8_t adv_chan_map=0x07;
 static const uint8_t filter_policy=0x00;
 
-static bool startAdvertising(BTAdapter *a, std::string msg) {
+bool startAdvertising(BTAdapter *a, std::string msg) {
     if( useAdapter != EUI48::ALL_DEVICE && useAdapter != a->getAddressAndType().address ) {
         fprintf_td(stderr, "****** Start advertising (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
         return false;
@@ -289,6 +298,16 @@ static bool startAdvertising(BTAdapter *a, std::string msg) {
                                                adv_type, adv_chan_map, filter_policy);
     fprintf_td(stderr, "****** Start advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
     fprintf_td(stderr, "%s", dbGattServer->toFullString().c_str());
+    return HCIStatusCode::SUCCESS == status;
+}
+
+bool stopAdvertising(BTAdapter *a, std::string msg) {
+    if( useAdapter != EUI48::ALL_DEVICE && useAdapter != a->getAddressAndType().address ) {
+        fprintf_td(stderr, "****** Stop advertising (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
+        return false;
+    }
+    HCIStatusCode status = a->stopAdvertising();
+    fprintf_td(stderr, "****** Stop advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
     return HCIStatusCode::SUCCESS == status;
 }
 
