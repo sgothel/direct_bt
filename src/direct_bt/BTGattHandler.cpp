@@ -326,16 +326,16 @@ void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
                 }
             }
         }
+        if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
+            rsp.setElementCount(rspCount);
+            COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+            send(rsp);
+            return;
+        }
     }
-    if( 0 < rspSize ) {
-        rsp.setElementCount(rspCount);
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-        send(rsp);
-    } else if( 0 == total_count ) {
-        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-    }
+    AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
+    COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO.4: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+    send(err);
 }
 
 void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
@@ -365,7 +365,6 @@ void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
         // not handled
         req_type = 0;
     }
-    jau::nsize_t total_count = 0;
     if( GattAttributeType::CHARACTERISTIC == req_type ) {
         const uint16_t end_handle = pdu->getEndHandle();
         const uint16_t start_handle = pdu->getStartHandle();
@@ -404,20 +403,24 @@ void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
                         ePDUOffset += c.value_type->getTypeSizeInt();
                         rspSize += size;
                         ++rspCount;
-                        ++total_count;
                     }
                 }
             }
+            if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
+                rsp.setElementCount(rspCount);
+                COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                send(rsp);
+                return;
+            }
         }
-        if( 0 < rspSize ) {
-            rsp.setElementCount(rspCount);
-            COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-            send(rsp);
-        } else if( 0 == total_count ) {
-            AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
-            COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-            send(err);
-        }
+        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.4: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+    } else if( GattAttributeType::INCLUDE_DECLARATION == req_type ) {
+        // TODO: Support INCLUDE_DECLARATION ??
+        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.5: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
     } else {
         // TODO: Add other group types ???
         AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu->getOpcode(), 0);
@@ -453,7 +456,6 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
         // not handled
         req_group_type = 0;
     }
-    jau::nsize_t total_count = 0;
     if( 0 != req_group_type ) {
         const uint16_t end_handle = pdu->getEndHandle();
         const uint16_t start_handle = pdu->getStartHandle();
@@ -502,19 +504,18 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
                     rsp.setElementValueUUID(rspCount, *s.type);
                     rspSize += size;
                     ++rspCount;
-                    ++total_count;
                 }
             }
+            if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
+                rsp.setElementCount(rspCount);
+                COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.4: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                send(rsp);
+                return;
+            }
         }
-        if( 0 < rspSize ) {
-            rsp.setElementCount(rspCount);
-            COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-            send(rsp);
-        } else if( 0 == total_count ) {
-            AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
-            COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-            send(err);
-        }
+        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.5: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
     } else {
         // TODO: Add other group types ???
         AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu->getOpcode(), 0);
