@@ -67,8 +67,8 @@ static std::shared_ptr<BTAdapter> chosenAdapter = nullptr;
 
 static bool SHOW_UPDATE_EVENTS = false;
 
-bool startAdvertising(BTAdapter *a, std::string msg);
-bool stopAdvertising(BTAdapter *a, std::string msg);
+static bool startAdvertising(BTAdapter *a, std::string msg);
+// static bool stopAdvertising(BTAdapter *a, std::string msg);
 
 static jau::POctets make_poctets(const char* name) {
     return jau::POctets( (const uint8_t*)name, (nsize_t)strlen(name), endian::little );
@@ -288,7 +288,7 @@ static const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND;
 static const uint8_t adv_chan_map=0x07;
 static const uint8_t filter_policy=0x00;
 
-bool startAdvertising(BTAdapter *a, std::string msg) {
+static bool startAdvertising(BTAdapter *a, std::string msg) {
     if( useAdapter != EUI48::ALL_DEVICE && useAdapter != a->getAddressAndType().address ) {
         fprintf_td(stderr, "****** Start advertising (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
         return false;
@@ -301,7 +301,8 @@ bool startAdvertising(BTAdapter *a, std::string msg) {
     return HCIStatusCode::SUCCESS == status;
 }
 
-bool stopAdvertising(BTAdapter *a, std::string msg) {
+#if 0
+static bool stopAdvertising(BTAdapter *a, std::string msg) {
     if( useAdapter != EUI48::ALL_DEVICE && useAdapter != a->getAddressAndType().address ) {
         fprintf_td(stderr, "****** Stop advertising (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
         return false;
@@ -310,6 +311,7 @@ bool stopAdvertising(BTAdapter *a, std::string msg) {
     fprintf_td(stderr, "****** Stop advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
     return HCIStatusCode::SUCCESS == status;
 }
+#endif
 
 static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     if( useAdapter != EUI48::ALL_DEVICE && useAdapter != adapter->getAddressAndType().address ) {

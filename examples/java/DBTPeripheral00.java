@@ -205,6 +205,9 @@ public class DBTPeripheral00 {
         @Override
         public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
             BTUtils.println(System.err, "****** DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
+
+            executeOffThread( () -> { startAdvertising(device.getAdapter(), "device-disconnected"); },
+                              "DBT-StartAdvertising-"+device.getAdapter().getAddressAndType(), true /* detach */);
         }
 
         @Override

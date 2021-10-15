@@ -201,12 +201,15 @@ A guide for getting started with *Direct-BT* on C++ and Java may follow up.
 
 ### Examples
 *Direct-BT* [C++ examples](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/examples.html)
-are available, [dbt_scanner10.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_scanner10_8cpp-example.html)
-demonstrates the event driven and multithreading workflow.
+are available, demonstrating the event driven and multithreading workflow:
+- [dbt_scanner10.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_scanner10_8cpp-example.html) *Master* with *Gatt-Client*
+- [dbt_peripheral00.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_peripheral00_8cpp-example.html) *Peripheral* with *Gatt-Server*
+
 
 *Direct-BT* [Java examples](https://jausoft.com/projects/direct_bt/build/documentation/java/html/examples.html)
-are availble, [DBTScanner10.java](https://jausoft.com/projects/direct_bt/build/documentation/java/html/DBTScanner10_8java-example.html)
-demonstrates the event driven and multithreading workflow - matching *dbt_scanner10.cpp*.
+are availble, demonstrates the event driven and multithreading workflow:
+- [DBTScanner10.java](https://jausoft.com/projects/direct_bt/build/documentation/java/html/DBTScanner10_8java-example.html), matching *dbt_scanner10.cpp*.
+- [DBTPeripheral00.java](https://jausoft.com/projects/direct_bt/build/documentation/java/html/DBTPeripheral00_8java-example.html), matching *dbt_peripheral00.cpp*.
 
 
 ## Building *Direct-BT*
