@@ -809,6 +809,7 @@ namespace direct_bt {
      *
      * Used for
      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value
+     * - For any follow up request, which previous request reply couldn't fit in ATT_MTU
      */
     class AttReadBlobReq : public AttPDUMsg
     {
@@ -872,11 +873,11 @@ namespace direct_bt {
                 checkOpcode(Opcode::READ_RSP, Opcode::READ_BLOB_RSP);
             }
 
-            AttReadNRsp(const bool blobRsp, const jau::TROOctets & value)
-            : AttPDUMsg(blobRsp ? Opcode::READ_BLOB_RSP : Opcode::READ_RSP, getPDUValueOffset()+value.size()),
+            AttReadNRsp(const bool blobRsp, const jau::TROOctets & value, jau::nsize_t value_offset=0)
+            : AttPDUMsg(blobRsp ? Opcode::READ_BLOB_RSP : Opcode::READ_RSP, getPDUValueOffset()+value.size()-value_offset),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
-                pdu.put_bytes_nc(getPDUValueOffset(), value.get_ptr(), value.size());
+                pdu.put_bytes_nc(getPDUValueOffset(), value.get_ptr()+value_offset, value.size()-value_offset);
             }
 
             /** opcode */
