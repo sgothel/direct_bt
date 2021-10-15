@@ -215,7 +215,7 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
     }
     if( 0 == handle ) {
         AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
         send(err);
         return;
     }
@@ -249,7 +249,7 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
         } // for services
     }
     AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
-    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.4: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
     send(err);
 }
 
@@ -259,17 +259,16 @@ void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
     // BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
     if( 0 == pdu->getStartHandle() ) {
         AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
         send(err);
         return;
     }
     if( pdu->getStartHandle() > pdu->getEndHandle() ) {
         AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), pdu->getStartHandle());
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
         send(err);
         return;
     }
-    jau::nsize_t total_count = 0;
     const uint16_t end_handle = pdu->getEndHandle();
     const uint16_t start_handle = pdu->getStartHandle();
 
@@ -293,7 +292,7 @@ void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
                         if( rspSize + size >= rspMaxSize || rspElemSize != size ) {
                             // send if rsp is full - or - element size changed
                             rsp.setElementCount(rspCount);
-                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO.2: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
                             send(rsp);
                             return; // Client shall issue additional FIND_INFORMATION_REQ
                         }
@@ -324,13 +323,13 @@ void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
     // BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
     if( 0 == pdu->getStartHandle() ) {
         AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
         send(err);
         return;
     }
     if( pdu->getStartHandle() > pdu->getEndHandle() ) {
         AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), pdu->getStartHandle());
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
         send(err);
         return;
     }
@@ -369,7 +368,7 @@ void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
                         if( rspSize + size >= rspMaxSize || rspElemSize != size ) {
                             // send if rsp is full - or - element size changed
                             rsp.setElementCount(rspCount);
-                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.2: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
                             send(rsp);
                             return; // Client shall issue additional READ_BY_TYPE_REQ
                         }
@@ -401,7 +400,7 @@ void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
     } else {
         // TODO: Add other group types ???
         AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu->getOpcode(), 0);
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
         send(err);
     }
 }
@@ -412,13 +411,13 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
     // BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
     if( 0 == pdu->getStartHandle() ) {
         AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
         send(err);
         return;
     }
     if( pdu->getStartHandle() > pdu->getEndHandle() ) {
         AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), pdu->getStartHandle());
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
         send(err);
         return;
     }
@@ -460,7 +459,7 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
                     if( rspSize + size >= rspMaxSize || rspElemSize != size ) {
                         // send if rsp is full - or - element size changed
                         rsp.setElementCount(rspCount);
-                        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
                         send(rsp);
                         return; // Client shall issue additional READ_BY_TYPE_REQ
                     }
@@ -485,7 +484,7 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
     } else {
         // TODO: Add other group types ???
         AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu->getOpcode(), 0);
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
         send(err);
     }
 }
