@@ -289,7 +289,7 @@ void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
                             rspElemSize = size;
                             rsp.setElementSize(rspElemSize);
                         }
-                        if( rspSize + size >= rspMaxSize || rspElemSize != size ) {
+                        if( rspSize + size > rspMaxSize || rspElemSize != size ) {
                             // send if rsp is full - or - element size changed
                             rsp.setElementCount(rspCount);
                             COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO.2: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
@@ -365,7 +365,7 @@ void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
                             rspElemSize = size;
                             rsp.setElementSize(rspElemSize);
                         }
-                        if( rspSize + size >= rspMaxSize || rspElemSize != size ) {
+                        if( rspSize + size > rspMaxSize || rspElemSize != size ) {
                             // send if rsp is full - or - element size changed
                             rsp.setElementCount(rspCount);
                             COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.2: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
@@ -456,7 +456,7 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
                         rspElemSize = size;
                         rsp.setElementSize(rspElemSize);
                     }
-                    if( rspSize + size >= rspMaxSize || rspElemSize != size ) {
+                    if( rspSize + size > rspMaxSize || rspElemSize != size ) {
                         // send if rsp is full - or - element size changed
                         rsp.setElementCount(rspCount);
                         COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
@@ -807,7 +807,7 @@ void BTGattHandler::send(const AttPDUMsg & msg) {
         throw jau::IllegalStateException("GATTHandler::send: Invalid IO State: req "+msg.toString()+" to "+toString(), E_FILE_LINE);
     }
     // [1 .. ATT_MTU-1] BT Core Spec v5.2: Vol 3, Part F 3.2.9 Long attribute values
-    if( msg.pdu.size() >= usedMTU ) {
+    if( msg.pdu.size() > usedMTU ) {
         throw jau::IllegalArgumentException("clientMaxMTU "+std::to_string(msg.pdu.size())+" >= usedMTU "+std::to_string(usedMTU)+
                                        " to "+toString(), E_FILE_LINE);
     }
