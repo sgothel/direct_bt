@@ -370,7 +370,7 @@ void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
         const uint16_t end_handle = pdu->getEndHandle();
         const uint16_t start_handle = pdu->getStartHandle();
 
-        const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(253, usedMTU.load()-4);
+        const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(255, usedMTU.load()-2);
         AttReadByTypeRsp rsp(usedMTU); // maximum size
         jau::nsize_t rspElemSize = 0;
         jau::nsize_t rspSize = 0;
@@ -458,7 +458,7 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
         const uint16_t end_handle = pdu->getEndHandle();
         const uint16_t start_handle = pdu->getStartHandle();
 
-        const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(251, usedMTU.load()-6);
+        const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(255, usedMTU.load()-2);
         AttReadByGroupTypeRsp rsp(usedMTU); // maximum size
         jau::nsize_t rspElemSize = 0;
         jau::nsize_t rspSize = 0;
