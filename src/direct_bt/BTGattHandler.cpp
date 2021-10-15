@@ -195,6 +195,7 @@ void BTGattHandler::replyWriteReq(const AttWriteReq * pdu) {
 void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value */
+    /* For any follow up request, which previous request reply couldn't fit in ATT_MTU */
     uint16_t handle = 0;
     uint16_t value_offset = 0;
     bool isBlobReq;
@@ -226,6 +227,23 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
     if( nullptr != gattServerData ) {
         for(DBGattService& s : gattServerData->services) {
             if( s.handle <= handle && handle <= s.end_handle ) {
+#if 0
+                if( handle == s.handle ) { // academic case: One uuid16_t + 2 + 2 + 1 + 1 always fits in min ATT_PDU 23
+                    AttReadByGroupTypeRsp serviceRsp(usedMTU);
+                    const jau::nsize_t size = 2 + 2 + s.type->getTypeSizeInt();
+                    serviceRsp.setElementStartHandle(0, s.handle);
+                    serviceRsp.setElementEndHandle(0, s.end_handle);
+                    serviceRsp.setElementValueUUID(0, *s.type);
+
+                    AttReadNRsp rsp(isBlobReq, c.value, value_offset);
+                    if( rsp.getPDUValueSize() > rspMaxSize ) {
+                        rsp.pdu.resize(usedMTU); // requires another READ_BLOB_REQ
+                    }
+                    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.1: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                    send(rsp);
+                    return;
+                }
+#endif
                 for(DBGattChar& c : s.characteristics) {
                     if( c.handle <= handle && handle <= c.end_handle ) {
                         if( handle == c.value_handle ) {
@@ -458,6 +476,19 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
                     }
                     if( rspSize + size > rspMaxSize || rspElemSize != size ) {
                         // send if rsp is full - or - element size changed
+#if 0
+                        if( 0 == rspCount ) { // academic case: One uuid16_t + 2 + 2 + 1 + 1 always fits in min ATT_PDU 23
+                            // single attribute element not fitting, forced to use
+                            // ATT_READ_BLOB_REQ PDU for remaining octets of a long attribute
+                            rsp.setElementStartHandle(0, s.handle);
+                            rsp.setElementEndHandle(0, s.end_handle);
+                            rsp.setElementValueUUID(0, *s.type);
+                            rsp.pdu.resize(usedMTU); // requires another READ_BLOB_REQ
+                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.2: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                            send(rsp);
+                            return;
+                        }
+#endif
                         rsp.setElementCount(rspCount);
                         COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
                         send(rsp);
