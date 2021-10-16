@@ -407,6 +407,9 @@ namespace direct_bt {
             ListenerList_t listenerList;
 
         public:
+            /** Used maximum server Rx ATT_MTU */
+            uint16_t att_mtu = 512 + 5; // BTGattHandler::Defaults::MAX_ATT_MTU;
+
             /** List of Services */
             jau::darray<DBGattService> services;
 
@@ -489,7 +492,7 @@ namespace direct_bt {
                 return res;
             }
             std::string toString() const noexcept {
-                return "DBSrv["+std::to_string(services.size())+" services]";
+                return "DBSrv[mtu "+std::to_string(att_mtu)+", "+std::to_string(services.size())+" services]";
 
             }
     };

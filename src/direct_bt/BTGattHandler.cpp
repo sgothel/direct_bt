@@ -805,7 +805,7 @@ BTGattHandler::BTGattHandler(const std::shared_ptr<BTDevice> &device, L2CAPComm&
             usedMTU = std::min(number(Defaults::MAX_ATT_MTU), serverMTU);
         }
     } else {
-        serverMTU = number(Defaults::MAX_ATT_MTU);
+        serverMTU = nullptr != gattServerData ? gattServerData->att_mtu : number(Defaults::MAX_ATT_MTU);
         usedMTU = number(Defaults::MIN_ATT_MTU); // until negotiated!
     }
 }

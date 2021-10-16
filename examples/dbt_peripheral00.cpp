@@ -467,6 +467,8 @@ int main(int argc, char *argv[])
             adapter_name = std::string(argv[++i]);
         } else if( !strcmp("-short_name", argv[i]) && argc > (i+1) ) {
             adapter_short_name = std::string(argv[++i]);
+        } else if( !strcmp("-mtu", argv[i]) && argc > (i+1) ) {
+            dbGattServer->att_mtu = atoi(argv[++i]);
         }
     }
     fprintf(stderr, "pid %d\n", getpid());
@@ -475,6 +477,7 @@ int main(int argc, char *argv[])
                     "[-adapter <adapter_address>] "
                     "[-name <adapter_name>] "
                     "[-short_name <adapter_short_name>] "
+                    "[-mtu <max att_mtu>"
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event] "
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,...] "
@@ -487,6 +490,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "adapter %s\n", useAdapter.toString().c_str());
     fprintf(stderr, "btmode %s\n", to_string(btMode).c_str());
     fprintf(stderr, "name %s (short %s)\n", adapter_name.c_str(), adapter_short_name.c_str());
+    fprintf(stderr, "GattServer %s\n", dbGattServer->toString().c_str());
 
     if( waitForEnter ) {
         fprintf(stderr, "Press ENTER to continue\n");
