@@ -802,7 +802,7 @@ BTGattHandler::BTGattHandler(const std::shared_ptr<BTDevice> &device, L2CAPComm&
             disconnect(true /* disconnectDevice */, false /* ioErrorCause */);
         } else {
             serverMTU = mtu;
-            usedMTU = std::min(number(Defaults::MAX_ATT_MTU), (int)serverMTU);
+            usedMTU = std::min(number(Defaults::MAX_ATT_MTU), serverMTU);
         }
     } else {
         serverMTU = number(Defaults::MAX_ATT_MTU);

@@ -152,14 +152,14 @@ namespace direct_bt {
      */
     class BTGattHandler {
         public:
-            enum class Defaults : int32_t {
+            enum class Defaults : uint16_t {
                 /* BT Core Spec v5.2: Vol 3, Part F 3.2.8: Maximum length of an attribute value. */
-                MAX_ATT_MTU = 512,
+                MAX_ATT_MTU = 512 + 5,
 
                 /* BT Core Spec v5.2: Vol 3, Part G GATT: 5.2.1 ATT_MTU */
                 MIN_ATT_MTU = 23
             };
-            static constexpr int number(const Defaults d) { return static_cast<int>(d); }
+            static constexpr uint16_t number(const Defaults d) { return static_cast<uint16_t>(d); }
 
        private:
             const BTGattEnv & env;
@@ -217,7 +217,7 @@ namespace direct_bt {
              *
              * ATT_MTU range
              * - ATT_MTU minimum is 23 bytes (Vol 3, Part G: 5.2.1)
-             * - ATT_MTU is negotiated, maximum is 512 bytes (Vol 3, Part F: 3.2.8-9)
+             * - ATT_MTU is negotiated, maximum attribute value length is 512 bytes (Vol 3, Part F: 3.2.8-9)
              * - ATT Value sent: [1 .. ATT_MTU-1] (Vol 3, Part F: 3.2.8-9)
              *
              * Implementation disconnect() and throws an BluetoothException
