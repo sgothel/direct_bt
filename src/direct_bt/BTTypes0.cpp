@@ -1026,7 +1026,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
     return count;
 }
 
-#define _WARN_OOB(a) WARN_PRINT("%s: Out of buffer: count %zd + 1 + ad_sz %zd > data_len %zd -> drop %s\n", (a), count, ad_sz, data_length, toString(true).c_str());
+#define _WARN_OOB(a) DBG_PRINT("%s: Out of buffer: count %zd + 1 + ad_sz %zd > data_len %zd -> drop %s\n", (a), count, ad_sz, data_length, toString(true).c_str());
 
 jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau::nsize_t const data_length) const noexcept {
     jau::nsize_t count = 0;
