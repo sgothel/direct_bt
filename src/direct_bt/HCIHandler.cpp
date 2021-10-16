@@ -1787,7 +1787,7 @@ HCIStatusCode HCIHandler::le_start_adv(const EInfoReport &eir,
 
     HCIStatusCode status = le_set_adv_data(eir, adv_mask);
     if( HCIStatusCode::SUCCESS != status ) {
-        WARN_PRINT("HCIHandler::le_set_adv_data: le_set_scanrsp_data: %s - %s",
+        WARN_PRINT("HCIHandler::le_start_adv: le_set_adv_data: %s - %s",
                 to_string(status).c_str(), toString().c_str());
         return status;
     }

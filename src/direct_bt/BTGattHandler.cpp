@@ -111,7 +111,7 @@ bool BTGattHandler::addCharListener(std::shared_ptr<BTGattCharListener> l) {
 
 bool BTGattHandler::removeCharListener(std::shared_ptr<BTGattCharListener> l) noexcept {
     if( nullptr == l ) {
-        ERR_PRINT("Given GATTCharacteristicListener ref is null");
+        ERR_PRINT("GATTCharacteristicListener ref is null");
         return false;
     }
     const int count = characteristicListenerList.erase_matching(l, false /* all_matching */, _characteristicListenerRefEqComparator);
@@ -120,7 +120,7 @@ bool BTGattHandler::removeCharListener(std::shared_ptr<BTGattCharListener> l) no
 
 bool BTGattHandler::removeCharListener(const BTGattCharListener * l) noexcept {
     if( nullptr == l ) {
-        ERR_PRINT("Given GATTCharacteristicListener ref is null");
+        ERR_PRINT("GATTCharacteristicListener ref is null");
         return false;
     }
     auto it = characteristicListenerList.begin(); // lock mutex and copy_store
