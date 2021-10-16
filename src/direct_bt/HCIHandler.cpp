@@ -1639,12 +1639,14 @@ HCIStatusCode HCIHandler::le_set_adv_data(const EInfoReport &eir, const EIRDataT
 
     HCIStatusCode status;
     if( use_ext_adv() ) {
+
         HCIStructCommand<hci_cp_le_set_ext_adv_data> req0(HCIOpcode::LE_SET_EXT_ADV_DATA);
         hci_cp_le_set_ext_adv_data * cp = req0.getWStruct();
+        const jau::nsize_t max_data_len = HCI_MAX_AD_LENGTH; // not sizeof(cp->data), as we use legacy PDU
         cp->handle = 0x00; // TODO: Support more than one advertising sets?
         cp->operation = LE_SET_ADV_DATA_OP_COMPLETE;
         cp->frag_pref = LE_SET_ADV_DATA_NO_FRAG;
-        cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
+        cp->length = eir.write_data(mask, cp->data, max_data_len);
         req0.trimParamSize( req0.getParamSize() + cp->length - sizeof(cp->data) );
 
         const hci_rp_status * ev_status;
@@ -1672,10 +1674,11 @@ HCIStatusCode HCIHandler::le_set_scanrsp_data(const EInfoReport &eir, const EIRD
 
         HCIStructCommand<hci_cp_le_set_ext_scan_rsp_data> req0(HCIOpcode::LE_SET_EXT_SCAN_RSP_DATA);
         hci_cp_le_set_ext_scan_rsp_data * cp = req0.getWStruct();
+        const jau::nsize_t max_data_len = HCI_MAX_AD_LENGTH; // not sizeof(cp->data), as we use legacy PDU
         cp->handle = 0x00; // TODO: Support more than one advertising sets?
         cp->operation = LE_SET_ADV_DATA_OP_COMPLETE;
         cp->frag_pref = LE_SET_ADV_DATA_NO_FRAG;
-        cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
+        cp->length = eir.write_data(mask, cp->data, max_data_len);
         req0.trimParamSize( req0.getParamSize() + cp->length - sizeof(cp->data) );
 
         const hci_rp_status * ev_status;

@@ -1100,13 +1100,14 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
             eir.addService(s.type);
         }
     }
-    if( hasHCIExtAdv() ) {
-        // 251 bytes
+    constexpr bool legacy = true;
+    if( !legacy && hasHCIExtAdv() ) {
+        // non-legacy 251 bytes
         // eir.setManufactureSpecificData(msd); // 2 + 4
         mask_adv = EIRDataType::FLAGS | EIRDataType::NAME | EIRDataType::SERVICE_UUID;
         mask_scanrsp = EIRDataType::MANUF_DATA;
     } else {
-        // 31 bytes
+        // legacy 31 bytes
         mask_adv = EIRDataType::FLAGS | EIRDataType::NAME;
         mask_scanrsp = EIRDataType::SERVICE_UUID;
     }
