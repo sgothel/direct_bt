@@ -282,6 +282,33 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
 };
 
+class MyGATTServerListener : public DBGattServer::Listener {
+    public:
+        bool readCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c) override {
+            fprintf_td(stderr, "GATT::readCharValue: from %s\n  %s\n    %s\n",
+                    device->toString().c_str(), s.toString().c_str(), c.toString().c_str());
+            return true;
+        }
+
+        bool readDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d) override {
+            fprintf_td(stderr, "GATT::readDescValue: from %s\n  %s\n    %s\n      %s\n",
+                    device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
+            return true;
+        }
+
+        bool writeCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, const jau::TROOctets & value) override {
+            fprintf_td(stderr, "GATT::readCharValue: %s from %s\n  %s\n    %s\n",
+                    value.toString().c_str(), device->toString().c_str(), s.toString().c_str(), c.toString().c_str());
+            return true;
+        }
+
+        bool writeDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d, const jau::TROOctets & value) override {
+            fprintf_td(stderr, "GATT::writeDescValue: %s from %s\n  %s\n    %s\n      %s\n",
+                    value.toString().c_str(), device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
+            return true;
+        }
+};
+
 static const uint16_t adv_interval_min=0x0800;
 static const uint16_t adv_interval_max=0x0800;
 static const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND;
@@ -354,7 +381,7 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
                 to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
     }
 
-    std::shared_ptr<AdapterStatusListener> asl(new MyAdapterStatusListener());
+    std::shared_ptr<AdapterStatusListener> asl( std::make_shared<MyAdapterStatusListener>() );
     adapter->addStatusListener( asl );
     // Flush discovered devices after registering our status listener.
     // This avoids discovered devices before we have registered!
@@ -397,6 +424,8 @@ void test() {
     fprintf_td(stderr, "DirectBT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
 
     timestamp_t0 = getCurrentMilliseconds();
+
+    dbGattServer->addListener( std::make_shared<MyGATTServerListener>() );
 
     BTManager & mngr = BTManager::get();
     mngr.addChangedAdapterSetCallback(myChangedAdapterSetFunc);

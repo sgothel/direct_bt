@@ -196,6 +196,13 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value */
     /* For any follow up request, which previous request reply couldn't fit in ATT_MTU */
+    std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+    if( nullptr == device ) {
+        AttErrorRsp err(AttErrorRsp::ErrorCode::UNLIKELY_ERROR, pdu->getOpcode(), 0);
+        ERR_PRINT("GATT-Req: READ, null device: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+        return;
+    }
     uint16_t handle = 0;
     uint16_t value_offset = 0;
     bool isBlobReq;
@@ -246,21 +253,61 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
                 for(DBGattChar& c : s.characteristics) {
                     if( c.handle <= handle && handle <= c.end_handle ) {
                         if( handle == c.value_handle ) {
+                            {
+                                bool allowed = true;
+                                int i=0;
+                                jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
+                                    try {
+                                        allowed = l->readCharValue(device, s, c) && allowed;
+                                    } catch (std::exception &e) {
+                                        ERR_PRINT("GATT-REQ: READ: (%s) %d/%zd: %s of %s: Caught exception %s",
+                                                c.toString().c_str(), i+1, gattServerData->listener().size(),
+                                                device->toString().c_str(), e.what());
+                                    }
+                                    i++;
+                                });
+                                if( !allowed ) {
+                                    AttErrorRsp err(AttErrorRsp::ErrorCode::NO_READ_PERM, pdu->getOpcode(), 0);
+                                    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.2: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+                                    send(err);
+                                    return;
+                                }
+                            }
                             AttReadNRsp rsp(isBlobReq, c.value, value_offset);
                             if( rsp.getPDUValueSize() > rspMaxSize ) {
                                 rsp.pdu.resize(usedMTU); // requires another READ_BLOB_REQ
                             }
-                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.2: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
                             send(rsp);
                             return;
                         }
                         for(DBGattDesc& d : c.descriptors) {
                             if( handle == d.handle ) {
+                                {
+                                    bool allowed = true;
+                                    int i=0;
+                                    jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
+                                        try {
+                                            allowed = l->readDescValue(device, s, c, d) && allowed;
+                                        } catch (std::exception &e) {
+                                            ERR_PRINT("GATT-REQ: READ: (%s) %d/%zd: %s of %s: Caught exception %s",
+                                                    d.toString().c_str(), i+1, gattServerData->listener().size(),
+                                                    device->toString().c_str(), e.what());
+                                        }
+                                        i++;
+                                    });
+                                    if( !allowed ) {
+                                        AttErrorRsp err(AttErrorRsp::ErrorCode::NO_READ_PERM, pdu->getOpcode(), 0);
+                                        COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.4: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+                                        send(err);
+                                        return;
+                                    }
+                                }
                                 AttReadNRsp rsp(isBlobReq, d.value, value_offset);
                                 if( rsp.getPDUValueSize() > rspMaxSize ) {
                                     rsp.pdu.resize(usedMTU); // requires another READ_BLOB_REQ
                                 }
-                                COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                                COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.5: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
                                 send(rsp);
                                 return;
                             }
@@ -271,7 +318,7 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
         } // for services
     }
     AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
-    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.4: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
     send(err);
 }
 

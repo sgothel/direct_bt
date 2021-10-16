@@ -36,6 +36,8 @@
 
 #include <jau/java_uplink.hpp>
 #include <jau/octets.hpp>
+#include <jau/darray.hpp>
+#include <jau/cow_darray.hpp>
 #include <jau/uuid.hpp>
 #include <jau/dfa_utf8_decode.hpp>
 
@@ -125,16 +127,6 @@ namespace direct_bt {
             bool enabledIndicateState = false;
 
         public:
-            class Listener {
-                public:
-                    virtual bool readValue(jau::POctets & res) const noexcept = 0;
-
-                    virtual bool writeValue(const jau::TROOctets & value) const noexcept = 0;
-                    virtual bool writeValueNoResp(const jau::TROOctets & value) const noexcept = 0;
-
-                    virtual ~Listener() noexcept {}
-            };
-
             /**
              * Characteristic Handle of this instance.
              * <p>
@@ -349,6 +341,72 @@ namespace direct_bt {
      */
     class DBGattServer {
         public:
+            /**
+             * Listener to remote master device's operations on the local GATT-Server.
+             */
+            class Listener {
+                public:
+                    virtual ~Listener() {}
+
+                    /**
+                     *
+                     * @param device
+                     * @param s
+                     * @param c
+                     * @return true if master read has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the read action will be allowed.
+                     */
+                    virtual bool readCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c) = 0;
+
+                    /**
+                     *
+                     * @param device
+                     * @param s
+                     * @param c
+                     * @param d
+                     * @return true if master read has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the read action will be allowed.
+                     */
+                    virtual bool readDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d) = 0;
+
+                    /**
+                     *
+                     * @param device
+                     * @param s
+                     * @param c
+                     * @param value
+                     * @return true if master write has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the write action will be allowed.
+                     */
+                    virtual bool writeCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, const jau::TROOctets & value) = 0;
+
+                    /**
+                     *
+                     * @param device
+                     * @param s
+                     * @param c
+                     * @param d
+                     * @param value
+                     * @return true if master write has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the write action will be allowed.
+                     */
+                    virtual bool writeDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d, const jau::TROOctets & value) = 0;
+
+                    /**
+                     * Default comparison operator, merely testing for same memory reference.
+                     * <p>
+                     * Specializations may override.
+                     * </p>
+                     */
+                    virtual bool operator==(const Listener& rhs) const
+                    { return this == &rhs; }
+
+                    bool operator!=(const Listener& rhs) const
+                    { return !(*this == rhs); }
+            };
+            typedef std::shared_ptr<Listener> ListenerRef;
+
+        private:
+            typedef jau::cow_darray<ListenerRef> ListenerList_t;
+            ListenerList_t listenerList;
+
+        public:
             /** List of Services */
             jau::darray<DBGattService> services;
 
@@ -411,6 +469,11 @@ namespace direct_bt {
                 }
                 return c;
             }
+
+            bool addListener(ListenerRef l);
+            bool removeListener(ListenerRef l);
+            bool removeListener(const Listener * l);
+            jau::cow_darray<ListenerRef>& listener() { return listenerList; }
 
             std::string toFullString() {
                 std::string res = toString()+"\n";

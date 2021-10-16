@@ -30,6 +30,7 @@ set (direct_bt_LIB_SRCS
   ${PROJECT_SOURCE_DIR}/src/direct_bt/BTSecurityRegistry.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/BTTypes0.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/BTTypes1.cpp
+  ${PROJECT_SOURCE_DIR}/src/direct_bt/DBGattServer.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/GATTNumbers.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/HCIComm.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/HCIHandler.cpp
