@@ -85,6 +85,7 @@ std::string AttPDUMsg::getOpcodeString(const Opcode opc) noexcept {
 
 std::string AttErrorRsp::getErrorCodeString(const ErrorCode errorCode) noexcept {
     switch(errorCode) {
+        case ErrorCode::NO_ERROR: return "No error";
         case ErrorCode::INVALID_HANDLE: return "Invalid Handle";
         case ErrorCode::NO_READ_PERM: return "Read Not Permitted";
         case ErrorCode::NO_WRITE_PERM: return "Write Not Permitted";

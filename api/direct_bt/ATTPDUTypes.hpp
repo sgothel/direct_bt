@@ -669,6 +669,8 @@ namespace direct_bt {
     {
         public:
             enum class ErrorCode : uint8_t {
+                /** Direct-BT's extension to indicate no error */
+                NO_ERROR                    = 0x00,
                 INVALID_HANDLE              = 0x01,
                 NO_READ_PERM                = 0x02,
                 NO_WRITE_PERM               = 0x03,
