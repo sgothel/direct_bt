@@ -1057,10 +1057,11 @@ namespace direct_bt {
                 checkOpcode(Opcode::HANDLE_VALUE_NTF, Opcode::HANDLE_VALUE_IND);
             }
 
-            AttHandleValueRcv(const bool isNotify, const jau::TROOctets & value)
+            AttHandleValueRcv(const bool isNotify, const uint16_t handle, const jau::TROOctets & value)
             : AttPDUMsg(isNotify ? Opcode::HANDLE_VALUE_NTF : Opcode::HANDLE_VALUE_IND, getPDUValueOffset()+value.size()),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
+                pdu.put_uint16_nc(1, handle);
                 pdu.put_bytes_nc(getPDUValueOffset(), value.get_ptr(), value.size());
             }
 
