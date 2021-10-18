@@ -603,7 +603,7 @@ namespace direct_bt {
             }
 
             /**
-             * Returns the net octet size of the value attributes in this PDI (without opcode),
+             * Returns the net octet size of this PDU's attributes value,
              * i.e.
              * - `pdu.size - getAuthSigSize() - value-offset` or
              * - `getPDUParamSize() - getPDUValueOffset() + 1`
@@ -622,7 +622,7 @@ namespace direct_bt {
             constexpr_cxx20 jau::nsize_t getPDUValueSize() const noexcept { return getPDUParamSize() - getPDUValueOffset() + 1; }
 
             /**
-             * Returns the theoretical maximum value size of a PDU.
+             * Returns the theoretical maximum value size of a PDU's attribute value.
              * <pre>
              *  ATT_MTU - getAuthSigSize() - value-offset
              * </pre>

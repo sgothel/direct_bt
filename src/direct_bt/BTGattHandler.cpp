@@ -576,7 +576,7 @@ void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) {
         case AttPDUMsg::Opcode::EXCHANGE_MTU_REQ: {
             const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
             const uint16_t clientMTU = p->getMTUSize();
-            usedMTU = std::min((int)serverMTU, (int)clientMTU);
+            usedMTU = std::min(serverMTU, clientMTU);
             const AttExchangeMTU rsp(AttPDUMsg::ReqRespType::RESPONSE, usedMTU);
             COND_PRINT(env.DEBUG_DATA, "GATT-Req: MTU recv: %u, %s  -> %u %s from %s",
                     clientMTU, pdu->toString().c_str(),
@@ -805,7 +805,11 @@ BTGattHandler::BTGattHandler(const std::shared_ptr<BTDevice> &device, L2CAPComm&
             usedMTU = std::min(number(Defaults::MAX_ATT_MTU), serverMTU);
         }
     } else {
-        serverMTU = nullptr != gattServerData ? gattServerData->att_mtu : number(Defaults::MAX_ATT_MTU);
+        if( nullptr != gattServerData ) {
+            serverMTU = std::max( std::min( gattServerData->att_mtu, number(Defaults::MAX_ATT_MTU) ), number(Defaults::MIN_ATT_MTU) );
+        } else {
+            serverMTU = number(Defaults::MAX_ATT_MTU);
+        }
         usedMTU = number(Defaults::MIN_ATT_MTU); // until negotiated!
     }
 }

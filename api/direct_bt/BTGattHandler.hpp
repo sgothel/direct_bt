@@ -153,8 +153,13 @@ namespace direct_bt {
     class BTGattHandler {
         public:
             enum class Defaults : uint16_t {
-                /* BT Core Spec v5.2: Vol 3, Part F 3.2.8: Maximum length of an attribute value. */
-                MAX_ATT_MTU = 512 + 5,
+                /**
+                 * BT Core Spec v5.2: Vol 3, Part F 3.2.8: Maximum length of an attribute value.
+                 *
+                 * We add +1 for opcode, but don't add for different PDU type's parameter
+                 * upfront the attribute value.
+                 */
+                MAX_ATT_MTU = 512 + 1,
 
                 /* BT Core Spec v5.2: Vol 3, Part G GATT: 5.2.1 ATT_MTU */
                 MIN_ATT_MTU = 23
