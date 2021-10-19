@@ -135,13 +135,13 @@ DBGattServerRef dbGattServer( new DBGattServer(
                                         make_poctets((uint16_t)0) /* value */ ),
                             DBGattChar( std::make_unique<const jau::uuid128_t>("d0ca6bf3-3d53-4760-98e5-fc5883e93712") /* value_type_ */,
                                         BTGattChar::PropertyBitVal::Notify | BTGattChar::PropertyBitVal::Indicate,
-                                        /* descriptors: */ { DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("RESPONSE") ) },
+                                        /* descriptors: */ { DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("RESPONSE") ),
+                                                             DBGattDesc::createClientCharConfig() },
                                         make_poctets((uint16_t)0) /* value */ ),
                             DBGattChar( std::make_unique<const jau::uuid128_t>("d0ca6bf3-3d54-4760-98e5-fc5883e93712") /* value_type_ */,
                                         BTGattChar::PropertyBitVal::Notify | BTGattChar::PropertyBitVal::Indicate,
                                         /* descriptors: */ { DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA INTERACTIV") ),
-                                                             DBGattDesc::createClientCharConfig()
-                                                           },
+                                                             DBGattDesc::createClientCharConfig() },
                                         make_poctets("Synthethic Sensor 01") /* value */ ),
                             } ),
         } ) );
@@ -312,7 +312,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
             return true;
         }
 
-        void clientCharConfigChanged(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d, bool notificationEnabled, bool indicationEnabled) override {
+        void clientCharConfigChanged(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d, const bool notificationEnabled, const bool indicationEnabled) override {
             fprintf_td(stderr, "GATT::clientCharConfigChanged: notify %d, indicate %d from %s\n  %s\n    %s\n      %s\n",
                     notificationEnabled, indicationEnabled,
                     device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());

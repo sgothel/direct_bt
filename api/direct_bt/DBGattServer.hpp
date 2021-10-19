@@ -456,7 +456,7 @@ namespace direct_bt {
                      * @param indicationEnabled
                      */
                     virtual void clientCharConfigChanged(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d,
-                                                         bool notificationEnabled, bool indicationEnabled) = 0;
+                                                         const bool notificationEnabled, const bool indicationEnabled) = 0;
 
                     /**
                      * Default comparison operator, merely testing for same memory reference.
