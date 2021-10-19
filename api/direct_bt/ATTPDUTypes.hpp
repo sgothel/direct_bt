@@ -521,7 +521,7 @@ namespace direct_bt {
                 pdu.check_range(0, getPDUMinSize());
             }
 
-            AttPDUMsg(const AttPDUMsg &o) noexcept = default;
+            AttPDUMsg(const AttPDUMsg &o) = default; // POctets copy-ctor may throw
             AttPDUMsg(AttPDUMsg &&o) noexcept = default;
             AttPDUMsg& operator=(const AttPDUMsg &o) noexcept = delete; // const ts_creation
             AttPDUMsg& operator=(AttPDUMsg &&o) noexcept = delete; // const ts_creation
@@ -1061,6 +1061,15 @@ namespace direct_bt {
 
             AttPrepWrite(const bool isReq, const AttPrepWrite& other)
             : AttPDUMsg(isReq ? Opcode::PREPARE_WRITE_REQ : Opcode::PREPARE_WRITE_RSP, getPDUValueOffset()+other.getValue().size()),
+              view(pdu, getPDUValueOffset(), getPDUValueSize())
+            {
+                pdu.put_uint16_nc(1, other.getHandle());
+                pdu.put_uint16_nc(3, other.getValueOffset());
+                pdu.put_bytes_nc(getPDUValueOffset(), other.getValue().get_ptr_nc(0), other.getValue().size());
+            }
+
+            AttPrepWrite(const AttPrepWrite& other)
+            : AttPDUMsg(other.getOpcode(), getPDUValueOffset()+other.getValue().size()),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16_nc(1, other.getHandle());
