@@ -311,6 +311,12 @@ class MyGATTServerListener : public DBGattServer::Listener {
                     device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
             return true;
         }
+
+        void clientCharConfigChanged(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d, bool notificationEnabled, bool indicationEnabled) override {
+            fprintf_td(stderr, "GATT::clientCharConfigChanged: notify %d, indicate %d from %s\n  %s\n    %s\n      %s\n",
+                    notificationEnabled, indicationEnabled,
+                    device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
+        }
 };
 
 static const uint16_t adv_interval_min=0x0800;

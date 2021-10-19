@@ -447,6 +447,18 @@ namespace direct_bt {
                                                 const jau::TROOctets & value, const uint16_t value_offset) = 0;
 
                     /**
+                     *
+                     * @param device
+                     * @param s
+                     * @param c
+                     * @param d
+                     * @param notificationEnabled
+                     * @param indicationEnabled
+                     */
+                    virtual void clientCharConfigChanged(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d,
+                                                         bool notificationEnabled, bool indicationEnabled) = 0;
+
+                    /**
                      * Default comparison operator, merely testing for same memory reference.
                      * <p>
                      * Specializations may override.
