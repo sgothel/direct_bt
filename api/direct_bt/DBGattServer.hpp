@@ -81,15 +81,48 @@ namespace direct_bt {
             /** Type of descriptor */
             std::shared_ptr<const jau::uuid_t> type;
 
-            /* Characteristics Descriptor's Value */
+            /**
+             * Characteristic Descriptor's Value.
+             *
+             * Its capacity defines the maximum writable variable length
+             * and its size defines the maximum writable fixed length.
+             */
             jau::POctets value;
 
+            /**
+             * True if value is of variable length, otherwise fixed length.
+             */
+            bool variable_length;
+
+            /**
+             *
+             * @param type_
+             * @param value_
+             * @param variable_length_ defaults to true, but forced to false if isExtendedProperties() or isClientCharConfig().
+             */
             DBGattDesc(const std::shared_ptr<const jau::uuid_t>& type_,
-                       const jau::TROOctets& value_) noexcept
-            : handle(0), type(type_), value(value_) {}
+                       const jau::TROOctets& value_, bool variable_length_=true) noexcept
+            : handle(0), type(type_), value(value_), variable_length(variable_length_)
+            {
+                if( variable_length && ( isExtendedProperties() || isClientCharConfig() ) ) {
+                    variable_length = false;
+                }
+            }
+
+            /**
+             * Return a newly constructed Client Characteristic Configuration
+             * with a zero uint16_t value of fixed length.
+             * @see isClientCharConfig()
+             */
+            static DBGattDesc createClientCharConfig() {
+                jau::POctets p( 2, jau::endian::little);
+                p.put_uint16_nc(0, 0);
+                return DBGattDesc( BTGattDesc::TYPE_CCC_DESC, p, false /* variable_length */ );
+            }
 
             std::string toString() const noexcept {
-                return "Desc[type 0x"+type->toString()+", handle "+jau::to_hexstring(handle)+", value["+value.toString()+"]]";
+                const std::string len = variable_length ? "var" : "fixed";
+                return "Desc[type 0x"+type->toString()+", handle "+jau::to_hexstring(handle)+", value[len "+len+", "+value.toString()+"]]";
             }
 
             /** Value is uint16_t bitfield */
@@ -160,8 +193,18 @@ namespace direct_bt {
             /** List of Characteristic Descriptions. */
             jau::darray<DBGattDesc> descriptors;
 
-            /* Characteristics's Value */
+            /**
+             * Characteristics's Value.
+             *
+             * Its capacity defines the maximum writable variable length
+             * and its size defines the maximum writable fixed length.
+             */
             jau::POctets value;
+
+            /**
+             * True if value is of variable length, otherwise fixed length.
+             */
+            bool variable_length;
 
             /* Optional Client Characteristic Configuration index within descriptorList */
             int clientCharConfigIndex;
@@ -169,15 +212,23 @@ namespace direct_bt {
             /* Optional Characteristic User Description index within descriptorList */
             int userDescriptionIndex;
 
+            /**
+             *
+             * @param value_type_
+             * @param properties_
+             * @param descriptors_
+             * @param value_
+             * @param variable_length_ defaults to true
+             */
             DBGattChar(const std::shared_ptr<const jau::uuid_t>& value_type_,
                        const BTGattChar::PropertyBitVal properties_,
                        const jau::darray<DBGattDesc>& descriptors_,
-                       const jau::TROOctets & value_) noexcept
+                       const jau::TROOctets & value_, bool variable_length_=true) noexcept
             : handle(0), end_handle(0), value_handle(0),
               value_type(value_type_),
               properties(properties_),
               descriptors(descriptors_),
-              value(value_),
+              value(value_), variable_length(variable_length_),
               clientCharConfigIndex(-1),
               userDescriptionIndex(-1)
             {
@@ -206,9 +257,10 @@ namespace direct_bt {
                 if( hasProperties(BTGattChar::PropertyBitVal::Notify) || hasProperties(BTGattChar::PropertyBitVal::Indicate) ) {
                     notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
                 }
+                const std::string len = variable_length ? "var" : "fixed";
                 return "Char[handle ["+jau::to_hexstring(handle)+".."+jau::to_hexstring(end_handle)+
                        "], props "+jau::to_hexstring(properties)+" "+to_string(properties)+
-                       char_name+", value[type 0x"+value_type->toString()+", handle "+jau::to_hexstring(value_handle)+", "+value.toString()+
+                       char_name+", value[type 0x"+value_type->toString()+", handle "+jau::to_hexstring(value_handle)+", len "+len+", "+value.toString()+
                        "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
             }
 
@@ -375,9 +427,11 @@ namespace direct_bt {
                      * @param s
                      * @param c
                      * @param value
+                     * @param value_offset
                      * @return true if master write has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the write action will be allowed.
                      */
-                    virtual bool writeCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, const jau::TROOctets & value) = 0;
+                    virtual bool writeCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c,
+                                                const jau::TROOctets & value, const uint16_t value_offset) = 0;
 
                     /**
                      *
@@ -386,9 +440,11 @@ namespace direct_bt {
                      * @param c
                      * @param d
                      * @param value
+                     * @param value_offset
                      * @return true if master write has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the write action will be allowed.
                      */
-                    virtual bool writeDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d, const jau::TROOctets & value) = 0;
+                    virtual bool writeDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d,
+                                                const jau::TROOctets & value, const uint16_t value_offset) = 0;
 
                     /**
                      * Default comparison operator, merely testing for same memory reference.

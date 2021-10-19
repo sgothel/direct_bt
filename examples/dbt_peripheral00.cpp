@@ -139,7 +139,9 @@ DBGattServerRef dbGattServer( new DBGattServer(
                                         make_poctets((uint16_t)0) /* value */ ),
                             DBGattChar( std::make_unique<const jau::uuid128_t>("d0ca6bf3-3d54-4760-98e5-fc5883e93712") /* value_type_ */,
                                         BTGattChar::PropertyBitVal::Notify | BTGattChar::PropertyBitVal::Indicate,
-                                        /* descriptors: */ { DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA INTERACTIV") ) },
+                                        /* descriptors: */ { DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA INTERACTIV") ),
+                                                             DBGattDesc::createClientCharConfig()
+                                                           },
                                         make_poctets("Synthethic Sensor 01") /* value */ ),
                             } ),
         } ) );
@@ -285,26 +287,28 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 class MyGATTServerListener : public DBGattServer::Listener {
     public:
         bool readCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c) override {
-            fprintf_td(stderr, "GATT::readCharValue: from %s\n  %s\n    %s\n",
+            fprintf_td(stderr, "GATT::readCharValue: to %s, from\n  %s\n    %s\n",
                     device->toString().c_str(), s.toString().c_str(), c.toString().c_str());
             return true;
         }
 
         bool readDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d) override {
-            fprintf_td(stderr, "GATT::readDescValue: from %s\n  %s\n    %s\n      %s\n",
+            fprintf_td(stderr, "GATT::readDescValue: to %s, from\n  %s\n    %s\n      %s\n",
                     device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
             return true;
         }
 
-        bool writeCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, const jau::TROOctets & value) override {
-            fprintf_td(stderr, "GATT::readCharValue: %s from %s\n  %s\n    %s\n",
-                    value.toString().c_str(), device->toString().c_str(), s.toString().c_str(), c.toString().c_str());
+        bool writeCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, const jau::TROOctets & value, const uint16_t value_offset) override {
+            fprintf_td(stderr, "GATT::writeCharValue: %s @ %s from %s, to\n  %s\n    %s\n",
+                    value.toString().c_str(), jau::to_hexstring(value_offset).c_str(),
+                    device->toString().c_str(), s.toString().c_str(), c.toString().c_str());
             return true;
         }
 
-        bool writeDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d, const jau::TROOctets & value) override {
-            fprintf_td(stderr, "GATT::writeDescValue: %s from %s\n  %s\n    %s\n      %s\n",
-                    value.toString().c_str(), device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
+        bool writeDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d, const jau::TROOctets & value, const uint16_t value_offset) override {
+            fprintf_td(stderr, "GATT::writeDescValue: %s @ %s from %s\n  %s\n    %s\n      %s\n",
+                    value.toString().c_str(), jau::to_hexstring(value_offset).c_str(),
+                    device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
             return true;
         }
 };
