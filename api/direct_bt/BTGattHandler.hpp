@@ -196,6 +196,7 @@ namespace direct_bt {
 
             /** Pass through user Gatt-Server database, non-nullptr if ::GATTRole::Server */
             DBGattServerRef gattServerData;
+            jau::darray<AttPrepWrite> writeDataQueue;
 
             uint16_t serverMTU;
             std::atomic<uint16_t> usedMTU; // concurrent use in ctor(set), send and l2capReaderThreadImpl
@@ -204,7 +205,9 @@ namespace direct_bt {
 
             bool validateConnected() noexcept;
 
-            void replyWriteReq(const AttWriteReq * pdu);
+            AttErrorRsp::ErrorCode applyWrite(std::shared_ptr<BTDevice> device, const uint16_t handle, const jau::TROOctets & value, const uint16_t value_offset);
+            bool hasHandle(const uint16_t handle);
+            void replyWriteReq(const AttPDUMsg * pdu);
             void replyReadReq(const AttPDUMsg * pdu);
             void replyFindInfoReq(const AttFindInfoReq * pdu);
             void replyReadByTypeReq(const AttReadByNTypeReq * pdu);

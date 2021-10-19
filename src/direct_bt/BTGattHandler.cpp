@@ -186,10 +186,263 @@ bool BTGattHandler::getSendIndicationConfirmation() noexcept {
     return sendIndicationConfirmation;
 }
 
-void BTGattHandler::replyWriteReq(const AttWriteReq * pdu) {
-    AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu->getOpcode(), 0);
-    WARN_PRINT("GATT-Req: WRITE: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-    send(err);
+AttErrorRsp::ErrorCode BTGattHandler::applyWrite(std::shared_ptr<BTDevice> device, const uint16_t handle, const jau::TROOctets & value, const uint16_t value_offset) {
+    if( nullptr == gattServerData ) {
+        return AttErrorRsp::ErrorCode::INVALID_HANDLE;
+    }
+    for(DBGattService& s : gattServerData->services) {
+        if( s.handle <= handle && handle <= s.end_handle ) {
+            for(DBGattChar& c : s.characteristics) {
+                if( c.handle <= handle && handle <= c.end_handle ) {
+                    if( handle == c.value_handle ) {
+                        if( c.value.size() < value_offset) { // offset at value-end + 1 OK to append
+                            return AttErrorRsp::ErrorCode::INVALID_OFFSET;
+                        }
+                        if( c.variable_length ) {
+                            if( c.value.capacity() < value_offset + value.size() ) {
+                                return AttErrorRsp::ErrorCode::INVALID_ATTRIBUTE_VALUE_LEN;
+                            }
+                        } else {
+                            if( c.value.size() < value_offset + value.size() ) {
+                                return AttErrorRsp::ErrorCode::INVALID_ATTRIBUTE_VALUE_LEN;
+                            }
+                        }
+                        {
+                            bool allowed = true;
+                            int i=0;
+                            jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
+                                try {
+                                    allowed = l->writeCharValue(device, s, c, value, value_offset) && allowed;
+                                } catch (std::exception &e) {
+                                    ERR_PRINT("GATT-REQ: WRITE: (%s) %d/%zd: %s of %s: Caught exception %s",
+                                            c.toString().c_str(), i+1, gattServerData->listener().size(),
+                                            device->toString().c_str(), e.what());
+                                }
+                                i++;
+                            });
+                            if( !allowed ) {
+                                return AttErrorRsp::ErrorCode::NO_WRITE_PERM;
+                            }
+                        }
+                        if( c.variable_length ) {
+                            if( c.value.size() != value_offset + value.size() ) {
+                                c.value.resize( value_offset + value.size() );
+                            }
+                        }
+                        c.value.put_octets_nc(value_offset, value);
+                        return AttErrorRsp::ErrorCode::NO_ERROR;
+                    }
+                    for(DBGattDesc& d : c.descriptors) {
+                        if( handle == d.handle ) {
+                            if( d.value.size() < value_offset) { // offset at value-end + 1 OK to append
+                                return AttErrorRsp::ErrorCode::INVALID_OFFSET;
+                            }
+                            if( d.variable_length ) {
+                                if( d.value.capacity() < value_offset + value.size() ) {
+                                    return AttErrorRsp::ErrorCode::INVALID_ATTRIBUTE_VALUE_LEN;
+                                }
+                            } else {
+                                if( d.value.size() < value_offset + value.size() ) {
+                                    return AttErrorRsp::ErrorCode::INVALID_ATTRIBUTE_VALUE_LEN;
+                                }
+                            }
+                            if( d.isUserDescription() ) {
+                                return AttErrorRsp::ErrorCode::NO_WRITE_PERM;
+                            }
+                            const bool isCCCD = d.isClientCharConfig();
+                            if( !isCCCD ) {
+                                bool allowed = true;
+                                int i=0;
+                                jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
+                                    try {
+                                        allowed = l->writeDescValue(device, s, c, d, value, value_offset) && allowed;
+                                    } catch (std::exception &e) {
+                                        ERR_PRINT("GATT-REQ: WRITE: (%s) %d/%zd: %s of %s: Caught exception %s",
+                                                d.toString().c_str(), i+1, gattServerData->listener().size(),
+                                                device->toString().c_str(), e.what());
+                                    }
+                                    i++;
+                                });
+                                if( !allowed ) {
+                                    return AttErrorRsp::ErrorCode::NO_WRITE_PERM;
+                                }
+                            }
+                            if( d.variable_length ) {
+                                if( d.value.size() != value_offset + value.size() ) {
+                                    d.value.resize( value_offset + value.size() );
+                                }
+                            }
+                            if( isCCCD ) {
+                                if( value.size() == 0 ) {
+                                    // no change, exit
+                                    return AttErrorRsp::ErrorCode::NO_ERROR;
+                                }
+                                const uint8_t old_v = d.value.get_uint8_nc(0);
+                                const bool oldEnableNotification = old_v & 0b001;
+                                const bool oldEnableIndication = old_v & 0b010;
+
+                                const uint8_t req_v = value.get_uint8_nc(0);
+                                const bool reqEnableNotification = req_v & 0b001;
+                                const bool reqEnableIndication = req_v & 0b010;
+                                const bool hasNotification = c.hasProperties(BTGattChar::PropertyBitVal::Notify);
+                                const bool hasIndication = c.hasProperties(BTGattChar::PropertyBitVal::Indicate);
+                                const bool enableNotification = reqEnableNotification && hasNotification;
+                                const bool enableIndication = reqEnableIndication && hasIndication;
+
+                                if( oldEnableNotification == enableNotification &&
+                                    oldEnableIndication == enableIndication ) {
+                                    // no change, exit
+                                    return AttErrorRsp::ErrorCode::NO_ERROR;
+                                }
+                                const uint16_t new_v = enableNotification | ( enableIndication << 1 );
+                                d.value.put_uint8_nc(0, new_v);
+                                {
+                                    int i=0;
+                                    jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
+                                        try {
+                                            l->clientCharConfigChanged(device, s, c, d, enableNotification, enableIndication);
+                                        } catch (std::exception &e) {
+                                            ERR_PRINT("GATT-REQ: WRITE CCCD: (%s) %d/%zd: %s of %s: Caught exception %s",
+                                                    d.toString().c_str(), i+1, gattServerData->listener().size(),
+                                                    device->toString().c_str(), e.what());
+                                        }
+                                        i++;
+                                    });
+                                }
+                            } else {
+                                // all other types ..
+                                d.value.put_octets_nc(value_offset, value);
+                            }
+                            return AttErrorRsp::ErrorCode::NO_ERROR;
+                        }
+                    }
+                } // if characteristics-range
+            } // for characteristics
+        } // if service-range
+    } // for services
+    return AttErrorRsp::ErrorCode::INVALID_HANDLE;
+}
+
+bool BTGattHandler::hasHandle(const uint16_t handle) {
+    if( nullptr == gattServerData ) {
+        return false;
+    }
+    for(DBGattService& s : gattServerData->services) {
+        if( s.handle <= handle && handle <= s.end_handle ) {
+            for(DBGattChar& c : s.characteristics) {
+                if( c.handle <= handle && handle <= c.end_handle ) {
+                    if( handle == c.value_handle ) {
+                        return true;
+                    }
+                    for(DBGattDesc& d : c.descriptors) {
+                        if( handle == d.handle ) {
+                            return true;
+                        }
+                    }
+                } // if characteristics-range
+            } // for characteristics
+        } // if service-range
+    } // for services
+    return false;
+}
+
+void BTGattHandler::replyWriteReq(const AttPDUMsg * pdu) {
+    /**
+     * Without Response:
+     *   BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.5.3 ATT_WRITE_CMD
+     *   BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value without Response
+     *
+     * With Response:
+     *   BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.5.1 ATT_WRITE_REQ
+     *   BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
+     *   BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
+     *
+     *   BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.5.2 ATT_WRITE_RSP
+     *   BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
+     */
+    std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+    if( nullptr == device ) {
+        AttErrorRsp err(AttErrorRsp::ErrorCode::UNLIKELY_ERROR, pdu->getOpcode(), 0);
+        ERR_PRINT("GATT-Req: WRITE.0, null device: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+        return;
+    }
+
+    if( AttPDUMsg::Opcode::PREPARE_WRITE_REQ == pdu->getOpcode() ) {
+        const AttPrepWrite * req = static_cast<const AttPrepWrite*>(pdu);
+        if( !hasHandle( req->getHandle() ) ) {
+            AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, req->getOpcode(), req->getHandle());
+            WARN_PRINT("GATT-Req: WRITE.10: %s -> %s from %s", req->toString().c_str(), err.toString().c_str(), toString().c_str());
+            send(err);
+            return;
+        }
+        AttPrepWrite rsp(false, *req);
+        writeDataQueue.push_back(rsp);
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: WRITE.11: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+        send(rsp);
+        return;
+    } else if( AttPDUMsg::Opcode::EXECUTE_WRITE_REQ == pdu->getOpcode() ) {
+        const AttExeWriteReq * req = static_cast<const AttExeWriteReq*>(pdu);
+        if( 0x01 == req->getFlags() ) {
+            AttErrorRsp::ErrorCode res = AttErrorRsp::ErrorCode::NO_ERROR;
+            uint16_t last_handle=0;
+            for(auto iter = writeDataQueue.cbegin() ; iter < writeDataQueue.cend() && AttErrorRsp::ErrorCode::NO_ERROR == res; iter++ ) {
+                const AttPrepWrite &p = *iter;
+                last_handle = p.getHandle();
+                jau::TROOctets p_val(p.getValue().get_ptr_nc(0), p.getValue().size(), p.getValue().byte_order());
+                res = applyWrite(device, last_handle, p_val, p.getValueOffset());
+            }
+            if( AttErrorRsp::ErrorCode::NO_ERROR != res ) {
+                writeDataQueue.clear();
+                AttErrorRsp err(res, pdu->getOpcode(), last_handle);
+                WARN_PRINT("GATT-Req: WRITE.12: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+                send(err);
+                return;
+            }
+        }
+        writeDataQueue.clear();
+        AttExeWriteRsp rsp;
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: WRITE.13: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+        send(rsp);
+        return;
+    }
+
+    uint16_t handle = 0;
+    const jau::TOctetSlice * vslice = nullptr;
+    bool withResp;
+    if( AttPDUMsg::Opcode::WRITE_REQ == pdu->getOpcode() ) {
+        const AttWriteReq * req = static_cast<const AttWriteReq*>(pdu);
+        handle = req->getHandle();
+        vslice = &req->getValue();
+        withResp = true;
+    } else if( AttPDUMsg::Opcode::WRITE_CMD == pdu->getOpcode() ) {
+        const AttWriteCmd * req = static_cast<const AttWriteCmd*>(pdu);
+        handle = req->getHandle();
+        vslice = &req->getValue();
+        withResp = false;
+    } else {
+        AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu->getOpcode(), 0);
+        WARN_PRINT("GATT-Req: WRITE.20: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+        return;
+    }
+    jau::TROOctets req_val(vslice->get_ptr_nc(0), vslice->size(), vslice->byte_order());
+    AttErrorRsp::ErrorCode res = applyWrite(device, handle, req_val, 0);
+    if( AttErrorRsp::ErrorCode::NO_ERROR != res ) {
+        writeDataQueue.clear();
+        AttErrorRsp err(res, pdu->getOpcode(), handle);
+        WARN_PRINT("GATT-Req: WRITE.21: %s -> %s (sent %d) from %s",
+                pdu->toString().c_str(), err.toString().c_str(), (int)withResp, toString().c_str());
+        if( withResp ) {
+            send(err);
+        }
+        return;
+    }
+    if( withResp ) {
+        AttWriteRsp rsp;
+        WARN_PRINT("GATT-Req: WRITE.22: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+        send(rsp);
+    }
 }
 
 void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
@@ -211,6 +464,14 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
         handle = req->getHandle();
         isBlobReq = false;
     } else if( AttPDUMsg::Opcode::READ_BLOB_REQ == pdu->getOpcode() ) {
+        /**
+         * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value
+         *
+         * If the Characteristic Value is not longer than (ATT_MTU – 1)
+         * an ATT_ERROR_RSP PDU with the error
+         * code set to Attribute Not Long shall be received on the first
+         * ATT_READ_BLOB_REQ PDU.
+         */
         const AttReadBlobReq * req = static_cast<const AttReadBlobReq*>(pdu);
         handle = req->getHandle();
         value_offset = req->getValueOffset();
@@ -233,26 +494,19 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
     if( nullptr != gattServerData ) {
         for(DBGattService& s : gattServerData->services) {
             if( s.handle <= handle && handle <= s.end_handle ) {
-#if 0
-                if( handle == s.handle ) { // academic case: One uuid16_t + 2 + 2 + 1 + 1 always fits in min ATT_PDU 23
-                    AttReadByGroupTypeRsp serviceRsp(usedMTU);
-                    const jau::nsize_t size = 2 + 2 + s.type->getTypeSizeInt();
-                    serviceRsp.setElementStartHandle(0, s.handle);
-                    serviceRsp.setElementEndHandle(0, s.end_handle);
-                    serviceRsp.setElementValueUUID(0, *s.type);
-
-                    AttReadNRsp rsp(isBlobReq, c.value, value_offset);
-                    if( rsp.getPDUValueSize() > rspMaxSize ) {
-                        rsp.pdu.resize(usedMTU); // requires another READ_BLOB_REQ
-                    }
-                    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.1: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-                    send(rsp);
-                    return;
-                }
-#endif
+                /**
+                 * AttReadByGroupTypeRsp (1 opcode + 1 element_size + 2 handle + 2 handle + 16 uuid128_t = 22 bytes)
+                 * always fits in minimum ATT_PDU 23
+                 */
                 for(DBGattChar& c : s.characteristics) {
                     if( c.handle <= handle && handle <= c.end_handle ) {
                         if( handle == c.value_handle ) {
+                            if( isBlobReq && c.value.size() <= rspMaxSize ) {
+                                AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_LONG, pdu->getOpcode(), 0);
+                                COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+                                send(err);
+                                return;
+                            }
                             {
                                 bool allowed = true;
                                 int i=0;
@@ -283,6 +537,12 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
                         }
                         for(DBGattDesc& d : c.descriptors) {
                             if( handle == d.handle ) {
+                                if( isBlobReq && d.value.size() <= rspMaxSize ) {
+                                    AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_LONG, pdu->getOpcode(), 0);
+                                    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+                                    send(err);
+                                    return;
+                                }
                                 {
                                     bool allowed = true;
                                     int i=0;
@@ -528,19 +788,10 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
                     }
                     if( rspSize + size > rspMaxSize || rspElemSize != size ) {
                         // send if rsp is full - or - element size changed
-#if 0
-                        if( 0 == rspCount ) { // academic case: One uuid16_t + 2 + 2 + 1 + 1 always fits in min ATT_PDU 23
-                            // single attribute element not fitting, forced to use
-                            // ATT_READ_BLOB_REQ PDU for remaining octets of a long attribute
-                            rsp.setElementStartHandle(0, s.handle);
-                            rsp.setElementEndHandle(0, s.end_handle);
-                            rsp.setElementValueUUID(0, *s.type);
-                            rsp.pdu.resize(usedMTU); // requires another READ_BLOB_REQ
-                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.2: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-                            send(rsp);
-                            return;
-                        }
-#endif
+                        /**
+                         * AttReadByGroupTypeRsp (1 opcode + 1 element_size + 2 handle + 2 handle + 16 uuid128_t = 22 bytes)
+                         * always fits in minimum ATT_PDU 23
+                         */
                         rsp.setElementCount(rspCount);
                         COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
                         send(rsp);
@@ -572,6 +823,11 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
 }
 
 void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) {
+    if( !validateConnected() ) { // shall not happen
+        DBG_PRINT("GATT-Req: disconnected: req %s from %s",
+                pdu->toString().c_str(), toString().c_str());
+        return;
+    }
     switch( pdu->getOpcode() ) {
         case AttPDUMsg::Opcode::EXCHANGE_MTU_REQ: {
             const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
@@ -602,8 +858,14 @@ void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) {
             replyReadReq( pdu.get() );
             return;
         }
-        case AttPDUMsg::Opcode::WRITE_REQ: {
-            replyWriteReq( static_cast<const AttWriteReq*>( pdu.get() ) );
+        case AttPDUMsg::Opcode::WRITE_REQ:
+            [[fallthrough]];
+        case AttPDUMsg::Opcode::WRITE_CMD:
+            [[fallthrough]];
+        case AttPDUMsg::Opcode::PREPARE_WRITE_REQ:
+            [[fallthrough]];
+        case AttPDUMsg::Opcode::EXECUTE_WRITE_REQ: {
+            replyWriteReq( pdu.get() );
             return;
         }
 
@@ -612,12 +874,6 @@ void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) {
         case AttPDUMsg::Opcode::FIND_BY_TYPE_VALUE_REQ:
             [[fallthrough]];
         case AttPDUMsg::Opcode::READ_MULTIPLE_REQ:
-            [[fallthrough]];
-        case AttPDUMsg::Opcode::WRITE_CMD:
-            [[fallthrough]];
-        case AttPDUMsg::Opcode::PREPARE_WRITE_REQ:
-            [[fallthrough]];
-        case AttPDUMsg::Opcode::EXECUTE_WRITE_REQ:
             [[fallthrough]];
         case AttPDUMsg::Opcode::READ_MULTIPLE_VARIABLE_REQ:
             [[fallthrough]];
