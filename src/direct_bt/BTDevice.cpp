@@ -1680,6 +1680,25 @@ BTGattCharRef BTDevice::findGattChar(const jau::uuid_t&  service_uuid, const jau
     return service->findGattChar(char_uuid);
 }
 
+bool BTDevice::sendNotification(const uint16_t handle, const jau::TROOctets & value) {
+    std::shared_ptr<BTGattHandler> gh = getGattHandler();
+    if( nullptr == gh || !gh->isConnected() ) {
+        WARN_PRINT("BTDevice::sendNotification: GATTHandler not connected -> disconnected on %s", toString().c_str());
+        return false;
+    }
+    return gh->sendNotification(handle, value);
+}
+
+bool BTDevice::sendIndication(const uint16_t handle, const jau::TROOctets & value) {
+    std::shared_ptr<BTGattHandler> gh = getGattHandler();
+    if( nullptr == gh || !gh->isConnected() ) {
+        WARN_PRINT("BTDevice::sendIndication: GATTHandler not connected -> disconnected on %s", toString().c_str());
+        return false;
+    }
+    return gh->sendIndication(handle, value);
+}
+
+
 bool BTDevice::pingGATT() noexcept {
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh || !gh->isConnected() ) {

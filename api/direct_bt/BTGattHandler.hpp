@@ -489,6 +489,20 @@ namespace direct_bt {
             bool configNotificationIndication(BTGattDesc & cd, const bool enableNotification, const bool enableIndication);
 
             /**
+             *
+             * @param value
+             * @return
+             */
+            bool sendNotification(const uint16_t handle, const jau::TROOctets & value);
+
+            /**
+             *
+             * @param value
+             * @return
+             */
+            bool sendIndication(const uint16_t handle, const jau::TROOctets & value);
+
+            /**
              * Add the given listener to the list if not already present.
              * <p>
              * Returns true if the given listener is not element of the list and has been newly added,

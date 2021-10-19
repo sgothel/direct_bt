@@ -1004,6 +1004,20 @@ namespace direct_bt {
             std::shared_ptr<GattGenericAccessSvc> getGattGenericAccess();
 
             /**
+             *
+             * @param value
+             * @return
+             */
+            bool sendNotification(const uint16_t handle, const jau::TROOctets & value);
+
+            /**
+             *
+             * @param value
+             * @return
+             */
+            bool sendIndication(const uint16_t handle, const jau::TROOctets & value);
+
+            /**
              * Issues a GATT ping to the device, validating whether it is still reachable.
              * <p>
              * This method could be periodically utilized to shorten the underlying OS disconnect period

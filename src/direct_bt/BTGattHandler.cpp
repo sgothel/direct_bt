@@ -1230,6 +1230,43 @@ uint16_t BTGattHandler::exchangeMTUImpl(const uint16_t clientMaxMTU, const int32
     return mtu;
 }
 
+bool BTGattHandler::sendNotification(const uint16_t handle, const jau::TROOctets & value) {
+    if( GATTRole::Server != role ) {
+        ERR_PRINT("BTDevice::sendNotification: GATTRole not server");
+        return false;
+    }
+    if( !hasHandle(handle) ) {
+        ERR_PRINT("BTDevice::sendNotification: invalid handle %s", jau::to_hexstring(handle).c_str());
+        return false;
+    }
+    AttHandleValueRcv data(true /* isNotify */, handle, value);
+    COND_PRINT(env.DEBUG_DATA, "GATT SEND NTF: %s to %s", data.toString().c_str(), toString().c_str());
+    send(data);
+    return true;
+}
+
+bool BTGattHandler::sendIndication(const uint16_t handle, const jau::TROOctets & value) {
+    if( GATTRole::Server != role ) {
+        ERR_PRINT("BTDevice::sendIndication: GATTRole not server");
+        return false;
+    }
+    if( !hasHandle(handle) ) {
+        ERR_PRINT("BTDevice::sendIndication: invalid handle %s", jau::to_hexstring(handle).c_str());
+        return false;
+    }
+    AttHandleValueRcv req(false /* isNotify */, handle, value);
+    std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_WRITE_COMMAND_REPLY_TIMEOUT); // valid reply or exception
+    if( pdu->getOpcode() == AttPDUMsg::Opcode::HANDLE_VALUE_CFM ) {
+        COND_PRINT(env.DEBUG_DATA, "GATT SENT IND: %s -> %s to/from %s",
+                req.toString().c_str(), pdu->toString().c_str(), toString().c_str());
+        return true;
+    } else {
+        WARN_PRINT("GATT SENT IND: Failed, no CFM reply: %s -> %s to/from %s",
+                req.toString().c_str(), pdu->toString().c_str(), toString().c_str());
+        return false;
+    }
+}
+
 BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle) noexcept {
     return findCharacterisicsByValueHandle(charValueHandle, services);
 }
