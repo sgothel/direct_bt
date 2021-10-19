@@ -440,7 +440,7 @@ void BTGattHandler::replyWriteReq(const AttPDUMsg * pdu) {
     }
     if( withResp ) {
         AttWriteRsp rsp;
-        WARN_PRINT("GATT-Req: WRITE.22: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: WRITE.22: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
         send(rsp);
     }
 }
