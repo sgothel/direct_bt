@@ -1029,6 +1029,123 @@ namespace direct_bt {
     };
 
     /**
+     * BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.6.1 ATT_PREPARE_WRITE_REQ
+     * BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.6.2 ATT_PREPARE_WRITE_RSP
+     *
+     * Used for:
+     * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.4 Write Long Characteristic Values
+     */
+    class AttPrepWrite : public AttPDUMsg
+    {
+        private:
+            const jau::TOctetSlice view;
+
+            constexpr static jau::nsize_t pdu_value_offset = 1 + 2 + 2;
+
+        public:
+            AttPrepWrite(const uint8_t* source, const jau::nsize_t length)
+            : AttPDUMsg(source, length),
+              view(pdu, getPDUValueOffset(), getPDUValueSize())
+            {
+                checkOpcode(Opcode::PREPARE_WRITE_REQ, Opcode::PREPARE_WRITE_RSP);
+            }
+
+            AttPrepWrite(const bool isReq, const uint16_t handle, const jau::TROOctets & value, const uint16_t value_offset)
+            : AttPDUMsg(isReq ? Opcode::PREPARE_WRITE_REQ : Opcode::PREPARE_WRITE_RSP, getPDUValueOffset()+value.size()),
+              view(pdu, getPDUValueOffset(), getPDUValueSize())
+            {
+                pdu.put_uint16_nc(1, handle);
+                pdu.put_uint16_nc(3, value_offset);
+                pdu.put_bytes_nc(getPDUValueOffset(), value.get_ptr(), value.size());
+            }
+
+            AttPrepWrite(const bool isReq, const AttPrepWrite& other)
+            : AttPDUMsg(isReq ? Opcode::PREPARE_WRITE_REQ : Opcode::PREPARE_WRITE_RSP, getPDUValueOffset()+other.getValue().size()),
+              view(pdu, getPDUValueOffset(), getPDUValueSize())
+            {
+                pdu.put_uint16_nc(1, other.getHandle());
+                pdu.put_uint16_nc(3, other.getValueOffset());
+                pdu.put_bytes_nc(getPDUValueOffset(), other.getValue().get_ptr_nc(0), other.getValue().size());
+            }
+
+            /** opcode + handle + value_offset */
+            constexpr_cxx20 jau::nsize_t getPDUValueOffset() const noexcept override { return pdu_value_offset; }
+
+            constexpr uint16_t getHandle() const noexcept { return pdu.get_uint16_nc( 1 ); }
+
+            constexpr uint16_t getValueOffset() const noexcept { return pdu.get_uint16_nc( 1 + 2 ); }
+
+            constexpr uint8_t const * getValuePtr() const noexcept { return pdu.get_ptr_nc( pdu_value_offset ); }
+
+            constexpr jau::TOctetSlice const & getValue() const noexcept { return view; }
+
+            constexpr_cxx20 std::string getName() const noexcept override {
+                return "AttPrepWrite";
+            }
+
+        protected:
+            std::string valueString() const noexcept override {
+                return "handle "+jau::to_hexstring(getHandle())+", offset "+std::to_string(getValueOffset())+", data "+view.toString();;
+            }
+    };
+
+    /**
+     * BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.6.3 ATT_EXECUTE_WRITE_REQ
+     *
+     * Used for:
+     * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.4 Write Long Characteristic Values
+     */
+    class AttExeWriteReq : public AttPDUMsg
+    {
+        public:
+            AttExeWriteReq(const uint8_t* source, const jau::nsize_t length)
+            : AttPDUMsg(source, length) {
+                checkOpcode(Opcode::EXECUTE_WRITE_REQ);
+            }
+
+            AttExeWriteReq(const uint8_t flags)
+            : AttPDUMsg(Opcode::EXECUTE_WRITE_REQ, 1+1)
+            {
+                pdu.put_uint8_nc(1, flags);
+            }
+
+            /** opcode */
+            constexpr_cxx20 jau::nsize_t getPDUValueOffset() const noexcept override { return 1+1; }
+
+            constexpr uint8_t getFlags() const noexcept { return pdu.get_uint8_nc( 1 ); }
+
+            constexpr_cxx20 std::string getName() const noexcept override {
+                return "AttExeWriteReq";
+            }
+    };
+
+    /**
+     * BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.6.4 ATT_EXECUTE_WRITE_RSP
+     *
+     * Used for:
+     * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.4 Write Long Characteristic Values
+     */
+    class AttExeWriteRsp : public AttPDUMsg
+    {
+        public:
+            AttExeWriteRsp(const uint8_t* source, const jau::nsize_t length)
+            : AttPDUMsg(source, length) {
+                checkOpcode(Opcode::EXECUTE_WRITE_RSP);
+            }
+
+            AttExeWriteRsp()
+            : AttPDUMsg(Opcode::EXECUTE_WRITE_RSP, 1)
+            { }
+
+            /** opcode */
+            constexpr_cxx20 jau::nsize_t getPDUValueOffset() const noexcept override { return 1; }
+
+            constexpr_cxx20 std::string getName() const noexcept override {
+                return "AttExeWriteRsp";
+            }
+    };
+
+    /**
      * ATT Protocol PDUs Vol 3, Part F 3.4.7.1 and 3.4.7.2
      * <p>
      * A received ATT_HANDLE_VALUE_NTF or ATT_HANDLE_VALUE_IND from server.
