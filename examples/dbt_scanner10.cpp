@@ -329,8 +329,11 @@ class MyGATTEventListener : public BTGattChar::Listener {
             if( nullptr != temp ) {
                 fprintf_td(stderr, "**[%2.2d.%2.2d]     Value T: %s ******\n", i, j, temp->toString().c_str());
             }
+            fprintf_td(stderr, "**[%2.2d.%2.2d]     Value R: %s ******\n", i, j, char_value.toString().c_str());
+        } else {
+            fprintf_td(stderr, "**[%2.2d.%2.2d]     Value R: %s ******\n", i, j, char_value.toString().c_str());
+            fprintf_td(stderr, "**[%2.2d.%2.2d]     Value S: %s ******\n", i, j, jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
         }
-        fprintf_td(stderr, "**[%2.2d.%2.2d]     Value R: %s ******\n", i, j, char_value.toString().c_str());
     }
 
     void indicationReceived(BTGattCharRef charDecl,
@@ -346,8 +349,11 @@ class MyGATTEventListener : public BTGattChar::Listener {
             if( nullptr != temp ) {
                 fprintf_td(stderr, "**[%2.2d.%2.2d]     Value T: %s ******\n", i, j, temp->toString().c_str());
             }
+            fprintf_td(stderr, "**[%2.2d.%2.2d]     Value R: %s ******\n", i, j, char_value.toString().c_str());
+        } else {
+            fprintf_td(stderr, "**[%2.2d.%2.2d]     Value R: %s ******\n", i, j, char_value.toString().c_str());
+            fprintf_td(stderr, "**[%2.2d.%2.2d]     Value S: %s ******\n", i, j, jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
         }
-        fprintf_td(stderr, "**[%2.2d.%2.2d]     Value R: %s ******\n", i, j, char_value.toString().c_str());
     }
 };
 
