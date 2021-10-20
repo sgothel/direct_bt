@@ -562,9 +562,10 @@ exit:
     if( success ) {
         BTDeviceRegistry::addToProcessedDevices(device->getAddressAndType(), device->getName());
     }
-    device->removeAllCharListener();
 
     if( !KEEP_CONNECTED ) {
+        device->removeAllCharListener();
+
         {
             const HCIStatusCode unpair_res = device->unpair();
             fprintf_td(stderr, "****** Processing Ready Device: Unpair-Post result: %s\n", to_string(unpair_res).c_str());
