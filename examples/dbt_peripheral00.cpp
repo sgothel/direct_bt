@@ -79,6 +79,11 @@ static jau::POctets make_poctets(const uint16_t v) {
     return p;
 }
 
+// static const jau::uuid128_t DataServiceUUID =  jau::uuid128_t("d0ca6bf3-3d50-4760-98e5-fc5883e93712");
+static const jau::uuid128_t CommandUUID      = jau::uuid128_t("d0ca6bf3-3d52-4760-98e5-fc5883e93712");
+static const jau::uuid128_t ResponseUUID     = jau::uuid128_t("d0ca6bf3-3d53-4760-98e5-fc5883e93712");
+static const jau::uuid128_t PulseDataUUID =    jau::uuid128_t("d0ca6bf3-3d54-4760-98e5-fc5883e93712");
+
 // DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
 DBGattServerRef dbGattServer( new DBGattServer(
         /* services: */
@@ -140,7 +145,7 @@ DBGattServerRef dbGattServer( new DBGattServer(
                                         make_poctets((uint16_t)0) /* value */ ),
                             DBGattChar( std::make_unique<const jau::uuid128_t>("d0ca6bf3-3d54-4760-98e5-fc5883e93712") /* value_type_ */,
                                         BTGattChar::PropertyBitVal::Notify | BTGattChar::PropertyBitVal::Indicate,
-                                        /* descriptors: */ { DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA INTERACTIV") ),
+                                        /* descriptors: */ { DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA PULSE") ),
                                                              DBGattDesc::createClientCharConfig() },
                                         make_poctets("Synthethic Sensor 01") /* value */ ),
                             } ),
@@ -285,7 +290,67 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 };
 
 class MyGATTServerListener : public DBGattServer::Listener {
+    private:
+        mutable jau::sc_atomic_bool sync_data;
+        std::thread pulseSenderThread;
+        jau::sc_atomic_bool stopPulseSender = false;
+
+        jau::sc_atomic_uint16 handlePulseDataNotify = 0;
+        jau::sc_atomic_uint16 handlePulseDataIndicate = 0;
+        jau::sc_atomic_uint16 handleResponseDataNotify = 0;
+        jau::sc_atomic_uint16 handleResponseDataIndicate = 0;
+
+        std::shared_ptr<BTDevice> sendToDevice;
+
+        void pulseSender() {
+            jau::sc_atomic_critical sync(sync_data);
+            while( !stopPulseSender ) {
+                if( nullptr != sendToDevice && sendToDevice->getConnected() ) {
+                    if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
+                        std::string data( "Dynamic Data Example. Elapsed Milliseconds: "+jau::to_decstring(environment::getElapsedMillisecond(), ',', 9) );
+                        jau::POctets v(data.size()+1, jau::endian::little);
+                        v.put_string_nc(0, data, v.size(), true /* includeEOS */);
+                        if( 0 != handlePulseDataNotify ) {
+                            sendToDevice->sendNotification(handlePulseDataNotify, v);
+                        }
+                        if( 0 != handlePulseDataIndicate ) {
+                            sendToDevice->sendIndication(handlePulseDataNotify, v);
+                        }
+                    }
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            }
+        }
+
+        void sendResponse(jau::POctets data) {
+            if( nullptr != sendToDevice && sendToDevice->getConnected() ) {
+                if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
+                    if( 0 != handleResponseDataNotify ) {
+                        sendToDevice->sendNotification(handleResponseDataNotify, data);
+                    }
+                    if( 0 != handleResponseDataIndicate ) {
+                        sendToDevice->sendIndication(handleResponseDataNotify, data);
+                    }
+                }
+            }
+        }
+
     public:
+        MyGATTServerListener()
+        : pulseSenderThread(&MyGATTServerListener::pulseSender, this)
+        { }
+
+        ~MyGATTServerListener() {
+            {
+                jau::sc_atomic_critical sync(sync_data);
+                stopPulseSender = true;
+                sendToDevice = nullptr;
+            }
+            if( pulseSenderThread.joinable() ) {
+                pulseSenderThread.join();
+            }
+        }
+
         bool readCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c) override {
             fprintf_td(stderr, "GATT::readCharValue: to %s, from\n  %s\n    %s\n",
                     device->toString().c_str(), s.toString().c_str(), c.toString().c_str());
@@ -302,6 +367,13 @@ class MyGATTServerListener : public DBGattServer::Listener {
             fprintf_td(stderr, "GATT::writeCharValue: %s @ %s from %s, to\n  %s\n    %s\n",
                     value.toString().c_str(), jau::to_hexstring(value_offset).c_str(),
                     device->toString().c_str(), s.toString().c_str(), c.toString().c_str());
+
+            if( c.value_type->equivalent( CommandUUID ) &&
+                ( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) )
+            {
+                std::thread senderThread(&MyGATTServerListener::sendResponse, this, value); // @suppress("Invalid arguments")
+                senderThread.detach();
+            }
             return true;
         }
 
@@ -316,6 +388,18 @@ class MyGATTServerListener : public DBGattServer::Listener {
             fprintf_td(stderr, "GATT::clientCharConfigChanged: notify %d, indicate %d from %s\n  %s\n    %s\n      %s\n",
                     notificationEnabled, indicationEnabled,
                     device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
+
+            {
+                jau::sc_atomic_critical sync(sync_data);
+                sendToDevice = device;
+                if( c.value_type->equivalent( PulseDataUUID ) ) {
+                    handlePulseDataNotify = notificationEnabled ? c.value_handle : 0;
+                    handlePulseDataIndicate = indicationEnabled ? c.value_handle : 0;
+                } else if( c.value_type->equivalent( ResponseUUID ) ) {
+                    handleResponseDataNotify = notificationEnabled ? c.value_handle : 0;
+                    handleResponseDataIndicate = indicationEnabled ? c.value_handle : 0;
+                }
+            }
         }
 };
 
