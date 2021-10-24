@@ -74,9 +74,12 @@ static jau::POctets make_poctets(const char* name) {
     return jau::POctets( (const uint8_t*)name, (nsize_t)strlen(name), endian::little );
 }
 static jau::POctets make_poctets(const uint16_t v) {
-    jau::POctets p( 2, endian::little);
+    jau::POctets p(2, endian::little);
     p.put_uint16_nc(0, v);
     return p;
+}
+static jau::POctets make_poctets(const jau::nsize_t capacity, const jau::nsize_t size) {
+    return jau::POctets(capacity, size, endian::little);
 }
 
 // static const jau::uuid128_t DataServiceUUID =  jau::uuid128_t("d0ca6bf3-3d50-4760-98e5-fc5883e93712");
@@ -87,69 +90,78 @@ static const jau::uuid128_t PulseDataUUID =    jau::uuid128_t("d0ca6bf3-3d54-476
 // DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
 DBGattServerRef dbGattServer( new DBGattServer(
         /* services: */
-        { DBGattService ( true /* primary */,
-                          std::make_unique<const jau::uuid16_t>(GattServiceType::GENERIC_ACCESS) /* type_ */,
-                          /* characteristics: */ {
-                            DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::DEVICE_NAME) /* value_type_ */,
-                                        BTGattChar::PropertyBitVal::Read,
-                                        /* descriptors: */ { /* intentionally w/o Desc */ },
-                                        make_poctets("Synthethic Sensor 01") /* value */ ),
-                            DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::APPEARANCE) /* value_type_ */,
-                                        BTGattChar::PropertyBitVal::Read,
-                                        /* descriptors: */ { /* intentionally w/o Desc */ },
-                                        make_poctets((uint16_t)0) /* value */ )
-                            } ),
+        jau::make_darray( // DBGattService
           DBGattService ( true /* primary */,
-                          std::make_unique<const jau::uuid16_t>(GattServiceType::DEVICE_INFORMATION) /* type_ */,
-                          /* characteristics: */ {
-                            DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::MANUFACTURER_NAME_STRING) /* value_type_ */,
-                                        BTGattChar::PropertyBitVal::Read,
-                                        /* descriptors: */ { /* intentionally w/o Desc */ },
-                                        make_poctets("Gothel Software") /* value */ ),
-                            DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::MODEL_NUMBER_STRING) /* value_type_ */,
-                                        BTGattChar::PropertyBitVal::Read,
-                                        /* descriptors: */ { /* intentionally w/o Desc */ },
-                                        make_poctets("2.4.0-pre") /* value */ ),
-                            DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::SERIAL_NUMBER_STRING) /* value_type_ */,
-                                        BTGattChar::PropertyBitVal::Read,
-                                        /* descriptors: */ { /* intentionally w/o Desc */ },
-                                        make_poctets("sn:0123456789") /* value */ ),
-                            DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::HARDWARE_REVISION_STRING) /* value_type_ */,
-                                        BTGattChar::PropertyBitVal::Read,
-                                        /* descriptors: */ { /* intentionally w/o Desc */ },
-                                        make_poctets("hw:0123456789") /* value */ ),
-                            DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::FIRMWARE_REVISION_STRING) /* value_type_ */,
-                                        BTGattChar::PropertyBitVal::Read,
-                                        /* descriptors: */ { /* intentionally w/o Desc */ },
-                                        make_poctets("fw:0123456789") /* value */ ),
-                            DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::SOFTWARE_REVISION_STRING) /* value_type_ */,
-                                        BTGattChar::PropertyBitVal::Read,
-                                        /* descriptors: */ { /* intentionally w/o Desc */ },
-                                        make_poctets("sw:0123456789") /* value */ )
-                            } ),
+              std::make_unique<const jau::uuid16_t>(GattServiceType::GENERIC_ACCESS) /* type_ */,
+              jau::make_darray ( // DBGattChar
+                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::DEVICE_NAME) /* value_type_ */,
+                              BTGattChar::PropertyBitVal::Read,
+                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              make_poctets("Synthethic Sensor 01") /* value */ ),
+                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::APPEARANCE) /* value_type_ */,
+                              BTGattChar::PropertyBitVal::Read,
+                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              make_poctets((uint16_t)0) /* value */
+              ) ) ),
           DBGattService ( true /* primary */,
-                            std::make_unique<const jau::uuid128_t>("d0ca6bf3-3d50-4760-98e5-fc5883e93712") /* type_ */,
-                            /* characteristics: */ {
-                            DBGattChar( std::make_unique<const jau::uuid128_t>("d0ca6bf3-3d51-4760-98e5-fc5883e93712") /* value_type_ */,
-                                        BTGattChar::PropertyBitVal::Read,
-                                        /* descriptors: */ { DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA STATIC") ) },
-                                        make_poctets("Proprietary Static Data 0x00010203") /* value */ ),
-                            DBGattChar( std::make_unique<const jau::uuid128_t>("d0ca6bf3-3d52-4760-98e5-fc5883e93712") /* value_type_ */,
-                                        BTGattChar::PropertyBitVal::WriteNoAck | BTGattChar::PropertyBitVal::WriteWithAck,
-                                        /* descriptors: */ { DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("COMMAND") ) },
-                                        make_poctets((uint16_t)0) /* value */ ),
-                            DBGattChar( std::make_unique<const jau::uuid128_t>("d0ca6bf3-3d53-4760-98e5-fc5883e93712") /* value_type_ */,
-                                        BTGattChar::PropertyBitVal::Notify | BTGattChar::PropertyBitVal::Indicate,
-                                        /* descriptors: */ { DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("RESPONSE") ),
-                                                             DBGattDesc::createClientCharConfig() },
-                                        make_poctets((uint16_t)0) /* value */ ),
-                            DBGattChar( std::make_unique<const jau::uuid128_t>("d0ca6bf3-3d54-4760-98e5-fc5883e93712") /* value_type_ */,
-                                        BTGattChar::PropertyBitVal::Notify | BTGattChar::PropertyBitVal::Indicate,
-                                        /* descriptors: */ { DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA PULSE") ),
-                                                             DBGattDesc::createClientCharConfig() },
-                                        make_poctets("Synthethic Sensor 01") /* value */ ),
-                            } ),
-        } ) );
+              std::make_unique<const jau::uuid16_t>(GattServiceType::DEVICE_INFORMATION) /* type_ */,
+              jau::make_darray ( // DBGattChar
+                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::MANUFACTURER_NAME_STRING) /* value_type_ */,
+                              BTGattChar::PropertyBitVal::Read,
+                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              make_poctets("Gothel Software") /* value */ ),
+                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::MODEL_NUMBER_STRING) /* value_type_ */,
+                              BTGattChar::PropertyBitVal::Read,
+                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              make_poctets("2.4.0-pre") /* value */ ),
+                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::SERIAL_NUMBER_STRING) /* value_type_ */,
+                              BTGattChar::PropertyBitVal::Read,
+                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              make_poctets("sn:0123456789") /* value */ ),
+                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::HARDWARE_REVISION_STRING) /* value_type_ */,
+                              BTGattChar::PropertyBitVal::Read,
+                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              make_poctets("hw:0123456789") /* value */ ),
+                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::FIRMWARE_REVISION_STRING) /* value_type_ */,
+                              BTGattChar::PropertyBitVal::Read,
+                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              make_poctets("fw:0123456789") /* value */ ),
+                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::SOFTWARE_REVISION_STRING) /* value_type_ */,
+                              BTGattChar::PropertyBitVal::Read,
+                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              make_poctets("sw:0123456789") /* value */
+              ) ) ),
+          DBGattService ( true /* primary */,
+              std::make_unique<const jau::uuid128_t>("d0ca6bf3-3d50-4760-98e5-fc5883e93712") /* type_ */,
+              jau::make_darray ( // DBGattChar
+                  DBGattChar( std::make_unique<const jau::uuid128_t>("d0ca6bf3-3d51-4760-98e5-fc5883e93712") /* value_type_ */,
+                              BTGattChar::PropertyBitVal::Read,
+                              jau::make_darray ( // DBGattDesc
+                                  DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA STATIC") )
+                              ),
+                            make_poctets("Proprietary Static Data 0x00010203") /* value */ ),
+                  DBGattChar( std::make_unique<const jau::uuid128_t>(CommandUUID) /* value_type_ */,
+                              BTGattChar::PropertyBitVal::WriteNoAck | BTGattChar::PropertyBitVal::WriteWithAck,
+                              jau::make_darray ( // DBGattDesc
+                                  DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("COMMAND") )
+                              ),
+                              make_poctets(128, 64) /* value */ ),
+                  DBGattChar( std::make_unique<const jau::uuid128_t>(ResponseUUID) /* value_type_ */,
+                              BTGattChar::PropertyBitVal::Notify | BTGattChar::PropertyBitVal::Indicate,
+                              jau::make_darray ( // DBGattDesc
+                                  DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("RESPONSE") ),
+                                  DBGattDesc::createClientCharConfig()
+                              ),
+                              make_poctets((uint16_t)0) /* value */ ),
+                  DBGattChar( std::make_unique<const jau::uuid128_t>(PulseDataUUID) /* value_type_ */,
+                              BTGattChar::PropertyBitVal::Notify | BTGattChar::PropertyBitVal::Indicate,
+                              jau::make_darray ( // DBGattDesc
+                                  DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA PULSE") ),
+                                  DBGattDesc::createClientCharConfig()
+                              ),
+                              make_poctets("Synthethic Sensor 01") /* value */
+              ) ) )
+        ) ) );
 
 
 class MyAdapterStatusListener : public AdapterStatusListener {
@@ -371,7 +383,8 @@ class MyGATTServerListener : public DBGattServer::Listener {
             if( c.value_type->equivalent( CommandUUID ) &&
                 ( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) )
             {
-                std::thread senderThread(&MyGATTServerListener::sendResponse, this, value); // @suppress("Invalid arguments")
+                jau::POctets value2(value);
+                std::thread senderThread(&MyGATTServerListener::sendResponse, this, value2); // @suppress("Invalid arguments")
                 senderThread.detach();
             }
             return true;
@@ -585,6 +598,8 @@ int main(int argc, char *argv[])
     fprintf(stderr, "btmode %s\n", to_string(btMode).c_str());
     fprintf(stderr, "name %s (short %s)\n", adapter_name.c_str(), adapter_short_name.c_str());
     fprintf(stderr, "GattServer %s\n", dbGattServer->toString().c_str());
+    fprintf(stderr, "GattServer.services: %s\n", dbGattServer->services.get_info().c_str());
+    fprintf(stderr, "GattService.characteristics: %s\n", dbGattServer->services[0].characteristics.get_info().c_str());
 
     if( waitForEnter ) {
         fprintf(stderr, "Press ENTER to continue\n");

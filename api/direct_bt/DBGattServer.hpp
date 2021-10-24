@@ -50,6 +50,12 @@
 #include "BTGattChar.hpp"
 // #include "BTGattService.hpp"
 
+// #define JAU_TRACE_DBGATT 1
+#ifdef JAU_TRACE_DBGATT
+    #define JAU_TRACE_DBGATT_PRINT(...) { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
+#else
+    #define JAU_TRACE_DBGATT_PRINT(...)
+#endif
 
 /**
  * - - - - - - - - - - - - - - -
@@ -94,6 +100,10 @@ namespace direct_bt {
              */
             bool variable_length;
 
+            ~DBGattDesc() {
+                JAU_TRACE_DBGATT_PRINT("DBGattDesc dtor0: %p", this);
+            }
+
             /**
              *
              * @param type_
@@ -101,12 +111,37 @@ namespace direct_bt {
              * @param variable_length_ defaults to true, but forced to false if isExtendedProperties() or isClientCharConfig().
              */
             DBGattDesc(const std::shared_ptr<const jau::uuid_t>& type_,
-                       const jau::TROOctets& value_, bool variable_length_=true) noexcept
-            : handle(0), type(type_), value(value_), variable_length(variable_length_)
+                       jau::POctets && value_, bool variable_length_=true) noexcept
+            : handle(0), type(type_), value( std::move( value_ ) ), variable_length(variable_length_)
             {
                 if( variable_length && ( isExtendedProperties() || isClientCharConfig() ) ) {
                     variable_length = false;
                 }
+                JAU_TRACE_DBGATT_PRINT("DBGattDesc ctor0, value-move: %p", this);
+            }
+
+            /**
+             * Copy constructor preserving the capacity of the value
+             * @param o
+             */
+            DBGattDesc(const DBGattDesc &o)
+            : handle(o.handle), type(o.type),
+              value(o.value, o.value.capacity()),
+              variable_length(o.variable_length)
+            {
+                JAU_TRACE_DBGATT_PRINT("DBGattDesc ctor-cpy0: %p -> %p", &o, this);
+            }
+
+            /**
+             * Move constructor
+             * @param o POctet source to be taken over
+             */
+            DBGattDesc(DBGattDesc &&o) noexcept
+            : handle(std::move(o.handle)), type(std::move(o.type)),
+              value(std::move(o.value)),
+              variable_length(std::move(o.variable_length))
+            {
+                JAU_TRACE_DBGATT_PRINT("DBGattDesc ctor-move0: %p -> %p", &o, this);
             }
 
             /**
@@ -117,7 +152,7 @@ namespace direct_bt {
             static DBGattDesc createClientCharConfig() {
                 jau::POctets p( 2, jau::endian::little);
                 p.put_uint16_nc(0, 0);
-                return DBGattDesc( BTGattDesc::TYPE_CCC_DESC, p, false /* variable_length */ );
+                return DBGattDesc( BTGattDesc::TYPE_CCC_DESC, std::move(p), false /* variable_length */ );
             }
 
             std::string toString() const noexcept {
@@ -212,23 +247,19 @@ namespace direct_bt {
             /* Optional Characteristic User Description index within descriptorList */
             int userDescriptionIndex;
 
-            /**
-             *
-             * @param value_type_
-             * @param properties_
-             * @param descriptors_
-             * @param value_
-             * @param variable_length_ defaults to true
-             */
+            ~DBGattChar() {
+                JAU_TRACE_DBGATT_PRINT("DBGattChar dtor0: %p", this);
+            }
+
             DBGattChar(const std::shared_ptr<const jau::uuid_t>& value_type_,
                        const BTGattChar::PropertyBitVal properties_,
-                       const jau::darray<DBGattDesc>& descriptors_,
-                       const jau::TROOctets & value_, bool variable_length_=true) noexcept
+                       jau::darray<DBGattDesc> && descriptors_,
+                       jau::POctets && value_, bool variable_length_=true) noexcept
             : handle(0), end_handle(0), value_handle(0),
               value_type(value_type_),
               properties(properties_),
-              descriptors(descriptors_),
-              value(value_), variable_length(variable_length_),
+              descriptors( std::move( descriptors_ ) ),
+              value( std::move( value_ ) ), variable_length(variable_length_),
               clientCharConfigIndex(-1),
               userDescriptionIndex(-1)
             {
@@ -242,6 +273,41 @@ namespace direct_bt {
                     }
                     ++i;
                 }
+                JAU_TRACE_DBGATT_PRINT("DBGattChar: ctor0, descr-move: %p", this);
+            }
+
+            /**
+             * Copy constructor preserving the capacity of the value
+             * @param o
+             */
+            DBGattChar(const DBGattChar &o)
+            : handle(o.handle), end_handle(o.end_handle),
+              value_handle(o.value_handle), value_type(o.value_type),
+              properties(o.properties),
+              descriptors(o.descriptors),
+              value(o.value, o.value.capacity()),
+              variable_length(o.variable_length),
+              clientCharConfigIndex(o.clientCharConfigIndex),
+              userDescriptionIndex(o.userDescriptionIndex)
+            {
+                JAU_TRACE_DBGATT_PRINT("DBGattChar: ctor-copy0: %p -> %p", &o, this);
+            }
+
+            /**
+             * Move constructor
+             * @param o POctet source to be taken over
+             */
+            DBGattChar(DBGattChar &&o) noexcept
+            : handle(std::move(o.handle)), end_handle(std::move(o.end_handle)),
+              value_handle(std::move(o.value_handle)), value_type(std::move(o.value_type)),
+              properties(std::move(o.properties)),
+              descriptors(std::move(o.descriptors)),
+              value(std::move(o.value)),
+              variable_length(std::move(o.variable_length)),
+              clientCharConfigIndex(std::move(o.clientCharConfigIndex)),
+              userDescriptionIndex(std::move(o.userDescriptionIndex))
+            {
+                JAU_TRACE_DBGATT_PRINT("DBGattChar: ctor-move0: %p -> %p", &o, this);
             }
 
             bool hasProperties(const BTGattChar::PropertyBitVal v) const noexcept { return v == ( properties & v ); }
@@ -324,13 +390,20 @@ namespace direct_bt {
             /** List of Characteristic Declarations. */
             jau::darray<DBGattChar> characteristics;
 
+            ~DBGattService() {
+                JAU_TRACE_DBGATT_PRINT("DBGattService dtor0: %p", this);
+            }
+
             DBGattService(const bool primary_,
                           const std::shared_ptr<const jau::uuid_t>& type_,
-                          const jau::darray<DBGattChar>& characteristics_) noexcept
+                          jau::darray<DBGattChar> && characteristics_)
             : primary(primary_), handle(0), end_handle(0),
               type(type_),
-              characteristics(characteristics_)
+              characteristics( std::move( characteristics_ ) )
             { }
+
+            DBGattService(const DBGattService &o) = default;
+            DBGattService(DBGattService &&o) noexcept = default;
 
             DBGattChar* findGattChar(const jau::uuid_t& char_uuid) noexcept {
                 for(DBGattChar& c : characteristics) {
@@ -487,12 +560,8 @@ namespace direct_bt {
             : services()
             { }
 
-            DBGattServer(jau::darray<DBGattService>& service_)
-            : services(service_)
-            { }
-
-            DBGattServer(std::initializer_list<DBGattService> initlist)
-            : services(initlist)
+            DBGattServer(jau::darray<DBGattService> && services_)
+            : services( std::move( services_ ) )
             { }
 
             DBGattService* findGattService(const jau::uuid_t& type) noexcept {
@@ -509,15 +578,6 @@ namespace direct_bt {
                     return nullptr;
                 }
                 return service->findGattChar(char_uuid);
-            }
-
-            bool addService(DBGattService& s) noexcept {
-                if( nullptr != findGattService(*s.type) ) {
-                    // already shared
-                    return false;
-                }
-                services.push_back(s);
-                return true;
             }
 
             /**
