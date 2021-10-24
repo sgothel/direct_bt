@@ -548,11 +548,13 @@ errout:
         // open and not intentionally interrupted
         if( ETIMEDOUT == errno ) {
             // just timed out (???)
-            DBG_PRINT("L2CAPComm::read: Timeout res %d (%s), len %d; dd %d, %s, psm %s, cid %s; %s",
-                  err_res, getRWExitCodeString(err_res).c_str(), len,
-                  socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
-                  to_string(psm).c_str(), to_string(cid).c_str(),
-                  getStateString().c_str());
+            if( err_res != number(RWExitCode::POLL_TIMEOUT) ) { // expected POLL_TIMEOUT if idle
+                DBG_PRINT("L2CAPComm::read: Timeout res %d (%s), len %d; dd %d, %s, psm %s, cid %s; %s",
+                      err_res, getRWExitCodeString(err_res).c_str(), len,
+                      socket_descriptor.load(), deviceAddressAndType.toString().c_str(),
+                      to_string(psm).c_str(), to_string(cid).c_str(),
+                      getStateString().c_str());
+            }
         } else {
             // Only report as ioerror if open, not intentionally interrupted and no timeout!
             has_ioerror = true;

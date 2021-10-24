@@ -986,7 +986,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
                     getStateString().c_str());
             l2capReaderShallStop = true;
             has_ioerror = true;
-        } else {
+        } else if( len != L2CAPComm::number(L2CAPComm::RWExitCode::POLL_TIMEOUT) ) { // expected POLL_TIMEOUT if idle
             WORDY_PRINT("GATTHandler::reader: l2cap read: l2cap.read %d (%s); %s",
                     len, L2CAPComm::getRWExitCodeString(len).c_str(),
                     getStateString().c_str());
