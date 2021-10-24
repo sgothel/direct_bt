@@ -251,13 +251,11 @@ namespace direct_bt {
      * Note the remote {@link BTDevice}'s [opposite role](@ref BTDeviceRoles).
      *
      * Controlling Environment variables:
-     * <pre>
      * - 'direct_bt.debug.adapter.event': Debug messages about events, see debug_events
-     * </pre>
      *
      * @see BTDevice
-     * @see [BTDevice roles](@ref BTDeviceRoles).
-     * @see [BTGattHandler roles](@ref BTGattHandlerRoles).
+     * @see @ref BTDeviceRoles
+     * @see @ref BTGattHandlerRoles
      * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
      */
     class BTAdapter : public BTObject
