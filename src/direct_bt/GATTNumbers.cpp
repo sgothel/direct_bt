@@ -38,163 +38,224 @@
 
 using namespace direct_bt;
 
+#if defined(DIRECTBT_BUILDIN_GATT_SERVICE_CHARACTERISTIC_SPEC)
+
+
+#if 0
+// Testing jau::make_darray compliance ..
+struct Lala0 { int a; int b; };
+
+static jau::darray<GattCharacteristicPropertySpec> lala =
+        jau::make_darray(
+          GCPS{ Read, Mandatory },
+          GCPS{ Notify, Excluded } );
+
+static jau::darray<GattCharacteristicPropertySpec> lala2 =
+        jau::make_darray(
+          Lala0{ 0, 1 },
+          Lala0{ 1, 2 } );
+
+static jau::darray<GattCharacteristicPropertySpec> lala3 =
+        jau::make_darray(
+          GCPS{ Read, Mandatory },
+          Lala0{ 1, 2 } );
+#endif
+
+typedef GattCharacteristicSpec GCS;
+typedef GattCharacteristicPropertySpec GCPS;
+
 /** https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.generic_access.xml */
-const GattServiceCharacteristic direct_bt::GATT_GENERIC_ACCESS_SRVC = { GENERIC_ACCESS,
-        { { DEVICE_NAME, Mandatory,
-            // GattCharacteristicPropertySpec[9]:
-            { { Read, Mandatory },
-              { WriteWithAck, Optional }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-              { Notify, Excluded }, { Indicate, Excluded }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+const GattServiceCharacteristic direct_bt::GATT_GENERIC_ACCESS_SRVC { GENERIC_ACCESS,
+        jau::make_darray( // GattCharacteristicSpec
+          GCS{ DEVICE_NAME, Mandatory,
+            // jau::make_darray<GattCharacteristicPropertySpec, GattCharacteristicPropertySpec...>( // GattCharacteristicPropertySpec [9]:
+            jau::make_darray( // GattCharacteristicPropertySpec [9]:
+              GCPS{ Read, Mandatory },
+              GCPS{ WriteWithAck, Optional }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+              GCPS{ Notify, Excluded }, GCPS{ Indicate, Excluded }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
             // GattClientCharacteristicConfigSpec:
             { Excluded, { Read, Excluded}, { WriteWithAck, Excluded } }
           },
-          { APPEARANCE, Mandatory,
-            // GattCharacteristicPropertySpec[9]:
-            { { Read, Mandatory },
-              { WriteWithAck, Excluded }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-              { Notify, Excluded }, { Indicate, Excluded }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+          GCS{ APPEARANCE, Mandatory,
+            jau::make_darray( // [9]:
+              GCPS{ Read, Mandatory },
+              GCPS{ WriteWithAck, Excluded }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+              GCPS{ Notify, Excluded }, GCPS{ Indicate, Excluded }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
             // GattClientCharacteristicConfigSpec:
             { Excluded, { Read, Excluded}, { WriteWithAck, Excluded } }
           },
-          { PERIPHERAL_PRIVACY_FLAG, Optional,
-            // GattCharacteristicPropertySpec[9]:
-            { { Read, Mandatory },
-              { WriteWithAck, Excluded }, { WriteNoAck, C1 }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-              { Notify, Excluded }, { Indicate, Excluded }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+          GCS{ PERIPHERAL_PRIVACY_FLAG, Optional,
+            jau::make_darray( // [9]:
+              GCPS{ Read, Mandatory },
+              GCPS{ WriteWithAck, Excluded }, GCPS{ WriteNoAck, C1 }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+              GCPS{ Notify, Excluded }, GCPS{ Indicate, Excluded }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
             // GattClientCharacteristicConfigSpec:
             { Excluded, { Read, Excluded}, { WriteWithAck, Excluded } }
           },
-          { RECONNECTION_ADDRESS, Conditional,
-            // GattCharacteristicPropertySpec[9]:
-            { { Read, Excluded },
-              { WriteWithAck, Mandatory }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-              { Notify, Excluded }, { Indicate, Excluded }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+          GCS{ RECONNECTION_ADDRESS, Conditional,
+            jau::make_darray( // [9]:
+              GCPS{ Read, Excluded },
+              GCPS{ WriteWithAck, Mandatory }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+              GCPS{ Notify, Excluded }, GCPS{ Indicate, Excluded }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
             // GattClientCharacteristicConfigSpec:
             { Excluded, { Read, Excluded}, { WriteWithAck, Excluded } }
           },
-          { PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS, Optional,
-            // GattCharacteristicPropertySpec[9]:
-            { { Read, Mandatory },
-              { WriteWithAck, Excluded }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-              { Notify, Excluded }, { Indicate, Excluded }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+          GCS{ PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS, Optional,
+            jau::make_darray( // [9]:
+              GCPS{ Read, Mandatory },
+              GCPS{ WriteWithAck, Excluded }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+              GCPS{ Notify, Excluded }, GCPS{ Indicate, Excluded }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
             // GattClientCharacteristicConfigSpec:
             { Excluded, { Read, Excluded}, { WriteWithAck, Excluded } }
-          },
-        } };
+          }
+        ) };
 
 /** https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.health_thermometer.xml */
-const GattServiceCharacteristic direct_bt::GATT_HEALTH_THERMOMETER_SRVC = { HEALTH_THERMOMETER,
-        { { TEMPERATURE_MEASUREMENT, Mandatory,
-            // GattCharacteristicPropertySpec[9]:
-            { { Read, Excluded },
-              { WriteWithAck, Excluded }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-              { Notify, Excluded }, { Indicate, Mandatory }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+const GattServiceCharacteristic direct_bt::GATT_HEALTH_THERMOMETER_SRVC { HEALTH_THERMOMETER,
+        jau::make_darray( // GattCharacteristicSpec
+          GCS{ TEMPERATURE_MEASUREMENT, Mandatory,
+            jau::make_darray( // [9]:
+              GCPS{ Read, Excluded },
+              GCPS{ WriteWithAck, Excluded }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+              GCPS{ Notify, Excluded }, GCPS{ Indicate, Mandatory }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
             // GattClientCharacteristicConfigSpec:
             { Mandatory, { Read, Mandatory}, { WriteWithAck, Mandatory } }
           },
-          { TEMPERATURE_TYPE, Optional,
-            // GattCharacteristicPropertySpec[9]:
-            { { Read, Mandatory },
-              { WriteWithAck, Excluded }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-              { Notify, Excluded }, { Indicate, Excluded }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+          GCS{ TEMPERATURE_TYPE, Optional,
+            jau::make_darray( // [9]:
+              GCPS{ Read, Mandatory },
+              GCPS{ WriteWithAck, Excluded }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+              GCPS{ Notify, Excluded }, GCPS{ Indicate, Excluded }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
             // GattClientCharacteristicConfigSpec:
             { Excluded, { Read, Excluded}, { WriteWithAck, Excluded } }
           },
-          { INTERMEDIATE_TEMPERATURE, Optional,
-            // GattCharacteristicPropertySpec[9]:
-            { { Read, Excluded },
-              { WriteWithAck, Excluded }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-              { Notify, Mandatory }, { Indicate, Excluded }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+          GCS{ INTERMEDIATE_TEMPERATURE, Optional,
+            jau::make_darray( // [9]:
+              GCPS{ Read, Excluded },
+              GCPS{ WriteWithAck, Excluded }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+              GCPS{ Notify, Mandatory }, GCPS{ Indicate, Excluded }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
             // GattClientCharacteristicConfigSpec:
             { if_characteristic_supported, { Read, Mandatory}, { WriteWithAck, Mandatory } }
           },
-          { MEASUREMENT_INTERVAL, Optional,
-            // GattCharacteristicPropertySpec[9]:
-            { { Read, Mandatory },
-              { WriteWithAck, Optional }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-              { Notify, Excluded }, { Indicate, Optional }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+          GCS{ MEASUREMENT_INTERVAL, Optional,
+            jau::make_darray( // [9]:
+              GCPS{ Read, Mandatory },
+              GCPS{ WriteWithAck, Optional }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+              GCPS{ Notify, Excluded }, GCPS{ Indicate, Optional }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
             // GattClientCharacteristicConfigSpec:
             { if_notify_or_indicate_supported, { Read, Mandatory}, { WriteWithAck, Mandatory } }
-          },
-        } };
+          }
+        ) };
 
-const GattServiceCharacteristic direct_bt::GATT_DEVICE_INFORMATION_SRVC = { DEVICE_INFORMATION,
-        { { MANUFACTURER_NAME_STRING, Optional,
-            // GattCharacteristicPropertySpec[9]:
-            { { Read, Mandatory },
-              { WriteWithAck, Excluded }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-              { Notify, Excluded }, { Indicate, Mandatory }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+const GattServiceCharacteristic direct_bt::GATT_DEVICE_INFORMATION_SRVC { DEVICE_INFORMATION,
+        jau::make_darray( // GattCharacteristicSpec
+          GCS{ MANUFACTURER_NAME_STRING, Optional,
+            jau::make_darray( // [9]:
+              GCPS{ Read, Mandatory },
+              GCPS{ WriteWithAck, Excluded }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+              GCPS{ Notify, Excluded }, GCPS{ Indicate, Mandatory }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
             // GattClientCharacteristicConfigSpec:
             { Excluded, { Read, Excluded}, { WriteWithAck, Excluded } }
           },
-		  { MODEL_NUMBER_STRING, Optional,
-			// GattCharacteristicPropertySpec[9]:
-			{ { Read, Mandatory },
-			  { WriteWithAck, Excluded }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-			  { Notify, Excluded }, { Indicate, Mandatory }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+          GCS{ MODEL_NUMBER_STRING, Optional,
+            jau::make_darray( // [9]:
+			  GCPS{ Read, Mandatory },
+			  GCPS{ WriteWithAck, Excluded }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+			  GCPS{ Notify, Excluded }, GCPS{ Indicate, Mandatory }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
 			// GattClientCharacteristicConfigSpec:
 			{ Excluded, { Read, Excluded}, { WriteWithAck, Excluded } }
 		  },
-		  { SERIAL_NUMBER_STRING, Optional,
-			// GattCharacteristicPropertySpec[9]:
-			{ { Read, Mandatory },
-			  { WriteWithAck, Excluded }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-			  { Notify, Excluded }, { Indicate, Mandatory }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+		  GCS{ SERIAL_NUMBER_STRING, Optional,
+            jau::make_darray( // [9]:
+			  GCPS{ Read, Mandatory },
+			  GCPS{ WriteWithAck, Excluded }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+			  GCPS{ Notify, Excluded }, GCPS{ Indicate, Mandatory }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
 			// GattClientCharacteristicConfigSpec:
 			{ Excluded, { Read, Excluded}, { WriteWithAck, Excluded } }
 		  },
-		  { HARDWARE_REVISION_STRING, Optional,
-			// GattCharacteristicPropertySpec[9]:
-			{ { Read, Mandatory },
-			  { WriteWithAck, Excluded }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-			  { Notify, Excluded }, { Indicate, Mandatory }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+		  GCS{ HARDWARE_REVISION_STRING, Optional,
+		    jau::make_darray( // [9]:
+			  GCPS{ Read, Mandatory },
+			  GCPS{ WriteWithAck, Excluded }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+			  GCPS{ Notify, Excluded }, GCPS{ Indicate, Mandatory }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
 			// GattClientCharacteristicConfigSpec:
 			{ Excluded, { Read, Excluded}, { WriteWithAck, Excluded } }
 		  },
-		  { FIRMWARE_REVISION_STRING, Optional,
-			// GattCharacteristicPropertySpec[9]:
-			{ { Read, Mandatory },
-			  { WriteWithAck, Excluded }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-			  { Notify, Excluded }, { Indicate, Mandatory }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+		  GCS{ FIRMWARE_REVISION_STRING, Optional,
+		    jau::make_darray( // [9]:
+			  GCPS{ Read, Mandatory },
+			  GCPS{ WriteWithAck, Excluded }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+			  GCPS{ Notify, Excluded }, GCPS{ Indicate, Mandatory }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
 			// GattClientCharacteristicConfigSpec:
 			{ Excluded, { Read, Excluded}, { WriteWithAck, Excluded } }
 		  },
-		  { SOFTWARE_REVISION_STRING, Optional,
-			// GattCharacteristicPropertySpec[9]:
-			{ { Read, Mandatory },
-			  { WriteWithAck, Excluded }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-			  { Notify, Excluded }, { Indicate, Mandatory }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+		  GCS{ SOFTWARE_REVISION_STRING, Optional,
+		    jau::make_darray( // [9]:
+			  GCPS{ Read, Mandatory },
+			  GCPS{ WriteWithAck, Excluded }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+			  GCPS{ Notify, Excluded }, GCPS{ Indicate, Mandatory }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
 			// GattClientCharacteristicConfigSpec:
 			{ Excluded, { Read, Excluded}, { WriteWithAck, Excluded } }
 		  },
-		  { SYSTEM_ID, Optional,
-			// GattCharacteristicPropertySpec[9]:
-			{ { Read, Mandatory },
-			  { WriteWithAck, Excluded }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-			  { Notify, Excluded }, { Indicate, Mandatory }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+		  GCS{ SYSTEM_ID, Optional,
+		    jau::make_darray( // [9]:
+			  GCPS{ Read, Mandatory },
+			  GCPS{ WriteWithAck, Excluded }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+			  GCPS{ Notify, Excluded }, GCPS{ Indicate, Mandatory }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
 			// GattClientCharacteristicConfigSpec:
 			{ Excluded, { Read, Excluded}, { WriteWithAck, Excluded } }
 		  },
-		  { REGULATORY_CERT_DATA_LIST, Optional,
-			// GattCharacteristicPropertySpec[9]:
-			{ { Read, Mandatory },
-			  { WriteWithAck, Excluded }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-			  { Notify, Excluded }, { Indicate, Mandatory }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+		  GCS{ REGULATORY_CERT_DATA_LIST, Optional,
+		    jau::make_darray( // [9]:
+			  GCPS{ Read, Mandatory },
+			  GCPS{ WriteWithAck, Excluded }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+			  GCPS{ Notify, Excluded }, GCPS{ Indicate, Mandatory }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
 			// GattClientCharacteristicConfigSpec:
 			{ Excluded, { Read, Excluded}, { WriteWithAck, Excluded } }
 		  },
-		  { PNP_ID, Optional,
-			// GattCharacteristicPropertySpec[9]:
-			{ { Read, Mandatory },
-			  { WriteWithAck, Excluded }, { WriteNoAck, Excluded }, { AuthSignedWrite, Excluded }, { ReliableWriteExt, Excluded },
-			  { Notify, Excluded }, { Indicate, Mandatory }, { AuxWriteExt, Excluded }, { Broadcast, Excluded } },
+		  GCS{ PNP_ID, Optional,
+		    jau::make_darray( // [9]:
+			  GCPS{ Read, Mandatory },
+			  GCPS{ WriteWithAck, Excluded }, GCPS{ WriteNoAck, Excluded }, GCPS{ AuthSignedWrite, Excluded }, GCPS{ ReliableWriteExt, Excluded },
+			  GCPS{ Notify, Excluded }, GCPS{ Indicate, Mandatory }, GCPS{ AuxWriteExt, Excluded }, GCPS{ Broadcast, Excluded } ),
 			// GattClientCharacteristicConfigSpec:
 			{ Excluded, { Read, Excluded}, { WriteWithAck, Excluded } }
 		  }
-        } };
+        ) };
 
-const jau::darray<const GattServiceCharacteristic*> direct_bt::GATT_SERVICES = {
-        &direct_bt::GATT_GENERIC_ACCESS_SRVC, &direct_bt::GATT_HEALTH_THERMOMETER_SRVC, &direct_bt::GATT_DEVICE_INFORMATION_SRVC };
+const jau::darray<const GattServiceCharacteristic*> direct_bt::GATT_SERVICES = jau::make_darray (
+        &direct_bt::GATT_GENERIC_ACCESS_SRVC, &direct_bt::GATT_HEALTH_THERMOMETER_SRVC, &direct_bt::GATT_DEVICE_INFORMATION_SRVC );
+
+const GattServiceCharacteristic * direct_bt::findGattServiceChar(const uint16_t uuid16) noexcept {
+    for(size_t i=0; i<GATT_SERVICES.size(); i++) {
+        const GattServiceCharacteristic & serviceChar = *GATT_SERVICES.at(i);
+        if( uuid16 == serviceChar.service ) {
+            return &serviceChar;
+        }
+        for(size_t j=0; j<serviceChar.characteristics.size(); j++) {
+            const GattCharacteristicSpec & charSpec = serviceChar.characteristics.at(i);
+            if( uuid16 == charSpec.characteristic ) {
+                return &serviceChar;
+            }
+        }
+    }
+    return nullptr;
+}
+
+const GattCharacteristicSpec * direct_bt::findGattCharSpec(const uint16_t uuid16) noexcept {
+    for(size_t i=0; i<GATT_SERVICES.size(); i++) {
+        const GattServiceCharacteristic & serviceChar = *GATT_SERVICES.at(i);
+        for(size_t j=0; j<serviceChar.characteristics.size(); j++) {
+            const GattCharacteristicSpec & charSpec = serviceChar.characteristics.at(i);
+            if( uuid16 == charSpec.characteristic ) {
+                return &charSpec;
+            }
+        }
+    }
+    return nullptr;
+}
+
+#endif /* DIRECTBT_BUILDIN_GATT_SERVICE_CHARACTERISTIC_SPEC */
 
 #define CASE_TO_STRING(V) case V: return #V;
 
@@ -311,35 +372,6 @@ std::string GattServiceCharacteristic::toString() const noexcept {
     }
     res += "]";
     return res;
-}
-
-const GattServiceCharacteristic * direct_bt::findGattServiceChar(const uint16_t uuid16) noexcept {
-    for(size_t i=0; i<GATT_SERVICES.size(); i++) {
-        const GattServiceCharacteristic & serviceChar = *GATT_SERVICES.at(i);
-        if( uuid16 == serviceChar.service ) {
-            return &serviceChar;
-        }
-        for(size_t j=0; j<serviceChar.characteristics.size(); j++) {
-            const GattCharacteristicSpec & charSpec = serviceChar.characteristics.at(i);
-            if( uuid16 == charSpec.characteristic ) {
-                return &serviceChar;
-            }
-        }
-    }
-    return nullptr;
-}
-
-const GattCharacteristicSpec * direct_bt::findGattCharSpec(const uint16_t uuid16) noexcept {
-    for(size_t i=0; i<GATT_SERVICES.size(); i++) {
-        const GattServiceCharacteristic & serviceChar = *GATT_SERVICES.at(i);
-        for(size_t j=0; j<serviceChar.characteristics.size(); j++) {
-            const GattCharacteristicSpec & charSpec = serviceChar.characteristics.at(i);
-            if( uuid16 == charSpec.characteristic ) {
-                return &charSpec;
-            }
-        }
-    }
-    return nullptr;
 }
 
 /********************************************************/

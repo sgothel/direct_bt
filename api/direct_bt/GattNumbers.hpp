@@ -155,23 +155,23 @@ enum GattRequirementSpec : uint8_t {
 std::string GattRequirementSpecToString(const GattRequirementSpec v) noexcept;
 
 struct GattCharacteristicPropertySpec {
-    const GattCharacteristicProperty property;
-    const GattRequirementSpec requirement;
+    GattCharacteristicProperty property;
+    GattRequirementSpec requirement;
 
     std::string toString() const noexcept;
 };
 
 struct GattClientCharacteristicConfigSpec {
-    const GattRequirementSpec requirement;
-    const GattCharacteristicPropertySpec read;
-    const GattCharacteristicPropertySpec writeWithAck;
+    GattRequirementSpec requirement;
+    GattCharacteristicPropertySpec read;
+    GattCharacteristicPropertySpec writeWithAck;
 
     std::string toString() const noexcept;
 };
 
 struct GattCharacteristicSpec {
-    const GattCharacteristicType characteristic;
-    const GattRequirementSpec requirement;
+    GattCharacteristicType characteristic;
+    GattRequirementSpec requirement;
 
     enum PropertySpecIdx : int {
         ReadIdx = 0,
@@ -185,20 +185,22 @@ struct GattCharacteristicSpec {
         BroadcastIdx
     };
     /** Aggregated in PropertySpecIdx order */
-    const jau::darray<GattCharacteristicPropertySpec> propertySpec;
+    jau::darray<GattCharacteristicPropertySpec> propertySpec;
 
-    const GattClientCharacteristicConfigSpec clientConfig;
+    GattClientCharacteristicConfigSpec clientConfig;
 
     std::string toString() const noexcept;
 };
 
 struct GattServiceCharacteristic {
-    const GattServiceType service;
-    const jau::darray<GattCharacteristicSpec> characteristics;
+    GattServiceType service;
+    jau::darray<GattCharacteristicSpec> characteristics;
 
     std::string toString() const noexcept;
 };
 
+// #define DIRECTBT_BUILDIN_GATT_SERVICE_CHARACTERISTIC_SPEC 1
+#if defined(DIRECTBT_BUILDIN_GATT_SERVICE_CHARACTERISTIC_SPEC)
 /**
  * Intentionally ease compile and linker burden by using 'extern' instead of 'inline',
  * as the latter would require compile to crunch the structure
@@ -220,6 +222,8 @@ const GattServiceCharacteristic * findGattServiceChar(const uint16_t uuid16) noe
  * denominating either a GattCharacteristicType.
  */
 const GattCharacteristicSpec * findGattCharSpec(const uint16_t uuid16) noexcept;
+
+#endif /* DIRECTBT_BUILDIN_GATT_SERVICE_CHARACTERISTIC_SPEC */
 
 /********************************************************
  *
