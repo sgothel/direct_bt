@@ -47,9 +47,10 @@ Some elaboration on the implementation details
 > LE master/client mode is fully supported to work with LE BT devices.
 >
 > The LE slave/server mode is in progress (peripheral):
->   - BTRole separation implemented
->   - Advertising implemented
->   - GATT Server in progress
+>   - BTRole separation implemented and tested
+>   - Advertising implemented and tested
+>   - GATT Server implemented and tested
+>   - Slave / Server SMP Security in progress
 > 
 > *SMP LE Secure Connections* and *LE legacy pairing* is fully supported,
 > exposing BTSecurityLevel and SMPIOCapability setup per connection
@@ -444,6 +445,11 @@ from the year 2016.
 **2.4.0**
 
 * TODO ...
+* LE slave/server mode (peripheral): 1st Milestone
+  - BTRole separation implemented and tested
+  - Advertising implemented and tested
+  - GATT Server implemented and tested
+  - Slave / Server SMP Security in progress
 * SMPKeyBin v4, added localAddress (adapter) to filename + bin-fmt.
 * Simplified `SMP*Key` class names and `set[Default|Connected]LE_PHY()` args.
 * Added EUI48 endian conversion when passing/receiving to Bluetooth
