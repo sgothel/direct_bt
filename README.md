@@ -405,7 +405,7 @@ We then implemented data types for
 - *HCI Packets* to handle HCI communication with the adapter
 - *Mgmt Packets* to support *BlueZ*/Linux communication
 - *ATT PDU Messages* to handle GATT communication with the remote device
-- *SMP Packets* to implement *Secure Connections (SC)* 
+- *SMP Packets* to implement *Secure Connections (SC)* and *Legacy pairing*.
 
 Last but not least we added 
 - *Bluetooth* version 5 support
