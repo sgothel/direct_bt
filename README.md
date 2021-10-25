@@ -395,16 +395,16 @@ including detailed error states.
 Fine grained control about discovery and connection parameter 
 were not exposed by the D-Bus API and hence *TinyB*.
 
-In Januaray 2020 we tried to remedy certain aspects to meet our goals,
+In January 2020 we tried to remedy certain aspects to meet our goals,
 but concluded to require direct *Bluetooth* control
 via the *BlueZ*/*Linux* kernel implementation.
 
 *Direct-BT* was born.
 
 We then implemented data types for
-- *HCI Packets* to handle HCI communication to the adapter
+- *HCI Packets* to handle HCI communication with the adapter
 - *Mgmt Packets* to support *BlueZ*/Linux communication
-- *ATT PDU Messages* to handle GATT communication to the remote device
+- *ATT PDU Messages* to handle GATT communication with the remote device
 - *SMP Packets* to implement *Secure Connections (SC)* 
 
 Last but not least we added 
