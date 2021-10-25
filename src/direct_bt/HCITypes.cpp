@@ -197,6 +197,8 @@ std::string to_string(const HCIOGF op) noexcept {
     X(LE_CONN_UPDATE) \
     X(LE_READ_REMOTE_FEATURES) \
     X(LE_ENABLE_ENC) \
+    X(LE_LTK_REPLY_ACK) \
+    X(LE_LTK_REPLY_REJ) \
     X(LE_READ_PHY) \
     X(LE_SET_DEFAULT_PHY) \
     X(LE_SET_PHY) \
@@ -268,7 +270,7 @@ std::string to_string(const HCIEventType op) noexcept {
     X(LE_ADVERTISING_REPORT) \
     X(LE_CONN_UPDATE_COMPLETE) \
     X(LE_REMOTE_FEAT_COMPLETE) \
-    X(LE_LTKEY_REQUEST) \
+    X(LE_LTK_REQUEST) \
     X(LE_REMOTE_CONN_PARAM_REQ) \
     X(LE_DATA_LENGTH_CHANGE) \
     X(LE_READ_LOCAL_P256_PUBKEY_COMPLETE) \

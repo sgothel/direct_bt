@@ -341,7 +341,7 @@ namespace direct_bt {
         LE_ADVERTISING_REPORT               = 0x02,/**< LE_ADVERTISING_REPORT */
         LE_CONN_UPDATE_COMPLETE             = 0x03,/**< LE_CONN_UPDATE_COMPLETE */
         LE_REMOTE_FEAT_COMPLETE             = 0x04,/**< LE_REMOTE_FEAT_COMPLETE */
-        LE_LTKEY_REQUEST                    = 0x05,/**< LE_LTKEY_REQUEST */
+        LE_LTK_REQUEST                      = 0x05,/**< LE_LTK_REQUEST */
         LE_REMOTE_CONN_PARAM_REQ            = 0x06,/**< LE_REMOTE_CONN_PARAM_REQ */
         LE_DATA_LENGTH_CHANGE               = 0x07,/**< LE_DATA_LENGTH_CHANGE */
         LE_READ_LOCAL_P256_PUBKEY_COMPLETE  = 0x08,/**< LE_READ_LOCAL_P256_PUBKEY_COMPLETE */
@@ -419,6 +419,8 @@ namespace direct_bt {
         LE_CONN_UPDATE              = 0x2013,
         LE_READ_REMOTE_FEATURES     = 0x2016,
         LE_ENABLE_ENC               = 0x2019,
+        LE_LTK_REPLY_ACK            = 0x201A,
+        LE_LTK_REPLY_REJ            = 0x201B,
         LE_READ_PHY                 = 0x2030,
         LE_SET_DEFAULT_PHY          = 0x2031,
         LE_SET_PHY                  = 0x2032,
@@ -466,16 +468,18 @@ namespace direct_bt {
         LE_CONN_UPDATE              = 37,
         LE_READ_REMOTE_FEATURES     = 38,
         LE_ENABLE_ENC               = 39,
-        LE_READ_PHY                 = 40,
-        LE_SET_DEFAULT_PHY          = 41,
-        LE_SET_PHY                  = 42,
-        LE_SET_EXT_ADV_PARAMS       = 44,
-        LE_SET_EXT_ADV_DATA         = 45,
-        LE_SET_EXT_SCAN_RSP_DATA    = 46,
-        LE_SET_EXT_ADV_ENABLE       = 47,
-        LE_SET_EXT_SCAN_PARAMS      = 48,
-        LE_SET_EXT_SCAN_ENABLE      = 49,
-        LE_EXT_CREATE_CONN          = 50
+        LE_LTK_REPLY_ACK            = 40,
+        LE_LTK_REPLY_REJ            = 41,
+        LE_READ_PHY                 = 46,
+        LE_SET_DEFAULT_PHY          = 47,
+        LE_SET_PHY                  = 48,
+        LE_SET_EXT_ADV_PARAMS       = 52,
+        LE_SET_EXT_ADV_DATA         = 53,
+        LE_SET_EXT_SCAN_RSP_DATA    = 54,
+        LE_SET_EXT_ADV_ENABLE       = 55,
+        LE_SET_EXT_SCAN_PARAMS      = 56,
+        LE_SET_EXT_SCAN_ENABLE      = 57,
+        LE_EXT_CREATE_CONN          = 58
         // etc etc - incomplete
     };
     constexpr uint8_t number(const HCIOpcodeBit rhs) noexcept {

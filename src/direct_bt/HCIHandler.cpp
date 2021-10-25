@@ -710,6 +710,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         filter_set_metaev(HCIMetaEventType::LE_CONN_COMPLETE, mask);
         filter_set_metaev(HCIMetaEventType::LE_ADVERTISING_REPORT, mask);
         filter_set_metaev(HCIMetaEventType::LE_REMOTE_FEAT_COMPLETE, mask);
+        filter_set_metaev(HCIMetaEventType::LE_LTK_REQUEST, mask);
         filter_set_metaev(HCIMetaEventType::LE_EXT_CONN_COMPLETE, mask);
         filter_set_metaev(HCIMetaEventType::LE_PHY_UPDATE_COMPLETE, mask);
         filter_set_metaev(HCIMetaEventType::LE_EXT_ADV_REPORT, mask);
@@ -740,6 +741,8 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         filter_set_opcbit(HCIOpcodeBit::LE_CREATE_CONN, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_READ_REMOTE_FEATURES, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_ENABLE_ENC, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_LTK_REPLY_ACK, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_LTK_REPLY_REJ, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_READ_PHY, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_SET_DEFAULT_PHY, mask);
         filter_set_opcbit(HCIOpcodeBit::LE_SET_PHY, mask);
