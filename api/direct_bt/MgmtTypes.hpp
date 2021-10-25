@@ -1144,7 +1144,7 @@ namespace direct_bt {
                 PAIR_DEVICE_COMPLETE         = 0x002d, // CMD_COMPLETE of PAIR_DEVICE (pending)
                 HCI_ENC_CHANGED              = 0x002e, // direct_bt extension HCIHandler -> listener
                 HCI_ENC_KEY_REFRESH_COMPLETE = 0x002f, // direct_bt extension HCIHandler -> listener
-                HCI_LE_REMOTE_USR_FEATURES   = 0x0030, // direct_bt extension HCIHandler -> listener
+                HCI_LE_REMOTE_FEATURES       = 0x0030, // direct_bt extension HCIHandler -> listener
                 HCI_LE_PHY_UPDATE_COMPLETE   = 0x0031, // direct_bt extension HCIHandler -> listener
                 MGMT_EVENT_TYPE_COUNT        = 0x0032
             };
@@ -2176,34 +2176,40 @@ namespace direct_bt {
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
      * uint64_t features (8 Octets)
+     *
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.65.4 LE Read Remote Features Complete event
+     *
      * <p>
      * This is a Direct_BT extension for HCI.
      * </p>
      */
-    class MgmtEvtHCILERemoteUserFeatures : public MgmtEvent
+    class MgmtEvtHCILERemoteFeatures : public MgmtEvent
     {
         protected:
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+to_string(getAddressType())+
+                       ", status "+to_string(getHCIStatus())+
                        ", features="+jau::to_hexstring(direct_bt::number(getFeatures()));
             }
 
         public:
-            MgmtEvtHCILERemoteUserFeatures(const uint16_t dev_id, const BDAddressAndType& addressAndType, const LE_Features features_)
-            : MgmtEvent(Opcode::HCI_LE_REMOTE_USR_FEATURES, dev_id, 6+1+8)
+            MgmtEvtHCILERemoteFeatures(const uint16_t dev_id, const BDAddressAndType& addressAndType, const HCIStatusCode hci_status, const LE_Features features_)
+            : MgmtEvent(Opcode::HCI_LE_REMOTE_FEATURES, dev_id, 6+1+8)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
-                pdu.put_uint64_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(features_));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(hci_status));
+                pdu.put_uint64_nc(MGMT_HEADER_SIZE+6+1+1, direct_bt::number(features_));
             }
 
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+            HCIStatusCode getHCIStatus() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1) ); }
 
-            LE_Features getFeatures() const noexcept { return static_cast<LE_Features>(pdu.get_uint64_nc(MGMT_HEADER_SIZE+6+1)); }
+            LE_Features getFeatures() const noexcept { return static_cast<LE_Features>(pdu.get_uint64_nc(MGMT_HEADER_SIZE+6+1+1)); }
 
-            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+6+1+8; }
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+6+1+1+8; }
             jau::nsize_t getDataSize() const noexcept override { return 0; }
             const uint8_t* getData() const noexcept override { return nullptr; }
     };
@@ -2212,6 +2218,9 @@ namespace direct_bt {
      * mgmt_addr_info { EUI48, uint8_t type },
      * uint8_t Tx (8 Octets)
      * uint8_t Rx (8 Octets)
+     *
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.65.12 LE PHY Update Complete event
+     *
      * <p>
      * This is a Direct_BT extension for HCI.
      * </p>
@@ -2222,27 +2231,30 @@ namespace direct_bt {
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+to_string(getAddressType())+
+                       ", status "+to_string(getHCIStatus())+
                        ", Tx="+direct_bt::to_string(getTx())+
                        ", Rx="+direct_bt::to_string(getRx());
             }
 
         public:
-            MgmtEvtLEPhyUpdateComplete(const uint16_t dev_id, const BDAddressAndType& addressAndType, const LE_PHYs Tx, const LE_PHYs Rx)
+            MgmtEvtLEPhyUpdateComplete(const uint16_t dev_id, const BDAddressAndType& addressAndType, const HCIStatusCode hci_status, const LE_PHYs Tx, const LE_PHYs Rx)
             : MgmtEvent(Opcode::HCI_LE_PHY_UPDATE_COMPLETE, dev_id, 6+1+2)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(Tx));
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+2, direct_bt::number(Rx));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(hci_status));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1+1, direct_bt::number(Tx));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1+1+1, direct_bt::number(Rx));
             }
 
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+            HCIStatusCode getHCIStatus() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1) ); }
 
-            LE_PHYs getTx() const noexcept { return static_cast<LE_PHYs>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1)); }
-            LE_PHYs getRx() const noexcept { return static_cast<LE_PHYs>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+2)); }
+            LE_PHYs getTx() const noexcept { return static_cast<LE_PHYs>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1+1)); }
+            LE_PHYs getRx() const noexcept { return static_cast<LE_PHYs>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1+1+1)); }
 
-            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+6+1+2; }
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+6+1+1+1+1; }
             jau::nsize_t getDataSize() const noexcept override { return 0; }
             const uint8_t* getData() const noexcept override { return nullptr; }
     };

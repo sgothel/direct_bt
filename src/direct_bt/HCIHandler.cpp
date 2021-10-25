@@ -250,12 +250,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                             jau::to_hexstring(handle).c_str());
                     return nullptr;
                 }
-                if( HCIStatusCode::SUCCESS != status ) {
-                    WARN_PRINT("HCIHandler::translate(reader): LE_REMOTE_FEAT_COMPLETE: Failed: Status %s, Handle %s: %s",
-                            to_string(status).c_str(), jau::to_hexstring(handle).c_str(), conn->toString().c_str());
-                    return nullptr;
-                }
-                return std::make_unique<MgmtEvtHCILERemoteUserFeatures>(dev_id, conn->getAddressAndType(), features);
+                return std::make_unique<MgmtEvtHCILERemoteFeatures>(dev_id, conn->getAddressAndType(), status, features);
             }
             case HCIMetaEventType::LE_PHY_UPDATE_COMPLETE: {
                 HCIStatusCode status;
@@ -280,12 +275,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                             jau::to_hexstring(handle).c_str());
                     return nullptr;
                 }
-                if( HCIStatusCode::SUCCESS != status ) {
-                    WARN_PRINT("HCIHandler::translate(reader): LE_PHY_UPDATE_COMPLETE: Failed: Status %s, Handle %s: %s",
-                            to_string(status).c_str(), jau::to_hexstring(handle).c_str(), conn->toString().c_str());
-                    return nullptr;
-                }
-                return std::make_unique<MgmtEvtLEPhyUpdateComplete>(dev_id, conn->getAddressAndType(), Tx, Rx);
+                return std::make_unique<MgmtEvtLEPhyUpdateComplete>(dev_id, conn->getAddressAndType(), status, Tx, Rx);
             }
             default:
                 return nullptr;

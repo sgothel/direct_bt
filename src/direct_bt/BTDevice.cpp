@@ -568,22 +568,28 @@ void BTDevice::notifyConnected(std::shared_ptr<BTDevice> sthis, const uint16_t h
     (void)sthis; // not used yet
 }
 
-void BTDevice::notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const LE_Features features) noexcept {
-    DBG_PRINT("BTDevice::notifyLEFeatures: %s, %s",
-            direct_bt::to_string(features).c_str(), toString().c_str());
-    le_features = features;
-
+void BTDevice::notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const HCIStatusCode status, const LE_Features features) noexcept {
+    DBG_PRINT("BTDevice::notifyLEFeatures: %s: %s, %s",
+            direct_bt::to_string(status).c_str(), direct_bt::to_string(features).c_str(), toString().c_str());
+    if( HCIStatusCode::SUCCESS == status ) {
+        le_features = features;
+    } else {
+        le_features = le_features | LE_Features::LE_Encryption; // required!
+    }
     if( addressAndType.isLEAddress() && !l2cap_att.isOpen() ) {
         std::thread bg(&BTDevice::processL2CAPSetup, this, sthis); // @suppress("Invalid arguments")
         bg.detach();
     }
 }
 
-void BTDevice::notifyLEPhyUpdateComplete(const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
-    DBG_PRINT("BTDevice::notifyLEPhyUpdateComplete: [Tx %s, Rx %s], %s",
+void BTDevice::notifyLEPhyUpdateComplete(const HCIStatusCode status, const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
+    DBG_PRINT("BTDevice::notifyLEPhyUpdateComplete: %s: [Tx %s, Rx %s], %s",
+            direct_bt::to_string(status).c_str(),
             direct_bt::to_string(Tx).c_str(), direct_bt::to_string(Rx).c_str(), toString().c_str());
-    le_phy_tx = Tx;
-    le_phy_rx = Rx;
+    if( HCIStatusCode::SUCCESS == status ) {
+        le_phy_tx = Tx;
+        le_phy_rx = Rx;
+    }
 }
 
 void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {

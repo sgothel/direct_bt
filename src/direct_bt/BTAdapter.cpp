@@ -235,7 +235,7 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvConnectFailedHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDisconnectedHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceFoundHCI)) && ok;
-        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_REMOTE_USR_FEATURES, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_REMOTE_FEATURES, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_PHY_UPDATE_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCILEPhyUpdateCompleteHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_CHANGED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCIEncryptionChangedHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI)) && ok;
@@ -1453,22 +1453,6 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         }
         i++;
     });
-
-    if( BTRole::Slave == getRole() ) {
-        // For BTRole::Master, BlueZ Kernel does request LE_Features already
-        // Hence we have to trigger sending LE_Features for BTRole::Slave ourselves
-        //
-        // This is mandatory to trigger BTDevice::notifyLEFeatures() via our mgmtEvHCILERemoteUserFeaturesHCI()
-        // to proceed w/ post-connection and eventually issue deviceRead().
-
-        // Replied with: Command Status 0x0f (timeout) and Status 0x0c (disallowed),
-        // despite core-spec states valid for both master and slave.
-        // hci.le_read_remote_features(event.getHCIHandle(), device->getAddressAndType());
-
-        // Hence .. fake it until we make it
-        const LE_Features lf = LE_Features::NONE;
-        device->notifyLEFeatures(device, lf);
-    }
     return true;
 }
 
@@ -1545,15 +1529,14 @@ bool BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noe
 }
 
 bool BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
-    const MgmtEvtHCILERemoteUserFeatures &event = *static_cast<const MgmtEvtHCILERemoteUserFeatures *>(&e);
+    const MgmtEvtHCILERemoteFeatures &event = *static_cast<const MgmtEvtHCILERemoteFeatures *>(&e);
 
     std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         COND_PRINT(debug_event, "BTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): %s, %s",
             dev_id, event.toString().c_str(), device->toString().c_str());
 
-        device->notifyLEFeatures(device, event.getFeatures());
-
+        device->notifyLEFeatures(device, event.getHCIStatus(), event.getFeatures());
     } else {
         WORDY_PRINT("BTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
@@ -1569,8 +1552,7 @@ bool BTAdapter::mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept {
         COND_PRINT(debug_event, "BTAdapter::EventHCI:LEPhyUpdateComplete(dev_id %d): %s, %s",
             dev_id, event.toString().c_str(), device->toString().c_str());
 
-        device->notifyLEPhyUpdateComplete(event.getTx(), event.getRx());
-
+        device->notifyLEPhyUpdateComplete(event.getHCIStatus(), event.getTx(), event.getRx());
     } else {
         WORDY_PRINT("BTAdapter::EventHCI:LEPhyUpdateComplete(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());

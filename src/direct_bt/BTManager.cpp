@@ -537,7 +537,7 @@ next1:
         addMgmtEventCallback(-1, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::HCI_ENC_CHANGED, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::HCI_LE_REMOTE_USR_FEATURES, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::HCI_LE_REMOTE_FEATURES, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
     }
     PERF_TS_TD("DBTManager::ctor.ok");
     DBG_PRINT("DBTManager::ctor: OK");
