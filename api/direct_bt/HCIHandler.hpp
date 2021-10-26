@@ -330,6 +330,7 @@ namespace direct_bt {
             HCISMPMsgCallbackList hciSMPMsgCallbackList;
 
             std::unique_ptr<MgmtEvent> translate(HCIEvent& ev) noexcept;
+            std::unique_ptr<MgmtEvent> translate(HCICommand& ev) noexcept;
 
             std::unique_ptr<const SMPPDUMsg> getSMPPDUMsg(const HCIACLData::l2cap_frame & l2cap, const uint8_t * l2cap_data) const noexcept;
             void hciReaderThreadImpl() noexcept;

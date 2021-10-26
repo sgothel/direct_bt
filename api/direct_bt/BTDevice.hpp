@@ -193,6 +193,13 @@ namespace direct_bt {
              */
             bool connectSMP(std::shared_ptr<BTDevice> sthis, const BTSecurityLevel sec_level) noexcept;
 
+            /**
+             * Allowed to transition to SMPPairingState::COMPLETED:
+             * - HCIEventType::ENCRYPT_CHANGE and
+             * - HCIEventType::ENCRYPT_KEY_REFRESH_COMPLETE
+             * - MgmtEvent::Opcode::NEW_LONG_TERM_KEY
+             * - MgmtEvent::Opcode::NEW_LINK_KEY
+             */
             bool checkPairingKeyDistributionComplete(const std::string& timestamp) const noexcept;
             void printKeyDistributionStatus(const std::string& timestamp, const std::string& prefix) const noexcept;
 

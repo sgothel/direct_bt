@@ -520,6 +520,9 @@ namespace direct_bt {
                    "]";
         }
     } );
+    constexpr SMPLongTermKey::Property operator ~(const SMPLongTermKey::Property rhs) noexcept {
+        return static_cast<SMPLongTermKey::Property> ( ~static_cast<uint8_t>(rhs) );
+    }
     constexpr SMPLongTermKey::Property operator ^(const SMPLongTermKey::Property lhs, const SMPLongTermKey::Property rhs) noexcept {
         return static_cast<SMPLongTermKey::Property> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
     }

@@ -44,6 +44,7 @@
 #include "HCIComm.hpp"
 #include "HCIHandler.hpp"
 #include "BTTypes1.hpp"
+#include "SMPHandler.hpp"
 
 extern "C" {
     #include <inttypes.h>
@@ -200,7 +201,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 HCIStatusCode status;
                 const hci_ev_le_conn_complete * ev_cc = getMetaReplyStruct<hci_ev_le_conn_complete>(ev, mevt, &status);
                 if( nullptr == ev_cc ) {
-                    ERR_PRINT("HCIHandler<%u>::translate(reader): LE_CONN_COMPLETE: Null reply-struct: %s - %s",
+                    ERR_PRINT("HCIHandler<%u>::translate(mevt): LE_CONN_COMPLETE: Null reply-struct: %s - %s",
                             dev_id, ev.toString().c_str(), toString().c_str());
                     return nullptr;
                 }
@@ -215,11 +216,20 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                     return std::make_unique<MgmtEvtDeviceConnectFailed>(dev_id, addressAndType, status);
                 }
             }
+            case HCIMetaEventType::LE_LTK_REQUEST: {
+                const HCILELTKReqEvent & ev2 = *static_cast<const HCILELTKReqEvent*>( &ev );
+                const HCIConnectionRef conn = findTrackerConnection(ev2.getHandle());
+                if( nullptr == conn ) {
+                    WARN_PRINT("HCIHandler<%u>::translate(mevt): LE_LTK_REQUEST: Not tracked conn_handle of %s", dev_id, ev2.toString().c_str());
+                    return nullptr;
+                }
+                return std::make_unique<MgmtEvtHCILELTKReq>(dev_id, conn->getAddressAndType(), ev2.getRand(), ev2.getEDIV());
+            }
             case HCIMetaEventType::LE_EXT_CONN_COMPLETE: {
                 HCIStatusCode status;
                 const hci_ev_le_enh_conn_complete * ev_cc = getMetaReplyStruct<hci_ev_le_enh_conn_complete>(ev, mevt, &status);
                 if( nullptr == ev_cc ) {
-                    ERR_PRINT("HCIHandler<%u>::translate(reader): LE_EXT_CONN_COMPLETE: Null reply-struct: %s - %s",
+                    ERR_PRINT("HCIHandler<%u>::translate(mevt): LE_EXT_CONN_COMPLETE: Null reply-struct: %s - %s",
                             dev_id, ev.toString().c_str(), toString().c_str());
                     return nullptr;
                 }
@@ -238,7 +248,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 HCIStatusCode status;
                 const hci_ev_le_remote_feat_complete * ev_cc = getMetaReplyStruct<hci_ev_le_remote_feat_complete>(ev, mevt, &status);
                 if( nullptr == ev_cc ) {
-                    ERR_PRINT("HCIHandler<%u>::translate(reader): LE_REMOTE_FEAT_COMPLETE: Null reply-struct: %s - %s",
+                    ERR_PRINT("HCIHandler<%u>::translate(mevt): LE_REMOTE_FEAT_COMPLETE: Null reply-struct: %s - %s",
                             dev_id, ev.toString().c_str(), toString().c_str());
                     return nullptr;
                 }
@@ -246,8 +256,8 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 const LE_Features features = static_cast<LE_Features>(jau::get_uint64(ev_cc->features, 0, true /* littleEndian */));
                 const HCIConnectionRef conn = findTrackerConnection(handle);
                 if( nullptr == conn ) {
-                    WARN_PRINT("HCIHandler<%u>::translate(reader): LE_REMOTE_FEAT_COMPLETE: Not tracked conn_handle %s",
-                            dev_id, jau::to_hexstring(handle).c_str());
+                    WARN_PRINT("HCIHandler<%u>::translate(mevt): LE_REMOTE_FEAT_COMPLETE: Not tracked conn_handle %s of %s",
+                            dev_id, jau::to_hexstring(handle).c_str(), ev.toString().c_str());
                     return nullptr;
                 }
                 return std::make_unique<MgmtEvtHCILERemoteFeatures>(dev_id, conn->getAddressAndType(), status, features);
@@ -262,7 +272,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 } __packed;
                 const le_phy_update_complete * ev_cc = getMetaReplyStruct<le_phy_update_complete>(ev, mevt, &status);
                 if( nullptr == ev_cc ) {
-                    ERR_PRINT("HCIHandler<%u>::translate(reader): LE_PHY_UPDATE_COMPLETE: Null reply-struct: %s - %s",
+                    ERR_PRINT("HCIHandler<%u>::translate(mevt): LE_PHY_UPDATE_COMPLETE: Null reply-struct: %s - %s",
                             dev_id, ev.toString().c_str(), toString().c_str());
                     return nullptr;
                 }
@@ -271,11 +281,11 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 const LE_PHYs Rx = static_cast<LE_PHYs>(ev_cc->rx);
                 const HCIConnectionRef conn = findTrackerConnection(handle);
                 if( nullptr == conn ) {
-                    WARN_PRINT("HCIHandler<%u>::translate(reader): LE_PHY_UPDATE_COMPLETE: Not tracked conn_handle %s",
-                            dev_id, jau::to_hexstring(handle).c_str());
+                    WARN_PRINT("HCIHandler<%u>::translate(reader): LE_PHY_UPDATE_COMPLETE: Not tracked conn_handle %s of %s",
+                            dev_id, jau::to_hexstring(handle).c_str(), ev.toString().c_str());
                     return nullptr;
                 }
-                return std::make_unique<MgmtEvtLEPhyUpdateComplete>(dev_id, conn->getAddressAndType(), status, Tx, Rx);
+                return std::make_unique<MgmtEvtHCILEPhyUpdateComplete>(dev_id, conn->getAddressAndType(), status, Tx, Rx);
             }
             default:
                 return nullptr;
@@ -286,7 +296,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             HCIStatusCode status;
             const hci_ev_conn_complete * ev_cc = getReplyStruct<hci_ev_conn_complete>(ev, evt, &status);
             if( nullptr == ev_cc ) {
-                ERR_PRINT("HCIHandler<%u>::translate(reader): CONN_COMPLETE: Null reply-struct: %s - %s",
+                ERR_PRINT("HCIHandler<%u>::translate(evt): CONN_COMPLETE: Null reply-struct: %s - %s",
                         dev_id, ev.toString().c_str(), toString().c_str());
                 return nullptr;
             }
@@ -304,20 +314,20 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             HCIStatusCode status;
             const hci_ev_disconn_complete * ev_cc = getReplyStruct<hci_ev_disconn_complete>(ev, evt, &status);
             if( nullptr == ev_cc ) {
-                ERR_PRINT("HCIHandler<%u>::translate(reader): DISCONN_COMPLETE: Null reply-struct: %s - %s",
+                ERR_PRINT("HCIHandler<%u>::translate(evt): DISCONN_COMPLETE: Null reply-struct: %s - %s",
                         dev_id, ev.toString().c_str(), toString().c_str());
                 return nullptr;
             }
             removeDisconnectCmd(ev_cc->handle);
             HCIConnectionRef conn = removeTrackerConnection(ev_cc->handle);
             if( nullptr == conn ) {
-                WORDY_PRINT("HCIHandler<%u>::translate(reader): DISCONN_COMPLETE: Not tracked handle %s: %s - %s",
+                WORDY_PRINT("HCIHandler<%u>::translate(evt): DISCONN_COMPLETE: Not tracked handle %s: %s of %s",
                         dev_id, jau::to_hexstring(ev_cc->handle).c_str(), ev.toString().c_str(), toString().c_str());
                 return nullptr;
             } else {
                 if( HCIStatusCode::SUCCESS != status ) {
                     // FIXME: Ever occuring? Still sending out essential disconnect event!
-                    ERR_PRINT("HCIHandler<%u>::translate(reader): DISCONN_COMPLETE: !SUCCESS[%s, %s], %s: %s - %s",
+                    ERR_PRINT("HCIHandler<%u>::translate(evt): DISCONN_COMPLETE: !SUCCESS[%s, %s], %s: %s - %s",
                             dev_id, jau::to_hexstring(static_cast<uint8_t>(status)).c_str(), to_string(status).c_str(),
                             conn->toString().c_str(), ev.toString().c_str(), toString().c_str());
                 }
@@ -329,15 +339,15 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             HCIStatusCode status;
             const hci_ev_encrypt_change * ev_cc = getReplyStruct<hci_ev_encrypt_change>(ev, evt, &status);
             if( nullptr == ev_cc ) {
-                ERR_PRINT("HCIHandler<%u>::translate(reader): ENCRYPT_CHANGE: Null reply-struct: %s - %s",
+                ERR_PRINT("HCIHandler<%u>::translate(evt): ENCRYPT_CHANGE: Null reply-struct: %s - %s",
                         dev_id, ev.toString().c_str(), toString().c_str());
                 return nullptr;
             }
             const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
             const HCIConnectionRef conn = findTrackerConnection(handle);
             if( nullptr == conn ) {
-                WARN_PRINT("HCIHandler<%u>::translate(reader): ENCRYPT_CHANGE: Not tracked conn_handle %s",
-                        dev_id, jau::to_hexstring(handle).c_str());
+                WARN_PRINT("HCIHandler<%u>::translate(evt): ENCRYPT_CHANGE: Not tracked conn_handle %s of %s",
+                        dev_id, jau::to_hexstring(handle).c_str(), ev.toString().c_str());
                 return nullptr;
             }
             return std::make_unique<MgmtEvtHCIEncryptionChanged>(dev_id, conn->getAddressAndType(), status, ev_cc->encrypt);
@@ -346,15 +356,15 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             HCIStatusCode status;
             const hci_ev_key_refresh_complete * ev_cc = getReplyStruct<hci_ev_key_refresh_complete>(ev, evt, &status);
             if( nullptr == ev_cc ) {
-                ERR_PRINT("HCIHandler<%u>::translate(reader): ENCRYPT_KEY_REFRESH_COMPLETE: Null reply-struct: %s - %s",
+                ERR_PRINT("HCIHandler<%u>::translate(evt): ENCRYPT_KEY_REFRESH_COMPLETE: Null reply-struct: %s - %s",
                         dev_id, ev.toString().c_str(), toString().c_str());
                 return nullptr;
             }
             const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
             const HCIConnectionRef conn = findTrackerConnection(handle);
             if( nullptr == conn ) {
-                WARN_PRINT("HCIHandler<%u>::translate(reader): ENCRYPT_KEY_REFRESH_COMPLETE: Not tracked conn_handle %s",
-                        dev_id, jau::to_hexstring(handle).c_str());
+                WARN_PRINT("HCIHandler<%u>::translate(evt): ENCRYPT_KEY_REFRESH_COMPLETE: Not tracked conn_handle %s of %s",
+                        dev_id, jau::to_hexstring(handle).c_str(), ev.toString().c_str());
                 return nullptr;
             }
             return std::make_unique<MgmtEvtHCIEncryptionKeyRefreshComplete>(dev_id, conn->getAddressAndType(), status);
@@ -362,6 +372,42 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
         // TODO: AUTH_COMPLETE
         // 7.7.6 AUTH_COMPLETE 0x06
 
+        default:
+            return nullptr;
+    }
+}
+
+std::unique_ptr<MgmtEvent> HCIHandler::translate(HCICommand& ev) noexcept {
+    const HCIOpcode opc = ev.getOpcode();
+    switch( opc ) {
+        case HCIOpcode::LE_ENABLE_ENC: {
+            const HCILEEnableEncryptionCmd & ev2 = *static_cast<const HCILEEnableEncryptionCmd*>( &ev );
+            const HCIConnectionRef conn = findTrackerConnection(ev2.getHandle());
+            if( nullptr == conn ) {
+                WARN_PRINT("HCIHandler<%u>::translate(cmd): LE_ENABLE_ENC: Not tracked conn_handle %s", dev_id, ev2.toString().c_str());
+                return nullptr;
+            }
+            return std::make_unique<MgmtEvtHCILEEnableEncryptionCmd>(dev_id, conn->getAddressAndType(),
+                                                                     ev2.getRand(), ev2.getEDIV(), ev2.getLTK());
+        }
+        case HCIOpcode::LE_LTK_REPLY_ACK: {
+            const HCILELTKReplyAckCmd & ev2 = *static_cast<const HCILELTKReplyAckCmd*>( &ev );
+            const HCIConnectionRef conn = findTrackerConnection(ev2.getHandle());
+            if( nullptr == conn ) {
+                WARN_PRINT("HCIHandler<%u>::translate(cmd): LE_LTK_REPLY_ACK: Not tracked conn_handle %s", dev_id, ev2.toString().c_str());
+                return nullptr;
+            }
+            return std::make_unique<MgmtEvtHCILELTKReplyAckCmd>(dev_id, conn->getAddressAndType(), ev2.getLTK());
+        }
+        case HCIOpcode::LE_LTK_REPLY_REJ: {
+            const HCILELTKReplyRejCmd & ev2 = *static_cast<const HCILELTKReplyRejCmd*>( &ev );
+            const HCIConnectionRef conn = findTrackerConnection(ev2.getHandle());
+            if( nullptr == conn ) {
+                WARN_PRINT("HCIHandler<%u>::translate(cmd): LE_LTK_REPLY_REJ: Not tracked conn_handle %s", dev_id, ev2.toString().c_str());
+                return nullptr;
+            }
+            return std::make_unique<MgmtEvtHCILELTKReplyRejCmd>(dev_id, conn->getAddressAndType());
+        }
         default:
             return nullptr;
     }
@@ -401,12 +447,13 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
             const jau::nsize_t len2 = static_cast<jau::nsize_t>(len);
             const HCIPacketType pc = static_cast<HCIPacketType>( rbuffer.get_uint8_nc(0) );
 
+            // ACL
             if( HCIPacketType::ACLDATA == pc ) {
                 std::unique_ptr<HCIACLData> acldata = HCIACLData::getSpecialized(rbuffer.get_ptr(), len2);
                 if( nullptr == acldata ) {
                     // not valid acl-data ...
                     if( jau::environment::get().verbose ) {
-                        WARN_PRINT("HCIHandler<%u>-IO RECV Drop (non-acl-data) %s - %s",
+                        WARN_PRINT("HCIHandler<%u>-IO RECV Drop ACL (non-acl-data) %s - %s",
                                 dev_id, jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
                     }
                     continue;
@@ -418,24 +465,44 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                     HCIConnectionRef conn = findTrackerConnection(l2cap.handle);
 
                     if( nullptr != conn ) {
-                        COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV (ACL.SMP) %s for %s",
+                        COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV ACL (SMP) %s for %s",
                                 dev_id, smpPDU->toString().c_str(), conn->toString().c_str());
                         jau::for_each_fidelity(hciSMPMsgCallbackList, [&](HCISMPMsgCallback &cb) {
                            cb.invoke(conn->getAddressAndType(), *smpPDU, l2cap);
                         });
                     } else {
-                        WARN_PRINT("HCIHandler<%u>-IO RECV Drop (ACL.SMP): Not tracked conn_handle %s: %s, %s",
+                        WARN_PRINT("HCIHandler<%u>-IO RECV ACL Drop (SMP): Not tracked conn_handle %s: %s, %s",
                                 dev_id, jau::to_hexstring(l2cap.handle).c_str(),
                                 l2cap.toString().c_str(), smpPDU->toString().c_str());
                     }
                 } else if( !l2cap.isGATT() ) { // ignore handled GATT packages
-                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV Drop (ACL.L2CAP): ???? %s",
+                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV ACL Drop (L2CAP): ???? %s",
                             dev_id, acldata->toString(l2cap, l2cap_data).c_str());
                 }
                 continue;
             }
+
+            // COMMAND
+            if( HCIPacketType::COMMAND == pc ) {
+                std::unique_ptr<HCICommand> event = HCICommand::getSpecialized(rbuffer.get_ptr(), len2);
+                if( nullptr == event ) {
+                    // not a valid event ...
+                    ERR_PRINT("HCIHandler<%u>-IO RECV CMD Drop (non-command) %s - %s",
+                            dev_id, jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
+                    continue;
+                }
+                std::unique_ptr<MgmtEvent> mevent = translate(*event);
+                if( nullptr != mevent ) {
+                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV CMD (CB) %s\n    -> %s", dev_id, event->toString().c_str(), mevent->toString().c_str());
+                    sendMgmtEvent( *mevent );
+                } else {
+                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV CMD Drop (no translation) %s", dev_id, event->toString().c_str());
+                }
+                continue;
+            }
+
             if( HCIPacketType::EVENT != pc ) {
-                WARN_PRINT("HCIHandler<%u>-IO RECV Drop (not event, nor acl-data) %s - %s",
+                WARN_PRINT("HCIHandler<%u>-IO RECV EVT Drop (not event, nor command, nor acl-data) %s - %s",
                         dev_id, jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
                 continue;
             }
@@ -444,7 +511,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
             std::unique_ptr<HCIEvent> event = HCIEvent::getSpecialized(rbuffer.get_ptr(), len2);
             if( nullptr == event ) {
                 // not a valid event ...
-                ERR_PRINT("HCIHandler<%u>-IO RECV Drop (non-event) %s - %s",
+                ERR_PRINT("HCIHandler<%u>-IO RECV EVT Drop (non-event) %s - %s",
                         dev_id, jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
                 continue;
             }
@@ -452,13 +519,13 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
             const HCIMetaEventType mec = event->getMetaEventType();
             if( HCIMetaEventType::INVALID != mec && !filter_test_metaev(mec) ) {
                 // DROP
-                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV Drop (meta filter) %s", dev_id, event->toString().c_str());
+                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV EVT Drop (meta filter) %s", dev_id, event->toString().c_str());
                 continue; // next packet
             }
 
             if( event->isEvent(HCIEventType::CMD_STATUS) || event->isEvent(HCIEventType::CMD_COMPLETE) )
             {
-                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV (CMD) %s", dev_id, event->toString().c_str());
+                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV EVT (CMD REPLY) %s", dev_id, event->toString().c_str());
                 if( hciEventRing.isFull() ) {
                     const jau::nsize_t dropCount = hciEventRing.capacity()/4;
                     hciEventRing.drop(dropCount);
@@ -471,7 +538,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                 jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
                 for(jau::nsize_t eircount = 0; eircount < eirlist.size(); ++eircount) {
                     const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[eircount] ) );
-                    COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%u>-IO RECV (AD EIR) [%d] %s",
+                    COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%u>-IO RECV EVT (AD EIR) [%d] %s",
                             dev_id, eircount, e.getEIR()->toString().c_str());
                     sendMgmtEvent( e );
                 }
@@ -480,7 +547,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                 jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ext_ad_reports(event->getParam(), event->getParamSize());
                 for(jau::nsize_t eircount = 0; eircount < eirlist.size(); ++eircount) {
                     const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[eircount] ) );
-                    COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%u>-IO RECV (EAD EIR (ext)) [%d] %s",
+                    COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%u>-IO RECV EVT (EAD EIR (ext)) [%d] %s",
                             dev_id, eircount, e.getEIR()->toString().c_str());
                     sendMgmtEvent( e );
                 }
@@ -488,10 +555,10 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
                 // issue a callback for the translated event
                 std::unique_ptr<MgmtEvent> mevent = translate(*event);
                 if( nullptr != mevent ) {
-                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV (CB) %s", dev_id, event->toString().c_str());
+                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV EVT (CB) %s\n    -> %s", dev_id, event->toString().c_str(), mevent->toString().c_str());
                     sendMgmtEvent( *mevent );
                 } else {
-                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV Drop (no translation) %s", dev_id, event->toString().c_str());
+                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV EVT Drop (no translation) %s", dev_id, event->toString().c_str());
                 }
             }
         } else if( ETIMEDOUT != errno && !hciReaderShallStop ) { // expected exits
@@ -672,7 +739,10 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         }
 #endif
         HCIComm::filter_clear(&filter_mask);
-        // HCIComm::filter_set_ptype(number(HCIPacketType::COMMAND), &filter_mask); // COMMANDs
+#if CONSIDER_HCI_CMD_FOR_SMP_STATE
+        // Currently only used to determine ENCRYPTION STATE, if at all.
+        HCIComm::filter_set_ptype(number(HCIPacketType::COMMAND), &filter_mask); // COMMANDs
+#endif
         HCIComm::filter_set_ptype(number(HCIPacketType::EVENT),  &filter_mask); // EVENTs
         HCIComm::filter_set_ptype(number(HCIPacketType::ACLDATA),  &filter_mask); // SMP via ACL DATA
 

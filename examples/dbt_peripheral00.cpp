@@ -68,7 +68,10 @@ static std::shared_ptr<BTAdapter> chosenAdapter = nullptr;
 static bool SHOW_UPDATE_EVENTS = false;
 
 static bool startAdvertising(BTAdapter *a, std::string msg);
-// static bool stopAdvertising(BTAdapter *a, std::string msg);
+static bool stopAdvertising(BTAdapter *a, std::string msg);
+static void processConnectedDevice(std::shared_ptr<BTDevice> device);
+static void processReadyDevice(std::shared_ptr<BTDevice> device);
+static void processDisconnectedDevice(std::shared_ptr<BTDevice> device);
 
 static jau::POctets make_poctets(const char* name) {
     return jau::POctets( (const uint8_t*)name, (nsize_t)strlen(name), endian::little );
@@ -212,8 +215,8 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** CONNECTED: %s\n", device->toString(true).c_str());
 
-        // std::thread sd(::stopAdvertising, &device->getAdapter(), "device-connected"); // @suppress("Invalid arguments")
-        // sd.detach();
+        std::thread sd(::processConnectedDevice, device); // @suppress("Invalid arguments")
+        sd.detach();
 
         (void)handle;
         (void)timestamp;
@@ -281,7 +284,18 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
     void deviceReady(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
         (void)timestamp;
-        fprintf_td(stderr, "****** READY-1: NOP %s\n", device->toString(true).c_str());
+        if( !BTDeviceRegistry::isDeviceProcessing( device->getAddressAndType() ) &&
+            ( !BTDeviceRegistry::isWaitingForAnyDevice() ||
+              BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType().address, device->getName())
+            )
+          )
+        {
+            fprintf_td(stderr, "****** READY-0: Processing %s\n", device->toString(true).c_str());
+            BTDeviceRegistry::addToProcessingDevices(device->getAddressAndType(), device->getName());
+            processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
+        } else {
+            fprintf_td(stderr, "****** READY-1: NOP %s\n", device->toString(true).c_str());
+        }
     }
 
     void deviceDisconnected(std::shared_ptr<BTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
@@ -289,9 +303,8 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 static_cast<uint8_t>(reason), to_string(reason).c_str(),
                 to_hexstring(handle).c_str(), device->toString(true).c_str());
 
-        std::thread sd(::startAdvertising, &device->getAdapter(), "device-disconnected"); // @suppress("Invalid arguments")
+        std::thread sd(::processDisconnectedDevice, device); // @suppress("Invalid arguments")
         sd.detach();
-
         (void)timestamp;
     }
 
@@ -435,7 +448,6 @@ static bool startAdvertising(BTAdapter *a, std::string msg) {
     return HCIStatusCode::SUCCESS == status;
 }
 
-#if 0
 static bool stopAdvertising(BTAdapter *a, std::string msg) {
     if( useAdapter != EUI48::ALL_DEVICE && useAdapter != a->getAddressAndType().address ) {
         fprintf_td(stderr, "****** Stop advertising (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
@@ -445,7 +457,40 @@ static bool stopAdvertising(BTAdapter *a, std::string msg) {
     fprintf_td(stderr, "****** Stop advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
     return HCIStatusCode::SUCCESS == status;
 }
-#endif
+
+static void processConnectedDevice(std::shared_ptr<BTDevice> device) {
+    fprintf_td(stderr, "****** Connected Device: Start %s\n", device->toString().c_str());
+
+    // Already Connected - Can't Do!
+    // HCIStatusCode res = SMPKeyBin::readAndApply(KEY_PATH, *device, BTSecurityLevel::UNSET, true /* verbose */);
+    // fprintf_td(stderr, "****** CONNECTED: SMPKeyBin::readAndApply(..) result %s\n", to_string(res).c_str());
+
+    fprintf_td(stderr, "****** Connected Device: End %s\n", device->toString().c_str());
+}
+
+static void processDisconnectedDevice(std::shared_ptr<BTDevice> device) {
+    fprintf_td(stderr, "****** Disconnected Device: Start %s\n", device->toString().c_str());
+
+    stopAdvertising(&device->getAdapter(), "device-disconnected");
+    {
+        const HCIStatusCode r = device->unpair();
+        fprintf_td(stderr, "****** Disconnect Device: Unpair-Pre result: %s\n", to_string(r).c_str());
+    }
+    BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    startAdvertising(&device->getAdapter(), "device-disconnected");
+
+    fprintf_td(stderr, "****** Disonnected Device: End %s\n", device->toString().c_str());
+}
+
+static void processReadyDevice(std::shared_ptr<BTDevice> device) {
+    fprintf_td(stderr, "****** Processing Ready Device: Start %s\n", device->toString().c_str());
+
+    SMPKeyBin::createAndWrite(*device, KEY_PATH, false /* overwrite */, true /* verbose */);
+
+    fprintf_td(stderr, "****** Processing Ready Device: End %s\n", device->toString().c_str());
+}
 
 static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     if( useAdapter != EUI48::ALL_DEVICE && useAdapter != adapter->getAddressAndType().address ) {

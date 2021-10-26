@@ -554,7 +554,7 @@ HCIStatusCode BTDevice::connectDefault() noexcept
 void BTDevice::notifyConnected(std::shared_ptr<BTDevice> sthis, const uint16_t handle, const SMPIOCapability io_cap) noexcept {
     // coming from connected callback, update state and spawn-off connectGATT in background if appropriate (LE)
     jau::sc_atomic_critical sync(sync_data);
-    DBG_PRINT("BTDevice::notifyConnected: handle %s -> %s, io %s -> %s, %s",
+    DBG_PRINT("BTDevice::notifyConnected: Start: handle %s -> %s, io %s -> %s, %s",
               jau::to_hexstring(hciConnHandle).c_str(), jau::to_hexstring(handle).c_str(),
               to_string(pairing_data.ioCap_conn).c_str(), to_string(io_cap).c_str(),
               toString().c_str());
@@ -565,17 +565,21 @@ void BTDevice::notifyConnected(std::shared_ptr<BTDevice> sthis, const uint16_t h
     if( SMPIOCapability::UNSET == pairing_data.ioCap_conn ) {
         pairing_data.ioCap_conn = io_cap;
     }
+    DBG_PRINT("BTDevice::notifyConnected: End: %s", toString().c_str());
     (void)sthis; // not used yet
 }
 
 void BTDevice::notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const HCIStatusCode status, const LE_Features features) noexcept {
-    DBG_PRINT("BTDevice::notifyLEFeatures: %s: %s, %s",
-            direct_bt::to_string(status).c_str(), direct_bt::to_string(features).c_str(), toString().c_str());
     if( HCIStatusCode::SUCCESS == status ) {
         le_features = features;
     } else {
         le_features = le_features | LE_Features::LE_Encryption; // required!
     }
+    DBG_PRINT("BTDevice::notifyLEFeatures: %s: %s -> %s, %s, l2cap_att open %d",
+            direct_bt::to_string(status).c_str(),
+            direct_bt::to_string(features).c_str(),
+            direct_bt::to_string(le_features).c_str(),
+            toString().c_str(), l2cap_att.isOpen());
     if( addressAndType.isLEAddress() && !l2cap_att.isOpen() ) {
         std::thread bg(&BTDevice::processL2CAPSetup, this, sthis); // @suppress("Invalid arguments")
         bg.detach();
@@ -656,9 +660,11 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
 void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_t timestamp) {
     DBG_PRINT("BTDevice::processDeviceReady: %s", toString().c_str());
     PairingMode pmode;
+    SMPPairingState pstate;
     {
         jau::sc_atomic_critical sync(sync_data);
         pmode = pairing_data.mode;
+        pstate = pairing_data.state;
     }
     HCIStatusCode unpair_res = HCIStatusCode::UNKNOWN;
 
@@ -685,46 +691,37 @@ void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_
 }
 
 
-static const SMPKeyType _key_mask_legacy = SMPKeyType::ENC_KEY | SMPKeyType::ID_KEY | SMPKeyType::SIGN_KEY;
-static const SMPKeyType _key_mask_sc     = SMPKeyType::ENC_KEY | SMPKeyType::ID_KEY | SMPKeyType::SIGN_KEY | SMPKeyType::LINK_KEY;
+// Pre-Pair requirement: ENC_KEY and LINK_KEY (if available for SC)!
+// static const SMPKeyType _key_mask_legacy = SMPKeyType::ENC_KEY | SMPKeyType::ID_KEY | SMPKeyType::SIGN_KEY;
+// static const SMPKeyType _key_mask_sc     = SMPKeyType::ENC_KEY | SMPKeyType::ID_KEY | SMPKeyType::SIGN_KEY | SMPKeyType::LINK_KEY;
+static const SMPKeyType _key_mask_legacy = SMPKeyType::ENC_KEY;
+static const SMPKeyType _key_mask_sc     = SMPKeyType::ENC_KEY | SMPKeyType::LINK_KEY;
 
 bool BTDevice::checkPairingKeyDistributionComplete(const std::string& timestamp) const noexcept {
     bool res = false;
 
     if( SMPPairingState::KEY_DISTRIBUTION == pairing_data.state ) {
+        const SMPKeyType key_mask = pairing_data.use_sc ? _key_mask_sc : _key_mask_legacy;
+
         // Spec allows remote party to not distribute the keys,
         // hence distribution is complete with local keys!
         // Impact of missing remote keys: Requires new pairing each connection (except local LinkKey)
         if( BTRole::Slave == btRole ) {
             // Remote device is slave (peripheral, responder), we are master (initiator)
-            if( pairing_data.use_sc ) {
-                if( pairing_data.keys_init_has == ( pairing_data.keys_init_exp & _key_mask_sc ) ) {
-                    // pairing_data.keys_resp_has == ( pairing_data.keys_resp_exp & key_mask_sc )
-                    res = true;
-                }
-            } else {
-                if( pairing_data.keys_init_has == ( pairing_data.keys_init_exp & _key_mask_legacy ) ) {
-                    // pairing_data.keys_resp_has == ( pairing_data.keys_resp_exp & key_mask_legacy )
-                    res = true;
-                }
+            if( ( pairing_data.keys_init_has & key_mask ) == ( pairing_data.keys_init_exp & key_mask ) ) {
+                // pairing_data.keys_resp_has == ( pairing_data.keys_resp_exp & key_mask )
+                res = true;
             }
         } else {
             // Remote device is master (initiator), we are slave (peripheral, responder)
-            if( pairing_data.use_sc ) {
-                if( pairing_data.keys_resp_has == ( pairing_data.keys_resp_exp & _key_mask_sc ) ) {
-                    // pairing_data.keys_init_has == ( pairing_data.keys_init_exp & key_mask_sc )
-                    res = true;
-                }
-            } else {
-                if( pairing_data.keys_resp_has == ( pairing_data.keys_resp_exp & _key_mask_legacy ) ) {
-                    // pairing_data.keys_init_has == ( pairing_data.keys_init_exp & key_mask_legacy )
-                    res = true;
-                }
+            if( ( pairing_data.keys_resp_has & key_mask ) == ( pairing_data.keys_resp_exp & key_mask ) ) {
+                // pairing_data.keys_init_has == ( pairing_data.keys_init_exp & key_mask )
+                res = true;
             }
         }
 
         if( jau::environment::get().debug ) {
-            printKeyDistributionStatus(timestamp, "Debug: BTDevice:SMP:KEY_DISTRIBUTION: done "+std::to_string(res));
+            printKeyDistributionStatus(timestamp, "BTDevice:SMP:KEY_DISTRIBUTION: Done "+std::to_string(res));
         }
     }
 
@@ -735,17 +732,39 @@ void BTDevice::printKeyDistributionStatus(const std::string& timestamp, const st
     jau::PLAIN_PRINT(false, "[%s] %s: SC %d, remote[address%s, role %s]",
         timestamp.c_str(), prefix.c_str(), pairing_data.use_sc,
         addressAndType.toString().c_str(), to_string(btRole).c_str());
-    jau::PLAIN_PRINT(false, "[%s] - keys[init %s / %s, resp %s / %s]",
+
+    jau::PLAIN_PRINT(false, "[%s] Keys[init %s / %s, resp %s / %s]",
         timestamp.c_str(),
         to_string(pairing_data.keys_init_has).c_str(),
         to_string(pairing_data.keys_init_exp).c_str(),
         to_string(pairing_data.keys_resp_has).c_str(),
         to_string(pairing_data.keys_resp_exp).c_str());
+
+    jau::PLAIN_PRINT(false, "[%s] Initiator (master) Set", timestamp.c_str());
+    jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), pairing_data.ltk_init.toString().c_str());
+    jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), pairing_data.lk_init.toString().c_str());
+    jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(),
+            jau::bytesHexString(jau::pointer_cast<const uint8_t*>(&pairing_data.irk_init), 0, sizeof(pairing_data.irk_init), true /* lsbFirst */).c_str());
+    jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), pairing_data.csrk_init.toString().c_str());
+    jau::PLAIN_PRINT(false, "[%s] Responder (slave) Set", timestamp.c_str());
+    jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), pairing_data.ltk_resp.toString().c_str());
+    jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), pairing_data.lk_resp.toString().c_str());
+    jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(),
+            jau::bytesHexString(jau::pointer_cast<const uint8_t*>(&pairing_data.irk_resp), 0, sizeof(pairing_data.irk_resp), true /* lsbFirst */).c_str());
+    jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), pairing_data.csrk_resp.toString().c_str());
 }
 
 bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept {
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_data);
+    const std::string timestamp = jau::to_decstring(jau::environment::getElapsedMillisecond(evt.getTimestamp()), ',', 9);
+
+    if( jau::environment::get().debug ) {
+        jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.0: state %s -> claimed %s, mode %s",
+            timestamp.c_str(),
+            to_string(pairing_data.state).c_str(), to_string(claimed_state).c_str(), to_string(pairing_data.mode).c_str());
+        jau::PLAIN_PRINT(false, "[%s] %s", timestamp.c_str(), evt.toString().c_str());
+    }
 
     const SMPIOCapability iocap = pairing_data.ioCap_conn;
     const MgmtEvent::Opcode mgmtEvtOpcode = evt.getOpcode();
@@ -768,9 +787,9 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                 } else {
                     // BT core requesting passkey input w/o full input caps is nonsense (bug?)
                     // Reply with a default value '0' off-thread ASAP
-                    DBG_PRINT("BTDevice::updatePairingState.1a: state %s [ignored %s, sending dummy reply], mode %s, %s",
+                    DBG_PRINT("BTDevice::updatePairingState.1a: state %s [ignored %s, sending dummy reply], mode %s",
                         to_string(pairing_data.state).c_str(), to_string(claimed_state).c_str(),
-                        to_string(pairing_data.mode).c_str(), evt.toString().c_str());
+                        to_string(pairing_data.mode).c_str());
                     claimed_state = pairing_data.state; // suppress
                     std::thread dc(&BTDevice::setPairingPasskey, sthis, 0);
                     dc.detach();
@@ -782,15 +801,16 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                 } else {
                     // BT core requesting binary input w/o input caps is nonsense (bug?)
                     // Reply with a default value 'true' off-thread ASAP
-                    DBG_PRINT("BTDevice::updatePairingState.1b: state %s [ignored %s, sending dummy reply], mode %s, %s",
+                    DBG_PRINT("BTDevice::updatePairingState.1b: state %s [ignored %s, sending dummy reply], mode %s",
                         to_string(pairing_data.state).c_str(), to_string(claimed_state).c_str(),
-                        to_string(pairing_data.mode).c_str(), evt.toString().c_str());
+                        to_string(pairing_data.mode).c_str());
                     claimed_state = pairing_data.state; // suppress
                     std::thread dc(&BTDevice::setPairingNumericComparison, sthis, true);
                     dc.detach();
                 }
                 break;
             case SMPPairingState::OOB_EXPECTED:
+                // 2
                 mode = PairingMode::OUT_OF_BAND;
                 break;
             case SMPPairingState::COMPLETED:
@@ -798,6 +818,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                     HCIStatusCode::SUCCESS == evtStatus &&
                     SMPPairingState::FEATURE_EXCHANGE_STARTED > pairing_data.state )
                 {
+                    // 3a
                     // No SMP pairing in process (maybe REQUESTED_BY_RESPONDER at maximum),
                     // i.e. already paired, reusing keys and usable connection
                     mode = PairingMode::PRE_PAIRED;
@@ -806,6 +827,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                            HCIStatusCode::ALREADY_PAIRED == evtStatus &&
                            SMPPairingState::FEATURE_EXCHANGE_STARTED > pairing_data.state )
                 {
+                    // 3b
                     // No SMP pairing in process (maybe REQUESTED_BY_RESPONDER at maximum),
                     // i.e. already paired, reusing keys and usable connection
                     mode = PairingMode::PRE_PAIRED;
@@ -813,46 +835,132 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                 } else if( HCIStatusCode::SUCCESS == evtStatus &&
                            SMPPairingState::KEY_DISTRIBUTION == pairing_data.state )
                 {
-                    if( MgmtEvent::Opcode::NEW_LONG_TERM_KEY == mgmtEvtOpcode ) { /* Legacy: 2; SC: 2 (synthetic by mgmt) */
+                    if( MgmtEvent::Opcode::HCI_ENC_CHANGED == mgmtEvtOpcode ||
+                        MgmtEvent::Opcode::HCI_ENC_KEY_REFRESH_COMPLETE == mgmtEvtOpcode ) {
+                        // 4a
+                        DBG_PRINT("BTDevice::updatePairingState.4a:");
+                        if( checkPairingKeyDistributionComplete(timestamp) ) {
+                            is_device_ready = true;
+                        }
+                        if( !is_device_ready ) {
+                            claimed_state = pairing_data.state; // not yet
+                        }
+                    } else if( MgmtEvent::Opcode::HCI_LE_ENABLE_ENC == mgmtEvtOpcode ) {
+                        // 4b
+                        // Local BTRole::Master initiator
+                        const MgmtEvtHCILEEnableEncryptionCmd& event = *static_cast<const MgmtEvtHCILEEnableEncryptionCmd *>(&evt);
+                        const bool use_auth = BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn;
+                        const SMPLongTermKey smp_ltk = event.toSMPLongTermKeyInfo(pairing_data.use_sc, use_auth);
+                        if( smp_ltk.isValid() ) {
+                            // Secure Connections (SC) use AES sync key for both, initiator and responder.
+                            // false == smp_ltk.isResponder()
+                            if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyType::NONE ) { // no overwrite
+                                if( jau::environment::get().debug ) {
+                                    jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.4b: ENC_KEY initiator set", timestamp.c_str());
+                                    jau::PLAIN_PRINT(false, "[%s] - old %s", timestamp.c_str(), pairing_data.ltk_init.toString().c_str());
+                                    jau::PLAIN_PRINT(false, "[%s] - new %s", timestamp.c_str(), smp_ltk.toString().c_str());
+                                }
+                                pairing_data.ltk_init = smp_ltk;
+                                pairing_data.keys_init_has |= SMPKeyType::ENC_KEY;
+                                if( pairing_data.use_sc ) {
+                                    pairing_data.ltk_resp = smp_ltk;
+                                    pairing_data.ltk_resp.properties |= SMPLongTermKey::Property::RESPONDER; // enforce for SC
+                                    pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY;
+                                }
+                            }
+                            // Waiting for HCI_ENC_CHANGED or HCI_ENC_KEY_REFRESH_COMPLETE
+                            claimed_state = pairing_data.state; // not yet
+                        }
+                    } else if( MgmtEvent::Opcode::HCI_LE_LTK_REQUEST == mgmtEvtOpcode ) {
+                        // 4c
+                        // Local BTRole::Slave responder
+                        const MgmtEvtHCILELTKReq& event = *static_cast<const MgmtEvtHCILELTKReq *>(&evt);
+                        const bool use_auth = BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn;
+                        const SMPLongTermKey smp_ltk = event.toSMPLongTermKeyInfo(pairing_data.use_sc, use_auth);
+                        { // if( smp_ltk.isValid() ) // not yet valid
+                            // true == smp_ltk.isResponder()
+                            if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyType::NONE ) { // no overwrite
+                                if( jau::environment::get().debug ) {
+                                    jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.4c: ENC_KEY responder set", timestamp.c_str());
+                                    jau::PLAIN_PRINT(false, "[%s] - old %s", timestamp.c_str(), pairing_data.ltk_resp.toString().c_str());
+                                    jau::PLAIN_PRINT(false, "[%s] - new %s", timestamp.c_str(), smp_ltk.toString().c_str());
+                                }
+                                pairing_data.ltk_resp = smp_ltk;
+                                // pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY; // not yet -> LE_LTK_REPLY_ACK LTK { LTK }
+                            }
+                            // Waiting for LE_LTK_REPLY_ACK { LTK }
+                            claimed_state = pairing_data.state; // not yet
+                        }
+                    } else if( MgmtEvent::Opcode::HCI_LE_LTK_REPLY_ACK == mgmtEvtOpcode ) {
+                        // 4d
+                        // Local BTRole::Slave responder
+                        const MgmtEvtHCILELTKReplyAckCmd& event = *static_cast<const MgmtEvtHCILELTKReplyAckCmd *>(&evt);
+                        SMPLongTermKey smp_ltk = pairing_data.ltk_resp;
+                        smp_ltk.enc_size = 16; // valid now;
+                        smp_ltk.ltk = event.getLTK();
+                        if( smp_ltk.isValid() ) {
+                            // Secure Connections (SC) use AES sync key for both, initiator and responder.
+                            // true == smp_ltk.isResponder()
+                            if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyType::NONE ) { // no overwrite
+                                if( jau::environment::get().debug ) {
+                                    jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.4d: ENC_KEY responder set", timestamp.c_str());
+                                    jau::PLAIN_PRINT(false, "[%s] - old %s", timestamp.c_str(), pairing_data.ltk_resp.toString().c_str());
+                                    jau::PLAIN_PRINT(false, "[%s] - new %s", timestamp.c_str(), smp_ltk.toString().c_str());
+                                }
+                                pairing_data.ltk_resp = smp_ltk;
+                                pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY;
+                                if( pairing_data.use_sc ) {
+                                    pairing_data.ltk_init = smp_ltk;
+                                    pairing_data.ltk_init.properties &= ~SMPLongTermKey::Property::RESPONDER; // enforce for SC
+                                    pairing_data.keys_init_has |= SMPKeyType::ENC_KEY;
+                                }
+                            }
+                            claimed_state = pairing_data.state; // not yet
+                        }
+                    } else if( MgmtEvent::Opcode::NEW_LONG_TERM_KEY == mgmtEvtOpcode ) { /* Legacy: 2; SC: 2 (synthetic by mgmt) */
+                        // 4e
                         // SMP pairing has started, mngr issued new LTK command
                         const MgmtEvtNewLongTermKey& event = *static_cast<const MgmtEvtNewLongTermKey *>(&evt);
                         const MgmtLongTermKeyInfo& mgmt_ltk = event.getLongTermKey();
                         const SMPLongTermKey smp_ltk = mgmt_ltk.toSMPLongTermKeyInfo();
                         if( smp_ltk.isValid() ) {
-                            const std::string timestamp = jau::to_decstring(jau::environment::getElapsedMillisecond(evt.getTimestamp()), ',', 9);
-
-                            if( smp_ltk.isResponder() ) {
+                            // Secure Connections (SC) use AES sync key for both, initiator and responder.
+                            bool ltk_changed = false;
+                            if( pairing_data.use_sc || smp_ltk.isResponder() ) {
                                 if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) == SMPKeyType::NONE ) { // no overwrite
                                     if( jau::environment::get().debug ) {
-                                        jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.2a: ENC_KEY responder set", timestamp.c_str());
+                                        jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.4e: ENC_KEY responder set", timestamp.c_str());
                                         jau::PLAIN_PRINT(false, "[%s] - old %s", timestamp.c_str(), pairing_data.ltk_resp.toString().c_str());
                                         jau::PLAIN_PRINT(false, "[%s] - new %s", timestamp.c_str(), smp_ltk.toString().c_str());
                                     }
                                     pairing_data.ltk_resp = smp_ltk;
+                                    pairing_data.ltk_resp.properties |= SMPLongTermKey::Property::RESPONDER; // enforce for SC
                                     pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY;
-                                    if( checkPairingKeyDistributionComplete(timestamp) ) {
-                                        is_device_ready = true;
-                                    }
+                                    ltk_changed = true;
                                 }
-                            } else {
+                            }
+                            if( pairing_data.use_sc || !smp_ltk.isResponder() ) {
                                 if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyType::NONE ) { // no overwrite
                                     if( jau::environment::get().debug ) {
-                                        jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.2b: ENC_KEY initiator set", timestamp.c_str());
+                                        jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.4e: ENC_KEY initiator set", timestamp.c_str());
                                         jau::PLAIN_PRINT(false, "[%s] - old %s", timestamp.c_str(), pairing_data.ltk_init.toString().c_str());
                                         jau::PLAIN_PRINT(false, "[%s] - new %s", timestamp.c_str(), smp_ltk.toString().c_str());
                                     }
                                     pairing_data.ltk_init = smp_ltk;
+                                    pairing_data.ltk_init.properties &= ~SMPLongTermKey::Property::RESPONDER; // enforce for SC
                                     pairing_data.keys_init_has |= SMPKeyType::ENC_KEY;
-                                    if( checkPairingKeyDistributionComplete(timestamp) ) {
-                                        is_device_ready = true;
-                                    }
+                                    ltk_changed = true;
                                 }
+                            }
+                            if( ltk_changed && checkPairingKeyDistributionComplete(timestamp) ) {
+                                is_device_ready = true;
                             }
                             if( !is_device_ready ) {
                                 claimed_state = pairing_data.state; // not yet
                             }
                         }
                     } else if( MgmtEvent::Opcode::NEW_LINK_KEY == mgmtEvtOpcode ) { /* Legacy: N/A; SC: 4 (last value) */
+                        // 4f
                         // SMP pairing has started, mngr issued new LinkKey command
                         // Link Key is for this host only!
                         const MgmtEvtNewLinkKey& event = *static_cast<const MgmtEvtNewLinkKey *>(&evt);
@@ -860,12 +968,10 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                         const BTRole hostRole = !btRole;
                         const SMPLinkKey smp_lk = mgmt_lk.toSMPLinkKeyInfo( BTRole::Slave == hostRole /* isResponder */ );
                         if( smp_lk.isValid() ) {
-                            const std::string timestamp = jau::to_decstring(jau::environment::getElapsedMillisecond(evt.getTimestamp()), ',', 9);
-
                             if( smp_lk.isResponder() ) {
                                 if( ( SMPKeyType::LINK_KEY & pairing_data.keys_resp_has ) == SMPKeyType::NONE ) { // no overwrite
                                     if( jau::environment::get().debug ) {
-                                        jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.2a: LINK_KEY responder set", timestamp.c_str());
+                                        jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.4f: LINK_KEY responder set", timestamp.c_str());
                                         jau::PLAIN_PRINT(false, "[%s] - old %s", timestamp.c_str(), pairing_data.lk_resp.toString().c_str());
                                         jau::PLAIN_PRINT(false, "[%s] - new %s", timestamp.c_str(), smp_lk.toString().c_str());
                                     }
@@ -878,7 +984,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                             } else {
                                 if( ( SMPKeyType::LINK_KEY & pairing_data.keys_init_has ) == SMPKeyType::NONE ) { // no overwrite
                                     if( jau::environment::get().debug ) {
-                                        jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.2b: LINK_KEY initiator set", timestamp.c_str());
+                                        jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.4f: LINK_KEY initiator set", timestamp.c_str());
                                         jau::PLAIN_PRINT(false, "[%s] - old %s", timestamp.c_str(), pairing_data.lk_init.toString().c_str());
                                         jau::PLAIN_PRINT(false, "[%s] - new %s", timestamp.c_str(), smp_lk.toString().c_str());
                                     }
@@ -908,11 +1014,13 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
     }
 
     if( pairing_data.state != claimed_state ) {
-        DBG_PRINT("BTDevice::updatePairingState.3: state %s -> %s, mode %s -> %s, ready %d, %s",
-            to_string(pairing_data.state).c_str(), to_string(claimed_state).c_str(),
-            to_string(pairing_data.mode).c_str(), to_string(mode).c_str(),
-            is_device_ready, evt.toString().c_str());
-
+        if( jau::environment::get().debug ) {
+            jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.X1: state %s -> %s, mode %s -> %s, ready %d",
+                timestamp.c_str(),
+                to_string(pairing_data.state).c_str(), to_string(claimed_state).c_str(),
+                to_string(pairing_data.mode).c_str(), to_string(mode).c_str(), is_device_ready);
+            jau::PLAIN_PRINT(false, "[%s] %s", timestamp.c_str(), evt.toString().c_str());
+        }
         pairing_data.mode = mode;
         pairing_data.state = claimed_state;
 
@@ -922,16 +1030,23 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
             std::thread dc(&BTDevice::processDeviceReady, this, sthis, evt.getTimestamp()); // @suppress("Invalid arguments")
             dc.detach();
         }
-        DBG_PRINT("BTDevice::updatePairingState.4: End Complete: state %s, %s",
-                to_string(claimed_state).c_str(), toString().c_str());
+
+        if( jau::environment::get().debug ) {
+            jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.XX: End Completed: state %s",
+                    timestamp.c_str(), to_string(pairing_data.state).c_str());
+            jau::PLAIN_PRINT(false, "[%s] %s", timestamp.c_str(), toString().c_str());
+        }
 
         cv_pairing_state_changed.notify_all();
 
         return true;
     } else {
-        DBG_PRINT("BTDevice::updatePairingState.5: End Unchanged: state %s, %s, %s",
-            to_string(pairing_data.state).c_str(),
-            evt.toString().c_str(), toString().c_str());
+        if( jau::environment::get().debug ) {
+            jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.XX: End Unchanged: state %s",
+                    timestamp.c_str(), to_string(pairing_data.state).c_str());
+            jau::PLAIN_PRINT(false, "[%s] %s", timestamp.c_str(), evt.toString().c_str());
+            jau::PLAIN_PRINT(false, "[%s] %s", timestamp.c_str(), toString().c_str());
+        }
     }
     return false;
 }
@@ -1150,10 +1265,20 @@ void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMs
             break;
     }
 
+    /**
+     * Allowed to transition to SMPPairingState::COMPLETED:
+     * - HCIEventType::ENCRYPT_CHANGE and
+     * - HCIEventType::ENCRYPT_KEY_REFRESH_COMPLETE
+     * - MgmtEvent::Opcode::NEW_LONG_TERM_KEY
+     * - MgmtEvent::Opcode::NEW_LINK_KEY
+     *
+     * FIXME ?
+     *
     if( checkPairingKeyDistributionComplete(timestamp) ) {
         pstate = SMPPairingState::COMPLETED;
         is_device_ready = true;
     }
+    */
 
     if( jau::environment::get().debug ) {
         if( old_pstate == pstate /* && old_pmode == pmode */ ) {
@@ -1495,7 +1620,7 @@ void BTDevice::clearSMPStates(const bool connected) noexcept {
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_data);
 
-    DBG_PRINT("BTDevice::clearSMPStates: Had: %s", toString().c_str());
+    DBG_PRINT("BTDevice::clearSMPStates(connected %d): Start: %s", connected, toString().c_str());
 
     if( !connected ) {
         // needs to survive connected, or will be set right @ connected
@@ -1534,6 +1659,8 @@ void BTDevice::clearSMPStates(const bool connected) noexcept {
     pairing_data.irk_init.clear();
     pairing_data.csrk_init.clear();
     pairing_data.lk_init.clear();
+
+    DBG_PRINT("BTDevice::clearSMPStates(connected %d): End: %s", connected, toString().c_str());
 }
 
 void BTDevice::disconnectSMP(const int caller) noexcept {

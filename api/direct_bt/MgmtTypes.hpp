@@ -1146,7 +1146,11 @@ namespace direct_bt {
                 HCI_ENC_KEY_REFRESH_COMPLETE = 0x002f, // direct_bt extension HCIHandler -> listener
                 HCI_LE_REMOTE_FEATURES       = 0x0030, // direct_bt extension HCIHandler -> listener
                 HCI_LE_PHY_UPDATE_COMPLETE   = 0x0031, // direct_bt extension HCIHandler -> listener
-                MGMT_EVENT_TYPE_COUNT        = 0x0032
+                HCI_LE_LTK_REQUEST           = 0x0032, // direct_bt extension HCIHandler -> listener
+                HCI_LE_LTK_REPLY_ACK         = 0x0033,
+                HCI_LE_LTK_REPLY_REJ         = 0x0034,
+                HCI_LE_ENABLE_ENC            = 0x0035,
+                MGMT_EVENT_TYPE_COUNT        = 0x0036
             };
             static constexpr uint16_t number(const Opcode rhs) noexcept {
                 return static_cast<uint16_t>(rhs);
@@ -2097,84 +2101,6 @@ namespace direct_bt {
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
-     * HCIStatusCode status (1 Octet)
-     * uint8_t enc_enabled (1 Octet)
-     * <p>
-     * This is a Direct_BT extension for HCI.
-     * </p>
-     * <pre>
-     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.8 HCIEventType::ENCRYPT_CHANGE
-     * </pre>
-     */
-    class MgmtEvtHCIEncryptionChanged : public MgmtEvent
-    {
-        protected:
-            std::string baseString() const noexcept override {
-                return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                       ", addressType "+to_string(getAddressType())+
-                       ", status "+to_string(getHCIStatus())+
-                       ", enabled "+jau::to_hexstring(getEncEnabled());
-            }
-
-        public:
-            MgmtEvtHCIEncryptionChanged(const uint16_t dev_id, const BDAddressAndType& addressAndType, const HCIStatusCode hci_status, uint8_t hci_enc_enabled)
-            : MgmtEvent(Opcode::HCI_ENC_CHANGED, dev_id, 6+1+1+1)
-            {
-                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(hci_status));
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1+1, hci_enc_enabled);
-            }
-
-            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
-            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
-            HCIStatusCode getHCIStatus() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1) ); }
-            uint8_t getEncEnabled() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1+1); }
-
-            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+2+1; }
-            jau::nsize_t getDataSize() const noexcept override { return 0; }
-            const uint8_t* getData() const noexcept override { return nullptr; }
-    };
-
-    /**
-     * mgmt_addr_info { EUI48, uint8_t type },
-     * HCIStatusCode status (1 Octet)
-     * <p>
-     * This is a Direct_BT extension for HCI.
-     * </p>
-     * <pre>
-     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.39 HCIEventType::ENCRYPT_KEY_REFRESH_COMPLETE
-     * </pre>
-     */
-    class MgmtEvtHCIEncryptionKeyRefreshComplete : public MgmtEvent
-    {
-        protected:
-            std::string baseString() const noexcept override {
-                return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                       ", addressType "+to_string(getAddressType())+
-                       ", status "+to_string(getHCIStatus());
-            }
-
-        public:
-            MgmtEvtHCIEncryptionKeyRefreshComplete(const uint16_t dev_id, const BDAddressAndType& addressAndType, const HCIStatusCode hci_status)
-            : MgmtEvent(Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, dev_id, 6+1+1)
-            {
-                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
-                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(hci_status));
-            }
-
-            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
-            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
-            HCIStatusCode getHCIStatus() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1) ); }
-
-            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+2+1; }
-            jau::nsize_t getDataSize() const noexcept override { return 0; }
-            const uint8_t* getData() const noexcept override { return nullptr; }
-    };
-
-    /**
-     * mgmt_addr_info { EUI48, uint8_t type },
      * uint64_t features (8 Octets)
      *
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.65.4 LE Read Remote Features Complete event
@@ -2225,7 +2151,7 @@ namespace direct_bt {
      * This is a Direct_BT extension for HCI.
      * </p>
      */
-    class MgmtEvtLEPhyUpdateComplete : public MgmtEvent
+    class MgmtEvtHCILEPhyUpdateComplete : public MgmtEvent
     {
         protected:
             std::string baseString() const noexcept override {
@@ -2237,7 +2163,7 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtLEPhyUpdateComplete(const uint16_t dev_id, const BDAddressAndType& addressAndType, const HCIStatusCode hci_status, const LE_PHYs Tx, const LE_PHYs Rx)
+            MgmtEvtHCILEPhyUpdateComplete(const uint16_t dev_id, const BDAddressAndType& addressAndType, const HCIStatusCode hci_status, const LE_PHYs Tx, const LE_PHYs Rx)
             : MgmtEvent(Opcode::HCI_LE_PHY_UPDATE_COMPLETE, dev_id, 6+1+2)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
@@ -2255,6 +2181,345 @@ namespace direct_bt {
             LE_PHYs getRx() const noexcept { return static_cast<LE_PHYs>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1+1+1)); }
 
             jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+6+1+1+1+1; }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+    };
+
+    /**
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.65.5 LE Long Term Key Request event
+     *
+     * - mgmt_addr_info { EUI48, uint8_t type },
+     * - uint64_t random_number (8 octets)
+     * - uint16_t ediv (2 octets)
+     *
+     * This event indicates that the peer device being BTRole::Master, attempts to encrypt or re-encrypt the link
+     * and is requesting the LTK from the Host.
+     *
+     * This event shall only be generated when the local device’s role is BTRole::Slave (adapter in peripheral).
+     *
+     * <p>
+     * This is a Direct_BT extension for HCI.
+     * </p>
+     */
+    class MgmtEvtHCILELTKReq : public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                       ", addressType "+to_string(getAddressType())+
+                        ", rand "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE), 6+1,   8, false /* lsbFirst */)+
+                        ", ediv "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE), 6+1+8, 2, false /* lsbFirst */);
+            }
+        public:
+            MgmtEvtHCILELTKReq(const uint16_t dev_id, const BDAddressAndType& addressAndType, const uint64_t rand, const uint16_t ediv)
+            : MgmtEvent(Opcode::HCI_LE_LTK_REQUEST, dev_id, 6+1+8+2)
+            {
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
+                pdu.put_uint64_nc(MGMT_HEADER_SIZE+6+1, rand);
+                pdu.put_uint16_nc(MGMT_HEADER_SIZE+6+1+8, ediv);
+            }
+
+            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+
+            /**
+             * Returns the 64-bit Rand value (8 octets) being distributed
+             * <p>
+             * See Vol 3, Part H, 2.4.2.3 SM - Generation of CSRK - LE legacy pairing - generation of LTK, EDIV and Rand.
+             * </p>
+             */
+            constexpr uint64_t getRand() const noexcept { return pdu.get_uint64_nc(MGMT_HEADER_SIZE+6+1); }
+
+            /**
+             * Returns the 16-bit EDIV value (2 octets) being distributed
+             * <p>
+             * See Vol 3, Part H, 2.4.2.3 SM - Generation of CSRK - LE legacy pairing - generation of LTK, EDIV and Rand.
+             * </p>
+             */
+            constexpr uint16_t getEDIV() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE+6+1+8); }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+6+1+8+2; }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+
+            /**
+             * Convert this instance into its platform agnostic SMPLongTermKeyInfo type,
+             * invalid without LTK.
+             *
+             * LTK shall be completed via MgmtEvtHCILELTKReplyAckCmd.
+             *
+             * Local device’s role is BTRole::Slave, responder.
+             */
+            SMPLongTermKey toSMPLongTermKeyInfo(const bool isSC, const bool isAuth) const noexcept {
+                direct_bt::SMPLongTermKey res;
+                res.clear();
+                res.properties |= SMPLongTermKey::Property::RESPONDER;
+                if( isSC ) {
+                    res.properties |= SMPLongTermKey::Property::SC;
+                }
+                if( isAuth ) {
+                    res.properties |= SMPLongTermKey::Property::AUTH;
+                }
+                res.enc_size = 0; // not yet valid;
+                res.ediv = getEDIV();
+                res.rand = getRand();
+                // res.ltk = getLTK(); // -> MgmtEvtHCILELTKReplyAckCmd
+                return res;
+            }
+    };
+
+    /**
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.25 LE Long Term Key Request Reply command
+     *
+     * - mgmt_addr_info { EUI48, uint8_t type },
+     * - uint128_t ltk (16 octets)
+     *
+     * <p>
+     * This is a Direct_BT extension for HCI.
+     * </p>
+     */
+    class MgmtEvtHCILELTKReplyAckCmd : public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                       ", addressType "+to_string(getAddressType())+
+                       ", ltk "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE), 6+1, 16, true /* lsbFirst */);
+            }
+        public:
+            MgmtEvtHCILELTKReplyAckCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType, const jau::uint128_t ltk)
+            : MgmtEvent(Opcode::HCI_LE_LTK_REPLY_ACK, dev_id, 6+1+16)
+            {
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
+                pdu.put_uint128_nc(MGMT_HEADER_SIZE+6+1, ltk);
+            }
+
+            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+
+            /**
+             * Returns the 128-bit Long Term Key (16 octets)
+             * <p>
+             * The generated LTK value being distributed,
+             * see Vol 3, Part H, 2.4.2.3 SM - LE legacy pairing - generation of LTK, EDIV and Rand.
+             * </p>
+             */
+            constexpr jau::uint128_t getLTK() const noexcept { return pdu.get_uint128_nc(MGMT_HEADER_SIZE+6+1); }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+6+1+16; }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+    };
+
+    /**
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.26 LE Long Term Key Request Negative Reply command
+     *
+     * - mgmt_addr_info { EUI48, uint8_t type },
+     *
+     * <p>
+     * This is a Direct_BT extension for HCI.
+     * </p>
+     */
+    class MgmtEvtHCILELTKReplyRejCmd : public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                       ", addressType "+to_string(getAddressType());
+            }
+
+        public:
+            MgmtEvtHCILELTKReplyRejCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType)
+            : MgmtEvent(Opcode::HCI_LE_LTK_REPLY_REJ, dev_id, 6+1)
+            {
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
+            }
+
+            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+6+1; }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+    };
+
+    /**
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.24 LE Enable Encryption command
+     *
+     * - mgmt_addr_info { EUI48, uint8_t type },
+     * - uint64_t random_number (8 octets)
+     * - uint16_t ediv (2 octets)
+     * - uint128_t ltk (16 octets)
+     *
+     * Controller replies to this command with HCI_Command_Status event to the Host.
+     * - If the connection wasn't encrypted yet, HCI_Encryption_Change event shall occur when encryption has been started.
+     * - Otherwise HCI_Encryption_Key_Refresh_Complete event shall occur when encryption has been resumed.
+     *
+     * This command shall only be used when the local device’s role is BTRole::Master.
+     * <p>
+     * This is a Direct_BT extension for HCI.
+     * </p>
+     */
+    class MgmtEvtHCILEEnableEncryptionCmd : public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                       ", addressType "+to_string(getAddressType())+
+                       ", rand "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE), 6+1,   8, false /* lsbFirst */)+
+                       ", ediv "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE), 6+1+8, 2, false /* lsbFirst */)+
+                       ", ltk "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE), 6+1+8+2, 16, true /* lsbFirst */);
+            }
+
+        public:
+            MgmtEvtHCILEEnableEncryptionCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType,
+                                            const uint64_t rand, const uint16_t ediv, const jau::uint128_t ltk)
+            : MgmtEvent(Opcode::HCI_LE_ENABLE_ENC, dev_id, 6+1+8+2+16)
+            {
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
+                pdu.put_uint64_nc(MGMT_HEADER_SIZE+6+1, rand);
+                pdu.put_uint16_nc(MGMT_HEADER_SIZE+6+1+8, ediv);
+                pdu.put_uint128_nc(MGMT_HEADER_SIZE+6+1+8+2, ltk);
+            }
+
+            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+
+            /**
+             * Returns the 64-bit Rand value (8 octets) being distributed
+             * <p>
+             * See Vol 3, Part H, 2.4.2.3 SM - Generation of CSRK - LE legacy pairing - generation of LTK, EDIV and Rand.
+             * </p>
+             */
+            constexpr uint64_t getRand() const noexcept { return pdu.get_uint64_nc(MGMT_HEADER_SIZE+6+1); }
+
+            /**
+             * Returns the 16-bit EDIV value (2 octets) being distributed
+             * <p>
+             * See Vol 3, Part H, 2.4.2.3 SM - Generation of CSRK - LE legacy pairing - generation of LTK, EDIV and Rand.
+             * </p>
+             */
+            constexpr uint16_t getEDIV() const noexcept { return pdu.get_uint16_nc(MGMT_HEADER_SIZE+6+1+8); }
+
+            /**
+             * Returns the 128-bit Long Term Key (16 octets)
+             * <p>
+             * The generated LTK value being distributed,
+             * see Vol 3, Part H, 2.4.2.3 SM - LE legacy pairing - generation of LTK, EDIV and Rand.
+             * </p>
+             */
+            constexpr jau::uint128_t getLTK() const noexcept { return pdu.get_uint128_nc(MGMT_HEADER_SIZE+6+1+8+2); }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+6+1+8+2+16; }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+
+            /**
+             * Convert this instance into its platform agnostic SMPLongTermKeyInfo type.
+             *
+             * Local device’s role is BTRole::Master, initiator.
+             */
+            SMPLongTermKey toSMPLongTermKeyInfo(const bool isSC, const bool isAuth) const noexcept {
+                direct_bt::SMPLongTermKey res;
+                res.clear();
+                if( isSC ) {
+                    res.properties |= SMPLongTermKey::Property::SC;
+                }
+                if( isAuth ) {
+                    res.properties |= SMPLongTermKey::Property::AUTH;
+                }
+                res.enc_size = 16;
+                res.ediv = getEDIV();
+                res.rand = getRand();
+                res.ltk = getLTK();
+                return res;
+            }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     * HCIStatusCode status (1 Octet)
+     * uint8_t enc_enabled (1 Octet)
+     * <p>
+     * On BTRole::Master (reply to MgmtEvtHCILEEnableEncryptionCmd) and BTRole::Slave
+     * </p>
+     * <p>
+     * This is a Direct_BT extension for HCI.
+     * </p>
+     * <pre>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.8 HCIEventType::ENCRYPT_CHANGE
+     * </pre>
+     */
+    class MgmtEvtHCIEncryptionChanged : public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                       ", addressType "+to_string(getAddressType())+
+                       ", status "+to_string(getHCIStatus())+
+                       ", enabled "+jau::to_hexstring(getEncEnabled());
+            }
+
+        public:
+            MgmtEvtHCIEncryptionChanged(const uint16_t dev_id, const BDAddressAndType& addressAndType, const HCIStatusCode hci_status, uint8_t hci_enc_enabled)
+            : MgmtEvent(Opcode::HCI_ENC_CHANGED, dev_id, 6+1+1+1)
+            {
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(hci_status));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1+1, hci_enc_enabled);
+            }
+
+            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+            HCIStatusCode getHCIStatus() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1) ); }
+            uint8_t getEncEnabled() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1+1); }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+2+1; }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     * HCIStatusCode status (1 Octet)
+     * <p>
+     * On BTRole::Master (reply to MgmtEvtHCILEEnableEncryptionCmd) and BTRole::Slave
+     * </p>
+     * <p>
+     * This is a Direct_BT extension for HCI.
+     * </p>
+     * <pre>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.39 HCIEventType::ENCRYPT_KEY_REFRESH_COMPLETE
+     * </pre>
+     */
+    class MgmtEvtHCIEncryptionKeyRefreshComplete : public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                       ", addressType "+to_string(getAddressType())+
+                       ", status "+to_string(getHCIStatus());
+            }
+
+        public:
+            MgmtEvtHCIEncryptionKeyRefreshComplete(const uint16_t dev_id, const BDAddressAndType& addressAndType, const HCIStatusCode hci_status)
+            : MgmtEvent(Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, dev_id, 6+1+1)
+            {
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6+1, direct_bt::number(hci_status));
+            }
+
+            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+            HCIStatusCode getHCIStatus() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1) ); }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+2+1; }
             jau::nsize_t getDataSize() const noexcept override { return 0; }
             const uint8_t* getData() const noexcept override { return nullptr; }
     };

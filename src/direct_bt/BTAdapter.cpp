@@ -237,8 +237,15 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceFoundHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_REMOTE_FEATURES, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_PHY_UPDATE_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCILEPhyUpdateCompleteHCI)) && ok;
+
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_CHANGED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCIEncryptionChangedHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI)) && ok;
+#if CONSIDER_HCI_CMD_FOR_SMP_STATE
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_LTK_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLELTKReqEventHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_LTK_REPLY_ACK, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLELTKReplyAckCmdHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_LTK_REPLY_REJ, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLELTKReplyRejCmdHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_ENABLE_ENC, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLEEnableEncryptionCmdHCI)) && ok;
+#endif
 
         if( !ok ) {
             ERR_PRINT("BTAdapter::enableListening: Could not add all required MgmtEventCallbacks to HCIHandler: %s of %s", hci.toString().c_str(), toString().c_str());
@@ -1226,6 +1233,12 @@ void BTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<BTDevice> d
 
 // *************************************************
 
+bool BTAdapter::mgmtEvHCIAnyHCI(const MgmtEvent& e) noexcept {
+    DBG_PRINT("BTAdapter:hci::Any: %s", e.toString().c_str());
+    (void)e;
+    return true;
+}
+
 bool BTAdapter::mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept {
     return mgmtEvDeviceDiscoveringAny(e, true /* hciSourced */ );
 }
@@ -1494,40 +1507,6 @@ bool BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
     return true;
 }
 
-bool BTAdapter::mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept {
-    const MgmtEvtHCIEncryptionChanged &event = *static_cast<const MgmtEvtHCIEncryptionChanged *>(&e);
-
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
-    if( nullptr != device ) {
-        // BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.8 HCIEventType::ENCRYPT_CHANGE
-        const HCIStatusCode evtStatus = event.getHCIStatus();
-        const bool ok = HCIStatusCode::SUCCESS == evtStatus && 0 != event.getEncEnabled();
-        const SMPPairingState pstate = ok ? SMPPairingState::COMPLETED : SMPPairingState::FAILED;
-        device->updatePairingState(device, e, evtStatus, pstate);
-    } else {
-        WORDY_PRINT("BTAdapter::EventHCI:EncryptionChanged(dev_id %d): Device not tracked: %s",
-            dev_id, event.toString().c_str());
-    }
-    return true;
-}
-bool BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noexcept {
-    const MgmtEvtHCIEncryptionKeyRefreshComplete &event = *static_cast<const MgmtEvtHCIEncryptionKeyRefreshComplete *>(&e);
-
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
-    if( nullptr != device ) {
-        // BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.39 HCIEventType::ENCRYPT_KEY_REFRESH_COMPLETE
-        const HCIStatusCode evtStatus = event.getHCIStatus();
-        // const bool ok = HCIStatusCode::SUCCESS == evtStatus;
-        // const SMPPairingState pstate = ok ? SMPPairingState::COMPLETED : SMPPairingState::FAILED;
-        const SMPPairingState pstate = SMPPairingState::NONE;
-        device->updatePairingState(device, e, evtStatus, pstate);
-    } else {
-        WORDY_PRINT("BTAdapter::EventHCI:EncryptionKeyRefreshComplete(dev_id %d): Device not tracked: %s",
-            dev_id, event.toString().c_str());
-    }
-    return true;
-}
-
 bool BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCILERemoteFeatures &event = *static_cast<const MgmtEvtHCILERemoteFeatures *>(&e);
 
@@ -1545,7 +1524,7 @@ bool BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
 }
 
 bool BTAdapter::mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept {
-    const MgmtEvtLEPhyUpdateComplete &event = *static_cast<const MgmtEvtLEPhyUpdateComplete *>(&e);
+    const MgmtEvtHCILEPhyUpdateComplete &event = *static_cast<const MgmtEvtHCILEPhyUpdateComplete *>(&e);
 
     std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
@@ -1596,6 +1575,91 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
         }
     } else {
         WORDY_PRINT("BTAdapter::EventHCI:DeviceDisconnected(dev_id %d): Device not tracked: %s",
+            dev_id, event.toString().c_str());
+    }
+    return true;
+}
+
+// Local BTRole::Slave
+bool BTAdapter::mgmtEvLELTKReqEventHCI(const MgmtEvent& e) noexcept {
+    const MgmtEvtHCILELTKReq &event = *static_cast<const MgmtEvtHCILELTKReq *>(&e);
+
+    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr != device ) {
+        // BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.65.5 LE Long Term Key Request event
+        device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::COMPLETED);
+    } else {
+        WORDY_PRINT("BTAdapter::EventHCI:LE_LTK_Request(dev_id %d): Device not tracked: %s",
+            dev_id, event.toString().c_str());
+    }
+    return true;
+}
+bool BTAdapter::mgmtEvLELTKReplyAckCmdHCI(const MgmtEvent& e) noexcept {
+    const MgmtEvtHCILELTKReplyAckCmd &event = *static_cast<const MgmtEvtHCILELTKReplyAckCmd *>(&e);
+
+    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr != device ) {
+        // BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.25 LE Long Term Key Request Reply command
+        device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::COMPLETED);
+    } else {
+        WORDY_PRINT("BTAdapter::EventHCI:LE_LTK_REPLY_ACK(dev_id %d): Device not tracked: %s",
+            dev_id, event.toString().c_str());
+    }
+    return true;
+}
+bool BTAdapter::mgmtEvLELTKReplyRejCmdHCI(const MgmtEvent& e) noexcept {
+    const MgmtEvtHCILELTKReplyRejCmd &event = *static_cast<const MgmtEvtHCILELTKReplyRejCmd *>(&e);
+
+    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    DBG_PRINT("BTAdapter::EventHCI:LE_LTK_REPLY_REJ(dev_id %d): Ignored: %s (tracked %d)",
+            dev_id, event.toString().c_str(), (nullptr!=device));
+    return true;
+}
+
+// Local BTRole::Master
+bool BTAdapter::mgmtEvLEEnableEncryptionCmdHCI(const MgmtEvent& e) noexcept {
+    const MgmtEvtHCILEEnableEncryptionCmd &event = *static_cast<const MgmtEvtHCILEEnableEncryptionCmd *>(&e);
+
+    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr != device ) {
+        // BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.24 LE Enable Encryption command
+        device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::COMPLETED);
+    } else {
+        WORDY_PRINT("BTAdapter::EventHCI:LE_ENABLE_ENC(dev_id %d): Device not tracked: %s",
+            dev_id, event.toString().c_str());
+    }
+    return true;
+}
+// On BTRole::Master (reply to MgmtEvtHCILEEnableEncryptionCmd) and BTRole::Slave
+bool BTAdapter::mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept {
+    const MgmtEvtHCIEncryptionChanged &event = *static_cast<const MgmtEvtHCIEncryptionChanged *>(&e);
+
+    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr != device ) {
+        // BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.8 HCIEventType::ENCRYPT_CHANGE
+        const HCIStatusCode evtStatus = event.getHCIStatus();
+        const bool ok = HCIStatusCode::SUCCESS == evtStatus && 0 != event.getEncEnabled();
+        const SMPPairingState pstate = ok ? SMPPairingState::COMPLETED : SMPPairingState::FAILED;
+        device->updatePairingState(device, e, evtStatus, pstate);
+    } else {
+        WORDY_PRINT("BTAdapter::EventHCI:ENC_CHANGED(dev_id %d): Device not tracked: %s",
+            dev_id, event.toString().c_str());
+    }
+    return true;
+}
+// On BTRole::Master (reply to MgmtEvtHCILEEnableEncryptionCmd) and BTRole::Slave
+bool BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noexcept {
+    const MgmtEvtHCIEncryptionKeyRefreshComplete &event = *static_cast<const MgmtEvtHCIEncryptionKeyRefreshComplete *>(&e);
+
+    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr != device ) {
+        // BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.39 HCIEventType::ENCRYPT_KEY_REFRESH_COMPLETE
+        const HCIStatusCode evtStatus = event.getHCIStatus();
+        const bool ok = HCIStatusCode::SUCCESS == evtStatus;
+        const SMPPairingState pstate = ok ? SMPPairingState::COMPLETED : SMPPairingState::FAILED;
+        device->updatePairingState(device, e, evtStatus, pstate);
+    } else {
+        WORDY_PRINT("BTAdapter::EventHCI:ENC_KEY_REFRESH_COMPLETE(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
     return true;

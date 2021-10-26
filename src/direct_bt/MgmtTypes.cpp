@@ -307,7 +307,12 @@ std::string MgmtCommand::getOpcodeString(const Opcode op) noexcept {
     X(PAIR_DEVICE_COMPLETE) \
     X(HCI_ENC_CHANGED) \
     X(HCI_ENC_KEY_REFRESH_COMPLETE) \
-    X(HCI_LE_REMOTE_FEATURES)
+    X(HCI_LE_REMOTE_FEATURES) \
+    X(HCI_LE_PHY_UPDATE_COMPLETE) \
+    X(HCI_LE_LTK_REQUEST) \
+    X(HCI_LE_LTK_REPLY_ACK) \
+    X(HCI_LE_LTK_REPLY_REJ) \
+    X(HCI_LE_ENABLE_ENC)
 
 #define MGMT_EV_OPCODE_CASE_TO_STRING(V) case MgmtEvent::Opcode::V: return #V;
 

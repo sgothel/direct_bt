@@ -593,6 +593,13 @@ namespace direct_bt {
                                      ".."+jau::to_hexstring(number(max))+"]", E_FILE_LINE);
                 }
             }
+            inline static void checkOpcode(const HCIOpcode has, const HCIOpcode exp)
+            {
+                if( has != exp ) {
+                    throw HCIOpcodeException("Has opcode "+jau::to_hexstring(number(has))+
+                                     ", not matching "+jau::to_hexstring(number(exp)), E_FILE_LINE);
+                }
+            }
 
             std::string nameString() const noexcept override { return "HCICommand"; }
 
@@ -606,6 +613,26 @@ namespace direct_bt {
             }
 
         public:
+
+            /**
+             * Return a newly created specialized instance pointer to base class.
+             * <p>
+             * Returned memory reference is managed by caller (delete etc)
+             * </p>
+             */
+            static std::unique_ptr<HCICommand> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
+
+            /** Persistent memory, w/ ownership ..*/
+            HCICommand(const uint8_t* buffer, const jau::nsize_t buffer_len, const jau::nsize_t exp_param_size)
+            : HCIPacket(buffer, buffer_len)
+            {
+                const jau::nsize_t paramSize = getParamSize();
+                pdu.check_range(0, number(HCIConstSizeT::COMMAND_HDR_SIZE)+paramSize);
+                if( exp_param_size > paramSize ) {
+                    throw jau::IndexOutOfBoundsException(exp_param_size, paramSize, E_FILE_LINE);
+                }
+                checkOpcode(getOpcode(), HCIOpcode::SPECIAL, HCIOpcode::LE_EXT_CREATE_CONN);
+            }
 
             /** Enabling manual construction of command without given value. */
             HCICommand(const HCIOpcode opc, const jau::nsize_t param_size)
@@ -665,13 +692,192 @@ namespace direct_bt {
         protected:
             std::string nameString() const noexcept override { return "HCIDisconnectCmd"; }
 
+            std::string valueString() const noexcept override {
+                const jau::nsize_t psz = getParamSize();
+                const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), 0, psz, true /* lsbFirst */) : "";
+                return "param[size "+std::to_string(getParamSize())+", data "+ps+"], tsz "+std::to_string(getTotalSize());
+            }
+
         public:
-            HCIDisconnectCmd(const uint16_t handle, HCIStatusCode reason)
-            : HCICommand(HCIOpcode::DISCONNECT, 3)
+            HCIDisconnectCmd(const uint8_t* buffer, const jau::nsize_t buffer_len)
+            : HCICommand(buffer, buffer_len, 2+1)
             {
-                pdu.put_uint16_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE),handle);
+                checkOpcode(getOpcode(), HCIOpcode::DISCONNECT);
+            }
+
+            HCIDisconnectCmd(const uint16_t handle, HCIStatusCode reason)
+            : HCICommand(HCIOpcode::DISCONNECT, 2+1)
+            {
+                pdu.put_uint16_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE), handle);
                 pdu.put_uint8_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)+2, number(reason));
             }
+
+            constexpr uint16_t getHandle() const noexcept { return pdu.get_uint16_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)); }
+
+            HCIStatusCode getReason() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)+2) ); }
+    };
+
+    /**
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.24 LE Enable Encryption command
+     *
+     * HCIPacket:
+     * - uint8_t packet_type
+     * - HCICommand:
+     *   - uint16_t command_type
+     *   - uint8_t packet_len (total = 4 + packet_len)
+     *   - HCILEEnableEncryptionCmd:
+     *     - uint16_t handle
+     *     - uint64_t random_number (8 octets)
+     *     - uint16_t ediv (2 octets)
+     *     - uint128_t ltk (16 octets)
+     *
+     * Controller replies to this command with HCI_Command_Status event to the Host.
+     * - If the connection wasn't encrypted yet, HCI_Encryption_Change event shall occur when encryption has been started.
+     * - Otherwise HCI_Encryption_Key_Refresh_Complete event shall occur when encryption has been resumed.
+     *
+     * This command shall only be used when the local device’s role is BTRole::Master.
+     */
+    class HCILEEnableEncryptionCmd : public HCICommand
+    {
+        protected:
+            std::string nameString() const noexcept override { return "HCILEEnableEncryptionCmd"; }
+
+            std::string valueString() const noexcept override {
+                return "data[handle "+jau::to_hexstring(getHandle())+
+                        ", rand "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)), 2,   8, false /* lsbFirst */)+
+                        ", ediv "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)), 2+8, 2, false /* lsbFirst */)+
+                        ", ltk "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)), 2+8+2, 16, true /* lsbFirst */)+
+                        "], tsz "+std::to_string(getTotalSize());
+            }
+
+        public:
+            HCILEEnableEncryptionCmd(const uint8_t* buffer, const jau::nsize_t buffer_len)
+            : HCICommand(buffer, buffer_len, 28)
+            {
+                checkOpcode(getOpcode(), HCIOpcode::LE_ENABLE_ENC);
+            }
+
+            HCILEEnableEncryptionCmd(const uint16_t handle, const uint64_t rand, const uint16_t ediv, const jau::uint128_t ltk)
+            : HCICommand(HCIOpcode::LE_ENABLE_ENC, 28)
+            {
+                pdu.put_uint16_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE),handle);
+                pdu.put_uint64_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)+2, rand);
+                pdu.put_uint16_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)+2+8, ediv);
+                pdu.put_uint128_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)+2+8+2, ltk);
+            }
+
+            constexpr uint16_t getHandle() const noexcept { return pdu.get_uint16_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)); }
+
+            /**
+             * Returns the 64-bit Rand value (8 octets) being distributed
+             * <p>
+             * See Vol 3, Part H, 2.4.2.3 SM - Generation of CSRK - LE legacy pairing - generation of LTK, EDIV and Rand.
+             * </p>
+             */
+            constexpr uint64_t getRand() const noexcept { return pdu.get_uint64_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)+2); }
+
+            /**
+             * Returns the 16-bit EDIV value (2 octets) being distributed
+             * <p>
+             * See Vol 3, Part H, 2.4.2.3 SM - Generation of CSRK - LE legacy pairing - generation of LTK, EDIV and Rand.
+             * </p>
+             */
+            constexpr uint16_t getEDIV() const noexcept { return pdu.get_uint16_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)+2+8); }
+
+            /**
+             * Returns the 128-bit Long Term Key (16 octets)
+             * <p>
+             * The generated LTK value being distributed,
+             * see Vol 3, Part H, 2.4.2.3 SM - LE legacy pairing - generation of LTK, EDIV and Rand.
+             * </p>
+             */
+            constexpr jau::uint128_t getLTK() const noexcept { return pdu.get_uint128_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)+2+8+2); }
+    };
+
+    /**
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.25 LE Long Term Key Request Reply command
+     *
+     * HCIPacket:
+     * - uint8_t packet_type
+     * - HCICommand:
+     *   - uint16_t command_type
+     *   - uint8_t packet_len (total = 4 + packet_len)
+     *   - HCILELTKReplyAckCmd:
+     *     - uint16_t handle
+     *     - uint128_t ltk (16 octets)
+     */
+    class HCILELTKReplyAckCmd : public HCICommand
+    {
+        protected:
+            std::string nameString() const noexcept override { return "HCILELTKReplyAckCmd"; }
+
+            std::string valueString() const noexcept override {
+                return "data[handle "+jau::to_hexstring(getHandle())+
+                        ", ltk "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)), 2, 16, true /* lsbFirst */)+
+                        "], tsz "+std::to_string(getTotalSize());
+            }
+        public:
+            HCILELTKReplyAckCmd(const uint8_t* buffer, const jau::nsize_t buffer_len)
+            : HCICommand(buffer, buffer_len, 18)
+            {
+                checkOpcode(getOpcode(), HCIOpcode::LE_LTK_REPLY_ACK);
+            }
+
+            HCILELTKReplyAckCmd(const uint16_t handle, const jau::uint128_t ltk)
+            : HCICommand(HCIOpcode::LE_LTK_REPLY_ACK, 18)
+            {
+                pdu.put_uint16_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE),handle);
+                pdu.put_uint128_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)+2, ltk);
+            }
+
+            constexpr uint16_t getHandle() const noexcept { return pdu.get_uint16_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)); }
+
+            /**
+             * Returns the 128-bit Long Term Key (16 octets)
+             * <p>
+             * The generated LTK value being distributed,
+             * see Vol 3, Part H, 2.4.2.3 SM - LE legacy pairing - generation of LTK, EDIV and Rand.
+             * </p>
+             */
+            constexpr jau::uint128_t getLTK() const noexcept { return pdu.get_uint128_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)+2); }
+    };
+
+    /**
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.26 LE Long Term Key Request Negative Reply command
+     *
+     * HCIPacket:
+     * - uint8_t packet_type
+     * - HCICommand:
+     *   - uint16_t command_type
+     *   - uint8_t packet_len (total = 4 + packet_len)
+     *   - HCILELTKReplyRejCmd:
+     *     - uint16_t handle
+     *
+     */
+    class HCILELTKReplyRejCmd : public HCICommand
+    {
+        protected:
+            std::string nameString() const noexcept override { return "HCILELTKReplyRejCmd"; }
+
+            std::string valueString() const noexcept override {
+                return "data[handle "+jau::to_hexstring(getHandle())+
+                        "], tsz "+std::to_string(getTotalSize());
+            }
+
+        public:
+            HCILELTKReplyRejCmd(const uint8_t* buffer, const jau::nsize_t buffer_len)
+            : HCICommand(buffer, buffer_len, 2)
+            {
+                checkOpcode(getOpcode(), HCIOpcode::LE_LTK_REPLY_REJ);
+            }
+
+            HCILELTKReplyRejCmd(const uint16_t handle)
+            : HCICommand(HCIOpcode::LE_LTK_REPLY_REJ, 2)
+            {
+                pdu.put_uint16_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE),handle);
+            }
+
+            constexpr uint16_t getHandle() const noexcept { return pdu.get_uint16_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)); }
     };
 
     /**
@@ -1142,6 +1348,68 @@ namespace direct_bt {
 
             jau::nsize_t getParamSize() const noexcept override { return HCIEvent::getParamSize()-1; }
             const uint8_t* getParam() const noexcept override { return HCIEvent::getParam()+1; }
+    };
+
+
+    /**
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.65.5 LE Long Term Key Request event
+     *
+     * HCIPacket:
+     * - uint8_t packet_type
+     * - HCIEvent:
+     *   - uint8_t event_type
+     *   - uint8_t packet_len (total = 3 + packet_len)
+     *   - HCIMetaEvent
+     *     - uint8_t meta_event_type
+     *     - HCILELTKReqEvent:
+     *       - uint16_t connection_handle (2 octets)
+     *       - uint64_t random_number (8 octets)
+     *       - uint16_t ediv (2 octets)
+     *
+     * This event indicates that the peer device being BTRole::Master, attempts to encrypt or re-encrypt the link
+     * and is requesting the LTK from the Host.
+     *
+     * This event shall only be generated when the local device’s role is BTRole::Slave (adapter in peripheral mode).
+     *
+     * It shall be replied via HCILELTKReplyAckCmd (HCIOpcode::LE_LTK_REPLY_ACK) or HCILELTKReplyRejCmd (HCIOpcode::LE_LTK_REPLY_REJ)
+     */
+    class HCILELTKReqEvent : public HCIMetaEvent
+    {
+        protected:
+            std::string nameString() const noexcept override { return "HCILELTKReqEvent"; }
+
+            std::string valueString() const noexcept override {
+                return "data[handle "+jau::to_hexstring(getHandle())+
+                        ", rand "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)), 1+2,   8, false /* lsbFirst */)+
+                        ", ediv "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)), 1+2+8, 2, false /* lsbFirst */)+
+                        "], tsz "+std::to_string(getTotalSize());
+            }
+        public:
+            /** Passing through preset buffer of this type */
+            HCILELTKReqEvent(const uint8_t* buffer, const jau::nsize_t buffer_len)
+            : HCIMetaEvent(buffer, buffer_len, 12)
+            {
+                checkEventType(getEventType(), HCIEventType::LE_META);
+                checkMetaType( getMetaEventType(), HCIMetaEventType::LE_LTK_REQUEST);
+            }
+
+            constexpr uint16_t getHandle() const noexcept { return pdu.get_uint16_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)+1); }
+
+            /**
+             * Returns the 64-bit Rand value (8 octets) being distributed
+             * <p>
+             * See Vol 3, Part H, 2.4.2.3 SM - Generation of CSRK - LE legacy pairing - generation of LTK, EDIV and Rand.
+             * </p>
+             */
+            constexpr uint64_t getRand() const noexcept { return pdu.get_uint64_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)+1+2); }
+
+            /**
+             * Returns the 16-bit EDIV value (2 octets) being distributed
+             * <p>
+             * See Vol 3, Part H, 2.4.2.3 SM - Generation of CSRK - LE legacy pairing - generation of LTK, EDIV and Rand.
+             * </p>
+             */
+            constexpr uint16_t getEDIV() const noexcept { return pdu.get_uint16_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)+1+2+8); }
     };
 
     /**

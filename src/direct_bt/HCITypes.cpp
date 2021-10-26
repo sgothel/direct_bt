@@ -311,11 +311,43 @@ std::string to_string(const HCIMetaEventType op) noexcept {
     return "Unknown HCIMetaType";
 }
 
+std::unique_ptr<HCICommand> HCICommand::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
+    const HCIPacketType pc = static_cast<HCIPacketType>( jau::get_uint8(buffer, 0) );
+
+    if( HCIPacketType::COMMAND != pc ) {
+        return nullptr;
+    }
+
+    const jau::nsize_t paramSize = buffer_size >= number(HCIConstSizeT::COMMAND_HDR_SIZE) ? jau::get_uint8(buffer, 3) : 0;
+    if( buffer_size < number(HCIConstSizeT::COMMAND_HDR_SIZE) + paramSize ) {
+        WARN_PRINT("HCIEvent::getSpecialized: length mismatch %u < COMMAND_HDR_SIZE(%u) + %u",
+                buffer_size, number(HCIConstSizeT::COMMAND_HDR_SIZE), paramSize);
+        return nullptr;
+    }
+
+    const HCIOpcode oc = static_cast<HCIOpcode>( jau::get_uint16(buffer, 1, true /* littleEndian */) );
+    switch( oc ) {
+        case HCIOpcode::DISCONNECT:
+            return std::make_unique<HCIDisconnectCmd>(buffer, buffer_size);
+        case HCIOpcode::LE_ENABLE_ENC:
+            return std::make_unique<HCILEEnableEncryptionCmd>(buffer, buffer_size);
+        case HCIOpcode::LE_LTK_REPLY_ACK:
+            return std::make_unique<HCILELTKReplyAckCmd>(buffer, buffer_size);
+        case HCIOpcode::LE_LTK_REPLY_REJ:
+            return std::make_unique<HCILELTKReplyRejCmd>(buffer, buffer_size);
+        default:
+            // No further specialization, use HCIStructCmdCompleteEvt template
+            return std::make_unique<HCICommand>(buffer, buffer_size, 0);
+    }
+}
+
 std::unique_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
     const HCIPacketType pc = static_cast<HCIPacketType>( jau::get_uint8(buffer, 0) );
+
     if( HCIPacketType::EVENT != pc ) {
         return nullptr;
     }
+
     const jau::nsize_t paramSize = buffer_size >= number(HCIConstSizeT::EVENT_HDR_SIZE) ? jau::get_uint8(buffer, 2) : 0;
     if( buffer_size < number(HCIConstSizeT::EVENT_HDR_SIZE) + paramSize ) {
         WARN_PRINT("HCIEvent::getSpecialized: length mismatch %u < EVENT_HDR_SIZE(%u) + %u",
@@ -331,10 +363,16 @@ std::unique_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, jau::
             return std::make_unique<HCICommandCompleteEvent>(buffer, buffer_size);
         case HCIEventType::CMD_STATUS:
             return std::make_unique<HCICommandStatusEvent>(buffer, buffer_size);
-        case HCIEventType::LE_META:
-            // No need to HCIMetaType specializations as we use HCIStructCmdCompleteMetaEvt template
-            // based on HCIMetaEvent.
-            return std::make_unique<HCIMetaEvent>(buffer, buffer_size, 1);
+        case HCIEventType::LE_META: {
+            const HCIMetaEventType mec = static_cast<HCIMetaEventType>( jau::get_uint8(buffer, number(HCIConstSizeT::EVENT_HDR_SIZE)) );
+            switch( mec ) {
+                case HCIMetaEventType::LE_LTK_REQUEST:
+                    return std::make_unique<HCILELTKReqEvent>(buffer, buffer_size);
+                default:
+                    // May use HCIStructCmdCompleteMetaEvt template based on HCIMetaEvent.
+                    return std::make_unique<HCIMetaEvent>(buffer, buffer_size, 1);
+            }
+        }
         default:
             // No further specialization, use HCIStructCmdCompleteEvt template
             return std::make_unique<HCIEvent>(buffer, buffer_size, 0);

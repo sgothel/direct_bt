@@ -400,15 +400,23 @@ namespace direct_bt {
             bool mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvNewLinkKeyMgmt(const MgmtEvent& e) noexcept;
 
+            bool mgmtEvHCIAnyHCI(const MgmtEvent& e) noexcept;
             bool mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept;
             bool mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept;
             bool mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept;
-            bool mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept;
-            bool mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noexcept;
             bool mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept;
             bool mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept;
             bool mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept;
 
+            // Local BTRole::Slave
+            bool mgmtEvLELTKReqEventHCI(const MgmtEvent& e) noexcept;
+            bool mgmtEvLELTKReplyAckCmdHCI(const MgmtEvent& e) noexcept;
+            bool mgmtEvLELTKReplyRejCmdHCI(const MgmtEvent& e) noexcept;
+
+            // Local BTRole::Master
+            bool mgmtEvLEEnableEncryptionCmdHCI(const MgmtEvent& e) noexcept;
+            bool mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept;
+            bool mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noexcept;
 
             bool mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSourced) noexcept;
 

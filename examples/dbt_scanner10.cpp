@@ -827,7 +827,6 @@ int main(int argc, char *argv[])
                     "(-iocap <device_[address|name]_sub> <int_iocap>)* "
                     "(-secauto <device_[address|name]_sub> <int_iocap>)* "
                     "(-passkey <device_[address|name]_sub> <digits>)* "
-                    "[-unpairPre] [-unpairPost] "
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event] "
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,...] "
