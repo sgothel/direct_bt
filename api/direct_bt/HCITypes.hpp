@@ -494,9 +494,9 @@ namespace direct_bt {
      * <p>
      * BT Core Spec v5.2: Vol 4, Part E HCI: 5.4.4 HCI Event packet
      * </p>
-     * <pre>
-        __u8    packet_type;
-     * </pre>
+     *
+     * HCIPacket:
+     * - uint8_t packet_type
      */
     class HCIPacket
     {
@@ -575,10 +575,12 @@ namespace direct_bt {
      * <p>
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8 LE Controller Commands
      * </p>
-     * <pre>
-        __le16  opcode; // OCF & OGF
-        __u8    plen;
-     * </pre>
+     *
+     * HCIPacket:
+     * - uint8_t packet_type
+     * - HCICommand:
+     *   - uint16_t command_type
+     *   - uint8_t packet_len (total = 4 + packet_len)
      */
     class HCICommand : public HCIPacket
     {
@@ -648,11 +650,15 @@ namespace direct_bt {
 
     /**
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.6 Disconnect command
-     * <pre>
-        Size 3
-        __le16   handle;
-        __u8     reason;
-     * </pre>
+     *
+     * HCIPacket:
+     * - uint8_t packet_type
+     * - HCICommand:
+     *   - uint16_t command_type
+     *   - uint8_t packet_len (total = 4 + packet_len)
+     *   - HCIDisconnectCmd:
+     *     - uint16_t handle
+     *     - uint8_t reason
      */
     class HCIDisconnectCmd : public HCICommand
     {
@@ -819,10 +825,12 @@ namespace direct_bt {
      * <p>
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7 Events
      * </p>
-     * <pre>
-        __u8    evt;
-        __u8    plen;
-     * </pre>
+     *
+     * HCIPacket:
+     * - uint8_t packet_type
+     * - HCIEvent:
+     *   - uint8_t event_type
+     *   - uint8_t packet_len (total = 3 + packet_len)
      */
     class HCIEvent : public HCIPacket
     {
@@ -1080,10 +1088,14 @@ namespace direct_bt {
 
     /**
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.65 LE Meta event
-     * <p>
-     * Size 1
-        __u8     subevent;
-     * </p>
+     *
+     * HCIPacket:
+     * - uint8_t packet_type
+     * - HCIEvent:
+     *   - uint8_t event_type
+     *   - uint8_t packet_len (total = 3 + packet_len)
+     *   - HCIMetaEvent
+     *     - uint8_t meta_event_type
      */
     class HCIMetaEvent : public HCIEvent
     {
