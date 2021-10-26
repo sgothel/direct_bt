@@ -668,22 +668,36 @@ void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_
     }
     HCIStatusCode unpair_res = HCIStatusCode::UNKNOWN;
 
-    if( PairingMode::PRE_PAIRED == pmode ) {
-        // Delay GATT processing when re-using encryption keys.
+    const bool using_enc = PairingMode::PRE_PAIRED == pmode || SMPPairingState::COMPLETED == pstate;
+    if( using_enc ) {
+        // Delay GATT processing when just established encryption
+        // via pairing or re-using encryption keys (pre-paired).
+        //
+        // If SMPPairingState::COMPLETED (newly paired), CSRK (Signature)
+        // keys may also still trailing in post encryption.
+        //
         // Here we lack of further processing / state indication
         // and a too fast GATT access leads to disconnection.
         // (Empirical delay figured by accident.)
+#if CONSIDER_HCI_CMD_FOR_SMP_STATE
+        // ENC_CHANGE via HCI arrives earlier!
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
+#else
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+#endif
+    } else {
+        // Similar empirical data on w/o encryption, but less severe.
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     const bool gatt_res = connectGATT(sthis); // may close connection and hence clear pairing_data
 
-    if( !gatt_res && PairingMode::PRE_PAIRED == pmode ) {
+    if( !gatt_res && using_enc ) {
         // Need to repair as GATT communication failed
         unpair_res = unpair();
     }
-    DBG_PRINT("BTDevice::processDeviceReady: ready[GATT %d, unpair %s], %s",
-            gatt_res, to_string(unpair_res).c_str(), toString().c_str());
+    DBG_PRINT("BTDevice::processDeviceReady: ready[GATT %d, using_enc %d, unpair %s], %s",
+            gatt_res, using_enc, to_string(unpair_res).c_str(), toString().c_str());
 
     if( gatt_res ) {
         adapter.sendDeviceReady(sthis, timestamp);

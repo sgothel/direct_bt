@@ -1043,7 +1043,6 @@ BTGattHandler::BTGattHandler(const std::shared_ptr<BTDevice> &device, L2CAPComm&
 
     if( GATTRole::Client == getRole() ) {
         // First point of failure if remote device exposes no GATT functionality. Allow a longer timeout!
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 100ms wait from connect, SMP -> GATT
         uint16_t mtu = 0;
         try {
             mtu = exchangeMTUImpl(number(Defaults::MAX_ATT_MTU), env.GATT_INITIAL_COMMAND_REPLY_TIMEOUT);
