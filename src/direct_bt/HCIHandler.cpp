@@ -1805,7 +1805,7 @@ HCIStatusCode HCIHandler::le_enable_adv(const bool enable) noexcept {
         } else {
             HCIStructCommand<hci_cp_le_set_ext_adv_enable> req0(HCIOpcode::LE_SET_EXT_ADV_ENABLE);
             hci_cp_le_set_ext_adv_enable * cp = req0.getWStruct();
-            cp->enable = 0x01;
+            cp->enable = 0x00;
             cp->num_of_sets = 0; // disable all advertising sets
             std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
         }
