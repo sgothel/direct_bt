@@ -2045,7 +2045,7 @@ exit:
 HCIStatusCode BTDevice::unpair() noexcept {
 #if USE_LINUX_BT_SECURITY
     const MgmtStatus res = adapter.getManager().unpairDevice(adapter.dev_id, addressAndType, false /* disconnect */);
-    clearSMPStates(false /* connected */);
+    clearSMPStates(getConnected() /* connected */);
     return to_HCIStatusCode(res);
 #elif SMP_SUPPORTED_BY_OS
     return HCIStatusCode::NOT_SUPPORTED;
