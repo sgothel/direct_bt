@@ -612,7 +612,17 @@ namespace direct_bt {
              * @see close()
              * @see initialize()
              */
-            bool setPowered(bool power_on) noexcept;
+            bool setPowered(const bool power_on) noexcept;
+
+            /**
+             * Enable or disable Secure Connections (SC) of the adapter.
+             *
+             * By default, Secure Connections (SC) is enabled if supported.
+             *
+             * @param enable
+             * @since 2.4.0
+             */
+            bool setSecureConnections(const bool enable) noexcept;
 
             /**
              * Initialize the adapter with default values, including power-on.

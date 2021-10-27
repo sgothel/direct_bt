@@ -888,6 +888,17 @@ jboolean Java_jau_direct_1bt_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jbo
     return JNI_FALSE;
 }
 
+jboolean Java_jau_direct_1bt_DBTAdapter_setSecureConnections(JNIEnv *env, jobject obj, jboolean enable) {
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        return adapter->setSecureConnections(JNI_TRUE == enable ? true : false) ? JNI_TRUE : JNI_FALSE;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
 jbyte Java_jau_direct_1bt_DBTAdapter_initializeImpl(JNIEnv *env, jobject obj, jbyte jbtMode) {
     try {
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);

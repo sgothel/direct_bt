@@ -421,10 +421,9 @@ HCIStatusCode BTAdapter::setName(const std::string &name, const std::string &sho
     return nullptr != res ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
 }
 
-bool BTAdapter::setPowered(bool power_on) noexcept {
+bool BTAdapter::setPowered(const bool power_on) noexcept {
     AdapterSetting settings = adapterInfo.getCurrentSettingMask();
-    if( (  power_on &&  isAdapterSettingBitSet(settings, AdapterSetting::POWERED) ) ||
-        ( !power_on && !isAdapterSettingBitSet(settings, AdapterSetting::POWERED) ) ) {
+    if( power_on == isAdapterSettingBitSet(settings, AdapterSetting::POWERED) ) {
         // unchanged
         return true;
     }
@@ -433,10 +432,20 @@ bool BTAdapter::setPowered(bool power_on) noexcept {
     }
     const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(settings);
     updateAdapterSettings(false /* off_thread */, new_settings, false /* sendEvent */, 0);
-    if( power_on && isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED) ) {
+    return power_on == isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED);
+}
+
+bool BTAdapter::setSecureConnections(const bool enable) noexcept {
+    AdapterSetting settings = adapterInfo.getCurrentSettingMask();
+    if( enable == isAdapterSettingBitSet(settings, AdapterSetting::SECURE_CONN) ) {
+        // unchanged
         return true;
     }
-    return !power_on && !isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED);
+    if( !mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, enable ? 1 : 0, settings) ) {
+        return false;    }
+    const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(settings);
+    updateAdapterSettings(false /* off_thread */, new_settings, false /* sendEvent */, 0);
+    return enable == isAdapterSettingBitSet(new_settings, AdapterSetting::SECURE_CONN);
 }
 
 HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
