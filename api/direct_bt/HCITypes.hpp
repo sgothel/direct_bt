@@ -735,7 +735,11 @@ namespace direct_bt {
      * - If the connection wasn't encrypted yet, HCI_Encryption_Change event shall occur when encryption has been started.
      * - Otherwise HCI_Encryption_Key_Refresh_Complete event shall occur when encryption has been resumed.
      *
-     * This command shall only be used when the local device’s role is BTRole::Master.
+     * This command shall only be used when the local device’s role is BTRole::Master (initiator).
+     *
+     * Encryption key belongs to the remote device having role BTRole::Slave (responder).
+     *
+     * The encryption key matches the LTK from SMP messaging in SC mode only!
      */
     class HCILEEnableEncryptionCmd : public HCICommand
     {
@@ -805,6 +809,12 @@ namespace direct_bt {
      *   - HCILELTKReplyAckCmd:
      *     - uint16_t handle
      *     - uint128_t ltk (16 octets)
+     *
+     * This command shall only be used when the local device’s role is BTRole::Slave (responder).
+     *
+     * LTK belongs to the local device having role BTRole::Slave (responder).
+     *
+     * The LTK matches the LTK from SMP messaging in SC mode only!
      */
     class HCILELTKReplyAckCmd : public HCICommand
     {
@@ -1369,7 +1379,11 @@ namespace direct_bt {
      * This event indicates that the peer device being BTRole::Master, attempts to encrypt or re-encrypt the link
      * and is requesting the LTK from the Host.
      *
-     * This event shall only be generated when the local device’s role is BTRole::Slave (adapter in peripheral mode).
+     * This event shall only be generated when the local device’s role is BTRole::Slave (responder, adapter in peripheral mode).
+     *
+     * Rand and Ediv belong to the local device having role BTRole::Slave (responder).
+     *
+     * Rand and Ediv matches the LTK from SMP messaging in SC mode only!
      *
      * It shall be replied via HCILELTKReplyAckCmd (HCIOpcode::LE_LTK_REPLY_ACK) or HCILELTKReplyRejCmd (HCIOpcode::LE_LTK_REPLY_REJ)
      */

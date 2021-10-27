@@ -2195,8 +2195,11 @@ namespace direct_bt {
      * This event indicates that the peer device being BTRole::Master, attempts to encrypt or re-encrypt the link
      * and is requesting the LTK from the Host.
      *
-     * This event shall only be generated when the local device’s role is BTRole::Slave (adapter in peripheral).
+     * This event shall only be generated when the local device’s role is BTRole::Slave (responder, adapter in peripheral mode).
      *
+     * Rand and Ediv belong to the local device having role BTRole::Slave (responder).
+     *
+     * Rand and Ediv matches the LTK from SMP messaging in SC mode only!
      * <p>
      * This is a Direct_BT extension for HCI.
      * </p>
@@ -2275,6 +2278,11 @@ namespace direct_bt {
      * - mgmt_addr_info { EUI48, uint8_t type },
      * - uint128_t ltk (16 octets)
      *
+     * This command shall only be used when the local device’s role is BTRole::Slave (responder).
+     *
+     * LTK belongs to the local device having role BTRole::Slave (responder).
+     *
+     * The encryption key matches the LTK from SMP messaging in SC mode only!
      * <p>
      * This is a Direct_BT extension for HCI.
      * </p>
@@ -2358,7 +2366,11 @@ namespace direct_bt {
      * - If the connection wasn't encrypted yet, HCI_Encryption_Change event shall occur when encryption has been started.
      * - Otherwise HCI_Encryption_Key_Refresh_Complete event shall occur when encryption has been resumed.
      *
-     * This command shall only be used when the local device’s role is BTRole::Master.
+     * This command shall only be used when the local device’s role is BTRole::Master (initiator).
+     *
+     * Encryption key belongs to the remote device having role BTRole::Slave (responder).
+     *
+     * The encryption key matches the LTK from SMP messaging in SC mode only!
      * <p>
      * This is a Direct_BT extension for HCI.
      * </p>
@@ -2419,13 +2431,16 @@ namespace direct_bt {
             const uint8_t* getData() const noexcept override { return nullptr; }
 
             /**
-             * Convert this instance into its platform agnostic SMPLongTermKeyInfo type.
+             * Convert this instance into its platform agnostic SMPLongTermKeyInfo LTK.
              *
              * Local device’s role is BTRole::Master, initiator.
+             *
+             * This LTK Encryption key is for the remote device having role BTRole::Slave (responder).
              */
             SMPLongTermKey toSMPLongTermKeyInfo(const bool isSC, const bool isAuth) const noexcept {
                 direct_bt::SMPLongTermKey res;
                 res.clear();
+                res.properties |= SMPLongTermKey::Property::RESPONDER;
                 if( isSC ) {
                     res.properties |= SMPLongTermKey::Property::SC;
                 }

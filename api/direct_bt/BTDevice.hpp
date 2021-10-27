@@ -113,6 +113,7 @@ namespace direct_bt {
                 PairingMode mode;
                 bool res_requested_sec;
                 bool use_sc;
+                bool encryption_enabled;
 
                 SMPAuthReqs     authReqs_init, authReqs_resp;
                 SMPIOCapability ioCap_init,    ioCap_resp;
@@ -125,15 +126,23 @@ namespace direct_bt {
                 SMPLongTermKey  ltk_init, ltk_resp;
 
                 // IRK
-                jau::uint128_t  irk_init,      irk_resp;
-                EUI48           address;
-                bool            is_static_random_address;
+                SMPIdentityResolvingKey  irk_init,  irk_resp;
+
+                // Identity Address Information
+                BDAddressAndType id_address_init, id_address_resp;
 
                 // CSRK
                 SMPSignatureResolvingKey csrk_init, csrk_resp;
 
                 // Link Key
                 SMPLinkKey lk_init, lk_resp;
+
+                /**
+                 * Return verbose string representation of PairingData
+                 * @param addressAndType remote address of the BTDevice
+                 * @param role remote role of the BTDevice
+                 */
+                std::string toString(const BDAddressAndType& addressAndType, const BTRole& role) const;
             };
             PairingData pairing_data;
             mutable std::mutex mtx_pairing;
@@ -193,15 +202,7 @@ namespace direct_bt {
              */
             bool connectSMP(std::shared_ptr<BTDevice> sthis, const BTSecurityLevel sec_level) noexcept;
 
-            /**
-             * Allowed to transition to SMPPairingState::COMPLETED:
-             * - HCIEventType::ENCRYPT_CHANGE and
-             * - HCIEventType::ENCRYPT_KEY_REFRESH_COMPLETE
-             * - MgmtEvent::Opcode::NEW_LONG_TERM_KEY
-             * - MgmtEvent::Opcode::NEW_LINK_KEY
-             */
-            bool checkPairingKeyDistributionComplete(const std::string& timestamp) const noexcept;
-            void printKeyDistributionStatus(const std::string& timestamp, const std::string& prefix) const noexcept;
+            bool checkPairingKeyDistributionComplete() const noexcept;
 
             bool updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
 
