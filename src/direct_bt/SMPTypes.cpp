@@ -319,6 +319,42 @@ bool SMPLongTermKey::isResponder() const noexcept {
     return ( SMPLongTermKey::Property::RESPONDER & properties ) != SMPLongTermKey::Property::NONE;
 }
 
+#define IRKPROP_ENUM(X) \
+    X(NONE) \
+    X(RESPONDER) \
+    X(AUTH)
+
+#define CASE_TO_STRING_IRKPROPFMT(V) case SMPIdentityResolvingKey::Property::V: return #V;
+
+static std::string _getPropertyBitStr(const SMPIdentityResolvingKey::Property bit) noexcept {
+    switch(bit) {
+        IRKPROP_ENUM(CASE_TO_STRING_IRKPROPFMT)
+        default: ; // fall through intended
+    }
+    return "Unknown SMPIdentityResolvingKey::Property bit";
+}
+
+std::string SMPIdentityResolvingKey::getPropertyString(const Property mask) noexcept {
+    bool has_pre = false;
+    std::string out("[");
+    if( Property::NONE != ( mask & Property::RESPONDER ) ) {
+        out.append( _getPropertyBitStr( Property::RESPONDER ) );
+        has_pre = true;
+    }
+    if( Property::NONE != ( mask & Property::AUTH ) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append( _getPropertyBitStr( Property::AUTH ) );
+        has_pre = true;
+    }
+    out.append("]");
+    return out;
+}
+
+bool SMPIdentityResolvingKey::isResponder() const noexcept {
+    return ( SMPIdentityResolvingKey::Property::RESPONDER & properties ) != SMPIdentityResolvingKey::Property::NONE;
+}
+
+
 #define CSRKPROP_ENUM(X) \
     X(NONE) \
     X(RESPONDER) \
