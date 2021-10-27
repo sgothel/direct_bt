@@ -553,6 +553,79 @@ namespace direct_bt {
     inline std::string to_String(const SMPLongTermKey& ltk) noexcept { return ltk.toString(); }
 
     /**
+     * SMP Identity Resolving Key, used for platform agnostic persistence.
+     * <p>
+     * Notable: No endian wise conversion shall occur on this data,
+     *          since the encryption values are interpreted as a byte stream.
+     * </p>
+     * <p>
+     * Byte layout must be synchronized with java org.tinyb.SMPIdentityResolvingKey
+     * </p>
+     */
+    __pack( struct SMPIdentityResolvingKey {
+        /**
+         * SMPIdentityResolvingKey Property Bits
+         */
+        enum class Property : uint8_t {
+            /** No specific property */
+            NONE = 0x00,
+            /** Responder Key (LL slave). Absence indicates Initiator Key (LL master). */
+            RESPONDER = 0x01,
+            /** Authentication used. */
+            AUTH = 0x02
+        };
+        static constexpr uint8_t number(const Property rhs) noexcept {
+            return static_cast<uint8_t>(rhs);
+        }
+        static std::string getPropertyString(const Property mask) noexcept;
+
+        /** SMPIdentityResolvingKey::Property bit mask. */
+        Property properties;
+        /** Identity Resolving Key (IRK) */
+        jau::uint128_t irk;
+
+        bool isResponder() const noexcept;
+
+        void clear() noexcept {
+            bzero(reinterpret_cast<void *>(this), sizeof(SMPIdentityResolvingKey));
+        }
+
+        std::string toString() const noexcept { // hex-fmt aligned with btmon
+            return "IRK[props "+getPropertyString(properties)+
+                   ", irk "+jau::bytesHexString(irk.data, 0, sizeof(irk), true /* lsbFirst */)+
+                   "]";
+        }
+    } );
+    constexpr SMPIdentityResolvingKey::Property operator ^(const SMPIdentityResolvingKey::Property lhs, const SMPIdentityResolvingKey::Property rhs) noexcept {
+        return static_cast<SMPIdentityResolvingKey::Property> ( static_cast<uint8_t>(lhs) ^ static_cast<uint8_t>(rhs) );
+    }
+    constexpr SMPIdentityResolvingKey::Property& operator ^=(SMPIdentityResolvingKey::Property& store, const SMPIdentityResolvingKey::Property& rhs) noexcept {
+        store = static_cast<SMPIdentityResolvingKey::Property> ( static_cast<uint8_t>(store) ^ static_cast<uint8_t>(rhs) );
+        return store;
+    }
+    constexpr SMPIdentityResolvingKey::Property operator |(const SMPIdentityResolvingKey::Property lhs, const SMPIdentityResolvingKey::Property rhs) noexcept {
+        return static_cast<SMPIdentityResolvingKey::Property> ( static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs) );
+    }
+    constexpr SMPIdentityResolvingKey::Property& operator |=(SMPIdentityResolvingKey::Property& store, const SMPIdentityResolvingKey::Property& rhs) noexcept {
+        store = static_cast<SMPIdentityResolvingKey::Property> ( static_cast<uint8_t>(store) | static_cast<uint8_t>(rhs) );
+        return store;
+    }
+    constexpr SMPIdentityResolvingKey::Property operator &(const SMPIdentityResolvingKey::Property lhs, const SMPIdentityResolvingKey::Property rhs) noexcept {
+        return static_cast<SMPIdentityResolvingKey::Property> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
+    }
+    constexpr SMPIdentityResolvingKey::Property& operator &=(SMPIdentityResolvingKey::Property& store, const SMPIdentityResolvingKey::Property& rhs) noexcept {
+        store = static_cast<SMPIdentityResolvingKey::Property> ( static_cast<uint8_t>(store) & static_cast<uint8_t>(rhs) );
+        return store;
+    }
+    constexpr bool operator ==(const SMPIdentityResolvingKey::Property lhs, const SMPIdentityResolvingKey::Property rhs) noexcept {
+        return static_cast<uint8_t>(lhs) == static_cast<uint8_t>(rhs);
+    }
+    constexpr bool operator !=(const SMPIdentityResolvingKey::Property lhs, const SMPIdentityResolvingKey::Property rhs) noexcept {
+        return !( lhs == rhs );
+    }
+    inline std::string to_String(const SMPIdentityResolvingKey& csrk) noexcept { return csrk.toString(); }
+
+    /**
      * SMP Signature Resolving Key, used for platform agnostic persistence.
      * <p>
      * One way for ATT Signed Write.
@@ -567,7 +640,7 @@ namespace direct_bt {
      */
     __pack( struct SMPSignatureResolvingKey {
         /**
-         * SMPLongTermKey Property Bits
+         * SMPSignatureResolvingKey Property Bits
          */
         enum class Property : uint8_t {
             /** No specific property */
@@ -590,7 +663,7 @@ namespace direct_bt {
         bool isResponder() const noexcept;
 
         void clear() noexcept {
-            bzero(reinterpret_cast<void *>(this), sizeof(SMPLongTermKey));
+            bzero(reinterpret_cast<void *>(this), sizeof(SMPSignatureResolvingKey));
         }
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
@@ -676,6 +749,27 @@ namespace direct_bt {
         uint8_t pin_length;
 
         constexpr bool isValid() const noexcept { return KeyType::NONE != type; }
+
+        /**
+         * Returns true if the type is a combination key,
+         * i.e. used for BTRole::Master and BTRole::Slave.
+         *
+         * This is usally being true when using Secure Connections (SC).
+         */
+        constexpr bool isCombiKey() const noexcept {
+            switch(type) {
+                case KeyType::COMBI:
+                case KeyType::DBG_COMBI:
+                case KeyType::UNAUTH_COMBI_P192:
+                case KeyType::AUTH_COMBI_P192:
+                case KeyType::CHANGED_COMBI:
+                case KeyType::UNAUTH_COMBI_P256:
+                case KeyType::AUTH_COMBI_P256:
+                    return true;
+                default:
+                    return false;
+            }
+        }
 
         bool isResponder() const noexcept { return responder; }
 
