@@ -571,6 +571,7 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
         }
     } else {
         fprintf_td(stderr, "initAdapter: setPowered.2 off failed: %s\n", adapter->toString().c_str());
+        return false;
     }
     fprintf_td(stderr, "initAdapter.2: %s\n", adapter->toString().c_str());
 
