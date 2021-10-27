@@ -343,6 +343,19 @@ namespace direct_bt {
                 }
                 return &descriptors.at(static_cast<size_t>(userDescriptionIndex)); // abort if out of bounds
             }
+            DBGattDesc* getClientCharConfig() noexcept {
+                if( 0 > clientCharConfigIndex ) {
+                    return nullptr;
+                }
+                return &descriptors.at(static_cast<size_t>(clientCharConfigIndex)); // abort if out of bounds
+            }
+
+            DBGattDesc* getUserDescription() noexcept {
+                if( 0 > userDescriptionIndex ) {
+                    return nullptr;
+                }
+                return &descriptors.at(static_cast<size_t>(userDescriptionIndex)); // abort if out of bounds
+            }
     };
     inline bool operator==(const DBGattChar& lhs, const DBGattChar& rhs) noexcept
     { return lhs.handle == rhs.handle; /** unique attribute handles */ }
@@ -474,6 +487,16 @@ namespace direct_bt {
             class Listener {
                 public:
                     virtual ~Listener() {}
+
+                    /**
+                     * Notification that device got disconnected.
+                     *
+                     * Convenient user entry, allowing to clean up resources.
+                     *
+                     * @param device
+                     * @return
+                     */
+                    virtual void disconnected(std::shared_ptr<BTDevice> device) = 0;
 
                     /**
                      *

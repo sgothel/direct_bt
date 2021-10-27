@@ -1094,6 +1094,26 @@ bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCa
         characteristicListenerList.clear();
         return false;
     }
+
+    {
+        std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+        if( nullptr == device ) {
+            ERR_PRINT("GATTHandler::disconnect: null device: %s", toString().c_str());
+        } else {
+            int i=0;
+            jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
+                try {
+                    l->disconnected(device);
+                } catch (std::exception &e) {
+                    ERR_PRINT("GATTHandler::disconnect: %d/%zd: %s: Caught exception %s",
+                            i+1, gattServerData->listener().size(),
+                            toString().c_str(), e.what());
+                }
+                i++;
+            });
+        }
+    }
+
     // Lock to avoid other threads using instance while disconnecting
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("GATTHandler::disconnect: Start: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",

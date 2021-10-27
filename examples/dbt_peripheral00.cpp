@@ -86,7 +86,7 @@ static jau::POctets make_poctets(const jau::nsize_t capacity, const jau::nsize_t
     return jau::POctets(capacity, size, endian::little);
 }
 
-// static const jau::uuid128_t DataServiceUUID =  jau::uuid128_t("d0ca6bf3-3d50-4760-98e5-fc5883e93712");
+static const jau::uuid128_t DataServiceUUID =  jau::uuid128_t("d0ca6bf3-3d50-4760-98e5-fc5883e93712");
 static const jau::uuid128_t CommandUUID      = jau::uuid128_t("d0ca6bf3-3d52-4760-98e5-fc5883e93712");
 static const jau::uuid128_t ResponseUUID     = jau::uuid128_t("d0ca6bf3-3d53-4760-98e5-fc5883e93712");
 static const jau::uuid128_t PulseDataUUID =    jau::uuid128_t("d0ca6bf3-3d54-4760-98e5-fc5883e93712");
@@ -136,7 +136,7 @@ DBGattServerRef dbGattServer( new DBGattServer(
                               make_poctets("sw:0123456789") /* value */
               ) ) ),
           DBGattService ( true /* primary */,
-              std::make_unique<const jau::uuid128_t>("d0ca6bf3-3d50-4760-98e5-fc5883e93712") /* type_ */,
+              std::make_unique<const jau::uuid128_t>(DataServiceUUID) /* type_ */,
               jau::make_darray ( // DBGattChar
                   DBGattChar( std::make_unique<const jau::uuid128_t>("d0ca6bf3-3d51-4760-98e5-fc5883e93712") /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
@@ -328,19 +328,50 @@ class MyGATTServerListener : public DBGattServer::Listener {
 
         std::shared_ptr<BTDevice> sendToDevice;
 
-        void pulseSender() {
+        void clear() {
             jau::sc_atomic_critical sync(sync_data);
+
+            handlePulseDataNotify = 0;
+            handlePulseDataIndicate = 0;
+            handleResponseDataNotify = 0;
+            handleResponseDataIndicate = 0;
+            sendToDevice = nullptr;
+
+            {
+                DBGattChar * c = dbGattServer->findGattChar(DataServiceUUID, PulseDataUUID);
+                if( nullptr != c ) {
+                    DBGattDesc * d = c->getClientCharConfig();
+                    if( nullptr != d ) {
+                        d->value.put_uint16_nc(0, 0);
+                    }
+                }
+            }
+            {
+                DBGattChar * c = dbGattServer->findGattChar(DataServiceUUID, ResponseUUID);
+                if( nullptr != c ) {
+                    DBGattDesc * d = c->getClientCharConfig();
+                    if( nullptr != d ) {
+                        d->value.put_uint16_nc(0, 0);
+                    }
+                }
+            }
+        }
+
+        void pulseSender() {
             while( !stopPulseSender ) {
-                if( nullptr != sendToDevice && sendToDevice->getConnected() ) {
-                    if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
-                        std::string data( "Dynamic Data Example. Elapsed Milliseconds: "+jau::to_decstring(environment::getElapsedMillisecond(), ',', 9) );
-                        jau::POctets v(data.size()+1, jau::endian::little);
-                        v.put_string_nc(0, data, v.size(), true /* includeEOS */);
-                        if( 0 != handlePulseDataNotify ) {
-                            sendToDevice->sendNotification(handlePulseDataNotify, v);
-                        }
-                        if( 0 != handlePulseDataIndicate ) {
-                            sendToDevice->sendIndication(handlePulseDataNotify, v);
+                {
+                    jau::sc_atomic_critical sync(sync_data);
+                    if( nullptr != sendToDevice && sendToDevice->getConnected() ) {
+                        if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
+                            std::string data( "Dynamic Data Example. Elapsed Milliseconds: "+jau::to_decstring(environment::getElapsedMillisecond(), ',', 9) );
+                            jau::POctets v(data.size()+1, jau::endian::little);
+                            v.put_string_nc(0, data, v.size(), true /* includeEOS */);
+                            if( 0 != handlePulseDataNotify ) {
+                                sendToDevice->sendNotification(handlePulseDataNotify, v);
+                            }
+                            if( 0 != handlePulseDataIndicate ) {
+                                sendToDevice->sendIndication(handlePulseDataNotify, v);
+                            }
                         }
                     }
                 }
@@ -377,20 +408,25 @@ class MyGATTServerListener : public DBGattServer::Listener {
             }
         }
 
+        void disconnected(std::shared_ptr<BTDevice> device) override {
+            fprintf_td(stderr, "****** GATT::disconnected: %s\n", device->toString().c_str());
+            clear();
+        }
+
         bool readCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c) override {
-            fprintf_td(stderr, "GATT::readCharValue: to %s, from\n  %s\n    %s\n",
+            fprintf_td(stderr, "****** GATT::readCharValue: to %s, from\n  %s\n    %s\n",
                     device->toString().c_str(), s.toString().c_str(), c.toString().c_str());
             return true;
         }
 
         bool readDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d) override {
-            fprintf_td(stderr, "GATT::readDescValue: to %s, from\n  %s\n    %s\n      %s\n",
+            fprintf_td(stderr, "****** GATT::readDescValue: to %s, from\n  %s\n    %s\n      %s\n",
                     device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
             return true;
         }
 
         bool writeCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, const jau::TROOctets & value, const uint16_t value_offset) override {
-            fprintf_td(stderr, "GATT::writeCharValue: %s @ %s from %s, to\n  %s\n    %s\n",
+            fprintf_td(stderr, "****** GATT::writeCharValue: %s @ %s from %s, to\n  %s\n    %s\n",
                     value.toString().c_str(), jau::to_hexstring(value_offset).c_str(),
                     device->toString().c_str(), s.toString().c_str(), c.toString().c_str());
 
@@ -405,14 +441,14 @@ class MyGATTServerListener : public DBGattServer::Listener {
         }
 
         bool writeDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d, const jau::TROOctets & value, const uint16_t value_offset) override {
-            fprintf_td(stderr, "GATT::writeDescValue: %s @ %s from %s\n  %s\n    %s\n      %s\n",
+            fprintf_td(stderr, "****** GATT::writeDescValue: %s @ %s from %s\n  %s\n    %s\n      %s\n",
                     value.toString().c_str(), jau::to_hexstring(value_offset).c_str(),
                     device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
             return true;
         }
 
         void clientCharConfigChanged(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d, const bool notificationEnabled, const bool indicationEnabled) override {
-            fprintf_td(stderr, "GATT::clientCharConfigChanged: notify %d, indicate %d from %s\n  %s\n    %s\n      %s\n",
+            fprintf_td(stderr, "****** GATT::clientCharConfigChanged: notify %d, indicate %d from %s\n  %s\n    %s\n      %s\n",
                     notificationEnabled, indicationEnabled,
                     device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
 
