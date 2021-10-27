@@ -45,6 +45,8 @@
 
 #include "DBGattServer.hpp"
 
+#include "SMPKeyBin.hpp"
+
 namespace direct_bt {
 
     class BTAdapter; // forward
@@ -623,6 +625,22 @@ namespace direct_bt {
              * @since 2.4.0
              */
             bool setSecureConnections(const bool enable) noexcept;
+
+            /**
+             * Associate the given SMPKeyBin with the contained remote address, i.e. SMPKeyBin::getRemoteAddrAndType().
+             *
+             * Further uploads the Long Term Key (LTK) and Link Key (LK) for a potential upcoming connection,
+             * if they are contained in the given SMPKeyBin file.
+             *
+             * This method is provided to support BTRole::Slave peripheral adapter mode,
+             * allowing user to inject all required keys before a connection occurs.
+             *
+             * FIXME: Pass keys to BTDevice instance after connection!
+             *
+             * @param keys SMPKeyBin file
+             * @return HCIStatusCode::SUCCESS or an error state on failure
+             */
+            HCIStatusCode setSMPKeyBin(const SMPKeyBin& keys) noexcept;
 
             /**
              * Initialize the adapter with default values, including power-on.

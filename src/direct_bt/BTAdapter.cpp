@@ -448,6 +448,85 @@ bool BTAdapter::setSecureConnections(const bool enable) noexcept {
     return enable == isAdapterSettingBitSet(new_settings, AdapterSetting::SECURE_CONN);
 }
 
+HCIStatusCode BTAdapter::setSMPKeyBin(const SMPKeyBin& keys) noexcept {
+    if( keys.getLocalAddrAndType() != adapterInfo.addressAndType ) {
+        if( keys.getVerbose() ) {
+            jau::PLAIN_PRINT(true, "BTAdapter::setSMPKeyBin: Adapter address not matching: %s, %s",
+                    keys.toString().c_str(), toString().c_str());
+        }
+        return HCIStatusCode::INVALID_PARAMS;
+    }
+    /**
+    if( isConnected ) {
+        ERR_PRINT("BTDevice::setLongTermKeyInfo: Already connected: %s", toString().c_str());
+        return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
+    } */
+    // FIXME: Pass keys to BTDevice instance after connection!
+#if USE_LINUX_BT_SECURITY
+    HCIStatusCode res;
+    BTManager & mngr = getManager();
+    if( keys.hasLTKInit() ) {
+        res = mngr.uploadLongTermKey(dev_id, keys.getRemoteAddrAndType(), keys.getLTKInit());
+        if( HCIStatusCode::SUCCESS != res ) {
+            if( keys.getVerbose() ) {
+                jau::PLAIN_PRINT(true, "BTAdapter::setSMPKeyBin: Upload LTK initiator failed: %s, %s",
+                        keys.toString().c_str(), toString().c_str());
+            }
+            return res;
+        }
+    }
+    if( keys.hasLTKResp() ) {
+        res = mngr.uploadLongTermKey(dev_id, keys.getRemoteAddrAndType(), keys.getLTKResp());
+        if( HCIStatusCode::SUCCESS != res ) {
+            if( keys.getVerbose() ) {
+                jau::PLAIN_PRINT(true, "BTAdapter::setSMPKeyBin: Upload LTK responder failed: %s, %s",
+                        keys.toString().c_str(), toString().c_str());
+            }
+            return res;
+        }
+    }
+    if( BDAddressType::BDADDR_BREDR != keys.getRemoteAddrAndType().type ) {
+        // Not supported
+        DBG_PRINT("BTAdapter::setSMPKeyBin: Upload LK for LE address not supported -> ignored");
+    } else {
+        if( BTRole::Master == btRole ) {
+            // Remote device is slave (peripheral), we are master (initiator)
+            if( keys.hasLKInit() ) {
+                res = mngr.uploadLinkKey(dev_id, keys.getRemoteAddrAndType(), keys.getLKInit());
+                if( HCIStatusCode::SUCCESS != res ) {
+                    if( keys.getVerbose() ) {
+                        jau::PLAIN_PRINT(true, "BTAdapter::setSMPKeyBin: Upload LK initiator failed: %s, %s",
+                                keys.toString().c_str(), toString().c_str());
+                    }
+                    return res;
+                }
+            }
+        } else {
+            // Remote device is master (central), we are slave (peripheral)
+            if( keys.hasLKResp() ) {
+                res = mngr.uploadLinkKey(dev_id, keys.getRemoteAddrAndType(), keys.getLKResp());
+                if( HCIStatusCode::SUCCESS != res ) {
+                    if( keys.getVerbose() ) {
+                        jau::PLAIN_PRINT(true, "BTAdapter::setSMPKeyBin: Upload LK responder failed: %s, %s",
+                                keys.toString().c_str(), toString().c_str());
+                    }
+                    return res;
+                }
+            }
+        }
+    }
+    if( keys.getVerbose() ) {
+        jau::PLAIN_PRINT(true, "BTAdapter::setSMPKeyBin: Upload OK: %s, %s",
+                keys.toString().c_str(), toString().c_str());
+    }
+    return HCIStatusCode::SUCCESS;
+#elif SMP_SUPPORTED_BY_OS
+    return HCIStatusCode::NOT_SUPPORTED;
+#else
+    return HCIStatusCode::NOT_SUPPORTED;
+#endif
+}
+
 HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
     const bool was_powered = adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED);
     adapter_initialized = true;
