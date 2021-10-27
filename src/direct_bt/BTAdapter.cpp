@@ -1214,7 +1214,7 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
                                             peer_bdaddr, own_mac_type, peer_mac_type,
                                             adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy);
     if( HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("BTAdapter::stopAdvertising: le_start_adv failed: %s - %s", to_string(status).c_str(), toString(true).c_str());
+        ERR_PRINT("BTAdapter::startAdvertising: le_start_adv failed: %s - %s", to_string(status).c_str(), toString(true).c_str());
     } else {
         gattServerData = gattServerData_;
         btRole = BTRole::Slave;
