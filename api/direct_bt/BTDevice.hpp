@@ -596,6 +596,8 @@ namespace direct_bt {
              * Returns the available ::SMPKeyType mask for the responder (LL slave) or initiator (LL master).
              * @param responder if true, queries the responder (LL slave) key, otherwise the initiator (LL master) key.
              * @return ::SMPKeyType mask result
+             * @see ::SMPPairingState::COMPLETED
+             * @see AdapterStatusListener::deviceReady()
              */
             SMPKeyType getAvailableSMPKeys(const bool responder) const noexcept;
 
@@ -609,7 +611,7 @@ namespace direct_bt {
             SMPLongTermKey getLongTermKey(const bool responder) const noexcept;
 
             /**
-             * Sets the Long Term Key (LTK) of this device to reuse pre-paired encryption.
+             * Sets the Long Term Key (LTK) of this device to reuse for pre-paired encryption.
              * <p>
              * Must be called before connecting to this device, otherwise HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned.
              * </p>
@@ -619,13 +621,44 @@ namespace direct_bt {
             HCIStatusCode setLongTermKey(const SMPLongTermKey& ltk) noexcept;
 
             /**
-             * Returns a copy of the Signature Resolving Key (LTK), valid after connection and SMP pairing has been completed.
-             * @param responder true will return the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
+             * Returns a copy of the Identity Resolving Key (IRK), valid after connection and SMP pairing has been completed.
+             * @param responder true will return the responder's IRK info (remote device, LL slave), otherwise the initiator's (the LL master).
+             * @return the resulting key
+             * @see ::SMPPairingState::COMPLETED
+             * @see AdapterStatusListener::deviceReady()
+             */
+            SMPIdentityResolvingKey getIdentityResolvingKey(const bool responder) const noexcept;
+
+            /**
+             * Sets the Identity Resolving Key (IRK) of this device to be reused.
+             * <p>
+             * Must be called before connecting to this device, otherwise HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned.
+             * </p>
+             * @param irk the Identity Resolving Key (IRK)
+             * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+             * @since 2.4.0
+             */
+            HCIStatusCode setIdentityResolvingKey(const SMPIdentityResolvingKey& irk) noexcept;
+
+            /**
+             * Returns a copy of the Signature Resolving Key (CSRK), valid after connection and SMP pairing has been completed.
+             * @param responder true will return the responder's CSRK info (remote device, LL slave), otherwise the initiator's (the LL master).
              * @return the resulting key
              * @see ::SMPPairingState::COMPLETED
              * @see AdapterStatusListener::deviceReady()
              */
             SMPSignatureResolvingKey getSignatureResolvingKey(const bool responder) const noexcept;
+
+            /**
+             * Sets the Signature Resolving Key (CSRK) of this device to be reused.
+             * <p>
+             * Must be called before connecting to this device, otherwise HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned.
+             * </p>
+             * @param csrk the Signature Resolving Key (CSRK)
+             * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+             * @since 2.4.0
+             */
+            HCIStatusCode setSignatureResolvingKey(const SMPSignatureResolvingKey& csrk) noexcept;
 
             /**
              * Returns a copy of the Link Key (LK), valid after connection and SMP pairing has been completed.
@@ -638,7 +671,7 @@ namespace direct_bt {
             SMPLinkKey getLinkKey(const bool responder) const noexcept;
 
             /**
-             * Sets the Link Key (LK) of this device to reuse pre-paired encryption.
+             * Sets the Link Key (LK) of this device to reuse for pre-paired encryption.
              * <p>
              * Must be called before connecting to this device, otherwise HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned.
              * </p>

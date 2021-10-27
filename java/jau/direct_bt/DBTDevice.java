@@ -48,6 +48,7 @@ import org.direct_bt.HCIStatusCode;
 import org.direct_bt.LE_PHYs;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPIOCapability;
+import org.direct_bt.SMPIdentityResolvingKey;
 import org.direct_bt.SMPKeyMask;
 import org.direct_bt.SMPLinkKey;
 import org.direct_bt.SMPLongTermKey;
@@ -328,12 +329,36 @@ public class DBTDevice extends DBTObject implements BTDevice
     private final native byte setLongTermKeyImpl(final byte[] source);
 
     @Override
+    public final SMPIdentityResolvingKey getIdentityResolvingKey(final boolean responder) {
+        final byte[] stream = new byte[SMPIdentityResolvingKey.byte_size];
+        getIdentityResolvingKeyImpl(responder, stream);
+        return new SMPIdentityResolvingKey(stream, 0);
+    }
+    private final native void getIdentityResolvingKeyImpl(final boolean responder, final byte[] sink);
+
+    @Override
+    public final HCIStatusCode setIdentityResolvingKey(final SMPIdentityResolvingKey irk) {
+        final byte[] stream = new byte[SMPIdentityResolvingKey.byte_size];
+        irk.put(stream, 0);
+        return HCIStatusCode.get( setIdentityResolvingKeyImpl(stream) );
+    }
+    private final native byte setIdentityResolvingKeyImpl(final byte[] source);
+
+    @Override
     public final SMPSignatureResolvingKey getSignatureResolvingKey(final boolean responder) {
         final byte[] stream = new byte[SMPSignatureResolvingKey.byte_size];
         getSignatureResolvingKeyImpl(responder, stream);
         return new SMPSignatureResolvingKey(stream, 0);
     }
     private final native void getSignatureResolvingKeyImpl(final boolean responder, final byte[] sink);
+
+    @Override
+    public final HCIStatusCode setSignatureResolvingKey(final SMPSignatureResolvingKey irk) {
+        final byte[] stream = new byte[SMPSignatureResolvingKey.byte_size];
+        irk.put(stream, 0);
+        return HCIStatusCode.get( setSignatureResolvingKeyImpl(stream) );
+    }
+    private final native byte setSignatureResolvingKeyImpl(final byte[] source);
 
     @Override
     public final SMPLinkKey getLinkKey(final boolean responder) {

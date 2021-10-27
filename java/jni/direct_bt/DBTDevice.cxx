@@ -535,6 +535,57 @@ jbyte Java_jau_direct_1bt_DBTDevice_setLongTermKeyImpl(JNIEnv *env, jobject obj,
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
+void Java_jau_direct_1bt_DBTDevice_getIdentityResolvingKeyImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        if( nullptr == jsink ) {
+            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+        }
+        const size_t sink_size = env->GetArrayLength(jsink);
+        if( sizeof(SMPIdentityResolvingKey) > sink_size ) {
+            throw IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPIdentityResolvingKey)), E_FILE_LINE);
+        }
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
+        if( NULL == sink_ptr ) {
+            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+        }
+        SMPIdentityResolvingKey& irk_sink = *reinterpret_cast<SMPIdentityResolvingKey *>(sink_ptr);
+        irk_sink = device->getIdentityResolvingKey(JNI_TRUE == responder); // assign data of new key copy to JNI critical-array
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
+jbyte Java_jau_direct_1bt_DBTDevice_setIdentityResolvingKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        if( nullptr == jsource ) {
+            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+        }
+        const size_t source_size = env->GetArrayLength(jsource);
+        if( sizeof(SMPIdentityResolvingKey) > source_size ) {
+            throw IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPIdentityResolvingKey)), E_FILE_LINE);
+        }
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+        if( NULL == source_ptr ) {
+            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+        }
+        const SMPIdentityResolvingKey& irk = *reinterpret_cast<SMPIdentityResolvingKey *>(source_ptr);
+
+        const HCIStatusCode res = device->setIdentityResolvingKey(irk);
+        return (jbyte) number(res);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+}
+
 void Java_jau_direct_1bt_DBTDevice_getSignatureResolvingKeyImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
@@ -552,11 +603,38 @@ void Java_jau_direct_1bt_DBTDevice_getSignatureResolvingKeyImpl(JNIEnv *env, job
         if( NULL == sink_ptr ) {
             throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
-        SMPSignatureResolvingKey& csrk_sink = *reinterpret_cast<SMPSignatureResolvingKey *>(sink_ptr);
-        csrk_sink = device->getSignatureResolvingKey(JNI_TRUE == responder); // assign data of new key copy to JNI critical-array
+        SMPSignatureResolvingKey& irk_sink = *reinterpret_cast<SMPSignatureResolvingKey *>(sink_ptr);
+        irk_sink = device->getSignatureResolvingKey(JNI_TRUE == responder); // assign data of new key copy to JNI critical-array
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
+}
+
+jbyte Java_jau_direct_1bt_DBTDevice_setSignatureResolvingKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        if( nullptr == jsource ) {
+            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+        }
+        const size_t source_size = env->GetArrayLength(jsource);
+        if( sizeof(SMPSignatureResolvingKey) > source_size ) {
+            throw IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPSignatureResolvingKey)), E_FILE_LINE);
+        }
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+        if( NULL == source_ptr ) {
+            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+        }
+        const SMPSignatureResolvingKey& irk = *reinterpret_cast<SMPSignatureResolvingKey *>(source_ptr);
+
+        const HCIStatusCode res = device->setSignatureResolvingKey(irk);
+        return (jbyte) number(res);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
 void Java_jau_direct_1bt_DBTDevice_getLinkKeyImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
