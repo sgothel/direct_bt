@@ -642,7 +642,7 @@ namespace direct_bt {
 
             const MgmtLinkKeyInfo& getLinkKey(jau::nsize_t idx) const {
                 checkParamIdx(idx);
-                return *reinterpret_cast<const MgmtLinkKeyInfo *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 2 + sizeof(MgmtLinkKeyInfo)*idx) );
+                return *reinterpret_cast<const MgmtLinkKeyInfo *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1 + 2 + sizeof(MgmtLinkKeyInfo)*idx) );
             }
     };
 
