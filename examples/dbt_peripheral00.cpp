@@ -539,35 +539,41 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
         return false;
     }
     if( !adapter->isInitialized() ) {
-        // setName(..) ..
-        if( adapter->setPowered(false) ) {
-            if( adapter->setSecureConnections( use_SC ) ) {
-                fprintf_td(stderr, "initAdapter: setSecureConnections OK: %s\n", adapter->toString().c_str());
-            } else {
-                fprintf_td(stderr, "initAdapter: setSecureConnections failed: %s\n", adapter->toString().c_str());
-            }
-            const HCIStatusCode status = adapter->setName(adapter_name, adapter_short_name);
-            if( HCIStatusCode::SUCCESS == status ) {
-                fprintf_td(stderr, "initAdapter: setLocalName OK: %s\n", adapter->toString().c_str());
-            } else {
-                fprintf_td(stderr, "initAdapter: setLocalName failed: %s\n", adapter->toString().c_str());
-            }
-        } else {
-            fprintf_td(stderr, "initAdapter: setPowered failed: %s\n", adapter->toString().c_str());
-        }
         // Initialize with defaults and power-on
         const HCIStatusCode status = adapter->initialize( btMode );
         if( HCIStatusCode::SUCCESS != status ) {
-            fprintf_td(stderr, "initAdapter: Adapter initialization failed: %s: %s\n",
+            fprintf_td(stderr, "initAdapter: initialize failed: %s: %s\n",
                     to_string(status).c_str(), adapter->toString().c_str());
             return false;
         }
     } else if( !adapter->setPowered( true ) ) {
-        fprintf_td(stderr, "initAdapter: Already initialized adapter power-on failed:: %s\n", adapter->toString().c_str());
+        fprintf_td(stderr, "initAdapter: setPower.1 on failed: %s\n", adapter->toString().c_str());
         return false;
     }
     // adapter is powered-on
-    fprintf_td(stderr, "initAdapter: %s\n", adapter->toString().c_str());
+    fprintf_td(stderr, "initAdapter.1: %s\n", adapter->toString().c_str());
+
+    if( adapter->setPowered(false) ) {
+        const HCIStatusCode status = adapter->setName(adapter_name, adapter_short_name);
+        if( HCIStatusCode::SUCCESS == status ) {
+            fprintf_td(stderr, "initAdapter: setLocalName OK: %s\n", adapter->toString().c_str());
+        } else {
+            fprintf_td(stderr, "initAdapter: setLocalName failed: %s\n", adapter->toString().c_str());
+        }
+        if( adapter->setSecureConnections( use_SC ) ) {
+            fprintf_td(stderr, "initAdapter: setSecureConnections OK: %s\n", adapter->toString().c_str());
+        } else {
+            fprintf_td(stderr, "initAdapter: setSecureConnections failed: %s\n", adapter->toString().c_str());
+        }
+        if( !adapter->setPowered( true ) ) {
+            fprintf_td(stderr, "initAdapter: setPower.2 on failed: %s\n", adapter->toString().c_str());
+            return false;
+        }
+    } else {
+        fprintf_td(stderr, "initAdapter: setPowered.2 off failed: %s\n", adapter->toString().c_str());
+    }
+    fprintf_td(stderr, "initAdapter.2: %s\n", adapter->toString().c_str());
+
     {
         const LE_Features le_feats = adapter->getLEFeatures();
         fprintf_td(stderr, "initAdapter: LE_Features %s\n", to_string(le_feats).c_str());
