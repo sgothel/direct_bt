@@ -673,20 +673,13 @@ void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_
         // Delay GATT processing when just established encryption
         // via pairing or re-using encryption keys (pre-paired).
         //
-        // If SMPPairingState::COMPLETED (newly paired), CSRK (Signature)
-        // keys may also still trailing in post encryption.
-        //
         // Here we lack of further processing / state indication
         // and a too fast GATT access leads to disconnection.
         // (Empirical delay figured by accident.)
-#if CONSIDER_HCI_CMD_FOR_SMP_STATE
-        // ENC_CHANGE via HCI arrives earlier!
-        std::this_thread::sleep_for(std::chrono::milliseconds(150));
-#else
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-#endif
     } else {
-        // Similar empirical data on w/o encryption, but less severe.
+        // Similar empirical data on w/o encryption connecting to Direct-BT slave, but less severe.
+        // Bottom line, same behavior on encryption and w/o.
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
@@ -859,6 +852,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                         if( !is_device_ready ) {
                             claimed_state = pairing_data.state; // not yet
                         }
+#if CONSIDER_HCI_CMD_FOR_SMP_STATE
                     } else if( MgmtEvent::Opcode::HCI_LE_ENABLE_ENC == mgmtEvtOpcode ) {
                         // 4b
                         // Local BTRole::Master initiator
@@ -931,6 +925,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                             }
                             claimed_state = pairing_data.state; // not yet
                         }
+#endif /* SMPHandler CONSIDER_HCI_CMD_FOR_SMP_STATE */
                     } else if( MgmtEvent::Opcode::NEW_LONG_TERM_KEY == mgmtEvtOpcode ) { /* Legacy: 2; SC: 2 (synthetic by mgmt) */
                         // 4e
                         // SMP pairing has started, mngr issued new LTK command
