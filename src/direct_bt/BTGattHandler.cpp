@@ -1150,8 +1150,8 @@ void BTGattHandler::send(const AttPDUMsg & msg) {
     }
     // [1 .. ATT_MTU-1] BT Core Spec v5.2: Vol 3, Part F 3.2.9 Long attribute values
     if( msg.pdu.size() > usedMTU ) {
-        throw jau::IllegalArgumentException("clientMaxMTU "+std::to_string(msg.pdu.size())+" >= usedMTU "+std::to_string(usedMTU)+
-                                       " to "+toString(), E_FILE_LINE);
+        throw jau::IllegalArgumentException("Msg PDU size "+std::to_string(msg.pdu.size())+" >= usedMTU "+std::to_string(usedMTU)+
+                                       ", "+msg.toString()+" to "+toString(), E_FILE_LINE);
     }
 
     // Thread safe l2cap.write(..) operation..
