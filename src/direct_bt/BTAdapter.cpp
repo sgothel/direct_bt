@@ -1554,6 +1554,20 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         }
         i++;
     });
+    if( BTRole::Slave == getRole() ) {
+        // For BTRole::Master, BlueZ Kernel does request LE_Features already
+        // Hence we have to trigger sending LE_Features for BTRole::Slave ourselves
+        //
+        // This is mandatory to trigger BTDevice::notifyLEFeatures() via our mgmtEvHCILERemoteUserFeaturesHCI()
+        // to proceed w/ post-connection and eventually issue deviceRead().
+
+        // Replied with: Command Status 0x0f (timeout) and Status 0x0c (disallowed),
+        // despite core-spec states valid for both master and slave.
+        // hci.le_read_remote_features(event.getHCIHandle(), device->getAddressAndType());
+
+        // Hence .. induce it right after connect
+        device->notifyLEFeatures(device, HCIStatusCode::SUCCESS, LE_Features::LE_Encryption);
+    }
     return true;
 }
 
