@@ -65,6 +65,13 @@ SMPKeyBin SMPKeyBin::create(const BTDevice& device) {
             smpKeyBin.setLTKResp( device.getLongTermKey(true  /* responder */) );
         }
 
+        if( ( SMPKeyType::ID_KEY & keys_init ) != SMPKeyType::NONE ) {
+            smpKeyBin.setIRKInit( device.getIdentityResolvingKey(false /* responder */) );
+        }
+        if( ( SMPKeyType::ID_KEY & keys_resp ) != SMPKeyType::NONE ) {
+            smpKeyBin.setIRKResp( device.getIdentityResolvingKey(true  /* responder */) );
+        }
+
         if( ( SMPKeyType::SIGN_KEY & keys_init ) != SMPKeyType::NONE ) {
             smpKeyBin.setCSRKInit( device.getSignatureResolvingKey(false /* responder */) );
         }
@@ -158,6 +165,13 @@ std::string SMPKeyBin::toString() const noexcept {
             res += ltk_init.toString();
             comma = true;
         }
+        if( hasIRKInit() ) {
+            if( comma ) {
+                res += ", ";
+            }
+            res += irk_init.toString();
+            comma = true;
+        }
         if( hasCSRKInit() ) {
             if( comma ) {
                 res += ", ";
@@ -176,6 +190,13 @@ std::string SMPKeyBin::toString() const noexcept {
         res += "], Resp[";
         if( hasLTKResp() ) {
             res += ltk_resp.toString();
+            comma = true;
+        }
+        if( hasIRKResp() ) {
+            if( comma ) {
+                res += ", ";
+            }
+            res += irk_resp.toString();
             comma = true;
         }
         if( hasCSRKResp() ) {
@@ -300,6 +321,9 @@ bool SMPKeyBin::write(const std::string& fname, const bool overwrite) const noex
     if( hasLTKInit() ) {
         file.write((char*)&ltk_init, sizeof(ltk_init));
     }
+    if( hasIRKInit() ) {
+        file.write((char*)&irk_init, sizeof(irk_init));
+    }
     if( hasCSRKInit() ) {
         file.write((char*)&csrk_init, sizeof(csrk_init));
     }
@@ -309,6 +333,9 @@ bool SMPKeyBin::write(const std::string& fname, const bool overwrite) const noex
 
     if( hasLTKResp() ) {
         file.write((char*)&ltk_resp, sizeof(ltk_resp));
+    }
+    if( hasIRKResp() ) {
+        file.write((char*)&irk_resp, sizeof(irk_resp));
     }
     if( hasCSRKResp() ) {
         file.write((char*)&csrk_resp, sizeof(csrk_resp));
@@ -392,6 +419,15 @@ bool SMPKeyBin::read(const std::string& fname) {
             err = true;
         }
     }
+    if( !err && hasIRKInit() ) {
+        if( sizeof(irk_init) <= remaining ) {
+            file.read((char*)&irk_init, sizeof(irk_init));
+            remaining -= sizeof(irk_init);
+            err = file.fail();
+        } else {
+            err = true;
+        }
+    }
     if( !err && hasCSRKInit() ) {
         if( sizeof(csrk_init) <= remaining ) {
             file.read((char*)&csrk_init, sizeof(csrk_init));
@@ -415,6 +451,15 @@ bool SMPKeyBin::read(const std::string& fname) {
         if( sizeof(ltk_resp) <= remaining ) {
             file.read((char*)&ltk_resp, sizeof(ltk_resp));
             remaining -= sizeof(ltk_resp);
+            err = file.fail();
+        } else {
+            err = true;
+        }
+    }
+    if( !err && hasIRKResp() ) {
+        if( sizeof(irk_resp) <= remaining ) {
+            file.read((char*)&irk_resp, sizeof(irk_resp));
+            remaining -= sizeof(irk_resp);
             err = file.fail();
         } else {
             err = true;
@@ -505,6 +550,36 @@ HCIStatusCode SMPKeyBin::apply(BTDevice & device) const noexcept {
         res = device.setLongTermKey( getLTKResp() );
         if( HCIStatusCode::SUCCESS != res && verbose ) {
             jau::fprintf_td(stderr, "Apply SMPKeyBin failed: Resp-LTK Upload: %s, %s, %s\n",
+                    to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
+        }
+    }
+
+    if( HCIStatusCode::SUCCESS == res && hasIRKInit() ) {
+        res = device.setIdentityResolvingKey( getIRKInit() );
+        if( HCIStatusCode::SUCCESS != res && verbose ) {
+            jau::fprintf_td(stderr, "Apply SMPKeyBin failed: Init-IRK Upload: %s, %s, %s\n",
+                    to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
+        }
+    }
+    if( HCIStatusCode::SUCCESS == res && hasIRKResp() ) {
+        res = device.setIdentityResolvingKey( getIRKResp() );
+        if( HCIStatusCode::SUCCESS != res && verbose ) {
+            jau::fprintf_td(stderr, "Apply SMPKeyBin failed: Resp-IRK Upload: %s, %s, %s\n",
+                    to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
+        }
+    }
+
+    if( HCIStatusCode::SUCCESS == res && hasCSRKInit() ) {
+        res = device.setSignatureResolvingKey( getCSRKInit() );
+        if( HCIStatusCode::SUCCESS != res && verbose ) {
+            jau::fprintf_td(stderr, "Apply SMPKeyBin failed: Init-CSRK Upload: %s, %s, %s\n",
+                    to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
+        }
+    }
+    if( HCIStatusCode::SUCCESS == res && hasCSRKResp() ) {
+        res = device.setSignatureResolvingKey( getCSRKResp() );
+        if( HCIStatusCode::SUCCESS != res && verbose ) {
+            jau::fprintf_td(stderr, "Apply SMPKeyBin failed: Resp-CSRK Upload: %s, %s, %s\n",
                     to_string(res).c_str(), this->toString().c_str(), device.toString().c_str());
         }
     }

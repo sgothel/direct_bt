@@ -40,7 +40,7 @@ namespace direct_bt {
 /**
  * Storage for SMP keys including required connection parameter per local adapter and remote device.
  *
- * File format version 4.
+ * File format version 5.
  *
  * Storage for a device's BDAddressAndType, its security connection setup ::BTSecurityLevel + ::SMPIOCapability
  * and optionally the initiator and responder SMPLongTermKeyInfo (LTK), SMPSignatureResolvingKeyInfo (CSRK)
@@ -70,7 +70,7 @@ namespace direct_bt {
  */
 class SMPKeyBin {
     public:
-        constexpr static const uint16_t VERSION = (uint16_t)0b0101010101010101U + (uint16_t)4U; // bitpattern + version
+        constexpr static const uint16_t VERSION = (uint16_t)0b0101010101010101U + (uint16_t)5U; // bitpattern + version
 
     private:
         uint16_t version;                       //  2
@@ -85,14 +85,16 @@ class SMPKeyBin {
         SMPKeyType keys_resp;                   //  1
 
         SMPLongTermKey           ltk_init;      // 28 (optional)
+        SMPIdentityResolvingKey  irk_init;      // 17 (optional)
         SMPSignatureResolvingKey csrk_init;     // 17 (optional)
         SMPLinkKey               lk_init;       // 19 (optional)
 
         SMPLongTermKey           ltk_resp;      // 28 (optional)
+        SMPIdentityResolvingKey  irk_resp;      // 17 (optional)
         SMPSignatureResolvingKey csrk_resp;     // 17 (optional)
         SMPLinkKey               lk_resp;       // 19 (optional)
 
-        // Min-Max: 30 - 156 bytes
+        // Min-Max: 30 - 190 bytes
 
         bool verbose;
 
@@ -114,6 +116,9 @@ class SMPKeyBin {
             if( hasLTKInit() ) {
                 s += sizeof(ltk_init);
             }
+            if( hasIRKInit() ) {
+                s += sizeof(irk_init);
+            }
             if( hasCSRKInit() ) {
                 s += sizeof(csrk_init);
             }
@@ -123,6 +128,9 @@ class SMPKeyBin {
 
             if( hasLTKResp() ) {
                 s += sizeof(ltk_resp);
+            }
+            if( hasIRKResp() ) {
+                s += sizeof(irk_resp);
             }
             if( hasCSRKResp() ) {
                 s += sizeof(csrk_resp);
@@ -224,8 +232,8 @@ class SMPKeyBin {
           localAddress(localAddress_), remoteAddress(remoteAddress_),
           sec_level(sec_level_), io_cap(io_cap_),
           keys_init(SMPKeyType::NONE), keys_resp(SMPKeyType::NONE),
-          ltk_init(), csrk_init(), lk_init(),
-          ltk_resp(), csrk_resp(), lk_resp(),
+          ltk_init(), irk_init(), csrk_init(), lk_init(),
+          ltk_resp(), irk_resp(), csrk_resp(), lk_resp(),
           verbose(false)
         { size = calcSize(); }
 
@@ -235,8 +243,8 @@ class SMPKeyBin {
           localAddress(), remoteAddress(),
           sec_level(BTSecurityLevel::UNSET), io_cap(SMPIOCapability::UNSET),
           keys_init(SMPKeyType::NONE), keys_resp(SMPKeyType::NONE),
-          ltk_init(), csrk_init(), lk_init(),
-          ltk_resp(), csrk_resp(), lk_resp(),
+          ltk_init(), irk_init(), csrk_init(), lk_init(),
+          ltk_resp(), irk_resp(), csrk_resp(), lk_resp(),
           verbose(false)
         { size = calcSize(); }
 
@@ -255,14 +263,21 @@ class SMPKeyBin {
         constexpr SMPIOCapability getIOCap() const noexcept { return io_cap; }
 
         constexpr bool hasLTKInit() const noexcept { return ( SMPKeyType::ENC_KEY & keys_init ) != SMPKeyType::NONE; }
+        constexpr bool hasIRKInit() const noexcept { return ( SMPKeyType::ID_KEY & keys_init ) != SMPKeyType::NONE; }
         constexpr bool hasCSRKInit() const noexcept { return ( SMPKeyType::SIGN_KEY & keys_init ) != SMPKeyType::NONE; }
         constexpr bool hasLKInit() const noexcept { return ( SMPKeyType::LINK_KEY & keys_init ) != SMPKeyType::NONE; }
         constexpr const SMPLongTermKey& getLTKInit() const noexcept { return ltk_init; }
+        constexpr const SMPIdentityResolvingKey& getIRKInit() const noexcept { return irk_init; }
         constexpr const SMPSignatureResolvingKey& getCSRKInit() const noexcept { return csrk_init; }
         constexpr const SMPLinkKey& getLKInit() const noexcept { return lk_init; }
         void setLTKInit(const SMPLongTermKey& v) noexcept {
             ltk_init = v;
             keys_init |= SMPKeyType::ENC_KEY;
+            size = calcSize();
+        }
+        void setIRKInit(const SMPIdentityResolvingKey& v) noexcept {
+            irk_init = v;
+            keys_init |= SMPKeyType::ID_KEY;
             size = calcSize();
         }
         void setCSRKInit(const SMPSignatureResolvingKey& v) noexcept {
@@ -277,14 +292,21 @@ class SMPKeyBin {
         }
 
         constexpr bool hasLTKResp() const noexcept { return ( SMPKeyType::ENC_KEY & keys_resp ) != SMPKeyType::NONE; }
+        constexpr bool hasIRKResp() const noexcept { return ( SMPKeyType::ID_KEY & keys_resp ) != SMPKeyType::NONE; }
         constexpr bool hasCSRKResp() const noexcept { return ( SMPKeyType::SIGN_KEY & keys_resp ) != SMPKeyType::NONE; }
         constexpr bool hasLKResp() const noexcept { return ( SMPKeyType::LINK_KEY & keys_resp ) != SMPKeyType::NONE; }
         constexpr const SMPLongTermKey& getLTKResp() const noexcept { return ltk_resp; }
+        constexpr const SMPIdentityResolvingKey& getIRKResp() const noexcept { return irk_resp; }
         constexpr const SMPSignatureResolvingKey& getCSRKResp() const noexcept { return csrk_resp; }
         constexpr const SMPLinkKey& getLKResp() const noexcept { return lk_resp; }
         void setLTKResp(const SMPLongTermKey& v) noexcept {
             ltk_resp = v;
             keys_resp |= SMPKeyType::ENC_KEY;
+            size = calcSize();
+        }
+        void setIRKResp(const SMPIdentityResolvingKey& v) noexcept {
+            irk_resp = v;
+            keys_resp |= SMPKeyType::ID_KEY;
             size = calcSize();
         }
         void setCSRKResp(const SMPSignatureResolvingKey& v) noexcept {

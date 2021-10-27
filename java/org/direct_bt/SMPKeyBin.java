@@ -40,7 +40,7 @@ import org.jau.net.EUI48;
 /**
  * Storage for SMP keys including required connection parameter per local adapter and remote device.
  *
- * File format version 4.
+ * File format version 5.
  *
  * Storage for a device's {@link BDAddressAndType}, its security connection setup {@link BTSecurityLevel} + {@link SMPIOCapability}
  * and optionally the initiator and responder {@link SMPLongTermKey LTK}, {@link SMPSignatureResolvingKey CSRK}
@@ -69,7 +69,7 @@ import org.jau.net.EUI48;
  * </p>
  */
 public class SMPKeyBin {
-        public static final short VERSION = (short)0b0101010101010101 + (short)4; // bitpattern + version
+        public static final short VERSION = (short)0b0101010101010101 + (short)5; // bitpattern + version
 
         private short version;                          //  2
         private short size;                             //  2
@@ -83,17 +83,19 @@ public class SMPKeyBin {
         private final SMPKeyMask keys_resp;             //  1
 
         private SMPLongTermKey ltk_init;                // 28 (optional)
+        private SMPIdentityResolvingKey  irk_init;      // 17 (optional)
         private SMPSignatureResolvingKey csrk_init;     // 17 (optional)
         private SMPLinkKey               lk_init;       // 18 (optional)
 
         private SMPLongTermKey ltk_resp;                // 28 (optional)
+        private SMPIdentityResolvingKey  irk_resp;      // 17 (optional)
         private SMPSignatureResolvingKey csrk_resp;     // 17 (optional)
         private SMPLinkKey               lk_resp;       // 18 (optional)
 
-        private static final int byte_size_max = 156;
+        private static final int byte_size_max = 190;
         private static final int byte_size_min =  30;
 
-        // Min-Max: 30 - 156 bytes
+        // Min-Max: 30 - 190 bytes
 
         boolean verbose;
 
@@ -115,6 +117,9 @@ public class SMPKeyBin {
             if( hasLTKInit() ) {
                 s += SMPLongTermKey.byte_size; // sizeof(ltk_init);
             }
+            if( hasIRKInit() ) {
+                s += SMPIdentityResolvingKey.byte_size; // sizeof(irk_init);
+            }
             if( hasCSRKInit() ) {
                 s += SMPSignatureResolvingKey.byte_size; // sizeof(csrk_init);
             }
@@ -124,6 +129,9 @@ public class SMPKeyBin {
 
             if( hasLTKResp() ) {
                 s += SMPLongTermKey.byte_size; // sizeof(ltk_resp);
+            }
+            if( hasIRKResp() ) {
+                s += SMPIdentityResolvingKey.byte_size; // sizeof(irk_resp);
             }
             if( hasCSRKResp() ) {
                 s += SMPSignatureResolvingKey.byte_size; // sizeof(csrk_resp);
@@ -166,6 +174,13 @@ public class SMPKeyBin {
                 }
                 if( keys_resp.isSet(SMPKeyMask.KeyType.ENC_KEY) ) {
                     smpKeyBin.setLTKResp( device.getLongTermKey(true  /* responder */) );
+                }
+
+                if( keys_init.isSet(SMPKeyMask.KeyType.ID_KEY) ) {
+                    smpKeyBin.setIRKInit( device.getIdentityResolvingKey(false /* responder */) );
+                }
+                if( keys_resp.isSet(SMPKeyMask.KeyType.ID_KEY) ) {
+                    smpKeyBin.setIRKResp( device.getIdentityResolvingKey(true  /* responder */) );
                 }
 
                 if( keys_init.isSet(SMPKeyMask.KeyType.SIGN_KEY) ) {
@@ -321,10 +336,12 @@ public class SMPKeyBin {
             this.keys_resp = new SMPKeyMask();
 
             this.ltk_init = new SMPLongTermKey();
+            this.irk_init = new SMPIdentityResolvingKey();
             this.csrk_init = new SMPSignatureResolvingKey();
             this.lk_init = new SMPLinkKey();
 
             this.ltk_resp = new SMPLongTermKey();
+            this.irk_resp = new SMPIdentityResolvingKey();
             this.csrk_resp = new SMPSignatureResolvingKey();
             this.lk_resp = new SMPLinkKey();
 
@@ -344,10 +361,12 @@ public class SMPKeyBin {
             keys_resp = new SMPKeyMask();
 
             ltk_init = new SMPLongTermKey();
+            irk_init = new SMPIdentityResolvingKey();
             csrk_init = new SMPSignatureResolvingKey();
             lk_init = new SMPLinkKey();
 
             ltk_resp = new SMPLongTermKey();
+            irk_resp = new SMPIdentityResolvingKey();
             csrk_resp = new SMPSignatureResolvingKey();
             lk_resp = new SMPLinkKey();
 
@@ -369,14 +388,21 @@ public class SMPKeyBin {
         final public SMPIOCapability getIOCap() { return io_cap; }
 
         final public boolean hasLTKInit() { return keys_init.isSet(KeyType.ENC_KEY); }
+        final public boolean hasIRKInit() { return keys_init.isSet(KeyType.ID_KEY); }
         final public boolean hasCSRKInit() { return keys_init.isSet(KeyType.SIGN_KEY); }
         final public boolean hasLKInit() { return keys_init.isSet(KeyType.LINK_KEY); }
         final public SMPLongTermKey getLTKInit() { return ltk_init; }
+        final public SMPIdentityResolvingKey getIRKInit() { return irk_init; }
         final public SMPSignatureResolvingKey getCSRKInit() { return csrk_init; }
         final public SMPLinkKey getLKInit() { return lk_init; }
         final public void setLTKInit(final SMPLongTermKey v) {
             ltk_init = v;
             keys_init.set(KeyType.ENC_KEY);
+            size = calcSize();
+        }
+        final public void setIRKInit(final SMPIdentityResolvingKey v) {
+            irk_init = v;
+            keys_init.set(KeyType.ID_KEY);
             size = calcSize();
         }
         final public void setCSRKInit(final SMPSignatureResolvingKey v) {
@@ -391,14 +417,21 @@ public class SMPKeyBin {
         }
 
         final public boolean hasLTKResp() { return keys_resp.isSet(KeyType.ENC_KEY); }
+        final public boolean hasIRKResp() { return keys_resp.isSet(KeyType.ID_KEY); }
         final public boolean hasCSRKResp() { return keys_resp.isSet(KeyType.SIGN_KEY); }
         final public boolean hasLKResp() { return keys_resp.isSet(KeyType.LINK_KEY); }
         final public SMPLongTermKey getLTKResp() { return ltk_resp; }
+        final public SMPIdentityResolvingKey getIRKResp() { return irk_resp; }
         final public SMPSignatureResolvingKey getCSRKResp() { return csrk_resp; }
         final public SMPLinkKey getLKResp() { return lk_resp; }
         final public void setLTKResp(final SMPLongTermKey v) {
             ltk_resp = v;
             keys_resp.set(KeyType.ENC_KEY);
+            size = calcSize();
+        }
+        final public void setIRKResp(final SMPIdentityResolvingKey v) {
+            irk_resp = v;
+            keys_resp.set(KeyType.ID_KEY);
             size = calcSize();
         }
         final public void setCSRKResp(final SMPSignatureResolvingKey v) {
@@ -456,6 +489,13 @@ public class SMPKeyBin {
                     res.append(ltk_init.toString());
                     comma = true;
                 }
+                if( hasIRKInit() && null != irk_init ) {
+                    if( comma ) {
+                        res.append(", ");
+                    }
+                    res.append(irk_init.toString());
+                    comma = true;
+                }
                 if( hasCSRKInit() && null != csrk_init ) {
                     if( comma ) {
                         res.append(", ");
@@ -474,6 +514,13 @@ public class SMPKeyBin {
                 res.append("], Resp[");
                 if( hasLTKResp() && null != ltk_resp ) {
                     res.append(ltk_resp.toString());
+                    comma = true;
+                }
+                if( hasIRKResp() && null != irk_resp ) {
+                    if( comma ) {
+                        res.append(", ");
+                    }
+                    res.append(irk_resp.toString());
                     comma = true;
                 }
                 if( hasCSRKResp() && null != csrk_resp ) {
@@ -573,6 +620,10 @@ public class SMPKeyBin {
                     ltk_init.put(buffer, 0);
                     out.write(buffer, 0, SMPLongTermKey.byte_size);
                 }
+                if( hasIRKInit() ) {
+                    irk_init.put(buffer, 0);
+                    out.write(buffer, 0, SMPIdentityResolvingKey.byte_size);
+                }
                 if( hasCSRKInit() ) {
                     csrk_init.put(buffer, 0);
                     out.write(buffer, 0, SMPSignatureResolvingKey.byte_size);
@@ -585,6 +636,10 @@ public class SMPKeyBin {
                 if( hasLTKResp() ) {
                     ltk_resp.put(buffer, 0);
                     out.write(buffer, 0, SMPLongTermKey.byte_size);
+                }
+                if( hasIRKResp() ) {
+                    irk_resp.put(buffer, 0);
+                    out.write(buffer, 0, SMPIdentityResolvingKey.byte_size);
                 }
                 if( hasCSRKResp() ) {
                     csrk_resp.put(buffer, 0);
@@ -668,6 +723,15 @@ public class SMPKeyBin {
                         err = true;
                     }
                 }
+                if( !err && hasIRKInit() ) {
+                    if( SMPIdentityResolvingKey.byte_size <= remaining ) {
+                        read(in, buffer, SMPIdentityResolvingKey.byte_size, fname);
+                        irk_init.get(buffer, 0);
+                        remaining -= SMPIdentityResolvingKey.byte_size;
+                    } else {
+                        err = true;
+                    }
+                }
                 if( !err && hasCSRKInit() ) {
                     if( SMPSignatureResolvingKey.byte_size <= remaining ) {
                         read(in, buffer, SMPSignatureResolvingKey.byte_size, fname);
@@ -692,6 +756,15 @@ public class SMPKeyBin {
                         read(in, buffer, SMPLongTermKey.byte_size, fname);
                         ltk_resp.get(buffer, 0);
                         remaining -= SMPLongTermKey.byte_size;
+                    } else {
+                        err = true;
+                    }
+                }
+                if( !err && hasIRKResp() ) {
+                    if( SMPIdentityResolvingKey.byte_size <= remaining ) {
+                        read(in, buffer, SMPIdentityResolvingKey.byte_size, fname);
+                        irk_resp.get(buffer, 0);
+                        remaining -= SMPIdentityResolvingKey.byte_size;
                     } else {
                         err = true;
                     }
@@ -856,6 +929,32 @@ public class SMPKeyBin {
                 res = device.setLongTermKey( getLTKResp() );
                 if( HCIStatusCode.SUCCESS != res && verbose ) {
                     BTUtils.println(System.err, "Apply SMPKeyBin failed: Resp-LTK Upload: "+res+", "+toString()+", "+device);
+                }
+            }
+
+            if( HCIStatusCode.SUCCESS == res && hasIRKInit() ) {
+                res = device.setIdentityResolvingKey( getIRKInit() );
+                if( HCIStatusCode.SUCCESS != res && verbose ) {
+                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Init-IRK Upload: "+res+", "+toString()+", "+device);
+                }
+            }
+            if( HCIStatusCode.SUCCESS == res && hasIRKResp() ) {
+                res = device.setIdentityResolvingKey( getIRKResp() );
+                if( HCIStatusCode.SUCCESS != res && verbose ) {
+                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Resp-IRK Upload: "+res+", "+toString()+", "+device);
+                }
+            }
+
+            if( HCIStatusCode.SUCCESS == res && hasCSRKInit() ) {
+                res = device.setSignatureResolvingKey( getCSRKInit() );
+                if( HCIStatusCode.SUCCESS != res && verbose ) {
+                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Init-CSRK Upload: "+res+", "+toString()+", "+device);
+                }
+            }
+            if( HCIStatusCode.SUCCESS == res && hasCSRKResp() ) {
+                res = device.setSignatureResolvingKey( getCSRKResp() );
+                if( HCIStatusCode.SUCCESS != res && verbose ) {
+                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Resp-CSRK Upload: "+res+", "+toString()+", "+device);
                 }
             }
 

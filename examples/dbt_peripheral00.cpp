@@ -61,6 +61,7 @@ static uint64_t timestamp_t0;
 
 static EUI48 useAdapter = EUI48::ALL_DEVICE;
 static BTMode btMode = BTMode::DUAL;
+static bool use_SC = true;
 static std::string adapter_name = "TestDev001_N";
 static std::string adapter_short_name = "TDev001N";
 static std::shared_ptr<BTAdapter> chosenAdapter = nullptr;
@@ -500,6 +501,11 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     if( !adapter->isInitialized() ) {
         // setName(..) ..
         if( adapter->setPowered(false) ) {
+            if( adapter->setSecureConnections( use_SC ) ) {
+                fprintf_td(stderr, "initAdapter: setSecureConnections OK: %s\n", adapter->toString().c_str());
+            } else {
+                fprintf_td(stderr, "initAdapter: setSecureConnections failed: %s\n", adapter->toString().c_str());
+            }
             const HCIStatusCode status = adapter->setName(adapter_name, adapter_short_name);
             if( HCIStatusCode::SUCCESS == status ) {
                 fprintf_td(stderr, "initAdapter: setLocalName OK: %s\n", adapter->toString().c_str());
@@ -613,6 +619,8 @@ int main(int argc, char *argv[])
             SHOW_UPDATE_EVENTS = true;
         } else if( !strcmp("-btmode", argv[i]) && argc > (i+1) ) {
             btMode = to_BTMode(argv[++i]);
+        } else if( !strcmp("-use_sc", argv[i]) && argc > (i+1) ) {
+            use_SC = 0 != atoi(argv[++i]);
         } else if( !strcmp("-adapter", argv[i]) && argc > (i+1) ) {
             useAdapter = EUI48( std::string(argv[++i]) );
         } else if( !strcmp("-name", argv[i]) && argc > (i+1) ) {
@@ -625,7 +633,7 @@ int main(int argc, char *argv[])
     }
     fprintf(stderr, "pid %d\n", getpid());
 
-    fprintf(stderr, "Run with '[-btmode LE|BREDR|DUAL] "
+    fprintf(stderr, "Run with '[-btmode LE|BREDR|DUAL] [-use_sc 0|1] "
                     "[-adapter <adapter_address>] "
                     "[-name <adapter_name>] "
                     "[-short_name <adapter_short_name>] "
