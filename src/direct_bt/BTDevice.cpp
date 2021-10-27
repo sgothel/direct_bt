@@ -759,7 +759,7 @@ std::string BTDevice::PairingData::toString(const BDAddressAndType& addressAndTy
     res.append("  - Keys  "+to_string(keys_resp_has)+" / "+to_string(keys_resp_exp)+"\n");
     res.append("    - "+ltk_resp.toString()+"\n");
     res.append("    - "+lk_resp.toString()+"\n");
-    res.append("    - "+irk_resp.toString()+" ]");
+    res.append("    - "+irk_resp.toString()+"\n");
     res.append("    - "+csrk_resp.toString()+"\n");
     res.append("  - IdAdr "+id_address_resp.toString()+" ]");
     return res;
