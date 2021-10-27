@@ -1510,6 +1510,17 @@ HCIStatusCode BTDevice::setLinkKey(const SMPLinkKey& lk) noexcept {
             return HCIStatusCode::SUCCESS;
         }
     }
+    if( BDAddressType::BDADDR_BREDR != addressAndType.type ) {
+        // Not supported
+        DBG_PRINT("BTDevice::setLinkKeyInfo: Upload LK for LE address not supported -> ignored: %s; %s",
+                lk.toString().c_str(), this->toString().c_str());
+        if( lk.isResponder() ) {
+            pairing_data.keys_resp_has |= SMPKeyType::LINK_KEY;
+        } else {
+            pairing_data.keys_init_has |= SMPKeyType::LINK_KEY;
+        }
+        return HCIStatusCode::SUCCESS;
+    }
     BTManager & mngr = adapter.getManager();
     const HCIStatusCode res = mngr.uploadLinkKey(adapter.dev_id, addressAndType, lk);
     if( HCIStatusCode::SUCCESS == res ) {
