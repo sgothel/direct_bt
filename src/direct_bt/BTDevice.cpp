@@ -558,7 +558,6 @@ void BTDevice::notifyConnected(std::shared_ptr<BTDevice> sthis, const uint16_t h
               jau::to_hexstring(hciConnHandle).c_str(), jau::to_hexstring(handle).c_str(),
               to_string(pairing_data.ioCap_conn).c_str(), to_string(io_cap).c_str(),
               toString().c_str());
-    clearSMPStates(true /* connected */);
     allowDisconnect = true;
     isConnected = true;
     hciConnHandle = handle;
@@ -2065,6 +2064,8 @@ HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept {
     disconnectGATT(0);
     disconnectSMP(0);
 
+    clearSMPStates(false /* connected */);
+
     // Lock to avoid other threads connecting while disconnecting
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
 
@@ -2128,6 +2129,5 @@ HCIStatusCode BTDevice::unpair() noexcept {
 }
 
 void BTDevice::remove() noexcept {
-    clearSMPStates(false /* connected */);
     adapter.removeDevice(*this);
 }
