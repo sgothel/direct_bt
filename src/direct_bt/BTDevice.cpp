@@ -668,20 +668,22 @@ void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_
     HCIStatusCode unpair_res = HCIStatusCode::UNKNOWN;
 
     const bool using_enc = PairingMode::PRE_PAIRED == pmode || SMPPairingState::COMPLETED == pstate;
-    if( using_enc ) {
-        // Delay GATT processing when just established encryption
-        // via pairing or re-using encryption keys (pre-paired).
-        //
-        // Here we lack of further processing / state indication
-        // and a too fast GATT access leads to disconnection.
-        // (Empirical delay figured by accident.)
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    } else {
-        // Similar empirical data on w/o encryption connecting to Direct-BT slave, but less severe.
-        // Bottom line, same behavior on encryption and w/o.
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    if( BTRole::Slave == btRole ) { // -> local GattRole::Client
+        /**
+         * Give remote slave (peripheral, Gatt-Server) 'some time'
+         * to complete connection and listening to our Gatt-Client requests.
+         *
+         * We give the Gatt-Server a slightly longer period
+         * after newly paired encryption keys.
+         */
+        if( using_enc && PairingMode::PRE_PAIRED != pmode ) {
+            // newly paired keys
+            std::this_thread::sleep_for(std::chrono::milliseconds(150));
+        } else {
+            // pre-paired or no encryption
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
     }
-
     const bool gatt_res = connectGATT(sthis); // may close connection and hence clear pairing_data
 
     if( !gatt_res && using_enc ) {
