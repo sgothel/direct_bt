@@ -1735,6 +1735,8 @@ SMPPairingState BTDevice::getPairingState() const noexcept {
 }
 
 void BTDevice::clearSMPStates(const bool connected) noexcept {
+    // Issued at ctor(), manual unpair() and notifyDisconnect()
+    // notifyDisconnect() will be called at all times, even if disconnect() fails!
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_data);
 
@@ -2110,8 +2112,6 @@ HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept {
     // This outside mtx_connect, keeping same mutex lock order intact as well
     disconnectGATT(0);
     disconnectSMP(0);
-
-    clearSMPStates(false /* connected */);
 
     // Lock to avoid other threads connecting while disconnecting
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
