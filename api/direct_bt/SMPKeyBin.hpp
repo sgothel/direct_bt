@@ -33,9 +33,12 @@
 #include <iostream>
 
 #include "SMPTypes.hpp"
-#include "BTDevice.hpp"
+#include "HCITypes.hpp"
 
 namespace direct_bt {
+
+class BTDevice; // forward
+class BTAdapter; // forward
 
 /**
  * Storage for SMP keys including required connection parameter per local adapter and remote device.
@@ -60,9 +63,9 @@ namespace direct_bt {
  * has the following form `bd_010203040506_C026DA01DAB11.key`:
  * <ul>
  * <li>{@code 'bd_'} prefix</li>
- * <li>{@code '010203040506'} local {@link EUI48} adapter address</li>
+ * <li>{@code '010203040506'} local {@link EUI48} local adapter address</li>
  * <li>{@code '_'} separator</li>
- * <li>{@code 'C026DA01DAB1'} remote {@link EUI48} device address</li>
+ * <li>{@code 'C026DA01DAB1'} remote {@link EUI48} remote device address</li>
  * <li>{@code '1'} {@link BDAddressType}</li>
  * <li>{@code '.key'} suffix</li>
  * </li>
@@ -201,6 +204,11 @@ class SMPKeyBin {
             return smpKeyBin;
         }
 
+        static std::vector<SMPKeyBin> readAll(const std::string& dname, const bool verbose_);
+        static std::vector<SMPKeyBin> readAllForLocalAdapter(const BDAddressAndType& localAddress, const std::string& dname, const bool verbose_);
+
+        static jau::nsize_t applyAll(std::vector<SMPKeyBin> all, BTAdapter& adapter, const BTSecurityLevel minSecLevel=BTSecurityLevel::NONE);
+
         /**
          * Create a new SMPKeyBin instance on the fly based upon stored file denoted by `path` and BTDevice::getAddressAndType(),
          * i.e. `path/` + getFileBasename().
@@ -257,8 +265,12 @@ class SMPKeyBin {
         /** Returns the creation timestamp in seconds since Unix epoch */
         constexpr uint64_t getCreationTime() const noexcept { return ts_creation_sec; }
 
+        /** Return the local adapter address. */
         constexpr const BDAddressAndType& getLocalAddrAndType() const noexcept { return localAddress; }
+
+        /** Return the remote device address. */
         constexpr const BDAddressAndType& getRemoteAddrAndType() const noexcept { return remoteAddress; }
+
         constexpr BTSecurityLevel getSecLevel() const noexcept { return sec_level; }
         constexpr SMPIOCapability getIOCap() const noexcept { return io_cap; }
 
@@ -321,6 +333,8 @@ class SMPKeyBin {
         }
 
         void setVerbose(bool v) noexcept { verbose = v; }
+
+        constexpr bool getVerbose() const noexcept { return verbose; }
 
         /**
          * Returns `true` if

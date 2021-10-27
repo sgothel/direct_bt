@@ -60,9 +60,9 @@ import org.jau.net.EUI48;
  * has the following form {@code bd_010203040506_C026DA01DAB11.key}:
  * <ul>
  * <li>{@code 'bd_'} prefix</li>
- * <li>{@code '010203040506'} local {@link EUI48} adapter address</li>
+ * <li>{@code '010203040506'} local {@link EUI48} local adapter address</li>
  * <li>{@code '_'} separator</li>
- * <li>{@code 'C026DA01DAB1'} remote {@link EUI48} device address</li>
+ * <li>{@code 'C026DA01DAB1'} remote {@link EUI48} remote device address</li>
  * <li>{@code '1'} {@link BDAddressType}</li>
  * <li>{@code '.key'} suffix</li>
  * </li>
@@ -382,8 +382,12 @@ public class SMPKeyBin {
         /** Returns the creation timestamp in seconds since Unix epoch */
         final public long getCreationTime() { return ts_creation_sec; }
 
+        /** Return the local adapter address. */
         final public BDAddressAndType getLocalAddrAndType() { return localAddress; }
+
+        /** Return the remote device address. */
         final public BDAddressAndType getRemoteAddrAndType() { return remoteAddress; }
+
         final public BTSecurityLevel getSecLevel() { return sec_level; }
         final public SMPIOCapability getIOCap() { return io_cap; }
 

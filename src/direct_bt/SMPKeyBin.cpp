@@ -29,12 +29,17 @@
 #include <cstdio>
 
 #include "SMPKeyBin.hpp"
+
+#include "BTDevice.hpp"
 #include "BTAdapter.hpp"
 
-// #define USE_CXX17lib_FS 1
+#define USE_CXX17lib_FS 0
 #if USE_CXX17lib_FS
     #include <filesystem>
     namespace fs = std::filesystem;
+#else
+    #include <sys/types.h>
+    #include <dirent.h>
 #endif
 
 using namespace direct_bt;
@@ -42,6 +47,37 @@ using namespace direct_bt;
 static bool file_exists(const std::string& name) {
     std::ifstream f(name.c_str());
     return f.good();
+}
+
+static std::vector<std::string> get_file_list(const std::string& dname) {
+    std::vector<std::string> res;
+#if USE_CXX17lib_FS
+    for( const auto & entry : fs::directory_iterator( dname ) ) {
+        std::string fname( entry.path().u8string() );
+        if( 0 == fname.find("bd_") ) { // prefix checl
+            const jau::nsize_t suffix_pos = fname.size() - 4;
+            if( suffix_pos == fname.find(".key", suffix_pos) ) { // suffix check
+                res.push_back( dname + "/" + fname ); // full path
+            }
+        }
+    }
+#else
+    DIR *dir;
+    struct dirent *ent;
+    if( ( dir = opendir( dname.c_str() ) ) != nullptr ) {
+      while ( ( ent = readdir( dir ) ) != NULL ) {
+          std::string fname( ent->d_name );
+          if( 0 == fname.find("bd_") ) { // prefix checl
+              const jau::nsize_t suffix_pos = fname.size() - 4;
+              if( suffix_pos == fname.find(".key", suffix_pos) ) { // suffix check
+                  res.push_back( dname + "/" + fname ); // full path
+              }
+          }
+      }
+      closedir (dir);
+    } // else: could not open directory
+#endif
+    return res;
 }
 
 SMPKeyBin SMPKeyBin::create(const BTDevice& device) {
@@ -102,6 +138,43 @@ bool SMPKeyBin::createAndWrite(const BTDevice& device, const std::string& path, 
         }
         return false;
     }
+}
+
+std::vector<SMPKeyBin> SMPKeyBin::readAll(const std::string& dname, const bool verbose_) {
+    std::vector<SMPKeyBin> res;
+    std::vector<std::string> fnames = get_file_list(dname);
+    for(std::string fname : fnames) {
+        SMPKeyBin f = read(fname, verbose_);
+        if( f.isValid() ) {
+            res.push_back(f);
+        }
+    }
+    return res;
+}
+
+std::vector<SMPKeyBin> SMPKeyBin::readAllForLocalAdapter(const BDAddressAndType& localAddress, const std::string& dname, const bool verbose_) {
+    std::vector<SMPKeyBin> res;
+    std::vector<SMPKeyBin> all = readAll(dname, verbose_);
+    for(SMPKeyBin f : all) {
+        if( localAddress == f.getLocalAddrAndType() ) {
+            res.push_back(f);
+        }
+    }
+    return res;
+}
+
+jau::nsize_t SMPKeyBin::applyAll(std::vector<SMPKeyBin> all, BTAdapter& adapter, const BTSecurityLevel minSecLevel) {
+    jau::nsize_t res = 0;
+    for(SMPKeyBin f : all) {
+        if( f.getLocalAddrAndType() != adapter.getAddressAndType() ) {
+            continue; // skip
+        }
+        if( HCIStatusCode::SUCCESS == adapter.setSMPKeyBin(f) ) {
+            ++res;
+        }
+    }
+    (void)minSecLevel;
+    return res;
 }
 
 HCIStatusCode SMPKeyBin::readAndApply(const std::string& path, BTDevice& device, const BTSecurityLevel minSecLevel, const bool verbose_) {

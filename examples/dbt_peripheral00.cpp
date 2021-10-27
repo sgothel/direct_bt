@@ -473,12 +473,16 @@ static void processDisconnectedDevice(std::shared_ptr<BTDevice> device) {
     fprintf_td(stderr, "****** Disconnected Device: Start %s\n", device->toString().c_str());
 
     stopAdvertising(&device->getAdapter(), "device-disconnected");
+#if 0
+    // Unpair'ing is not natural, since a reconnect would try to use pre-paired keys
+    // and we only upload keys from disk when adapter gets initialized.
     {
         const HCIStatusCode r = device->unpair();
-        fprintf_td(stderr, "****** Disconnect Device: Unpair-Pre result: %s\n", to_string(r).c_str());
+        fprintf_td(stderr, "****** Disconnect Device: Unpair-Post result: %s\n", to_string(r).c_str());
     }
+#endif
     BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little
 
     startAdvertising(&device->getAdapter(), "device-disconnected");
 
@@ -537,6 +541,11 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
         HCIStatusCode res = adapter->setDefaultLE_PHY(Tx, Rx);
         fprintf_td(stderr, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
                 to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
+    }
+    {
+        std::vector<SMPKeyBin> keys = SMPKeyBin::readAllForLocalAdapter(adapter->getAddressAndType(), KEY_PATH, true /* verbose_ */);
+        jau::nsize_t count = SMPKeyBin::applyAll(keys, *adapter);
+        fprintf_td(stderr, "initAdapter: Set %d SMPKeyBin, successfully taken %d SMPKeyBin entries\n", keys.size(), count);
     }
 
     std::shared_ptr<AdapterStatusListener> asl( std::make_shared<MyAdapterStatusListener>() );
