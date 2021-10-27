@@ -617,11 +617,21 @@ namespace direct_bt {
             bool setPowered(const bool power_on) noexcept;
 
             /**
+             * Returns whether Secure Connections (SC) is enabled.
+             * @see setSecureConnections()
+             * @since 2.4.0
+             */
+            bool getSecureConnectionsEnabled() const noexcept {
+                return adapterInfo.isCurrentSettingBitSet(AdapterSetting::SECURE_CONN);
+            }
+
+            /**
              * Enable or disable Secure Connections (SC) of the adapter.
              *
              * By default, Secure Connections (SC) is enabled if supported.
              *
              * @param enable
+             * @see getSecureConnectionsEnabled()
              * @since 2.4.0
              */
             bool setSecureConnections(const bool enable) noexcept;
