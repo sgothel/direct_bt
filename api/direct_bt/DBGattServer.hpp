@@ -144,6 +144,11 @@ namespace direct_bt {
                 JAU_TRACE_DBGATT_PRINT("DBGattDesc ctor-move0: %p -> %p", &o, this);
             }
 
+            /** Fill value with zero bytes. */
+            void bzero() noexcept {
+                value.bzero();
+            }
+
             /**
              * Return a newly constructed Client Characteristic Configuration
              * with a zero uint16_t value of fixed length.
@@ -311,6 +316,11 @@ namespace direct_bt {
             }
 
             bool hasProperties(const BTGattChar::PropertyBitVal v) const noexcept { return v == ( properties & v ); }
+
+            /** Fill value with zero bytes. */
+            void bzero() noexcept {
+                value.bzero();
+            }
 
             std::string toString() const noexcept {
                 std::string char_name, notify_str;
@@ -601,6 +611,21 @@ namespace direct_bt {
                     return nullptr;
                 }
                 return service->findGattChar(char_uuid);
+            }
+            DBGattDesc* findGattClientCharConfig(const jau::uuid_t&  service_uuid, const jau::uuid_t& char_uuid) noexcept {
+                DBGattChar * c = findGattChar(service_uuid, char_uuid);
+                if( nullptr == c ) {
+                    return nullptr;
+                }
+                return c->getClientCharConfig();
+            }
+            bool resetGattClientCharConfig(const jau::uuid_t&  service_uuid, const jau::uuid_t& char_uuid) noexcept {
+                DBGattDesc* d = findGattClientCharConfig(service_uuid, char_uuid);
+                if( nullptr == d ) {
+                    return false;
+                }
+                d->bzero();
+                return true;
             }
 
             /**

@@ -337,24 +337,8 @@ class MyGATTServerListener : public DBGattServer::Listener {
             handleResponseDataIndicate = 0;
             sendToDevice = nullptr;
 
-            {
-                DBGattChar * c = dbGattServer->findGattChar(DataServiceUUID, PulseDataUUID);
-                if( nullptr != c ) {
-                    DBGattDesc * d = c->getClientCharConfig();
-                    if( nullptr != d ) {
-                        d->value.put_uint16_nc(0, 0);
-                    }
-                }
-            }
-            {
-                DBGattChar * c = dbGattServer->findGattChar(DataServiceUUID, ResponseUUID);
-                if( nullptr != c ) {
-                    DBGattDesc * d = c->getClientCharConfig();
-                    if( nullptr != d ) {
-                        d->value.put_uint16_nc(0, 0);
-                    }
-                }
-            }
+            dbGattServer->resetGattClientCharConfig(DataServiceUUID, PulseDataUUID);
+            dbGattServer->resetGattClientCharConfig(DataServiceUUID, ResponseUUID);
         }
 
         void pulseSender() {
