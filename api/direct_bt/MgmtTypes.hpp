@@ -908,6 +908,8 @@ namespace direct_bt {
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
+     *
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.30 User Confirmation Request Reply command
      */
     class MgmtUserConfirmReplyCmd : public MgmtCmdAdressInfoMeta
     {
@@ -1708,6 +1710,9 @@ namespace direct_bt {
      * mgmt_addr_info { EUI48, uint8_t type },
      * uint8_t confirm_hint
      * uint32_t value
+     *
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.42 User Confirmation Request event
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.30 User Confirmation Request Reply command
      */
     class MgmtEvtUserConfirmRequest: public MgmtEvent
     {
