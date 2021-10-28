@@ -493,14 +493,16 @@ static void processDisconnectedDevice(std::shared_ptr<BTDevice> device) {
     fprintf_td(stderr, "****** Disconnected Device: Start %s\n", device->toString().c_str());
 
     stopAdvertising(&device->getAdapter(), "device-disconnected");
-#if 0
-    // Unpair'ing is not natural, since a reconnect would try to use pre-paired keys
+    // Unpair'ing doesn't seem to be natural, since a reconnect would try to use pre-paired keys
     // and we only upload keys from disk when adapter gets initialized.
+    //
+    // However, w/o unpairing the peripheral in SC mode fails the DHKey Check.
+    // Hence we need to keep it for now and perhaps use a more fancy SMPKeyBin management
+    // to provide a more persistance pre-pairing mechanism.
     {
         const HCIStatusCode r = device->unpair();
         fprintf_td(stderr, "****** Disconnect Device: Unpair-Post result: %s\n", to_string(r).c_str());
     }
-#endif
     BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little
 
