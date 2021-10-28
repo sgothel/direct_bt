@@ -703,15 +703,6 @@ namespace direct_bt {
             HCIStatusCode unpair() noexcept;
 
             /**
-             * Experimental only.
-             * <pre>
-             *   adapter.stopDiscovery(): Renders pairDevice(..) to fail: Busy!
-             *   pairDevice(..) behaves quite instable within our connected workflow: Not used!
-             * </pre>
-             */
-            HCIStatusCode pair(const SMPIOCapability io_cap) noexcept;
-
-            /**
              * Set the ::BTSecurityLevel used to connect to this device on the upcoming connection.
              * <p>
              * Method returns false if ::BTSecurityLevel::UNSET has been given,
