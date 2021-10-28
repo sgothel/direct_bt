@@ -1753,7 +1753,7 @@ void BTDevice::clearSMPStates(const bool connected) noexcept {
     const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_data);
 
-    DBG_PRINT("BTDevice::clearSMPStates(connected %d): Start: %s", connected, toString().c_str());
+    DBG_PRINT("BTDevice::clearSMPStates(connected %d): %s", connected, toString().c_str());
 
     if( !connected ) {
         // needs to survive connected, or will be set right @ connected
@@ -1793,8 +1793,6 @@ void BTDevice::clearSMPStates(const bool connected) noexcept {
     pairing_data.id_address_init.clear();
     pairing_data.csrk_init.clear();
     pairing_data.lk_init.clear();
-
-    DBG_PRINT("BTDevice::clearSMPStates(connected %d): End: %s", connected, toString().c_str());
 }
 
 void BTDevice::disconnectSMP(const int caller) noexcept {
@@ -2178,9 +2176,12 @@ exit:
 
 HCIStatusCode BTDevice::unpair() noexcept {
 #if USE_LINUX_BT_SECURITY
-    const MgmtStatus res = adapter.getManager().unpairDevice(adapter.dev_id, addressAndType, false /* disconnect */);
+    const HCIStatusCode res = adapter.getManager().unpairDevice(adapter.dev_id, addressAndType, false /* disconnect */);
+    if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
+        DBG_PRINT("BTDevice::unpair(): Unpair device failed: %s, %s", to_string(res).c_str(), toString().c_str());
+    }
     clearSMPStates(getConnected() /* connected */);
-    return to_HCIStatusCode(res);
+    return res;
 #elif SMP_SUPPORTED_BY_OS
     return HCIStatusCode::NOT_SUPPORTED;
 #else

@@ -918,7 +918,7 @@ MgmtStatus BTManager::userConfirmReply(const uint16_t dev_id, const BDAddressAnd
 #endif
 }
 
-MgmtStatus BTManager::unpairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool disconnect) noexcept {
+HCIStatusCode BTManager::unpairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool disconnect) noexcept {
 #if USE_LINUX_BT_SECURITY
     MgmtUnpairDeviceCmd cmd(dev_id, addressAndType, disconnect);
     std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
@@ -926,11 +926,11 @@ MgmtStatus BTManager::unpairDevice(const uint16_t dev_id, const BDAddressAndType
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         // FIXME: Analyze address + addressType result?
-        return res1.getStatus();
+        return to_HCIStatusCode( res1.getStatus() );
     }
-    return MgmtStatus::TIMEOUT;
+    return HCIStatusCode::TIMEOUT;
 #else
-    return MgmtStatus::NOT_SUPPORTED;
+    return HCIStatusCode::NOT_SUPPORTED;
 #endif
 }
 
