@@ -348,11 +348,6 @@ public class DBTScanner10 {
             } });
 
         {
-            final HCIStatusCode r = device.unpair();
-            BTUtils.println(System.err, "****** Connecting Device: Unpair-Pre result: "+r);
-        }
-
-        {
             final HCIStatusCode r = device.getAdapter().stopDiscovery();
             BTUtils.println(System.err, "****** Connecting Device: stopDiscovery result "+r);
         }
@@ -566,11 +561,6 @@ public class DBTScanner10 {
         device.removeAllCharListener();
 
         if( !KEEP_CONNECTED ) {
-
-            {
-                final HCIStatusCode unpair_res = device.unpair();
-                BTUtils.println(System.err, "****** Processing Ready Device: Unpair-Post result: "+unpair_res);
-            }
 
             device.remove();
 

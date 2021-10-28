@@ -101,9 +101,13 @@ public abstract class AdapterStatusListener {
      * If any registered {@link AdapterStatusListener#deviceFound(BTDevice, long) deviceFound(..)} implementation returns {@code true},
      * the device will be made persistent, is ready to connect and {@link BTDevice#remove() remove} shall be called after usage.
      * </p>
+     *
+     * {@link BTDevice#unpair()} has been called already.
+     *
      * @param device the found device
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
      * @return true if the device shall be made persistent and {@link BTDevice#remove() remove} issued later. Otherwise false to remove device right away.
+     * @see BTDevice#unpair()
      */
     public boolean deviceFound(final BTDevice device, final long timestamp) { return false; }
 
@@ -117,9 +121,13 @@ public abstract class AdapterStatusListener {
 
     /**
      * {@link BTDevice} got connected.
+     *
+     * If a {@link BTRole#Master} {@link BTDevice} gets connected, {@link BTDevice#unpair()} has been called already.
+     *
      * @param device the device which has been connected, holding the new connection handle.
      * @param handle the new connection handle, which has been assigned to the device already
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
+     * @see BTDevice#unpair()
      */
     public void deviceConnected(final BTDevice device, final short handle, final long timestamp) { }
 
@@ -147,10 +155,14 @@ public abstract class AdapterStatusListener {
 
     /**
      * {@link BTDevice} got disconnected.
+     *
+     * {@link BTDevice#unpair()} has been called already.
+     *
      * @param device the device which has been disconnected with zeroed connection handle.
      * @param reason the {@link HCIStatusCode} reason for disconnection
      * @param handle the disconnected connection handle, which has been unassigned from the device already
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
+     * @see BTDevice#unpair()
      */
     public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) { }
 

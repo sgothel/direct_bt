@@ -361,11 +361,6 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
     fprintf_td(stderr, "****** Connecting Device: Start %s\n", device->toString().c_str());
 
     {
-        const HCIStatusCode r = device->unpair();
-        fprintf_td(stderr, "****** Connecting Device: Unpair-Pre result: %s\n", to_string(r).c_str());
-    }
-
-    {
         const HCIStatusCode r = device->getAdapter().stopDiscovery();
         fprintf_td(stderr, "****** Connecting Device: stopDiscovery result %s\n", to_string(r).c_str());
     }
@@ -565,11 +560,6 @@ exit:
 
     if( !KEEP_CONNECTED ) {
         device->removeAllCharListener();
-
-        {
-            const HCIStatusCode unpair_res = device->unpair();
-            fprintf_td(stderr, "****** Processing Ready Device: Unpair-Post result: %s\n", to_string(unpair_res).c_str());
-        }
 
         device->remove();
 

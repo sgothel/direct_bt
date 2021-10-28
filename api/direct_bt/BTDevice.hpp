@@ -689,7 +689,16 @@ namespace direct_bt {
              * Internally being used to re-start pairing if GATT connection fails
              * in PairingMode::PRE_PAIRED mode.
              * </p>
+             *
+             * Unpair is performed by directly for a consistent and stable security workflow:
+             * - when a BTRole::Slave BTDevice is discovered, see AdapterStatusListener::deviceFound().
+             * - when a BTRole::Slave BTDevice is disconnected, see AdapterStatusListener::deviceDisconnected().
+             * - when a BTRole::Master BTDevice gets connected, see AdapterStatusListener::deviceConnected().
+             *
              * @return HCIStatusCode::SUCCESS or an appropriate error status.
+             * @see AdapterStatusListener::deviceFound()
+             * @see AdapterStatusListener::deviceDisconnected()
+             * @see AdapterStatusListener::deviceConnected()
              */
             HCIStatusCode unpair() noexcept;
 

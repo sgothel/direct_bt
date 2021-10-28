@@ -289,11 +289,6 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
     device->addStatusListener(std::shared_ptr<AdapterStatusListener>(new TempAdapterStatusListener()));
 
     {
-        const HCIStatusCode r = device->unpair();
-        fprintf_td(stderr, "****** Connecting Device: Unpair-Pre result: %s\n", to_string(r).c_str());
-    }
-
-    {
         const HCIStatusCode r = device->getAdapter().stopDiscovery();
         fprintf_td(stderr, "****** Connecting Device: stopDiscovery result %s\n", to_string(r).c_str());
     }

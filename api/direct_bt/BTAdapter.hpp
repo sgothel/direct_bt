@@ -133,9 +133,13 @@ namespace direct_bt {
              * If any registered AdapterStatusListener::deviceFound() implementation returns `true`,
              * the device will be made persistent, is ready to connect and BTDevice::remove() shall be called after usage.
              * </p>
+             *
+             * BTDevice::unpair() has been called already.
+             *
              * @param device the found device
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              * @return true if the device shall be made persistent and BTDevice::remove() issued later. Otherwise false to remove device right away.
+             * @see BTDevice::unpair()
              */
             virtual bool deviceFound(std::shared_ptr<BTDevice> device, const uint64_t timestamp) {
                 (void)device;
@@ -157,9 +161,13 @@ namespace direct_bt {
 
             /**
              * BTDevice got connected
+             *
+             * If a BTRole::Master BTDevice gets connected, BTDevice::unpair() has been called already.
+             *
              * @param device the device which has been connected, holding the new connection handle.
              * @param handle the new connection handle, which has been assigned to the device already
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             * @see BTDevice::unpair()
              */
             virtual void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) {
                 (void)device;
@@ -199,10 +207,14 @@ namespace direct_bt {
 
             /**
              * BTDevice got disconnected
+             *
+             * BTDevice::unpair() has been called already.
+             *
              * @param device the device which has been disconnected with zeroed connection handle.
              * @param reason the HCIStatusCode reason for disconnection
              * @param handle the disconnected connection handle, which has been unassigned from the device already
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             * @see BTDevice::unpair()
              */
             virtual void deviceDisconnected(std::shared_ptr<BTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) {
                 (void)device;

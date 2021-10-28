@@ -2090,10 +2090,10 @@ void BTDevice::notifyDisconnected() noexcept {
     // coming from disconnect callback, ensure cleaning up!
     DBG_PRINT("BTDevice::notifyDisconnected: handle %s -> zero, %s",
               jau::to_hexstring(hciConnHandle).c_str(), toString().c_str());
-    clearSMPStates(false /* connected */);
     allowDisconnect = false;
     isConnected = false;
     hciConnHandle = 0;
+    unpair(); // -> clearSMPStates(false /* connected */);
     disconnectGATT(1);
     disconnectSMP(1);
     l2cap_att.close();

@@ -465,6 +465,11 @@ HCIStatusCode BTAdapter::setSMPKeyBin(const SMPKeyBin& keys) noexcept {
 #if USE_LINUX_BT_SECURITY
     HCIStatusCode res;
     BTManager & mngr = getManager();
+    res = mngr.unpairDevice(dev_id, keys.getRemoteAddrAndType(), false /* disconnect */);
+    if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
+        ERR_PRINT("BTAdapter::setSMPKeyBin: Unpair device failed: %s, %s",
+                    keys.getRemoteAddrAndType().toString().c_str(), toString().c_str());
+    }
     if( keys.hasLTKInit() ) {
         res = mngr.uploadLongTermKey(dev_id, keys.getRemoteAddrAndType(), keys.getLTKInit());
         if( HCIStatusCode::SUCCESS != res ) {
@@ -1503,12 +1508,23 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         }
     }
     if( nullptr == device ) {
-        // (new_connect = 3) a whitelist auto-connect w/o previous discovery, or
-        // (new_connect = 4) we are a peripheral being connected by a remote client
         device = BTDevice::make_shared(*this, ad_report);
         addDiscoveredDevice(device);
         addSharedDevice(device);
-        new_connect = BTRole::Master == getRole() ? 3 : 4;
+        if( BTRole::Slave == getRole() ) {
+            new_connect = 4; // slave adapter (peripheral), got connected by remote client
+            /**
+             * Without unpair in SC mode, the peripheral fails the DHKey Check.
+             * TODO: Provide a persistent pre-pairing mechanism via SMPKeyBin.
+             */
+            HCIStatusCode res = mgmt.unpairDevice(dev_id, device->getAddressAndType(), false /* disconnect */);
+            if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
+                WARN_PRINT("BTAdapter::EventHCI:DeviceConnected(dev_id %d, new_connect %d): Unpair device failed: %s, %s",
+                            dev_id, new_connect, to_string(res).c_str(), device->getAddressAndType().toString().c_str());
+            }
+        } else {
+            new_connect = 3; // master adapter, whitelist auto-connect w/o previous discovery
+        }
     }
 
     const SMPIOCapability io_cap_conn = mgmt.getIOCapability(dev_id);
@@ -1860,6 +1876,13 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(1.1, dev_id %d): New undiscovered/unshared %s -> deviceFound(..) %s",
                     dev_id, dev_shared->getAddressAndType().toString().c_str(), eir->toString().c_str());
 
+            {
+                HCIStatusCode res = dev_shared->unpair();
+                if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
+                    WARN_PRINT("BTAdapter:hci:DeviceFound(1.1, dev_id %d): Unpair device failed: %s, %s",
+                                dev_id, to_string(res).c_str(), dev_shared->getAddressAndType().toString().c_str());
+                }
+            }
             int i=0;
             bool device_used = false;
             jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
@@ -1893,6 +1916,13 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(1.2, dev_id %d): Undiscovered but shared %s -> deviceFound(..) [deviceUpdated(..)] %s",
                     dev_id, dev_shared->getAddressAndType().toString().c_str(), eir->toString().c_str());
 
+            {
+                HCIStatusCode res = dev_shared->unpair();
+                if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
+                    WARN_PRINT("BTAdapter:hci:DeviceFound(1.2, dev_id %d): Unpair device failed: %s, %s",
+                                dev_id, to_string(res).c_str(), dev_shared->getAddressAndType().toString().c_str());
+                }
+            }
             int i=0;
             bool device_used = false;
             jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {

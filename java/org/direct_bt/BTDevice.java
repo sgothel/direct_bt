@@ -305,8 +305,17 @@ public interface BTDevice extends BTObject
      * Internally being used to re-start pairing if GATT connection fails
      * in {@link PairingMode#PRE_PAIRED} mode.
      * </p>
+     *
+     * Unpair is performed by directly for a consistent and stable security workflow:
+     * - when a {@link BTRole#Slave} {@link BTDevice} is discovered, see {@link AdapterStatusListener#deviceFound(BTDevice, long)}.
+     * - when a {@link BTRole#Slave} {@link BTDevice} is disconnected, see {@link AdapterStatusListener#deviceDisconnected(BTDevice, HCIStatusCode, short, long)}.
+     * - when a {@link BTRole#Master} {@link BTDevice} gets connected, see {@link AdapterStatusListener#deviceConnected(BTDevice, short, long)}.
+     *
      * @return {@link HCIStatusCode#SUCCESS} or an appropriate error status.
      * @since 2.1.0
+     * @see AdapterStatusListener#deviceFound(BTDevice, long)
+     * @see AdapterStatusListener#deviceDisconnected(BTDevice, HCIStatusCode, short, long)
+     * @see AdapterStatusListener#deviceConnected(BTDevice, short, long)
      */
     HCIStatusCode unpair();
 
