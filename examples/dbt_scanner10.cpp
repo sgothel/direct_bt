@@ -230,7 +230,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 // next: PASSKEY_EXPECTED... or KEY_DISTRIBUTION
                 break;
             case SMPPairingState::PASSKEY_EXPECTED: {
-                const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getStartOf(device->getAddressAndType().address, "");
+                const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getStartOf(device->getAddressAndType().address, device->getName());
                 if( nullptr != sec && sec->getPairingPasskey() != BTSecurityRegistry::Entry::NO_PASSKEY ) {
                     std::thread dc(&BTDevice::setPairingPasskey, device, static_cast<uint32_t>( sec->getPairingPasskey() ));
                     dc.detach();
@@ -242,7 +242,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 // next: KEY_DISTRIBUTION or FAILED
               } break;
             case SMPPairingState::NUMERIC_COMPARE_EXPECTED: {
-                const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getStartOf(device->getAddressAndType().address, "");
+                const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getStartOf(device->getAddressAndType().address, device->getName());
                 if( nullptr != sec ) {
                     std::thread dc(&BTDevice::setPairingNumericComparison, device, sec->getPairingNumericComparison());
                     dc.detach();
