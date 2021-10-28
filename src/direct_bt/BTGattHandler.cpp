@@ -1095,7 +1095,7 @@ bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCa
         return false;
     }
 
-    {
+    if( nullptr != gattServerData ) {
         std::shared_ptr<BTDevice> device = getDeviceUnchecked();
         if( nullptr == device ) {
             ERR_PRINT("GATTHandler::disconnect: null device: %s", toString().c_str());
