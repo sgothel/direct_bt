@@ -131,7 +131,7 @@ bool SMPKeyBin::createAndWrite(const BTDevice& device, const std::string& path, 
     SMPKeyBin smpKeyBin = SMPKeyBin::create(device);
     if( smpKeyBin.isValid() ) {
         smpKeyBin.setVerbose( verbose_ );
-        return smpKeyBin.write( getFilename(path, device), overwrite );
+        return smpKeyBin.write( path, overwrite );
     } else {
         if( verbose_ ) {
             jau::fprintf_td(stderr, "Create SMPKeyBin: Invalid %s, %s\n", smpKeyBin.toString().c_str(), device.toString().c_str());
@@ -316,13 +316,13 @@ std::string SMPKeyBin::getFileBasename() const noexcept {
     r.erase(it, r.end());
     return r;
 }
-std::string SMPKeyBin::getFileBasename(const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_) {
+std::string SMPKeyBin::getFileBasename(const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_) noexcept {
     std::string r("bd_"+localAddress_.address.toString()+"_"+remoteAddress_.address.toString()+std::to_string(number(remoteAddress_.type))+".key");
     auto it = std::remove( r.begin(), r.end(), ':');
     r.erase(it, r.end());
     return r;
 }
-std::string SMPKeyBin::getFilename(const std::string& path, const BTDevice& remoteDevice) {
+std::string SMPKeyBin::getFilename(const std::string& path, const BTDevice& remoteDevice) noexcept {
     return getFilename(path, remoteDevice.getAdapter().getAddressAndType(), remoteDevice.getAddressAndType());
 }
 
@@ -338,13 +338,14 @@ bool SMPKeyBin::remove(const std::string& path, const BTDevice& remoteDevice) {
     return remove(path, remoteDevice.getAdapter().getAddressAndType(), remoteDevice.getAddressAndType());
 }
 
-bool SMPKeyBin::write(const std::string& fname, const bool overwrite) const noexcept {
+bool SMPKeyBin::write(const std::string& path, const bool overwrite) const noexcept {
     if( !isValid() ) {
         if( verbose ) {
             jau::fprintf_td(stderr, "Write SMPKeyBin: Invalid (skipped) %s\n", toString().c_str());
         }
         return false;
     }
+    const std::string fname = getFilename(path);
     if( file_exists(fname) ) {
         if( overwrite ) {
             if( !remove_impl(fname) ) {
@@ -352,16 +353,16 @@ bool SMPKeyBin::write(const std::string& fname, const bool overwrite) const noex
                 return false;
             }
         } else {
-            jau::fprintf_td(stderr, "Write SMPKeyBin: Not overwriting existing file %s, %s\n", fname.c_str(), toString().c_str());
+            if( verbose ) {
+                jau::fprintf_td(stderr, "Write SMPKeyBin: Not overwriting existing file %s, %s\n", fname.c_str(), toString().c_str());
+            }
             return false;
         }
     }
     std::ofstream file(fname, std::ios::out | std::ios::binary);
 
     if ( !file.good() || !file.is_open() ) {
-        if( verbose ) {
-            jau::fprintf_td(stderr, "Write SMPKeyBin: Failed: File not open %s: %s\n", fname.c_str(), toString().c_str());
-        }
+        jau::fprintf_td(stderr, "Write SMPKeyBin: Failed: File not open %s: %s\n", fname.c_str(), toString().c_str());
         return false;
     }
     uint8_t buffer[8];
@@ -418,12 +419,12 @@ bool SMPKeyBin::write(const std::string& fname, const bool overwrite) const noex
     }
 
     const bool res = file.good() && file.is_open();
-    if( verbose ) {
-        if( res ) {
+    if( res ) {
+        if( verbose ) {
             jau::fprintf_td(stderr, "Write SMPKeyBin: Success: %s: %s\n", fname.c_str(), toString().c_str());
-        } else {
-            jau::fprintf_td(stderr, "Write SMPKeyBin: Failed: %s: %s\n", fname.c_str(), toString().c_str());
         }
+    } else {
+        jau::fprintf_td(stderr, "Write SMPKeyBin: Failed: %s: %s\n", fname.c_str(), toString().c_str());
     }
     file.close();
     return res;

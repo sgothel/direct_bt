@@ -225,7 +225,7 @@ public class SMPKeyBin {
             final SMPKeyBin smpKeyBin = SMPKeyBin.create(device);
             if( smpKeyBin.isValid() ) {
                 smpKeyBin.setVerbose( verbose_ );
-                return smpKeyBin.write( getFilename(path, device), overwrite );
+                return smpKeyBin.write( path, overwrite );
             } else {
                 if( verbose_ ) {
                     BTUtils.println(System.err, "Create SMPKeyBin: Invalid "+smpKeyBin+", "+device);
@@ -481,6 +481,9 @@ public class SMPKeyBin {
         final public static String getFilename(final String path, final BTDevice remoteDevice) {
             return getFilename(path, remoteDevice.getAdapter().getAddressAndType(), remoteDevice.getAddressAndType());
         }
+        final public String getFilename(final String path) {
+            return getFilename(path, localAddress, remoteAddress);
+        }
 
         @Override
         final public String toString() {
@@ -558,13 +561,6 @@ public class SMPKeyBin {
             return res.toString();
         }
 
-        final public static boolean remove(final String path, final BTDevice remoteDevice_) {
-            return remove(path, remoteDevice_.getAdapter().getAddressAndType(), remoteDevice_.getAddressAndType());
-        }
-        final public static boolean remove(final String path, final BDAddressAndType localAddress_, final BDAddressAndType remoteAddress_) {
-            final String fname = getFilename(path, localAddress_, remoteAddress_);
-            return remove_impl(fname);
-        }
         final private static boolean remove_impl(final String fname) {
             final File file = new File( fname );
             try {
@@ -575,12 +571,22 @@ public class SMPKeyBin {
                 return false;
             }
         }
+        final public static boolean remove(final String path, final BTDevice remoteDevice_) {
+            return remove(path, remoteDevice_.getAdapter().getAddressAndType(), remoteDevice_.getAddressAndType());
+        }
+        final public static boolean remove(final String path, final BDAddressAndType localAddress_, final BDAddressAndType remoteAddress_) {
+            return remove_impl( getFilename(path, localAddress_, remoteAddress_) );
+        }
+        final public boolean remove(final String path) {
+            return remove_impl( getFilename(path) );
+        }
 
-        final public boolean write(final String fname, final boolean overwrite) {
+        final public boolean write(final String path, final boolean overwrite) {
             if( !isValid() ) {
                 BTUtils.println(System.err, "Write SMPKeyBin: Invalid (skipped) "+toString());
                 return false;
             }
+            final String fname = getFilename(path);
             final File file = new File( fname );
             OutputStream out = null;
             try {

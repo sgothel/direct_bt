@@ -365,19 +365,26 @@ class SMPKeyBin {
         /**
          * Returns the base filename, see SMPKeyBin API doc for naming scheme.
          */
-        static std::string getFileBasename(const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_);
+        static std::string getFileBasename(const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_) noexcept;
 
-        static std::string getFilename(const std::string& path, const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_) {
+        static std::string getFilename(const std::string& path, const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_) noexcept {
             return path + "/" + getFileBasename(localAddress_, remoteAddress_);
         }
-        static std::string getFilename(const std::string& path, const BTDevice& remoteDevice);
+        static std::string getFilename(const std::string& path, const BTDevice& remoteDevice) noexcept ;
 
         static bool remove(const std::string& path, const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_) {
-            return remove_impl(getFilename(path, localAddress_, remoteAddress_));
+            return remove_impl( getFilename(path, localAddress_, remoteAddress_) );
         }
         static bool remove(const std::string& path, const BTDevice& remoteDevice);
 
-        bool write(const std::string& fname, const bool overwrite) const noexcept;
+        std::string getFilename(const std::string& path) const noexcept {
+            return getFilename(path, localAddress, remoteAddress);
+        }
+        bool remove(const std::string& path) {
+            return remove_impl( getFilename(path) );
+        }
+
+        bool write(const std::string& path, const bool overwrite) const noexcept;
 
         bool read(const std::string& fname);
 
