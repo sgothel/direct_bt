@@ -802,7 +802,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                 } else {
                     // BT core requesting passkey input w/o full input caps is nonsense (bug?)
                     // Reply with a default value '0' off-thread ASAP
-                    DBG_PRINT("BTDevice::updatePairingState.1a: state %s [ignored %s, sending dummy reply], mode %s",
+                    DBG_PRINT("BTDevice::updatePairingState.1a: state %s [ignored %s, sending PASSKEY 0 reply], mode %s",
                         to_string(pairing_data.state).c_str(), to_string(claimed_state).c_str(),
                         to_string(pairing_data.mode).c_str());
                     claimed_state = pairing_data.state; // suppress
@@ -816,7 +816,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                 } else {
                     // BT core requesting binary input w/o input caps is nonsense (bug?)
                     // Reply with a default value 'true' off-thread ASAP
-                    DBG_PRINT("BTDevice::updatePairingState.1b: state %s [ignored %s, sending dummy reply], mode %s",
+                    DBG_PRINT("BTDevice::updatePairingState.1b: state %s [ignored %s, sending CONFIRM reply], mode %s",
                         to_string(pairing_data.state).c_str(), to_string(claimed_state).c_str(),
                         to_string(pairing_data.mode).c_str());
                     claimed_state = pairing_data.state; // suppress
