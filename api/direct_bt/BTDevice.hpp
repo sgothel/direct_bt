@@ -43,6 +43,7 @@
 #include "MgmtTypes.hpp"
 #include "SMPHandler.hpp"
 #include "BTGattHandler.hpp"
+#include "SMPKeyBin.hpp"
 
 namespace direct_bt {
 
@@ -602,6 +603,83 @@ namespace direct_bt {
             SMPKeyType getAvailableSMPKeys(const bool responder) const noexcept;
 
             /**
+             * Copy all keys from the given SMPKeyBin into this BTDevice.
+             *
+             * Issue uploadKeys() to upload all SMP keys to the adapter
+             * before connecting to enable pre-pairing.
+             *
+             * If SMPKeyBin::isValid() and initiator or responder LTK available,
+             * the following procedure will be applied to this BTDevice:
+             *
+             * - If BTSecurityLevel _is_ BTSecurityLevel::NONE
+             *   + Setting security to ::BTSecurityLevel::NONE and ::SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
+             * - else if BTSecurityLevel > BTSecurityLevel::NONE
+             *   + Setting security to ::BTSecurityLevel::ENC_ONLY and ::SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
+             * - Copying all keys from SMPKeyBin to this device, without uploading to the adapter
+             *
+             * ::BTSecurityLevel::ENC_ONLY is set to avoid a new SMP ::PairingMode negotiation,
+             * which is undesired as this instances' stored LTK shall be used for ::PairingMode::PRE_PAIRED.
+             *
+             * @param bin
+             * @return true if successful, false if pairing is currently in progress
+             * @see setLongTermKey()
+             * @see setIdentityResolvingKey()
+             * @see setSignatureResolvingKey()
+             * @see setLinkKey()
+             * @see uploadKeys()
+             * @since 2.4.0
+             */
+            bool setSMPKeyBin(const SMPKeyBin& bin) noexcept;
+
+            /**
+             * Upload all set keys to the adapter for pre-pairing.
+             *
+             * Must be called before connecting to this device, otherwise HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned.
+             *
+             * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+             * @see setLongTermKey()
+             * @see setIdentityResolvingKey()
+             * @see setSignatureResolvingKey()
+             * @see setLinkKey()
+             * @see setSMPKeyBin()
+             * @since 2.4.0
+             */
+            HCIStatusCode uploadKeys() noexcept;
+
+            /**
+             * Convenient combination of setSMPKeyBin() and uploadKeys()
+             * after validating given SMPKeyBin file and SMPKeyBin::getSecLevel() > req_min_level.
+             * @param bin the SMPKeyBin file
+             * @param req_min_level SMPKeyBin::getSecLevel() shall be greater or equal to this required minimum
+             * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+             * @see setSMPKeyBin()
+             * @see uploadKeys()
+             * @since 2.4.0
+             */
+            HCIStatusCode uploadKeys(const SMPKeyBin& bin, const BTSecurityLevel req_min_level) noexcept {
+                if( bin.isValid() && bin.getSecLevel() >= req_min_level && setSMPKeyBin(bin) ) {
+                    return uploadKeys();
+                } else {
+                    return HCIStatusCode::INVALID_PARAMS;
+                }
+            }
+
+            /**
+             * Convenient combination of SMPKeyBin::read(), setSMPKeyBin() and uploadKeys()
+             * after validating given SMPKeyBin file and SMPKeyBin::getSecLevel() > req_min_level.
+             * @param smp_key_bin_path director for the SMPKeyBin file, derived by this BTDevice
+             * @param req_min_level SMPKeyBin::getSecLevel() shall be greater or equal to this required minimum
+             * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+             * @see SMPKeyBin::read()
+             * @see setSMPKeyBin()
+             * @see uploadKeys()
+             * @since 2.4.0
+             */
+            HCIStatusCode uploadKeys(const std::string& smp_key_bin_path, const BTSecurityLevel req_min_level, const bool verbose_) noexcept {
+                return uploadKeys(SMPKeyBin::read(smp_key_bin_path, *this, verbose_), req_min_level);
+            }
+
+            /**
              * Returns a copy of the Long Term Key (LTK), valid after connection and SMP pairing has been completed.
              * @param responder true will return the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
              * @return the resulting key. SMPLongTermKeyInfo::enc_size will be zero if invalid.
@@ -611,14 +689,17 @@ namespace direct_bt {
             SMPLongTermKey getLongTermKey(const bool responder) const noexcept;
 
             /**
-             * Sets the Long Term Key (LTK) of this device to reuse for pre-paired encryption.
-             * <p>
-             * Must be called before connecting to this device, otherwise HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned.
-             * </p>
+             * Sets the Long Term Key (LTK) of this device for pre-paired encryption.
+             *
+             * Issue uploadKeys() to upload all SMP keys to the adapter
+             * before connecting to enable pre-pairing.
+             *
              * @param ltk the pre-paired encryption LTK
-             * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+             * @see setSMPKeyBin()
+             * @see uploadKeys()
+             * @since 2.4.0
              */
-            HCIStatusCode setLongTermKey(const SMPLongTermKey& ltk) noexcept;
+            void setLongTermKey(const SMPLongTermKey& ltk) noexcept;
 
             /**
              * Returns a copy of the Identity Resolving Key (IRK), valid after connection and SMP pairing has been completed.
@@ -630,15 +711,17 @@ namespace direct_bt {
             SMPIdentityResolvingKey getIdentityResolvingKey(const bool responder) const noexcept;
 
             /**
-             * Sets the Identity Resolving Key (IRK) of this device to be reused.
-             * <p>
-             * Must be called before connecting to this device, otherwise HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned.
-             * </p>
+             * Sets the Identity Resolving Key (IRK) of this device for pre-paired encryption.
+             *
+             * Issue uploadKeys() to upload all SMP keys to the adapter
+             * before connecting to enable pre-pairing.
+             *
              * @param irk the Identity Resolving Key (IRK)
-             * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+             * @see setSMPKeyBin()
+             * @see uploadKeys()
              * @since 2.4.0
              */
-            HCIStatusCode setIdentityResolvingKey(const SMPIdentityResolvingKey& irk) noexcept;
+            void setIdentityResolvingKey(const SMPIdentityResolvingKey& irk) noexcept;
 
             /**
              * Returns a copy of the Signature Resolving Key (CSRK), valid after connection and SMP pairing has been completed.
@@ -650,15 +733,17 @@ namespace direct_bt {
             SMPSignatureResolvingKey getSignatureResolvingKey(const bool responder) const noexcept;
 
             /**
-             * Sets the Signature Resolving Key (CSRK) of this device to be reused.
-             * <p>
-             * Must be called before connecting to this device, otherwise HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned.
-             * </p>
+             * Sets the Signature Resolving Key (CSRK) of this device for pre-paired encryption.
+             *
+             * Issue uploadKeys() to upload all SMP keys to the adapter
+             * before connecting to enable pre-pairing.
+             *
              * @param csrk the Signature Resolving Key (CSRK)
-             * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+             * @see setSMPKeyBin()
+             * @see uploadKeys()
              * @since 2.4.0
              */
-            HCIStatusCode setSignatureResolvingKey(const SMPSignatureResolvingKey& csrk) noexcept;
+            void setSignatureResolvingKey(const SMPSignatureResolvingKey& csrk) noexcept;
 
             /**
              * Returns a copy of the Link Key (LK), valid after connection and SMP pairing has been completed.
@@ -671,18 +756,20 @@ namespace direct_bt {
             SMPLinkKey getLinkKey(const bool responder) const noexcept;
 
             /**
-             * Sets the Link Key (LK) of this device to reuse for pre-paired encryption.
-             * <p>
-             * Must be called before connecting to this device, otherwise HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned.
-             * </p>
+             * Sets the Link Key (LK) of this device for pre-paired encryption.
+             *
+             * Issue uploadKeys() to upload all SMP keys to the adapter
+             * before connecting to enable pre-pairing.
+             *
              * @param lk the pre-paired encryption LK
-             * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+             * @see setSMPKeyBin()
+             * @see uploadKeys()
              * @since 2.4.0
              */
-            HCIStatusCode setLinkKey(const SMPLinkKey& lk) noexcept;
+            void setLinkKey(const SMPLinkKey& lk) noexcept;
 
             /**
-             * Unpairs this device from the adapter while staying connected.
+             * Unpair this device from the adapter while staying connected.
              * <p>
              * All keys will be cleared within the adapter and host implementation.<br>
              * Should rarely being used by user.<br>

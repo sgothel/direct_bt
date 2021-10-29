@@ -300,8 +300,8 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
         fprintf_td(stderr, "****** Connecting Device: No SecurityDetail for %s\n", device->toString().c_str());
     }
     const BTSecurityLevel req_sec_level = nullptr != sec ? sec->getSecLevel() : BTSecurityLevel::UNSET;
-    HCIStatusCode res = SMPKeyBin::readAndApply(KEY_PATH, *device, req_sec_level, true /* verbose */);
-    fprintf_td(stderr, "****** Connecting Device: SMPKeyBin::readAndApply(..) result %s\n", to_string(res).c_str());
+    HCIStatusCode res = device->uploadKeys(KEY_PATH, req_sec_level, true /* verbose_ */);
+    fprintf_td(stderr, "****** Connecting Device: BTDevice::uploadKeys(...) result %s\n", to_string(res).c_str());
     if( HCIStatusCode::SUCCESS != res ) {
         if( nullptr != sec ) {
             if( sec->isSecurityAutoEnabled() ) {

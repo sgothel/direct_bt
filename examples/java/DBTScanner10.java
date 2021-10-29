@@ -359,8 +359,8 @@ public class DBTScanner10 {
             BTUtils.println(System.err, "****** Connecting Device: No SecurityDetail for "+device.toString());
         }
         final BTSecurityLevel req_sec_level = null != sec ? sec.getSecLevel() : BTSecurityLevel.UNSET;
-        HCIStatusCode res = SMPKeyBin.readAndApply(KEY_PATH, device, req_sec_level, true /* verbose */);
-        BTUtils.fprintf_td(System.err, "****** Connecting Device: SMPKeyBin::readAndApply(..) result %s\n", res.toString());
+        HCIStatusCode res = device.uploadKeys(KEY_PATH, req_sec_level, true /* verbose_ */);
+        BTUtils.fprintf_td(System.err, "****** Connecting Device: BTDevice::uploadKeys(...) result %s\n", res.toString());
         if( HCIStatusCode.SUCCESS != res ) {
             if( null != sec ) {
                 if( sec.isSecurityAutoEnabled() ) {

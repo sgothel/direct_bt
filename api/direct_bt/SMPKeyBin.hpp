@@ -70,6 +70,8 @@ class BTAdapter; // forward
  * <li>{@code '.key'} suffix</li>
  * </li>
  * </p>
+ * @see BTDevice::setSMPKeyBin()
+ * @see BTDevice::uploadKeys()
  */
 class SMPKeyBin {
     public:
@@ -204,33 +206,29 @@ class SMPKeyBin {
             return smpKeyBin;
         }
 
-        static std::vector<SMPKeyBin> readAll(const std::string& dname, const bool verbose_);
-        static std::vector<SMPKeyBin> readAllForLocalAdapter(const BDAddressAndType& localAddress, const std::string& dname, const bool verbose_);
-
-        static jau::nsize_t applyAll(std::vector<SMPKeyBin> all, BTAdapter& adapter, const BTSecurityLevel minSecLevel=BTSecurityLevel::NONE);
-
         /**
-         * Create a new SMPKeyBin instance on the fly based upon stored file denoted by `path` and BTDevice::getAddressAndType(),
-         * i.e. `path/` + getFileBasename().
+         * Create a new SMPKeyBin instance based upon the given BTDevice's matching filename,
+         * see SMPKeyBin API doc for filename naming scheme.
          *
-         * Method returns ::HCIStatusCode::INVALID_PARAMS if resulting SMPKeyBin is not SMPKeyBin::isValid().
+         * Returned SMPKeyBin shall be tested if valid via SMPKeyBin::isValid(),
+         * whether the read() operation was successful and data is consistent.
          *
-         * Otherwise, method returns the HCIStatusCode of SMPKeyBin::apply().
+         * If file is invalid, it is removed.
          *
-         * If key file is invalid or key could not be applied, i.e. not returning ::HCIStatusCode::SUCCESS, it is removed.
-         *
-         * @param path the path of the stored SMPKeyBin file.
-         * @param device the BTDevice for which address the stored SMPKeyBin file will be read and applied to
-         * @param minSecLevel minimum BTSecurityLevel the read SMPKeyBin::sec_level must be compliant to.
-         *        If SMPKeyBin::sec_level < minSecLevel method removes the key file and returns ::HCIStatusCode::ENCRYPTION_MODE_NOT_ACCEPTED.
+         * @param path directory for the stored SMPKeyBin file.
+         * @param device BTDevice used to derive the filename, see getFilename()
          * @param verbose_ set to true to have detailed read processing logged to stderr, otherwise false
-         * @return ::HCIStatusCode::SUCCESS or error code for failure
-         * @see Read()
+         * @return valid SMPKeyBin instance if file exist and read successfully, otherwise invalid SMPKeyBin instance.
+         * @see getFilename()
          * @see isValid()
          * @see read()
-         * @see apply()
          */
-        static HCIStatusCode readAndApply(const std::string& path, BTDevice& device, const BTSecurityLevel minSecLevel, const bool verbose_);
+        static SMPKeyBin read(const std::string& path, const BTDevice& device, const bool verbose_) {
+            return read(getFilename(path, device), verbose_);
+        }
+
+        static std::vector<SMPKeyBin> readAll(const std::string& dname, const bool verbose_);
+        static std::vector<SMPKeyBin> readAllForLocalAdapter(const BDAddressAndType& localAddress, const std::string& dname, const bool verbose_);
 
         SMPKeyBin(const BDAddressAndType& localAddress_,
                   const BDAddressAndType& remoteAddress_,
@@ -387,58 +385,6 @@ class SMPKeyBin {
         bool write(const std::string& path, const bool overwrite) const noexcept;
 
         bool read(const std::string& fname);
-
-        /**
-         * If this instance isValid() and initiator or responder LTK available, i.e. hasLTKInit() or hasLTKResp(),
-         * the following procedure will be applied to the given BTDevice:
-         *
-         * - If BTSecurityLevel _is_ BTSecurityLevel::NONE
-         *   + Setting security to ::BTSecurityLevel::NONE and ::SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
-         * - else if BTSecurityLevel > BTSecurityLevel::NONE
-         *   + Setting security to ::BTSecurityLevel::ENC_ONLY and ::SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
-         *   + Setting initiator LTK from getLTKInit() via BTDevice::setLongTermKeyInfo(), if available
-         *   + Setting responder LTK from getLTKResp() via BTDevice::setLongTermKeyInfo(), if available
-         *
-         * If all three operations succeed, ::HCIStatusCode::SUCCESS will be returned,
-         * otherwise the appropriate status code below.
-         *
-         * ::BTSecurityLevel::ENC_ONLY is set to avoid a new SMP ::PairingMode negotiation,
-         * which is undesired as this instances' stored LTK shall be used for ::PairingMode::PRE_PAIRED.
-         *
-         * Method may fail for any of the following reasons:
-         *
-         *  Reason                                                     | ::HCIStatusCode                             |
-         *  :--------------------------------------------------------  | :------------------------------------------ |
-         *  ! isValid()                                                | ::HCIStatusCode::INVALID_PARAMS             |
-         *  | hasLTKInit() && ! hasLTKResp()                           | ::HCIStatusCode::INVALID_PARAMS             |
-         *  | BTDevice::isValid() == false                             | ::HCIStatusCode::INVALID_PARAMS             |
-         *  | BTDevice has already being connected                     | ::HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
-         *  | BTDevice::connectLE() or BTDevice::connectBREDR() called | ::HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
-         *  | BTDevice::setLongTermKeyInfo() failed                    | ::HCIStatusCode from BT adapter             |
-         *  | BTDevice::setLinkKeyInfo() failed                        | ::HCIStatusCode from BT adapter             |
-         *
-         * On failure and after BTDevice::setConnSecurity() has been performed, the ::BTSecurityLevel
-         * and ::SMPIOCapability pre-connect values have been written and must be set by the caller again.
-         *
-         * @param device the BTDevice for which this instances' LTK shall be applied
-         *
-         * @see isValid()
-         * @see hasLTKInit()
-         * @see hasLTKResp()
-         * @see getLTKInit()
-         * @see getLTKResp()
-         * @see hasLKInit()
-         * @see hasLKResp()
-         * @see getLKInit()
-         * @see getLKResp()
-         * @see ::BTSecurityLevel
-         * @see ::SMPIOCapability
-         * @see BTDevice::isValid()
-         * @see BTDevice::setConnSecurity()
-         * @see BTDevice::setLongTermKeyInfo()
-         * @see BTDevice::setLinkKeyInfo()
-         */
-        HCIStatusCode apply(BTDevice & device) const noexcept;
 };
 
 } // namespace direct_bt

@@ -67,6 +67,8 @@ import org.jau.net.EUI48;
  * <li>{@code '.key'} suffix</li>
  * </li>
  * </p>
+ * @see BTDevice#setSMPKeyBin(SMPKeyBin)
+ * @see BTDevice#uploadKeys()
  */
 public class SMPKeyBin {
         public static final short VERSION = (short)0b0101010101010101 + (short)5; // bitpattern + version
@@ -257,67 +259,24 @@ public class SMPKeyBin {
         }
 
         /**
-         * Create a new SMPKeyBin instance on the fly based upon stored file denoted by `path` and {@link BTDevice#getAddressAndType()},
-         * i.e. `path/` + {@link #getFileBasename(BDAddressAndType)}.
+         * Create a new SMPKeyBin instance based upon the given BTDevice's matching filename,
+         * see SMPKeyBin API doc for filename naming scheme.
          *
-         * Method returns HCIStatusCode#INVALID_PARAMS if resulting SMPKeyBin is not {@link SMPKeyBin#isValid()}.
+         * Returned SMPKeyBin shall be tested if valid via SMPKeyBin::isValid(),
+         * whether the read() operation was successful and data is consistent.
          *
-         * Otherwise, method returns the HCIStatusCode of {@link SMPKeyBin#apply(BTDevice)}.
+         * If file is invalid, it is removed.
          *
-         * If key file is invalid or key could not be applied, i.e. not returning {@link HCIStatusCode#SUCCESS}, it is removed.
-         *
-         * @param path the path of the stored SMPKeyBin file.
-         * @param device the BTDevice for which address the stored SMPKeyBin file will be read and applied to
-         * @param minSecLevel minimum BTSecurityLevel the read SMPKeyBin::sec_level must be compliant to.
-         *        If SMPKeyBin::sec_level < minSecLevel method removes the key file and returns {@link HCIStatusCode#ENCRYPTION_MODE_NOT_ACCEPTED}.
+         * @param path directory for the stored SMPKeyBin file.
+         * @param device BTDevice used to derive the filename, see getFilename()
          * @param verbose_ set to true to have detailed read processing logged to stderr, otherwise false
-         * @return {@link HCIStatusCode#SUCCESS} or error code for failure
-         * @see #read(String, BDAddressAndType, boolean)
-         * @see #isValid()
-         * @see #read(String, String)
-         * @see #apply(BTDevice)
+         * @return valid SMPKeyBin instance if file exist and read successfully, otherwise invalid SMPKeyBin instance.
+         * @see getFilename()
+         * @see isValid()
+         * @see read()
          */
-        static public HCIStatusCode readAndApply(final String path, final BTDevice device, final BTSecurityLevel minSecLevel, final boolean verbose_) {
-            final String fname = getFilename(path, device);
-            final SMPKeyBin smpKeyBin = read(fname, verbose_);
-            if( smpKeyBin.isValid() ) {
-                if( !smpKeyBin.getLocalAddrAndType().equals( device.getAdapter().getAddressAndType() ) ) {
-                    if( smpKeyBin.verbose ) {
-                        BTUtils.println(System.err, "SMPKeyBin::readAndApply: Local address mismatch: Has "+device.getAdapter().getAddressAndType().toString()+
-                                        ", read "+smpKeyBin.getLocalAddrAndType().toString()+", removing file "+fname+": "+smpKeyBin.toString());
-                    }
-                    remove_impl(fname);
-                    return HCIStatusCode.INVALID_PARAMS;
-                }
-                if( !smpKeyBin.getRemoteAddrAndType().equals( device.getAddressAndType() ) ) {
-                    if( smpKeyBin.verbose ) {
-                        BTUtils.println(System.err, "SMPKeyBin::readAndApply: Remote address mismatch: Has "+device.getAddressAndType().toString()+
-                                        ", read "+smpKeyBin.getRemoteAddrAndType().toString()+", removing file "+fname+": "+smpKeyBin.toString());
-                    }
-                    remove_impl(fname);
-                    return HCIStatusCode.INVALID_PARAMS;
-                }
-                if( smpKeyBin.sec_level.value < minSecLevel.value ) {
-                    if( smpKeyBin.verbose ) {
-                        BTUtils.fprintf_td(System.err, "SMPKeyBin::readAndApply: sec_level %s < minimum %s: Key ignored %s, removing file %s\n",
-                                smpKeyBin.sec_level.toString(),
-                                minSecLevel.toString(),
-                                smpKeyBin.toString(), fname);
-                    }
-                    remove_impl(fname);
-                    return HCIStatusCode.ENCRYPTION_MODE_NOT_ACCEPTED;
-                }
-                final HCIStatusCode res = smpKeyBin.apply(device);
-                if( HCIStatusCode.SUCCESS != res ) {
-                    if( smpKeyBin.verbose ) {
-                        BTUtils.println(System.err, "SMPKeyBin::readAndApply: Apply failed "+res+", "+device+", removing file "+fname);
-                    }
-                    remove_impl(fname);
-                }
-                return res;
-            } else {
-                return HCIStatusCode.INVALID_PARAMS;
-            }
+        static public SMPKeyBin read(final String path, final BTDevice device, final boolean verbose_) {
+            return read(getFilename(path, device), verbose_);
         }
 
         public SMPKeyBin(final BDAddressAndType localAddress_,
@@ -846,141 +805,5 @@ public class SMPKeyBin {
                 buffer[i] = (byte) (value >> i*8);
             }
             out.write(buffer, 0, 8);
-        }
-
-        /**
-         * If this instance isValid() and initiator or responder LTK available, i.e. hasLTKInit() or hasLTKResp(),
-         * the following procedure will be applied to the given BTDevice:
-         *
-         * - If BTSecurityLevel _is_ BTSecurityLevel::NONE
-         *   + Setting security to ::BTSecurityLevel::NONE and SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
-         * - else if BTSecurityLevel > BTSecurityLevel::NONE
-         *   + Setting security to ::BTSecurityLevel::ENC_ONLY and SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
-         *   + Setting initiator LTK from getLTKInit() via BTDevice::setLongTermKeyInfo(), if available
-         *   + Setting responder LTK from getLTKResp() via BTDevice::setLongTermKeyInfo(), if available
-         *
-         * If all three operations succeed, HCIStatusCode::SUCCESS will be returned,
-         * otherwise the appropriate status code below.
-         *
-         * BTSecurityLevel::ENC_ONLY is set to avoid a new SMP PairingMode negotiation,
-         * which is undesired as this instances' stored LTK shall be used for PairingMode::PRE_PAIRED.
-         *
-         * Method may fail for any of the following reasons:
-         *
-         *  Reason                                                     | HCIStatusCode                             |
-         *  :--------------------------------------------------------  | :---------------------------------------- |
-         *  ! isValid()                                                | HCIStatusCode::INVALID_PARAMS             |
-         *  ! hasLTKInit() && ! hasLTKResp()                           | HCIStatusCode::INVALID_PARAMS             |
-         *  } BTDevice::isValid() == false                             | HCIStatusCode::INVALID_PARAMS             |
-         *  | BTDevice has already being connected                     | HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
-         *  | BTDevice::connectLE() or BTDevice::connectBREDR() called | HCIStatusCode::CONNECTION_ALREADY_EXISTS  |
-         *  | BTDevice::setLongTermKeyInfo() failed                    | HCIStatusCode from BT adapter             |
-         *  | BTDevice::setLinkKeyInfo() failed                        | ::HCIStatusCode from BT adapter           |
-         *
-         * On failure and after BTDevice::setConnSecurity() has been performed, the ::BTSecurityLevel
-         * and ::SMPIOCapability pre-connect values have been written and must be set by the caller again.
-         *
-         * @param device the BTDevice for which this instances' LTK shall be applied
-         *
-         * @see isValid()
-         * @see hasLTKInit()
-         * @see hasLTKResp()
-         * @see getLTKInit()
-         * @see getLTKResp()
-         * @see hasLKInit()
-         * @see hasLKResp()
-         * @see getLKInit()
-         * @see getLKResp()
-         * @see BTSecurityLevel
-         * @see SMPIOCapability
-         * @see BTDevice::isValid()
-         * @see BTDevice::setConnSecurity()
-         * @see BTDevice::setLongTermKeyInfo()
-         * @see BTDevice::setLinkKeyInfo()
-         */
-        final public HCIStatusCode apply(final BTDevice device) {
-            HCIStatusCode res = HCIStatusCode.SUCCESS;
-
-            // Must be a valid SMPKeyBin instance and at least one LTK key if using encryption.
-            if( !isValid() || ( BTSecurityLevel.NONE != sec_level && !hasLTKInit() && !hasLTKResp() ) ) {
-                res = HCIStatusCode.INVALID_PARAMS;
-                if( verbose ) {
-                    BTUtils.println(System.err, "Apply SMPKeyBin failed: SMPKeyBin Status: "+res+", "+toString());
-                }
-                return res;
-            }
-            if( !device.isValid() ) {
-                res = HCIStatusCode.INVALID_PARAMS;
-                if( verbose ) {
-                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Device Invalid: "+res+", "+toString()+", "+device);
-                }
-                return res;
-            }
-
-            // Allow no encryption at all, i.e. BTSecurityLevel::NONE
-            final BTSecurityLevel applySecLevel = BTSecurityLevel.NONE == sec_level ?
-                                                  BTSecurityLevel.NONE : BTSecurityLevel.ENC_ONLY;
-
-            if( !device.setConnSecurity(applySecLevel, SMPIOCapability.NO_INPUT_NO_OUTPUT) ) {
-                res = HCIStatusCode.CONNECTION_ALREADY_EXISTS;
-                if( verbose ) {
-                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Device Connected/ing: "+res+", "+toString()+", "+device);
-                }
-                return res;
-            }
-
-            if( hasLTKInit() ) {
-                res = device.setLongTermKey( getLTKInit() );
-                if( HCIStatusCode.SUCCESS != res && verbose ) {
-                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Init-LTK Upload: "+res+", "+toString()+", "+device);
-                }
-            }
-            if( HCIStatusCode.SUCCESS == res && hasLTKResp() ) {
-                res = device.setLongTermKey( getLTKResp() );
-                if( HCIStatusCode.SUCCESS != res && verbose ) {
-                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Resp-LTK Upload: "+res+", "+toString()+", "+device);
-                }
-            }
-
-            if( HCIStatusCode.SUCCESS == res && hasIRKInit() ) {
-                res = device.setIdentityResolvingKey( getIRKInit() );
-                if( HCIStatusCode.SUCCESS != res && verbose ) {
-                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Init-IRK Upload: "+res+", "+toString()+", "+device);
-                }
-            }
-            if( HCIStatusCode.SUCCESS == res && hasIRKResp() ) {
-                res = device.setIdentityResolvingKey( getIRKResp() );
-                if( HCIStatusCode.SUCCESS != res && verbose ) {
-                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Resp-IRK Upload: "+res+", "+toString()+", "+device);
-                }
-            }
-
-            if( HCIStatusCode.SUCCESS == res && hasCSRKInit() ) {
-                res = device.setSignatureResolvingKey( getCSRKInit() );
-                if( HCIStatusCode.SUCCESS != res && verbose ) {
-                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Init-CSRK Upload: "+res+", "+toString()+", "+device);
-                }
-            }
-            if( HCIStatusCode.SUCCESS == res && hasCSRKResp() ) {
-                res = device.setSignatureResolvingKey( getCSRKResp() );
-                if( HCIStatusCode.SUCCESS != res && verbose ) {
-                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Resp-CSRK Upload: "+res+", "+toString()+", "+device);
-                }
-            }
-
-            if( HCIStatusCode.SUCCESS == res && hasLKInit() ) {
-                res = device.setLinkKey( getLKInit() );
-                if( HCIStatusCode.SUCCESS != res && verbose ) {
-                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Init-LK Upload: "+res+", "+toString()+", "+device);
-                }
-            }
-            if( HCIStatusCode.SUCCESS == res && hasLKResp() ) {
-                res = device.setLinkKey( getLKResp() );
-                if( HCIStatusCode.SUCCESS != res && verbose ) {
-                    BTUtils.println(System.err, "Apply SMPKeyBin failed: Resp-LK Upload: "+res+", "+toString()+", "+device);
-                }
-            }
-
-            return res;
         }
 };

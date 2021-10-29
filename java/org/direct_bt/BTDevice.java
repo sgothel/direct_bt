@@ -214,6 +214,75 @@ public interface BTDevice extends BTObject
     SMPKeyMask getAvailableSMPKeys(final boolean responder);
 
     /**
+     * Copy all keys from the given SMPKeyBin into this BTDevice.
+     *
+     * Issue uploadKeys() to upload all SMP keys to the adapter
+     * before connecting to enable pre-pairing.
+     *
+     * If this instance isValid() and initiator or responder LTK available, i.e. hasLTKInit() or hasLTKResp(),
+     * the following procedure will be applied to the given BTDevice:
+     *
+     * - If BTSecurityLevel _is_ BTSecurityLevel::NONE
+     *   + Setting security to ::BTSecurityLevel::NONE and SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
+     * - else if BTSecurityLevel > BTSecurityLevel::NONE
+     *   + Setting security to ::BTSecurityLevel::ENC_ONLY and SMPIOCapability::NO_INPUT_NO_OUTPUT via BTDevice::setConnSecurity()
+     * - Copying all keys from SMPKeyBin to this device, without uploading to the adapter
+     *
+     * BTSecurityLevel::ENC_ONLY is set to avoid a new SMP PairingMode negotiation,
+     * which is undesired as this instances' stored LTK shall be used for PairingMode::PRE_PAIRED.
+     *
+     * @param bin
+     * @return true if successful, false if already connected (and pairing is currently in progress)
+     * @see #setLongTermKey(SMPLongTermKey)
+     * @see #setIdentityResolvingKey(SMPIdentityResolvingKey)
+     * @see #setSignatureResolvingKey(SMPSignatureResolvingKey)
+     * @see #setLinkKey(SMPLinkKey)
+     * @see #uploadKeys()
+     * @since 2.4.0
+     */
+    boolean setSMPKeyBin(final SMPKeyBin bin);
+
+    /**
+     * Upload all set keys to the adapter for pre-pairing.
+     *
+     * Must be called before connecting to this device, otherwise {@link HCIStatusCode#CONNECTION_ALREADY_EXISTS} will be returned.
+     *
+     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the appropriate error code.
+     * @see #setLongTermKey(SMPLongTermKey)
+     * @see #setIdentityResolvingKey(SMPIdentityResolvingKey)
+     * @see #setSignatureResolvingKey(SMPSignatureResolvingKey)
+     * @see #setLinkKey(SMPLinkKey)
+     * @see #setSMPKeyBin(SMPKeyBin)
+     * @since 2.4.0
+     */
+    HCIStatusCode uploadKeys();
+
+    /**
+     * Convenient combination of setSMPKeyBin() and uploadKeys()
+     * after validating given SMPKeyBin file and SMPKeyBin::getSecLevel() > req_min_level.
+     * @param bin the SMPKeyBin file
+     * @param req_min_level SMPKeyBin::getSecLevel() shall be greater or equal to this required minimum
+     * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+     * @see #setSMPKeyBin(SMPKeyBin)
+     * @see #uploadKeys()
+     * @since 2.4.0
+     */
+    HCIStatusCode uploadKeys(final SMPKeyBin bin, final BTSecurityLevel req_min_level);
+
+    /**
+     * Convenient combination of SMPKeyBin::read(), setSMPKeyBin() and uploadKeys()
+     * after validating given SMPKeyBin file and SMPKeyBin::getSecLevel() > req_min_level.
+     * @param smp_key_bin_path director for the SMPKeyBin file, derived by this BTDevice
+     * @param req_min_level SMPKeyBin::getSecLevel() shall be greater or equal to this required minimum
+     * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+     * @see SMPKeyBin#read(String, BTDevice, boolean)
+     * @see #setSMPKeyBin(SMPKeyBin)
+     * @see #uploadKeys(SMPKeyBin, BTSecurityLevel)
+     * @since 2.4.0
+     */
+    HCIStatusCode uploadKeys(final String smp_key_bin_path, final BTSecurityLevel req_min_level, final boolean verbose_);
+
+    /**
      * Returns a copy of the long term key (LTK), valid after connection and SMP pairing has been completed.
      * @param responder true will return the responder's LTK info (remote device, LL slave), otherwise the initiator's (the LL master).
      * @return the resulting key. {@link SMPLongTermKey#enc_size} will be zero if invalid.
@@ -224,15 +293,17 @@ public interface BTDevice extends BTObject
     SMPLongTermKey getLongTermKey(final boolean responder);
 
     /**
-     * Sets the long term ket (LTK) of this device to reuse pre-paired encryption.
-     * <p>
-     * Must be called before connecting to this device, otherwise {@link HCIStatusCode#CONNECTION_ALREADY_EXISTS} will be returned.
-     * </p>
+     * Sets the Long Term Key (LTK) of this device for pre-paired encryption.
+     *
+     * Issue {@link #uploadKeys()} to upload all SMP keys to the adapter
+     * before connecting to enable pre-pairing.
+     *
      * @param ltk the pre-paired encryption LTK
-     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the appropriate error code.
-     * @since 2.2.0
+     * @see #setSMPKeyBin(SMPKeyBin)
+     * @see #uploadKeys()
+     * @since 2.4.0
      */
-    HCIStatusCode setLongTermKey(final SMPLongTermKey ltk);
+    void setLongTermKey(final SMPLongTermKey ltk);
 
     /**
      * Returns a copy of the Identity Resolving Key (IRK), valid after connection and SMP pairing has been completed.
@@ -245,15 +316,17 @@ public interface BTDevice extends BTObject
     SMPIdentityResolvingKey getIdentityResolvingKey(final boolean responder);
 
     /**
-     * Sets the Identity Resolving Key (IRK) of this device to be reused.
-     * <p>
-     * Must be called before connecting to this device, otherwise HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned.
-     * </p>
+     * Sets the Identity Resolving Key (IRK) of this device for pre-paired encryption.
+     *
+     * Issue {@link #uploadKeys()} to upload all SMP keys to the adapter
+     * before connecting to enable pre-pairing.
+     *
      * @param irk the Identity Resolving Key (IRK)
-     * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+     * @see #setSMPKeyBin(SMPKeyBin)
+     * @see #uploadKeys()
      * @since 2.4.0
      */
-    HCIStatusCode setIdentityResolvingKey(final SMPIdentityResolvingKey irk);
+    void setIdentityResolvingKey(final SMPIdentityResolvingKey irk);
 
     /**
      * Returns a copy of the Signature Resolving Key (CSRK), valid after connection and SMP pairing has been completed.
@@ -266,15 +339,17 @@ public interface BTDevice extends BTObject
     SMPSignatureResolvingKey getSignatureResolvingKey(final boolean responder);
 
     /**
-     * Sets the Signature Resolving Key (CSRK) of this device to be reused.
-     * <p>
-     * Must be called before connecting to this device, otherwise HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned.
-     * </p>
+     * Sets the Signature Resolving Key (CSRK) of this device for pre-paired encryption.
+     *
+     * Issue {@link #uploadKeys()} to upload all SMP keys to the adapter
+     * before connecting to enable pre-pairing.
+     *
      * @param csrk the Signature Resolving Key (CSRK)
-     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the appropriate error code.
+     * @see #setSMPKeyBin(SMPKeyBin)
+     * @see #uploadKeys()
      * @since 2.4.0
      */
-    HCIStatusCode setSignatureResolvingKey(final SMPSignatureResolvingKey csrk);
+    void setSignatureResolvingKey(final SMPSignatureResolvingKey csrk);
 
     /**
      * Returns a copy of the Link Key (LK), valid after connection and SMP pairing has been completed.
@@ -287,18 +362,20 @@ public interface BTDevice extends BTObject
     SMPLinkKey getLinkKey(final boolean responder);
 
     /**
-     * Sets the Link Key (LK) of this device to reuse pre-paired encryption.
-     * <p>
-     * Must be called before connecting to this device, otherwise {@link HCIStatusCode#CONNECTION_ALREADY_EXISTS} will be returned.
-     * </p>
+     * Sets the Link Key (LK) of this device for pre-paired encryption.
+     *
+     * Issue {@link #uploadKeys()} to upload all SMP keys to the adapter
+     * before connecting to enable pre-pairing.
+     *
      * @param lk the pre-paired encryption LK
-     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the appropriate error code.
+     * @see #setSMPKeyBin(SMPKeyBin)
+     * @see #uploadKeys()
      * @since 2.4.0
      */
-    HCIStatusCode setLinkKey(final SMPLinkKey lk);
+    void setLinkKey(final SMPLinkKey lk);
 
     /**
-     * Unpairs this device from the adapter while staying connected.
+     * Unpair this device from the adapter while staying connected.
      * <p>
      * All keys will be cleared within the adapter and host implementation.<br>
      * Should rarely being used by user.<br>

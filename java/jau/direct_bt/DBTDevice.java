@@ -49,6 +49,7 @@ import org.direct_bt.LE_PHYs;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPIOCapability;
 import org.direct_bt.SMPIdentityResolvingKey;
+import org.direct_bt.SMPKeyBin;
 import org.direct_bt.SMPKeyMask;
 import org.direct_bt.SMPLinkKey;
 import org.direct_bt.SMPLongTermKey;
@@ -313,6 +314,120 @@ public class DBTDevice extends DBTObject implements BTDevice
     private final native byte getAvailableSMPKeysImpl(final boolean responder);
 
     @Override
+    public final boolean setSMPKeyBin(final SMPKeyBin bin) {
+        if( !isValid() ) {
+            if( DEBUG ) {
+                BTUtils.fprintf_td(System.err, "BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, device invalid: %s, %s",
+                    bin.toString(), toString());
+            }
+            return false;
+        }
+
+        if( !bin.getLocalAddrAndType().equals( getAdapter().getAddressAndType() ) ) {
+            if( DEBUG ) {
+                BTUtils.println(System.err, "SMPKeyBin::readAndApply: Local address mismatch: Has "+getAdapter().getAddressAndType().toString()+
+                    ", read "+bin.getLocalAddrAndType().toString()+": "+bin.toString());
+            }
+            return false;
+        }
+        if( !bin.getRemoteAddrAndType().equals( getAddressAndType() ) ) {
+            if( DEBUG ) {
+                BTUtils.println(System.err, "SMPKeyBin::readAndApply: Remote address mismatch: Has "+getAddressAndType().toString()+
+                        ", read "+bin.getRemoteAddrAndType().toString()+": "+bin.toString());
+            }
+            return false;
+        }
+
+        // Must be a valid SMPKeyBin instance and at least one LTK key if using encryption.
+        if( !bin.isValid() || ( BTSecurityLevel.NONE != bin.getSecLevel() && !bin.hasLTKInit() && !bin.hasLTKResp() ) ) {
+            if( DEBUG ) {
+                BTUtils.fprintf_td(System.err, "BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, all invalid or sec level w/o LTK: %s, %s",
+                        bin.toString(), toString());
+            }
+            return false;
+        }
+
+        {
+            /**
+             *
+            if( SMPIOCapability::UNSET != pairing_data.ioCap_auto ||
+                ( SMPPairingState::COMPLETED != pairing_data.state &&
+                  SMPPairingState::NONE != pairing_data.state ) )
+            {
+                DBG_PRINT("BTDevice::setSMPKeyBin: Failure, pairing in progress: %s", pairing_data.toString(addressAndType, btRole).c_str());
+                return false;
+            }
+            */
+            if( getConnected() ) {
+                if( DEBUG ) {
+                    BTUtils.println(System.err, "BTDevice::setSMPKeyBin: Failure, device connected: "+toString());
+                }
+                return false;
+            }
+
+            // Allow no encryption at all, i.e. BTSecurityLevel::NONE
+            final BTSecurityLevel applySecLevel = BTSecurityLevel.NONE.value == bin.getSecLevel().value ?
+                                                  BTSecurityLevel.NONE : BTSecurityLevel.ENC_ONLY;
+
+            if( !setConnSecurity(applySecLevel, SMPIOCapability.NO_INPUT_NO_OUTPUT) ) {
+                if( DEBUG ) {
+                    BTUtils.println(System.err, "BTDevice::setSMPKeyBin: Apply SMPKeyBin failed: Device Connected/ing: "+bin.toString()+", "+toString());
+                }
+                return false;
+            }
+        }
+        if( bin.hasLTKInit() ) {
+            setLongTermKey( bin.getLTKInit() );
+        }
+        if( bin.hasLTKResp() ) {
+            setLongTermKey( bin.getLTKResp() );
+        }
+
+        if( bin.hasIRKInit() ) {
+            setIdentityResolvingKey( bin.getIRKInit() );
+        }
+        if( bin.hasIRKResp() ) {
+            setIdentityResolvingKey( bin.getIRKResp() );
+        }
+
+        if( bin.hasCSRKInit() ) {
+            setSignatureResolvingKey( bin.getCSRKInit() );
+        }
+        if( bin.hasCSRKResp() ) {
+            setSignatureResolvingKey( bin.getCSRKResp() );
+        }
+
+        if( bin.hasLKInit() ) {
+            setLinkKey( bin.getLKInit() );
+        }
+        if( bin.hasLKResp() ) {
+            setLinkKey( bin.getLKResp() );
+        }
+        return true;
+    }
+
+    @Override
+    public final HCIStatusCode uploadKeys() {
+        return HCIStatusCode.get( uploadKeysImpl() );
+    }
+    private final native byte uploadKeysImpl();
+
+    @Override
+    public final HCIStatusCode uploadKeys(final SMPKeyBin bin, final BTSecurityLevel req_min_level) {
+        if( bin.isValid() && bin.getSecLevel().value >= req_min_level.value && setSMPKeyBin(bin) ) {
+            return uploadKeys();
+        } else {
+            return HCIStatusCode.INVALID_PARAMS;
+        }
+    }
+
+    @Override
+    public final HCIStatusCode uploadKeys(final String smp_key_bin_path, final BTSecurityLevel req_min_level, final boolean verbose_) {
+        return uploadKeys(SMPKeyBin.read(smp_key_bin_path, this, verbose_), req_min_level);
+    }
+
+
+    @Override
     public final SMPLongTermKey getLongTermKey(final boolean responder) {
         final byte[] stream = new byte[SMPLongTermKey.byte_size];
         getLongTermKeyImpl(responder, stream);
@@ -321,12 +436,12 @@ public class DBTDevice extends DBTObject implements BTDevice
     private final native void getLongTermKeyImpl(final boolean responder, final byte[] sink);
 
     @Override
-    public final HCIStatusCode setLongTermKey(final SMPLongTermKey ltk) {
+    public final void setLongTermKey(final SMPLongTermKey ltk) {
         final byte[] stream = new byte[SMPLongTermKey.byte_size];
         ltk.put(stream, 0);
-        return HCIStatusCode.get( setLongTermKeyImpl(stream) );
+        setLongTermKeyImpl(stream);
     }
-    private final native byte setLongTermKeyImpl(final byte[] source);
+    private final native void setLongTermKeyImpl(final byte[] source);
 
     @Override
     public final SMPIdentityResolvingKey getIdentityResolvingKey(final boolean responder) {
@@ -337,12 +452,12 @@ public class DBTDevice extends DBTObject implements BTDevice
     private final native void getIdentityResolvingKeyImpl(final boolean responder, final byte[] sink);
 
     @Override
-    public final HCIStatusCode setIdentityResolvingKey(final SMPIdentityResolvingKey irk) {
+    public final void setIdentityResolvingKey(final SMPIdentityResolvingKey irk) {
         final byte[] stream = new byte[SMPIdentityResolvingKey.byte_size];
         irk.put(stream, 0);
-        return HCIStatusCode.get( setIdentityResolvingKeyImpl(stream) );
+        setIdentityResolvingKeyImpl(stream);
     }
-    private final native byte setIdentityResolvingKeyImpl(final byte[] source);
+    private final native void setIdentityResolvingKeyImpl(final byte[] source);
 
     @Override
     public final SMPSignatureResolvingKey getSignatureResolvingKey(final boolean responder) {
@@ -353,12 +468,12 @@ public class DBTDevice extends DBTObject implements BTDevice
     private final native void getSignatureResolvingKeyImpl(final boolean responder, final byte[] sink);
 
     @Override
-    public final HCIStatusCode setSignatureResolvingKey(final SMPSignatureResolvingKey irk) {
+    public final void setSignatureResolvingKey(final SMPSignatureResolvingKey irk) {
         final byte[] stream = new byte[SMPSignatureResolvingKey.byte_size];
         irk.put(stream, 0);
-        return HCIStatusCode.get( setSignatureResolvingKeyImpl(stream) );
+        setSignatureResolvingKeyImpl(stream);
     }
-    private final native byte setSignatureResolvingKeyImpl(final byte[] source);
+    private final native void setSignatureResolvingKeyImpl(final byte[] source);
 
     @Override
     public final SMPLinkKey getLinkKey(final boolean responder) {
@@ -369,12 +484,12 @@ public class DBTDevice extends DBTObject implements BTDevice
     private final native void getLinkKeyImpl(final boolean responder, final byte[] sink);
 
     @Override
-    public final HCIStatusCode setLinkKey(final SMPLinkKey lk) {
+    public final void setLinkKey(final SMPLinkKey lk) {
         final byte[] stream = new byte[SMPLinkKey.byte_size];
         lk.put(stream, 0);
-        return HCIStatusCode.get( setLinkKeyImpl(stream) );
+        setLinkKeyImpl(stream);
     }
-    private final native byte setLinkKeyImpl(final byte[] source);
+    private final native void setLinkKeyImpl(final byte[] source);
 
     @Override
     public final HCIStatusCode unpair() {

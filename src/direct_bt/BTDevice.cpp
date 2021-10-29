@@ -1405,31 +1405,123 @@ SMPKeyType BTDevice::getAvailableSMPKeys(const bool responder) const noexcept {
     }
 }
 
-SMPLongTermKey BTDevice::getLongTermKey(const bool responder) const noexcept {
-    jau::sc_atomic_critical sync(sync_data);
-    return responder ? pairing_data.ltk_resp : pairing_data.ltk_init;
+bool BTDevice::setSMPKeyBin(const SMPKeyBin& bin) noexcept {
+    const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
+
+    if( !isValid() ) {
+        DBG_PRINT("BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, device invalid: %s, %s",
+                bin.toString().c_str(), toString().c_str());
+        return false;
+    }
+
+    if( bin.getLocalAddrAndType() != getAdapter().getAddressAndType() ) {
+         DBG_PRINT("SMPKeyBin::readAndApply: Local address mismatch: Has %s, SMPKeyBin %s: %s",
+                    getAdapter().getAddressAndType().toString().c_str(),
+                    bin.getLocalAddrAndType().toString().c_str(),
+                    bin.toString().c_str());
+        return false;
+    }
+    if( bin.getRemoteAddrAndType() !=  getAddressAndType() ) {
+        DBG_PRINT("SMPKeyBin::readAndApply: Remote address mismatch: Has %s, SMPKeyBin %s: %s",
+                getAddressAndType().toString().c_str(),
+                bin.getRemoteAddrAndType().toString().c_str(),
+                bin.toString().c_str());
+        return false;
+    }
+
+    // Must be a valid SMPKeyBin instance and at least one LTK key if using encryption.
+    if( !bin.isValid() || ( BTSecurityLevel::NONE != bin.getSecLevel() && !bin.hasLTKInit() && !bin.hasLTKResp() ) ) {
+         DBG_PRINT("BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, all invalid or sec level w/o LTK: %s, %s",
+                 bin.toString().c_str(), toString().c_str());
+        return false;
+    }
+
+    {
+        if( SMPIOCapability::UNSET != pairing_data.ioCap_auto ||
+            ( SMPPairingState::COMPLETED != pairing_data.state &&
+              SMPPairingState::NONE != pairing_data.state ) )
+        {
+            DBG_PRINT("BTDevice::setSMPKeyBin: Failure, pairing in progress: %s", pairing_data.toString(addressAndType, btRole).c_str());
+            return false;
+        }
+
+        const BTSecurityLevel applySecLevel = BTSecurityLevel::NONE == bin.getSecLevel() ?
+                                              BTSecurityLevel::NONE : BTSecurityLevel::ENC_ONLY;
+        pairing_data.ioCap_user = SMPIOCapability::NO_INPUT_NO_OUTPUT;
+        pairing_data.sec_level_user = applySecLevel;
+        pairing_data.ioCap_auto = SMPIOCapability::UNSET; // disable auto
+    }
+
+    if( bin.hasLTKInit() ) {
+        setLongTermKey( bin.getLTKInit() );
+    }
+    if( bin.hasLTKResp() ) {
+        setLongTermKey( bin.getLTKResp() );
+    }
+
+    if( bin.hasIRKInit() ) {
+        setIdentityResolvingKey( bin.getIRKInit() );
+    }
+    if( bin.hasIRKResp() ) {
+        setIdentityResolvingKey( bin.getIRKResp() );
+    }
+
+    if( bin.hasCSRKInit() ) {
+        setSignatureResolvingKey( bin.getCSRKInit() );
+    }
+    if( bin.hasCSRKResp() ) {
+        setSignatureResolvingKey( bin.getCSRKResp() );
+    }
+
+    if( bin.hasLKInit() ) {
+        setLinkKey( bin.getLKInit() );
+    }
+    if( bin.hasLKResp() ) {
+        setLinkKey( bin.getLKResp() );
+    }
+    DBG_PRINT("BTDevice::setSMPKeyBin.OK: %s", pairing_data.toString(addressAndType, btRole).c_str());
+    return true;
 }
 
-HCIStatusCode BTDevice::setLongTermKey(const SMPLongTermKey& ltk) noexcept {
+HCIStatusCode BTDevice::uploadKeys() noexcept {
     if( isConnected ) {
-        ERR_PRINT("BTDevice::setLongTermKeyInfo: Already connected: %s", toString().c_str());
+        ERR_PRINT("BTDevice::uploadKeys: Already connected: %s", toString().c_str());
         return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
     }
-    const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data);
-    if( ltk.isResponder() ) {
-        pairing_data.ltk_resp = ltk;
-    } else {
-        pairing_data.ltk_init = ltk;
-    }
+    const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 #if USE_LINUX_BT_SECURITY
     BTManager & mngr = adapter.getManager();
-    const HCIStatusCode res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, ltk);
-    if( HCIStatusCode::SUCCESS == res ) {
-        if( ltk.isResponder() ) {
-            pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY;
-        } else {
-            pairing_data.keys_init_has |= SMPKeyType::ENC_KEY;
+    HCIStatusCode res = HCIStatusCode::SUCCESS;
+    if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
+        res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_resp);
+        if( HCIStatusCode::SUCCESS != res ) {
+            return res;
+        }
+    }
+
+    if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
+        res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_init);
+        if( HCIStatusCode::SUCCESS != res ) {
+            return res;
+        }
+    }
+
+    if( BDAddressType::BDADDR_BREDR != addressAndType.type ) {
+        // Not supported
+        DBG_PRINT("BTDevice::uploadKets: Upload LK for LE address not supported -> ignored: %s", toString().c_str());
+        return HCIStatusCode::SUCCESS;
+    }
+
+    const BTRole hostRole = !btRole;
+    if( BTRole::Master == hostRole ) {
+        // Remote device is slave (peripheral), we are master (initiator)
+        if( ( SMPKeyType::LINK_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
+            res = mngr.uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_init);
+        }
+    } else {
+        // Remote device is master (central), we are slave (peripheral, responder)
+        if( ( SMPKeyType::LINK_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
+            res = mngr.uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_resp);
         }
     }
     return res;
@@ -1438,6 +1530,24 @@ HCIStatusCode BTDevice::setLongTermKey(const SMPLongTermKey& ltk) noexcept {
 #else
     return HCIStatusCode::NOT_SUPPORTED;
 #endif
+}
+
+SMPLongTermKey BTDevice::getLongTermKey(const bool responder) const noexcept {
+    jau::sc_atomic_critical sync(sync_data);
+    return responder ? pairing_data.ltk_resp : pairing_data.ltk_init;
+}
+
+void BTDevice::setLongTermKey(const SMPLongTermKey& ltk) noexcept {
+    jau::sc_atomic_critical sync(sync_data);
+    if( ltk.isResponder() ) {
+        pairing_data.ltk_resp = ltk;
+        pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY;
+        pairing_data.keys_resp_exp |= SMPKeyType::ENC_KEY;
+    } else {
+        pairing_data.ltk_init = ltk;
+        pairing_data.keys_init_has |= SMPKeyType::ENC_KEY;
+        pairing_data.keys_init_exp |= SMPKeyType::ENC_KEY;
+    }
 }
 
 SMPIdentityResolvingKey BTDevice::getIdentityResolvingKey(const bool responder) const noexcept {
@@ -1445,16 +1555,17 @@ SMPIdentityResolvingKey BTDevice::getIdentityResolvingKey(const bool responder) 
     return responder ? pairing_data.irk_resp : pairing_data.irk_init;
 }
 
-HCIStatusCode BTDevice::setIdentityResolvingKey(const SMPIdentityResolvingKey& irk) noexcept {
+void BTDevice::setIdentityResolvingKey(const SMPIdentityResolvingKey& irk) noexcept {
     jau::sc_atomic_critical sync(sync_data);
     if( irk.isResponder() ) {
         pairing_data.irk_resp = irk;
         pairing_data.keys_resp_has |= SMPKeyType::ID_KEY;
+        pairing_data.keys_resp_exp |= SMPKeyType::ID_KEY;
     } else {
         pairing_data.irk_init = irk;
         pairing_data.keys_init_has |= SMPKeyType::ID_KEY;
+        pairing_data.keys_init_exp |= SMPKeyType::ID_KEY;
     }
-    return HCIStatusCode::SUCCESS;
 }
 
 SMPSignatureResolvingKey BTDevice::getSignatureResolvingKey(const bool responder) const noexcept {
@@ -1462,16 +1573,17 @@ SMPSignatureResolvingKey BTDevice::getSignatureResolvingKey(const bool responder
     return responder ? pairing_data.csrk_resp : pairing_data.csrk_init;
 }
 
-HCIStatusCode BTDevice::setSignatureResolvingKey(const SMPSignatureResolvingKey& csrk) noexcept {
+void BTDevice::setSignatureResolvingKey(const SMPSignatureResolvingKey& csrk) noexcept {
     jau::sc_atomic_critical sync(sync_data);
     if( csrk.isResponder() ) {
         pairing_data.csrk_resp = csrk;
         pairing_data.keys_resp_has |= SMPKeyType::SIGN_KEY;
+        pairing_data.keys_resp_exp |= SMPKeyType::SIGN_KEY;
     } else {
         pairing_data.csrk_init = csrk;
         pairing_data.keys_init_has |= SMPKeyType::SIGN_KEY;
+        pairing_data.keys_init_exp |= SMPKeyType::SIGN_KEY;
     }
-    return HCIStatusCode::SUCCESS;
 }
 
 SMPLinkKey BTDevice::getLinkKey(const bool responder) const noexcept {
@@ -1479,63 +1591,17 @@ SMPLinkKey BTDevice::getLinkKey(const bool responder) const noexcept {
     return responder ? pairing_data.lk_resp : pairing_data.lk_init;
 }
 
-HCIStatusCode BTDevice::setLinkKey(const SMPLinkKey& lk) noexcept {
-    if( isConnected ) {
-        ERR_PRINT("BTDevice::setLinkKeyInfo: Already connected: %s", toString().c_str());
-        return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
-    }
-    const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
+void BTDevice::setLinkKey(const SMPLinkKey& lk) noexcept {
     jau::sc_atomic_critical sync(sync_data);
     if( lk.isResponder() ) {
         pairing_data.lk_resp = lk;
+        pairing_data.keys_resp_has |= SMPKeyType::LINK_KEY;
+        pairing_data.keys_resp_exp |= SMPKeyType::LINK_KEY;
     } else {
         pairing_data.lk_init = lk;
+        pairing_data.keys_init_has |= SMPKeyType::LINK_KEY;
+        pairing_data.keys_init_exp |= SMPKeyType::LINK_KEY;
     }
-#if USE_LINUX_BT_SECURITY
-    const BTRole hostRole = !btRole;
-    if( BTRole::Master == hostRole ) {
-        // Remote device is slave (peripheral), we are master (initiator)
-        if( lk.isResponder() ) {
-            pairing_data.keys_resp_has |= SMPKeyType::LINK_KEY;
-            DBG_PRINT("BTDevice::setLinkKeyInfo: Remote device is slave, host master, key for slave -> ignored non local: %s; %s",
-                    lk.toString().c_str(), this->toString().c_str());
-            return HCIStatusCode::SUCCESS;
-        }
-    } else {
-        // Remote device is master (central), we are slave (peripheral)
-        if( !lk.isResponder() ) {
-            pairing_data.keys_init_has |= SMPKeyType::LINK_KEY;
-            DBG_PRINT("BTDevice::setLinkKeyInfo: Remote device is master, host slave, key for master -> ignored non local: %s; %s",
-                    lk.toString().c_str(), this->toString().c_str());
-            return HCIStatusCode::SUCCESS;
-        }
-    }
-    if( BDAddressType::BDADDR_BREDR != addressAndType.type ) {
-        // Not supported
-        DBG_PRINT("BTDevice::setLinkKeyInfo: Upload LK for LE address not supported -> ignored: %s; %s",
-                lk.toString().c_str(), this->toString().c_str());
-        if( lk.isResponder() ) {
-            pairing_data.keys_resp_has |= SMPKeyType::LINK_KEY;
-        } else {
-            pairing_data.keys_init_has |= SMPKeyType::LINK_KEY;
-        }
-        return HCIStatusCode::SUCCESS;
-    }
-    BTManager & mngr = adapter.getManager();
-    const HCIStatusCode res = mngr.uploadLinkKey(adapter.dev_id, addressAndType, lk);
-    if( HCIStatusCode::SUCCESS == res ) {
-        if( lk.isResponder() ) {
-            pairing_data.keys_resp_has |= SMPKeyType::LINK_KEY;
-        } else {
-            pairing_data.keys_init_has |= SMPKeyType::LINK_KEY;
-        }
-    }
-    return res;
-#elif SMP_SUPPORTED_BY_OS
-    return HCIStatusCode::NOT_SUPPORTED;
-#else
-    return HCIStatusCode::NOT_SUPPORTED;
-#endif
 }
 
 bool BTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept {

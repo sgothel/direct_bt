@@ -477,7 +477,19 @@ jbyte Java_jau_direct_1bt_DBTDevice_getAvailableSMPKeysImpl(JNIEnv *env, jobject
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        return number( device->getAvailableSMPKeys(JNI_TRUE == responder) ); // assign data of new key copy to JNI critical-array
+        return number( device->getAvailableSMPKeys(JNI_TRUE == responder) );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return 0;
+}
+
+jbyte Java_jau_direct_1bt_DBTDevice_uploadKeysImpl(JNIEnv *env, jobject obj) {
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        return number( device->uploadKeys() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -508,7 +520,7 @@ void Java_jau_direct_1bt_DBTDevice_getLongTermKeyImpl(JNIEnv *env, jobject obj, 
     }
 }
 
-jbyte Java_jau_direct_1bt_DBTDevice_setLongTermKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
+void Java_jau_direct_1bt_DBTDevice_setLongTermKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
@@ -527,12 +539,10 @@ jbyte Java_jau_direct_1bt_DBTDevice_setLongTermKeyImpl(JNIEnv *env, jobject obj,
         }
         const SMPLongTermKey& ltk = *reinterpret_cast<SMPLongTermKey *>(source_ptr);
 
-        const HCIStatusCode res = device->setLongTermKey(ltk);
-        return (jbyte) number(res);
+        device->setLongTermKey(ltk);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
 void Java_jau_direct_1bt_DBTDevice_getIdentityResolvingKeyImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
@@ -559,7 +569,7 @@ void Java_jau_direct_1bt_DBTDevice_getIdentityResolvingKeyImpl(JNIEnv *env, jobj
     }
 }
 
-jbyte Java_jau_direct_1bt_DBTDevice_setIdentityResolvingKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
+void Java_jau_direct_1bt_DBTDevice_setIdentityResolvingKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
@@ -578,12 +588,10 @@ jbyte Java_jau_direct_1bt_DBTDevice_setIdentityResolvingKeyImpl(JNIEnv *env, job
         }
         const SMPIdentityResolvingKey& irk = *reinterpret_cast<SMPIdentityResolvingKey *>(source_ptr);
 
-        const HCIStatusCode res = device->setIdentityResolvingKey(irk);
-        return (jbyte) number(res);
+        device->setIdentityResolvingKey(irk);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
 void Java_jau_direct_1bt_DBTDevice_getSignatureResolvingKeyImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
@@ -610,7 +618,7 @@ void Java_jau_direct_1bt_DBTDevice_getSignatureResolvingKeyImpl(JNIEnv *env, job
     }
 }
 
-jbyte Java_jau_direct_1bt_DBTDevice_setSignatureResolvingKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
+void Java_jau_direct_1bt_DBTDevice_setSignatureResolvingKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
@@ -629,12 +637,10 @@ jbyte Java_jau_direct_1bt_DBTDevice_setSignatureResolvingKeyImpl(JNIEnv *env, jo
         }
         const SMPSignatureResolvingKey& irk = *reinterpret_cast<SMPSignatureResolvingKey *>(source_ptr);
 
-        const HCIStatusCode res = device->setSignatureResolvingKey(irk);
-        return (jbyte) number(res);
+        device->setSignatureResolvingKey(irk);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
 void Java_jau_direct_1bt_DBTDevice_getLinkKeyImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
@@ -661,7 +667,7 @@ void Java_jau_direct_1bt_DBTDevice_getLinkKeyImpl(JNIEnv *env, jobject obj, jboo
     }
 }
 
-jbyte Java_jau_direct_1bt_DBTDevice_setLinkKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
+void Java_jau_direct_1bt_DBTDevice_setLinkKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
@@ -680,12 +686,10 @@ jbyte Java_jau_direct_1bt_DBTDevice_setLinkKeyImpl(JNIEnv *env, jobject obj, jby
         }
         const SMPLinkKey& lk = *reinterpret_cast<SMPLinkKey *>(source_ptr);
 
-        const HCIStatusCode res = device->setLinkKey(lk);
-        return (jbyte) number(res);
+        device->setLinkKey(lk);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
 jbyte Java_jau_direct_1bt_DBTDevice_unpairImpl(JNIEnv *env, jobject obj) {
