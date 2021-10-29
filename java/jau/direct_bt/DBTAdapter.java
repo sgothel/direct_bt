@@ -268,6 +268,9 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     public native boolean setPowered(final boolean power_on);
 
     @Override
+    public native boolean getSecureConnectionsEnabled();
+
+    @Override
     public native boolean setSecureConnections(final boolean enable);
 
     @Override

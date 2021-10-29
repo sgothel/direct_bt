@@ -458,11 +458,20 @@ public interface BTAdapter extends BTObject
     boolean setPowered(final boolean power_on);
 
     /**
+     * Returns whether Secure Connections (SC) is enabled.
+     * @see #setSecureConnections(boolean)
+     * @since 2.4.0
+     */
+    boolean getSecureConnectionsEnabled();
+
+    /**
      * Enable or disable Secure Connections (SC) of the adapter.
      *
      * By default, Secure Connections (SC) is enabled if supported.
      *
      * @param enable
+     * @return true if successful, otherwise false
+     * @see #getSecureConnectionsEnabled()
      * @since 2.4.0
      */
     boolean setSecureConnections(final boolean enable);

@@ -643,6 +643,7 @@ namespace direct_bt {
              * By default, Secure Connections (SC) is enabled if supported.
              *
              * @param enable
+             * @return true if successful, otherwise false
              * @see getSecureConnectionsEnabled()
              * @since 2.4.0
              */
