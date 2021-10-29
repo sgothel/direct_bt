@@ -445,6 +445,9 @@ from the year 2016.
 **2.4.0**
 
 * TODO (we are close)
+* Add `BTAdapter's Slave Peripheral SMP Key Management`
+  - Full SMP key persistence in peripheral mode
+* Reshape SMPKeyBin design: Set and upload from BTDevice (split functionality
 * BTDevice::unpair() is now issued directly by *Direct-BT*
   to have a consistent and stable security workflow:
   - when a BTRole::Slave BTDevice is discovered, see AdapterStatusListener::deviceFound().
