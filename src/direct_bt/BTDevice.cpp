@@ -1153,9 +1153,11 @@ void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMs
 
         case SMPPDUMsg::Opcode::SECURITY_REQUEST: // from responder (slave)
             // 1a
-            pmode = PairingMode::NEGOTIATING;
-            pstate = SMPPairingState::REQUESTED_BY_RESPONDER;
-            pairing_data.res_requested_sec = true;
+            if( SMPPairingState::FAILED >= pstate ) { // ignore otherwise
+                pmode = PairingMode::NEGOTIATING;
+                pstate = SMPPairingState::REQUESTED_BY_RESPONDER;
+                pairing_data.res_requested_sec = true;
+            }
             break;
 
         case SMPPDUMsg::Opcode::PAIRING_REQUEST: // from initiator (master)
