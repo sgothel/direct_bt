@@ -146,8 +146,8 @@ namespace direct_bt {
                 std::string toString(const BDAddressAndType& addressAndType, const BTRole& role) const;
             };
             PairingData pairing_data;
-            mutable std::mutex mtx_pairing;
-            std::condition_variable cv_pairing_state_changed;
+            mutable std::recursive_mutex mtx_pairing;
+            std::condition_variable_any cv_pairing_state_changed;
             mutable jau::sc_atomic_bool sync_data;
 
             /** Private class only for private make_shared(). */

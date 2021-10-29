@@ -426,12 +426,11 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
             // Waiting for PairingState
             bool pairing_timeout = false;
             {
-                std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-                jau::sc_atomic_critical sync1(sync_data);
+                std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
                 while( !hasSMPPairingFinished( pairing_data.state ) ) {
                     std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
-                    std::cv_status s = cv_pairing_state_changed.wait_until(lock, t0 + std::chrono::milliseconds(hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT));
+                    std::cv_status s = cv_pairing_state_changed.wait_until(lock_pairing, t0 + std::chrono::milliseconds(hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT));
                     DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.2c Wait for SMPPairing: state %s, %s",
                             smp_auto_count, to_string(pairing_data.state).c_str(), toString().c_str());
                     if( std::cv_status::timeout == s && !hasSMPPairingFinished( pairing_data.state ) ) {
@@ -599,8 +598,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
     bool callProcessDeviceReady = false;
 
     if( addressAndType.isLEAddress() && !l2cap_att.isOpen() ) {
-        const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-        jau::sc_atomic_critical sync(sync_data);
+        const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
         DBG_PRINT("BTDevice::processL2CAPSetup: Start %s", toString().c_str());
 
@@ -766,8 +764,7 @@ std::string BTDevice::PairingData::toString(const BDAddressAndType& addressAndTy
 }
 
 bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept {
-    const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data);
+    const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
     const std::string timestamp = jau::to_decstring(jau::environment::getElapsedMillisecond(evt.getTimestamp()), ',', 9);
 
     if( jau::environment::get().debug ) {
@@ -1122,8 +1119,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
 }
 
 void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept {
-    const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data);
+    const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
     const bool msg_sent = HCIACLData::l2cap_frame::PBFlag::START_NON_AUTOFLUSH_HOST == source.pb_flag; // from from Host to Controller
     const std::string msg_sent_s = msg_sent ? "sent" : "received";
@@ -1732,8 +1728,7 @@ bool BTDevice::isConnSecurityAutoEnabled() const noexcept {
 }
 
 HCIStatusCode BTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
-    const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data);
+    const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
     if( !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) &&
         !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::KEY_DISTRIBUTION) )
@@ -1756,8 +1751,7 @@ HCIStatusCode BTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
 }
 
 HCIStatusCode BTDevice::setPairingPasskeyNegative() noexcept {
-    const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data);
+    const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
     if( !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) &&
         !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::KEY_DISTRIBUTION) )
@@ -1780,8 +1774,7 @@ HCIStatusCode BTDevice::setPairingPasskeyNegative() noexcept {
 }
 
 HCIStatusCode BTDevice::setPairingNumericComparison(const bool positive) noexcept {
-    const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data);
+    const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
     if( !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::NUMERIC_COMPARE_EXPECTED) &&
         !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::KEY_DISTRIBUTION) )
@@ -1816,8 +1809,7 @@ SMPPairingState BTDevice::getPairingState() const noexcept {
 void BTDevice::clearSMPStates(const bool connected) noexcept {
     // Issued at ctor(), manual unpair() and notifyDisconnect()
     // notifyDisconnect() will be called at all times, even if disconnect() fails!
-    const std::unique_lock<std::mutex> lock(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data);
+    const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
     DBG_PRINT("BTDevice::clearSMPStates(connected %d): %s", connected, toString().c_str());
 
