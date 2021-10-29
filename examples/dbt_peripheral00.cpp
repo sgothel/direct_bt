@@ -70,7 +70,6 @@ static bool SHOW_UPDATE_EVENTS = false;
 
 static bool startAdvertising(BTAdapter *a, std::string msg);
 static bool stopAdvertising(BTAdapter *a, std::string msg);
-static void processConnectedDevice(std::shared_ptr<BTDevice> device);
 static void processReadyDevice(std::shared_ptr<BTDevice> device);
 static void processDisconnectedDevice(std::shared_ptr<BTDevice> device);
 
@@ -216,9 +215,6 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** CONNECTED: %s\n", device->toString(true).c_str());
 
-        std::thread sd(::processConnectedDevice, device); // @suppress("Invalid arguments")
-        sd.detach();
-
         (void)handle;
         (void)timestamp;
     }
@@ -232,9 +228,6 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 // next: deviceReady(..)
                 break;
             case SMPPairingState::FAILED: {
-                const bool res  = SMPKeyBin::remove(KEY_PATH, *device);
-                fprintf_td(stderr, "****** PAIRING_STATE: state %s; Remove key file %s, res %d\n",
-                        to_string(state).c_str(), SMPKeyBin::getFilename(KEY_PATH, *device).c_str(), res);
                 // next: deviceReady() or deviceDisconnected(..)
             } break;
             case SMPPairingState::REQUESTED_BY_RESPONDER:
@@ -479,16 +472,6 @@ static bool stopAdvertising(BTAdapter *a, std::string msg) {
     return HCIStatusCode::SUCCESS == status;
 }
 
-static void processConnectedDevice(std::shared_ptr<BTDevice> device) {
-    fprintf_td(stderr, "****** Connected Device: Start %s\n", device->toString().c_str());
-
-    // Already Connected - Can't Do!
-    // HCIStatusCode res = SMPKeyBin::readAndApply(KEY_PATH, *device, BTSecurityLevel::UNSET, true /* verbose */);
-    // fprintf_td(stderr, "****** CONNECTED: SMPKeyBin::readAndApply(..) result %s\n", to_string(res).c_str());
-
-    fprintf_td(stderr, "****** Connected Device: End %s\n", device->toString().c_str());
-}
-
 static void processDisconnectedDevice(std::shared_ptr<BTDevice> device) {
     fprintf_td(stderr, "****** Disconnected Device: Start %s\n", device->toString().c_str());
 
@@ -504,8 +487,6 @@ static void processDisconnectedDevice(std::shared_ptr<BTDevice> device) {
 
 static void processReadyDevice(std::shared_ptr<BTDevice> device) {
     fprintf_td(stderr, "****** Processing Ready Device: Start %s\n", device->toString().c_str());
-
-    SMPKeyBin::createAndWrite(*device, KEY_PATH, false /* overwrite */, true /* verbose */);
 
     fprintf_td(stderr, "****** Processing Ready Device: End %s\n", device->toString().c_str());
 }
@@ -562,11 +543,7 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
         fprintf_td(stderr, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
                 to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
     }
-    {
-        std::vector<SMPKeyBin> keys = SMPKeyBin::readAllForLocalAdapter(adapter->getAddressAndType(), KEY_PATH, true /* verbose_ */);
-        jau::nsize_t count = SMPKeyBin::applyAll(keys, *adapter);
-        fprintf_td(stderr, "initAdapter: Set %d SMPKeyBin, successfully taken %d SMPKeyBin entries\n", keys.size(), count);
-    }
+    adapter->setSMPKeyPath(ADAPTER_KEY_PATH);
 
     std::shared_ptr<AdapterStatusListener> asl( std::make_shared<MyAdapterStatusListener>() );
     adapter->addStatusListener( asl );

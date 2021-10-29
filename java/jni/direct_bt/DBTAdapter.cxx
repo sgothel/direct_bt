@@ -910,6 +910,17 @@ jboolean Java_jau_direct_1bt_DBTAdapter_setSecureConnections(JNIEnv *env, jobjec
     return JNI_FALSE;
 }
 
+void Java_jau_direct_1bt_DBTAdapter_setSMPKeyPath(JNIEnv *env, jobject obj, jstring jpath) {
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        std::string path = jau::from_jstring_to_string(env, jpath);
+        adapter->setSMPKeyPath(path);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
 jbyte Java_jau_direct_1bt_DBTAdapter_initializeImpl(JNIEnv *env, jobject obj, jbyte jbtMode) {
     try {
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);

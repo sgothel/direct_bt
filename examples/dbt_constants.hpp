@@ -38,4 +38,6 @@
  */
 constexpr const char KEY_PATH[] = "keys";
 
+constexpr const char ADAPTER_KEY_PATH[] = "dbt_keys";
+
 #endif /* DBT_CONSTANTS_HPP */

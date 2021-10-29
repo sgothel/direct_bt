@@ -336,6 +336,11 @@ void BTAdapter::close() noexcept {
         const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
         sharedDevices.clear();
     }
+    {
+        const std::lock_guard<std::mutex> lock(mtx_keys); // RAII-style acquire and relinquish via destructor
+        key_list.clear();
+        key_path.clear();
+    }
     valid = false;
     DBG_PRINT("BTAdapter::close: XXX");
 }
@@ -448,88 +453,59 @@ bool BTAdapter::setSecureConnections(const bool enable) noexcept {
     return enable == isAdapterSettingBitSet(new_settings, AdapterSetting::SECURE_CONN);
 }
 
-HCIStatusCode BTAdapter::setSMPKeyBin(const SMPKeyBin& keys) noexcept {
-    if( keys.getLocalAddrAndType() != adapterInfo.addressAndType ) {
-        if( keys.getVerbose() ) {
+void BTAdapter::setSMPKeyPath(const std::string path) noexcept {
+    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
+    key_path = path;
+
+    std::vector<SMPKeyBin> keys = SMPKeyBin::readAllForLocalAdapter(getAddressAndType(), key_path, jau::environment::get().debug /* verbose_ */);
+    for(SMPKeyBin f : keys) {
+        uploadKeys(f, false /* write */);
+    }
+}
+
+HCIStatusCode BTAdapter::uploadKeys(SMPKeyBin& bin, const bool write) noexcept {
+    if( bin.getLocalAddrAndType() != adapterInfo.addressAndType ) {
+        if( bin.getVerbose() ) {
             jau::PLAIN_PRINT(true, "BTAdapter::setSMPKeyBin: Adapter address not matching: %s, %s",
-                    keys.toString().c_str(), toString().c_str());
+                    bin.toString().c_str(), toString().c_str());
         }
         return HCIStatusCode::INVALID_PARAMS;
     }
-    /**
-    if( isConnected ) {
-        ERR_PRINT("BTDevice::setLongTermKeyInfo: Already connected: %s", toString().c_str());
-        return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
-    } */
-    // FIXME: Pass keys to BTDevice instance after connection!
-#if USE_LINUX_BT_SECURITY
+    EInfoReport ad_report;
+    {
+        ad_report.setSource( EInfoReport::Source::NA );
+        ad_report.setTimestamp( jau::getCurrentMilliseconds() );
+        ad_report.setAddressType( bin.getRemoteAddrAndType().type );
+        ad_report.setAddress( bin.getRemoteAddrAndType().address );
+    }
+    // Enforce BTRole::Master on new device,
+    // since this functionality is only for local being BTRole::Slave peripheral!
+    std::shared_ptr<BTDevice> device = BTDevice::make_shared(*this, ad_report);
+    device->btRole = BTRole::Master;
+    addSharedDevice(device);
+
     HCIStatusCode res;
     BTManager & mngr = getManager();
-    res = mngr.unpairDevice(dev_id, keys.getRemoteAddrAndType(), false /* disconnect */);
+    res = mngr.unpairDevice(dev_id, bin.getRemoteAddrAndType(), false /* disconnect */);
     if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
         ERR_PRINT("BTAdapter::setSMPKeyBin: Unpair device failed: %s, %s",
-                    keys.getRemoteAddrAndType().toString().c_str(), toString().c_str());
+                    bin.getRemoteAddrAndType().toString().c_str(), toString().c_str());
     }
-    if( keys.hasLTKInit() ) {
-        res = mngr.uploadLongTermKey(dev_id, keys.getRemoteAddrAndType(), keys.getLTKInit());
-        if( HCIStatusCode::SUCCESS != res ) {
-            if( keys.getVerbose() ) {
-                jau::PLAIN_PRINT(true, "BTAdapter::setSMPKeyBin: Upload LTK initiator failed: %s, %s",
-                        keys.toString().c_str(), toString().c_str());
-            }
-            return res;
+
+    res = device->uploadKeys(bin, BTSecurityLevel::NONE);
+    if( HCIStatusCode::SUCCESS != res ) {
+        WARN_PRINT("(dev_id %d): Upload SMPKeyBin failed %s, %s (removing file)",
+                dev_id, to_string(res).c_str(), bin.toString().c_str());
+        if( key_path.size() > 0 ) {
+            bin.remove(key_path);
         }
-    }
-    if( keys.hasLTKResp() ) {
-        res = mngr.uploadLongTermKey(dev_id, keys.getRemoteAddrAndType(), keys.getLTKResp());
-        if( HCIStatusCode::SUCCESS != res ) {
-            if( keys.getVerbose() ) {
-                jau::PLAIN_PRINT(true, "BTAdapter::setSMPKeyBin: Upload LTK responder failed: %s, %s",
-                        keys.toString().c_str(), toString().c_str());
-            }
-            return res;
-        }
-    }
-    if( BDAddressType::BDADDR_BREDR != keys.getRemoteAddrAndType().type ) {
-        // Not supported
-        DBG_PRINT("BTAdapter::setSMPKeyBin: Upload LK for LE address not supported -> ignored");
+        return res;
     } else {
-        if( BTRole::Master == btRole ) {
-            // Remote device is slave (peripheral), we are master (initiator)
-            if( keys.hasLKInit() ) {
-                res = mngr.uploadLinkKey(dev_id, keys.getRemoteAddrAndType(), keys.getLKInit());
-                if( HCIStatusCode::SUCCESS != res ) {
-                    if( keys.getVerbose() ) {
-                        jau::PLAIN_PRINT(true, "BTAdapter::setSMPKeyBin: Upload LK initiator failed: %s, %s",
-                                keys.toString().c_str(), toString().c_str());
-                    }
-                    return res;
-                }
-            }
-        } else {
-            // Remote device is master (central), we are slave (peripheral)
-            if( keys.hasLKResp() ) {
-                res = mngr.uploadLinkKey(dev_id, keys.getRemoteAddrAndType(), keys.getLKResp());
-                if( HCIStatusCode::SUCCESS != res ) {
-                    if( keys.getVerbose() ) {
-                        jau::PLAIN_PRINT(true, "BTAdapter::setSMPKeyBin: Upload LK responder failed: %s, %s",
-                                keys.toString().c_str(), toString().c_str());
-                    }
-                    return res;
-                }
-            }
-        }
+        DBG_PRINT("BTAdapter::setSMPKeyBin(dev_id %d): Upload OK: %s, %s",
+                dev_id, bin.toString().c_str(), toString().c_str());
     }
-    if( keys.getVerbose() ) {
-        jau::PLAIN_PRINT(true, "BTAdapter::setSMPKeyBin: Upload OK: %s, %s",
-                keys.toString().c_str(), toString().c_str());
-    }
+    addSMPKeyBin( std::make_shared<SMPKeyBin>(bin), write); // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS
     return HCIStatusCode::SUCCESS;
-#elif SMP_SUPPORTED_BY_OS
-    return HCIStatusCode::NOT_SUPPORTED;
-#else
-    return HCIStatusCode::NOT_SUPPORTED;
-#endif
 }
 
 HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
@@ -1086,7 +1062,6 @@ bool BTAdapter::removeDiscoveredDevice(const BDAddressAndType & addressAndType) 
     return false;
 }
 
-
 int BTAdapter::removeDiscoveredDevices() noexcept {
     const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
@@ -1116,6 +1091,8 @@ jau::darray<std::shared_ptr<BTDevice>> BTAdapter::getDiscoveredDevices() const n
     device_list_t res = discoveredDevices;
     return res;
 }
+
+// *************************************************
 
 bool BTAdapter::addSharedDevice(std::shared_ptr<BTDevice> const &device) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
@@ -1149,6 +1126,8 @@ std::shared_ptr<BTDevice> BTAdapter::findSharedDevice (const EUI48 & address, co
     return findDevice(sharedDevices, address, addressType);
 }
 
+// *************************************************
+
 void BTAdapter::removeDevice(BTDevice & device) noexcept {
     WORDY_PRINT("DBTAdapter::removeDevice: Start %s", toString().c_str());
     removeAllStatusListener(device);
@@ -1164,6 +1143,61 @@ void BTAdapter::removeDevice(BTDevice & device) noexcept {
         jau::PLAIN_PRINT(true, "BTAdapter::removeDevice: End %s, %s", device.getAddressAndType().toString().c_str(), toString().c_str());
         printDeviceLists();
     }
+}
+
+// *************************************************
+
+BTAdapter::SMPKeyBinRef BTAdapter::findSMPKeyBin(key_list_t & keys, BDAddressAndType const & remoteAddress) noexcept {
+    const jau::nsize_t size = keys.size();
+    for (jau::nsize_t i = 0; i < size; ++i) {
+        SMPKeyBinRef& k = keys[i];
+        if ( nullptr != k && remoteAddress == k->getRemoteAddrAndType() ) {
+            return k;
+        }
+    }
+    return nullptr;
+}
+bool BTAdapter::removeSMPKeyBin(key_list_t & keys, BDAddressAndType const & remoteAddress, const bool remove_file, const std::string key_path_) noexcept {
+    for (auto it = keys.begin(); it != keys.end(); ++it) {
+        const SMPKeyBinRef& k = *it;
+        if ( nullptr != k && remoteAddress == k->getRemoteAddrAndType() ) {
+            DBG_PRINT("BTAdapter::removeSMPKeyBin(file %d): %s", remove_file, k->toString().c_str());
+            if( remove_file && key_path_.size() > 0 ) {
+                if( !k->remove(key_path_) ) {
+                    WARN_PRINT("Failed removal of SMPKeyBin file: %s", k->getFilename(key_path_).c_str());
+                }
+            }
+            keys.erase(it);
+            return true;
+        }
+    }
+    return false;
+}
+BTAdapter::SMPKeyBinRef BTAdapter::findSMPKeyBin(BDAddressAndType const & remoteAddress) noexcept {
+    const std::lock_guard<std::mutex> lock(mtx_keys); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
+    return findSMPKeyBin(key_list, remoteAddress);
+}
+bool BTAdapter::addSMPKeyBin(const SMPKeyBinRef& key, const bool write_file) noexcept {
+    const std::lock_guard<std::mutex> lock(mtx_keys); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
+    removeSMPKeyBin(key_list, key->getRemoteAddrAndType(), write_file /* remove_file */, key_path);
+    if( jau::environment::get().debug ) {
+        key->setVerbose(true);
+        DBG_PRINT("BTAdapter::addSMPKeyBin(file %d): %s", write_file, key->toString().c_str());
+    }
+    key_list.push_back( key );
+    if( write_file && key_path.size() > 0 ) {
+        if( !key->write(key_path, true /* overwrite */) ) {
+            WARN_PRINT("Failed write of SMPKeyBin file: %s", key->getFilename(key_path).c_str());
+        }
+    }
+    return true;
+}
+bool BTAdapter::removeSMPKeyBin(BDAddressAndType const & remoteAddress, const bool remove_file) noexcept {
+    const std::lock_guard<std::mutex> lock(mtx_keys); // RAII-style acquire and relinquish via destructor
+    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
+    return removeSMPKeyBin(key_list, remoteAddress, remove_file, key_path);
 }
 
 // *************************************************
@@ -1492,6 +1526,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         ad_report.read_data(event.getData(), event.getDataSize());
     }
     int new_connect = 0;
+    bool slave_unpair = false;
     std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
         device = findDiscoveredDevice(event.getAddress(), event.getAddressType());
@@ -1505,25 +1540,30 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         if( nullptr != device ) {
             addDiscoveredDevice(device); // connected devices must be in shared + discovered list
             new_connect = 2;
+            slave_unpair = BTRole::Slave == getRole();
         }
     }
     if( nullptr == device ) {
+        // (new_connect = 3) a whitelist auto-connect w/o previous discovery, or
+        // (new_connect = 4) we are a peripheral being connected by a remote client
         device = BTDevice::make_shared(*this, ad_report);
         addDiscoveredDevice(device);
         addSharedDevice(device);
-        if( BTRole::Slave == getRole() ) {
-            new_connect = 4; // slave adapter (peripheral), got connected by remote client
-            /**
-             * Without unpair in SC mode, the peripheral fails the DHKey Check.
-             * TODO: Provide a persistent pre-pairing mechanism via SMPKeyBin.
-             */
-            HCIStatusCode res = mgmt.unpairDevice(dev_id, device->getAddressAndType(), false /* disconnect */);
+        new_connect = BTRole::Master == getRole() ? 3 : 4;
+        slave_unpair = BTRole::Slave == getRole();
+    }
+    if( slave_unpair ) {
+        /**
+         * Without unpair in SC mode (or key pre-pairing), the peripheral fails the DHKey Check.
+         */
+        const SMPKeyBinRef key = findSMPKeyBin( device->getAddressAndType() ); // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS
+        if( nullptr == key ) {
+            // No pre-pairing -> unpair
+            HCIStatusCode  res = mgmt.unpairDevice(dev_id, device->getAddressAndType(), false /* disconnect */);
             if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
-                WARN_PRINT("BTAdapter::EventHCI:DeviceConnected(dev_id %d, new_connect %d): Unpair device failed: %s, %s",
+                WARN_PRINT("(dev_id %d, new_connect %d): Unpair device failed: %s, %s",
                             dev_id, new_connect, to_string(res).c_str(), device->getAddressAndType().toString().c_str());
             }
-        } else {
-            new_connect = 3; // master adapter, whitelist auto-connect w/o previous discovery
         }
     }
 
@@ -1672,7 +1712,7 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
             device->toString().c_str());
 
         unlockConnect(*device);
-        device->notifyDisconnected();
+        device->notifyDisconnected(); // -> unpair()
         removeConnectedDevice(*device);
 
         if( !device->isConnSecurityAutoEnabled() ) {
@@ -1690,6 +1730,18 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
                 i++;
             });
             removeDiscoveredDevice(device->addressAndType); // ensure device will cause a deviceFound event after disconnect
+        }
+        if( BTRole::Slave == getRole() ) {
+            // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS
+            SMPKeyBinRef key = findSMPKeyBin(device->getAddressAndType());
+            if( nullptr != key ) {
+                const HCIStatusCode res = device->uploadKeys(*key, BTSecurityLevel::NONE);
+                if( HCIStatusCode::SUCCESS != res ) {
+                    WARN_PRINT("(dev_id %d): Upload SMPKeyBin failed %s, %s (removing file)",
+                            dev_id, to_string(res).c_str(), key->toString().c_str());
+                    removeSMPKeyBin(device->getAddressAndType(), true /* remove_file */);
+                }
+            }
         }
     } else {
         WORDY_PRINT("BTAdapter::EventHCI:DeviceDisconnected(dev_id %d): Device not tracked: %s",
@@ -2080,6 +2132,31 @@ bool BTAdapter::hciSMPMsgCallback(const BDAddressAndType & addressAndType,
 
 void BTAdapter::sendDevicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept
 {
+    if( BTRole::Slave == getRole() ) {
+        // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS
+        if( SMPPairingState::COMPLETED == state ) {
+            // Pairing completed
+            if( PairingMode::PRE_PAIRED != mode ) {
+                // newly paired -> store keys
+                SMPKeyBin key = SMPKeyBin::create(*device);
+                if( key.isValid() ) {
+                    addSMPKeyBin( std::make_shared<SMPKeyBin>(key), true /* write_file */ );
+                }
+            } else {
+                // pre-paired, refresh PairingData of BTDevice (perhaps a new instance)
+                const SMPKeyBinRef key = findSMPKeyBin( device->getAddressAndType() );
+                if( nullptr != key ) {
+                    bool res = device->setSMPKeyBin(*key);
+                    if( !res ) {
+                        WARN_PRINT("(dev_id %d): device::setSMPKeyBin() failed %d, %s", res, key->toString().c_str());
+                    }
+                }
+            }
+        } else if( SMPPairingState::FAILED == state ) {
+            // Pairing failed
+            removeSMPKeyBin(device->getAddressAndType(), true /* remove_file */);
+        }
+    }
     int i=0;
     jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {

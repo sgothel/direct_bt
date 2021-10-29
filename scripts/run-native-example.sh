@@ -172,6 +172,7 @@ runit() {
 
     echo LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/${exename} "$@"
     mkdir -p keys
+    mkdir -p dbt_keys
 
     if [ "${run_setcap}" -eq "1" ]; then
         runit_setcap "$@"

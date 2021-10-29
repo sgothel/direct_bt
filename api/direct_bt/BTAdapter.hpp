@@ -332,12 +332,19 @@ namespace direct_bt {
             typedef jau::cow_darray<impl::StatusListenerPair> statusListenerList_t;
             statusListenerList_t statusListenerList;
 
+            // Storing SMPKeyBin entries, referenced by their remote address, i.e. BTDevice address.
+            std::string key_path;
+            typedef std::shared_ptr<SMPKeyBin> SMPKeyBinRef;
+            typedef jau::darray<SMPKeyBinRef> key_list_t;
+            key_list_t key_list;
+
             DBGattServerRef gattServerData = nullptr;
 
             mutable std::mutex mtx_discoveredDevices;
             mutable std::mutex mtx_connectedDevices;
             mutable std::mutex mtx_discovery;
             mutable std::mutex mtx_sharedDevices; // final mutex of all BTDevice lifecycle
+            mutable std::mutex mtx_keys;
             mutable jau::sc_atomic_bool sync_data;
 
             bool updateDataFromHCI() noexcept;
@@ -404,6 +411,13 @@ namespace direct_bt {
             bool addSharedDevice(std::shared_ptr<BTDevice> const &device) noexcept;
             std::shared_ptr<BTDevice> getSharedDevice(const BTDevice & device) noexcept;
             void removeSharedDevice(const BTDevice & device) noexcept;
+
+            static SMPKeyBinRef findSMPKeyBin(key_list_t & keys, BDAddressAndType const & remoteAddress) noexcept;
+            static bool removeSMPKeyBin(key_list_t & keys, BDAddressAndType const & remoteAddress, const bool remove_file, const std::string key_path_) noexcept;
+            SMPKeyBinRef findSMPKeyBin(BDAddressAndType const & remoteAddress) noexcept;
+            /** Adding a SMPKeyBin will remove previous entry. */
+            bool addSMPKeyBin(const SMPKeyBinRef& key, const bool write_file) noexcept;
+            bool removeSMPKeyBin(BDAddressAndType const & remoteAddress, const bool remove_file) noexcept;
 
             bool mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept;
             void updateAdapterSettings(const bool off_thread, const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept;
@@ -650,20 +664,41 @@ namespace direct_bt {
             bool setSecureConnections(const bool enable) noexcept;
 
             /**
+             * Set the adapter's persistent storage directory for SMPKeyBin files.
+             * - if set, all SMPKeyBin instances will be managed and persistent.
+             * - if not set, all SMPKeyBin instances will be transient only.
+             *
+             * When called, all keys within the path will be loaded,
+             * i.e. issuing uploadKeys() for all keys belonging to this BTAdapter.
+             *
+             * Persistent SMPKeyBin management is only functional when BTAdapter is in BTRole::Slave peripheral mode.
+             *
+             * For each SMPKeyBin file one shared BTDevice in BTRole::Master will be instantiated
+             * when uploadKeys() is called.
+             *
+             * @param path persistent storage path to SMPKeyBin files
+             * @see uploadKeys()
+             */
+            void setSMPKeyPath(const std::string path) noexcept;
+
+            /**
              * Associate the given SMPKeyBin with the contained remote address, i.e. SMPKeyBin::getRemoteAddrAndType().
              *
              * Further uploads the Long Term Key (LTK) and Link Key (LK) for a potential upcoming connection,
              * if they are contained in the given SMPKeyBin file.
              *
              * This method is provided to support BTRole::Slave peripheral adapter mode,
-             * allowing user to inject all required keys before a connection occurs.
+             * allowing user to inject all required keys after initialize()
              *
-             * FIXME: Pass keys to BTDevice instance after connection!
+             * One shared BTDevice in BTRole::Master is instantiated.
              *
-             * @param keys SMPKeyBin file
+             * @param bin SMPKeyBin instance, might be persistent in filesystem
+             * @param write if true, write file to persistent storage, otherwise not
              * @return HCIStatusCode::SUCCESS or an error state on failure
+             * @see setSMPKeyPath()
+             * @see BTDevice::uploadKeys()
              */
-            HCIStatusCode setSMPKeyBin(const SMPKeyBin& keys) noexcept;
+            HCIStatusCode uploadKeys(SMPKeyBin& bin, const bool write) noexcept;
 
             /**
              * Initialize the adapter with default values, including power-on.

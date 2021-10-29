@@ -477,6 +477,24 @@ public interface BTAdapter extends BTObject
     boolean setSecureConnections(final boolean enable);
 
     /**
+     * Set the adapter's persistent storage directory for {@link SMPKeyBin} files.
+     * - if set, all {@link SMPKeyBin} instances will be managed and persistent.
+     * - if not set, all {@link SMPKeyBin} instances will be transient only.
+     *
+     * When called, all keys within the path will be loaded,
+     * i.e. issuing {@link BTDevice#uploadKeys(SMPKeyBin, BTSecurityLevel) for all keys belonging to this BTAdapter.
+     *
+     * Persistent {@link SMPKeyBin} management is only functional when {@link BTAdapter} is in {@link BTRole#Slave} peripheral mode.
+     *
+     * For each {@link SMPKeyBin} file one shared {@link BTDevice} in {@link BTRole#Master} will be instantiated
+     * when uploadKeys() is called.
+     *
+     * @param path persistent storage path to {@link SMPKeyBin} files
+     * @see BTDevice#uploadKeys(SMPKeyBin, BTSecurityLevel)
+     */
+    void setSMPKeyPath(final String path);
+
+    /**
      * Initialize the adapter with default values, including power-on.
      * <p>
      * Method shall be issued on the desired adapter found via {@link BTManager.ChangedAdapterSetListener}.

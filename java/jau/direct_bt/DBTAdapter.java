@@ -274,6 +274,9 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     public native boolean setSecureConnections(final boolean enable);
 
     @Override
+    public native void setSMPKeyPath(final String path);
+
+    @Override
     public final HCIStatusCode initialize() {
         return initialize(BTMode.DUAL);
     }
