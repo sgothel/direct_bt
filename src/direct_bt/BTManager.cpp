@@ -216,9 +216,9 @@ std::unique_ptr<MgmtEvent> BTManager::sendWithReply(MgmtCommand &req, const int 
     // Ringbuffer read is thread safe
     int32_t retryCount = 0;
     while( retryCount < env.MGMT_READ_PACKET_MAX_RETRY ) {
-        std::unique_ptr<MgmtEvent> res = mgmtEventRing.getBlocking( timeoutMS /* default: env.MGMT_COMMAND_REPLY_TIMEOUT */);
-        // std::unique_ptr<MgmtEvent> res = receiveNext();
-        if( nullptr == res ) {
+        /* timeoutMS default: env.MGMT_COMMAND_REPLY_TIMEOUT */
+        std::unique_ptr<MgmtEvent> res;
+        if( !mgmtEventRing.getBlocking(res, timeoutMS) || nullptr == res ) {
             errno = ETIMEDOUT;
             ERR_PRINT("DBTManager::sendWithReply.X: nullptr result (timeout -> abort): req %s", req.toString().c_str());
             return nullptr;
@@ -391,7 +391,7 @@ fail:
 BTManager::BTManager() noexcept
 : env(MgmtEnv::get()),
   rbuffer(ClientMaxMTU, jau::endian::little), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
-  mgmtEventRing(nullptr, env.MGMT_EVT_RING_CAPACITY), mgmtReaderShallStop(false),
+  mgmtEventRing(env.MGMT_EVT_RING_CAPACITY), mgmtReaderShallStop(false),
   mgmtReaderThreadId(0), mgmtReaderRunning(false),
   allowClose( comm.isOpen() )
 {

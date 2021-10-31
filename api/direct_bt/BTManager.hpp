@@ -230,7 +230,7 @@ namespace direct_bt {
             jau::POctets rbuffer;
             HCIComm comm;
 
-            jau::ringbuffer<std::unique_ptr<MgmtEvent>, std::nullptr_t, jau::nsize_t> mgmtEventRing;
+            jau::ringbuffer<std::unique_ptr<MgmtEvent>, jau::nsize_t> mgmtEventRing;
             jau::sc_atomic_bool mgmtReaderShallStop;
 
             std::mutex mtx_mgmtReaderLifecycle;

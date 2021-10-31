@@ -167,7 +167,7 @@ SMPHandler::SMPHandler(const std::shared_ptr<BTDevice> &device) noexcept
   rbuffer(number(Defaults::SMP_MTU_BUFFER_SZ), jau::endian::little),
   l2cap(device->getAdapter().getAddressAndType(), L2CAP_PSM::UNDEFINED, L2CAP_CID::SMP),
   is_connected(l2cap.open(*device)), has_ioerror(false),
-  smpPDURing(nullptr, env.SMPPDU_RING_CAPACITY), l2capReaderShallStop(false),
+  smpPDURing(env.SMPPDU_RING_CAPACITY), l2capReaderShallStop(false),
   l2capReaderThreadId(0), l2capReaderRunning(false),
   mtu(number(Defaults::MIN_SMP_MTU))
 {
@@ -312,8 +312,8 @@ std::unique_ptr<const SMPPDUMsg> SMPHandler::sendWithReply(const SMPPDUMsg & msg
     send( msg );
 
     // Ringbuffer read is thread safe
-    std::unique_ptr<const SMPPDUMsg> res = smpPDURing.getBlocking(timeout);
-    if( nullptr == res ) {
+    std::unique_ptr<const SMPPDUMsg> res;
+    if( !smpPDURing.getBlocking(res, timeout) || nullptr == res ) {
         errno = ETIMEDOUT;
         IRQ_PRINT("SMPHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), deviceString.c_str());
         has_ioerror = true;

@@ -612,8 +612,8 @@ std::unique_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int32_t & re
 {
     // Ringbuffer read is thread safe
     while( retryCount < env.HCI_READ_PACKET_MAX_RETRY ) {
-        std::unique_ptr<HCIEvent> ev = hciEventRing.getBlocking(replyTimeoutMS);
-        if( nullptr == ev ) {
+        std::unique_ptr<HCIEvent> ev;
+        if( !hciEventRing.getBlocking(ev, replyTimeoutMS) || nullptr == ev ) {
             errno = ETIMEDOUT;
             ERR_PRINT("HCIHandler<%u>::getNextReply: nullptr result (timeout %d ms -> abort): req %s - %s",
                     dev_id, replyTimeoutMS, req.toString().c_str(), toString().c_str());
@@ -679,7 +679,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
   dev_id(dev_id_),
   rbuffer(HCI_MAX_MTU, jau::endian::little),
   comm(dev_id_, HCI_CHANNEL_RAW),
-  hciEventRing(nullptr, env.HCI_EVT_RING_CAPACITY), hciReaderShallStop(false),
+  hciEventRing(env.HCI_EVT_RING_CAPACITY), hciReaderShallStop(false),
   hciReaderThreadId(0), hciReaderRunning(false),
   allowClose( comm.isOpen() ),
   btMode(btMode_),

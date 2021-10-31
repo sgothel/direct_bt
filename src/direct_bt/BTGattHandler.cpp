@@ -1010,7 +1010,7 @@ BTGattHandler::BTGattHandler(const std::shared_ptr<BTDevice> &device, L2CAPComm&
   deviceString(device->getAddressAndType().toString()),
   rbuffer(number(Defaults::MAX_ATT_MTU), jau::endian::little),
   is_connected(l2cap.isOpen()), has_ioerror(false),
-  attPDURing(nullptr, env.ATTPDU_RING_CAPACITY), l2capReaderShallStop(false),
+  attPDURing(env.ATTPDU_RING_CAPACITY), l2capReaderShallStop(false),
   l2capReaderThreadId(0), l2capReaderRunning(false),
   gattServerData( GATTRole::Server == role ? device->getAdapter().getGATTServerData() : nullptr ),
   serverMTU(number(Defaults::MIN_ATT_MTU)), usedMTU(number(Defaults::MIN_ATT_MTU))
@@ -1198,8 +1198,8 @@ std::unique_ptr<const AttPDUMsg> BTGattHandler::sendWithReply(const AttPDUMsg & 
     send( msg );
 
     // Ringbuffer read is thread safe
-    std::unique_ptr<const AttPDUMsg> res = attPDURing.getBlocking(timeout);
-    if( nullptr == res ) {
+    std::unique_ptr<const AttPDUMsg> res;
+    if( !attPDURing.getBlocking(res, timeout) || nullptr == res ) {
         errno = ETIMEDOUT;
         IRQ_PRINT("GATTHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), toString().c_str());
         has_ioerror = true;

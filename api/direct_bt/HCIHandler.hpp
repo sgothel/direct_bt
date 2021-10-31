@@ -245,7 +245,7 @@ namespace direct_bt {
             constexpr static void filter_all_opcbit(uint64_t &mask) noexcept { mask=0xffffffffffffffffUL; }
             inline static void filter_set_opcbit(HCIOpcodeBit opcbit, uint64_t &mask) noexcept { jau::set_bit_uint64(number(opcbit), mask); }
 
-            jau::ringbuffer<std::unique_ptr<HCIEvent>, std::nullptr_t, jau::nsize_t> hciEventRing;
+            jau::ringbuffer<std::unique_ptr<HCIEvent>, jau::nsize_t> hciEventRing;
             jau::sc_atomic_bool hciReaderShallStop;
 
             std::mutex mtx_hciReaderLifecycle;
