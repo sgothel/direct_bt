@@ -62,6 +62,7 @@ rm -f $valgrindlogfile
 callgrindoutfile=$logbasename-callgrind.out
 rm -f $callgrindoutfile
 
+echo 'core_%e.%p' | sudo tee /proc/sys/kernel/core_pattern
 ulimit -c unlimited
 
 # run as root 'dpkg-reconfigure locales' enable 'en_US.UTF-8'
