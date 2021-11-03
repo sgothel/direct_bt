@@ -1274,6 +1274,7 @@ bool BTGattHandler::sendIndication(const uint16_t handle, const jau::TROOctets &
         ERR_PRINT("BTDevice::sendIndication: invalid handle %s", jau::to_hexstring(handle).c_str());
         return false;
     }
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     AttHandleValueRcv req(false /* isNotify */, handle, value);
     std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_WRITE_COMMAND_REPLY_TIMEOUT); // valid reply or exception
     if( pdu->getOpcode() == AttPDUMsg::Opcode::HANDLE_VALUE_CFM ) {
