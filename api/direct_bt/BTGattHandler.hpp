@@ -311,22 +311,13 @@ namespace direct_bt {
             inline uint16_t getUsedMTU()  const noexcept { return usedMTU; }
 
             /**
-             * Find and return the BTGattChar within internal primary services
-             * via given characteristic value handle.
-             * <p>
-             * Returns nullptr if not found.
-             * </p>
-             */
-            BTGattCharRef findCharacterisicsByValueHandle(const uint16_t charValueHandle) noexcept;
-
-            /**
              * Find and return the BTGattChar within given list of primary services
              * via given characteristic value handle.
              * <p>
              * Returns nullptr if not found.
              * </p>
              */
-            BTGattCharRef findCharacterisicsByValueHandle(const uint16_t charValueHandle, jau::darray<BTGattServiceRef> &services) noexcept;
+            BTGattCharRef findCharacterisicsByValueHandle(const jau::darray<BTGattServiceRef> &services_, const uint16_t charValueHandle) noexcept;
 
             /**
              * Find and return the BTGattChar within given primary service
@@ -335,7 +326,7 @@ namespace direct_bt {
              * Returns nullptr if not found.
              * </p>
              */
-            BTGattCharRef findCharacterisicsByValueHandle(const uint16_t charValueHandle, BTGattServiceRef service) noexcept;
+            BTGattCharRef findCharacterisicsByValueHandle(const BTGattServiceRef service, const uint16_t charValueHandle) noexcept;
 
             /**
              * Discover all primary services _and_ all its characteristics declarations

@@ -926,7 +926,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
             } else if( AttPDUMsg::Opcode::HANDLE_VALUE_NTF == opc ) { // AttPDUMsg::OpcodeType::NOTIFICATION
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
                 COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: NTF: %s, listener %zd", a->toString().c_str(), characteristicListenerList.size());
-                BTGattCharRef decl = findCharacterisicsByValueHandle(a->getHandle());
+                BTGattCharRef decl = findCharacterisicsByValueHandle(services, a->getHandle());
                 const jau::TOctetSlice& a_value_view = a->getValue();
                 const jau::TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.size(), a_value_view.byte_order()); // just a view, still owned by attPDU
                 // const std::shared_ptr<TROOctets> data( std::make_shared<POctets>(a->getValue()) );
@@ -954,7 +954,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
                     send(cfm);
                     cfmSent = true;
                 }
-                BTGattCharRef decl = findCharacterisicsByValueHandle(a->getHandle());
+                BTGattCharRef decl = findCharacterisicsByValueHandle(services, a->getHandle());
                 const jau::TOctetSlice& a_value_view = a->getValue();
                 const jau::TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.size(), a_value_view.byte_order()); // just a view, still owned by attPDU
                 // const std::shared_ptr<TROOctets> data( std::make_shared<POctets>(a->getValue()) );
@@ -1288,13 +1288,9 @@ bool BTGattHandler::sendIndication(const uint16_t handle, const jau::TROOctets &
     }
 }
 
-BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle) noexcept {
-    return findCharacterisicsByValueHandle(charValueHandle, services);
-}
-
-BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle, jau::darray<BTGattServiceRef> &services_) noexcept {
-    for(auto it = services_.begin(); it != services_.end(); it++) {
-        BTGattCharRef decl = findCharacterisicsByValueHandle(charValueHandle, *it);
+BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const jau::darray<BTGattServiceRef> &services_, const uint16_t charValueHandle) noexcept {
+    for(auto it = services_.cbegin(); it != services_.cend(); it++) {
+        BTGattCharRef decl = findCharacterisicsByValueHandle(*it, charValueHandle);
         if( nullptr != decl ) {
             return decl;
         }
@@ -1302,7 +1298,7 @@ BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const uint16_t char
     return nullptr;
 }
 
-BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle, BTGattServiceRef service) noexcept {
+BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const BTGattServiceRef service, const uint16_t charValueHandle) noexcept {
     for(auto it = service->characteristicList.begin(); it != service->characteristicList.end(); it++) {
         BTGattCharRef decl = *it;
         if( charValueHandle == decl->value_handle ) {
