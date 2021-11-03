@@ -1132,18 +1132,30 @@ namespace direct_bt {
             std::shared_ptr<GattGenericAccessSvc> getGattGenericAccess();
 
             /**
+             * Send a notification event consisting out of the given `value` representing the given characteristic value handle
+             * to the connected BTRole::Master.
              *
-             * @param value
-             * @return
+             * This command is only valid if this BTGattHandler is in role GATTRole::Server.
+             *
+             * Implementation is not receiving any reply after sending out the indication and returns immediately.
+             *
+             * @param char_value_handle valid characteristic value handle, must be sourced from referenced DBGattServer
+             * @return true if successful, otherwise false
              */
-            bool sendNotification(const uint16_t handle, const jau::TROOctets & value);
+            bool sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value);
 
             /**
+             * Send an indication event consisting out of the given `value` representing the given characteristic value handle
+             * to the connected BTRole::Master.
              *
-             * @param value
-             * @return
+             * This command is only valid if this BTGattHandler is in role GATTRole::Server.
+             *
+             * Implementation awaits the indication reply after sending out the indication.
+             *
+             * @param char_value_handle valid characteristic value handle, must be sourced from referenced DBGattServer
+             * @return true if successful, otherwise false
              */
-            bool sendIndication(const uint16_t handle, const jau::TROOctets & value);
+            bool sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value);
 
             /**
              * Issues a GATT ping to the device, validating whether it is still reachable.

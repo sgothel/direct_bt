@@ -2011,22 +2011,22 @@ BTGattCharRef BTDevice::findGattChar(const jau::uuid_t&  service_uuid, const jau
     return service->findGattChar(char_uuid);
 }
 
-bool BTDevice::sendNotification(const uint16_t handle, const jau::TROOctets & value) {
+bool BTDevice::sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value) {
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh || !gh->isConnected() ) {
         WARN_PRINT("BTDevice::sendNotification: GATTHandler not connected -> disconnected on %s", toString().c_str());
         return false;
     }
-    return gh->sendNotification(handle, value);
+    return gh->sendNotification(char_value_handle, value);
 }
 
-bool BTDevice::sendIndication(const uint16_t handle, const jau::TROOctets & value) {
+bool BTDevice::sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value) {
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh || !gh->isConnected() ) {
         WARN_PRINT("BTDevice::sendIndication: GATTHandler not connected -> disconnected on %s", toString().c_str());
         return false;
     }
-    return gh->sendIndication(handle, value);
+    return gh->sendIndication(char_value_handle, value);
 }
 
 

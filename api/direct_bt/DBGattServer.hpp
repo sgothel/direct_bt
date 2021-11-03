@@ -436,6 +436,14 @@ namespace direct_bt {
                 }
                 return nullptr;
             }
+            DBGattChar* findGattCharByValueHandle(const uint16_t char_value_handle) noexcept {
+                for(DBGattChar& c : characteristics) {
+                    if( char_value_handle == c.value_handle ) {
+                        return &c;
+                    }
+                }
+                return nullptr;
+            }
 
             /**
              * Sets all handles of this service instance and all its owned childs,
@@ -626,6 +634,16 @@ namespace direct_bt {
                 }
                 d->bzero();
                 return true;
+            }
+
+            DBGattChar* findGattCharByValueHandle(const uint16_t char_value_handle) noexcept {
+                for(DBGattService& s : services) {
+                    DBGattChar* r = s.findGattCharByValueHandle(char_value_handle);
+                    if( nullptr != r ) {
+                        return r;
+                    }
+                }
+                return nullptr;
             }
 
             /**

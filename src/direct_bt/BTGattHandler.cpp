@@ -186,6 +186,36 @@ bool BTGattHandler::getSendIndicationConfirmation() noexcept {
     return sendIndicationConfirmation;
 }
 
+bool BTGattHandler::hasServerHandle(const uint16_t handle) noexcept {
+    if( nullptr == gattServerData ) {
+        return false;
+    }
+    for(DBGattService& s : gattServerData->services) {
+        if( s.handle <= handle && handle <= s.end_handle ) {
+            for(DBGattChar& c : s.characteristics) {
+                if( c.handle <= handle && handle <= c.end_handle ) {
+                    if( handle == c.value_handle ) {
+                        return true;
+                    }
+                    for(DBGattDesc& d : c.descriptors) {
+                        if( handle == d.handle ) {
+                            return true;
+                        }
+                    }
+                } // if characteristics-range
+            } // for characteristics
+        } // if service-range
+    } // for services
+    return false;
+}
+
+DBGattChar* BTGattHandler::findServerGattCharByValueHandle(const uint16_t char_value_handle) noexcept {
+    if( nullptr == gattServerData ) {
+        return nullptr;
+    }
+    return gattServerData->findGattCharByValueHandle(char_value_handle);
+}
+
 AttErrorRsp::ErrorCode BTGattHandler::applyWrite(std::shared_ptr<BTDevice> device, const uint16_t handle, const jau::TROOctets & value, const uint16_t value_offset) {
     if( nullptr == gattServerData ) {
         return AttErrorRsp::ErrorCode::INVALID_HANDLE;
@@ -323,29 +353,6 @@ AttErrorRsp::ErrorCode BTGattHandler::applyWrite(std::shared_ptr<BTDevice> devic
     return AttErrorRsp::ErrorCode::INVALID_HANDLE;
 }
 
-bool BTGattHandler::hasHandle(const uint16_t handle) {
-    if( nullptr == gattServerData ) {
-        return false;
-    }
-    for(DBGattService& s : gattServerData->services) {
-        if( s.handle <= handle && handle <= s.end_handle ) {
-            for(DBGattChar& c : s.characteristics) {
-                if( c.handle <= handle && handle <= c.end_handle ) {
-                    if( handle == c.value_handle ) {
-                        return true;
-                    }
-                    for(DBGattDesc& d : c.descriptors) {
-                        if( handle == d.handle ) {
-                            return true;
-                        }
-                    }
-                } // if characteristics-range
-            } // for characteristics
-        } // if service-range
-    } // for services
-    return false;
-}
-
 void BTGattHandler::replyWriteReq(const AttPDUMsg * pdu) {
     /**
      * Without Response:
@@ -370,7 +377,7 @@ void BTGattHandler::replyWriteReq(const AttPDUMsg * pdu) {
 
     if( AttPDUMsg::Opcode::PREPARE_WRITE_REQ == pdu->getOpcode() ) {
         const AttPrepWrite * req = static_cast<const AttPrepWrite*>(pdu);
-        if( !hasHandle( req->getHandle() ) ) {
+        if( !hasServerHandle( req->getHandle() ) ) {
             AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, req->getOpcode(), req->getHandle());
             WARN_PRINT("GATT-Req: WRITE.10: %s -> %s from %s", req->toString().c_str(), err.toString().c_str(), toString().c_str());
             send(err);
@@ -1250,32 +1257,32 @@ uint16_t BTGattHandler::exchangeMTUImpl(const uint16_t clientMaxMTU, const int32
     return mtu;
 }
 
-bool BTGattHandler::sendNotification(const uint16_t handle, const jau::TROOctets & value) {
+bool BTGattHandler::sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value) {
     if( GATTRole::Server != role ) {
         ERR_PRINT("BTDevice::sendNotification: GATTRole not server");
         return false;
     }
-    if( !hasHandle(handle) ) {
-        ERR_PRINT("BTDevice::sendNotification: invalid handle %s", jau::to_hexstring(handle).c_str());
+    if( nullptr == findServerGattCharByValueHandle(char_value_handle) ) {
+        ERR_PRINT("BTDevice::sendIndication: invalid char handle %s", jau::to_hexstring(char_value_handle).c_str());
         return false;
     }
-    AttHandleValueRcv data(true /* isNotify */, handle, value);
+    AttHandleValueRcv data(true /* isNotify */, char_value_handle, value);
     COND_PRINT(env.DEBUG_DATA, "GATT SEND NTF: %s to %s", data.toString().c_str(), toString().c_str());
     send(data);
     return true;
 }
 
-bool BTGattHandler::sendIndication(const uint16_t handle, const jau::TROOctets & value) {
+bool BTGattHandler::sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value) {
     if( GATTRole::Server != role ) {
         ERR_PRINT("BTDevice::sendIndication: GATTRole not server");
         return false;
     }
-    if( !hasHandle(handle) ) {
-        ERR_PRINT("BTDevice::sendIndication: invalid handle %s", jau::to_hexstring(handle).c_str());
+    if( nullptr == findServerGattCharByValueHandle(char_value_handle) ) {
+        ERR_PRINT("BTDevice::sendIndication: invalid char handle %s", jau::to_hexstring(char_value_handle).c_str());
         return false;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
-    AttHandleValueRcv req(false /* isNotify */, handle, value);
+    AttHandleValueRcv req(false /* isNotify */, char_value_handle, value);
     std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_WRITE_COMMAND_REPLY_TIMEOUT); // valid reply or exception
     if( pdu->getOpcode() == AttPDUMsg::Opcode::HANDLE_VALUE_CFM ) {
         COND_PRINT(env.DEBUG_DATA, "GATT SENT IND: %s -> %s to/from %s",
