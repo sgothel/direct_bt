@@ -83,7 +83,7 @@ The following **platforms** are tested and hence supported
 **Ubuntu 18.04 (GNU/Linux)**
 - amd64 (validated, Generic)
 
-## Tested *Bluetooth Adapter*
+## Tested Bluetooth Adapter
 
 * Bluetooth 4.0
   - Intel Bluemoon Bluetooth Adapter (Internal, ID: 8087:0a2a) *OK*
@@ -101,7 +101,7 @@ The following **platforms** are tested and hence supported
 
 Please check the [adapter list](doc/adapter/adapter.md) for more details.
 
-## Using *Direct-BT* Applications
+## Using Direct-BT Applications
 
 ### System Preparations
 
@@ -116,7 +116,7 @@ systemctl disable bluetooth
 systemctl mask bluetooth
 ```
 
-### Required Permissions for *Direct-BT* Applications
+### Required Permissions for Direct-BT Applications
 
 Since *Direct-BT* requires root permissions to certain Bluetooth network device facilities,
 non-root user require to be granted such permissions.
@@ -132,7 +132,7 @@ which provides the binaries `/sbin/setcap` and `/sbin/getcap`.
 It depends on package `libcap2`, version `>= 1:2.33`.
 If using earlier `setcap` binaries, *your mileage may vary (YMMV)*.
 
-#### Launch as `root`
+#### Launch as root
 In case your platform lacks support for mentioned `setcap`,
 you may need to execute your application as root using `sudo`, e.g.:
 
@@ -140,7 +140,7 @@ you may need to execute your application as root using `sudo`, e.g.:
 LD_LIBRARY_PATH=`pwd`/dist-amd64/lib sudo dist-amd64/bin/dbt_scanner10
 ```
 
-#### Launch as `user` using `setcap`
+#### Launch as user using setcap
 
 To launch your Direct-BT application as a user, 
 you may set the required `capabilities` before launch via [setcap](https://linux.die.net/man/8/setcap)
@@ -150,7 +150,7 @@ sudo setcap 'cap_net_raw,cap_net_admin+eip' dist-amd64/bin/dbt_scanner10
 LD_LIBRARY_PATH=`pwd`/dist-amd64/lib dist-amd64/bin/dbt_scanner10
 ```
 
-#### Launch as `user` via `capsh`
+#### Launch as user via capsh
 
 Alternatively one can set the required `capabilities` of a Direct-BT application 
 and launch it as a user via [capsh](https://linux.die.net/man/1/capsh).
@@ -175,7 +175,7 @@ The *capsh* method (default), *setcap* and *root* method is being utilized in
 See *Examples* below ...
 
 
-## Programming with *Direct-BT*
+## Programming with Direct-BT
 
 ### API
 Exposed API closely follows and references the [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/).
@@ -213,7 +213,7 @@ are availble, demonstrates the event driven and multithreading workflow:
 - [DBTPeripheral00.java](https://jausoft.com/projects/direct_bt/build/documentation/java/html/DBTPeripheral00_8java-example.html), matching *dbt_peripheral00.cpp*.
 
 
-## Building *Direct-BT*
+## Building Direct-BT
 This project also uses the [Jau Library](https://jausoft.com/cgit/jaulib.git/about/)
 as a git submodule, which has been extracted earlier from this project
 to better encapsulation and allow general use.
@@ -362,7 +362,7 @@ If the solution is not there, please search for an existing issue in our [Bugzil
 please [contact us](https://jausoft.com/) for a new bugzilla account via email to Sven Gothel <sgothel@jausoft.com>.
 
 
-## Contributing to *Direct-BT*
+## Contributing to Direct-BT
 You shall agree to Developer Certificate of Origin and Sign-off your code,
 using a real name and e-mail address. 
 
@@ -372,7 +372,7 @@ Please check the [Contribution](CONTRIBUTING.md) document for more details.
 
 <a name="direct_bt_origins"></a>
 
-### *Direct-BT* Origins
+### Direct-BT Origins
 *Direct-BT* development started around April 2020,
 initially as an alternative *TinyB* Java-API implementation.
 
@@ -415,7 +415,7 @@ Last but not least we added
 Today, *Direct-BT*'s C++ and Java API match 1:1
 and shall not contain legacy API artifacts.
 
-### *TinyB* Removal since version 2.3
+### TinyB Removal since version 2.3
 Heading towards feature completion for *Direct-BT*, 
 we completely removed the previously refactored *TinyB*.
 
@@ -427,7 +427,7 @@ However, *TinyB* inspired us and was a great reference implementation while deve
 We like to thank the authors of *TinyB* for their great work helping others and us moving forward.
 Thank you!
 
-### *TinyB*
+### TinyB
 *TinyB* was developed by the *Intel Corporation*
 and its main authors were
 - Petre Eftime <petre.p.eftime@intel.com>
