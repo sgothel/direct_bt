@@ -581,7 +581,7 @@ namespace direct_bt {
              * </p>
              *
              * @param filter_dup true to filter out duplicate AD PDUs (default), otherwise all will be reported.
-             * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
+             * @param le_scan_active true enables delivery of active scanning PDUs like EIR w/ device name (default), otherwise no scanning PDUs shall be sent.
              * @param own_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
              * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
              * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
@@ -589,7 +589,7 @@ namespace direct_bt {
              * @see le_read_local_features()
              */
             HCIStatusCode le_start_scan(const bool filter_dup=true,
-                                        const bool le_scan_active=false,
+                                        const bool le_scan_active=true,
                                         const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
                                         const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
                                         const uint8_t filter_policy=0x00) noexcept;

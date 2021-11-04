@@ -158,7 +158,7 @@ public interface BTAdapter extends BTObject
      * Starts discovery using all default arguments, see {@link #startDiscovery(boolean, boolean, short, short, byte)} for details.
      *
      * @param keepAlive
-     * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
+     * @param le_scan_active true enables delivery of active scanning PDUs like EIR w/ device name (default), otherwise no scanning PDUs shall be sent.
      * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
      * @throws BTException
      * @since 2.2.8
@@ -202,7 +202,7 @@ public interface BTAdapter extends BTObject
      * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to {@link BTRole#Master}.
      *
      * @param keepAlive see above
-     * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
+     * @param le_scan_active true enables delivery of active scanning PDUs like EIR w/ device name (default), otherwise no scanning PDUs shall be sent
      * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
      * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
      * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
