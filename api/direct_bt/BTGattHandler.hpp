@@ -73,26 +73,34 @@ namespace direct_bt {
 
         public:
             /**
-             * Timeout for GATT read command replies, defaults to 500ms.
-             * <p>
+             * Timeout for GATT read command replies, defaults to 550ms minimum,
+             * where 500ms is the minimum supervising timeout HCIConstInt::LE_CONN_MIN_TIMEOUT_MS.
+             *
              * Environment variable is 'direct_bt.gatt.cmd.read.timeout'.
-             * </p>
+             *
+             * Actually used timeout will be `max(connection_supervisor_timeout + 50ms, GATT_READ_COMMAND_REPLY_TIMEOUT)`,
+             * additional 50ms to allow L2CAP timeout hit first.
              */
             const int32_t GATT_READ_COMMAND_REPLY_TIMEOUT;
 
             /**
-             * Timeout for GATT write command replies, defaults to 500ms.
-             * <p>
+             * Timeout for GATT write command replies, defaults to 550ms minimum,
+             * where 500ms is the minimum supervising timeout HCIConstInt::LE_CONN_MIN_TIMEOUT_MS.
+             *
              * Environment variable is 'direct_bt.gatt.cmd.write.timeout'.
-             * </p>
+             *
+             * Actually used timeout will be `max(connection_supervisor_timeout + 50ms, GATT_WRITE_COMMAND_REPLY_TIMEOUT)`,
+             * additional 50ms to allow L2CAP timeout hit first.
              */
             const int32_t GATT_WRITE_COMMAND_REPLY_TIMEOUT;
 
             /**
-             * Timeout for l2cap _initial_ command reply, defaults to 2500ms.
-             * <p>
+             * Timeout for l2cap _initial_ command reply, defaults to 2500ms (2000ms minimum).
+             *
              * Environment variable is 'direct_bt.gatt.cmd.init.timeout'.
-             * </p>
+             *
+             * Actually used timeout will be `min(10000, max(2 * connection_supervisor_timeout, GATT_INITIAL_COMMAND_REPLY_TIMEOUT))`,
+             * double of connection_supervisor_timeout, to make sure L2CAP timeout hits first.
              */
             const int32_t GATT_INITIAL_COMMAND_REPLY_TIMEOUT;
 
@@ -173,6 +181,8 @@ namespace direct_bt {
             std::weak_ptr<BTDevice> wbr_device;
             GATTRole role;
             L2CAPComm& l2cap;
+            int32_t read_cmd_reply_timeout;
+            int32_t write_cmd_reply_timeout;
 
             const std::string deviceString;
             std::recursive_mutex mtx_command;
@@ -278,7 +288,7 @@ namespace direct_bt {
              * See getServerMTU() and getUsedMTU(), the latter is in use.
              * </p>
              */
-            BTGattHandler(const std::shared_ptr<BTDevice> & device, L2CAPComm& l2cap_att) noexcept;
+            BTGattHandler(const std::shared_ptr<BTDevice> & device, L2CAPComm& l2cap_att, const uint16_t supervision_timeout) noexcept;
 
             BTGattHandler(const BTGattHandler&) = delete;
             void operator=(const BTGattHandler&) = delete;

@@ -47,15 +47,20 @@ using namespace direct_bt;
 BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
 : adapter(a), btRole(!a.getRole()),
   l2cap_att(adapter.getAddressAndType(), L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT),
-  ts_creation(r.getTimestamp()),
+  ts_last_discovery(r.getTimestamp()),
+  ts_last_update(ts_last_discovery),
+  hciConnHandle(0),
+  le_features(LE_Features::NONE),
+  le_phy_tx(LE_PHYs::NONE),
+  le_phy_rx(LE_PHYs::NONE),
+  isConnected(false),
+  allowDisconnect(false),
+  supervision_timeout(0),
+  ts_creation(ts_last_discovery),
   addressAndType{r.getAddress(), r.getAddressType()}
 {
     (void)cc;
-    ts_last_discovery = ts_creation;
-    hciConnHandle = 0;
-    le_features = LE_Features::NONE;
-    isConnected = false;
-    allowDisconnect = false;
+
     clearSMPStates(false /* connected */);
     if( !r.isSet(EIRDataType::BDADDR) ) {
         throw jau::IllegalArgumentException("Address not set: "+r.toString(), E_FILE_LINE);
@@ -296,7 +301,7 @@ std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo() noexcept {
 
 HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
                                    uint16_t conn_interval_min, uint16_t conn_interval_max,
-                                   uint16_t conn_latency, uint16_t supervision_timeout) noexcept
+                                   uint16_t conn_latency, uint16_t conn_supervision_timeout) noexcept
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
     if( !adapter.isPowered() ) { // isValid() && hci.isOpen() && POWERED
@@ -404,7 +409,8 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
         statusConnect = hci.le_create_conn(addressAndType.address,
                                     hci_peer_mac_type, hci_own_mac_type,
                                     le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
-                                    conn_latency, supervision_timeout);
+                                    conn_latency, conn_supervision_timeout);
+        supervision_timeout = conn_supervision_timeout;
         allowDisconnect = true;
         if( HCIStatusCode::COMMAND_DISALLOWED == statusConnect ) {
             WARN_PRINT("BTDevice::connectLE: Could not yet create connection: status 0x%2.2X (%s), errno %d, hci-atype[peer %s, own %s] %s on %s",
@@ -1940,7 +1946,7 @@ bool BTDevice::connectGATT(std::shared_ptr<BTDevice> sthis) noexcept {
         gattHandler = nullptr;
     }
 
-    gattHandler = std::make_shared<BTGattHandler>(sthis, l2cap_att);
+    gattHandler = std::make_shared<BTGattHandler>(sthis, l2cap_att, supervision_timeout);
     if( !gattHandler->isConnected() ) {
         ERR_PRINT2("BTDevice::connectGATT: Connection failed");
         gattHandler = nullptr;
@@ -2151,6 +2157,7 @@ void BTDevice::notifyDisconnected() noexcept {
     DBG_PRINT("BTDevice::notifyDisconnected: handle %s -> zero, %s",
               jau::to_hexstring(hciConnHandle).c_str(), toString().c_str());
     allowDisconnect = false;
+    supervision_timeout = 0;
     isConnected = false;
     hciConnHandle = 0;
     unpair(); // -> clearSMPStates(false /* connected */);
