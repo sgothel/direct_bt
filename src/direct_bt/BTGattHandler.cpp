@@ -1009,7 +1009,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
     disconnect(true /* disconnectDevice */, has_ioerror);
 }
 
-BTGattHandler::BTGattHandler(const std::shared_ptr<BTDevice> &device, L2CAPComm& l2cap_att, const uint16_t supervision_timeout) noexcept
+BTGattHandler::BTGattHandler(const std::shared_ptr<BTDevice> &device, L2CAPComm& l2cap_att, const int32_t supervision_timeout) noexcept
 : env(BTGattEnv::get()),
   wbr_device(device),
   role(device->getLocalGATTRole()),

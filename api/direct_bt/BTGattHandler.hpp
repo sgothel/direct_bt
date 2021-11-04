@@ -287,8 +287,11 @@ namespace direct_bt {
              * After successful l2cap connection, the MTU will be exchanged.
              * See getServerMTU() and getUsedMTU(), the latter is in use.
              * </p>
+             * @param device the connected remote device
+             * @param l2cap_att the underlying used L2CAP
+             * @param supervision_timeout the connection supervising timeout in [ms]
              */
-            BTGattHandler(const std::shared_ptr<BTDevice> & device, L2CAPComm& l2cap_att, const uint16_t supervision_timeout) noexcept;
+            BTGattHandler(const std::shared_ptr<BTDevice> & device, L2CAPComm& l2cap_att, const int32_t supervision_timeout) noexcept;
 
             BTGattHandler(const BTGattHandler&) = delete;
             void operator=(const BTGattHandler&) = delete;

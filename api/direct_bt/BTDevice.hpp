@@ -102,7 +102,7 @@ namespace direct_bt {
             mutable std::mutex mtx_data;
             std::atomic<bool> isConnected;
             std::atomic<bool> allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
-            jau::relaxed_atomic_uint16 supervision_timeout;
+            jau::relaxed_atomic_int32 supervision_timeout; // [ms]
 
             struct PairingData {
                 SMPIOCapability ioCap_conn     = SMPIOCapability::UNSET;

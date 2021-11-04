@@ -300,8 +300,8 @@ std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo() noexcept {
 // #define TEST_NOENC 1
 
 HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
-                                   uint16_t conn_interval_min, uint16_t conn_interval_max,
-                                   uint16_t conn_latency, uint16_t conn_supervision_timeout) noexcept
+                                  uint16_t conn_interval_min, uint16_t conn_interval_max,
+                                  uint16_t conn_latency, uint16_t conn_supervision_timeout) noexcept
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
     if( !adapter.isPowered() ) { // isValid() && hci.isOpen() && POWERED
@@ -410,7 +410,7 @@ HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_wi
                                     hci_peer_mac_type, hci_own_mac_type,
                                     le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
                                     conn_latency, conn_supervision_timeout);
-        supervision_timeout = conn_supervision_timeout;
+        supervision_timeout = 10 * conn_supervision_timeout; // [ms] = 10 * [ms/10]
         allowDisconnect = true;
         if( HCIStatusCode::COMMAND_DISALLOWED == statusConnect ) {
             WARN_PRINT("BTDevice::connectLE: Could not yet create connection: status 0x%2.2X (%s), errno %d, hci-atype[peer %s, own %s] %s on %s",
