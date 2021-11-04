@@ -858,7 +858,7 @@ namespace direct_bt {
              * Returns the number of removed status listener.
              * </p>
              */
-            int removeAllStatusListener();
+            int removeAllStatusListener() noexcept;
 
             /**
              * Starts discovery.
@@ -911,7 +911,7 @@ namespace direct_bt {
             HCIStatusCode startDiscovery(const bool keepAlive=true,
                                          const bool le_scan_active=false,
                                          const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
-                                         const uint8_t filter_policy=0x00);
+                                         const uint8_t filter_policy=0x00) noexcept;
 
         private:
             HCIStatusCode stopDiscovery(const bool forceDiscoveringEvent) noexcept;

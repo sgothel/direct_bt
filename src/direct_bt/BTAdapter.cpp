@@ -825,7 +825,7 @@ int BTAdapter::removeAllStatusListener(const BTDevice& d) {
     return count;
 }
 
-int BTAdapter::removeAllStatusListener() {
+int BTAdapter::removeAllStatusListener() noexcept {
     int count = statusListenerList.size();
     statusListenerList.clear();
     return count;
@@ -857,7 +857,7 @@ void BTAdapter::checkDiscoveryState() noexcept {
 
 HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const bool le_scan_active,
                                         const uint16_t le_scan_interval, const uint16_t le_scan_window,
-                                        const uint8_t filter_policy)
+                                        const uint8_t filter_policy) noexcept
 {
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
     // ERR_PRINT("Test");

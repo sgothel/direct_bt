@@ -299,9 +299,9 @@ std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo() noexcept {
 
 // #define TEST_NOENC 1
 
-HCIStatusCode BTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
-                                  uint16_t conn_interval_min, uint16_t conn_interval_max,
-                                  uint16_t conn_latency, uint16_t conn_supervision_timeout) noexcept
+HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_t le_scan_window,
+                                  const uint16_t conn_interval_min, const uint16_t conn_interval_max,
+                                  const uint16_t conn_latency, const uint16_t conn_supervision_timeout) noexcept
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
     if( !adapter.isPowered() ) { // isValid() && hci.isOpen() && POWERED
