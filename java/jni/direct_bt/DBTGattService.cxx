@@ -60,7 +60,7 @@ void Java_jau_direct_1bt_DBTGattService_deleteImpl(JNIEnv *env, jobject obj, jlo
     }
 }
 
-static const std::string _characteristicClazzCtorArgs("(JLjau/direct_bt/DBTGattService;SLorg/direct_bt/GattCharPropertySet;Ljava/lang/String;SI)V");
+static const std::string _characteristicClazzCtorArgs("(JLjau/direct_bt/DBTGattService;SLorg/direct_bt/GattCharPropertySet;Ljava/lang/String;SII)V");
 static const std::string _gattCharPropSetClassName("org/direct_bt/GattCharPropertySet");
 static const std::string _gattCharPropSetClazzCtorArgs("(B)V");
 
@@ -91,8 +91,9 @@ jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj
             DBTGattChar(final long nativeInstance, final DBTGattService service,
                         final short handle, final GattCharPropertySet properties,
                         final String value_type_uuid, final short value_handle,
-                        final int clientCharacteristicsConfigIndex)
-         */
+                        final int clientCharacteristicsConfigIndex,
+                        final int userDescriptionIndex)
+        */
         std::function<jobject(JNIEnv*, jclass, jmethodID, BTGattChar *)> ctor_char =
                 [&gattCharPropSetClazz, &gattCharPropSetClazzCtor](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, BTGattChar *characteristic)->jobject {
                     // prepare adapter ctor
