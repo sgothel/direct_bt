@@ -380,7 +380,7 @@ public class DBTScanner10 {
         }
 
         if( !USE_WHITELIST ) {
-            res = device.connect();
+            res = device.connectDefault();
         } else {
             res = HCIStatusCode.SUCCESS;
         }
@@ -449,7 +449,7 @@ public class DBTScanner10 {
         // GATT Service Processing
         //
         try {
-            final List<BTGattService> primServices = device.getServices(); // implicit GATT connect...
+            final List<BTGattService> primServices = device.getGattServices();
             if( null == primServices || 0 == primServices.size() ) {
                 // Cheating the flow, but avoiding: goto, do-while-false and lastly unreadable intendations
                 // And it is an error case nonetheless ;-)

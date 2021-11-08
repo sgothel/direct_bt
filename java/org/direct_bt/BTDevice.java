@@ -131,7 +131,7 @@ public interface BTDevice extends BTObject
      * @since 2.1.0 change API, i.e. return value from boolean to HCIStatusCode in favor of {@code jau.direct_bt}.
      * @implNote {@code jau.direct_bt} does not throw a BTException on error, only a 'general' exception in case of fatality like NPE etc (FIXME: Remove throws)
      */
-    HCIStatusCode connect() throws BTException;
+    HCIStatusCode connectDefault() throws BTException;
 
     /**
      * Establish a HCI BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM connection to this device.
@@ -169,7 +169,7 @@ public interface BTDevice extends BTObject
      * @param supervision_timeout in units of 10ms, default value >= 10 x conn_interval_max, we use 500 ms minimum; Value range [0xA-0x0C80] for [100ms - 32s].
      * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
      * @see BTUtils#getHCIConnSupervisorTimeout(int, int, int, int)
-     * @see #connect()
+     * @see #connectDefault()
      */
     HCIStatusCode connectLE(final short le_scan_interval, final short le_scan_window,
                             final short conn_interval_min, final short conn_interval_max,
@@ -374,7 +374,7 @@ public interface BTDevice extends BTObject
      * <p>
      * Method returns false if {@link BTSecurityLevel#UNSET} has been given,
      * operation fails, this device has already being connected,
-     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connect()} has been issued already.
+     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connectDefault()} has been issued already.
      * </p>
      * <p>
      * To ensure a consistent authentication setup,
@@ -415,7 +415,7 @@ public interface BTDevice extends BTObject
      * <p>
      * Method returns false if {@link SMPIOCapability#UNSET} has been given,
      * operation fails, this device has already being connected,
-     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connect()} has been issued already.
+     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connectDefault()} has been issued already.
      * </p>
      * @param io_cap {@link SMPIOCapability} to be applied, {@link SMPIOCapability#UNSET} will be ignored and method fails.
      * @since 2.1.0
@@ -446,7 +446,7 @@ public interface BTDevice extends BTObject
      * Sets the given {@link BTSecurityLevel} and {@link SMPIOCapability} used to connect to this device on the upcoming connection.
      * <p>
      * Method returns false if this device has already being connected,
-     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connect()} has been issued already.
+     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connectDefault()} has been issued already.
      * </p>
      * <p>
      * Method either changes both parameter for the upcoming connection or none at all.
@@ -485,7 +485,7 @@ public interface BTDevice extends BTObject
      * <p>
      * Method returns false if {@link BTSecurityLevel#UNSET} and {@link SMPIOCapability#UNSET} has been given,
      * operation fails, this device has already being connected,
-     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connect()} has been issued already.
+     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connectDefault()} has been issued already.
      * </p>
      * @param sec_level {@link BTSecurityLevel} to be applied.
      * @param io_cap {@link SMPIOCapability} to be applied.
@@ -694,11 +694,18 @@ public interface BTDevice extends BTObject
      */
     boolean isValid();
 
-    /** Returns a list of BluetoothGattServices available on this device.
-      * @return A list of BluetoothGattServices available on this device,
-      * NULL if an error occurred
-      */
-    List<BTGattService> getServices();
+    /**
+     * Returns a list of shared BTGattService available on this device if successful,
+     * otherwise returns an empty list if an error occurred.
+     * <p>
+     * The HCI connectLE(..) or connectBREDR(..) must be performed first, see {@link #connectDefault()}.
+     * </p>
+     * <p>
+     * If this method has been called for the first time or no services has been detected yet,
+     * a list of GATTService will be retrieved.
+     * @since 2.4.0
+     */
+    List<BTGattService> getGattServices();
 
     /**
      * Find a {@link BTGattService} by its service_uuid.
