@@ -294,6 +294,7 @@ public class BTGattCmd implements AutoCloseable
      * for configured commands with response notification or indication.
      *
      * jau.TROOctets.size() matches the size of last received command response or zero.
+     * @see #send(boolean, byte[], int)
      */
     public byte[] getResponse() { return rsp_data; }
 
@@ -317,12 +318,13 @@ public class BTGattCmd implements AutoCloseable
      * Send the command to the remote BTDevice.
      *
      * If a notification or indication result jau.uuid_t has been set via constructor,
-     * it will be awaited and can be retrieved via getResponse() after command returns.
+     * it will be awaited and can be retrieved via {@link #getResponse()} after command returns.
      *
      * @param prefNoAck pass true to prefer command write without acknowledge, otherwise use with-ack if available
      * @param cmd_data raw command octets
      * @param timeoutMS timeout in milliseconds. Defaults to 10 seconds limited blocking for the response to become available, if any.
      * @return
+     * @see #getResponse()
      */
     public synchronized HCIStatusCode send(final boolean prefNoAck, final byte[] cmd_data, final int timeoutMS) {
         HCIStatusCode res = HCIStatusCode.SUCCESS;

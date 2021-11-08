@@ -123,7 +123,7 @@ namespace direct_bt {
              * @param service_uuid_ command's BTGattService jau::uuid_t
              * @param cmd_uuid_ command's BTGattChar value jau::uuid_t to write the command
              * @param rsp_uuid_ command's BTGattChar value jau::uuid_t for the notification or indication response.
-             * @param rsp_capacity initial capacity of caller owned response sink with sufficient capacity
+             * @param rsp_capacity initial capacity of response sink, see getResponse()
              */
             BTGattCmd(BTDevice& dev_, const std::string& name_,
                       const jau::uuid_t& service_uuid_,
@@ -152,7 +152,7 @@ namespace direct_bt {
              * @param name_ user given name, representing the command
              * @param cmd_uuid_ command's BTGattChar value jau::uuid_t to write the command
              * @param rsp_uuid_ command's BTGattChar value jau::uuid_t for the notification or indication response.
-             * @param rsp_capacity initial capacity of caller owned response sink with sufficient capacity
+             * @param rsp_capacity initial capacity of response sink, see getResponse()
              */
             BTGattCmd(BTDevice& dev_, const std::string& name_,
                       const jau::uuid_t& cmd_uuid_,
@@ -251,6 +251,7 @@ namespace direct_bt {
              * for configured commands with response notification or indication.
              *
              * jau::TROOctets::size() matches the size of last received command response or zero.
+             * @see send()
              */
             const jau::TROOctets& getResponse() const noexcept { return rsp_data; }
 
@@ -272,8 +273,9 @@ namespace direct_bt {
              *
              * @param prefNoAck pass true to prefer command write without acknowledge, otherwise use with-ack if available
              * @param cmd_data raw command octets
-             * @param timeoutMS timeout in milliseconds. Defaults to 10 seconds limited blocking for the response to become available
+             * @param timeoutMS timeout in milliseconds. Defaults to 10 seconds limited blocking for the response to become available, if any.
              * @return
+             * @see getResponse()
              */
             HCIStatusCode send(const bool prefNoAck, const jau::TROOctets& cmd_data, const int timeoutMS=10000) noexcept;
 
