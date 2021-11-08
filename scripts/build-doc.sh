@@ -39,6 +39,7 @@ buildit() {
     make -j $CPU_COUNT install test doc
     if [ $? -eq 0 ] ; then
         echo "BUILD SUCCESS $bname $archabi"
+        rm -f $rootdir/documentation.tar.xz
         tar caf $rootdir/documentation.tar.xz documentation
         cd $rootdir
         return 0

@@ -511,9 +511,8 @@ namespace direct_bt {
                      *
                      * Convenient user entry, allowing to setup resources.
                      *
-                     * @param device
-                     * @param initialMTU
-                     * @return
+                     * @param device the connected device
+                     * @param initialMTU initial used minimum MTU until negotiated.
                      */
                     virtual void connected(std::shared_ptr<BTDevice> device, const uint16_t initialMTU) = 0;
 
@@ -522,19 +521,15 @@ namespace direct_bt {
                      *
                      * Convenient user entry, allowing to clean up resources.
                      *
-                     * @param device
-                     * @return
+                     * @param device the disconnected device.
                      */
                     virtual void disconnected(std::shared_ptr<BTDevice> device) = 0;
 
                     /**
-                     * Notification that device got connected.
+                     * Notification that the MTU has changed.
                      *
-                     * Convenient user entry, allowing to setup resources.
-                     *
-                     * @param device
-                     * @param mtu
-                     * @return
+                     * @param device the device for which the MTU has changed
+                     * @param mtu the new negotiated MTU
                      */
                     virtual void mtuChanged(std::shared_ptr<BTDevice> device, const uint16_t mtu) = 0;
 
