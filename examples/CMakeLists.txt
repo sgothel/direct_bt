@@ -5,6 +5,7 @@ include_directories(
 
 # These examples use the standard separate compilation
 set( SOURCES_IDIOMATIC_EXAMPLES
+    dbt_readsmpkey.cpp
     dbt_scanner00.cpp
     dbt_scanner01.cpp
     dbt_scanner10.cpp
