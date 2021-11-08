@@ -656,8 +656,8 @@ public class SMPKeyBin {
                 read(in, buffer, byte_size_min, fname);
 
                 int i=0;
-                version = (short) ( buffer[i++] | ( buffer[i++] << 8 ) );
-                size = (short) ( buffer[i++] | ( buffer[i++] << 8 ) );
+                version = (short) ( ( buffer[i++] & 0xff ) | ( ( buffer[i++] & 0xff ) << 8 ) );
+                size    = (short) ( ( buffer[i++] & 0xff ) | ( ( buffer[i++] & 0xff ) << 8 ) );
 
                 remaining = size - 2 /* sizeof(version) */ - 2 /* sizeof(size) */;
 
@@ -805,5 +805,23 @@ public class SMPKeyBin {
                 buffer[i] = (byte) (value >> i*8);
             }
             out.write(buffer, 0, 8);
+        }
+
+        public static void main(final String[] args) {
+            BTFactory.initDirectBTLibrary();
+
+            boolean verbose=false;
+            for(int i=0; i< args.length; i++) {
+                final String arg = args[i];
+                if( arg.equals("-verbose") || arg.equals("-v") ) {
+                    verbose = true;
+                } else {
+                    if( verbose ) {
+                        System.err.println("Read: '"+arg+"'");
+                    }
+                    final SMPKeyBin key = SMPKeyBin.read(arg, verbose);
+                    System.err.println(key.toString());
+                }
+            }
         }
 };
