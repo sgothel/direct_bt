@@ -2017,6 +2017,19 @@ BTGattCharRef BTDevice::findGattChar(const jau::uuid_t&  service_uuid, const jau
     return service->findGattChar(char_uuid);
 }
 
+BTGattCharRef BTDevice::findGattChar(const jau::uuid_t& char_uuid) noexcept {
+    const jau::darray<std::shared_ptr<BTGattService>> & services = getGattServices(); // reference of the GATTHandler's list
+    for(const BTGattServiceRef& s : services) {
+        if ( nullptr != s ) {
+            BTGattCharRef c = s->findGattChar(char_uuid);
+            if ( nullptr != c ) {
+                return c;
+            }
+        }
+    }
+    return nullptr;
+}
+
 bool BTDevice::sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value) {
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh || !gh->isConnected() ) {

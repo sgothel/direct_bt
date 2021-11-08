@@ -46,33 +46,6 @@ import java.util.Map;
 public interface BTDevice extends BTObject
 {
     /**
-     * Find a {@link BTGattService} by its service_uuid.
-     *
-     * It will check objects of this connected device.
-     *
-     * It will not turn on discovery or connect to this remote device.
-     *
-     * @parameter service_uuid the UUID of the desired {@link BTGattService}
-     * @return The matching service or null if not found
-     */
-    BTGattService findGattService(String service_uuid);
-
-    /**
-     * Find a {@link BTGattChar} by its service_uuid and char_uuid.
-     *
-     * It will check objects of this connected device.
-     *
-     * It will not turn on discovery or connect to this remote device.
-     *
-     * @parameter service_uuid the UUID of the intermediate {@link BTGattService}
-     * @parameter char_uuid the UUID of the desired {@link BTGattChar}, within the intermediate {@link BTGattService}.
-     * @return The matching characteristic or null if not found
-     */
-    BTGattChar findGattChar(String service_uuid, String char_uuid);
-
-    /* Bluetooth method calls: */
-
-    /**
      * Add the given {@link AdapterStatusListener} to the list if not already present,
      * listening only for events matching this device.
      *
@@ -726,6 +699,55 @@ public interface BTDevice extends BTObject
       * NULL if an error occurred
       */
     List<BTGattService> getServices();
+
+    /**
+     * Find a {@link BTGattService} by its service_uuid.
+     *
+     * It will check objects of this connected device.
+     *
+     * It will not turn on discovery or connect to this remote device.
+     *
+     * @parameter service_uuid the UUID of the desired {@link BTGattService}
+     * @return The matching service or null if not found
+     * @since 2.4.0
+     * @see #findGattChar(String, String)
+     * @see #findGattChar(String)
+     */
+    BTGattService findGattService(String service_uuid);
+
+    /**
+     * Find a {@link BTGattChar} by its service_uuid and char_uuid.
+     *
+     * It will check objects of this connected device.
+     *
+     * It will not turn on discovery or connect to this remote device.
+     *
+     * @parameter service_uuid the UUID of the intermediate {@link BTGattService}
+     * @parameter char_uuid the UUID of the desired {@link BTGattChar}, within the intermediate {@link BTGattService}.
+     * @return The matching characteristic or null if not found
+     * @since 2.4.0
+     * @see #findGattChar(String)
+     * @see #findGattService(String)
+     */
+    BTGattChar findGattChar(String service_uuid, String char_uuid);
+
+    /**
+     * Find a {@link BTGattChar} by its char_uuid only.
+     *
+     * It will check objects of this connected device.
+     *
+     * It will not turn on discovery or connect to this remote device.
+     *
+     * This variation is less efficient than findGattChar() by service_uuid and char_uuid,
+     * since it has to traverse through all services.
+     *
+     * @parameter char_uuid the UUID of the desired {@link BTGattChar}, within the intermediate {@link BTGattService}.
+     * @return The matching characteristic or null if not found
+     * @since 2.4.0
+     * @see #findGattChar(String, String)
+     * @see #findGattService(String)
+     */
+    BTGattChar findGattChar(String char_uuid);
 
     /**
      * Issues a GATT ping to the device, validating whether it is still reachable.

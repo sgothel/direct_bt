@@ -77,7 +77,7 @@ public class DBTGattService extends DBTObject implements BTGattService
     @Override
     public BTGattChar findGattChar(final String char_uuid) {
         final DBTDevice device = wbr_device.get();
-        if( null != device ) {
+        if( null == device ) {
             return null;
         }
         final int characteristicSize = charList.size();

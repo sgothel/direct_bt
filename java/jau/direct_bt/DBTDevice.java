@@ -213,6 +213,27 @@ public class DBTDevice extends DBTObject implements BTDevice
         return s.findGattChar(char_uuid);
     }
 
+    @Override
+    public BTGattChar findGattChar(final String char_uuid) {
+        synchronized(serviceCache) {
+            if( !checkServiceCache(true) ) {
+                return null;
+            }
+            for(int srvIdx = serviceCache.size() - 1; srvIdx >= 0; srvIdx-- ) {
+                final DBTGattService s = serviceCache.get(srvIdx).get();
+                if( null == s ) {
+                    serviceCache.remove(srvIdx); // remove dead ref
+                    continue; // cont w/ next service
+                }
+                final BTGattChar c = s.findGattChar(char_uuid);
+                if( null != c ) {
+                    return c;
+                }
+            }
+            return null;
+        }
+    }
+
     /* internal */
 
     private native void initImpl();

@@ -1113,6 +1113,7 @@ namespace direct_bt {
              *
              * @parameter service_uuid the jau::uuid_t of the desired BTGattService
              * @return The matching service or null if not found
+             * @see findGattChar()
              */
             BTGattServiceRef findGattService(const jau::uuid_t& service_uuid) noexcept;
 
@@ -1126,8 +1127,27 @@ namespace direct_bt {
              * @parameter service_uuid the jau::uuid_t of the intermediate BTGattService
              * @parameter char_uuid the jau::uuid_t of the desired BTGattChar, within the intermediate BTGattService.
              * @return The matching characteristic or null if not found
+             * @since 2.4.0
+             * @see findGattService()
              */
             BTGattCharRef findGattChar(const jau::uuid_t& service_uuid, const jau::uuid_t& char_uuid) noexcept;
+
+            /**
+             * Find a BTGattChar by its char_uuid only.
+             *
+             * It will check objects of this connected device using getGattService().
+             *
+             * It will not turn on discovery or connect to this remote device.
+             *
+             * This variation is less efficient than findGattChar() by service_uuid and char_uuid,
+             * since it has to traverse through all services.
+             *
+             * @parameter char_uuid the jau::uuid_t of the desired BTGattChar, within the intermediate BTGattService.
+             * @return The matching characteristic or null if not found
+             * @since 2.4.0
+             * @see findGattService()
+             */
+            BTGattCharRef findGattChar(const jau::uuid_t& char_uuid) noexcept;
 
             /** Returns the shared GenericAccess instance, retrieved by {@link #getGattService()} or nullptr if not available. */
             std::shared_ptr<GattGenericAccessSvc> getGattGenericAccess();
