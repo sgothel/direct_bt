@@ -126,6 +126,11 @@ static bool REMOVE_DEVICE = true;
 static bool USE_WHITELIST = false;
 static jau::darray<BDAddressAndType> WHITELIST;
 
+// Default from dbt_peripheral00.cpp or DBTPeripheral00.java
+static std::unique_ptr<uuid_t> cmd_uuid = jau::uuid_t::create(std::string("d0ca6bf3-3d52-4760-98e5-fc5883e93712"));
+static std::unique_ptr<uuid_t> cmd_rsp_uuid = jau::uuid_t::create(std::string("d0ca6bf3-3d53-4760-98e5-fc5883e93712"));
+static uint8_t cmd_arg = 0x44;
+
 static bool SHOW_UPDATE_EVENTS = false;
 static bool QUIET = false;
 
@@ -454,6 +459,31 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
                             "PERF:  discovered to gatt-complete %" PRIu64 " ms (connect %" PRIu64 " ms),\n"
                             "PERF:  adapter-init to gatt-complete %" PRIu64 " ms\n\n",
                             td01, td15, tdc5, (tdc5 - td15), td05);
+        }
+
+        if( nullptr != cmd_uuid ) {
+            BTGattCmd cmd = nullptr != cmd_rsp_uuid ? BTGattCmd(*device, "TestCmd", *cmd_uuid, *cmd_rsp_uuid, 256)
+                                                    : BTGattCmd(*device, "TestCmd", *cmd_uuid);
+            cmd.setVerbose(true);
+            const bool cmd_resolved = cmd.isResolved();
+            fprintf_td(stderr, "Command test: %s, resolved %d\n", cmd.toString().c_str(), cmd_resolved);
+            POctets cmd_data(1, endian::little);
+            cmd_data.put_uint8_nc(0, cmd_arg);
+            const HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data);
+            if( HCIStatusCode::SUCCESS == cmd_res ) {
+                if( cmd.hasResponseSet() ) {
+                    const jau::TROOctets& resp = cmd.getResponse();
+                    if( 1 == resp.size() && resp.get_uint8_nc(0) == cmd_arg ) {
+                        fprintf_td(stderr, "Success: %s -> %s (echo response)\n", cmd.toString().c_str(), resp.toString().c_str());
+                    } else {
+                        fprintf_td(stderr, "Success: %s -> %s (different response)\n", cmd.toString().c_str(), resp.toString().c_str());
+                    }
+                } else {
+                    fprintf_td(stderr, "Success: %s -> no response\n", cmd.toString().c_str());
+                }
+            } else {
+                fprintf_td(stderr, "Failure: %s -> %s\n", cmd.toString().c_str(), to_string(cmd_res).c_str());
+            }
         }
 
         std::shared_ptr<GattGenericAccessSvc> ga = device->getGattGenericAccess();
@@ -791,6 +821,12 @@ int main(int argc, char *argv[])
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
             sec->io_cap_auto = to_SMPIOCapability(atoi(argv[++i]));
             fprintf(stderr, "Set SEC AUTO security io_cap in %s\n", sec->toString().c_str());
+        } else if( !strcmp("-cmd", argv[i]) && argc > (i+1) ) {
+            cmd_uuid = jau::uuid_t::create((std::string)argv[++i]);
+        } else if( !strcmp("-cmdrsp", argv[i]) && argc > (i+1) ) {
+            cmd_rsp_uuid = jau::uuid_t::create((std::string)argv[++i]);
+        } else if( !strcmp("-cmdarg", argv[i]) && argc > (i+1) ) {
+            cmd_arg = (uint8_t)atoi(argv[++i]);
         } else if( !strcmp("-disconnect", argv[i]) ) {
             KEEP_CONNECTED = false;
         } else if( !strcmp("-enableGATTPing", argv[i]) ) {
@@ -817,6 +853,7 @@ int main(int argc, char *argv[])
                     "(-iocap <device_[address|name]_sub> <int_iocap>)* "
                     "(-secauto <device_[address|name]_sub> <int_iocap>)* "
                     "(-passkey <device_[address|name]_sub> <digits>)* "
+                    "[-cmd <uuid>] [-cmdrsp <uuid>] [-cmdarg <byte-val>] "
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event] "
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,...] "
@@ -836,7 +873,9 @@ int main(int argc, char *argv[])
     fprintf(stderr, "adapter %s\n", useAdapter.toString().c_str());
     fprintf(stderr, "btmode %s\n", to_string(btMode).c_str());
     fprintf(stderr, "scanActive %s\n", to_string(le_scan_active).c_str());
-
+    fprintf(stderr, "Command: cmd %s, arg 0x%X\n         rsp %s\n",
+            nullptr != cmd_uuid ? cmd_uuid->toString().c_str() : "n/a", cmd_arg,
+            nullptr != cmd_rsp_uuid ? cmd_rsp_uuid->toString().c_str() : "n/a");
     fprintf(stderr, "security-details: %s\n", BTSecurityRegistry::allToString().c_str());
     fprintf(stderr, "waitForDevice: %s\n", BTDeviceRegistry::getWaitForDevicesString().c_str());
 

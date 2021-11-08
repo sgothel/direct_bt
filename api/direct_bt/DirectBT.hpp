@@ -52,6 +52,8 @@
 
 #include "SMPKeyBin.hpp"
 
+#include "BTGattCmd.hpp"
+
 #include "BTDeviceRegistry.hpp"
 #include "BTSecurityRegistry.hpp"
 

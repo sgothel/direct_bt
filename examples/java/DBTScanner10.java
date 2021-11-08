@@ -42,6 +42,7 @@ import org.direct_bt.BTDeviceRegistry;
 import org.direct_bt.BTException;
 import org.direct_bt.BTFactory;
 import org.direct_bt.BTGattChar;
+import org.direct_bt.BTGattCmd;
 import org.direct_bt.BTGattDesc;
 import org.direct_bt.BTGattService;
 import org.direct_bt.BTManager;
@@ -92,6 +93,11 @@ public class DBTScanner10 {
     boolean REMOVE_DEVICE = true;
     boolean USE_WHITELIST = false;
     final List<BDAddressAndType> whitelist = new ArrayList<BDAddressAndType>();
+
+    // Default from dbt_peripheral00.cpp or DBTPeripheral00.java
+    String cmd_uuid = "d0ca6bf3-3d52-4760-98e5-fc5883e93712";
+    String cmd_rsp_uuid = "d0ca6bf3-3d53-4760-98e5-fc5883e93712";
+    byte cmd_arg = (byte)0x44;
 
     boolean SHOW_UPDATE_EVENTS = false;
     boolean QUIET = false;
@@ -469,6 +475,30 @@ public class DBTScanner10 {
                         "PERF:  adapter-init to gatt-complete " + td05 + " ms"+System.lineSeparator());
             }
 
+            if( null != cmd_uuid ) {
+                final BTGattCmd cmd = null != cmd_rsp_uuid ? new BTGattCmd(device, "TestCmd", null /* service_uuid */, cmd_uuid, cmd_rsp_uuid)
+                                                           : new BTGattCmd(device, "TestCmd", null /* service_uuid */, cmd_uuid);
+                cmd.setVerbose(true);
+                final boolean cmd_resolved = cmd.isResolved();
+                BTUtils.println(System.err, "Command test: "+cmd.toString()+", resolved "+cmd_resolved);
+                final byte[] cmd_data = { cmd_arg };
+                final HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data);
+                if( HCIStatusCode.SUCCESS == cmd_res ) {
+                    if( cmd.hasResponseSet() ) {
+                        final byte[] resp = cmd.getResponse();
+                        if( 1 == resp.length && resp[0] == cmd_arg ) {
+                            BTUtils.fprintf_td(System.err, "Success: %s -> %s (echo response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
+                        } else {
+                            BTUtils.fprintf_td(System.err, "Success: %s -> %s (different response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
+                        }
+                    } else {
+                        BTUtils.fprintf_td(System.err, "Success: %s -> no response\n", cmd.toString());
+                    }
+                } else {
+                    BTUtils.fprintf_td(System.err, "Failure: %s -> %s\n", cmd.toString(), cmd_res.toString());
+                }
+            }
+
             try {
                 int i=0;
                 for(final Iterator<BTGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
@@ -830,6 +860,12 @@ public class DBTScanner10 {
                     final int io_cap_i = Integer.valueOf(args[++i]).intValue();
                     sec.io_cap_auto = SMPIOCapability.get( (byte)( io_cap_i & 0xff ) );
                     System.err.println("Set SEC AUTO security io_cap "+io_cap_i+" in "+sec);
+                } else if( arg.equals("-cmd") && args.length > (i+1) ) {
+                    test.cmd_uuid = args[++i];
+                } else if( arg.equals("-cmdrsp") && args.length > (i+1) ) {
+                    test.cmd_rsp_uuid = args[++i];
+                } else if( arg.equals("-cmdarg") && args.length > (i+1) ) {
+                    test.cmd_arg = (byte)Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-disconnect") ) {
                     test.KEEP_CONNECTED = false;
                 } else if( arg.equals("-enableGATTPing") ) {
@@ -854,6 +890,7 @@ public class DBTScanner10 {
                     "(-iocap <device_[address|name]_sub> <int_iocap>)* "+
                     "(-secauto <device_[address|name]_sub> <int_iocap>)* "+
                     "(-passkey <device_[address|name]_sub> <digits>)* "+
+                    "[-cmd <uuid>] [-cmdrsp <uuid>] [-cmdarg <byte-val>] "+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event] "+
@@ -874,7 +911,8 @@ public class DBTScanner10 {
         BTUtils.println(System.err, "QUIET "+test.QUIET);
         BTUtils.println(System.err, "adapter "+test.useAdapter);
         BTUtils.println(System.err, "btmode' to "+test.btMode.toString());
-
+        BTUtils.println(System.err, "Command: cmd "+test.cmd_uuid+", arg 0x"+Integer.toHexString(test.cmd_arg));
+        BTUtils.println(System.err, "         rsp "+test.cmd_rsp_uuid);
         BTUtils.println(System.err, "security-details: "+BTSecurityRegistry.allToString() );
         BTUtils.println(System.err, "waitForDevices: "+BTDeviceRegistry.getWaitForDevicesString());
 
