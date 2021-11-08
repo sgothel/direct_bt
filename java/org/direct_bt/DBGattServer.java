@@ -39,6 +39,9 @@ import java.util.List;
  */
 public class DBGattServer
 {
+    /** Used maximum server Rx ATT_MTU */
+    public int max_att_mtu = 512 + 1; // BTGattHandler::Defaults::MAX_ATT_MTU;
+
     /** List of Services. */
     public List<DBGattService> services;
 

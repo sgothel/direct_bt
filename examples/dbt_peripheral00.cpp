@@ -319,7 +319,13 @@ class MyGATTServerListener : public DBGattServer::Listener {
         jau::sc_atomic_uint16 handleResponseDataNotify = 0;
         jau::sc_atomic_uint16 handleResponseDataIndicate = 0;
 
-        std::shared_ptr<BTDevice> sendToDevice;
+        std::shared_ptr<BTDevice> connectedDevice;
+        uint16_t usedMTU = BTGattHandler::number(BTGattHandler::Defaults::MIN_ATT_MTU);
+
+        bool matches(const std::shared_ptr<BTDevice>& device) const {
+            jau::sc_atomic_critical sync(sync_data);
+            return nullptr != connectedDevice ? *connectedDevice == *device : false;
+        }
 
         void clear() {
             jau::sc_atomic_critical sync(sync_data);
@@ -328,7 +334,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
             handlePulseDataIndicate = 0;
             handleResponseDataNotify = 0;
             handleResponseDataIndicate = 0;
-            sendToDevice = nullptr;
+            connectedDevice = nullptr;
 
             dbGattServer->resetGattClientCharConfig(DataServiceUUID, PulseDataUUID);
             dbGattServer->resetGattClientCharConfig(DataServiceUUID, ResponseUUID);
@@ -338,16 +344,16 @@ class MyGATTServerListener : public DBGattServer::Listener {
             while( !stopPulseSender ) {
                 {
                     jau::sc_atomic_critical sync(sync_data);
-                    if( nullptr != sendToDevice && sendToDevice->getConnected() ) {
+                    if( nullptr != connectedDevice && connectedDevice->getConnected() ) {
                         if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
                             std::string data( "Dynamic Data Example. Elapsed Milliseconds: "+jau::to_decstring(environment::getElapsedMillisecond(), ',', 9) );
                             jau::POctets v(data.size()+1, jau::endian::little);
                             v.put_string_nc(0, data, v.size(), true /* includeEOS */);
                             if( 0 != handlePulseDataNotify ) {
-                                sendToDevice->sendNotification(handlePulseDataNotify, v);
+                                connectedDevice->sendNotification(handlePulseDataNotify, v);
                             }
                             if( 0 != handlePulseDataIndicate ) {
-                                sendToDevice->sendIndication(handlePulseDataNotify, v);
+                                connectedDevice->sendIndication(handlePulseDataNotify, v);
                             }
                         }
                     }
@@ -357,13 +363,13 @@ class MyGATTServerListener : public DBGattServer::Listener {
         }
 
         void sendResponse(jau::POctets data) {
-            if( nullptr != sendToDevice && sendToDevice->getConnected() ) {
+            if( nullptr != connectedDevice && connectedDevice->getConnected() ) {
                 if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
                     if( 0 != handleResponseDataNotify ) {
-                        sendToDevice->sendNotification(handleResponseDataNotify, data);
+                        connectedDevice->sendNotification(handleResponseDataNotify, data);
                     }
                     if( 0 != handleResponseDataIndicate ) {
-                        sendToDevice->sendIndication(handleResponseDataNotify, data);
+                        connectedDevice->sendIndication(handleResponseDataNotify, data);
                     }
                 }
             }
@@ -378,60 +384,89 @@ class MyGATTServerListener : public DBGattServer::Listener {
             {
                 jau::sc_atomic_critical sync(sync_data);
                 stopPulseSender = true;
-                sendToDevice = nullptr;
+                connectedDevice = nullptr;
             }
             if( pulseSenderThread.joinable() ) {
                 pulseSenderThread.join();
             }
         }
 
+        void connected(std::shared_ptr<BTDevice> device, const uint16_t initialMTU) override {
+            jau::sc_atomic_critical sync(sync_data);
+            const bool available = nullptr == connectedDevice;
+            fprintf_td(stderr, "****** GATT::connected(available %d): initMTU %d, %s\n",
+                    available, (int)initialMTU, device->toString().c_str());
+            if( available ) {
+                connectedDevice = device;
+                usedMTU = initialMTU;
+            }
+        }
+
         void disconnected(std::shared_ptr<BTDevice> device) override {
-            fprintf_td(stderr, "****** GATT::disconnected: %s\n", device->toString().c_str());
-            clear();
+            jau::sc_atomic_critical sync(sync_data);
+            const bool match = nullptr != connectedDevice ? *connectedDevice == *device : false;
+            fprintf_td(stderr, "****** GATT::disconnected(match %d): %s\n", match, device->toString().c_str());
+            if( match ) {
+                clear();
+            }
+        }
+
+        virtual void mtuChanged(std::shared_ptr<BTDevice> device, const uint16_t mtu) override {
+            const bool match = matches(device);
+            fprintf_td(stderr, "****** GATT::mtuChanged(match %d): %d -> %d, %s\n",
+                    match, match ? (int)usedMTU : 0, (int)mtu, device->toString().c_str());
+            if( match ) {
+                usedMTU = mtu;
+            }
         }
 
         bool readCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c) override {
-            fprintf_td(stderr, "****** GATT::readCharValue: to %s, from\n  %s\n    %s\n",
-                    device->toString().c_str(), s.toString().c_str(), c.toString().c_str());
-            return true;
+            const bool match = matches(device);
+            fprintf_td(stderr, "****** GATT::readCharValue(match %d): to %s, from\n  %s\n    %s\n",
+                    match, device->toString().c_str(), s.toString().c_str(), c.toString().c_str());
+            return match;
         }
 
         bool readDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d) override {
-            fprintf_td(stderr, "****** GATT::readDescValue: to %s, from\n  %s\n    %s\n      %s\n",
-                    device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
-            return true;
+            const bool match = matches(device);
+            fprintf_td(stderr, "****** GATT::readDescValue(match %d): to %s, from\n  %s\n    %s\n      %s\n",
+                    match, device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
+            return match;
         }
 
         bool writeCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, const jau::TROOctets & value, const uint16_t value_offset) override {
-            fprintf_td(stderr, "****** GATT::writeCharValue: %s @ %s from %s, to\n  %s\n    %s\n",
-                    value.toString().c_str(), jau::to_hexstring(value_offset).c_str(),
+            const bool match = matches(device);
+            fprintf_td(stderr, "****** GATT::writeCharValue(match %d): %s @ %s from %s, to\n  %s\n    %s\n",
+                    match, value.toString().c_str(), jau::to_hexstring(value_offset).c_str(),
                     device->toString().c_str(), s.toString().c_str(), c.toString().c_str());
 
-            if( c.value_type->equivalent( CommandUUID ) &&
+            if( match &&
+                c.value_type->equivalent( CommandUUID ) &&
                 ( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) )
             {
                 jau::POctets value2(value);
                 std::thread senderThread(&MyGATTServerListener::sendResponse, this, value2); // @suppress("Invalid arguments")
                 senderThread.detach();
             }
-            return true;
+            return match;
         }
 
         bool writeDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d, const jau::TROOctets & value, const uint16_t value_offset) override {
-            fprintf_td(stderr, "****** GATT::writeDescValue: %s @ %s from %s\n  %s\n    %s\n      %s\n",
-                    value.toString().c_str(), jau::to_hexstring(value_offset).c_str(),
+            const bool match = matches(device);
+            fprintf_td(stderr, "****** GATT::writeDescValue(match %d): %s @ %s from %s\n  %s\n    %s\n      %s\n",
+                    match, value.toString().c_str(), jau::to_hexstring(value_offset).c_str(),
                     device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
-            return true;
+            return match;
         }
 
         void clientCharConfigChanged(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d, const bool notificationEnabled, const bool indicationEnabled) override {
-            fprintf_td(stderr, "****** GATT::clientCharConfigChanged: notify %d, indicate %d from %s\n  %s\n    %s\n      %s\n",
-                    notificationEnabled, indicationEnabled,
+            const bool match = matches(device);
+            fprintf_td(stderr, "****** GATT::clientCharConfigChanged(match %d): notify %d, indicate %d from %s\n  %s\n    %s\n      %s\n",
+                    match, notificationEnabled, indicationEnabled,
                     device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
 
-            {
+            if( match ) {
                 jau::sc_atomic_critical sync(sync_data);
-                sendToDevice = device;
                 if( c.value_type->equivalent( PulseDataUUID ) ) {
                     handlePulseDataNotify = notificationEnabled ? c.value_handle : 0;
                     handlePulseDataIndicate = indicationEnabled ? c.value_handle : 0;
@@ -634,7 +669,7 @@ int main(int argc, char *argv[])
         } else if( !strcmp("-short_name", argv[i]) && argc > (i+1) ) {
             adapter_short_name = std::string(argv[++i]);
         } else if( !strcmp("-mtu", argv[i]) && argc > (i+1) ) {
-            dbGattServer->att_mtu = atoi(argv[++i]);
+            dbGattServer->max_att_mtu = atoi(argv[++i]);
         }
     }
     fprintf(stderr, "pid %d\n", getpid());

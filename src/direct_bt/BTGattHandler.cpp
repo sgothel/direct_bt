@@ -844,6 +844,22 @@ void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) {
             COND_PRINT(env.DEBUG_DATA, "GATT-Req: MTU recv: %u, %s  -> %u %s from %s",
                     clientMTU, pdu->toString().c_str(),
                     usedMTU.load(), rsp.toString().c_str(), toString().c_str());
+            if( nullptr != gattServerData ) {
+                std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+                if( nullptr != device ) {
+                    int i=0;
+                    jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
+                        try {
+                            l->mtuChanged(device, usedMTU);
+                        } catch (std::exception &e) {
+                            ERR_PRINT("GATTHandler::mtuChanged: %d/%zd: %s: Caught exception %s",
+                                    i+1, gattServerData->listener().size(),
+                                    toString().c_str(), e.what());
+                        }
+                        i++;
+                    });
+                }
+            }
             send(rsp);
             return;
         }
@@ -1072,11 +1088,25 @@ BTGattHandler::BTGattHandler(const std::shared_ptr<BTDevice> &device, L2CAPComm&
         }
     } else {
         if( nullptr != gattServerData ) {
-            serverMTU = std::max( std::min( gattServerData->att_mtu, number(Defaults::MAX_ATT_MTU) ), number(Defaults::MIN_ATT_MTU) );
+            serverMTU = std::max( std::min( gattServerData->max_att_mtu, number(Defaults::MAX_ATT_MTU) ), number(Defaults::MIN_ATT_MTU) );
         } else {
             serverMTU = number(Defaults::MAX_ATT_MTU);
         }
         usedMTU = number(Defaults::MIN_ATT_MTU); // until negotiated!
+
+        if( nullptr != gattServerData ) {
+            int i=0;
+            jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
+                try {
+                    l->connected(device, usedMTU);
+                } catch (std::exception &e) {
+                    ERR_PRINT("GATTHandler::connected: %d/%zd: %s: Caught exception %s",
+                            i+1, gattServerData->listener().size(),
+                            toString().c_str(), e.what());
+                }
+                i++;
+            });
+        }
     }
 }
 

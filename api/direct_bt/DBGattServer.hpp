@@ -507,6 +507,17 @@ namespace direct_bt {
                     virtual ~Listener() {}
 
                     /**
+                     * Notification that device got connected.
+                     *
+                     * Convenient user entry, allowing to setup resources.
+                     *
+                     * @param device
+                     * @param initialMTU
+                     * @return
+                     */
+                    virtual void connected(std::shared_ptr<BTDevice> device, const uint16_t initialMTU) = 0;
+
+                    /**
                      * Notification that device got disconnected.
                      *
                      * Convenient user entry, allowing to clean up resources.
@@ -515,6 +526,17 @@ namespace direct_bt {
                      * @return
                      */
                     virtual void disconnected(std::shared_ptr<BTDevice> device) = 0;
+
+                    /**
+                     * Notification that device got connected.
+                     *
+                     * Convenient user entry, allowing to setup resources.
+                     *
+                     * @param device
+                     * @param mtu
+                     * @return
+                     */
+                    virtual void mtuChanged(std::shared_ptr<BTDevice> device, const uint16_t mtu) = 0;
 
                     /**
                      *
@@ -592,7 +614,7 @@ namespace direct_bt {
 
         public:
             /** Used maximum server Rx ATT_MTU */
-            uint16_t att_mtu = 512 + 1; // BTGattHandler::Defaults::MAX_ATT_MTU;
+            uint16_t max_att_mtu = 512 + 1; // BTGattHandler::Defaults::MAX_ATT_MTU;
 
             /** List of Services */
             jau::darray<DBGattService> services;
@@ -688,7 +710,7 @@ namespace direct_bt {
                 return res;
             }
             std::string toString() const noexcept {
-                return "DBSrv[mtu "+std::to_string(att_mtu)+", "+std::to_string(services.size())+" services]";
+                return "DBSrv[max mtu "+std::to_string(max_att_mtu)+", "+std::to_string(services.size())+" services]";
 
             }
     };
