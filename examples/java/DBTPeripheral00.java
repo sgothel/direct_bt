@@ -90,21 +90,21 @@ public class DBTPeripheral00 {
         // System.err.printf(format, args);
     }
 
-    static void executeOffThread(final Runnable runobj, final String threadName, final boolean detach) {
+    static Thread executeOffThread(final Runnable runobj, final String threadName, final boolean detach) {
         final Thread t = new Thread( runobj, threadName );
         if( detach ) {
             t.setDaemon(true); // detach thread
         }
         t.start();
+        return t;
     }
-    static void execute(final Runnable task, final boolean offThread) {
-        if( offThread ) {
-            final Thread t = new Thread(task);
-            t.setDaemon(true);
-            t.start();
-        } else {
-            task.run();
+    static Thread executeOffThread(final Runnable runobj, final boolean detach) {
+        final Thread t = new Thread( runobj );
+        if( detach ) {
+            t.setDaemon(true); // detach thread
         }
+        t.start();
+        return t;
     }
 
     static DBGattValue make_gvalue(final String name) {
@@ -323,6 +323,199 @@ public class DBTPeripheral00 {
         }
     };
 
+    class MyGATTServerListener extends DBGattServer.Listener implements AutoCloseable {
+        private volatile boolean sync_data;
+        private final Thread pulseSenderThread;
+        private volatile boolean stopPulseSender = false;
+
+        private volatile short handlePulseDataNotify = 0;
+        private volatile short handlePulseDataIndicate = 0;
+        private volatile short handleResponseDataNotify = 0;
+        private volatile short handleResponseDataIndicate = 0;
+
+        private BTDevice connectedDevice;
+        private int usedMTU = 23; // BTGattHandler::number(BTGattHandler::Defaults::MIN_ATT_MTU);
+
+        private boolean matches(final BTDevice device) {
+            final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
+            final boolean res = null != connectedDevice ? connectedDevice.equals(device) : false;
+            sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+            return res;
+        }
+
+        private void clear() {
+            final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
+
+            handlePulseDataNotify = 0;
+            handlePulseDataIndicate = 0;
+            handleResponseDataNotify = 0;
+            handleResponseDataIndicate = 0;
+            connectedDevice = null;
+
+            dbGattServer.resetGattClientCharConfig(DataServiceUUID, PulseDataUUID);
+            dbGattServer.resetGattClientCharConfig(DataServiceUUID, ResponseUUID);
+
+            sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+        }
+
+        private void pulseSender() {
+            while( !stopPulseSender ) {
+                {
+                    final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
+                    if( null != connectedDevice && connectedDevice.getConnected() ) {
+                        if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
+                            final String data = String.format("Dynamic Data Example. Elapsed Milliseconds: %,9d", BTUtils.elapsedTimeMillis());
+                            final byte[] v = data.getBytes(StandardCharsets.UTF_8);
+                            if( 0 != handlePulseDataNotify ) {
+                                connectedDevice.sendNotification(handlePulseDataNotify, v);
+                            }
+                            if( 0 != handlePulseDataIndicate ) {
+                                connectedDevice.sendIndication(handlePulseDataNotify, v);
+                            }
+                        }
+                    }
+                    sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+                }
+                try {
+                    Thread.sleep(500); // 500ms
+                } catch (final InterruptedException e) { }
+            }
+        }
+
+        void sendResponse(final byte[] data) {
+            if( null != connectedDevice && connectedDevice.getConnected() ) {
+                if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
+                    if( 0 != handleResponseDataNotify ) {
+                        connectedDevice.sendNotification(handleResponseDataNotify, data);
+                    }
+                    if( 0 != handleResponseDataIndicate ) {
+                        connectedDevice.sendIndication(handleResponseDataNotify, data);
+                    }
+                }
+            }
+        }
+
+        public MyGATTServerListener() {
+            pulseSenderThread = executeOffThread( () -> { pulseSender(); }, "GattServer-PulseSender", false /* detach */);
+        }
+
+        @Override
+        public void finalize() { close(); }
+
+        @Override
+        public void close() {
+            {
+                final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
+                stopPulseSender = true;
+                connectedDevice = null;
+                sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+            }
+            if( !pulseSenderThread.isDaemon() ) {
+                try {
+                    pulseSenderThread.join(1000);
+                } catch (final InterruptedException e) { }
+            }
+        }
+
+        @Override
+        public void connected(final BTDevice device, final int initialMTU) {
+            final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
+            final boolean available = null == connectedDevice;
+            BTUtils.fprintf_td(System.err, "****** GATT::connected(available %b): initMTU %d, %s\n",
+                    available, initialMTU, device.toString());
+            if( available ) {
+                connectedDevice = device;
+                usedMTU = initialMTU;
+            }
+            sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+        }
+
+        @Override
+        public void disconnected(final BTDevice device) {
+            final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
+            final boolean match = null != connectedDevice ? connectedDevice.equals(device) : false;
+            BTUtils.fprintf_td(System.err, "****** GATT::disconnected(match %b): %s\n", match, device.toString());
+            if( match ) {
+                clear();
+            }
+            sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+        }
+
+        @Override
+        public void mtuChanged(final BTDevice device, final int mtu) {
+            final boolean match = matches(device);
+            BTUtils.fprintf_td(System.err, "****** GATT::mtuChanged(match %b): %d -> %d, %s\n",
+                    match, match ? (int)usedMTU : 0, mtu, device.toString());
+            if( match ) {
+                usedMTU = mtu;
+            }
+        }
+
+        @Override
+        public boolean readCharValue(final BTDevice device, final DBGattService s, final DBGattChar c) {
+            final boolean match = matches(device);
+            BTUtils.fprintf_td(System.err, "****** GATT::readCharValue(match %b): to %s, from\n  %s\n    %s\n",
+                    match, device.toString(), s.toString(), c.toString());
+            return match;
+        }
+
+        @Override
+        public boolean readDescValue(final BTDevice device, final DBGattService s, final DBGattChar c, final DBGattDesc d) {
+            final boolean match = matches(device);
+            BTUtils.fprintf_td(System.err, "****** GATT::readDescValue(match %b): to %s, from\n  %s\n    %s\n      %s\n",
+                    match, device.toString(), s.toString(), c.toString(), d.toString());
+            return match;
+        }
+
+        @Override
+        public boolean writeCharValue(final BTDevice device, final DBGattService s, final DBGattChar c, final byte[] value, final int value_offset) {
+            final boolean match = matches(device);
+            BTUtils.fprintf_td(System.err, "****** GATT::writeCharValue(match %b): %s @ 0x%s from %s, to\n  %s\n    %s\n",
+                    match, value.toString(), Integer.toHexString(value_offset),
+                    device.toString(), s.toString(), c.toString());
+
+            if( match &&
+                c.value_type.equals( CommandUUID ) &&
+                ( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) )
+            {
+                executeOffThread( () -> { sendResponse(value); }, true /* detach */);
+            }
+            return match;
+        }
+
+        @Override
+        public boolean writeDescValue(final BTDevice device, final DBGattService s, final DBGattChar c, final DBGattDesc d,
+                                      final byte[] value, final int value_offset)
+        {
+            final boolean match = matches(device);
+            BTUtils.fprintf_td(System.err, "****** GATT::writeDescValue(match %b): %s @ 0x%s from %s\n  %s\n    %s\n      %s\n",
+                    match, value.toString(), Integer.toHexString(value_offset),
+                    device.toString(), s.toString(), c.toString(), d.toString());
+            return match;
+        }
+
+        @Override
+        public void clientCharConfigChanged(final BTDevice device, final DBGattService s, final DBGattChar c, final DBGattDesc d,
+                                            final boolean notificationEnabled, final boolean indicationEnabled)
+        {
+            final boolean match = matches(device);
+            BTUtils.fprintf_td(System.err, "****** GATT::clientCharConfigChanged(match %b): notify %b, indicate %b from %s\n  %s\n    %s\n      %s\n",
+                    match, notificationEnabled, indicationEnabled,
+                    device.toString(), s.toString(), c.toString(), d.toString());
+
+            if( match ) {
+                final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
+                if( c.value_type.equals( PulseDataUUID ) ) {
+                    handlePulseDataNotify = notificationEnabled ? c.value_handle : 0;
+                    handlePulseDataIndicate = indicationEnabled ? c.value_handle : 0;
+                } else if( c.value_type.equals( ResponseUUID ) ) {
+                    handleResponseDataNotify = notificationEnabled ? c.value_handle : 0;
+                    handleResponseDataIndicate = indicationEnabled ? c.value_handle : 0;
+                }
+                sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+            }
+        }
+    }
     static final short adv_interval_min=(short)0x0800;
     static final short adv_interval_max=(short)0x0800;
     static final byte adv_type=(byte)0; // AD_PDU_Type::ADV_IND;
@@ -412,9 +605,14 @@ public class DBTPeripheral00 {
     };
 
     public void runTest(final BTManager manager) {
+        final boolean done = false;
+
+        BTUtils.println(System.err, "DirectBT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
+        BTUtils.println(System.err, "DirectBT Java Version "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
+
         timestamp_t0 = BTUtils.currentTimeMillis();
 
-        final boolean done = false;
+        dbGattServer.addListener( new MyGATTServerListener() );
 
         manager.addChangedAdapterSetListener(myChangedAdapterSetListener);
 
@@ -462,8 +660,6 @@ public class DBTPeripheral00 {
             return;
         }
         BTUtils.println(System.err, "DirectBT BluetoothManager initialized!");
-        BTUtils.println(System.err, "DirectBT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
-        BTUtils.println(System.err, "DirectBT Java Version "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
 
         final DBTPeripheral00 test = new DBTPeripheral00();
 
