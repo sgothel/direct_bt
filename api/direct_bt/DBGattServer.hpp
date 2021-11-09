@@ -144,11 +144,6 @@ namespace direct_bt {
                 JAU_TRACE_DBGATT_PRINT("DBGattDesc ctor-move0: %p -> %p", &o, this);
             }
 
-            /** Fill value with zero bytes. */
-            void bzero() noexcept {
-                value.bzero();
-            }
-
             /**
              * Return a newly constructed Client Characteristic Configuration
              * with a zero uint16_t value of fixed length.
@@ -160,9 +155,9 @@ namespace direct_bt {
                 return DBGattDesc( BTGattDesc::TYPE_CCC_DESC, std::move(p), false /* variable_length */ );
             }
 
-            std::string toString() const noexcept {
-                const std::string len = variable_length ? "var" : "fixed";
-                return "Desc[type 0x"+type->toString()+", handle "+jau::to_hexstring(handle)+", value[len "+len+", "+value.toString()+"]]";
+            /** Fill value with zero bytes. */
+            void bzero() noexcept {
+                value.bzero();
             }
 
             /** Value is uint16_t bitfield */
@@ -173,6 +168,11 @@ namespace direct_bt {
 
             /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.2 Characteristic User Description */
             bool isUserDescription() const noexcept{ return *BTGattDesc::TYPE_USER_DESC == *type; }
+
+            std::string toString() const noexcept {
+                const std::string len = variable_length ? "var" : "fixed";
+                return "Desc[type 0x"+type->toString()+", handle "+jau::to_hexstring(handle)+", value[len "+len+", "+value.toString()+"]]";
+            }
     };
     inline bool operator==(const DBGattDesc& lhs, const DBGattDesc& rhs) noexcept
     { return lhs.handle == rhs.handle; /** unique attribute handles */ }
@@ -322,24 +322,6 @@ namespace direct_bt {
                 value.bzero();
             }
 
-            std::string toString() const noexcept {
-                std::string char_name, notify_str;
-                {
-                    const DBGattDesc* ud = getUserDescription();
-                    if( nullptr != ud ) {
-                        char_name = ", '" + jau::dfa_utf8_decode( ud->value.get_ptr(), ud->value.size() ) + "'";
-                    }
-                }
-                if( hasProperties(BTGattChar::PropertyBitVal::Notify) || hasProperties(BTGattChar::PropertyBitVal::Indicate) ) {
-                    notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
-                }
-                const std::string len = variable_length ? "var" : "fixed";
-                return "Char[handle ["+jau::to_hexstring(handle)+".."+jau::to_hexstring(end_handle)+
-                       "], props "+jau::to_hexstring(properties)+" "+to_string(properties)+
-                       char_name+", value[type 0x"+value_type->toString()+", handle "+jau::to_hexstring(value_handle)+", len "+len+", "+value.toString()+
-                       "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
-            }
-
             const DBGattDesc* getClientCharConfig() const noexcept {
                 if( 0 > clientCharConfigIndex ) {
                     return nullptr;
@@ -365,6 +347,24 @@ namespace direct_bt {
                     return nullptr;
                 }
                 return &descriptors.at(static_cast<size_t>(userDescriptionIndex)); // abort if out of bounds
+            }
+
+            std::string toString() const noexcept {
+                std::string char_name, notify_str;
+                {
+                    const DBGattDesc* ud = getUserDescription();
+                    if( nullptr != ud ) {
+                        char_name = ", '" + jau::dfa_utf8_decode( ud->value.get_ptr(), ud->value.size() ) + "'";
+                    }
+                }
+                if( hasProperties(BTGattChar::PropertyBitVal::Notify) || hasProperties(BTGattChar::PropertyBitVal::Indicate) ) {
+                    notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
+                }
+                const std::string len = variable_length ? "var" : "fixed";
+                return "Char[handle ["+jau::to_hexstring(handle)+".."+jau::to_hexstring(end_handle)+
+                       "], props "+jau::to_hexstring(properties)+" "+to_string(properties)+
+                       char_name+", value[type 0x"+value_type->toString()+", handle "+jau::to_hexstring(value_handle)+", len "+len+", "+value.toString()+
+                       "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
             }
     };
     inline bool operator==(const DBGattChar& lhs, const DBGattChar& rhs) noexcept
