@@ -757,6 +757,34 @@ public interface BTDevice extends BTObject
     BTGattChar findGattChar(String char_uuid);
 
     /**
+     * Send a notification event consisting out of the given `value` representing the given characteristic value handle
+     * to the connected BTRole::Master.
+     *
+     * This command is only valid if this BTGattHandler is in role GATTRole::Server.
+     *
+     * Implementation is not receiving any reply after sending out the indication and returns immediately.
+     *
+     * @param char_value_handle valid characteristic value handle, must be sourced from referenced DBGattServer
+     * @param value the octets to be send
+     * @return true if successful, otherwise false
+     */
+    boolean sendNotification(final short char_value_handle, final byte[] value);
+
+    /**
+     * Send an indication event consisting out of the given `value` representing the given characteristic value handle
+     * to the connected BTRole::Master.
+     *
+     * This command is only valid if this BTGattHandler is in role GATTRole::Server.
+     *
+     * Implementation awaits the indication reply after sending out the indication.
+     *
+     * @param char_value_handle valid characteristic value handle, must be sourced from referenced DBGattServer
+     * @param value the octets to be send
+     * @return true if successful, otherwise false
+     */
+    boolean sendIndication(final short char_value_handle, final byte[] value);
+
+    /**
      * Issues a GATT ping to the device, validating whether it is still reachable.
      * <p>
      * This method could be periodically utilized to shorten the underlying OS disconnect period

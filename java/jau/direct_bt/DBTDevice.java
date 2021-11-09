@@ -653,6 +653,12 @@ public class DBTDevice extends DBTObject implements BTDevice
     private native List<BTGattService> getGattServicesImpl();
 
     @Override
+    public native boolean sendNotification(final short char_value_handle, final byte[] value);
+
+    @Override
+    public native boolean sendIndication(final short char_value_handle, final byte[] value);
+
+    @Override
     public boolean pingGATT() {
         try {
             return pingGATTImpl();

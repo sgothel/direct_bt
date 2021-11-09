@@ -901,6 +901,58 @@ jobject Java_jau_direct_1bt_DBTDevice_getGattServicesImpl(JNIEnv *env, jobject o
     return nullptr;
 }
 
+jboolean Java_jau_direct_1bt_DBTDevice_sendNotification(JNIEnv *env, jobject obj, jshort char_value_handle, jbyteArray jval) {
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        if( nullptr == jval ) {
+            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+        }
+        const size_t value_size = env->GetArrayLength(jval);
+        if( 0 >= value_size ) {
+            return JNI_TRUE; // no data is OK
+        }
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        uint8_t * value_ptr = criticalArray.get(jval, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+        if( NULL == value_ptr ) {
+            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+        }
+        const jau::TROOctets value(value_ptr, value_size, endian::little);
+        device->sendNotification(char_value_handle, value);
+        return JNI_TRUE;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
+jboolean Java_jau_direct_1bt_DBTDevice_sendIndication(JNIEnv *env, jobject obj, jshort char_value_handle, jbyteArray jval) {
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        if( nullptr == jval ) {
+            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+        }
+        const size_t value_size = env->GetArrayLength(jval);
+        if( 0 >= value_size ) {
+            return JNI_TRUE; // no data is OK
+        }
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        uint8_t * value_ptr = criticalArray.get(jval, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+        if( NULL == value_ptr ) {
+            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+        }
+        const jau::TROOctets value(value_ptr, value_size, endian::little);
+        device->sendIndication(char_value_handle, value);
+        return JNI_TRUE;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
 jboolean Java_jau_direct_1bt_DBTDevice_pingGATTImpl(JNIEnv *env, jobject obj)
 {
     try {

@@ -1299,6 +1299,10 @@ bool BTGattHandler::sendNotification(const uint16_t char_value_handle, const jau
         ERR_PRINT("BTDevice::sendIndication: invalid char handle %s", jau::to_hexstring(char_value_handle).c_str());
         return false;
     }
+    if( 0 == value.size() ) {
+        COND_PRINT(env.DEBUG_DATA, "GATT SEND NTF: Zero size, skipped sending to %s", toString().c_str());
+        return true;
+    }
     AttHandleValueRcv data(true /* isNotify */, char_value_handle, value);
     COND_PRINT(env.DEBUG_DATA, "GATT SEND NTF: %s to %s", data.toString().c_str(), toString().c_str());
     send(data);
@@ -1313,6 +1317,10 @@ bool BTGattHandler::sendIndication(const uint16_t char_value_handle, const jau::
     if( nullptr == findServerGattCharByValueHandle(char_value_handle) ) {
         ERR_PRINT("BTDevice::sendIndication: invalid char handle %s", jau::to_hexstring(char_value_handle).c_str());
         return false;
+    }
+    if( 0 == value.size() ) {
+        COND_PRINT(env.DEBUG_DATA, "GATT SEND IND: Zero size, skipped sending to %s", toString().c_str());
+        return true;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     AttHandleValueRcv req(false /* isNotify */, char_value_handle, value);

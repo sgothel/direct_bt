@@ -1161,6 +1161,7 @@ namespace direct_bt {
              * Implementation is not receiving any reply after sending out the indication and returns immediately.
              *
              * @param char_value_handle valid characteristic value handle, must be sourced from referenced DBGattServer
+             * @param value the octets to be send
              * @return true if successful, otherwise false
              */
             bool sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value);
@@ -1174,6 +1175,7 @@ namespace direct_bt {
              * Implementation awaits the indication reply after sending out the indication.
              *
              * @param char_value_handle valid characteristic value handle, must be sourced from referenced DBGattServer
+             * @param value the octets to be send
              * @return true if successful, otherwise false
              */
             bool sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value);
