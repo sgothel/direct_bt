@@ -54,55 +54,28 @@ public class DBGattDesc
     /** Type of descriptor UUID (lower-case) */
     public String type;
 
-    /**
-     * Characteristic Descriptor's Value.
-     *
-     * Its capacity defines the maximum writable variable length
-     * and its size defines the maximum writable fixed length.
-     *
-     * FIXME: Needs capacity and length (or size)
-     */
-    public byte[] value;
-
-    /**
-     * True if value is of variable length, otherwise fixed length.
-     */
-    public boolean variable_length;
+    public DBGattValue value;
 
     /**
      *
+     * The value's {@link DBGattValue#hasVariableLength()} is forced to false if {@link #isExtendedProperties()} or {@link #isClientCharConfig()}.
      * @param type_
      * @param value_
-     * @param variable_length_ defaults to true, but forced to false if isExtendedProperties() or isClientCharConfig().
      */
-    public DBGattDesc(final String type_, final byte[] value_, final boolean variable_length_)
+    public DBGattDesc(final String type_, final DBGattValue value_)
     {
         handle = 0;
         type = type_;
         value = value_;
-        variable_length = variable_length_;
 
-        if( variable_length && ( isExtendedProperties() || isClientCharConfig() ) ) {
-            variable_length = false;
+        if( value.hasVariableLength() && ( isExtendedProperties() || isClientCharConfig() ) ) {
+            value.setVariableLength(false);
         }
-    }
-
-    /**
-     *
-     * @param type_
-     * @param value_
-     * @param variable_length_ defaults to true, but forced to false if isExtendedProperties() or isClientCharConfig().
-     */
-    public DBGattDesc(final String type_, final byte[] value_)
-    {
-        this(type_, value_, true /* variable_length_ */);
     }
 
     /** Fill value with zero bytes. */
     public void bzero() {
-        for(int i=0; i<value.length; i++) { // anything more efficient?
-            value[i]=0;
-        }
+        value.bzero();
     }
 
     /**
@@ -112,7 +85,7 @@ public class DBGattDesc
      */
     public static DBGattDesc createClientCharConfig() {
         final byte[] p = { (byte)0, (byte)0 };
-        return new DBGattDesc( UUID16.CCC_DESC, p, false /* variable_length */ );
+        return new DBGattDesc( UUID16.CCC_DESC, new DBGattValue(p, p.length, false /* variable_length */) );
     }
 
     /** Value is uint16_t bitfield */
@@ -138,10 +111,7 @@ public class DBGattDesc
 
     @Override
     public String toString() {
-        final String len = variable_length ? "var" : "fixed";
         return "Desc[type 0x"+type+", handle 0x"+Integer.toHexString(handle)+
-               ", value[len "+len+", "+BTUtils.bytesHexString(value, 0, value.length, true /* lsbFirst */)+
-               " '"+BTUtils.decodeUTF8String(value, 0, value.length)+"'"+
-               "]]";
+               ", value["+value.toString()+"]]";
     }
 }

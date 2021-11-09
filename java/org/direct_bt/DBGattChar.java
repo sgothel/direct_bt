@@ -102,20 +102,7 @@ public class DBGattChar
     /** List of Characteristic Descriptions. */
     public List<DBGattDesc> descriptors;
 
-    /**
-     * Characteristics's Value.
-     *
-     * Its capacity defines the maximum writable variable length
-     * and its size defines the maximum writable fixed length.
-     *
-     * FIXME: Needs capacity and length (or size)
-     */
-    public byte[] value;
-
-    /**
-     * True if value is of variable length, otherwise fixed length.
-     */
-    public boolean variable_length;
+    public DBGattValue value;
 
     /* Optional Client Characteristic Configuration index within descriptorList */
     public int clientCharConfigIndex;
@@ -126,7 +113,7 @@ public class DBGattChar
     public DBGattChar(final String value_type_,
                       final GattCharPropertySet properties_,
                       final List<DBGattDesc> descriptors_,
-                      final byte[] value_, final boolean variable_length_)
+                      final DBGattValue value_)
     {
         handle = 0;
         end_handle = 0;
@@ -135,7 +122,6 @@ public class DBGattChar
         properties = properties_;
         descriptors = descriptors_;
         value = value_;
-        variable_length = variable_length_;
         clientCharConfigIndex = -1;
         userDescriptionIndex = -1;
 
@@ -150,23 +136,13 @@ public class DBGattChar
         }
     }
 
-    public DBGattChar(final String value_type_,
-                      final GattCharPropertySet properties_,
-                      final List<DBGattDesc> descriptors_,
-                      final byte[] value_)
-    {
-        this(value_type_, properties_, descriptors_, value_, true /* variable_length_ */);
-    }
-
     public boolean hasProperties(final GattCharPropertySet.Type bit) {
         return properties.isSet(bit);
     }
 
     /** Fill value with zero bytes. */
     public void bzero() {
-        for(int i=0; i<value.length; i++) { // anything more efficient?
-            value[i]=0;
-        }
+        value.bzero();
     }
 
     public DBGattDesc getClientCharConfig() {
@@ -202,7 +178,7 @@ public class DBGattChar
         {
             final DBGattDesc ud = getUserDescription();
             if( null != ud ) {
-                char_name = ", '" + BTUtils.decodeUTF8String(ud.value, 0, ud.value.length) + "'";
+                char_name = ", '" + BTUtils.decodeUTF8String(ud.value.data(), 0, ud.value.size()) + "'";
             } else {
                 char_name = "";
             }
@@ -212,12 +188,10 @@ public class DBGattChar
         } else {
             notify_str = "";
         }
-        final String len = variable_length ? "var" : "fixed";
         return "Char[handle [0x"+Integer.toHexString(handle)+"..0x"+Integer.toHexString(end_handle)+
                "], props 0x"+Integer.toHexString(properties.mask)+" "+properties.toString()+
-               char_name+", value[type 0x"+value_type+", handle 0x"+Integer.toHexString(value_handle)+", len "+len+
-               ", "+BTUtils.bytesHexString(value, 0, value.length, true /* lsbFirst */)+
-               " '"+BTUtils.decodeUTF8String(value, 0, value.length)+"'"+
+               char_name+", value[type 0x"+value_type+", handle 0x"+Integer.toHexString(value_handle)+
+               ", "+value.toString()+
                "], ccd-idx "+clientCharConfigIndex+notify_str+"]";
     }
 

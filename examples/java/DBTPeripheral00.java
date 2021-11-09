@@ -45,6 +45,7 @@ import org.direct_bt.DBGattChar;
 import org.direct_bt.DBGattDesc;
 import org.direct_bt.DBGattServer;
 import org.direct_bt.DBGattService;
+import org.direct_bt.DBGattValue;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.GattCharPropertySet;
 import org.direct_bt.HCIStatusCode;
@@ -106,19 +107,19 @@ public class DBTPeripheral00 {
         }
     }
 
-    static byte[] make_poctets(final String name) {
-        return name.getBytes(StandardCharsets.UTF_8);
+    static DBGattValue make_gvalue(final String name) {
+        final byte[] p = name.getBytes(StandardCharsets.UTF_8);
+        return new DBGattValue(p, p.length);
     }
-    static byte[] make_poctets(final short v) {
+    static DBGattValue make_gvalue(final short v) {
         final byte[] p = { (byte)0, (byte)0 };
         p[0] = (byte)(v);
         p[1] = (byte)(v >> 8);
-        return p;
+        return new DBGattValue(p, p.length);
     }
-    static byte[] make_poctets(final int capacity, final int size) {
-        // ByteBuffer bb;
-        // FIXME capacity
-        return new byte[size];
+    static DBGattValue make_gvalue(final int capacity, final int size) {
+        final byte[] p = new byte[size];
+        return new DBGattValue(p, capacity, true /* variable_length */);
     }
 
     static String DataServiceUUID = "d0ca6bf3-3d50-4760-98e5-fc5883e93712";
@@ -137,11 +138,11 @@ public class DBTPeripheral00 {
                       new DBGattChar( DBGattChar.UUID16.DEVICE_NAME /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
-                                  make_poctets("Synthethic Sensor 01") /* value */ ),
+                                  make_gvalue("Synthethic Sensor 01") /* value */ ),
                       new DBGattChar( DBGattChar.UUID16.APPEARANCE /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
-                                  make_poctets((short)0) /* value */ )
+                                  make_gvalue((short)0) /* value */ )
                   ) ),
               new DBGattService ( true /* primary */,
                   DBGattService.UUID16.DEVICE_INFORMATION /* type_ */,
@@ -149,27 +150,27 @@ public class DBTPeripheral00 {
                       new DBGattChar( DBGattChar.UUID16.MANUFACTURER_NAME_STRING /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
-                                  make_poctets("Gothel Software") /* value */ ),
+                                  make_gvalue("Gothel Software") /* value */ ),
                       new DBGattChar( DBGattChar.UUID16.MODEL_NUMBER_STRING /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
-                                  make_poctets("2.4.0-pre") /* value */ ),
+                                  make_gvalue("2.4.0-pre") /* value */ ),
                       new DBGattChar( DBGattChar.UUID16.SERIAL_NUMBER_STRING /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
-                                  make_poctets("sn:0123456789") /* value */ ),
+                                  make_gvalue("sn:0123456789") /* value */ ),
                       new DBGattChar( DBGattChar.UUID16.HARDWARE_REVISION_STRING /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
-                                  make_poctets("hw:0123456789") /* value */ ),
+                                  make_gvalue("hw:0123456789") /* value */ ),
                       new DBGattChar( DBGattChar.UUID16.FIRMWARE_REVISION_STRING /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
-                                  make_poctets("fw:0123456789") /* value */ ),
+                                  make_gvalue("fw:0123456789") /* value */ ),
                       new DBGattChar( DBGattChar.UUID16.SOFTWARE_REVISION_STRING /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
-                                  make_poctets("sw:0123456789") /* value */ )
+                                  make_gvalue("sw:0123456789") /* value */ )
                   ) ),
               new DBGattService ( true /* primary */,
                   DataServiceUUID /* type_ */,
@@ -177,29 +178,29 @@ public class DBTPeripheral00 {
                       new DBGattChar( StaticDataUUID /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   Arrays.asList( // DBGattDesc
-                                      new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_poctets("DATA STATIC") )
+                                      new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_gvalue("DATA_STATIC") )
                                   ),
-                                make_poctets("Proprietary Static Data 0x00010203") /* value */ ),
+                                make_gvalue("Proprietary Static Data 0x00010203") /* value */ ),
                       new DBGattChar( CommandUUID /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.WriteNoAck).set(GattCharPropertySet.Type.WriteWithAck),
                                   Arrays.asList( // DBGattDesc
-                                      new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_poctets("COMMAND") )
+                                      new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_gvalue("COMMAND") )
                                   ),
-                                  make_poctets(128, 64) /* value */ ),
+                                  make_gvalue(128, 64) /* value */ ),
                       new DBGattChar( ResponseUUID /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Notify).set(GattCharPropertySet.Type.Indicate),
                                   Arrays.asList( // DBGattDesc
-                                      new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_poctets("RESPONSE") ),
+                                      new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_gvalue("RESPONSE") ),
                                       DBGattDesc.createClientCharConfig()
                                   ),
-                                  make_poctets((short)0) /* value */ ),
+                                  make_gvalue((short)0) /* value */ ),
                       new DBGattChar( PulseDataUUID /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Notify).set(GattCharPropertySet.Type.Indicate),
                                   Arrays.asList( // DBGattDesc
-                                      new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_poctets("DATA_PULSE") ),
+                                      new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_gvalue("DATA_PULSE") ),
                                       DBGattDesc.createClientCharConfig()
                                   ),
-                                  make_poctets("Synthethic Sensor 01") /* value */ )
+                                  make_gvalue("Synthethic Sensor 01") /* value */ )
                   ) )
             ) );
 

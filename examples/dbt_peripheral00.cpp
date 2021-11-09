@@ -141,7 +141,7 @@ DBGattServerRef dbGattServer( new DBGattServer(
                   DBGattChar( std::make_unique<const jau::uuid128_t>(StaticDataUUID) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
                               jau::make_darray ( // DBGattDesc
-                                  DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA STATIC") )
+                                  DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA_STATIC") )
                               ),
                             make_poctets("Proprietary Static Data 0x00010203") /* value */ ),
                   DBGattChar( std::make_unique<const jau::uuid128_t>(CommandUUID) /* value_type_ */,
@@ -149,7 +149,7 @@ DBGattServerRef dbGattServer( new DBGattServer(
                               jau::make_darray ( // DBGattDesc
                                   DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("COMMAND") )
                               ),
-                              make_poctets(128, 64) /* value */ ),
+                              make_poctets(128, 64) /* value */, true /* variable_length */ ),
                   DBGattChar( std::make_unique<const jau::uuid128_t>(ResponseUUID) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Notify | BTGattChar::PropertyBitVal::Indicate,
                               jau::make_darray ( // DBGattDesc
@@ -160,7 +160,7 @@ DBGattServerRef dbGattServer( new DBGattServer(
                   DBGattChar( std::make_unique<const jau::uuid128_t>(PulseDataUUID) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Notify | BTGattChar::PropertyBitVal::Indicate,
                               jau::make_darray ( // DBGattDesc
-                                  DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA PULSE") ),
+                                  DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA_PULSE") ),
                                   DBGattDesc::createClientCharConfig()
                               ),
                               make_poctets("Synthethic Sensor 01") /* value */ )

@@ -107,11 +107,13 @@ namespace direct_bt {
             /**
              *
              * @param type_
-             * @param value_
-             * @param variable_length_ defaults to true, but forced to false if isExtendedProperties() or isClientCharConfig().
+             * @param value_ the data, which length defines the maximum writable fixed length if variable_length is false.
+             *        If variable length is true, its capacity limits the maximum writable length.
+             *        Forced to false if isExtendedProperties() or isClientCharConfig().
+             * @param variable_length_ defaults to false.
              */
             DBGattDesc(const std::shared_ptr<const jau::uuid_t>& type_,
-                       jau::POctets && value_, bool variable_length_=true) noexcept
+                       jau::POctets && value_, bool variable_length_=false) noexcept
             : handle(0), type(type_), value( std::move( value_ ) ), variable_length(variable_length_)
             {
                 if( variable_length && ( isExtendedProperties() || isClientCharConfig() ) ) {
@@ -260,10 +262,20 @@ namespace direct_bt {
                 JAU_TRACE_DBGATT_PRINT("DBGattChar dtor0: %p", this);
             }
 
+            /**
+             *
+             * @param value_type_
+             * @param properties_
+             * @param descriptors_
+             * @param value_ the data, which length defines the maximum writable fixed length if variable_length is false.
+             *        If variable length is true, its capacity limits the maximum writable length.
+             * @param variable_length_ defaults to false.
+             *
+             */
             DBGattChar(const std::shared_ptr<const jau::uuid_t>& value_type_,
                        const BTGattChar::PropertyBitVal properties_,
                        jau::darray<DBGattDesc> && descriptors_,
-                       jau::POctets && value_, bool variable_length_=true) noexcept
+                       jau::POctets && value_, bool variable_length_=false) noexcept
             : handle(0), end_handle(0), value_handle(0),
               value_type(value_type_),
               properties(properties_),
