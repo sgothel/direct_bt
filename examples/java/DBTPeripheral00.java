@@ -24,6 +24,9 @@
  */
 
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -38,7 +41,12 @@ import org.direct_bt.BTFactory;
 import org.direct_bt.BTManager;
 import org.direct_bt.BTSecurityRegistry;
 import org.direct_bt.BTUtils;
+import org.direct_bt.DBGattChar;
+import org.direct_bt.DBGattDesc;
+import org.direct_bt.DBGattServer;
+import org.direct_bt.DBGattService;
 import org.direct_bt.EIRDataTypeSet;
+import org.direct_bt.GattCharPropertySet;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPKeyBin;
@@ -97,6 +105,104 @@ public class DBTPeripheral00 {
             task.run();
         }
     }
+
+    static byte[] make_poctets(final String name) {
+        return name.getBytes(StandardCharsets.UTF_8);
+    }
+    static byte[] make_poctets(final short v) {
+        final byte[] p = { (byte)0, (byte)0 };
+        p[0] = (byte)(v);
+        p[1] = (byte)(v >> 8);
+        return p;
+    }
+    static byte[] make_poctets(final int capacity, final int size) {
+        // ByteBuffer bb;
+        // FIXME capacity
+        return new byte[size];
+    }
+
+    static String DataServiceUUID = "d0ca6bf3-3d50-4760-98e5-fc5883e93712";
+    static String StaticDataUUID  = "d0ca6bf3-3d51-4760-98e5-fc5883e93712";
+    static String CommandUUID     = "d0ca6bf3-3d52-4760-98e5-fc5883e93712";
+    static String ResponseUUID    = "d0ca6bf3-3d53-4760-98e5-fc5883e93712";
+    static String PulseDataUUID   = "d0ca6bf3-3d54-4760-98e5-fc5883e93712";
+
+    // DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
+    private final DBGattServer dbGattServer = new DBGattServer(
+            /* services: */
+            Arrays.asList( // DBGattService
+              new DBGattService ( true /* primary */,
+                  DBGattService.UUID16.GENERIC_ACCESS /* type_ */,
+                  Arrays.asList( // DBGattChar
+                      new DBGattChar( DBGattChar.UUID16.DEVICE_NAME /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  make_poctets("Synthethic Sensor 01") /* value */ ),
+                      new DBGattChar( DBGattChar.UUID16.APPEARANCE /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  make_poctets((short)0) /* value */ )
+                  ) ),
+              new DBGattService ( true /* primary */,
+                  DBGattService.UUID16.DEVICE_INFORMATION /* type_ */,
+                  Arrays.asList( // DBGattChar
+                      new DBGattChar( DBGattChar.UUID16.MANUFACTURER_NAME_STRING /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  make_poctets("Gothel Software") /* value */ ),
+                      new DBGattChar( DBGattChar.UUID16.MODEL_NUMBER_STRING /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  make_poctets("2.4.0-pre") /* value */ ),
+                      new DBGattChar( DBGattChar.UUID16.SERIAL_NUMBER_STRING /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  make_poctets("sn:0123456789") /* value */ ),
+                      new DBGattChar( DBGattChar.UUID16.HARDWARE_REVISION_STRING /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  make_poctets("hw:0123456789") /* value */ ),
+                      new DBGattChar( DBGattChar.UUID16.FIRMWARE_REVISION_STRING /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  make_poctets("fw:0123456789") /* value */ ),
+                      new DBGattChar( DBGattChar.UUID16.SOFTWARE_REVISION_STRING /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  make_poctets("sw:0123456789") /* value */ )
+                  ) ),
+              new DBGattService ( true /* primary */,
+                  DataServiceUUID /* type_ */,
+                  Arrays.asList( // DBGattChar
+                      new DBGattChar( StaticDataUUID /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  Arrays.asList( // DBGattDesc
+                                      new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_poctets("DATA STATIC") )
+                                  ),
+                                make_poctets("Proprietary Static Data 0x00010203") /* value */ ),
+                      new DBGattChar( CommandUUID /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.WriteNoAck).set(GattCharPropertySet.Type.WriteWithAck),
+                                  Arrays.asList( // DBGattDesc
+                                      new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_poctets("COMMAND") )
+                                  ),
+                                  make_poctets(128, 64) /* value */ ),
+                      new DBGattChar( ResponseUUID /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Notify).set(GattCharPropertySet.Type.Indicate),
+                                  Arrays.asList( // DBGattDesc
+                                      new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_poctets("RESPONSE") ),
+                                      DBGattDesc.createClientCharConfig()
+                                  ),
+                                  make_poctets((short)0) /* value */ ),
+                      new DBGattChar( PulseDataUUID /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Notify).set(GattCharPropertySet.Type.Indicate),
+                                  Arrays.asList( // DBGattDesc
+                                      new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_poctets("DATA_PULSE") ),
+                                      DBGattDesc.createClientCharConfig()
+                                  ),
+                                  make_poctets("Synthethic Sensor 01") /* value */ )
+                  ) )
+            ) );
+
 
     class MyAdapterStatusListener extends AdapterStatusListener {
         @Override
@@ -227,9 +333,11 @@ public class DBTPeripheral00 {
             BTUtils.fprintf_td(System.err, "****** Start advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
             return false;
         }
-        final HCIStatusCode status = adapter.startAdvertising(adv_interval_min, adv_interval_max,
+        final HCIStatusCode status = adapter.startAdvertising(dbGattServer,
+                                                              adv_interval_min, adv_interval_max,
                                                               adv_type, adv_chan_map, filter_policy);
         BTUtils.println(System.err, "****** Start advertising ("+msg+") result: "+status);
+        BTUtils.println(System.err, dbGattServer.toFullString());
         return HCIStatusCode.SUCCESS == status;
     }
 

@@ -45,6 +45,7 @@ import org.direct_bt.BTManager;
 import org.direct_bt.BTMode;
 import org.direct_bt.BTRole;
 import org.direct_bt.BTUtils;
+import org.direct_bt.DBGattServer;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.HCIWhitelistConnectType;
@@ -632,18 +633,18 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     }
 
     @Override
-    public final HCIStatusCode startAdvertising(final short adv_interval_min,
+    public final HCIStatusCode startAdvertising(final DBGattServer gattServerData, final short adv_interval_min,
                                                 final short adv_interval_max, final byte adv_type, final byte adv_chan_map,
                                                 final byte filter_policy) {
-        return HCIStatusCode.get( startAdvertisingImpl(adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy) );
+        return HCIStatusCode.get( startAdvertisingImpl(gattServerData, adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy) );
     }
-    private native byte startAdvertisingImpl(final short adv_interval_min,
+    private native byte startAdvertisingImpl(final DBGattServer gattServerData, final short adv_interval_min,
                                              final short adv_interval_max, final byte adv_type, final byte adv_chan_map,
                                              final byte filter_policy);
 
     @Override
-    public final HCIStatusCode startAdvertising() {
-        return startAdvertising((short)0x0800, (short)0x0800, (byte)0, // AD_PDU_Type::ADV_IND,
+    public final HCIStatusCode startAdvertising(final DBGattServer gattServerData) {
+        return startAdvertising(gattServerData, (short)0x0800, (short)0x0800, (byte)0, // AD_PDU_Type::ADV_IND,
                                 (byte)0x07, (byte)0x00);
     }
 

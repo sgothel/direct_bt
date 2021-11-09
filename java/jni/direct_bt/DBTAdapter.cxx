@@ -1060,8 +1060,10 @@ void Java_jau_direct_1bt_DBTAdapter_printDeviceListsImpl(JNIEnv *env, jobject ob
 }
 
 jbyte Java_jau_direct_1bt_DBTAdapter_startAdvertisingImpl(JNIEnv *env, jobject obj,
+                                                          jobject jgattServerData,
                                                           jshort adv_interval_min, jshort adv_interval_max, jbyte jadv_type, jbyte adv_chan_map,
                                                           jbyte filter_policy) {
+    (void)jgattServerData; // FIXME
     try {
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);

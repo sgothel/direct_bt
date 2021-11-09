@@ -270,6 +270,8 @@ public interface BTAdapter extends BTObject
      *
      * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to ::BTRole::Slave.
      *
+     * @param gattServerData_ the {@link DBGattServer} data to be advertised and offered via GattHandler as ::GATTRole::Server.
+     *        Its handles will be setup via DBGattServer::setServicesHandles().
      * @param adv_interval_min in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
      * @param adv_interval_max in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
      * @param adv_type see AD_PDU_Type, default 0x00, i.e. ::AD_PDU_Type::ADV_IND
@@ -283,12 +285,15 @@ public interface BTAdapter extends BTObject
      * @see @ref BTAdapterRoles
      * @since 2.4.0
      */
-    HCIStatusCode startAdvertising(final short adv_interval_min, final short adv_interval_max,
+    HCIStatusCode startAdvertising(final DBGattServer gattServerData,
+                                   final short adv_interval_min, final short adv_interval_max,
                                    final byte adv_type, final byte adv_chan_map, final byte filter_policy);
 
     /**
      * Starts advertising using all default arguments, see {@link #startAdvertising(short, short, byte, byte, byte)} for details.
      *
+     * @param gattServerData_ the {@link DBGattServer} data to be advertised and offered via GattHandler as ::GATTRole::Server.
+     *        Its handles will be setup via DBGattServer::setServicesHandles().
      * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
      * @see #startAdvertising(short, short, byte, byte, byte)
      * @see #stopAdvertising()
@@ -297,8 +302,8 @@ public interface BTAdapter extends BTObject
      * @see @ref BTAdapterRoles
      * @since 2.4.0
      */
-    HCIStatusCode startAdvertising(); /* {
-        return startAdvertising((short)0x0800, (short)0x0800, (byte)0, // AD_PDU_Type::ADV_IND,
+    HCIStatusCode startAdvertising(final DBGattServer gattServerData); /* {
+        return startAdvertising(gattServerData, (short)0x0800, (short)0x0800, (byte)0, // AD_PDU_Type::ADV_IND,
                                 (byte)0x07, (byte)0x00);
     } */
 
