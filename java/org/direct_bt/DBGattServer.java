@@ -56,7 +56,7 @@ public class DBGattServer
          * @param device the connected device
          * @param initialMTU initial used minimum MTU until negotiated.
          */
-        abstract void connected(BTDevice device, final int initialMTU);
+        public abstract void connected(final BTDevice device, final int initialMTU);
 
         /**
          * Notification that device got disconnected.
@@ -65,7 +65,7 @@ public class DBGattServer
          *
          * @param device the disconnected device.
          */
-        abstract void disconnected(BTDevice device);
+        public abstract void disconnected(final BTDevice device);
 
         /**
          * Notification that the MTU has changed.
@@ -73,7 +73,7 @@ public class DBGattServer
          * @param device the device for which the MTU has changed
          * @param mtu the new negotiated MTU
          */
-        abstract void mtuChanged(BTDevice device, final int mtu);
+        public abstract void mtuChanged(final BTDevice device, final int mtu);
 
         /**
          *
@@ -82,7 +82,7 @@ public class DBGattServer
          * @param c
          * @return true if master read has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the read action will be allowed.
          */
-        abstract boolean readCharValue(BTDevice device, DBGattService s, DBGattChar c);
+        public abstract boolean readCharValue(final BTDevice device, final DBGattService s, final DBGattChar c);
 
         /**
          *
@@ -92,7 +92,7 @@ public class DBGattServer
          * @param d
          * @return true if master read has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the read action will be allowed.
          */
-        abstract boolean readDescValue(BTDevice device, DBGattService s, DBGattChar c, DBGattDesc d);
+        public abstract boolean readDescValue(final BTDevice device, final DBGattService s, final DBGattChar c, final DBGattDesc d);
 
         /**
          *
@@ -103,7 +103,7 @@ public class DBGattServer
          * @param value_offset
          * @return true if master write has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the write action will be allowed.
          */
-        abstract boolean writeCharValue(BTDevice device, DBGattService s, DBGattChar c, final byte[] value, final int value_offset);
+        public abstract boolean writeCharValue(final BTDevice device, final DBGattService s, final DBGattChar c, final byte[] value, final int value_offset);
 
         /**
          *
@@ -115,8 +115,8 @@ public class DBGattServer
          * @param value_offset
          * @return true if master write has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the write action will be allowed.
          */
-        abstract boolean writeDescValue(final BTDevice device, DBGattService s, DBGattChar c, DBGattDesc d,
-                                        final byte[] value, final int value_offset);
+        public abstract boolean writeDescValue(final BTDevice device, final DBGattService s, final DBGattChar c, final DBGattDesc d,
+                                               final byte[] value, final int value_offset);
 
         /**
          *
@@ -127,8 +127,8 @@ public class DBGattServer
          * @param notificationEnabled
          * @param indicationEnabled
          */
-        abstract void clientCharConfigChanged(final BTDevice device, DBGattService s, DBGattChar c, DBGattDesc d,
-                                              final boolean notificationEnabled, final boolean indicationEnabled);
+        public abstract void clientCharConfigChanged(final BTDevice device, final DBGattService s, final DBGattChar c, final DBGattDesc d,
+                                                     final boolean notificationEnabled, final boolean indicationEnabled);
 
         /**
          * Default comparison operator, merely testing for same memory reference.
@@ -164,13 +164,37 @@ public class DBGattServer
         }
         return null;
     }
-
     public DBGattChar findGattChar(final String service_uuid, final String char_uuid) {
         final DBGattService service = findGattService(service_uuid);
         if( null == service ) {
             return null;
         }
         return service.findGattChar(char_uuid);
+    }
+    public DBGattDesc findGattClientCharConfig(final String service_uuid, final String char_uuid) {
+        final DBGattChar c = findGattChar(service_uuid, char_uuid);
+        if( null == c ) {
+            return null;
+        }
+        return c.getClientCharConfig();
+    }
+    public boolean resetGattClientCharConfig(final String service_uuid, final String char_uuid) {
+        final DBGattDesc d = findGattClientCharConfig(service_uuid, char_uuid);
+        if( null == d ) {
+            return false;
+        }
+        d.bzero();
+        return true;
+    }
+
+    public DBGattChar findGattCharByValueHandle(final short char_value_handle) {
+        for(final DBGattService s : services) {
+            final DBGattChar r = s.findGattCharByValueHandle(char_value_handle);
+            if( null != r ) {
+                return r;
+            }
+        }
+        return null;
     }
 
     public synchronized boolean addListener(final Listener l) {
