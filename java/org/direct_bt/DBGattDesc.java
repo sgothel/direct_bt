@@ -69,8 +69,13 @@ public class DBGattDesc
      */
     public boolean variable_length;
 
-    private void setup(final String type_,
-                       final byte[] value_, final boolean variable_length_)
+    /**
+     *
+     * @param type_
+     * @param value_
+     * @param variable_length_ defaults to true, but forced to false if isExtendedProperties() or isClientCharConfig().
+     */
+    public DBGattDesc(final String type_, final byte[] value_, final boolean variable_length_)
     {
         handle = 0;
         type = type_;
@@ -88,20 +93,9 @@ public class DBGattDesc
      * @param value_
      * @param variable_length_ defaults to true, but forced to false if isExtendedProperties() or isClientCharConfig().
      */
-    public DBGattDesc(final String type_, final byte[] value_, final boolean variable_length_)
-    {
-        setup(type_, value_, variable_length_);
-    }
-
-    /**
-     *
-     * @param type_
-     * @param value_
-     * @param variable_length_ defaults to true, but forced to false if isExtendedProperties() or isClientCharConfig().
-     */
     public DBGattDesc(final String type_, final byte[] value_)
     {
-        setup(type_, value_, true /* variable_length_ */);
+        this(type_, value_, true /* variable_length_ */);
     }
 
     /** Fill value with zero bytes. */

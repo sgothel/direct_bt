@@ -123,10 +123,10 @@ public class DBGattChar
     /* Optional Characteristic User Description index within descriptorList */
     public int userDescriptionIndex;
 
-    private void setup(final String value_type_,
-                       final GattCharPropertySet properties_,
-                       final List<DBGattDesc> descriptors_,
-                       final byte[] value_, final boolean variable_length_)
+    public DBGattChar(final String value_type_,
+                      final GattCharPropertySet properties_,
+                      final List<DBGattDesc> descriptors_,
+                      final byte[] value_, final boolean variable_length_)
     {
         handle = 0;
         end_handle = 0;
@@ -153,17 +153,9 @@ public class DBGattChar
     public DBGattChar(final String value_type_,
                       final GattCharPropertySet properties_,
                       final List<DBGattDesc> descriptors_,
-                      final byte[] value_, final boolean variable_length_)
-    {
-        setup(value_type_, properties_, descriptors_, value_, variable_length_);
-    }
-
-    public DBGattChar(final String value_type_,
-                      final GattCharPropertySet properties_,
-                      final List<DBGattDesc> descriptors_,
                       final byte[] value_)
     {
-        setup(value_type_, properties_, descriptors_, value_, true /* variable_length_ */);
+        this(value_type_, properties_, descriptors_, value_, true /* variable_length_ */);
     }
 
     public boolean hasProperties(final GattCharPropertySet.Type bit) {
