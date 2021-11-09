@@ -715,8 +715,6 @@ static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>
 void test() {
     bool done = false;
 
-    fprintf_td(stderr, "DirectBT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
-
     timestamp_t0 = getCurrentMilliseconds();
 
     BTManager & mngr = BTManager::get();
@@ -764,6 +762,8 @@ void test() {
 int main(int argc, char *argv[])
 {
     bool waitForEnter=false;
+
+    fprintf_td(stderr, "DirectBT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
 
     for(int i=1; i<argc; i++) {
         fprintf(stderr, "arg[%d/%d]: '%s'\n", i, argc, argv[i]);
@@ -841,9 +841,9 @@ int main(int argc, char *argv[])
             RESET_ADAPTER_EACH_CONN = atoi(argv[++i]);
         }
     }
-    fprintf(stderr, "pid %d\n", getpid());
+    fprintf_td(stderr, "pid %d\n", getpid());
 
-    fprintf(stderr, "Run with '[-btmode LE|BREDR|DUAL] "
+    fprintf_td(stderr, "Run with '[-btmode LE|BREDR|DUAL] "
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "
                     "[-scanPassive]"
                     "[-resetEachCon connectionCount] "
@@ -862,36 +862,36 @@ int main(int argc, char *argv[])
                     "[-dbt_l2cap reader.timeout=10000,restart.count=0,...] "
                     "\n");
 
-    fprintf(stderr, "MULTI_MEASUREMENTS %d\n", MULTI_MEASUREMENTS.load());
-    fprintf(stderr, "KEEP_CONNECTED %d\n", KEEP_CONNECTED);
-    fprintf(stderr, "RESET_ADAPTER_EACH_CONN %d\n", RESET_ADAPTER_EACH_CONN);
-    fprintf(stderr, "GATT_PING_ENABLED %d\n", GATT_PING_ENABLED);
-    fprintf(stderr, "REMOVE_DEVICE %d\n", REMOVE_DEVICE);
-    fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
-    fprintf(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
-    fprintf(stderr, "QUIET %d\n", QUIET);
-    fprintf(stderr, "adapter %s\n", useAdapter.toString().c_str());
-    fprintf(stderr, "btmode %s\n", to_string(btMode).c_str());
-    fprintf(stderr, "scanActive %s\n", to_string(le_scan_active).c_str());
-    fprintf(stderr, "Command: cmd %s, arg 0x%X\n         rsp %s\n",
+    fprintf_td(stderr, "MULTI_MEASUREMENTS %d\n", MULTI_MEASUREMENTS.load());
+    fprintf_td(stderr, "KEEP_CONNECTED %d\n", KEEP_CONNECTED);
+    fprintf_td(stderr, "RESET_ADAPTER_EACH_CONN %d\n", RESET_ADAPTER_EACH_CONN);
+    fprintf_td(stderr, "GATT_PING_ENABLED %d\n", GATT_PING_ENABLED);
+    fprintf_td(stderr, "REMOVE_DEVICE %d\n", REMOVE_DEVICE);
+    fprintf_td(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
+    fprintf_td(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
+    fprintf_td(stderr, "QUIET %d\n", QUIET);
+    fprintf_td(stderr, "adapter %s\n", useAdapter.toString().c_str());
+    fprintf_td(stderr, "btmode %s\n", to_string(btMode).c_str());
+    fprintf_td(stderr, "scanActive %s\n", to_string(le_scan_active).c_str());
+    fprintf_td(stderr, "Command: cmd %s, arg 0x%X\n         rsp %s\n",
             nullptr != cmd_uuid ? cmd_uuid->toString().c_str() : "n/a", cmd_arg,
             nullptr != cmd_rsp_uuid ? cmd_rsp_uuid->toString().c_str() : "n/a");
-    fprintf(stderr, "security-details: %s\n", BTSecurityRegistry::allToString().c_str());
-    fprintf(stderr, "waitForDevice: %s\n", BTDeviceRegistry::getWaitForDevicesString().c_str());
+    fprintf_td(stderr, "security-details: %s\n", BTSecurityRegistry::allToString().c_str());
+    fprintf_td(stderr, "waitForDevice: %s\n", BTDeviceRegistry::getWaitForDevicesString().c_str());
 
     if( waitForEnter ) {
-        fprintf(stderr, "Press ENTER to continue\n");
+        fprintf_td(stderr, "Press ENTER to continue\n");
         getchar();
     }
-    fprintf(stderr, "****** TEST start\n");
+    fprintf_td(stderr, "****** TEST start\n");
     test();
-    fprintf(stderr, "****** TEST end\n");
+    fprintf_td(stderr, "****** TEST end\n");
     if( true ) {
         // Just for testing purpose, i.e. triggering BTManager::close() within the test controlled app,
         // instead of program shutdown.
-        fprintf(stderr, "****** Manager close start\n");
+        fprintf_td(stderr, "****** Manager close start\n");
         BTManager & mngr = BTManager::get(); // already existing
         mngr.close();
-        fprintf(stderr, "****** Manager close end\n");
+        fprintf_td(stderr, "****** Manager close end\n");
     }
 }

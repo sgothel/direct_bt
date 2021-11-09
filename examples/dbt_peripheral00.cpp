@@ -621,8 +621,6 @@ static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>
 void test() {
     bool done = false;
 
-    fprintf_td(stderr, "DirectBT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
-
     timestamp_t0 = getCurrentMilliseconds();
 
     dbGattServer->addListener( std::make_shared<MyGATTServerListener>() );
@@ -641,6 +639,8 @@ void test() {
 int main(int argc, char *argv[])
 {
     bool waitForEnter=false;
+
+    fprintf_td(stderr, "DirectBT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
 
     for(int i=1; i<argc; i++) {
         if( !strcmp("-dbt_debug", argv[i]) && argc > (i+1) ) {
@@ -673,9 +673,9 @@ int main(int argc, char *argv[])
             dbGattServer->max_att_mtu = atoi(argv[++i]);
         }
     }
-    fprintf(stderr, "pid %d\n", getpid());
+    fprintf_td(stderr, "pid %d\n", getpid());
 
-    fprintf(stderr, "Run with '[-btmode LE|BREDR|DUAL] [-use_sc 0|1] "
+    fprintf_td(stderr, "Run with '[-btmode LE|BREDR|DUAL] [-use_sc 0|1] "
                     "[-adapter <adapter_address>] "
                     "[-name <adapter_name>] "
                     "[-short_name <adapter_short_name>] "
@@ -688,19 +688,19 @@ int main(int argc, char *argv[])
                     "[-dbt_l2cap reader.timeout=10000,restart.count=0,...] "
                     "\n");
 
-    fprintf(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
-    fprintf(stderr, "adapter %s\n", useAdapter.toString().c_str());
-    fprintf(stderr, "btmode %s\n", to_string(btMode).c_str());
-    fprintf(stderr, "name %s (short %s)\n", adapter_name.c_str(), adapter_short_name.c_str());
-    fprintf(stderr, "GattServer %s\n", dbGattServer->toString().c_str());
-    fprintf(stderr, "GattServer.services: %s\n", dbGattServer->services.get_info().c_str());
-    fprintf(stderr, "GattService.characteristics: %s\n", dbGattServer->services[0].characteristics.get_info().c_str());
+    fprintf_td(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
+    fprintf_td(stderr, "adapter %s\n", useAdapter.toString().c_str());
+    fprintf_td(stderr, "btmode %s\n", to_string(btMode).c_str());
+    fprintf_td(stderr, "name %s (short %s)\n", adapter_name.c_str(), adapter_short_name.c_str());
+    fprintf_td(stderr, "GattServer %s\n", dbGattServer->toString().c_str());
+    fprintf_td(stderr, "GattServer.services: %s\n", dbGattServer->services.get_info().c_str());
+    fprintf_td(stderr, "GattService.characteristics: %s\n", dbGattServer->services[0].characteristics.get_info().c_str());
 
     if( waitForEnter ) {
-        fprintf(stderr, "Press ENTER to continue\n");
+        fprintf_td(stderr, "Press ENTER to continue\n");
         getchar();
     }
-    fprintf(stderr, "****** TEST start\n");
+    fprintf_td(stderr, "****** TEST start\n");
     test();
-    fprintf(stderr, "****** TEST end\n");
+    fprintf_td(stderr, "****** TEST end\n");
 }

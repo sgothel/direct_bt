@@ -607,9 +607,6 @@ public class DBTPeripheral00 {
     public void runTest(final BTManager manager) {
         final boolean done = false;
 
-        BTUtils.println(System.err, "DirectBT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
-        BTUtils.println(System.err, "DirectBT Java Version "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
-
         timestamp_t0 = BTUtils.currentTimeMillis();
 
         dbGattServer.addListener( new MyGATTServerListener() );
@@ -660,6 +657,8 @@ public class DBTPeripheral00 {
             return;
         }
         BTUtils.println(System.err, "DirectBT BluetoothManager initialized!");
+        BTUtils.println(System.err, "DirectBT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
+        BTUtils.println(System.err, "DirectBT Java Version "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
 
         final DBTPeripheral00 test = new DBTPeripheral00();
 
