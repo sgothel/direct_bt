@@ -152,8 +152,9 @@ std::string BTGattChar::toString() const noexcept {
         notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
     }
     return "Char[handle "+to_hexstring(handle)+", props "+to_hexstring(properties)+" "+to_string(properties)+
-            char_name+", value[type 0x"+value_type->toString()+", handle "+to_hexstring(value_handle)+desc_str+
-           "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
+            char_name+desc_str+", ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+
+           ", value[type 0x"+value_type->toString()+", handle "+to_hexstring(value_handle)+
+           "]]";
 }
 
 std::string BTGattChar::toShortString() const noexcept {
