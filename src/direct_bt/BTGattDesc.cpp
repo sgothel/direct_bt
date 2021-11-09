@@ -79,7 +79,10 @@ bool BTGattDesc::writeValue() {
 }
 
 std::string BTGattDesc::toString() const noexcept {
-    return "Desc[type 0x"+type->toString()+", handle "+jau::to_hexstring(handle)+", value["+value.toString()+"]]";
+    return "Desc[type 0x"+type->toString()+", handle "+jau::to_hexstring(handle)+
+           ", value["+value.toString()+
+           " '" + jau::dfa_utf8_decode( value.get_ptr(), value.size() ) + "'"+
+           "]]";
 }
 
 std::string BTGattDesc::toShortString() const noexcept {
