@@ -121,13 +121,6 @@ public class DBGattDesc
         return new DBGattDesc( UUID16.CCC_DESC, p, false /* variable_length */ );
     }
 
-    @Override
-    public String toString() {
-        final String len = variable_length ? "var" : "fixed";
-        return "Desc[type 0x"+type+", handle 0x"+Integer.toHexString(handle)+
-               ", value[len "+len+", "+BTUtils.bytesHexString(value, 0, value.length, true /* lsbFirst */)+"]]";
-    }
-
     /** Value is uint16_t bitfield */
     public boolean isExtendedProperties() { return UUID16.EXT_PROP.equals(type); }
 
@@ -147,5 +140,14 @@ public class DBGattDesc
         }
         final DBGattDesc o = (DBGattDesc)other;
         return handle == o.handle; /** unique attribute handles */
+    }
+
+    @Override
+    public String toString() {
+        final String len = variable_length ? "var" : "fixed";
+        return "Desc[type 0x"+type+", handle 0x"+Integer.toHexString(handle)+
+               ", value[len "+len+", "+BTUtils.bytesHexString(value, 0, value.length, true /* lsbFirst */)+
+               " '"+BTUtils.decodeUTF8String(value, 0, value.length)+"'"+
+               "]]";
     }
 }

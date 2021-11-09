@@ -171,7 +171,11 @@ namespace direct_bt {
 
             std::string toString() const noexcept {
                 const std::string len = variable_length ? "var" : "fixed";
-                return "Desc[type 0x"+type->toString()+", handle "+jau::to_hexstring(handle)+", value[len "+len+", "+value.toString()+"]]";
+                return "Desc[type 0x"+type->toString()+", handle "+jau::to_hexstring(handle)+
+                       ", value[len "+len+
+                       ", "+value.toString()+
+                       " '" + jau::dfa_utf8_decode( value.get_ptr(), value.size() ) + "'"+
+                       "]]";
             }
     };
     inline bool operator==(const DBGattDesc& lhs, const DBGattDesc& rhs) noexcept
@@ -363,7 +367,9 @@ namespace direct_bt {
                 const std::string len = variable_length ? "var" : "fixed";
                 return "Char[handle ["+jau::to_hexstring(handle)+".."+jau::to_hexstring(end_handle)+
                        "], props "+jau::to_hexstring(properties)+" "+to_string(properties)+
-                       char_name+", value[type 0x"+value_type->toString()+", handle "+jau::to_hexstring(value_handle)+", len "+len+", "+value.toString()+
+                       char_name+", value[type 0x"+value_type->toString()+", handle "+jau::to_hexstring(value_handle)+", len "+len+
+                       ", "+value.toString()+
+                       " '" + jau::dfa_utf8_decode( value.get_ptr(), value.size() ) + "'"+
                        "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
             }
     };

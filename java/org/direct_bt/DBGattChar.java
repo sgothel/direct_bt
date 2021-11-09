@@ -25,7 +25,6 @@
 
 package org.direct_bt;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -211,7 +210,7 @@ public class DBGattChar
         {
             final DBGattDesc ud = getUserDescription();
             if( null != ud ) {
-                char_name = ", '" + new String(ud.value, StandardCharsets.UTF_8) + "'";
+                char_name = ", '" + BTUtils.decodeUTF8String(ud.value, 0, ud.value.length) + "'";
             } else {
                 char_name = "";
             }
@@ -226,6 +225,7 @@ public class DBGattChar
                "], props 0x"+Integer.toHexString(properties.mask)+" "+properties.toString()+
                char_name+", value[type 0x"+value_type+", handle 0x"+Integer.toHexString(value_handle)+", len "+len+
                ", "+BTUtils.bytesHexString(value, 0, value.length, true /* lsbFirst */)+
+               " '"+BTUtils.decodeUTF8String(value, 0, value.length)+"'"+
                "], ccd-idx "+clientCharConfigIndex+notify_str+"]";
     }
 
