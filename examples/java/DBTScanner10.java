@@ -309,24 +309,26 @@ public class DBTScanner10 {
 
         @Override
         public void notificationReceived(final BTGattChar charDecl,
-                final byte[] value, final long timestamp) {
+                                         final byte[] value, final long timestamp) {
             final long tR = BTUtils.currentTimeMillis();
             printf("**[%02d.%02d] Characteristic-Notify: UUID %s, td %d ******\n",
                     i, j, charDecl.getUUID(), (tR-timestamp));
             printf("**[%02d.%02d]     Characteristic: %s ******\n", i, j, charDecl.toString());
             printf("**[%02d.%02d]     Value R: size %d, ro: %s ******\n", i, j, value.length, BTUtils.bytesHexString(value, 0, -1, true));
+            printf("**[%02d.%02d]     Value S: %s ******\n", i, j, BTUtils.decodeUTF8String(value, 0, value.length));
 
             shutdownTest();
         }
 
         @Override
         public void indicationReceived(final BTGattChar charDecl,
-                final byte[] value, final long timestamp, final boolean confirmationSent) {
+                                       final byte[] value, final long timestamp, final boolean confirmationSent) {
             final long tR = BTUtils.currentTimeMillis();
             printf("**[%02d.%02d] Characteristic-Indication: UUID %s, td %d, confirmed %b ******\n",
                     i, j, charDecl.getUUID(), (tR-timestamp), confirmationSent);
             printf("**[%02d.%02d]     Characteristic: %s ******\n", i, j, charDecl.toString());
             printf("**[%02d.%02d]     Value R: size %d, ro: %s ******\n", i, j, value.length, BTUtils.bytesHexString(value, 0, -1, true));
+            printf("**[%02d.%02d]     Value S: %s ******\n", i, j, BTUtils.decodeUTF8String(value, 0, value.length));
 
             shutdownTest();
         }
