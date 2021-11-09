@@ -59,9 +59,12 @@ public class GattCharPropertySet {
     public GattCharPropertySet(final byte v) {
         mask = v;
     }
+    public GattCharPropertySet(final Type bit) {
+        mask = bit.value;
+    }
 
     public boolean isSet(final Type bit) { return 0 != ( mask & bit.value ); }
-    public void set(final Type bit) { mask = (byte) ( mask | bit.value ); }
+    public GattCharPropertySet set(final Type bit) { mask = (byte) ( mask | bit.value ); return this; }
 
     @Override
     public String toString() {
