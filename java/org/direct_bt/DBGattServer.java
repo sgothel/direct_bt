@@ -198,12 +198,12 @@ public class DBGattServer
     }
 
     public synchronized boolean addListener(final Listener l) {
-        return addListenerImpl(l);
+        return true; // addListenerImpl(l);
     }
     private native boolean addListenerImpl(Listener l);
 
     public synchronized boolean removeListener(final Listener l) {
-        return removeListenerImpl(l);
+        return true; // removeListenerImpl(l);
     }
     private native boolean removeListenerImpl(Listener l);
 
