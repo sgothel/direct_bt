@@ -85,10 +85,11 @@ static jau::POctets make_poctets(const jau::nsize_t capacity, const jau::nsize_t
     return jau::POctets(capacity, size, endian::little);
 }
 
-static const jau::uuid128_t DataServiceUUID =  jau::uuid128_t("d0ca6bf3-3d50-4760-98e5-fc5883e93712");
-static const jau::uuid128_t CommandUUID      = jau::uuid128_t("d0ca6bf3-3d52-4760-98e5-fc5883e93712");
-static const jau::uuid128_t ResponseUUID     = jau::uuid128_t("d0ca6bf3-3d53-4760-98e5-fc5883e93712");
-static const jau::uuid128_t PulseDataUUID =    jau::uuid128_t("d0ca6bf3-3d54-4760-98e5-fc5883e93712");
+static const jau::uuid128_t DataServiceUUID = jau::uuid128_t("d0ca6bf3-3d50-4760-98e5-fc5883e93712");
+static const jau::uuid128_t StaticDataUUID  = jau::uuid128_t("d0ca6bf3-3d51-4760-98e5-fc5883e93712");
+static const jau::uuid128_t CommandUUID     = jau::uuid128_t("d0ca6bf3-3d52-4760-98e5-fc5883e93712");
+static const jau::uuid128_t ResponseUUID    = jau::uuid128_t("d0ca6bf3-3d53-4760-98e5-fc5883e93712");
+static const jau::uuid128_t PulseDataUUID   = jau::uuid128_t("d0ca6bf3-3d54-4760-98e5-fc5883e93712");
 
 // DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
 DBGattServerRef dbGattServer( new DBGattServer(
@@ -104,8 +105,8 @@ DBGattServerRef dbGattServer( new DBGattServer(
                   DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::APPEARANCE) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
                               /* descriptors: */ { /* intentionally w/o Desc */ },
-                              make_poctets((uint16_t)0) /* value */
-              ) ) ),
+                              make_poctets((uint16_t)0) /* value */ )
+              ) ),
           DBGattService ( true /* primary */,
               std::make_unique<const jau::uuid16_t>(GattServiceType::DEVICE_INFORMATION) /* type_ */,
               jau::make_darray ( // DBGattChar
@@ -132,12 +133,12 @@ DBGattServerRef dbGattServer( new DBGattServer(
                   DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::SOFTWARE_REVISION_STRING) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
                               /* descriptors: */ { /* intentionally w/o Desc */ },
-                              make_poctets("sw:0123456789") /* value */
-              ) ) ),
+                              make_poctets("sw:0123456789") /* value */ )
+              ) ),
           DBGattService ( true /* primary */,
               std::make_unique<const jau::uuid128_t>(DataServiceUUID) /* type_ */,
               jau::make_darray ( // DBGattChar
-                  DBGattChar( std::make_unique<const jau::uuid128_t>("d0ca6bf3-3d51-4760-98e5-fc5883e93712") /* value_type_ */,
+                  DBGattChar( std::make_unique<const jau::uuid128_t>(StaticDataUUID) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
                               jau::make_darray ( // DBGattDesc
                                   DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA STATIC") )
@@ -162,8 +163,8 @@ DBGattServerRef dbGattServer( new DBGattServer(
                                   DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA PULSE") ),
                                   DBGattDesc::createClientCharConfig()
                               ),
-                              make_poctets("Synthethic Sensor 01") /* value */
-              ) ) )
+                              make_poctets("Synthethic Sensor 01") /* value */ )
+              ) )
         ) ) );
 
 
