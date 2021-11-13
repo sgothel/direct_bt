@@ -37,7 +37,7 @@
 #include "BTTypes0.hpp"
 
 #define JAVA_DBT_PACKAGE "jau/direct_bt/"
-#define JAVA_MAIN_PACKAGE "org/direct_bt"
+#define JAVA_MAIN_PACKAGE "org/direct_bt/"
 
 namespace direct_bt {
 
