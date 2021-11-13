@@ -132,7 +132,7 @@ namespace direct_bt {
             std::shared_ptr<BTGattHandler> getGattHandlerChecked() const;
             std::shared_ptr<BTDevice> getDeviceChecked() const;
 
-            virtual std::string toString() const noexcept override;
+            std::string toString() const noexcept override;
 
             /** Value is uint16_t bitfield */
             bool isExtendedProperties() const noexcept { return *TYPE_EXT_PROP == *type; }
