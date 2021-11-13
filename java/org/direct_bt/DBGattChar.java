@@ -39,8 +39,11 @@ import java.util.List;
  * The handle represents a service's characteristics-declaration
  * and the value the Characteristics Property, Characteristics Value Handle _and_ Characteristics UUID.
  */
-public class DBGattChar
+public final class DBGattChar
 {
+    private volatile long nativeInstance;
+    /* pp */ long getNativeInstance() { return nativeInstance; }
+
     private final boolean enabledNotifyState = false;
     private final boolean enabledIndicateState = false;
 
@@ -75,7 +78,7 @@ public class DBGattChar
      * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
      * </p>
      */
-    public short handle;
+    public native short getHandle();
 
     /**
      * Characteristic end handle, inclusive.
@@ -83,7 +86,7 @@ public class DBGattChar
      * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
      * </p>
      */
-    public short end_handle;
+    public native short getEndHandle();
 
     /**
      * Characteristics Value Handle.
@@ -91,59 +94,72 @@ public class DBGattChar
      * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
      * </p>
      */
-    public short value_handle;
+    public native short getValueHandle();
+
+    private final String value_type;
 
     /* Characteristics Value Type UUID (lower-case)*/
-    public String value_type;
+    public String getValueType() { return value_type; }
+
+    private final GattCharPropertySet properties;
 
     /* Characteristics Property */
-    GattCharPropertySet properties;
+    public GattCharPropertySet getProperties() { return properties; }
+
+    /* pp */ final List<DBGattDesc> descriptors;
 
     /** List of Characteristic Descriptions. */
-    public List<DBGattDesc> descriptors;
+    public final List<DBGattDesc> getDescriptors() { return descriptors; }
 
-    public DBGattValue value;
+    public native DBGattValue getValue();
 
     /* Optional Client Characteristic Configuration index within descriptorList */
-    public int clientCharConfigIndex;
+    public final int clientCharConfigIndex;
 
     /* Optional Characteristic User Description index within descriptorList */
-    public int userDescriptionIndex;
+    public final int userDescriptionIndex;
 
     public DBGattChar(final String value_type_,
                       final GattCharPropertySet properties_,
                       final List<DBGattDesc> descriptors_,
                       final DBGattValue value_)
     {
-        handle = 0;
-        end_handle = 0;
-        value_handle = 0;
         value_type = value_type_;
         properties = properties_;
         descriptors = descriptors_;
-        value = value_;
-        clientCharConfigIndex = -1;
-        userDescriptionIndex = -1;
 
-        int i=0;
-        for(final DBGattDesc d : descriptors) {
-            if( 0 > clientCharConfigIndex && d.isClientCharConfig() ) {
-                clientCharConfigIndex=i;
-            } else if( 0 > userDescriptionIndex && d.isUserDescription() ) {
-                userDescriptionIndex=i;
+        {
+            int clientCharConfigIndex_ = -1;
+            int userDescriptionIndex_ = -1;
+            int i=0;
+            for(final DBGattDesc d : descriptors) {
+                if( 0 > clientCharConfigIndex_ && d.isClientCharConfig() ) {
+                    clientCharConfigIndex_=i;
+                } else if( 0 > userDescriptionIndex_ && d.isUserDescription() ) {
+                    userDescriptionIndex_=i;
+                }
+                ++i;
             }
-            ++i;
+            clientCharConfigIndex = clientCharConfigIndex_;
+            userDescriptionIndex = userDescriptionIndex_;
         }
+
+        final long[] nativeDescriptors = new long[descriptors_.size()];
+        for(int i=0; i < nativeDescriptors.length; i++) {
+            nativeDescriptors[i] = descriptors_.get(i).getNativeInstance();
+        }
+        nativeInstance = ctorImpl(value_type_, properties_.mask, nativeDescriptors, value_.data(), value_.capacity(), value_.hasVariableLength());
     }
+    private static native long ctorImpl(final String type,
+                                        final byte properties, final long[] descriptors,
+                                        final byte[] value, final int capacity, boolean variable_length);
 
     public boolean hasProperties(final GattCharPropertySet.Type bit) {
         return properties.isSet(bit);
     }
 
     /** Fill value with zero bytes. */
-    public void bzero() {
-        value.bzero();
-    }
+    public native void bzero();
 
     public DBGattDesc getClientCharConfig() {
         if( 0 > clientCharConfigIndex ) {
@@ -168,31 +184,9 @@ public class DBGattChar
             return false;
         }
         final DBGattChar o = (DBGattChar)other;
-        return handle == o.handle; /** unique attribute handles */
+        return getHandle() == o.getHandle() && getEndHandle() == o.getEndHandle(); /** unique attribute handles */
     }
 
     @Override
-    public String toString() {
-        final String char_name;
-        final String notify_str;
-        {
-            final DBGattDesc ud = getUserDescription();
-            if( null != ud ) {
-                char_name = ", '" + BTUtils.decodeUTF8String(ud.value.data(), 0, ud.value.size()) + "'";
-            } else {
-                char_name = "";
-            }
-        }
-        if( hasProperties(GattCharPropertySet.Type.Notify) || hasProperties(GattCharPropertySet.Type.Indicate) ) {
-            notify_str = ", enabled[notify "+enabledNotifyState+", indicate "+enabledIndicateState+"]";
-        } else {
-            notify_str = "";
-        }
-        return "Char[handle [0x"+Integer.toHexString(handle)+"..0x"+Integer.toHexString(end_handle)+
-               "], props 0x"+Integer.toHexString(properties.mask)+" "+properties.toString()+
-               char_name+", value[type 0x"+value_type+", handle 0x"+Integer.toHexString(value_handle)+
-               ", "+value.toString()+
-               "], ccd-idx "+clientCharConfigIndex+notify_str+"]";
-    }
-
+    public native String toString();
 }

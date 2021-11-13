@@ -38,8 +38,11 @@ import java.util.List;
  *
  * @since 2.4.0
  */
-public class DBGattService
+public final class DBGattService
 {
+    private volatile long nativeInstance;
+    /* pp */ long getNativeInstance() { return nativeInstance; }
+
     public static class UUID16 {
         /** This service contains generic information about the device. This is a mandatory service. */
         public static String GENERIC_ACCESS                              = "1800";
@@ -59,7 +62,7 @@ public class DBGattService
     /**
      * Indicate whether this service is a primary service.
      */
-    public boolean primary;
+    public final boolean primary;
 
     /**
      * Service start handle
@@ -67,7 +70,7 @@ public class DBGattService
      * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
      * </p>
      */
-    public short handle;
+    public native short getHandle();
 
     /**
      * Service end handle, inclusive.
@@ -75,28 +78,38 @@ public class DBGattService
      * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
      * </p>
      */
-    public short end_handle;
+    public native short getEndHandle();
+
+    private final String type;
 
     /** Service type UUID (lower-case) */
-    public String type;
+    public String getType() { return type; }
+
+    /* pp */ final List<DBGattChar> characteristics;
 
     /** List of Characteristic Declarations. */
-    List<DBGattChar> characteristics;
+    public final List<DBGattChar> getCharacteristics() { return characteristics; }
 
     public DBGattService(final boolean primary_,
                          final String type_,
                          final List<DBGattChar> characteristics_)
     {
         primary = primary_;
-        handle = 0;
-        end_handle = 0;
         type = type_;
         characteristics = characteristics_;
+
+        final long[] nativeCharacteristics = new long[characteristics_.size()];
+        for(int i=0; i < nativeCharacteristics.length; i++) {
+            nativeCharacteristics[i] = characteristics_.get(i).getNativeInstance();
+        }
+        nativeInstance = ctorImpl(primary_, type_, nativeCharacteristics);
     }
+    private static native long ctorImpl(final boolean primary, final String type,
+                                        final long[] characteristics);
 
     public DBGattChar findGattChar(final String char_uuid) {
         for(final DBGattChar c : characteristics) {
-            if( char_uuid.equals( c.value_type ) ) {
+            if( char_uuid.equals( c.getValueType() ) ) {
                 return c;
             }
         }
@@ -104,7 +117,7 @@ public class DBGattService
     }
     public DBGattChar findGattCharByValueHandle(final short char_value_handle) {
         for(final DBGattChar c : characteristics) {
-            if( char_value_handle == c.value_handle ) {
+            if( char_value_handle == c.getValueHandle() ) {
                 return c;
             }
         }
@@ -120,13 +133,9 @@ public class DBGattService
             return false;
         }
         final DBGattService o = (DBGattService)other;
-        return handle == o.handle && end_handle == o.end_handle; /** unique attribute handles */
+        return getHandle() == o.getHandle() && getEndHandle() == o.getEndHandle(); /** unique attribute handles */
     }
 
     @Override
-    public String toString() {
-        return "Srvc[type 0x"+type+", handle [0x"+Integer.toHexString(handle)+"..0x"+Integer.toHexString(end_handle)+"], "+
-                characteristics.size()+" chars]";
-
-    }
+    public native String toString();
 }

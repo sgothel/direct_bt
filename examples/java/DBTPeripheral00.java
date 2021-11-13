@@ -475,7 +475,7 @@ public class DBTPeripheral00 {
                     device.toString(), s.toString(), c.toString());
 
             if( match &&
-                c.value_type.equals( CommandUUID ) &&
+                c.getValueType().equals( CommandUUID ) &&
                 ( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) )
             {
                 executeOffThread( () -> { sendResponse(value); }, true /* detach */);
@@ -505,12 +505,14 @@ public class DBTPeripheral00 {
 
             if( match ) {
                 final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
-                if( c.value_type.equals( PulseDataUUID ) ) {
-                    handlePulseDataNotify = notificationEnabled ? c.value_handle : 0;
-                    handlePulseDataIndicate = indicationEnabled ? c.value_handle : 0;
-                } else if( c.value_type.equals( ResponseUUID ) ) {
-                    handleResponseDataNotify = notificationEnabled ? c.value_handle : 0;
-                    handleResponseDataIndicate = indicationEnabled ? c.value_handle : 0;
+                final String value_type = c.getValueType();
+                final short value_handle = c.getValueHandle();
+                if( value_type.equals( PulseDataUUID ) ) {
+                    handlePulseDataNotify = notificationEnabled ? value_handle : 0;
+                    handlePulseDataIndicate = indicationEnabled ? value_handle : 0;
+                } else if( value_type.equals( ResponseUUID ) ) {
+                    handleResponseDataNotify = notificationEnabled ? value_handle : 0;
+                    handleResponseDataIndicate = indicationEnabled ? value_handle : 0;
                 }
                 sync_data = local; // SC-DRF release via sc_atomic_bool::store()
             }
@@ -679,12 +681,15 @@ public class DBTPeripheral00 {
                     test.adapter_name = args[++i];
                 } else if( arg.equals("-short_name") && args.length > (i+1) ) {
                     test.adapter_short_name = args[++i];
+                } else if( arg.equals("-mtu") && args.length > (i+1) ) {
+                    test.dbGattServer.setMaxAttMTU( Integer.valueOf( args[++i] ) );
                 }
             }
             BTUtils.println(System.err, "Run with '[-btmode LE|BREDR|DUAL] "+
                     "[-adapter <adapter_address>] "+
                     "[-name <adapter_name>] "+
                     "[-short_name <adapter_short_name>] "+
+                    "[-mtu <max att_mtu>] " +
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event] "+

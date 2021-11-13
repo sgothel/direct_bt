@@ -37,8 +37,11 @@ import java.util.List;
  *
  * @since 2.4.0
  */
-public class DBGattServer
+public final class DBGattServer
 {
+    private volatile long nativeInstance;
+    /* pp */ long getNativeInstance() { return nativeInstance; }
+
     /**
      * Listener to remote master device's operations on the local GATT-Server.
      *
@@ -143,22 +146,55 @@ public class DBGattServer
     }
     // private final List<Listener> listenerList = new ArrayList<Listener>();
 
-    /** Used maximum server Rx ATT_MTU */
-    public int max_att_mtu = 512 + 1; // BTGattHandler::Defaults::MAX_ATT_MTU;
+    /** Used maximum server Rx ATT_MTU, defaults to 512+1. */
+    public native int getMaxAttMTU();
+
+    /**
+     * Set maximum server Rx ATT_MTU, defaults to 512+1 limit.
+     *
+     * Method can only be issued before passing instance to BTAdapter::startAdvertising()
+     * @see BTAdapter::startAdvertising()
+     */
+    public native void setMaxAttMTU(final int v);
+
+    /* pp */ final List<DBGattService> services;
 
     /** List of Services. */
-    public List<DBGattService> services;
+    public List<DBGattService> getServices() { return services; }
 
-    public DBGattServer() {
-        services = new ArrayList<DBGattService>();
-    }
-    public DBGattServer(final List<DBGattService> services_) {
+    /**
+     *
+     * @param max_att_mtu_
+     * @param services_
+     */
+    public DBGattServer(final int max_att_mtu_, final List<DBGattService> services_) {
         services = services_;
+
+        final long[] nativeServices = new long[services_.size()];
+        for(int i=0; i < nativeServices.length; i++) {
+            nativeServices[i] = services_.get(i).getNativeInstance();
+        }
+        nativeInstance = ctorImpl(Math.max(512+1, max_att_mtu_), nativeServices);
+    }
+    private static native long ctorImpl(final int max_att_mtu, final long[] services);
+
+    /**
+     * Ctor using default maximum ATT_MTU of 512+1
+     * @param services_
+     */
+    public DBGattServer(final List<DBGattService> services_) {
+        this(512+1, services_);
+    }
+    /**
+     * Default empty ctor
+     */
+    public DBGattServer() {
+        this(512+1, new ArrayList<DBGattService>());
     }
 
     public DBGattService findGattService(final String service_uuid) {
         for(final DBGattService s : services) {
-            if( service_uuid.equals( s.type ) ) {
+            if( service_uuid.equals( s.getType() ) ) {
                 return s;
             }
         }
@@ -223,8 +259,5 @@ public class DBGattServer
     }
 
     @Override
-    public String toString() {
-        return "DBSrv[max mtu "+max_att_mtu+", "+services.size()+" services]";
-
-    }
+    public native String toString();
 }

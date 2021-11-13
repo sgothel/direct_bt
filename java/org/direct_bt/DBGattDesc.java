@@ -32,8 +32,11 @@ package org.direct_bt;
  *
  * @since 2.4.0
  */
-public class DBGattDesc
+public final class DBGattDesc
 {
+    private volatile long nativeInstance;
+    /* pp */ long getNativeInstance() { return nativeInstance; }
+
     public static class UUID16 {
         /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.1 Characteristic Extended Properties */
         public static final String EXT_PROP  = "2900";
@@ -49,12 +52,14 @@ public class DBGattDesc
      * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
      * </p>
      */
-    public short handle;
+    public native short getHandle();
+
+    private final String type;
 
     /** Type of descriptor UUID (lower-case) */
-    public String type;
+    public String getType() { return type; }
 
-    public DBGattValue value;
+    public native DBGattValue getValue();
 
     /**
      *
@@ -64,19 +69,18 @@ public class DBGattDesc
      */
     public DBGattDesc(final String type_, final DBGattValue value_)
     {
-        handle = 0;
         type = type_;
-        value = value_;
 
-        if( value.hasVariableLength() && ( isExtendedProperties() || isClientCharConfig() ) ) {
-            value.setVariableLength(false);
+        if( value_.hasVariableLength() && ( isExtendedProperties() || isClientCharConfig() ) ) {
+            value_.setVariableLength(false);
         }
+        nativeInstance = ctorImpl(type_, value_.data(), value_.capacity(), value_.hasVariableLength());
     }
+    private static native long ctorImpl(final String type,
+                                        final byte[] value, final int capacity, boolean variable_length);
 
     /** Fill value with zero bytes. */
-    public void bzero() {
-        value.bzero();
-    }
+    public native void bzero();
 
     /**
      * Return a newly constructed Client Characteristic Configuration
@@ -106,12 +110,9 @@ public class DBGattDesc
             return false;
         }
         final DBGattDesc o = (DBGattDesc)other;
-        return handle == o.handle; /** unique attribute handles */
+        return getHandle() == o.getHandle(); /** unique attribute handles */
     }
 
     @Override
-    public String toString() {
-        return "Desc[type 0x"+type+", handle 0x"+Integer.toHexString(handle)+
-               ", value["+value.toString()+"]]";
-    }
+    public native String toString();
 }
