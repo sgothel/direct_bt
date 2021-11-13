@@ -30,7 +30,6 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-
 #include <mutex>
 #include <atomic>
 
@@ -67,6 +66,9 @@
  */
 namespace direct_bt {
 
+    class BTDevice; // forward
+    typedef std::shared_ptr<BTDevice> BTDeviceRef;
+
     /**
      * Representing a Gatt Characteristic Descriptor object from the ::GATTRole::Server perspective.
      *
@@ -74,7 +76,7 @@ namespace direct_bt {
      *
      * @since 2.4.0
      */
-    class DBGattDesc {
+    class DBGattDesc : public jau::JavaUplink {
         public:
             /**
              * Characteristic Descriptor Handle
@@ -151,10 +153,10 @@ namespace direct_bt {
              * with a zero uint16_t value of fixed length.
              * @see isClientCharConfig()
              */
-            static DBGattDesc createClientCharConfig() {
+            static std::shared_ptr<DBGattDesc> createClientCharConfig() {
                 jau::POctets p( 2, jau::endian::little);
                 p.put_uint16_nc(0, 0);
-                return DBGattDesc( BTGattDesc::TYPE_CCC_DESC, std::move(p), false /* variable_length */ );
+                return std::make_shared<DBGattDesc>( BTGattDesc::TYPE_CCC_DESC, std::move(p), false /* variable_length */ );
             }
 
             /** Fill value with zero bytes. */
@@ -171,13 +173,20 @@ namespace direct_bt {
             /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.2 Characteristic User Description */
             bool isUserDescription() const noexcept{ return *BTGattDesc::TYPE_USER_DESC == *type; }
 
-            std::string toString() const noexcept {
+            std::string get_java_class() const noexcept override {
+                return java_class();
+            }
+            static std::string java_class() noexcept {
+                return std::string(JAVA_MAIN_PACKAGE "DBGattDesc");
+            }
+
+            std::string toString() const noexcept override {
                 const std::string len = variable_length ? "var" : "fixed";
                 return "Desc[type 0x"+type->toString()+", handle "+jau::to_hexstring(handle)+
                        ", value[len "+len+
                        ", "+value.toString()+
                        " '" + jau::dfa_utf8_decode( value.get_ptr(), value.size() ) + "'"+
-                       "]]";
+                       "], "+javaObjectToString()+"]";
             }
     };
     inline bool operator==(const DBGattDesc& lhs, const DBGattDesc& rhs) noexcept
@@ -185,6 +194,8 @@ namespace direct_bt {
 
     inline bool operator!=(const DBGattDesc& lhs, const DBGattDesc& rhs) noexcept
     { return !(lhs == rhs); }
+
+    typedef std::shared_ptr<DBGattDesc> DBGattDescRef;
 
     /**
      * Representing a Gatt Characteristic object from the ::GATTRole::Server perspective.
@@ -200,7 +211,7 @@ namespace direct_bt {
      *
      * @since 2.4.0
      */
-    class DBGattChar {
+    class DBGattChar : public jau::JavaUplink {
         private:
             bool enabledNotifyState = false;
             bool enabledIndicateState = false;
@@ -237,7 +248,7 @@ namespace direct_bt {
             BTGattChar::PropertyBitVal properties;
 
             /** List of Characteristic Descriptions. */
-            jau::darray<DBGattDesc> descriptors;
+            jau::darray<DBGattDescRef> descriptors;
 
             /**
              * Characteristics's Value.
@@ -274,7 +285,7 @@ namespace direct_bt {
              */
             DBGattChar(const std::shared_ptr<const jau::uuid_t>& value_type_,
                        const BTGattChar::PropertyBitVal properties_,
-                       jau::darray<DBGattDesc> && descriptors_,
+                       jau::darray<DBGattDescRef> && descriptors_,
                        jau::POctets && value_, bool variable_length_=false) noexcept
             : handle(0), end_handle(0), value_handle(0),
               value_type(value_type_),
@@ -286,10 +297,10 @@ namespace direct_bt {
             {
                 int i=0;
                 // C++11: Range-based for loop: [begin, end[
-                for(DBGattDesc& d : descriptors) {
-                    if( 0 > clientCharConfigIndex && d.isClientCharConfig() ) {
+                for(const DBGattDescRef& d : descriptors) {
+                    if( 0 > clientCharConfigIndex && d->isClientCharConfig() ) {
                         clientCharConfigIndex=i;
-                    } else if( 0 > userDescriptionIndex && d.isUserDescription() ) {
+                    } else if( 0 > userDescriptionIndex && d->isUserDescription() ) {
                         userDescriptionIndex=i;
                     }
                     ++i;
@@ -338,37 +349,44 @@ namespace direct_bt {
                 value.bzero();
             }
 
-            const DBGattDesc* getClientCharConfig() const noexcept {
+            const DBGattDescRef getClientCharConfig() const noexcept {
                 if( 0 > clientCharConfigIndex ) {
                     return nullptr;
                 }
-                return &descriptors.at(static_cast<size_t>(clientCharConfigIndex)); // abort if out of bounds
+                return descriptors.at(static_cast<size_t>(clientCharConfigIndex)); // abort if out of bounds
             }
 
-            const DBGattDesc* getUserDescription() const noexcept {
+            const DBGattDescRef getUserDescription() const noexcept {
                 if( 0 > userDescriptionIndex ) {
                     return nullptr;
                 }
-                return &descriptors.at(static_cast<size_t>(userDescriptionIndex)); // abort if out of bounds
+                return descriptors.at(static_cast<size_t>(userDescriptionIndex)); // abort if out of bounds
             }
-            DBGattDesc* getClientCharConfig() noexcept {
+            DBGattDescRef getClientCharConfig() noexcept {
                 if( 0 > clientCharConfigIndex ) {
                     return nullptr;
                 }
-                return &descriptors.at(static_cast<size_t>(clientCharConfigIndex)); // abort if out of bounds
+                return descriptors.at(static_cast<size_t>(clientCharConfigIndex)); // abort if out of bounds
             }
 
-            DBGattDesc* getUserDescription() noexcept {
+            DBGattDescRef getUserDescription() noexcept {
                 if( 0 > userDescriptionIndex ) {
                     return nullptr;
                 }
-                return &descriptors.at(static_cast<size_t>(userDescriptionIndex)); // abort if out of bounds
+                return descriptors.at(static_cast<size_t>(userDescriptionIndex)); // abort if out of bounds
             }
 
-            std::string toString() const noexcept {
+            std::string get_java_class() const noexcept override {
+                return java_class();
+            }
+            static std::string java_class() noexcept {
+                return std::string(JAVA_MAIN_PACKAGE "DBGattChar");
+            }
+
+            std::string toString() const noexcept override {
                 std::string char_name, notify_str;
                 {
-                    const DBGattDesc* ud = getUserDescription();
+                    const DBGattDescRef ud = getUserDescription();
                     if( nullptr != ud ) {
                         char_name = ", '" + jau::dfa_utf8_decode( ud->value.get_ptr(), ud->value.size() ) + "'";
                     }
@@ -382,7 +400,8 @@ namespace direct_bt {
                        char_name+", value[type 0x"+value_type->toString()+", handle "+jau::to_hexstring(value_handle)+", len "+len+
                        ", "+value.toString()+
                        " '" + jau::dfa_utf8_decode( value.get_ptr(), value.size() ) + "'"+
-                       "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
+                       "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+
+                       ", "+javaObjectToString()+"]";
             }
     };
     inline bool operator==(const DBGattChar& lhs, const DBGattChar& rhs) noexcept
@@ -390,6 +409,8 @@ namespace direct_bt {
 
     inline bool operator!=(const DBGattChar& lhs, const DBGattChar& rhs) noexcept
     { return !(lhs == rhs); }
+
+    typedef std::shared_ptr<DBGattChar> DBGattCharRef;
 
     /**
      * Representing a Gatt Service object from the ::GATTRole::Server perspective.
@@ -402,7 +423,7 @@ namespace direct_bt {
      *
      * @since 2.4.0
      */
-    class DBGattService {
+    class DBGattService : public jau::JavaUplink {
         public:
             /**
              * Indicate whether this service is a primary service.
@@ -429,7 +450,7 @@ namespace direct_bt {
             std::shared_ptr<const jau::uuid_t> type;
 
             /** List of Characteristic Declarations. */
-            jau::darray<DBGattChar> characteristics;
+            jau::darray<DBGattCharRef> characteristics;
 
             ~DBGattService() {
                 JAU_TRACE_DBGATT_PRINT("DBGattService dtor0: %p", this);
@@ -437,7 +458,7 @@ namespace direct_bt {
 
             DBGattService(const bool primary_,
                           const std::shared_ptr<const jau::uuid_t>& type_,
-                          jau::darray<DBGattChar> && characteristics_)
+                          jau::darray<DBGattCharRef> && characteristics_)
             : primary(primary_), handle(0), end_handle(0),
               type(type_),
               characteristics( std::move( characteristics_ ) )
@@ -446,18 +467,18 @@ namespace direct_bt {
             DBGattService(const DBGattService &o) = default;
             DBGattService(DBGattService &&o) noexcept = default;
 
-            DBGattChar* findGattChar(const jau::uuid_t& char_uuid) noexcept {
-                for(DBGattChar& c : characteristics) {
-                    if( char_uuid.equivalent( *c.value_type ) ) {
-                        return &c;
+            DBGattCharRef findGattChar(const jau::uuid_t& char_uuid) noexcept {
+                for(DBGattCharRef& c : characteristics) {
+                    if( char_uuid.equivalent( *c->value_type ) ) {
+                        return c;
                     }
                 }
                 return nullptr;
             }
-            DBGattChar* findGattCharByValueHandle(const uint16_t char_value_handle) noexcept {
-                for(DBGattChar& c : characteristics) {
-                    if( char_value_handle == c.value_handle ) {
-                        return &c;
+            DBGattCharRef findGattCharByValueHandle(const uint16_t char_value_handle) noexcept {
+                for(DBGattCharRef& c : characteristics) {
+                    if( char_value_handle == c->value_handle ) {
+                        return c;
                     }
                 }
                 return nullptr;
@@ -478,20 +499,28 @@ namespace direct_bt {
                 }
                 uint16_t h = start_handle;
                 handle = h++;
-                for(DBGattChar& c : characteristics) {
-                    c.handle = h++;
-                    c.value_handle = h++;
-                    for(DBGattDesc& d : c.descriptors) {
-                        d.handle = h++;
+                for(DBGattCharRef& c : characteristics) {
+                    c->handle = h++;
+                    c->value_handle = h++;
+                    for(DBGattDescRef& d : c->descriptors) {
+                        d->handle = h++;
                     }
-                    c.end_handle = h-1;
+                    c->end_handle = h-1;
                 }
                 end_handle = h-1;
                 return ( end_handle - handle ) + 1;
             }
-            std::string toString() const noexcept {
+
+            std::string get_java_class() const noexcept override {
+                return java_class();
+            }
+            static std::string java_class() noexcept {
+                return std::string(JAVA_MAIN_PACKAGE "DBGattService");
+            }
+
+            std::string toString() const noexcept override {
                 return "Srvc[type 0x"+type->toString()+", handle ["+jau::to_hexstring(handle)+".."+jau::to_hexstring(end_handle)+"], "+
-                       std::to_string(characteristics.size())+" chars]";
+                       std::to_string(characteristics.size())+" chars, "+javaObjectToString()+"]";
 
             }
     };
@@ -500,6 +529,8 @@ namespace direct_bt {
 
     inline bool operator!=(const DBGattService& lhs, const DBGattService& rhs) noexcept
     { return !(lhs == rhs); }
+
+    typedef std::shared_ptr<DBGattService> DBGattServiceRef;
 
     /**
      * Representing a complete list of Gatt Service objects from the ::GATTRole::Server perspective,
@@ -513,7 +544,7 @@ namespace direct_bt {
      *
      * @since 2.4.0
      */
-    class DBGattServer {
+    class DBGattServer : public jau::JavaUplink {
         public:
             /**
              * Listener to remote master device's operations on the local GATT-Server.
@@ -532,7 +563,7 @@ namespace direct_bt {
                      * @param device the connected device
                      * @param initialMTU initial used minimum MTU until negotiated.
                      */
-                    virtual void connected(std::shared_ptr<BTDevice> device, const uint16_t initialMTU) = 0;
+                    virtual void connected(BTDeviceRef device, const uint16_t initialMTU) = 0;
 
                     /**
                      * Notification that device got disconnected.
@@ -541,7 +572,7 @@ namespace direct_bt {
                      *
                      * @param device the disconnected device.
                      */
-                    virtual void disconnected(std::shared_ptr<BTDevice> device) = 0;
+                    virtual void disconnected(BTDeviceRef device) = 0;
 
                     /**
                      * Notification that the MTU has changed.
@@ -549,7 +580,7 @@ namespace direct_bt {
                      * @param device the device for which the MTU has changed
                      * @param mtu the new negotiated MTU
                      */
-                    virtual void mtuChanged(std::shared_ptr<BTDevice> device, const uint16_t mtu) = 0;
+                    virtual void mtuChanged(BTDeviceRef device, const uint16_t mtu) = 0;
 
                     /**
                      *
@@ -558,7 +589,7 @@ namespace direct_bt {
                      * @param c
                      * @return true if master read has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the read action will be allowed.
                      */
-                    virtual bool readCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c) = 0;
+                    virtual bool readCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) = 0;
 
                     /**
                      *
@@ -568,7 +599,7 @@ namespace direct_bt {
                      * @param d
                      * @return true if master read has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the read action will be allowed.
                      */
-                    virtual bool readDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d) = 0;
+                    virtual bool readDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) = 0;
 
                     /**
                      *
@@ -579,7 +610,7 @@ namespace direct_bt {
                      * @param value_offset
                      * @return true if master write has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the write action will be allowed.
                      */
-                    virtual bool writeCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c,
+                    virtual bool writeCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c,
                                                 const jau::TROOctets & value, const uint16_t value_offset) = 0;
 
                     /**
@@ -592,7 +623,7 @@ namespace direct_bt {
                      * @param value_offset
                      * @return true if master write has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the write action will be allowed.
                      */
-                    virtual bool writeDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d,
+                    virtual bool writeDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d,
                                                 const jau::TROOctets & value, const uint16_t value_offset) = 0;
 
                     /**
@@ -604,7 +635,7 @@ namespace direct_bt {
                      * @param notificationEnabled
                      * @param indicationEnabled
                      */
-                    virtual void clientCharConfigChanged(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d,
+                    virtual void clientCharConfigChanged(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d,
                                                          const bool notificationEnabled, const bool indicationEnabled) = 0;
 
                     /**
@@ -630,40 +661,40 @@ namespace direct_bt {
             uint16_t max_att_mtu = 512 + 1; // BTGattHandler::Defaults::MAX_ATT_MTU;
 
             /** List of Services */
-            jau::darray<DBGattService> services;
+            jau::darray<DBGattServiceRef> services;
 
             DBGattServer()
             : services()
             { }
 
-            DBGattServer(jau::darray<DBGattService> && services_)
+            DBGattServer(jau::darray<DBGattServiceRef> && services_)
             : services( std::move( services_ ) )
             { }
 
-            DBGattService* findGattService(const jau::uuid_t& type) noexcept {
-                for(DBGattService& s : services) {
-                    if( type.equivalent( *s.type ) ) {
-                        return &s;
+            DBGattServiceRef findGattService(const jau::uuid_t& type) noexcept {
+                for(DBGattServiceRef& s : services) {
+                    if( type.equivalent( *s->type ) ) {
+                        return s;
                     }
                 }
                 return nullptr;
             }
-            DBGattChar* findGattChar(const jau::uuid_t&  service_uuid, const jau::uuid_t& char_uuid) noexcept {
-                DBGattService* service = findGattService(service_uuid);
+            DBGattCharRef findGattChar(const jau::uuid_t&  service_uuid, const jau::uuid_t& char_uuid) noexcept {
+                DBGattServiceRef service = findGattService(service_uuid);
                 if( nullptr == service ) {
                     return nullptr;
                 }
                 return service->findGattChar(char_uuid);
             }
-            DBGattDesc* findGattClientCharConfig(const jau::uuid_t&  service_uuid, const jau::uuid_t& char_uuid) noexcept {
-                DBGattChar * c = findGattChar(service_uuid, char_uuid);
+            DBGattDescRef findGattClientCharConfig(const jau::uuid_t&  service_uuid, const jau::uuid_t& char_uuid) noexcept {
+                DBGattCharRef c = findGattChar(service_uuid, char_uuid);
                 if( nullptr == c ) {
                     return nullptr;
                 }
                 return c->getClientCharConfig();
             }
             bool resetGattClientCharConfig(const jau::uuid_t&  service_uuid, const jau::uuid_t& char_uuid) noexcept {
-                DBGattDesc* d = findGattClientCharConfig(service_uuid, char_uuid);
+                DBGattDescRef d = findGattClientCharConfig(service_uuid, char_uuid);
                 if( nullptr == d ) {
                     return false;
                 }
@@ -671,9 +702,9 @@ namespace direct_bt {
                 return true;
             }
 
-            DBGattChar* findGattCharByValueHandle(const uint16_t char_value_handle) noexcept {
-                for(DBGattService& s : services) {
-                    DBGattChar* r = s.findGattCharByValueHandle(char_value_handle);
+            DBGattCharRef findGattCharByValueHandle(const uint16_t char_value_handle) noexcept {
+                for(DBGattServiceRef& s : services) {
+                    DBGattCharRef r = s->findGattCharByValueHandle(char_value_handle);
                     if( nullptr != r ) {
                         return r;
                     }
@@ -696,8 +727,8 @@ namespace direct_bt {
             int setServicesHandles() {
                 int c = 0;
                 uint16_t h = 1;
-                for(DBGattService& s : services) {
-                    int l = s.setHandles(h);
+                for(DBGattServiceRef& s : services) {
+                    int l = s->setHandles(h);
                     c += l;
                     h += l; // end + 1 for next service
                 }
@@ -711,19 +742,27 @@ namespace direct_bt {
 
             std::string toFullString() {
                 std::string res = toString()+"\n";
-                for(DBGattService& s : services) {
-                    res.append("  ").append(s.toString()).append("\n");
-                    for(DBGattChar& c : s.characteristics) {
-                        res.append("    ").append(c.toString()).append("\n");
-                        for(DBGattDesc& d : c.descriptors) {
-                            res.append("      ").append(d.toString()).append("\n");
+                for(DBGattServiceRef& s : services) {
+                    res.append("  ").append(s->toString()).append("\n");
+                    for(DBGattCharRef& c : s->characteristics) {
+                        res.append("    ").append(c->toString()).append("\n");
+                        for(DBGattDescRef& d : c->descriptors) {
+                            res.append("      ").append(d->toString()).append("\n");
                         }
                     }
                 }
                 return res;
             }
-            std::string toString() const noexcept {
-                return "DBSrv[max mtu "+std::to_string(max_att_mtu)+", "+std::to_string(services.size())+" services]";
+
+            std::string get_java_class() const noexcept override {
+                return java_class();
+            }
+            static std::string java_class() noexcept {
+                return std::string(JAVA_MAIN_PACKAGE "DBGattServer");
+            }
+
+            std::string toString() const noexcept override {
+                return "DBSrv[max mtu "+std::to_string(max_att_mtu)+", "+std::to_string(services.size())+" services, "+javaObjectToString()+"]";
 
             }
     };

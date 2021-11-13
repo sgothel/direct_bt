@@ -95,72 +95,72 @@ static const jau::uuid128_t PulseDataUUID   = jau::uuid128_t("d0ca6bf3-3d54-4760
 DBGattServerRef dbGattServer( new DBGattServer(
         /* services: */
         jau::make_darray( // DBGattService
-          DBGattService ( true /* primary */,
+          std::make_shared<DBGattService> ( true /* primary */,
               std::make_unique<const jau::uuid16_t>(GattServiceType::GENERIC_ACCESS) /* type_ */,
               jau::make_darray ( // DBGattChar
-                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::DEVICE_NAME) /* value_type_ */,
+                  std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::DEVICE_NAME) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
-                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              jau::darray<DBGattDescRef>() /* intentionally empty */,
                               make_poctets("Synthethic Sensor 01") /* value */ ),
-                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::APPEARANCE) /* value_type_ */,
+                  std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::APPEARANCE) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
-                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              jau::darray<DBGattDescRef>() /* intentionally empty */,
                               make_poctets((uint16_t)0) /* value */ )
               ) ),
-          DBGattService ( true /* primary */,
+          std::make_shared<DBGattService> ( true /* primary */,
               std::make_unique<const jau::uuid16_t>(GattServiceType::DEVICE_INFORMATION) /* type_ */,
               jau::make_darray ( // DBGattChar
-                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::MANUFACTURER_NAME_STRING) /* value_type_ */,
+                  std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::MANUFACTURER_NAME_STRING) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
-                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              jau::darray<DBGattDescRef>() /* intentionally empty */,
                               make_poctets("Gothel Software") /* value */ ),
-                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::MODEL_NUMBER_STRING) /* value_type_ */,
+                  std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::MODEL_NUMBER_STRING) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
-                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              jau::darray<DBGattDescRef>() /* intentionally empty */,
                               make_poctets("2.4.0-pre") /* value */ ),
-                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::SERIAL_NUMBER_STRING) /* value_type_ */,
+                  std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::SERIAL_NUMBER_STRING) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
-                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              jau::darray<DBGattDescRef>() /* intentionally empty */,
                               make_poctets("sn:0123456789") /* value */ ),
-                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::HARDWARE_REVISION_STRING) /* value_type_ */,
+                  std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::HARDWARE_REVISION_STRING) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
-                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              jau::darray<DBGattDescRef>() /* intentionally empty */,
                               make_poctets("hw:0123456789") /* value */ ),
-                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::FIRMWARE_REVISION_STRING) /* value_type_ */,
+                  std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::FIRMWARE_REVISION_STRING) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
-                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              jau::darray<DBGattDescRef>() /* intentionally empty */,
                               make_poctets("fw:0123456789") /* value */ ),
-                  DBGattChar( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::SOFTWARE_REVISION_STRING) /* value_type_ */,
+                  std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::SOFTWARE_REVISION_STRING) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
-                              /* descriptors: */ { /* intentionally w/o Desc */ },
+                              jau::darray<DBGattDescRef>() /* intentionally empty */,
                               make_poctets("sw:0123456789") /* value */ )
               ) ),
-          DBGattService ( true /* primary */,
+          std::make_shared<DBGattService> ( true /* primary */,
               std::make_unique<const jau::uuid128_t>(DataServiceUUID) /* type_ */,
               jau::make_darray ( // DBGattChar
-                  DBGattChar( std::make_unique<const jau::uuid128_t>(StaticDataUUID) /* value_type_ */,
+                  std::make_shared<DBGattChar>( std::make_unique<const jau::uuid128_t>(StaticDataUUID) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
                               jau::make_darray ( // DBGattDesc
-                                  DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA_STATIC") )
+                                  std::make_shared<DBGattDesc>( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA_STATIC") )
                               ),
                             make_poctets("Proprietary Static Data 0x00010203") /* value */ ),
-                  DBGattChar( std::make_unique<const jau::uuid128_t>(CommandUUID) /* value_type_ */,
+                  std::make_shared<DBGattChar>( std::make_unique<const jau::uuid128_t>(CommandUUID) /* value_type_ */,
                               BTGattChar::PropertyBitVal::WriteNoAck | BTGattChar::PropertyBitVal::WriteWithAck,
                               jau::make_darray ( // DBGattDesc
-                                  DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("COMMAND") )
+                                  std::make_shared<DBGattDesc>( BTGattDesc::TYPE_USER_DESC, make_poctets("COMMAND") )
                               ),
                               make_poctets(128, 64) /* value */, true /* variable_length */ ),
-                  DBGattChar( std::make_unique<const jau::uuid128_t>(ResponseUUID) /* value_type_ */,
+                  std::make_shared<DBGattChar>( std::make_unique<const jau::uuid128_t>(ResponseUUID) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Notify | BTGattChar::PropertyBitVal::Indicate,
                               jau::make_darray ( // DBGattDesc
-                                  DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("RESPONSE") ),
+                                  std::make_shared<DBGattDesc>( BTGattDesc::TYPE_USER_DESC, make_poctets("RESPONSE") ),
                                   DBGattDesc::createClientCharConfig()
                               ),
                               make_poctets((uint16_t)0) /* value */ ),
-                  DBGattChar( std::make_unique<const jau::uuid128_t>(PulseDataUUID) /* value_type_ */,
+                  std::make_shared<DBGattChar>( std::make_unique<const jau::uuid128_t>(PulseDataUUID) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Notify | BTGattChar::PropertyBitVal::Indicate,
                               jau::make_darray ( // DBGattDesc
-                                  DBGattDesc( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA_PULSE") ),
+                                  std::make_shared<DBGattDesc>( BTGattDesc::TYPE_USER_DESC, make_poctets("DATA_PULSE") ),
                                   DBGattDesc::createClientCharConfig()
                               ),
                               make_poctets("Synthethic Sensor 01") /* value */ )
@@ -431,18 +431,18 @@ class MyGATTServerListener : public DBGattServer::Listener {
         bool readDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) override {
             const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::readDescValue(match %d): to %s, from\n  %s\n    %s\n      %s\n",
-                    match, device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
+                    match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str());
             return match;
         }
 
-        bool writeCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, const jau::TROOctets & value, const uint16_t value_offset) override {
+        bool writeCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, const jau::TROOctets & value, const uint16_t value_offset) override {
             const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::writeCharValue(match %d): %s @ %s from %s, to\n  %s\n    %s\n",
                     match, value.toString().c_str(), jau::to_hexstring(value_offset).c_str(),
-                    device->toString().c_str(), s.toString().c_str(), c.toString().c_str());
+                    device->toString().c_str(), s->toString().c_str(), c->toString().c_str());
 
             if( match &&
-                c.value_type->equivalent( CommandUUID ) &&
+                c->value_type->equivalent( CommandUUID ) &&
                 ( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) )
             {
                 jau::POctets value2(value);
@@ -452,28 +452,28 @@ class MyGATTServerListener : public DBGattServer::Listener {
             return match;
         }
 
-        bool writeDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d, const jau::TROOctets & value, const uint16_t value_offset) override {
+        bool writeDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const jau::TROOctets & value, const uint16_t value_offset) override {
             const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::writeDescValue(match %d): %s @ %s from %s\n  %s\n    %s\n      %s\n",
                     match, value.toString().c_str(), jau::to_hexstring(value_offset).c_str(),
-                    device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
+                    device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str());
             return match;
         }
 
-        void clientCharConfigChanged(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d, const bool notificationEnabled, const bool indicationEnabled) override {
+        void clientCharConfigChanged(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const bool notificationEnabled, const bool indicationEnabled) override {
             const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::clientCharConfigChanged(match %d): notify %d, indicate %d from %s\n  %s\n    %s\n      %s\n",
                     match, notificationEnabled, indicationEnabled,
-                    device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
+                    device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str());
 
             if( match ) {
                 jau::sc_atomic_critical sync(sync_data);
-                if( c.value_type->equivalent( PulseDataUUID ) ) {
-                    handlePulseDataNotify = notificationEnabled ? c.value_handle : 0;
-                    handlePulseDataIndicate = indicationEnabled ? c.value_handle : 0;
-                } else if( c.value_type->equivalent( ResponseUUID ) ) {
-                    handleResponseDataNotify = notificationEnabled ? c.value_handle : 0;
-                    handleResponseDataIndicate = indicationEnabled ? c.value_handle : 0;
+                if( c->value_type->equivalent( PulseDataUUID ) ) {
+                    handlePulseDataNotify = notificationEnabled ? c->value_handle : 0;
+                    handlePulseDataIndicate = indicationEnabled ? c->value_handle : 0;
+                } else if( c->value_type->equivalent( ResponseUUID ) ) {
+                    handleResponseDataNotify = notificationEnabled ? c->value_handle : 0;
+                    handleResponseDataIndicate = indicationEnabled ? c->value_handle : 0;
                 }
             }
         }
@@ -694,7 +694,7 @@ int main(int argc, char *argv[])
     fprintf_td(stderr, "name %s (short %s)\n", adapter_name.c_str(), adapter_short_name.c_str());
     fprintf_td(stderr, "GattServer %s\n", dbGattServer->toString().c_str());
     fprintf_td(stderr, "GattServer.services: %s\n", dbGattServer->services.get_info().c_str());
-    fprintf_td(stderr, "GattService.characteristics: %s\n", dbGattServer->services[0].characteristics.get_info().c_str());
+    fprintf_td(stderr, "GattService.characteristics: %s\n", dbGattServer->services[0]->characteristics.get_info().c_str());
 
     if( waitForEnter ) {
         fprintf_td(stderr, "Press ENTER to continue\n");

@@ -217,7 +217,7 @@ namespace direct_bt {
             bool validateConnected() noexcept;
 
             bool hasServerHandle(const uint16_t handle) noexcept;
-            DBGattChar* findServerGattCharByValueHandle(const uint16_t char_value_handle) noexcept;
+            DBGattCharRef findServerGattCharByValueHandle(const uint16_t char_value_handle) noexcept;
 
             AttErrorRsp::ErrorCode applyWrite(BTDeviceRef device, const uint16_t handle, const jau::TROOctets & value, const uint16_t value_offset);
             void replyWriteReq(const AttPDUMsg * pdu);
