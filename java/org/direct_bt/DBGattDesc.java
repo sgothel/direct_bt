@@ -32,7 +32,7 @@ package org.direct_bt;
  *
  * @since 2.4.0
  */
-public final class DBGattDesc
+public final class DBGattDesc implements AutoCloseable
 {
     private volatile long nativeInstance;
     /* pp */ long getNativeInstance() { return nativeInstance; }
@@ -78,6 +78,21 @@ public final class DBGattDesc
     }
     private static native long ctorImpl(final String type,
                                         final byte[] value, final int capacity, boolean variable_length);
+
+    @Override
+    public void close() {
+        final long handle = nativeInstance;
+        nativeInstance = 0;
+        if( 0 != handle ) {
+            dtorImpl(handle);
+        }
+    }
+    private static native void dtorImpl(final long nativeInstance);
+
+    @Override
+    public void finalize() {
+        close();
+    }
 
     /** Fill value with zero bytes. */
     public native void bzero();

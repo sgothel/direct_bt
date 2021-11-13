@@ -1714,6 +1714,7 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
         unlockConnect(*device);
         device->notifyDisconnected(); // -> unpair()
         removeConnectedDevice(*device);
+        gattServerData = nullptr;
 
         if( !device->isConnSecurityAutoEnabled() ) {
             int i=0;

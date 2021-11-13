@@ -38,7 +38,7 @@ import java.util.List;
  *
  * @since 2.4.0
  */
-public final class DBGattService
+public final class DBGattService implements AutoCloseable
 {
     private volatile long nativeInstance;
     /* pp */ long getNativeInstance() { return nativeInstance; }
@@ -106,6 +106,21 @@ public final class DBGattService
     }
     private static native long ctorImpl(final boolean primary, final String type,
                                         final long[] characteristics);
+
+    @Override
+    public void close() {
+        final long handle = nativeInstance;
+        nativeInstance = 0;
+        if( 0 != handle ) {
+            dtorImpl(handle);
+        }
+    }
+    private static native void dtorImpl(final long nativeInstance);
+
+    @Override
+    public void finalize() {
+        close();
+    }
 
     public DBGattChar findGattChar(final String char_uuid) {
         for(final DBGattChar c : characteristics) {

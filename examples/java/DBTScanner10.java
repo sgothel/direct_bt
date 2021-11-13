@@ -484,7 +484,7 @@ public class DBTScanner10 {
                 final boolean cmd_resolved = cmd.isResolved();
                 BTUtils.println(System.err, "Command test: "+cmd.toString()+", resolved "+cmd_resolved);
                 final byte[] cmd_data = { cmd_arg };
-                final HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data);
+                final HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3000 /* timeoutMS */);
                 if( HCIStatusCode.SUCCESS == cmd_res ) {
                     if( cmd.hasResponseSet() ) {
                         final byte[] resp = cmd.getResponse();
@@ -499,6 +499,7 @@ public class DBTScanner10 {
                 } else {
                     BTUtils.fprintf_td(System.err, "Failure: %s -> %s\n", cmd.toString(), cmd_res.toString());
                 }
+                cmd.close();
             }
 
             try {

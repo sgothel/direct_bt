@@ -86,6 +86,8 @@ public class DBTAdapter extends DBTObject implements BTAdapter
 
     private final List<WeakReference<BTDevice>> discoveredDevices = new ArrayList<WeakReference<BTDevice>>();
 
+    private DBGattServer gattServerData = null;
+
     /* pp */ DBTAdapter(final long nativeInstance,
                         final byte byteAddress[/*6*/],
                         final byte byteAddressType,
@@ -249,6 +251,11 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     @Override
     public final boolean isDiscovering() {
         return ScanType.NONE != currentMetaScanType.get();
+    }
+
+    @Override
+    public final DBGattServer getGATTServerData() {
+        return gattServerData;
     }
 
     @Override
@@ -586,6 +593,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
             if( DEBUG ) {
                 System.err.println("Adapter.DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
             }
+            gattServerData = null;
         }
 
         @Override
@@ -633,10 +641,14 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     }
 
     @Override
-    public final HCIStatusCode startAdvertising(final DBGattServer gattServerData, final short adv_interval_min,
+    public final HCIStatusCode startAdvertising(final DBGattServer gattServerData_, final short adv_interval_min,
                                                 final short adv_interval_max, final byte adv_type, final byte adv_chan_map,
                                                 final byte filter_policy) {
-        return HCIStatusCode.get( startAdvertisingImpl(gattServerData, adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy) );
+        final HCIStatusCode res = HCIStatusCode.get( startAdvertisingImpl(gattServerData_, adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy) );
+        if( HCIStatusCode.SUCCESS == res ) {
+            gattServerData = gattServerData_;
+        }
+        return res;
     }
     private native byte startAdvertisingImpl(final DBGattServer gattServerData, final short adv_interval_min,
                                              final short adv_interval_max, final byte adv_type, final byte adv_chan_map,

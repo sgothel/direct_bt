@@ -39,7 +39,7 @@ import java.util.List;
  * The handle represents a service's characteristics-declaration
  * and the value the Characteristics Property, Characteristics Value Handle _and_ Characteristics UUID.
  */
-public final class DBGattChar
+public final class DBGattChar implements AutoCloseable
 {
     private volatile long nativeInstance;
     /* pp */ long getNativeInstance() { return nativeInstance; }
@@ -153,6 +153,21 @@ public final class DBGattChar
     private static native long ctorImpl(final String type,
                                         final byte properties, final long[] descriptors,
                                         final byte[] value, final int capacity, boolean variable_length);
+
+    @Override
+    public void close() {
+        final long handle = nativeInstance;
+        nativeInstance = 0;
+        if( 0 != handle ) {
+            dtorImpl(handle);
+        }
+    }
+    private static native void dtorImpl(final long nativeInstance);
+
+    @Override
+    public void finalize() {
+        close();
+    }
 
     public boolean hasProperties(final GattCharPropertySet.Type bit) {
         return properties.isSet(bit);

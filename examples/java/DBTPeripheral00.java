@@ -36,6 +36,7 @@ import org.direct_bt.BDAddressAndType;
 import org.direct_bt.BTMode;
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTDevice;
+import org.direct_bt.BTDeviceRegistry;
 import org.direct_bt.BTException;
 import org.direct_bt.BTFactory;
 import org.direct_bt.BTManager;
@@ -71,6 +72,9 @@ public class DBTPeripheral00 {
     String adapter_short_name = "TDev001J";
 
     boolean SHOW_UPDATE_EVENTS = false;
+    boolean RUN_ONLY_ONCE = false;
+
+    volatile int servedConnections = 0;
 
     boolean matches(final List<BDAddressAndType> cont, final BDAddressAndType mac) {
         for(final Iterator<BDAddressAndType> it = cont.iterator(); it.hasNext(); ) {
@@ -311,10 +315,11 @@ public class DBTPeripheral00 {
 
         @Override
         public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
-            BTUtils.println(System.err, "****** DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
+            servedConnections++;
+            BTUtils.println(System.err, "****** DISCONNECTED (count "+servedConnections+"): Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
 
-            executeOffThread( () -> { startAdvertising(device.getAdapter(), "device-disconnected"); },
-                              "DBT-StartAdvertising-"+device.getAdapter().getAddressAndType(), true /* detach */);
+            executeOffThread( () -> { processDisconnectedDevice(device); },
+                              "DBT-Disconnected-"+device.getAdapter().getAddressAndType(), true /* detach */);
         }
 
         @Override
@@ -524,6 +529,16 @@ public class DBTPeripheral00 {
     static final byte adv_chan_map=(byte)0x07;
     static final byte filter_policy=(byte)0x00;
 
+    private boolean stopAdvertising(final BTAdapter adapter, final String msg) {
+        if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
+            BTUtils.fprintf_td(System.err, "****** Stop advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
+            return false;
+        }
+        final HCIStatusCode status = adapter.stopAdvertising();
+        BTUtils.println(System.err, "****** Stop advertising ("+msg+") result: "+status+": "+adapter.toString());
+        return HCIStatusCode.SUCCESS == status;
+    }
+
     private boolean startAdvertising(final BTAdapter adapter, final String msg) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
             BTUtils.fprintf_td(System.err, "****** Start advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
@@ -532,9 +547,23 @@ public class DBTPeripheral00 {
         final HCIStatusCode status = adapter.startAdvertising(dbGattServer,
                                                               adv_interval_min, adv_interval_max,
                                                               adv_type, adv_chan_map, filter_policy);
-        BTUtils.println(System.err, "****** Start advertising ("+msg+") result: "+status);
+        BTUtils.println(System.err, "****** Start advertising ("+msg+") result: "+status+": "+adapter.toString());
         BTUtils.println(System.err, dbGattServer.toFullString());
         return HCIStatusCode.SUCCESS == status;
+    }
+
+    private void processDisconnectedDevice(final BTDevice device) {
+        BTUtils.println(System.err, "****** Disconnected Device (count "+servedConnections+"): Start "+device.toString());
+
+        // already unpaired
+        stopAdvertising(device.getAdapter(), "device-disconnected");
+        BTDeviceRegistry.removeFromProcessingDevices(device.getAddressAndType());
+
+        if( !RUN_ONLY_ONCE ) {
+            startAdvertising(device.getAdapter(), "device-disconnected");
+        }
+
+        BTUtils.println(System.err, "****** Disonnected Device: End "+device.toString());
     }
 
     private boolean initAdapter(final BTAdapter adapter) {
@@ -607,22 +636,35 @@ public class DBTPeripheral00 {
     };
 
     public void runTest(final BTManager manager) {
-        final boolean done = false;
-
         timestamp_t0 = BTUtils.currentTimeMillis();
 
-        dbGattServer.addListener( new MyGATTServerListener() );
+        BTUtils.println(System.err, "****** Test Start");
+
+        final MyGATTServerListener listener = new MyGATTServerListener();
+        dbGattServer.addListener( listener );
 
         manager.addChangedAdapterSetListener(myChangedAdapterSetListener);
 
-        while( !done ) {
+        while( !RUN_ONLY_ONCE || 0 == servedConnections ) {
             try {
                 Thread.sleep(2000);
             } catch (final InterruptedException e) {
                 e.printStackTrace();
             }
         }
+
+        BTUtils.println(System.err, "****** Shutdown.01 (DBGattServer.remove-listener)");
+        dbGattServer.removeListener( listener );
+
+        BTUtils.println(System.err, "****** Test Shutdown.02 (listener.close)");
+        listener.close();
+
+        BTUtils.println(System.err, "****** Test Shutdown.03 (DBGattServer.close)");
+        dbGattServer.close();
+
         // chosenAdapter = null;
+
+        BTUtils.println(System.err, "****** Test End");
     }
 
     public static void main(final String[] args) throws InterruptedException {
@@ -683,6 +725,8 @@ public class DBTPeripheral00 {
                     test.adapter_short_name = args[++i];
                 } else if( arg.equals("-mtu") && args.length > (i+1) ) {
                     test.dbGattServer.setMaxAttMTU( Integer.valueOf( args[++i] ) );
+                } else if( arg.equals("-once") ) {
+                    test.RUN_ONLY_ONCE = true;
                 }
             }
             BTUtils.println(System.err, "Run with '[-btmode LE|BREDR|DUAL] "+
@@ -690,6 +734,7 @@ public class DBTPeripheral00 {
                     "[-name <adapter_name>] "+
                     "[-short_name <adapter_short_name>] "+
                     "[-mtu <max att_mtu>] " +
+                    "[-once] "+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event] "+
@@ -702,8 +747,11 @@ public class DBTPeripheral00 {
 
         BTUtils.println(System.err, "SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
         BTUtils.println(System.err, "adapter "+test.useAdapter);
-        BTUtils.println(System.err, "btmode' to "+test.btMode.toString());
+        BTUtils.println(System.err, "btmode "+test.btMode.toString());
         BTUtils.fprintf_td(System.err, "name %s (short %s)\n", test.adapter_name, test.adapter_short_name);
+        BTUtils.println(System.err, "mtu "+test.dbGattServer.getMaxAttMTU());
+        BTUtils.println(System.err, "once "+test.RUN_ONLY_ONCE);
+        BTUtils.println(System.err, "GattServer "+test.dbGattServer.toString());
 
         if( waitForEnter ) {
             BTUtils.println(System.err, "Press ENTER to continue\n");

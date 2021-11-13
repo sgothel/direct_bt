@@ -37,7 +37,7 @@ import java.util.List;
  *
  * @since 2.4.0
  */
-public final class DBGattServer
+public final class DBGattServer implements AutoCloseable
 {
     private volatile long nativeInstance;
     /* pp */ long getNativeInstance() { return nativeInstance; }
@@ -177,6 +177,21 @@ public final class DBGattServer
         nativeInstance = ctorImpl(Math.max(512+1, max_att_mtu_), nativeServices);
     }
     private static native long ctorImpl(final int max_att_mtu, final long[] services);
+
+    @Override
+    public void close() {
+        final long handle = nativeInstance;
+        nativeInstance = 0;
+        if( 0 != handle ) {
+            dtorImpl(handle);
+        }
+    }
+    private static native void dtorImpl(final long nativeInstance);
+
+    @Override
+    public void finalize() {
+        close();
+    }
 
     /**
      * Ctor using default maximum ATT_MTU of 512+1

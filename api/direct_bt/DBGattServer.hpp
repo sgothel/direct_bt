@@ -724,6 +724,13 @@ namespace direct_bt {
                 return std::string(JAVA_MAIN_PACKAGE "DBGattServer");
             }
 
+            ~DBGattServer() {
+                #ifdef JAU_TRACE_DBGATT
+                    JAU_TRACE_DBGATT_PRINT("DBGattServer dtor0: %p", this);
+                    jau::print_backtrace(true);
+                #endif
+            }
+
             DBGattServer()
             : max_att_mtu(512+1), services()
             { }

@@ -132,6 +132,18 @@ jlong Java_org_direct_1bt_DBGattDesc_ctorImpl(JNIEnv *env, jclass clazz,
     return (jlong) (intptr_t)nullptr;
 }
 
+void Java_org_direct_1bt_DBGattDesc_dtorImpl(JNIEnv *env, jclass clazz, jlong nativeInstance) {
+    (void)clazz;
+    try {
+        if( 0 != nativeInstance ) {
+            std::shared_ptr<DBGattDesc> * ref_ptr = reinterpret_cast<std::shared_ptr<DBGattDesc> *>(nativeInstance);
+            delete ref_ptr;
+        }
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
 jshort Java_org_direct_1bt_DBGattDesc_getHandle(JNIEnv *env, jobject obj)
 {
     try {
@@ -244,6 +256,18 @@ jlong Java_org_direct_1bt_DBGattChar_ctorImpl(JNIEnv *env, jclass clazz,
     return (jlong) (intptr_t)nullptr;
 }
 
+void Java_org_direct_1bt_DBGattChar_dtorImpl(JNIEnv *env, jclass clazz, jlong nativeInstance) {
+    (void)clazz;
+    try {
+        if( 0 != nativeInstance ) {
+            std::shared_ptr<DBGattChar> * ref_ptr = reinterpret_cast<std::shared_ptr<DBGattChar> *>(nativeInstance);
+            delete ref_ptr;
+        }
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
 jshort Java_org_direct_1bt_DBGattChar_getHandle(JNIEnv *env, jobject obj)
 {
     try {
@@ -347,6 +371,18 @@ jlong Java_org_direct_1bt_DBGattService_ctorImpl(JNIEnv *env, jclass clazz,
     return (jlong) (intptr_t)nullptr;
 }
 
+void Java_org_direct_1bt_DBGattService_dtorImpl(JNIEnv *env, jclass clazz, jlong nativeInstance) {
+    (void)clazz;
+    try {
+        if( 0 != nativeInstance ) {
+            std::shared_ptr<DBGattService> * ref_ptr = reinterpret_cast<std::shared_ptr<DBGattService> *>(nativeInstance);
+            delete ref_ptr;
+        }
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
 jshort Java_org_direct_1bt_DBGattService_getHandle(JNIEnv *env, jobject obj)
 {
     try {
@@ -421,6 +457,18 @@ jlong Java_org_direct_1bt_DBGattServer_ctorImpl(JNIEnv *env, jclass clazz,
         rethrow_and_raise_java_exception(env);
     }
     return (jlong) (intptr_t)nullptr;
+}
+
+void Java_org_direct_1bt_DBGattServer_dtorImpl(JNIEnv *env, jclass clazz, jlong nativeInstance) {
+    (void)clazz;
+    try {
+        if( 0 != nativeInstance ) {
+            std::shared_ptr<DBGattServer> * ref_ptr = reinterpret_cast<std::shared_ptr<DBGattServer> *>(nativeInstance);
+            delete ref_ptr;
+        }
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
 }
 
 jint Java_org_direct_1bt_DBGattServer_getMaxAttMTU(JNIEnv *env, jobject obj)

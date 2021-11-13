@@ -67,6 +67,8 @@ static std::string adapter_short_name = "TDev001N";
 static std::shared_ptr<BTAdapter> chosenAdapter = nullptr;
 
 static bool SHOW_UPDATE_EVENTS = false;
+static bool RUN_ONLY_ONCE = false;
+static jau::relaxed_atomic_nsize_t servedConnections = 0;
 
 static bool startAdvertising(BTAdapter *a, std::string msg);
 static bool stopAdvertising(BTAdapter *a, std::string msg);
@@ -294,8 +296,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     }
 
     void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
-                static_cast<uint8_t>(reason), to_string(reason).c_str(),
+        servedConnections = servedConnections + 1;
+        fprintf_td(stderr, "****** DISCONNECTED (count %zu): Reason 0x%X (%s), old handle %s: %s\n",
+                servedConnections.load(), static_cast<uint8_t>(reason), to_string(reason).c_str(),
                 to_hexstring(handle).c_str(), device->toString(true).c_str());
 
         std::thread sd(::processDisconnectedDevice, device); // @suppress("Invalid arguments")
@@ -381,7 +384,9 @@ class MyGATTServerListener : public DBGattServer::Listener {
         : pulseSenderThread(&MyGATTServerListener::pulseSender, this)
         { }
 
-        ~MyGATTServerListener() {
+        ~MyGATTServerListener() noexcept { close(); }
+
+        void close() noexcept {
             {
                 jau::sc_atomic_critical sync(sync_data);
                 stopPulseSender = true;
@@ -509,14 +514,16 @@ static bool stopAdvertising(BTAdapter *a, std::string msg) {
 }
 
 static void processDisconnectedDevice(BTDeviceRef device) {
-    fprintf_td(stderr, "****** Disconnected Device: Start %s\n", device->toString().c_str());
+    fprintf_td(stderr, "****** Disconnected Device (count %zu): Start %s\n",
+            servedConnections.load(), device->toString().c_str());
 
     // already unpaired
     stopAdvertising(&device->getAdapter(), "device-disconnected");
     BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
-    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little
 
-    startAdvertising(&device->getAdapter(), "device-disconnected");
+    if( !RUN_ONLY_ONCE ) {
+        startAdvertising(&device->getAdapter(), "device-disconnected");
+    }
 
     fprintf_td(stderr, "****** Disonnected Device: End %s\n", device->toString().c_str());
 }
@@ -619,19 +626,32 @@ static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>
 }
 
 void test() {
-    bool done = false;
-
     timestamp_t0 = getCurrentMilliseconds();
 
-    dbGattServer->addListener( std::make_shared<MyGATTServerListener>() );
+    fprintf_td(stderr, "****** Test Start\n");
+
+    std::shared_ptr<MyGATTServerListener> listener = std::make_shared<MyGATTServerListener>();
+    dbGattServer->addListener( listener );
 
     BTManager & mngr = BTManager::get();
     mngr.addChangedAdapterSetCallback(myChangedAdapterSetFunc);
 
-    while( !done ) {
+    while( !RUN_ONLY_ONCE || 0 == servedConnections ) {
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     }
+
+    fprintf_td(stderr, "****** Test Shutdown.01 (DBGattServer.remove-listener)\n");
+    dbGattServer->removeListener( listener );
+
+    fprintf_td(stderr, "****** Test Shutdown.02 (listener.close)\n");
+    listener->close();
+
+    fprintf_td(stderr, "****** Test Shutdown.03 (DBGattServer.close := nullptr)\n");
+    dbGattServer = nullptr;
+
     chosenAdapter = nullptr;
+
+    fprintf_td(stderr, "****** Test End\n");
 }
 
 #include <cstdio>
@@ -671,6 +691,8 @@ int main(int argc, char *argv[])
             adapter_short_name = std::string(argv[++i]);
         } else if( !strcmp("-mtu", argv[i]) && argc > (i+1) ) {
             dbGattServer->setMaxAttMTU( atoi(argv[++i]) );
+        } else if( !strcmp("-once", argv[i]) ) {
+            RUN_ONLY_ONCE = true;
         }
     }
     fprintf_td(stderr, "pid %d\n", getpid());
@@ -680,6 +702,7 @@ int main(int argc, char *argv[])
                     "[-name <adapter_name>] "
                     "[-short_name <adapter_short_name>] "
                     "[-mtu <max att_mtu>] "
+                    "[-once] "
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event] "
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,...] "
@@ -692,6 +715,8 @@ int main(int argc, char *argv[])
     fprintf_td(stderr, "adapter %s\n", useAdapter.toString().c_str());
     fprintf_td(stderr, "btmode %s\n", to_string(btMode).c_str());
     fprintf_td(stderr, "name %s (short %s)\n", adapter_name.c_str(), adapter_short_name.c_str());
+    fprintf_td(stderr, "mtu %d\n", (int)dbGattServer->getMaxAttMTU());
+    fprintf_td(stderr, "once %d\n", (int)RUN_ONLY_ONCE);
     fprintf_td(stderr, "GattServer %s\n", dbGattServer->toString().c_str());
     fprintf_td(stderr, "GattServer.services: %s\n", dbGattServer->getServices().get_info().c_str());
     fprintf_td(stderr, "GattService.characteristics: %s\n", dbGattServer->getServices()[0]->getCharacteristics().get_info().c_str());

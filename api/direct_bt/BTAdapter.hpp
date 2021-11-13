@@ -1014,13 +1014,9 @@ namespace direct_bt {
              * This adapter's HCIHandler instance is used to initiate scanning,
              * see HCIHandler::le_start_adv().
              *
-             *
-             * TODO:
-             * - Random address for privacy if desired!
-             * - Consider SMP (security)
-             *
              * @param gattServerData_ the DBGattServer data to be advertised and offered via GattHandler as ::GATTRole::Server.
              *        Its handles will be setup via DBGattServer::setServicesHandles().
+             *        Reference is held until next disconnect.
              * @param adv_interval_min in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
              * @param adv_interval_max in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
              * @param adv_type see AD_PDU_Type, default ::AD_PDU_Type::ADV_IND
@@ -1071,10 +1067,10 @@ namespace direct_bt {
             }
 
             /**
-             * Return the user's DBGattServer shared reference if in ::BTRole::Slave
-             * as set via startAdvertising().
+             * Return the user's DBGattServer shared reference if in ::BTRole::Slave mode
+             * as set via startAdvertising() and valid until subsequent disconnect.
              *
-             * Returns nullptr if in ::BTRole::Master.
+             * Returns nullptr if in ::BTRole::Master mode.
              */
             DBGattServerRef getGATTServerData() { return gattServerData; }
 

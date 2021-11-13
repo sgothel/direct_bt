@@ -272,6 +272,7 @@ public interface BTAdapter extends BTObject
      *
      * @param gattServerData_ the {@link DBGattServer} data to be advertised and offered via GattHandler as ::GATTRole::Server.
      *        Its handles will be setup via DBGattServer::setServicesHandles().
+     *        Reference is held until next disconnect.
      * @param adv_interval_min in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
      * @param adv_interval_max in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
      * @param adv_type see AD_PDU_Type, default 0x00, i.e. ::AD_PDU_Type::ADV_IND
@@ -294,6 +295,7 @@ public interface BTAdapter extends BTObject
      *
      * @param gattServerData_ the {@link DBGattServer} data to be advertised and offered via GattHandler as ::GATTRole::Server.
      *        Its handles will be setup via DBGattServer::setServicesHandles().
+     *        Reference is held until next disconnect.
      * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
      * @see #startAdvertising(short, short, byte, byte, byte)
      * @see #stopAdvertising()
@@ -668,6 +670,14 @@ public interface BTAdapter extends BTObject
      * @since 2.0.0
      */
     int removeAllStatusListener();
+
+    /**
+     * Return the user's DBGattServer shared reference if in {@link BTRole#Slave} mode
+     * as set via {@link #startAdvertising(DBGattServer) and valid until subsequent disconnect.
+     *
+     * Returns nullptr if in {@link BTRole#Master} mode.
+     */
+    DBGattServer getGATTServerData();
 
     /**
      * Print the internally maintained BTDevice lists to stderr:

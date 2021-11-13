@@ -469,7 +469,7 @@ static void processReadyDevice(BTDeviceRef device) {
             fprintf_td(stderr, "Command test: %s, resolved %d\n", cmd.toString().c_str(), cmd_resolved);
             POctets cmd_data(1, endian::little);
             cmd_data.put_uint8_nc(0, cmd_arg);
-            const HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data);
+            const HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3000 /* timeoutMS */);
             if( HCIStatusCode::SUCCESS == cmd_res ) {
                 if( cmd.hasResponseSet() ) {
                     const jau::TROOctets& resp = cmd.getResponse();
