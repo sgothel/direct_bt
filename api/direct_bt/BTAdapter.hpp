@@ -141,7 +141,7 @@ namespace direct_bt {
              * @return true if the device shall be made persistent and BTDevice::remove() issued later. Otherwise false to remove device right away.
              * @see BTDevice::unpair()
              */
-            virtual bool deviceFound(std::shared_ptr<BTDevice> device, const uint64_t timestamp) {
+            virtual bool deviceFound(BTDeviceRef device, const uint64_t timestamp) {
                 (void)device;
                 (void)timestamp;
                 return false;
@@ -153,7 +153,7 @@ namespace direct_bt {
              * @param updateMask the update mask of changed data
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
-            virtual void deviceUpdated(std::shared_ptr<BTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) {
+            virtual void deviceUpdated(BTDeviceRef device, const EIRDataType updateMask, const uint64_t timestamp) {
                 (void)device;
                 (void)updateMask;
                 (void)timestamp;
@@ -169,7 +169,7 @@ namespace direct_bt {
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              * @see BTDevice::unpair()
              */
-            virtual void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) {
+            virtual void deviceConnected(BTDeviceRef device, const uint16_t handle, const uint64_t timestamp) {
                 (void)device;
                 (void)handle;
                 (void)timestamp;
@@ -184,7 +184,7 @@ namespace direct_bt {
              * @see BTDevice::setPairingPasskey()
              * @see BTDevice::setPairingNumericComparison()
              */
-            virtual void devicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) {
+            virtual void devicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) {
                 (void)device;
                 (void)state;
                 (void)mode;
@@ -200,7 +200,7 @@ namespace direct_bt {
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              * @see ::SMPPairingState::COMPLETED
              */
-            virtual void deviceReady(std::shared_ptr<BTDevice> device, const uint64_t timestamp) {
+            virtual void deviceReady(BTDeviceRef device, const uint64_t timestamp) {
                 (void)device;
                 (void)timestamp;
             }
@@ -216,7 +216,7 @@ namespace direct_bt {
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              * @see BTDevice::unpair()
              */
-            virtual void deviceDisconnected(std::shared_ptr<BTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) {
+            virtual void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) {
                 (void)device;
                 (void)reason;
                 (void)handle;
@@ -322,7 +322,7 @@ namespace direct_bt {
             std::mutex mtx_single_conn_device;
             std::condition_variable cv_single_conn_device;
 
-            typedef jau::darray<std::shared_ptr<BTDevice>> device_list_t;
+            typedef jau::darray<BTDeviceRef> device_list_t;
             /** All discovered devices: Transient until removeDiscoveredDevices(), startDiscovery(). */
             device_list_t discoveredDevices;
             /** All connected devices: Transient until disconnect or removal. */
@@ -352,8 +352,8 @@ namespace direct_bt {
             bool initialSetup() noexcept;
             bool enableListening(const bool enable) noexcept;
 
-            static std::shared_ptr<BTDevice> findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
-            static std::shared_ptr<BTDevice> findDevice(device_list_t & devices, BTDevice const & device) noexcept;
+            static BTDeviceRef findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
+            static BTDeviceRef findDevice(device_list_t & devices, BTDevice const & device) noexcept;
             static void printDeviceList(const std::string& prefix, const BTAdapter::device_list_t& list) noexcept;
 
             /** Private class only for private make_shared(). */
@@ -377,7 +377,7 @@ namespace direct_bt {
              */
             void poweredOff(bool active) noexcept;
 
-            friend std::shared_ptr<BTDevice> BTDevice::getSharedInstance() const noexcept;
+            friend BTDeviceRef BTDevice::getSharedInstance() const noexcept;
             friend void BTDevice::remove() noexcept;
             friend BTDevice::~BTDevice() noexcept;
 
@@ -388,28 +388,28 @@ namespace direct_bt {
                                                       uint16_t min_interval, uint16_t max_interval,
                                                       uint16_t latency, uint16_t supervision_timeout) noexcept;
             friend HCIStatusCode BTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch) noexcept;
-            friend void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis);
-            friend bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
-            friend void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
-            friend void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_t timestamp);
+            friend void BTDevice::processL2CAPSetup(BTDeviceRef sthis);
+            friend bool BTDevice::updatePairingState(BTDeviceRef sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
+            friend void BTDevice::hciSMPMsgCallback(BTDeviceRef sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
+            friend void BTDevice::processDeviceReady(BTDeviceRef sthis, const uint64_t timestamp);
             friend jau::darray<std::shared_ptr<BTGattService>> BTDevice::getGattServices() noexcept;
 
             bool lockConnect(const BTDevice & device, const bool wait, const SMPIOCapability io_cap) noexcept;
             bool unlockConnect(const BTDevice & device) noexcept;
             bool unlockConnectAny() noexcept;
 
-            bool addConnectedDevice(const std::shared_ptr<BTDevice> & device) noexcept;
+            bool addConnectedDevice(const BTDeviceRef & device) noexcept;
             bool removeConnectedDevice(const BTDevice & device) noexcept;
             int disconnectAllDevices(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
-            std::shared_ptr<BTDevice> findConnectedDevice (const EUI48 & address, const BDAddressType & addressType) noexcept;
+            BTDeviceRef findConnectedDevice (const EUI48 & address, const BDAddressType & addressType) noexcept;
             int getConnectedDeviceCount() const noexcept;
 
-            bool addDiscoveredDevice(std::shared_ptr<BTDevice> const &device) noexcept;
+            bool addDiscoveredDevice(BTDeviceRef const &device) noexcept;
 
             void removeDevice(BTDevice & device) noexcept;
 
-            bool addSharedDevice(std::shared_ptr<BTDevice> const &device) noexcept;
-            std::shared_ptr<BTDevice> getSharedDevice(const BTDevice & device) noexcept;
+            bool addSharedDevice(BTDeviceRef const &device) noexcept;
+            BTDeviceRef getSharedDevice(const BTDevice & device) noexcept;
             void removeSharedDevice(const BTDevice & device) noexcept;
 
             static SMPKeyBinRef findSMPKeyBin(key_list_t & keys, BDAddressAndType const & remoteAddress) noexcept;
@@ -456,8 +456,8 @@ namespace direct_bt {
 
             bool hciSMPMsgCallback(const BDAddressAndType & addressAndType,
                                    const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
-            void sendDevicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept;
-            void sendDeviceReady(std::shared_ptr<BTDevice> device, uint64_t timestamp) noexcept;
+            void sendDevicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept;
+            void sendDeviceReady(BTDeviceRef device, uint64_t timestamp) noexcept;
 
             void startDiscoveryBackground() noexcept;
             void checkDiscoveryState() noexcept;
@@ -466,7 +466,7 @@ namespace direct_bt {
                                             const uint64_t timestampMS) noexcept;
             void sendAdapterSettingsInitial(AdapterStatusListener & asl, const uint64_t timestampMS) noexcept;
 
-            void sendDeviceUpdated(std::string cause, std::shared_ptr<BTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept;
+            void sendDeviceUpdated(std::string cause, BTDeviceRef device, uint64_t timestamp, EIRDataType updateMask) noexcept;
 
             int removeAllStatusListener(const BTDevice& d);
 
@@ -974,7 +974,7 @@ namespace direct_bt {
              * use 'DeviceStatusListener::deviceFound(..)' callback.
              * </p>
              */
-            jau::darray<std::shared_ptr<BTDevice>> getDiscoveredDevices() const noexcept;
+            jau::darray<BTDeviceRef> getDiscoveredDevices() const noexcept;
 
             /** Discards all discovered devices. Returns number of removed discovered devices. */
             int removeDiscoveredDevices() noexcept;
@@ -983,10 +983,10 @@ namespace direct_bt {
             bool removeDiscoveredDevice(const BDAddressAndType & addressAndType) noexcept;
 
             /** Returns shared BTDevice if found, otherwise nullptr */
-            std::shared_ptr<BTDevice> findDiscoveredDevice (const EUI48 & address, const BDAddressType addressType) noexcept;
+            BTDeviceRef findDiscoveredDevice (const EUI48 & address, const BDAddressType addressType) noexcept;
 
             /** Returns shared BTDevice if found, otherwise nullptr */
-            std::shared_ptr<BTDevice> findSharedDevice (const EUI48 & address, const BDAddressType addressType) noexcept;
+            BTDeviceRef findSharedDevice (const EUI48 & address, const BDAddressType addressType) noexcept;
 
             /**
              * Starts advertising

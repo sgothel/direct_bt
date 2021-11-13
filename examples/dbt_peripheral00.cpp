@@ -70,8 +70,8 @@ static bool SHOW_UPDATE_EVENTS = false;
 
 static bool startAdvertising(BTAdapter *a, std::string msg);
 static bool stopAdvertising(BTAdapter *a, std::string msg);
-static void processReadyDevice(std::shared_ptr<BTDevice> device);
-static void processDisconnectedDevice(std::shared_ptr<BTDevice> device);
+static void processReadyDevice(BTDeviceRef device);
+static void processDisconnectedDevice(BTDeviceRef device);
 
 static jau::POctets make_poctets(const char* name) {
     return jau::POctets( (const uint8_t*)name, (nsize_t)strlen(name), endian::little );
@@ -199,28 +199,28 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
-    bool deviceFound(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
+    bool deviceFound(BTDeviceRef device, const uint64_t timestamp) override {
         (void)timestamp;
 
         fprintf_td(stderr, "****** FOUND__-1: NOP %s\n", device->toString(true).c_str());
         return false;
     }
 
-    void deviceUpdated(std::shared_ptr<BTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
+    void deviceUpdated(BTDeviceRef device, const EIRDataType updateMask, const uint64_t timestamp) override {
         if( SHOW_UPDATE_EVENTS ) {
             fprintf_td(stderr, "****** UPDATED: %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
         }
         (void)timestamp;
     }
 
-    void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceConnected(BTDeviceRef device, const uint16_t handle, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** CONNECTED: %s\n", device->toString(true).c_str());
 
         (void)handle;
         (void)timestamp;
     }
 
-    void devicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+    void devicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** PAIRING STATE: state %s, mode %s, %s\n",
             to_string(state).c_str(), to_string(mode).c_str(), device->toString().c_str());
         (void)timestamp;
@@ -277,7 +277,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceReady(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
+    void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
         (void)timestamp;
         if( !BTDeviceRegistry::isDeviceProcessing( device->getAddressAndType() ) &&
             ( !BTDeviceRegistry::isWaitingForAnyDevice() ||
@@ -293,7 +293,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceDisconnected(std::shared_ptr<BTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
                 static_cast<uint8_t>(reason), to_string(reason).c_str(),
                 to_hexstring(handle).c_str(), device->toString(true).c_str());
@@ -320,10 +320,10 @@ class MyGATTServerListener : public DBGattServer::Listener {
         jau::sc_atomic_uint16 handleResponseDataNotify = 0;
         jau::sc_atomic_uint16 handleResponseDataIndicate = 0;
 
-        std::shared_ptr<BTDevice> connectedDevice;
+        BTDeviceRef connectedDevice;
         uint16_t usedMTU = BTGattHandler::number(BTGattHandler::Defaults::MIN_ATT_MTU);
 
-        bool matches(const std::shared_ptr<BTDevice>& device) const {
+        bool matches(const BTDeviceRef& device) const {
             jau::sc_atomic_critical sync(sync_data);
             return nullptr != connectedDevice ? *connectedDevice == *device : false;
         }
@@ -392,7 +392,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
             }
         }
 
-        void connected(std::shared_ptr<BTDevice> device, const uint16_t initialMTU) override {
+        void connected(BTDeviceRef device, const uint16_t initialMTU) override {
             jau::sc_atomic_critical sync(sync_data);
             const bool available = nullptr == connectedDevice;
             fprintf_td(stderr, "****** GATT::connected(available %d): initMTU %d, %s\n",
@@ -403,7 +403,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
             }
         }
 
-        void disconnected(std::shared_ptr<BTDevice> device) override {
+        void disconnected(BTDeviceRef device) override {
             jau::sc_atomic_critical sync(sync_data);
             const bool match = nullptr != connectedDevice ? *connectedDevice == *device : false;
             fprintf_td(stderr, "****** GATT::disconnected(match %d): %s\n", match, device->toString().c_str());
@@ -412,7 +412,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
             }
         }
 
-        virtual void mtuChanged(std::shared_ptr<BTDevice> device, const uint16_t mtu) override {
+        virtual void mtuChanged(BTDeviceRef device, const uint16_t mtu) override {
             const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::mtuChanged(match %d): %d -> %d, %s\n",
                     match, match ? (int)usedMTU : 0, (int)mtu, device->toString().c_str());
@@ -421,14 +421,14 @@ class MyGATTServerListener : public DBGattServer::Listener {
             }
         }
 
-        bool readCharValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c) override {
+        bool readCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
             const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::readCharValue(match %d): to %s, from\n  %s\n    %s\n",
-                    match, device->toString().c_str(), s.toString().c_str(), c.toString().c_str());
+                    match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str());
             return match;
         }
 
-        bool readDescValue(std::shared_ptr<BTDevice> device, DBGattService& s, DBGattChar& c, DBGattDesc& d) override {
+        bool readDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) override {
             const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::readDescValue(match %d): to %s, from\n  %s\n    %s\n      %s\n",
                     match, device->toString().c_str(), s.toString().c_str(), c.toString().c_str(), d.toString().c_str());
@@ -508,7 +508,7 @@ static bool stopAdvertising(BTAdapter *a, std::string msg) {
     return HCIStatusCode::SUCCESS == status;
 }
 
-static void processDisconnectedDevice(std::shared_ptr<BTDevice> device) {
+static void processDisconnectedDevice(BTDeviceRef device) {
     fprintf_td(stderr, "****** Disconnected Device: Start %s\n", device->toString().c_str());
 
     // already unpaired
@@ -521,7 +521,7 @@ static void processDisconnectedDevice(std::shared_ptr<BTDevice> device) {
     fprintf_td(stderr, "****** Disonnected Device: End %s\n", device->toString().c_str());
 }
 
-static void processReadyDevice(std::shared_ptr<BTDevice> device) {
+static void processReadyDevice(BTDeviceRef device) {
     fprintf_td(stderr, "****** Processing Ready Device: Start %s\n", device->toString().c_str());
 
     fprintf_td(stderr, "****** Processing Ready Device: End %s\n", device->toString().c_str());

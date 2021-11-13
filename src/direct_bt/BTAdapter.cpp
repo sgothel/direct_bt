@@ -52,10 +52,10 @@ using namespace direct_bt;
 
 constexpr static const bool _print_device_lists = false;
 
-std::shared_ptr<BTDevice> BTAdapter::findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept {
+BTDeviceRef BTAdapter::findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept {
     const jau::nsize_t size = devices.size();
     for (jau::nsize_t i = 0; i < size; ++i) {
-        std::shared_ptr<BTDevice> & e = devices[i];
+        BTDeviceRef & e = devices[i];
         if ( nullptr != e && address == e->getAddressAndType().address &&
              ( addressType == e->getAddressAndType().type || addressType == BDAddressType::BDADDR_UNDEFINED )
            )
@@ -66,10 +66,10 @@ std::shared_ptr<BTDevice> BTAdapter::findDevice(device_list_t & devices, const E
     return nullptr;
 }
 
-std::shared_ptr<BTDevice> BTAdapter::findDevice(device_list_t & devices, BTDevice const & device) noexcept {
+BTDeviceRef BTAdapter::findDevice(device_list_t & devices, BTDevice const & device) noexcept {
     const jau::nsize_t size = devices.size();
     for (jau::nsize_t i = 0; i < size; ++i) {
-        std::shared_ptr<BTDevice> & e = devices[i];
+        BTDeviceRef & e = devices[i];
         if ( nullptr != e && device == *e ) {
             return e;
         }
@@ -77,7 +77,7 @@ std::shared_ptr<BTDevice> BTAdapter::findDevice(device_list_t & devices, BTDevic
     return nullptr;
 }
 
-bool BTAdapter::addConnectedDevice(const std::shared_ptr<BTDevice> & device) noexcept {
+bool BTAdapter::addConnectedDevice(const BTDeviceRef & device) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     if( nullptr != findDevice(connectedDevices, *device) ) {
@@ -116,7 +116,7 @@ int BTAdapter::disconnectAllDevices(const HCIStatusCode reason) noexcept {
     return count;
 }
 
-std::shared_ptr<BTDevice> BTAdapter::findConnectedDevice (const EUI48 & address, const BDAddressType & addressType) noexcept {
+BTDeviceRef BTAdapter::findConnectedDevice (const EUI48 & address, const BDAddressType & addressType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     return findDevice(connectedDevices, address, addressType);
@@ -480,7 +480,7 @@ HCIStatusCode BTAdapter::uploadKeys(SMPKeyBin& bin, const bool write) noexcept {
     }
     // Enforce BTRole::Master on new device,
     // since this functionality is only for local being BTRole::Slave peripheral!
-    std::shared_ptr<BTDevice> device = BTDevice::make_shared(*this, ad_report);
+    BTDeviceRef device = BTDevice::make_shared(*this, ad_report);
     device->btRole = BTRole::Master;
     addSharedDevice(device);
 
@@ -745,7 +745,7 @@ bool BTAdapter::addStatusListener(const BTDevice& d, std::shared_ptr<AdapterStat
         throw jau::IllegalArgumentException("AdapterStatusListener ref is null", E_FILE_LINE);
     }
 
-    std::shared_ptr<BTDevice> sd = getSharedDevice(d);
+    BTDeviceRef sd = getSharedDevice(d);
     if( nullptr == sd ) {
         throw jau::IllegalArgumentException("Device not shared: "+d.toString(), E_FILE_LINE);
     }
@@ -811,7 +811,7 @@ int BTAdapter::removeAllStatusListener(const BTDevice& d) {
         auto it = begin.end();
         do {
             --it;
-            std::shared_ptr<BTDevice> sda = it->wbr_device.lock();
+            BTDeviceRef sda = it->wbr_device.lock();
             if ( nullptr != sda && *sda == d ) {
                 it.erase();
                 ++count;
@@ -1029,13 +1029,13 @@ exit:
 
 // *************************************************
 
-std::shared_ptr<BTDevice> BTAdapter::findDiscoveredDevice (const EUI48 & address, const BDAddressType addressType) noexcept {
+BTDeviceRef BTAdapter::findDiscoveredDevice (const EUI48 & address, const BDAddressType addressType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     return findDevice(discoveredDevices, address, addressType);
 }
 
-bool BTAdapter::addDiscoveredDevice(std::shared_ptr<BTDevice> const &device) noexcept {
+bool BTAdapter::addDiscoveredDevice(BTDeviceRef const &device) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     if( nullptr != findDevice(discoveredDevices, *device) ) {
@@ -1086,7 +1086,7 @@ int BTAdapter::removeDiscoveredDevices() noexcept {
     return res;
 }
 
-jau::darray<std::shared_ptr<BTDevice>> BTAdapter::getDiscoveredDevices() const noexcept {
+jau::darray<BTDeviceRef> BTAdapter::getDiscoveredDevices() const noexcept {
     jau::sc_atomic_critical sync(sync_data); // lock-free simple cache-load 'snapshot'
     device_list_t res = discoveredDevices;
     return res;
@@ -1094,7 +1094,7 @@ jau::darray<std::shared_ptr<BTDevice>> BTAdapter::getDiscoveredDevices() const n
 
 // *************************************************
 
-bool BTAdapter::addSharedDevice(std::shared_ptr<BTDevice> const &device) noexcept {
+bool BTAdapter::addSharedDevice(BTDeviceRef const &device) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
     if( nullptr != findDevice(sharedDevices, *device) ) {
         // already shared
@@ -1104,7 +1104,7 @@ bool BTAdapter::addSharedDevice(std::shared_ptr<BTDevice> const &device) noexcep
     return true;
 }
 
-std::shared_ptr<BTDevice> BTAdapter::getSharedDevice(const BTDevice & device) noexcept {
+BTDeviceRef BTAdapter::getSharedDevice(const BTDevice & device) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
     return findDevice(sharedDevices, device);
 }
@@ -1121,7 +1121,7 @@ void BTAdapter::removeSharedDevice(const BTDevice & device) noexcept {
     }
 }
 
-std::shared_ptr<BTDevice> BTAdapter::findSharedDevice (const EUI48 & address, const BDAddressType addressType) noexcept {
+BTDeviceRef BTAdapter::findSharedDevice (const EUI48 & address, const BDAddressType addressType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
     return findDevice(sharedDevices, address, addressType);
 }
@@ -1230,8 +1230,8 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
     eir.setName(getName());
     if( nullptr != gattServerData_ ) {
         gattServerData_->setServicesHandles();
-        for(DBGattService& s : gattServerData_->services) {
-            eir.addService(s.type);
+        for(DBGattServiceRef& s : gattServerData_->services) {
+            eir.addService(s->type);
         }
     }
     constexpr bool legacy = true;
@@ -1301,7 +1301,7 @@ std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
         if( devices.size() > 0 ) {
             out.append("\n");
             for(auto it = devices.begin(); it != devices.end(); it++) {
-                std::shared_ptr<BTDevice> p = *it;
+                BTDeviceRef p = *it;
                 if( nullptr != p ) {
                     out.append("  ").append(p->toString()).append("\n");
                 }
@@ -1342,7 +1342,7 @@ void BTAdapter::sendAdapterSettingsInitial(AdapterStatusListener & asl, const ui
     }
 }
 
-void BTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<BTDevice> device, uint64_t timestamp, EIRDataType updateMask) noexcept {
+void BTAdapter::sendDeviceUpdated(std::string cause, BTDeviceRef device, uint64_t timestamp, EIRDataType updateMask) noexcept {
     int i=0;
     jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {
@@ -1527,7 +1527,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     }
     int new_connect = 0;
     bool slave_unpair = false;
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
         device = findDiscoveredDevice(event.getAddress(), event.getAddressType());
         if( nullptr != device ) {
@@ -1631,7 +1631,7 @@ bool BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
     COND_PRINT(debug_event, "BTAdapter::EventHCI:ConnectFailed: %s", e.toString().c_str());
     const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(&e);
 
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         const uint16_t handle = device->getConnectionHandle();
         COND_PRINT(debug_event, "BTAdapter::EventHCI:ConnectFailed(dev_id %d): %s, handle %s -> zero,\n    -> %s",
@@ -1668,7 +1668,7 @@ bool BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
 bool BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCILERemoteFeatures &event = *static_cast<const MgmtEvtHCILERemoteFeatures *>(&e);
 
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         COND_PRINT(debug_event, "BTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): %s, %s",
             dev_id, event.toString().c_str(), device->toString().c_str());
@@ -1684,7 +1684,7 @@ bool BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
 bool BTAdapter::mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCILEPhyUpdateComplete &event = *static_cast<const MgmtEvtHCILEPhyUpdateComplete *>(&e);
 
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         COND_PRINT(debug_event, "BTAdapter::EventHCI:LEPhyUpdateComplete(dev_id %d): %s, %s",
             dev_id, event.toString().c_str(), device->toString().c_str());
@@ -1700,7 +1700,7 @@ bool BTAdapter::mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept {
 bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(&e);
 
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         if( device->getConnectionHandle() != event.getHCIHandle() ) {
             WORDY_PRINT("BTAdapter::EventHCI:DeviceDisconnected(dev_id %d): ConnHandle mismatch %s\n    -> %s",
@@ -1754,7 +1754,7 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
 bool BTAdapter::mgmtEvLELTKReqEventHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCILELTKReq &event = *static_cast<const MgmtEvtHCILELTKReq *>(&e);
 
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         // BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.65.5 LE Long Term Key Request event
         device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::COMPLETED);
@@ -1767,7 +1767,7 @@ bool BTAdapter::mgmtEvLELTKReqEventHCI(const MgmtEvent& e) noexcept {
 bool BTAdapter::mgmtEvLELTKReplyAckCmdHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCILELTKReplyAckCmd &event = *static_cast<const MgmtEvtHCILELTKReplyAckCmd *>(&e);
 
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         // BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.25 LE Long Term Key Request Reply command
         device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::COMPLETED);
@@ -1780,7 +1780,7 @@ bool BTAdapter::mgmtEvLELTKReplyAckCmdHCI(const MgmtEvent& e) noexcept {
 bool BTAdapter::mgmtEvLELTKReplyRejCmdHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCILELTKReplyRejCmd &event = *static_cast<const MgmtEvtHCILELTKReplyRejCmd *>(&e);
 
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     DBG_PRINT("BTAdapter::EventHCI:LE_LTK_REPLY_REJ(dev_id %d): Ignored: %s (tracked %d)",
             dev_id, event.toString().c_str(), (nullptr!=device));
     return true;
@@ -1790,7 +1790,7 @@ bool BTAdapter::mgmtEvLELTKReplyRejCmdHCI(const MgmtEvent& e) noexcept {
 bool BTAdapter::mgmtEvLEEnableEncryptionCmdHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCILEEnableEncryptionCmd &event = *static_cast<const MgmtEvtHCILEEnableEncryptionCmd *>(&e);
 
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         // BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.24 LE Enable Encryption command
         device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::COMPLETED);
@@ -1804,7 +1804,7 @@ bool BTAdapter::mgmtEvLEEnableEncryptionCmdHCI(const MgmtEvent& e) noexcept {
 bool BTAdapter::mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCIEncryptionChanged &event = *static_cast<const MgmtEvtHCIEncryptionChanged *>(&e);
 
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         // BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.8 HCIEventType::ENCRYPT_CHANGE
         const HCIStatusCode evtStatus = event.getHCIStatus();
@@ -1821,7 +1821,7 @@ bool BTAdapter::mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept {
 bool BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCIEncryptionKeyRefreshComplete &event = *static_cast<const MgmtEvtHCIEncryptionKeyRefreshComplete *>(&e);
 
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         // BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.39 HCIEventType::ENCRYPT_KEY_REFRESH_COMPLETE
         const HCIStatusCode evtStatus = event.getHCIStatus();
@@ -1838,7 +1838,7 @@ bool BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noe
 bool BTAdapter::mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtPairDeviceComplete &event = *static_cast<const MgmtEvtPairDeviceComplete *>(&e);
 
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         const HCIStatusCode evtStatus = to_HCIStatusCode( event.getStatus() );
         const bool ok = HCIStatusCode::ALREADY_PAIRED == evtStatus;
@@ -1854,7 +1854,7 @@ bool BTAdapter::mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept {
 bool BTAdapter::mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtNewLongTermKey& event = *static_cast<const MgmtEvtNewLongTermKey *>(&e);
     const MgmtLongTermKeyInfo& ltk_info = event.getLongTermKey();
-    std::shared_ptr<BTDevice> device = findConnectedDevice(ltk_info.address, ltk_info.address_type);
+    BTDeviceRef device = findConnectedDevice(ltk_info.address, ltk_info.address_type);
     if( nullptr != device ) {
         const bool ok = ltk_info.enc_size > 0 && ltk_info.key_type != MgmtLTKType::NONE;
         if( ok ) {
@@ -1874,7 +1874,7 @@ bool BTAdapter::mgmtEvNewLinkKeyMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtNewLinkKey& event = *static_cast<const MgmtEvtNewLinkKey *>(&e);
     const MgmtLinkKeyInfo& lk_info = event.getLinkKey();
     // lk_info.address_type might be wrongly reported by mgmt, i.e. BDADDR_BREDR, use any.
-    std::shared_ptr<BTDevice> device = findConnectedDevice(lk_info.address, BDAddressType::BDADDR_UNDEFINED);
+    BTDeviceRef device = findConnectedDevice(lk_info.address, BDAddressType::BDADDR_UNDEFINED);
     if( nullptr != device ) {
         const bool ok = lk_info.key_type != MgmtLinkKeyType::NONE;
         if( ok ) {
@@ -1915,8 +1915,8 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
      * </pre>
      *
      */
-    std::shared_ptr<BTDevice> dev_discovered = findDiscoveredDevice(eir->getAddress(), eir->getAddressType());
-    std::shared_ptr<BTDevice> dev_shared = findSharedDevice(eir->getAddress(), eir->getAddressType());
+    BTDeviceRef dev_discovered = findDiscoveredDevice(eir->getAddress(), eir->getAddressType());
+    BTDeviceRef dev_shared = findSharedDevice(eir->getAddress(), eir->getAddressType());
     if( nullptr == dev_discovered ) {
         if( nullptr == dev_shared ) {
             //
@@ -2070,7 +2070,7 @@ bool BTAdapter::mgmtEvPinCodeRequestMgmt(const MgmtEvent& e) noexcept {
 bool BTAdapter::mgmtEvAuthFailedMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtAuthFailed &event = *static_cast<const MgmtEvtAuthFailed *>(&e);
 
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
         WORDY_PRINT("BTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s], %s",
                 dev_id, event.getAddress().toString().c_str(), to_string(event.getAddressType()).c_str(),
@@ -2084,7 +2084,7 @@ bool BTAdapter::mgmtEvAuthFailedMgmt(const MgmtEvent& e) noexcept {
 bool BTAdapter::mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtUserConfirmRequest &event = *static_cast<const MgmtEvtUserConfirmRequest *>(&e);
 
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
         WORDY_PRINT("BTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s], %s",
                 dev_id, event.getAddress().toString().c_str(), to_string(event.getAddressType()).c_str(),
@@ -2098,7 +2098,7 @@ bool BTAdapter::mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept {
 bool BTAdapter::mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtUserPasskeyRequest &event = *static_cast<const MgmtEvtUserPasskeyRequest *>(&e);
 
-    std::shared_ptr<BTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
         WORDY_PRINT("BTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s], %s",
                 dev_id, event.getAddress().toString().c_str(), to_string(event.getAddressType()).c_str(),
@@ -2111,7 +2111,7 @@ bool BTAdapter::mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept {
 
 bool BTAdapter::hciSMPMsgCallback(const BDAddressAndType & addressAndType,
                                    const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept {
-    std::shared_ptr<BTDevice> device = findConnectedDevice(addressAndType.address, addressAndType.type);
+    BTDeviceRef device = findConnectedDevice(addressAndType.address, addressAndType.type);
     if( nullptr == device ) {
         WORDY_PRINT("BTAdapter:hci:SMP: dev_id %d: Device not tracked: address%s: %s, %s",
                 dev_id, addressAndType.toString().c_str(),
@@ -2130,7 +2130,7 @@ bool BTAdapter::hciSMPMsgCallback(const BDAddressAndType & addressAndType,
     return true;
 }
 
-void BTAdapter::sendDevicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept
+void BTAdapter::sendDevicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept
 {
     if( BTRole::Slave == getRole() ) {
         // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS
@@ -2172,7 +2172,7 @@ void BTAdapter::sendDevicePairingState(std::shared_ptr<BTDevice> device, const S
     });
 }
 
-void BTAdapter::sendDeviceReady(std::shared_ptr<BTDevice> device, uint64_t timestamp) noexcept {
+void BTAdapter::sendDeviceReady(BTDeviceRef device, uint64_t timestamp) noexcept {
     int i=0;
     jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {

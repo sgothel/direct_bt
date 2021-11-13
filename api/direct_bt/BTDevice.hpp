@@ -1249,6 +1249,8 @@ namespace direct_bt {
     inline bool operator!=(const BTDevice& lhs, const BTDevice& rhs) noexcept
     { return !(lhs == rhs); }
 
+    typedef std::shared_ptr<BTDevice> BTDeviceRef;
+
 } // namespace direct_bt
 
 #endif /* BT_DEVICE_HPP_ */

@@ -58,6 +58,7 @@
 namespace direct_bt {
 
     class BTDevice; // forward
+    typedef std::shared_ptr<BTDevice> BTDeviceRef;
 
     /**
      * GATT Singleton runtime environment properties
@@ -218,7 +219,7 @@ namespace direct_bt {
             bool hasServerHandle(const uint16_t handle) noexcept;
             DBGattChar* findServerGattCharByValueHandle(const uint16_t char_value_handle) noexcept;
 
-            AttErrorRsp::ErrorCode applyWrite(std::shared_ptr<BTDevice> device, const uint16_t handle, const jau::TROOctets & value, const uint16_t value_offset);
+            AttErrorRsp::ErrorCode applyWrite(BTDeviceRef device, const uint16_t handle, const jau::TROOctets & value, const uint16_t value_offset);
             void replyWriteReq(const AttPDUMsg * pdu);
             void replyReadReq(const AttPDUMsg * pdu);
             void replyFindInfoReq(const AttFindInfoReq * pdu);
@@ -291,7 +292,7 @@ namespace direct_bt {
              * @param l2cap_att the underlying used L2CAP
              * @param supervision_timeout the connection supervising timeout in [ms]
              */
-            BTGattHandler(const std::shared_ptr<BTDevice> & device, L2CAPComm& l2cap_att, const int32_t supervision_timeout) noexcept;
+            BTGattHandler(const BTDeviceRef & device, L2CAPComm& l2cap_att, const int32_t supervision_timeout) noexcept;
 
             BTGattHandler(const BTGattHandler&) = delete;
             void operator=(const BTGattHandler&) = delete;
@@ -299,8 +300,8 @@ namespace direct_bt {
             /** Destructor closing this instance including L2CAP channel, see {@link #disconnect()}. */
             ~BTGattHandler() noexcept;
 
-            std::shared_ptr<BTDevice> getDeviceUnchecked() const noexcept { return wbr_device.lock(); }
-            std::shared_ptr<BTDevice> getDeviceChecked() const;
+            BTDeviceRef getDeviceUnchecked() const noexcept { return wbr_device.lock(); }
+            BTDeviceRef getDeviceChecked() const;
 
             /**
              * Return the local GATTRole to the remote BTDevice.

@@ -72,8 +72,8 @@ BTGattEnv::BTGattEnv() noexcept
 
 #define CASE_TO_STRING(V) case V: return #V;
 
-std::shared_ptr<BTDevice> BTGattHandler::getDeviceChecked() const {
-    std::shared_ptr<BTDevice> ref = wbr_device.lock();
+BTDeviceRef BTGattHandler::getDeviceChecked() const {
+    BTDeviceRef ref = wbr_device.lock();
     if( nullptr == ref ) {
         throw jau::IllegalStateException("GATTHandler's device already destructed: "+toString(), E_FILE_LINE);
     }
@@ -367,7 +367,7 @@ void BTGattHandler::replyWriteReq(const AttPDUMsg * pdu) {
      *   BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.5.2 ATT_WRITE_RSP
      *   BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
      */
-    std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+    BTDeviceRef device = getDeviceUnchecked();
     if( nullptr == device ) {
         AttErrorRsp err(AttErrorRsp::ErrorCode::UNLIKELY_ERROR, pdu->getOpcode(), 0);
         ERR_PRINT("GATT-Req: WRITE.0, null device: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
@@ -456,7 +456,7 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value */
     /* For any follow up request, which previous request reply couldn't fit in ATT_MTU */
-    std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+    BTDeviceRef device = getDeviceUnchecked();
     if( nullptr == device ) {
         AttErrorRsp err(AttErrorRsp::ErrorCode::UNLIKELY_ERROR, pdu->getOpcode(), 0);
         ERR_PRINT("GATT-Req: READ, null device: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
@@ -845,7 +845,7 @@ void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) {
                     clientMTU, pdu->toString().c_str(),
                     usedMTU.load(), rsp.toString().c_str(), toString().c_str());
             if( nullptr != gattServerData ) {
-                std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+                BTDeviceRef device = getDeviceUnchecked();
                 if( nullptr != device ) {
                     int i=0;
                     jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
@@ -1025,7 +1025,7 @@ void BTGattHandler::l2capReaderThreadImpl() {
     disconnect(true /* disconnectDevice */, has_ioerror);
 }
 
-BTGattHandler::BTGattHandler(const std::shared_ptr<BTDevice> &device, L2CAPComm& l2cap_att, const int32_t supervision_timeout) noexcept
+BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPComm& l2cap_att, const int32_t supervision_timeout) noexcept
 : env(BTGattEnv::get()),
   wbr_device(device),
   role(device->getLocalGATTRole()),
@@ -1136,7 +1136,7 @@ bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCa
     }
 
     if( nullptr != gattServerData ) {
-        std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+        BTDeviceRef device = getDeviceUnchecked();
         if( nullptr == device ) {
             ERR_PRINT("GATTHandler::disconnect: null device: %s", toString().c_str());
         } else {
@@ -1188,7 +1188,7 @@ bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCa
     PERF3_TS_TD("GATTHandler::disconnect.2");
 
     if( disconnectDevice ) {
-        std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+        BTDeviceRef device = getDeviceUnchecked();
         if( nullptr != device ) {
             // Cleanup device resources, proper connection state
             // Intentionally giving the POWER_OFF reason for the device in case of ioErrorCause!

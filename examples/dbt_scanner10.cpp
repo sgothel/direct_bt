@@ -134,11 +134,11 @@ static uint8_t cmd_arg = 0x44;
 static bool SHOW_UPDATE_EVENTS = false;
 static bool QUIET = false;
 
-static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device);
+static void connectDiscoveredDevice(BTDeviceRef device);
 
-static void processReadyDevice(std::shared_ptr<BTDevice> device);
+static void processReadyDevice(BTDeviceRef device);
 
-static void removeDevice(std::shared_ptr<BTDevice> device);
+static void removeDevice(BTDeviceRef device);
 static void resetAdapter(BTAdapter *a, int mode);
 static bool startDiscovery(BTAdapter *a, std::string msg);
 
@@ -173,7 +173,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
-    bool deviceFound(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
+    bool deviceFound(BTDeviceRef device, const uint64_t timestamp) override {
         (void)timestamp;
 
         if( !BTDeviceRegistry::isDeviceProcessing( device->getAddressAndType() ) &&
@@ -198,20 +198,20 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceUpdated(std::shared_ptr<BTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
+    void deviceUpdated(BTDeviceRef device, const EIRDataType updateMask, const uint64_t timestamp) override {
         if( SHOW_UPDATE_EVENTS ) {
             fprintf_td(stderr, "****** UPDATED: %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
         }
         (void)timestamp;
     }
 
-    void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceConnected(BTDeviceRef device, const uint16_t handle, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** CONNECTED: %s\n", device->toString(true).c_str());
         (void)handle;
         (void)timestamp;
     }
 
-    void devicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+    void devicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** PAIRING STATE: state %s, mode %s, %s\n",
             to_string(state).c_str(), to_string(mode).c_str(), device->toString().c_str());
         (void)timestamp;
@@ -271,7 +271,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceReady(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
+    void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
         (void)timestamp;
         if( !BTDeviceRegistry::isDeviceProcessing( device->getAddressAndType() ) &&
             ( !BTDeviceRegistry::isWaitingForAnyDevice() ||
@@ -290,7 +290,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceDisconnected(std::shared_ptr<BTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
                 static_cast<uint8_t>(reason), to_string(reason).c_str(),
                 to_hexstring(handle).c_str(), device->toString(true).c_str());
@@ -362,7 +362,7 @@ class MyGATTEventListener : public BTGattChar::Listener {
     }
 };
 
-static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
+static void connectDiscoveredDevice(BTDeviceRef device) {
     fprintf_td(stderr, "****** Connecting Device: Start %s\n", device->toString().c_str());
 
     {
@@ -409,7 +409,7 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
     }
 }
 
-static void processReadyDevice(std::shared_ptr<BTDevice> device) {
+static void processReadyDevice(BTDeviceRef device) {
     fprintf_td(stderr, "****** Processing Ready Device: Start %s\n", device->toString().c_str());
     device->getAdapter().stopDiscovery(); // make sure for pending connections on failed connect*(..) command
 
@@ -606,7 +606,7 @@ exit:
     }
 }
 
-static void removeDevice(std::shared_ptr<BTDevice> device) {
+static void removeDevice(BTDeviceRef device) {
     fprintf_td(stderr, "****** Remove Device: removing: %s\n", device->getAddressAndType().toString().c_str());
     device->getAdapter().stopDiscovery();
 
