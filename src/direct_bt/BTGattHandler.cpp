@@ -190,15 +190,15 @@ bool BTGattHandler::hasServerHandle(const uint16_t handle) noexcept {
     if( nullptr == gattServerData ) {
         return false;
     }
-    for(DBGattServiceRef& s : gattServerData->services) {
-        if( s->handle <= handle && handle <= s->end_handle ) {
-            for(DBGattCharRef& c : s->characteristics) {
-                if( c->handle <= handle && handle <= c->end_handle ) {
-                    if( handle == c->value_handle ) {
+    for(DBGattServiceRef& s : gattServerData->getServices()) {
+        if( s->getHandle() <= handle && handle <= s->getEndHandle() ) {
+            for(DBGattCharRef& c : s->getCharacteristics()) {
+                if( c->getHandle() <= handle && handle <= c->getEndHandle() ) {
+                    if( handle == c->getValueHandle() ) {
                         return true;
                     }
-                    for(DBGattDescRef& d : c->descriptors) {
-                        if( handle == d->handle ) {
+                    for(DBGattDescRef& d : c->getDescriptors()) {
+                        if( handle == d->getHandle() ) {
                             return true;
                         }
                     }
@@ -220,20 +220,20 @@ AttErrorRsp::ErrorCode BTGattHandler::applyWrite(BTDeviceRef device, const uint1
     if( nullptr == gattServerData ) {
         return AttErrorRsp::ErrorCode::INVALID_HANDLE;
     }
-    for(DBGattServiceRef& s : gattServerData->services) {
-        if( s->handle <= handle && handle <= s->end_handle ) {
-            for(DBGattCharRef& c : s->characteristics) {
-                if( c->handle <= handle && handle <= c->end_handle ) {
-                    if( handle == c->value_handle ) {
-                        if( c->value.size() < value_offset) { // offset at value-end + 1 OK to append
+    for(DBGattServiceRef& s : gattServerData->getServices()) {
+        if( s->getHandle() <= handle && handle <= s->getEndHandle() ) {
+            for(DBGattCharRef& c : s->getCharacteristics()) {
+                if( c->getHandle() <= handle && handle <= c->getEndHandle() ) {
+                    if( handle == c->getValueHandle() ) {
+                        if( c->getValue().size() < value_offset) { // offset at value-end + 1 OK to append
                             return AttErrorRsp::ErrorCode::INVALID_OFFSET;
                         }
-                        if( c->variable_length ) {
-                            if( c->value.capacity() < value_offset + value.size() ) {
+                        if( c->hasVariableLength() ) {
+                            if( c->getValue().capacity() < value_offset + value.size() ) {
                                 return AttErrorRsp::ErrorCode::INVALID_ATTRIBUTE_VALUE_LEN;
                             }
                         } else {
-                            if( c->value.size() < value_offset + value.size() ) {
+                            if( c->getValue().size() < value_offset + value.size() ) {
                                 return AttErrorRsp::ErrorCode::INVALID_ATTRIBUTE_VALUE_LEN;
                             }
                         }
@@ -254,25 +254,25 @@ AttErrorRsp::ErrorCode BTGattHandler::applyWrite(BTDeviceRef device, const uint1
                                 return AttErrorRsp::ErrorCode::NO_WRITE_PERM;
                             }
                         }
-                        if( c->variable_length ) {
-                            if( c->value.size() != value_offset + value.size() ) {
-                                c->value.resize( value_offset + value.size() );
+                        if( c->hasVariableLength() ) {
+                            if( c->getValue().size() != value_offset + value.size() ) {
+                                c->getValue().resize( value_offset + value.size() );
                             }
                         }
-                        c->value.put_octets_nc(value_offset, value);
+                        c->getValue().put_octets_nc(value_offset, value);
                         return AttErrorRsp::ErrorCode::NO_ERROR;
                     }
-                    for(DBGattDescRef& d : c->descriptors) {
-                        if( handle == d->handle ) {
-                            if( d->value.size() < value_offset) { // offset at value-end + 1 OK to append
+                    for(DBGattDescRef& d : c->getDescriptors()) {
+                        if( handle == d->getHandle() ) {
+                            if( d->getValue().size() < value_offset) { // offset at value-end + 1 OK to append
                                 return AttErrorRsp::ErrorCode::INVALID_OFFSET;
                             }
-                            if( d->variable_length ) {
-                                if( d->value.capacity() < value_offset + value.size() ) {
+                            if( d->hasVariableLength() ) {
+                                if( d->getValue().capacity() < value_offset + value.size() ) {
                                     return AttErrorRsp::ErrorCode::INVALID_ATTRIBUTE_VALUE_LEN;
                                 }
                             } else {
-                                if( d->value.size() < value_offset + value.size() ) {
+                                if( d->getValue().size() < value_offset + value.size() ) {
                                     return AttErrorRsp::ErrorCode::INVALID_ATTRIBUTE_VALUE_LEN;
                                 }
                             }
@@ -297,9 +297,9 @@ AttErrorRsp::ErrorCode BTGattHandler::applyWrite(BTDeviceRef device, const uint1
                                     return AttErrorRsp::ErrorCode::NO_WRITE_PERM;
                                 }
                             }
-                            if( d->variable_length ) {
-                                if( d->value.size() != value_offset + value.size() ) {
-                                    d->value.resize( value_offset + value.size() );
+                            if( d->hasVariableLength() ) {
+                                if( d->getValue().size() != value_offset + value.size() ) {
+                                    d->getValue().resize( value_offset + value.size() );
                                 }
                             }
                             if( isCCCD ) {
@@ -307,7 +307,7 @@ AttErrorRsp::ErrorCode BTGattHandler::applyWrite(BTDeviceRef device, const uint1
                                     // no change, exit
                                     return AttErrorRsp::ErrorCode::NO_ERROR;
                                 }
-                                const uint8_t old_v = d->value.get_uint8_nc(0);
+                                const uint8_t old_v = d->getValue().get_uint8_nc(0);
                                 const bool oldEnableNotification = old_v & 0b001;
                                 const bool oldEnableIndication = old_v & 0b010;
 
@@ -325,7 +325,7 @@ AttErrorRsp::ErrorCode BTGattHandler::applyWrite(BTDeviceRef device, const uint1
                                     return AttErrorRsp::ErrorCode::NO_ERROR;
                                 }
                                 const uint16_t new_v = enableNotification | ( enableIndication << 1 );
-                                d->value.put_uint8_nc(0, new_v);
+                                d->getValue().put_uint8_nc(0, new_v);
                                 {
                                     int i=0;
                                     jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
@@ -341,7 +341,7 @@ AttErrorRsp::ErrorCode BTGattHandler::applyWrite(BTDeviceRef device, const uint1
                                 }
                             } else {
                                 // all other types ..
-                                d->value.put_octets_nc(value_offset, value);
+                                d->getValue().put_octets_nc(value_offset, value);
                             }
                             return AttErrorRsp::ErrorCode::NO_ERROR;
                         }
@@ -499,16 +499,16 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
     (void)rspMaxSize;
 
     if( nullptr != gattServerData ) {
-        for(DBGattServiceRef& s : gattServerData->services) {
-            if( s->handle <= handle && handle <= s->end_handle ) {
+        for(DBGattServiceRef& s : gattServerData->getServices()) {
+            if( s->getHandle() <= handle && handle <= s->getEndHandle() ) {
                 /**
                  * AttReadByGroupTypeRsp (1 opcode + 1 element_size + 2 handle + 2 handle + 16 uuid128_t = 22 bytes)
                  * always fits in minimum ATT_PDU 23
                  */
-                for(DBGattCharRef& c : s->characteristics) {
-                    if( c->handle <= handle && handle <= c->end_handle ) {
-                        if( handle == c->value_handle ) {
-                            if( isBlobReq && c->value.size() <= rspMaxSize ) {
+                for(DBGattCharRef& c : s->getCharacteristics()) {
+                    if( c->getHandle() <= handle && handle <= c->getEndHandle() ) {
+                        if( handle == c->getValueHandle() ) {
+                            if( isBlobReq && c->getValue().size() <= rspMaxSize ) {
                                 AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_LONG, pdu->getOpcode(), 0);
                                 COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
                                 send(err);
@@ -534,7 +534,7 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
                                     return;
                                 }
                             }
-                            AttReadNRsp rsp(isBlobReq, c->value, value_offset);
+                            AttReadNRsp rsp(isBlobReq, c->getValue(), value_offset);
                             if( rsp.getPDUValueSize() > rspMaxSize ) {
                                 rsp.pdu.resize(usedMTU); // requires another READ_BLOB_REQ
                             }
@@ -542,9 +542,9 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
                             send(rsp);
                             return;
                         }
-                        for(DBGattDescRef& d : c->descriptors) {
-                            if( handle == d->handle ) {
-                                if( isBlobReq && d->value.size() <= rspMaxSize ) {
+                        for(DBGattDescRef& d : c->getDescriptors()) {
+                            if( handle == d->getHandle() ) {
+                                if( isBlobReq && d->getValue().size() <= rspMaxSize ) {
                                     AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_LONG, pdu->getOpcode(), 0);
                                     COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
                                     send(err);
@@ -570,7 +570,7 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
                                         return;
                                     }
                                 }
-                                AttReadNRsp rsp(isBlobReq, d->value, value_offset);
+                                AttReadNRsp rsp(isBlobReq, d->getValue(), value_offset);
                                 if( rsp.getPDUValueSize() > rspMaxSize ) {
                                     rsp.pdu.resize(usedMTU); // requires another READ_BLOB_REQ
                                 }
@@ -615,11 +615,11 @@ void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
     jau::nsize_t rspCount = 0;
 
     if( nullptr != gattServerData ) {
-        for(DBGattServiceRef& s : gattServerData->services) {
-            for(DBGattCharRef& c : s->characteristics) {
-                for(DBGattDescRef& d : c->descriptors) {
-                    if( start_handle <= d->handle && d->handle <= end_handle ) {
-                        const jau::nsize_t size = 2 + d->type->getTypeSizeInt();
+        for(DBGattServiceRef& s : gattServerData->getServices()) {
+            for(DBGattCharRef& c : s->getCharacteristics()) {
+                for(DBGattDescRef& d : c->getDescriptors()) {
+                    if( start_handle <= d->getHandle() && d->getHandle() <= end_handle ) {
+                        const jau::nsize_t size = 2 + d->getType()->getTypeSizeInt();
                         if( 0 == rspElemSize ) {
                             // initial setting or reset
                             rspElemSize = size;
@@ -632,8 +632,8 @@ void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
                             send(rsp);
                             return; // Client shall issue additional FIND_INFORMATION_REQ
                         }
-                        rsp.setElementHandle(rspCount, d->handle);
-                        rsp.setElementValueUUID(rspCount, *d->type);
+                        rsp.setElementHandle(rspCount, d->getHandle());
+                        rsp.setElementValueUUID(rspCount, *d->getType());
                         rspSize += size;
                         ++rspCount;
                     }
@@ -690,10 +690,10 @@ void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
         jau::nsize_t rspCount = 0;
 
         if( nullptr != gattServerData ) {
-            for(DBGattServiceRef& s : gattServerData->services) {
-                for(DBGattCharRef& c : s->characteristics) {
-                    if( start_handle <= c->handle && c->handle <= end_handle ) {
-                        const jau::nsize_t size = 2 + 1 + 2 + c->value_type->getTypeSizeInt();
+            for(DBGattServiceRef& s : gattServerData->getServices()) {
+                for(DBGattCharRef& c : s->getCharacteristics()) {
+                    if( start_handle <= c->getHandle() && c->getHandle() <= end_handle ) {
+                        const jau::nsize_t size = 2 + 1 + 2 + c->getValueType()->getTypeSizeInt();
                         if( 0 == rspElemSize ) {
                             // initial setting or reset
                             rspElemSize = size;
@@ -707,14 +707,14 @@ void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
                             return; // Client shall issue additional READ_BY_TYPE_REQ
                         }
                         jau::nsize_t ePDUOffset = rsp.getElementPDUOffset(rspCount);
-                        rsp.setElementHandle(rspCount, c->handle); // Characteristic Handle
+                        rsp.setElementHandle(rspCount, c->getHandle()); // Characteristic Handle
                         ePDUOffset += 2;
-                        rsp.pdu.put_uint8_nc(ePDUOffset, c->properties); // Characteristics Property
+                        rsp.pdu.put_uint8_nc(ePDUOffset, c->getProperties()); // Characteristics Property
                         ePDUOffset += 1;
-                        rsp.pdu.put_uint16_nc(ePDUOffset, c->value_handle); // Characteristics Value Handle
+                        rsp.pdu.put_uint16_nc(ePDUOffset, c->getValueHandle()); // Characteristics Value Handle
                         ePDUOffset += 2;
-                        c->value_type->put(rsp.pdu.get_wptr_nc(ePDUOffset), 0, true /* littleEndian */); // Characteristics Value Type UUID
-                        ePDUOffset += c->value_type->getTypeSizeInt();
+                        c->getValueType()->put(rsp.pdu.get_wptr_nc(ePDUOffset), 0, true /* littleEndian */); // Characteristics Value Type UUID
+                        ePDUOffset += c->getValueType()->getTypeSizeInt();
                         rspSize += size;
                         ++rspCount;
                     }
@@ -781,13 +781,13 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
         jau::nsize_t rspCount = 0;
 
         if( nullptr != gattServerData ) {
-            for(DBGattServiceRef& s : gattServerData->services) {
-                if( ( ( GattAttributeType::PRIMARY_SERVICE   == req_group_type &&  s->primary ) ||
-                      ( GattAttributeType::SECONDARY_SERVICE == req_group_type && !s->primary )
+            for(DBGattServiceRef& s : gattServerData->getServices()) {
+                if( ( ( GattAttributeType::PRIMARY_SERVICE   == req_group_type &&  s->isPrimary() ) ||
+                      ( GattAttributeType::SECONDARY_SERVICE == req_group_type && !s->isPrimary() )
                     ) &&
-                    start_handle <= s->handle && s->handle <= end_handle )
+                    start_handle <= s->getHandle() && s->getHandle() <= end_handle )
                 {
-                    const jau::nsize_t size = 2 + 2 + s->type->getTypeSizeInt();
+                    const jau::nsize_t size = 2 + 2 + s->getType()->getTypeSizeInt();
                     if( 0 == rspElemSize ) {
                         // initial setting or reset
                         rspElemSize = size;
@@ -804,9 +804,9 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
                         send(rsp);
                         return; // Client shall issue additional READ_BY_TYPE_REQ
                     }
-                    rsp.setElementStartHandle(rspCount, s->handle);
-                    rsp.setElementEndHandle(rspCount, s->end_handle);
-                    rsp.setElementValueUUID(rspCount, *s->type);
+                    rsp.setElementStartHandle(rspCount, s->getHandle());
+                    rsp.setElementEndHandle(rspCount, s->getEndHandle());
+                    rsp.setElementValueUUID(rspCount, *s->getType());
                     rspSize += size;
                     ++rspCount;
                 }
@@ -1088,7 +1088,7 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPComm& l2cap_att, co
         }
     } else {
         if( nullptr != gattServerData ) {
-            serverMTU = std::max( std::min( gattServerData->max_att_mtu, number(Defaults::MAX_ATT_MTU) ), number(Defaults::MIN_ATT_MTU) );
+            serverMTU = std::max( std::min( gattServerData->getMaxAttMTU(), number(Defaults::MAX_ATT_MTU) ), number(Defaults::MIN_ATT_MTU) );
         } else {
             serverMTU = number(Defaults::MAX_ATT_MTU);
         }

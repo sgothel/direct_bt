@@ -1230,8 +1230,8 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
     eir.setName(getName());
     if( nullptr != gattServerData_ ) {
         gattServerData_->setServicesHandles();
-        for(DBGattServiceRef& s : gattServerData_->services) {
-            eir.addService(s->type);
+        for(DBGattServiceRef& s : gattServerData_->getServices()) {
+            eir.addService(s->getType());
         }
     }
     constexpr bool legacy = true;

@@ -442,7 +442,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
                     device->toString().c_str(), s->toString().c_str(), c->toString().c_str());
 
             if( match &&
-                c->value_type->equivalent( CommandUUID ) &&
+                c->getValueType()->equivalent( CommandUUID ) &&
                 ( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) )
             {
                 jau::POctets value2(value);
@@ -468,12 +468,12 @@ class MyGATTServerListener : public DBGattServer::Listener {
 
             if( match ) {
                 jau::sc_atomic_critical sync(sync_data);
-                if( c->value_type->equivalent( PulseDataUUID ) ) {
-                    handlePulseDataNotify = notificationEnabled ? c->value_handle : 0;
-                    handlePulseDataIndicate = indicationEnabled ? c->value_handle : 0;
-                } else if( c->value_type->equivalent( ResponseUUID ) ) {
-                    handleResponseDataNotify = notificationEnabled ? c->value_handle : 0;
-                    handleResponseDataIndicate = indicationEnabled ? c->value_handle : 0;
+                if( c->getValueType()->equivalent( PulseDataUUID ) ) {
+                    handlePulseDataNotify = notificationEnabled ? c->getValueHandle() : 0;
+                    handlePulseDataIndicate = indicationEnabled ? c->getValueHandle() : 0;
+                } else if( c->getValueType()->equivalent( ResponseUUID ) ) {
+                    handleResponseDataNotify = notificationEnabled ? c->getValueHandle() : 0;
+                    handleResponseDataIndicate = indicationEnabled ? c->getValueHandle() : 0;
                 }
             }
         }
@@ -670,7 +670,7 @@ int main(int argc, char *argv[])
         } else if( !strcmp("-short_name", argv[i]) && argc > (i+1) ) {
             adapter_short_name = std::string(argv[++i]);
         } else if( !strcmp("-mtu", argv[i]) && argc > (i+1) ) {
-            dbGattServer->max_att_mtu = atoi(argv[++i]);
+            dbGattServer->setMaxAttMTU( atoi(argv[++i]) );
         }
     }
     fprintf_td(stderr, "pid %d\n", getpid());
@@ -679,7 +679,7 @@ int main(int argc, char *argv[])
                     "[-adapter <adapter_address>] "
                     "[-name <adapter_name>] "
                     "[-short_name <adapter_short_name>] "
-                    "[-mtu <max att_mtu>"
+                    "[-mtu <max att_mtu>] "
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event] "
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,...] "
@@ -693,8 +693,8 @@ int main(int argc, char *argv[])
     fprintf_td(stderr, "btmode %s\n", to_string(btMode).c_str());
     fprintf_td(stderr, "name %s (short %s)\n", adapter_name.c_str(), adapter_short_name.c_str());
     fprintf_td(stderr, "GattServer %s\n", dbGattServer->toString().c_str());
-    fprintf_td(stderr, "GattServer.services: %s\n", dbGattServer->services.get_info().c_str());
-    fprintf_td(stderr, "GattService.characteristics: %s\n", dbGattServer->services[0]->characteristics.get_info().c_str());
+    fprintf_td(stderr, "GattServer.services: %s\n", dbGattServer->getServices().get_info().c_str());
+    fprintf_td(stderr, "GattService.characteristics: %s\n", dbGattServer->getServices()[0]->getCharacteristics().get_info().c_str());
 
     if( waitForEnter ) {
         fprintf_td(stderr, "Press ENTER to continue\n");
