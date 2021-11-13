@@ -691,4 +691,6 @@ public interface BTAdapter extends BTObject
      */
     void printDeviceLists();
 
+    @Override
+    String toString();
 }

@@ -336,4 +336,7 @@ public interface BTGattChar extends BTObject
       * NULL if an error occurred
       */
     List<BTGattDesc> getDescriptors();
+
+    @Override
+    String toString();
 }

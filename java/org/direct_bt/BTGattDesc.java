@@ -67,4 +67,7 @@ public interface BTGattDesc extends BTObject
       * @return The cached value of this descriptor.
       */
     byte[] getValue();
+
+    @Override
+    String toString();
 }

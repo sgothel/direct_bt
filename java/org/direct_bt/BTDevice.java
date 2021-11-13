@@ -984,4 +984,7 @@ public interface BTDevice extends BTObject
      * @since 2.0.0
      */
     int removeAllCharListener();
+
+    @Override
+    String toString();
 }

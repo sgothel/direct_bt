@@ -136,4 +136,7 @@ public interface BTGattService extends BTObject
         }
         return device.removeAllCharListener();
     }
+
+    @Override
+    String toString();
 }
