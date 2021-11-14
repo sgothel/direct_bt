@@ -520,6 +520,7 @@ static void processDisconnectedDevice(BTDeviceRef device) {
     // already unpaired
     stopAdvertising(&device->getAdapter(), "device-disconnected");
     BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME: Fast restart of advertising error)
 
     if( !RUN_ONLY_ONCE ) {
         startAdvertising(&device->getAdapter(), "device-disconnected");

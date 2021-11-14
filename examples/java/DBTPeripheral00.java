@@ -557,6 +557,9 @@ public class DBTPeripheral00 {
         // already unpaired
         stopAdvertising(device.getAdapter(), "device-disconnected");
         BTDeviceRegistry.removeFromProcessingDevices(device.getAddressAndType());
+        try {
+            Thread.sleep(100); // wait a little (FIXME: Fast restart of advertising error)
+        } catch (final InterruptedException e) { }
 
         if( !RUN_ONLY_ONCE ) {
             startAdvertising(device.getAdapter(), "device-disconnected");
