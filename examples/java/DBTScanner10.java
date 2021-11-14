@@ -75,8 +75,6 @@ import jau.direct_bt.DBTManager;
  * </p>
  */
 public class DBTScanner10 {
-    static final String KEY_PATH = "keys";
-
     long timestamp_t0;
 
     EUI48 useAdapter = EUI48.ALL_DEVICE;
@@ -212,8 +210,8 @@ public class DBTScanner10 {
                     // next: deviceReady(..)
                     break;
                 case FAILED: {
-                    final boolean res  = SMPKeyBin.remove(KEY_PATH, device);
-                    BTUtils.println(System.err, "****** PAIRING_STATE: state "+state+"; Remove key file "+SMPKeyBin.getFilename(KEY_PATH, device)+", res "+res);
+                    final boolean res  = SMPKeyBin.remove(DBTConstants.KEY_PATH, device);
+                    BTUtils.println(System.err, "****** PAIRING_STATE: state "+state+"; Remove key file "+SMPKeyBin.getFilename(DBTConstants.KEY_PATH, device)+", res "+res);
                     // next: deviceReady() or deviceDisconnected(..)
                 } break;
                 case REQUESTED_BY_RESPONDER:
@@ -367,7 +365,7 @@ public class DBTScanner10 {
             BTUtils.println(System.err, "****** Connecting Device: No SecurityDetail for "+device.toString());
         }
         final BTSecurityLevel req_sec_level = null != sec ? sec.getSecLevel() : BTSecurityLevel.UNSET;
-        HCIStatusCode res = device.uploadKeys(KEY_PATH, req_sec_level, true /* verbose_ */);
+        HCIStatusCode res = device.uploadKeys(DBTConstants.KEY_PATH, req_sec_level, true /* verbose_ */);
         BTUtils.fprintf_td(System.err, "****** Connecting Device: BTDevice::uploadKeys(...) result %s\n", res.toString());
         if( HCIStatusCode.SUCCESS != res ) {
             if( null != sec ) {
@@ -433,7 +431,7 @@ public class DBTScanner10 {
 
         final long t1 = BTUtils.currentTimeMillis();
 
-        SMPKeyBin.createAndWrite(device, KEY_PATH, false /* overwrite */, true /* verbose */);
+        SMPKeyBin.createAndWrite(device, DBTConstants.KEY_PATH, false /* overwrite */, true /* verbose */);
 
         boolean success = false;
 

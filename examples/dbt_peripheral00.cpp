@@ -714,6 +714,7 @@ int main(int argc, char *argv[])
     fprintf_td(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
     fprintf_td(stderr, "adapter %s\n", useAdapter.toString().c_str());
     fprintf_td(stderr, "btmode %s\n", to_string(btMode).c_str());
+    fprintf_td(stderr, "use SC %s\n", to_string(use_SC).c_str());
     fprintf_td(stderr, "name %s (short %s)\n", adapter_name.c_str(), adapter_short_name.c_str());
     fprintf_td(stderr, "mtu %d\n", (int)dbGattServer->getMaxAttMTU());
     fprintf_td(stderr, "once %d\n", (int)RUN_ONLY_ONCE);

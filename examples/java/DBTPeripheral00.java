@@ -50,6 +50,8 @@ import org.direct_bt.DBGattValue;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.GattCharPropertySet;
 import org.direct_bt.HCIStatusCode;
+import org.direct_bt.LE_Features;
+import org.direct_bt.LE_PHYs;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPKeyBin;
 import org.direct_bt.SMPPairingState;
@@ -60,14 +62,13 @@ import org.jau.net.EUI48;
  * This Java peripheral {@link BTRole::Slave} example uses the Direct-BT fully event driven workflow.
  */
 public class DBTPeripheral00 {
-    static final String KEY_PATH = "keys";
-
     long timestamp_t0;
 
     EUI48 useAdapter = EUI48.ALL_DEVICE;
     BTMode btMode = BTMode.DUAL;
     BTAdapter chosenAdapter = null;
 
+    boolean use_SC = true;
     String adapter_name = "TestDev001_J";
     String adapter_short_name = "TDev001J";
 
@@ -262,8 +263,6 @@ public class DBTPeripheral00 {
                     // next: deviceReady(..)
                     break;
                 case FAILED: {
-                    final boolean res  = SMPKeyBin.remove(KEY_PATH, device);
-                    BTUtils.println(System.err, "****** PAIRING_STATE: state "+state+"; Remove key file "+SMPKeyBin.getFilename(KEY_PATH, device)+", res "+res);
                     // next: deviceReady() or deviceDisconnected(..)
                 } break;
                 case REQUESTED_BY_RESPONDER:
@@ -572,28 +571,54 @@ public class DBTPeripheral00 {
             return false;
         }
         if( !adapter.isInitialized() ) {
-            // setName(..) ..
-            if( adapter.setPowered(false) ) {
-                final HCIStatusCode status = adapter.setName(adapter_name, adapter_short_name);
-                if( HCIStatusCode.SUCCESS == status ) {
-                    BTUtils.fprintf_td(System.err, "initAdapter: setLocalName OK: %s\n", adapter.toString());
-                } else {
-                    BTUtils.fprintf_td(System.err, "initAdapter: setLocalName failed: %s\n", adapter.toString());
-                }
-            } else {
-                BTUtils.fprintf_td(System.err, "initAdapter: setPowered failed: %s\n", adapter.toString());
-            }
             // Initialize with defaults and power-on
             final HCIStatusCode status = adapter.initialize( btMode );
             if( HCIStatusCode.SUCCESS != status ) {
-                BTUtils.fprintf_td(System.err, "initAdapter: Adapter initialization failed: %s: %s\n",
+                BTUtils.fprintf_td(System.err, "initAdapter: initialization failed: %s: %s\n",
                         status.toString(), adapter.toString());
                 return false;
             }
         } else if( !adapter.setPowered( true ) ) {
-            BTUtils.fprintf_td(System.err, "initAdapter: Already initialized adapter power-on failed:: %s\n", adapter.toString());
+            BTUtils.fprintf_td(System.err, "initAdapter: setPower.1 on failed: %s\n", adapter.toString());
             return false;
         }
+        // adapter is powered-on
+        BTUtils.println(System.err, "initAdapter.1: "+adapter.toString());
+
+        if( adapter.setPowered(false) ) {
+            final HCIStatusCode status = adapter.setName(adapter_name, adapter_short_name);
+            if( HCIStatusCode.SUCCESS == status ) {
+                BTUtils.fprintf_td(System.err, "initAdapter: setLocalName OK: %s\n", adapter.toString());
+            } else {
+                BTUtils.fprintf_td(System.err, "initAdapter: setLocalName failed: %s\n", adapter.toString());
+            }
+            if( adapter.setSecureConnections( use_SC ) ) {
+                BTUtils.fprintf_td(System.err, "initAdapter: setSecureConnections OK: %s\n", adapter.toString());
+            } else {
+                BTUtils.fprintf_td(System.err, "initAdapter: setSecureConnections failed: %s\n", adapter.toString());
+            }
+            if( !adapter.setPowered( true ) ) {
+                BTUtils.fprintf_td(System.err, "initAdapter: setPower.2 on failed: %s\n", adapter.toString());
+                return false;
+            }
+        } else {
+            BTUtils.fprintf_td(System.err, "initAdapter: setPowered.2 off failed: %s\n", adapter.toString());
+        }
+        BTUtils.println(System.err, "initAdapter.2: "+adapter.toString());
+
+        {
+            final LE_Features le_feats = adapter.getLEFeatures();
+            BTUtils.fprintf_td(System.err, "initAdapter: LE_Features %s\n", le_feats.toString());
+        }
+        {
+            final LE_PHYs Tx = new LE_PHYs( LE_PHYs.PHY.LE_2M );
+            final LE_PHYs Rx = new LE_PHYs( LE_PHYs.PHY.LE_2M );
+            final HCIStatusCode res = adapter.setDefaultLE_PHY(Tx, Rx);
+            BTUtils.fprintf_td(System.err, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
+                                res.toString(), Tx.toString(), Rx.toString());
+        }
+        adapter.setSMPKeyPath(DBTConstants.ADAPTER_KEY_PATH);
+
         // adapter is powered-on
         final AdapterStatusListener asl = new MyAdapterStatusListener();
         adapter.addStatusListener( asl );
@@ -717,6 +742,8 @@ public class DBTPeripheral00 {
                     test.SHOW_UPDATE_EVENTS = true;
                 } else if( arg.equals("-btmode") && args.length > (i+1) ) {
                     test.btMode = BTMode.get(args[++i]);
+                } else if( arg.equals("-use_sc") && args.length > (i+1) ) {
+                    test.use_SC = 0 != Integer.valueOf(args[++i]);
                 } else if( arg.equals("-adapter") && args.length > (i+1) ) {
                     test.useAdapter = new EUI48( args[++i] );
                 } else if( arg.equals("-name") && args.length > (i+1) ) {
@@ -729,7 +756,7 @@ public class DBTPeripheral00 {
                     test.RUN_ONLY_ONCE = true;
                 }
             }
-            BTUtils.println(System.err, "Run with '[-btmode LE|BREDR|DUAL] "+
+            BTUtils.println(System.err, "Run with '[-btmode LE|BREDR|DUAL] [-use_sc 0|1] "+
                     "[-adapter <adapter_address>] "+
                     "[-name <adapter_name>] "+
                     "[-short_name <adapter_short_name>] "+
@@ -748,6 +775,7 @@ public class DBTPeripheral00 {
         BTUtils.println(System.err, "SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
         BTUtils.println(System.err, "adapter "+test.useAdapter);
         BTUtils.println(System.err, "btmode "+test.btMode.toString());
+        BTUtils.println(System.err, "use SC "+test.use_SC);
         BTUtils.fprintf_td(System.err, "name %s (short %s)\n", test.adapter_name, test.adapter_short_name);
         BTUtils.println(System.err, "mtu "+test.dbGattServer.getMaxAttMTU());
         BTUtils.println(System.err, "once "+test.RUN_ONLY_ONCE);
