@@ -351,15 +351,16 @@ void BTAdapter::poweredOff(bool active) noexcept {
         return;
     }
     DBG_PRINT("BTAdapter::poweredOff(active %d): ... %p, %s", active, this, toString().c_str());
-    if( !active ) {
-        jau::INFO_PRINT("BTAdapter Powered-Off %s", toString().c_str());
-        jau::print_backtrace(true /* skip_anon_frames */, 4 /* max_frames */, 2 /* skip_frames: print_b*() + get_b*() */);
+    if( jau::environment::get().debug ) {
+        if( !active ) {
+            jau::print_backtrace(true /* skip_anon_frames */, 4 /* max_frames */, 2 /* skip_frames: print_b*() + get_b*() */);
+        }
     }
     if( !hci.isOpen() ) {
         jau::INFO_PRINT("BTAdapter::poweredOff: HCI closed: active %d -> 0: %s", active, toString().c_str());
         active = false;
     } else if( active && !adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
-        jau::INFO_PRINT("BTAdapter::poweredOff: !POWERED: active %d -> 0: %s", active, toString().c_str());
+        DBG_PRINT("BTAdapter::poweredOff: !POWERED: active %d -> 0: %s", active, toString().c_str());
         active = false;
     }
     keep_le_scan_alive = false;
