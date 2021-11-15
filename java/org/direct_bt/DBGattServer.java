@@ -47,9 +47,37 @@ public final class DBGattServer implements AutoCloseable
      *
      * All methods shall return as soon as possible to not block GATT event processing.
      */
-    public static abstract class Listener {
-        @SuppressWarnings("unused")
+    public static abstract class Listener implements AutoCloseable {
         private volatile long nativeInstance;
+        /* pp */ long getNativeInstance() { return nativeInstance; }
+
+        /**
+         *
+         * @param max_att_mtu_
+         * @param services_
+         */
+        public Listener() {
+            nativeInstance = ctorImpl();
+        }
+        private native long ctorImpl();
+
+        @Override
+        public void close() {
+            final long handle;
+            synchronized( this ) {
+                handle = nativeInstance;
+                nativeInstance = 0;
+            }
+            if( 0 != handle ) {
+                dtorImpl(handle);
+            }
+        }
+        private static native void dtorImpl(final long nativeInstance);
+
+        @Override
+        public void finalize() {
+            close();
+        }
 
         /**
          * Notification that device got connected.
@@ -144,7 +172,6 @@ public final class DBGattServer implements AutoCloseable
             return this == other;
         }
     }
-    // private final List<Listener> listenerList = new ArrayList<Listener>();
 
     /** Used maximum server Rx ATT_MTU, defaults to 512+1. */
     public native int getMaxAttMTU();
@@ -252,12 +279,12 @@ public final class DBGattServer implements AutoCloseable
     }
 
     public synchronized boolean addListener(final Listener l) {
-        return true; // addListenerImpl(l);
+        return addListenerImpl(l);
     }
     private native boolean addListenerImpl(Listener l);
 
     public synchronized boolean removeListener(final Listener l) {
-        return true; // removeListenerImpl(l);
+        return removeListenerImpl(l);
     }
     private native boolean removeListenerImpl(Listener l);
 

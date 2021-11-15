@@ -57,18 +57,3 @@ bool DBGattServer::removeListener(ListenerRef l) {
     return count > 0;
 }
 
-bool DBGattServer::removeListener(const Listener * l) {
-    if( nullptr == l ) {
-        ERR_PRINT("Listener ref is null");
-        return false;
-    }
-    auto it = listenerList.begin(); // lock mutex and copy_store
-    for (; !it.is_end(); ++it ) {
-        if ( **it == *l ) {
-            it.erase();
-            it.write_back();
-            return true;
-        }
-    }
-    return false;
-}

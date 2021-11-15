@@ -830,7 +830,6 @@ namespace direct_bt {
 
             bool addListener(ListenerRef l);
             bool removeListener(ListenerRef l);
-            bool removeListener(const Listener * l);
             jau::cow_darray<ListenerRef>& listener() { return listenerList; }
 
             std::string toFullString() {
