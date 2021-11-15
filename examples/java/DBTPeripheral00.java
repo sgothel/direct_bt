@@ -404,9 +404,6 @@ public class DBTPeripheral00 {
         }
 
         @Override
-        public void finalize() { close(); }
-
-        @Override
         public void close() {
             {
                 final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
@@ -419,6 +416,7 @@ public class DBTPeripheral00 {
                     pulseSenderThread.join(1000);
                 } catch (final InterruptedException e) { }
             }
+            super.close();
         }
 
         @Override

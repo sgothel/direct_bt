@@ -417,7 +417,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
             }
         }
 
-        virtual void mtuChanged(BTDeviceRef device, const uint16_t mtu) override {
+        void mtuChanged(BTDeviceRef device, const uint16_t mtu) override {
             const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::mtuChanged(match %d): %d -> %d, %s\n",
                     match, match ? (int)usedMTU : 0, (int)mtu, device->toString().c_str());
