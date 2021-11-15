@@ -135,170 +135,71 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         // adapterSettingsClazzRef, adapterSettingsClazzCtor
         {
             jclass adapterSettingsClazz = jau::search_class(env, _adapterSettingsClassName.c_str());
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
-            if( nullptr == adapterSettingsClazz ) {
-                throw jau::InternalError("BTDevice::java_class not found: "+_adapterSettingsClassName, E_FILE_LINE);
-            }
             adapterSettingsClazzRef = JNIGlobalRef(adapterSettingsClazz);
             env->DeleteLocalRef(adapterSettingsClazz);
         }
         adapterSettingsClazzCtor = jau::search_method(env, adapterSettingsClazzRef.getClass(), "<init>", _adapterSettingsClazzCtorArgs.c_str(), false);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == adapterSettingsClazzCtor ) {
-            throw jau::InternalError("AdapterSettings ctor not found: "+_adapterSettingsClassName+".<init>"+_adapterSettingsClazzCtorArgs, E_FILE_LINE);
-        }
 
         // eirDataTypeSetClazzRef, eirDataTypeSetClazzCtor
         {
             jclass eirDataTypeSetClazz = jau::search_class(env, _eirDataTypeSetClassName.c_str());
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
-            if( nullptr == eirDataTypeSetClazz ) {
-                throw jau::InternalError("BTDevice::java_class not found: "+_eirDataTypeSetClassName, E_FILE_LINE);
-            }
             eirDataTypeSetClazzRef = JNIGlobalRef(eirDataTypeSetClazz);
             env->DeleteLocalRef(eirDataTypeSetClazz);
         }
         eirDataTypeSetClazzCtor = jau::search_method(env, eirDataTypeSetClazzRef.getClass(), "<init>", _eirDataTypeSetClazzCtorArgs.c_str(), false);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == eirDataTypeSetClazzCtor ) {
-            throw jau::InternalError("EIRDataType ctor not found: "+_eirDataTypeSetClassName+".<init>"+_eirDataTypeSetClazzCtorArgs, E_FILE_LINE);
-        }
 
         // hciStatusCodeClazzRef, hciStatusCodeClazzGet
         {
             jclass hciErrorCodeClazz = jau::search_class(env, _hciStatusCodeClassName.c_str());
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
-            if( nullptr == hciErrorCodeClazz ) {
-                throw jau::InternalError("BTDevice::java_class not found: "+_hciStatusCodeClassName, E_FILE_LINE);
-            }
             hciStatusCodeClazzRef = JNIGlobalRef(hciErrorCodeClazz);
             env->DeleteLocalRef(hciErrorCodeClazz);
         }
         hciStatusCodeClazzGet = jau::search_method(env, hciStatusCodeClazzRef.getClass(), "get", _hciStatusCodeClazzGetArgs.c_str(), true);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == hciStatusCodeClazzGet ) {
-            throw jau::InternalError("Static method not found: "+_hciStatusCodeClassName+".get"+_hciStatusCodeClazzGetArgs, E_FILE_LINE);
-        }
 
         // scanTypeClazzRef, scanTypeClazzGet
         {
             jclass scanTypeClazz = jau::search_class(env, _scanTypeClassName.c_str());
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
-            if( nullptr == scanTypeClazz ) {
-                throw jau::InternalError("BTDevice::java_class not found: "+_scanTypeClassName, E_FILE_LINE);
-            }
             scanTypeClazzRef = JNIGlobalRef(scanTypeClazz);
             env->DeleteLocalRef(scanTypeClazz);
         }
         scanTypeClazzGet = jau::search_method(env, scanTypeClazzRef.getClass(), "get", _scanTypeClazzGetArgs.c_str(), true);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == scanTypeClazzGet ) {
-            throw jau::InternalError("Static method not found: "+_scanTypeClassName+".get"+_scanTypeClazzGetArgs, E_FILE_LINE);
-        }
 
         // pairingModeClazzRef, pairingModeClazzGet
         {
             jclass pairingModeClazz = jau::search_class(env, _pairingModeClassName.c_str());
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
-            if( nullptr == pairingModeClazz ) {
-                throw jau::InternalError("BTDevice::java_class not found: "+_pairingModeClassName, E_FILE_LINE);
-            }
             pairingModeClazzRef = JNIGlobalRef(pairingModeClazz);
             env->DeleteLocalRef(pairingModeClazz);
         }
         pairingModeClazzGet = jau::search_method(env, pairingModeClazzRef.getClass(), "get", _pairingModeClazzGetArgs.c_str(), true);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == pairingModeClazzGet ) {
-            throw jau::InternalError("Static method not found: "+_pairingModeClassName+".get"+_pairingModeClazzGetArgs, E_FILE_LINE);
-        }
 
         // pairingStateClazzRef, pairingStateClazzGet
         {
             jclass pairingStateClazz = jau::search_class(env, _pairingStateClassName.c_str());
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
-            if( nullptr == pairingStateClazz ) {
-                throw jau::InternalError("BTDevice::java_class not found: "+_pairingStateClassName, E_FILE_LINE);
-            }
             pairingStateClazzRef = JNIGlobalRef(pairingStateClazz);
             env->DeleteLocalRef(pairingStateClazz);
         }
         pairingStateClazzGet = jau::search_method(env, pairingStateClazzRef.getClass(), "get", _pairingStateClazzGetArgs.c_str(), true);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == pairingStateClazzGet ) {
-            throw jau::InternalError("Static method not found: "+_pairingStateClassName+".get"+_pairingStateClazzGetArgs, E_FILE_LINE);
-        }
 
         // deviceClazzRef, deviceClazzCtor
         {
             jclass deviceClazz = jau::search_class(env, BTDevice::java_class().c_str());
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
-            if( nullptr == deviceClazz ) {
-                throw jau::InternalError("BTDevice::java_class not found: "+BTDevice::java_class(), E_FILE_LINE);
-            }
             deviceClazzRef = JNIGlobalRef(deviceClazz);
             env->DeleteLocalRef(deviceClazz);
         }
         deviceClazzCtor = jau::search_method(env, deviceClazzRef.getClass(), "<init>", _deviceClazzCtorArgs.c_str(), false);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == deviceClazzCtor ) {
-            throw jau::InternalError("BTDevice::java_class ctor not found: "+BTDevice::java_class()+".<init>"+_deviceClazzCtorArgs, E_FILE_LINE);
-        }
-        deviceClazzTSLastDiscoveryField = env->GetFieldID(deviceClazzRef.getClass(), "ts_last_discovery", "J");
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == deviceClazzTSLastDiscoveryField ) {
-            throw jau::InternalError("BTDevice::java_class field not found: "+BTDevice::java_class()+".ts_last_discovery", E_FILE_LINE);
-        }
-        deviceClazzTSLastUpdateField = env->GetFieldID(deviceClazzRef.getClass(), "ts_last_update", "J");
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == deviceClazzTSLastUpdateField ) {
-            throw jau::InternalError("BTDevice::java_class field not found: "+BTDevice::java_class()+".ts_last_update", E_FILE_LINE);
-        }
-        deviceClazzConnectionHandleField = env->GetFieldID(deviceClazzRef.getClass(), "hciConnHandle", "S");
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == deviceClazzConnectionHandleField ) {
-            throw jau::InternalError("BTDevice::java_class field not found: "+BTDevice::java_class()+".hciConnHandle", E_FILE_LINE);
-        }
+
+        deviceClazzTSLastDiscoveryField = jau::search_field(env, deviceClazzRef.getClass(), "ts_last_discovery", "J", false);
+        deviceClazzTSLastUpdateField = jau::search_field(env, deviceClazzRef.getClass(), "ts_last_update", "J", false);
+        deviceClazzConnectionHandleField = jau::search_field(env, deviceClazzRef.getClass(), "hciConnHandle", "S", false);
 
         mAdapterSettingsChanged = jau::search_method(env, listenerClazz, "adapterSettingsChanged", _adapterSettingsChangedMethodArgs.c_str(), false);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == mAdapterSettingsChanged ) {
-            throw jau::InternalError("AdapterStatusListener has no adapterSettingsChanged"+_adapterSettingsChangedMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
-        }
         mDiscoveringChanged = jau::search_method(env, listenerClazz, "discoveringChanged", _discoveringChangedMethodArgs.c_str(), false);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == mDiscoveringChanged ) {
-            throw jau::InternalError("AdapterStatusListener has no discoveringChanged"+_discoveringChangedMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
-        }
         mDeviceFound = jau::search_method(env, listenerClazz, "deviceFound", _deviceFoundMethodArgs.c_str(), false);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == mDeviceFound ) {
-            throw jau::InternalError("AdapterStatusListener has no deviceFound"+_deviceFoundMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
-        }
         mDeviceUpdated = jau::search_method(env, listenerClazz, "deviceUpdated", _deviceUpdatedMethodArgs.c_str(), false);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == mDeviceUpdated ) {
-            throw jau::InternalError("AdapterStatusListener has no deviceUpdated"+_deviceUpdatedMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
-        }
         mDeviceConnected = jau::search_method(env, listenerClazz, "deviceConnected", _deviceConnectedMethodArgs.c_str(), false);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == mDeviceConnected ) {
-            throw jau::InternalError("AdapterStatusListener has no deviceConnected"+_deviceConnectedMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
-        }
         mDevicePairingState = jau::search_method(env, listenerClazz, "devicePairingState", _devicePairingStateMethodArgs.c_str(), false);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == mDevicePairingState ) {
-            throw jau::InternalError("AdapterStatusListener has no devicePairingState"+_devicePairingStateMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
-        }
         mDeviceReady = jau::search_method(env, listenerClazz, "deviceReady", _deviceReadyMethodArgs.c_str(), false);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == mDeviceReady ) {
-            throw jau::InternalError("AdapterStatusListener has no deviceReady"+_deviceReadyMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
-        }
         mDeviceDisconnected = jau::search_method(env, listenerClazz, "deviceDisconnected", _deviceDisconnectedMethodArgs.c_str(), false);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == mDeviceDisconnected ) {
-            throw jau::InternalError("AdapterStatusListener has no deviceDisconnected"+_deviceDisconnectedMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
-        }
     }
 
     bool matchDevice(const BTDevice & device) override {
@@ -351,7 +252,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 
   private:
 
-    jobject newJavaBTDevice(JNIEnv *env, std::shared_ptr<BTDevice> device, const uint64_t timestamp) {
+    jobject newJavaBTDevice(JNIEnv *env, BTDeviceRef device, const uint64_t timestamp) {
         // DBTDevice(final long nativeInstance, final DBTAdapter adptr, final byte byteAddress[/*6*/], final byte byteAddressType,
         //           final long ts_creation, final String name)
         const EUI48 addr = device->getAddressAndType().address;
@@ -376,7 +277,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 
   public:
 
-    bool deviceFound(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
+    bool deviceFound(BTDeviceRef device, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         jobject jdevice;
         std::shared_ptr<jau::JavaAnon> jDeviceRef0 = device->getJavaObject();
@@ -393,7 +294,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         return JNI_TRUE == res;
     }
 
-    void deviceUpdated(std::shared_ptr<BTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
+    void deviceUpdated(BTDeviceRef device, const EIRDataType updateMask, const uint64_t timestamp) override {
         std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
         if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
             return; // java device has been pulled
@@ -411,7 +312,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->DeleteLocalRef(eirDataTypeSet);
     }
 
-    void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceConnected(BTDeviceRef device, const uint16_t handle, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
 
         jobject jdevice;
@@ -432,7 +333,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->CallVoidMethod(listenerObjRef.getObject(), mDeviceConnected, jdevice, (jshort)handle, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
-    void devicePairingState(std::shared_ptr<BTDevice> device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+    void devicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
         std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
         if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
             return; // java device has been pulled
@@ -454,7 +355,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->CallVoidMethod(listenerObjRef.getObject(), mDevicePairingState, jdevice, jstate, jmode, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
-    void deviceReady(std::shared_ptr<BTDevice> device, const uint64_t timestamp) override {
+    void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
         std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
         if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
             return; // java device has been pulled
@@ -468,7 +369,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->CallVoidMethod(listenerObjRef.getObject(), mDeviceReady, jdevice, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
-    void deviceDisconnected(std::shared_ptr<BTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
         if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
             return; // java device has been pulled
@@ -515,15 +416,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addStatusListenerImpl(JNIEnv *env, jobje
         }
 
         jclass listenerClazz = jau::search_class(env, statusListener);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == listenerClazz ) {
-            throw jau::InternalError("AdapterStatusListener not found", E_FILE_LINE);
-        }
         jmethodID  mStatusListenerNotifyDeleted = jau::search_method(env, listenerClazz, "notifyDeleted", "()V", false);
-        jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == mStatusListenerNotifyDeleted ) {
-            throw jau::InternalError("AdapterStatusListener class has no notifyDeleted() method", E_FILE_LINE);
-        }
 
         std::shared_ptr<AdapterStatusListener> l =
                 std::shared_ptr<AdapterStatusListener>( new JNIAdapterStatusListener(env, adapter,
@@ -826,7 +719,7 @@ jobject Java_jau_direct_1bt_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, job
 {
     try {
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::darray<std::shared_ptr<BTDevice>> array = adapter->getDiscoveredDevices();
+        jau::darray<BTDeviceRef> array = adapter->getDiscoveredDevices();
         return convert_vector_sharedptr_to_jarraylist(env, array);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -1028,7 +921,7 @@ jobject Java_jau_direct_1bt_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject ob
         const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
 
         const BDAddressType addressType = static_cast<BDAddressType>( jaddressType );
-        std::shared_ptr<BTDevice> device = adapter->findSharedDevice(address, addressType);
+        BTDeviceRef device = adapter->findSharedDevice(address, addressType);
         if( nullptr == device ) {
             device = adapter->findDiscoveredDevice(address, addressType);
         }
