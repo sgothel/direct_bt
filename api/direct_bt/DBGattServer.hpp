@@ -33,6 +33,7 @@
 #include <mutex>
 #include <atomic>
 
+#include <jau/java_uplink.hpp>
 #include <jau/octets.hpp>
 #include <jau/darray.hpp>
 #include <jau/cow_darray.hpp>
@@ -77,7 +78,7 @@ namespace direct_bt {
      *
      * @since 2.4.0
      */
-    class DBGattDesc {
+    class DBGattDesc : public jau::JavaUplink {
         private:
             friend DBGattService;
 
@@ -119,6 +120,10 @@ namespace direct_bt {
 
             static std::string java_class() noexcept {
                 return std::string(JAVA_MAIN_PACKAGE "DBGattDesc");
+            }
+
+            std::string get_java_class() const noexcept override {
+                return java_class();
             }
 
             ~DBGattDesc() {
@@ -192,13 +197,13 @@ namespace direct_bt {
             /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.2 Characteristic User Description */
             bool isUserDescription() const noexcept{ return *BTGattDesc::TYPE_USER_DESC == *type; }
 
-            std::string toString() const noexcept {
+            std::string toString() const noexcept override {
                 const std::string len = variable_length ? "var" : "fixed";
                 return "Desc[type 0x"+type->toString()+", handle "+jau::to_hexstring(handle)+
                        ", value[len "+len+
                        ", "+value.toString()+
                        " '" + jau::dfa_utf8_decode( value.get_ptr(), value.size() ) + "'"+
-                       "]]";
+                       "], "+javaObjectToString()+"]";
             }
     };
     inline bool operator==(const DBGattDesc& lhs, const DBGattDesc& rhs) noexcept
@@ -223,7 +228,7 @@ namespace direct_bt {
      *
      * @since 2.4.0
      */
-    class DBGattChar {
+    class DBGattChar : public jau::JavaUplink {
         private:
             friend DBGattService;
 
@@ -308,6 +313,10 @@ namespace direct_bt {
 
             static std::string java_class() noexcept {
                 return std::string(JAVA_MAIN_PACKAGE "DBGattChar");
+            }
+
+            std::string get_java_class() const noexcept override {
+                return java_class();
             }
 
             ~DBGattChar() {
@@ -417,7 +426,7 @@ namespace direct_bt {
                 return descriptors.at(static_cast<size_t>(userDescriptionIndex)); // abort if out of bounds
             }
 
-            std::string toString() const noexcept {
+            std::string toString() const noexcept override {
                 std::string char_name, notify_str;
                 {
                     const DBGattDescRef ud = getUserDescription();
@@ -435,7 +444,7 @@ namespace direct_bt {
                        ", "+value.toString()+
                        " '" + jau::dfa_utf8_decode( value.get_ptr(), value.size() ) + "'"+
                        "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+
-                       "]";
+                       ", "+javaObjectToString()+"]";
             }
     };
     inline bool operator==(const DBGattChar& lhs, const DBGattChar& rhs) noexcept
@@ -457,7 +466,7 @@ namespace direct_bt {
      *
      * @since 2.4.0
      */
-    class DBGattService {
+    class DBGattService : public jau::JavaUplink {
         private:
             bool primary;
 
@@ -502,6 +511,10 @@ namespace direct_bt {
 
             static std::string java_class() noexcept {
                 return std::string(JAVA_MAIN_PACKAGE "DBGattService");
+            }
+
+            std::string get_java_class() const noexcept override {
+                return java_class();
             }
 
             ~DBGattService() {
@@ -563,9 +576,9 @@ namespace direct_bt {
                 return ( end_handle - handle ) + 1;
             }
 
-            std::string toString() const noexcept {
+            std::string toString() const noexcept override {
                 return "Srvc[type 0x"+type->toString()+", handle ["+jau::to_hexstring(handle)+".."+jau::to_hexstring(end_handle)+"], "+
-                       std::to_string(characteristics.size())+" chars]";
+                       std::to_string(characteristics.size())+" chars, "+javaObjectToString()+"]";
 
             }
     };
@@ -589,7 +602,7 @@ namespace direct_bt {
      *
      * @since 2.4.0
      */
-    class DBGattServer {
+    class DBGattServer : public jau::JavaUplink {
         public:
             /**
              * Listener to remote master device's operations on the local GATT-Server.
@@ -724,6 +737,10 @@ namespace direct_bt {
                 return std::string(JAVA_MAIN_PACKAGE "DBGattServer");
             }
 
+            std::string get_java_class() const noexcept override {
+                return java_class();
+            }
+
             ~DBGattServer() {
                 #ifdef JAU_TRACE_DBGATT
                     JAU_TRACE_DBGATT_PRINT("DBGattServer dtor0: %p", this);
@@ -830,8 +847,8 @@ namespace direct_bt {
                 return res;
             }
 
-            std::string toString() const noexcept {
-                return "DBSrv[max mtu "+std::to_string(max_att_mtu)+", "+std::to_string(services.size())+" services]";
+            std::string toString() const noexcept override {
+                return "DBSrv[max mtu "+std::to_string(max_att_mtu)+", "+std::to_string(services.size())+" services, "+javaObjectToString()+"]";
 
             }
     };

@@ -94,13 +94,12 @@ jobject Java_org_direct_1bt_DBGattDesc_getValue(JNIEnv *env, jobject obj) {
 }
 
 /**
- * private static native long ctorImpl(final String type,
- *                                     final byte[] value, final int capacity, boolean variable_length);
+ * private native long ctorImpl(final String type,
+ *                              final byte[] value, final int capacity, boolean variable_length);
  */
-jlong Java_org_direct_1bt_DBGattDesc_ctorImpl(JNIEnv *env, jclass clazz,
+jlong Java_org_direct_1bt_DBGattDesc_ctorImpl(JNIEnv *env, jobject obj,
                                               jstring jtype_,
                                               jbyteArray jvalue_, jint jcapacity_, jboolean jvariable_length_) {
-    (void)clazz;
     try {
         if( nullptr == jvalue_ ) {
             throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
@@ -124,6 +123,10 @@ jlong Java_org_direct_1bt_DBGattDesc_ctorImpl(JNIEnv *env, jclass clazz,
         // new instance
         std::shared_ptr<DBGattDesc> ref = std::make_shared<DBGattDesc>(
                                             type, std::move(value), JNI_TRUE == jvariable_length_);
+
+        ref->setJavaObject( std::shared_ptr<jau::JavaAnon>( new jau::JavaGlobalObj(obj, nullptr) ) );
+        jau::JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
+
         std::shared_ptr<DBGattDesc> * ref_ptr = new std::shared_ptr<DBGattDesc>(std::move(ref));
         return (jlong)(intptr_t)ref_ptr;
     } catch(...) {
@@ -137,6 +140,7 @@ void Java_org_direct_1bt_DBGattDesc_dtorImpl(JNIEnv *env, jclass clazz, jlong na
     try {
         if( 0 != nativeInstance ) {
             std::shared_ptr<DBGattDesc> * ref_ptr = reinterpret_cast<std::shared_ptr<DBGattDesc> *>(nativeInstance);
+            (*ref_ptr)->setJavaObject();
             delete ref_ptr;
         }
     } catch(...) {
@@ -194,15 +198,14 @@ jobject Java_org_direct_1bt_DBGattChar_getValue(JNIEnv *env, jobject obj) {
 }
 
 /**
- * private static native long ctorImpl(final String type,
- *                                     final byte properties, final long[] descriptors,
- *                                     final byte[] value, final int capacity, boolean variable_length);
+ * private native long ctorImpl(final String type,
+ *                              final byte properties, final long[] descriptors,
+ *                              final byte[] value, final int capacity, boolean variable_length);
  */
-jlong Java_org_direct_1bt_DBGattChar_ctorImpl(JNIEnv *env, jclass clazz,
+jlong Java_org_direct_1bt_DBGattChar_ctorImpl(JNIEnv *env, jobject obj,
                                               jstring jtype_,
                                               jbyte jproperties, jlongArray jDescriptors,
                                               jbyteArray jvalue_, jint jcapacity_, jboolean jvariable_length_) {
-    (void)clazz;
     try {
         if( nullptr == jvalue_ ) {
             throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
@@ -248,6 +251,10 @@ jlong Java_org_direct_1bt_DBGattChar_ctorImpl(JNIEnv *env, jclass clazz,
                                             type, properties,
                                             std::move(descriptors),
                                             std::move(value), JNI_TRUE == jvariable_length_);
+
+        ref->setJavaObject( std::shared_ptr<jau::JavaAnon>( new jau::JavaGlobalObj(obj, nullptr) ) );
+        jau::JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
+
         std::shared_ptr<DBGattChar> * ref_ptr = new std::shared_ptr<DBGattChar>(std::move(ref));
         return (jlong)(intptr_t)ref_ptr;
     } catch(...) {
@@ -261,6 +268,7 @@ void Java_org_direct_1bt_DBGattChar_dtorImpl(JNIEnv *env, jclass clazz, jlong na
     try {
         if( 0 != nativeInstance ) {
             std::shared_ptr<DBGattChar> * ref_ptr = reinterpret_cast<std::shared_ptr<DBGattChar> *>(nativeInstance);
+            (*ref_ptr)->setJavaObject();
             delete ref_ptr;
         }
     } catch(...) {
@@ -329,13 +337,12 @@ jstring Java_org_direct_1bt_DBGattChar_toString(JNIEnv *env, jobject obj) {
  */
 
 /**
- * private static native long ctorImpl(final boolean primary, final String type,
- *                                     final long[] characteristics);
+ * private native long ctorImpl(final boolean primary, final String type,
+ *                              final long[] characteristics);
  */
-jlong Java_org_direct_1bt_DBGattService_ctorImpl(JNIEnv *env, jclass clazz,
+jlong Java_org_direct_1bt_DBGattService_ctorImpl(JNIEnv *env, jobject obj,
                                                  jboolean jprimary, jstring jtype_,
                                                  jlongArray jCharacteristics) {
-    (void)clazz;
     try {
         if( nullptr == jCharacteristics ) {
             throw jau::IllegalArgumentException("characteristics array null", E_FILE_LINE);
@@ -363,6 +370,10 @@ jlong Java_org_direct_1bt_DBGattService_ctorImpl(JNIEnv *env, jclass clazz,
         std::shared_ptr<DBGattService> ref = std::make_shared<DBGattService>(
                                             JNI_TRUE == jprimary, type,
                                             std::move(characteristics));
+
+        ref->setJavaObject( std::shared_ptr<jau::JavaAnon>( new jau::JavaGlobalObj(obj, nullptr) ) );
+        jau::JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
+
         std::shared_ptr<DBGattService> * ref_ptr = new std::shared_ptr<DBGattService>(std::move(ref));
         return (jlong)(intptr_t)ref_ptr;
     } catch(...) {
@@ -376,6 +387,7 @@ void Java_org_direct_1bt_DBGattService_dtorImpl(JNIEnv *env, jclass clazz, jlong
     try {
         if( 0 != nativeInstance ) {
             std::shared_ptr<DBGattService> * ref_ptr = reinterpret_cast<std::shared_ptr<DBGattService> *>(nativeInstance);
+            (*ref_ptr)->setJavaObject();
             delete ref_ptr;
         }
     } catch(...) {
@@ -422,12 +434,11 @@ jstring Java_org_direct_1bt_DBGattService_toString(JNIEnv *env, jobject obj) {
  */
 
 /**
- * private static native long ctorImpl(final int max_att_mtu, final long[] services);
+ * private native long ctorImpl(final int max_att_mtu, final long[] services);
  */
-jlong Java_org_direct_1bt_DBGattServer_ctorImpl(JNIEnv *env, jclass clazz,
+jlong Java_org_direct_1bt_DBGattServer_ctorImpl(JNIEnv *env, jobject obj,
                                                 jint jmax_att_mtu,
                                                 jlongArray jService) {
-    (void)clazz;
     try {
         if( nullptr == jService ) {
             throw jau::IllegalArgumentException("characteristics array null", E_FILE_LINE);
@@ -451,6 +462,10 @@ jlong Java_org_direct_1bt_DBGattServer_ctorImpl(JNIEnv *env, jclass clazz,
         std::shared_ptr<DBGattServer> ref = std::make_shared<DBGattServer>(
                                             jmax_att_mtu,
                                             std::move(services));
+
+        ref->setJavaObject( std::shared_ptr<jau::JavaAnon>( new jau::JavaGlobalObj(obj, nullptr) ) );
+        jau::JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
+
         std::shared_ptr<DBGattServer> * ref_ptr = new std::shared_ptr<DBGattServer>(std::move(ref));
         return (jlong)(intptr_t)ref_ptr;
     } catch(...) {
@@ -464,6 +479,7 @@ void Java_org_direct_1bt_DBGattServer_dtorImpl(JNIEnv *env, jclass clazz, jlong 
     try {
         if( 0 != nativeInstance ) {
             std::shared_ptr<DBGattServer> * ref_ptr = reinterpret_cast<std::shared_ptr<DBGattServer> *>(nativeInstance);
+            (*ref_ptr)->setJavaObject();
             delete ref_ptr;
         }
     } catch(...) {

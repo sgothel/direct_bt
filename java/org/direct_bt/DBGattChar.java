@@ -150,14 +150,17 @@ public final class DBGattChar implements AutoCloseable
         }
         nativeInstance = ctorImpl(value_type_, properties_.mask, nativeDescriptors, value_.data(), value_.capacity(), value_.hasVariableLength());
     }
-    private static native long ctorImpl(final String type,
-                                        final byte properties, final long[] descriptors,
-                                        final byte[] value, final int capacity, boolean variable_length);
+    private native long ctorImpl(final String type,
+                                 final byte properties, final long[] descriptors,
+                                 final byte[] value, final int capacity, boolean variable_length);
 
     @Override
     public void close() {
-        final long handle = nativeInstance;
-        nativeInstance = 0;
+        final long handle;
+        synchronized( this ) {
+            handle = nativeInstance;
+            nativeInstance = 0;
+        }
         if( 0 != handle ) {
             dtorImpl(handle);
         }

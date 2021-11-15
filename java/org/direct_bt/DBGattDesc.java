@@ -76,13 +76,16 @@ public final class DBGattDesc implements AutoCloseable
         }
         nativeInstance = ctorImpl(type_, value_.data(), value_.capacity(), value_.hasVariableLength());
     }
-    private static native long ctorImpl(final String type,
-                                        final byte[] value, final int capacity, boolean variable_length);
+    private native long ctorImpl(final String type,
+                                 final byte[] value, final int capacity, boolean variable_length);
 
     @Override
     public void close() {
-        final long handle = nativeInstance;
-        nativeInstance = 0;
+        final long handle;
+        synchronized( this ) {
+            handle = nativeInstance;
+            nativeInstance = 0;
+        }
         if( 0 != handle ) {
             dtorImpl(handle);
         }

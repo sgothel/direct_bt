@@ -104,13 +104,16 @@ public final class DBGattService implements AutoCloseable
         }
         nativeInstance = ctorImpl(primary_, type_, nativeCharacteristics);
     }
-    private static native long ctorImpl(final boolean primary, final String type,
-                                        final long[] characteristics);
+    private native long ctorImpl(final boolean primary, final String type,
+                                 final long[] characteristics);
 
     @Override
     public void close() {
-        final long handle = nativeInstance;
-        nativeInstance = 0;
+        final long handle;
+        synchronized( this ) {
+            handle = nativeInstance;
+            nativeInstance = 0;
+        }
         if( 0 != handle ) {
             dtorImpl(handle);
         }

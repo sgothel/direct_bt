@@ -176,12 +176,15 @@ public final class DBGattServer implements AutoCloseable
         }
         nativeInstance = ctorImpl(Math.max(512+1, max_att_mtu_), nativeServices);
     }
-    private static native long ctorImpl(final int max_att_mtu, final long[] services);
+    private native long ctorImpl(final int max_att_mtu, final long[] services);
 
     @Override
     public void close() {
-        final long handle = nativeInstance;
-        nativeInstance = 0;
+        final long handle;
+        synchronized( this ) {
+            handle = nativeInstance;
+            nativeInstance = 0;
+        }
         if( 0 != handle ) {
             dtorImpl(handle);
         }
