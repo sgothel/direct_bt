@@ -46,11 +46,11 @@ Some elaboration on the implementation details
 ### Implementation Status
 > LE master/client mode is fully supported to work with LE BT devices.
 >
-> LE slave/server mode (peripheral) is fully supported with LE BT devices:
+> LE slave/server mode (*peripheral*) is fully supported with LE BT devices:
 >   - BTRole separation (master/slave)
 >   - Advertising
 >   - GATT Server with user code interaction via listener
->   - Slave / Server SMP Security
+>   - Slave / Server SMP Security, reusing persisting *SMPKeyBin* files.
 > 
 > *SMP LE Secure Connections* and *LE legacy pairing* is fully supported,
 > exposing BTSecurityLevel and SMPIOCapability setup per connection
@@ -204,7 +204,7 @@ A guide for getting started with *Direct-BT* on C++ and Java may follow up.
 *Direct-BT* [C++ examples](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/examples.html)
 are available, demonstrating the event driven and multithreading workflow:
 - [dbt_scanner10.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_scanner10_8cpp-example.html) *Master* with *Gatt-Client*
-- [dbt_peripheral00.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_peripheral00_8cpp-example.html) *Peripheral* with *Gatt-Server*
+- [dbt_peripheral00.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_peripheral00_8cpp-example.html) *Peripheral* with *GATT-Server*
 
 
 *Direct-BT* [Java examples](https://jausoft.com/projects/direct_bt/build/documentation/java/html/examples.html)
@@ -409,7 +409,7 @@ We then implemented data types for
 
 Last but not least we added 
 - *Bluetooth* version 5 support
-- GATT-Server support to enable implementing peripheral devices,
+- *GATT-Server* support to enable implementing *peripheral* devices,
   as well as to allow self-testing of *Direct-BT*.
 
 Today, *Direct-BT*'s C++ and Java API match 1:1
@@ -444,16 +444,16 @@ from the year 2016.
 
 **2.4.0**
 
-* TODO (we are close)
+* Completed Java support for LE slave/server (*peripheral*) mode incl *GATT-Server*.
 * Add `BTAdapter's Slave Peripheral SMP Key Management`
-  - Full SMP key persistence in peripheral mode
-* Reshape SMPKeyBin design: Set and upload from BTDevice (split functionality
+  - Full SMP key persistence in *peripheral* mode
+* Reshape *SMPKeyBin* design: Set and upload from BTDevice (split functionality), v5.
 * BTDevice::unpair() is now issued directly by *Direct-BT*
   to have a consistent and stable security workflow:
   - when a BTRole::Slave BTDevice is discovered, see AdapterStatusListener::deviceFound().
   - when a BTRole::Slave BTDevice is disconnected, see AdapterStatusListener::deviceDisconnected().
   - when a BTRole::Master BTDevice gets connected, see AdapterStatusListener::deviceConnected().
-* LE slave/server mode (peripheral): 1st Milestone
+* LE slave/server mode (*peripheral*): 1st Milestone
   - BTRole separation implemented and tested
   - Advertising implemented and tested
   - GATT Server implemented and tested
