@@ -85,8 +85,9 @@ void BTManager::mgmtReaderThreadImpl() noexcept {
         mgmtReaderShallStop = false;
         mgmtReaderRunning = true;
         DBG_PRINT("DBTManager::reader: Started");
-        cv_mgmtReaderInit.notify_all();
     }
+    cv_mgmtReaderInit.notify_all(); // have mutex unlocked before notify_all to avoid pessimistic re-block of notified wait() thread.
+
     thread_local jau::call_on_release thread_cleanup([&]() {
         DBG_PRINT("DBTManager::mgmtReaderThreadCleanup: mgmtReaderRunning %d -> 0", mgmtReaderRunning.load());
         mgmtReaderRunning = false;
@@ -141,10 +142,8 @@ void BTManager::mgmtReaderThreadImpl() noexcept {
         WORDY_PRINT("DBTManager::reader: Ended. Ring has %u entries flushed", mgmtEventRing.size());
         mgmtEventRing.clear();
         mgmtReaderRunning = false;
-        cv_mgmtReaderInit.notify_all();
     }
-
-
+    cv_mgmtReaderInit.notify_all(); // have mutex unlocked before notify_all to avoid pessimistic re-block of notified wait() thread.
 }
 
 void BTManager::sendMgmtEvent(const MgmtEvent& event) noexcept {

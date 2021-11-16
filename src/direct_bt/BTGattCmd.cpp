@@ -39,6 +39,7 @@ void BTGattCmd::ResponseCharListener::notificationReceived(BTGattCharRef charDec
     }
     rsp_data.put_bytes_nc(0, char_value.get_ptr(), char_value.size());
     rsp_data.resize(char_value.size());
+    lock.unlock(); // unlock mutex before notify_all to avoid pessimistic re-block of notified wait() thread.
     source.cvRspReceived.notify_all(); // notify waiting thread
     (void)timestamp;
 }
@@ -55,6 +56,7 @@ void BTGattCmd::ResponseCharListener::indicationReceived(BTGattCharRef charDecl,
     }
     rsp_data.put_bytes_nc(0, char_value.get_ptr(), char_value.size());
     rsp_data.resize(char_value.size());
+    lock.unlock(); // unlock mutex before notify_all to avoid pessimistic re-block of notified wait() thread.
     source.cvRspReceived.notify_all(); // notify waiting thread
     (void)charDecl;
     (void)timestamp;

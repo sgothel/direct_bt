@@ -105,8 +105,9 @@ void SMPHandler::l2capReaderThreadImpl() {
         l2capReaderShallStop = false;
         l2capReaderRunning = true;
         DBG_PRINT("SMPHandler::reader Started");
-        cv_l2capReaderInit.notify_all();
     }
+    cv_l2capReaderInit.notify_all(); // have mutex unlocked before notify_all to avoid pessimistic re-block of notified wait() thread.
+
     thread_local jau::call_on_release thread_cleanup([&]() {
         DBG_PRINT("SMPHandler::l2capReaderThreadCleanup: l2capReaderRunning %d -> 0", l2capReaderRunning.load());
         l2capReaderRunning = false;
@@ -156,8 +157,9 @@ void SMPHandler::l2capReaderThreadImpl() {
         WORDY_PRINT("SMPHandler::reader: Ended. Ring has %u entries flushed", smpPDURing.size());
         smpPDURing.clear();
         l2capReaderRunning = false;
-        cv_l2capReaderInit.notify_all();
     }
+    cv_l2capReaderInit.notify_all(); // have mutex unlocked before notify_all to avoid pessimistic re-block of notified wait() thread.
+
     disconnect(true /* disconnectDevice */, has_ioerror);
 }
 

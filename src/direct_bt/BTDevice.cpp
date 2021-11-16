@@ -770,7 +770,7 @@ std::string BTDevice::PairingData::toString(const BDAddressAndType& addressAndTy
 }
 
 bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept {
-    const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
     const std::string timestamp = jau::to_decstring(jau::environment::getElapsedMillisecond(evt.getTimestamp()), ',', 9);
 
     if( jau::environment::get().debug ) {
@@ -1098,6 +1098,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
             jau::PLAIN_PRINT(false, "[%s] %s", timestamp.c_str(), toString().c_str());
         }
 
+        lock_pairing.unlock(); // unlock mutex before notify_all to avoid pessimistic re-block of notified wait() thread.
         cv_pairing_state_changed.notify_all();
 
         return true;
@@ -1125,7 +1126,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
 }
 
 void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept {
-    const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
+    std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
     const bool msg_sent = HCIACLData::l2cap_frame::PBFlag::START_NON_AUTOFLUSH_HOST == source.pb_flag; // from from Host to Controller
     const std::string msg_sent_s = msg_sent ? "sent" : "received";
@@ -1397,6 +1398,7 @@ void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMs
         jau::PLAIN_PRINT(false, "[%s] Debug: BTDevice:hci:SMP.5b: End", timestamp.c_str());
         jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), toString().c_str());
     }
+    lock_pairing.unlock(); // unlock mutex before notify_all to avoid pessimistic re-block of notified wait() thread.
     cv_pairing_state_changed.notify_all();
 }
 
@@ -1512,7 +1514,7 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
 
     if( BDAddressType::BDADDR_BREDR != addressAndType.type ) {
         // Not supported
-        DBG_PRINT("BTDevice::uploadKets: Upload LK for LE address not supported -> ignored: %s", toString().c_str());
+        DBG_PRINT("BTDevice::uploadKeys: Upload LK for LE address not supported -> ignored: %s", toString().c_str());
         return HCIStatusCode::SUCCESS;
     }
 

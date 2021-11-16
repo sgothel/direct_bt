@@ -426,8 +426,9 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
         hciReaderShallStop = false;
         hciReaderRunning = true;
         DBG_PRINT("HCIHandler<%u>::reader: Started - %s", dev_id, toString().c_str());
-        cv_hciReaderInit.notify_all();
     }
+    cv_hciReaderInit.notify_all(); // have mutex unlocked before notify_all to avoid pessimistic re-block of notified wait() thread.
+
     thread_local jau::call_on_release thread_cleanup([&]() {
         DBG_PRINT("HCIHandler<%u>::hciReaderThreadCleanup: hciReaderRunning %d -> 0", dev_id, hciReaderRunning.load());
         hciReaderRunning = false;
@@ -570,8 +571,8 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
         WORDY_PRINT("HCIHandler<%u>::reader: Ended. Ring has %u entries flushed - %s", dev_id, hciEventRing.size(), toString().c_str());
         hciEventRing.clear();
         hciReaderRunning = false;
-        cv_hciReaderInit.notify_all();
     }
+    cv_hciReaderInit.notify_all(); // have mutex unlocked before notify_all to avoid pessimistic re-block of notified wait() thread.
 }
 
 void HCIHandler::sendMgmtEvent(const MgmtEvent& event) noexcept {

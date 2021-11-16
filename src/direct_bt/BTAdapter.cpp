@@ -584,6 +584,7 @@ bool BTAdapter::lockConnect(const BTDevice & device, const bool wait, const SMPI
             COND_PRINT(debug_lock, "BTAdapter::lockConnect: Failed: setIOCapability[%s], %s",
                 to_string(io_cap).c_str(), device.toString().c_str());
             single_conn_device_ptr = nullptr;
+            lock.unlock(); // unlock mutex before notify_all to avoid pessimistic re-block of notified wait() thread.
             cv_single_conn_device.notify_all(); // notify waiting getter
             return false;
         }
@@ -617,6 +618,7 @@ bool BTAdapter::unlockConnect(const BTDevice & device) noexcept {
                 single_conn_device_ptr->toString().c_str());
         }
         single_conn_device_ptr = nullptr;
+        lock.unlock(); // unlock mutex before notify_all to avoid pessimistic re-block of notified wait() thread.
         cv_single_conn_device.notify_all(); // notify waiting getter
         return true;
     } else {
@@ -648,6 +650,7 @@ bool BTAdapter::unlockConnectAny() noexcept {
                 single_conn_device_ptr->toString().c_str());
         }
         single_conn_device_ptr = nullptr;
+        lock.unlock(); // unlock mutex before notify_all to avoid pessimistic re-block of notified wait() thread.
         cv_single_conn_device.notify_all(); // notify waiting getter
         return true;
     } else {
