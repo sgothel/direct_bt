@@ -236,7 +236,7 @@ namespace direct_bt {
             std::mutex mtx_mgmtReaderLifecycle;
             std::condition_variable cv_mgmtReaderInit;
             pthread_t mgmtReaderThreadId;
-            jau::relaxed_atomic_bool mgmtReaderRunning;
+            jau::sc_atomic_bool mgmtReaderRunning;
 
             std::recursive_mutex mtx_sendReply; // for send() and sendWithReply()
 

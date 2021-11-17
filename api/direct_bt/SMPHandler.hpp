@@ -206,7 +206,7 @@ namespace direct_bt {
             std::mutex mtx_l2capReaderLifecycle;
             std::condition_variable cv_l2capReaderInit;
             pthread_t l2capReaderThreadId;
-            jau::relaxed_atomic_bool l2capReaderRunning;
+            jau::sc_atomic_bool l2capReaderRunning;
 
             SMPSecurityReqCallbackList smpSecurityReqCallbackList;
 

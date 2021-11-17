@@ -251,7 +251,7 @@ namespace direct_bt {
             std::mutex mtx_hciReaderLifecycle;
             std::condition_variable cv_hciReaderInit;
             pthread_t hciReaderThreadId;
-            jau::relaxed_atomic_bool hciReaderRunning;
+            jau::sc_atomic_bool hciReaderRunning;
 
             std::recursive_mutex mtx_sendReply; // for sendWith*Reply, process*Command, ..; Recurses from many..
 
