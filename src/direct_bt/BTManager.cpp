@@ -85,12 +85,12 @@ void BTManager::mgmtReaderThreadImpl() noexcept {
         const std::lock_guard<std::mutex> lock(mtx_mgmtReaderLifecycle); // RAII-style acquire and relinquish via destructor
         mgmtReaderShallStop = false;
         mgmtReaderRunning = true;
-        DBG_PRINT("DBTManager::reader: Started");
+        DBG_PRINT("BTManager::reader: Started");
     }
     cv_mgmtReaderInit.notify_all(); // have mutex unlocked before notify_all to avoid pessimistic re-block of notified wait() thread.
 
     thread_local jau::call_on_release thread_cleanup([&]() {
-        DBG_PRINT("DBTManager::mgmtReaderThreadCleanup: mgmtReaderRunning %d -> 0", mgmtReaderRunning.load());
+        DBG_PRINT("BTManager::mgmtReaderThreadCleanup: mgmtReaderRunning %d -> 0", mgmtReaderRunning.load());
         mgmtReaderRunning = false;
         cv_mgmtReaderInit.notify_all();
     });
@@ -99,7 +99,7 @@ void BTManager::mgmtReaderThreadImpl() noexcept {
         jau::snsize_t len;
         if( !comm.isOpen() ) {
             // not open
-            ERR_PRINT("DBTManager::reader: Not connected");
+            ERR_PRINT("BTManager::reader: Not connected");
             mgmtReaderShallStop = true;
             break;
         }
@@ -109,39 +109,39 @@ void BTManager::mgmtReaderThreadImpl() noexcept {
             const jau::nsize_t len2 = static_cast<jau::nsize_t>(len);
             const jau::nsize_t paramSize = len2 >= MGMT_HEADER_SIZE ? rbuffer.get_uint16_nc(4) : 0;
             if( len2 < MGMT_HEADER_SIZE + paramSize ) {
-                WARN_PRINT("DBTManager::reader: length mismatch %zu < MGMT_HEADER_SIZE(%u) + %u", len2, MGMT_HEADER_SIZE, paramSize);
+                WARN_PRINT("BTManager::reader: length mismatch %zu < MGMT_HEADER_SIZE(%u) + %u", len2, MGMT_HEADER_SIZE, paramSize);
                 continue; // discard data
             }
             std::unique_ptr<MgmtEvent> event = MgmtEvent::getSpecialized(rbuffer.get_ptr(), len2);
             const MgmtEvent::Opcode opc = event->getOpcode();
             if( MgmtEvent::Opcode::CMD_COMPLETE == opc || MgmtEvent::Opcode::CMD_STATUS == opc ) {
-                COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV (CMD) %s", event->toString().c_str());
+                COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (CMD) %s", event->toString().c_str());
                 if( mgmtEventRing.isFull() ) {
                     const jau::nsize_t dropCount = mgmtEventRing.capacity()/4;
                     mgmtEventRing.drop(dropCount);
-                    WARN_PRINT("DBTManager-IO RECV Drop (%u oldest elements of %u capacity, ring full)", dropCount, mgmtEventRing.capacity());
+                    WARN_PRINT("BTManager-IO RECV Drop (%u oldest elements of %u capacity, ring full)", dropCount, mgmtEventRing.capacity());
                 }
                 mgmtEventRing.putBlocking( std::move( event ) );
             } else if( MgmtEvent::Opcode::INDEX_ADDED == opc ) {
-                COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV (ADD) %s", event->toString().c_str());
+                COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (ADD) %s", event->toString().c_str());
                 std::thread adapterAddedThread(&BTManager::processAdapterAdded, this, std::move( event) ); // @suppress("Invalid arguments")
                 adapterAddedThread.detach();
             } else if( MgmtEvent::Opcode::INDEX_REMOVED == opc ) {
-                COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV (REM) %s", event->toString().c_str());
+                COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (REM) %s", event->toString().c_str());
                 std::thread adapterRemovedThread(&BTManager::processAdapterRemoved, this, std::move( event ) ); // @suppress("Invalid arguments")
                 adapterRemovedThread.detach();
             } else {
                 // issue a callback
-                COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV (CB) %s", event->toString().c_str());
+                COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (CB) %s", event->toString().c_str());
                 sendMgmtEvent( *event );
             }
         } else if( ETIMEDOUT != errno && !mgmtReaderShallStop ) { // expected exits
-            ERR_PRINT("DBTManager::reader: HCIComm read error");
+            ERR_PRINT("BTManager::reader: HCIComm read error");
         }
     }
     {
         const std::lock_guard<std::mutex> lock(mtx_mgmtReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        WORDY_PRINT("DBTManager::reader: Ended. Ring has %u entries flushed", mgmtEventRing.size());
+        WORDY_PRINT("BTManager::reader: Ended. Ring has %u entries flushed", mgmtEventRing.size());
         mgmtEventRing.clear();
         mgmtReaderRunning = false;
     }
@@ -158,7 +158,7 @@ void BTManager::sendMgmtEvent(const MgmtEvent& event) noexcept {
             try {
                 cb.getCallback().invoke(event);
             } catch (std::exception &e) {
-                ERR_PRINT("DBTManager::sendMgmtEvent-CBs %d/%zd: MgmtAdapterEventCallback %s : Caught exception %s",
+                ERR_PRINT("BTManager::sendMgmtEvent-CBs %d/%zd: MgmtAdapterEventCallback %s : Caught exception %s",
                         invokeCount+1, mgmtEventCallbackList.size(),
                         cb.toString().c_str(), e.what());
             }
@@ -166,13 +166,13 @@ void BTManager::sendMgmtEvent(const MgmtEvent& event) noexcept {
         }
     });
 
-    COND_PRINT(env.DEBUG_EVENT, "DBTManager::sendMgmtEvent: Event %s -> %d/%zd callbacks", event.toString().c_str(), invokeCount, mgmtEventCallbackList.size());
+    COND_PRINT(env.DEBUG_EVENT, "BTManager::sendMgmtEvent: Event %s -> %d/%zd callbacks", event.toString().c_str(), invokeCount, mgmtEventCallbackList.size());
     (void)invokeCount;
 }
 
 static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) noexcept {
     bool pidMatch = info->si_pid == BTManager::pidSelf;
-    WORDY_PRINT("DBTManager.sigaction: sig %d, info[code %d, errno %d, signo %d, pid %d, uid %d, fd %d], pid-self %d (match %d)",
+    WORDY_PRINT("BTManager.sigaction: sig %d, info[code %d, errno %d, signo %d, pid %d, uid %d, fd %d], pid-self %d (match %d)",
             sig, info->si_code, info->si_errno, info->si_signo,
             info->si_pid, info->si_uid, info->si_fd,
             BTManager::pidSelf, pidMatch);
@@ -191,7 +191,7 @@ static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) noex
         sigemptyset(&(sa_setup.sa_mask));
         sa_setup.sa_flags = 0;
         if( 0 != sigaction( SIGALRM, &sa_setup, NULL ) ) {
-            ERR_PRINT("DBTManager.sigaction: Resetting sighandler");
+            ERR_PRINT("BTManager.sigaction: Resetting sighandler");
         }
     }
 #endif
@@ -199,10 +199,10 @@ static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) noex
 
 bool BTManager::send(MgmtCommand &req) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO SENT %s", req.toString().c_str());
+    COND_PRINT(env.DEBUG_EVENT, "BTManager-IO SENT %s", req.toString().c_str());
     jau::TROOctets & pdu = req.getPDU();
     if ( comm.write( pdu.get_ptr(), pdu.size() ) < 0 ) {
-        ERR_PRINT("DBTManager::sendWithReply: HCIComm write error, req %s", req.toString().c_str());
+        ERR_PRINT("BTManager::sendWithReply: HCIComm write error, req %s", req.toString().c_str());
         return false;
     }
     return true;
@@ -221,16 +221,16 @@ std::unique_ptr<MgmtEvent> BTManager::sendWithReply(MgmtCommand &req, const int 
         std::unique_ptr<MgmtEvent> res;
         if( !mgmtEventRing.getBlocking(res, timeoutMS) || nullptr == res ) {
             errno = ETIMEDOUT;
-            ERR_PRINT("DBTManager::sendWithReply.X: nullptr result (timeout -> abort): req %s", req.toString().c_str());
+            ERR_PRINT("BTManager::sendWithReply.X: nullptr result (timeout -> abort): req %s", req.toString().c_str());
             return nullptr;
         } else if( !res->validate(req) ) {
             // This could occur due to an earlier timeout w/ a nullptr == res (see above),
             // i.e. the pending reply processed here and naturally not-matching.
-            COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV sendWithReply: res mismatch (drop evt, retryCount %d): res %s; req %s",
+            COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV sendWithReply: res mismatch (drop evt, retryCount %d): res %s; req %s",
                     retryCount, res->toString().c_str(), req.toString().c_str());
             retryCount++;
         } else {
-            COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV sendWithReply: res %s; req %s", res->toString().c_str(), req.toString().c_str());
+            COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV sendWithReply: res %s; req %s", res->toString().c_str(), req.toString().c_str());
             return res;
         }
     }
@@ -396,9 +396,9 @@ BTManager::BTManager() noexcept
   mgmtReaderThreadId(0), mgmtReaderRunning(false),
   allowClose( comm.isOpen() )
 {
-    WORDY_PRINT("DBTManager.ctor: pid %d", BTManager::pidSelf);
+    WORDY_PRINT("BTManager.ctor: pid %d", BTManager::pidSelf);
     if( !allowClose ) {
-        ERR_PRINT("DBTManager::open: Could not open mgmt control channel");
+        ERR_PRINT("BTManager::open: Could not open mgmt control channel");
         return;
     }
 
@@ -409,7 +409,7 @@ BTManager::BTManager() noexcept
         sigemptyset(&(sa_setup.sa_mask));
         sa_setup.sa_flags = SA_SIGINFO;
         if( 0 != sigaction( SIGALRM, &sa_setup, NULL ) ) {
-            ERR_PRINT("DBTManager::ctor: Setting sighandler");
+            ERR_PRINT("BTManager::ctor: Setting sighandler");
         }
     }
     {
@@ -500,9 +500,9 @@ next1:
                 std::shared_ptr<BTAdapter> adapter = BTAdapter::make_shared(*this, *adapterInfo);
                 adapters.push_back( adapter );
                 adapterIOCapability.push_back(BTManager::defaultIOCapability);
-                DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: %s", i, num_adapter, dev_id, adapter->toString().c_str());
+                DBG_PRINT("BTManager::adapters %d/%d: dev_id %d: %s", i, num_adapter, dev_id, adapter->toString().c_str());
             } else {
-                DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: FAILED", i, num_adapter, dev_id);
+                DBG_PRINT("BTManager::adapters %d/%d: dev_id %d: FAILED", i, num_adapter, dev_id);
             }
         }
     }
@@ -536,14 +536,14 @@ next1:
         addMgmtEventCallback(-1, MgmtEvent::Opcode::LOCAL_OOB_DATA_UPDATED, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
     }
-    PERF_TS_TD("DBTManager::ctor.ok");
-    DBG_PRINT("DBTManager::ctor: OK");
+    PERF_TS_TD("BTManager::ctor.ok");
+    DBG_PRINT("BTManager::ctor: OK");
     return;
 
 fail:
     close();
-    PERF_TS_TD("DBTManager::ctor.fail");
-    DBG_PRINT("DBTManager::ctor: FAIL");
+    PERF_TS_TD("BTManager::ctor.fail");
+    DBG_PRINT("BTManager::ctor: FAIL");
     return;
 }
 
@@ -552,7 +552,7 @@ void BTManager::close() noexcept {
     bool expConn = true; // C++11, exp as value since C++20
     if( !allowClose.compare_exchange_strong(expConn, false) ) {
         // not open
-        DBG_PRINT("DBTManager::close: Not open");
+        DBG_PRINT("BTManager::close: Not open");
         whitelist.clear();
         clearAllCallbacks();
         adapters.clear();
@@ -563,14 +563,14 @@ void BTManager::close() noexcept {
     PERF3_TS_T0();
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    DBG_PRINT("DBTManager::close: Start");
+    DBG_PRINT("BTManager::close: Start");
     removeAllDevicesFromWhitelist();
     clearAllCallbacks();
 
     {
         int i=0;
         jau::for_each_fidelity(adapters, [&](std::shared_ptr<BTAdapter> & a) {
-            DBG_PRINT("DBTManager::close -> adapter::close(): %d/%d processing: %s", i, adapters.size(), a->toString().c_str());
+            DBG_PRINT("BTManager::close -> adapter::close(): %d/%d processing: %s", i, adapters.size(), a->toString().c_str());
             a->close(); // also issues removeMgmtEventCallback(dev_id);
             ++i;
         });
@@ -579,25 +579,25 @@ void BTManager::close() noexcept {
     adapters.clear();
     adapterIOCapability.clear();
 
-    // Interrupt DBTManager's HCIComm::read(..), avoiding prolonged hang
+    // Interrupt BTManager's HCIComm::read(..), avoiding prolonged hang
     // and pull all underlying hci read operations!
     comm.close();
 
-    PERF3_TS_TD("DBTManager::close.1");
+    PERF3_TS_TD("BTManager::close.1");
     {
         std::unique_lock<std::mutex> lockReader(mtx_mgmtReaderLifecycle); // RAII-style acquire and relinquish via destructor
         const pthread_t tid_self = pthread_self();
         const pthread_t tid_reader = mgmtReaderThreadId;
         mgmtReaderThreadId = 0;
         const bool is_reader = tid_reader == tid_self;
-        DBG_PRINT("DBTManager::close: mgmtReader[running %d, shallStop %d, isReader %d, tid %p)",
+        DBG_PRINT("BTManager::close: mgmtReader[running %d, shallStop %d, isReader %d, tid %p)",
                 mgmtReaderRunning.load(), mgmtReaderShallStop.load(), is_reader, (void*)tid_reader);
         if( mgmtReaderRunning ) {
             mgmtReaderShallStop = true;
             if( !is_reader && 0 != tid_reader ) {
                 int kerr;
                 if( 0 != ( kerr = pthread_kill(tid_reader, SIGALRM) ) ) {
-                    ERR_PRINT("DBTManager::close: pthread_kill %p FAILED: %d", (void*)tid_reader, kerr);
+                    ERR_PRINT("BTManager::close: pthread_kill %p FAILED: %d", (void*)tid_reader, kerr);
                 }
             }
             // Ensure the reader thread has ended, no runaway-thread using *this instance after destruction
@@ -610,7 +610,7 @@ void BTManager::close() noexcept {
             }
         }
     }
-    PERF3_TS_TD("DBTManager::close.2");
+    PERF3_TS_TD("BTManager::close.2");
 
     {
         struct sigaction sa_setup;
@@ -619,12 +619,12 @@ void BTManager::close() noexcept {
         sigemptyset(&(sa_setup.sa_mask));
         sa_setup.sa_flags = 0;
         if( 0 != sigaction( SIGALRM, &sa_setup, NULL ) ) {
-            ERR_PRINT("DBTManager.sigaction: Resetting sighandler");
+            ERR_PRINT("BTManager.sigaction: Resetting sighandler");
         }
     }
 
-    PERF3_TS_TD("DBTManager::close.X");
-    DBG_PRINT("DBTManager::close: End");
+    PERF3_TS_TD("BTManager::close.X");
+    DBG_PRINT("BTManager::close: End");
 }
 
 std::shared_ptr<BTAdapter> BTManager::getDefaultAdapter() const noexcept {
@@ -659,13 +659,13 @@ std::shared_ptr<BTAdapter> BTManager::addAdapter(const AdapterInfo& ai ) noexcep
         std::shared_ptr<BTAdapter> adapter = BTAdapter::make_shared(*this, ai);
         it.push_back( adapter );
         adapterIOCapability.push_back(BTManager::defaultIOCapability);
-        DBG_PRINT("DBTManager::addAdapter: Adding new: %s", adapter->toString().c_str())
+        DBG_PRINT("BTManager::addAdapter: Adding new: %s", adapter->toString().c_str())
         it.write_back();
         return adapter;
     } else {
         // already existing
         std::shared_ptr<BTAdapter> adapter = *it;
-        WARN_PRINT("DBTManager::addAdapter: Already existing %s, overwriting %s", ai.toString().c_str(), adapter->toString().c_str())
+        WARN_PRINT("BTManager::addAdapter: Already existing %s, overwriting %s", ai.toString().c_str(), adapter->toString().c_str())
         adapter->adapterInfo = ai;
         return adapter;
     }
@@ -678,13 +678,13 @@ std::shared_ptr<BTAdapter> BTManager::removeAdapter(const uint16_t dev_id) noexc
         if( ai->dev_id == dev_id ) {
             adapterIOCapability.erase( adapterIOCapability.cbegin() + it.dist_begin() );
             std::shared_ptr<BTAdapter> res = ai; // copy
-            DBG_PRINT("DBTManager::removeAdapter: Remove: %s", res->toString().c_str())
+            DBG_PRINT("BTManager::removeAdapter: Remove: %s", res->toString().c_str())
             it.erase();
             it.write_back();
             return res;
         }
     }
-    DBG_PRINT("DBTManager::removeAdapter: Not found: dev_id %d", dev_id)
+    DBG_PRINT("BTManager::removeAdapter: Not found: dev_id %d", dev_id)
     return nullptr;
 }
 
@@ -694,13 +694,13 @@ bool BTManager::removeAdapter(BTAdapter* adapter) noexcept {
         std::shared_ptr<BTAdapter> & ai = *it;
         if( ai.get() == adapter ) {
             adapterIOCapability.erase( adapterIOCapability.cbegin() + it.dist_begin() );
-            DBG_PRINT("DBTManager::removeAdapter: Remove: %p -> %s", adapter, ai->toString().c_str())
+            DBG_PRINT("BTManager::removeAdapter: Remove: %p -> %s", adapter, ai->toString().c_str())
             it.erase();
             it.write_back();
             return true;
         }
     }
-    DBG_PRINT("DBTManager::removeAdapter: Not found: %p", adapter)
+    DBG_PRINT("BTManager::removeAdapter: Not found: %p", adapter)
     return false;
 }
 
@@ -758,7 +758,7 @@ bool BTManager::setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, co
     } else {
         res = MgmtStatus::TIMEOUT;
     }
-    DBG_PRINT("DBTManager::setMode[%d, %s]: %s, result %s %s", dev_id,
+    DBG_PRINT("BTManager::setMode[%d, %s]: %s, result %s %s", dev_id,
             MgmtCommand::getOpcodeString(opc).c_str(), jau::to_hexstring(mode).c_str(),
             to_string(res).c_str(), to_string(current_settings).c_str());
     return MgmtStatus::SUCCESS == res;
@@ -784,7 +784,7 @@ MgmtStatus BTManager::setDiscoverable(const uint16_t dev_id, const uint8_t state
     } else {
         res = MgmtStatus::TIMEOUT;
     }
-    DBG_PRINT("DBTManager::setDiscoverable[%d]: %s, result %s %s", dev_id,
+    DBG_PRINT("BTManager::setDiscoverable[%d]: %s, result %s %s", dev_id,
             req.toString().c_str(), to_string(res).c_str(), to_string(current_settings).c_str());
     return res;
 }
@@ -818,7 +818,7 @@ HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLong
     } else {
         res = HCIStatusCode::TIMEOUT;
     }
-    DBG_PRINT("DBTManager::uploadLongTermKeyInfo[%d]: %s, result %s", dev_id,
+    DBG_PRINT("BTManager::uploadLongTermKeyInfo[%d]: %s, result %s", dev_id,
             req.toString().c_str(), to_string(res).c_str());
     return res;
 #else
@@ -854,7 +854,7 @@ HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const MgmtLinkKeyI
     } else {
         res = HCIStatusCode::TIMEOUT;
     }
-    DBG_PRINT("DBTManager::uploadLinkKeyInfo[%d]: %s, result %s", dev_id,
+    DBG_PRINT("BTManager::uploadLinkKeyInfo[%d]: %s, result %s", dev_id,
             req.toString().c_str(), to_string(res).c_str());
     return res;
 #else
@@ -955,7 +955,7 @@ bool BTManager::addDeviceToWhitelist(const uint16_t dev_id, const BDAddressAndTy
 
     // Check if already exist in our local whitelist first, reject if so ..
     if( isDeviceWhitelisted(dev_id, addressAndType) ) {
-        ERR_PRINT("DBTManager::addDeviceToWhitelist: Already in local whitelist, remove first: %s", req.toString().c_str());
+        ERR_PRINT("BTManager::addDeviceToWhitelist: Already in local whitelist, remove first: %s", req.toString().c_str());
         return false;
     }
     std::unique_ptr<MgmtEvent> res = sendWithReply(req);
@@ -973,7 +973,7 @@ int BTManager::removeAllDevicesFromWhitelist() noexcept {
 #if 0
     jau::darray<std::shared_ptr<WhitelistElem>> whitelist_copy = whitelist;
     int count = 0;
-    DBG_PRINT("DBTManager::removeAllDevicesFromWhitelist.A: Start %zd elements", whitelist_copy.size());
+    DBG_PRINT("BTManager::removeAllDevicesFromWhitelist.A: Start %zd elements", whitelist_copy.size());
 
     for(auto it = whitelist_copy.cbegin(); it != whitelist_copy.cend(); ++it) {
         std::shared_ptr<WhitelistElem> wle = *it;
@@ -982,7 +982,7 @@ int BTManager::removeAllDevicesFromWhitelist() noexcept {
     }
 #else
     int count = 0;
-    DBG_PRINT("DBTManager::removeAllDevicesFromWhitelist.B: Start %d elements", count);
+    DBG_PRINT("BTManager::removeAllDevicesFromWhitelist.B: Start %d elements", count);
     whitelist.clear();
     jau::for_each_const(adapters, [&](const std::shared_ptr<BTAdapter> & a) {
         if( removeDeviceFromWhitelist(a->dev_id, BDAddressAndType::ANY_BREDR_DEVICE) ) { // flush whitelist!
@@ -991,7 +991,7 @@ int BTManager::removeAllDevicesFromWhitelist() noexcept {
     });
 #endif
 
-    DBG_PRINT("DBTManager::removeAllDevicesFromWhitelist: End: Removed %d elements, remaining %zd elements",
+    DBG_PRINT("BTManager::removeAllDevicesFromWhitelist: End: Removed %d elements, remaining %zd elements",
             count, whitelist.size());
     return count;
 }
@@ -1119,31 +1119,31 @@ void BTManager::processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept {
 
     if( nullptr != adapterInfo ) {
         std::shared_ptr<BTAdapter> adapter = addAdapter( *adapterInfo );
-        DBG_PRINT("DBTManager::Adapter[%d] Added: Start %s, added %d", dev_id, adapter->toString().c_str());
+        DBG_PRINT("BTManager::Adapter[%d] Added: Start %s, added %d", dev_id, adapter->toString().c_str());
         sendMgmtEvent(*e);
-        DBG_PRINT("DBTManager::Adapter[%d] Added: User_ %s", dev_id, adapter->toString().c_str());
+        DBG_PRINT("BTManager::Adapter[%d] Added: User_ %s", dev_id, adapter->toString().c_str());
         jau::for_each_fidelity(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
            cb.invoke(true /* added */, adapter);
         });
-        DBG_PRINT("DBTManager::Adapter[%d] Added: End__ %s", dev_id, adapter->toString().c_str());
+        DBG_PRINT("BTManager::Adapter[%d] Added: End__ %s", dev_id, adapter->toString().c_str());
     } else {
-        DBG_PRINT("DBTManager::Adapter[%d] Added: InitAI failed", dev_id);
+        DBG_PRINT("BTManager::Adapter[%d] Added: InitAI failed", dev_id);
     }
 }
 void BTManager::processAdapterRemoved(std::unique_ptr<MgmtEvent> e) noexcept {
     const uint16_t dev_id = e->getDevID();
     std::shared_ptr<BTAdapter> ai = removeAdapter(dev_id);
     if( nullptr != ai ) {
-        DBG_PRINT("DBTManager::Adapter[%d] Removed: Start: %s", dev_id, ai->toString().c_str());
+        DBG_PRINT("BTManager::Adapter[%d] Removed: Start: %s", dev_id, ai->toString().c_str());
         sendMgmtEvent(*e);
-        DBG_PRINT("DBTManager::Adapter[%d] Removed: User_: %s", dev_id, ai->toString().c_str());
+        DBG_PRINT("BTManager::Adapter[%d] Removed: User_: %s", dev_id, ai->toString().c_str());
         jau::for_each_fidelity(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
            cb.invoke(false /* added */, ai);
         });
         ai->close(); // issuing dtor on DBTAdapter
-        DBG_PRINT("DBTManager::Adapter[%d] Removed: End__: %s", dev_id, ai->toString().c_str());
+        DBG_PRINT("BTManager::Adapter[%d] Removed: End__: %s", dev_id, ai->toString().c_str());
     } else {
-        DBG_PRINT("DBTManager::Adapter[%d] Removed: RemoveAI failed", dev_id);
+        DBG_PRINT("BTManager::Adapter[%d] Removed: RemoveAI failed", dev_id);
     }
 }
 bool BTManager::mgmtEvNewSettingsCB(const MgmtEvent& e) noexcept {
@@ -1152,13 +1152,13 @@ bool BTManager::mgmtEvNewSettingsCB(const MgmtEvent& e) noexcept {
     if( nullptr != adapter ) {
         const AdapterSetting old_settings = adapter->adapterInfo.getCurrentSettingMask();
         const AdapterSetting new_settings = adapter->adapterInfo.setCurrentSettingMask(event.getSettings());
-        DBG_PRINT("DBTManager:mgmt:NewSettings: Adapter[%d] %s -> %s - %s",
+        DBG_PRINT("BTManager:mgmt:NewSettings: Adapter[%d] %s -> %s - %s",
                 event.getDevID(),
                 to_string(old_settings).c_str(),
                 to_string(new_settings).c_str(),
                 e.toString().c_str());
     } else {
-        DBG_PRINT("DBTManager:mgmt:NewSettings: Adapter[%d] %s -> adapter not present - %s",
+        DBG_PRINT("BTManager:mgmt:NewSettings: Adapter[%d] %s -> adapter not present - %s",
                 event.getDevID(),
                 to_string(event.getSettings()).c_str(),
                 e.toString().c_str());
@@ -1167,7 +1167,7 @@ bool BTManager::mgmtEvNewSettingsCB(const MgmtEvent& e) noexcept {
 }
 
 bool BTManager::mgmtEventAnyCB(const MgmtEvent& e) noexcept {
-    DBG_PRINT("DBTManager:mgmt:Any: %s", e.toString().c_str());
+    DBG_PRINT("BTManager:mgmt:Any: %s", e.toString().c_str());
     (void)e;
     return true;
 }
