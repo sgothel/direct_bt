@@ -54,6 +54,7 @@ extern "C" {
 
 #include "BTDevice.hpp"
 #include "BTAdapter.hpp"
+#include "DBTConst.hpp"
 
 using namespace direct_bt;
 
@@ -111,6 +112,7 @@ void SMPHandler::l2capReaderThreadImpl() {
     thread_local jau::call_on_release thread_cleanup([&]() {
         DBG_PRINT("SMPHandler::l2capReaderThreadCleanup: l2capReaderRunning %d -> 0", l2capReaderRunning.load());
         l2capReaderRunning = false;
+        cv_l2capReaderInit.notify_all();
     });
 
     while( !l2capReaderShallStop ) {
@@ -258,7 +260,11 @@ bool SMPHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause
             }
             // Ensure the reader thread has ended, no runaway-thread using *this instance after destruction
             while( true == l2capReaderRunning ) {
-                cv_l2capReaderInit.wait(lockReader);
+                std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+                std::cv_status s = cv_l2capReaderInit.wait_until(lockReader, t0 + std::chrono::milliseconds(THREAD_SHUTDOWN_TIMEOUT_MS));
+                if( std::cv_status::timeout == s && true == l2capReaderRunning ) {
+                    ERR_PRINT("SMPHandler::disconnect::mgmtReader: Timeout");
+                }
             }
         }
     }

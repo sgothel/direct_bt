@@ -45,6 +45,7 @@
 #include "HCIHandler.hpp"
 #include "BTTypes1.hpp"
 #include "SMPHandler.hpp"
+#include "DBTConst.hpp"
 
 extern "C" {
     #include <inttypes.h>
@@ -432,6 +433,7 @@ void HCIHandler::hciReaderThreadImpl() noexcept {
     thread_local jau::call_on_release thread_cleanup([&]() {
         DBG_PRINT("HCIHandler<%u>::hciReaderThreadCleanup: hciReaderRunning %d -> 0", dev_id, hciReaderRunning.load());
         hciReaderRunning = false;
+        cv_hciReaderInit.notify_all();
     });
 
     while( !hciReaderShallStop ) {
@@ -995,7 +997,11 @@ void HCIHandler::close() noexcept {
             }
             // Ensure the reader thread has ended, no runaway-thread using *this instance after destruction
             while( true == hciReaderRunning ) {
-                cv_hciReaderInit.wait(lockReader);
+                std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+                std::cv_status s = cv_hciReaderInit.wait_until(lockReader, t0 + std::chrono::milliseconds(THREAD_SHUTDOWN_TIMEOUT_MS));
+                if( std::cv_status::timeout == s && true == hciReaderRunning ) {
+                    ERR_PRINT("HCIHandler::close::hciReader: Timeout: %s", toString().c_str());
+                }
             }
         }
     }

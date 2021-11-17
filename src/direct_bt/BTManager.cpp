@@ -47,6 +47,7 @@
 
 #include "BTAdapter.hpp"
 #include "BTManager.hpp"
+#include "DBTConst.hpp"
 
 extern "C" {
     #include <inttypes.h>
@@ -91,6 +92,7 @@ void BTManager::mgmtReaderThreadImpl() noexcept {
     thread_local jau::call_on_release thread_cleanup([&]() {
         DBG_PRINT("DBTManager::mgmtReaderThreadCleanup: mgmtReaderRunning %d -> 0", mgmtReaderRunning.load());
         mgmtReaderRunning = false;
+        cv_mgmtReaderInit.notify_all();
     });
 
     while( !mgmtReaderShallStop ) {
@@ -600,7 +602,11 @@ void BTManager::close() noexcept {
             }
             // Ensure the reader thread has ended, no runaway-thread using *this instance after destruction
             while( true == mgmtReaderRunning ) {
-                cv_mgmtReaderInit.wait(lockReader);
+                std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+                std::cv_status s = cv_mgmtReaderInit.wait_until(lockReader, t0 + std::chrono::milliseconds(THREAD_SHUTDOWN_TIMEOUT_MS));
+                if( std::cv_status::timeout == s && true == mgmtReaderRunning ) {
+                    ERR_PRINT("BTManager::close::mgmtReader: Timeout: %s", toString().c_str());
+                }
             }
         }
     }
