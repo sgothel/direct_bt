@@ -310,12 +310,13 @@ namespace direct_bt {
             const uint16_t dev_id;
 
         private:
-            std::atomic<BTRole> btRole; // = BTRole::Master (default)
+            jau::ordered_atomic<BTRole, std::memory_order::memory_order_relaxed> btRole; // = BTRole::Master (default)
             HCIHandler hci;
 
-            std::atomic<AdapterSetting> old_settings;
-            std::atomic<ScanType> currentMetaScanType; // = ScanType::NONE
-            std::atomic<bool> keep_le_scan_alive; //  = false;
+            jau::ordered_atomic<AdapterSetting, std::memory_order::memory_order_relaxed> old_settings;
+            jau::ordered_atomic<ScanType, std::memory_order::memory_order_relaxed> currentMetaScanType; // = ScanType::NONE
+            jau::relaxed_atomic_bool keep_le_scan_alive; //  = false;
+            jau::relaxed_atomic_bool scan_filter_dup; //  = true;
 
             SMPIOCapability  iocap_defaultval = SMPIOCapability::UNSET;
             const BTDevice* single_conn_device_ptr = nullptr;
@@ -902,6 +903,7 @@ namespace direct_bt {
              * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
              * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
              * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
+             * @param filter_dup true to filter out duplicate AD PDUs (default), otherwise all will be reported.
              * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
              * @see stopDiscovery()
              * @see isDiscovering()
@@ -911,7 +913,8 @@ namespace direct_bt {
             HCIStatusCode startDiscovery(const bool keepAlive=true,
                                          const bool le_scan_active=true,
                                          const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
-                                         const uint8_t filter_policy=0x00) noexcept;
+                                         const uint8_t filter_policy=0x00,
+                                         const bool filter_dup=true) noexcept;
 
         private:
             HCIStatusCode stopDiscovery(const bool forceDiscoveringEvent) noexcept;

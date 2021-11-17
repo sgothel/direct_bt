@@ -671,11 +671,12 @@ jlong Java_jau_direct_1bt_DBTAdapter_getLEFeaturesImpl(JNIEnv *env, jobject obj)
 
 jbyte Java_jau_direct_1bt_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj, jboolean keepAlive, jboolean le_scan_active,
                                                         jshort le_scan_interval, jshort le_scan_window,
-                                                        jbyte filter_policy)
+                                                        jbyte filter_policy,
+                                                        jboolean filter_dup)
 {
     try {
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        return (jbyte) number( adapter->startDiscovery(keepAlive, le_scan_active, le_scan_interval, le_scan_window, filter_policy) );
+        return (jbyte) number( adapter->startDiscovery(keepAlive, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup==JNI_TRUE) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

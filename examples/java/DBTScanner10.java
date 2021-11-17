@@ -627,17 +627,19 @@ public class DBTScanner10 {
         BTUtils.println(System.err, "****** Reset Adapter: reset["+mode+"] end: "+res+", "+adapter.toString());
     }
 
+    static boolean keep_alive = true; // default value
     static boolean le_scan_active = true; // default value
     static final short le_scan_interval = (short)24; // default value
     static final short le_scan_window = (short)24; // default value
     static final byte filter_policy = (byte)0; // default value
+    static final boolean filter_dup = true; // default value
 
     private boolean startDiscovery(final BTAdapter adapter, final String msg) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
             BTUtils.fprintf_td(System.err, "****** Start discovery (%s): Adapter not selected: %s\n", msg, adapter.toString());
             return false;
         }
-        final HCIStatusCode status = adapter.startDiscovery( true, le_scan_active, le_scan_interval, le_scan_window, filter_policy );
+        final HCIStatusCode status = adapter.startDiscovery( keep_alive, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
         BTUtils.println(System.err, "****** Start discovery ("+msg+") result: "+status);
         return HCIStatusCode.SUCCESS == status;
     }

@@ -100,8 +100,8 @@ namespace direct_bt {
             mutable std::recursive_mutex mtx_gattHandler;
             mutable std::recursive_mutex mtx_connect;
             mutable std::mutex mtx_data;
-            std::atomic<bool> isConnected;
-            std::atomic<bool> allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
+            jau::relaxed_atomic_bool isConnected;
+            jau::relaxed_atomic_bool allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
             jau::relaxed_atomic_int32 supervision_timeout; // [ms]
 
             struct PairingData {

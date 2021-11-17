@@ -155,14 +155,14 @@ public interface BTAdapter extends BTObject
 
 
     /**
-     * Starts discovery using all default arguments, see {@link #startDiscovery(boolean, boolean, short, short, byte)} for details.
+     * Starts discovery using all default arguments, see {@link #startDiscovery(boolean, boolean, short, short, byte, boolean)} for details.
      *
      * @param keepAlive
      * @param le_scan_active true enables delivery of active scanning PDUs like EIR w/ device name (default), otherwise no scanning PDUs shall be sent.
      * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
      * @throws BTException
      * @since 2.2.8
-     * @see #startDiscovery(boolean, boolean, int, int, byte)
+     * @see #startDiscovery(boolean, boolean, short, short, byte, boolean)
      * @see #getDiscovering()
      */
     HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active) throws BTException;
@@ -206,6 +206,7 @@ public interface BTAdapter extends BTObject
      * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
      * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
      * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
+     * @param filter_dup true to filter out duplicate AD PDUs (default), otherwise all will be reported.
      * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
      * @throws BTException
      * @since 2.2.8
@@ -216,7 +217,8 @@ public interface BTAdapter extends BTObject
      */
     HCIStatusCode startDiscovery(final boolean keepAlive, final boolean le_scan_active,
                                  final short le_scan_interval, final short le_scan_window,
-                                 final byte filter_policy) throws BTException;
+                                 final byte filter_policy,
+                                 final boolean filter_dup) throws BTException;
 
     /**
      * Turns off device discovery if it is enabled.

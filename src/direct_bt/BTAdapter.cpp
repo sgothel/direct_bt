@@ -273,7 +273,7 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const A
   btRole ( BTRole::Master ),
   hci( dev_id ),
   currentMetaScanType( ScanType::NONE ),
-  keep_le_scan_alive( false )
+  keep_le_scan_alive( false ), scan_filter_dup( true )
 {
     (void)cc;
     valid = initialSetup();
@@ -861,7 +861,8 @@ void BTAdapter::checkDiscoveryState() noexcept {
 
 HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const bool le_scan_active,
                                         const uint16_t le_scan_interval, const uint16_t le_scan_window,
-                                        const uint8_t filter_policy) noexcept
+                                        const uint8_t filter_policy,
+                                        const bool filter_dup) noexcept
 {
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
     // ERR_PRINT("Test");
@@ -878,6 +879,7 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const bool le_scan
         WARN_PRINT("BTAdapter::startDiscovery: Adapter in advertising mode: %s", toString(true).c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
+    scan_filter_dup = filter_dup; // cache for background scan
 
     const ScanType currentNativeScanType = hci.getCurrentScanType();
 
@@ -911,7 +913,7 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const bool le_scan
     const BDAddressType usedAddrType = BDAddressType::BDADDR_LE_PUBLIC;
     const HCILEOwnAddressType own_mac_type=to_HCILEOwnAddressType(usedAddrType);
     // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
-    const HCIStatusCode status = hci.le_start_scan(true /* filter_dup */, le_scan_active, own_mac_type,
+    const HCIStatusCode status = hci.le_start_scan(filter_dup, le_scan_active, own_mac_type,
                                                    le_scan_interval, le_scan_window, filter_policy);
 
     if( _print_device_lists || jau::environment::get().verbose ) {
@@ -935,7 +937,7 @@ void BTAdapter::startDiscoveryBackground() noexcept {
     const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     if( !hasScanType(hci.getCurrentScanType(), ScanType::LE) && keep_le_scan_alive ) { // still?
         // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
-        const HCIStatusCode status = hci.le_enable_scan(true /* enable */);
+        const HCIStatusCode status = hci.le_enable_scan(true /* enable */, scan_filter_dup);
         if( HCIStatusCode::SUCCESS != status ) {
             ERR_PRINT("BTAdapter::startDiscoveryBackground: le_enable_scan failed: %s - %s", to_string(status).c_str(), toString(true).c_str());
         }
