@@ -200,8 +200,8 @@ namespace direct_bt {
             return "LTK[address["+address.toString()+", "+to_string(address_type)+
                    "], type "+to_string(key_type)+", master "+jau::to_hexstring(master)+
                    ", enc_size "+std::to_string(enc_size)+
-                   ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), false /* lsbFirst */)+
-                   ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), false /* lsbFirst */)+
+                   ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), true /* lsbFirst */)+
+                   ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), true /* lsbFirst */)+
                    ", ltk "+jau::bytesHexString(ltk.data, 0, sizeof(ltk), true /* lsbFirst */)+
                    "]";
         }

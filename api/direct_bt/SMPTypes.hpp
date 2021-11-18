@@ -513,8 +513,8 @@ namespace direct_bt {
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
             return "LTK[props "+getPropertyString(properties)+", enc_size "+std::to_string(enc_size)+
-                   ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), false /* lsbFirst */)+
-                   ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), false /* lsbFirst */)+
+                   ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), true /* lsbFirst */)+
+                   ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), true /* lsbFirst */)+
                    ", ltk "+jau::bytesHexString(ltk.data, 0, sizeof(ltk), true /* lsbFirst */)+
                    ", valid "+std::to_string(isValid())+
                    "]";
