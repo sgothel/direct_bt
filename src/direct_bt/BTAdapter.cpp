@@ -1936,7 +1936,7 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
                     dev_id, dev_shared->getAddressAndType().toString().c_str(), eir->toString().c_str());
 
             {
-                HCIStatusCode res = dev_shared->unpair();
+                const HCIStatusCode res = mgmt.unpairDevice(dev_id, dev_shared->getAddressAndType(), false /* disconnect */);
                 if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
                     WARN_PRINT("BTAdapter:hci:DeviceFound(1.1, dev_id %d): Unpair device failed: %s, %s",
                                 dev_id, to_string(res).c_str(), dev_shared->getAddressAndType().toString().c_str());
