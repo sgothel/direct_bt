@@ -1223,10 +1223,11 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
     const int connCount = getConnectedDeviceCount();
-    if( 0 < connCount ) {
+    if( 0 < connCount ) { // FIXME: May shall not be a restriction
         WARN_PRINT("BTAdapter::startAdvertising: Not allowed (%d connections open/pending): %s", connCount, toString(true).c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
+    // FIXME?? std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME: Fast restart of advertising error)
 
     EInfoReport eir;
     EIRDataType mask_adv = EIRDataType::NONE;
