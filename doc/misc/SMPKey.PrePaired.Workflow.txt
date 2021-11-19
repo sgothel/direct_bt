@@ -1,0 +1,34 @@
+SMPKey PRE_PAIRED Workflow
+
+- Scan Enable
+- Advertising / Find
+- Unpair
+- Scan Disable
+
+- Load LTK 
+    btmon:
+        1) master 0x00, key fa0eab193b9e9cd51d78894b9fe00e45 (init)
+        2) master 0x01, key 0746fdf7880d8ded4694e3c16e57d872 (responder)
+    SMPKeyBin
+        1) Init[LTK[props [], enc_size 16, ediv 0xfff0, rand 0x3c76935fa000ae36, ltk fa0eab193b9e9cd51d78894b9fe00e45, valid 1]
+        2) Resp[LTK[props [RESPONDER], enc_size 16, ediv 0x1d1d, rand 0xbbbc4ce343540414, ltk 0746fdf7880d8ded4694e3c16e57d872, valid 1]
+
+- Set IO Capability: NoInputNoOutput
+- LE Create Connection, LE Connection Complete
+- LE Read Remote Used Features
+
+Debug: BTDevice::processL2CAPSetup: sec_level_user ENC_ONLY, io_cap_conn NO_INPUT_NO_OUTPUT -> sec_level ENC_ONLY
+Debug: L2CAPComm::open: Start Connect: dd -1, [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], psm UNDEFINED, cid ATT, sec_level ENC_ONLY; State[open 1, isIRQed 0, ioError 0, errno 0 (Success)]
+Debug: BTDevice::processL2CAPSetup: lvl ENC_ONLY, connect[smp_enc 0, l2cap[open 1, enc 1]]
+Debug: DBTManager::setMode[1, SET_IO_CAPABILITY]: 0x03, result SUCCESS []
+
+- Send HCI Command: LE Start Encryption: 0746fdf7880d8ded4694e3c16e57d872 (responder)
+- Set IO Capability: NoInputNoOutput
+
+- Get LE Start Encryption
+- Get Encryption Change: Encryption: Enabled with AES-CCM (0x01)
+            
+Debug: BTDevice::updatePairingState.3: state NONE -> COMPLETED, mode NONE -> PRE_PAIRED, ready 1, MgmtEvt[opcode HCI_ENC_CHANGED, devID 0x0001, address=C0:26:DA:01:DA:B1, addressType BDADDR_LE_PUBLIC, status SUCCESS, enabled 0x01, data[size 0, data ], tsz 15]
+
+[    2,332] ****** PAIRING STATE: state COMPLETED, mode PRE_PAIRED, Device[Slave, [C0:26:DA:01:DA:B1, BDADDR_LE_PUBLIC], name['TAIDOC TD1107'], age[total 1721, ldisc 1721, lup 177]ms, connected[1/1, handle 0x0047, phy[Tx [], Rx []], sec[lvl ENC_ONLY, io NO_INPUT_NO_OUTPUT, auto UNSET, pairing PRE_PAIRED, state COMPLETED, sc 0]], rssi -73, tx-power 127, appearance 0x0000 (UNKNOWN), gap [LE_Gen_Disc, BREDR_UNSUP], MSD[company[0 0], data[size 6, capacity 6, c026da01dab1]], JavaAnon[null]]
+
