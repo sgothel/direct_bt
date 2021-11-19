@@ -431,7 +431,7 @@ public class DBTScanner10 {
 
         final long t1 = BTUtils.currentTimeMillis();
 
-        SMPKeyBin.createAndWrite(device, DBTConstants.KEY_PATH, false /* overwrite */, true /* verbose */);
+        SMPKeyBin.createAndWrite(device, DBTConstants.KEY_PATH, true /* verbose */);
 
         boolean success = false;
 

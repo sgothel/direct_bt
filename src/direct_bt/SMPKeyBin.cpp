@@ -127,10 +127,11 @@ SMPKeyBin SMPKeyBin::create(const BTDevice& device) {
     return smpKeyBin;
 }
 
-bool SMPKeyBin::createAndWrite(const BTDevice& device, const std::string& path, const bool overwrite, const bool verbose_) {
+bool SMPKeyBin::createAndWrite(const BTDevice& device, const std::string& path, const bool verbose_) {
     SMPKeyBin smpKeyBin = SMPKeyBin::create(device);
     if( smpKeyBin.isValid() ) {
         smpKeyBin.setVerbose( verbose_ );
+        const bool overwrite = PairingMode::PRE_PAIRED != device.getPairingMode();
         return smpKeyBin.write( path, overwrite );
     } else {
         if( verbose_ ) {

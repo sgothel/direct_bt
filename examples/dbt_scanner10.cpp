@@ -415,7 +415,7 @@ static void processReadyDevice(BTDeviceRef device) {
 
     const uint64_t t1 = getCurrentMilliseconds();
 
-    SMPKeyBin::createAndWrite(*device, KEY_PATH, false /* overwrite */, true /* verbose */);
+    SMPKeyBin::createAndWrite(*device, KEY_PATH, true /* verbose */);
 
     bool success = false;
 

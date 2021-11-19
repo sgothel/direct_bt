@@ -430,7 +430,7 @@ static void processReadyDevice(std::shared_ptr<BTDevice> device) {
     fprintf_td(stderr, "****** Processing Ready Device: Start %s\n", device->toString().c_str());
     device->getAdapter().stopDiscovery(); // make sure for pending connections on failed connect*(..) command
 
-    SMPKeyBin::createAndWrite(*device, KEY_PATH, false /* overwrite */, true /* verbose */);
+    SMPKeyBin::createAndWrite(*device, KEY_PATH, true /* verbose */);
 
     {
         LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };

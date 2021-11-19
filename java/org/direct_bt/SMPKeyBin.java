@@ -209,13 +209,14 @@ public class SMPKeyBin {
          * BTSecurityLevel, SMPPairingState, PairingMode and LTK keys.
          * If valid, instance is stored to a file denoted by `path` and {@link BTDevice#getAddressAndType()}.
          *
-         * Method returns `false` if resulting SMPKeyBin is not {@link SMPKeyBin#isValid()}.
+         * If {@link BTDevice#getPairingMode()} is {@link PairingMode#PRE_PAIRED}, an existing file will not be overwritten.
+         * Otherwise, a new key is assumed and an existing file shall be overwritten.
          *
+         * Method returns `false` if resulting SMPKeyBin is not {@link SMPKeyBin#isValid()}.
          * Otherwise, method returns the {@link SMPKeyBin#write(String)} result.
          *
          * @param device the BTDevice from which all required data is derived
          * @param path the path for the stored SMPKeyBin file.
-         * @param overwrite if `true` and file already exists, delete file first. If `false` and file exists, return `false` w/o writing.
          * @param verbose_ set to true to have detailed write processing logged to stderr, otherwise false
          * @return `true` if file has been successfully written, otherwise `false`.
          * @see BTDevice
@@ -223,10 +224,11 @@ public class SMPKeyBin {
          * @see #write(String)
          * @see #isValid()
          */
-        static public boolean createAndWrite(final BTDevice device, final String path, final boolean overwrite, final boolean verbose_) {
+        static public boolean createAndWrite(final BTDevice device, final String path, final boolean verbose_) {
             final SMPKeyBin smpKeyBin = SMPKeyBin.create(device);
             if( smpKeyBin.isValid() ) {
                 smpKeyBin.setVerbose( verbose_ );
+                final boolean overwrite = PairingMode.PRE_PAIRED != device.getPairingMode();
                 return smpKeyBin.write( path, overwrite );
             } else {
                 if( verbose_ ) {

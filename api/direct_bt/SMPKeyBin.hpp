@@ -169,13 +169,14 @@ class SMPKeyBin {
          * BTSecurityLevel, SMPPairingState, PairingMode and LTK keys.
          * If valid, instance is stored to a file denoted by `path` and `BTDevice::getAddressAndType()`.
          *
-         * Method returns `false` if resulting SMPKeyBin is not SMPKeyBin::isValid().
+         * If BTDevice::getPairingMode() is PairingMode::PRE_PAIRED, an existing file will not be overwritten.
+         * Otherwise, a new key is assumed and an existing file shall be overwritten.
          *
+         * Method returns `false` if resulting SMPKeyBin is not SMPKeyBin::isValid().
          * Otherwise, method returns the SMPKeyBin::write() result.
          *
          * @param device the BTDevice from which all required data is derived
          * @param path the path for the stored SMPKeyBin file.
-         * @param overwrite if `true` and file already exists, delete file first. If `false` and file exists, return `false` w/o writing.
          * @param verbose_ set to true to have detailed write processing logged to stderr, otherwise false
          * @return `true` if file has been successfully written, otherwise `false`.
          * @see BTDevice
@@ -183,7 +184,7 @@ class SMPKeyBin {
          * @see write()
          * @see isValid()
          */
-        static bool createAndWrite(const BTDevice& device, const std::string& path, const bool overwrite, const bool verbose_);
+        static bool createAndWrite(const BTDevice& device, const std::string& path, const bool verbose_);
 
         /**
          * Create a new SMPKeyBin instance based upon stored file denoted by `fname`.
