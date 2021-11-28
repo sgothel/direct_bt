@@ -143,7 +143,8 @@ public abstract class AdapterStatusListener {
     public void devicePairingState(final BTDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {}
 
     /**
-     * {@link BTDevice} is ready for user (GATT) processing, i.e. already connected, optionally paired and ATT MTU size negotiated via connected GATT.
+     * {@link BTDevice} is ready for user (GATT) processing, i.e. already connected and optionally (SMP) paired.
+     * In case of a LE connection, GATT MTU size is negotiated and GATT services discovered.
      * <p>
      * Method is being called from a dedicated native thread, hence restrictions on method duration and complex mutable operations don't apply here.
      * </p>
