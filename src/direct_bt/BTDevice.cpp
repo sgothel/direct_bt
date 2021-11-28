@@ -1967,13 +1967,48 @@ bool BTDevice::connectGATT(std::shared_ptr<BTDevice> sthis) noexcept {
         gattHandler = nullptr;
     }
 
+    DBG_PRINT("BTDevice::connectGATT: Start: %s", toString().c_str());
+
+    // GATT MTU only consumes around 20ms - 100ms
     gattHandler = std::make_shared<BTGattHandler>(sthis, l2cap_att, supervision_timeout);
     if( !gattHandler->isConnected() ) {
         ERR_PRINT2("Connection failed");
         gattHandler = nullptr;
         return false;
+    } else {
+        DBG_PRINT("BTDevice::connectGATT: Service Discovery Start: %s", toString().c_str());
+        try {
+            // Service discovery may consume 500ms - 2000ms, depending on bandwidth
+            jau::darray<BTGattServiceRef>& gattServices = gattHandler->discoverCompletePrimaryServices(gattHandler);
+            if( gattServices.size() == 0 ) { // nothing discovered
+                ERR_PRINT2("No primary services discovered");
+                gattHandler = nullptr;
+                return false;
+            }
+            DBG_PRINT("BTDevice::connectGATT: %zu Services Discovered: %s", gattServices.size(), toString().c_str());
+
+            // discovery success, parse GenericAccess
+            std::shared_ptr<GattGenericAccessSvc> gattGenericAccess = gattHandler->getGenericAccess();
+            if( nullptr != gattGenericAccess ) {
+                const uint64_t ts = jau::getCurrentMilliseconds();
+                EIRDataType updateMask = update(*gattGenericAccess, ts);
+                DBG_PRINT("BTDevice::connectGATT: GenericAccess updated %s:\n    %s\n    -> %s",
+                    to_string(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
+                if( EIRDataType::NONE != updateMask ) {
+                    adapter.sendDeviceUpdated("connectGATT", sthis, ts, updateMask);
+                }
+            } else {
+                // else: Actually an error w/o valid mandatory GenericAccess
+                WARN_PRINT("No GenericAccess: %s", toString().c_str());
+            }
+            return true;
+        } catch (std::exception &e) {
+            WARN_PRINT("Caught exception: '%s' on %s", e.what(), toString().c_str());
+        }
     }
-    return true;
+    ERR_PRINT2("Failed GATT Service Processing");
+    gattHandler = nullptr;
+    return false;
 }
 
 std::shared_ptr<BTGattHandler> BTDevice::getGattHandler() noexcept {
@@ -1987,37 +2022,7 @@ jau::darray<BTGattServiceRef> BTDevice::getGattServices() noexcept {
         ERR_PRINT("GATTHandler nullptr");
         return jau::darray<std::shared_ptr<BTGattService>>();
     }
-
-    if( gh->getServices().size() > 0 ) { // reuse previous discovery result
-        return gh->getServices(); // copy
-    }
-    try {
-        jau::darray<BTGattServiceRef>& gattServices = gh->discoverCompletePrimaryServices(gh);
-        if( gattServices.size() == 0 ) { // nothing discovered
-            return gattServices; // copy empty list
-        }
-
-        // discovery success, parse GenericAccess
-        std::shared_ptr<GattGenericAccessSvc> gattGenericAccess = gh->getGenericAccess();
-        if( nullptr != gattGenericAccess ) {
-            const uint64_t ts = jau::getCurrentMilliseconds();
-            EIRDataType updateMask = update(*gattGenericAccess, ts);
-            DBG_PRINT("BTDevice::getGATTServices: updated %s:\n    %s\n    -> %s",
-                to_string(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
-            if( EIRDataType::NONE != updateMask ) {
-                std::shared_ptr<BTDevice> sharedInstance = getSharedInstance();
-                if( nullptr == sharedInstance ) {
-                    ERR_PRINT("BTDevice::getGATTServices: Device unknown to adapter and not tracked: %s", toString().c_str());
-                } else {
-                    adapter.sendDeviceUpdated("getGATTServices", sharedInstance, ts, updateMask);
-                }
-            }
-        }
-        return gattServices; // copy
-    } catch (std::exception &e) {
-        WARN_PRINT("BTDevice::getGATTServices: Caught exception: '%s' on %s", e.what(), toString().c_str());
-    }
-    return jau::darray<BTGattServiceRef>();
+    return gh->getServices(); // copy previous discovery result
 }
 
 BTGattServiceRef BTDevice::findGattService(const jau::uuid_t& service_uuid) noexcept {
