@@ -123,9 +123,6 @@ static bool KEEP_CONNECTED = true;
 static bool GATT_PING_ENABLED = false;
 static bool REMOVE_DEVICE = true;
 
-static bool USE_WHITELIST = false;
-static jau::darray<BDAddressAndType> WHITELIST;
-
 // Default from dbt_peripheral00.cpp or DBTPeripheral00.java
 static std::unique_ptr<uuid_t> cmd_uuid = jau::uuid_t::create(std::string("d0ca6bf3-3d52-4760-98e5-fc5883e93712"));
 static std::unique_ptr<uuid_t> cmd_rsp_uuid = jau::uuid_t::create(std::string("d0ca6bf3-3d53-4760-98e5-fc5883e93712"));
@@ -167,9 +164,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** DISCOVERING: meta %s, changed[%s, enabled %d, keepAlive %d]: %s\n",
-                to_string(currentMeta).c_str(), to_string(changedType).c_str(), changedEnabled, keepAlive, a.toString().c_str());
+    void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const DiscoveryPolicy policy, const uint64_t timestamp) override {
+        fprintf_td(stderr, "****** DISCOVERING: meta %s, changed[%s, enabled %d, policy %s]: %s\n",
+                to_string(currentMeta).c_str(), to_string(changedType).c_str(), changedEnabled, to_string(policy).c_str(), a.toString().c_str());
         (void)timestamp;
     }
 
@@ -365,11 +362,6 @@ class MyGATTEventListener : public BTGattChar::Listener {
 static void connectDiscoveredDevice(BTDeviceRef device) {
     fprintf_td(stderr, "****** Connecting Device: Start %s\n", device->toString().c_str());
 
-    {
-        const HCIStatusCode r = device->getAdapter().stopDiscovery();
-        fprintf_td(stderr, "****** Connecting Device: stopDiscovery result %s\n", to_string(r).c_str());
-    }
-
     const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getStartOf(device->getAddressAndType().address, device->getName());
     if( nullptr != sec ) {
         fprintf_td(stderr, "****** Connecting Device: Found SecurityDetail %s for %s\n", sec->toString().c_str(), device->toString().c_str());
@@ -397,21 +389,12 @@ static void connectDiscoveredDevice(BTDeviceRef device) {
         }
     }
 
-    if( !USE_WHITELIST ) {
-        res = device->connectDefault();
-    } else {
-        res = HCIStatusCode::SUCCESS;
-    }
+    res = device->connectDefault();
     fprintf_td(stderr, "****** Connecting Device: End result %s of %s\n", to_string(res).c_str(), device->toString().c_str());
-
-    if( !USE_WHITELIST && 0 == BTDeviceRegistry::getProcessingDeviceCount() && HCIStatusCode::SUCCESS != res ) {
-        startDiscovery(&device->getAdapter(), "post-connect");
-    }
 }
 
 static void processReadyDevice(BTDeviceRef device) {
     fprintf_td(stderr, "****** Processing Ready Device: Start %s\n", device->toString().c_str());
-    device->getAdapter().stopDiscovery(); // make sure for pending connections on failed connect*(..) command
 
     const uint64_t t1 = getCurrentMilliseconds();
 
@@ -564,10 +547,6 @@ exit:
 
     BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
 
-    if( !USE_WHITELIST && 0 == BTDeviceRegistry::getProcessingDeviceCount() ) {
-        startDiscovery(&device->getAdapter(), "post-processing-1");
-    }
-
     if( KEEP_CONNECTED && GATT_PING_ENABLED && success ) {
         while( device->pingGATT() ) {
             fprintf_td(stderr, "****** Processing Ready Device: pingGATT OK: %s\n", device->getAddressAndType().toString().c_str());
@@ -595,8 +574,6 @@ exit:
 
         if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount % RESET_ADAPTER_EACH_CONN ) {
             resetAdapter(&device->getAdapter(), 2);
-        } else if( !USE_WHITELIST && 0 == BTDeviceRegistry::getProcessingDeviceCount() ) {
-            startDiscovery(&device->getAdapter(), "post-processing-2");
         }
     }
 
@@ -608,15 +585,10 @@ exit:
 
 static void removeDevice(BTDeviceRef device) {
     fprintf_td(stderr, "****** Remove Device: removing: %s\n", device->getAddressAndType().toString().c_str());
-    device->getAdapter().stopDiscovery();
 
     BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
 
     device->remove();
-
-    if( !USE_WHITELIST && 0 == BTDeviceRegistry::getProcessingDeviceCount() ) {
-        startDiscovery(&device->getAdapter(), "post-remove-device");
-    }
 }
 
 static void resetAdapter(BTAdapter *a, int mode) {
@@ -625,6 +597,7 @@ static void resetAdapter(BTAdapter *a, int mode) {
     fprintf_td(stderr, "****** Reset Adapter: reset[%d] end: %s, %s\n", mode, to_string(res).c_str(), a->toString().c_str());
 }
 
+static DiscoveryPolicy discoveryPolicy = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY; // default value
 static bool le_scan_active = true; // default value
 static const uint16_t le_scan_interval = 24; // default value
 static const uint16_t le_scan_window = 24; // default value
@@ -635,7 +608,7 @@ static bool startDiscovery(BTAdapter *a, std::string msg) {
         fprintf_td(stderr, "****** Start discovery (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
         return false;
     }
-    HCIStatusCode status = a->startDiscovery( true, le_scan_active, le_scan_interval, le_scan_window, filter_policy );
+    HCIStatusCode status = a->startDiscovery( discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy );
     fprintf_td(stderr, "****** Start discovery (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
     return HCIStatusCode::SUCCESS == status;
 }
@@ -675,16 +648,9 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     // This avoids discovered devices before we have registered!
     adapter->removeDiscoveredDevices();
 
-    if( USE_WHITELIST ) {
-        for (auto it = WHITELIST.begin(); it != WHITELIST.end(); ++it) {
-            bool res = adapter->addDeviceToWhitelist(*it, HCIWhitelistConnectType::HCI_AUTO_CONN_ALWAYS);
-            fprintf_td(stderr, "initAdapter: Added to WHITELIST: res %d, address %s\n", res, it->toString().c_str());
-        }
-    } else {
-        if( !startDiscovery(adapter.get(), "initAdapter") ) {
-            adapter->removeStatusListener( asl );
-            return false;
-        }
+    if( !startDiscovery(adapter.get(), "initAdapter") ) {
+        adapter->removeStatusListener( asl );
+        return false;
     }
     return true;
 }
@@ -786,6 +752,8 @@ int main(int argc, char *argv[])
             SHOW_UPDATE_EVENTS = true;
         } else if( !strcmp("-quiet", argv[i]) ) {
             QUIET = true;
+        } else if( !strcmp("-discoveryPolicy", argv[i]) ) {
+            discoveryPolicy = to_DiscoveryPolicy(atoi(argv[++i]));
         } else if( !strcmp("-scanPassive", argv[i]) ) {
             le_scan_active = false;
         } else if( !strcmp("-btmode", argv[i]) && argc > (i+1) ) {
@@ -795,12 +763,6 @@ int main(int argc, char *argv[])
         } else if( !strcmp("-dev", argv[i]) && argc > (i+1) ) {
             std::string addrOrNameSub = std::string(argv[++i]);
             BTDeviceRegistry::addToWaitForDevices( addrOrNameSub );
-        } else if( !strcmp("-wl", argv[i]) && argc > (i+1) ) {
-            std::string macstr = std::string(argv[++i]);
-            BDAddressAndType wle(EUI48(macstr), BDAddressType::BDADDR_LE_PUBLIC);
-            fprintf(stderr, "Whitelist + %s\n", wle.toString().c_str());
-            WHITELIST.push_back( wle );
-            USE_WHITELIST = true;
         } else if( !strcmp("-passkey", argv[i]) && argc > (i+2) ) {
             const std::string addrOrNameSub(argv[++i]);
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
@@ -845,10 +807,11 @@ int main(int argc, char *argv[])
 
     fprintf_td(stderr, "Run with '[-btmode LE|BREDR|DUAL] "
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "
-                    "[-scanPassive]"
+                    "[-discoveryPolicy <0-4>] "
+                    "[-scanPassive] "
                     "[-resetEachCon connectionCount] "
                     "[-adapter <adapter_address>] "
-                    "(-dev <device_[address|name]_sub>)* (-wl <device_address>)* "
+                    "(-dev <device_[address|name]_sub>)* "
                     "(-seclevel <device_[address|name]_sub> <int_sec_level>)* "
                     "(-iocap <device_[address|name]_sub> <int_iocap>)* "
                     "(-secauto <device_[address|name]_sub> <int_iocap>)* "
@@ -867,11 +830,11 @@ int main(int argc, char *argv[])
     fprintf_td(stderr, "RESET_ADAPTER_EACH_CONN %d\n", RESET_ADAPTER_EACH_CONN);
     fprintf_td(stderr, "GATT_PING_ENABLED %d\n", GATT_PING_ENABLED);
     fprintf_td(stderr, "REMOVE_DEVICE %d\n", REMOVE_DEVICE);
-    fprintf_td(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
     fprintf_td(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
     fprintf_td(stderr, "QUIET %d\n", QUIET);
     fprintf_td(stderr, "adapter %s\n", useAdapter.toString().c_str());
     fprintf_td(stderr, "btmode %s\n", to_string(btMode).c_str());
+    fprintf_td(stderr, "discoveryPolicy %s\n", to_string(discoveryPolicy).c_str());
     fprintf_td(stderr, "scanActive %s\n", to_string(le_scan_active).c_str());
     fprintf_td(stderr, "Command: cmd %s, arg 0x%X\n         rsp %s\n",
             nullptr != cmd_uuid ? cmd_uuid->toString().c_str() : "n/a", cmd_arg,

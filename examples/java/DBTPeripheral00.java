@@ -47,6 +47,7 @@ import org.direct_bt.DBGattDesc;
 import org.direct_bt.DBGattServer;
 import org.direct_bt.DBGattService;
 import org.direct_bt.DBGattValue;
+import org.direct_bt.DiscoveryPolicy;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.GattCharPropertySet;
 import org.direct_bt.HCIStatusCode;
@@ -233,8 +234,8 @@ public class DBTPeripheral00 {
         }
 
         @Override
-        public void discoveringChanged(final BTAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final boolean keepAlive, final long timestamp) {
-            BTUtils.println(System.err, "****** DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", keepAlive "+keepAlive+"] on "+adapter);
+        public void discoveringChanged(final BTAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final DiscoveryPolicy policy, final long timestamp) {
+            BTUtils.println(System.err, "****** DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", policy "+policy+"] on "+adapter);
         }
 
         @Override

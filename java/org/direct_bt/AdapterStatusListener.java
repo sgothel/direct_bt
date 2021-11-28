@@ -84,12 +84,12 @@ public abstract class AdapterStatusListener {
      * {@link BTAdapter}'s discovery state has changed, i.e. enabled or disabled.
      * @param adapter the adapter which discovering state has changed.
      * @param currentMeta the current meta {@link ScanType}
-     * @param changedType denotes the changed {@link ScanType}
-     * @param changedEnabled denotes whether the changed {@link ScanType} has been enabled or disabled
-     * @param keepAlive if {@code true}, the denoted changed {@link ScanType} will be re-enabled if disabled by the underlying Bluetooth implementation.
+     * @param changedType denotes the changed native {@link ScanType}
+     * @param changedEnabled denotes whether the changed native {@link ScanType} has been enabled or disabled
+     * @param policy the current DiscoveryPolicy of the BTAdapter, chosen via BTAdapter::startDiscovery()
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
      */
-    public void discoveringChanged(final BTAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final boolean keepAlive, final long timestamp) { }
+    public void discoveringChanged(final BTAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final DiscoveryPolicy policy, final long timestamp) { }
 
     /**
      * A {@link BTDevice} has been newly discovered.

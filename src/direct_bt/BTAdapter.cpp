@@ -52,6 +52,17 @@ using namespace direct_bt;
 
 constexpr static const bool _print_device_lists = false;
 
+std::string direct_bt::to_string(const DiscoveryPolicy v) noexcept {
+    switch(v) {
+        case DiscoveryPolicy::AUTO_OFF: return "AUTO_OFF";
+        case DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_DISCONNECTED: return "PAUSE_CONNECTED_UNTIL_DISCONNECTED";
+        case DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY: return "PAUSE_CONNECTED_UNTIL_READY";
+        case DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_PAIRED: return "PAUSE_CONNECTED_UNTIL_PAIRED";
+        case DiscoveryPolicy::ALWAYS_ON: return "ALWAYS_ON";
+    }
+    return "Unknown DiscoveryPolicy "+jau::to_hexstring(number(v));
+}
+
 BTDeviceRef BTAdapter::findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept {
     const jau::nsize_t size = devices.size();
     for (jau::nsize_t i = 0; i < size; ++i) {
@@ -75,6 +86,71 @@ BTDeviceRef BTAdapter::findDevice(device_list_t & devices, BTDevice const & devi
         }
     }
     return nullptr;
+}
+
+BTDeviceRef BTAdapter::findDevicePausingDiscovery (const EUI48 & address, const BDAddressType & addressType) noexcept {
+    const std::lock_guard<std::mutex> lock(mtx_pausingDiscoveryDevices); // RAII-style acquire and relinquish via destructor
+    return findDevice(pausing_discovery_devices, address, addressType);
+}
+
+bool BTAdapter::addDevicePausingDiscovery(const BTDeviceRef & device) noexcept {
+    bool added_first = false;
+    {
+        const std::lock_guard<std::mutex> lock(mtx_pausingDiscoveryDevices); // RAII-style acquire and relinquish via destructor
+        if( nullptr != findDevice(pausing_discovery_devices, *device) ) {
+            return false;
+        }
+        added_first = 0 == pausing_discovery_devices.size();
+        pausing_discovery_devices.push_back(device);
+    }
+    if( added_first ) {
+#if SCAN_DISABLED_POST_CONNECT
+        updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */, true /* off_thread */);
+#else
+        std::thread bg(&BTAdapter::stopDiscovery, this, false /* forceDiscoveringEvent */, true /* temporary */); // @suppress("Invalid arguments")
+        bg.detach();
+#endif
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool BTAdapter::removeDevicePausingDiscovery(const BTDevice & device, const bool off_thread_enable) noexcept {
+    bool removed_last = false;
+    {
+        const std::lock_guard<std::mutex> lock(mtx_pausingDiscoveryDevices); // RAII-style acquire and relinquish via destructor
+        bool done = false;
+        auto end = pausing_discovery_devices.end();
+        for (auto it = pausing_discovery_devices.begin(); it != end && !done; ++it) {
+            if ( nullptr != *it && device == **it ) {
+                pausing_discovery_devices.erase(it);
+                removed_last = 0 == pausing_discovery_devices.size();
+                done = true;
+            }
+        }
+    }
+    if( removed_last ) {
+        if( off_thread_enable ) {
+            std::thread bg(&BTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
+            bg.detach();
+        } else {
+            startDiscoveryBackground();
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void BTAdapter::clearDevicesPausingDiscovery() noexcept {
+    const std::lock_guard<std::mutex> lock(mtx_pausingDiscoveryDevices); // RAII-style acquire and relinquish via destructor
+    pausing_discovery_devices.clear();
+}
+
+bool BTAdapter::hasDevicesPausingDiscovery() noexcept {
+    const std::lock_guard<std::mutex> lock(mtx_pausingDiscoveryDevices); // RAII-style acquire and relinquish via destructor
+    return pausing_discovery_devices.size() > 0;
 }
 
 bool BTAdapter::addConnectedDevice(const BTDeviceRef & device) noexcept {
@@ -132,7 +208,7 @@ bool BTAdapter::updateDataFromHCI() noexcept {
     HCILocalVersion version;
     HCIStatusCode status = hci.getLocalVersion(version);
     if( HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("BTAdapter::updateDataFromHCI: Adapter[%d]: POWERED, LocalVersion failed %s - %s",
+        ERR_PRINT("Adapter[%d]: POWERED, LocalVersion failed %s - %s",
                 dev_id, to_string(status).c_str(), adapterInfo.toString().c_str());
         return false;
     }
@@ -270,7 +346,8 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const A
   btRole ( BTRole::Master ),
   hci( dev_id ),
   currentMetaScanType( ScanType::NONE ),
-  keep_le_scan_alive( false ), scan_filter_dup( true )
+  discovery_policy ( DiscoveryPolicy::AUTO_OFF ),
+  scan_filter_dup( true )
 {
     (void)cc;
     valid = initialSetup();
@@ -298,7 +375,7 @@ void BTAdapter::close() noexcept {
         return;
     }
     DBG_PRINT("BTAdapter::close: ... %p %s", this, toString().c_str());
-    keep_le_scan_alive = false;
+    discovery_policy = DiscoveryPolicy::AUTO_OFF;
 
     // mute all listener first
     {
@@ -360,10 +437,10 @@ void BTAdapter::poweredOff(bool active) noexcept {
         DBG_PRINT("BTAdapter::poweredOff: !POWERED: active %d -> 0: %s", active, toString().c_str());
         active = false;
     }
-    keep_le_scan_alive = false;
+    discovery_policy = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY;
 
     if( active ) {
-        stopDiscovery(true /* forceDiscoveringEvent */);
+        stopDiscovery(true /* forceDiscoveringEvent */, false /* temporary */);
     }
 
     // Removes all device references from the lists: connectedDevices, discoveredDevices, sharedDevices
@@ -835,9 +912,9 @@ int BTAdapter::removeAllStatusListener() noexcept {
 void BTAdapter::checkDiscoveryState() noexcept {
     const ScanType currentNativeScanType = hci.getCurrentScanType();
     // Check LE scan state
-    if( keep_le_scan_alive == false ) {
+    if( DiscoveryPolicy::AUTO_OFF == discovery_policy ) {
         if( hasScanType(currentMetaScanType, ScanType::LE) != hasScanType(currentNativeScanType, ScanType::LE) ) {
-            std::string msg("Invalid DiscoveryState: keepAlive "+std::to_string(keep_le_scan_alive.load())+
+            std::string msg("Invalid DiscoveryState: policy "+to_string(discovery_policy.load())+
                     ", currentScanType*[native "+
                     to_string(currentNativeScanType)+" != meta "+
                     to_string(currentMetaScanType)+"], "+toString());
@@ -846,7 +923,7 @@ void BTAdapter::checkDiscoveryState() noexcept {
         }
     } else {
         if( !hasScanType(currentMetaScanType, ScanType::LE) && hasScanType(currentNativeScanType, ScanType::LE) ) {
-            std::string msg("Invalid DiscoveryState: keepAlive "+std::to_string(keep_le_scan_alive.load())+
+            std::string msg("Invalid DiscoveryState: policy "+to_string(discovery_policy.load())+
                     ", currentScanType*[native "+
                     to_string(currentNativeScanType)+", meta "+
                     to_string(currentMetaScanType)+"], "+toString());
@@ -856,7 +933,7 @@ void BTAdapter::checkDiscoveryState() noexcept {
     }
 }
 
-HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const bool le_scan_active,
+HCIStatusCode BTAdapter::startDiscovery(const DiscoveryPolicy policy, const bool le_scan_active,
                                         const uint16_t le_scan_interval, const uint16_t le_scan_window,
                                         const uint8_t filter_policy,
                                         const bool filter_dup) noexcept
@@ -864,6 +941,8 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const bool le_scan
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
     // ERR_PRINT("Test");
     // throw jau::RuntimeException("Test", E_FILE_LINE);
+
+    clearDevicesPausingDiscovery();
 
     if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
         poweredOff(false /* active */);
@@ -883,28 +962,28 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const bool le_scan
     if( hasScanType(currentNativeScanType, ScanType::LE) ) {
         removeDiscoveredDevices();
         btRole = BTRole::Master;
-        if( keep_le_scan_alive == keepAlive ) {
-            DBG_PRINT("BTAdapter::startDiscovery: Already discovering, unchanged keepAlive %d -> %d, currentScanType[native %s, meta %s] ...\n- %s",
-                    keep_le_scan_alive.load(), keepAlive,
+        if( discovery_policy == policy ) {
+            DBG_PRINT("BTAdapter::startDiscovery: Already discovering, unchanged policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
+                    to_string(discovery_policy.load()).c_str(), to_string(policy).c_str(),
                     to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(), toString(true).c_str());
         } else {
-            DBG_PRINT("BTAdapter::startDiscovery: Already discovering, changed keepAlive %d -> %d, currentScanType[native %s, meta %s] ...\n- %s",
-                    keep_le_scan_alive.load(), keepAlive,
+            DBG_PRINT("BTAdapter::startDiscovery: Already discovering, changed policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
+                    to_string(discovery_policy.load()).c_str(), to_string(policy).c_str(),
                     to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(), toString(true).c_str());
-            keep_le_scan_alive = keepAlive;
+            discovery_policy = policy;
         }
         checkDiscoveryState();
         return HCIStatusCode::SUCCESS;
     }
 
     if( _print_device_lists || jau::environment::get().verbose ) {
-        jau::PLAIN_PRINT(true, "BTAdapter::startDiscovery: Start: keepAlive %d -> %d, currentScanType[native %s, meta %s] ...\n- %s",
-                keep_le_scan_alive.load(), keepAlive,
+        jau::PLAIN_PRINT(true, "BTAdapter::startDiscovery: Start: policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
+                to_string(discovery_policy.load()).c_str(), to_string(policy).c_str(),
                 to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(), toString().c_str());
     }
 
     removeDiscoveredDevices();
-    keep_le_scan_alive = keepAlive;
+    discovery_policy = policy;
 
     // TODO: Potential changing adapter address mode to random and updating 'visibleAddressAndType'!
     const BDAddressType usedAddrType = BDAddressType::BDADDR_LE_PUBLIC;
@@ -914,8 +993,9 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const bool le_scan
                                                    le_scan_interval, le_scan_window, filter_policy);
 
     if( _print_device_lists || jau::environment::get().verbose ) {
-        jau::PLAIN_PRINT(true, "BTAdapter::startDiscovery: End: Result %s, keepAlive %d -> %d, currentScanType[native %s, meta %s] ...\n- %s",
-                to_string(status).c_str(), keep_le_scan_alive.load(), keepAlive,
+        jau::PLAIN_PRINT(true, "BTAdapter::startDiscovery: End: Result %s, policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
+                to_string(status).c_str(),
+                to_string(discovery_policy.load()).c_str(), to_string(policy).c_str(),
                 to_string(hci.getCurrentScanType()).c_str(), to_string(currentMetaScanType).c_str(), toString().c_str());
         printDeviceLists();
     }
@@ -932,7 +1012,7 @@ void BTAdapter::startDiscoveryBackground() noexcept {
         return;
     }
     const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
-    if( !hasScanType(hci.getCurrentScanType(), ScanType::LE) && keep_le_scan_alive ) { // still?
+    if( !hasScanType(hci.getCurrentScanType(), ScanType::LE) && DiscoveryPolicy::AUTO_OFF != discovery_policy ) { // still?
         // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
         const HCIStatusCode status = hci.le_enable_scan(true /* enable */, scan_filter_dup);
         if( HCIStatusCode::SUCCESS != status ) {
@@ -942,9 +1022,16 @@ void BTAdapter::startDiscoveryBackground() noexcept {
     }
 }
 
-HCIStatusCode BTAdapter::stopDiscovery(const bool forceDiscoveringEvent) noexcept {
+HCIStatusCode BTAdapter::stopDiscovery() noexcept {
+    clearDevicesPausingDiscovery();
+
+    return stopDiscovery(false /* forceDiscoveringEvent */, false /* temporary */);
+}
+
+HCIStatusCode BTAdapter::stopDiscovery(const bool forceDiscoveringEvent, const bool temporary) noexcept {
     // We allow !isEnabled, to utilize method for adjusting discovery state and notifying listeners
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to stop BREDR, LE or DUAL scanning!
+
     if( !isValid() ) {
         ERR_PRINT("Adapter invalid: %s, %s", to_hexstring(this).c_str(), toString().c_str());
         return HCIStatusCode::UNSPECIFIED_ERROR;
@@ -968,17 +1055,20 @@ HCIStatusCode BTAdapter::stopDiscovery(const bool forceDiscoveringEvent) noexcep
     const ScanType currentNativeScanType = hci.getCurrentScanType();
     const bool le_scan_temp_disabled = hasScanType(currentMetaScanType, ScanType::LE) &&    // true
                                        !hasScanType(currentNativeScanType, ScanType::LE) && // false
-                                       keep_le_scan_alive;                                  // true
+                                       DiscoveryPolicy::AUTO_OFF != discovery_policy;       // true
 
-    DBG_PRINT("BTAdapter::stopDiscovery: Start: keepAlive %d, currentScanType[native %s, meta %s], le_scan_temp_disabled %d, forceDiscEvent %d ...",
-            keep_le_scan_alive.load(),
+    DBG_PRINT("BTAdapter::stopDiscovery: Start: policy %s, currentScanType[native %s, meta %s], le_scan_temp_disabled %d, forceDiscEvent %d ...",
+            to_string(discovery_policy.load()).c_str(),
             to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(),
             le_scan_temp_disabled, forceDiscoveringEvent);
 
-    keep_le_scan_alive = false;
+    if( !temporary ) {
+        discovery_policy = DiscoveryPolicy::AUTO_OFF;
+    }
+
     if( !hasScanType(currentMetaScanType, ScanType::LE) ) {
-        DBG_PRINT("BTAdapter::stopDiscovery: Already disabled, keepAlive %d, currentScanType[native %s, meta %s] ...",
-                keep_le_scan_alive.load(),
+        DBG_PRINT("BTAdapter::stopDiscovery: Already disabled, policy %s, currentScanType[native %s, meta %s] ...",
+                to_string(discovery_policy.load()).c_str(),
                 to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str());
         checkDiscoveryState();
         return HCIStatusCode::SUCCESS;
@@ -1018,8 +1108,8 @@ exit:
         mgmtEvDeviceDiscoveringHCI( e );
     }
     if( _print_device_lists || jau::environment::get().verbose ) {
-        jau::PLAIN_PRINT(true, "BTAdapter::stopDiscovery: End: Result %s, keepAlive %d, currentScanType[native %s, meta %s], le_scan_temp_disabled %d ...\n- %s",
-                to_string(status).c_str(), keep_le_scan_alive.load(),
+        jau::PLAIN_PRINT(true, "BTAdapter::stopDiscovery: End: Result %s, policy %s, currentScanType[native %s, meta %s], le_scan_temp_disabled %d ...\n- %s",
+                to_string(status).c_str(), to_string(discovery_policy.load()).c_str(),
                 to_string(hci.getCurrentScanType()).c_str(), to_string(currentMetaScanType).c_str(), le_scan_temp_disabled,
                 toString().c_str());
         printDeviceLists();
@@ -1371,18 +1461,22 @@ bool BTAdapter::mgmtEvHCIAnyHCI(const MgmtEvent& e) noexcept {
 }
 
 bool BTAdapter::mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept {
-    return mgmtEvDeviceDiscoveringAny(e, true /* hciSourced */ );
+    const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(&e);
+    return mgmtEvDeviceDiscoveringAny(event.getScanType(), event.getEnabled(), event.getTimestamp(), true /* hciSourced */, true /* off_thread */);
 }
 
 bool BTAdapter::mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept {
-    return mgmtEvDeviceDiscoveringAny(e, false /* hciSourced */ );
+    const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(&e);
+    return mgmtEvDeviceDiscoveringAny(event.getScanType(), event.getEnabled(), event.getTimestamp(), false /* hciSourced */, true /* off_thread */);
 }
 
-bool BTAdapter::mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSourced) noexcept {
+void BTAdapter::updateDeviceDiscoveringState(const ScanType eventScanType, const bool eventEnabled, const bool off_thread) noexcept {
+    mgmtEvDeviceDiscoveringAny(eventScanType, eventEnabled, jau::getCurrentMilliseconds(), false /* hciSourced */, off_thread);
+}
+
+bool BTAdapter::mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const bool eventEnabled, const uint64_t eventTimestamp,
+                                           const bool hciSourced, const bool off_thread) noexcept {
     const std::string srctkn = hciSourced ? "hci" : "mgmt";
-    const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(&e);
-    const ScanType eventScanType = event.getScanType();
-    const bool eventEnabled = event.getEnabled();
     ScanType currentNativeScanType = hci.getCurrentScanType();
 
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
@@ -1396,7 +1490,7 @@ bool BTAdapter::mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSou
         nextMetaScanType = changeScanType(currentMetaScanType, eventScanType, true);
     } else {
         // disabled eventScanType
-        if( hasScanType(eventScanType, ScanType::LE) && keep_le_scan_alive ) {
+        if( hasScanType(eventScanType, ScanType::LE) && DiscoveryPolicy::AUTO_OFF != discovery_policy ) {
             // Unchanged meta for disabled-LE && keep_le_scan_alive
             nextMetaScanType = currentMetaScanType;
         } else {
@@ -1407,19 +1501,17 @@ bool BTAdapter::mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSou
     if( !hciSourced ) {
         // update HCIHandler's currentNativeScanType from other source
         const ScanType nextNativeScanType = changeScanType(currentNativeScanType, eventScanType, eventEnabled);
-        DBG_PRINT("BTAdapter:%s:DeviceDiscovering: dev_id %d, keepDiscoveringAlive %d: scanType[native %s -> %s, meta %s -> %s]): %s",
-            srctkn.c_str(), dev_id, keep_le_scan_alive.load(),
+        DBG_PRINT("BTAdapter:%s:DeviceDiscovering: dev_id %d, policy %s: scanType[native %s -> %s, meta %s -> %s])",
+            srctkn.c_str(), dev_id, to_string(discovery_policy.load()).c_str(),
             to_string(currentNativeScanType).c_str(), to_string(nextNativeScanType).c_str(),
-            to_string(currentMetaScanType).c_str(), to_string(nextMetaScanType).c_str(),
-            event.toString().c_str());
+            to_string(currentMetaScanType).c_str(), to_string(nextMetaScanType).c_str());
         currentNativeScanType = nextNativeScanType;
         hci.setCurrentScanType(currentNativeScanType);
     } else {
-        DBG_PRINT("BTAdapter:%s:DeviceDiscovering: dev_id %d, keepDiscoveringAlive %d: scanType[native %s, meta %s -> %s]): %s",
-            srctkn.c_str(), dev_id, keep_le_scan_alive.load(),
+        DBG_PRINT("BTAdapter:%s:DeviceDiscovering: dev_id %d, policy %d: scanType[native %s, meta %s -> %s])",
+            srctkn.c_str(), dev_id, to_string(discovery_policy.load()).c_str(),
             to_string(currentNativeScanType).c_str(),
-            to_string(currentMetaScanType).c_str(), to_string(nextMetaScanType).c_str(),
-            event.toString().c_str());
+            to_string(currentMetaScanType).c_str(), to_string(nextMetaScanType).c_str());
     }
     currentMetaScanType = nextMetaScanType;
     if( isDiscovering() ) {
@@ -1431,7 +1523,7 @@ bool BTAdapter::mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSou
     int i=0;
     jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {
-            p.listener->discoveringChanged(*this, currentMetaScanType, eventScanType, eventEnabled, keep_le_scan_alive, event.getTimestamp());
+            p.listener->discoveringChanged(*this, currentMetaScanType, eventScanType, eventEnabled, discovery_policy, eventTimestamp);
         } catch (std::exception &except) {
             ERR_PRINT("BTAdapter:%s:DeviceDiscovering-CBs %d/%zd: %s of %s: Caught exception %s",
                     srctkn.c_str(), i+1, statusListenerList.size(),
@@ -1440,9 +1532,16 @@ bool BTAdapter::mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSou
         i++;
     });
 
-    if( !hasScanType(currentNativeScanType, ScanType::LE) && keep_le_scan_alive ) {
-        std::thread bg(&BTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
-        bg.detach();
+    if( !hasScanType(currentNativeScanType, ScanType::LE) &&
+        DiscoveryPolicy::AUTO_OFF != discovery_policy &&
+        !hasDevicesPausingDiscovery() )
+    {
+        if( off_thread ) {
+            std::thread bg(&BTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
+            bg.detach();
+        } else {
+            startDiscoveryBackground();
+        }
     }
     return true;
 }
@@ -1677,7 +1776,31 @@ bool BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
         COND_PRINT(debug_event, "BTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): %s, %s",
             dev_id, event.toString().c_str(), device->toString().c_str());
 
+        if( BTRole::Master == getRole() ) {
+            const DiscoveryPolicy policy = discovery_policy;
+            if( DiscoveryPolicy::AUTO_OFF == policy ) {
+#if SCAN_DISABLED_POST_CONNECT
+                updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */, true /* off_thread */);
+#else
+                std::thread bg(&BTAdapter::stopDiscovery, this, false /* forceDiscoveringEvent */, true /* temporary */); // @suppress("Invalid arguments")
+                bg.detach();
+#endif
+
+            } else if( DiscoveryPolicy::ALWAYS_ON == policy ) {
+#if SCAN_DISABLED_POST_CONNECT
+                updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */, true /* off_thread */);
+#else
+                std::thread bg(&BTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
+                bg.detach();
+#endif
+            } else {
+                addDevicePausingDiscovery(device);
+            }
+        }
         device->notifyLEFeatures(device, event.getHCIStatus(), event.getFeatures());
+        // Performs optional SMP pairing, then one of
+        // - sendDeviceReady()
+        // - disconnect() .. eventually
     } else {
         WORDY_PRINT("BTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
@@ -1748,9 +1871,14 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
                 }
             }
         }
+        removeDevicePausingDiscovery(*device, true /* off_thread_enable */);
     } else {
-        WORDY_PRINT("BTAdapter::EventHCI:DeviceDisconnected(dev_id %d): Device not tracked: %s",
+        DBG_PRINT("BTAdapter::EventHCI:DeviceDisconnected(dev_id %d): Device not connected: %s",
             dev_id, event.toString().c_str());
+        device = findDevicePausingDiscovery(event.getAddress(), event.getAddressType());
+        if( nullptr != device ) {
+            removeDevicePausingDiscovery(*device, true /* off_thread_enable */);
+        }
     }
     return true;
 }
@@ -2177,7 +2305,17 @@ void BTAdapter::sendDevicePairingState(BTDeviceRef device, const SMPPairingState
     });
 }
 
+void BTAdapter::notifyPairingStageDone(BTDeviceRef device, uint64_t timestamp) noexcept {
+    if( DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_PAIRED == discovery_policy ) {
+        removeDevicePausingDiscovery(*device, true /* off_thread_enable */);
+    }
+    (void)timestamp;
+}
+
 void BTAdapter::sendDeviceReady(BTDeviceRef device, uint64_t timestamp) noexcept {
+    if( DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY == discovery_policy ) {
+        removeDevicePausingDiscovery(*device, false /* off_thread_enable */);
+    }
     int i=0;
     jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {

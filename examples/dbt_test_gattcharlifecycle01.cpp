@@ -100,9 +100,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** DISCOVERING: meta %s, changed[%s, enabled %d, keepAlive %d]: %s\n",
-                to_string(currentMeta).c_str(), to_string(changedType).c_str(), changedEnabled, keepAlive, a.toString().c_str());
+    void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const DiscoveryPolicy policy, const uint64_t timestamp) override {
+        fprintf_td(stderr, "****** DISCOVERING: meta %s, changed[%s, enabled %d, policy %s]: %s\n",
+                to_string(currentMeta).c_str(), to_string(changedType).c_str(), changedEnabled, to_string(policy).c_str(), a.toString().c_str());
         (void)timestamp;
     }
 
@@ -497,7 +497,7 @@ static bool startDiscovery(BTAdapter *a, std::string msg) {
         fprintf_td(stderr, "****** Start discovery (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
         return false;
     }
-    HCIStatusCode status = a->startDiscovery( true, le_scan_active, le_scan_interval, le_scan_window, filter_policy );
+    HCIStatusCode status = a->startDiscovery( DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY, le_scan_active, le_scan_interval, le_scan_window, filter_policy );
     fprintf_td(stderr, "****** Start discovery (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
     return HCIStatusCode::SUCCESS == status;
 }

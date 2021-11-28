@@ -44,6 +44,8 @@ static const std::string _hciStatusCodeClassName("org/direct_bt/HCIStatusCode");
 static const std::string _hciStatusCodeClazzGetArgs("(B)Lorg/direct_bt/HCIStatusCode;");
 static const std::string _scanTypeClassName("org/direct_bt/ScanType");
 static const std::string _scanTypeClazzGetArgs("(B)Lorg/direct_bt/ScanType;");
+static const std::string _discoveryPolicyClassName("org/direct_bt/DiscoveryPolicy");
+static const std::string _discoveryPolicyClazzGetArgs("(B)Lorg/direct_bt/DiscoveryPolicy;");
 static const std::string _pairingModeClassName("org/direct_bt/PairingMode");
 static const std::string _pairingModeClazzGetArgs("(B)Lorg/direct_bt/PairingMode;");
 static const std::string _pairingStateClassName("org/direct_bt/SMPPairingState");
@@ -69,7 +71,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
                                                final AdapterSettings oldmask, final AdapterSettings newmask,
                                                final AdapterSettings changedmask, final long timestamp) { }
             public void discoveringChanged(final BluetoothAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled,
-                                           final boolean keepAlive, final long timestamp) { }
+                                           final DiscoveryPolicy policy, final long timestamp) { }
             public void deviceFound(final BluetoothDevice device, final long timestamp) { }
             public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) { }
             public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) { }
@@ -93,6 +95,8 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     jmethodID hciStatusCodeClazzGet;
     JNIGlobalRef scanTypeClazzRef;
     jmethodID scanTypeClazzGet;
+    JNIGlobalRef discoveryPolicyClazzRef;
+    jmethodID discoveryPolicyClazzGet;
     JNIGlobalRef pairingModeClazzRef;
     jmethodID pairingModeClazzGet;
     JNIGlobalRef pairingStateClazzRef;
@@ -164,6 +168,14 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         }
         scanTypeClazzGet = jau::search_method(env, scanTypeClazzRef.getClass(), "get", _scanTypeClazzGetArgs.c_str(), true);
 
+        // discoveryPolicyClazzRef, discoveryPolicyClazzGet;
+        {
+            jclass discoveryPolicyClazz = jau::search_class(env, _discoveryPolicyClassName.c_str());
+            discoveryPolicyClazzRef = JNIGlobalRef(discoveryPolicyClazz);
+            env->DeleteLocalRef(discoveryPolicyClazz);
+        }
+        discoveryPolicyClazzGet = jau::search_method(env, discoveryPolicyClazzRef.getClass(), "get", _discoveryPolicyClazzGetArgs.c_str(), true);
+
         // pairingModeClazzRef, pairingModeClazzGet
         {
             jclass pairingModeClazz = jau::search_class(env, _pairingModeClassName.c_str());
@@ -233,7 +245,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->DeleteLocalRef(adapterSettingChanged);
     }
 
-    void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) override {
+    void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const DiscoveryPolicy policy, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         (void)a;
 
@@ -245,8 +257,12 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         JNIGlobalRef::check(jchangedType, E_FILE_LINE);
 
+        jobject jdiscoveryPolicy = env->CallStaticObjectMethod(discoveryPolicyClazzRef.getClass(), discoveryPolicyClazzGet, (jbyte)number(policy));
+        jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        JNIGlobalRef::check(jdiscoveryPolicy, E_FILE_LINE);
+
         env->CallVoidMethod(listenerObjRef.getObject(), mDiscoveringChanged, jau::JavaGlobalObj::GetObject(adapterObjRef),
-                            jcurrentMeta, jchangedType, (jboolean)changedEnabled, (jboolean)keepAlive, (jlong)timestamp);
+                            jcurrentMeta, jchangedType, (jboolean)changedEnabled, jdiscoveryPolicy, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
 
@@ -669,14 +685,14 @@ jlong Java_jau_direct_1bt_DBTAdapter_getLEFeaturesImpl(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jbyte Java_jau_direct_1bt_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj, jboolean keepAlive, jboolean le_scan_active,
+jbyte Java_jau_direct_1bt_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj, jbyte policy, jboolean le_scan_active,
                                                         jshort le_scan_interval, jshort le_scan_window,
                                                         jbyte filter_policy,
                                                         jboolean filter_dup)
 {
     try {
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        return (jbyte) number( adapter->startDiscovery(keepAlive, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup==JNI_TRUE) );
+        return (jbyte) number( adapter->startDiscovery(static_cast<DiscoveryPolicy>(policy), le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup==JNI_TRUE) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

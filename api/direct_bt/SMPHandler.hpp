@@ -52,10 +52,12 @@
     #define SMP_SUPPORTED_BY_OS 0
     #define USE_LINUX_BT_SECURITY 1
     #define CONSIDER_HCI_CMD_FOR_SMP_STATE 0
+    #define SCAN_DISABLED_POST_CONNECT 1
 #else
     #define SMP_SUPPORTED_BY_OS 1
     #define USE_LINUX_BT_SECURITY 0
     #define CONSIDER_HCI_CMD_FOR_SMP_STATE 1
+    #define SCAN_DISABLED_POST_CONNECT 0
 #endif
 
 /**

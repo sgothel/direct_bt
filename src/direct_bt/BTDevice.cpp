@@ -655,7 +655,9 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
     }
     if( callProcessDeviceReady ) {
         // call out of scope of locked mtx_pairing
-        processDeviceReady(sthis, jau::getCurrentMilliseconds());
+        const uint64_t ts = jau::getCurrentMilliseconds();
+        adapter.notifyPairingStageDone(sthis, ts);
+        processDeviceReady(sthis, ts);
     }
     DBG_PRINT("BTDevice::processL2CAPSetup: End %s", toString().c_str());
 }
@@ -1088,6 +1090,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
         adapter.sendDevicePairingState(sthis, claimed_state, mode, evt.getTimestamp());
 
         if( is_device_ready ) {
+            adapter.notifyPairingStageDone(sthis, evt.getTimestamp());
             std::thread dc(&BTDevice::processDeviceReady, this, sthis, evt.getTimestamp()); // @suppress("Invalid arguments")
             dc.detach();
         }
@@ -1390,6 +1393,7 @@ void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMs
     adapter.sendDevicePairingState(sthis, pstate, pmode, msg.getTimestamp());
 
     if( is_device_ready ) {
+        adapter.notifyPairingStageDone(sthis, msg.getTimestamp());
         std::thread dc(&BTDevice::processDeviceReady, this, sthis, msg.getTimestamp()); // @suppress("Invalid arguments")
         dc.detach();
     }

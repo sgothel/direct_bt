@@ -24,7 +24,6 @@
  */
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,7 +32,6 @@ import java.util.function.Consumer;
 import org.direct_bt.AdapterSettings;
 import org.direct_bt.AdapterStatusListener;
 import org.direct_bt.BDAddressAndType;
-import org.direct_bt.BDAddressType;
 import org.direct_bt.BTMode;
 import org.direct_bt.BTSecurityLevel;
 import org.direct_bt.BTAdapter;
@@ -48,10 +46,10 @@ import org.direct_bt.BTGattService;
 import org.direct_bt.BTManager;
 import org.direct_bt.BTSecurityRegistry;
 import org.direct_bt.BTUtils;
+import org.direct_bt.DiscoveryPolicy;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.GattCharPropertySet;
 import org.direct_bt.HCIStatusCode;
-import org.direct_bt.HCIWhitelistConnectType;
 import org.direct_bt.LE_Features;
 import org.direct_bt.LE_PHYs;
 import org.direct_bt.PairingMode;
@@ -89,8 +87,6 @@ public class DBTScanner10 {
 
     boolean GATT_PING_ENABLED = false;
     boolean REMOVE_DEVICE = true;
-    boolean USE_WHITELIST = false;
-    final List<BDAddressAndType> whitelist = new ArrayList<BDAddressAndType>();
 
     // Default from dbt_peripheral00.cpp or DBTPeripheral00.java
     String cmd_uuid = "d0ca6bf3-3d52-4760-98e5-fc5883e93712";
@@ -160,8 +156,8 @@ public class DBTScanner10 {
         }
 
         @Override
-        public void discoveringChanged(final BTAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final boolean keepAlive, final long timestamp) {
-            BTUtils.println(System.err, "****** DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", keepAlive "+keepAlive+"] on "+adapter);
+        public void discoveringChanged(final BTAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final DiscoveryPolicy policy, final long timestamp) {
+            BTUtils.println(System.err, "****** DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", policy "+policy+"] on "+adapter);
         }
 
         @Override
@@ -385,16 +381,8 @@ public class DBTScanner10 {
             }
         }
 
-        if( !USE_WHITELIST ) {
-            res = device.connectDefault();
-        } else {
-            res = HCIStatusCode.SUCCESS;
-        }
+        res = device.connectDefault();
         BTUtils.println(System.err, "****** Connecting Device Command, res "+res+": End result "+res+" of " + device.toString());
-
-        if( !USE_WHITELIST && 0 == BTDeviceRegistry.getProcessingDeviceCount() && HCIStatusCode.SUCCESS != res ) {
-            startDiscovery(device.getAdapter(), "post-connect");
-        }
     }
 
     void shutdownTest() {
@@ -567,10 +555,6 @@ public class DBTScanner10 {
 
         BTDeviceRegistry.removeFromProcessingDevices( device.getAddressAndType() );
 
-        if( !USE_WHITELIST && 0 == BTDeviceRegistry.getProcessingDeviceCount() ) {
-            startDiscovery(device.getAdapter(), "post-processing-1");
-        }
-
         if( KEEP_CONNECTED && GATT_PING_ENABLED && success ) {
             while( device.pingGATT() ) {
                 BTUtils.println(System.err, "****** Processing Ready Device: pingGATT OK: "+device.getAddressAndType());
@@ -597,8 +581,6 @@ public class DBTScanner10 {
 
             if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount.get() % RESET_ADAPTER_EACH_CONN ) {
                 resetAdapter(device.getAdapter(), 2);
-            } else if( !USE_WHITELIST && 0 == BTDeviceRegistry.getProcessingDeviceCount() ) {
-                startDiscovery(device.getAdapter(), "post-processing-2");
             }
         }
 
@@ -615,10 +597,6 @@ public class DBTScanner10 {
         BTDeviceRegistry.removeFromProcessingDevices(device.getAddressAndType());
 
         device.remove();
-
-        if( !USE_WHITELIST && 0 == BTDeviceRegistry.getProcessingDeviceCount() ) {
-            startDiscovery(device.getAdapter(), "post-remove-device");
-        }
     }
 
     private void resetAdapter(final BTAdapter adapter, final int mode) {
@@ -627,8 +605,8 @@ public class DBTScanner10 {
         BTUtils.println(System.err, "****** Reset Adapter: reset["+mode+"] end: "+res+", "+adapter.toString());
     }
 
-    static boolean keep_alive = true; // default value
-    static boolean le_scan_active = true; // default value
+    DiscoveryPolicy discoveryPolicy = DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_READY; // default value
+    boolean le_scan_active = true; // default value
     static final short le_scan_interval = (short)24; // default value
     static final short le_scan_window = (short)24; // default value
     static final byte filter_policy = (byte)0; // default value
@@ -639,7 +617,7 @@ public class DBTScanner10 {
             BTUtils.fprintf_td(System.err, "****** Start discovery (%s): Adapter not selected: %s\n", msg, adapter.toString());
             return false;
         }
-        final HCIStatusCode status = adapter.startDiscovery( keep_alive, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
+        final HCIStatusCode status = adapter.startDiscovery( discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
         BTUtils.println(System.err, "****** Start discovery ("+msg+") result: "+status);
         return HCIStatusCode.SUCCESS == status;
     }
@@ -681,17 +659,9 @@ public class DBTScanner10 {
         // This avoids discovered devices before we have registered!
         adapter.removeDiscoveredDevices();
 
-        if( USE_WHITELIST ) {
-            for(final Iterator<BDAddressAndType> wliter = whitelist.iterator(); wliter.hasNext(); ) {
-                final BDAddressAndType addr = wliter.next();
-                final boolean res = adapter.addDeviceToWhitelist(addr, HCIWhitelistConnectType.HCI_AUTO_CONN_ALWAYS);
-                BTUtils.println(System.err, "initAdapter: Added to whitelist: res "+res+", address "+addr);
-            }
-        } else {
-            if( !startDiscovery(adapter, "initAdapter") ) {
-                adapter.removeStatusListener( asl );
-                return false;
-            }
+        if( !startDiscovery(adapter, "initAdapter") ) {
+            adapter.removeStatusListener( asl );
+            return false;
         }
         return true;
     }
@@ -825,21 +795,18 @@ public class DBTScanner10 {
                     test.SHOW_UPDATE_EVENTS = true;
                 } else if( arg.equals("-quiet") ) {
                     test.QUIET = true;
-                } else if( arg.equals("-scanPassive") ) {
-                    le_scan_active = false;
                 } else if( arg.equals("-shutdown") && args.length > (i+1) ) {
                     test.shutdownTest = Integer.valueOf(args[++i]).intValue();
+                } else if( arg.equals("-discoveryPolicy") && args.length > (i+1) ) {
+                    test.discoveryPolicy = DiscoveryPolicy.get((byte) Integer.valueOf(args[++i]).intValue() );
+                } else if( arg.equals("-scanPassive") ) {
+                    test.le_scan_active = false;
                 } else if( arg.equals("-btmode") && args.length > (i+1) ) {
                     test.btMode = BTMode.get(args[++i]);
                 } else if( arg.equals("-adapter") && args.length > (i+1) ) {
                     test.useAdapter = new EUI48( args[++i] );
                 } else if( arg.equals("-dev") && args.length > (i+1) ) {
                     BTDeviceRegistry.addToWaitForDevices( args[++i] );
-                } else if( arg.equals("-wl") && args.length > (i+1) ) {
-                    final BDAddressAndType wle = new BDAddressAndType(new EUI48(args[++i]), BDAddressType.BDADDR_LE_PUBLIC);
-                    BTUtils.println(System.err, "Whitelist + "+wle);
-                    test.whitelist.add(wle);
-                    test.USE_WHITELIST = true;
                 } else if( arg.equals("-passkey") && args.length > (i+2) ) {
                     final String addrOrNameSub = args[++i];
                     final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getOrCreate(addrOrNameSub);
@@ -885,10 +852,11 @@ public class DBTScanner10 {
             }
             BTUtils.println(System.err, "Run with '[-btmode LE|BREDR|DUAL] "+
                     "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "+
-                    "[-scanPassive]"+
+                    "[-discoveryPolicy <0-4>] "+
+                    "[-scanPassive] "+
                     "[-resetEachCon connectionCount] "+
                     "[-adapter <adapter_address>] "+
-                    "(-dev <device_[address|name]_sub>)* (-wl <device_address>)* "+
+                    "(-dev <device_[address|name]_sub>)* "+
                     "(-seclevel <device_[address|name]_sub> <int_sec_level>)* "+
                     "(-iocap <device_[address|name]_sub> <int_iocap>)* "+
                     "(-secauto <device_[address|name]_sub> <int_iocap>)* "+
@@ -909,11 +877,12 @@ public class DBTScanner10 {
         BTUtils.println(System.err, "RESET_ADAPTER_EACH_CONN "+test.RESET_ADAPTER_EACH_CONN);
         BTUtils.println(System.err, "GATT_PING_ENABLED "+test.GATT_PING_ENABLED);
         BTUtils.println(System.err, "REMOVE_DEVICE "+test.REMOVE_DEVICE);
-        BTUtils.println(System.err, "USE_WHITELIST "+test.USE_WHITELIST);
         BTUtils.println(System.err, "SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
         BTUtils.println(System.err, "QUIET "+test.QUIET);
         BTUtils.println(System.err, "adapter "+test.useAdapter);
-        BTUtils.println(System.err, "btmode' to "+test.btMode.toString());
+        BTUtils.println(System.err, "btmode "+test.btMode.toString());
+        BTUtils.println(System.err, "discoveryPolicy "+test.discoveryPolicy.toString());
+        BTUtils.println(System.err, "le_scan_active "+test.le_scan_active);
         BTUtils.println(System.err, "Command: cmd "+test.cmd_uuid+", arg 0x"+Integer.toHexString(test.cmd_arg));
         BTUtils.println(System.err, "         rsp "+test.cmd_rsp_uuid);
         BTUtils.println(System.err, "security-details: "+BTSecurityRegistry.allToString() );

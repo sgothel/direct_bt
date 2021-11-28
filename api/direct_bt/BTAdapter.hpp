@@ -53,6 +53,54 @@ namespace direct_bt {
     class BTManager; // forward
 
     /**
+     * Discovery policy defines the BTAdapter discovery mode after connecting a remote BTDevice:
+     * - turned-off (DiscoveryPolicy::AUTO_OFF)
+     * - paused until all connected BTDevice become disconnected, effectively until AdapterStatusListener::deviceDisconnected() (DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_DISCONNECTED).
+     * - paused until all connected devices reach readiness inclusive optional SMP pairing (~120ms) and GATT service discovery (~700ms), effectively until AdapterStatusListener::deviceReady(). (DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY, default)
+     * - paused until all connected devices are optionally SMP paired (~120ms), exclusive GATT service discovery (~700ms -> ~1200ms, DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_PAIRED)
+     * - always enabled, i.e. re-enabled if automatically turned-off by HCI host OS as soon as possible (DiscoveryPolicy::ALWAYS_ON)
+     *
+     * Policy is set via BTAdapter::startDiscovery()
+     *
+     * Default is DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY, as it has been shown that continuous advertising
+     * reduces the bandwidth for the initial bring-up time including GATT service discovery considerably.
+     * Continuous advertising would increase the readiness lag of the remote device until AdapterStatusListener::deviceReady().
+     *
+     * In case users favors faster parallel discovery of new remote devices and hence a slower readiness,
+     * DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_PAIRED or even DiscoveryPolicy::ALWAYS_ON can be used.
+     *
+     * @since 2.5.0
+     */
+    enum class DiscoveryPolicy : uint8_t {
+        /** Turn off discovery when connected and leave discovery disabled, if turned off by host system. */
+        AUTO_OFF                     = 0,
+        /**
+         * Pause discovery until all connected BTDevice become disconnected,
+         * effectively until AdapterStatusListener::deviceDisconnected().
+         */
+        PAUSE_CONNECTED_UNTIL_DISCONNECTED  = 1,
+        /**
+         * Pause discovery until all connected BTDevice reach readiness inclusive optional SMP pairing (~120ms) and GATT service discovery (~700ms),
+         * effectively until AdapterStatusListener::deviceReady(). This is the default!
+         */
+        PAUSE_CONNECTED_UNTIL_READY  = 2,
+        /** Pause discovery until all connected BTDevice are optionally SMP paired (~120ms), exclusive GATT service discovery (~700ms -> ~1200ms). */
+        PAUSE_CONNECTED_UNTIL_PAIRED = 3,
+        /** Always keep discovery enabled, i.e. re-enabled if automatically turned-off by HCI host OS as soon as possible. */
+        ALWAYS_ON                    = 4
+    };
+    constexpr uint8_t number(const DiscoveryPolicy rhs) noexcept {
+        return static_cast<uint8_t>(rhs);
+    }
+    constexpr DiscoveryPolicy to_DiscoveryPolicy(const uint8_t v) noexcept {
+        if( 1 <= v && v <= 4 ) {
+            return static_cast<DiscoveryPolicy>(v);
+        }
+        return DiscoveryPolicy::AUTO_OFF;
+    }
+    std::string to_string(const DiscoveryPolicy v) noexcept;
+
+    /**
      * {@link BTAdapter} status listener for {@link BTDevice} discovery events: Added, updated and removed;
      * as well as for certain {@link BTAdapter} events.
      * <p>
@@ -107,19 +155,19 @@ namespace direct_bt {
              * BTAdapter's discovery state has changed, i.e. enabled or disabled.
              * @param adapter the adapter which discovering state has changed.
              * @param currentMeta the current meta ScanType
-             * @param changedType denotes the changed ScanType
-             * @param changedEnabled denotes whether the changed ScanType has been enabled or disabled
-             * @param keepAlive if `true`, the denoted changed ScanType will be re-enabled if disabled by the underlying Bluetooth implementation.
+             * @param changedType denotes the changed native ScanType
+             * @param changedEnabled denotes whether the changed native ScanType has been enabled or disabled
+             * @param policy the current DiscoveryPolicy of the BTAdapter, chosen via BTAdapter::startDiscovery()
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              *
              * changeScanType(const ScanType current, const bool enable, const ScanType enableChanged) noexcept {
              */
-            virtual void discoveringChanged(BTAdapter &adapter, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const bool keepAlive, const uint64_t timestamp) {
+            virtual void discoveringChanged(BTAdapter &adapter, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const DiscoveryPolicy policy, const uint64_t timestamp) {
                 (void)adapter;
                 (void)currentMeta;
                 (void)changedType;
                 (void)changedEnabled;
-                (void)keepAlive;
+                (void)policy;
                 (void)timestamp;
             }
 
@@ -316,7 +364,8 @@ namespace direct_bt {
 
             jau::ordered_atomic<AdapterSetting, std::memory_order::memory_order_relaxed> old_settings;
             jau::ordered_atomic<ScanType, std::memory_order::memory_order_relaxed> currentMetaScanType; // = ScanType::NONE
-            jau::relaxed_atomic_bool keep_le_scan_alive; //  = false;
+            jau::ordered_atomic<DiscoveryPolicy, std::memory_order::memory_order_relaxed> discovery_policy; // = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY
+
             jau::relaxed_atomic_bool scan_filter_dup; //  = true;
 
             SMPIOCapability  iocap_defaultval = SMPIOCapability::UNSET;
@@ -329,8 +378,11 @@ namespace direct_bt {
             device_list_t discoveredDevices;
             /** All connected devices: Transient until disconnect or removal. */
             device_list_t connectedDevices;
-            /** All persistent shared devices: Persistent until removal. */
-            device_list_t sharedDevices; // All active shared devices. Final holder of BTDevice lifecycle!
+            /** All active shared devices: Persistent until removal. Final holder of BTDevice lifecycle! */
+            device_list_t sharedDevices;
+            /** All connected devices for which discovery has been paused. */
+            device_list_t pausing_discovery_devices;
+
             typedef jau::cow_darray<impl::StatusListenerPair> statusListenerList_t;
             statusListenerList_t statusListenerList;
 
@@ -344,6 +396,7 @@ namespace direct_bt {
 
             mutable std::mutex mtx_discoveredDevices;
             mutable std::mutex mtx_connectedDevices;
+            mutable std::mutex mtx_pausingDiscoveryDevices;
             mutable std::mutex mtx_discovery;
             mutable std::mutex mtx_sharedDevices; // final mutex of all BTDevice lifecycle
             mutable std::mutex mtx_keys;
@@ -394,11 +447,17 @@ namespace direct_bt {
             friend bool BTDevice::updatePairingState(BTDeviceRef sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
             friend void BTDevice::hciSMPMsgCallback(BTDeviceRef sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
             friend void BTDevice::processDeviceReady(BTDeviceRef sthis, const uint64_t timestamp);
-            friend jau::darray<std::shared_ptr<BTGattService>> BTDevice::getGattServices() noexcept;
+            friend bool BTDevice::connectGATT(std::shared_ptr<BTDevice> sthis) noexcept;
 
             bool lockConnect(const BTDevice & device, const bool wait, const SMPIOCapability io_cap) noexcept;
             bool unlockConnect(const BTDevice & device) noexcept;
             bool unlockConnectAny() noexcept;
+
+            bool addDevicePausingDiscovery(const BTDeviceRef & device) noexcept;
+            bool removeDevicePausingDiscovery(const BTDevice & device, const bool off_thread_enable) noexcept;
+            BTDeviceRef findDevicePausingDiscovery (const EUI48 & address, const BDAddressType & addressType) noexcept;
+            void clearDevicesPausingDiscovery() noexcept;
+            bool hasDevicesPausingDiscovery() noexcept;
 
             bool addConnectedDevice(const BTDeviceRef & device) noexcept;
             bool removeConnectedDevice(const BTDevice & device) noexcept;
@@ -448,7 +507,9 @@ namespace direct_bt {
             bool mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept;
             bool mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noexcept;
 
-            bool mgmtEvDeviceDiscoveringAny(const MgmtEvent& e, const bool hciSourced) noexcept;
+            void updateDeviceDiscoveringState(const ScanType eventScanType, const bool eventEnabled, const bool off_thread) noexcept;
+            bool mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const bool eventEnabled, const uint64_t eventTimestamp,
+                                            const bool hciSourced, const bool off_thread) noexcept;
 
             bool mgmtEvPinCodeRequestMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept;
@@ -459,6 +520,7 @@ namespace direct_bt {
             bool hciSMPMsgCallback(const BDAddressAndType & addressAndType,
                                    const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
             void sendDevicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept;
+            void notifyPairingStageDone(BTDeviceRef device, uint64_t timestamp) noexcept;
             void sendDeviceReady(BTDeviceRef device, uint64_t timestamp) noexcept;
 
             void startDiscoveryBackground() noexcept;
@@ -867,9 +929,9 @@ namespace direct_bt {
              *
              * Returns HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state;
              *
-             * if `keepAlive` is `true`, discovery state will be re-enabled
-             * in case the underlying Bluetooth implementation disables it.
-             * Default is `true`.
+             * Depending on given DiscoveryPolicy `policy`, the discovery mode may be turned-off,
+             * paused until a certain readiness stage has been reached or preserved at all times.
+             * Default is DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY.
              *
              * Using startDiscovery(keepAlive=true) and stopDiscovery()
              * is the recommended workflow for a reliable discovery process.
@@ -899,7 +961,7 @@ namespace direct_bt {
              * This adapter's HCIHandler instance is used to initiate scanning,
              * see HCIHandler::le_start_scan().
              *
-             * @param keepAlive
+             * @param policy defaults to DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY, see DiscoveryPolicy
              * @param le_scan_active true enables delivery of active scanning PDUs like EIR w/ device name (default), otherwise no scanning PDUs shall be sent.
              * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
              * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
@@ -909,16 +971,18 @@ namespace direct_bt {
              * @see stopDiscovery()
              * @see isDiscovering()
              * @see isAdvertising()
+             * @see DiscoveryPolicy
              * @see @ref BTAdapterRoles
+             * @since 2.5.0
              */
-            HCIStatusCode startDiscovery(const bool keepAlive=true,
+            HCIStatusCode startDiscovery(const DiscoveryPolicy policy=DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY,
                                          const bool le_scan_active=true,
                                          const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
                                          const uint8_t filter_policy=0x00,
                                          const bool filter_dup=true) noexcept;
 
         private:
-            HCIStatusCode stopDiscovery(const bool forceDiscoveringEvent) noexcept;
+            HCIStatusCode stopDiscovery(const bool forceDiscoveringEvent, const bool temporary) noexcept;
 
         public:
             /**
@@ -931,7 +995,7 @@ namespace direct_bt {
              * @see startDiscovery()
              * @see isDiscovering()
              */
-            HCIStatusCode stopDiscovery() noexcept { return stopDiscovery(false); }
+            HCIStatusCode stopDiscovery() noexcept;
 
             /**
              * Returns the current meta discovering ScanType. It can be modified through startDiscovery(..) and stopDiscovery().
