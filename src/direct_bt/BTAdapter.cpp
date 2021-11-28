@@ -79,7 +79,6 @@ BTDeviceRef BTAdapter::findDevice(device_list_t & devices, BTDevice const & devi
 
 bool BTAdapter::addConnectedDevice(const BTDeviceRef & device) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     if( nullptr != findDevice(connectedDevices, *device) ) {
         return false;
     }
@@ -89,7 +88,6 @@ bool BTAdapter::addConnectedDevice(const BTDeviceRef & device) noexcept {
 
 bool BTAdapter::removeConnectedDevice(const BTDevice & device) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     auto end = connectedDevices.end();
     for (auto it = connectedDevices.begin(); it != end; ++it) {
         if ( nullptr != *it && device == **it ) {
@@ -118,7 +116,6 @@ int BTAdapter::disconnectAllDevices(const HCIStatusCode reason) noexcept {
 
 BTDeviceRef BTAdapter::findConnectedDevice (const EUI48 & address, const BDAddressType & addressType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     return findDevice(connectedDevices, address, addressType);
 }
 
