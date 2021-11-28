@@ -151,7 +151,7 @@ bool BTAdapter::updateDataFromHCI() noexcept {
 bool BTAdapter::updateDataFromAdapterInfo() noexcept {
     BTMode btMode = getBTMode();
     if( BTMode::NONE == btMode ) {
-        WARN_PRINT("BTAdapter::updateDataFromAdapterInfo: Adapter[%d]: BTMode invalid, BREDR nor LE set: %s", dev_id, adapterInfo.toString().c_str());
+        WARN_PRINT("Adapter[%d]: BTMode invalid, BREDR nor LE set: %s", dev_id, adapterInfo.toString().c_str());
         return false;
     }
     hci.setBTMode(btMode);
@@ -160,11 +160,11 @@ bool BTAdapter::updateDataFromAdapterInfo() noexcept {
 
 bool BTAdapter::initialSetup() noexcept {
     if( !mgmt.isOpen() ) {
-        ERR_PRINT("BTAdapter::initialSetup: Adapter[%d]: Manager not open", dev_id);
+        ERR_PRINT("Adapter[%d]: Manager not open", dev_id);
         return false;
     }
     if( !hci.isOpen() ) {
-        ERR_PRINT("BTAdapter::initialSetup: Adapter[%d]: HCIHandler closed", dev_id);
+        ERR_PRINT("Adapter[%d]: HCIHandler closed", dev_id);
         return false;
     }
 
@@ -193,11 +193,11 @@ bool BTAdapter::initialSetup() noexcept {
 bool BTAdapter::enableListening(const bool enable) noexcept {
     if( enable ) {
         if( !mgmt.isOpen() ) {
-            ERR_PRINT("BTAdapter::enableListening: Adapter[%d]: Manager not open", dev_id);
+            ERR_PRINT("Adapter[%d]: Manager not open", dev_id);
             return false;
         }
         if( !hci.isOpen() ) {
-            ERR_PRINT("BTAdapter::enableListening: Adapter[%d]: HCIHandler closed", dev_id);
+            ERR_PRINT("Adapter[%d]: HCIHandler closed", dev_id);
             return false;
         }
 
@@ -219,7 +219,7 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LINK_KEY, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewLinkKeyMgmt));
 
         if( !ok ) {
-            ERR_PRINT("BTAdapter::enableListening: Could not add all required MgmtEventCallbacks to DBTManager: %s", toString().c_str());
+            ERR_PRINT("Could not add all required MgmtEventCallbacks to DBTManager: %s", toString().c_str());
             return false;
         }
 
@@ -245,7 +245,7 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
 #endif
 
         if( !ok ) {
-            ERR_PRINT("BTAdapter::enableListening: Could not add all required MgmtEventCallbacks to HCIHandler: %s of %s", hci.toString().c_str(), toString().c_str());
+            ERR_PRINT("Could not add all required MgmtEventCallbacks to HCIHandler: %s of %s", hci.toString().c_str(), toString().c_str());
             return false; // dtor local HCIHandler w/ closing
         }
         hci.addSMPMsgCallback(jau::bindMemberFunc(this, &BTAdapter::hciSMPMsgCallback));
@@ -486,7 +486,7 @@ HCIStatusCode BTAdapter::uploadKeys(SMPKeyBin& bin, const bool write) noexcept {
     BTManager & mngr = getManager();
     res = mngr.unpairDevice(dev_id, bin.getRemoteAddrAndType(), false /* disconnect */);
     if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
-        ERR_PRINT("BTAdapter::setSMPKeyBin: Unpair device failed: %s, %s",
+        ERR_PRINT("Unpair device failed: %s, %s",
                     bin.getRemoteAddrAndType().toString().c_str(), toString().c_str());
     }
 
@@ -513,7 +513,7 @@ HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
     // Also fails if unable to power-on and not powered-on!
     HCIStatusCode status = mgmt.initializeAdapter(adapterInfo, dev_id, BTRole::None /* unused */, btMode);
     if( HCIStatusCode::SUCCESS != status ) {
-        WARN_PRINT("BTAdapter::initialize: Adapter[%d]: Failed initializing (1): res0 %s, powered[before %d, now %d], %s - %s",
+        WARN_PRINT("Adapter[%d]: Failed initializing (1): res0 %s, powered[before %d, now %d], %s - %s",
                 dev_id, to_string(status).c_str(),
                 was_powered, adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED),
                 adapterInfo.toString().c_str(), toString().c_str());
@@ -659,11 +659,11 @@ bool BTAdapter::unlockConnectAny() noexcept {
 
 HCIStatusCode BTAdapter::reset() noexcept {
     if( !isValid() ) {
-        ERR_PRINT("BTAdapter::reset(): Adapter invalid: %s, %s", to_hexstring(this).c_str(), toString().c_str());
+        ERR_PRINT("Adapter invalid: %s, %s", to_hexstring(this).c_str(), toString().c_str());
         return HCIStatusCode::UNSPECIFIED_ERROR;
     }
     if( !hci.isOpen() ) {
-        ERR_PRINT("BTAdapter::reset(): HCI closed: %s, %s", to_hexstring(this).c_str(), toString().c_str());
+        ERR_PRINT("HCI closed: %s, %s", to_hexstring(this).c_str(), toString().c_str());
         return HCIStatusCode::UNSPECIFIED_ERROR;
     }
 #if 0
@@ -673,10 +673,10 @@ HCIStatusCode BTAdapter::reset() noexcept {
 
     HCIStatusCode status = hci->reset();
     if( HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("BTAdapter::reset: reset failed: %s", to_string(status).c_str());
+        ERR_PRINT("reset failed: %s", to_string(status).c_str());
     } else if( wasPowered ) {
         if( !setPowered(true) ) {
-            ERR_PRINT("BTAdapter::reset: setPowered(true) failed");
+            ERR_PRINT("setPowered(true) failed");
             status = HCIStatusCode::UNSPECIFIED_ERROR;
         }
     }
@@ -707,12 +707,12 @@ bool BTAdapter::addDeviceToWhitelist(const BDAddressAndType & addressAndType, co
         return false;
     }
     if( mgmt.isDeviceWhitelisted(dev_id, addressAndType) ) {
-        ERR_PRINT("BTAdapter::addDeviceToWhitelist: device already listed: dev_id %d, address%s", dev_id, addressAndType.toString().c_str());
+        ERR_PRINT("device already listed: dev_id %d, address%s", dev_id, addressAndType.toString().c_str());
         return true;
     }
 
     if( !mgmt.uploadConnParam(dev_id, addressAndType, conn_interval_min, conn_interval_max, conn_latency, timeout) ) {
-        ERR_PRINT("BTAdapter::addDeviceToWhitelist: uploadConnParam(dev_id %d, address%s, interval[%u..%u], latency %u, timeout %u): Failed",
+        ERR_PRINT("uploadConnParam(dev_id %d, address%s, interval[%u..%u], latency %u, timeout %u): Failed",
                 dev_id, addressAndType.toString().c_str(), conn_interval_min, conn_interval_max, conn_latency, timeout);
     }
     return mgmt.addDeviceToWhitelist(dev_id, addressAndType, ctype);
@@ -873,7 +873,7 @@ HCIStatusCode BTAdapter::startDiscovery(const bool keepAlive, const bool le_scan
     const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
 
     if( isAdvertising() ) {
-        WARN_PRINT("BTAdapter::startDiscovery: Adapter in advertising mode: %s", toString(true).c_str());
+        WARN_PRINT("Adapter in advertising mode: %s", toString(true).c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
     scan_filter_dup = filter_dup; // cache for background scan
@@ -936,7 +936,7 @@ void BTAdapter::startDiscoveryBackground() noexcept {
         // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
         const HCIStatusCode status = hci.le_enable_scan(true /* enable */, scan_filter_dup);
         if( HCIStatusCode::SUCCESS != status ) {
-            ERR_PRINT("BTAdapter::startDiscoveryBackground: le_enable_scan failed: %s - %s", to_string(status).c_str(), toString(true).c_str());
+            ERR_PRINT("le_enable_scan failed: %s - %s", to_string(status).c_str(), toString(true).c_str());
         }
         checkDiscoveryState();
     }
@@ -946,7 +946,7 @@ HCIStatusCode BTAdapter::stopDiscovery(const bool forceDiscoveringEvent) noexcep
     // We allow !isEnabled, to utilize method for adjusting discovery state and notifying listeners
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to stop BREDR, LE or DUAL scanning!
     if( !isValid() ) {
-        ERR_PRINT("BTAdapter::stopDiscovery: Adapter invalid: %s, %s", to_hexstring(this).c_str(), toString().c_str());
+        ERR_PRINT("Adapter invalid: %s, %s", to_hexstring(this).c_str(), toString().c_str());
         return HCIStatusCode::UNSPECIFIED_ERROR;
     }
     const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
@@ -1000,7 +1000,7 @@ HCIStatusCode BTAdapter::stopDiscovery(const bool forceDiscoveringEvent) noexcep
         // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
         status = hci.le_enable_scan(false /* enable */);
         if( HCIStatusCode::SUCCESS != status ) {
-            ERR_PRINT("BTAdapter::stopDiscovery: le_enable_scan failed: %s", to_string(status).c_str());
+            ERR_PRINT("le_enable_scan failed: %s", to_string(status).c_str());
         }
     }
 
@@ -1216,12 +1216,12 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
     }
 
     if( isDiscovering() ) {
-        WARN_PRINT("BTAdapter::startAdvertising: Not allowed (scan enabled): %s", toString(true).c_str());
+        WARN_PRINT("Not allowed (scan enabled): %s", toString(true).c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
     const int connCount = getConnectedDeviceCount();
     if( 0 < connCount ) { // FIXME: May shall not be a restriction
-        WARN_PRINT("BTAdapter::startAdvertising: Not allowed (%d connections open/pending): %s", connCount, toString(true).c_str());
+        WARN_PRINT("Not allowed (%d connections open/pending): %s", connCount, toString(true).c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
     // FIXME?? std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME: Fast restart of advertising error)
@@ -1257,7 +1257,7 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
                                             peer_bdaddr, own_mac_type, peer_mac_type,
                                             adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy);
     if( HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("BTAdapter::startAdvertising: le_start_adv failed: %s - %s", to_string(status).c_str(), toString(true).c_str());
+        ERR_PRINT("le_start_adv failed: %s - %s", to_string(status).c_str(), toString(true).c_str());
     } else {
         gattServerData = gattServerData_;
         btRole = BTRole::Slave;
@@ -1281,7 +1281,7 @@ HCIStatusCode BTAdapter::stopAdvertising() noexcept {
 
     HCIStatusCode status = hci.le_enable_adv(false /* enable */);
     if( HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("BTAdapter::stopAdvertising: le_enable_adv failed: %s", to_string(status).c_str());
+        ERR_PRINT("le_enable_adv failed: %s", to_string(status).c_str());
     }
     return status;
 }
@@ -1575,7 +1575,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
 
     EIRDataType updateMask = device->update(ad_report);
     if( 0 == new_connect ) {
-        WARN_PRINT("BTAdapter::EventHCI:DeviceConnected(dev_id %d, already connected, updated %s): %s, handle %s -> %s,\n    %s,\n    -> %s",
+        WARN_PRINT("(dev_id %d, already connected, updated %s): %s, handle %s -> %s,\n    %s,\n    -> %s",
             dev_id, to_string(updateMask).c_str(), event.toString().c_str(),
             jau::to_hexstring(device->getConnectionHandle()).c_str(), jau::to_hexstring(event.getHCIHandle()).c_str(),
             ad_report.toString().c_str(),
@@ -1936,7 +1936,7 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             {
                 const HCIStatusCode res = mgmt.unpairDevice(dev_id, dev_shared->getAddressAndType(), false /* disconnect */);
                 if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
-                    WARN_PRINT("BTAdapter:hci:DeviceFound(1.1, dev_id %d): Unpair device failed: %s, %s",
+                    WARN_PRINT("(dev_id %d): Unpair device failed: %s, %s",
                                 dev_id, to_string(res).c_str(), dev_shared->getAddressAndType().toString().c_str());
                 }
             }
@@ -1976,7 +1976,7 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             {
                 HCIStatusCode res = dev_shared->unpair();
                 if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
-                    WARN_PRINT("BTAdapter:hci:DeviceFound(1.2, dev_id %d): Unpair device failed: %s, %s",
+                    WARN_PRINT("(dev_id %d): Unpair device failed: %s, %s",
                                 dev_id, to_string(res).c_str(), dev_shared->getAddressAndType().toString().c_str());
                 }
             }
