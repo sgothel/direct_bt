@@ -442,6 +442,18 @@ from the year 2016.
 
 * TODO
 
+**2.5.0**
+
+* Added *DiscoveryPolicy*, allowing fine tuned discovery keep-alive policy
+  and covering HCI host OS's implied discovery turn-off when connected (BlueZ/Linux).
+  API change of `BTAdapter::startDiscovery(..)` and `AdapterStatusListener::discoveringChanged(..)`
+* BTDevice::connectGATT(): Discover GATT services and parse GenericAccess ASAP before `AdapterStatusListener::deviceReady()`
+* SMPKeyBin::createAndWrite(..): Drop 'overwrite' argument as we shall set `overwrite = PairingMode::PRE_PAIRED != device.getPairingMode()`
+* Fix *PRE_PAIRED* mode for !SC (legacy): Master needs to upload init LTK 1st, then responder LTK (regression)
+* Robustness: Reader-Callback Shutdown after 8s and use SC atomic for state
+* BTAdapter::startDiscovery(..): Add 'bool filter_dup=true' as last parameter
+* Unlock mutex before `notify_all` to avoid pessimistic re-block of notified `wait()` thread
+
 **2.4.0**
 
 * Completed Java support for LE slave/server (*peripheral*) mode incl *GATT-Server*.
