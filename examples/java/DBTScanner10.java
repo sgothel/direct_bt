@@ -349,11 +349,6 @@ public class DBTScanner10 {
                 return "TempAdapterStatusListener[user, device "+device.getAddressAndType().toString()+"]";
             } });
 
-        {
-            final HCIStatusCode r = device.getAdapter().stopDiscovery();
-            BTUtils.println(System.err, "****** Connecting Device: stopDiscovery result "+r);
-        }
-
         final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getStartOf(device.getAddressAndType().address, device.getName());
         if( null != sec ) {
             BTUtils.println(System.err, "****** Connecting Device: Found SecurityDetail "+sec.toString()+" for "+device.toString());
@@ -411,12 +406,6 @@ public class DBTScanner10 {
 
     private void processReadyDevice(final BTDevice device) {
         BTUtils.println(System.err, "****** Processing Ready Device: Start " + device.toString());
-        {
-            // make sure for pending connections on failed connect*(..) command
-            final HCIStatusCode r = device.getAdapter().stopDiscovery();
-            BTUtils.println(System.err, "****** Processing Ready Device: stopDiscovery result "+r);
-        }
-
         final long t1 = BTUtils.currentTimeMillis();
 
         SMPKeyBin.createAndWrite(device, DBTConstants.KEY_PATH, true /* verbose */);
@@ -596,7 +585,6 @@ public class DBTScanner10 {
 
     private void removeDevice(final BTDevice device) {
         BTUtils.println(System.err, "****** Remove Device: removing: "+device.getAddressAndType());
-        device.getAdapter().stopDiscovery();
 
         BTDeviceRegistry.removeFromProcessingDevices(device.getAddressAndType());
 
