@@ -62,6 +62,12 @@ namespace direct_bt {
              * Returns whether the object's reference is valid and in a general operational state.
              */
             inline bool isValid() const noexcept { return valid.load(); }
+
+            inline void checkValid() const override {
+                if( !isValid() ) {
+                    throw jau::IllegalStateException("BTObject::checkValid: Invalid object: "+toString(), E_FILE_LINE);
+                }
+            }
     };
     inline std::string to_string(const BTObject& o) noexcept { return o.toString(); }
 
