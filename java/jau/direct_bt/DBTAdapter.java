@@ -389,6 +389,15 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     }
     private native byte stopDiscoveryImpl() throws BTException;
 
+    @Override
+    public DiscoveryPolicy getCurrentDiscoveryPolicy() {
+        return DiscoveryPolicy.get( getCurrentDiscoveryPolicyImpl() );
+    }
+    private native byte getCurrentDiscoveryPolicyImpl();
+
+    @Override
+    public native boolean removeDevicePausingDiscovery(final BTDevice device);
+
     // std::vector<std::shared_ptr<direct_bt::HCIDevice>> discoveredDevices = adapter.getDiscoveredDevices();
     private native List<BTDevice> getDiscoveredDevicesImpl();
 

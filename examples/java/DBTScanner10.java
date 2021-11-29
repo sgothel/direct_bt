@@ -555,6 +555,10 @@ public class DBTScanner10 {
 
         BTDeviceRegistry.removeFromProcessingDevices( device.getAddressAndType() );
 
+        if( DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_DISCONNECTED == discoveryPolicy ) {
+            device.getAdapter().removeDevicePausingDiscovery(device);
+        }
+
         if( KEEP_CONNECTED && GATT_PING_ENABLED && success ) {
             while( device.pingGATT() ) {
                 BTUtils.println(System.err, "****** Processing Ready Device: pingGATT OK: "+device.getAddressAndType());

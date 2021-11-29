@@ -710,6 +710,31 @@ jbyte Java_jau_direct_1bt_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject obj)
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
+jbyte Java_jau_direct_1bt_DBTAdapter_getCurrentDiscoveryPolicyImpl(JNIEnv *env, jobject obj) {
+    DiscoveryPolicy current = DiscoveryPolicy::AUTO_OFF;
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        current = adapter->getCurrentDiscoveryPolicy();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte)number(current);
+}
+
+jboolean Java_jau_direct_1bt_DBTAdapter_removeDevicePausingDiscovery(JNIEnv *env, jobject obj, jobject jdevice) {
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+
+        BTDevice *device = jau::getJavaUplinkObject<BTDevice>(env, jdevice);
+        jau::JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        return adapter->removeDevicePausingDiscovery(*device) ? JNI_TRUE : JNI_FALSE;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
 jbyte Java_jau_direct_1bt_DBTAdapter_getRoleImpl(JNIEnv *env, jobject obj)
 {
     try {

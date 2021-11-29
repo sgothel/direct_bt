@@ -374,6 +374,8 @@ namespace direct_bt {
             std::condition_variable cv_single_conn_device;
 
             typedef jau::darray<BTDeviceRef> device_list_t;
+            typedef jau::darray<std::weak_ptr<BTDevice>> weak_device_list_t;
+
             /** All discovered devices: Transient until removeDiscoveredDevices(), startDiscovery(). */
             device_list_t discoveredDevices;
             /** All connected devices: Transient until disconnect or removal. */
@@ -381,7 +383,7 @@ namespace direct_bt {
             /** All active shared devices: Persistent until removal. Final holder of BTDevice lifecycle! */
             device_list_t sharedDevices;
             /** All connected devices for which discovery has been paused. */
-            device_list_t pausing_discovery_devices;
+            weak_device_list_t pausing_discovery_devices;
 
             typedef jau::cow_darray<impl::StatusListenerPair> statusListenerList_t;
             statusListenerList_t statusListenerList;
@@ -409,7 +411,10 @@ namespace direct_bt {
 
             static BTDeviceRef findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
             static BTDeviceRef findDevice(device_list_t & devices, BTDevice const & device) noexcept;
+            static BTDeviceRef findWeakDevice(weak_device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
+            static BTDeviceRef findWeakDevice(weak_device_list_t & devices, BTDevice const & device) noexcept;
             static void printDeviceList(const std::string& prefix, const BTAdapter::device_list_t& list) noexcept;
+            static void printWeakDeviceList(const std::string& prefix, BTAdapter::weak_device_list_t& list) noexcept;
 
             /** Private class only for private make_shared(). */
             class ctor_cookie { friend BTAdapter; ctor_cookie(const uint16_t secret) { (void)secret; } };
@@ -996,6 +1001,29 @@ namespace direct_bt {
              * @see isDiscovering()
              */
             HCIStatusCode stopDiscovery() noexcept;
+
+            /**
+             * Return the current DiscoveryPolicy, set via startDiscovery().
+             * @since 2.5.1
+             */
+            DiscoveryPolicy getCurrentDiscoveryPolicy() const noexcept { return discovery_policy; }
+
+            /**
+             * Manual DiscoveryPolicy intervention point, allowing user to remove the ready device from
+             * the queue of pausing-discovery devices.
+             *
+             * Manual intervention might be desired, if using DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_DISCONNECTED,
+             * but allowing discovery at an earlier processing step from AdapterStatusListener::deviceReady().
+             *
+             * Re-enabling discovery is performed on the current thread.
+             *
+             * @param device the BTDevice to remove from the pausing-discovery queue
+             * @return true if this was the last BTDevice, re-enabling discovery. Otherwise false.
+             * @since 2.5.1
+             */
+            bool removeDevicePausingDiscovery(const BTDevice & device) noexcept {
+                return removeDevicePausingDiscovery(device, false /* off_thread_enable */);
+            }
 
             /**
              * Returns the current meta discovering ScanType. It can be modified through startDiscovery(..) and stopDiscovery().

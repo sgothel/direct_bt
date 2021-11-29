@@ -88,16 +88,51 @@ BTDeviceRef BTAdapter::findDevice(device_list_t & devices, BTDevice const & devi
     return nullptr;
 }
 
+BTDeviceRef BTAdapter::findWeakDevice(weak_device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept {
+    auto end = devices.end();
+    for (auto it = devices.begin(); it != end; ) {
+        std::weak_ptr<BTDevice> & w = *it;
+        BTDeviceRef e = w.lock();
+        if( nullptr == e ) {
+            devices.erase(it); // erase and move it to next element
+        } else if ( address == e->getAddressAndType().address &&
+                    ( addressType == e->getAddressAndType().type || addressType == BDAddressType::BDADDR_UNDEFINED )
+                  )
+        {
+            return e;
+        } else {
+            ++it; // move it to next element
+        }
+    }
+    return nullptr;
+}
+
+BTDeviceRef BTAdapter::findWeakDevice(weak_device_list_t & devices, BTDevice const & device) noexcept {
+    auto end = devices.end();
+    for (auto it = devices.begin(); it != end; ) {
+        std::weak_ptr<BTDevice> & w = *it;
+        BTDeviceRef e = w.lock();
+        if( nullptr == e ) {
+            devices.erase(it); // erase and move it to next element
+        } else if ( device == *e ) {
+            return e;
+        } else {
+            ++it; // move it to next element
+        }
+    }
+    return nullptr;
+}
+
 BTDeviceRef BTAdapter::findDevicePausingDiscovery (const EUI48 & address, const BDAddressType & addressType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pausingDiscoveryDevices); // RAII-style acquire and relinquish via destructor
-    return findDevice(pausing_discovery_devices, address, addressType);
+    return findWeakDevice(pausing_discovery_devices, address, addressType);
 }
 
 bool BTAdapter::addDevicePausingDiscovery(const BTDeviceRef & device) noexcept {
     bool added_first = false;
     {
         const std::lock_guard<std::mutex> lock(mtx_pausingDiscoveryDevices); // RAII-style acquire and relinquish via destructor
-        if( nullptr != findDevice(pausing_discovery_devices, *device) ) {
+        if( nullptr != findWeakDevice(pausing_discovery_devices, *device) ) {
             return false;
         }
         added_first = 0 == pausing_discovery_devices.size();
@@ -120,13 +155,18 @@ bool BTAdapter::removeDevicePausingDiscovery(const BTDevice & device, const bool
     bool removed_last = false;
     {
         const std::lock_guard<std::mutex> lock(mtx_pausingDiscoveryDevices); // RAII-style acquire and relinquish via destructor
-        bool done = false;
         auto end = pausing_discovery_devices.end();
-        for (auto it = pausing_discovery_devices.begin(); it != end && !done; ++it) {
-            if ( nullptr != *it && device == **it ) {
+        for (auto it = pausing_discovery_devices.begin(); it != end; ) {
+            std::weak_ptr<BTDevice> & w = *it;
+            BTDeviceRef e = w.lock();
+            if( nullptr == e ) {
+                pausing_discovery_devices.erase(it); // erase and move it to next element
+            } else if ( device == *e ) {
                 pausing_discovery_devices.erase(it);
                 removed_last = 0 == pausing_discovery_devices.size();
-                done = true;
+                break; // done
+            } else {
+                ++it; // move it to next element
             }
         }
     }
@@ -473,18 +513,37 @@ void BTAdapter::printDeviceList(const std::string& prefix, const BTAdapter::devi
                 (*it)->getName().c_str() );
     }
 }
+void BTAdapter::printWeakDeviceList(const std::string& prefix, BTAdapter::weak_device_list_t& list) noexcept {
+    const size_t sz = list.size();
+    jau::PLAIN_PRINT(true, "- BTAdapter::%s: %zu elements", prefix.c_str(), sz);
+    int idx = 0;
+    for (auto it = list.begin(); it != list.end(); ++idx, ++it) {
+        std::weak_ptr<BTDevice> & w = *it;
+        BTDeviceRef e = w.lock();
+        if( nullptr == e ) {
+            jau::PLAIN_PRINT(true, "  - %d / %zu: null", (idx+1), sz);
+        } else {
+            jau::PLAIN_PRINT(true, "  - %d / %zu: %s, name '%s'", (idx+1), sz,
+                    e->getAddressAndType().toString().c_str(),
+                    e->getName().c_str() );
+        }
+    }
+}
 void BTAdapter::printDeviceLists() noexcept {
     device_list_t _sharedDevices, _discoveredDevices, _connectedDevices;
+    weak_device_list_t _pausingDiscoveryDevice;
     {
         jau::sc_atomic_critical sync(sync_data); // lock-free simple cache-load 'snapshot'
         // Using an expensive copy here: debug mode only
         _sharedDevices = sharedDevices;
         _discoveredDevices = discoveredDevices;
         _connectedDevices = connectedDevices;
+        _pausingDiscoveryDevice = pausing_discovery_devices;
     }
     printDeviceList("SharedDevices     ", _sharedDevices);
     printDeviceList("ConnectedDevices  ", _connectedDevices);
     printDeviceList("DiscoveredDevices ", _discoveredDevices);
+    printWeakDeviceList("PausingDiscoveryDevices ", _pausingDiscoveryDevice);
     printStatusListenerList();
 }
 
@@ -1230,6 +1289,7 @@ void BTAdapter::removeDevice(BTDevice & device) noexcept {
     unlockConnect(device);
     removeConnectedDevice(device); // usually done in BTAdapter::mgmtEvDeviceDisconnectedHCI
     removeDiscoveredDevice(device.addressAndType); // usually done in BTAdapter::mgmtEvDeviceDisconnectedHCI
+    removeDevicePausingDiscovery(device, true /* off_thread_enable */);
     removeSharedDevice(device);
 
     if( _print_device_lists || jau::environment::get().verbose ) {

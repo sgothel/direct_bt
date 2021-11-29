@@ -112,6 +112,13 @@ static uint64_t timestamp_t0;
 
 static EUI48 useAdapter = EUI48::ALL_DEVICE;
 static BTMode btMode = BTMode::DUAL;
+
+static DiscoveryPolicy discoveryPolicy = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY; // default value
+static bool le_scan_active = true; // default value
+static const uint16_t le_scan_interval = 24; // default value
+static const uint16_t le_scan_window = 24; // default value
+static const uint8_t filter_policy = 0; // default value
+
 static std::shared_ptr<BTAdapter> chosenAdapter = nullptr;
 
 static int RESET_ADAPTER_EACH_CONN = 0;
@@ -547,6 +554,10 @@ exit:
 
     BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
 
+    if( DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_DISCONNECTED == discoveryPolicy ) {
+        device->getAdapter().removeDevicePausingDiscovery(*device);
+    }
+
     if( KEEP_CONNECTED && GATT_PING_ENABLED && success ) {
         while( device->pingGATT() ) {
             fprintf_td(stderr, "****** Processing Ready Device: pingGATT OK: %s\n", device->getAddressAndType().toString().c_str());
@@ -596,12 +607,6 @@ static void resetAdapter(BTAdapter *a, int mode) {
     HCIStatusCode res = a->reset();
     fprintf_td(stderr, "****** Reset Adapter: reset[%d] end: %s, %s\n", mode, to_string(res).c_str(), a->toString().c_str());
 }
-
-static DiscoveryPolicy discoveryPolicy = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY; // default value
-static bool le_scan_active = true; // default value
-static const uint16_t le_scan_interval = 24; // default value
-static const uint16_t le_scan_window = 24; // default value
-static const uint8_t filter_policy = 0; // default value
 
 static bool startDiscovery(BTAdapter *a, std::string msg) {
     if( useAdapter != EUI48::ALL_DEVICE && useAdapter != a->getAddressAndType().address ) {

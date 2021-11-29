@@ -243,6 +243,27 @@ public interface BTAdapter extends BTObject
      */
     HCIStatusCode stopDiscovery() throws BTException;
 
+    /**
+     * Return the current {@link DiscoveryPolicy}, set via {@link #startDiscovery(DiscoveryPolicy, boolean, short, short, byte, boolean)}.
+     * @since 2.5.1
+     */
+    DiscoveryPolicy getCurrentDiscoveryPolicy();
+
+    /**
+     * Manual {@link DiscoveryPolicy} intervention point, allowing user to remove the ready device from
+     * the queue of pausing-discovery devices.
+     *
+     * Manual intervention might be desired, if using {@link DiscoveryPolicy#PAUSE_CONNECTED_UNTIL_DISCONNECTED},
+     * but allowing discovery at an earlier processing step from {@link AdapterStatusListener#deviceReady(BTDevice, long)}.
+     *
+     * Re-enabling discovery is performed on the current thread.
+     *
+     * @param device the {@link BTDevice} to remove from the pausing-discovery queue
+     * @return true if this was the last {@link BTDevice}, re-enabling discovery. Otherwise false.
+     * @since 2.5.1
+     */
+    boolean removeDevicePausingDiscovery(final BTDevice device);
+
     /** Returns a list of discovered BluetoothDevices from this adapter.
       * @return A list of discovered BluetoothDevices on this adapter,
       * NULL if an error occurred
