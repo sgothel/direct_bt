@@ -53,7 +53,7 @@ static const std::string _pairingStateClazzGetArgs("(B)Lorg/direct_bt/SMPPairing
 static const std::string _deviceClazzCtorArgs("(JLjau/direct_bt/DBTAdapter;[BBJLjava/lang/String;)V");
 
 static const std::string _adapterSettingsChangedMethodArgs("(Lorg/direct_bt/BTAdapter;Lorg/direct_bt/AdapterSettings;Lorg/direct_bt/AdapterSettings;Lorg/direct_bt/AdapterSettings;J)V");
-static const std::string _discoveringChangedMethodArgs("(Lorg/direct_bt/BTAdapter;Lorg/direct_bt/ScanType;Lorg/direct_bt/ScanType;ZZJ)V");
+static const std::string _discoveringChangedMethodArgs("(Lorg/direct_bt/BTAdapter;Lorg/direct_bt/ScanType;Lorg/direct_bt/ScanType;ZLorg/direct_bt/DiscoveryPolicy;J)V");
 static const std::string _deviceFoundMethodArgs("(Lorg/direct_bt/BTDevice;J)Z");
 static const std::string _deviceUpdatedMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/EIRDataTypeSet;J)V");
 static const std::string _deviceConnectedMethodArgs("(Lorg/direct_bt/BTDevice;SJ)V");
