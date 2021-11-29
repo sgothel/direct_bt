@@ -442,6 +442,13 @@ from the year 2016.
 
 * TODO
 
+**2.5.1**
+
+* `BTAdapter::pausing_discovery_devices`: Use `std::weak_ptr<BTDevice>` list
+* Add `BTAdapter::removeDevicePausingDiscovery()` and `getCurrentDiscoveryPolicy()`
+* DBTAdapter.cxx: Fix AdapterStatusListener.discoveringChanged(..) signature
+* Add BTObject::checkValid() implementation overriding jau:JavaUplink, to actually validate whether instance is still valid.
+
 **2.5.0**
 
 * Added *DiscoveryPolicy*, allowing fine tuned discovery keep-alive policy
