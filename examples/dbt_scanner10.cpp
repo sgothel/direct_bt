@@ -649,9 +649,6 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     }
     std::shared_ptr<AdapterStatusListener> asl(new MyAdapterStatusListener());
     adapter->addStatusListener( asl );
-    // Flush discovered devices after registering our status listener.
-    // This avoids discovered devices before we have registered!
-    adapter->removeDiscoveredDevices();
 
     if( !startDiscovery(adapter.get(), "initAdapter") ) {
         adapter->removeStatusListener( asl );
