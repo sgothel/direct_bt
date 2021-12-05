@@ -442,6 +442,10 @@ from the year 2016.
 
 * TODO
 
+**2.5.2**
+
+* jaulib v0.7.5 fixes 
+
 **2.5.1**
 
 * `BTAdapter::pausing_discovery_devices`: Use `std::weak_ptr<BTDevice>` list
