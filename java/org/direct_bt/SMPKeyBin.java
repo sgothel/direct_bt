@@ -349,6 +349,12 @@ public class SMPKeyBin {
         /** Return the remote device address. */
         final public BDAddressAndType getRemoteAddrAndType() { return remoteAddress; }
 
+        /** Return whether Secure Connection (SC) is being used via LTK keys. */
+        final public boolean uses_SC() {
+            return ( hasLTKInit() && getLTKInit().properties.isSet( SMPLongTermKey.PropertyType.SC ) ) ||
+                   ( hasLTKResp() && getLTKResp().properties.isSet( SMPLongTermKey.PropertyType.SC ) );
+        }
+
         final public BTSecurityLevel getSecLevel() { return sec_level; }
         final public SMPIOCapability getIOCap() { return io_cap; }
 
@@ -449,7 +455,7 @@ public class SMPKeyBin {
         @Override
         final public String toString() {
             final StringBuilder res = new StringBuilder();
-            res.append("SMPKeyBin[local").append(localAddress.toString()).append(", remote ").append(remoteAddress.toString()).append(", sec ").append(sec_level).append(", io ").append(io_cap).append(", ");
+            res.append("SMPKeyBin[local").append(localAddress.toString()).append(", remote ").append(remoteAddress.toString()).append(", SC ").append(uses_SC()).append(", sec ").append(sec_level).append(", io ").append(io_cap).append(", ");
             if( isVersionValid() ) {
                 boolean comma = false;
                 res.append("Init[");

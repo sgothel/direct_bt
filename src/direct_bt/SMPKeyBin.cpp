@@ -165,8 +165,8 @@ std::vector<SMPKeyBin> SMPKeyBin::readAllForLocalAdapter(const BDAddressAndType&
 }
 
 std::string SMPKeyBin::toString() const noexcept {
-    std::string res = "SMPKeyBin[local "+localAddress.toString()+", remote "+remoteAddress.toString()+", sec "+to_string(sec_level)+
-                      ", io "+to_string(io_cap)+
+    std::string res = "SMPKeyBin[local "+localAddress.toString()+", remote "+remoteAddress.toString()+
+                      ", SC "+std::to_string(uses_SC())+", sec "+to_string(sec_level)+", io "+to_string(io_cap)+
                       ", ";
     if( isVersionValid() ) {
         bool comma = false;

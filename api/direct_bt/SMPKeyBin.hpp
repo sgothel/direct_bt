@@ -270,6 +270,12 @@ class SMPKeyBin {
         /** Return the remote device address. */
         constexpr const BDAddressAndType& getRemoteAddrAndType() const noexcept { return remoteAddress; }
 
+        /** Return whether Secure Connection (SC) is being used via LTK keys. */
+        constexpr bool uses_SC() const noexcept {
+            return ( hasLTKInit() && SMPLongTermKey::Property::NONE != ( getLTKInit().properties & SMPLongTermKey::Property::SC ) ) ||
+                   ( hasLTKResp() && SMPLongTermKey::Property::NONE != ( getLTKResp().properties & SMPLongTermKey::Property::SC ) );
+        }
+
         constexpr BTSecurityLevel getSecLevel() const noexcept { return sec_level; }
         constexpr SMPIOCapability getIOCap() const noexcept { return io_cap; }
 
