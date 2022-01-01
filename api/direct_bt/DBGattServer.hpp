@@ -728,7 +728,7 @@ namespace direct_bt {
              * Method can only be issued before passing instance to BTAdapter::startAdvertising()
              * @see BTAdapter::startAdvertising()
              */
-            void setMaxAttMTU(const uint16_t v) noexcept { max_att_mtu = std::max<uint16_t>(512+1, v); }
+            void setMaxAttMTU(const uint16_t v) noexcept { max_att_mtu = std::min<uint16_t>(512+1, v); }
 
             /** List of Services */
             jau::darray<DBGattServiceRef>& getServices() noexcept { return services; }
@@ -753,7 +753,7 @@ namespace direct_bt {
             { }
 
             DBGattServer(uint16_t max_att_mtu_, jau::darray<DBGattServiceRef> && services_)
-            : max_att_mtu(std::max<uint16_t>(512+1, max_att_mtu_)), services( std::move( services_ ) )
+            : max_att_mtu(std::min<uint16_t>(512+1, max_att_mtu_)), services( std::move( services_ ) )
             { }
 
             /**
