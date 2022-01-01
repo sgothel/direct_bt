@@ -415,6 +415,8 @@ namespace direct_bt {
                     case Opcode::EXECUTE_WRITE_RSP:
                         [[fallthrough]];
                     case Opcode::READ_MULTIPLE_VARIABLE_RSP:
+                        [[fallthrough]];
+                    case Opcode::HANDLE_VALUE_CFM: // A response from master/gatt-client to slave/gatt-server
                         return OpcodeType::RESPONSE;
 
                     case Opcode::EXCHANGE_MTU_REQ:
@@ -444,8 +446,6 @@ namespace direct_bt {
                     case Opcode::READ_MULTIPLE_VARIABLE_REQ:
                         [[fallthrough]];
                     case Opcode::SIGNED_WRITE_CMD:
-                        [[fallthrough]];
-                    case Opcode::HANDLE_VALUE_CFM: // A response from master/gatt-client to slave/gatt-server
                         return OpcodeType::REQUEST;
 
                     default:
