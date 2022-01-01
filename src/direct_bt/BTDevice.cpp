@@ -1502,14 +1502,14 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
     }
     const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 #if USE_LINUX_BT_SECURITY
-    const BTRole hostRole = !btRole;
     BTManager & mngr = adapter.getManager();
     HCIStatusCode res = HCIStatusCode::SUCCESS;
 
-    if( BTRole::Master == hostRole ) {
-        // Remote device is master (initiatior), we are slave (peripheral, responder)
+    if( BTRole::Slave == btRole ) {
+        // Remote device is slave (peripheral, responder), we are master (initiator)
         if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
             res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_init);
+            DBG_PRINT("BTDevice::uploadKeys.LTK[Remote slave, master/init]: %s", to_string(res).c_str());
             if( HCIStatusCode::SUCCESS != res ) {
                 return res;
             }
@@ -1517,14 +1517,16 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
 
         if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
             res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_resp);
+            DBG_PRINT("BTDevice::uploadKeys.LTK[Remote slave, peripheral/resp]: %s", to_string(res).c_str());
             if( HCIStatusCode::SUCCESS != res ) {
                 return res;
             }
         }
     } else {
-        // Remote device is slave (peripheral), we are master (initiator)
+        // Remote device is master (initiator), we are slave (peripheral, responder)
         if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
             res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_resp);
+            DBG_PRINT("BTDevice::uploadKeys.LTK[Remote master, peripheral/resp]: %s", to_string(res).c_str());
             if( HCIStatusCode::SUCCESS != res ) {
                 return res;
             }
@@ -1532,6 +1534,7 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
 
         if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
             res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_init);
+            DBG_PRINT("BTDevice::uploadKeys.LTK[Remote master, master/init]: %s", to_string(res).c_str());
             if( HCIStatusCode::SUCCESS != res ) {
                 return res;
             }
@@ -1544,15 +1547,17 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
         return HCIStatusCode::SUCCESS;
     }
 
-    if( BTRole::Master == hostRole ) {
-        // Remote device is slave (peripheral), we are master (initiator)
+    if( BTRole::Slave == btRole ) {
+        // Remote device is slave (peripheral, responder), we are master (initiator)
         if( ( SMPKeyType::LINK_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
             res = mngr.uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_init);
+            DBG_PRINT("BTDevice::uploadKeys.LK[Remote slave]: %s", to_string(res).c_str());
         }
     } else {
-        // Remote device is master (initiatior), we are slave (peripheral, responder)
+        // Remote device is master (initiator), we are slave (peripheral, responder)
         if( ( SMPKeyType::LINK_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
             res = mngr.uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_resp);
+            DBG_PRINT("BTDevice::uploadKeys.LK[Remote master]: %s", to_string(res).c_str());
         }
     }
     return res;
