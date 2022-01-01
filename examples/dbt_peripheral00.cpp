@@ -357,7 +357,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
                                 connectedDevice->sendNotification(handlePulseDataNotify, v);
                             }
                             if( 0 != handlePulseDataIndicate ) {
-                                connectedDevice->sendIndication(handlePulseDataNotify, v);
+                                connectedDevice->sendIndication(handlePulseDataIndicate, v);
                             }
                         }
                     }
@@ -373,7 +373,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
                         connectedDevice->sendNotification(handleResponseDataNotify, data);
                     }
                     if( 0 != handleResponseDataIndicate ) {
-                        connectedDevice->sendIndication(handleResponseDataNotify, data);
+                        connectedDevice->sendIndication(handleResponseDataIndicate, data);
                     }
                 }
             }

@@ -375,7 +375,7 @@ public class DBTPeripheral00 {
                                 connectedDevice.sendNotification(handlePulseDataNotify, v);
                             }
                             if( 0 != handlePulseDataIndicate ) {
-                                connectedDevice.sendIndication(handlePulseDataNotify, v);
+                                connectedDevice.sendIndication(handlePulseDataIndicate, v);
                             }
                         }
                     }
@@ -394,7 +394,7 @@ public class DBTPeripheral00 {
                         connectedDevice.sendNotification(handleResponseDataNotify, data);
                     }
                     if( 0 != handleResponseDataIndicate ) {
-                        connectedDevice.sendIndication(handleResponseDataNotify, data);
+                        connectedDevice.sendIndication(handleResponseDataIndicate, data);
                     }
                 }
             }
