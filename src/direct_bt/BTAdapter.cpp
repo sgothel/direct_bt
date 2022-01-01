@@ -1924,7 +1924,17 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
             // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS
             SMPKeyBinRef key = findSMPKeyBin(device->getAddressAndType());
             if( nullptr != key ) {
-                const HCIStatusCode res = device->uploadKeys(*key, BTSecurityLevel::NONE);
+                HCIStatusCode res;
+                #if 0
+                    res = getManager().unpairDevice(dev_id, device->getAddressAndType(), true /* disconnect */);
+                    if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
+                        WARN_PRINT("(dev_id %d): Unpair device failed %s of %s",
+                                dev_id, to_string(res).c_str(), device->getAddressAndType().toString().c_str());
+                    }
+                    res = device->uploadKeys(*key, BTSecurityLevel::NONE);
+                #else
+                    res = device->uploadKeys(*key, BTSecurityLevel::NONE);
+                #endif
                 if( HCIStatusCode::SUCCESS != res ) {
                     WARN_PRINT("(dev_id %d): Upload SMPKeyBin failed %s, %s (removing file)",
                             dev_id, to_string(res).c_str(), key->toString().c_str());
