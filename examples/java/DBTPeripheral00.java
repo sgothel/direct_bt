@@ -619,7 +619,7 @@ public class DBTPeripheral00 {
             BTUtils.fprintf_td(System.err, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
                                 res.toString(), Tx.toString(), Rx.toString());
         }
-        adapter.setSMPKeyPath(DBTConstants.ADAPTER_KEY_PATH);
+        adapter.setSMPKeyPath(DBTConstants.SERVER_KEY_PATH);
 
         // adapter is powered-on
         final AdapterStatusListener asl = new MyAdapterStatusListener();

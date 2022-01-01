@@ -224,9 +224,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 // next: deviceReady(..)
                 break;
             case SMPPairingState::FAILED: {
-                const bool res  = SMPKeyBin::remove(KEY_PATH, *device);
+                const bool res  = SMPKeyBin::remove(CLIENT_KEY_PATH, *device);
                 fprintf_td(stderr, "****** PAIRING_STATE: state %s; Remove key file %s, res %d\n",
-                        to_string(state).c_str(), SMPKeyBin::getFilename(KEY_PATH, *device).c_str(), res);
+                        to_string(state).c_str(), SMPKeyBin::getFilename(CLIENT_KEY_PATH, *device).c_str(), res);
                 // next: deviceReady() or deviceDisconnected(..)
             } break;
             case SMPPairingState::REQUESTED_BY_RESPONDER:
@@ -376,7 +376,7 @@ static void connectDiscoveredDevice(BTDeviceRef device) {
         fprintf_td(stderr, "****** Connecting Device: No SecurityDetail for %s\n", device->toString().c_str());
     }
     const BTSecurityLevel req_sec_level = nullptr != sec ? sec->getSecLevel() : BTSecurityLevel::UNSET;
-    HCIStatusCode res = device->uploadKeys(KEY_PATH, req_sec_level, true /* verbose_ */);
+    HCIStatusCode res = device->uploadKeys(CLIENT_KEY_PATH, req_sec_level, true /* verbose_ */);
     fprintf_td(stderr, "****** Connecting Device: BTDevice::uploadKeys(...) result %s\n", to_string(res).c_str());
     if( HCIStatusCode::SUCCESS != res ) {
         if( nullptr != sec ) {
@@ -405,7 +405,7 @@ static void processReadyDevice(BTDeviceRef device) {
 
     const uint64_t t1 = getCurrentMilliseconds();
 
-    SMPKeyBin::createAndWrite(*device, KEY_PATH, true /* verbose */);
+    SMPKeyBin::createAndWrite(*device, CLIENT_KEY_PATH, true /* verbose */);
 
     bool success = false;
 

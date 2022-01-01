@@ -587,7 +587,7 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
         fprintf_td(stderr, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
                 to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
     }
-    adapter->setSMPKeyPath(ADAPTER_KEY_PATH);
+    adapter->setSMPKeyPath(SERVER_KEY_PATH);
 
     std::shared_ptr<AdapterStatusListener> asl( std::make_shared<MyAdapterStatusListener>() );
     adapter->addStatusListener( asl );

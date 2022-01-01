@@ -172,8 +172,8 @@ runit() {
     echo direct_bt_verbose $direct_bt_verbose
 
     echo LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/${exename} "$@"
-    mkdir -p keys
-    mkdir -p dbt_keys
+    mkdir -p client_keys
+    mkdir -p server_keys
 
     if [ "${run_setcap}" -eq "1" ]; then
         runit_setcap "$@"

@@ -24,7 +24,7 @@
  */
 
 public class DBTConstants {
-    public static final String KEY_PATH = "keys";
+    public static final String CLIENT_KEY_PATH = "client_keys";
 
-    public static final String ADAPTER_KEY_PATH = "dbt_keys";
+    public static final String SERVER_KEY_PATH = "server_keys";
 }

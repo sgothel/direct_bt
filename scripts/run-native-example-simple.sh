@@ -52,8 +52,8 @@ runit() {
     #echo direct_bt_verbose $direct_bt_verbose
     #
     #echo LD_LIBRARY_PATH=`pwd`/lib bin/${exename} "$@"
-    mkdir -p keys
-    mkdir -p dbt_keys
+    mkdir -p client_keys
+    mkdir -p server_keys
 
     exe_file=$(readlink -f bin/${exename})
     ulimit -c unlimited

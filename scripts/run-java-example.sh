@@ -120,7 +120,8 @@ runit() {
 
     echo $EXE_WRAPPER $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} $*
     # $EXE_WRAPPER $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} $*
-    mkdir -p keys
+    mkdir -p client_keys
+    mkdir -p server_keys
 
     if [ "${run_setcap}" -eq "1" ]; then
         runit_setcap $*

@@ -36,8 +36,8 @@
  * 
  * C++17 we have to use `const char *`, `std::string_view` or `extern const std::string`.
  */
-constexpr const char KEY_PATH[] = "keys";
+constexpr const char CLIENT_KEY_PATH[] = "client_keys";
 
-constexpr const char ADAPTER_KEY_PATH[] = "dbt_keys";
+constexpr const char SERVER_KEY_PATH[] = "server_keys";
 
 #endif /* DBT_CONSTANTS_HPP */

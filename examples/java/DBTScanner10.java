@@ -206,8 +206,8 @@ public class DBTScanner10 {
                     // next: deviceReady(..)
                     break;
                 case FAILED: {
-                    final boolean res  = SMPKeyBin.remove(DBTConstants.KEY_PATH, device);
-                    BTUtils.println(System.err, "****** PAIRING_STATE: state "+state+"; Remove key file "+SMPKeyBin.getFilename(DBTConstants.KEY_PATH, device)+", res "+res);
+                    final boolean res  = SMPKeyBin.remove(DBTConstants.CLIENT_KEY_PATH, device);
+                    BTUtils.println(System.err, "****** PAIRING_STATE: state "+state+"; Remove key file "+SMPKeyBin.getFilename(DBTConstants.CLIENT_KEY_PATH, device)+", res "+res);
                     // next: deviceReady() or deviceDisconnected(..)
                 } break;
                 case REQUESTED_BY_RESPONDER:
@@ -356,7 +356,7 @@ public class DBTScanner10 {
             BTUtils.println(System.err, "****** Connecting Device: No SecurityDetail for "+device.toString());
         }
         final BTSecurityLevel req_sec_level = null != sec ? sec.getSecLevel() : BTSecurityLevel.UNSET;
-        HCIStatusCode res = device.uploadKeys(DBTConstants.KEY_PATH, req_sec_level, true /* verbose_ */);
+        HCIStatusCode res = device.uploadKeys(DBTConstants.CLIENT_KEY_PATH, req_sec_level, true /* verbose_ */);
         BTUtils.fprintf_td(System.err, "****** Connecting Device: BTDevice::uploadKeys(...) result %s\n", res.toString());
         if( HCIStatusCode.SUCCESS != res ) {
             if( null != sec ) {
@@ -408,7 +408,7 @@ public class DBTScanner10 {
         BTUtils.println(System.err, "****** Processing Ready Device: Start " + device.toString());
         final long t1 = BTUtils.currentTimeMillis();
 
-        SMPKeyBin.createAndWrite(device, DBTConstants.KEY_PATH, true /* verbose */);
+        SMPKeyBin.createAndWrite(device, DBTConstants.CLIENT_KEY_PATH, true /* verbose */);
 
         boolean success = false;
 
