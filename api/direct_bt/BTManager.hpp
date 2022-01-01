@@ -451,6 +451,16 @@ namespace direct_bt {
 
             /** Security commands */
 
+            /**
+             * Linux Kernel `load_long_term_keys(..)` (mgmt.c) require either `BDAddressType::BDADDR_LE_PUBLIC` or
+             * BDAddressType::BDADDR_LE_RANDOM and BLERandomAddressType::STATIC_PUBLIC in ltk_is_valid(..) (mgmt.c).
+             *
+             * The Linux kernel will reject unresolvable random addresses and resolvable random addresses.
+             *
+             * @return true if complying to above address-and-type requirements or if not using LINUX, otherwise false.
+             */
+            bool isValidLongTermKeyAddressAndType(const EUI48 &address, const BDAddressType &address_type) const noexcept;
+
             HCIStatusCode uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKeyInfo &key) noexcept;
             HCIStatusCode uploadLongTermKey(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLongTermKey& ltk) noexcept;
 

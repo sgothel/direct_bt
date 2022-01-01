@@ -802,8 +802,27 @@ bool BTManager::uploadConnParam(const uint16_t dev_id, const BDAddressAndType & 
     return false;
 }
 
+bool BTManager::isValidLongTermKeyAddressAndType(const EUI48 &address, const BDAddressType &address_type) const noexcept {
+#if USE_LINUX_BT_SECURITY
+    // Linux Kernel `load_long_term_keys(..)` (mgmt.c) require either `BDAddressType::BDADDR_LE_PUBLIC` or
+    // `BDAddressType::BDADDR_LE_RANDOM` and `BLERandomAddressType::STATIC_PUBLIC`
+    // in ltk_is_valid(..) (mgmt.c).
+    if( BDAddressType::BDADDR_LE_PUBLIC == address_type ) {
+        return true;
+    } else if( BDAddressType::BDADDR_LE_RANDOM == address_type &&
+               BLERandomAddressType::STATIC_PUBLIC == BDAddressAndType::getBLERandomAddressType(address, address_type) ) {
+        return true;
+    } else {
+        return false;
+    }
+#else
+    return true;
+#endif
+}
+
 HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKeyInfo &key) noexcept {
 #if USE_LINUX_BT_SECURITY
+    const bool is_valid_ltk_addr = isValidLongTermKeyAddressAndType(key.address, key.address_type);
     MgmtLoadLongTermKeyCmd req(dev_id, key);
     HCIStatusCode res;
     std::unique_ptr<MgmtEvent> reply = sendWithReply(req);
@@ -818,8 +837,13 @@ HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLong
     } else {
         res = HCIStatusCode::TIMEOUT;
     }
-    DBG_PRINT("BTManager::uploadLongTermKeyInfo[%d]: %s, result %s", dev_id,
-            req.toString().c_str(), to_string(res).c_str());
+    if( HCIStatusCode::SUCCESS != res ) {
+        WARN_PRINT("(dev_id %d): %s (valid_ltk_addr %d), result %s", dev_id,
+                req.toString().c_str(), is_valid_ltk_addr, to_string(res).c_str());
+    } else {
+        DBG_PRINT("BTManager::uploadLongTermKeyInfo(dev_id %d): %s (valid_ltk_addr %d), result %s", dev_id,
+                req.toString().c_str(), is_valid_ltk_addr, to_string(res).c_str());
+    }
     return res;
 #else
     return HCIStatusCode::NOT_SUPPORTED;
@@ -854,8 +878,13 @@ HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const MgmtLinkKeyI
     } else {
         res = HCIStatusCode::TIMEOUT;
     }
-    DBG_PRINT("BTManager::uploadLinkKeyInfo[%d]: %s, result %s", dev_id,
-            req.toString().c_str(), to_string(res).c_str());
+    if( HCIStatusCode::SUCCESS != res ) {
+        WARN_PRINT("(dev_id %d): %s, result %s", dev_id,
+                req.toString().c_str(), to_string(res).c_str());
+    } else {
+        DBG_PRINT("BTManager::uploadLinkKeyInfo(dev_id %d): %s, result %s", dev_id,
+                req.toString().c_str(), to_string(res).c_str());
+    }
     return res;
 #else
     return HCIStatusCode::NOT_SUPPORTED;
