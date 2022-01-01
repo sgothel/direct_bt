@@ -232,6 +232,20 @@ namespace direct_bt {
             static BLERandomAddressType getBLERandomAddressType(const jau::EUI48& address, const BDAddressType addressType) noexcept;
 
             /**
+             * Returns the BLERandomAddressType std::string representation.
+             * <p>
+             * If ::BDAddressType is ::BDAddressType::BDADDR_LE_RANDOM,
+             * method shall return the given prefix and a valid string value other than ::BLERandomAddressType::UNDEFINED.
+             * </p>
+             * <p>
+             * If BDAddressType is not ::BDAddressType::BDADDR_LE_RANDOM,
+             * method shall return an empty string.
+             * </p>
+             * @since 2.5.3
+             */
+            static std::string getBLERandomAddressTypeString(const jau::EUI48& address, const BDAddressType addressType, const std::string& prefix) noexcept;
+
+            /**
              * Returns the BLERandomAddressType.
              * <p>
              * If type is ::BDAddressType::BDADDR_LE_RANDOM},

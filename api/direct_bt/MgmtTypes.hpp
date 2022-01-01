@@ -197,7 +197,7 @@ namespace direct_bt {
         jau::uint128_t ltk;
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
-            return "LTK[address["+address.toString()+", "+to_string(address_type)+
+            return "LTK[address["+address.toString()+", "+to_string(address_type)+BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", ")+
                    "], type "+to_string(key_type)+", master "+jau::to_hexstring(master)+
                    ", enc_size "+std::to_string(enc_size)+
                    ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), true /* lsbFirst */)+
@@ -252,7 +252,7 @@ namespace direct_bt {
         jau::uint128_t irk;
 
         std::string toString() const noexcept {
-            return "IRK[address["+address.toString()+", "+to_string(address_type)+
+            return "IRK[address["+address.toString()+", "+to_string(address_type)+BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", ")+
                    "], irk "+jau::bytesHexString(irk.data, 0, sizeof(irk), true /* lsbFirst */)+
                    "]";
         }
@@ -271,7 +271,7 @@ namespace direct_bt {
         jau::uint128_t csrk;
 
         std::string toString() const noexcept {
-            return "CSRK[address["+address.toString()+", "+to_string(address_type)+
+            return "CSRK[address["+address.toString()+", "+to_string(address_type)+BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", ")+
                    "], type "+to_string(key_type)+
                    ", csrk "+jau::bytesHexString(csrk.data, 0, sizeof(csrk), true /* lsbFirst */)+
                    "]";
@@ -293,7 +293,7 @@ namespace direct_bt {
         uint8_t pin_length;
 
         std::string toString() const noexcept {
-            return "LK[address["+address.toString()+", "+to_string(address_type)+
+            return "LK[address["+address.toString()+", "+to_string(address_type)+BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", ")+
                    "], type "+to_string(key_type)+
                    ", key "+jau::bytesHexString(key.data, 0, sizeof(key), true /* lsbFirst */)+
                    ", pinLen "+jau::to_hexstring(pin_length)+

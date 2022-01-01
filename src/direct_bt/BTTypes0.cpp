@@ -163,16 +163,18 @@ BLERandomAddressType BDAddressAndType::getBLERandomAddressType(const jau::EUI48&
     }
 }
 
+std::string BDAddressAndType::getBLERandomAddressTypeString(const jau::EUI48& address, const BDAddressType addressType, const std::string& prefix) noexcept {
+    if( BDAddressType::BDADDR_LE_RANDOM != addressType ) {
+        return std::string();
+    }
+    return prefix+to_string( BDAddressAndType::getBLERandomAddressType(address, addressType) );
+}
+
 const BDAddressAndType direct_bt::BDAddressAndType::ANY_BREDR_DEVICE(jau::EUI48::ANY_DEVICE, BDAddressType::BDADDR_BREDR);
 const BDAddressAndType direct_bt::BDAddressAndType::ANY_DEVICE(jau::EUI48::ANY_DEVICE, BDAddressType::BDADDR_UNDEFINED);
 
 std::string BDAddressAndType::toString() const noexcept {
-    const BLERandomAddressType leRandomAddressType = getBLERandomAddressType();
-    std::string leaddrtype;
-    if( BLERandomAddressType::UNDEFINED != leRandomAddressType ) {
-        leaddrtype = ", random "+to_string(leRandomAddressType);
-    }
-    return "["+address.toString()+", "+to_string(type)+leaddrtype+"]";
+    return "["+address.toString()+", "+to_string(type)+getBLERandomAddressTypeString(address, type, ", ")+"]";
 }
 
 // *************************************************
