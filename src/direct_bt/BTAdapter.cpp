@@ -622,8 +622,9 @@ HCIStatusCode BTAdapter::uploadKeys(SMPKeyBin& bin, const bool write) noexcept {
     BTManager & mngr = getManager();
     res = mngr.unpairDevice(dev_id, bin.getRemoteAddrAndType(), false /* disconnect */);
     if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
-        ERR_PRINT("Unpair device failed: %s, %s",
-                    bin.getRemoteAddrAndType().toString().c_str(), toString().c_str());
+        ERR_PRINT("(dev_id %d): Unpair device failed %s of %s: %s",
+                dev_id, to_string(res).c_str(), bin.getRemoteAddrAndType().toString().c_str(),
+                toString().c_str());
     }
 
     res = device->uploadKeys(bin, BTSecurityLevel::NONE);
@@ -1724,8 +1725,8 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
             // No pre-pairing -> unpair
             HCIStatusCode  res = mgmt.unpairDevice(dev_id, device->getAddressAndType(), false /* disconnect */);
             if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
-                WARN_PRINT("(dev_id %d, new_connect %d): Unpair device failed: %s, %s",
-                            dev_id, new_connect, to_string(res).c_str(), device->getAddressAndType().toString().c_str());
+                WARN_PRINT("(dev_id %d, new_connect %d): Unpair device failed %s of %s",
+                        dev_id, new_connect, to_string(res).c_str(), device->getAddressAndType().toString().c_str());
             }
         }
     }
@@ -2124,8 +2125,8 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             {
                 const HCIStatusCode res = mgmt.unpairDevice(dev_id, dev_shared->getAddressAndType(), false /* disconnect */);
                 if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
-                    WARN_PRINT("(dev_id %d): Unpair device failed: %s, %s",
-                                dev_id, to_string(res).c_str(), dev_shared->getAddressAndType().toString().c_str());
+                    WARN_PRINT("(dev_id %d): Unpair device failed %s of %s",
+                            dev_id, to_string(res).c_str(), dev_shared->getAddressAndType().toString().c_str());
                 }
             }
             int i=0;

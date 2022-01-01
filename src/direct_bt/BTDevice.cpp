@@ -740,10 +740,11 @@ bool BTDevice::checkPairingKeyDistributionComplete() const noexcept {
 
 std::string BTDevice::PairingData::toString(const BDAddressAndType& addressAndType, const BTRole& role) const {
     std::string res = "PairingData[Remote ["+addressAndType.toString()+", role "+to_string(role)+"], \n";
-    res.append("  Encrypted "+std::to_string(encryption_enabled)+", SC "+std::to_string(use_sc)+
-                              ", State "+to_string(state)+", Mode "+to_string(mode)+
-                              ", Responder-Req "+std::to_string(res_requested_sec)+"\n");
+    res.append("  Status: Encrypted "+std::to_string(encryption_enabled)+
+                  ", State "+to_string(state)+", Mode "+to_string(mode)+
+                  ", Responder-Req "+std::to_string(res_requested_sec)+"\n");
     res.append("  Setup:\n");
+    res.append("  - SC "+std::to_string(use_sc)+"\n");
     res.append("  - IOCap conn "+to_string(ioCap_conn)+", user "+to_string(ioCap_user)+", auto "+to_string(ioCap_auto)+"\n");
     res.append("  - Level conn "+to_string(sec_level_conn)+", user "+to_string(sec_level_user)+"\n");
     res.append("  Initiator (master) Set:\n");
