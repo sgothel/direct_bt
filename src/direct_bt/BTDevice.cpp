@@ -1462,6 +1462,7 @@ bool BTDevice::setSMPKeyBin(const SMPKeyBin& bin) noexcept {
         pairing_data.sec_level_user = applySecLevel;
         pairing_data.ioCap_auto = SMPIOCapability::UNSET; // disable auto
     }
+    pairing_data.use_sc = bin.uses_SC();
 
     if( bin.hasLTKInit() ) {
         setLongTermKey( bin.getLTKInit() );
