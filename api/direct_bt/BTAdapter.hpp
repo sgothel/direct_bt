@@ -101,7 +101,7 @@ namespace direct_bt {
     std::string to_string(const DiscoveryPolicy v) noexcept;
 
     /**
-     * {@link BTAdapter} status listener for {@link BTDevice} discovery events: Added, updated and removed;
+     * {@link BTAdapter} status listener for remote {@link BTDevice} discovery events: Added, updated and removed;
      * as well as for certain {@link BTAdapter} events.
      * <p>
      * User implementations shall return as early as possible to avoid blocking the event-handler thread,
@@ -172,7 +172,7 @@ namespace direct_bt {
             }
 
             /**
-             * A BTDevice has been newly discovered.
+             * A remote BTDevice has been newly discovered.
              * <p>
              * The boolean return value informs the adapter whether the device shall be made persistent for connection `true`,
              * or that it can be discarded `false`.<br>
@@ -184,7 +184,7 @@ namespace direct_bt {
              *
              * BTDevice::unpair() has been called already.
              *
-             * @param device the found device
+             * @param device the found remote device
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              * @return true if the device shall be made persistent and BTDevice::remove() issued later. Otherwise false to remove device right away.
              * @see BTDevice::unpair()
@@ -196,8 +196,8 @@ namespace direct_bt {
             }
 
             /**
-             * An already discovered BTDevice has been updated.
-             * @param device the updated device
+             * An already discovered remote BTDevice has been updated.
+             * @param device the updated remote device
              * @param updateMask the update mask of changed data
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
@@ -208,11 +208,11 @@ namespace direct_bt {
             }
 
             /**
-             * BTDevice got connected
+             * Remote BTDevice got connected
              *
              * If a BTRole::Master BTDevice gets connected, BTDevice::unpair() has been called already.
              *
-             * @param device the device which has been connected, holding the new connection handle.
+             * @param device the remote device which has been connected, holding the new connection handle.
              * @param handle the new connection handle, which has been assigned to the device already
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              * @see BTDevice::unpair()
@@ -224,8 +224,8 @@ namespace direct_bt {
             }
 
             /**
-             * An already connected BTDevice's ::SMPPairingState has changed.
-             * @param device the device which PairingMode has been changed.
+             * An already connected remote BTDevice's ::SMPPairingState has changed.
+             * @param device the remote device which PairingMode has been changed.
              * @param state the current ::SMPPairingState of the connected device, see BTDevice::getCurrentPairingState()
              * @param mode the current ::PairingMode of the connected device, see BTDevice::getCurrentPairingMode()
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
@@ -240,12 +240,13 @@ namespace direct_bt {
             }
 
             /**
-             * BTDevice is ready for user (GATT) processing, i.e. already connected, optionally (SMP) paired.
-             * In case of a LE connection, GATT MTU size is negotiated and GATT services discovered.
+             * Remote BTDevice is ready for user (GATT) processing, i.e. already connected, optionally (SMP) paired.
+             *
+             * In case of a LE connection to a remote BTDevice in BTRole::Slave, a GATT server (GATTRole::Server), GATT MTU size is negotiated and GATT services discovered.
              * <p>
              * Method is being called from a dedicated native thread, hence restrictions on method duration and complex mutable operations don't apply here.
              * </p>
-             * @param device the device ready to use
+             * @param device the remote device ready to use
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              * @see ::SMPPairingState::COMPLETED
              */
@@ -255,11 +256,11 @@ namespace direct_bt {
             }
 
             /**
-             * BTDevice got disconnected
+             * Remote BTDevice got disconnected
              *
              * BTDevice::unpair() has been called already.
              *
-             * @param device the device which has been disconnected with zeroed connection handle.
+             * @param device the remote device which has been disconnected with zeroed connection handle.
              * @param reason the HCIStatusCode reason for disconnection
              * @param handle the disconnected connection handle, which has been unassigned from the device already
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().

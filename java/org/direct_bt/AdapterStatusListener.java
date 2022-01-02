@@ -26,7 +26,7 @@
 package org.direct_bt;
 
 /**
- * {@link BTAdapter} status listener for {@link BTDevice} discovery events: Added, updated and removed;
+ * {@link BTAdapter} status listener for remote {@link BTDevice} discovery events: Added, updated and removed;
  * as well as for certain {@link BTAdapter} events.
  * <p>
  * User implementations shall return as early as possible to avoid blocking the event-handler thread,
@@ -92,7 +92,7 @@ public abstract class AdapterStatusListener {
     public void discoveringChanged(final BTAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final DiscoveryPolicy policy, final long timestamp) { }
 
     /**
-     * A {@link BTDevice} has been newly discovered.
+     * A remote {@link BTDevice} has been newly discovered.
      * <p>
      * The boolean return value informs the adapter whether the device shall be made persistent for connection {@code true},
      * or that it can be discarded {@code false}.<br>
@@ -104,7 +104,7 @@ public abstract class AdapterStatusListener {
      *
      * {@link BTDevice#unpair()} has been called already.
      *
-     * @param device the found device
+     * @param device the found remote device
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
      * @return true if the device shall be made persistent and {@link BTDevice#remove() remove} issued later. Otherwise false to remove device right away.
      * @see BTDevice#unpair()
@@ -112,19 +112,19 @@ public abstract class AdapterStatusListener {
     public boolean deviceFound(final BTDevice device, final long timestamp) { return false; }
 
     /**
-     * An already discovered {@link BTDevice} has been updated.
-     * @param device the updated device
+     * An already discovered remote {@link BTDevice} has been updated.
+     * @param device the updated remote device
      * @param updateMask the update mask of changed data
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
      */
     public void deviceUpdated(final BTDevice device, final EIRDataTypeSet updateMask, final long timestamp) { }
 
     /**
-     * {@link BTDevice} got connected.
+     * Remote {@link BTDevice} got connected.
      *
      * If a {@link BTRole#Master} {@link BTDevice} gets connected, {@link BTDevice#unpair()} has been called already.
      *
-     * @param device the device which has been connected, holding the new connection handle.
+     * @param device the remote device which has been connected, holding the new connection handle.
      * @param handle the new connection handle, which has been assigned to the device already
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
      * @see BTDevice#unpair()
@@ -132,8 +132,8 @@ public abstract class AdapterStatusListener {
     public void deviceConnected(final BTDevice device, final short handle, final long timestamp) { }
 
     /**
-     * An already connected {@link BTDevice}'s {@link SMPPairingState} has changed.
-     * @param device the device which {@link PairingMode} has been changed.
+     * An already connected remote {@link BTDevice}'s {@link SMPPairingState} has changed.
+     * @param device the remote device which {@link PairingMode} has been changed.
      * @param state the current {@link SMPPairingState} of the connected device, see DBTDevice::getCurrentPairingState()
      * @param mode the current {@link PairingMode} of the connected device, see DBTDevice::getCurrentPairingMode()
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
@@ -143,23 +143,24 @@ public abstract class AdapterStatusListener {
     public void devicePairingState(final BTDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {}
 
     /**
-     * {@link BTDevice} is ready for user (GATT) processing, i.e. already connected and optionally (SMP) paired.
-     * In case of a LE connection, GATT MTU size is negotiated and GATT services discovered.
+     * Remote {@link BTDevice} is ready for user (GATT) processing, i.e. already connected and optionally (SMP) paired.
+     *
+     * In case of a LE connection to a remote {@link BTDevice} in {@link BTRole#Slave}, a GATT server, GATT MTU size is negotiated and GATT services discovered.
      * <p>
      * Method is being called from a dedicated native thread, hence restrictions on method duration and complex mutable operations don't apply here.
      * </p>
-     * @param device the device ready to use
+     * @param device the remote device ready to use
      * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
      * @see {@link SMPPairingState#COMPLETED}
      */
     public void deviceReady(final BTDevice device, final long timestamp) {}
 
     /**
-     * {@link BTDevice} got disconnected.
+     * Remote {@link BTDevice} got disconnected.
      *
      * {@link BTDevice#unpair()} has been called already.
      *
-     * @param device the device which has been disconnected with zeroed connection handle.
+     * @param device the remote device which has been disconnected with zeroed connection handle.
      * @param reason the {@link HCIStatusCode} reason for disconnection
      * @param handle the disconnected connection handle, which has been unassigned from the device already
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
