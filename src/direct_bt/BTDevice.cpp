@@ -1986,8 +1986,11 @@ bool BTDevice::connectGATT(std::shared_ptr<BTDevice> sthis) noexcept {
         ERR_PRINT2("Connection failed");
         gattHandler = nullptr;
         return false;
+    } else if ( BTRole::Master == btRole ) {
+        DBG_PRINT("BTDevice::connectGATT: Local GATT Server: Done: %s", toString().c_str());
+        return true;
     } else {
-        DBG_PRINT("BTDevice::connectGATT: Service Discovery Start: %s", toString().c_str());
+        DBG_PRINT("BTDevice::connectGATT: Local GATT Client: Service Discovery Start: %s", toString().c_str());
         try {
             // Service discovery may consume 500ms - 2000ms, depending on bandwidth
             jau::darray<BTGattServiceRef>& gattServices = gattHandler->discoverCompletePrimaryServices(gattHandler);
