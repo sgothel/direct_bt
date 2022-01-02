@@ -34,8 +34,8 @@ logbasename=~/$bname
 logfile=$logbasename.log
 rm -f $logfile
 
-echo 'core_%e.%p' | sudo tee /proc/sys/kernel/core_pattern >/dev/null
-ulimit -c unlimited
+# echo 'core_%e.%p' | sudo tee /proc/sys/kernel/core_pattern >/dev/null
+# ulimit -c unlimited
 
 # run as root 'dpkg-reconfigure locales' enable 'en_US.UTF-8'
 # perhaps run as root 'update-locale LC_MEASUREMENT=en_US.UTF-8 LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8'
