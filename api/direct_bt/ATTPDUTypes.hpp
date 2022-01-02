@@ -947,7 +947,7 @@ namespace direct_bt {
 
         protected:
             std::string valueString() const noexcept override {
-                return "handle "+jau::to_hexstring(getHandle())+", data "+view.toString();;
+                return "handle "+jau::to_hexstring(getHandle())+", data "+view.toString();
             }
     };
 
@@ -1024,7 +1024,7 @@ namespace direct_bt {
 
         protected:
             std::string valueString() const noexcept override {
-                return "handle "+jau::to_hexstring(getHandle())+", data "+view.toString();;
+                return "handle "+jau::to_hexstring(getHandle())+", data "+view.toString();
             }
     };
 
@@ -1094,7 +1094,7 @@ namespace direct_bt {
 
         protected:
             std::string valueString() const noexcept override {
-                return "handle "+jau::to_hexstring(getHandle())+", offset "+std::to_string(getValueOffset())+", data "+view.toString();;
+                return "handle "+jau::to_hexstring(getHandle())+", offset "+std::to_string(getValueOffset())+", data "+view.toString();
             }
     };
 
@@ -1313,8 +1313,7 @@ namespace direct_bt {
             }
 
             /**
-             * Fixate element length and element count
-             * @param element_length
+             * Fixate element count
              * @param count
              */
             void setElementCount(const jau::nsize_t count) {
@@ -1817,7 +1816,7 @@ namespace direct_bt {
              * Create an incomplete response with maximal (MTU) length.
              *
              * User shall set all elements via the set*() methods
-             * and finally use setElementSize() to fixate element length and element count.
+             * and finally use setElementSize() to fixate element length and setElementCount() to set element count.
              *
              * @param total_length maximum
              */
@@ -1859,7 +1858,8 @@ namespace direct_bt {
                        ", uuid "+e.uuid.get()->toString();
             }
     };
-}
+
+} // namespace direct_bt
 
 /** \example dbt_scanner10.cpp
  * This _dbt_scanner10_ C++ scanner ::BTRole::Master example uses the Direct-BT fully event driven workflow
