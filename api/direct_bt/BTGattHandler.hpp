@@ -223,6 +223,7 @@ namespace direct_bt {
             void replyWriteReq(const AttPDUMsg * pdu);
             void replyReadReq(const AttPDUMsg * pdu);
             void replyFindInfoReq(const AttFindInfoReq * pdu);
+            void replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu);
             void replyReadByTypeReq(const AttReadByNTypeReq * pdu);
             void replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu);
             void replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu);

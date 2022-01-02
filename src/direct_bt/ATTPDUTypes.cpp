@@ -125,8 +125,8 @@ std::unique_ptr<const AttPDUMsg> AttPDUMsg::getSpecialized(const uint8_t * buffe
         case Opcode::EXCHANGE_MTU_RSP:              return std::make_unique<AttExchangeMTU>(buffer, buffer_size);
         case Opcode::FIND_INFORMATION_REQ:          return std::make_unique<AttFindInfoReq>(buffer, buffer_size);
         case Opcode::FIND_INFORMATION_RSP:          return std::make_unique<AttFindInfoRsp>(buffer, buffer_size);
-        case Opcode::FIND_BY_TYPE_VALUE_REQ:        return std::make_unique<AttPDUMsg>(buffer, buffer_size); // TODO
-        case Opcode::FIND_BY_TYPE_VALUE_RSP:        return std::make_unique<AttPDUMsg>(buffer, buffer_size); // TODO
+        case Opcode::FIND_BY_TYPE_VALUE_REQ:        return std::make_unique<AttFindByTypeValueReq>(buffer, buffer_size);
+        case Opcode::FIND_BY_TYPE_VALUE_RSP:        return std::make_unique<AttFindByTypeValueRsp>(buffer, buffer_size);
         case Opcode::READ_BY_TYPE_REQ:              return std::make_unique<AttReadByNTypeReq>(buffer, buffer_size);
         case Opcode::READ_BY_TYPE_RSP:              return std::make_unique<AttReadByTypeRsp>(buffer, buffer_size);
         case Opcode::READ_REQ:                      return std::make_unique<AttReadReq>(buffer, buffer_size);

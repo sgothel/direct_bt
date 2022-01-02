@@ -673,6 +673,76 @@ void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
     send(err);
 }
 
+void BTGattHandler::replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) {
+    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.3 ATT_FIND_BY_TYPE_VALUE_REQ
+    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.4 ATT_FIND_BY_TYPE_VALUE_RSP
+    // BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.2 Discover Primary Service by Service UUID
+    if( 0 == pdu->getStartHandle() ) {
+        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPEVALUE.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+        return;
+    }
+    if( pdu->getStartHandle() > pdu->getEndHandle() ) {
+        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), pdu->getStartHandle());
+        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPEVALUE.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+        send(err);
+        return;
+    }
+    const jau::uuid16_t uuid_prim_service = jau::uuid16_t(GattAttributeType::PRIMARY_SERVICE);
+    const jau::uuid16_t uuid_secd_service = jau::uuid16_t(GattAttributeType::SECONDARY_SERVICE);
+    const uint16_t end_handle = pdu->getEndHandle();
+    const uint16_t start_handle = pdu->getStartHandle();
+    const jau::uuid16_t att_type = pdu->getAttType();
+    std::unique_ptr<const jau::uuid_t> att_value = pdu->getAttValue();
+
+    uint16_t req_group_type;
+    if( att_type.equivalent( uuid_prim_service ) ) {
+        req_group_type = GattAttributeType::PRIMARY_SERVICE;
+    } else if( att_type.equivalent( uuid_secd_service ) ) {
+        req_group_type = GattAttributeType::SECONDARY_SERVICE;
+    } else {
+        // not handled
+        req_group_type = 0;
+    }
+
+
+    // const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(255, usedMTU.load()-2);
+    AttFindByTypeValueRsp rsp(usedMTU); // maximum size
+    jau::nsize_t rspSize = 0;
+    jau::nsize_t rspCount = 0;
+
+    if( nullptr != gattServerData ) {
+        const jau::nsize_t size = 2 + 2;
+
+        for(DBGattServiceRef& s : gattServerData->getServices()) {
+            if( start_handle <= s->getHandle() && s->getHandle() <= end_handle ) {
+                if( ( ( GattAttributeType::PRIMARY_SERVICE   == req_group_type &&  s->isPrimary() ) ||
+                      ( GattAttributeType::SECONDARY_SERVICE == req_group_type && !s->isPrimary() )
+                    ) &&
+                    s->getType()->equivalent(*att_value) )
+                {
+                    rsp.setElementHandles(rspCount, s->getHandle(), s->getEndHandle());
+                    rspSize += size;
+                    ++rspCount;
+                    COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPEVALUE.4: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+                    send(rsp);
+                    return; // done
+                }
+            }
+        }
+        if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
+            rsp.setElementCount(rspCount);
+            COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPEVALUE.5: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
+            send(rsp);
+            return;
+        }
+    }
+    AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), start_handle);
+    COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPEVALUE.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+    send(err);
+}
+
 void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
     // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.1 ATT_READ_BY_TYPE_REQ
     // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.2 ATT_READ_BY_TYPE_RSP
@@ -857,7 +927,7 @@ void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) {
         return;
     }
     switch( pdu->getOpcode() ) {
-        case AttPDUMsg::Opcode::EXCHANGE_MTU_REQ: {
+        case AttPDUMsg::Opcode::EXCHANGE_MTU_REQ: { // 2
             const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
             const uint16_t clientMTU = p->getMTUSize();
             usedMTU = std::min(serverMTU, clientMTU);
@@ -884,49 +954,58 @@ void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) {
             send(rsp);
             return;
         }
-        case AttPDUMsg::Opcode::READ_BY_TYPE_REQ: {
-            replyReadByTypeReq( static_cast<const AttReadByNTypeReq*>( pdu.get() ) );
-            return;
-        }
-        case AttPDUMsg::Opcode::READ_BY_GROUP_TYPE_REQ: {
-            replyReadByGroupTypeReq( static_cast<const AttReadByNTypeReq*>( pdu.get() ) );
-            return;
-        }
-        case AttPDUMsg::Opcode::FIND_INFORMATION_REQ: {
+
+        case AttPDUMsg::Opcode::FIND_INFORMATION_REQ: { // 4
             replyFindInfoReq( static_cast<const AttFindInfoReq*>( pdu.get() ) );
             return;
         }
-        case AttPDUMsg::Opcode::READ_REQ:
+
+        case AttPDUMsg::Opcode::FIND_BY_TYPE_VALUE_REQ: { // 6
+            replyFindByTypeValueReq( static_cast<const AttFindByTypeValueReq*>( pdu.get() ) );
+            return;
+        }
+
+        case AttPDUMsg::Opcode::READ_BY_TYPE_REQ: { // 8
+            replyReadByTypeReq( static_cast<const AttReadByNTypeReq*>( pdu.get() ) );
+            return;
+        }
+
+        case AttPDUMsg::Opcode::READ_REQ: // 10
             [[fallthrough]];
-        case AttPDUMsg::Opcode::READ_BLOB_REQ: {
+        case AttPDUMsg::Opcode::READ_BLOB_REQ: { // 12
             replyReadReq( pdu.get() );
             return;
         }
-        case AttPDUMsg::Opcode::WRITE_REQ:
+
+        case AttPDUMsg::Opcode::READ_BY_GROUP_TYPE_REQ: { // 16
+            replyReadByGroupTypeReq( static_cast<const AttReadByNTypeReq*>( pdu.get() ) );
+            return;
+        }
+
+        case AttPDUMsg::Opcode::WRITE_REQ: // 18
             [[fallthrough]];
-        case AttPDUMsg::Opcode::WRITE_CMD:
+        case AttPDUMsg::Opcode::WRITE_CMD: // 18 + 64 = 82
             [[fallthrough]];
-        case AttPDUMsg::Opcode::PREPARE_WRITE_REQ:
+        case AttPDUMsg::Opcode::PREPARE_WRITE_REQ: // 22
             [[fallthrough]];
-        case AttPDUMsg::Opcode::EXECUTE_WRITE_REQ: {
+        case AttPDUMsg::Opcode::EXECUTE_WRITE_REQ: { // 24
             replyWriteReq( pdu.get() );
             return;
         }
 
         // TODO: Add support for the following requests
 
-        case AttPDUMsg::Opcode::FIND_BY_TYPE_VALUE_REQ:
+        case AttPDUMsg::Opcode::READ_MULTIPLE_REQ: // 14
             [[fallthrough]];
-        case AttPDUMsg::Opcode::READ_MULTIPLE_REQ:
+        case AttPDUMsg::Opcode::READ_MULTIPLE_VARIABLE_REQ: // 32
             [[fallthrough]];
-        case AttPDUMsg::Opcode::READ_MULTIPLE_VARIABLE_REQ:
-            [[fallthrough]];
-        case AttPDUMsg::Opcode::SIGNED_WRITE_CMD: {
+        case AttPDUMsg::Opcode::SIGNED_WRITE_CMD: { // 18 + 64 + 128 = 210
             AttErrorRsp rsp(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu->getOpcode(), 0);
             WARN_PRINT("GATT Req: Ignored: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
             send(rsp);
             return;
         }
+
         default:
             AttErrorRsp rsp(AttErrorRsp::ErrorCode::FORBIDDEN_VALUE, pdu->getOpcode(), 0);
             ERR_PRINT("GATT Req: Unhandled: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());

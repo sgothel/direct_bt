@@ -1863,6 +1863,199 @@ namespace direct_bt {
             }
     };
 
+    /**
+     * BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.3 ATT_FIND_BY_TYPE_VALUE_REQ
+     * <p>
+     * FIND_BY_TYPE_VALUE_REQ
+     * </p>
+     * Used in:
+     * <p>
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.2 Discover Primary Service by Service UUID
+     * </p>
+     */
+    class AttFindByTypeValueReq : public AttPDUMsg
+    {
+        private:
+            jau::uuid_t::TypeSize getAttValueTypeSize() const {
+                return jau::uuid_t::toTypeSize( getPDUValueSize() );
+            }
+
+            constexpr static jau::nsize_t pdu_value_offset = 1 + 2 + 2 + 2;
+
+        public:
+            AttFindByTypeValueReq(const uint8_t* source, const jau::nsize_t length)
+            : AttPDUMsg(source, length)
+            {
+                checkOpcode(Opcode::FIND_BY_TYPE_VALUE_REQ);
+
+                if( getPDUValueSize() == 0 ) {
+                    throw AttValueException("AttFindByTypeValueReq: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
+                            " not > 0 ", E_FILE_LINE);
+                }
+                getAttValueTypeSize(); // validates att-value type-size
+            }
+
+            AttFindByTypeValueReq(const uint16_t startHandle, const uint16_t endHandle,
+                                  const jau::uuid16_t &att_type, const jau::uuid_t& att_value)
+            : AttPDUMsg(Opcode::FIND_BY_TYPE_VALUE_REQ, getPDUValueOffset()+att_value.getTypeSizeInt())
+            {
+                pdu.put_uint16_nc(1, startHandle);
+                pdu.put_uint16_nc(1+2, endHandle);
+                pdu.put_uuid_nc  (1+2+2, att_type);
+                pdu.put_uuid_nc  (1+2+2+2, att_value);
+            }
+
+            /** opcode + handle_start + handle_end + att_type */
+            constexpr_cxx20 jau::nsize_t getPDUValueOffset() const noexcept override { return pdu_value_offset; }
+
+            constexpr uint16_t getStartHandle() const noexcept { return pdu.get_uint16_nc( 1 ); }
+
+            constexpr uint16_t getEndHandle() const noexcept { return pdu.get_uint16_nc( 1 + 2 ); }
+
+            jau::uuid16_t getAttType() const noexcept { return pdu.get_uuid16_nc( 1 + 2 + 2 ); }
+
+            std::unique_ptr<const jau::uuid_t> getAttValue() const noexcept { return pdu.get_uuid(pdu_value_offset, getAttValueTypeSize()); }
+
+            constexpr_cxx20 std::string getName() const noexcept override {
+                return "AttFindByTypeValueReq";
+            }
+
+        protected:
+            std::string valueString() const noexcept override {
+                return "handle ["+jau::to_hexstring(getStartHandle())+".."+jau::to_hexstring(getEndHandle())+
+                       "], type "+getAttType().toString()+", value "+getAttValue()->toString();
+            }
+    };
+
+    /**
+     * BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.4 ATT_FIND_BY_TYPE_VALUE_RSP
+     * <p>
+     * FIND_BY_TYPE_VALUE_RSP
+     * </p>
+     * <p>
+     * Contains a list of elements, each comprised of { att_handle_start, group_end_handle } pair.
+     * The handles are comprised of two octets, i.e. uint16_t,
+     * hence one element is of size 4 octets.
+     * <pre>
+     *  element := { uint16_t handle_start, uint16_t handle_end }
+     * </pre>
+     * </p>
+     * Used in:
+     * <p>
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.2 Discover Primary Service by Service UUID
+     * </p>
+     */
+    class AttFindByTypeValueRsp: public AttPDUMsg
+    {
+        public:
+            AttFindByTypeValueRsp(const uint8_t* source, const jau::nsize_t length)
+            : AttPDUMsg(source, length)
+            {
+                checkOpcode(Opcode::FIND_BY_TYPE_VALUE_RSP);
+                if( getPDUValueSize() % getElementSize() != 0 ) {
+                    throw AttValueException("AttFindInfoRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
+                            " not multiple of element-size "+std::to_string(getElementSize()), E_FILE_LINE);
+                }
+            }
+
+            /** opcode */
+            constexpr_cxx20 jau::nsize_t getPDUValueOffset() const noexcept override { return 1; }
+
+            /**
+             * Returns element size, 4 octets
+             * <p>
+             * element := { uint16_t handle_start, uint16_t handle_end }
+             * </p>
+             */
+            constexpr jau::nsize_t getElementSize() const {
+                return 2 /* handle */ + 2 /* handle_end */;
+            }
+
+            /** Number of elements */
+            constexpr_cxx20 jau::nsize_t getElementCount() const noexcept {
+                /** getPDUValueSize() =
+                 * - `pdu.size - getAuthSigSize() - value-offset` or
+                 * - `getPDUParamSize() - getPDUValueOffset() + 1`
+                 */
+                return getPDUValueSize()  / getElementSize();
+            }
+
+            /**
+             * Fixate element count
+             * @param count
+             */
+            void setElementCount(const jau::nsize_t count) {
+                const jau::nsize_t element_length = getElementSize();
+                const jau::nsize_t new_size = getPDUValueOffset() + element_length * count;
+                if( pdu.size() < new_size ) {
+                    throw jau::IllegalArgumentException(getName()+": "+std::to_string(getPDUValueOffset())+
+                            " + element[len "+std::to_string(element_length)+
+                            " * count "+std::to_string(count)+" > pdu "+std::to_string(pdu.size()), E_FILE_LINE);
+                }
+                pdu.resize( new_size );
+                if( getPDUValueSize() % getElementSize() != 0 ) {
+                    throw AttValueException(getName()+": Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
+                            " not multiple of element-size "+std::to_string(getElementSize()), E_FILE_LINE);
+                }
+            }
+
+            jau::nsize_t getElementPDUOffset(const jau::nsize_t elementIdx) const {
+                return getPDUValueOffset() + elementIdx * getElementSize();
+            }
+
+            uint8_t const * getElementPtr(const jau::nsize_t elementIdx) const {
+                return pdu.get_ptr(getElementPDUOffset(elementIdx));
+            }
+
+            /**
+             * Create an incomplete response with maximal (MTU) length.
+             *
+             * User shall set all elements via the set*() methods
+             * and finally use setElementSize() to fixate element length and element count.
+             *
+             * @param total_length maximum
+             */
+            AttFindByTypeValueRsp(const jau::nsize_t total_length)
+            : AttPDUMsg(Opcode::FIND_BY_TYPE_VALUE_RSP, total_length)
+            {
+            }
+
+            uint16_t getElementHandle(const jau::nsize_t elementIdx) const {
+                return pdu.get_uint16( getElementPDUOffset(elementIdx) );
+            }
+            uint16_t getElementHandleEnd(const jau::nsize_t elementIdx) const {
+                return pdu.get_uint16( getElementPDUOffset(elementIdx) + 2 );
+            }
+
+            void setElementHandles(const jau::nsize_t elementIdx, const uint16_t handle, const uint16_t handle_end) {
+                const jau::nsize_t offset = getElementPDUOffset(elementIdx);
+                pdu.put_uint16_nc( offset, handle );
+                pdu.put_uint16_nc( offset, handle_end );
+            }
+
+            constexpr_cxx20 std::string getName() const noexcept override {
+                return "AttFindByTypeValueRsp";
+            }
+
+        protected:
+            std::string elementString(const jau::nsize_t idx) const {
+                return "handle["+jau::to_hexstring(getElementHandle(idx))+
+                       ".."+jau::to_hexstring(getElementHandleEnd(idx))+"]";
+            }
+
+            std::string valueString() const noexcept override {
+                std::string res = "size "+std::to_string(getPDUValueSize())+", elements[count "+std::to_string(getElementCount())+", "+
+                        "size "+std::to_string(getElementSize())+": ";
+                const jau::nsize_t count = getElementCount();
+                for(jau::nsize_t i=0; i<count; i++) {
+                    res += std::to_string(i)+"["+elementString(i)+"],";
+                }
+                res += "]";
+                return res;
+            }
+
+    };
+
 } // namespace direct_bt
 
 /** \example dbt_scanner10.cpp
