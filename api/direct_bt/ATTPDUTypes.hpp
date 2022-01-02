@@ -1189,12 +1189,12 @@ namespace direct_bt {
                 checkOpcode(Opcode::HANDLE_VALUE_NTF, Opcode::HANDLE_VALUE_IND);
             }
 
-            AttHandleValueRcv(const bool isNotify, const uint16_t handle, const jau::TROOctets & value)
-            : AttPDUMsg(isNotify ? Opcode::HANDLE_VALUE_NTF : Opcode::HANDLE_VALUE_IND, getPDUValueOffset()+value.size()),
+            AttHandleValueRcv(const bool isNotify, const uint16_t handle, const jau::TROOctets & value, const jau::nsize_t mtu)
+            : AttPDUMsg(isNotify ? Opcode::HANDLE_VALUE_NTF : Opcode::HANDLE_VALUE_IND, getPDUValueOffset()+std::min(mtu-pdu_value_offset, value.size())),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16_nc(1, handle);
-                pdu.put_bytes_nc(getPDUValueOffset(), value.get_ptr(), value.size());
+                pdu.put_bytes_nc(getPDUValueOffset(), value.get_ptr(), std::min(mtu-pdu_value_offset, value.size()));
             }
 
             /** opcode + handle */

@@ -1331,7 +1331,7 @@ bool BTGattHandler::sendNotification(const uint16_t char_value_handle, const jau
         COND_PRINT(env.DEBUG_DATA, "GATT SEND NTF: Zero size, skipped sending to %s", toString().c_str());
         return true;
     }
-    AttHandleValueRcv data(true /* isNotify */, char_value_handle, value);
+    AttHandleValueRcv data(true /* isNotify */, char_value_handle, value, usedMTU);
     COND_PRINT(env.DEBUG_DATA, "GATT SEND NTF: %s to %s", data.toString().c_str(), toString().c_str());
     send(data);
     return true;
@@ -1351,7 +1351,7 @@ bool BTGattHandler::sendIndication(const uint16_t char_value_handle, const jau::
         return true;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
-    AttHandleValueRcv req(false /* isNotify */, char_value_handle, value);
+    AttHandleValueRcv req(false /* isNotify */, char_value_handle, value, usedMTU);
     std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, write_cmd_reply_timeout); // valid reply or exception
     if( pdu->getOpcode() == AttPDUMsg::Opcode::HANDLE_VALUE_CFM ) {
         COND_PRINT(env.DEBUG_DATA, "GATT SENT IND: %s -> %s to/from %s",
