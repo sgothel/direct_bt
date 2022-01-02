@@ -879,6 +879,10 @@ namespace direct_bt {
             : AttPDUMsg(blobRsp ? Opcode::READ_BLOB_RSP : Opcode::READ_RSP, getPDUValueOffset()+value.size()-value_offset),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
+                if( value_offset > value.size() ) { // Blob: value_size == value_offset -> OK, ends communication
+                    throw AttValueException(getName()+": Invalid value offset "+std::to_string(value_offset)+
+                            " > value-size "+std::to_string(value.size()), E_FILE_LINE);
+                }
                 pdu.put_bytes_nc(getPDUValueOffset(), value.get_ptr()+value_offset, value.size()-value_offset);
             }
 

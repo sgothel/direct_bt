@@ -509,11 +509,21 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
                 for(DBGattCharRef& c : s->getCharacteristics()) {
                     if( c->getHandle() <= handle && handle <= c->getEndHandle() ) {
                         if( handle == c->getValueHandle() ) {
-                            if( isBlobReq && c->getValue().size() <= rspMaxSize ) {
-                                AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_LONG, pdu->getOpcode(), 0);
-                                COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-                                send(err);
-                                return;
+                            if( isBlobReq ) {
+#if SEND_ATTRIBUTE_NOT_LONG
+                                if( c->getValue().size() <= rspMaxSize ) {
+                                    AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_LONG, pdu->getOpcode(), handle);
+                                    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+                                    send(err);
+                                    return;
+                                }
+#endif
+                                if( value_offset > c->getValue().size() ) {
+                                    AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_OFFSET, pdu->getOpcode(), handle);
+                                    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+                                    send(err);
+                                    return;
+                                }
                             }
                             {
                                 bool allowed = true;
@@ -545,11 +555,21 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
                         }
                         for(DBGattDescRef& d : c->getDescriptors()) {
                             if( handle == d->getHandle() ) {
-                                if( isBlobReq && d->getValue().size() <= rspMaxSize ) {
-                                    AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_LONG, pdu->getOpcode(), 0);
-                                    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-                                    send(err);
-                                    return;
+                                if( isBlobReq ) {
+#if SEND_ATTRIBUTE_NOT_LONG
+                                    if( isBlobReq && d->getValue().size() <= rspMaxSize ) {
+                                        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_LONG, pdu->getOpcode(), handle);
+                                        COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+                                        send(err);
+                                        return;
+                                    }
+#endif
+                                    if( value_offset > c->getValue().size() ) {
+                                        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_OFFSET, pdu->getOpcode(), handle);
+                                        COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+                                        send(err);
+                                        return;
+                                    }
                                 }
                                 {
                                     bool allowed = true;
