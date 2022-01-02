@@ -103,7 +103,7 @@ DBGattServerRef dbGattServer( new DBGattServer(
                   std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::DEVICE_NAME) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
                               jau::darray<DBGattDescRef>() /* intentionally empty */,
-                              make_poctets("Synthethic Sensor 01") /* value */ ),
+                              make_poctets(adapter_name.c_str()) /* value */ ),
                   std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::APPEARANCE) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
                               jau::darray<DBGattDescRef>() /* intentionally empty */,

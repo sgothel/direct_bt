@@ -144,7 +144,7 @@ public class DBTPeripheral00 {
                       new DBGattChar( DBGattChar.UUID16.DEVICE_NAME /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
-                                  make_gvalue("Synthethic Sensor 01") /* value */ ),
+                                  make_gvalue(adapter_name) /* value */ ),
                       new DBGattChar( DBGattChar.UUID16.APPEARANCE /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
