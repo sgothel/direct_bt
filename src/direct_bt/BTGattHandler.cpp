@@ -539,7 +539,7 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
                                     i++;
                                 });
                                 if( !allowed ) {
-                                    AttErrorRsp err(AttErrorRsp::ErrorCode::NO_READ_PERM, pdu->getOpcode(), 0);
+                                    AttErrorRsp err(AttErrorRsp::ErrorCode::NO_READ_PERM, pdu->getOpcode(), handle);
                                     COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.2: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
                                     send(err);
                                     return;
@@ -585,7 +585,7 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
                                         i++;
                                     });
                                     if( !allowed ) {
-                                        AttErrorRsp err(AttErrorRsp::ErrorCode::NO_READ_PERM, pdu->getOpcode(), 0);
+                                        AttErrorRsp err(AttErrorRsp::ErrorCode::NO_READ_PERM, pdu->getOpcode(), handle);
                                         COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.4: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
                                         send(err);
                                         return;
@@ -605,7 +605,7 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
             } // if service-range
         } // for services
     }
-    AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
+    AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), handle);
     COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
     send(err);
 }
@@ -668,7 +668,7 @@ void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
             return;
         }
     }
-    AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
+    AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), start_handle);
     COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO.4: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
     send(err);
 }
@@ -748,17 +748,17 @@ void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
                 return;
             }
         }
-        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
+        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), pdu->getStartHandle());
         COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.4: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
         send(err);
     } else if( GattAttributeType::INCLUDE_DECLARATION == req_type ) {
         // TODO: Support INCLUDE_DECLARATION ??
-        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
+        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), pdu->getStartHandle());
         COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.5: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
         send(err);
     } else {
         // TODO: Add other group types ???
-        AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu->getOpcode(), 0);
+        AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu->getOpcode(), pdu->getStartHandle());
         COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
         send(err);
     }
@@ -839,12 +839,12 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
                 return;
             }
         }
-        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), 0);
+        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), pdu->getStartHandle());
         COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.5: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
         send(err);
     } else {
         // TODO: Add other group types ???
-        AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu->getOpcode(), 0);
+        AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu->getOpcode(), pdu->getStartHandle());
         COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
         send(err);
     }
