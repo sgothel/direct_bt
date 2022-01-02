@@ -545,7 +545,7 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
                                     return;
                                 }
                             }
-                            AttReadNRsp rsp(isBlobReq, c->getValue(), value_offset);
+                            AttReadNRsp rsp(isBlobReq, c->getValue(), value_offset); // Blob: value_size == value_offset -> OK, ends communication
                             if( rsp.getPDUValueSize() > rspMaxSize ) {
                                 rsp.pdu.resize(usedMTU); // requires another READ_BLOB_REQ
                             }
@@ -591,7 +591,7 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
                                         return;
                                     }
                                 }
-                                AttReadNRsp rsp(isBlobReq, d->getValue(), value_offset);
+                                AttReadNRsp rsp(isBlobReq, d->getValue(), value_offset); // Blob: value_size == value_offset -> OK, ends communication
                                 if( rsp.getPDUValueSize() > rspMaxSize ) {
                                     rsp.pdu.resize(usedMTU); // requires another READ_BLOB_REQ
                                 }
