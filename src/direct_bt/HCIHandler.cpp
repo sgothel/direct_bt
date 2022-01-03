@@ -1872,7 +1872,6 @@ HCIStatusCode HCIHandler::le_start_adv(const EInfoReport &eir,
         return status;
     }
     status = le_set_adv_param(peer_bdaddr, own_mac_type, peer_mac_type,
-
                               adv_interval_min, adv_interval_max,
                               adv_type, adv_chan_map, filter_policy);
     if( HCIStatusCode::SUCCESS != status ) {

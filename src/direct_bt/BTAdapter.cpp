@@ -581,7 +581,8 @@ bool BTAdapter::setSecureConnections(const bool enable) noexcept {
         return true;
     }
     if( !mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, enable ? 1 : 0, settings) ) {
-        return false;    }
+        return false;
+    }
     const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(settings);
     updateAdapterSettings(false /* off_thread */, new_settings, false /* sendEvent */, 0);
     return enable == isAdapterSettingBitSet(new_settings, AdapterSetting::SECURE_CONN);
