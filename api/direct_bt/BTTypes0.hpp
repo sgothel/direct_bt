@@ -799,6 +799,18 @@ namespace direct_bt {
         RESERVED3              = (1 << 7)
     };
     constexpr uint8_t number(const GAPFlags rhs) noexcept { return static_cast<uint8_t>(rhs); }
+    constexpr GAPFlags operator |(const GAPFlags lhs, const GAPFlags rhs) noexcept {
+        return static_cast<GAPFlags> ( number(lhs) | number(rhs) );
+    }
+    constexpr GAPFlags operator &(const GAPFlags lhs, const GAPFlags rhs) noexcept {
+        return static_cast<GAPFlags> ( number(lhs) & number(rhs) );
+    }
+    constexpr bool operator ==(const GAPFlags lhs, const GAPFlags rhs) noexcept {
+        return number(lhs) == number(rhs);
+    }
+    constexpr bool operator !=(const GAPFlags lhs, const GAPFlags rhs) noexcept {
+        return !( lhs == rhs );
+    }
     std::string to_string(const GAPFlags v) noexcept;
 
     // *************************************************
