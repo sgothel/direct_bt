@@ -35,6 +35,7 @@ set (direct_bt_JNI_SRCS
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTNativeDownlink.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTObject.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBGattServer.cxx
+  ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/EInfoReport.cxx
 )
 
 set (CMAKE_SHARED_LINKER_FLAGS "-Wl,--as-needed")

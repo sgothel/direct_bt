@@ -31,6 +31,7 @@
 #include <memory>
 #include <cstdint>
 
+#include <jau/java_uplink.hpp>
 #include <jau/basic_types.hpp>
 #include <jau/darray.hpp>
 #include <jau/octets.hpp>
@@ -616,7 +617,7 @@ namespace direct_bt {
         /** Security Manager Out of Band Flags (Supplement, Part A, section 1.7) */
         SEC_MGR_OOB_FLAGS       = 0x11,
 
-        /** Slave Connection Interval Range */
+        /** Slave Connection Interval Range (Supplement, Part A, section 1.9) */
         SLAVE_CONN_IVAL_RANGE   = 0x12,
 
         /** List of 16-bit Service Solicitation UUIDs (Supplement, Part A, section 1.10) */
@@ -876,211 +877,251 @@ namespace direct_bt {
      * - [Assigned Numbers - Generic Access Profile](https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/)
      *
      */
-    class EInfoReport
-    {
-    public:
-        enum class Source : int {
-            /** not available */
-            NA,
-            /* Advertising Data (AD) */
-            AD,
-            /* Extended Advertising Data (EAD) */
-            EAD,
-            /** Extended Inquiry Response (EIR) */
-            EIR,
-            /** Extended Inquiry Response (EIR) from Kernel Mgmt */
-            EIR_MGMT
-        };
+    class EInfoReport : public jau::JavaUplink {
+        public:
+            enum class Source : int {
+                /** not available */
+                NA,
+                /* Advertising Data (AD) */
+                AD,
+                /* Extended Advertising Data (EAD) */
+                EAD,
+                /** Extended Inquiry Response (EIR) */
+                EIR,
+                /** Extended Inquiry Response (EIR) from Kernel Mgmt */
+                EIR_MGMT
+            };
 
-    private:
-        Source source = Source::NA;
-        uint64_t timestamp = 0;
-        EIRDataType eir_data_mask = static_cast<EIRDataType>(0);
+        private:
+            Source source = Source::NA;
+            uint64_t timestamp = 0;
+            EIRDataType eir_data_mask = static_cast<EIRDataType>(0);
 
-        AD_PDU_Type evt_type = AD_PDU_Type::UNDEFINED;
-        EAD_Event_Type ead_type = EAD_Event_Type::NONE;
-        uint8_t ad_address_type = 0;
-        BDAddressType addressType = BDAddressType::BDADDR_UNDEFINED;
-        jau::EUI48 address;
+            AD_PDU_Type evt_type = AD_PDU_Type::UNDEFINED;
+            EAD_Event_Type ead_type = EAD_Event_Type::NONE;
+            uint8_t ad_address_type = 0;
+            BDAddressType addressType = BDAddressType::BDADDR_UNDEFINED;
+            jau::EUI48 address;
 
-        GAPFlags flags = GAPFlags::NONE;
-        std::string name;
-        std::string name_short;
-        int8_t rssi = 127; // The core spec defines 127 as the "not available" value
-        int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
-        std::shared_ptr<ManufactureSpecificData> msd = nullptr;
-        jau::darray<std::shared_ptr<const jau::uuid_t>> services;
-        uint32_t device_class = 0;
-        AppearanceCat appearance = AppearanceCat::UNKNOWN;
-        jau::POctets hash;
-        jau::POctets randomizer;
-        uint16_t did_source = 0;
-        uint16_t did_vendor = 0;
-        uint16_t did_product = 0;
-        uint16_t did_version = 0;
+            GAPFlags flags = GAPFlags::NONE;
+            std::string name;
+            std::string name_short;
+            int8_t rssi = 127; // The core spec defines 127 as the "not available" value
+            int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
+            std::shared_ptr<ManufactureSpecificData> msd = nullptr;
+            jau::darray<std::shared_ptr<const jau::uuid_t>> services;
+            bool services_complete = false;
+            uint32_t device_class = 0;
+            AppearanceCat appearance = AppearanceCat::UNKNOWN;
+            jau::POctets hash;
+            jau::POctets randomizer;
+            uint16_t did_source = 0;
+            uint16_t did_vendor = 0;
+            uint16_t did_product = 0;
+            uint16_t did_version = 0;
 
-        void set(EIRDataType bit) noexcept { eir_data_mask = eir_data_mask | bit; }
-        void setTxPower(int8_t v) noexcept { tx_power = v; set(EIRDataType::TX_POWER); }
-        void setADAddressType(uint8_t adAddressType) noexcept;
-        void setName(const uint8_t *buffer, int buffer_len) noexcept;
-        void setShortName(const uint8_t *buffer, int buffer_len) noexcept;
-        void setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len);
+            /** conn_interval_min in units of 1.25ms, default value 10 for 12.5ms; Value range [6 .. 3200] for [7.5ms .. 4000ms] */
+            uint16_t conn_interval_min = 10;
+            /** conn_interval_max in units of 1.25ms, default value 24 for 30.0ms; Value range [6 .. 3200] for [7.5ms .. 4000ms] */
+            uint16_t conn_interval_max = 24;
 
-        int next_data_elem(uint8_t *eir_elem_len, uint8_t *eir_elem_type, uint8_t const **eir_elem_data,
-                           uint8_t const * data, int offset, int const size) noexcept;
+            void set(EIRDataType bit) noexcept { eir_data_mask = eir_data_mask | bit; }
+            void setADAddressType(uint8_t adAddressType) noexcept;
+            void setName(const uint8_t *buffer, int buffer_len) noexcept;
+            void setShortName(const uint8_t *buffer, int buffer_len) noexcept;
+            void setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len);
 
-    public:
-        EInfoReport() noexcept : hash(16, 0, jau::endian::little), randomizer(16, 0, jau::endian::little) {}
+            int next_data_elem(uint8_t *eir_elem_len, uint8_t *eir_elem_type, uint8_t const **eir_elem_data,
+                               uint8_t const * data, int offset, int const size) noexcept;
 
-        void setSource(Source s) noexcept { source = s; }
-        void setTimestamp(uint64_t ts) noexcept { timestamp = ts; }
-        void setEvtType(AD_PDU_Type et) noexcept { evt_type = et; set(EIRDataType::EVT_TYPE); }
-        void setExtEvtType(EAD_Event_Type eadt) noexcept { ead_type = eadt; set(EIRDataType::EXT_EVT_TYPE); }
-        void setAddressType(BDAddressType at) noexcept;
-        void setAddress(jau::EUI48 const &a) noexcept { address = a; set(EIRDataType::BDADDR); }
-        void setRSSI(int8_t v) noexcept { rssi = v; set(EIRDataType::RSSI); }
+        public:
+            static std::string java_class() noexcept {
+                return std::string(JAVA_MAIN_PACKAGE "EInfoReport");
+            }
 
-        void setFlags(GAPFlags f) noexcept { flags = f; set(EIRDataType::FLAGS); }
-        void setName(const std::string& name_) noexcept;
-        void setShortName(const std::string& name_short_) noexcept;
+            std::string get_java_class() const noexcept override {
+                return java_class();
+            }
 
-        void setManufactureSpecificData(const ManufactureSpecificData& msd_);
-        void addService(const std::shared_ptr<const jau::uuid_t>& uuid) noexcept;
-        void addService(const jau::uuid_t& uuid) noexcept;
-        void setDeviceClass(uint32_t c) noexcept { device_class= c; set(EIRDataType::DEVICE_CLASS); }
-        void setAppearance(AppearanceCat a) noexcept { appearance= a; set(EIRDataType::APPEARANCE); }
-        void setHash(const uint8_t * h) noexcept { hash.resize(16); memcpy(hash.get_wptr(), h, 16); set(EIRDataType::HASH); }
-        void setRandomizer(const uint8_t * r) noexcept { randomizer.resize(16); memcpy(randomizer.get_wptr(), r, 16); set(EIRDataType::RANDOMIZER); }
-        void setDeviceID(const uint16_t source, const uint16_t vendor, const uint16_t product, const uint16_t version) noexcept;
+            EInfoReport() noexcept : hash(16, 0, jau::endian::little), randomizer(16, 0, jau::endian::little) {}
 
-        /**
-         * Reads a complete Advertising Data (AD) Report
-         * and returns the number of AD reports in form of a sharable list of EInfoReport;
-         * <pre>
-         * BT Core Spec v5.2: Vol 4, Part E, 7.7.65.2 LE Advertising Report event
-         * BT Core Spec v5.2: Vol 3, Part C, 11 ADVERTISING AND SCAN RESPONSE DATA FORMAT
-         * BT Core Spec v5.2: Vol 3, Part C, 8  EXTENDED INQUIRY RESPONSE DATA FORMAT
-         * <pre>
-         * https://www.bluetooth.com/specifications/archived-specifications/
-         * </p>
-         */
-        static jau::darray<std::unique_ptr<EInfoReport>> read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept;
+            void setSource(Source s) noexcept { source = s; }
+            void setTimestamp(uint64_t ts) noexcept { timestamp = ts; }
+            void setEvtType(AD_PDU_Type et) noexcept { evt_type = et; set(EIRDataType::EVT_TYPE); }
+            void setExtEvtType(EAD_Event_Type eadt) noexcept { ead_type = eadt; set(EIRDataType::EXT_EVT_TYPE); }
+            void setAddressType(BDAddressType at) noexcept;
+            void setAddress(jau::EUI48 const &a) noexcept { address = a; set(EIRDataType::BDADDR); }
+            void setRSSI(int8_t v) noexcept { rssi = v; set(EIRDataType::RSSI); }
+            void setTxPower(int8_t v) noexcept { tx_power = v; set(EIRDataType::TX_POWER); }
 
-        /**
-         * Reads a complete Extended Advertising Data (AD) Report
-         * and returns the number of AD reports in form of a sharable list of EInfoReport;
-         * <pre>
-         * BT Core Spec v5.2: Vol 4, Part E, 7.7.65.13 LE Extended Advertising Report event
-         * BT Core Spec v5.2: Vol 3, Part C, 11 ADVERTISING AND SCAN RESPONSE DATA FORMAT
-         * BT Core Spec v5.2: Vol 3, Part C, 8  EXTENDED INQUIRY RESPONSE DATA FORMAT
-         * </pre>
-         * <p>
-         * https://www.bluetooth.com/specifications/archived-specifications/
-         * </p>
-         */
-        static jau::darray<std::unique_ptr<EInfoReport>> read_ext_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept;
+            void setFlags(GAPFlags f) noexcept { flags = f; set(EIRDataType::FLAGS); }
+            void addFlags(GAPFlags f) noexcept { flags = flags | f; set(EIRDataType::FLAGS); }
+            void setName(const std::string& name_) noexcept;
+            void setShortName(const std::string& name_short_) noexcept;
 
-        /**
-         * Reads the Extended Inquiry Response (EIR) or (Extended) Advertising Data (EAD or AD) segments
-         * and returns the number of parsed data segments;
-         * <p>
-         * AD as well as EIR information is passed in little endian order
-         * in the same fashion data block:
-         * <pre>
-         * a -> {
-         *             uint8_t len
-         *             uint8_t type
-         *             uint8_t data[len-1];
-         *         }
-         * b -> next block = a + 1 + len;
-         * </pre>
-         * </p>
-         * <p>
-         *
-         * References:
-         *
-         * - BT Core Spec v5.2: Vol 3, Part C, 11 ADVERTISING AND SCAN RESPONSE DATA FORMAT
-         * - BT Core Spec v5.2: Vol 3, Part C, 8  EXTENDED INQUIRY RESPONSE DATA FORMAT
-         * - BT Core Spec Supplement v9, Part A: Section 1 + 2 Examples, p25..
-         * - [Assigned Numbers - Generic Access Profile](https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/)
-         *
-         * </p>
-         * <p>
-         * https://www.bluetooth.com/specifications/archived-specifications/
-         * </p>
-         */
-        int read_data(uint8_t const * data, uint8_t const data_length) noexcept;
+            void setManufactureSpecificData(const ManufactureSpecificData& msd_);
+            void addService(const std::shared_ptr<const jau::uuid_t>& uuid) noexcept;
+            void addService(const jau::uuid_t& uuid) noexcept;
+            void setServicesComplete(const bool v) noexcept { services_complete = v; }
+            void setDeviceClass(uint32_t c) noexcept { device_class= c; set(EIRDataType::DEVICE_CLASS); }
+            void setAppearance(AppearanceCat a) noexcept { appearance= a; set(EIRDataType::APPEARANCE); }
+            void setHash(const uint8_t * h) noexcept { hash.resize(16); memcpy(hash.get_wptr(), h, 16); set(EIRDataType::HASH); }
+            void setRandomizer(const uint8_t * r) noexcept { randomizer.resize(16); memcpy(randomizer.get_wptr(), r, 16); set(EIRDataType::RANDOMIZER); }
+            void setDeviceID(const uint16_t source, const uint16_t vendor, const uint16_t product, const uint16_t version) noexcept;
 
-        /**
-         * Writes the Extended Inquiry Response (EIR) or (Extended) Advertising Data (EAD or AD) segments
-         * of existing EIRDataType of this instance into the given `data` up to `data_length`.
-         * <p>
-         * Only fields in the given EIRDataType `write_mask` and getEIRDataMask() will be written,
-         * hence `write_mask` allows to select the fields to be written/advertised.
-         * </p>
-         * <p>
-         * Usually only up to 31 bytes are supported to be advertised, i.e. `data_length` may be lower or equal 31.
-         * </p>
-         * <p>
-         * Elements exceeding the `data_length` will be cut off.
-         * </p>
-         * <p>
-         *
-         * References:
-         *
-         * - BT Core Spec v5.2: Vol 3, Part C, 11 ADVERTISING AND SCAN RESPONSE DATA FORMAT
-         * - BT Core Spec v5.2: Vol 3, Part C, 8  EXTENDED INQUIRY RESPONSE DATA FORMAT
-         * - BT Core Spec Supplement v9, Part A: Section 1 + 2 Examples, p25..
-         * - [Assigned Numbers - Generic Access Profile](https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/)
-         *
-         * </p>
-         *
-         * @param write_mask EIRDataType selection mask
-         * @param data destination
-         * @param data_length destination length
-         * @return number of bytes written
-         * @see read_data()
-         */
-        jau::nsize_t write_data(EIRDataType write_mask, uint8_t * data, jau::nsize_t const data_length) const noexcept;
+            /**
+             * Set slave connection interval range.
+             *
+             * Bluetooth Supplement, Part A, section 1.9
+             *
+             * @param min conn_interval_min in units of 1.25ms, default value 10 for 12.5ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]
+             * @param max conn_interval_max in units of 1.25ms, default value 24 for 30.0ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]
+             */
+            void setConnInterval(const uint16_t min, const uint16_t max) noexcept { conn_interval_min=min; conn_interval_max=max; set(EIRDataType::CONN_IVAL); }
 
-        Source getSource() const noexcept { return source; }
-        uint64_t getTimestamp() const noexcept { return timestamp; }
-        bool isSet(EIRDataType bit) const noexcept { return EIRDataType::NONE != (eir_data_mask & bit); }
-        EIRDataType getEIRDataMask() const noexcept { return eir_data_mask; }
+            /**
+             * Reads a complete Advertising Data (AD) Report
+             * and returns the number of AD reports in form of a sharable list of EInfoReport;
+             * <pre>
+             * BT Core Spec v5.2: Vol 4, Part E, 7.7.65.2 LE Advertising Report event
+             * BT Core Spec v5.2: Vol 3, Part C, 11 ADVERTISING AND SCAN RESPONSE DATA FORMAT
+             * BT Core Spec v5.2: Vol 3, Part C, 8  EXTENDED INQUIRY RESPONSE DATA FORMAT
+             * <pre>
+             * https://www.bluetooth.com/specifications/archived-specifications/
+             * </p>
+             */
+            static jau::darray<std::unique_ptr<EInfoReport>> read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept;
 
-        AD_PDU_Type getEvtType() const noexcept { return evt_type; }
-        EAD_Event_Type getExtEvtType() const noexcept { return ead_type; }
-        GAPFlags getFlags() const noexcept { return flags; }
-        uint8_t getADAddressType() const noexcept { return ad_address_type; }
-        BDAddressType getAddressType() const noexcept { return addressType; }
-        jau::EUI48 const & getAddress() const noexcept { return address; }
-        std::string const & getName() const noexcept { return name; }
-        std::string const & getShortName() const noexcept{ return name_short; }
-        int8_t getRSSI() const noexcept { return rssi; }
-        int8_t getTxPower() const noexcept { return tx_power; }
+            /**
+             * Reads a complete Extended Advertising Data (AD) Report
+             * and returns the number of AD reports in form of a sharable list of EInfoReport;
+             * <pre>
+             * BT Core Spec v5.2: Vol 4, Part E, 7.7.65.13 LE Extended Advertising Report event
+             * BT Core Spec v5.2: Vol 3, Part C, 11 ADVERTISING AND SCAN RESPONSE DATA FORMAT
+             * BT Core Spec v5.2: Vol 3, Part C, 8  EXTENDED INQUIRY RESPONSE DATA FORMAT
+             * </pre>
+             * <p>
+             * https://www.bluetooth.com/specifications/archived-specifications/
+             * </p>
+             */
+            static jau::darray<std::unique_ptr<EInfoReport>> read_ext_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept;
 
-        std::shared_ptr<ManufactureSpecificData> getManufactureSpecificData() const noexcept { return msd; }
-        jau::darray<std::shared_ptr<const jau::uuid_t>> getServices() const noexcept { return services; }
+            /**
+             * Reads the Extended Inquiry Response (EIR) or (Extended) Advertising Data (EAD or AD) segments
+             * and returns the number of parsed data segments;
+             * <p>
+             * AD as well as EIR information is passed in little endian order
+             * in the same fashion data block:
+             * <pre>
+             * a -> {
+             *             uint8_t len
+             *             uint8_t type
+             *             uint8_t data[len-1];
+             *         }
+             * b -> next block = a + 1 + len;
+             * </pre>
+             * </p>
+             * <p>
+             *
+             * References:
+             *
+             * - BT Core Spec v5.2: Vol 3, Part C, 11 ADVERTISING AND SCAN RESPONSE DATA FORMAT
+             * - BT Core Spec v5.2: Vol 3, Part C, 8  EXTENDED INQUIRY RESPONSE DATA FORMAT
+             * - BT Core Spec Supplement v9, Part A: Section 1 + 2 Examples, p25..
+             * - [Assigned Numbers - Generic Access Profile](https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/)
+             *
+             * </p>
+             * <p>
+             * https://www.bluetooth.com/specifications/archived-specifications/
+             * </p>
+             */
+            int read_data(uint8_t const * data, uint8_t const data_length) noexcept;
 
-        uint32_t getDeviceClass() const noexcept { return device_class; }
-        AppearanceCat getAppearance() const noexcept { return appearance; }
-        const jau::TROOctets & getHash() const noexcept { return hash; }
-        const jau::TROOctets & getRandomizer() const noexcept { return randomizer; }
-        uint16_t getDeviceIDSource() const noexcept { return did_source; }
-        uint16_t getDeviceIDVendor() const noexcept { return did_vendor; }
-        uint16_t getDeviceIDProduct() const noexcept { return did_product; }
-        uint16_t getDeviceIDVersion() const noexcept { return did_version; }
-        std::string getDeviceIDModalias() const noexcept;
-        std::string eirDataMaskToString() const noexcept;
-        std::string toString(const bool includeServices=true) const noexcept;
+            /**
+             * Writes the Extended Inquiry Response (EIR) or (Extended) Advertising Data (EAD or AD) segments
+             * of existing EIRDataType of this instance into the given `data` up to `data_length`.
+             * <p>
+             * Only fields in the given EIRDataType `write_mask` and getEIRDataMask() will be written,
+             * hence `write_mask` allows to select the fields to be written/advertised.
+             * </p>
+             * <p>
+             * Usually only up to 31 bytes are supported to be advertised, i.e. `data_length` may be lower or equal 31.
+             * </p>
+             * <p>
+             * Elements exceeding the `data_length` will be cut off.
+             * </p>
+             * <p>
+             *
+             * References:
+             *
+             * - BT Core Spec v5.2: Vol 3, Part C, 11 ADVERTISING AND SCAN RESPONSE DATA FORMAT
+             * - BT Core Spec v5.2: Vol 3, Part C, 8  EXTENDED INQUIRY RESPONSE DATA FORMAT
+             * - BT Core Spec Supplement v9, Part A: Section 1 + 2 Examples, p25..
+             * - [Assigned Numbers - Generic Access Profile](https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/)
+             *
+             * </p>
+             *
+             * @param write_mask EIRDataType selection mask
+             * @param data destination
+             * @param data_length destination length
+             * @return number of bytes written
+             * @see read_data()
+             */
+            jau::nsize_t write_data(EIRDataType write_mask, uint8_t * data, jau::nsize_t const data_length) const noexcept;
 
-        bool operator==(const EInfoReport& o) const noexcept;
-        bool operator!=(const EInfoReport& o) const noexcept {
-            return !( *this == o );
-        }
+            Source getSource() const noexcept { return source; }
+            uint64_t getTimestamp() const noexcept { return timestamp; }
+            bool isSet(EIRDataType bit) const noexcept { return EIRDataType::NONE != (eir_data_mask & bit); }
+            EIRDataType getEIRDataMask() const noexcept { return eir_data_mask; }
+
+            AD_PDU_Type getEvtType() const noexcept { return evt_type; }
+            EAD_Event_Type getExtEvtType() const noexcept { return ead_type; }
+            GAPFlags getFlags() const noexcept { return flags; }
+            uint8_t getADAddressType() const noexcept { return ad_address_type; }
+            BDAddressType getAddressType() const noexcept { return addressType; }
+            jau::EUI48 const & getAddress() const noexcept { return address; }
+            std::string const & getName() const noexcept { return name; }
+            std::string const & getShortName() const noexcept{ return name_short; }
+            int8_t getRSSI() const noexcept { return rssi; }
+            int8_t getTxPower() const noexcept { return tx_power; }
+
+            std::shared_ptr<ManufactureSpecificData> getManufactureSpecificData() const noexcept { return msd; }
+
+            jau::darray<std::shared_ptr<const jau::uuid_t>> getServices() const noexcept { return services; }
+            bool getServicesComplete() const noexcept { return services_complete; }
+
+            uint32_t getDeviceClass() const noexcept { return device_class; }
+            AppearanceCat getAppearance() const noexcept { return appearance; }
+            const jau::TROOctets & getHash() const noexcept { return hash; }
+            const jau::TROOctets & getRandomizer() const noexcept { return randomizer; }
+            uint16_t getDeviceIDSource() const noexcept { return did_source; }
+            uint16_t getDeviceIDVendor() const noexcept { return did_vendor; }
+            uint16_t getDeviceIDProduct() const noexcept { return did_product; }
+            uint16_t getDeviceIDVersion() const noexcept { return did_version; }
+
+            /**
+             * Get slave connection interval range.
+             *
+             * Bluetooth Supplement, Part A, section 1.9
+             *
+             * @param min conn_interval_min in units of 1.25ms, default value 10 for 12.5ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]
+             * @param max conn_interval_max in units of 1.25ms, default value 24 for 30.0ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]
+             */
+            void getConnInterval(uint16_t& min, uint16_t& max) const noexcept { min=conn_interval_min; max=conn_interval_max; }
+
+            std::string getDeviceIDModalias() const noexcept;
+            std::string eirDataMaskToString() const noexcept;
+            std::string toString(const bool includeServices=true) const noexcept;
+
+            bool operator==(const EInfoReport& o) const noexcept;
+            bool operator!=(const EInfoReport& o) const noexcept {
+                return !( *this == o );
+            }
     };
     std::string to_string(EInfoReport::Source source) noexcept;
     inline std::string to_string(const EInfoReport& eir, const bool includeServices=true) noexcept { return eir.toString(includeServices); }
+
+    typedef std::shared_ptr<EInfoReport> EInfoReportRef;
 
     // *************************************************
     // *************************************************

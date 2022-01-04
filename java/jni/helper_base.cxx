@@ -30,8 +30,6 @@
 
 #include "helper_base.hpp"
 
-#define JAVA_MAIN_PACKAGE "org/direct_bt"
-
 void raise_java_exception(JNIEnv *env, const direct_bt::BTException &e, const char* file, int line) {
     jau::print_native_caught_exception_fwd2java(e, file, line);
     env->ThrowNew(env->FindClass("org/direct_bt/BTException"), e.what());
