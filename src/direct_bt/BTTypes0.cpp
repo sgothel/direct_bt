@@ -28,6 +28,7 @@
 #include <memory>
 #include <cstdint>
 #include <cstdio>
+#include <sstream>
 
 #include  <algorithm>
 
@@ -784,6 +785,10 @@ std::string EInfoReport::eirDataMaskToString() const noexcept {
     return std::string("DataSet"+ direct_bt::to_string(eir_data_mask) );
 }
 std::string EInfoReport::toString(const bool includeServices) const noexcept {
+    std::stringstream conn_s;
+    conn_s.precision(4+2);
+    conn_s << ", conn[" << (1.25f * (float)conn_interval_min) << "ms - " << (1.25f * (float)conn_interval_max) << "ms]";
+
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
     std::string out("EInfoReport::"+to_string(source)+
                     "[address["+address.toString()+", "+to_string(getAddressType())+"/"+std::to_string(ad_address_type)+
@@ -792,15 +797,17 @@ std::string EInfoReport::toString(const bool includeServices) const noexcept {
                     "], flags"+to_string(flags)+
                     ", rssi "+std::to_string(rssi)+
                     ", tx-power "+std::to_string(tx_power)+
+                    conn_s.str() +
                     ", dev-class "+jau::to_hexstring(device_class)+
                     ", appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+
                     "), hash["+hash.toString()+
                     "], randomizer["+randomizer.toString()+
                     "], device-id[source "+jau::to_hexstring(did_source)+
+                    ", services[complete "+std::to_string(services_complete)+", count "+std::to_string(services.size())+"]"
                     ", vendor "+jau::to_hexstring(did_vendor)+
                     ", product "+jau::to_hexstring(did_product)+
                     ", version "+jau::to_hexstring(did_version)+
-                    "], "+msdstr+"]");
+                    "], "+msdstr+", "+javaObjectToString()+"]");
 
     if( includeServices && services.size() > 0 ) {
         out.append("\n");
@@ -917,6 +924,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
             case GAP_T::UUID16_INCOMPLETE:
                 [[fallthrough]];
             case GAP_T::UUID16_COMPLETE:
+                setServicesComplete( GAP_T::UUID32_COMPLETE == static_cast<GAP_T>(elem_type) );
                 for(int j=0; j<elem_len/2; j++) {
                     const std::shared_ptr<const jau::uuid_t> uuid( std::make_shared<const jau::uuid16_t>(elem_data, j*2, true) );
                     addService( uuid );
@@ -926,6 +934,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
             case GAP_T::UUID32_INCOMPLETE:
                 [[fallthrough]];
             case GAP_T::UUID32_COMPLETE:
+                setServicesComplete( GAP_T::UUID32_COMPLETE == static_cast<GAP_T>(elem_type) );
                 for(int j=0; j<elem_len/4; j++) {
                     const std::shared_ptr<const jau::uuid_t> uuid( std::make_shared<const jau::uuid32_t>(elem_data, j*4, true) );
                     addService( uuid );
@@ -935,6 +944,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
             case GAP_T::UUID128_INCOMPLETE:
                 [[fallthrough]];
             case GAP_T::UUID128_COMPLETE:
+                setServicesComplete( GAP_T::UUID32_COMPLETE == static_cast<GAP_T>(elem_type) );
                 for(int j=0; j<elem_len/16; j++) {
                     const std::shared_ptr<const jau::uuid_t> uuid( std::make_shared<const jau::uuid128_t>(elem_data, j*16, true) );
                     addService( uuid );
@@ -972,6 +982,14 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                         data[2] | ( data[3] << 8 ), // vendor
                         data[4] | ( data[5] << 8 ), // product
                         data[6] | ( data[7] << 8 )); // version
+                }
+                break;
+
+            case GAP_T::SLAVE_CONN_IVAL_RANGE:
+                if( 4 <= elem_len ) {
+                    const uint16_t min = jau::get_uint16(elem_data, 0, true /* littleEndian */);
+                    const uint16_t max = jau::get_uint16(elem_data, 2, true /* littleEndian */);
+                    setConnInterval(min, max);
                 }
                 break;
 
@@ -1113,7 +1131,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
             }
             count    += ad_sz + 1;
             *data_i++ = ad_sz;
-            *data_i++ = direct_bt::number(GAP_T::UUID16_COMPLETE);
+            *data_i++ = direct_bt::number(services_complete ? GAP_T::UUID16_COMPLETE : GAP_T::UUID16_INCOMPLETE);
             for(auto it = uuid16s.begin(); it != uuid16s.end(); it++) {
                 std::shared_ptr<const jau::uuid_t> p = *it;
                 data_i += p->put(data_i, 0, true /* le */);
@@ -1127,7 +1145,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
             }
             count    += ad_sz + 1;
             *data_i++ = ad_sz;
-            *data_i++ = direct_bt::number(GAP_T::UUID32_COMPLETE);
+            *data_i++ = direct_bt::number(services_complete ? GAP_T::UUID32_COMPLETE : GAP_T::UUID32_INCOMPLETE);
             for(auto it = uuid32s.begin(); it != uuid32s.end(); it++) {
                 std::shared_ptr<const jau::uuid_t> p = *it;
                 data_i += p->put(data_i, 0, true /* le */);
@@ -1141,12 +1159,36 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
             }
             count    += ad_sz + 1;
             *data_i++ = ad_sz;
-            *data_i++ = direct_bt::number(GAP_T::UUID128_COMPLETE);
+            *data_i++ = direct_bt::number(services_complete ? GAP_T::UUID128_COMPLETE : GAP_T::UUID128_INCOMPLETE);
             for(auto it = uuid128s.begin(); it != uuid128s.end(); it++) {
                 std::shared_ptr<const jau::uuid_t> p = *it;
                 data_i += p->put(data_i, 0, true /* le */);
             }
         }
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::CONN_IVAL) ) {
+        const jau::nsize_t ad_sz = 5;
+        if( ( count + 1 + ad_sz ) > data_length ) {
+            _WARN_OOB("CONN_IVAL");
+            return count;
+        }
+        count    += ad_sz + 1;
+        *data_i++ = ad_sz;
+        *data_i++ = direct_bt::number( GAP_T::SLAVE_CONN_IVAL_RANGE );
+        jau::put_uint16(data_i, 0, conn_interval_min, true /* littleEndian */);
+        jau::put_uint16(data_i, 2, conn_interval_max, true /* littleEndian */);
+        data_i += 4;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::TX_POWER) ) {
+        const jau::nsize_t ad_sz = 2;
+        if( ( count + 1 + ad_sz ) > data_length ) {
+            _WARN_OOB("TX_POWER");
+            return count;
+        }
+        count    += ad_sz + 1;
+        *data_i++ = ad_sz;
+        *data_i++ = direct_bt::number( GAP_T::TX_POWER_LEVEL );
+        *data_i++ = getTxPower();
     }
     // TODO:
     // if( isEIRDataTypeSet(mask, EIRDataType::DEVICE_CLASS) ) {}
@@ -1155,11 +1197,13 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
     // if( isEIRDataTypeSet(mask, EIRDataType::RANDOMIZER) ) {}
     // if( isEIRDataTypeSet(mask, EIRDataType::DEVICE_ID) ) {}
 
-    // Mark end of significant part
+#if 0
+    // Not required: Mark end of significant part
     if( ( count + 1 ) <= data_length ) {
         count    += 1;
         *data_i++ = 0; // zero length
     }
+#endif
 
     return count;
 }
