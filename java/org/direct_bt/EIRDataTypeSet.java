@@ -29,6 +29,8 @@ package org.direct_bt;
  * indicating a set of related data.
  *
  * @since 2.0.0
+ *
+ * @see {@link EInfoReport}
  */
 public class EIRDataTypeSet {
 
@@ -36,6 +38,9 @@ public class EIRDataTypeSet {
      * Each enum represents a 'Extended Inquiry Response' (EIR) data field type bit.
      *
      * @since 2.0.0
+     *
+     * @see {@link EIRDataTypeSet}
+     * @see {@link EInfoReport}
      */
     public enum DataType {
         NONE         (     0),

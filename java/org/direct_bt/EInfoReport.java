@@ -31,9 +31,17 @@ import java.util.List;
 import org.jau.net.EUI48;
 
 /**
- * Representing a Gatt Characteristic Descriptor object from the GATT server perspective.
+ * Collection of 'Extended Advertising Data' (EAD), 'Advertising Data' (AD)
+ * or 'Extended Inquiry Response' (EIR) information.
  *
- * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3 Characteristic Descriptor
+ * References:
+ *
+ * - BT Core Spec v5.2: Vol 4, Part E, 7.7.65.2 LE Advertising Report event
+ * - BT Core Spec v5.2: Vol 4, Part E, 7.7.65.13 LE Extended Advertising Report event
+ * - BT Core Spec v5.2: Vol 3, Part C, 11 ADVERTISING AND SCAN RESPONSE DATA FORMAT
+ * - BT Core Spec v5.2: Vol 3, Part C, 8  EXTENDED INQUIRY RESPONSE DATA FORMAT
+ * - BT Core Spec Supplement v9, Part A: Section 1 + 2 Examples, p25..
+ * - [Assigned Numbers - Generic Access Profile](https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/)
  *
  * @since 2.5.3
  */

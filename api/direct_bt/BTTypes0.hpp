@@ -790,6 +790,8 @@ namespace direct_bt {
 
     /**
      * GAP Flags values, see Bluetooth Core Specification Supplement V9, Part A: 1.3, p 12 pp
+     *
+     * @see EInfoReport
      */
     enum class GAPFlags : uint8_t {
         NONE                   = 0,
@@ -824,6 +826,8 @@ namespace direct_bt {
     /**
      * Bit mask of 'Extended Inquiry Response' (EIR) data fields,
      * indicating a set of related data.
+     *
+     * @see EInfoReport
      */
     enum class EIRDataType : uint32_t {
         NONE         = 0,

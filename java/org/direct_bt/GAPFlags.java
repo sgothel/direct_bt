@@ -29,6 +29,8 @@ package org.direct_bt;
  * indicating a set of related data.
  *
  * @since 2.5.3
+ *
+ * @see {@link EInfoReport}
  */
 public class GAPFlags {
 
@@ -36,6 +38,9 @@ public class GAPFlags {
      * Each enum represents a 'Extended Inquiry Response' (EIR) data field type bit.
      *
      * @since 2.5.3
+     *
+     * @see {@link GAPFlags}
+     * @see {@link EInfoReport}
      */
     public enum Bit {
         NONE          ((byte)0),
