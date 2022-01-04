@@ -1103,13 +1103,72 @@ namespace direct_bt {
              *
              * Method fails if isDiscovering() or has any open or pending connected remote {@link BTDevice}s.
              *
+             * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to ::BTRole::Slave
+             * and treat connected BTDevice as ::BTRole::Master while service ::GATTRole::Server.
+             *
+             * This adapter's HCIHandler instance is used to initiate scanning,
+             * see HCIHandler::le_start_adv().
+             *
+             * The given ADV EIR EInfoReport will be updated with getName() and at least GAPFlags::LE_Gen_Disc set.
+             *
+             * The given adv_mask and scanrsp_mask will be updated to have at least EIRDataType::FLAGS and EIRDataType::NAME
+             * set in total.
+             *
+             * @param gattServerData_ the DBGattServer data to be advertised and offered via GattHandler as ::GATTRole::Server.
+             *        Its handles will be setup via DBGattServer::setServicesHandles().
+             *        Reference is held until next disconnect.
+             * @param eir Full ADV EIR EInfoReport, will be updated with getName() and at least GAPFlags::LE_Gen_Disc set.
+             * @param adv_mask EIRDataType mask for EInfoReport to select advertisement EIR PDU data, defaults to EIRDataType::FLAGS | EIRDataType::SERVICE_UUID
+             * @param scanrsp_mask EIRDataType mask for EInfoReport to select scan-response (active scanning) EIR PDU data, defaults to EIRDataType::NAME | EIRDataType::CONN_IVAL
+             * @param adv_interval_min in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+             * @param adv_interval_max in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+             * @param adv_type see AD_PDU_Type, default ::AD_PDU_Type::ADV_IND
+             * @param adv_chan_map bit 0: chan 37, bit 1: chan 38, bit 2: chan 39, default is 0x07 (all 3 channels enabled)
+             * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
+             * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
+             * @see stopAdvertising()
+             * @see isAdvertising()
+             * @see isDiscovering()
+             * @see @ref BTAdapterRoles
+             * @see DBGattServer::setServicesHandles()
+             * @since 2.5.3
+             */
+            HCIStatusCode startAdvertising(DBGattServerRef gattServerData_,
+                                           EInfoReport& eir,
+                                           EIRDataType adv_mask = EIRDataType::FLAGS | EIRDataType::SERVICE_UUID,
+                                           EIRDataType scanrsp_mask = EIRDataType::NAME | EIRDataType::CONN_IVAL,
+                                           const uint16_t adv_interval_min=0x0800, const uint16_t adv_interval_max=0x0800,
+                                           const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND,
+                                           const uint8_t adv_chan_map=0x07,
+                                           const uint8_t filter_policy=0x00) noexcept;
+
+            /**
+             * Starts advertising
+             * <pre>
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.53 LE Set Extended Advertising Parameters command (Bluetooth 5.0)
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.54 LE Set Extended Advertising Data command (Bluetooth 5.0)
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.55 LE Set Extended Scan Response Data command (Bluetooth 5.0)
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.56 LE Set Extended Advertising Enable command (Bluetooth 5.0)
+             *
+             * if available, otherwise using
+             *
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.5 LE Set Advertising Parameters command
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.7 LE Set Advertising Data command
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.8 LE Set Scan Response Data command
+             * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.9 LE Set Advertising Enable command
+             * </pre>
+             *
+             * Method fails if isDiscovering() or has any open or pending connected remote {@link BTDevice}s.
              *
              * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to ::BTRole::Slave
              * and treat connected BTDevice as ::BTRole::Master while service ::GATTRole::Server.
              *
-             *
              * This adapter's HCIHandler instance is used to initiate scanning,
              * see HCIHandler::le_start_adv().
+             *
+             * The ADV EIR EInfoReport will be generated on the default
+             * EIRDataType adv_mask using EIRDataType::FLAGS | EIRDataType::SERVICE_UUID
+             * and EIRDataType scanrsp_mask using scan-response (active scanning) EIRDataType::NAME | EIRDataType::CONN_IVAL.
              *
              * @param gattServerData_ the DBGattServer data to be advertised and offered via GattHandler as ::GATTRole::Server.
              *        Its handles will be setup via DBGattServer::setServicesHandles().

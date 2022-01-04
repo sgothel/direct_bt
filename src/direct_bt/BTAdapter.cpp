@@ -1358,6 +1358,7 @@ bool BTAdapter::removeSMPKeyBin(BDAddressAndType const & remoteAddress, const bo
 // *************************************************
 
 HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
+                               EInfoReport& eir, EIRDataType adv_mask, EIRDataType scanrsp_mask,
                                const uint16_t adv_interval_min, const uint16_t adv_interval_max,
                                const AD_PDU_Type adv_type,
                                const uint8_t adv_chan_map,
@@ -1378,34 +1379,27 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
     }
     // FIXME?? std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME: Fast restart of advertising error)
 
-    EInfoReport eir;
-    EIRDataType mask_adv = EIRDataType::NONE;
-    EIRDataType mask_scanrsp = EIRDataType::NONE;
-
-    eir.setFlags(GAPFlags::LE_Gen_Disc);
+    // set minimum ...
+    eir.addFlags(GAPFlags::LE_Gen_Disc);
     eir.setName(getName());
+    if( EIRDataType::NONE == ( adv_mask & EIRDataType::FLAGS ) ||
+        EIRDataType::NONE == ( scanrsp_mask & EIRDataType::FLAGS ) ) {
+        adv_mask = adv_mask | EIRDataType::FLAGS;
+    }
+    if( EIRDataType::NONE == ( adv_mask & EIRDataType::NAME ) ||
+        EIRDataType::NONE == ( scanrsp_mask & EIRDataType::NAME ) ) {
+        scanrsp_mask = scanrsp_mask | EIRDataType::NAME;
+    }
+
     if( nullptr != gattServerData_ ) {
         gattServerData_->setServicesHandles();
-        for(DBGattServiceRef& s : gattServerData_->getServices()) {
-            eir.addService(s->getType());
-        }
     }
-    constexpr bool legacy = true;
-    if( !legacy && hasHCIExtAdv() ) {
-        // non-legacy 251 bytes
-        // eir.setManufactureSpecificData(msd); // 2 + 4
-        mask_adv = EIRDataType::FLAGS | EIRDataType::NAME | EIRDataType::SERVICE_UUID;
-        mask_scanrsp = EIRDataType::MANUF_DATA;
-    } else {
-        // legacy 31 bytes
-        mask_adv = EIRDataType::FLAGS | EIRDataType::NAME;
-        mask_scanrsp = EIRDataType::SERVICE_UUID;
-    }
+
     const EUI48 peer_bdaddr=EUI48::ANY_DEVICE;
     const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC;
     const HCILEOwnAddressType peer_mac_type=HCILEOwnAddressType::PUBLIC;
 
-    HCIStatusCode status = hci.le_start_adv(eir, mask_adv, mask_scanrsp,
+    HCIStatusCode status = hci.le_start_adv(eir, adv_mask, scanrsp_mask,
                                             peer_bdaddr, own_mac_type, peer_mac_type,
                                             adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy);
     if( HCIStatusCode::SUCCESS != status ) {
@@ -1415,6 +1409,32 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
         btRole = BTRole::Slave;
     }
     return status;
+}
+
+HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
+                               const uint16_t adv_interval_min, const uint16_t adv_interval_max,
+                               const AD_PDU_Type adv_type,
+                               const uint8_t adv_chan_map,
+                               const uint8_t filter_policy) noexcept {
+    EInfoReport eir;
+    EIRDataType adv_mask = EIRDataType::FLAGS | EIRDataType::SERVICE_UUID;
+    EIRDataType scanrsp_mask = EIRDataType::NAME | EIRDataType::CONN_IVAL;
+
+    eir.setFlags(GAPFlags::LE_Gen_Disc);
+    eir.setName(getName());
+    eir.setConnInterval(10, 24); // default
+    if( nullptr != gattServerData_ ) {
+        for(DBGattServiceRef& s : gattServerData_->getServices()) {
+            eir.addService(s->getType());
+        }
+    }
+
+    return startAdvertising(gattServerData_,
+                            eir, adv_mask, scanrsp_mask,
+                            adv_interval_min, adv_interval_max,
+                            adv_type,
+                            adv_chan_map,
+                            filter_policy);
 }
 
 /**

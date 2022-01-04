@@ -495,7 +495,23 @@ static bool startAdvertising(BTAdapter *a, std::string msg) {
         fprintf_td(stderr, "****** Start advertising (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
         return false;
     }
-    HCIStatusCode status = a->startAdvertising(dbGattServer,
+    EInfoReport eir;
+    EIRDataType adv_mask = EIRDataType::FLAGS | EIRDataType::SERVICE_UUID;
+    EIRDataType scanrsp_mask = EIRDataType::NAME | EIRDataType::CONN_IVAL;
+
+    eir.addFlags(GAPFlags::LE_Gen_Disc);
+    eir.addFlags(GAPFlags::BREDR_UNSUP);
+
+    eir.addService(DataServiceUUID);
+    eir.setServicesComplete(false);
+
+    eir.setName(a->getName());
+    eir.setConnInterval(10, 24);
+
+    fprintf_td(stderr, "****** Start advertising (%s): EIR %s\n", msg.c_str(), eir.toString().c_str());
+    fprintf_td(stderr, "****** Start advertising (%s): adv %s, scanrsp %s\n", msg.c_str(), to_string(adv_mask).c_str(), to_string(scanrsp_mask).c_str());
+
+    HCIStatusCode status = a->startAdvertising(dbGattServer, eir, adv_mask, scanrsp_mask,
                                                adv_interval_min, adv_interval_max,
                                                adv_type, adv_chan_map, filter_policy);
     fprintf_td(stderr, "****** Start advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());

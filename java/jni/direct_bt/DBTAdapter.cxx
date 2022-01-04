@@ -994,10 +994,41 @@ void Java_jau_direct_1bt_DBTAdapter_printDeviceListsImpl(JNIEnv *env, jobject ob
     }
 }
 
-jbyte Java_jau_direct_1bt_DBTAdapter_startAdvertisingImpl(JNIEnv *env, jobject obj,
-                                                          jobject jgattServerData,
-                                                          jshort adv_interval_min, jshort adv_interval_max, jbyte jadv_type, jbyte adv_chan_map,
-                                                          jbyte filter_policy) {
+jbyte Java_jau_direct_1bt_DBTAdapter_startAdvertising1Impl(JNIEnv *env, jobject obj,
+                                                           jobject jgattServerData,
+                                                           jobject jeir,
+                                                           jint jadv_mask,
+                                                           jint jscanrsp_mask,
+                                                           jshort adv_interval_min, jshort adv_interval_max,
+                                                           jbyte jadv_type, jbyte adv_chan_map, jbyte filter_policy) {
+    try {
+        DBGattServerRef gattServerRef; // nullptr
+        if( nullptr != jgattServerData ) {
+            std::shared_ptr<DBGattServer> * ref_ptr = jau::getInstance<std::shared_ptr<DBGattServer>>(env, jgattServerData);
+            gattServerRef = *ref_ptr;
+        }
+        if( nullptr == jeir ) {
+            throw jau::IllegalArgumentException("eir null", E_FILE_LINE);
+        }
+        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, jeir);
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+
+        const EIRDataType adv_mask = static_cast<EIRDataType>(jadv_mask);
+        const EIRDataType scanrsp_mask = static_cast<EIRDataType>(jscanrsp_mask);
+        const AD_PDU_Type adv_type = static_cast<AD_PDU_Type>(jadv_type);
+        HCIStatusCode res = adapter->startAdvertising(gattServerRef, *eir_ptr, adv_mask, scanrsp_mask, adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy);
+        return (jbyte) number(res);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+}
+
+jbyte Java_jau_direct_1bt_DBTAdapter_startAdvertising2Impl(JNIEnv *env, jobject obj,
+                                                           jobject jgattServerData,
+                                                           jshort adv_interval_min, jshort adv_interval_max, jbyte jadv_type, jbyte adv_chan_map,
+                                                           jbyte filter_policy) {
     try {
         DBGattServerRef gattServerRef; // nullptr
         if( nullptr != jgattServerData ) {

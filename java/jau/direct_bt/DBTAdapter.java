@@ -48,6 +48,7 @@ import org.direct_bt.BTUtils;
 import org.direct_bt.DBGattServer;
 import org.direct_bt.DiscoveryPolicy;
 import org.direct_bt.EIRDataTypeSet;
+import org.direct_bt.EInfoReport;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.HCIWhitelistConnectType;
 import org.direct_bt.LE_Features;
@@ -659,18 +660,39 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     }
 
     @Override
-    public final HCIStatusCode startAdvertising(final DBGattServer gattServerData_, final short adv_interval_min,
-                                                final short adv_interval_max, final byte adv_type, final byte adv_chan_map,
-                                                final byte filter_policy) {
-        final HCIStatusCode res = HCIStatusCode.get( startAdvertisingImpl(gattServerData_, adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy) );
+    public final HCIStatusCode startAdvertising(final DBGattServer gattServerData_,
+                                   final EInfoReport eir,
+                                   final EIRDataTypeSet adv_mask,
+                                   final EIRDataTypeSet scanrsp_mask,
+                                   final short adv_interval_min, final short adv_interval_max,
+                                   final byte adv_type, final byte adv_chan_map, final byte filter_policy) {
+        final HCIStatusCode res = HCIStatusCode.get( startAdvertising1Impl(gattServerData_, eir, adv_mask.mask, scanrsp_mask.mask,
+                                                                           adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy) );
         if( HCIStatusCode.SUCCESS == res ) {
             gattServerData = gattServerData_;
         }
         return res;
     }
-    private native byte startAdvertisingImpl(final DBGattServer gattServerData, final short adv_interval_min,
-                                             final short adv_interval_max, final byte adv_type, final byte adv_chan_map,
-                                             final byte filter_policy);
+    private native byte startAdvertising1Impl(final DBGattServer gattServerData,
+                                              final EInfoReport eir,
+                                              final int adv_mask,
+                                              final int scanrsp_mask,
+                                              final short adv_interval_min, final short adv_interval_max,
+                                              final byte adv_type, final byte adv_chan_map, final byte filter_policy);
+
+    @Override
+    public final HCIStatusCode startAdvertising(final DBGattServer gattServerData_, final short adv_interval_min,
+                                                final short adv_interval_max, final byte adv_type, final byte adv_chan_map,
+                                                final byte filter_policy) {
+        final HCIStatusCode res = HCIStatusCode.get( startAdvertising2Impl(gattServerData_, adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy) );
+        if( HCIStatusCode.SUCCESS == res ) {
+            gattServerData = gattServerData_;
+        }
+        return res;
+    }
+    private native byte startAdvertising2Impl(final DBGattServer gattServerData, final short adv_interval_min,
+                                              final short adv_interval_max, final byte adv_type, final byte adv_chan_map,
+                                              final byte filter_policy);
 
     @Override
     public final HCIStatusCode startAdvertising(final DBGattServer gattServerData) {

@@ -49,6 +49,8 @@ import org.direct_bt.DBGattService;
 import org.direct_bt.DBGattValue;
 import org.direct_bt.DiscoveryPolicy;
 import org.direct_bt.EIRDataTypeSet;
+import org.direct_bt.EInfoReport;
+import org.direct_bt.GAPFlags;
 import org.direct_bt.GattCharPropertySet;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.LE_Features;
@@ -542,7 +544,29 @@ public class DBTPeripheral00 {
             BTUtils.fprintf_td(System.err, "****** Start advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
             return false;
         }
-        final HCIStatusCode status = adapter.startAdvertising(dbGattServer,
+        final EInfoReport eir = new EInfoReport();
+        final EIRDataTypeSet adv_mask = new EIRDataTypeSet();
+        final EIRDataTypeSet scanrsp_mask = new EIRDataTypeSet();
+
+        adv_mask.set(EIRDataTypeSet.DataType.FLAGS);
+        adv_mask.set(EIRDataTypeSet.DataType.SERVICE_UUID);
+
+        scanrsp_mask.set(EIRDataTypeSet.DataType.NAME);
+        scanrsp_mask.set(EIRDataTypeSet.DataType.CONN_IVAL);
+
+        eir.addFlag(GAPFlags.Bit.LE_Gen_Disc);
+        eir.addFlag(GAPFlags.Bit.BREDR_UNSUP);
+
+        eir.addService(DataServiceUUID);
+        eir.setServicesComplete(false);
+
+        eir.setName(adapter.getName());
+        eir.setConnInterval((short)10, (short)24);
+
+        BTUtils.println(System.err, "****** Start advertising ("+msg+"): EIR "+eir.toString());
+        BTUtils.println(System.err, "****** Start advertising ("+msg+"): adv "+adv_mask.toString()+", scanrsp "+scanrsp_mask.toString());
+
+        final HCIStatusCode status = adapter.startAdvertising(dbGattServer, eir, adv_mask, scanrsp_mask,
                                                               adv_interval_min, adv_interval_max,
                                                               adv_type, adv_chan_map, filter_policy);
         BTUtils.println(System.err, "****** Start advertising ("+msg+") result: "+status+": "+adapter.toString());

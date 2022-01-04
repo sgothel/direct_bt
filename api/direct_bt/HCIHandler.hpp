@@ -840,9 +840,9 @@ namespace direct_bt {
              * - Consider SMP (security)
              * </p>
              *
-             * @param eir EInfoReport full ADV EIR
-             * @param adv_mask EIRDataType mask for EInfoReport to select advertisement EIR PDU data, defaults to EIRDataType::FLAGS | EIRDataType::NAME | EIRDataType::MANUF_DATA
-             * @param scanrsp_mask EIRDataType mask for EInfoReport to select scan-response (active scanning) EIR PDU data, defaults to EIRDataType::SERVICE_UUID
+             * @param eir Full ADV EIR EInfoReport
+             * @param adv_mask EIRDataType mask for EInfoReport to select advertisement EIR PDU data, defaults to EIRDataType::FLAGS | EIRDataType::SERVICE_UUID
+             * @param scanrsp_mask EIRDataType mask for EInfoReport to select scan-response (active scanning) EIR PDU data, defaults to EIRDataType::NAME | EIRDataType::CONN_IVAL
              * @param peer_bdaddr EUI48 of directed peer, defaults to EUI48::ANY_DEVICE (zero address)
              * @param own_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
              * @param peer_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
@@ -855,8 +855,8 @@ namespace direct_bt {
              * @since 2.4.0
              */
             HCIStatusCode le_start_adv(const EInfoReport &eir,
-                                       const EIRDataType adv_mask = EIRDataType::FLAGS | EIRDataType::NAME | EIRDataType::MANUF_DATA,
-                                       const EIRDataType scanrsp_mask = EIRDataType::SERVICE_UUID,
+                                       const EIRDataType adv_mask = EIRDataType::FLAGS | EIRDataType::SERVICE_UUID,
+                                       const EIRDataType scanrsp_mask = EIRDataType::NAME | EIRDataType::CONN_IVAL,
                                        const EUI48 &peer_bdaddr=EUI48::ANY_DEVICE,
                                        const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
                                        const HCILEOwnAddressType peer_mac_type=HCILEOwnAddressType::PUBLIC,
