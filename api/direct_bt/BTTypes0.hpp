@@ -838,6 +838,7 @@ namespace direct_bt {
         HASH         = (1 << 12),
         RANDOMIZER   = (1 << 13),
         DEVICE_ID    = (1 << 14),
+        CONN_IVAL    = (1 << 15),
         SERVICE_UUID = (1 << 30),
         ALL          = 0xffffffff
     };

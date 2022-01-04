@@ -661,6 +661,7 @@ std::string direct_bt::to_string(const GAPFlags v) noexcept {
     X(EIRDataType,HASH) \
     X(EIRDataType,RANDOMIZER) \
     X(EIRDataType,DEVICE_ID) \
+    X(EIRDataType,CONN_IVAL) \
     X(EIRDataType,SERVICE_UUID) \
     X(EIRDataType,ALL)
 

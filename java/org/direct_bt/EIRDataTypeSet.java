@@ -54,6 +54,7 @@ public class EIRDataTypeSet {
         HASH         (1 << 12),
         RANDOMIZER   (1 << 13),
         DEVICE_ID    (1 << 14),
+        CONN_IVAL    (1 << 15),
         SERVICE_UUID (1 << 30);
 
         DataType(final int v) { value = v; }
@@ -64,6 +65,9 @@ public class EIRDataTypeSet {
 
     public EIRDataTypeSet(final int v) {
         mask = v;
+    }
+    public EIRDataTypeSet() {
+        mask = 0;
     }
 
     public boolean isSet(final DataType bit) { return 0 != ( mask & bit.value ); }
