@@ -271,7 +271,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     jobject newJavaBTDevice(JNIEnv *env, BTDeviceRef device, const uint64_t timestamp) {
         // DBTDevice(final long nativeInstance, final DBTAdapter adptr, final byte byteAddress[/*6*/], final byte byteAddressType,
         //           final long ts_creation, final String name)
-        const EUI48 addr = device->getAddressAndType().address;
+        const EUI48 & addr = device->getAddressAndType().address;
         jbyteArray jaddr = env->NewByteArray(sizeof(addr));
         env->SetByteArrayRegion(jaddr, 0, sizeof(addr), (const jbyte*)(addr.b));
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
@@ -515,7 +515,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobject
         }
         const size_t address_size = env->GetArrayLength(jaddress);
         if( sizeof(EUI48) > address_size ) {
-            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(EUI48)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
@@ -544,7 +544,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addDeviceToWhitelistImpl1(JNIEnv *env, j
         }
         const size_t address_size = env->GetArrayLength(jaddress);
         if( sizeof(EUI48) > address_size ) {
-            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(EUI48)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
@@ -572,7 +572,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addDeviceToWhitelistImpl2(JNIEnv *env, j
         }
         const size_t address_size = env->GetArrayLength(jaddress);
         if( sizeof(EUI48) > address_size ) {
-            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(EUI48)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
@@ -599,7 +599,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_removeDeviceFromWhitelistImpl(JNIEnv *en
         }
         const size_t address_size = env->GetArrayLength(jaddress);
         if( sizeof(EUI48) > address_size ) {
-            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(EUI48)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
@@ -791,7 +791,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_removeDiscoveredDeviceImpl1(JNIEnv *env,
         }
         const size_t address_size = env->GetArrayLength(jaddress);
         if( sizeof(EUI48) > address_size ) {
-            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(EUI48)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
@@ -953,7 +953,7 @@ jobject Java_jau_direct_1bt_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject ob
         }
         const size_t address_size = env->GetArrayLength(jaddress);
         if( sizeof(EUI48) > address_size ) {
-            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(EUI48)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
