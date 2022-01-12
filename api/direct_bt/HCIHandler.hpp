@@ -39,6 +39,7 @@
 #include <jau/ringbuffer.hpp>
 #include <jau/java_uplink.hpp>
 #include <jau/octets.hpp>
+#include <jau/service_runner.hpp>
 
 #include "BTTypes0.hpp"
 #include "BTIoctl.hpp"
@@ -245,13 +246,8 @@ namespace direct_bt {
             constexpr static void filter_all_opcbit(uint64_t &mask) noexcept { mask=0xffffffffffffffffUL; }
             inline static void filter_set_opcbit(HCIOpcodeBit opcbit, uint64_t &mask) noexcept { jau::set_bit_uint64(number(opcbit), mask); }
 
+            jau::service_runner hci_reader_service;
             jau::ringbuffer<std::unique_ptr<HCIEvent>, jau::nsize_t> hciEventRing;
-            jau::sc_atomic_bool hciReaderShallStop;
-
-            std::mutex mtx_hciReaderLifecycle;
-            std::condition_variable cv_hciReaderInit;
-            pthread_t hciReaderThreadId;
-            jau::sc_atomic_bool hciReaderRunning;
 
             std::recursive_mutex mtx_sendReply; // for sendWith*Reply, process*Command, ..; Recurses from many..
 
@@ -333,7 +329,8 @@ namespace direct_bt {
             std::unique_ptr<MgmtEvent> translate(HCICommand& ev) noexcept;
 
             std::unique_ptr<const SMPPDUMsg> getSMPPDUMsg(const HCIACLData::l2cap_frame & l2cap, const uint8_t * l2cap_data) const noexcept;
-            void hciReaderThreadImpl() noexcept;
+            void hciReaderWork(jau::service_runner& sr) noexcept;
+            void hciReaderEndLocked(jau::service_runner& sr) noexcept;
 
             bool sendCommand(HCICommand &req, const bool quiet=false) noexcept;
             std::unique_ptr<HCIEvent> getNextReply(HCICommand &req, int32_t & retryCount, const int32_t replyTimeoutMS) noexcept;

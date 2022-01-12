@@ -421,161 +421,145 @@ std::unique_ptr<const SMPPDUMsg> HCIHandler::getSMPPDUMsg(const HCIACLData::l2ca
     return nullptr;
 }
 
-void HCIHandler::hciReaderThreadImpl() noexcept {
-    {
-        const std::lock_guard<std::mutex> lock(mtx_hciReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        hciReaderShallStop = false;
-        hciReaderRunning = true;
-        DBG_PRINT("HCIHandler<%u>::reader: Started - %s", dev_id, toString().c_str());
+void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
+    jau::snsize_t len;
+    if( !isOpen() ) {
+        // not open
+        ERR_PRINT("HCIHandler<%u>::reader: Not connected %s", dev_id, toString().c_str());
+        sr.set_shall_stop();
+        return;
     }
-    cv_hciReaderInit.notify_all(); // have mutex unlocked before notify_all to avoid pessimistic re-block of notified wait() thread.
 
-    thread_local jau::call_on_release thread_cleanup([&]() {
-        DBG_PRINT("HCIHandler<%u>::hciReaderThreadCleanup: hciReaderRunning %d -> 0", dev_id, hciReaderRunning.load());
-        hciReaderRunning = false;
-        cv_hciReaderInit.notify_all();
-    });
+    len = comm.read(rbuffer.get_wptr(), rbuffer.size(), env.HCI_READER_THREAD_POLL_TIMEOUT);
+    if( 0 < len ) {
+        const jau::nsize_t len2 = static_cast<jau::nsize_t>(len);
+        const HCIPacketType pc = static_cast<HCIPacketType>( rbuffer.get_uint8_nc(0) );
 
-    while( !hciReaderShallStop ) {
-        jau::snsize_t len;
-        if( !isOpen() ) {
-            // not open
-            ERR_PRINT("HCIHandler<%u>::reader: Not connected %s", dev_id, toString().c_str());
-            hciReaderShallStop = true;
-            break;
+        // ACL
+        if( HCIPacketType::ACLDATA == pc ) {
+            std::unique_ptr<HCIACLData> acldata = HCIACLData::getSpecialized(rbuffer.get_ptr(), len2);
+            if( nullptr == acldata ) {
+                // not valid acl-data ...
+                if( jau::environment::get().verbose ) {
+                    WARN_PRINT("HCIHandler<%u>-IO RECV Drop ACL (non-acl-data) %s - %s",
+                            dev_id, jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
+                }
+                return;
+            }
+            const uint8_t* l2cap_data = nullptr; // owned by acldata
+            HCIACLData::l2cap_frame l2cap = acldata->getL2CAPFrame(l2cap_data);
+            std::unique_ptr<const SMPPDUMsg> smpPDU = getSMPPDUMsg(l2cap, l2cap_data);
+            if( nullptr != smpPDU ) {
+                HCIConnectionRef conn = findTrackerConnection(l2cap.handle);
+
+                if( nullptr != conn ) {
+                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV ACL (SMP) %s for %s",
+                            dev_id, smpPDU->toString().c_str(), conn->toString().c_str());
+                    jau::for_each_fidelity(hciSMPMsgCallbackList, [&](HCISMPMsgCallback &cb) {
+                       cb.invoke(conn->getAddressAndType(), *smpPDU, l2cap);
+                    });
+                } else {
+                    WARN_PRINT("HCIHandler<%u>-IO RECV ACL Drop (SMP): Not tracked conn_handle %s: %s, %s",
+                            dev_id, jau::to_hexstring(l2cap.handle).c_str(),
+                            l2cap.toString().c_str(), smpPDU->toString().c_str());
+                }
+            } else if( !l2cap.isGATT() ) { // ignore handled GATT packages
+                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV ACL Drop (L2CAP): ???? %s",
+                        dev_id, acldata->toString(l2cap, l2cap_data).c_str());
+            }
+            return;
         }
 
-        len = comm.read(rbuffer.get_wptr(), rbuffer.size(), env.HCI_READER_THREAD_POLL_TIMEOUT);
-        if( 0 < len ) {
-            const jau::nsize_t len2 = static_cast<jau::nsize_t>(len);
-            const HCIPacketType pc = static_cast<HCIPacketType>( rbuffer.get_uint8_nc(0) );
-
-            // ACL
-            if( HCIPacketType::ACLDATA == pc ) {
-                std::unique_ptr<HCIACLData> acldata = HCIACLData::getSpecialized(rbuffer.get_ptr(), len2);
-                if( nullptr == acldata ) {
-                    // not valid acl-data ...
-                    if( jau::environment::get().verbose ) {
-                        WARN_PRINT("HCIHandler<%u>-IO RECV Drop ACL (non-acl-data) %s - %s",
-                                dev_id, jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
-                    }
-                    continue;
-                }
-                const uint8_t* l2cap_data = nullptr; // owned by acldata
-                HCIACLData::l2cap_frame l2cap = acldata->getL2CAPFrame(l2cap_data);
-                std::unique_ptr<const SMPPDUMsg> smpPDU = getSMPPDUMsg(l2cap, l2cap_data);
-                if( nullptr != smpPDU ) {
-                    HCIConnectionRef conn = findTrackerConnection(l2cap.handle);
-
-                    if( nullptr != conn ) {
-                        COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV ACL (SMP) %s for %s",
-                                dev_id, smpPDU->toString().c_str(), conn->toString().c_str());
-                        jau::for_each_fidelity(hciSMPMsgCallbackList, [&](HCISMPMsgCallback &cb) {
-                           cb.invoke(conn->getAddressAndType(), *smpPDU, l2cap);
-                        });
-                    } else {
-                        WARN_PRINT("HCIHandler<%u>-IO RECV ACL Drop (SMP): Not tracked conn_handle %s: %s, %s",
-                                dev_id, jau::to_hexstring(l2cap.handle).c_str(),
-                                l2cap.toString().c_str(), smpPDU->toString().c_str());
-                    }
-                } else if( !l2cap.isGATT() ) { // ignore handled GATT packages
-                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV ACL Drop (L2CAP): ???? %s",
-                            dev_id, acldata->toString(l2cap, l2cap_data).c_str());
-                }
-                continue;
-            }
-
-            // COMMAND
-            if( HCIPacketType::COMMAND == pc ) {
-                std::unique_ptr<HCICommand> event = HCICommand::getSpecialized(rbuffer.get_ptr(), len2);
-                if( nullptr == event ) {
-                    // not a valid event ...
-                    ERR_PRINT("HCIHandler<%u>-IO RECV CMD Drop (non-command) %s - %s",
-                            dev_id, jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
-                    continue;
-                }
-                std::unique_ptr<MgmtEvent> mevent = translate(*event);
-                if( nullptr != mevent ) {
-                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV CMD (CB) %s\n    -> %s", dev_id, event->toString().c_str(), mevent->toString().c_str());
-                    sendMgmtEvent( *mevent );
-                } else {
-                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV CMD Drop (no translation) %s", dev_id, event->toString().c_str());
-                }
-                continue;
-            }
-
-            if( HCIPacketType::EVENT != pc ) {
-                WARN_PRINT("HCIHandler<%u>-IO RECV EVT Drop (not event, nor command, nor acl-data) %s - %s",
-                        dev_id, jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
-                continue;
-            }
-
-            // EVENT
-            std::unique_ptr<HCIEvent> event = HCIEvent::getSpecialized(rbuffer.get_ptr(), len2);
+        // COMMAND
+        if( HCIPacketType::COMMAND == pc ) {
+            std::unique_ptr<HCICommand> event = HCICommand::getSpecialized(rbuffer.get_ptr(), len2);
             if( nullptr == event ) {
                 // not a valid event ...
-                ERR_PRINT("HCIHandler<%u>-IO RECV EVT Drop (non-event) %s - %s",
+                ERR_PRINT("HCIHandler<%u>-IO RECV CMD Drop (non-command) %s - %s",
                         dev_id, jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
-                continue;
+                return;
             }
-
-            const HCIMetaEventType mec = event->getMetaEventType();
-            if( HCIMetaEventType::INVALID != mec && !filter_test_metaev(mec) ) {
-                // DROP
-                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV EVT Drop (meta filter) %s", dev_id, event->toString().c_str());
-                continue; // next packet
-            }
-
-            if( event->isEvent(HCIEventType::CMD_STATUS) || event->isEvent(HCIEventType::CMD_COMPLETE) )
-            {
-                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV EVT (CMD REPLY) %s", dev_id, event->toString().c_str());
-                if( hciEventRing.isFull() ) {
-                    const jau::nsize_t dropCount = hciEventRing.capacity()/4;
-                    hciEventRing.drop(dropCount);
-                    WARN_PRINT("HCIHandler<%u>-IO RECV Drop (%u oldest elements of %u capacity, ring full) - %s",
-                            dev_id, dropCount, hciEventRing.capacity(), toString().c_str());
-                }
-                hciEventRing.putBlocking( std::move( event ) );
-            } else if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
-                // issue callbacks for the translated AD events
-                jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
-                for(jau::nsize_t eircount = 0; eircount < eirlist.size(); ++eircount) {
-                    const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[eircount] ) );
-                    COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%u>-IO RECV EVT (AD EIR) [%d] %s",
-                            dev_id, eircount, e.getEIR()->toString().c_str());
-                    sendMgmtEvent( e );
-                }
-            } else if( event->isMetaEvent(HCIMetaEventType::LE_EXT_ADV_REPORT) ) {
-                // issue callbacks for the translated EAD events
-                jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ext_ad_reports(event->getParam(), event->getParamSize());
-                for(jau::nsize_t eircount = 0; eircount < eirlist.size(); ++eircount) {
-                    const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[eircount] ) );
-                    COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%u>-IO RECV EVT (EAD EIR (ext)) [%d] %s",
-                            dev_id, eircount, e.getEIR()->toString().c_str());
-                    sendMgmtEvent( e );
-                }
+            std::unique_ptr<MgmtEvent> mevent = translate(*event);
+            if( nullptr != mevent ) {
+                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV CMD (CB) %s\n    -> %s", dev_id, event->toString().c_str(), mevent->toString().c_str());
+                sendMgmtEvent( *mevent );
             } else {
-                // issue a callback for the translated event
-                std::unique_ptr<MgmtEvent> mevent = translate(*event);
-                if( nullptr != mevent ) {
-                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV EVT (CB) %s\n    -> %s", dev_id, event->toString().c_str(), mevent->toString().c_str());
-                    sendMgmtEvent( *mevent );
-                } else {
-                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV EVT Drop (no translation) %s", dev_id, event->toString().c_str());
-                }
+                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV CMD Drop (no translation) %s", dev_id, event->toString().c_str());
             }
-        } else if( ETIMEDOUT != errno && !hciReaderShallStop ) { // expected exits
-            ERR_PRINT("HCIHandler<%u>::reader: HCIComm read error %s", dev_id, toString().c_str());
+            return;
         }
+
+        if( HCIPacketType::EVENT != pc ) {
+            WARN_PRINT("HCIHandler<%u>-IO RECV EVT Drop (not event, nor command, nor acl-data) %s - %s",
+                    dev_id, jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
+            return;
+        }
+
+        // EVENT
+        std::unique_ptr<HCIEvent> event = HCIEvent::getSpecialized(rbuffer.get_ptr(), len2);
+        if( nullptr == event ) {
+            // not a valid event ...
+            ERR_PRINT("HCIHandler<%u>-IO RECV EVT Drop (non-event) %s - %s",
+                    dev_id, jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
+            return;
+        }
+
+        const HCIMetaEventType mec = event->getMetaEventType();
+        if( HCIMetaEventType::INVALID != mec && !filter_test_metaev(mec) ) {
+            // DROP
+            COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV EVT Drop (meta filter) %s", dev_id, event->toString().c_str());
+            return; // next packet
+        }
+
+        if( event->isEvent(HCIEventType::CMD_STATUS) || event->isEvent(HCIEventType::CMD_COMPLETE) )
+        {
+            COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV EVT (CMD REPLY) %s", dev_id, event->toString().c_str());
+            if( hciEventRing.isFull() ) {
+                const jau::nsize_t dropCount = hciEventRing.capacity()/4;
+                hciEventRing.drop(dropCount);
+                WARN_PRINT("HCIHandler<%u>-IO RECV Drop (%u oldest elements of %u capacity, ring full) - %s",
+                        dev_id, dropCount, hciEventRing.capacity(), toString().c_str());
+            }
+            hciEventRing.putBlocking( std::move( event ) );
+        } else if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
+            // issue callbacks for the translated AD events
+            jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
+            for(jau::nsize_t eircount = 0; eircount < eirlist.size(); ++eircount) {
+                const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[eircount] ) );
+                COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%u>-IO RECV EVT (AD EIR) [%d] %s",
+                        dev_id, eircount, e.getEIR()->toString().c_str());
+                sendMgmtEvent( e );
+            }
+        } else if( event->isMetaEvent(HCIMetaEventType::LE_EXT_ADV_REPORT) ) {
+            // issue callbacks for the translated EAD events
+            jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ext_ad_reports(event->getParam(), event->getParamSize());
+            for(jau::nsize_t eircount = 0; eircount < eirlist.size(); ++eircount) {
+                const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[eircount] ) );
+                COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%u>-IO RECV EVT (EAD EIR (ext)) [%d] %s",
+                        dev_id, eircount, e.getEIR()->toString().c_str());
+                sendMgmtEvent( e );
+            }
+        } else {
+            // issue a callback for the translated event
+            std::unique_ptr<MgmtEvent> mevent = translate(*event);
+            if( nullptr != mevent ) {
+                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV EVT (CB) %s\n    -> %s", dev_id, event->toString().c_str(), mevent->toString().c_str());
+                sendMgmtEvent( *mevent );
+            } else {
+                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV EVT Drop (no translation) %s", dev_id, event->toString().c_str());
+            }
+        }
+    } else if( ETIMEDOUT != errno && !sr.get_shall_stop() ) { // expected exits
+        ERR_PRINT("HCIHandler<%u>::reader: HCIComm read error %s", dev_id, toString().c_str());
     }
-    {
-        const std::lock_guard<std::mutex> lock(mtx_hciReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        WORDY_PRINT("HCIHandler<%u>::reader: Ended. Ring has %u entries flushed - %s", dev_id, hciEventRing.size(), toString().c_str());
-        hciEventRing.clear();
-        hciReaderRunning = false;
-    }
-    cv_hciReaderInit.notify_all(); // have mutex unlocked before notify_all to avoid pessimistic re-block of notified wait() thread.
 }
+
+void HCIHandler::hciReaderEndLocked(jau::service_runner& sr) noexcept {
+    (void)sr;
+    WORDY_PRINT("HCIHandler<%u>::reader: Ended. Ring has %u entries flushed - %s", dev_id, hciEventRing.size(), toString().c_str());
+    hciEventRing.clear();
+}
+
 
 void HCIHandler::sendMgmtEvent(const MgmtEvent& event) noexcept {
     MgmtEventCallbackList & mgmtEventCallbackList = mgmtEventCallbackLists[static_cast<uint16_t>(event.getOpcode())];
@@ -682,8 +666,11 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
   dev_id(dev_id_),
   rbuffer(HCI_MAX_MTU, jau::endian::little),
   comm(dev_id_, HCI_CHANNEL_RAW),
-  hciEventRing(env.HCI_EVT_RING_CAPACITY), hciReaderShallStop(false),
-  hciReaderThreadId(0), hciReaderRunning(false),
+  hci_reader_service("HCIHandler::reader", THREAD_SHUTDOWN_TIMEOUT_MS,
+                     jau::bindMemberFunc(this, &HCIHandler::hciReaderWork),
+                     jau::service_runner::Callback() /* init */,
+                     jau::bindMemberFunc(this, &HCIHandler::hciReaderEndLocked)),
+  hciEventRing(env.HCI_EVT_RING_CAPACITY),
   allowClose( comm.isOpen() ),
   btMode(btMode_),
   currentScanType(ScanType::NONE),
@@ -695,19 +682,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         return;
     }
 
-    {
-        std::unique_lock<std::mutex> lock(mtx_hciReaderLifecycle); // RAII-style acquire and relinquish via destructor
-
-        std::thread hciReaderThread(&HCIHandler::hciReaderThreadImpl, this); // @suppress("Invalid arguments")
-        hciReaderThreadId = hciReaderThread.native_handle();
-        // Avoid 'terminate called without an active exception'
-        // as hciReaderThreadImpl may end due to I/O errors.
-        hciReaderThread.detach();
-
-        while( false == hciReaderRunning ) {
-            cv_hciReaderInit.wait(lock);
-        }
-    }
+    hci_reader_service.start();
 
     PERF_TS_T0();
 
@@ -979,32 +954,7 @@ void HCIHandler::close() noexcept {
     comm.close();
 
     PERF_TS_TD("HCIHandler::close.1");
-    {
-        std::unique_lock<std::mutex> lockReader(mtx_hciReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        const pthread_t tid_self = pthread_self();
-        const pthread_t tid_reader = hciReaderThreadId;
-        hciReaderThreadId = 0;
-        const bool is_reader = tid_reader == tid_self;
-        DBG_PRINT("HCIHandler::close: hciReader[running %d, shallStop %d, isReader %d, tid %p) - %s",
-                hciReaderRunning.load(), hciReaderShallStop.load(), is_reader, (void*)tid_reader, toString().c_str());
-        if( hciReaderRunning ) {
-            hciReaderShallStop = true;
-            if( !is_reader && 0 != tid_reader ) {
-                int kerr;
-                if( 0 != ( kerr = pthread_kill(tid_reader, SIGALRM) ) ) {
-                    ERR_PRINT("HCIHandler::close: pthread_kill %p FAILED: %d - %s", (void*)tid_reader, kerr, toString().c_str());
-                }
-            }
-            // Ensure the reader thread has ended, no runaway-thread using *this instance after destruction
-            while( true == hciReaderRunning ) {
-                std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
-                std::cv_status s = cv_hciReaderInit.wait_until(lockReader, t0 + std::chrono::milliseconds(THREAD_SHUTDOWN_TIMEOUT_MS));
-                if( std::cv_status::timeout == s && true == hciReaderRunning ) {
-                    ERR_PRINT("HCIHandler::close::hciReader: Timeout: %s", toString().c_str());
-                }
-            }
-        }
-    }
+    hci_reader_service.stop();
     PERF_TS_TD("HCIHandler::close.X");
     DBG_PRINT("HCIHandler::close: End %s", toString().c_str());
 }
