@@ -1014,7 +1014,7 @@ void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) {
     }
 }
 
-void BTGattHandler::l2capReaderWork(jau::service_runner& sr) {
+void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
     jau::snsize_t len;
     if( !validateConnected() ) {
         ERR_PRINT("GATTHandler::reader: Invalid IO state -> Stop");
@@ -1103,12 +1103,12 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) {
     }
 }
 
-void BTGattHandler::l2capReaderEndLocked(jau::service_runner& sr) {
+void BTGattHandler::l2capReaderEndLocked(jau::service_runner& sr) noexcept {
     (void)sr;
     WORDY_PRINT("GATTHandler::reader: Ended. Ring has %u entries flushed", attPDURing.size());
     attPDURing.clear();
 }
-void BTGattHandler::l2capReaderEndFinal(jau::service_runner& sr) {
+void BTGattHandler::l2capReaderEndFinal(jau::service_runner& sr) noexcept {
     (void)sr;
     disconnect(true /* disconnectDevice */, has_ioerror);
 }

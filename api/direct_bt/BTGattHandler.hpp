@@ -224,9 +224,9 @@ namespace direct_bt {
             void replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu);
             void replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu);
 
-            void l2capReaderWork(jau::service_runner& sr);
-            void l2capReaderEndLocked(jau::service_runner& sr);
-            void l2capReaderEndFinal(jau::service_runner& sr);
+            void l2capReaderWork(jau::service_runner& sr) noexcept;
+            void l2capReaderEndLocked(jau::service_runner& sr) noexcept;
+            void l2capReaderEndFinal(jau::service_runner& sr) noexcept;
 
             /**
              * Sends the given AttPDUMsg to the connected device via l2cap.
