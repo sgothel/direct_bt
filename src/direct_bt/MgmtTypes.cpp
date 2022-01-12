@@ -260,6 +260,95 @@ std::string MgmtCommand::getOpcodeString(const Opcode op) noexcept {
 // *************************************************
 // *************************************************
 
+#define MGMT_DEFPARAMTYPE_ENUM(X) \
+    X(BREDR_PAGE_SCAN_TYPE) \
+    X(BREDR_PAGE_SCAN_INTERVAL) \
+    X(BREDR_PAGE_SCAN_WINDOW) \
+    X(BREDR_INQUIRY_TYPE) \
+    X(BREDR_INQUIRY_INTERVAL) \
+    X(BREDR_INQUIRY_WINDOW) \
+    X(BREDR_LINK_SUPERVISOR_TIMEOUT_) \
+    X(BREDR_PAGE_TIMEOUT_) \
+    X(BREDR_MIN_SNIFF_INTERVAL) \
+    X(BREDR_MAX_SNIFF_INTERVAL) \
+    X(LE_ADV_MIN_INTERVAL) \
+    X(LE_ADV_MAX_INTERVAL) \
+    X(LE_MULTI_ADV_ROT_INTERVAL) \
+    X(LE_SCAN_INTERVAL_AUTOCONN) \
+    X(LE_SCAN_WINDOW_AUTOCONN) \
+    X(LE_SCAN_INTERVAL_WAKESCENARIO) \
+    X(LE_SCAN_WINDOW_WAKESCENARIO) \
+    X(LE_SCAN_INTERVAL_DISCOVERY) \
+    X(LE_SCAN_WINDOW_DISCOVERY) \
+    X(LE_SCAN_INTERVAL_ADVMON) \
+    X(LE_SCAN_WINDOW_ADVMON) \
+    X(LE_SCAN_INTERVAL_CONNECT) \
+    X(LE_SCAN_WINDOW_CONNECT) \
+    X(LE_MIN_CONN_INTERVAL) \
+    X(LE_MAX_CONN_INTERVAL) \
+    X(LE_CONN_LATENCY) \
+    X(LE_CONN_SUPERVISOR_TIMEOUT) \
+    X(LE_AUTOCONN_TIMEOUT) \
+    X(NONE)
+
+#define MGMT_DEFPARAMTYPE_CASE_TO_STRING(V) case MgmtDefaultParam::Type::V: return #V;
+
+std::string MgmtDefaultParam::getTypeString(const Type op) noexcept {
+    switch(op) {
+        MGMT_DEFPARAMTYPE_ENUM(MGMT_DEFPARAMTYPE_CASE_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown Type";
+}
+
+MgmtDefaultParamU16 MgmtReadDefaultConnParamCmd::getParam(const MgmtDefaultParam::Type type, const uint8_t *data, const jau::nsize_t length) noexcept {
+    MgmtDefaultParamU16 res;
+    jau::nsize_t consumed = 0;
+    while( consumed < length && ( length - consumed ) >= 2U + 1U ) {
+        const MgmtDefaultParam * p = reinterpret_cast<const MgmtDefaultParam *>( data + consumed );
+        if( ( length - consumed ) < 2U + 1U + p->value_length ) {
+            break;
+        }
+        if( p->is_u16() ) {
+            const MgmtDefaultParamU16 * pu16 = reinterpret_cast<const MgmtDefaultParamU16 *>( data + consumed );
+            if( pu16->type == type ) {
+                res = *pu16;
+                return res;
+            }
+        }
+        consumed += 2 + 1 + p->value_length;
+    }
+    return res;
+}
+
+std::string MgmtReadDefaultConnParamCmd::replyToString(const uint8_t *data, const jau::nsize_t length) noexcept {
+    std::string res;
+    jau::nsize_t consumed = 0;
+    jau::nsize_t param_count = 0;
+    while( consumed < length && ( length - consumed ) >= 2U + 1U ) {
+        const MgmtDefaultParam * p = reinterpret_cast<const MgmtDefaultParam *>( data + consumed );
+        if( ( length - consumed ) < 2U + 1U + p->value_length ) {
+            break;
+        }
+        if( param_count > 0 ) {
+            res.append(", ");
+        }
+        if( p->is_u16() ) {
+            const MgmtDefaultParamU16 * pu16 = reinterpret_cast<const MgmtDefaultParamU16 *>( data + consumed );
+            res.append(pu16->toString());
+        } else {
+            res.append(p->toString());
+        }
+        consumed += 2 + 1 + p->value_length;
+        param_count++;
+    }
+    return res;
+}
+
+// *************************************************
+// *************************************************
+// *************************************************
+
 #define MGMT_EV_OPCODE_ENUM(X) \
     X(INVALID) \
     X(CMD_COMPLETE) \

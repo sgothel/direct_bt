@@ -470,7 +470,8 @@ namespace direct_bt {
                 SET_DEVICE_FLAGS        = 0x0050,
                 READ_ADV_MONITOR_FEATURES = 0x0051,
                 ADD_ADV_PATTERNS_MONITOR  = 0x0052,
-                REMOVE_ADV_MONITOR      = 0x0053 // linux >= 5.9
+                REMOVE_ADV_MONITOR      = 0x0053, // linux >= 5.9
+                LAST_OPC                = REMOVE_ADV_MONITOR
             };
             static constexpr uint16_t number(const Opcode rhs) noexcept {
                 return static_cast<uint16_t>(rhs);
@@ -509,7 +510,7 @@ namespace direct_bt {
             MgmtCommand(const Opcode opc, const uint16_t dev_id, const uint16_t param_size=0)
             : MgmtMsg(number(opc), dev_id, param_size)
             {
-                checkOpcode(opc, Opcode::READ_VERSION, Opcode::SET_BLOCKED_KEYS);
+                checkOpcode(opc, Opcode::READ_VERSION, Opcode::LAST_OPC);
             }
 
             MgmtCommand(const Opcode opc, const uint16_t dev_id, const uint16_t param_size, const uint8_t* param)
@@ -1088,6 +1089,149 @@ namespace direct_bt {
             const MgmtConnParam& getConnParam(jau::nsize_t idx) const {
                 checkParamIdx(idx);
                 return *reinterpret_cast<const MgmtConnParam *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 2 + sizeof(MgmtConnParam)*idx) );
+            }
+    };
+
+    /**
+     * Used in MgmtReadDefaultConnParamCmd and MgmtSetDefaultConnParamU16Cmd
+     */
+    __pack( struct MgmtDefaultParam {
+        enum class Type : uint16_t {
+            BREDR_PAGE_SCAN_TYPE            = 0x0000,
+            BREDR_PAGE_SCAN_INTERVAL        = 0x0001,
+            BREDR_PAGE_SCAN_WINDOW          = 0x0002,
+            BREDR_INQUIRY_TYPE              = 0x0003,
+            BREDR_INQUIRY_INTERVAL          = 0x0004,
+            BREDR_INQUIRY_WINDOW            = 0x0005,
+            BREDR_LINK_SUPERVISOR_TIMEOUT_  = 0x0006,
+            BREDR_PAGE_TIMEOUT_             = 0x0007,
+            BREDR_MIN_SNIFF_INTERVAL        = 0x0008,
+            BREDR_MAX_SNIFF_INTERVAL        = 0x0009,
+
+            LE_ADV_MIN_INTERVAL             = 0x000a,
+            LE_ADV_MAX_INTERVAL             = 0x000b,
+            LE_MULTI_ADV_ROT_INTERVAL       = 0x000c,
+            LE_SCAN_INTERVAL_AUTOCONN       = 0x000d,
+            LE_SCAN_WINDOW_AUTOCONN         = 0x000e,
+            LE_SCAN_INTERVAL_WAKESCENARIO   = 0x000f,
+            LE_SCAN_WINDOW_WAKESCENARIO     = 0x0010,
+            LE_SCAN_INTERVAL_DISCOVERY      = 0x0011,
+            LE_SCAN_WINDOW_DISCOVERY        = 0x0012,
+            LE_SCAN_INTERVAL_ADVMON         = 0x0013,
+            LE_SCAN_WINDOW_ADVMON           = 0x0014,
+            LE_SCAN_INTERVAL_CONNECT        = 0x0015,
+            LE_SCAN_WINDOW_CONNECT          = 0x0016,
+
+            LE_MIN_CONN_INTERVAL            = 0x0017,
+            LE_MAX_CONN_INTERVAL            = 0x0018,
+            LE_CONN_LATENCY                 = 0x0019,
+            LE_CONN_SUPERVISOR_TIMEOUT      = 0x001a,
+            LE_AUTOCONN_TIMEOUT             = 0x001b,
+            NONE                            = 0xffff
+        };
+        static constexpr uint16_t number(const Type rhs) noexcept {
+            return static_cast<uint16_t>(rhs);
+        }
+        static std::string getTypeString(const Type op) noexcept;
+
+        Type type;
+        uint8_t value_length;
+        uint8_t value[0];
+
+        bool is_u16() const noexcept {
+            return number(Type::BREDR_PAGE_SCAN_TYPE) <= number(type) && number(type) <= number(Type::LE_AUTOCONN_TIMEOUT);
+        }
+        std::string toString() const noexcept {
+            return "DefParam[type "+getTypeString(type)+
+                   ", value [length "+std::to_string(value_length)+": "+
+                   jau::bytesHexString(&value[0], 0, value_length, false /* lsbFirst */)+"]]";
+        }
+    } );
+
+    /**
+     * Used in MgmtReadDefaultConnParamCmd and MgmtSetDefaultConnParamU16Cmd
+     */
+    __pack( struct MgmtDefaultParamU16 {
+        constexpr MgmtDefaultParamU16() noexcept
+        : type(MgmtDefaultParam::Type::NONE), value_length(0), value(0) {}
+
+        MgmtDefaultParamU16(const MgmtDefaultParam::Type type_, const uint16_t value_) noexcept
+        : type(type_), value_length(2), value(value_) {}
+
+        constexpr MgmtDefaultParamU16(const MgmtDefaultParamU16 &o) noexcept = default;
+        MgmtDefaultParamU16(MgmtDefaultParamU16 &&o) noexcept = default;
+        constexpr MgmtDefaultParamU16& operator=(const MgmtDefaultParamU16 &o) noexcept = default;
+        MgmtDefaultParamU16& operator=(MgmtDefaultParamU16 &&o) noexcept = default;
+
+        /** 2 octets for type: [0x0000 - 0x001e] */
+        MgmtDefaultParam::Type type;
+        /** Fixed 2 octets */
+        uint8_t value_length;
+        uint16_t value;
+
+        std::string toString() const noexcept {
+            return "DefPar16[type "+MgmtDefaultParam::getTypeString(type)+
+                   ", value "+jau::to_hexstring(value)+"]";
+        }
+    } );
+
+    /**
+     */
+    class MgmtReadDefaultConnParamCmd : public MgmtCommand
+    {
+        public:
+            MgmtReadDefaultConnParamCmd(const uint16_t dev_id)
+            : MgmtCommand(Opcode::READ_DEF_SYSTEM_CONFIG, dev_id, 0)
+            { }
+
+            static MgmtDefaultParamU16 getParam(const MgmtDefaultParam::Type type, const uint8_t *data, const jau::nsize_t length) noexcept;
+            static std::string replyToString(const uint8_t *data, const jau::nsize_t length) noexcept;
+    };
+
+    /**
+     * MgmtDefaultParamU16 param1,
+     * MgmtDefaultParamU16 param2,
+     */
+    class MgmtSetDefaultConnParamU16Cmd : public MgmtCommand
+    {
+        private:
+            void checkParamIdx(const jau::nsize_t idx) const {
+                if( idx >= 4 ) {
+                    throw jau::IndexOutOfBoundsException(idx, 4, E_FILE_LINE);
+                }
+            }
+
+        protected:
+            std::string valueString() const noexcept override {
+                std::string ps = "count 4: ";
+                for(jau::nsize_t i=0; i<4; i++) {
+                    if( 0 < i ) {
+                        ps.append(", ");
+                    }
+                    ps.append( getDefaultParam(i).toString() );
+                }
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
+        public:
+            MgmtSetDefaultConnParamU16Cmd(const uint16_t dev_id,
+                                          const uint16_t conn_min_interval, const uint16_t conn_max_interval,
+                                          const uint16_t conn_latency, const uint16_t supervision_timeout)
+            : MgmtCommand(Opcode::SET_DEF_SYSTEM_CONFIG, dev_id, 4 * sizeof(MgmtDefaultParamU16))
+            {
+                const MgmtDefaultParamU16 p1(MgmtDefaultParam::Type::LE_MIN_CONN_INTERVAL, conn_min_interval);
+                const MgmtDefaultParamU16 p2(MgmtDefaultParam::Type::LE_MAX_CONN_INTERVAL, conn_max_interval);
+                const MgmtDefaultParamU16 p3(MgmtDefaultParam::Type::LE_CONN_LATENCY, conn_latency);
+                const MgmtDefaultParamU16 p4(MgmtDefaultParam::Type::LE_CONN_SUPERVISOR_TIMEOUT, supervision_timeout);
+                pdu.put_bytes_nc(MGMT_HEADER_SIZE+0*sizeof(MgmtDefaultParamU16), (const uint8_t *)&p1, sizeof(MgmtDefaultParamU16));
+                pdu.put_bytes_nc(MGMT_HEADER_SIZE+1*sizeof(MgmtDefaultParamU16), (const uint8_t *)&p2, sizeof(MgmtDefaultParamU16));
+                pdu.put_bytes_nc(MGMT_HEADER_SIZE+2*sizeof(MgmtDefaultParamU16), (const uint8_t *)&p3, sizeof(MgmtDefaultParamU16));
+                pdu.put_bytes_nc(MGMT_HEADER_SIZE+3*sizeof(MgmtDefaultParamU16), (const uint8_t *)&p4, sizeof(MgmtDefaultParamU16));
+            }
+
+            const MgmtDefaultParamU16& getDefaultParam(jau::nsize_t idx) const {
+                checkParamIdx(idx);
+                return *reinterpret_cast<const MgmtDefaultParamU16 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + sizeof(MgmtDefaultParamU16)*idx) );
             }
     };
 
