@@ -406,6 +406,20 @@ namespace direct_bt {
                                             const BTRole btRole, const BTMode btMode) noexcept;
 
             /**
+             * Set default connection parameter for given device to the kernel.
+             *
+             * @param dev_id
+             * @param conn_interval_min in units of 1.25ms, default value 12 for 15ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]
+             * @param conn_interval_max in units of 1.25ms, default value 12 for 15ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]
+             * @param conn_latency slave latency in units of connection events, default value 0; Value range [0 .. 0x01F3].
+             * @param supervision_timeout in units of 10ms, default value >= 10 x conn_interval_max, we use HCIConstInt::LE_CONN_MIN_TIMEOUT_MS minimum; Value range [0xA-0x0C80] for [100ms - 32s].
+             * @return
+             */
+            bool setDefaultConnParam(const uint16_t dev_id,
+                                     const uint16_t conn_interval_min=12, const uint16_t conn_interval_max=12,
+                                     const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 15)) noexcept;
+
+            /**
              * Uploads given connection parameter for given device to the kernel.
              *
              * @param dev_id

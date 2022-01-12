@@ -338,6 +338,18 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
 
     removeDeviceFromWhitelist(dev_id, BDAddressAndType::ANY_BREDR_DEVICE); // flush whitelist!
 
+    {
+        // FIXME: Configurable ???
+        const uint16_t conn_min_interval = 8;  // 10ms
+        const uint16_t conn_max_interval = 40; // 50ms
+        const uint16_t conn_latency = 0;
+        const uint16_t supervision_timeout = 300; // 3s
+
+        setDefaultConnParam(dev_id,
+                            conn_min_interval, conn_max_interval,
+                            conn_latency, supervision_timeout);
+    }
+
     setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 1, current_settings);
 
     /**
@@ -736,6 +748,22 @@ MgmtStatus BTManager::setDiscoverable(const uint16_t dev_id, const uint8_t state
     DBG_PRINT("BTManager::setDiscoverable[%d]: %s, result %s %s", dev_id,
             req.toString().c_str(), to_string(res).c_str(), to_string(current_settings).c_str());
     return res;
+}
+
+bool BTManager::setDefaultConnParam(const uint16_t dev_id,
+                                    const uint16_t conn_min_interval, const uint16_t conn_max_interval,
+                                    const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
+    MgmtSetDefaultConnParamU16Cmd req(dev_id,
+                                      conn_min_interval, conn_max_interval,
+                                      conn_latency, supervision_timeout);
+    std::unique_ptr<MgmtEvent> res = sendWithReply(req);
+    DBG_PRINT("BTManager::setDefaultConnParam[%d]: %s, result %s", dev_id,
+            req.toString().c_str(), res->toString().c_str());
+    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+        return MgmtStatus::SUCCESS == res1.getStatus();
+    }
+    return false;
 }
 
 bool BTManager::uploadConnParam(const uint16_t dev_id, const BDAddressAndType & addressAndType,
