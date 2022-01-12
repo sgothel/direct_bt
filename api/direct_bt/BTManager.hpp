@@ -40,6 +40,7 @@
 #include <jau/darray.hpp>
 #include <jau/cow_darray.hpp>
 #include <jau/octets.hpp>
+#include <jau/service_runner.hpp>
 
 #include "BTTypes0.hpp"
 #include "BTIoctl.hpp"
@@ -230,13 +231,8 @@ namespace direct_bt {
             jau::POctets rbuffer;
             HCIComm comm;
 
+            jau::service_runner mgmt_reader_service;
             jau::ringbuffer<std::unique_ptr<MgmtEvent>, jau::nsize_t> mgmtEventRing;
-            jau::sc_atomic_bool mgmtReaderShallStop;
-
-            std::mutex mtx_mgmtReaderLifecycle;
-            std::condition_variable cv_mgmtReaderInit;
-            pthread_t mgmtReaderThreadId;
-            jau::sc_atomic_bool mgmtReaderRunning;
 
             std::recursive_mutex mtx_sendReply; // for send() and sendWithReply()
 
@@ -260,7 +256,8 @@ namespace direct_bt {
              */
             jau::darray<SMPIOCapability> adapterIOCapability;
 
-            void mgmtReaderThreadImpl() noexcept;
+            void mgmtReaderWork(jau::service_runner& sr) noexcept;
+            void mgmtReaderEndLocked(jau::service_runner& sr) noexcept;
 
             /**
              * In case response size check or devID and optional opcode validation fails,

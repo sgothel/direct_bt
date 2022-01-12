@@ -80,72 +80,55 @@ MgmtEnv::MgmtEnv() noexcept
 const pid_t BTManager::pidSelf = getpid();
 std::mutex BTManager::mtx_singleton;
 
-void BTManager::mgmtReaderThreadImpl() noexcept {
-    {
-        const std::lock_guard<std::mutex> lock(mtx_mgmtReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        mgmtReaderShallStop = false;
-        mgmtReaderRunning = true;
-        DBG_PRINT("BTManager::reader: Started");
+void BTManager::mgmtReaderWork(jau::service_runner& sr) noexcept {
+    jau::snsize_t len;
+    if( !comm.isOpen() ) {
+        // not open
+        ERR_PRINT("BTManager::reader: Not connected");
+        sr.set_shall_stop();
+        return;
     }
-    cv_mgmtReaderInit.notify_all(); // have mutex unlocked before notify_all to avoid pessimistic re-block of notified wait() thread.
 
-    thread_local jau::call_on_release thread_cleanup([&]() {
-        DBG_PRINT("BTManager::mgmtReaderThreadCleanup: mgmtReaderRunning %d -> 0", mgmtReaderRunning.load());
-        mgmtReaderRunning = false;
-        cv_mgmtReaderInit.notify_all();
-    });
-
-    while( !mgmtReaderShallStop ) {
-        jau::snsize_t len;
-        if( !comm.isOpen() ) {
-            // not open
-            ERR_PRINT("BTManager::reader: Not connected");
-            mgmtReaderShallStop = true;
-            break;
+    len = comm.read(rbuffer.get_wptr(), rbuffer.size(), env.MGMT_READER_THREAD_POLL_TIMEOUT);
+    if( 0 < len ) {
+        const jau::nsize_t len2 = static_cast<jau::nsize_t>(len);
+        const jau::nsize_t paramSize = len2 >= MGMT_HEADER_SIZE ? rbuffer.get_uint16_nc(4) : 0;
+        if( len2 < MGMT_HEADER_SIZE + paramSize ) {
+            WARN_PRINT("BTManager::reader: length mismatch %zu < MGMT_HEADER_SIZE(%u) + %u", len2, MGMT_HEADER_SIZE, paramSize);
+            return; // discard data
         }
-
-        len = comm.read(rbuffer.get_wptr(), rbuffer.size(), env.MGMT_READER_THREAD_POLL_TIMEOUT);
-        if( 0 < len ) {
-            const jau::nsize_t len2 = static_cast<jau::nsize_t>(len);
-            const jau::nsize_t paramSize = len2 >= MGMT_HEADER_SIZE ? rbuffer.get_uint16_nc(4) : 0;
-            if( len2 < MGMT_HEADER_SIZE + paramSize ) {
-                WARN_PRINT("BTManager::reader: length mismatch %zu < MGMT_HEADER_SIZE(%u) + %u", len2, MGMT_HEADER_SIZE, paramSize);
-                continue; // discard data
+        std::unique_ptr<MgmtEvent> event = MgmtEvent::getSpecialized(rbuffer.get_ptr(), len2);
+        const MgmtEvent::Opcode opc = event->getOpcode();
+        if( MgmtEvent::Opcode::CMD_COMPLETE == opc || MgmtEvent::Opcode::CMD_STATUS == opc ) {
+            COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (CMD) %s", event->toString().c_str());
+            if( mgmtEventRing.isFull() ) {
+                const jau::nsize_t dropCount = mgmtEventRing.capacity()/4;
+                mgmtEventRing.drop(dropCount);
+                WARN_PRINT("BTManager-IO RECV Drop (%u oldest elements of %u capacity, ring full)", dropCount, mgmtEventRing.capacity());
             }
-            std::unique_ptr<MgmtEvent> event = MgmtEvent::getSpecialized(rbuffer.get_ptr(), len2);
-            const MgmtEvent::Opcode opc = event->getOpcode();
-            if( MgmtEvent::Opcode::CMD_COMPLETE == opc || MgmtEvent::Opcode::CMD_STATUS == opc ) {
-                COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (CMD) %s", event->toString().c_str());
-                if( mgmtEventRing.isFull() ) {
-                    const jau::nsize_t dropCount = mgmtEventRing.capacity()/4;
-                    mgmtEventRing.drop(dropCount);
-                    WARN_PRINT("BTManager-IO RECV Drop (%u oldest elements of %u capacity, ring full)", dropCount, mgmtEventRing.capacity());
-                }
-                mgmtEventRing.putBlocking( std::move( event ) );
-            } else if( MgmtEvent::Opcode::INDEX_ADDED == opc ) {
-                COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (ADD) %s", event->toString().c_str());
-                std::thread adapterAddedThread(&BTManager::processAdapterAdded, this, std::move( event) ); // @suppress("Invalid arguments")
-                adapterAddedThread.detach();
-            } else if( MgmtEvent::Opcode::INDEX_REMOVED == opc ) {
-                COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (REM) %s", event->toString().c_str());
-                std::thread adapterRemovedThread(&BTManager::processAdapterRemoved, this, std::move( event ) ); // @suppress("Invalid arguments")
-                adapterRemovedThread.detach();
-            } else {
-                // issue a callback
-                COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (CB) %s", event->toString().c_str());
-                sendMgmtEvent( *event );
-            }
-        } else if( ETIMEDOUT != errno && !mgmtReaderShallStop ) { // expected exits
-            ERR_PRINT("BTManager::reader: HCIComm read error");
+            mgmtEventRing.putBlocking( std::move( event ) );
+        } else if( MgmtEvent::Opcode::INDEX_ADDED == opc ) {
+            COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (ADD) %s", event->toString().c_str());
+            std::thread adapterAddedThread(&BTManager::processAdapterAdded, this, std::move( event) ); // @suppress("Invalid arguments")
+            adapterAddedThread.detach();
+        } else if( MgmtEvent::Opcode::INDEX_REMOVED == opc ) {
+            COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (REM) %s", event->toString().c_str());
+            std::thread adapterRemovedThread(&BTManager::processAdapterRemoved, this, std::move( event ) ); // @suppress("Invalid arguments")
+            adapterRemovedThread.detach();
+        } else {
+            // issue a callback
+            COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (CB) %s", event->toString().c_str());
+            sendMgmtEvent( *event );
         }
+    } else if( ETIMEDOUT != errno && !sr.get_shall_stop() ) { // expected exits
+        ERR_PRINT("BTManager::reader: HCIComm read error");
     }
-    {
-        const std::lock_guard<std::mutex> lock(mtx_mgmtReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        WORDY_PRINT("BTManager::reader: Ended. Ring has %u entries flushed", mgmtEventRing.size());
-        mgmtEventRing.clear();
-        mgmtReaderRunning = false;
-    }
-    cv_mgmtReaderInit.notify_all(); // have mutex unlocked before notify_all to avoid pessimistic re-block of notified wait() thread.
+}
+
+void BTManager::mgmtReaderEndLocked(jau::service_runner& sr) noexcept {
+    (void)sr;
+    WORDY_PRINT("BTManager::reader: Ended. Ring has %u entries flushed", mgmtEventRing.size());
+    mgmtEventRing.clear();
 }
 
 void BTManager::sendMgmtEvent(const MgmtEvent& event) noexcept {
@@ -392,8 +375,11 @@ fail:
 BTManager::BTManager() noexcept
 : env(MgmtEnv::get()),
   rbuffer(ClientMaxMTU, jau::endian::little), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
-  mgmtEventRing(env.MGMT_EVT_RING_CAPACITY), mgmtReaderShallStop(false),
-  mgmtReaderThreadId(0), mgmtReaderRunning(false),
+  mgmt_reader_service("HCIHandler::reader", THREAD_SHUTDOWN_TIMEOUT_MS,
+                      jau::bindMemberFunc(this, &BTManager::mgmtReaderWork),
+                      jau::service_runner::Callback() /* init */,
+                      jau::bindMemberFunc(this, &BTManager::mgmtReaderEndLocked)),
+  mgmtEventRing(env.MGMT_EVT_RING_CAPACITY),
   allowClose( comm.isOpen() )
 {
     WORDY_PRINT("BTManager.ctor: pid %d", BTManager::pidSelf);
@@ -412,19 +398,7 @@ BTManager::BTManager() noexcept
             ERR_PRINT("BTManager::ctor: Setting sighandler");
         }
     }
-    {
-        std::unique_lock<std::mutex> lock(mtx_mgmtReaderLifecycle); // RAII-style acquire and relinquish via destructor
-
-        std::thread mgmtReaderThread(&BTManager::mgmtReaderThreadImpl, this); // @suppress("Invalid arguments")
-        mgmtReaderThreadId = mgmtReaderThread.native_handle();
-        // Avoid 'terminate called without an active exception'
-        // as hciReaderThreadImpl may end due to I/O errors.
-        mgmtReaderThread.detach();
-
-        while( false == mgmtReaderRunning ) {
-            cv_mgmtReaderInit.wait(lock);
-        }
-    }
+    mgmt_reader_service.start();
 
     PERF_TS_T0();
 
@@ -584,32 +558,7 @@ void BTManager::close() noexcept {
     comm.close();
 
     PERF3_TS_TD("BTManager::close.1");
-    {
-        std::unique_lock<std::mutex> lockReader(mtx_mgmtReaderLifecycle); // RAII-style acquire and relinquish via destructor
-        const pthread_t tid_self = pthread_self();
-        const pthread_t tid_reader = mgmtReaderThreadId;
-        mgmtReaderThreadId = 0;
-        const bool is_reader = tid_reader == tid_self;
-        DBG_PRINT("BTManager::close: mgmtReader[running %d, shallStop %d, isReader %d, tid %p)",
-                mgmtReaderRunning.load(), mgmtReaderShallStop.load(), is_reader, (void*)tid_reader);
-        if( mgmtReaderRunning ) {
-            mgmtReaderShallStop = true;
-            if( !is_reader && 0 != tid_reader ) {
-                int kerr;
-                if( 0 != ( kerr = pthread_kill(tid_reader, SIGALRM) ) ) {
-                    ERR_PRINT("BTManager::close: pthread_kill %p FAILED: %d", (void*)tid_reader, kerr);
-                }
-            }
-            // Ensure the reader thread has ended, no runaway-thread using *this instance after destruction
-            while( true == mgmtReaderRunning ) {
-                std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
-                std::cv_status s = cv_mgmtReaderInit.wait_until(lockReader, t0 + std::chrono::milliseconds(THREAD_SHUTDOWN_TIMEOUT_MS));
-                if( std::cv_status::timeout == s && true == mgmtReaderRunning ) {
-                    ERR_PRINT("BTManager::close::mgmtReader: Timeout: %s", toString().c_str());
-                }
-            }
-        }
-    }
+    mgmt_reader_service.stop();
     PERF3_TS_TD("BTManager::close.2");
 
     {
