@@ -107,15 +107,17 @@ namespace direct_bt {
             }
     };
 
+    class L2CAPServer; // fwd
+
     /**
-     * Read/Write L2CAP communication channel.
+     * L2CAP read/write communication channel to remote device
      */
     class L2CAPComm {
         public:
             enum class Defaults : int {
                 L2CAP_CONNECT_MAX_RETRY = 3
             };
-            static constexpr int number(const Defaults d) { return static_cast<int>(d); }
+            static constexpr int number(const Defaults d) noexcept { return static_cast<int>(d); }
 
             /**
              * Exit code for read() and write() operations
@@ -141,12 +143,12 @@ namespace direct_bt {
                 return getRWExitCodeString( toRWExitCode( ecn ) );
             }
 
-            static std::string getStateString(bool isOpen, bool hasIOError) {
+            static std::string getStateString(bool isOpen, bool hasIOError) noexcept {
                 return "State[open "+std::to_string(isOpen)+
                         ", ioError "+std::to_string(hasIOError)+
                         ", errno "+std::to_string(errno)+" ("+std::string(strerror(errno))+")]";
             }
-            static std::string getStateString(bool isOpen, bool isInterrupted, bool hasIOError) {
+            static std::string getStateString(bool isOpen, bool isInterrupted, bool hasIOError) noexcept {
                 return "State[open "+std::to_string(isOpen)+
                        ", isIRQed "+std::to_string(isInterrupted)+
                        ", ioError "+std::to_string(hasIOError)+
@@ -154,31 +156,42 @@ namespace direct_bt {
             }
 
         private:
-            static int l2cap_open_dev(const BDAddressAndType & adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid);
-            static int l2cap_close_dev(int dd);
+            friend class L2CAPServer;
+
+            static int l2cap_open_dev(const BDAddressAndType & adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
+            static int l2cap_close_dev(int dd) noexcept;
 
             const L2CAPEnv & env;
-            const BDAddressAndType adapterAddressAndType;
+
+        public:
+            const BDAddressAndType localAddressAndType;
             const L2CAP_PSM psm;
             const L2CAP_CID cid;
 
+        private:
             std::recursive_mutex mtx_write;
-            BDAddressAndType deviceAddressAndType;
-            std::atomic<int> socket_descriptor; // the l2cap socket
+            BDAddressAndType remoteAddressAndType;
+            std::atomic<int> client_socket; // the l2cap socket
             std::atomic<bool> is_open; // reflects state
             std::atomic<bool> has_ioerror;  // reflects state
             std::atomic<bool> interrupt_flag; // for forced disconnect
             std::atomic<pthread_t> tid_connect;
             std::atomic<pthread_t> tid_read;
 
-            bool setBTSecurityLevelImpl(const BTSecurityLevel sec_level);
-            BTSecurityLevel getBTSecurityLevelImpl();
+            bool setBTSecurityLevelImpl(const BTSecurityLevel sec_level) noexcept;
+            BTSecurityLevel getBTSecurityLevelImpl() noexcept;
 
         public:
             /**
              * Constructing a non connected L2CAP channel instance for the pre-defined PSM and CID.
              */
-            L2CAPComm(const BDAddressAndType& adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid);
+            L2CAPComm(const BDAddressAndType& adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
+
+            /**
+             * Constructing a connected L2CAP channel instance for the pre-defined PSM and CID.
+             */
+            L2CAPComm(const BDAddressAndType& adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid,
+                      const BDAddressAndType& remoteAddressAndType, int client_socket) noexcept;
 
             L2CAPComm(const L2CAPComm&) = delete;
             void operator=(const L2CAPComm&) = delete;
@@ -196,39 +209,42 @@ namespace direct_bt {
              * @param sec_level sec_level < BTSecurityLevel::NONE will not set security level
              * @return true if connection has been established, otherwise false
              */
-            bool open(const BTDevice& device, const BTSecurityLevel sec_level=BTSecurityLevel::NONE);
+            bool open(const BTDevice& device, const BTSecurityLevel sec_level=BTSecurityLevel::NONE) noexcept;
 
-            bool isOpen() const { return is_open; }
+            bool isOpen() const noexcept { return is_open; }
+
+            const BDAddressAndType& getRemoteAddressAndType() const noexcept { return remoteAddressAndType; }
 
             /** Closing the L2CAP channel, locking {@link #mutex_write()}. */
             bool close() noexcept;
 
             /** Return this L2CAP socket descriptor. */
-            inline int getSocketDescriptor() const noexcept { return socket_descriptor; }
+            inline int getSocket() const noexcept { return client_socket; }
 
-            bool hasIOError() const { return has_ioerror; }
-            std::string getStateString() const { return getStateString(is_open, interrupt_flag, has_ioerror); }
+            bool hasIOError() const noexcept { return has_ioerror; }
+            std::string getStateString() const noexcept { return getStateString(is_open, interrupt_flag, has_ioerror); }
 
             /** Return the recursive write mutex for multithreading access. */
-            std::recursive_mutex & mutex_write() { return mtx_write; }
+            std::recursive_mutex & mutex_write() noexcept { return mtx_write; }
 
             /**
              * If sec_level > ::BTSecurityLevel::UNSET, sets the BlueZ's L2CAP socket BT_SECURITY sec_level, determining the SMP security mode per connection.
-             * <p>
-             * To unset security, the L2CAP socket should be closed and opened again.
-             * </p>
              *
-             * @param sec_level sec_level < ::BTSecurityLevel::NONE will not set security level and returns false.
+             * To unset security, the L2CAP socket should be closed and opened again.
+             *
+             * If setting the security level fails, close() will be called.
+             *
+             * @param sec_level sec_level == ::BTSecurityLevel::UNSET will not set security level and returns true.
              * @return true if a security level > ::BTSecurityLevel::UNSET has been set successfully, false if no security level has been set or if it failed.
              */
-            bool setBTSecurityLevel(const BTSecurityLevel sec_level);
+            bool setBTSecurityLevel(const BTSecurityLevel sec_level) noexcept;
 
             /**
              * Fetches the current BlueZ's L2CAP socket BT_SECURITY sec_level.
              *
              * @return ::BTSecurityLevel  sec_level value, ::BTSecurityLevel::UNSET if failure
              */
-            BTSecurityLevel getBTSecurityLevel();
+            BTSecurityLevel getBTSecurityLevel() noexcept;
 
             /**
              * Generic read, w/o locking suitable for a unique ringbuffer sink. Using L2CAPEnv::L2CAP_READER_POLL_TIMEOUT.
@@ -236,7 +252,7 @@ namespace direct_bt {
              * @param capacity
              * @return number of bytes read if >= 0, otherwise L2CAPComm::ExitCode error code.
              */
-            jau::snsize_t read(uint8_t* buffer, const jau::nsize_t capacity);
+            jau::snsize_t read(uint8_t* buffer, const jau::nsize_t capacity) noexcept;
 
             /**
              * Generic write, locking {@link #mutex_write()}.
@@ -244,7 +260,47 @@ namespace direct_bt {
              * @param length
              * @return number of bytes written if >= 0, otherwise L2CAPComm::ExitCode error code.
              */
-            jau::snsize_t write(const uint8_t *buffer, const jau::nsize_t length);
+            jau::snsize_t write(const uint8_t *buffer, const jau::nsize_t length) noexcept;
+
+            std::string toString();
+    };
+
+    /**
+     * L2CAP server socket to listen for connecting remote devices
+     */
+    class L2CAPServer {
+        private:
+            const BDAddressAndType localAddressAndType;
+            const L2CAP_PSM psm;
+            const L2CAP_CID cid;
+
+            std::recursive_mutex mtx_open;
+            std::atomic<int> server_socket; // the server socket
+            std::atomic<bool> is_open; // reflects state
+            std::atomic<bool> interrupt_flag; // for forced disconnect
+            std::atomic<pthread_t> tid_accept;
+
+        public:
+            L2CAPServer(const BDAddressAndType& localAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
+
+            L2CAPServer(const L2CAPServer&) = delete;
+            void operator=(const L2CAPServer&) = delete;
+
+            /** Destructor closing the L2CAP channel, see {@link #disconnect()}. */
+            ~L2CAPServer() noexcept { close(); }
+
+            bool open() noexcept;
+
+            bool isOpen() const noexcept { return is_open; }
+
+            bool close() noexcept;
+
+            /** Return this L2CAP socket descriptor. */
+            inline int getSocket() const noexcept { return server_socket; }
+
+            std::unique_ptr<L2CAPComm> accept() noexcept;
+
+            std::string toString();
     };
 
 } // namespace direct_bt
