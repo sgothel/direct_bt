@@ -46,7 +46,7 @@ using namespace direct_bt;
 
 BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
 : adapter(a), btRole(!a.getRole()),
-  l2cap_att(adapter.getAddressAndType(), L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT),
+  l2cap_att( std::move( std::make_unique<L2CAPComm>(adapter.getAddressAndType(), L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT) ) ),
   ts_last_discovery(r.getTimestamp()),
   ts_last_update(ts_last_discovery),
   hciConnHandle(0),
@@ -583,8 +583,9 @@ void BTDevice::notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const HCIStatus
             direct_bt::to_string(status).c_str(),
             direct_bt::to_string(features).c_str(),
             direct_bt::to_string(le_features).c_str(),
-            toString().c_str(), l2cap_att.isOpen());
-    if( addressAndType.isLEAddress() && !l2cap_att.isOpen() ) {
+            toString().c_str(), l2cap_att->isOpen());
+    const bool is_local_server = BTRole::Master == btRole; // -> local GattRole::Server
+    if( addressAndType.isLEAddress() && ( !l2cap_att->isOpen() || is_local_server ) ) {
         std::thread bg(&BTDevice::processL2CAPSetup, this, sthis); // @suppress("Invalid arguments")
         bg.detach();
     }
@@ -602,8 +603,10 @@ void BTDevice::notifyLEPhyUpdateComplete(const HCIStatusCode status, const LE_PH
 
 void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
     bool callProcessDeviceReady = false;
+    bool callDisconnect = false;
+    const bool is_local_server = BTRole::Master == btRole; // -> local GattRole::Server
 
-    if( addressAndType.isLEAddress() && !l2cap_att.isOpen() ) {
+    if( addressAndType.isLEAddress() && ( !l2cap_att->isOpen() || is_local_server ) ) {
         const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
         DBG_PRINT("BTDevice::processL2CAPSetup: Start %s", toString().c_str());
@@ -632,7 +635,12 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
                 to_string(io_cap_conn).c_str(),
                 to_string(sec_level).c_str());
 
-        const bool l2cap_open = l2cap_att.open(*this, sec_level); // initiates hciSMPMsgCallback() if sec_level > BT_SECURITY_LOW
+        bool l2cap_open;
+        if( is_local_server && l2cap_att->isOpen() ) {
+            l2cap_open = l2cap_att->setBTSecurityLevel(sec_level);
+        } else {
+            l2cap_open = l2cap_att->open(*this, sec_level); // initiates hciSMPMsgCallback() if sec_level > BT_SECURITY_LOW
+        }
         const bool l2cap_enc = l2cap_open && BTSecurityLevel::NONE < sec_level;
 #if SMP_SUPPORTED_BY_OS
         const bool smp_enc = connectSMP(sthis, sec_level) && BTSecurityLevel::NONE < sec_level;
@@ -646,6 +654,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
 
         if( !l2cap_open ) {
             pairing_data.sec_level_conn = BTSecurityLevel::NONE;
+            callDisconnect = true;
             disconnect(HCIStatusCode::INTERNAL_FAILURE);
         } else if( !l2cap_enc ) {
             callProcessDeviceReady = true;
@@ -659,7 +668,8 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
         adapter.notifyPairingStageDone(sthis, ts);
         processDeviceReady(sthis, ts);
     }
-    DBG_PRINT("BTDevice::processL2CAPSetup: End %s", toString().c_str());
+    DBG_PRINT("BTDevice::processL2CAPSetup: End disconnect %d, deviceReady %d, %s",
+            callDisconnect, callProcessDeviceReady, toString().c_str());
 }
 
 void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_t timestamp) {
@@ -1646,7 +1656,7 @@ bool BTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept {
         return false;
     }
 
-    if( !isValid() || isConnected || allowDisconnect ) {
+    if( !isValid() || ( BTRole::Slave == getRole() && ( isConnected || allowDisconnect ) ) ) {
         DBG_PRINT("BTDevice::setConnSecurityLevel: lvl %s failed, invalid state %s",
             to_string(sec_level).c_str(), toString().c_str());
         return false;
@@ -1696,7 +1706,7 @@ SMPIOCapability BTDevice::getConnIOCapability() const noexcept {
 }
 
 bool BTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {
-    if( !isValid() || isConnected || allowDisconnect ) {
+    if( !isValid() || ( BTRole::Slave == getRole() && ( isConnected || allowDisconnect ) ) ) {
         DBG_PRINT("BTDevice::setConnSecurity: lvl %s, io %s failed, invalid state %s",
                 to_string(sec_level).c_str(),
                 to_string(io_cap).c_str(), toString().c_str());
@@ -1965,7 +1975,7 @@ bool BTDevice::connectGATT(std::shared_ptr<BTDevice> sthis) noexcept {
         ERR_PRINT("Device not connected: %s", toString().c_str());
         return false;
     }
-    if( !l2cap_att.isOpen() ) {
+    if( !l2cap_att->isOpen() ) {
         ERR_PRINT("L2CAP not open: %s", toString().c_str());
         return false;
     }
@@ -1981,7 +1991,7 @@ bool BTDevice::connectGATT(std::shared_ptr<BTDevice> sthis) noexcept {
     DBG_PRINT("BTDevice::connectGATT: Start: %s", toString().c_str());
 
     // GATT MTU only consumes around 20ms - 100ms
-    gattHandler = std::make_shared<BTGattHandler>(sthis, l2cap_att, supervision_timeout);
+    gattHandler = std::make_shared<BTGattHandler>(sthis, *l2cap_att, supervision_timeout);
     if( !gattHandler->isConnected() ) {
         ERR_PRINT2("Connection failed");
         gattHandler = nullptr;
@@ -2216,7 +2226,7 @@ void BTDevice::notifyDisconnected() noexcept {
     unpair(); // -> clearSMPStates(false /* connected */);
     disconnectGATT(1);
     disconnectSMP(1);
-    l2cap_att.close();
+    l2cap_att->close();
 }
 
 void BTDevice::sendMgmtEvDeviceDisconnected(std::unique_ptr<MgmtEvent> evt) noexcept {
