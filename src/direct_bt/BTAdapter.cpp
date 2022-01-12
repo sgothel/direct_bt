@@ -41,6 +41,7 @@
 
 #include "BTAdapter.hpp"
 #include "BTManager.hpp"
+#include "DBTConst.hpp"
 
 extern "C" {
     #include <inttypes.h>
@@ -387,7 +388,10 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const A
   hci( dev_id ),
   currentMetaScanType( ScanType::NONE ),
   discovery_policy ( DiscoveryPolicy::AUTO_OFF ),
-  scan_filter_dup( true )
+  scan_filter_dup( true ),
+  l2cap_service("BTAdapter::l2capServer", THREAD_SHUTDOWN_TIMEOUT_MS,
+                jau::bindMemberFunc(this, &BTAdapter::l2capServerWork)),
+  l2cap_att_srv(adapterInfo_.addressAndType, L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT)
 {
     (void)cc;
     valid = initialSetup();
@@ -437,6 +441,8 @@ void BTAdapter::close() noexcept {
     DBG_PRINT("BTAdapter::close: closeHCI: ...");
     hci.close();
     DBG_PRINT("BTAdapter::close: closeHCI: XXX");
+
+    l2cap_service.stop();
 
     {
         const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
@@ -664,9 +670,15 @@ HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
     if( !enableListening(true) ) {
         return HCIStatusCode::INTERNAL_FAILURE;
     }
+    if( !l2cap_att_srv.open() ) {
+        ERR_PRINT("Adapter[%d]: L2CAP ATT open failed: %s", dev_id, l2cap_att_srv.toString().c_str());
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
     updateAdapterSettings(false /* off_thread */, adapterInfo.getCurrentSettingMask(), false /* sendEvent */, 0);
-    WORDY_PRINT("BTAdapter::initialize: Adapter[%d]: OK: powered[before %d, init_on %d, now %d], %s", dev_id,
-            was_powered, adapter_poweredon_at_init.load(), is_powered, toString().c_str());
+
+    WORDY_PRINT("BTAdapter::initialize: Adapter[%d]: OK: powered[before %d, init_on %d, now %d], %s, %s",
+            dev_id, was_powered, adapter_poweredon_at_init.load(), is_powered,
+            l2cap_att_srv.toString().c_str(), toString().c_str());
     return HCIStatusCode::SUCCESS;
 }
 
@@ -1379,6 +1391,8 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
     }
     // FIXME?? std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME: Fast restart of advertising error)
 
+    l2cap_service.start();
+
     // set minimum ...
     eir.addFlags(GAPFlags::LE_Gen_Disc);
     eir.setName(getName());
@@ -1404,6 +1418,7 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
                                             adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy);
     if( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("le_start_adv failed: %s - %s", to_string(status).c_str(), toString(true).c_str());
+        l2cap_service.stop();
     } else {
         gattServerData = gattServerData_;
         btRole = BTRole::Slave;
@@ -1450,6 +1465,8 @@ HCIStatusCode BTAdapter::stopAdvertising() noexcept {
         poweredOff(false /* active */);
         return HCIStatusCode::NOT_POWERED;
     }
+
+    l2cap_service.stop();
 
     HCIStatusCode status = hci.le_enable_adv(false /* enable */);
     if( HCIStatusCode::SUCCESS != status ) {
@@ -1699,9 +1716,27 @@ bool BTAdapter::mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept {
     return true;
 }
 
+void BTAdapter::l2capServerWork(jau::service_runner& sr) {
+    (void)sr;
+    std::unique_ptr<L2CAPComm> l2cap_att_ = l2cap_att_srv.accept();
+    if( BTRole::Slave == getRole() && nullptr != l2cap_att_ ) {
+        DBG_PRINT("BTAdapter::l2capServer connected.1: %s", l2cap_att_->toString().c_str());
+
+        std::unique_lock<std::mutex> lock(mtx_l2cap_att); // RAII-style acquire and relinquish via destructor
+        l2cap_att = std::move( l2cap_att_ );
+        lock.unlock(); // unlock mutex before notify_all to avoid pessimistic re-block of notified wait() thread.
+        cv_l2cap_att.notify_all(); // notify waiting getter
+
+    } else if( nullptr != l2cap_att_ ) {
+        DBG_PRINT("BTAdapter::l2capServer connected.2: %s", l2cap_att_->toString().c_str());
+    } else {
+        DBG_PRINT("BTAdapter::l2capServer connected.0: nullptr");
+    }
+}
+
 bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
-    COND_PRINT(debug_event, "BTAdapter:hci:DeviceConnected(dev_id %d): %s", dev_id, e.toString().c_str());
     const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(&e);
+    const BDAddressAndType deviceAddressAndType(event.getAddress(), event.getAddressType());
     EInfoReport ad_report;
     {
         ad_report.setSource(EInfoReport::Source::EIR);
@@ -1710,6 +1745,24 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         ad_report.setAddress( event.getAddress() );
         ad_report.read_data(event.getData(), event.getDataSize());
     }
+    DBG_PRINT("BTAdapter:hci:DeviceConnected(dev_id %d): %s: %s", dev_id, e.toString().c_str(), ad_report.toString().c_str());
+
+    std::unique_ptr<L2CAPComm> l2cap_att_;
+    if( BTRole::Slave == getRole() ) {
+        const uint32_t timeout_ms = 10000; // FIXME: Configurable?
+        std::unique_lock<std::mutex> lock(mtx_l2cap_att); // RAII-style acquire and relinquish via destructor
+        while( nullptr == l2cap_att || l2cap_att->getRemoteAddressAndType() != deviceAddressAndType ) {
+            std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+            std::cv_status s = cv_l2cap_att.wait_until(lock, t0 + std::chrono::milliseconds(timeout_ms));
+            if( std::cv_status::timeout == s && ( nullptr == l2cap_att || l2cap_att->getRemoteAddressAndType() != deviceAddressAndType ) ) {
+                DBG_PRINT("BTAdapter:hci:DeviceConnected(dev_id %d): l2cap_att TIMEOUT", dev_id);
+                return true;
+            }
+        }
+        l2cap_att_ = std::move( l2cap_att );
+        DBG_PRINT("BTAdapter:hci:DeviceConnected(dev_id %d): l2cap_att %s", dev_id, l2cap_att_->toString().c_str());
+    }
+
     int new_connect = 0;
     bool slave_unpair = false;
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
@@ -1736,6 +1789,9 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         addSharedDevice(device);
         new_connect = BTRole::Master == getRole() ? 3 : 4;
         slave_unpair = BTRole::Slave == getRole();
+    }
+    if( BTRole::Slave == getRole() ) {
+        device->l2cap_att = std::move(l2cap_att_);
     }
     if( slave_unpair ) {
         /**
@@ -1777,6 +1833,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     if( device->isConnSecurityAutoEnabled() ) {
         new_connect = 0; // disable deviceConnected() events for BTRole::Master for SMP-Auto
     }
+
     int i=0;
     jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {
@@ -1813,7 +1870,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
 }
 
 bool BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
-    COND_PRINT(debug_event, "BTAdapter::EventHCI:ConnectFailed: %s", e.toString().c_str());
+    DBG_PRINT("BTAdapter::EventHCI:ConnectFailed: %s", e.toString().c_str());
     const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
