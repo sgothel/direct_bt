@@ -39,6 +39,7 @@
 #include <jau/ringbuffer.hpp>
 #include <jau/cow_darray.hpp>
 #include <jau/uuid.hpp>
+#include <jau/service_runner.hpp>
 
 #include "BTTypes0.hpp"
 #include "L2CAPComm.hpp"
@@ -192,13 +193,8 @@ namespace direct_bt {
             jau::sc_atomic_bool is_connected; // reflects state
             jau::relaxed_atomic_bool has_ioerror;  // reflects state
 
+            jau::service_runner l2cap_reader_service;
             jau::ringbuffer<std::unique_ptr<const AttPDUMsg>, jau::nsize_t> attPDURing;
-            jau::sc_atomic_bool l2capReaderShallStop;
-
-            std::mutex mtx_l2capReaderLifecycle;
-            std::condition_variable cv_l2capReaderInit;
-            pthread_t l2capReaderThreadId;
-            jau::sc_atomic_bool l2capReaderRunning;
 
             /** send immediate confirmation of indication events from device, defaults to true. */
             jau::relaxed_atomic_bool sendIndicationConfirmation = true;
@@ -228,8 +224,9 @@ namespace direct_bt {
             void replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu);
             void replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu);
 
-            void l2capReaderThreadImpl();
-
+            void l2capReaderWork(jau::service_runner& sr);
+            void l2capReaderEndLocked(jau::service_runner& sr);
+            void l2capReaderEndFinal(jau::service_runner& sr);
 
             /**
              * Sends the given AttPDUMsg to the connected device via l2cap.
