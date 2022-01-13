@@ -594,6 +594,11 @@ bool BTAdapter::setSecureConnections(const bool enable) noexcept {
     return enable == isAdapterSettingBitSet(new_settings, AdapterSetting::SECURE_CONN);
 }
 
+void BTAdapter::setServerConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {
+    sec_level_server = sec_level;
+    io_cap_server = io_cap;
+}
+
 void BTAdapter::setSMPKeyPath(const std::string path) noexcept {
     jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     key_path = path;
@@ -1827,6 +1832,10 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
             jau::to_hexstring(device->getConnectionHandle()).c_str(), jau::to_hexstring(event.getHCIHandle()).c_str(),
             ad_report.toString().c_str(),
             device->toString().c_str());
+    }
+
+    if( BTRole::Slave == getRole() ) {
+        device->setConnSecurity(sec_level_server, io_cap_server);
     }
     device->notifyConnected(device, event.getHCIHandle(), io_cap_conn);
 

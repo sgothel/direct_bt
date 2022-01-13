@@ -394,6 +394,8 @@ namespace direct_bt {
             typedef std::shared_ptr<SMPKeyBin> SMPKeyBinRef;
             typedef jau::darray<SMPKeyBinRef> key_list_t;
             key_list_t key_list;
+            BTSecurityLevel sec_level_server = BTSecurityLevel::UNSET;
+            SMPIOCapability io_cap_server = SMPIOCapability::UNSET;
 
             DBGattServerRef gattServerData = nullptr;
 
@@ -740,6 +742,20 @@ namespace direct_bt {
              * @since 2.4.0
              */
             bool setSecureConnections(const bool enable) noexcept;
+
+            /**
+             * Sets the given ::BTSecurityLevel and ::SMPIOCapability for connecting device when in server (peripheral) mode, see [adapter's role](@ref BTAdapterRoles).
+             * <p>
+             * Method either changes both parameter for the upcoming connection or none at all.
+             * </p>
+             * @param[in] sec_level ::BTSecurityLevel to be applied.
+             * @param[in] io_cap ::SMPIOCapability to be applied.
+             * @see ::BTSecurityLevel
+             * @see ::SMPIOCapability
+             * @see BTDevice::setConnSecurity()
+             * @see startAdvertising()
+             */
+            void setServerConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept;
 
             /**
              * Set the adapter's persistent storage directory for SMPKeyBin files.

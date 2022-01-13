@@ -845,6 +845,18 @@ jboolean Java_jau_direct_1bt_DBTAdapter_setSecureConnections(JNIEnv *env, jobjec
     return JNI_FALSE;
 }
 
+void Java_jau_direct_1bt_DBTAdapter_setServerConnSecurityImpl(JNIEnv *env, jobject obj, jbyte jsec_level, jbyte jio_cap) {
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+
+        adapter->setServerConnSecurity( to_BTSecurityLevel( static_cast<uint8_t>(jsec_level) ),
+                                        to_SMPIOCapability( static_cast<uint8_t>(jio_cap) ) );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
 void Java_jau_direct_1bt_DBTAdapter_setSMPKeyPath(JNIEnv *env, jobject obj, jstring jpath) {
     try {
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);

@@ -578,6 +578,20 @@ public interface BTAdapter extends BTObject
     boolean setSecureConnections(final boolean enable);
 
     /**
+     * Sets the given ::BTSecurityLevel and ::SMPIOCapability for connecting device when in server (peripheral) mode, see [adapter's role](@ref BTAdapterRoles).
+     * <p>
+     * Method either changes both parameter for the upcoming connection or none at all.
+     * </p>
+     * @param[in] sec_level ::BTSecurityLevel to be applied.
+     * @param[in] io_cap ::SMPIOCapability to be applied.
+     * @see BTSecurityLevel
+     * @see SMPIOCapability
+     * @see BTDevice#setConnSecurity(BTSecurityLevel, SMPIOCapability)
+     * @see #startAdvertising(DBGattServer, EInfoReport, EIRDataTypeSet, EIRDataTypeSet, short, short, byte, byte, byte)
+     */
+    void setServerConnSecurity(final BTSecurityLevel sec_level, final SMPIOCapability io_cap);
+
+    /**
      * Set the adapter's persistent storage directory for {@link SMPKeyBin} files.
      * - if set, all {@link SMPKeyBin} instances will be managed and persistent.
      * - if not set, all {@link SMPKeyBin} instances will be transient only.

@@ -44,6 +44,7 @@ import org.direct_bt.BTException;
 import org.direct_bt.BTManager;
 import org.direct_bt.BTMode;
 import org.direct_bt.BTRole;
+import org.direct_bt.BTSecurityLevel;
 import org.direct_bt.BTUtils;
 import org.direct_bt.DBGattServer;
 import org.direct_bt.DiscoveryPolicy;
@@ -54,6 +55,7 @@ import org.direct_bt.HCIWhitelistConnectType;
 import org.direct_bt.LE_Features;
 import org.direct_bt.LE_PHYs;
 import org.direct_bt.PairingMode;
+import org.direct_bt.SMPIOCapability;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
 import org.jau.net.EUI48;
@@ -282,6 +284,12 @@ public class DBTAdapter extends DBTObject implements BTAdapter
 
     @Override
     public native boolean setSecureConnections(final boolean enable);
+
+    @Override
+    public final void setServerConnSecurity(final BTSecurityLevel sec_level, final SMPIOCapability io_cap) {
+        setServerConnSecurityImpl(sec_level.value, io_cap.value);
+    }
+    private final native void setServerConnSecurityImpl(final byte sec_level, final byte io_cap);
 
     @Override
     public native void setSMPKeyPath(final String path);
