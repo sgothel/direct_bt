@@ -370,34 +370,6 @@ public interface BTDevice extends BTObject
     HCIStatusCode unpair();
 
     /**
-     * Set the {@link BTSecurityLevel} used to connect to this device on the upcoming connection.
-     * <p>
-     * Method returns false if {@link BTSecurityLevel#UNSET} has been given,
-     * operation fails, this device has already being connected,
-     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connectDefault()} has been issued already.
-     * </p>
-     * <p>
-     * To ensure a consistent authentication setup,
-     * it is advised to set {@link SMPIOCapability#NO_INPUT_NO_OUTPUT} for sec_level <= {@link BTSecurityLevel#ENC_ONLY}
-     * using {@link #setConnSecurity(BTSecurityLevel, SMPIOCapability, boolean) setConnSecurity(..)}
-     * as well as an IO capable {@link SMPIOCapability} value
-     * for {@link BTSecurityLevel#ENC_AUTH} or {@link BTSecurityLevel#ENC_AUTH_FIPS}.<br>
-     * You may like to consider using {@link #setConnSecurityBest(BTSecurityLevel, SMPIOCapability)}.
-     * </p>
-     * @param sec_level {@link BTSecurityLevel} to be applied, {@link BTSecurityLevel#UNSET} will be ignored and method fails.
-     * @return
-     * @since 2.1.0
-     * @see BTSecurityLevel
-     * @see SMPIOCapability
-     * @see #getConnSecurityLevel()
-     * @see #setConnIOCapability(SMPIOCapability)
-     * @see #getConnIOCapability()
-     * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability)
-     * @see #setConnSecurityBest(BTSecurityLevel, SMPIOCapability)
-     */
-    boolean setConnSecurityLevel(final BTSecurityLevel sec_level);
-
-    /**
      * Return the {@link BTSecurityLevel}, determined when the connection is established.
      * @since 2.1.0
      * @see BTSecurityLevel
@@ -409,25 +381,6 @@ public interface BTDevice extends BTObject
      * @see #setConnSecurityBest(BTSecurityLevel, SMPIOCapability)
      */
     BTSecurityLevel getConnSecurityLevel();
-
-    /**
-     * Sets the given {@link SMPIOCapability} used to connect to this device on the upcoming connection.
-     * <p>
-     * Method returns false if {@link SMPIOCapability#UNSET} has been given,
-     * operation fails, this device has already being connected,
-     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connectDefault()} has been issued already.
-     * </p>
-     * @param io_cap {@link SMPIOCapability} to be applied, {@link SMPIOCapability#UNSET} will be ignored and method fails.
-     * @since 2.1.0
-     * @see BTSecurityLevel
-     * @see SMPIOCapability
-     * @see #setConnSecurityLevel(BTSecurityLevel)
-     * @see #getConnSecurityLevel()
-     * @see #getConnIOCapability()
-     * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability)
-     * @see #setConnSecurityBest(BTSecurityLevel, SMPIOCapability)
-     */
-    boolean setConnIOCapability(final SMPIOCapability io_cap);
 
     /**
      * Return the {@link SMPIOCapability} value, determined when the connection is established.
@@ -444,6 +397,23 @@ public interface BTDevice extends BTObject
 
     /**
      * Sets the given {@link BTSecurityLevel} and {@link SMPIOCapability} used to connect to this device on the upcoming connection.
+     *
+     * Implementation using following pseudo-code, validating the user settings:
+     * <pre>
+     *   if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_cap ) {
+     *      USING: sec_level, io_cap
+     *   } else if( BTSecurityLevel::UNSET < sec_level ) {
+     *       if( BTSecurityLevel::ENC_ONLY >= sec_level ) {
+     *           USING: sec_level, SMPIOCapability::NO_INPUT_NO_OUTPUT
+     *       } else {
+     *           USING: sec_level, SMPIOCapability::UNSET
+     *       }
+     *   } else if( SMPIOCapability::UNSET != io_cap ) {
+     *       USING BTSecurityLevel::UNSET, io_cap
+     *   } else {
+     *       USING BTSecurityLevel::UNSET, SMPIOCapability::UNSET
+     *   }
+     * </pre>
      * <p>
      * Method returns false if this device has already being connected,
      * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connectDefault()} has been issued already.
@@ -463,43 +433,6 @@ public interface BTDevice extends BTObject
      * @see #setConnSecurityBest(BTSecurityLevel, SMPIOCapability)
      */
     boolean setConnSecurity(final BTSecurityLevel sec_level, final SMPIOCapability io_cap);
-
-    /**
-     * Convenience method to determine the best practice {@link BTSecurityLevel} and {@link SMPIOCapability}
-     * based on the given arguments, used to connect to this device on the upcoming connection.
-     * <pre>
-     *   if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_cap ) {
-     *      return setConnSecurity(sec_level, io_cap);
-     *   } else if( BTSecurityLevel::UNSET < sec_level ) {
-     *       if( BTSecurityLevel::ENC_ONLY >= sec_level ) {
-     *           return setConnSecurity(sec_level, SMPIOCapability::NO_INPUT_NO_OUTPUT);
-     *       } else {
-     *           return setConnSecurityLevel(sec_level);
-     *       }
-     *   } else if( SMPIOCapability::UNSET != io_cap ) {
-     *       return setConnIOCapability(io_cap);
-     *   } else {
-     *       return false;
-     *   }
-     * </pre>
-     * <p>
-     * Method returns false if {@link BTSecurityLevel#UNSET} and {@link SMPIOCapability#UNSET} has been given,
-     * operation fails, this device has already being connected,
-     * or {@link #connectLE(short, short, short, short, short, short) connectLE} or {@link #connectDefault()} has been issued already.
-     * </p>
-     * @param sec_level {@link BTSecurityLevel} to be applied.
-     * @param io_cap {@link SMPIOCapability} to be applied.
-     * @since 2.1.0
-     * @see BTSecurityLevel
-     * @see SMPIOCapability
-     * @see #setConnSecurityLevel(BTSecurityLevel)
-     * @see #getConnSecurityLevel()
-     * @see #setConnIOCapability(SMPIOCapability)
-     * @see #getConnIOCapability()
-     * @see #setConnSecurity(BTSecurityLevel, SMPIOCapability)
-     * @see #setConnSecurityAuto(SMPIOCapability)
-     */
-    boolean setConnSecurityBest(final BTSecurityLevel sec_level, final SMPIOCapability io_cap);
 
     /**
      * Set automatic security negotiation of {@link BTSecurityLevel} and {@link SMPIOCapability} pairing mode.

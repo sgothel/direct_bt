@@ -704,18 +704,6 @@ jbyte Java_jau_direct_1bt_DBTDevice_unpairImpl(JNIEnv *env, jobject obj) {
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
-jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityLevelImpl(JNIEnv *env, jobject obj, jbyte jsec_level) {
-    try {
-        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
-        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-
-        return device->setConnSecurityLevel( to_BTSecurityLevel( static_cast<uint8_t>(jsec_level) ));
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return JNI_FALSE;
-}
-
 jbyte Java_jau_direct_1bt_DBTDevice_getConnSecurityLevelImpl(JNIEnv *env, jobject obj) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
@@ -726,31 +714,6 @@ jbyte Java_jau_direct_1bt_DBTDevice_getConnSecurityLevelImpl(JNIEnv *env, jobjec
         rethrow_and_raise_java_exception(env);
     }
     return number( BTSecurityLevel::UNSET );
-}
-
-jboolean Java_jau_direct_1bt_DBTDevice_setConnIOCapabilityImpl(JNIEnv *env, jobject obj, jbyte jio_cap) {
-    try {
-        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
-        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-
-        return device->setConnIOCapability( to_SMPIOCapability( static_cast<uint8_t>(jio_cap) ));
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return JNI_FALSE;
-}
-
-jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityImpl(JNIEnv *env, jobject obj, jbyte jsec_level, jbyte jio_cap) {
-    try {
-        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
-        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-
-        return device->setConnSecurity( to_BTSecurityLevel( static_cast<uint8_t>(jsec_level) ),
-                                        to_SMPIOCapability( static_cast<uint8_t>(jio_cap) ) );
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return JNI_FALSE;
 }
 
 jbyte Java_jau_direct_1bt_DBTDevice_getConnIOCapabilityImpl(JNIEnv *env, jobject obj) {
@@ -765,28 +728,17 @@ jbyte Java_jau_direct_1bt_DBTDevice_getConnIOCapabilityImpl(JNIEnv *env, jobject
     return number( SMPIOCapability::UNSET );
 }
 
-jbyte Java_jau_direct_1bt_DBTDevice_getPairingModeImpl(JNIEnv *env, jobject obj) {
+jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityImpl(JNIEnv *env, jobject obj, jbyte jsec_level, jbyte jio_cap) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        return number( device->getPairingMode() );
+        return device->setConnSecurity( to_BTSecurityLevel( static_cast<uint8_t>(jsec_level) ),
+                                        to_SMPIOCapability( static_cast<uint8_t>(jio_cap) ) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return number( PairingMode::NONE );
-}
-
-jbyte Java_jau_direct_1bt_DBTDevice_getPairingStateImpl(JNIEnv *env, jobject obj) {
-    try {
-        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
-        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-
-        return static_cast<uint8_t>( device->getPairingState() );
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return static_cast<uint8_t>( SMPPairingState::NONE );
+    return JNI_FALSE;
 }
 
 jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityAutoImpl(JNIEnv *env, jobject obj, jbyte jio_cap) {
@@ -811,6 +763,30 @@ jboolean Java_jau_direct_1bt_DBTDevice_isConnSecurityAutoEnabled(JNIEnv *env, jo
         rethrow_and_raise_java_exception(env);
     }
     return JNI_FALSE;
+}
+
+jbyte Java_jau_direct_1bt_DBTDevice_getPairingModeImpl(JNIEnv *env, jobject obj) {
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        return number( device->getPairingMode() );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return number( PairingMode::NONE );
+}
+
+jbyte Java_jau_direct_1bt_DBTDevice_getPairingStateImpl(JNIEnv *env, jobject obj) {
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        return static_cast<uint8_t>( device->getPairingState() );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return static_cast<uint8_t>( SMPPairingState::NONE );
 }
 
 jbyte Java_jau_direct_1bt_DBTDevice_setPairingPasskeyImpl(JNIEnv *env, jobject obj, jint jpasskey) {

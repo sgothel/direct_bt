@@ -308,7 +308,7 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
                 bool r = device->setConnSecurityAuto( sec->getSecurityAutoIOCap() );
                 fprintf_td(stderr, "****** Connecting Device: Using SecurityDetail.SEC AUTO %s, set OK %d\n", sec->toString().c_str(), r);
             } else if( sec->isSecLevelOrIOCapSet() ) {
-                bool r = device->setConnSecurityBest( sec->getSecLevel(), sec->getIOCap() );
+                bool r = device->setConnSecurity( sec->getSecLevel(), sec->getIOCap() );
                 fprintf_td(stderr, "****** Connecting Device: Using SecurityDetail.Level+IOCap %s, set OK %d\n", sec->toString().c_str(), r);
             } else {
                 bool r = device->setConnSecurityAuto( SMPIOCapability::KEYBOARD_ONLY );

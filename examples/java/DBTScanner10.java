@@ -364,7 +364,7 @@ public class DBTScanner10 {
                     final boolean r = device.setConnSecurityAuto( sec.getSecurityAutoIOCap() );
                     BTUtils.println(System.err, "****** Connecting Device: Using SecurityDetail.SEC AUTO "+sec+" -> set OK "+r);
                 } else if( sec.isSecLevelOrIOCapSet() ) {
-                    final boolean r = device.setConnSecurityBest(sec.getSecLevel(), sec.getIOCap());
+                    final boolean r = device.setConnSecurity(sec.getSecLevel(), sec.getIOCap());
                     BTUtils.println(System.err, "****** Connecting Device: Using SecurityDetail.Level+IOCap "+sec+" -> set OK "+r);
                 } else {
                     final boolean r = device.setConnSecurityAuto( SMPIOCapability.KEYBOARD_ONLY );

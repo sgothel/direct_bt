@@ -1650,54 +1650,9 @@ void BTDevice::setLinkKey(const SMPLinkKey& lk) noexcept {
     }
 }
 
-bool BTDevice::setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept {
-    if( BTSecurityLevel::UNSET == sec_level ) {
-        DBG_PRINT("DBTAdapter::setConnSecurityLevel: lvl %s, invalid value.", to_string(sec_level).c_str());
-        return false;
-    }
-
-    if( !isValid() || ( BTRole::Slave == getRole() && ( isConnected || allowDisconnect ) ) ) {
-        DBG_PRINT("BTDevice::setConnSecurityLevel: lvl %s failed, invalid state %s",
-            to_string(sec_level).c_str(), toString().c_str());
-        return false;
-    }
-    jau::sc_atomic_critical sync(sync_data);
-    const bool res = true;
-    pairing_data.sec_level_user = sec_level;
-    pairing_data.ioCap_auto = SMPIOCapability::UNSET; // disable auto
-
-    DBG_PRINT("BTDevice::setConnSecurityLevel: result %d: lvl %s, %s", res,
-        to_string(sec_level).c_str(),
-        toString().c_str());
-    return res;
-}
-
 BTSecurityLevel BTDevice::getConnSecurityLevel() const noexcept {
     jau::sc_atomic_critical sync(sync_data);
     return pairing_data.sec_level_conn;
-}
-
-bool BTDevice::setConnIOCapability(const SMPIOCapability io_cap) noexcept {
-    if( SMPIOCapability::UNSET == io_cap ) {
-        DBG_PRINT("BTDevice::setConnIOCapability: io %s, invalid value.", to_string(io_cap).c_str());
-        return false;
-    }
-
-    if( !isValid() || isConnected || allowDisconnect ) {
-        DBG_PRINT("BTDevice::setConnIOCapability: io %s failed, invalid state %s",
-                to_string(io_cap).c_str(), toString().c_str());
-        return false;
-    }
-    jau::sc_atomic_critical sync(sync_data);
-    const bool res = true;
-    pairing_data.ioCap_user = io_cap;
-    pairing_data.ioCap_auto = SMPIOCapability::UNSET; // disable auto
-
-    DBG_PRINT("BTDevice::setConnIOCapability: result %d: io %s, %s", res,
-        to_string(io_cap).c_str(),
-        toString().c_str());
-
-    return res;
 }
 
 SMPIOCapability BTDevice::getConnIOCapability() const noexcept {
@@ -1706,7 +1661,7 @@ SMPIOCapability BTDevice::getConnIOCapability() const noexcept {
 }
 
 bool BTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {
-    if( !isValid() || ( BTRole::Slave == getRole() && ( isConnected || allowDisconnect ) ) ) {
+    if( !isValid() || isConnected || allowDisconnect ) {
         DBG_PRINT("BTDevice::setConnSecurity: lvl %s, io %s failed, invalid state %s",
                 to_string(sec_level).c_str(),
                 to_string(io_cap).c_str(), toString().c_str());
@@ -1714,32 +1669,33 @@ bool BTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapab
     }
     jau::sc_atomic_critical sync(sync_data);
     const bool res = true;
-    pairing_data.ioCap_user = io_cap;
-    pairing_data.sec_level_user = sec_level;
+
+    if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_cap ) {
+        pairing_data.sec_level_user = sec_level;
+        pairing_data.ioCap_user = io_cap;
+    } else if( BTSecurityLevel::UNSET < sec_level ) {
+        if( BTSecurityLevel::ENC_ONLY >= sec_level ) {
+            pairing_data.sec_level_user = sec_level;
+            pairing_data.ioCap_user = SMPIOCapability::NO_INPUT_NO_OUTPUT;
+        } else {
+            pairing_data.sec_level_user = sec_level;
+            pairing_data.ioCap_user = SMPIOCapability::UNSET;
+        }
+    } else if( SMPIOCapability::UNSET != io_cap ) {
+        pairing_data.sec_level_user = BTSecurityLevel::UNSET;
+        pairing_data.ioCap_user = io_cap;
+    } else {
+        pairing_data.sec_level_user = BTSecurityLevel::UNSET;
+        pairing_data.ioCap_user = SMPIOCapability::UNSET;
+    }
     pairing_data.ioCap_auto = SMPIOCapability::UNSET; // disable auto
 
-    DBG_PRINT("BTDevice::setConnSecurity: result %d: lvl %s, io %s, %s", res,
-        to_string(sec_level).c_str(),
-        to_string(io_cap).c_str(),
+    DBG_PRINT("BTDevice::setConnSecurity: result %d: lvl %s -> %s, io %s -> %s, %s", res,
+        to_string(sec_level).c_str(), to_string(pairing_data.sec_level_user).c_str(),
+        to_string(io_cap).c_str(), to_string(pairing_data.ioCap_user).c_str(),
         toString().c_str());
 
     return res;
-}
-
-bool BTDevice::setConnSecurityBest(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {
-    if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_cap ) {
-        return setConnSecurity(sec_level, io_cap);
-    } else if( BTSecurityLevel::UNSET < sec_level ) {
-        if( BTSecurityLevel::ENC_ONLY >= sec_level ) {
-            return setConnSecurity(sec_level, SMPIOCapability::NO_INPUT_NO_OUTPUT);
-        } else {
-            return setConnSecurityLevel(sec_level);
-        }
-    } else if( SMPIOCapability::UNSET != io_cap ) {
-        return setConnIOCapability(io_cap);
-    } else {
-        return false;
-    }
 }
 
 bool BTDevice::setConnSecurityAuto(const SMPIOCapability iocap_auto) noexcept {

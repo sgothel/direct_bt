@@ -791,74 +791,44 @@ namespace direct_bt {
             HCIStatusCode unpair() noexcept;
 
             /**
-             * Set the ::BTSecurityLevel used to connect to this device on the upcoming connection.
-             * <p>
-             * Method returns false if ::BTSecurityLevel::UNSET has been given,
-             * operation fails, this device has already being connected,
-             * or BTDevice::connectLE() or BTDevice::connectBREDR() has been issued already.
-             * </p>
-             * <p>
-             * To ensure a consistent authentication setup,
-             * it is advised to set ::SMPIOCapability::NO_INPUT_NO_OUTPUT for sec_level <= ::BTSecurityLevel::ENC_ONLY
-             * using setConnSecurity() as well as an IO capable ::SMPIOCapability value
-             * for ::BTSecurityLevel::ENC_AUTH or ::BTSecurityLevel::ENC_AUTH_FIPS.<br>
-             * You may like to consider using setConnSecurityBest().
-             * </p>
-             * @param sec_level ::BTSecurityLevel to be applied, ::BTSecurityLevel::UNSET will be ignored and method fails.
-             * @see ::BTSecurityLevel
-             * @see ::SMPIOCapability
-             * @see getConnSecurityLevel()
-             * @see setConnIOCapability()
-             * @see getConnIOCapability()
-             * @see setConnSecurity()
-             * @see setConnSecurityBest()
-             */
-            bool setConnSecurityLevel(const BTSecurityLevel sec_level) noexcept;
-
-            /**
              * Return the ::BTSecurityLevel, determined when the connection is established.
              * @see ::BTSecurityLevel
              * @see ::SMPIOCapability
-             * @see setConnSecurityLevel()
-             * @see setConnIOCapability()
              * @see getConnIOCapability()
              * @see setConnSecurity()
-             * @see setConnSecurityBest()
+             * @see setConnSecurityAuto()
              */
             BTSecurityLevel getConnSecurityLevel() const noexcept;
-
-            /**
-             * Sets the given ::SMPIOCapability used to connect to this device on the upcoming connection.
-             * <p>
-             * Method returns false if ::SMPIOCapability::UNSET has been given,
-             * operation fails, this device has already being connected,
-             * or BTDevice::connectLE() or BTDevice::connectBREDR() has been issued already.
-             * </p>
-             * @param[in] io_cap ::SMPIOCapability to be applied, ::SMPIOCapability::UNSET will be ignored and method fails.
-             * @see ::BTSecurityLevel
-             * @see ::SMPIOCapability
-             * @see setConnSecurityLevel()
-             * @see getConnSecurityLevel()
-             * @see getConnIOCapability()
-             * @see setConnSecurity()
-             * @see setConnSecurityBest()
-             */
-            bool setConnIOCapability(const SMPIOCapability io_cap) noexcept;
 
             /**
              * Return the set ::SMPIOCapability value, determined when the connection is established.
              * @see ::BTSecurityLevel
              * @see ::SMPIOCapability
-             * @see setConnSecurityLevel()
              * @see getConnSecurityLevel()
-             * @see setConnIOCapability()
              * @see setConnSecurity()
-             * @see setConnSecurityBest()
+             * @see setConnSecurityAuto()
              */
             SMPIOCapability getConnIOCapability() const noexcept;
 
             /**
              * Sets the given ::BTSecurityLevel and ::SMPIOCapability used to connect to this device on the upcoming connection.
+             *
+             * Implementation using following pseudo-code, validating the user settings:
+             * <pre>
+             *   if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_cap ) {
+             *      USING: sec_level, io_cap
+             *   } else if( BTSecurityLevel::UNSET < sec_level ) {
+             *       if( BTSecurityLevel::ENC_ONLY >= sec_level ) {
+             *           USING: sec_level, SMPIOCapability::NO_INPUT_NO_OUTPUT
+             *       } else {
+             *           USING: sec_level, SMPIOCapability::UNSET
+             *       }
+             *   } else if( SMPIOCapability::UNSET != io_cap ) {
+             *       USING BTSecurityLevel::UNSET, io_cap
+             *   } else {
+             *       USING BTSecurityLevel::UNSET, SMPIOCapability::UNSET
+             *   }
+             * </pre>
              * <p>
              * Method returns false if this device has already being connected,
              * or BTDevice::connectLE() or BTDevice::connectBREDR() has been issued already.
@@ -870,52 +840,11 @@ namespace direct_bt {
              * @param[in] io_cap ::SMPIOCapability to be applied.
              * @see ::BTSecurityLevel
              * @see ::SMPIOCapability
-             * @see setConnSecurityLevel()
              * @see getConnSecurityLevel()
-             * @see setConnIOCapability()
              * @see getConnIOCapability()
-             * @see setConnSecurityBest()
-             */
-            bool setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept;
-
-            /**
-             * Convenience method to determine the best practice ::BTSecurityLevel and ::SMPIOCapability
-             * based on the given arguments, used to connect to this device on the upcoming connection.
-             * <pre>
-             *   if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_cap ) {
-             *      return setConnSecurity(sec_level, io_cap);
-             *   } else if( BTSecurityLevel::UNSET < sec_level ) {
-             *       if( BTSecurityLevel::ENC_ONLY >= sec_level ) {
-             *           return setConnSecurity(sec_level, SMPIOCapability::NO_INPUT_NO_OUTPUT);
-             *       } else {
-             *           return setConnSecurityLevel(sec_level);
-             *       }
-             *   } else if( SMPIOCapability::UNSET != io_cap ) {
-             *       return setConnIOCapability(io_cap);
-             *   } else {
-             *       return false;
-             *   }
-             * </pre>
-             * <p>
-             * Method returns false if ::BTSecurityLevel::UNSET and ::SMPIOCapability::UNSET has been given,
-             * operation fails, this device has already being connected,
-             * or BTDevice::connectLE() or BTDevice::connectBREDR() has been issued already.
-             * </p>
-             * <p>
-             * Method either changes both parameter for the upcoming connection or none at all.
-             * </p>
-             * @param[in] sec_level ::BTSecurityLevel to be applied.
-             * @param[in] io_cap ::SMPIOCapability to be applied.
-             * @see ::BTSecurityLevel
-             * @see ::SMPIOCapability
-             * @see setConnSecurityLevel()
-             * @see getConnSecurityLevel()
-             * @see setConnIOCapability()
-             * @see getConnIOCapability()
-             * @see setConnSecurityBest()
              * @see setConnSecurityAuto()
              */
-            bool setConnSecurityBest(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept;
+            bool setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap=SMPIOCapability::UNSET) noexcept;
 
             /**
              * Set automatic security negotiation of BTSecurityLevel and SMPIOCapability pairing mode.
@@ -944,6 +873,7 @@ namespace direct_bt {
              * @see isConnSecurityAutoEnabled()
              * @see ::BTSecurityLevel
              * @see ::SMPIOCapability
+             * @see setConnSecurity()
              */
             bool setConnSecurityAuto(const SMPIOCapability iocap_auto) noexcept;
 
