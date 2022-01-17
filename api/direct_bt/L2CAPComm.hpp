@@ -262,7 +262,7 @@ namespace direct_bt {
              */
             jau::snsize_t write(const uint8_t *buffer, const jau::nsize_t length) noexcept;
 
-            std::string toString();
+            std::string toString() const noexcept;
     };
 
     /**
@@ -300,7 +300,7 @@ namespace direct_bt {
 
             std::unique_ptr<L2CAPComm> accept() noexcept;
 
-            std::string toString();
+            std::string toString() const noexcept;
     };
 
 } // namespace direct_bt

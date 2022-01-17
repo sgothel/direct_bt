@@ -135,6 +135,7 @@ L2CAPComm::L2CAPComm(const BDAddressAndType& adapterAddressAndType_, const L2CAP
  * Hence we set BT_SECURITY after connect() within open().
  */
 #define SET_BT_SECURITY_POST_CONNECT 1
+#define SET_BT_SECURITY_POST_ACCEPT 1
 
 bool L2CAPComm::open(const BTDevice& device, const BTSecurityLevel sec_level) noexcept {
 
@@ -666,7 +667,7 @@ errout:
     return err_res;
 }
 
-std::string L2CAPComm::toString() {
+std::string L2CAPComm::toString() const noexcept {
     return "L2CAPComm[dd "+std::to_string(client_socket.load())+
             ", psm "+to_string(psm)+
             ", cid "+to_string(cid)+
@@ -707,7 +708,7 @@ bool L2CAPServer::open() noexcept {
         goto failure; // open failed
     }
 
-#if !SET_BT_SECURITY_POST_CONNECT
+#if !SET_BT_SECURITY_POST_ACCEPT
     #if USE_LINUX_BT_SECURITY
         if( BTSecurityLevel::UNSET < sec_level ) {
             if( !setBTSecurityLevelImpl(sec_level) ) {
@@ -786,7 +787,15 @@ std::unique_ptr<L2CAPComm> L2CAPServer::accept() noexcept {
 
     tid_accept = pthread_self(); // temporary safe tid to allow interruption
 
-    while( !interrupt_flag ) {
+    if( !is_open ) {
+        ERR_PRINT("L2CAPServer::accept: Not open: dd[s %d], errno 0x%X %s, psm %s, cid %s, local %s",
+                  server_socket.load(), errno, strerror(errno),
+                  to_string(psm).c_str(),
+                  to_string(cid).c_str(),
+                  localAddressAndType.toString().c_str());
+    }
+
+    while( is_open && !interrupt_flag ) {
         // blocking
         bzero((void *)&peer, sizeof(peer));
         socklen_t addrlen = sizeof(peer); // on return it will contain the actual size of the peer address
@@ -843,7 +852,7 @@ std::unique_ptr<L2CAPComm> L2CAPServer::accept() noexcept {
     return nullptr;
 }
 
-std::string L2CAPServer::toString() {
+std::string L2CAPServer::toString() const noexcept {
     return "L2CAPServer[dd "+std::to_string(server_socket.load())+
             ", psm "+to_string(psm)+
             ", cid "+to_string(cid)+
