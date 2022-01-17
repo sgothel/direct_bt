@@ -389,9 +389,11 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const A
   currentMetaScanType( ScanType::NONE ),
   discovery_policy ( DiscoveryPolicy::AUTO_OFF ),
   scan_filter_dup( true ),
+  l2cap_att_srv(adapterInfo_.addressAndType, L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT),
   l2cap_service("BTAdapter::l2capServer", THREAD_SHUTDOWN_TIMEOUT_MS,
-                jau::bindMemberFunc(this, &BTAdapter::l2capServerWork)),
-  l2cap_att_srv(adapterInfo_.addressAndType, L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT)
+                jau::bindMemberFunc(this, &BTAdapter::l2capServerWork),
+                jau::bindMemberFunc(this, &BTAdapter::l2capServerInit),
+                jau::bindMemberFunc(this, &BTAdapter::l2capServerEnd))
 {
     (void)cc;
     valid = initialSetup();
@@ -675,15 +677,11 @@ HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
     if( !enableListening(true) ) {
         return HCIStatusCode::INTERNAL_FAILURE;
     }
-    if( !l2cap_att_srv.open() ) {
-        ERR_PRINT("Adapter[%d]: L2CAP ATT open failed: %s", dev_id, l2cap_att_srv.toString().c_str());
-        return HCIStatusCode::INTERNAL_FAILURE;
-    }
     updateAdapterSettings(false /* off_thread */, adapterInfo.getCurrentSettingMask(), false /* sendEvent */, 0);
 
-    WORDY_PRINT("BTAdapter::initialize: Adapter[%d]: OK: powered[before %d, init_on %d, now %d], %s, %s",
+    WORDY_PRINT("BTAdapter::initialize: Adapter[%d]: OK: powered[before %d, init_on %d, now %d], %s",
             dev_id, was_powered, adapter_poweredon_at_init.load(), is_powered,
-            l2cap_att_srv.toString().c_str(), toString().c_str());
+            toString().c_str());
     return HCIStatusCode::SUCCESS;
 }
 
@@ -1493,7 +1491,7 @@ std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
                     ", hci_ext[scan "+std::to_string(hci_uses_ext_scan)+", conn "+std::to_string(hci_uses_ext_conn)+
                     ", adv "+std::to_string(hci_uses_ext_adv)+
                     "], open[mgmt, "+std::to_string(mgmt.isOpen())+", hci "+std::to_string(hci.isOpen())+
-                    "], "+javaObjectToString()+"]");
+                    "], "+l2cap_att_srv.toString()+", "+javaObjectToString()+"]");
     if( includeDiscoveredDevices ) {
         device_list_t devices = getDiscoveredDevices();
         if( devices.size() > 0 ) {
@@ -1719,6 +1717,20 @@ bool BTAdapter::mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept {
     (void)nameChanged;
     (void)shortNameChanged;
     return true;
+}
+
+void BTAdapter::l2capServerInit(jau::service_runner& sr) {
+    (void)sr;
+    if( !l2cap_att_srv.open() ) {
+        ERR_PRINT("Adapter[%d]: L2CAP ATT open failed: %s", dev_id, l2cap_att_srv.toString().c_str());
+    }
+}
+
+void BTAdapter::l2capServerEnd(jau::service_runner& sr) {
+    (void)sr;
+    if( !l2cap_att_srv.close() ) {
+        ERR_PRINT("Adapter[%d]: L2CAP ATT close failed: %s", dev_id, l2cap_att_srv.toString().c_str());
+    }
 }
 
 void BTAdapter::l2capServerWork(jau::service_runner& sr) {
@@ -2325,7 +2337,7 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
                 }
             } else {
                 // Drop: NAME didn't change
-                DBG_PRINT("BTAdapter:hci:DeviceFound(2.1.2, dev_id %d): Discovered but unshared %s, no name change -> Drop(1) %s",
+                COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(2.1.2, dev_id %d): Discovered but unshared %s, no name change -> Drop(1) %s",
                         dev_id, dev_discovered->getAddressAndType().toString().c_str(), eir->toString().c_str());
             }
         } else { // nullptr != dev_shared

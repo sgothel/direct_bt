@@ -488,12 +488,14 @@ namespace direct_bt {
             bool addSMPKeyBin(const SMPKeyBinRef& key, const bool write_file) noexcept;
             bool removeSMPKeyBin(BDAddressAndType const & remoteAddress, const bool remove_file) noexcept;
 
-            jau::service_runner l2cap_service;
             L2CAPServer l2cap_att_srv;
+            jau::service_runner l2cap_service;
             std::unique_ptr<L2CAPComm> l2cap_att;
             std::mutex mtx_l2cap_att;
             std::condition_variable cv_l2cap_att;
             void l2capServerWork(jau::service_runner& sr);
+            void l2capServerInit(jau::service_runner& sr);
+            void l2capServerEnd(jau::service_runner& sr);
 
             bool mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept;
             void updateAdapterSettings(const bool off_thread, const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept;
