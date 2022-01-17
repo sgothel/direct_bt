@@ -604,10 +604,11 @@ void BTDevice::notifyLEPhyUpdateComplete(const HCIStatusCode status, const LE_PH
 void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
     bool callProcessDeviceReady = false;
     bool callDisconnect = false;
+    bool smp_auto = false;
     const bool is_local_server = BTRole::Master == btRole; // -> local GattRole::Server
 
     if( addressAndType.isLEAddress() && ( !l2cap_att->isOpen() || is_local_server ) ) {
-        const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
+        std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
         DBG_PRINT("BTDevice::processL2CAPSetup: Start %s", toString().c_str());
 
@@ -654,22 +655,29 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
 
         if( !l2cap_open ) {
             pairing_data.sec_level_conn = BTSecurityLevel::NONE;
-            callDisconnect = true;
-            disconnect(HCIStatusCode::INTERNAL_FAILURE);
+            const SMPIOCapability smp_auto_io_cap = pairing_data.ioCap_auto; // cache against clearSMPState
+            smp_auto = SMPIOCapability::UNSET != smp_auto_io_cap; // logical cached state
+            if( smp_auto ) {
+                pairing_data.mode = PairingMode::NONE;
+                pairing_data.state = SMPPairingState::FAILED;
+                lock_pairing.unlock(); // unlock mutex before notify_all to avoid pessimistic re-block of notified wait() thread.
+                cv_pairing_state_changed.notify_all();
+            } else {
+                callDisconnect = true;
+                disconnect(HCIStatusCode::INTERNAL_FAILURE);
+            }
         } else if( !l2cap_enc ) {
             callProcessDeviceReady = true;
+            lock_pairing.unlock(); // unlock mutex before notifying and `processDeviceReady()`
+            const uint64_t ts = jau::getCurrentMilliseconds();
+            adapter.notifyPairingStageDone(sthis, ts);
+            processDeviceReady(sthis, ts);
         }
     } else {
         DBG_PRINT("BTDevice::processL2CAPSetup: Skipped (not LE) %s", toString().c_str());
     }
-    if( callProcessDeviceReady ) {
-        // call out of scope of locked mtx_pairing
-        const uint64_t ts = jau::getCurrentMilliseconds();
-        adapter.notifyPairingStageDone(sthis, ts);
-        processDeviceReady(sthis, ts);
-    }
-    DBG_PRINT("BTDevice::processL2CAPSetup: End disconnect %d, deviceReady %d, %s",
-            callDisconnect, callProcessDeviceReady, toString().c_str());
+    DBG_PRINT("BTDevice::processL2CAPSetup: End [disconnect %d, deviceReady %d, smp_auto %d], %s",
+            callDisconnect, callProcessDeviceReady, smp_auto, toString().c_str());
 }
 
 void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_t timestamp) {
