@@ -1031,6 +1031,9 @@ HCIStatusCode BTAdapter::startDiscovery(const DiscoveryPolicy policy, const bool
         WARN_PRINT("Adapter in advertising mode: %s", toString(true).c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
+
+    l2cap_service.stop();
+
     scan_filter_dup = filter_dup; // cache for background scan
 
     const ScanType currentNativeScanType = hci.getCurrentScanType();
