@@ -77,9 +77,6 @@ MgmtEnv::MgmtEnv() noexcept
     SMPEnv::get();
 }
 
-const pid_t BTManager::pidSelf = getpid();
-std::mutex BTManager::mtx_singleton;
-
 void BTManager::mgmtReaderWork(jau::service_runner& sr) noexcept {
     jau::snsize_t len;
     if( !comm.isOpen() ) {
@@ -151,33 +148,6 @@ void BTManager::sendMgmtEvent(const MgmtEvent& event) noexcept {
 
     COND_PRINT(env.DEBUG_EVENT, "BTManager::sendMgmtEvent: Event %s -> %d/%zd callbacks", event.toString().c_str(), invokeCount, mgmtEventCallbackList.size());
     (void)invokeCount;
-}
-
-static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) noexcept {
-    bool pidMatch = info->si_pid == BTManager::pidSelf;
-    WORDY_PRINT("BTManager.sigaction: sig %d, info[code %d, errno %d, signo %d, pid %d, uid %d, fd %d], pid-self %d (match %d)",
-            sig, info->si_code, info->si_errno, info->si_signo,
-            info->si_pid, info->si_uid, info->si_fd,
-            BTManager::pidSelf, pidMatch);
-    (void)ucontext;
-
-    if( !pidMatch || SIGALRM != sig ) {
-        return;
-    }
-#if 0
-    // We do not de-install the handler on single use,
-    // as we act for multiple SIGALRM events within direct-bt
-    {
-        struct sigaction sa_setup;
-        bzero(&sa_setup, sizeof(sa_setup));
-        sa_setup.sa_handler = SIG_DFL;
-        sigemptyset(&(sa_setup.sa_mask));
-        sa_setup.sa_flags = 0;
-        if( 0 != sigaction( SIGALRM, &sa_setup, NULL ) ) {
-            ERR_PRINT("BTManager.sigaction: Resetting sighandler");
-        }
-    }
-#endif
 }
 
 bool BTManager::send(MgmtCommand &req) noexcept {
@@ -394,22 +364,15 @@ BTManager::BTManager() noexcept
   mgmtEventRing(env.MGMT_EVT_RING_CAPACITY),
   allowClose( comm.isOpen() )
 {
-    WORDY_PRINT("BTManager.ctor: pid %d", BTManager::pidSelf);
+    if( ! jau::service_runner::singleton_sighandler() ) {
+        ERR_PRINT("BTManager::ctor: Setting sighandler");
+    }
+    WORDY_PRINT("BTManager.ctor: pid %d", jau::service_runner::pid_self);
     if( !allowClose ) {
         ERR_PRINT("BTManager::open: Could not open mgmt control channel");
         return;
     }
 
-    {
-        struct sigaction sa_setup;
-        bzero(&sa_setup, sizeof(sa_setup));
-        sa_setup.sa_sigaction = mgmthandler_sigaction;
-        sigemptyset(&(sa_setup.sa_mask));
-        sa_setup.sa_flags = SA_SIGINFO;
-        if( 0 != sigaction( SIGALRM, &sa_setup, NULL ) ) {
-            ERR_PRINT("BTManager::ctor: Setting sighandler");
-        }
-    }
     mgmt_reader_service.start();
 
     PERF_TS_T0();
@@ -573,15 +536,8 @@ void BTManager::close() noexcept {
     mgmt_reader_service.stop();
     PERF3_TS_TD("BTManager::close.2");
 
-    {
-        struct sigaction sa_setup;
-        bzero(&sa_setup, sizeof(sa_setup));
-        sa_setup.sa_handler = SIG_DFL;
-        sigemptyset(&(sa_setup.sa_mask));
-        sa_setup.sa_flags = 0;
-        if( 0 != sigaction( SIGALRM, &sa_setup, NULL ) ) {
-            ERR_PRINT("BTManager.sigaction: Resetting sighandler");
-        }
+    if( ! jau::service_runner::remove_sighandler() ) {
+        ERR_PRINT("BTManager.sigaction: Resetting sighandler");
     }
 
     PERF3_TS_TD("BTManager::close.X");

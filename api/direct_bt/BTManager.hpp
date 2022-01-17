@@ -202,8 +202,6 @@ namespace direct_bt {
                 ClientMaxMTU = 512
             };
 
-            static const pid_t pidSelf;
-
         private:
             friend BTAdapter;
 
@@ -214,7 +212,6 @@ namespace direct_bt {
             /** Default initialization with ::SMPIOCapability::NO_INPUT_NO_OUTPUT for PairingMode::JUST_WORKS. */
             constexpr static const SMPIOCapability defaultIOCapability = SMPIOCapability::UNSET;
 #endif
-            static std::mutex mtx_singleton;
 
             struct WhitelistElem {
                 uint16_t dev_id;
