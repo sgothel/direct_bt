@@ -166,7 +166,7 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
             ", tx-power "+std::to_string(tx_power)+
             ", appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+
             "), gap "+direct_bt::to_string(gap_flags)+
-            ", "+msdstr+", "+javaObjectToString()+"]");
+            ", "+msdstr+", "+l2cap_att->toString()+", "+javaObjectToString()+"]");
     if( includeDiscoveredServices ) {
         jau::darray<std::shared_ptr<const jau::uuid_t>> _advServices = getAdvertisedServices();
         if( _advServices.size() > 0 ) {
@@ -579,11 +579,11 @@ void BTDevice::notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const HCIStatus
     } else {
         le_features = le_features | LE_Features::LE_Encryption; // required!
     }
-    DBG_PRINT("BTDevice::notifyLEFeatures: %s: %s -> %s, %s, l2cap_att open %d",
+    DBG_PRINT("BTDevice::notifyLEFeatures: %s: %s -> %s, %s",
             direct_bt::to_string(status).c_str(),
             direct_bt::to_string(features).c_str(),
             direct_bt::to_string(le_features).c_str(),
-            toString().c_str(), l2cap_att->isOpen());
+            toString().c_str());
     const bool is_local_server = BTRole::Master == btRole; // -> local GattRole::Server
     if( addressAndType.isLEAddress() && ( !l2cap_att->isOpen() || is_local_server ) ) {
         std::thread bg(&BTDevice::processL2CAPSetup, this, sthis); // @suppress("Invalid arguments")
