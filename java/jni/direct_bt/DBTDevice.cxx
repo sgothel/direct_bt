@@ -954,41 +954,14 @@ jshort Java_jau_direct_1bt_DBTDevice_getRSSI(JNIEnv *env, jobject obj)
     return 0;
 }
 
-jobject Java_jau_direct_1bt_DBTDevice_getManufacturerData(JNIEnv *env, jobject obj)
-{
+void Java_jau_direct_1bt_DBTDevice_getImpl(JNIEnv *env, jobject obj, jobject jeir_sink) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
-        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        std::shared_ptr<ManufactureSpecificData> mdata = device->getManufactureSpecificData();
-
-        jclass map_cls = search_class(env, "java/util/HashMap");
-        jmethodID map_ctor = search_method(env, map_cls, "<init>", "(I)V", false);
-        jmethodID map_put = search_method(env, map_cls, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
-
-        jclass short_cls = search_class(env, "java/lang/Short");
-        jmethodID short_ctor = search_method(env, short_cls, "<init>", "(S)V", false);
-        jobject result = nullptr;
-
-        if( nullptr != mdata ) {
-            result = env->NewObject(map_cls, map_ctor, 1);
-            jbyteArray arr = env->NewByteArray(mdata->getData().size());
-            env->SetByteArrayRegion(arr, 0, mdata->getData().size(), (const jbyte *)mdata->getData().get_ptr());
-            jobject key = env->NewObject(short_cls, short_ctor, mdata->getCompany());
-            env->CallObjectMethod(result, map_put, key, arr);
-
-            env->DeleteLocalRef(arr);
-            env->DeleteLocalRef(key);
-        } else {
-            result = env->NewObject(map_cls, map_ctor, 0);
-        }
-        if (nullptr == result) {
-            throw jau::OutOfMemoryError("new HashMap() returned null", E_FILE_LINE);
-        }
-        return result;
+        EInfoReport * eir_sink_ptr = jau::getInstance<EInfoReport>(env, jeir_sink);
+        eir_sink_ptr->set( device->getEIR() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return nullptr;
 }
 
 jshort Java_jau_direct_1bt_DBTDevice_getTxPower(JNIEnv *env, jobject obj)

@@ -777,6 +777,12 @@ public interface BTDevice extends BTObject
       */
     short getRSSI();
 
+    /**
+     * Return the merged scanned EInfoReport for this device.
+     * @since 2.6.0
+     */
+    EInfoReport getEIR();
+
     /** Returns the connected state of the device.
       * @return The connected state of the device.
       */
@@ -858,12 +864,6 @@ public interface BTDevice extends BTObject
      * @since 2.4.0
      */
     BTRole getRole();
-
-    /** Returns a map containing manufacturer specific advertisement data.
-      * An entry has a uint16_t key and an array of bytes.
-      * @return manufacturer specific advertisement data.
-      */
-    Map<Short, byte[]> getManufacturerData();
 
     /** Returns the transmission power level (0 means unknown).
       * @return the transmission power level (0 means unknown).

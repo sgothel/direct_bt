@@ -43,6 +43,7 @@ import org.direct_bt.BTGattService;
 import org.direct_bt.BTRole;
 import org.direct_bt.BTUtils;
 import org.direct_bt.EIRDataTypeSet;
+import org.direct_bt.EInfoReport;
 import org.direct_bt.BTGattCharListener;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.LE_PHYs;
@@ -649,7 +650,12 @@ public class DBTDevice extends DBTObject implements BTDevice
     public native short getRSSI();
 
     @Override
-    public native Map<Short, byte[]> getManufacturerData();
+    public final EInfoReport getEIR() {
+        final EInfoReport res = new EInfoReport();
+        getImpl(res);
+        return res;
+    }
+    private native void getImpl(final EInfoReport eir);
 
     @Override
     public native short getTxPower ();

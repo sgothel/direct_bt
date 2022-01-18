@@ -108,6 +108,7 @@ public abstract class AdapterStatusListener {
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
      * @return true if the device shall be made persistent and {@link BTDevice#remove() remove} issued later. Otherwise false to remove device right away.
      * @see BTDevice#unpair()
+     * @see BTDevice#getEIR()
      */
     public boolean deviceFound(final BTDevice device, final long timestamp) { return false; }
 
@@ -116,6 +117,7 @@ public abstract class AdapterStatusListener {
      * @param device the updated remote device
      * @param updateMask the update mask of changed data
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
+     * @see BTDevice#getEIR()
      */
     public void deviceUpdated(final BTDevice device, final EIRDataTypeSet updateMask, final long timestamp) { }
 

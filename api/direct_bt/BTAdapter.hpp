@@ -188,6 +188,7 @@ namespace direct_bt {
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              * @return true if the device shall be made persistent and BTDevice::remove() issued later. Otherwise false to remove device right away.
              * @see BTDevice::unpair()
+             * @see BTDevice::getEIR()
              */
             virtual bool deviceFound(BTDeviceRef device, const uint64_t timestamp) {
                 (void)device;
@@ -200,6 +201,8 @@ namespace direct_bt {
              * @param device the updated remote device
              * @param updateMask the update mask of changed data
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             *
+             * @see BTDevice::getEIR()
              */
             virtual void deviceUpdated(BTDeviceRef device, const EIRDataType updateMask, const uint64_t timestamp) {
                 (void)device;

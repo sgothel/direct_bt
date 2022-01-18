@@ -86,8 +86,6 @@ BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
 
 BTDevice::~BTDevice() noexcept {
     DBG_PRINT("BTDevice::dtor: ... %p %s", this, addressAndType.toString().c_str());
-    advServices.clear();
-    advMSD = nullptr;
     adapter.removeAllStatusListener(*this);
     DBG_PRINT("BTDevice::dtor: XXX %p %s", this, addressAndType.toString().c_str());
 }
@@ -104,58 +102,15 @@ GATTRole BTDevice::getLocalGATTRole() const noexcept {
     }
 }
 
-bool BTDevice::addAdvService(std::shared_ptr<const jau::uuid_t> const &uuid) noexcept
-{
-    if( 0 > findAdvService(*uuid) ) {
-        advServices.push_back(uuid);
-        return true;
-    }
-    return false;
-}
-bool BTDevice::addAdvServices(jau::darray<std::shared_ptr<const jau::uuid_t>> const & services) noexcept
-{
-    bool res = false;
-    for(size_t j=0; j<services.size(); j++) {
-        const std::shared_ptr<const jau::uuid_t> uuid = services.at(j);
-        res = addAdvService(uuid) || res;
-    }
-    return res;
-}
-
-int BTDevice::findAdvService(const jau::uuid_t& uuid) const noexcept
-{
-    const size_t size = advServices.size();
-    for (size_t i = 0; i < size; i++) {
-        const std::shared_ptr<const jau::uuid_t> & e = advServices[i];
-        if ( nullptr != e && uuid.equivalent(*e) ) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 std::string const BTDevice::getName() const noexcept {
     jau::sc_atomic_critical sync(sync_data);
     std::string res = name;
     return res;
 }
 
-std::shared_ptr<ManufactureSpecificData> const BTDevice::getManufactureSpecificData() const noexcept {
-    jau::sc_atomic_critical sync(sync_data);
-    std::shared_ptr<ManufactureSpecificData> res = advMSD;
-    return res;
-}
-
-jau::darray<std::shared_ptr<const jau::uuid_t>> BTDevice::getAdvertisedServices() const noexcept {
-    jau::sc_atomic_critical sync(sync_data);
-    jau::darray<std::shared_ptr<const jau::uuid_t>> res = advServices;
-    return res;
-}
-
 std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
     const uint64_t t0 = jau::getCurrentMilliseconds();
     jau::sc_atomic_critical sync(sync_data);
-    std::string msdstr = nullptr != advMSD ? advMSD->toString() : "MSD[null]";
     std::string out("Device["+to_string(getRole())+", "+addressAndType.toString()+", name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
             "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", handle "+jau::to_hexstring(hciConnHandle)+
@@ -163,30 +118,16 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
             "], sec[enc "+std::to_string(pairing_data.encryption_enabled)+", lvl "+to_string(pairing_data.sec_level_conn)+", io "+to_string(pairing_data.ioCap_conn)+
             ", auto "+to_string(pairing_data.ioCap_auto)+", pairing "+to_string(pairing_data.mode)+", state "+to_string(pairing_data.state)+
             ", sc "+std::to_string(pairing_data.use_sc)+"]], rssi "+std::to_string(getRSSI())+
-            ", tx-power "+std::to_string(tx_power)+
-            ", appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+
-            "), gap "+direct_bt::to_string(gap_flags)+
-            ", "+msdstr+", "+l2cap_att->toString()+", "+javaObjectToString()+"]");
-    if( includeDiscoveredServices ) {
-        jau::darray<std::shared_ptr<const jau::uuid_t>> _advServices = getAdvertisedServices();
-        if( _advServices.size() > 0 ) {
-            out.append("\n");
-            const size_t size = _advServices.size();
-            for (size_t i = 0; i < size; i++) {
-                const std::shared_ptr<const jau::uuid_t> & e = _advServices[i];
-                if( 0 < i ) {
-                    out.append("\n");
-                }
-                out.append("  ").append(e->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(e->getTypeSize()))).append(" bytes");
-            }
-        }
-    }
+            ", tx-power "+std::to_string(tx_power)+", "+eir.toString( includeDiscoveredServices )+
+            ", "+javaObjectToString()+"]");
     return out;
 }
 
 EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
+
+    EIRDataType res0 = eir.set(data);
 
     EIRDataType res = EIRDataType::NONE;
     ts_last_update = data.getTimestamp();
@@ -201,9 +142,6 @@ EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
             WARN_PRINT("BDADDR_TYPE update not supported: %s for %s",
                     data.toString().c_str(), this->toString().c_str());
         }
-    }
-    if( data.isSet(EIRDataType::FLAGS) ) {
-        gap_flags = data.getFlags();
     }
     if( data.isSet(EIRDataType::NAME) ) {
         if( 0 == name.length() || data.getName().length() > name.length() ) {
@@ -229,22 +167,7 @@ EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
             setEIRDataTypeSet(res, EIRDataType::TX_POWER);
         }
     }
-    if( data.isSet(EIRDataType::APPEARANCE) ) {
-        if( appearance != data.getAppearance() ) {
-            appearance = data.getAppearance();
-            setEIRDataTypeSet(res, EIRDataType::APPEARANCE);
-        }
-    }
-    if( data.isSet(EIRDataType::MANUF_DATA) ) {
-        if( advMSD != data.getManufactureSpecificData() ) {
-            advMSD = data.getManufactureSpecificData();
-            setEIRDataTypeSet(res, EIRDataType::MANUF_DATA);
-        }
-    }
-    if( addAdvServices( data.getServices() ) ) {
-        setEIRDataTypeSet(res, EIRDataType::SERVICE_UUID);
-    }
-    return res;
+    return res0;
 }
 
 EIRDataType BTDevice::update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept {
@@ -255,10 +178,11 @@ EIRDataType BTDevice::update(GattGenericAccessSvc const &data, const uint64_t ti
     ts_last_update = timestamp;
     if( 0 == name.length() || data.deviceName.length() > name.length() ) {
         name = data.deviceName;
+        eir.setName( name );
         setEIRDataTypeSet(res, EIRDataType::NAME);
     }
-    if( appearance != data.appearance ) {
-        appearance = data.appearance;
+    if( eir.getAppearance() != data.appearance ) {
+        eir.setAppearance( data.appearance );
         setEIRDataTypeSet(res, EIRDataType::APPEARANCE);
     }
     return res;

@@ -81,17 +81,14 @@ namespace direct_bt {
             std::unique_ptr<L2CAPComm> l2cap_att;
             uint64_t ts_last_discovery;
             uint64_t ts_last_update;
-            GAPFlags gap_flags;
             std::string name;
             int8_t rssi = 127; // The core spec defines 127 as the "not available" value
             int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
-            AppearanceCat appearance = AppearanceCat::UNKNOWN;
+            EInfoReport eir;
             jau::relaxed_atomic_uint16 hciConnHandle;
             jau::ordered_atomic<LE_Features, std::memory_order_relaxed> le_features;
             jau::ordered_atomic<LE_PHYs, std::memory_order_relaxed> le_phy_tx;
             jau::ordered_atomic<LE_PHYs, std::memory_order_relaxed> le_phy_rx;
-            std::shared_ptr<ManufactureSpecificData> advMSD = nullptr;
-            jau::darray<std::shared_ptr<const jau::uuid_t>> advServices;
 #if SMP_SUPPORTED_BY_OS
             std::shared_ptr<SMPHandler> smpHandler = nullptr;
             std::recursive_mutex mtx_smpHandler;
@@ -158,16 +155,6 @@ namespace direct_bt {
             static std::shared_ptr<BTDevice> make_shared(BTAdapter & adapter, EInfoReport const & r) {
                 return std::make_shared<BTDevice>(BTDevice::ctor_cookie(0), adapter, r);
             }
-
-            /** Add advertised service (GAP discovery) */
-            bool addAdvService(std::shared_ptr<const jau::uuid_t> const &uuid) noexcept;
-            /** Add advertised service (GAP discovery) */
-            bool addAdvServices(jau::darray<std::shared_ptr<const jau::uuid_t>> const & services) noexcept;
-            /**
-             * Find advertised service (GAP discovery) index
-             * @return index >= 0 if found, otherwise -1
-             */
-            int findAdvService(const jau::uuid_t& uuid) const noexcept;
 
             EIRDataType update(EInfoReport const & data) noexcept;
             EIRDataType update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept;
@@ -334,22 +321,13 @@ namespace direct_bt {
             /** Return Tx Power of device as recognized at discovery and connect. */
             int8_t getTxPower() const noexcept { return tx_power; }
 
-            /** Return AppearanceCat of device as recognized at discovery, connect and GATT discovery. */
-            AppearanceCat getAppearance() const noexcept { return appearance; }
-
             std::string const getName() const noexcept;
 
-            /** Return shared ManufactureSpecificData as recognized at discovery, pre GATT discovery. */
-            std::shared_ptr<ManufactureSpecificData> const getManufactureSpecificData() const noexcept;
-
             /**
-             * Return a list of advertised services as recognized at discovery, pre GATT discovery.
-             * <p>
-             * To receive a complete list of GATT services including characteristics etc,
-             * use {@link #getGattService()}.
-             * </p>
+             * Return the merged scanned EInfoReport for this device.
+             * @since 2.6.0
              */
-            jau::darray<std::shared_ptr<const jau::uuid_t>> getAdvertisedServices() const noexcept;
+            const EInfoReport& getEIR() const noexcept { return  eir; }
 
             std::string toString() const noexcept override { return toString(false); }
 
