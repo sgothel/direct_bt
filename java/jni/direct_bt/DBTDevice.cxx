@@ -958,8 +958,7 @@ void Java_jau_direct_1bt_DBTDevice_getEIRImpl(JNIEnv *env, jobject obj, jobject 
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         EInfoReport * eir_sink_ptr = jau::getInstance<EInfoReport>(env, jeir_sink);
-        eir_sink_ptr->clear();
-        eir_sink_ptr->set( device->getEIR() );
+        *eir_sink_ptr = device->getEIR();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
