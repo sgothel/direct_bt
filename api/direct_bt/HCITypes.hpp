@@ -94,9 +94,9 @@ namespace direct_bt {
      * @param multiplier recommendation is 6, we use 10 as default for safety.
      * @return the resulting supervising timeout in 1/10 [ms], suitable for the HCIHandler::le_create_conn() command.
      */
-    constexpr int32_t getHCIConnSupervisorTimeout(const uint16_t conn_latency, const uint16_t conn_interval_max_ms,
-                                                  const uint16_t min_result_ms=number(HCIConstInt::LE_CONN_MIN_TIMEOUT_MS),
-                                                  const uint16_t multiplier=10) noexcept
+    constexpr uint16_t getHCIConnSupervisorTimeout(const uint16_t conn_latency, const uint16_t conn_interval_max_ms,
+                                                   const uint16_t min_result_ms=number(HCIConstInt::LE_CONN_MIN_TIMEOUT_MS),
+                                                   const uint16_t multiplier=10) noexcept
     {
         return std::max<uint16_t>(min_result_ms,
                                   ( 1 + conn_latency ) * conn_interval_max_ms * std::max<uint16_t>(2, multiplier)
