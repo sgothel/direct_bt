@@ -73,6 +73,17 @@ void Java_org_direct_1bt_EInfoReport_dtorImpl(JNIEnv *env, jclass clazz, jlong n
     }
 }
 
+jint Java_org_direct_1bt_EInfoReport_setImpl(JNIEnv *env, jobject obj, jobject jeir_other) {
+    try {
+        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        EInfoReport * eir_other_ptr = jau::getInstance<EInfoReport>(env, jeir_other);
+        return static_cast<jint>( number( eir_ptr->set(*eir_other_ptr) ) );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return 0;
+}
+
 /*
  * Class:     org_direct_bt_EInfoReport
  * Method:    setAddressTypeImpl
@@ -425,6 +436,42 @@ jbyte Java_org_direct_1bt_EInfoReport_getTxPower(JNIEnv *env, jobject obj) {
         rethrow_and_raise_java_exception(env);
     }
     return 0;
+}
+
+jobject Java_org_direct_1bt_EInfoReport_getManufacturerData(JNIEnv *env, jobject obj)
+{
+    try {
+        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<ManufactureSpecificData> mdata = eir_ptr->getManufactureSpecificData();
+
+        jclass map_cls = jau::search_class(env, "java/util/HashMap");
+        jmethodID map_ctor = jau::search_method(env, map_cls, "<init>", "(I)V", false);
+        jmethodID map_put = jau::search_method(env, map_cls, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+
+        jclass short_cls = jau::search_class(env, "java/lang/Short");
+        jmethodID short_ctor = jau::search_method(env, short_cls, "<init>", "(S)V", false);
+        jobject result = nullptr;
+
+        if( nullptr != mdata ) {
+            result = env->NewObject(map_cls, map_ctor, 1);
+            jbyteArray arr = env->NewByteArray(mdata->getData().size());
+            env->SetByteArrayRegion(arr, 0, mdata->getData().size(), (const jbyte *)mdata->getData().get_ptr());
+            jobject key = env->NewObject(short_cls, short_ctor, mdata->getCompany());
+            env->CallObjectMethod(result, map_put, key, arr);
+
+            env->DeleteLocalRef(arr);
+            env->DeleteLocalRef(key);
+        } else {
+            result = env->NewObject(map_cls, map_ctor, 0);
+        }
+        if (nullptr == result) {
+            throw jau::OutOfMemoryError("new HashMap() returned null", E_FILE_LINE);
+        }
+        return result;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return nullptr;
 }
 
 /*

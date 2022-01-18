@@ -27,6 +27,7 @@ package org.direct_bt;
 
 import java.nio.ByteOrder;
 import java.util.List;
+import java.util.Map;
 
 import org.jau.net.EUI48;
 
@@ -72,6 +73,16 @@ public final class EInfoReport implements AutoCloseable
     public void finalize() {
         close();
     }
+
+    /**
+     * Merge all fields from given EInfoReport if set and different.
+     * @param eir
+     * @return The changed fields, i.e. EIRDataType bit field
+     */
+    public final EIRDataTypeSet set(final EInfoReport eir) {
+        return new EIRDataTypeSet(setImpl(eir));
+    }
+    private native int setImpl(final EInfoReport eir);
 
     // public native void setSource(Source s);
     // public native void setTimestamp(uint64_t ts);
@@ -156,7 +167,12 @@ public final class EInfoReport implements AutoCloseable
     public native byte getRSSI();
     public native byte getTxPower();
 
-    // public native std::shared_ptr<ManufactureSpecificData> getManufactureSpecificData() final noexcept { return msd; }
+    /**
+     * Returns a map containing manufacturer specific advertisement data.
+     * An entry has a uint16_t key (company) and an array of bytes (data).
+     * @return manufacturer specific advertisement data.
+     */
+    public native Map<Short, byte[]> getManufacturerData();
 
     public native List<String> getServices();
     public native boolean getServicesComplete();

@@ -694,6 +694,141 @@ std::string direct_bt::to_string(const EIRDataType mask) noexcept {
 // *************************************************
 // *************************************************
 
+EIRDataType EInfoReport::set(const EInfoReport& eir) noexcept {
+    EIRDataType res = EIRDataType::NONE;
+
+    if( eir.isSet( EIRDataType::EVT_TYPE ) ) {
+        if( getEvtType() != eir.getEvtType() ) {
+            setEvtType(eir.getEvtType());
+            setEIRDataTypeSet(res, EIRDataType::EVT_TYPE);
+        }
+    }
+    if( eir.isSet( EIRDataType::EXT_EVT_TYPE ) ) {
+        if( getExtEvtType() != eir.getExtEvtType() ) {
+            setExtEvtType(eir.getExtEvtType());
+            setEIRDataTypeSet(res, EIRDataType::EXT_EVT_TYPE);
+        }
+    }
+    if( eir.isSet( EIRDataType::BDADDR_TYPE ) ) {
+        if( getAddressType() != eir.getAddressType() ) {
+            setAddressType(eir.getAddressType());
+            setEIRDataTypeSet(res, EIRDataType::BDADDR_TYPE);
+        }
+    }
+    if( eir.isSet( EIRDataType::BDADDR ) ) {
+        if( getAddress() != eir.getAddress() ) {
+            setAddress(eir.getAddress());
+            setEIRDataTypeSet(res, EIRDataType::BDADDR);
+        }
+    }
+    if( eir.isSet( EIRDataType::RSSI ) ) {
+        if( getRSSI() != eir.getRSSI() ) {
+            setRSSI(eir.getRSSI());
+            setEIRDataTypeSet(res, EIRDataType::RSSI);
+        }
+    }
+    if( eir.isSet( EIRDataType::TX_POWER ) ) {
+        if( getTxPower() != eir.getTxPower() ) {
+            setTxPower(eir.getTxPower());
+            setEIRDataTypeSet(res, EIRDataType::TX_POWER);
+        }
+    }
+    if( eir.isSet( EIRDataType::FLAGS ) ) {
+        if( getFlags() != eir.getFlags() ) {
+            addFlags(eir.getFlags());
+            setEIRDataTypeSet(res, EIRDataType::FLAGS);
+        }
+    }
+    if( eir.isSet( EIRDataType::NAME) ) {
+        if( getName() != eir.getName() ) {
+            setName(eir.getName());
+            setEIRDataTypeSet(res, EIRDataType::NAME);
+        }
+    }
+    if( eir.isSet( EIRDataType::NAME_SHORT) ) {
+        if( getShortName() != eir.getShortName() ) {
+            setShortName(eir.getShortName());
+            setEIRDataTypeSet(res, EIRDataType::NAME_SHORT);
+        }
+    }
+    if( eir.isSet( EIRDataType::MANUF_DATA) ) {
+        std::shared_ptr<ManufactureSpecificData> o_msd = eir.getManufactureSpecificData();
+        if( nullptr != o_msd && ( nullptr == getManufactureSpecificData() || *getManufactureSpecificData() != *o_msd ) ) {
+            setManufactureSpecificData(*o_msd);
+            setEIRDataTypeSet(res, EIRDataType::MANUF_DATA);
+        }
+    }
+    if( eir.isSet( EIRDataType::SERVICE_UUID) ) {
+        const jau::darray<std::shared_ptr<const jau::uuid_t>>& services_ = eir.getServices();
+        bool added = false;
+        for(size_t j=0; j<services_.size(); j++) {
+            const std::shared_ptr<const jau::uuid_t> uuid = services_[j];
+            added = addService(uuid) | added;
+        }
+        if( added ) {
+            setServicesComplete(eir.getServicesComplete());
+            setEIRDataTypeSet(res, EIRDataType::SERVICE_UUID);
+        }
+    }
+    if( eir.isSet( EIRDataType::DEVICE_CLASS) ) {
+        if( getDeviceClass() != eir.getDeviceClass() ) {
+            setDeviceClass(eir.getDeviceClass());
+            setEIRDataTypeSet(res, EIRDataType::DEVICE_CLASS);
+        }
+    }
+    if( eir.isSet( EIRDataType::APPEARANCE) ) {
+        if( getAppearance() != eir.getAppearance() ) {
+            setAppearance(eir.getAppearance());
+            setEIRDataTypeSet(res, EIRDataType::APPEARANCE);
+        }
+    }
+    if( eir.isSet( EIRDataType::HASH) ) {
+        if( getHash() != eir.getHash() ) {
+            setHash(eir.getHash().get_ptr());
+            setEIRDataTypeSet(res, EIRDataType::HASH);
+        }
+    }
+    if( eir.isSet( EIRDataType::RANDOMIZER) ) {
+        if( getRandomizer() != eir.getRandomizer() ) {
+            setRandomizer(eir.getRandomizer().get_ptr());
+            setEIRDataTypeSet(res, EIRDataType::RANDOMIZER);
+        }
+    }
+    if( eir.isSet( EIRDataType::DEVICE_ID) ) {
+        uint16_t source_=0, vendor_=0, product_=0, version_=0;
+        eir.getDeviceID(source_, vendor_, product_, version_);
+        if( did_source != source_ || did_vendor != vendor_ || product_ != did_product || version_ != did_version ) {
+            setDeviceID(source_, vendor_, product_, version_);
+            setEIRDataTypeSet(res, EIRDataType::DEVICE_ID);
+        }
+    }
+    if( eir.isSet( EIRDataType::CONN_IVAL) ) {
+        uint16_t min=0, max=0;
+        eir.getConnInterval(min, max);
+        if( conn_interval_min != min || conn_interval_max != max ) {
+            setConnInterval(min, max);
+            setEIRDataTypeSet(res, EIRDataType::CONN_IVAL);
+        }
+    }
+    if( EIRDataType::NONE != res ) {
+        setSource(eir.getSource());
+        setTimestamp(eir.getTimestamp());
+    }
+    return res;
+}
+
+int EInfoReport::findService(const jau::uuid_t& uuid) const noexcept
+{
+    const size_t size = services.size();
+    for (size_t i = 0; i < size; i++) {
+        const std::shared_ptr<const jau::uuid_t> & e = services[i];
+        if ( nullptr != e && uuid.equivalent(*e) ) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 std::string direct_bt::to_string(EInfoReport::Source source) noexcept {
     switch (source) {
         case EInfoReport::Source::NA: return "N/A";
@@ -766,50 +901,80 @@ void EInfoReport::setDeviceID(const uint16_t source_, const uint16_t vendor, con
     set(EIRDataType::DEVICE_ID);
 }
 
-void EInfoReport::addService(const std::shared_ptr<const jau::uuid_t>& uuid) noexcept
+bool EInfoReport::addService(const std::shared_ptr<const jau::uuid_t>& uuid) noexcept
 {
     auto begin = services.begin();
     auto it = std::find_if(begin, services.end(), [&](std::shared_ptr<const jau::uuid_t> const& p) {
-        return *p == *uuid;
+        return nullptr != p && uuid->equivalent(*p);
     });
     if ( it == std::end(services) ) {
         services.push_back(uuid);
         set(EIRDataType::SERVICE_UUID);
+        return true;
     }
+    return false;
 }
-void EInfoReport::addService(const jau::uuid_t& uuid) noexcept {
-    addService( uuid.clone() );
+bool EInfoReport::addService(const jau::uuid_t& uuid) noexcept {
+    return addService( uuid.clone() );
 }
 
 std::string EInfoReport::eirDataMaskToString() const noexcept {
     return std::string("DataSet"+ direct_bt::to_string(eir_data_mask) );
 }
 std::string EInfoReport::toString(const bool includeServices) const noexcept {
-    std::stringstream conn_s;
-    conn_s.precision(4+2);
-    conn_s << ", conn[" << (1.25f * (float)conn_interval_min) << "ms - " << (1.25f * (float)conn_interval_max) << "ms]";
-
-    std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
     std::string out("EInfoReport::"+to_string(source)+
                     "[address["+address.toString()+", "+to_string(getAddressType())+"/"+std::to_string(ad_address_type)+
-                    "], name['"+name+"'/'"+name_short+"'], "+eirDataMaskToString()+
-                    ", type[evt "+to_string(evt_type)+", ead "+to_string(ead_type)+
-                    "], flags"+to_string(flags)+
-                    ", rssi "+std::to_string(rssi)+
-                    ", tx-power "+std::to_string(tx_power)+
-                    conn_s.str() +
-                    ", dev-class "+jau::to_hexstring(device_class)+
-                    ", appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+
-                    "), hash["+hash.toString()+
-                    "], randomizer["+randomizer.toString()+
-                    "], device-id[source "+jau::to_hexstring(did_source)+
-                    ", services[complete "+std::to_string(services_complete)+", count "+std::to_string(services.size())+"]"
-                    ", vendor "+jau::to_hexstring(did_vendor)+
-                    ", product "+jau::to_hexstring(did_product)+
-                    ", version "+jau::to_hexstring(did_version)+
-                    "], "+msdstr+", "+javaObjectToString()+"]");
+                    "], "+eirDataMaskToString()+", ");
+    if( isSet(EIRDataType::NAME) || isSet(EIRDataType::NAME_SHORT) ) {
+        out += "name['"+name+"'/'"+name_short+"'], ";
+    }
 
-    if( includeServices && services.size() > 0 ) {
+    if( isSet(EIRDataType::EVT_TYPE) || isSet(EIRDataType::EXT_EVT_TYPE) ) {
+        out += "type[evt "+to_string(evt_type)+", ead "+to_string(ead_type)+"], ";
+    }
+    if( isSet(EIRDataType::FLAGS) ) {
+        out += "flags"+to_string(flags)+", ";
+    }
+    if( isSet(EIRDataType::RSSI) ) {
+        out += "rssi "+std::to_string(rssi)+", ";
+    }
+    if( isSet(EIRDataType::TX_POWER) ) {
+        out += "tx-power "+std::to_string(tx_power)+", ";
+    }
+    if( isSet(EIRDataType::CONN_IVAL) ) {
+        std::stringstream conn_s;
+        conn_s.precision(4+2);
+        conn_s << "conn[" << (1.25f * (float)conn_interval_min) << "ms - " << (1.25f * (float)conn_interval_max) << "ms], ";
+        out += conn_s.str();
+    }
+    if( isSet(EIRDataType::DEVICE_CLASS) ) {
+        out += "dev-class "+jau::to_hexstring(device_class)+", ";
+    }
+    if( isSet(EIRDataType::APPEARANCE) ) {
+        out += "appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+"), ";
+    }
+    if( isSet(EIRDataType::HASH) ) {
+        out += "hash["+hash.toString()+"], ";
+    }
+    if( isSet(EIRDataType::RANDOMIZER) ) {
+        out += "randomizer["+randomizer.toString()+"], ";
+    }
+    if( isSet(EIRDataType::DEVICE_ID) ) {
+        out += "device-id[source "+jau::to_hexstring(did_source)+
+                ", vendor "+jau::to_hexstring(did_vendor)+
+                ", product "+jau::to_hexstring(did_product)+
+                ", version "+jau::to_hexstring(did_version)+"], ";
+    }
+    if( isSet(EIRDataType::SERVICE_UUID) ) {
+        out += "services[complete "+std::to_string(services_complete)+", count "+std::to_string(services.size())+"], ";
+    }
+    if( isSet(EIRDataType::MANUF_DATA) ) {
+        std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
+        out += msdstr+", ";
+    }
+    out += javaObjectToString()+"]";
+
+    if( includeServices && services.size() > 0 && isSet(EIRDataType::SERVICE_UUID) ) {
         out.append("\n");
         for(auto it = services.begin(); it != services.end(); it++) {
             std::shared_ptr<const jau::uuid_t> p = *it;
@@ -836,6 +1001,8 @@ bool EInfoReport::operator==(const EInfoReport& o) const noexcept {
            ( ( nullptr == o.msd && nullptr == msd ) ||
              ( nullptr != o.msd && nullptr != msd && *o.msd == *msd )
            ) &&
+           o.conn_interval_min == conn_interval_min &&
+           o.conn_interval_max == conn_interval_max &&
            o.device_class == device_class &&
            o.appearance == appearance &&
            o.hash == hash &&

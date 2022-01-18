@@ -949,6 +949,13 @@ namespace direct_bt {
 
             EInfoReport() noexcept : hash(16, 0, jau::endian::little), randomizer(16, 0, jau::endian::little) {}
 
+            /**
+             * Merge all fields from given EInfoReport if set and different.
+             * @param eir
+             * @return The changed fields, i.e. EIRDataType bit field
+             */
+            EIRDataType set(const EInfoReport& eir) noexcept;
+
             void setSource(Source s) noexcept { source = s; }
             void setTimestamp(uint64_t ts) noexcept { timestamp = ts; }
             void setEvtType(AD_PDU_Type et) noexcept { evt_type = et; set(EIRDataType::EVT_TYPE); }
@@ -964,8 +971,8 @@ namespace direct_bt {
             void setShortName(const std::string& name_short_) noexcept;
 
             void setManufactureSpecificData(const ManufactureSpecificData& msd_);
-            void addService(const std::shared_ptr<const jau::uuid_t>& uuid) noexcept;
-            void addService(const jau::uuid_t& uuid) noexcept;
+            bool addService(const std::shared_ptr<const jau::uuid_t>& uuid) noexcept;
+            bool addService(const jau::uuid_t& uuid) noexcept;
             void setServicesComplete(const bool v) noexcept { services_complete = v; }
             void setDeviceClass(uint32_t c) noexcept { device_class= c; set(EIRDataType::DEVICE_CLASS); }
             void setAppearance(AppearanceCat a) noexcept { appearance= a; set(EIRDataType::APPEARANCE); }
@@ -1091,13 +1098,17 @@ namespace direct_bt {
 
             std::shared_ptr<ManufactureSpecificData> getManufactureSpecificData() const noexcept { return msd; }
 
-            jau::darray<std::shared_ptr<const jau::uuid_t>> getServices() const noexcept { return services; }
+            const jau::darray<std::shared_ptr<const jau::uuid_t>>& getServices() const noexcept { return services; }
             bool getServicesComplete() const noexcept { return services_complete; }
+            int findService(const jau::uuid_t& uuid) const noexcept;
 
             uint32_t getDeviceClass() const noexcept { return device_class; }
             AppearanceCat getAppearance() const noexcept { return appearance; }
             const jau::TROOctets & getHash() const noexcept { return hash; }
             const jau::TROOctets & getRandomizer() const noexcept { return randomizer; }
+            void getDeviceID(uint16_t& source_, uint16_t& vendor_, uint16_t& product_, uint16_t& version_) const noexcept {
+                source_ = did_source; vendor_ = did_vendor; product_ = did_product; version_ = did_version;
+            }
             uint16_t getDeviceIDSource() const noexcept { return did_source; }
             uint16_t getDeviceIDVendor() const noexcept { return did_vendor; }
             uint16_t getDeviceIDProduct() const noexcept { return did_product; }
