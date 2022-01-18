@@ -954,10 +954,11 @@ jshort Java_jau_direct_1bt_DBTDevice_getRSSI(JNIEnv *env, jobject obj)
     return 0;
 }
 
-void Java_jau_direct_1bt_DBTDevice_getImpl(JNIEnv *env, jobject obj, jobject jeir_sink) {
+void Java_jau_direct_1bt_DBTDevice_getEIRImpl(JNIEnv *env, jobject obj, jobject jeir_sink) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
         EInfoReport * eir_sink_ptr = jau::getInstance<EInfoReport>(env, jeir_sink);
+        eir_sink_ptr->clear();
         eir_sink_ptr->set( device->getEIR() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);

@@ -72,6 +72,7 @@ public class DBTDevice extends DBTObject implements BTDevice
     volatile short hciConnHandle;
     private volatile String name_cached;
     /* pp */ final List<WeakReference<DBTGattService>> serviceCache = new ArrayList<WeakReference<DBTGattService>>();
+    private final EInfoReport eir_ = new EInfoReport();
 
     private final AtomicBoolean isClosing = new AtomicBoolean(false);
 
@@ -651,11 +652,10 @@ public class DBTDevice extends DBTObject implements BTDevice
 
     @Override
     public final EInfoReport getEIR() {
-        final EInfoReport res = new EInfoReport();
-        getImpl(res);
-        return res;
+        getEIRImpl(eir_);
+        return eir_;
     }
-    private native void getImpl(final EInfoReport eir);
+    private native void getEIRImpl(final EInfoReport eir);
 
     @Override
     public native short getTxPower ();
