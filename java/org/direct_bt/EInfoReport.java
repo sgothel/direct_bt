@@ -75,6 +75,11 @@ public final class EInfoReport implements AutoCloseable
     }
 
     /**
+     * Reset all data fields.
+     */
+    public final native void clear();
+
+    /**
      * Merge all fields from given EInfoReport if set and different.
      * @param eir
      * @return The changed fields, i.e. EIRDataType bit field

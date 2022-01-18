@@ -694,6 +694,11 @@ std::string direct_bt::to_string(const EIRDataType mask) noexcept {
 // *************************************************
 // *************************************************
 
+void EInfoReport::clear() noexcept {
+    EInfoReport eir_clean;
+    *this = eir_clean;
+}
+
 EIRDataType EInfoReport::set(const EInfoReport& eir) noexcept {
     EIRDataType res = EIRDataType::NONE;
 

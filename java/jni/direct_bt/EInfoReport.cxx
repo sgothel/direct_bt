@@ -73,6 +73,15 @@ void Java_org_direct_1bt_EInfoReport_dtorImpl(JNIEnv *env, jclass clazz, jlong n
     }
 }
 
+void Java_org_direct_1bt_EInfoReport_clear(JNIEnv *env, jobject obj) {
+    try {
+        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        eir_ptr->clear();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
 jint Java_org_direct_1bt_EInfoReport_setImpl(JNIEnv *env, jobject obj, jobject jeir_other) {
     try {
         EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
