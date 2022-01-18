@@ -48,6 +48,7 @@ import org.direct_bt.BTSecurityRegistry;
 import org.direct_bt.BTUtils;
 import org.direct_bt.DiscoveryPolicy;
 import org.direct_bt.EIRDataTypeSet;
+import org.direct_bt.EInfoReport;
 import org.direct_bt.GattCharPropertySet;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.LE_Features;
@@ -375,8 +376,21 @@ public class DBTScanner10 {
                 BTUtils.println(System.err, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK "+r);
             }
         }
+        final EInfoReport eir = device.getEIR();
+        BTUtils.println(System.err, "Using EIR "+eir.toString());
 
-        res = device.connectDefault();
+        short conn_interval_min  = (short)12;
+        short conn_interval_max  = (short)12;
+        final short conn_latency  = (short)0;
+        if( eir.isSet(EIRDataTypeSet.DataType.CONN_IVAL) ) {
+            final short[] minmax = new short[2];
+            eir.getConnInterval(minmax);
+            conn_interval_min = minmax[0];
+            conn_interval_max = minmax[1];
+        }
+        final short supervision_timeout = BTUtils.getHCIConnSupervisorTimeout(conn_latency, (int) ( conn_interval_max * 1.25 ) /* ms */);
+        res = device.connectLE(le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max, conn_latency, supervision_timeout);
+        // res = device.connectDefault();
         BTUtils.println(System.err, "****** Connecting Device Command, res "+res+": End result "+res+" of " + device.toString());
     }
 

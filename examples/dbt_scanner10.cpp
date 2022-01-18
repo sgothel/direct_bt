@@ -395,8 +395,18 @@ static void connectDiscoveredDevice(BTDeviceRef device) {
             fprintf_td(stderr, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK %d\n", r);
         }
     }
+    const EInfoReport& eir = device->getEIR();
+    fprintf_td(stderr, "Using EIR %s\n", eir.toString().c_str());
 
-    res = device->connectDefault();
+    uint16_t conn_interval_min  = (uint16_t)12;
+    uint16_t conn_interval_max  = (uint16_t)12;
+    const uint16_t conn_latency  = (uint16_t)0;
+    if( eir.isSet(EIRDataType::CONN_IVAL) ) {
+        eir.getConnInterval(conn_interval_min, conn_interval_max);
+    }
+    const uint16_t supervision_timeout = (uint16_t) getHCIConnSupervisorTimeout(conn_latency, (int) ( conn_interval_max * 1.25 ) /* ms */);
+    res = device->connectLE(le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max, conn_latency, supervision_timeout);
+    // res = device->connectDefault();
     fprintf_td(stderr, "****** Connecting Device: End result %s of %s\n", to_string(res).c_str(), device->toString().c_str());
 }
 
