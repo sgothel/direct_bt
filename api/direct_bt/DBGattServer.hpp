@@ -641,6 +641,9 @@ namespace direct_bt {
                     virtual void mtuChanged(BTDeviceRef device, const uint16_t mtu) = 0;
 
                     /**
+                     * Signals attempt to read a value.
+                     *
+                     * Callee shall accept the read request by returning true, otherwise false.
                      *
                      * @param device
                      * @param s
@@ -650,6 +653,9 @@ namespace direct_bt {
                     virtual bool readCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) = 0;
 
                     /**
+                     * Signals attempt to read a value.
+                     *
+                     * Callee shall accept the read request by returning true, otherwise false.
                      *
                      * @param device
                      * @param s
@@ -660,6 +666,9 @@ namespace direct_bt {
                     virtual bool readDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) = 0;
 
                     /**
+                     * Signals attempt to write a single or bulk (prepare) value.
+                     *
+                     * Callee shall accept the write request by returning true, otherwise false.
                      *
                      * @param device
                      * @param s
@@ -672,6 +681,9 @@ namespace direct_bt {
                                                 const jau::TROOctets & value, const uint16_t value_offset) = 0;
 
                     /**
+                     * Signals attempt to write a single or bulk (prepare) value.
+                     *
+                     * Callee shall accept the write request by returning true, otherwise false.
                      *
                      * @param device
                      * @param s
@@ -685,6 +697,7 @@ namespace direct_bt {
                                                 const jau::TROOctets & value, const uint16_t value_offset) = 0;
 
                     /**
+                     * Notifies a change of the Client Characteristic Configuration Descriptor (CCCD) value.
                      *
                      * @param device
                      * @param s

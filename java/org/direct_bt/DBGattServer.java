@@ -107,6 +107,9 @@ public final class DBGattServer implements AutoCloseable
         public abstract void mtuChanged(final BTDevice device, final int mtu);
 
         /**
+         * Signals attempt to read a value.
+         *
+         * Callee shall accept the read request by returning true, otherwise false.
          *
          * @param device
          * @param s
@@ -116,6 +119,9 @@ public final class DBGattServer implements AutoCloseable
         public abstract boolean readCharValue(final BTDevice device, final DBGattService s, final DBGattChar c);
 
         /**
+         * Signals attempt to read a value.
+         *
+         * Callee shall accept the read request by returning true, otherwise false.
          *
          * @param device
          * @param s
@@ -126,6 +132,9 @@ public final class DBGattServer implements AutoCloseable
         public abstract boolean readDescValue(final BTDevice device, final DBGattService s, final DBGattChar c, final DBGattDesc d);
 
         /**
+         * Signals attempt to write a single or bulk (prepare) value.
+         *
+         * Callee shall accept the write request by returning true, otherwise false.
          *
          * @param device
          * @param s
@@ -137,6 +146,9 @@ public final class DBGattServer implements AutoCloseable
         public abstract boolean writeCharValue(final BTDevice device, final DBGattService s, final DBGattChar c, final byte[] value, final int value_offset);
 
         /**
+         * Signals attempt to write a single or bulk (prepare) value.
+         *
+         * Callee shall accept the write request by returning true, otherwise false.
          *
          * @param device
          * @param s
@@ -150,6 +162,7 @@ public final class DBGattServer implements AutoCloseable
                                                final byte[] value, final int value_offset);
 
         /**
+         * Notifies a change of the Client Characteristic Configuration Descriptor (CCCD) value.
          *
          * @param device
          * @param s
