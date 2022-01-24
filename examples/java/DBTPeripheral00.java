@@ -34,6 +34,7 @@ import org.direct_bt.AdapterSettings;
 import org.direct_bt.AdapterStatusListener;
 import org.direct_bt.BDAddressAndType;
 import org.direct_bt.BTMode;
+import org.direct_bt.BTSecurityLevel;
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTDevice;
 import org.direct_bt.BTDeviceRegistry;
@@ -56,6 +57,7 @@ import org.direct_bt.HCIStatusCode;
 import org.direct_bt.LE_Features;
 import org.direct_bt.LE_PHYs;
 import org.direct_bt.PairingMode;
+import org.direct_bt.SMPIOCapability;
 import org.direct_bt.SMPKeyBin;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
@@ -74,7 +76,7 @@ public class DBTPeripheral00 {
     boolean use_SC = true;
     String adapter_name = "TestDev001_J";
     String adapter_short_name = "TDev001J";
-
+    BTSecurityLevel adapter_sec_level = BTSecurityLevel.UNSET;
     boolean SHOW_UPDATE_EVENTS = false;
     boolean RUN_ONLY_ONCE = false;
 
@@ -670,6 +672,8 @@ public class DBTPeripheral00 {
         // This avoids discovered devices before we have registered!
         adapter.removeDiscoveredDevices();
 
+        adapter.setServerConnSecurity(adapter_sec_level, SMPIOCapability.UNSET);
+
         if( !startAdvertising(adapter, "initAdapter") ) {
             adapter.removeStatusListener( asl );
             return false;
@@ -796,6 +800,10 @@ public class DBTPeripheral00 {
                     test.adapter_short_name = args[++i];
                 } else if( arg.equals("-mtu") && args.length > (i+1) ) {
                     test.dbGattServer.setMaxAttMTU( Integer.valueOf( args[++i] ) );
+                } else if( arg.equals("-seclevel") && args.length > (i+1) ) {
+                    final int sec_level_i = Integer.valueOf(args[++i]).intValue();
+                    test.adapter_sec_level = BTSecurityLevel.get( (byte)( sec_level_i & 0xff ) );
+                    System.err.println("Set adapter sec_level "+test.adapter_sec_level);
                 } else if( arg.equals("-once") ) {
                     test.RUN_ONLY_ONCE = true;
                 }
@@ -804,6 +812,7 @@ public class DBTPeripheral00 {
                     "[-adapter <adapter_address>] "+
                     "[-name <adapter_name>] "+
                     "[-short_name <adapter_short_name>] "+
+                    "[-seclevel <int_sec_level>]* "+
                     "[-mtu <max att_mtu>] " +
                     "[-once] "+
                     "[-verbose] [-debug] "+
@@ -818,10 +827,11 @@ public class DBTPeripheral00 {
 
         BTUtils.println(System.err, "SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
         BTUtils.println(System.err, "adapter "+test.useAdapter);
-        BTUtils.println(System.err, "btmode "+test.btMode.toString());
-        BTUtils.println(System.err, "use SC "+test.use_SC);
+        BTUtils.println(System.err, "adapter btmode "+test.btMode.toString());
+        BTUtils.println(System.err, "adapter SC "+test.use_SC);
         BTUtils.fprintf_td(System.err, "name %s (short %s)\n", test.adapter_name, test.adapter_short_name);
-        BTUtils.println(System.err, "mtu "+test.dbGattServer.getMaxAttMTU());
+        BTUtils.println(System.err, "adapter mtu "+test.dbGattServer.getMaxAttMTU());
+        BTUtils.println(System.err, "adapter sec_level "+test.adapter_sec_level);
         BTUtils.println(System.err, "once "+test.RUN_ONLY_ONCE);
         BTUtils.println(System.err, "GattServer "+test.dbGattServer.toString());
 

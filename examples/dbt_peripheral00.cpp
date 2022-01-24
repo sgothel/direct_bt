@@ -65,7 +65,7 @@ static bool use_SC = true;
 static std::string adapter_name = "TestDev001_N";
 static std::string adapter_short_name = "TDev001N";
 static std::shared_ptr<BTAdapter> chosenAdapter = nullptr;
-
+static BTSecurityLevel adapter_sec_level = BTSecurityLevel::UNSET;
 static bool SHOW_UPDATE_EVENTS = false;
 static bool RUN_ONLY_ONCE = false;
 static jau::relaxed_atomic_nsize_t servedConnections = 0;
@@ -623,6 +623,8 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     // This avoids discovered devices before we have registered!
     adapter->removeDiscoveredDevices();
 
+    adapter->setServerConnSecurity(adapter_sec_level, SMPIOCapability::UNSET);
+
     if( !startAdvertising(adapter.get(), "initAdapter") ) {
         adapter->removeStatusListener( asl );
         return false;
@@ -720,6 +722,9 @@ int main(int argc, char *argv[])
             adapter_short_name = std::string(argv[++i]);
         } else if( !strcmp("-mtu", argv[i]) && argc > (i+1) ) {
             dbGattServer->setMaxAttMTU( atoi(argv[++i]) );
+        } else if( !strcmp("-seclevel", argv[i]) && argc > (i+1) ) {
+            adapter_sec_level = to_BTSecurityLevel(atoi(argv[++i]));
+            fprintf(stderr, "Set adapter sec_level %s\n", to_string(adapter_sec_level).c_str());
         } else if( !strcmp("-once", argv[i]) ) {
             RUN_ONLY_ONCE = true;
         }
@@ -731,6 +736,7 @@ int main(int argc, char *argv[])
                     "[-name <adapter_name>] "
                     "[-short_name <adapter_short_name>] "
                     "[-mtu <max att_mtu>] "
+                    "[-seclevel <int_sec_level>]* "
                     "[-once] "
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event] "
@@ -742,10 +748,11 @@ int main(int argc, char *argv[])
 
     fprintf_td(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
     fprintf_td(stderr, "adapter %s\n", useAdapter.toString().c_str());
-    fprintf_td(stderr, "btmode %s\n", to_string(btMode).c_str());
-    fprintf_td(stderr, "use SC %s\n", to_string(use_SC).c_str());
-    fprintf_td(stderr, "name %s (short %s)\n", adapter_name.c_str(), adapter_short_name.c_str());
-    fprintf_td(stderr, "mtu %d\n", (int)dbGattServer->getMaxAttMTU());
+    fprintf_td(stderr, "adapter btmode %s\n", to_string(btMode).c_str());
+    fprintf_td(stderr, "adapter SC %s\n", to_string(use_SC).c_str());
+    fprintf_td(stderr, "adapter name %s (short %s)\n", adapter_name.c_str(), adapter_short_name.c_str());
+    fprintf_td(stderr, "adapter mtu %d\n", (int)dbGattServer->getMaxAttMTU());
+    fprintf_td(stderr, "adapter sec_level %s\n", to_string(adapter_sec_level).c_str());
     fprintf_td(stderr, "once %d\n", (int)RUN_ONLY_ONCE);
     fprintf_td(stderr, "GattServer %s\n", dbGattServer->toString().c_str());
     fprintf_td(stderr, "GattServer.services: %s\n", dbGattServer->getServices().get_info().c_str());
