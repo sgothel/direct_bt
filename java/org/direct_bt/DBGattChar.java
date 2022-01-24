@@ -58,6 +58,11 @@ public final class DBGattChar implements AutoCloseable
         public static String PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS  = "2a04";
 
         //
+        // GENERIC_ATTRIBUTE
+        //
+        public static String SERVICE_CHANGED                             = "2a05";
+
+        //
         // DEVICE_INFORMATION
         //
         /** Mandatory: uint40 */

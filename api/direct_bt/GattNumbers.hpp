@@ -95,6 +95,11 @@ enum GattCharacteristicType : uint16_t {
     RECONNECTION_ADDRESS                        = 0x2A03,
     PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS  = 0x2A04,
 
+    //
+    // GENERIC_ATTRIBUTE
+    //
+    SERVICE_CHANGED                             = 0x2a05,
+
     /** Mandatory: sint16 10^-2: Celsius */
     TEMPERATURE                                 = 0x2A6E,
 
