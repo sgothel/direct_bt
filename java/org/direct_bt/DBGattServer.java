@@ -142,8 +142,19 @@ public final class DBGattServer implements AutoCloseable
          * @param value
          * @param value_offset
          * @return true if master write has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the write action will be allowed.
+         * @see #writeCharValueDone(BTDevice, DBGattService, DBGattChar)
          */
         public abstract boolean writeCharValue(final BTDevice device, final DBGattService s, final DBGattChar c, final byte[] value, final int value_offset);
+
+        /**
+         * Notifies completion of single or bulk {@link #writeCharValue(BTDevice, DBGattService, DBGattChar, byte[], int) writeCharValue()} after having accepted and performed all write requests.
+         *
+         * @param device
+         * @param s
+         * @param c
+         * @see #writeCharValue(BTDevice, DBGattService, DBGattChar, byte[], int)
+         */
+        public abstract void writeCharValueDone(final BTDevice device, final DBGattService s, final DBGattChar c);
 
         /**
          * Signals attempt to write a single or bulk (prepare) value.
@@ -157,9 +168,21 @@ public final class DBGattServer implements AutoCloseable
          * @param value
          * @param value_offset
          * @return true if master write has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the write action will be allowed.
+         * @see #writeDescValueDone(BTDevice, DBGattService, DBGattChar, DBGattDesc)
          */
         public abstract boolean writeDescValue(final BTDevice device, final DBGattService s, final DBGattChar c, final DBGattDesc d,
                                                final byte[] value, final int value_offset);
+
+        /**
+         * Notifies completion of single or bulk {@link #writeDescValue(BTDevice, DBGattService, DBGattChar, DBGattDesc, byte[], int) writeDescValue()} after having accepted and performed all write requests.
+         *
+         * @param device
+         * @param s
+         * @param c
+         * @param d
+         * @see #writeDescValue(BTDevice, DBGattService, DBGattChar, DBGattDesc, byte[], int)
+         */
+        public abstract void writeDescValueDone(final BTDevice device, final DBGattService s, final DBGattChar c, final DBGattDesc d);
 
         /**
          * Notifies a change of the Client Characteristic Configuration Descriptor (CCCD) value.

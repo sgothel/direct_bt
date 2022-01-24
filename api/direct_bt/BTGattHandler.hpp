@@ -204,6 +204,7 @@ namespace direct_bt {
             /** Pass through user Gatt-Server database, non-nullptr if ::GATTRole::Server */
             DBGattServerRef gattServerData;
             jau::darray<AttPrepWrite> writeDataQueue;
+            jau::darray<uint16_t> writeDataQueueHandles;
 
             uint16_t serverMTU;
             std::atomic<uint16_t> usedMTU; // concurrent use in ctor(set), send and l2capReaderThreadImpl
@@ -216,13 +217,14 @@ namespace direct_bt {
             DBGattCharRef findServerGattCharByValueHandle(const uint16_t char_value_handle) noexcept;
 
             AttErrorRsp::ErrorCode applyWrite(BTDeviceRef device, const uint16_t handle, const jau::TROOctets & value, const uint16_t value_offset);
-            void replyWriteReq(const AttPDUMsg * pdu);
             void replyReadReq(const AttPDUMsg * pdu);
             void replyFindInfoReq(const AttFindInfoReq * pdu);
             void replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu);
             void replyReadByTypeReq(const AttReadByNTypeReq * pdu);
             void replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu);
             void replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu);
+            void signalWriteDone(BTDeviceRef device, const uint16_t handle) noexcept;
+            void replyWriteReq(const AttPDUMsg * pdu) noexcept;
 
             void l2capReaderWork(jau::service_runner& sr) noexcept;
             void l2capReaderEndLocked(jau::service_runner& sr) noexcept;

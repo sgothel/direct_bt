@@ -442,8 +442,9 @@ class MyGATTServerListener : public DBGattServer::Listener {
 
         bool writeCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, const jau::TROOctets & value, const uint16_t value_offset) override {
             const bool match = matches(device);
-            fprintf_td(stderr, "****** GATT::writeCharValue(match %d): %s @ %s from %s, to\n  %s\n    %s\n",
-                    match, value.toString().c_str(), jau::to_hexstring(value_offset).c_str(),
+            fprintf_td(stderr, "****** GATT::writeCharValue(match %d): %s '%s' @ %s from %s, to\n  %s\n    %s\n",
+                    match, value.toString().c_str(), jau::dfa_utf8_decode( value.get_ptr(), value.size() ),
+                    jau::to_hexstring(value_offset).c_str(),
                     device->toString().c_str(), s->toString().c_str(), c->toString().c_str());
 
             if( match &&
@@ -456,13 +457,24 @@ class MyGATTServerListener : public DBGattServer::Listener {
             }
             return match;
         }
+        void writeCharValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
+            const bool match = matches(device);
+            fprintf_td(stderr, "****** GATT::writeCharValueDone(match %d): From %s, to\n  %s\n    %s\n",
+                    match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str());
+        }
 
         bool writeDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const jau::TROOctets & value, const uint16_t value_offset) override {
             const bool match = matches(device);
-            fprintf_td(stderr, "****** GATT::writeDescValue(match %d): %s @ %s from %s\n  %s\n    %s\n      %s\n",
-                    match, value.toString().c_str(), jau::to_hexstring(value_offset).c_str(),
+            fprintf_td(stderr, "****** GATT::writeDescValue(match %d): %s '%s' @ %s from %s\n  %s\n    %s\n      %s\n",
+                    match, value.toString().c_str(), jau::dfa_utf8_decode( value.get_ptr(), value.size() ),
+                    jau::to_hexstring(value_offset).c_str(),
                     device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str());
             return match;
+        }
+        void writeDescValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) override {
+            const bool match = matches(device);
+            fprintf_td(stderr, "****** GATT::writeDescValueDone(match %d): From %s\n  %s\n    %s\n      %s\n",
+                    match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str());
         }
 
         void clientCharConfigChanged(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const bool notificationEnabled, const bool indicationEnabled) override {

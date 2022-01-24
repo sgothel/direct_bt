@@ -676,9 +676,20 @@ namespace direct_bt {
                      * @param value
                      * @param value_offset
                      * @return true if master write has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the write action will be allowed.
+                     * @see writeCharValueDone()
                      */
                     virtual bool writeCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c,
                                                 const jau::TROOctets & value, const uint16_t value_offset) = 0;
+
+                    /**
+                     * Notifies completion of single or bulk writeCharValue() after having accepted and performed all write requests.
+                     *
+                     * @param device
+                     * @param s
+                     * @param c
+                     * @see writeCharValue()
+                     */
+                    virtual void writeCharValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) = 0;
 
                     /**
                      * Signals attempt to write a single or bulk (prepare) value.
@@ -692,9 +703,21 @@ namespace direct_bt {
                      * @param value
                      * @param value_offset
                      * @return true if master write has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the write action will be allowed.
+                     * @see writeDescValueDone()
                      */
                     virtual bool writeDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d,
                                                 const jau::TROOctets & value, const uint16_t value_offset) = 0;
+
+                    /**
+                     * Notifies completion of single or bulk writeCharValue() after having accepted and performed all write requests.
+                     *
+                     * @param device
+                     * @param s
+                     * @param c
+                     * @param d
+                     * @see writeDescValue()
+                     */
+                    virtual void writeDescValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) = 0;
 
                     /**
                      * Notifies a change of the Client Characteristic Configuration Descriptor (CCCD) value.

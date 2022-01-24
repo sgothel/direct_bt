@@ -535,7 +535,9 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
         jmethodID  mReadCharValue = nullptr;
         jmethodID  mReadDescValue = nullptr;
         jmethodID  mWriteCharValue = nullptr;
+        jmethodID  mWriteCharValueDone = nullptr;
         jmethodID  mWriteDescValue = nullptr;
+        jmethodID  mWriteDescValueDone = nullptr;
         jmethodID  mCCDChanged = nullptr;
 
     public:
@@ -548,7 +550,9 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
             mReadCharValue = jau::search_method(env, clazz, "readCharValue", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;)Z", false);
             mReadDescValue = jau::search_method(env, clazz, "readDescValue", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;Lorg/direct_bt/DBGattDesc;)Z", false);
             mWriteCharValue = jau::search_method(env, clazz, "writeCharValue", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;[BI)Z", false);
+            mWriteCharValueDone = jau::search_method(env, clazz, "writeCharValueDone", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;)V", false);
             mWriteDescValue = jau::search_method(env, clazz, "writeDescValue", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;Lorg/direct_bt/DBGattDesc;[BI)Z", false);
+            mWriteDescValueDone = jau::search_method(env, clazz, "writeDescValueDone", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;Lorg/direct_bt/DBGattDesc;)V", false);
             mCCDChanged = jau::search_method(env, clazz, "clientCharConfigChanged", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;Lorg/direct_bt/DBGattDesc;ZZ)V", false);
         }
 
@@ -617,6 +621,15 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
             env->DeleteLocalRef(j_value);
             return JNI_TRUE == res;
         }
+        void writeCharValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
+            jobject j_device = jau::JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
+            jobject j_s = jau::JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
+            jobject j_c = jau::JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
+            JNIEnv *env = *jni_env;
+
+            env->CallVoidMethod(listenerObjRef.getObject(), mWriteCharValueDone, j_device, j_s, j_c);
+            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        }
 
         bool writeDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const jau::TROOctets & value, const uint16_t value_offset) override {
             jobject j_device = jau::JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
@@ -634,6 +647,16 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
             jau::java_exception_check_and_throw(env, E_FILE_LINE);
             env->DeleteLocalRef(j_value);
             return JNI_TRUE == res;
+        }
+        void writeDescValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) override {
+            jobject j_device = jau::JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
+            jobject j_s = jau::JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
+            jobject j_c = jau::JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
+            jobject j_d = jau::JavaGlobalObj::checkAndGetObject(d->getJavaObject(), E_FILE_LINE);
+            JNIEnv *env = *jni_env;
+
+            env->CallVoidMethod(listenerObjRef.getObject(), mWriteDescValueDone, j_device, j_s, j_c, j_d);
+            jau::java_exception_check_and_throw(env, E_FILE_LINE);
         }
 
         void clientCharConfigChanged(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const bool notificationEnabled, const bool indicationEnabled) override {

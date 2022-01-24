@@ -354,7 +354,60 @@ AttErrorRsp::ErrorCode BTGattHandler::applyWrite(BTDeviceRef device, const uint1
     return AttErrorRsp::ErrorCode::INVALID_HANDLE;
 }
 
-void BTGattHandler::replyWriteReq(const AttPDUMsg * pdu) {
+void BTGattHandler::signalWriteDone(BTDeviceRef device, const uint16_t handle) noexcept {
+    if( nullptr == gattServerData ) {
+        return;
+    }
+    for(DBGattServiceRef& s : gattServerData->getServices()) {
+        if( s->getHandle() <= handle && handle <= s->getEndHandle() ) {
+            for(DBGattCharRef& c : s->getCharacteristics()) {
+                if( c->getHandle() <= handle && handle <= c->getEndHandle() ) {
+                    if( handle == c->getValueHandle() ) {
+                        {
+                            int i=0;
+                            jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
+                                try {
+                                    l->writeCharValueDone(device, s, c);
+                                } catch (std::exception &e) {
+                                    ERR_PRINT("GATT-REQ: WRITE-Done: (%s) %d/%zd: %s of %s: Caught exception %s",
+                                            c->toString().c_str(), i+1, gattServerData->listener().size(),
+                                            device->toString().c_str(), e.what());
+                                }
+                                i++;
+                            });
+                        }
+                        return;
+                    }
+                    for(DBGattDescRef& d : c->getDescriptors()) {
+                        if( handle == d->getHandle() ) {
+                            if( d->isUserDescription() ) {
+                                return;
+                            }
+                            const bool isCCCD = d->isClientCharConfig();
+                            if( !isCCCD ) {
+                                int i=0;
+                                jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
+                                    try {
+                                        l->writeDescValueDone(device, s, c, d);
+                                    } catch (std::exception &e) {
+                                        ERR_PRINT("GATT-REQ: WRITE-Done: (%s) %d/%zd: %s of %s: Caught exception %s",
+                                                d->toString().c_str(), i+1, gattServerData->listener().size(),
+                                                device->toString().c_str(), e.what());
+                                    }
+                                    i++;
+                                });
+                            }
+                            return;
+                        }
+                    }
+                } // if characteristics-range
+            } // for characteristics
+        } // if service-range
+    } // for services
+    return;
+}
+
+void BTGattHandler::replyWriteReq(const AttPDUMsg * pdu) noexcept {
     /**
      * Without Response:
      *   BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.5.3 ATT_WRITE_CMD
@@ -384,31 +437,47 @@ void BTGattHandler::replyWriteReq(const AttPDUMsg * pdu) {
             send(err);
             return;
         }
+        const uint16_t handle = req->getHandle();
         AttPrepWrite rsp(false, *req);
         writeDataQueue.push_back(rsp);
+        if( writeDataQueueHandles.cend() == jau::find_if(writeDataQueueHandles.cbegin(), writeDataQueueHandles.cend(),
+                                                         [&](const uint16_t it)->bool { return handle == it; }) )
+        {
+            // new entry
+            writeDataQueueHandles.push_back(handle);
+        }
         COND_PRINT(env.DEBUG_DATA, "GATT-Req: WRITE.11: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
         send(rsp);
         return;
     } else if( AttPDUMsg::Opcode::EXECUTE_WRITE_REQ == pdu->getOpcode() ) {
         const AttExeWriteReq * req = static_cast<const AttExeWriteReq*>(pdu);
-        if( 0x01 == req->getFlags() ) {
+        if( 0x01 == req->getFlags() ) { // immediately write all pending prepared values
             AttErrorRsp::ErrorCode res = AttErrorRsp::ErrorCode::NO_ERROR;
-            uint16_t last_handle=0;
-            for(auto iter = writeDataQueue.cbegin() ; iter < writeDataQueue.cend() && AttErrorRsp::ErrorCode::NO_ERROR == res; iter++ ) {
-                const AttPrepWrite &p = *iter;
-                last_handle = p.getHandle();
-                jau::TROOctets p_val(p.getValue().get_ptr_nc(0), p.getValue().size(), p.getValue().byte_order());
-                res = applyWrite(device, last_handle, p_val, p.getValueOffset());
+            for( auto iter_handle = writeDataQueueHandles.cbegin(); iter_handle < writeDataQueueHandles.cend(); ++iter_handle ) {
+                for( auto iter_prep_write = writeDataQueue.cbegin(); iter_prep_write < writeDataQueue.cend(); ++iter_prep_write ) {
+                    const AttPrepWrite &p = *iter_prep_write;
+                    const uint16_t handle = p.getHandle();
+                    if( handle == *iter_handle ) {
+                        jau::TROOctets p_val(p.getValue().get_ptr_nc(0), p.getValue().size(), p.getValue().byte_order());
+                        res = applyWrite(device, handle, p_val, p.getValueOffset());
+
+                        if( AttErrorRsp::ErrorCode::NO_ERROR != res ) {
+                            writeDataQueue.clear();
+                            writeDataQueueHandles.clear();
+                            AttErrorRsp err(res, pdu->getOpcode(), handle);
+                            WARN_PRINT("GATT-Req: WRITE.12: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
+                            send(err);
+                            return;
+                        }
+                    }
+                }
             }
-            if( AttErrorRsp::ErrorCode::NO_ERROR != res ) {
-                writeDataQueue.clear();
-                AttErrorRsp err(res, pdu->getOpcode(), last_handle);
-                WARN_PRINT("GATT-Req: WRITE.12: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-                send(err);
-                return;
+            for( auto iter_handle = writeDataQueueHandles.cbegin(); iter_handle < writeDataQueueHandles.cend(); ++iter_handle ) {
+                signalWriteDone(device, *iter_handle);
             }
-        }
+        } // else 0x00 == req->getFlags() -> cancel all prepared writes
         writeDataQueue.clear();
+        writeDataQueueHandles.clear();
         AttExeWriteRsp rsp;
         COND_PRINT(env.DEBUG_DATA, "GATT-Req: WRITE.13: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
         send(rsp);
@@ -437,7 +506,6 @@ void BTGattHandler::replyWriteReq(const AttPDUMsg * pdu) {
     jau::TROOctets req_val(vslice->get_ptr_nc(0), vslice->size(), vslice->byte_order());
     AttErrorRsp::ErrorCode res = applyWrite(device, handle, req_val, 0);
     if( AttErrorRsp::ErrorCode::NO_ERROR != res ) {
-        writeDataQueue.clear();
         AttErrorRsp err(res, pdu->getOpcode(), handle);
         WARN_PRINT("GATT-Req: WRITE.21: %s -> %s (sent %d) from %s",
                 pdu->toString().c_str(), err.toString().c_str(), (int)withResp, toString().c_str());
@@ -451,6 +519,7 @@ void BTGattHandler::replyWriteReq(const AttPDUMsg * pdu) {
         COND_PRINT(env.DEBUG_DATA, "GATT-Req: WRITE.22: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
         send(rsp);
     }
+    signalWriteDone(device, handle);
 }
 
 void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
@@ -1204,6 +1273,9 @@ bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCa
     // Interrupt GATT's L2CAP::connect(..) and L2CAP::read(..), avoiding prolonged hang
     // and pull all underlying l2cap read operations!
     l2cap.close();
+
+    writeDataQueue.clear();
+    writeDataQueueHandles.clear();
 
     // Avoid disconnect re-entry -> potential deadlock
     bool expConn = true; // C++11, exp as value since C++20

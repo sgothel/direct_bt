@@ -475,8 +475,10 @@ public class DBTPeripheral00 {
         @Override
         public boolean writeCharValue(final BTDevice device, final DBGattService s, final DBGattChar c, final byte[] value, final int value_offset) {
             final boolean match = matches(device);
+            final String value_s = BTUtils.bytesHexString(value, 0, value.length, true /* lsbFirst */)+
+                                   " '"+BTUtils.decodeUTF8String(value, 0, value.length)+"'";
             BTUtils.fprintf_td(System.err, "****** GATT::writeCharValue(match %b): %s @ 0x%s from %s, to\n  %s\n    %s\n",
-                    match, value.toString(), Integer.toHexString(value_offset),
+                    match, value_s, Integer.toHexString(value_offset),
                     device.toString(), s.toString(), c.toString());
 
             if( match &&
@@ -489,14 +491,30 @@ public class DBTPeripheral00 {
         }
 
         @Override
+        public void writeCharValueDone(final BTDevice device, final DBGattService s, final DBGattChar c) {
+            final boolean match = matches(device);
+            BTUtils.fprintf_td(System.err, "****** GATT::writeCharValueDone(match %b): From %s, to\n  %s\n    %s\n",
+                    match, device.toString(), s.toString(), c.toString());
+        }
+
+        @Override
         public boolean writeDescValue(final BTDevice device, final DBGattService s, final DBGattChar c, final DBGattDesc d,
                                       final byte[] value, final int value_offset)
         {
             final boolean match = matches(device);
+            final String value_s = BTUtils.bytesHexString(value, 0, value.length, true /* lsbFirst */)+
+                                   " '"+BTUtils.decodeUTF8String(value, 0, value.length)+"'";
             BTUtils.fprintf_td(System.err, "****** GATT::writeDescValue(match %b): %s @ 0x%s from %s\n  %s\n    %s\n      %s\n",
-                    match, value.toString(), Integer.toHexString(value_offset),
+                    match, value_s, Integer.toHexString(value_offset),
                     device.toString(), s.toString(), c.toString(), d.toString());
             return match;
+        }
+
+        @Override
+        public void writeDescValueDone(final BTDevice device, final DBGattService s, final DBGattChar c, final DBGattDesc d) {
+            final boolean match = matches(device);
+            BTUtils.fprintf_td(System.err, "****** GATT::writeDescValueDone(match %b): From %s\n  %s\n    %s\n      %s\n",
+                    match, device.toString(), s.toString(), c.toString(), d.toString());
         }
 
         @Override
