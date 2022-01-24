@@ -216,15 +216,15 @@ namespace direct_bt {
             bool hasServerHandle(const uint16_t handle) noexcept;
             DBGattCharRef findServerGattCharByValueHandle(const uint16_t char_value_handle) noexcept;
 
-            AttErrorRsp::ErrorCode applyWrite(BTDeviceRef device, const uint16_t handle, const jau::TROOctets & value, const uint16_t value_offset);
-            void replyReadReq(const AttPDUMsg * pdu);
-            void replyFindInfoReq(const AttFindInfoReq * pdu);
-            void replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu);
-            void replyReadByTypeReq(const AttReadByNTypeReq * pdu);
-            void replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu);
-            void replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu);
+            AttErrorRsp::ErrorCode applyWrite(BTDeviceRef device, const uint16_t handle, const jau::TROOctets & value, const uint16_t value_offset) noexcept;
             void signalWriteDone(BTDeviceRef device, const uint16_t handle) noexcept;
             void replyWriteReq(const AttPDUMsg * pdu) noexcept;
+            void replyReadReq(const AttPDUMsg * pdu) noexcept;
+            void replyFindInfoReq(const AttFindInfoReq * pdu) noexcept;
+            void replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) noexcept;
+            void replyReadByTypeReq(const AttReadByNTypeReq * pdu) noexcept;
+            void replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) noexcept;
+            void replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) noexcept;
 
             void l2capReaderWork(jau::service_runner& sr) noexcept;
             void l2capReaderEndLocked(jau::service_runner& sr) noexcept;

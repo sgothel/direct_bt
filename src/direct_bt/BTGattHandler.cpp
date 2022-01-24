@@ -217,7 +217,7 @@ DBGattCharRef BTGattHandler::findServerGattCharByValueHandle(const uint16_t char
     return gattServerData->findGattCharByValueHandle(char_value_handle);
 }
 
-AttErrorRsp::ErrorCode BTGattHandler::applyWrite(BTDeviceRef device, const uint16_t handle, const jau::TROOctets & value, const uint16_t value_offset) {
+AttErrorRsp::ErrorCode BTGattHandler::applyWrite(BTDeviceRef device, const uint16_t handle, const jau::TROOctets & value, const uint16_t value_offset) noexcept {
     if( nullptr == gattServerData ) {
         return AttErrorRsp::ErrorCode::INVALID_HANDLE;
     }
@@ -522,7 +522,7 @@ void BTGattHandler::replyWriteReq(const AttPDUMsg * pdu) noexcept {
     signalWriteDone(device, handle);
 }
 
-void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
+void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) noexcept {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value */
     /* For any follow up request, which previous request reply couldn't fit in ATT_MTU */
@@ -679,7 +679,7 @@ void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) {
     send(err);
 }
 
-void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
+void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) noexcept {
     // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.1 ATT_FIND_INFORMATION_REQ
     // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.2 ATT_FIND_INFORMATION_RSP
     // BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
@@ -742,7 +742,7 @@ void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) {
     send(err);
 }
 
-void BTGattHandler::replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) {
+void BTGattHandler::replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) noexcept {
     // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.3 ATT_FIND_BY_TYPE_VALUE_REQ
     // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.4 ATT_FIND_BY_TYPE_VALUE_RSP
     // BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.2 Discover Primary Service by Service UUID
@@ -812,7 +812,7 @@ void BTGattHandler::replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) {
     send(err);
 }
 
-void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
+void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) noexcept {
     // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.1 ATT_READ_BY_TYPE_REQ
     // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.2 ATT_READ_BY_TYPE_RSP
     // BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
@@ -903,7 +903,7 @@ void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) {
     }
 }
 
-void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
+void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) noexcept {
     // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.9 ATT_READ_BY_GROUP_TYPE_REQ
     // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.10 ATT_READ_BY_GROUP_TYPE_RSP
     // BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
@@ -989,7 +989,7 @@ void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) {
     }
 }
 
-void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) {
+void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) noexcept {
     if( !validateConnected() ) { // shall not happen
         DBG_PRINT("GATT-Req: disconnected: req %s from %s",
                 pdu->toString().c_str(), toString().c_str());
