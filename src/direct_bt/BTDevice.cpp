@@ -111,6 +111,7 @@ std::string const BTDevice::getName() const noexcept {
 std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
     const uint64_t t0 = jau::getCurrentMilliseconds();
     jau::sc_atomic_critical sync(sync_data);
+    std::string eir_s = BTRole::Slave == getRole() ? ", "+eir.toString( includeDiscoveredServices ) : "";
     std::string out("Device["+to_string(getRole())+", "+addressAndType.toString()+", name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
             "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", handle "+jau::to_hexstring(hciConnHandle)+
@@ -118,7 +119,7 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
             "], sec[enc "+std::to_string(pairing_data.encryption_enabled)+", lvl "+to_string(pairing_data.sec_level_conn)+", io "+to_string(pairing_data.ioCap_conn)+
             ", auto "+to_string(pairing_data.ioCap_auto)+", pairing "+to_string(pairing_data.mode)+", state "+to_string(pairing_data.state)+
             ", sc "+std::to_string(pairing_data.use_sc)+"]], rssi "+std::to_string(getRSSI())+
-            ", tx-power "+std::to_string(tx_power)+", "+eir.toString( includeDiscoveredServices )+
+            ", tx-power "+std::to_string(tx_power)+eir_s+
             ", "+javaObjectToString()+"]");
     return out;
 }
