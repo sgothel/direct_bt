@@ -46,7 +46,7 @@ using namespace direct_bt;
 
 BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
 : adapter(a), btRole(!a.getRole()),
-  l2cap_att( std::move( std::make_unique<L2CAPComm>(adapter.getAddressAndType(), L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT) ) ),
+  l2cap_att( std::make_unique<L2CAPComm>(adapter.getAddressAndType(), L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT) ), // copy elision, not copy-ctor
   ts_last_discovery(r.getTimestamp()),
   ts_last_update(ts_last_discovery),
   eir( std::make_unique<EInfoReport>() ),
