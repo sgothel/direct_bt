@@ -442,6 +442,20 @@ from the year 2016.
 
 * TODO
 
+**2.5.3**
+* Refine BTAdapter API on commands in powerd-off state only: `setName()`, `setSecureConnections()`, `setDefaultConnParam()`
+* Proper definition of `BTDevice::getName()`
+* Expose refined EInfoReport via `BTDevice::getEIR()` and use it in `BTAdapter::startAdvertising()`
+* Add `DBGattServer::Listener::write[Char|Desc]ValueDone()` callback
+* Add and use `[BTAdapter|BTManager]::setDefaultConnParam(..)` essential in server mode
+* Consolidated `BTDevice::setConnSecurity*(..)` and added `BTAdapter::setServerConnSecurity(...)`
+* Server fixes GATT sendNotification/Indication, `BTDevice::connectGATT()`, `AttReadNRsp`.
+* Server adding proper `AttErrorRsp` replies and supporting `AttFindByTypeValueReq/Rsp`.
+* Server: Using L2CapServer socket/accept services while in advertising mode.
+* Reuse `jau::service_runner`, replacing code duplication 
+* Enhance SMP and key managment, LTK validation
+* jaulib v0.7.9 fixes 
+
 **2.5.2**
 
 * jaulib v0.7.5 fixes 
