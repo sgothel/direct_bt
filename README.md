@@ -442,7 +442,8 @@ from the year 2016.
 
 * TODO
 
-**2.5.3**
+**2.5.4**
+* Fixing clang++ 11.0.1 and g++ 8.3.0 compilation issues
 * Refine BTAdapter API on commands in powerd-off state only: `setName()`, `setSecureConnections()`, `setDefaultConnParam()`
 * Proper definition of `BTDevice::getName()`
 * Expose refined EInfoReport via `BTDevice::getEIR()` and use it in `BTAdapter::startAdvertising()`
