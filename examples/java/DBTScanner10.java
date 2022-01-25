@@ -99,14 +99,6 @@ public class DBTScanner10 {
 
     int shutdownTest = 0;
 
-    boolean matches(final List<BDAddressAndType> cont, final BDAddressAndType mac) {
-        for(final Iterator<BDAddressAndType> it = cont.iterator(); it.hasNext(); ) {
-            if( it.next().matches(mac) ) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     static void printf(final String format, final Object... args) {
         final Object[] args2 = new Object[args.length+1];
