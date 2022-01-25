@@ -1022,7 +1022,7 @@ jbyte Java_jau_direct_1bt_DBTAdapter_startAdvertising1Impl(JNIEnv *env, jobject 
         if( nullptr == jeir ) {
             throw jau::IllegalArgumentException("eir null", E_FILE_LINE);
         }
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, jeir);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, jeir);
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 

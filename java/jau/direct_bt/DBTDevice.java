@@ -652,8 +652,10 @@ public class DBTDevice extends DBTObject implements BTDevice
 
     @Override
     public final EInfoReport getEIR() {
-        getEIRImpl(eir_);
-        return eir_;
+        synchronized( eir_ ) {
+            getEIRImpl(eir_);
+            return eir_;
+        }
     }
     private native void getEIRImpl(final EInfoReport eir);
 

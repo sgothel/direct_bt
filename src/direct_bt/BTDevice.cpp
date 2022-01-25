@@ -49,6 +49,7 @@ BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
   l2cap_att( std::move( std::make_unique<L2CAPComm>(adapter.getAddressAndType(), L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT) ) ),
   ts_last_discovery(r.getTimestamp()),
   ts_last_update(ts_last_discovery),
+  eir( std::make_unique<EInfoReport>() ),
   hciConnHandle(0),
   le_features(LE_Features::NONE),
   le_phy_tx(LE_PHYs::NONE),
@@ -108,10 +109,21 @@ std::string const BTDevice::getName() const noexcept {
     return res;
 }
 
+std::shared_ptr<const EInfoReport> BTDevice::getEIR() const noexcept {
+    jau::sc_atomic_critical sync(sync_data);
+    return eir;
+}
+
+std::shared_ptr<EInfoReport> BTDevice::getEIR() noexcept {
+    jau::sc_atomic_critical sync(sync_data);
+    return eir;
+}
+
 std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
     const uint64_t t0 = jau::getCurrentMilliseconds();
     jau::sc_atomic_critical sync(sync_data);
-    std::string eir_s = BTRole::Slave == getRole() ? ", "+eir.toString( includeDiscoveredServices ) : "";
+    std::shared_ptr<const EInfoReport> eir_ = eir;
+    std::string eir_s = BTRole::Slave == getRole() ? ", "+eir_->toString( includeDiscoveredServices ) : "";
     std::string out("Device["+to_string(getRole())+", "+addressAndType.toString()+", name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
             "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", handle "+jau::to_hexstring(hciConnHandle)+
@@ -128,9 +140,13 @@ EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
 
-    EIRDataType res0 = eir.set(data);
+    // Update eir CoW style
+    std::shared_ptr<EInfoReport> eir_new( std::make_shared<EInfoReport>( *eir ) );
+    EIRDataType res0 = eir_new->set(data);
+    if( EIRDataType::NONE != res0 ) {
+        eir = eir_new;
+    }
 
-    EIRDataType res = EIRDataType::NONE;
     ts_last_update = data.getTimestamp();
     if( data.isSet(EIRDataType::BDADDR) ) {
         if( data.getAddress() != this->addressAndType.address ) {
@@ -147,25 +163,21 @@ EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
     if( data.isSet(EIRDataType::NAME) ) {
         if( 0 == name.length() || data.getName().length() > name.length() ) {
             name = data.getName();
-            setEIRDataTypeSet(res, EIRDataType::NAME);
         }
     }
     if( data.isSet(EIRDataType::NAME_SHORT) ) {
         if( 0 == name.length() ) {
             name = data.getShortName();
-            setEIRDataTypeSet(res, EIRDataType::NAME_SHORT);
         }
     }
     if( data.isSet(EIRDataType::RSSI) ) {
         if( rssi != data.getRSSI() ) {
             rssi = data.getRSSI();
-            setEIRDataTypeSet(res, EIRDataType::RSSI);
         }
     }
     if( data.isSet(EIRDataType::TX_POWER) ) {
         if( tx_power != data.getTxPower() ) {
             tx_power = data.getTxPower();
-            setEIRDataTypeSet(res, EIRDataType::TX_POWER);
         }
     }
     return res0;
@@ -175,16 +187,25 @@ EIRDataType BTDevice::update(GattGenericAccessSvc const &data, const uint64_t ti
     const std::lock_guard<std::mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
     jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
 
+    // Update eir CoW style
+    std::shared_ptr<EInfoReport> eir_new( std::make_shared<EInfoReport>( *eir ) );
+    bool mod = false;
+
     EIRDataType res = EIRDataType::NONE;
     ts_last_update = timestamp;
     if( 0 == name.length() || data.deviceName.length() > name.length() ) {
         name = data.deviceName;
-        eir.setName( name );
+        eir_new->setName( name );
         setEIRDataTypeSet(res, EIRDataType::NAME);
+        mod = true;
     }
     if( eir.getAppearance() != data.appearance ) {
-        eir.setAppearance( data.appearance );
+        eir_new->setAppearance( data.appearance );
         setEIRDataTypeSet(res, EIRDataType::APPEARANCE);
+        mod = true;
+    }
+    if( mod ) {
+        eir = eir_new;
     }
     return res;
 }

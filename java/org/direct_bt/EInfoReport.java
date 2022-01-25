@@ -46,15 +46,43 @@ import org.jau.net.EUI48;
  *
  * @since 2.5.3
  */
-public final class EInfoReport implements AutoCloseable
+public final class EInfoReport implements AutoCloseable, Cloneable
 {
     private volatile long nativeInstance;
     /* pp */ long getNativeInstance() { return nativeInstance; }
 
+    /**
+     * New independent EInfoReport instance
+     */
     public EInfoReport() {
-        nativeInstance = ctorImpl();
+        nativeInstance = ctorImpl1();
     }
-    private native long ctorImpl();
+    private native long ctorImpl1();
+
+    /**
+     * New EInfoReport instance reusing shared managed EInfoReport object
+     * @param nativeInstanceOther native pointer to shared managed EInfoReport object `std::shared_ptr<EInfoReport>`
+     */
+    /* pp */ EInfoReport(final long nativeInstanceOther) {
+        nativeInstance = ctorImpl2(nativeInstanceOther);
+    }
+    private native long ctorImpl2(final long nativeInstanceOther);
+
+    /**
+     * Replace the native shared managed EInfoReport object
+     * @param nativeInstanceOther native pointer to shared managed EInfoReport object `std::shared_ptr<EInfoReport>`
+     */
+    /* pp */ final void replaces_native(final long nativeInstanceOther) {
+        replaces_nativeImpl(nativeInstanceOther);
+    }
+    private native void replaces_nativeImpl(final long nativeInstanceOther);
+
+    @Override
+    public EInfoReport clone() {
+        final EInfoReport n = new EInfoReport();
+        n.set(this);
+        return n;
+    }
 
     @Override
     public void close() {

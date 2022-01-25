@@ -881,7 +881,7 @@ namespace direct_bt {
      * - [Assigned Numbers - Generic Access Profile](https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/)
      *
      */
-    class EInfoReport : public jau::JavaUplink {
+    class EInfoReport {
         public:
             enum class Source : int {
                 /** not available */
@@ -939,15 +939,10 @@ namespace direct_bt {
                                uint8_t const * data, int offset, int const size) noexcept;
 
         public:
-            static std::string java_class() noexcept {
-                return std::string(JAVA_MAIN_PACKAGE "EInfoReport");
-            }
-
-            std::string get_java_class() const noexcept override {
-                return java_class();
-            }
-
             EInfoReport() noexcept : hash(16, 0, jau::endian::little), randomizer(16, 0, jau::endian::little) {}
+
+            EInfoReport(const EInfoReport&) noexcept = default;
+            EInfoReport& operator=(const EInfoReport &o) noexcept = default;
 
             /**
              * Reset all data fields.

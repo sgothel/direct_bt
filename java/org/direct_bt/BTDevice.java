@@ -778,8 +778,8 @@ public interface BTDevice extends BTObject
     short getRSSI();
 
     /**
-     * Return the merged scanned EInfoReport for this device.
-     * @since 2.6.0
+     * Return the merged advertised {@link EInfoReport} for this remote device.
+     * @since 2.5.3
      */
     EInfoReport getEIR();
 

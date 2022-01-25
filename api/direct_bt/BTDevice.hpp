@@ -84,7 +84,7 @@ namespace direct_bt {
             std::string name;
             int8_t rssi = 127; // The core spec defines 127 as the "not available" value
             int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
-            EInfoReport eir;
+            std::shared_ptr<EInfoReport> eir; // shared_ptr to allow CoW style update
             jau::relaxed_atomic_uint16 hciConnHandle;
             jau::ordered_atomic<LE_Features, std::memory_order_relaxed> le_features;
             jau::ordered_atomic<LE_PHYs, std::memory_order_relaxed> le_phy_tx;
@@ -324,10 +324,16 @@ namespace direct_bt {
             std::string const getName() const noexcept;
 
             /**
-             * Return the merged scanned EInfoReport for this device.
-             * @since 2.6.0
+             * Return the merged advertised EInfoReport for this remote device.
+             * @since 2.5.3
              */
-            const EInfoReport& getEIR() const noexcept { return  eir; }
+            std::shared_ptr<const EInfoReport> getEIR() const noexcept;
+
+            /**
+             * Return the merged advertised EInfoReport for this remote device.
+             * @since 2.5.3
+             */
+            std::shared_ptr<EInfoReport> getEIR() noexcept;
 
             std::string toString() const noexcept override { return toString(false); }
 

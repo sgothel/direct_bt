@@ -979,7 +979,7 @@ std::string EInfoReport::toString(const bool includeServices) const noexcept {
         std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
         out += msdstr+", ";
     }
-    out += javaObjectToString()+"]";
+    out += "]";
 
     if( includeServices && services.size() > 0 && isSet(EIRDataType::SERVICE_UUID) ) {
         out.append("\n");

@@ -957,8 +957,13 @@ jshort Java_jau_direct_1bt_DBTDevice_getRSSI(JNIEnv *env, jobject obj)
 void Java_jau_direct_1bt_DBTDevice_getEIRImpl(JNIEnv *env, jobject obj, jobject jeir_sink) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
-        EInfoReport * eir_sink_ptr = jau::getInstance<EInfoReport>(env, jeir_sink);
-        *eir_sink_ptr = device->getEIR();
+        std::shared_ptr<EInfoReport>* eir_sink_ptr_ref = jau::getInstance<std::shared_ptr<EInfoReport>>(env, jeir_sink);
+
+        std::shared_ptr<EInfoReport> eir = device->getEIR();
+
+        // replace the shared managed object
+        *eir_sink_ptr_ref = eir;
+
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

@@ -37,22 +37,65 @@ using namespace direct_bt;
 
 /*
  * Class:     org_direct_bt_EInfoReport
- * Method:    ctorImpl
+ * Method:    ctorImpl1
  * Signature: ()J
  */
-jlong Java_org_direct_1bt_EInfoReport_ctorImpl(JNIEnv *env, jobject obj) {
+jlong Java_org_direct_1bt_EInfoReport_ctorImpl1(JNIEnv *env, jobject obj) {
     try {
+        (void)obj;
         // new instance
-        EInfoReport * eir_ptr = new EInfoReport();
+        std::shared_ptr<EInfoReport> ref = std::make_shared<EInfoReport>();
 
-        eir_ptr->setJavaObject( std::shared_ptr<jau::JavaAnon>( new jau::JavaGlobalObj(obj, nullptr) ) );
-        jau::JavaGlobalObj::check(eir_ptr->getJavaObject(), E_FILE_LINE);
-
-        return (jlong)(intptr_t)eir_ptr;
+        std::shared_ptr<EInfoReport> * ref_ptr = new std::shared_ptr<EInfoReport>(std::move(ref));
+        return (jlong)(intptr_t)ref_ptr;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
     return (jlong) (intptr_t)nullptr;
+}
+
+/*
+ * Class:     org_direct_bt_EInfoReport
+ * Method:    ctorImpl2
+ * Signature: (J)J
+ */
+jlong Java_org_direct_1bt_EInfoReport_ctorImpl2(JNIEnv *env, jobject obj, jlong nativeInstanceOther) {
+    try {
+        (void)obj;
+        std::shared_ptr<EInfoReport> * ref_ptr_other = reinterpret_cast<std::shared_ptr<EInfoReport> *>(nativeInstanceOther);
+        if (ref_ptr_other == nullptr) {
+            throw jau::RuntimeException("Given std::shared_ptr<EInfoReport> * nullptr", E_FILE_LINE);
+        }
+        if (*ref_ptr_other == nullptr) {
+            throw jau::RuntimeException("Given std::shared_ptr<EInfoReport> nullptr", E_FILE_LINE);
+        }
+        // shared instance with other
+        std::shared_ptr<EInfoReport> ref( *ref_ptr_other );
+
+        std::shared_ptr<EInfoReport> * ref_ptr = new std::shared_ptr<EInfoReport>(std::move(ref));
+        return (jlong)(intptr_t)ref_ptr;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jlong) (intptr_t)nullptr;
+}
+
+void Java_org_direct_1bt_EInfoReport_replace_nativeImpl(JNIEnv *env, jobject obj, jlong nativeInstanceOther) {
+    try {
+        std::shared_ptr<EInfoReport> * ref_ptr_other = reinterpret_cast<std::shared_ptr<EInfoReport> *>(nativeInstanceOther);
+        if (ref_ptr_other == nullptr) {
+            throw jau::RuntimeException("Given std::shared_ptr<EInfoReport> * nullptr", E_FILE_LINE);
+        }
+        if (*ref_ptr_other == nullptr) {
+            throw jau::RuntimeException("Given std::shared_ptr<EInfoReport> nullptr", E_FILE_LINE);
+        }
+        std::shared_ptr<EInfoReport>* eir_ptr_ref = jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
+
+        // replace the shared managed object
+        *eir_ptr_ref = *ref_ptr_other;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
 }
 
 /*
@@ -64,9 +107,8 @@ void Java_org_direct_1bt_EInfoReport_dtorImpl(JNIEnv *env, jclass clazz, jlong n
     (void)clazz;
     try {
         if( 0 != nativeInstance ) {
-            EInfoReport * eir_ptr = reinterpret_cast<EInfoReport *>(nativeInstance);
-            eir_ptr->setJavaObject();
-            delete eir_ptr;
+            std::shared_ptr<EInfoReport> * ref_ptr = reinterpret_cast<std::shared_ptr<EInfoReport> *>(nativeInstance);
+            delete ref_ptr;
         }
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -75,7 +117,7 @@ void Java_org_direct_1bt_EInfoReport_dtorImpl(JNIEnv *env, jclass clazz, jlong n
 
 void Java_org_direct_1bt_EInfoReport_clear(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         eir_ptr->clear();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -84,8 +126,8 @@ void Java_org_direct_1bt_EInfoReport_clear(JNIEnv *env, jobject obj) {
 
 jint Java_org_direct_1bt_EInfoReport_setImpl(JNIEnv *env, jobject obj, jobject jeir_other) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
-        EInfoReport * eir_other_ptr = jau::getInstance<EInfoReport>(env, jeir_other);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_other_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, jeir_other);
         return static_cast<jint>( number( eir_ptr->set(*eir_other_ptr) ) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -100,7 +142,7 @@ jint Java_org_direct_1bt_EInfoReport_setImpl(JNIEnv *env, jobject obj, jobject j
  */
 void Java_org_direct_1bt_EInfoReport_setAddressTypeImpl(JNIEnv *env, jobject obj, jbyte jat) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         eir_ptr->setAddressType(static_cast<BDAddressType>(jat));
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -114,7 +156,7 @@ void Java_org_direct_1bt_EInfoReport_setAddressTypeImpl(JNIEnv *env, jobject obj
  */
 void Java_org_direct_1bt_EInfoReport_setAddressImpl(JNIEnv *env, jobject obj, jbyteArray jaddress) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
 
         if( nullptr == jaddress ) {
             throw jau::IllegalArgumentException("address null", E_FILE_LINE);
@@ -143,7 +185,7 @@ void Java_org_direct_1bt_EInfoReport_setAddressImpl(JNIEnv *env, jobject obj, jb
  */
 void Java_org_direct_1bt_EInfoReport_setRSSI(JNIEnv *env, jobject obj, jbyte jrssi) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         eir_ptr->setRSSI(static_cast<int8_t>(jrssi));
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -157,7 +199,7 @@ void Java_org_direct_1bt_EInfoReport_setRSSI(JNIEnv *env, jobject obj, jbyte jrs
  */
 void Java_org_direct_1bt_EInfoReport_setTxPower(JNIEnv *env, jobject obj, jbyte jtxp) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         eir_ptr->setTxPower(static_cast<int8_t>(jtxp));
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -171,7 +213,7 @@ void Java_org_direct_1bt_EInfoReport_setTxPower(JNIEnv *env, jobject obj, jbyte 
  */
 void Java_org_direct_1bt_EInfoReport_setFlagsImpl(JNIEnv *env, jobject obj, jbyte jf) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         eir_ptr->setFlags(static_cast<GAPFlags>(jf));
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -185,7 +227,7 @@ void Java_org_direct_1bt_EInfoReport_setFlagsImpl(JNIEnv *env, jobject obj, jbyt
  */
 void Java_org_direct_1bt_EInfoReport_addFlagImpl(JNIEnv *env, jobject obj, jbyte jf) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         eir_ptr->addFlags(static_cast<GAPFlags>(jf));
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -199,7 +241,7 @@ void Java_org_direct_1bt_EInfoReport_addFlagImpl(JNIEnv *env, jobject obj, jbyte
  */
 void Java_org_direct_1bt_EInfoReport_setName(JNIEnv *env, jobject obj, jstring jname) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         std::string name = jau::from_jstring_to_string(env, jname);
         eir_ptr->setName(name);
     } catch(...) {
@@ -214,7 +256,7 @@ void Java_org_direct_1bt_EInfoReport_setName(JNIEnv *env, jobject obj, jstring j
  */
 void Java_org_direct_1bt_EInfoReport_setShortName(JNIEnv *env, jobject obj, jstring jsname) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         std::string sname = jau::from_jstring_to_string(env, jsname);
         eir_ptr->setShortName(sname);
     } catch(...) {
@@ -229,7 +271,7 @@ void Java_org_direct_1bt_EInfoReport_setShortName(JNIEnv *env, jobject obj, jstr
  */
 void Java_org_direct_1bt_EInfoReport_addService(JNIEnv *env, jobject obj, jstring juuid) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         std::string uuid_s = jau::from_jstring_to_string(env, juuid);
         std::shared_ptr<const jau::uuid_t> uuid = jau::uuid_t::create(uuid_s);
         eir_ptr->addService(uuid);
@@ -245,7 +287,7 @@ void Java_org_direct_1bt_EInfoReport_addService(JNIEnv *env, jobject obj, jstrin
  */
 void Java_org_direct_1bt_EInfoReport_setServicesComplete(JNIEnv *env, jobject obj, jboolean jv) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         eir_ptr->setServicesComplete(JNI_TRUE==jv);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -259,7 +301,7 @@ void Java_org_direct_1bt_EInfoReport_setServicesComplete(JNIEnv *env, jobject ob
  */
 void Java_org_direct_1bt_EInfoReport_setDeviceClass(JNIEnv *env, jobject obj, jint jv) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         eir_ptr->setDeviceClass(static_cast<uint32_t>(jv));
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -273,7 +315,7 @@ void Java_org_direct_1bt_EInfoReport_setDeviceClass(JNIEnv *env, jobject obj, ji
  */
 void Java_org_direct_1bt_EInfoReport_setDeviceID(JNIEnv *env, jobject obj, jshort jsource, jshort jvendor, jshort jproduct, jshort jversion) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         eir_ptr->setDeviceID(static_cast<uint16_t>(jsource), static_cast<uint16_t>(jvendor), static_cast<uint16_t>(jproduct), static_cast<uint16_t>(jversion));
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -287,7 +329,7 @@ void Java_org_direct_1bt_EInfoReport_setDeviceID(JNIEnv *env, jobject obj, jshor
  */
 void Java_org_direct_1bt_EInfoReport_setConnInterval(JNIEnv *env, jobject obj, jshort jmin, jshort jmax) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         eir_ptr->setConnInterval(static_cast<uint16_t>(jmin), static_cast<uint16_t>(jmax));
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -301,7 +343,7 @@ void Java_org_direct_1bt_EInfoReport_setConnInterval(JNIEnv *env, jobject obj, j
  */
 jlong Java_org_direct_1bt_EInfoReport_getTimestamp(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return static_cast<jlong>( eir_ptr->getTimestamp() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -316,7 +358,7 @@ jlong Java_org_direct_1bt_EInfoReport_getTimestamp(JNIEnv *env, jobject obj) {
  */
 jint Java_org_direct_1bt_EInfoReport_getEIRDataMaskImpl(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return static_cast<jint>( number( eir_ptr->getEIRDataMask() ) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -331,7 +373,7 @@ jint Java_org_direct_1bt_EInfoReport_getEIRDataMaskImpl(JNIEnv *env, jobject obj
  */
 jbyte Java_org_direct_1bt_EInfoReport_getFlagsImpl(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return static_cast<jbyte>( number( eir_ptr->getFlags() ) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -346,7 +388,7 @@ jbyte Java_org_direct_1bt_EInfoReport_getFlagsImpl(JNIEnv *env, jobject obj) {
  */
 jbyte Java_org_direct_1bt_EInfoReport_getADAddressType(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return static_cast<jbyte>( eir_ptr->getADAddressType() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -361,7 +403,7 @@ jbyte Java_org_direct_1bt_EInfoReport_getADAddressType(JNIEnv *env, jobject obj)
  */
 jbyte Java_org_direct_1bt_EInfoReport_getAddressTypeImpl(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return static_cast<jbyte>( number( eir_ptr->getAddressType() ) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -376,7 +418,7 @@ jbyte Java_org_direct_1bt_EInfoReport_getAddressTypeImpl(JNIEnv *env, jobject ob
  */
 jbyteArray Java_org_direct_1bt_EInfoReport_getAddressImpl(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         const EUI48 & addr = eir_ptr->getAddress();
         jbyteArray jaddr = env->NewByteArray(sizeof(addr));
         env->SetByteArrayRegion(jaddr, 0, sizeof(addr), (const jbyte*)(addr.b));
@@ -394,7 +436,7 @@ jbyteArray Java_org_direct_1bt_EInfoReport_getAddressImpl(JNIEnv *env, jobject o
  */
 jstring Java_org_direct_1bt_EInfoReport_getName(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return jau::from_string_to_jstring(env, eir_ptr->getName());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -409,7 +451,7 @@ jstring Java_org_direct_1bt_EInfoReport_getName(JNIEnv *env, jobject obj) {
  */
 jstring Java_org_direct_1bt_EInfoReport_getShortName(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return jau::from_string_to_jstring(env, eir_ptr->getShortName());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -424,7 +466,7 @@ jstring Java_org_direct_1bt_EInfoReport_getShortName(JNIEnv *env, jobject obj) {
  */
 jbyte Java_org_direct_1bt_EInfoReport_getRSSI(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return static_cast<jbyte>( eir_ptr->getRSSI() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -439,7 +481,7 @@ jbyte Java_org_direct_1bt_EInfoReport_getRSSI(JNIEnv *env, jobject obj) {
  */
 jbyte Java_org_direct_1bt_EInfoReport_getTxPower(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return static_cast<jbyte>( eir_ptr->getTxPower() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -450,7 +492,7 @@ jbyte Java_org_direct_1bt_EInfoReport_getTxPower(JNIEnv *env, jobject obj) {
 jobject Java_org_direct_1bt_EInfoReport_getManufacturerData(JNIEnv *env, jobject obj)
 {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         std::shared_ptr<ManufactureSpecificData> mdata = eir_ptr->getManufactureSpecificData();
 
         jclass map_cls = jau::search_class(env, "java/util/HashMap");
@@ -490,7 +532,7 @@ jobject Java_org_direct_1bt_EInfoReport_getManufacturerData(JNIEnv *env, jobject
  */
 jobject Java_org_direct_1bt_EInfoReport_getServices(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         jau::darray<std::shared_ptr<const jau::uuid_t>> service_uuids = eir_ptr->getServices();
         std::function<jobject(JNIEnv*, const jau::uuid_t*)> ctor_uuid2string =
                 [](JNIEnv *env_, const jau::uuid_t* uuid_ptr)->jobject {
@@ -510,7 +552,7 @@ jobject Java_org_direct_1bt_EInfoReport_getServices(JNIEnv *env, jobject obj) {
  */
 jboolean Java_org_direct_1bt_EInfoReport_getServicesComplete(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return eir_ptr->getServicesComplete() ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -525,7 +567,7 @@ jboolean Java_org_direct_1bt_EInfoReport_getServicesComplete(JNIEnv *env, jobjec
  */
 jint Java_org_direct_1bt_EInfoReport_getDeviceClass(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return static_cast<jint>( eir_ptr->getDeviceClass() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -540,7 +582,7 @@ jint Java_org_direct_1bt_EInfoReport_getDeviceClass(JNIEnv *env, jobject obj) {
  */
 jshort Java_org_direct_1bt_EInfoReport_getDeviceIDSource(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return static_cast<jshort>( eir_ptr->getDeviceIDSource() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -555,7 +597,7 @@ jshort Java_org_direct_1bt_EInfoReport_getDeviceIDSource(JNIEnv *env, jobject ob
  */
 jshort Java_org_direct_1bt_EInfoReport_getDeviceIDVendor(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return static_cast<jshort>( eir_ptr->getDeviceIDVendor() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -570,7 +612,7 @@ jshort Java_org_direct_1bt_EInfoReport_getDeviceIDVendor(JNIEnv *env, jobject ob
  */
 jshort Java_org_direct_1bt_EInfoReport_getDeviceIDProduct(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return static_cast<jshort>( eir_ptr->getDeviceIDProduct() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -585,7 +627,7 @@ jshort Java_org_direct_1bt_EInfoReport_getDeviceIDProduct(JNIEnv *env, jobject o
  */
 jshort Java_org_direct_1bt_EInfoReport_getDeviceIDVersion(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return static_cast<jshort>( eir_ptr->getDeviceIDVersion() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -600,7 +642,7 @@ jshort Java_org_direct_1bt_EInfoReport_getDeviceIDVersion(JNIEnv *env, jobject o
  */
 void Java_org_direct_1bt_EInfoReport_getConnInterval(JNIEnv *env, jobject obj, jshortArray jminmax) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
 
         if( nullptr == jminmax ) {
             throw jau::IllegalArgumentException("address null", E_FILE_LINE);
@@ -627,7 +669,7 @@ void Java_org_direct_1bt_EInfoReport_getConnInterval(JNIEnv *env, jobject obj, j
  */
 jstring Java_org_direct_1bt_EInfoReport_getDeviceIDModalias(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return jau::from_string_to_jstring(env, eir_ptr->getDeviceIDModalias());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -642,7 +684,7 @@ jstring Java_org_direct_1bt_EInfoReport_getDeviceIDModalias(JNIEnv *env, jobject
  */
 jstring Java_org_direct_1bt_EInfoReport_eirDataMaskToString(JNIEnv *env, jobject obj) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return jau::from_string_to_jstring(env, eir_ptr->eirDataMaskToString());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -657,7 +699,7 @@ jstring Java_org_direct_1bt_EInfoReport_eirDataMaskToString(JNIEnv *env, jobject
  */
 jstring Java_org_direct_1bt_EInfoReport_toString(JNIEnv *env, jobject obj, jboolean includeServices) {
     try {
-        EInfoReport * eir_ptr = jau::getInstance<EInfoReport>(env, obj);
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
         return jau::from_string_to_jstring(env, eir_ptr->toString(JNI_TRUE==includeServices));
     } catch(...) {
         rethrow_and_raise_java_exception(env);
