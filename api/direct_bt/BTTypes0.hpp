@@ -941,8 +941,8 @@ namespace direct_bt {
         public:
             EInfoReport() noexcept : hash(16, 0, jau::endian::little), randomizer(16, 0, jau::endian::little) {}
 
-            EInfoReport(const EInfoReport&) noexcept = default;
-            EInfoReport& operator=(const EInfoReport &o) noexcept = default;
+            EInfoReport(const EInfoReport&) = default;
+            EInfoReport& operator=(const EInfoReport &o) = default;
 
             /**
              * Reset all data fields.
