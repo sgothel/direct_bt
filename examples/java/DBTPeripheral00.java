@@ -632,13 +632,15 @@ public class DBTPeripheral00 {
         BTUtils.println(System.err, "initAdapter.1: "+adapter.toString());
 
         if( adapter.setPowered(false) ) {
-            final HCIStatusCode status = adapter.setName(adapter_name, adapter_short_name);
+            HCIStatusCode status = adapter.setName(adapter_name, adapter_short_name);
             if( HCIStatusCode.SUCCESS == status ) {
                 BTUtils.fprintf_td(System.err, "initAdapter: setLocalName OK: %s\n", adapter.toString());
             } else {
                 BTUtils.fprintf_td(System.err, "initAdapter: setLocalName failed: %s\n", adapter.toString());
             }
-            if( adapter.setSecureConnections( use_SC ) ) {
+
+            status = adapter.setSecureConnections( use_SC );
+            if( HCIStatusCode.SUCCESS == status ) {
                 BTUtils.fprintf_td(System.err, "initAdapter: setSecureConnections OK: %s\n", adapter.toString());
             } else {
                 BTUtils.fprintf_td(System.err, "initAdapter: setSecureConnections failed: %s\n", adapter.toString());

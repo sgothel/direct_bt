@@ -481,14 +481,18 @@ public interface BTAdapter extends BTObject
 
     /**
      * Sets the name and short-name.
-     * <p>
-     * Shall be performed while powered-off.
-     * </p>
-     * <p>
+     *
      * The corresponding management event will change the name and short-name.
-     * </p>
+     *
+     * Shall be called while adapter is powered off, see {@link #setPowered(boolean)}.
+     * If adapter is powered, method returns {@link HCIStatusCode#COMMAND_DISALLOWED}.
+     *
+     * @param name
+     * @param short_name
+     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
      * @see #getName()
      * @see #getShortName()
+     * @see #setPowered(boolean)
      * @since 2.4.0
      */
     HCIStatusCode setName(String name, String short_name);
@@ -570,12 +574,17 @@ public interface BTAdapter extends BTObject
      *
      * By default, Secure Connections (SC) is enabled if supported.
      *
+     * Shall be called while adapter is powered off, see {@link #setPowered(boolean)}.
+     * If adapter is powered, method returns {@link HCIStatusCode#COMMAND_DISALLOWED}.
+     *
      * @param enable
-     * @return true if successful, otherwise false
+     * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
      * @see #getSecureConnectionsEnabled()
+     * @see #setPowered(boolean)
      * @since 2.4.0
      */
-    boolean setSecureConnections(final boolean enable);
+    HCIStatusCode setSecureConnections(final boolean enable);
+
 
     /**
      * Sets the given ::BTSecurityLevel and ::SMPIOCapability for connecting device when in server (peripheral) mode, see [adapter's role](@ref BTAdapterRoles).

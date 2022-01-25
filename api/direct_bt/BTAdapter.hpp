@@ -702,14 +702,18 @@ namespace direct_bt {
 
             /**
              * Sets the name and short-name.
-             * <p>
-             * Shall be performed while powered-off.
-             * </p>
-             * <p>
+             *
              * The corresponding management event will change the name and short-name.
-             * </p>
+             *
+             * Shall be called while adapter is powered off, see setPowered().
+             * If adapter is powered, method returns HCIStatusCode::COMMAND_DISALLOWED.
+             *
+             * @param name
+             * @param short_name
+             * @return HCIStatusCode::SUCCESS or an error state on failure
              * @see getName()
              * @see getShortName()
+             * @see setPowered()
              * @since 2.4.0
              */
             HCIStatusCode setName(const std::string &name, const std::string &short_name) noexcept;
@@ -741,12 +745,16 @@ namespace direct_bt {
              *
              * By default, Secure Connections (SC) is enabled if supported.
              *
+             * Shall be called while adapter is powered off, see setPowered().
+             * If adapter is powered, method returns HCIStatusCode::COMMAND_DISALLOWED.
+             *
              * @param enable
-             * @return true if successful, otherwise false
+             * @return HCIStatusCode::SUCCESS or an error state on failure
              * @see getSecureConnectionsEnabled()
-             * @since 2.4.0
+             * @see setPowered()
+             * @since 2.5.3
              */
-            bool setSecureConnections(const bool enable) noexcept;
+            HCIStatusCode setSecureConnections(const bool enable) noexcept;
 
             /**
              * Sets the given ::BTSecurityLevel and ::SMPIOCapability for connecting device when in server (peripheral) mode, see [adapter's role](@ref BTAdapterRoles).

@@ -283,7 +283,10 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     public native boolean getSecureConnectionsEnabled();
 
     @Override
-    public native boolean setSecureConnections(final boolean enable);
+    public final HCIStatusCode setSecureConnections(final boolean enable) {
+        return HCIStatusCode.get( setSecureConnectionsImpl(enable) );
+    }
+    private native byte setSecureConnectionsImpl(final boolean enable);
 
     @Override
     public final void setServerConnSecurity(final BTSecurityLevel sec_level, final SMPIOCapability io_cap) {

@@ -564,6 +564,9 @@ void BTAdapter::printStatusListenerList() noexcept {
 }
 
 HCIStatusCode BTAdapter::setName(const std::string &name, const std::string &short_name) noexcept {
+    if( isAdapterSettingBitSet(adapterInfo.getCurrentSettingMask(), AdapterSetting::POWERED) ) {
+        return HCIStatusCode::COMMAND_DISALLOWED;
+    }
     std::shared_ptr<NameAndShortName> res = mgmt.setLocalName(dev_id, name, short_name);
     return nullptr != res ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
 }
@@ -582,18 +585,22 @@ bool BTAdapter::setPowered(const bool power_on) noexcept {
     return power_on == isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED);
 }
 
-bool BTAdapter::setSecureConnections(const bool enable) noexcept {
+HCIStatusCode BTAdapter::setSecureConnections(const bool enable) noexcept {
     AdapterSetting settings = adapterInfo.getCurrentSettingMask();
+    if( isAdapterSettingBitSet(settings, AdapterSetting::POWERED) ) {
+        return HCIStatusCode::COMMAND_DISALLOWED;
+    }
     if( enable == isAdapterSettingBitSet(settings, AdapterSetting::SECURE_CONN) ) {
         // unchanged
-        return true;
+        return HCIStatusCode::SUCCESS;
     }
     if( !mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, enable ? 1 : 0, settings) ) {
-        return false;
+        return HCIStatusCode::FAILED;
     }
     const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(settings);
     updateAdapterSettings(false /* off_thread */, new_settings, false /* sendEvent */, 0);
-    return enable == isAdapterSettingBitSet(new_settings, AdapterSetting::SECURE_CONN);
+    return ( enable == isAdapterSettingBitSet(new_settings, AdapterSetting::SECURE_CONN) ) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
+}
 }
 
 void BTAdapter::setServerConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {

@@ -584,13 +584,15 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     fprintf_td(stderr, "initAdapter.1: %s\n", adapter->toString().c_str());
 
     if( adapter->setPowered(false) ) {
-        const HCIStatusCode status = adapter->setName(adapter_name, adapter_short_name);
+        HCIStatusCode status = adapter->setName(adapter_name, adapter_short_name);
         if( HCIStatusCode::SUCCESS == status ) {
             fprintf_td(stderr, "initAdapter: setLocalName OK: %s\n", adapter->toString().c_str());
         } else {
             fprintf_td(stderr, "initAdapter: setLocalName failed: %s\n", adapter->toString().c_str());
         }
-        if( adapter->setSecureConnections( use_SC ) ) {
+
+        status = adapter->setSecureConnections( use_SC );
+        if( HCIStatusCode::SUCCESS == status ) {
             fprintf_td(stderr, "initAdapter: setSecureConnections OK: %s\n", adapter->toString().c_str());
         } else {
             fprintf_td(stderr, "initAdapter: setSecureConnections failed: %s\n", adapter->toString().c_str());
