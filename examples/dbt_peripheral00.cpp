@@ -589,6 +589,7 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
             fprintf_td(stderr, "initAdapter: setLocalName OK: %s\n", adapter->toString().c_str());
         } else {
             fprintf_td(stderr, "initAdapter: setLocalName failed: %s\n", adapter->toString().c_str());
+            return false;
         }
 
         status = adapter->setSecureConnections( use_SC );
@@ -596,7 +597,21 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
             fprintf_td(stderr, "initAdapter: setSecureConnections OK: %s\n", adapter->toString().c_str());
         } else {
             fprintf_td(stderr, "initAdapter: setSecureConnections failed: %s\n", adapter->toString().c_str());
+            return false;
         }
+
+        const uint16_t conn_min_interval = 8;  // 10ms
+        const uint16_t conn_max_interval = 40; // 50ms
+        const uint16_t conn_latency = 0;
+        const uint16_t supervision_timeout = 50; // 500ms
+        status = adapter->setDefaultConnParam(conn_min_interval, conn_max_interval, conn_latency, supervision_timeout);
+        if( HCIStatusCode::SUCCESS == status ) {
+            fprintf_td(stderr, "initAdapter: setDefaultConnParam OK: %s\n", adapter->toString().c_str());
+        } else {
+            fprintf_td(stderr, "initAdapter: setDefaultConnParam failed: %s\n", adapter->toString().c_str());
+            return false;
+        }
+
         if( !adapter->setPowered( true ) ) {
             fprintf_td(stderr, "initAdapter: setPower.2 on failed: %s\n", adapter->toString().c_str());
             return false;

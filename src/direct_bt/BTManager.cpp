@@ -308,17 +308,7 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
 
     removeDeviceFromWhitelist(dev_id, BDAddressAndType::ANY_BREDR_DEVICE); // flush whitelist!
 
-    {
-        // FIXME: Configurable ???
-        const uint16_t conn_min_interval = 8;  // 10ms
-        const uint16_t conn_max_interval = 40; // 50ms
-        const uint16_t conn_latency = 0;
-        const uint16_t supervision_timeout = 300; // 3s
-
-        setDefaultConnParam(dev_id,
-                            conn_min_interval, conn_max_interval,
-                            conn_latency, supervision_timeout);
-    }
+    setDefaultConnParam(dev_id); // using our defaults, exceeding BlueZ/Linux on the lower-end a bit
 
     setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 1, current_settings);
 

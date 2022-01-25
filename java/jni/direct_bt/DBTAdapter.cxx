@@ -845,6 +845,22 @@ jbyte Java_jau_direct_1bt_DBTAdapter_setSecureConnectionsImpl(JNIEnv *env, jobje
     }
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
+
+jbyte Java_jau_direct_1bt_DBTAdapter_setDefaultConnParamImpl(JNIEnv *env, jobject obj,
+                                                             jshort conn_interval_min, jshort conn_interval_max,
+                                                             jshort conn_latency, jshort supervision_timeout) {
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        HCIStatusCode res = adapter->setDefaultConnParam(static_cast<uint16_t>(conn_interval_min),
+                                                         static_cast<uint16_t>(conn_interval_max),
+                                                         static_cast<uint16_t>(conn_latency),
+                                                         static_cast<uint16_t>(supervision_timeout));
+        return (jbyte) number(res);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
 void Java_jau_direct_1bt_DBTAdapter_setServerConnSecurityImpl(JNIEnv *env, jobject obj, jbyte jsec_level, jbyte jio_cap) {

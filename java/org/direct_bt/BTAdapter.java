@@ -585,6 +585,33 @@ public interface BTAdapter extends BTObject
      */
     HCIStatusCode setSecureConnections(final boolean enable);
 
+    /**
+     * Set default connection parameter of incoming connections for this adapter when in server mode, i.e. BTRole::Slave.
+     *
+     * In case the incoming connection's parameter don't lie within the given default values,
+     * a reconnect is being requested.
+     *
+     * Shall be called while adapter is powered off, see setPowered().
+     * If adapter is powered, method returns HCIStatusCode::COMMAND_DISALLOWED.
+     *
+     * BlueZ/Linux LE connection defaults are
+     * - conn_interval_min 24 -> 30ms
+     * - conn_interval_max 40 -> 50ms
+     * - conn_latency 0
+     * - supervision_timeout 42 -> 420ms
+     *
+     * @param dev_id
+     * @param conn_interval_min in units of 1.25ms, default value 8 for 10ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]. BlueZ/Linux 24 ->
+     * @param conn_interval_max in units of 1.25ms, default value 40 for 50ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]
+     * @param conn_latency slave latency in units of connection events, default value 0; Value range [0 .. 0x01F3].
+     * @param supervision_timeout in units of 10ms, default value 500ms >= 10 x conn_interval_max, we use HCIConstInt::LE_CONN_MIN_TIMEOUT_MS minimum; Value range [0xA-0x0C80] for [100ms - 32s].
+     * @return HCIStatusCode::SUCCESS or an error state on failure
+     * @see setPowered()
+     * @since 2.5.3
+     */
+    HCIStatusCode setDefaultConnParam(final short conn_interval_min, final short conn_interval_max,
+                                      final short conn_latency, final short supervision_timeout);
+
 
     /**
      * Sets the given ::BTSecurityLevel and ::SMPIOCapability for connecting device when in server (peripheral) mode, see [adapter's role](@ref BTAdapterRoles).

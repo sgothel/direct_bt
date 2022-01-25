@@ -637,6 +637,7 @@ public class DBTPeripheral00 {
                 BTUtils.fprintf_td(System.err, "initAdapter: setLocalName OK: %s\n", adapter.toString());
             } else {
                 BTUtils.fprintf_td(System.err, "initAdapter: setLocalName failed: %s\n", adapter.toString());
+                return false;
             }
 
             status = adapter.setSecureConnections( use_SC );
@@ -644,7 +645,21 @@ public class DBTPeripheral00 {
                 BTUtils.fprintf_td(System.err, "initAdapter: setSecureConnections OK: %s\n", adapter.toString());
             } else {
                 BTUtils.fprintf_td(System.err, "initAdapter: setSecureConnections failed: %s\n", adapter.toString());
+                return false;
             }
+
+            final short conn_min_interval = 8;  // 10ms
+            final short conn_max_interval = 40; // 50ms
+            final short conn_latency = 0;
+            final short supervision_timeout = 50; // 500ms
+            status = adapter.setDefaultConnParam(conn_min_interval, conn_max_interval, conn_latency, supervision_timeout);
+            if( HCIStatusCode.SUCCESS == status ) {
+                BTUtils.fprintf_td(System.err, "initAdapter: setDefaultConnParam OK: %s\n", adapter.toString());
+            } else {
+                BTUtils.fprintf_td(System.err, "initAdapter: setDefaultConnParam failed: %s\n", adapter.toString());
+                return false;
+            }
+
             if( !adapter.setPowered( true ) ) {
                 BTUtils.fprintf_td(System.err, "initAdapter: setPower.2 on failed: %s\n", adapter.toString());
                 return false;

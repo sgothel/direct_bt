@@ -289,6 +289,15 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private native byte setSecureConnectionsImpl(final boolean enable);
 
     @Override
+    public final HCIStatusCode setDefaultConnParam(final short conn_interval_min, final short conn_interval_max,
+                                                   final short conn_latency, final short supervision_timeout) {
+        return HCIStatusCode.get( setDefaultConnParamImpl(conn_interval_min, conn_interval_max,
+                                                          conn_latency, supervision_timeout) );
+    }
+    private native byte setDefaultConnParamImpl(final short conn_interval_min, final short conn_interval_max,
+                                                final short conn_latency, final short supervision_timeout);
+
+    @Override
     public final void setServerConnSecurity(final BTSecurityLevel sec_level, final SMPIOCapability io_cap) {
         setServerConnSecurityImpl(sec_level.value, io_cap.value);
     }

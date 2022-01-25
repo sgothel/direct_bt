@@ -601,6 +601,14 @@ HCIStatusCode BTAdapter::setSecureConnections(const bool enable) noexcept {
     updateAdapterSettings(false /* off_thread */, new_settings, false /* sendEvent */, 0);
     return ( enable == isAdapterSettingBitSet(new_settings, AdapterSetting::SECURE_CONN) ) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
 }
+
+HCIStatusCode BTAdapter::setDefaultConnParam(const uint16_t conn_interval_min, const uint16_t conn_interval_max,
+                                             const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
+    if( isAdapterSettingBitSet(adapterInfo.getCurrentSettingMask(), AdapterSetting::POWERED) ) {
+        return HCIStatusCode::COMMAND_DISALLOWED;
+    }
+    const bool res = mgmt.setDefaultConnParam(dev_id, conn_interval_min, conn_interval_max, conn_latency, supervision_timeout);
+    return res ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
 }
 
 void BTAdapter::setServerConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {
