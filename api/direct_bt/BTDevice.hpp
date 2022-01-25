@@ -321,6 +321,12 @@ namespace direct_bt {
             /** Return Tx Power of device as recognized at discovery and connect. */
             int8_t getTxPower() const noexcept { return tx_power; }
 
+            /**
+             * Returns the remote device name.
+             *
+             * The name has been set by the advertised EInfoReport if available,
+             * otherwise by the GATT GenericAccess data post connection.
+             */
             std::string const getName() const noexcept;
 
             /**

@@ -767,9 +767,14 @@ public interface BTDevice extends BTObject
      */
     BDAddressAndType getAddressAndType();
 
-    /** Returns the remote friendly name of this device.
-      * @return The remote friendly name of this device, or NULL if not set.
-      */
+    /**
+     * Returns the remote device name.
+     *
+     * The name has been set by the advertised {@link EInfoReport} if available,
+     * otherwise by the GATT GenericAccess data post connection.
+     *
+     * @see #getEIR()
+     */
     String getName();
 
     /** Returns the Received Signal Strength Indicator of the device.

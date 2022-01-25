@@ -193,13 +193,13 @@ EIRDataType BTDevice::update(GattGenericAccessSvc const &data, const uint64_t ti
 
     EIRDataType res = EIRDataType::NONE;
     ts_last_update = timestamp;
-    if( 0 == name.length() || data.deviceName.length() > name.length() ) {
+    if( 0 == name.length() && data.deviceName.length() > 0 ) {
         name = data.deviceName;
         eir_new->setName( name );
         setEIRDataTypeSet(res, EIRDataType::NAME);
         mod = true;
     }
-    if( eir.getAppearance() != data.appearance ) {
+    if( eir_new->getAppearance() != data.appearance && AppearanceCat::UNKNOWN != data.appearance) {
         eir_new->setAppearance( data.appearance );
         setEIRDataTypeSet(res, EIRDataType::APPEARANCE);
         mod = true;
