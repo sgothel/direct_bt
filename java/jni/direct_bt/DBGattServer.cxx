@@ -48,6 +48,7 @@ using namespace direct_bt;
 
 // package org.direct_bt;
 // public DBGattValue(final byte[] value, final int capacity, final boolean variable_length)
+static const std::string _dbGattValueClazzName("org/direct_bt/DBGattValue");
 static const std::string _dbGattValueClazzCtorArgs("([BIZ)V");
 
 static jobject _createDBGattValueFromDesc(JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, DBGattDesc* valueHolder) {
@@ -87,7 +88,8 @@ static jobject _createDBGattValueFromChar(JNIEnv *env_, jclass clazz, jmethodID 
 jobject Java_org_direct_1bt_DBGattDesc_getValue(JNIEnv *env, jobject obj) {
     try {
         std::shared_ptr<DBGattDesc> * ref_ptr = jau::getInstance<std::shared_ptr<DBGattDesc>>(env, obj);
-        return jau::convert_instance_to_jobject<DBGattDesc>(env, ref_ptr->get(), _dbGattValueClazzCtorArgs.c_str(), _createDBGattValueFromDesc);
+        jclass clazz = jau::search_class(env, _dbGattValueClazzName.c_str());
+        return jau::convert_instance_to_jobject<DBGattDesc>(env, clazz, _dbGattValueClazzCtorArgs.c_str(), _createDBGattValueFromDesc, ref_ptr->get());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -191,7 +193,8 @@ jstring Java_org_direct_1bt_DBGattDesc_toString(JNIEnv *env, jobject obj) {
 jobject Java_org_direct_1bt_DBGattChar_getValue(JNIEnv *env, jobject obj) {
     try {
         std::shared_ptr<DBGattChar> * ref_ptr = jau::getInstance<std::shared_ptr<DBGattChar>>(env, obj);
-        return jau::convert_instance_to_jobject<DBGattChar>(env, ref_ptr->get(), _dbGattValueClazzCtorArgs.c_str(), _createDBGattValueFromChar);
+        jclass clazz = jau::search_class(env, _dbGattValueClazzName.c_str());
+        return jau::convert_instance_to_jobject<DBGattChar>(env, clazz, _dbGattValueClazzCtorArgs.c_str(), _createDBGattValueFromChar, ref_ptr->get());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
