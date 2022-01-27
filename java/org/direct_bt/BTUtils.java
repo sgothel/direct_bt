@@ -129,6 +129,21 @@ public class BTUtils {
     }
 
     /**
+     * Converts a given hexadecimal string representation to a byte array.
+     *
+     * In case a non valid hexadecimal digit appears in the given string,
+     * conversion ends and returns the byte array up until the violation.
+     *
+     * @param hexstr the hexadecimal string representation
+     * @param lsbFirst low significant byte first
+     * @param checkLeading0x if true, checks for a leading `0x` and removes it, otherwise not.
+     * @return the matching byte array
+     */
+    public static byte[] hexStringBytes(final String hexstr, final boolean lsbFirst, final boolean checkLeading0x) {
+        return BasicTypes.hexStringBytes(hexstr, lsbFirst, checkLeading0x);
+    }
+
+    /**
      * Produce a lower-case hexadecimal string representation of the given byte values.
      * <p>
      * If lsbFirst is true, orders LSB left -> MSB right, usual for byte streams.<br>
