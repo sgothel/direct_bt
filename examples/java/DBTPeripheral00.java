@@ -380,9 +380,11 @@ public class DBTPeripheral00 {
                             final String data = String.format("Dynamic Data Example. Elapsed Milliseconds: %,9d", BTUtils.elapsedTimeMillis());
                             final byte[] v = data.getBytes(StandardCharsets.UTF_8);
                             if( 0 != handlePulseDataNotify ) {
+                                BTUtils.fprintf_td(System.err, "****** GATT::sendNotification: PULSE to %s\n", connectedDevice.toString());
                                 connectedDevice.sendNotification(handlePulseDataNotify, v);
                             }
                             if( 0 != handlePulseDataIndicate ) {
+                                BTUtils.fprintf_td(System.err, "****** GATT::sendIndication: PULSE to %s\n", connectedDevice.toString());
                                 connectedDevice.sendIndication(handlePulseDataIndicate, v);
                             }
                         }
@@ -399,9 +401,13 @@ public class DBTPeripheral00 {
             if( null != connectedDevice && connectedDevice.getConnected() ) {
                 if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
                     if( 0 != handleResponseDataNotify ) {
+                        BTUtils.fprintf_td(System.err, "****** GATT::sendNotification: %s to %s\n",
+                                BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice.toString());
                         connectedDevice.sendNotification(handleResponseDataNotify, data);
                     }
                     if( 0 != handleResponseDataIndicate ) {
+                        BTUtils.fprintf_td(System.err, "****** GATT::sendIndication: %s to %s\n",
+                                BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice.toString());
                         connectedDevice.sendIndication(handleResponseDataIndicate, data);
                     }
                 }
@@ -483,24 +489,26 @@ public class DBTPeripheral00 {
             final boolean match = matches(device);
             final String value_s = BTUtils.bytesHexString(value, 0, value.length, true /* lsbFirst */)+
                                    " '"+BTUtils.decodeUTF8String(value, 0, value.length)+"'";
-            BTUtils.fprintf_td(System.err, "****** GATT::writeCharValue(match %b): %s @ 0x%s from %s, to\n  %s\n    %s\n",
-                    match, value_s, Integer.toHexString(value_offset),
+            BTUtils.fprintf_td(System.err, "****** GATT::writeCharValue(match %b): %s @ %d from %s, to\n  %s\n    %s\n",
+                    match, value_s, value_offset,
                     device.toString(), s.toString(), c.toString());
 
-            if( match &&
-                c.getValueType().equals( CommandUUID ) &&
-                ( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) )
-            {
-                executeOffThread( () -> { sendResponse(value); }, true /* detach */);
-            }
             return match;
         }
 
         @Override
         public void writeCharValueDone(final BTDevice device, final DBGattService s, final DBGattChar c) {
             final boolean match = matches(device);
-            BTUtils.fprintf_td(System.err, "****** GATT::writeCharValueDone(match %b): From %s, to\n  %s\n    %s\n",
-                    match, device.toString(), s.toString(), c.toString());
+            final DBGattValue value = c.getValue();
+            BTUtils.fprintf_td(System.err, "****** GATT::writeCharValueDone(match %b): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
+                    match, device.toString(), s.toString(), c.toString(), value.toString());
+
+            if( match &&
+                c.getValueType().equals( CommandUUID ) &&
+                ( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) )
+            {
+                executeOffThread( () -> { sendResponse( value.data() ); }, true /* detach */);
+            }
         }
 
         @Override
@@ -510,8 +518,8 @@ public class DBTPeripheral00 {
             final boolean match = matches(device);
             final String value_s = BTUtils.bytesHexString(value, 0, value.length, true /* lsbFirst */)+
                                    " '"+BTUtils.decodeUTF8String(value, 0, value.length)+"'";
-            BTUtils.fprintf_td(System.err, "****** GATT::writeDescValue(match %b): %s @ 0x%s from %s\n  %s\n    %s\n      %s\n",
-                    match, value_s, Integer.toHexString(value_offset),
+            BTUtils.fprintf_td(System.err, "****** GATT::writeDescValue(match %b): %s @ %d from %s\n  %s\n    %s\n      %s\n",
+                    match, value_s, value_offset,
                     device.toString(), s.toString(), c.toString(), d.toString());
             return match;
         }
@@ -519,8 +527,9 @@ public class DBTPeripheral00 {
         @Override
         public void writeDescValueDone(final BTDevice device, final DBGattService s, final DBGattChar c, final DBGattDesc d) {
             final boolean match = matches(device);
-            BTUtils.fprintf_td(System.err, "****** GATT::writeDescValueDone(match %b): From %s\n  %s\n    %s\n      %s\n",
-                    match, device.toString(), s.toString(), c.toString(), d.toString());
+            final DBGattValue value = d.getValue();
+            BTUtils.fprintf_td(System.err, "****** GATT::writeDescValueDone(match %b): From %s\n  %s\n    %s\n      %s\n      Desc-Value: %s\n",
+                    match, device.toString(), s.toString(), c.toString(), d.toString(), value.toString());
         }
 
         @Override
@@ -528,9 +537,10 @@ public class DBTPeripheral00 {
                                             final boolean notificationEnabled, final boolean indicationEnabled)
         {
             final boolean match = matches(device);
-            BTUtils.fprintf_td(System.err, "****** GATT::clientCharConfigChanged(match %b): notify %b, indicate %b from %s\n  %s\n    %s\n      %s\n",
+            final DBGattValue value = d.getValue();
+            BTUtils.fprintf_td(System.err, "****** GATT::clientCharConfigChanged(match %b): notify %b, indicate %b from %s\n  %s\n    %s\n      %s\n      Desc-Value: %s\n",
                     match, notificationEnabled, indicationEnabled,
-                    device.toString(), s.toString(), c.toString(), d.toString());
+                    device.toString(), s.toString(), c.toString(), d.toString(), value.toString());
 
             if( match ) {
                 final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()

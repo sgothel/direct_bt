@@ -360,9 +360,11 @@ class MyGATTServerListener : public DBGattServer::Listener {
                             jau::POctets v(data.size()+1, jau::endian::little);
                             v.put_string_nc(0, data, v.size(), true /* includeEOS */);
                             if( 0 != handlePulseDataNotify ) {
+                                fprintf_td(stderr, "****** GATT::sendNotification: PULSE to %s\n", connectedDevice->toString().c_str());
                                 connectedDevice->sendNotification(handlePulseDataNotify, v);
                             }
                             if( 0 != handlePulseDataIndicate ) {
+                                fprintf_td(stderr, "****** GATT::sendIndication: PULSE to %s\n", connectedDevice->toString().c_str());
                                 connectedDevice->sendIndication(handlePulseDataIndicate, v);
                             }
                         }
@@ -376,9 +378,13 @@ class MyGATTServerListener : public DBGattServer::Listener {
             if( nullptr != connectedDevice && connectedDevice->getConnected() ) {
                 if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
                     if( 0 != handleResponseDataNotify ) {
+                        fprintf_td(stderr, "****** GATT::sendNotification: %s to %s\n",
+                                data.toString().c_str(), connectedDevice->toString().c_str());
                         connectedDevice->sendNotification(handleResponseDataNotify, data);
                     }
                     if( 0 != handleResponseDataIndicate ) {
+                        fprintf_td(stderr, "****** GATT::sendIndication: %s to %s\n",
+                                data.toString().c_str(), connectedDevice->toString().c_str());
                         connectedDevice->sendIndication(handleResponseDataIndicate, data);
                     }
                 }
@@ -448,10 +454,17 @@ class MyGATTServerListener : public DBGattServer::Listener {
 
         bool writeCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, const jau::TROOctets & value, const uint16_t value_offset) override {
             const bool match = matches(device);
-            fprintf_td(stderr, "****** GATT::writeCharValue(match %d): %s '%s' @ %s from %s, to\n  %s\n    %s\n",
+            fprintf_td(stderr, "****** GATT::writeCharValue(match %d): %s '%s' @ %u from %s, to\n  %s\n    %s\n",
                     match, value.toString().c_str(), jau::dfa_utf8_decode( value.get_ptr(), value.size() ).c_str(),
-                    jau::to_hexstring(value_offset).c_str(),
+                    value_offset,
                     device->toString().c_str(), s->toString().c_str(), c->toString().c_str());
+            return match;
+        }
+        void writeCharValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
+            const bool match = matches(device);
+            const jau::TROOctets& value = c->getValue();
+            fprintf_td(stderr, "****** GATT::writeCharValueDone(match %d): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
+                    match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), value.toString().c_str());
 
             if( match &&
                 c->getValueType()->equivalent( CommandUUID ) &&
@@ -461,33 +474,29 @@ class MyGATTServerListener : public DBGattServer::Listener {
                 std::thread senderThread(&MyGATTServerListener::sendResponse, this, value2); // @suppress("Invalid arguments")
                 senderThread.detach();
             }
-            return match;
-        }
-        void writeCharValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
-            const bool match = matches(device);
-            fprintf_td(stderr, "****** GATT::writeCharValueDone(match %d): From %s, to\n  %s\n    %s\n",
-                    match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str());
         }
 
         bool writeDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const jau::TROOctets & value, const uint16_t value_offset) override {
             const bool match = matches(device);
-            fprintf_td(stderr, "****** GATT::writeDescValue(match %d): %s '%s' @ %s from %s\n  %s\n    %s\n      %s\n",
+            fprintf_td(stderr, "****** GATT::writeDescValue(match %d): %s '%s' @ %u from %s\n  %s\n    %s\n      %s\n",
                     match, value.toString().c_str(), jau::dfa_utf8_decode( value.get_ptr(), value.size() ).c_str(),
-                    jau::to_hexstring(value_offset).c_str(),
+                    value_offset,
                     device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str());
             return match;
         }
         void writeDescValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) override {
             const bool match = matches(device);
-            fprintf_td(stderr, "****** GATT::writeDescValueDone(match %d): From %s\n  %s\n    %s\n      %s\n",
-                    match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str());
+            const jau::TROOctets& value = d->getValue();
+            fprintf_td(stderr, "****** GATT::writeDescValueDone(match %d): From %s\n  %s\n    %s\n      %s\n    Desc-Value: %s\n",
+                    match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str(), value.toString().c_str());
         }
 
         void clientCharConfigChanged(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const bool notificationEnabled, const bool indicationEnabled) override {
             const bool match = matches(device);
-            fprintf_td(stderr, "****** GATT::clientCharConfigChanged(match %d): notify %d, indicate %d from %s\n  %s\n    %s\n      %s\n",
+            const jau::TROOctets& value = d->getValue();
+            fprintf_td(stderr, "****** GATT::clientCharConfigChanged(match %d): notify %d, indicate %d from %s\n  %s\n    %s\n      %s\n    Desc-Value: %s\n",
                     match, notificationEnabled, indicationEnabled,
-                    device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str());
+                    device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str(), value.toString().c_str());
 
             if( match ) {
                 jau::sc_atomic_critical sync(sync_data);
