@@ -60,7 +60,7 @@ public final class DBGattDesc implements AutoCloseable
     public String getType() { return type; }
 
     /**
-     * Return a copy this characteristic descriptor's native {@link DBGattValue} value.
+     * Return a copy of this characteristic descriptor's native {@link DBGattValue} value.
      *
      * Its capacity defines the maximum writable variable length
      * and its size defines the maximum writable fixed length.

@@ -117,7 +117,7 @@ public final class DBGattChar implements AutoCloseable
     public final List<DBGattDesc> getDescriptors() { return descriptors; }
 
     /**
-     * Return a copy this characteristic's native {@link DBGattValue} value.
+     * Return a copy of this characteristic's native {@link DBGattValue} value.
      *
      * Its capacity defines the maximum writable variable length
      * and its size defines the maximum writable fixed length.
