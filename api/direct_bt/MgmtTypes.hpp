@@ -580,8 +580,21 @@ namespace direct_bt {
             MgmtSetLocalNameCmd(const uint16_t dev_id, const std::string & name, const std::string & short_name)
             : MgmtCommand(Opcode::SET_LOCAL_NAME, dev_id, MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH)
             {
-                pdu.put_string_nc(MGMT_HEADER_SIZE, name, MgmtConstU16::MGMT_MAX_NAME_LENGTH, true);
-                pdu.put_string_nc(MGMT_HEADER_SIZE+MgmtConstU16::MGMT_MAX_NAME_LENGTH, short_name, MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH, true);
+                /**
+                 * BlueZ/Kernel Bug Workaround:
+                 *
+                 * mgmt.c append_eir_data_to_buf(..) does a `strlen(hdev->short_name)`
+                 * but mgmt.c does not include the EOS in `HCI_MAX_SHORT_NAME_LENGTH 10`,
+                 * only includes the EOS in `MGMT_MAX_SHORT_NAME_LENGTH (HCI_MAX_SHORT_NAME_LENGTH + 1)`.
+                 *
+                 * Hence it should do either a `strnlen(hdev->short_name)` to not require an EOS
+                 * or change the `set_local_name(..)` protocol API somehow.
+                 *
+                 * Same goes for `hdev->dev_name`, `HCI_MAX_NAME_LENGTH` and `MGMT_MAX_NAME_LENGTH`
+                 * throughout `append_eir_data_to_buf(..)` and `set_local_name(..)`.
+                 */
+                pdu.put_string_nc(MGMT_HEADER_SIZE, name, MgmtConstU16::MGMT_MAX_NAME_LENGTH-1, true);
+                pdu.put_string_nc(MGMT_HEADER_SIZE+MgmtConstU16::MGMT_MAX_NAME_LENGTH, short_name, MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH-1, true);
             }
             const std::string getName() const noexcept { return pdu.get_string_nc(MGMT_HEADER_SIZE); }
             const std::string getShortName() const noexcept { return pdu.get_string_nc(MGMT_HEADER_SIZE + MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
