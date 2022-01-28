@@ -116,7 +116,26 @@ public final class DBGattChar implements AutoCloseable
     /** List of Characteristic Descriptions. */
     public final List<DBGattDesc> getDescriptors() { return descriptors; }
 
+    /**
+     * Return a copy this characteristic's native {@link DBGattValue} value.
+     *
+     * Its capacity defines the maximum writable variable length
+     * and its size defines the maximum writable fixed length.
+     */
     public native DBGattValue getValue();
+
+    /**
+     * Set this characteristic's native value.
+     *
+     * Methods won't exceed the value's capacity if it is of hasVariableLength()
+     * or the value's size otherwise.
+     *
+     * @param source data to be written to this value
+     * @param source_len length of the source data to be written
+     * @param dest_pos position where the source data shall be written to the value
+     * @return true if successful, otherwise false for exceeding the value's limits or passing invalid parameter.
+     */
+    public native boolean setValue(final byte[] source, final int source_pos, final int source_len, final int dest_pos);
 
     /* Optional Client Characteristic Configuration index within descriptorList */
     public final int clientCharConfigIndex;

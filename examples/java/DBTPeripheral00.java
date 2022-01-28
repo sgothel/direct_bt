@@ -121,6 +121,10 @@ public class DBTPeripheral00 {
         final byte[] p = name.getBytes(StandardCharsets.UTF_8);
         return new DBGattValue(p, p.length);
     }
+    static DBGattValue make_gvalue(final String name, final int capacity) {
+        final byte[] p = name.getBytes(StandardCharsets.UTF_8);
+        return new DBGattValue(p, Math.max(capacity, p.length), capacity > p.length/* variable_length */);
+    }
     static DBGattValue make_gvalue(final short v) {
         final byte[] p = { (byte)0, (byte)0 };
         p[0] = (byte)(v);
@@ -148,7 +152,7 @@ public class DBTPeripheral00 {
                       new DBGattChar( DBGattChar.UUID16.DEVICE_NAME /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
-                                  make_gvalue(adapter_name) /* value */ ),
+                                  make_gvalue(adapter_name, 128) /* value */ ),
                       new DBGattChar( DBGattChar.UUID16.APPEARANCE /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
@@ -582,6 +586,12 @@ public class DBTPeripheral00 {
 
         eir.setName(adapter.getName());
         eir.setConnInterval((short)10, (short)24);
+
+        final DBGattChar gattDevNameChar = dbGattServer.findGattChar(DBGattService.UUID16.GENERIC_ACCESS, DBGattChar.UUID16.DEVICE_NAME);
+        if( null != gattDevNameChar ) {
+            final byte[] aname_bytes = adapter.getName().getBytes(StandardCharsets.UTF_8);
+            gattDevNameChar.setValue(aname_bytes, 0, aname_bytes.length, 0);
+        }
 
         BTUtils.println(System.err, "****** Start advertising ("+msg+"): EIR "+eir.toString());
         BTUtils.println(System.err, "****** Start advertising ("+msg+"): adv "+adv_mask.toString()+", scanrsp "+scanrsp_mask.toString());

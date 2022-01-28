@@ -78,6 +78,12 @@ static void processDisconnectedDevice(BTDeviceRef device);
 static jau::POctets make_poctets(const char* name) {
     return jau::POctets( (const uint8_t*)name, (nsize_t)strlen(name), endian::little );
 }
+static jau::POctets make_poctets(const char* name, const jau::nsize_t capacity) {
+    const nsize_t name_len = (nsize_t)strlen(name);
+    jau::POctets p( std::max<nsize_t>(capacity, name_len), name_len, endian::little );
+    p.put_bytes_nc(0, reinterpret_cast<const uint8_t*>(name), name_len);
+    return p;
+}
 static jau::POctets make_poctets(const uint16_t v) {
     jau::POctets p(2, endian::little);
     p.put_uint16_nc(0, v);
@@ -103,7 +109,7 @@ DBGattServerRef dbGattServer( new DBGattServer(
                   std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::DEVICE_NAME) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
                               jau::darray<DBGattDescRef>() /* intentionally empty */,
-                              make_poctets(adapter_name.c_str()) /* value */ ),
+                              make_poctets(adapter_name.c_str(), 128) /* value */, true /* variable_length */ ),
                   std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::APPEARANCE) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
                               jau::darray<DBGattDescRef>() /* intentionally empty */,
@@ -519,6 +525,13 @@ static bool startAdvertising(BTAdapter *a, std::string msg) {
 
     eir.setName(a->getName());
     eir.setConnInterval(10, 24);
+
+    DBGattCharRef gattDevNameChar = dbGattServer->findGattChar( jau::uuid16_t(GattServiceType::GENERIC_ACCESS),
+                                                                jau::uuid16_t(GattCharacteristicType::DEVICE_NAME) );
+    if( nullptr != gattDevNameChar ) {
+        std::string aname = a->getName();
+        gattDevNameChar->setValue(reinterpret_cast<uint8_t*>(aname.data()), aname.size(), 0);
+    }
 
     fprintf_td(stderr, "****** Start advertising (%s): EIR %s\n", msg.c_str(), eir.toString().c_str());
     fprintf_td(stderr, "****** Start advertising (%s): adv %s, scanrsp %s\n", msg.c_str(), to_string(adv_mask).c_str(), to_string(scanrsp_mask).c_str());

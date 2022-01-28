@@ -59,7 +59,26 @@ public final class DBGattDesc implements AutoCloseable
     /** Type of descriptor UUID (lower-case) */
     public String getType() { return type; }
 
+    /**
+     * Return a copy this characteristic descriptor's native {@link DBGattValue} value.
+     *
+     * Its capacity defines the maximum writable variable length
+     * and its size defines the maximum writable fixed length.
+     */
     public native DBGattValue getValue();
+
+    /**
+     * Set this characteristic descriptor's native value.
+     *
+     * Methods won't exceed the value's capacity if it is of hasVariableLength()
+     * or the value's size otherwise.
+     *
+     * @param source data to be written to this value
+     * @param source_len length of the source data to be written
+     * @param dest_pos position where the source data shall be written to the value
+     * @return true if successful, otherwise false for exceeding the value's limits or passing invalid parameter.
+     */
+    public native boolean setValue(final byte[] source, final int source_pos, final int source_len, final int dest_pos);
 
     /**
      *

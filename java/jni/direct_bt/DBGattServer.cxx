@@ -96,6 +96,35 @@ jobject Java_org_direct_1bt_DBGattDesc_getValue(JNIEnv *env, jobject obj) {
     return nullptr;
 }
 
+jboolean Java_org_direct_1bt_DBGattDesc_setValue(JNIEnv *env, jobject obj, jbyteArray jsource, jint jsource_pos, jint jsource_len, jint jdest_pos) {
+    try {
+        std::shared_ptr<DBGattDesc>& ref = *jau::getInstance<std::shared_ptr<DBGattDesc>>(env, obj);
+
+        if( nullptr == jsource ) {
+            return JNI_FALSE;
+        }
+
+        const jau::nsize_t source_len0 = env->GetArrayLength(jsource);
+        const jau::nsize_t source_len1 = jsource_len;
+        const jau::nsize_t source_pos1 = jsource_pos;
+        const jau::nsize_t dest_pos = jdest_pos;
+
+        if( 0 < source_len0 && 0 < source_len1 && source_pos1 + source_len1 <= source_len0 ) {
+            JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+            const uint8_t * source = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+            if( nullptr == source ) {
+                throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+            }
+            return ref->setValue(source+source_pos1, source_len1, dest_pos) ? JNI_TRUE : JNI_FALSE;
+        } else {
+            return JNI_FALSE;
+        }
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
 /**
  * private native long ctorImpl(final String type,
  *                              final byte[] value, final int capacity, boolean variable_length);
@@ -199,6 +228,35 @@ jobject Java_org_direct_1bt_DBGattChar_getValue(JNIEnv *env, jobject obj) {
         rethrow_and_raise_java_exception(env);
     }
     return nullptr;
+}
+
+jboolean Java_org_direct_1bt_DBGattChar_setValue(JNIEnv *env, jobject obj, jbyteArray jsource, jint jsource_pos, jint jsource_len, jint jdest_pos) {
+    try {
+        std::shared_ptr<DBGattChar>& ref = *jau::getInstance<std::shared_ptr<DBGattChar>>(env, obj);
+
+        if( nullptr == jsource ) {
+            return JNI_FALSE;
+        }
+
+        const jau::nsize_t source_len0 = env->GetArrayLength(jsource);
+        const jau::nsize_t source_len1 = jsource_len;
+        const jau::nsize_t source_pos1 = jsource_pos;
+        const jau::nsize_t dest_pos = jdest_pos;
+
+        if( 0 < source_len0 && 0 < source_len1 && source_pos1 + source_len1 <= source_len0 ) {
+            JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+            const uint8_t * source = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+            if( nullptr == source ) {
+                throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+            }
+            return ref->setValue(source+source_pos1, source_len1, dest_pos) ? JNI_TRUE : JNI_FALSE;
+        } else {
+            return JNI_FALSE;
+        }
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
 }
 
 /**

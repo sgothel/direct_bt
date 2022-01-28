@@ -106,7 +106,12 @@ namespace direct_bt {
             std::shared_ptr<const jau::uuid_t> getType() const noexcept { return type; }
 
             /**
-             * Characteristic Descriptor's Value.
+             * True if value is of variable length, otherwise fixed length.
+             */
+            bool hasVariableLength() const noexcept { return variable_length; }
+
+            /**
+             * Get reference of this characteristic descriptor's value.
              *
              * Its capacity defines the maximum writable variable length
              * and its size defines the maximum writable fixed length.
@@ -114,9 +119,17 @@ namespace direct_bt {
             jau::POctets& getValue() noexcept { return value; }
 
             /**
-             * True if value is of variable length, otherwise fixed length.
+             * Set this characteristic descriptor's value.
+             *
+             * Methods won't exceed the value's capacity if it is of hasVariableLength()
+             * or the value's size otherwise.
+             *
+             * @param source data to be written to this value
+             * @param source_len length of the source data to be written
+             * @param dest_pos position where the source data shall be written to the value
+             * @return true if successful, otherwise false for exceeding the value's limits.
              */
-            bool hasVariableLength() const noexcept { return variable_length; }
+            bool setValue(const uint8_t* source, const jau::nsize_t source_len, const jau::nsize_t dest_pos) noexcept;
 
             static std::string java_class() noexcept {
                 return std::string(JAVA_MAIN_PACKAGE "DBGattDesc");
@@ -293,7 +306,12 @@ namespace direct_bt {
             jau::darray<DBGattDescRef>& getDescriptors() noexcept { return descriptors; }
 
             /**
-             * Characteristics's Value.
+             * True if value is of variable length, otherwise fixed length.
+             */
+            bool hasVariableLength() const noexcept { return variable_length; }
+
+            /**
+             * Get reference of this characteristics's value.
              *
              * Its capacity defines the maximum writable variable length
              * and its size defines the maximum writable fixed length.
@@ -301,9 +319,17 @@ namespace direct_bt {
             jau::POctets& getValue() noexcept { return value; }
 
             /**
-             * True if value is of variable length, otherwise fixed length.
+             * Set this characteristics's value.
+             *
+             * Methods won't exceed the value's capacity if it is of hasVariableLength()
+             * or the value's size otherwise.
+             *
+             * @param source data to be written to this value
+             * @param source_len length of the source data to be written
+             * @param dest_pos position where the source data shall be written to the value
+             * @return true if successful, otherwise false for exceeding the value's limits.
              */
-            bool hasVariableLength() const noexcept { return variable_length; }
+            bool setValue(const uint8_t* source, const jau::nsize_t source_len, const jau::nsize_t dest_pos) noexcept;
 
             /* Optional Client Characteristic Configuration index within descriptorList */
             int getClientCharConfigIndex() const noexcept { return clientCharConfigIndex; }

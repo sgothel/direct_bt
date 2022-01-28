@@ -26,7 +26,7 @@
 package org.direct_bt;
 
 /**
- * Representing a Gatt value for DBGattChar or DBGattDesc.
+ * A copy of the native GATT value of DBGattChar or DBGattDesc.
  *
  * Its {@link #capacity()} defines the maximum writable variable length
  * and its {@link #size()} defines the maximum writable fixed length.

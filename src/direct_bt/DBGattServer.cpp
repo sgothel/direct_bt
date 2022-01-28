@@ -38,6 +38,40 @@
 
 using namespace direct_bt;
 
+bool DBGattDesc::setValue(const uint8_t* source, const jau::nsize_t source_len, const jau::nsize_t dest_pos) noexcept {
+    if( hasVariableLength() ) {
+        if( value.capacity() < dest_pos + source_len ) {
+            return false;
+        }
+        if( value.size() != dest_pos + source_len ) {
+            value.resize( dest_pos + source_len );
+        }
+    } else {
+        if( value.size() < dest_pos + source_len ) {
+            return false;
+        }
+    }
+    value.put_bytes_nc(dest_pos, source, source_len);
+    return true;
+}
+
+bool DBGattChar::setValue(const uint8_t* source, const jau::nsize_t source_len, const jau::nsize_t dest_pos) noexcept {
+    if( hasVariableLength() ) {
+        if( value.capacity() < dest_pos + source_len ) {
+            return false;
+        }
+        if( value.size() != dest_pos + source_len ) {
+            value.resize( dest_pos + source_len );
+        }
+    } else {
+        if( value.size() < dest_pos + source_len ) {
+            return false;
+        }
+    }
+    value.put_bytes_nc(dest_pos, source, source_len);
+    return true;
+}
+
 static jau::cow_darray<DBGattServer::ListenerRef>::equal_comparator _listenerRefEqComparator =
         [](const DBGattServer::ListenerRef &a, const DBGattServer::ListenerRef &b) -> bool { return *a == *b; };
 
