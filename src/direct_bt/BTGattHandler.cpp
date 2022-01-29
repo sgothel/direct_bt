@@ -2082,5 +2082,5 @@ std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(ja
 }
 
 std::string BTGattHandler::toString() const noexcept {
-    return "GattHndlr["+to_string(getRole())+", "+std::to_string(characteristicListenerList.size())+" listener, "+deviceString+", "+getStateString()+"]";
+    return "GattHndlr["+to_string(getRole())+", mtu "+std::to_string(usedMTU.load())+", "+std::to_string(characteristicListenerList.size())+" listener, "+deviceString+", "+getStateString()+"]";
 }
