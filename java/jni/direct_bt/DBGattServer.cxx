@@ -289,15 +289,16 @@ jlong Java_org_direct_1bt_DBGattChar_ctorImpl(JNIEnv *env, jobject obj,
 
         // DBGattDescRef List
         jau::darray<DBGattDescRef> descriptors( env->GetArrayLength(jDescriptors) /* capacity */ );
-        if( 0 < descriptors.capacity() ) {
-            JNICriticalArray<std::shared_ptr<DBGattDesc>*, jlongArray> criticalArray(env); // RAII - release
-            std::shared_ptr<DBGattDesc> ** descr_ref_array = criticalArray.get(jDescriptors, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-            if( nullptr == descr_ref_array ) {
+        const jau::nsize_t count = descriptors.capacity();
+        if( 0 < count ) {
+            JNICriticalArray<jlong, jlongArray> criticalArray(env); // RAII - release
+            jlong * jlong_desc_ref_array = criticalArray.get(jDescriptors, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+            if( nullptr == jlong_desc_ref_array ) {
                 throw jau::InternalError("GetPrimitiveArrayCritical(DBGattDesc* array) is null", E_FILE_LINE);
             }
-            const jau::nsize_t count = descriptors.capacity();
             for(jau::nsize_t i=0; i < count; ++i) {
-                descriptors.push_back( *( descr_ref_array[i] ) );
+                std::shared_ptr<DBGattDesc> *desc_ref = (std::shared_ptr<DBGattDesc> *) (intptr_t) jlong_desc_ref_array[i];
+                descriptors.push_back( *desc_ref );
             }
         }
 
@@ -318,11 +319,11 @@ jlong Java_org_direct_1bt_DBGattChar_ctorImpl(JNIEnv *env, jobject obj,
         jau::JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
 
         std::shared_ptr<DBGattChar> * ref_ptr = new std::shared_ptr<DBGattChar>(std::move(ref));
-        return (jlong)(intptr_t)ref_ptr;
+        return (jlong) (intptr_t) ref_ptr;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return (jlong) (intptr_t)nullptr;
+    return (jlong) (intptr_t) nullptr;
 }
 
 void Java_org_direct_1bt_DBGattChar_dtorImpl(JNIEnv *env, jclass clazz, jlong nativeInstance) {
@@ -412,15 +413,16 @@ jlong Java_org_direct_1bt_DBGattService_ctorImpl(JNIEnv *env, jobject obj,
 
         // DBGattCharRef List
         jau::darray<DBGattCharRef> characteristics( env->GetArrayLength(jCharacteristics) /* capacity */ );
-        if( 0 < characteristics.capacity() ) {
-            JNICriticalArray<std::shared_ptr<DBGattChar>*, jlongArray> criticalArray(env); // RAII - release
-            std::shared_ptr<DBGattChar> ** char_ref_array = criticalArray.get(jCharacteristics, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-            if( nullptr == char_ref_array ) {
+        const jau::nsize_t count = characteristics.capacity();
+        if( 0 < count ) {
+            JNICriticalArray<jlong, jlongArray> criticalArray(env); // RAII - release
+            jlong * jlong_char_ref_array = criticalArray.get(jCharacteristics, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+            if( nullptr == jlong_char_ref_array ) {
                 throw jau::InternalError("GetPrimitiveArrayCritical(DBGattChar* array) is null", E_FILE_LINE);
             }
-            const jau::nsize_t count = characteristics.capacity();
             for(jau::nsize_t i=0; i < count; ++i) {
-                characteristics.push_back( *( char_ref_array[i] ) );
+                std::shared_ptr<DBGattChar> *char_ref = (std::shared_ptr<DBGattChar> *) (intptr_t) jlong_char_ref_array[i];
+                characteristics.push_back( *char_ref );
             }
         }
 
@@ -437,11 +439,11 @@ jlong Java_org_direct_1bt_DBGattService_ctorImpl(JNIEnv *env, jobject obj,
         jau::JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
 
         std::shared_ptr<DBGattService> * ref_ptr = new std::shared_ptr<DBGattService>(std::move(ref));
-        return (jlong)(intptr_t)ref_ptr;
+        return (jlong) (intptr_t) ref_ptr;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return (jlong) (intptr_t)nullptr;
+    return (jlong) (intptr_t) nullptr;
 }
 
 void Java_org_direct_1bt_DBGattService_dtorImpl(JNIEnv *env, jclass clazz, jlong nativeInstance) {
@@ -506,17 +508,18 @@ jlong Java_org_direct_1bt_DBGattServer_ctorImpl(JNIEnv *env, jobject obj,
             throw jau::IllegalArgumentException("characteristics array null", E_FILE_LINE);
         }
 
-        // DBGattCharRef List
+        // DBGattServiceRef List
         jau::darray<DBGattServiceRef> services( env->GetArrayLength(jService) /* capacity */ );
-        if( 0 < services.capacity() ) {
-            JNICriticalArray<std::shared_ptr<DBGattService>*, jlongArray> criticalArray(env); // RAII - release
-            std::shared_ptr<DBGattService> ** service_ref_array = criticalArray.get(jService, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-            if( nullptr == service_ref_array ) {
+        const jau::nsize_t count = services.capacity();
+        if( 0 < count ) {
+            JNICriticalArray<jlong, jlongArray> criticalArray(env); // RAII - release
+            jlong * jlong_service_ref_array = criticalArray.get(jService, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+            if( nullptr == jlong_service_ref_array ) {
                 throw jau::InternalError("GetPrimitiveArrayCritical(DBGattService* array) is null", E_FILE_LINE);
             }
-            const jau::nsize_t count = services.capacity();
             for(jau::nsize_t i=0; i < count; ++i) {
-                services.push_back( *( service_ref_array[i] ) );
+                std::shared_ptr<DBGattService> *service_ref = (std::shared_ptr<DBGattService> *) (intptr_t) jlong_service_ref_array[i];
+                services.push_back( *service_ref );
             }
         }
 
@@ -529,11 +532,11 @@ jlong Java_org_direct_1bt_DBGattServer_ctorImpl(JNIEnv *env, jobject obj,
         jau::JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
 
         std::shared_ptr<DBGattServer> * ref_ptr = new std::shared_ptr<DBGattServer>(std::move(ref));
-        return (jlong)(intptr_t)ref_ptr;
+        return (jlong) (intptr_t) ref_ptr;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return (jlong) (intptr_t)nullptr;
+    return (jlong) (intptr_t) nullptr;
 }
 
 void Java_org_direct_1bt_DBGattServer_dtorImpl(JNIEnv *env, jclass clazz, jlong nativeInstance) {
