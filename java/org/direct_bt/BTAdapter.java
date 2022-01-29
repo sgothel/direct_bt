@@ -460,6 +460,9 @@ public interface BTAdapter extends BTObject
      */
     int getDevID();
 
+    /** Returns the Bluetooth major version of this adapter. Currently either `4` or `5`. */
+    int getBTMajorVersion();
+
     /**
      * Returns the name.
      * <p>

@@ -641,6 +641,17 @@ void Java_jau_direct_1bt_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj, jlong n
     }
 }
 
+jint Java_jau_direct_1bt_DBTAdapter_getBTMajorVersion(JNIEnv *env, jobject obj)
+{
+    try {
+        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        return (jint) adapter->getBTMajorVersion();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return 0;
+}
+
 jboolean Java_jau_direct_1bt_DBTAdapter_isPoweredImpl(JNIEnv *env, jobject obj)
 {
     try {

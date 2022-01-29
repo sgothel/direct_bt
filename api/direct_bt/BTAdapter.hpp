@@ -341,11 +341,11 @@ namespace direct_bt {
 
             LE_Features le_features;
 
-            /** BT5: Using extended scanning. */
+            /** BT5: True if HCI_LE_Set_Extended_Scan_Parameters and HCI_LE_Set_Extended_Scan_Enable is supported (Bluetooth 5.0). */
             bool hci_uses_ext_scan;
-            /** BT5: Using extended connect. */
+            /** BT5: True if HCI_LE_Extended_Create_Connection is supported (Bluetooth 5.0). */
             bool hci_uses_ext_conn;
-            /** BT5: Using extended advertising. */
+            /** BT5: True if HCI_LE_Extended_Advertising Data is supported (Bluetooth 5.0). */
             bool hci_uses_ext_adv;
 
             /**
@@ -626,14 +626,8 @@ namespace direct_bt {
              */
             constexpr LE_Features getLEFeatures() const noexcept { return le_features; }
 
-            /** Returns true if HCI_LE_Set_Extended_Scan_Parameters and HCI_LE_Set_Extended_Scan_Enable is supported (Bluetooth 5.0). */
-            constexpr bool hasHCIExtScan() const noexcept { return hci_uses_ext_scan; }
-
-            /** Returns true if HCI_LE_Extended_Create_Connection is supported (Bluetooth 5.0). */
-            constexpr bool hasHCIExtConn() const noexcept { return hci_uses_ext_conn; }
-
-            /** Returns true if HCI_LE_Extended_Advertising Data is supported (Bluetooth 5.0). */
-            constexpr bool hasHCIExtAdv() const noexcept { return hci_uses_ext_adv; }
+            /** Returns the Bluetooth major version of this adapter. Currently either `4` or `5`. */
+            constexpr uint16_t getBTMajorVersion() const noexcept { return ( hci_uses_ext_scan && hci_uses_ext_conn && hci_uses_ext_adv ) ? 5 : 4; }
 
             /**
              * Returns whether the adapter is valid, i.e. reference is valid, plugged in and generally operational,

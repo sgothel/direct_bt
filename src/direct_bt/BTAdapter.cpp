@@ -1500,15 +1500,13 @@ HCIStatusCode BTAdapter::stopAdvertising() noexcept {
 
 std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
     std::string random_address_info = adapterInfo.addressAndType != visibleAddressAndType ? " ("+visibleAddressAndType.toString()+")" : "";
-    std::string out("Adapter[BTMode "+to_string(getBTMode())+", "+to_string(getRole())+", "+adapterInfo.addressAndType.toString()+random_address_info+
+    std::string out("Adapter[BT "+std::to_string(getBTMajorVersion())+", BTMode "+to_string(getBTMode())+", "+to_string(getRole())+", "+adapterInfo.addressAndType.toString()+random_address_info+
                     ", '"+getName()+"', id "+std::to_string(dev_id)+
                     ", curSettings"+to_string(adapterInfo.getCurrentSettingMask())+
                     ", valid "+std::to_string(isValid())+
                     ", adv "+std::to_string(hci.isAdvertising())+
                     ", scanType[native "+to_string(hci.getCurrentScanType())+", meta "+to_string(currentMetaScanType)+"]"
-                    ", hci_ext[scan "+std::to_string(hci_uses_ext_scan)+", conn "+std::to_string(hci_uses_ext_conn)+
-                    ", adv "+std::to_string(hci_uses_ext_adv)+
-                    "], open[mgmt, "+std::to_string(mgmt.isOpen())+", hci "+std::to_string(hci.isOpen())+
+                    ", open[mgmt, "+std::to_string(mgmt.isOpen())+", hci "+std::to_string(hci.isOpen())+
                     "], "+l2cap_att_srv.toString()+", "+javaObjectToString()+"]");
     if( includeDiscoveredDevices ) {
         device_list_t devices = getDiscoveredDevices();

@@ -177,6 +177,9 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     public int getDevID() { return dev_id; }
 
     @Override
+    public native int getBTMajorVersion();
+
+    @Override
     public final String getName() {
         if( !isValid() ) {
             return name_cached;
