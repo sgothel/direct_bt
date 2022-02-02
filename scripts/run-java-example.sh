@@ -21,7 +21,7 @@
 # See ../scripts/run-dbt_scanner10.sh for commandline invocation and non-root usage
 #
 
-script_args="$*"
+script_args="$@"
 
 username=${USER}
 
@@ -81,26 +81,27 @@ JAVA_CMD="${JAVA_EXE}"
 # EXE_WRAPPER="valgrind --tool=callgrind --instr-atstart=yes --collect-atstart=yes --collect-systime=yes --combine-dumps=yes --separate-threads=no --callgrind-out-file=$callgrindoutfile --log-file=$valgrindlogfile"
 
 runit_root() {
-    echo "sudo ... "
-    sudo -- bash -c "ulimit -c unlimited; $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} $*"
+    echo "sudo ... ${*@Q}"
+    sudo -- bash -c "ulimit -c unlimited; $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} ${*@Q}"
     exit $?
 }
 
 runit_setcap() {
+    echo "sudo setcap ... " "$@"
     echo "sudo setcap 'cap_net_raw,cap_net_admin+eip' ${JAVA_EXE}"
     trap 'sudo setcap -q -r '"${JAVA_EXE}"'' EXIT INT HUP QUIT TERM ALRM USR1
     sudo setcap 'cap_net_raw,cap_net_admin+eip' ${JAVA_EXE}
     sudo getcap ${JAVA_EXE}
     ulimit -c unlimited
-    $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} $*
+    $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} "$@"
     exit $?
 }
 
 runit_capsh() {
-    echo "sudo capsh ... "
+    echo "sudo capsh ... ${*@Q}"
     sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
         --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
-        -- -c "ulimit -c unlimited; $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} $*"
+        -- -c "ulimit -c unlimited; $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} ${*@Q}"
     exit $?
 }
 
@@ -109,7 +110,7 @@ runit() {
     echo username $username
     echo run_setcap ${run_setcap}
     echo run_root ${run_root}
-    echo ${exename} commandline $*
+    echo ${exename} commandline "$@"
     echo EXE_WRAPPER $EXE_WRAPPER
     echo logbasename $logbasename
     echo logfile $logfile
@@ -124,13 +125,13 @@ runit() {
     mkdir -p server_keys
 
     if [ "${run_setcap}" -eq "1" ]; then
-        runit_setcap $*
+        runit_setcap "$@"
     elif [ "${run_root}" -eq "1" ]; then
-        runit_root $*
+        runit_root "$@"
     else
-        runit_capsh $*
+        runit_capsh "$@"
     fi
 }
 
-runit $* 2>&1 | tee $logfile
+runit "$@" 2>&1 | tee $logfile
 
