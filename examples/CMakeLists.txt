@@ -8,6 +8,7 @@ set( SOURCES_IDIOMATIC_EXAMPLES
     dbt_readsmpkey.cpp
     dbt_scanner10.cpp
     dbt_peripheral00.cpp
+    dbt_repeater00.cpp
     dbt_test_gattcharlifecycle01.cpp
 )
 

@@ -2118,5 +2118,12 @@ namespace direct_bt {
  * This _dbt_peripheral00__ C++ peripheral ::BTRole::Slave GATT server example uses an event driven workflow.
  */
 
+/** \example dbt_repeater00.cpp
+ * This _dbt_repeater00_ C++ repeater example implementing a GATT repeater,
+ * i.e. forwarding client requests to a GATT server and passing the results back.
+ *
+ * The repeater can be used in between an existing Bluetooth LE client and server,
+ * acting as a forwarder and to analyze the GATT client/server protocol.
+ */
 
 #endif /* ATT_PDU_TYPES_HPP_ */

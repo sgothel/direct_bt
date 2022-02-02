@@ -205,6 +205,7 @@ A guide for getting started with *Direct-BT* on C++ and Java may follow up.
 are available, demonstrating the event driven and multithreading workflow:
 - [dbt_scanner10.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_scanner10_8cpp-example.html) *Master* with *Gatt-Client*
 - [dbt_peripheral00.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_peripheral00_8cpp-example.html) *Peripheral* with *GATT-Server*
+- [dbt_repeater00.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_repeater00_8cpp-example.html) *Repeater* forwading between *GATT-Server* and *-Client*
 
 
 *Direct-BT* [Java examples](https://jausoft.com/projects/direct_bt/build/documentation/java/html/examples.html)
