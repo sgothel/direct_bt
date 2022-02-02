@@ -563,9 +563,8 @@ public class BTFactory {
 }
 
 /** \example DBTScanner10.java
- * This Java scanner {@link BTRole::Master} example uses the Direct-BT fully event driven workflow
- * and adds multithreading, i.e. one thread processes each found device found
- * as notified via the event listener.
+ * This Java scanner {@link BTRole::Master} GATT client example uses an event driven workflow
+ * and multithreading, i.e. one thread processes each found device when notified.
  * <p>
  * This example represents the recommended utilization of Direct-BT.
  * </p>

@@ -52,9 +52,8 @@ using namespace direct_bt;
 using namespace jau;
 
 /** \file
- * This _dbt_scanner10_ C++ scanner ::BTRole::Master example uses the Direct-BT fully event driven workflow
- * and adds multithreading, i.e. one thread processes each found device found
- * as notified via the event listener.
+ * This _dbt_scanner10_ C++ scanner ::BTRole::Master GATT client example uses an event driven workflow
+ * and multithreading, i.e. one thread processes each found device when notified.
  *
  * _dbt_scanner10_ represents the recommended utilization of Direct-BT.
  *
@@ -190,20 +189,22 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         {
             fprintf_td(stderr, "****** FOUND__-0: Connecting %s\n", device->toString(true).c_str());
             {
-                const uint64_t td = getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
+                const uint64_t td = jau::getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
                 fprintf_td(stderr, "PERF: adapter-init -> FOUND__-0  %" PRIu64 " ms\n", td);
             }
             std::thread dc(::connectDiscoveredDevice, device); // @suppress("Invalid arguments")
             dc.detach();
             return true;
         } else {
-            fprintf_td(stderr, "****** FOUND__-1: NOP %s\n", device->toString(true).c_str());
+            if( !QUIET ) {
+                fprintf_td(stderr, "****** FOUND__-1: NOP %s\n", device->toString(true).c_str());
+            }
             return false;
         }
     }
 
     void deviceUpdated(BTDeviceRef device, const EIRDataType updateMask, const uint64_t timestamp) override {
-        if( SHOW_UPDATE_EVENTS ) {
+        if( !QUIET && SHOW_UPDATE_EVENTS ) {
             fprintf_td(stderr, "****** UPDATED: %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
         }
         (void)timestamp;
@@ -329,7 +330,7 @@ class MyGATTEventListener : public BTGattChar::Listener {
     MyGATTEventListener(int i_, int j_) : i(i_), j(j_) {}
 
     void notificationReceived(BTGattCharRef charDecl, const TROOctets& char_value, const uint64_t timestamp) override {
-        const uint64_t tR = getCurrentMilliseconds();
+        const uint64_t tR = jau::getCurrentMilliseconds();
         fprintf_td(stderr, "**[%2.2d.%2.2d] Characteristic-Notify: UUID %s, td %" PRIu64 " ******\n",
                 i, j, charDecl->value_type->toUUID128String().c_str(), (tR-timestamp));
         fprintf_td(stderr, "**[%2.2d.%2.2d]     Characteristic: %s ******\n", i, j, charDecl->toString().c_str());
@@ -349,7 +350,7 @@ class MyGATTEventListener : public BTGattChar::Listener {
                             const TROOctets& char_value, const uint64_t timestamp,
                             const bool confirmationSent) override
     {
-        const uint64_t tR = getCurrentMilliseconds();
+        const uint64_t tR = jau::getCurrentMilliseconds();
         fprintf_td(stderr, "**[%2.2d.%2.2d] Characteristic-Indication: UUID %s, td %" PRIu64 ", confirmed %d ******\n",
                 i, j, charDecl->value_type->toUUID128String().c_str(), (tR-timestamp), confirmationSent);
         fprintf_td(stderr, "**[%2.2d.%2.2d]     Characteristic: %s ******\n", i, j, charDecl->toString().c_str());
@@ -406,16 +407,17 @@ static void connectDiscoveredDevice(BTDeviceRef device) {
     }
     const uint16_t supervision_timeout = (uint16_t) getHCIConnSupervisorTimeout(conn_latency, (int) ( conn_interval_max * 1.25 ) /* ms */);
     res = device->connectLE(le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max, conn_latency, supervision_timeout);
-    // res = device->connectDefault();
     fprintf_td(stderr, "****** Connecting Device: End result %s of %s\n", to_string(res).c_str(), device->toString().c_str());
 }
 
 static void processReadyDevice(BTDeviceRef device) {
     fprintf_td(stderr, "****** Processing Ready Device: Start %s\n", device->toString().c_str());
 
-    const uint64_t t1 = getCurrentMilliseconds();
+    const uint64_t t1 = jau::getCurrentMilliseconds();
 
     SMPKeyBin::createAndWrite(*device, CLIENT_KEY_PATH, true /* verbose */);
+
+    const uint64_t t2 = jau::getCurrentMilliseconds();
 
     bool success = false;
 
@@ -439,6 +441,8 @@ static void processReadyDevice(BTDeviceRef device) {
     if( !QUIET ) {
         device->getAdapter().printDeviceLists();
     }
+    const uint64_t t3 = jau::getCurrentMilliseconds();
+
     try {
         jau::darray<BTGattServiceRef> primServices = device->getGattServices();
         if( 0 == primServices.size() ) {
@@ -446,19 +450,29 @@ static void processReadyDevice(BTDeviceRef device) {
             goto exit;
         }
 
-        const uint64_t t5 = getCurrentMilliseconds();
-        if( !QUIET ) {
-            const uint64_t td01 = t1 - timestamp_t0; // adapter-init -> processing-start
-            const uint64_t td15 = t5 - t1; // get-gatt-services
-            const uint64_t tdc5 = t5 - device->getLastDiscoveryTimestamp(); // discovered to gatt-complete
+        const uint64_t t5 = jau::getCurrentMilliseconds();
+        {
+            const uint64_t td00 = device->getLastDiscoveryTimestamp() - timestamp_t0; // adapter-init to discovered
+            const uint64_t td01 = t1 - timestamp_t0; // adapter-init to processing-start
             const uint64_t td05 = t5 - timestamp_t0; // adapter-init -> gatt-complete
+            const uint64_t tdc1 = t1 - device->getLastDiscoveryTimestamp(); // discovered to processing-start
+            const uint64_t tdc5 = t5 - device->getLastDiscoveryTimestamp(); // discovered to gatt-complete
+            const uint64_t td12 = t2 - t1; // SMPKeyBin
+            const uint64_t td23 = t3 - t2; // LE_PHY
+            const uint64_t td13 = t3 - t1; // SMPKeyBin + LE_PHY
+            const uint64_t td35 = t5 - t3; // get-gatt-services
             fprintf_td(stderr, "\n\n\n");
-            fprintf_td(stderr, "PERF: GATT primary-services completed\n");
-            fprintf_td(stderr, "PERF:  adapter-init to processing-start %" PRIu64 " ms,\n"
-                            "PERF:  get-gatt-services %" PRIu64 " ms,\n"
-                            "PERF:  discovered to gatt-complete %" PRIu64 " ms (connect %" PRIu64 " ms),\n"
-                            "PERF:  adapter-init to gatt-complete %" PRIu64 " ms\n\n",
-                            td01, td15, tdc5, (tdc5 - td15), td05);
+            fprintf_td(stderr, "PERF: GATT primary-services completed\n"
+                               "PERF:  adapter-init to discovered %" PRIu64 " ms,\n"
+                               "PERF:  adapter-init to processing-start %" PRIu64 " ms,\n"
+                               "PERF:  adapter-init to gatt-complete %" PRIu64 " ms\n"
+                               "PERF:  discovered to processing-start %" PRIu64 " ms,\n"
+                               "PERF:  discovered to gatt-complete %" PRIu64 " ms,\n"
+                               "PERF:  SMPKeyBin + LE_PHY %" PRIu64 " ms (SMPKeyBin %" PRIu64 " ms, LE_PHY %" PRIu64 " ms),\n"
+                               "PERF:  get-gatt-services %" PRIu64 " ms,\n\n",
+                               td00, td01, td05,
+                               tdc1, tdc5,
+                               td13, td12, td23, td35);
         }
 
         if( nullptr != cmd_uuid ) {
@@ -503,7 +517,7 @@ static void processReadyDevice(BTDeviceRef device) {
 
         for(size_t i=0; i<primServices.size(); i++) {
             BTGattService & primService = *primServices.at(i);
-            if( !QUIET ) {
+            {
                 fprintf_td(stderr, "  [%2.2d] Service UUID %s (%s)\n", i,
                         primService.type->toUUID128String().c_str(),
                         primService.type->getTypeSizeString().c_str());
@@ -512,7 +526,7 @@ static void processReadyDevice(BTDeviceRef device) {
             jau::darray<BTGattCharRef> & serviceCharacteristics = primService.characteristicList;
             for(size_t j=0; j<serviceCharacteristics.size(); j++) {
                 BTGattCharRef & serviceChar = serviceCharacteristics.at(j);
-                if( !QUIET ) {
+                {
                     fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic: UUID %s (%s)\n", i, j,
                             serviceChar->value_type->toUUID128String().c_str(),
                             serviceChar->value_type->getTypeSizeString().c_str());
@@ -522,7 +536,7 @@ static void processReadyDevice(BTDeviceRef device) {
                     POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::endian::little);
                     if( serviceChar->readValue(value) ) {
                         std::string sval = dfa_utf8_decode(value.get_ptr(), value.size());
-                        if( !QUIET ) {
+                        {
                             fprintf_td(stderr, "  [%2.2d.%2.2d]     value: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
                         }
                     }
@@ -530,7 +544,7 @@ static void processReadyDevice(BTDeviceRef device) {
                 jau::darray<BTGattDescRef> & charDescList = serviceChar->descriptorList;
                 for(size_t k=0; k<charDescList.size(); k++) {
                     BTGattDesc & charDesc = *charDescList.at(k);
-                    if( !QUIET ) {
+                    {
                         fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d] Descriptor: UUID %s (%s)\n", i, j, k,
                                 charDesc.type->toUUID128String().c_str(),
                                 charDesc.type->getTypeSizeString().c_str());
@@ -542,7 +556,7 @@ static void processReadyDevice(BTDeviceRef device) {
                     // ClientCharConfigDescriptor (CCD) is available
                     std::shared_ptr<BTGattChar::Listener> cl = std::make_shared<MyGATTEventListener>(i, j);
                     bool clAdded = serviceChar->addCharListener( cl );
-                    if( !QUIET ) {
+                    {
                         fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d\n",
                                 (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], clAdded);
                         fprintf_td(stderr, "\n");
@@ -693,7 +707,7 @@ static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>
 void test() {
     bool done = false;
 
-    timestamp_t0 = getCurrentMilliseconds();
+    timestamp_t0 = jau::getCurrentMilliseconds();
 
     BTManager & mngr = BTManager::get();
     mngr.addChangedAdapterSetCallback(myChangedAdapterSetFunc);

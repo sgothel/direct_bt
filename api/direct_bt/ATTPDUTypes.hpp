@@ -2059,9 +2059,8 @@ namespace direct_bt {
 } // namespace direct_bt
 
 /** \example dbt_scanner10.cpp
- * This _dbt_scanner10_ C++ scanner ::BTRole::Master example uses the Direct-BT fully event driven workflow
- * and adds multithreading, i.e. one thread processes each found device found
- * as notified via the event listener.
+ * This _dbt_scanner10_ C++ scanner ::BTRole::Master GATT client example uses an event driven workflow
+ * and multithreading, i.e. one thread processes each found device when notified.
  *
  * _dbt_scanner10_ represents the recommended utilization of Direct-BT.
  *

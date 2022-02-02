@@ -31,7 +31,6 @@ import java.util.function.Consumer;
 
 import org.direct_bt.AdapterSettings;
 import org.direct_bt.AdapterStatusListener;
-import org.direct_bt.BDAddressAndType;
 import org.direct_bt.BTMode;
 import org.direct_bt.BTSecurityLevel;
 import org.direct_bt.BTAdapter;
@@ -63,9 +62,8 @@ import org.jau.net.EUI48;
 import jau.direct_bt.DBTManager;
 
 /**
- * This Java scanner {@link BTRole::Master} example uses the Direct-BT fully event driven workflow
- * and adds multithreading, i.e. one thread processes each found device found
- * as notified via the event listener.
+ * This Java scanner {@link BTRole::Master} GATT client example uses an event driven workflow
+ * and multithreading, i.e. one thread processes each found device when notified.
  * <p>
  * This example represents the recommended utilization of Direct-BT.
  * </p>
@@ -155,8 +153,6 @@ public class DBTScanner10 {
 
         @Override
         public boolean deviceFound(final BTDevice device, final long timestamp) {
-            BTUtils.println(System.err, "****** FOUND__: "+device.toString());
-
             if( !BTDeviceRegistry.isDeviceProcessing( device.getAddressAndType() ) &&
                 ( !BTDeviceRegistry.isWaitingForAnyDevice() ||
                   ( BTDeviceRegistry.isWaitingForDevice(device.getAddressAndType().address, device.getName()) &&
@@ -174,14 +170,16 @@ public class DBTScanner10 {
                                   "DBT-Connect-"+device.getAddressAndType(), true /* detach */);
                 return true;
             } else {
-                BTUtils.println(System.err, "****** FOUND__-1: NOP "+device.toString());
+                if( !QUIET ) {
+                    BTUtils.println(System.err, "****** FOUND__-1: NOP "+device.toString());
+                }
                 return false;
             }
         }
 
         @Override
         public void deviceUpdated(final BTDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
-            if( SHOW_UPDATE_EVENTS ) {
+            if( !QUIET && SHOW_UPDATE_EVENTS ) {
                 BTUtils.println(System.err, "****** UPDATED: "+updateMask+" of "+device);
             }
         }
@@ -382,7 +380,6 @@ public class DBTScanner10 {
         }
         final short supervision_timeout = BTUtils.getHCIConnSupervisorTimeout(conn_latency, (int) ( conn_interval_max * 1.25 ) /* ms */);
         res = device.connectLE(le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max, conn_latency, supervision_timeout);
-        // res = device.connectDefault();
         BTUtils.println(System.err, "****** Connecting Device Command, res "+res+": End result "+res+" of " + device.toString());
     }
 
@@ -415,6 +412,7 @@ public class DBTScanner10 {
         final long t1 = BTUtils.currentTimeMillis();
 
         SMPKeyBin.createAndWrite(device, DBTConstants.CLIENT_KEY_PATH, true /* verbose */);
+        final long t2 = BTUtils.currentTimeMillis();
 
         boolean success = false;
 
@@ -433,6 +431,7 @@ public class DBTScanner10 {
             BTUtils.fprintf_td(System.err, "****** Got Connected LE PHY: status %s: Tx %s, Rx %s\n",
                     res.toString(), resTx[0].toString(), resRx[0].toString());
         }
+        final long t3 = BTUtils.currentTimeMillis();
 
         //
         // GATT Service Processing
@@ -445,17 +444,25 @@ public class DBTScanner10 {
                 throw new RuntimeException("Processing Ready Device: getServices() failed " + device.toString());
             }
             final long t5 = BTUtils.currentTimeMillis();
-            if( !QUIET ) {
-                final long td01 = t1 - timestamp_t0; // adapter-init -> processing-start
-                final long td15 = t5 - t1; // get-gatt-services
-                final long tdc5 = t5 - device.getLastDiscoveryTimestamp(); // discovered to gatt-complete
+            {
+                final long td00 = device.getLastDiscoveryTimestamp() - timestamp_t0; // adapter-init to discovered
+                final long td01 = t1 - timestamp_t0; // adapter-init to processing-start
                 final long td05 = t5 - timestamp_t0; // adapter-init -> gatt-complete
+                final long tdc1 = t1 - device.getLastDiscoveryTimestamp(); // discovered to processing-start
+                final long tdc5 = t5 - device.getLastDiscoveryTimestamp(); // discovered to gatt-complete
+                final long td12 = t2 - t1; // SMPKeyBin
+                final long td23 = t3 - t2; // LE_PHY
+                final long td13 = t3 - t1; // SMPKeyBin + LE_PHY
+                final long td35 = t5 - t3; // get-gatt-services
                 BTUtils.println(System.err, System.lineSeparator()+System.lineSeparator());
-                BTUtils.println(System.err, "PERF: GATT primary-services completed\n");
-                BTUtils.println(System.err, "PERF:  adapter-init to processing-start " + td01 + " ms,"+System.lineSeparator()+
-                        "PERF:  get-gatt-services " + td15 + " ms,"+System.lineSeparator()+
-                        "PERF:  discovered to gatt-complete " + tdc5 + " ms (connect " + (tdc5 - td15) + " ms),"+System.lineSeparator()+
-                        "PERF:  adapter-init to gatt-complete " + td05 + " ms"+System.lineSeparator());
+                BTUtils.println(System.err, "PERF: GATT primary-services completed"+System.lineSeparator()+
+                        "PERF:  adapter-init to discovered " + td00 + " ms,"+System.lineSeparator()+
+                        "PERF:  adapter-init to processing-start " + td01 + " ms,"+System.lineSeparator()+
+                        "PERF:  adapter-init to gatt-complete " + td05 + " ms,"+System.lineSeparator()+
+                        "PERF:  discovered to processing-start " + tdc1 + " ms,"+System.lineSeparator()+
+                        "PERF:  discovered to gatt-complete " + tdc5 + " ms,"+System.lineSeparator()+
+                        "PERF:  SMPKeyBin + LE_PHY " + td13 + " ms (SMPKeyBin "+td12+"ms, LE_PHY "+td23+"ms), "+System.lineSeparator()+
+                        "PERF:  get-gatt-services " + td35 + " ms,"+System.lineSeparator());
             }
 
             if( null != cmd_uuid ) {
@@ -487,7 +494,7 @@ public class DBTScanner10 {
                 int i=0;
                 for(final Iterator<BTGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
                     final BTGattService primService = srvIter.next();
-                    if( !QUIET ) {
+                    {
                         printf("  [%02d] Service UUID %s\n", i, primService.getUUID());
                         printf("  [%02d]         %s\n", i, primService.toString());
                     }
@@ -495,7 +502,7 @@ public class DBTScanner10 {
                     final List<BTGattChar> serviceCharacteristics = primService.getChars();
                     for(final Iterator<BTGattChar> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
                         final BTGattChar serviceChar = charIter.next();
-                        if( !QUIET ) {
+                        {
                             printf("  [%02d.%02d] Characteristic: UUID %s\n", i, j, serviceChar.getUUID());
                             printf("  [%02d.%02d]     %s\n", i, j, serviceChar.toString());
                         }
@@ -503,7 +510,7 @@ public class DBTScanner10 {
                         if( properties.isSet(GattCharPropertySet.Type.Read) ) {
                             final byte[] value = serviceChar.readValue();
                             final String svalue = BTUtils.decodeUTF8String(value, 0, value.length);
-                            if( !QUIET ) {
+                            {
                                 printf("  [%02d.%02d]     value: %s ('%s')\n", i, j, BTUtils.bytesHexString(value, 0, -1, true), svalue);
                             }
                         }
@@ -511,7 +518,7 @@ public class DBTScanner10 {
                         final List<BTGattDesc> charDescList = serviceChar.getDescriptors();
                         for(final Iterator<BTGattDesc> descIter = charDescList.iterator(); descIter.hasNext(); k++) {
                             final BTGattDesc charDesc = descIter.next();
-                            if( !QUIET ) {
+                            {
                                 printf("  [%02d.%02d.%02d] Descriptor: UUID %s\n", i, j, k, charDesc.getUUID());
                                 printf("  [%02d.%02d.%02d]     %s\n", i, j, k, charDesc.toString());
                             }
@@ -520,7 +527,7 @@ public class DBTScanner10 {
                         if( serviceChar.enableNotificationOrIndication( cccdEnableResult ) ) {
                             // ClientCharConfigDescriptor (CCD) is available
                             final boolean clAdded = null != serviceChar.addCharListener( new MyGATTEventListener(i, j) );
-                            if( !QUIET ) {
+                            {
                                 printf("  [%02d.%02d] Characteristic-Listener: Notification(%b), Indication(%b): Added %b\n",
                                         i, j, cccdEnableResult[0], cccdEnableResult[1], clAdded);
                                 printf("\n");
