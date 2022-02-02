@@ -443,6 +443,14 @@ from the year 2016.
 
 * TODO
 
+**2.6.0**
+* TODO
+* GATT Server enhancements, incl new DBGattServer::Mode and `dbt_repeater00` implementation.
+* BTDevice::getGattServices(): MTU and remote GATT Services shall be processed from here at request only, moved from BTDevice::connectGATT().
+* jaulib v0.7.11 fixes 
+* JNI `DBGatt[Server|Service|Char]_ctorImpl()` fix for 32-bit platforms
+* BlueZ/Linux >= 5.13 (?) Bug Workaround on 'set_local_name(..)'
+
 **2.5.4**
 * Fixing clang++ 11.0.1 and g++ 8.3.0 compilation issues
 * Refine BTAdapter API on commands in powerd-off state only: `setName()`, `setSecureConnections()`, `setDefaultConnParam()`
