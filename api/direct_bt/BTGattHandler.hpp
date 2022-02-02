@@ -176,18 +176,168 @@ namespace direct_bt {
             };
             static constexpr uint16_t number(const Defaults d) { return static_cast<uint16_t>(d); }
 
-       private:
+            /** Supervison timeout of the connection. */
+            const int32_t supervision_timeout;
+            /** Environment runtime configuration, usually used internally only. */
             const BTGattEnv & env;
+            /** Derived environment runtime configuration, usually used internally only. */
+            const int32_t read_cmd_reply_timeout;
+            /** Derived environment runtime configuration, usually used internally only. */
+            const int32_t write_cmd_reply_timeout;
 
+            /**
+             * Internal handler implementation for given DBGattServer instance
+             * matching its DBGattServer::Mode.
+             *
+             * The specific implementation acts upon GATT requests from a connected client
+             * according to DBGattServer::Mode.
+             */
+            class GattServerHandler {
+                public:
+                    virtual ~GattServerHandler() { close(); }
+
+                    /**
+                     * Close and clear this handler, i.e. release all resources.
+                     *
+                     * Usually called when disconnected or destructed.
+                     */
+                    virtual void close() noexcept {}
+
+                    virtual DBGattServer::Mode getMode() noexcept = 0;
+
+                    /**
+                     * Reply to an exchange MTU request
+                     * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.3.1 Exchange MTU (Server configuration)
+                     * @param pdu
+                     */
+                    virtual void replyExchangeMTUReq(const AttExchangeMTU * pdu) noexcept = 0;
+
+                    /**
+                     * Reply to a read request
+                     * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value
+                     * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value
+                     * - For any follow up request, which previous request reply couldn't fit in ATT_MTU (Long Write)
+                     * @param pdu
+                     */
+                    virtual void replyReadReq(const AttPDUMsg * pdu) noexcept = 0;
+
+                    /**
+                     * Reply to a write request.
+                     *
+                     * Without Response:
+                     * - BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.5.3 ATT_WRITE_CMD
+                     * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value without Response
+                     *
+                     * With Response:
+                     * - BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.5.1 ATT_WRITE_REQ
+                     * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
+                     * - BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
+                     *
+                     * - BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.5.2 ATT_WRITE_RSP
+                     * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
+                     *
+                     * @param pdu
+                     */
+                    virtual void replyWriteReq(const AttPDUMsg * pdu) noexcept = 0;
+
+                    /**
+                     * Reply to a find info request
+                     * - BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.1 ATT_FIND_INFORMATION_REQ
+                     * - BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.2 ATT_FIND_INFORMATION_RSP
+                     * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
+                     *
+                     * @param pdu
+                     */
+                    virtual void replyFindInfoReq(const AttFindInfoReq * pdu) noexcept = 0;
+
+                    /**
+                     * Reply to a find by type value request
+                     * - BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.3 ATT_FIND_BY_TYPE_VALUE_REQ
+                     * - BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.4 ATT_FIND_BY_TYPE_VALUE_RSP
+                     * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.2 Discover Primary Service by Service UUID
+                     * @param pdu
+                     */
+                    virtual void replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) noexcept = 0;
+
+                    /**
+                     * Reply to a read by type request
+                     * - BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.1 ATT_READ_BY_TYPE_REQ
+                     * - BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.2 ATT_READ_BY_TYPE_RSP
+                     * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
+                     *
+                     * @param pdu
+                     */
+                    virtual void replyReadByTypeReq(const AttReadByNTypeReq * pdu) noexcept = 0;
+
+                    /**
+                     * Reply to a read by group type request
+                     * - BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.9 ATT_READ_BY_GROUP_TYPE_REQ
+                     * - BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.10 ATT_READ_BY_GROUP_TYPE_RSP
+                     * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
+                     *
+                     * @param pdu
+                     */
+                    virtual void replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) noexcept = 0;
+            };
+
+            /**
+             * Native GATT characteristic event listener for notification and indication events received from a GATT server.
+             */
+            class NativeGattCharListener {
+                public:
+                    /**
+                     * Called from native BLE stack, initiated by a received notification.
+                     * @param source BTDevice origin of this notification
+                     * @param charHandle the GATT characteristic handle related to this notification
+                     * @param charValue the notification value
+                     * @param timestamp monotonic timestamp at reception, see jau::getCurrentMilliseconds()
+                     */
+                    virtual void notificationReceived(BTDeviceRef source, const uint16_t charHandle,
+                                                      const jau::TROOctets& charValue, const uint64_t timestamp) = 0;
+
+                    /**
+                     * Called from native BLE stack, initiated by a received indication.
+                     * @param source BTDevice origin of this indication
+                     * @param charHandle the GATT characteristic handle related to this indication
+                     * @param charValue the indication value
+                     * @param timestamp monotonic timestamp at reception, see jau::getCurrentMilliseconds()
+                     * @param confirmationSent if true, the native stack has sent the confirmation, otherwise user is required to do so.
+                     */
+                    virtual void indicationReceived(BTDeviceRef source, const uint16_t charHandle,
+                                                    const jau::TROOctets& charValue, const uint64_t timestamp,
+                                                    const bool confirmationSent) = 0;
+
+                    virtual ~NativeGattCharListener() noexcept {}
+
+                    /** Return a simple description about this instance. */
+                    virtual std::string toString() {
+                        return "NativeGattCharListener["+jau::to_string(this)+"]";
+                    }
+
+                    /**
+                     * Default comparison operator, merely testing for same memory reference.
+                     * <p>
+                     * Specializations may override.
+                     * </p>
+                     */
+                    virtual bool operator==(const NativeGattCharListener& rhs) const noexcept
+                    { return this == &rhs; }
+
+                    bool operator!=(const NativeGattCharListener& rhs) const noexcept
+                    { return !(*this == rhs); }
+            };
+            typedef jau::cow_darray<std::shared_ptr<NativeGattCharListener>> NativeGattCharListenerList_t;
+
+            typedef jau::cow_darray<std::shared_ptr<BTGattCharListener>> BTGattCharListenerList_t;
+
+       private:
             /** BTGattHandler's device weak back-reference */
             std::weak_ptr<BTDevice> wbr_device;
             GATTRole role;
             L2CAPComm& l2cap;
-            int32_t read_cmd_reply_timeout;
-            int32_t write_cmd_reply_timeout;
 
             const std::string deviceString;
-            std::recursive_mutex mtx_command;
+            mutable std::recursive_mutex mtx_command;
             jau::POctets rbuffer;
 
             jau::sc_atomic_bool is_connected; // reflects state
@@ -202,30 +352,21 @@ namespace direct_bt {
 
             /** send immediate confirmation of indication events from device, defaults to true. */
             jau::relaxed_atomic_bool sendIndicationConfirmation = true;
-            typedef jau::cow_darray<std::shared_ptr<BTGattCharListener>> characteristicListenerList_t;
-            characteristicListenerList_t characteristicListenerList;
+            BTGattCharListenerList_t btGattCharListenerList;
+            NativeGattCharListenerList_t nativeGattCharListenerList;
 
             /** Pass through user Gatt-Server database, non-nullptr if ::GATTRole::Server */
             DBGattServerRef gattServerData;
-            jau::darray<AttPrepWrite> writeDataQueue;
-            jau::darray<uint16_t> writeDataQueueHandles;
+            std::unique_ptr<GattServerHandler> gattServerHandler;
+            static std::unique_ptr<GattServerHandler> selectGattServerHandler(BTGattHandler& gh, DBGattServerRef gattServerData) noexcept;
 
             jau::darray<BTGattServiceRef> services;
             std::shared_ptr<GattGenericAccessSvc> genericAccess = nullptr;
 
             bool validateConnected() noexcept;
 
-            bool hasServerHandle(const uint16_t handle) noexcept;
             DBGattCharRef findServerGattCharByValueHandle(const uint16_t char_value_handle) noexcept;
 
-            AttErrorRsp::ErrorCode applyWrite(BTDeviceRef device, const uint16_t handle, const jau::TROOctets & value, const uint16_t value_offset) noexcept;
-            void signalWriteDone(BTDeviceRef device, const uint16_t handle) noexcept;
-            void replyWriteReq(const AttPDUMsg * pdu) noexcept;
-            void replyReadReq(const AttPDUMsg * pdu) noexcept;
-            void replyFindInfoReq(const AttFindInfoReq * pdu) noexcept;
-            void replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) noexcept;
-            void replyReadByTypeReq(const AttReadByNTypeReq * pdu) noexcept;
-            void replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) noexcept;
             void replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) noexcept;
 
             void l2capReaderWork(jau::service_runner& sr) noexcept;
@@ -336,6 +477,7 @@ namespace direct_bt {
 
             inline uint16_t getServerMTU() const noexcept { return serverMTU; }
             inline uint16_t getUsedMTU()  const noexcept { return usedMTU; }
+            void setUsedMTU(const uint16_t mtu) noexcept { usedMTU = mtu; }
 
             /**
              * Find and return the BTGattChar within given list of primary services
@@ -588,20 +730,48 @@ namespace direct_bt {
             int removeAllAssociatedCharListener(const BTGattChar * associatedChar) noexcept;
 
             /**
+             * Add the given listener to the list if not already present.
+             * <p>
+             * Returns true if the given listener is not element of the list and has been newly added,
+             * otherwise false.
+             * </p>
+             */
+            bool addCharListener(std::shared_ptr<NativeGattCharListener> l);
+
+            /**
+             * Remove the given listener from the list.
+             * <p>
+             * Returns true if the given listener is an element of the list and has been removed,
+             * otherwise false.
+             * </p>
+             */
+            bool removeCharListener(std::shared_ptr<NativeGattCharListener> l) noexcept;
+
+            /**
              * Remove all event listener from the list.
              * <p>
              * Returns the number of removed event listener.
              * </p>
              */
-            int removeAllCharListener() noexcept ;
+            int removeAllCharListener() noexcept;
 
             /**
              * Return event listener count.
              */
-            jau::nsize_t getCharListenerCount() const noexcept { return characteristicListenerList.size(); }
+            jau::nsize_t getCharListenerCount() const noexcept { return btGattCharListenerList.size() + nativeGattCharListenerList.size(); }
 
             /**
-             * Print a list of all BTGattCharListener.
+             * Return a thread safe snapshot of the BTGattCharListener array
+             */
+            BTGattCharListenerList_t::storage_ref_t getBTGattCharListener() const noexcept { return btGattCharListenerList.snapshot(); }
+
+            /**
+             * Return a thread safe snapshot of the NativeGattCharListener array
+             */
+            NativeGattCharListenerList_t::storage_ref_t getNativeGattCharListener() const noexcept { return nativeGattCharListenerList.snapshot(); }
+
+            /**
+             * Print a list of all BTGattCharListener and NativeGattCharListener.
              *
              * This is merely a facility for debug and analysis.
              */

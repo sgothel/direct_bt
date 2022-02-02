@@ -71,8 +71,6 @@ BTGattEnv::BTGattEnv() noexcept
 {
 }
 
-#define CASE_TO_STRING(V) case V: return #V;
-
 BTDeviceRef BTGattHandler::getDeviceChecked() const {
     BTDeviceRef ref = wbr_device.lock();
     if( nullptr == ref ) {
@@ -100,14 +98,14 @@ bool BTGattHandler::validateConnected() noexcept {
     return true;
 }
 
-static jau::cow_darray<std::shared_ptr<BTGattCharListener>>::equal_comparator _characteristicListenerRefEqComparator =
+static jau::cow_darray<std::shared_ptr<BTGattCharListener>>::equal_comparator _btGattCharListenerRefEqComparator =
         [](const std::shared_ptr<BTGattCharListener> &a, const std::shared_ptr<BTGattCharListener> &b) -> bool { return *a == *b; };
 
 bool BTGattHandler::addCharListener(std::shared_ptr<BTGattCharListener> l) {
     if( nullptr == l ) {
         throw jau::IllegalArgumentException("GATTEventListener ref is null", E_FILE_LINE);
     }
-    return characteristicListenerList.push_back_unique(l, _characteristicListenerRefEqComparator);
+    return btGattCharListenerList.push_back_unique(l, _btGattCharListenerRefEqComparator);
 }
 
 bool BTGattHandler::removeCharListener(std::shared_ptr<BTGattCharListener> l) noexcept {
@@ -115,7 +113,7 @@ bool BTGattHandler::removeCharListener(std::shared_ptr<BTGattCharListener> l) no
         ERR_PRINT("GATTCharacteristicListener ref is null");
         return false;
     }
-    const int count = characteristicListenerList.erase_matching(l, false /* all_matching */, _characteristicListenerRefEqComparator);
+    const int count = btGattCharListenerList.erase_matching(l, false /* all_matching */, _btGattCharListenerRefEqComparator);
     return count > 0;
 }
 
@@ -124,7 +122,7 @@ bool BTGattHandler::removeCharListener(const BTGattCharListener * l) noexcept {
         ERR_PRINT("GATTCharacteristicListener ref is null");
         return false;
     }
-    auto it = characteristicListenerList.begin(); // lock mutex and copy_store
+    auto it = btGattCharListenerList.begin(); // lock mutex and copy_store
     for (; !it.is_end(); ++it ) {
         if ( **it == *l ) {
             it.erase();
@@ -135,12 +133,41 @@ bool BTGattHandler::removeCharListener(const BTGattCharListener * l) noexcept {
     return false;
 }
 
+static jau::cow_darray<std::shared_ptr<BTGattHandler::NativeGattCharListener>>::equal_comparator _nativeGattCharListenerRefEqComparator =
+        [](const std::shared_ptr<BTGattHandler::NativeGattCharListener> &a, const std::shared_ptr<BTGattHandler::NativeGattCharListener> &b) -> bool { return *a == *b; };
+
+bool BTGattHandler::addCharListener(std::shared_ptr<NativeGattCharListener> l){
+    if( nullptr == l ) {
+        throw jau::IllegalArgumentException("NativeGattCharListener ref is null", E_FILE_LINE);
+    }
+    return nativeGattCharListenerList.push_back_unique(l, _nativeGattCharListenerRefEqComparator);
+}
+
+bool BTGattHandler::removeCharListener(std::shared_ptr<NativeGattCharListener> l) noexcept {
+    if( nullptr == l ) {
+        ERR_PRINT("NativeGattCharListener ref is null");
+        return false;
+    }
+    const int count = nativeGattCharListenerList.erase_matching(l, false /* all_matching */, _nativeGattCharListenerRefEqComparator);
+    return count > 0;
+}
+
 void BTGattHandler::printCharListener() noexcept {
-    jau::INFO_PRINT("BTGattHandler: %u listener", characteristicListenerList.size());
-    int i=0;
-    auto it = characteristicListenerList.begin(); // lock mutex and copy_store
-    for (; !it.is_end(); ++it, ++i ) {
-        jau::INFO_PRINT("[%d]: %s", i, (*it)->toString().c_str());
+    jau::INFO_PRINT("BTGattHandler: BTGattChar %u listener", btGattCharListenerList.size());
+    {
+        int i=0;
+        auto it = btGattCharListenerList.begin(); // lock mutex and copy_store
+        for (; !it.is_end(); ++it, ++i ) {
+            jau::INFO_PRINT("[%d]: %s", i, (*it)->toString().c_str());
+        }
+    }
+    jau::INFO_PRINT("BTGattHandler: NativeGattChar %u listener", nativeGattCharListenerList.size());
+    {
+        int i=0;
+        auto it = nativeGattCharListenerList.begin(); // lock mutex and copy_store
+        for (; !it.is_end(); ++it, ++i ) {
+            jau::INFO_PRINT("[%d]: %s", i, (*it)->toString().c_str());
+        }
     }
 }
 
@@ -158,7 +185,7 @@ int BTGattHandler::removeAllAssociatedCharListener(const BTGattChar * associated
         return false;
     }
     int count = 0;
-    auto it = characteristicListenerList.begin(); // lock mutex and copy_store
+    auto it = btGattCharListenerList.begin(); // lock mutex and copy_store
     while( !it.is_end() ) {
         if ( (*it)->match(*associatedCharacteristic) ) {
             it.erase();
@@ -174,8 +201,10 @@ int BTGattHandler::removeAllAssociatedCharListener(const BTGattChar * associated
 }
 
 int BTGattHandler::removeAllCharListener() noexcept {
-    int count = characteristicListenerList.size();
-    characteristicListenerList.clear();
+    int count = btGattCharListenerList.size();
+    btGattCharListenerList.clear();
+    count += nativeGattCharListenerList.size();
+    nativeGattCharListenerList.clear();
     return count;
 }
 
@@ -187,808 +216,6 @@ bool BTGattHandler::getSendIndicationConfirmation() noexcept {
     return sendIndicationConfirmation;
 }
 
-bool BTGattHandler::hasServerHandle(const uint16_t handle) noexcept {
-    if( nullptr == gattServerData ) {
-        return false;
-    }
-    for(DBGattServiceRef& s : gattServerData->getServices()) {
-        if( s->getHandle() <= handle && handle <= s->getEndHandle() ) {
-            for(DBGattCharRef& c : s->getCharacteristics()) {
-                if( c->getHandle() <= handle && handle <= c->getEndHandle() ) {
-                    if( handle == c->getValueHandle() ) {
-                        return true;
-                    }
-                    for(DBGattDescRef& d : c->getDescriptors()) {
-                        if( handle == d->getHandle() ) {
-                            return true;
-                        }
-                    }
-                } // if characteristics-range
-            } // for characteristics
-        } // if service-range
-    } // for services
-    return false;
-}
-
-DBGattCharRef BTGattHandler::findServerGattCharByValueHandle(const uint16_t char_value_handle) noexcept {
-    if( nullptr == gattServerData ) {
-        return nullptr;
-    }
-    return gattServerData->findGattCharByValueHandle(char_value_handle);
-}
-
-AttErrorRsp::ErrorCode BTGattHandler::applyWrite(BTDeviceRef device, const uint16_t handle, const jau::TROOctets & value, const uint16_t value_offset) noexcept {
-    if( nullptr == gattServerData ) {
-        return AttErrorRsp::ErrorCode::INVALID_HANDLE;
-    }
-    for(DBGattServiceRef& s : gattServerData->getServices()) {
-        if( s->getHandle() <= handle && handle <= s->getEndHandle() ) {
-            for(DBGattCharRef& c : s->getCharacteristics()) {
-                if( c->getHandle() <= handle && handle <= c->getEndHandle() ) {
-                    if( handle == c->getValueHandle() ) {
-                        if( c->getValue().size() < value_offset) { // offset at value-end + 1 OK to append
-                            return AttErrorRsp::ErrorCode::INVALID_OFFSET;
-                        }
-                        if( c->hasVariableLength() ) {
-                            if( c->getValue().capacity() < value_offset + value.size() ) {
-                                return AttErrorRsp::ErrorCode::INVALID_ATTRIBUTE_VALUE_LEN;
-                            }
-                        } else {
-                            if( c->getValue().size() < value_offset + value.size() ) {
-                                return AttErrorRsp::ErrorCode::INVALID_ATTRIBUTE_VALUE_LEN;
-                            }
-                        }
-                        {
-                            bool allowed = true;
-                            int i=0;
-                            jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
-                                try {
-                                    allowed = l->writeCharValue(device, s, c, value, value_offset) && allowed;
-                                } catch (std::exception &e) {
-                                    ERR_PRINT("GATT-REQ: WRITE: (%s) %d/%zd: %s of %s: Caught exception %s",
-                                            c->toString().c_str(), i+1, gattServerData->listener().size(),
-                                            device->toString().c_str(), e.what());
-                                }
-                                i++;
-                            });
-                            if( !allowed ) {
-                                return AttErrorRsp::ErrorCode::NO_WRITE_PERM;
-                            }
-                        }
-                        if( c->hasVariableLength() ) {
-                            if( c->getValue().size() != value_offset + value.size() ) {
-                                c->getValue().resize( value_offset + value.size() );
-                            }
-                        }
-                        c->getValue().put_octets_nc(value_offset, value);
-                        return AttErrorRsp::ErrorCode::NO_ERROR;
-                    }
-                    for(DBGattDescRef& d : c->getDescriptors()) {
-                        if( handle == d->getHandle() ) {
-                            if( d->getValue().size() < value_offset) { // offset at value-end + 1 OK to append
-                                return AttErrorRsp::ErrorCode::INVALID_OFFSET;
-                            }
-                            if( d->hasVariableLength() ) {
-                                if( d->getValue().capacity() < value_offset + value.size() ) {
-                                    return AttErrorRsp::ErrorCode::INVALID_ATTRIBUTE_VALUE_LEN;
-                                }
-                            } else {
-                                if( d->getValue().size() < value_offset + value.size() ) {
-                                    return AttErrorRsp::ErrorCode::INVALID_ATTRIBUTE_VALUE_LEN;
-                                }
-                            }
-                            if( d->isUserDescription() ) {
-                                return AttErrorRsp::ErrorCode::NO_WRITE_PERM;
-                            }
-                            const bool isCCCD = d->isClientCharConfig();
-                            if( !isCCCD ) {
-                                bool allowed = true;
-                                int i=0;
-                                jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
-                                    try {
-                                        allowed = l->writeDescValue(device, s, c, d, value, value_offset) && allowed;
-                                    } catch (std::exception &e) {
-                                        ERR_PRINT("GATT-REQ: WRITE: (%s) %d/%zd: %s of %s: Caught exception %s",
-                                                d->toString().c_str(), i+1, gattServerData->listener().size(),
-                                                device->toString().c_str(), e.what());
-                                    }
-                                    i++;
-                                });
-                                if( !allowed ) {
-                                    return AttErrorRsp::ErrorCode::NO_WRITE_PERM;
-                                }
-                            }
-                            if( d->hasVariableLength() ) {
-                                if( d->getValue().size() != value_offset + value.size() ) {
-                                    d->getValue().resize( value_offset + value.size() );
-                                }
-                            }
-                            if( isCCCD ) {
-                                if( value.size() == 0 ) {
-                                    // no change, exit
-                                    return AttErrorRsp::ErrorCode::NO_ERROR;
-                                }
-                                const uint8_t old_v = d->getValue().get_uint8_nc(0);
-                                const bool oldEnableNotification = old_v & 0b001;
-                                const bool oldEnableIndication = old_v & 0b010;
-
-                                const uint8_t req_v = value.get_uint8_nc(0);
-                                const bool reqEnableNotification = req_v & 0b001;
-                                const bool reqEnableIndication = req_v & 0b010;
-                                const bool hasNotification = c->hasProperties(BTGattChar::PropertyBitVal::Notify);
-                                const bool hasIndication = c->hasProperties(BTGattChar::PropertyBitVal::Indicate);
-                                const bool enableNotification = reqEnableNotification && hasNotification;
-                                const bool enableIndication = reqEnableIndication && hasIndication;
-
-                                if( oldEnableNotification == enableNotification &&
-                                    oldEnableIndication == enableIndication ) {
-                                    // no change, exit
-                                    return AttErrorRsp::ErrorCode::NO_ERROR;
-                                }
-                                const uint16_t new_v = enableNotification | ( enableIndication << 1 );
-                                d->getValue().put_uint8_nc(0, new_v);
-                                {
-                                    int i=0;
-                                    jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
-                                        try {
-                                            l->clientCharConfigChanged(device, s, c, d, enableNotification, enableIndication);
-                                        } catch (std::exception &e) {
-                                            ERR_PRINT("GATT-REQ: WRITE CCCD: (%s) %d/%zd: %s of %s: Caught exception %s",
-                                                    d->toString().c_str(), i+1, gattServerData->listener().size(),
-                                                    device->toString().c_str(), e.what());
-                                        }
-                                        i++;
-                                    });
-                                }
-                            } else {
-                                // all other types ..
-                                d->getValue().put_octets_nc(value_offset, value);
-                            }
-                            return AttErrorRsp::ErrorCode::NO_ERROR;
-                        }
-                    }
-                } // if characteristics-range
-            } // for characteristics
-        } // if service-range
-    } // for services
-    return AttErrorRsp::ErrorCode::INVALID_HANDLE;
-}
-
-void BTGattHandler::signalWriteDone(BTDeviceRef device, const uint16_t handle) noexcept {
-    if( nullptr == gattServerData ) {
-        return;
-    }
-    for(DBGattServiceRef& s : gattServerData->getServices()) {
-        if( s->getHandle() <= handle && handle <= s->getEndHandle() ) {
-            for(DBGattCharRef& c : s->getCharacteristics()) {
-                if( c->getHandle() <= handle && handle <= c->getEndHandle() ) {
-                    if( handle == c->getValueHandle() ) {
-                        {
-                            int i=0;
-                            jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
-                                try {
-                                    l->writeCharValueDone(device, s, c);
-                                } catch (std::exception &e) {
-                                    ERR_PRINT("GATT-REQ: WRITE-Done: (%s) %d/%zd: %s of %s: Caught exception %s",
-                                            c->toString().c_str(), i+1, gattServerData->listener().size(),
-                                            device->toString().c_str(), e.what());
-                                }
-                                i++;
-                            });
-                        }
-                        return;
-                    }
-                    for(DBGattDescRef& d : c->getDescriptors()) {
-                        if( handle == d->getHandle() ) {
-                            if( d->isUserDescription() ) {
-                                return;
-                            }
-                            const bool isCCCD = d->isClientCharConfig();
-                            if( !isCCCD ) {
-                                int i=0;
-                                jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
-                                    try {
-                                        l->writeDescValueDone(device, s, c, d);
-                                    } catch (std::exception &e) {
-                                        ERR_PRINT("GATT-REQ: WRITE-Done: (%s) %d/%zd: %s of %s: Caught exception %s",
-                                                d->toString().c_str(), i+1, gattServerData->listener().size(),
-                                                device->toString().c_str(), e.what());
-                                    }
-                                    i++;
-                                });
-                            }
-                            return;
-                        }
-                    }
-                } // if characteristics-range
-            } // for characteristics
-        } // if service-range
-    } // for services
-    return;
-}
-
-void BTGattHandler::replyWriteReq(const AttPDUMsg * pdu) noexcept {
-    /**
-     * Without Response:
-     *   BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.5.3 ATT_WRITE_CMD
-     *   BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value without Response
-     *
-     * With Response:
-     *   BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.5.1 ATT_WRITE_REQ
-     *   BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
-     *   BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
-     *
-     *   BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.5.2 ATT_WRITE_RSP
-     *   BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
-     */
-    BTDeviceRef device = getDeviceUnchecked();
-    if( nullptr == device ) {
-        AttErrorRsp err(AttErrorRsp::ErrorCode::UNLIKELY_ERROR, pdu->getOpcode(), 0);
-        ERR_PRINT("GATT-Req: WRITE.0, null device: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-        return;
-    }
-
-    if( AttPDUMsg::Opcode::PREPARE_WRITE_REQ == pdu->getOpcode() ) {
-        const AttPrepWrite * req = static_cast<const AttPrepWrite*>(pdu);
-        if( !hasServerHandle( req->getHandle() ) ) {
-            AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, req->getOpcode(), req->getHandle());
-            WARN_PRINT("GATT-Req: WRITE.10: %s -> %s from %s", req->toString().c_str(), err.toString().c_str(), toString().c_str());
-            send(err);
-            return;
-        }
-        const uint16_t handle = req->getHandle();
-        AttPrepWrite rsp(false, *req);
-        writeDataQueue.push_back(rsp);
-        if( writeDataQueueHandles.cend() == jau::find_if(writeDataQueueHandles.cbegin(), writeDataQueueHandles.cend(),
-                                                         [&](const uint16_t it)->bool { return handle == it; }) )
-        {
-            // new entry
-            writeDataQueueHandles.push_back(handle);
-        }
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: WRITE.11: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-        send(rsp);
-        return;
-    } else if( AttPDUMsg::Opcode::EXECUTE_WRITE_REQ == pdu->getOpcode() ) {
-        const AttExeWriteReq * req = static_cast<const AttExeWriteReq*>(pdu);
-        if( 0x01 == req->getFlags() ) { // immediately write all pending prepared values
-            AttErrorRsp::ErrorCode res = AttErrorRsp::ErrorCode::NO_ERROR;
-            for( auto iter_handle = writeDataQueueHandles.cbegin(); iter_handle < writeDataQueueHandles.cend(); ++iter_handle ) {
-                for( auto iter_prep_write = writeDataQueue.cbegin(); iter_prep_write < writeDataQueue.cend(); ++iter_prep_write ) {
-                    const AttPrepWrite &p = *iter_prep_write;
-                    const uint16_t handle = p.getHandle();
-                    if( handle == *iter_handle ) {
-                        jau::TROOctets p_val(p.getValue().get_ptr_nc(0), p.getValue().size(), p.getValue().byte_order());
-                        res = applyWrite(device, handle, p_val, p.getValueOffset());
-
-                        if( AttErrorRsp::ErrorCode::NO_ERROR != res ) {
-                            writeDataQueue.clear();
-                            writeDataQueueHandles.clear();
-                            AttErrorRsp err(res, pdu->getOpcode(), handle);
-                            WARN_PRINT("GATT-Req: WRITE.12: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-                            send(err);
-                            return;
-                        }
-                    }
-                }
-            }
-            for( auto iter_handle = writeDataQueueHandles.cbegin(); iter_handle < writeDataQueueHandles.cend(); ++iter_handle ) {
-                signalWriteDone(device, *iter_handle);
-            }
-        } // else 0x00 == req->getFlags() -> cancel all prepared writes
-        writeDataQueue.clear();
-        writeDataQueueHandles.clear();
-        AttExeWriteRsp rsp;
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: WRITE.13: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-        send(rsp);
-        return;
-    }
-
-    uint16_t handle = 0;
-    const jau::TOctetSlice * vslice = nullptr;
-    bool withResp;
-    if( AttPDUMsg::Opcode::WRITE_REQ == pdu->getOpcode() ) {
-        const AttWriteReq * req = static_cast<const AttWriteReq*>(pdu);
-        handle = req->getHandle();
-        vslice = &req->getValue();
-        withResp = true;
-    } else if( AttPDUMsg::Opcode::WRITE_CMD == pdu->getOpcode() ) {
-        const AttWriteCmd * req = static_cast<const AttWriteCmd*>(pdu);
-        handle = req->getHandle();
-        vslice = &req->getValue();
-        withResp = false;
-    } else {
-        AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu->getOpcode(), 0);
-        WARN_PRINT("GATT-Req: WRITE.20: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-        return;
-    }
-    jau::TROOctets req_val(vslice->get_ptr_nc(0), vslice->size(), vslice->byte_order());
-    AttErrorRsp::ErrorCode res = applyWrite(device, handle, req_val, 0);
-    if( AttErrorRsp::ErrorCode::NO_ERROR != res ) {
-        AttErrorRsp err(res, pdu->getOpcode(), handle);
-        WARN_PRINT("GATT-Req: WRITE.21: %s -> %s (sent %d) from %s",
-                pdu->toString().c_str(), err.toString().c_str(), (int)withResp, toString().c_str());
-        if( withResp ) {
-            send(err);
-        }
-        return;
-    }
-    if( withResp ) {
-        AttWriteRsp rsp;
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: WRITE.22: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-        send(rsp);
-    }
-    signalWriteDone(device, handle);
-}
-
-void BTGattHandler::replyReadReq(const AttPDUMsg * pdu) noexcept {
-    /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value */
-    /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value */
-    /* For any follow up request, which previous request reply couldn't fit in ATT_MTU */
-    BTDeviceRef device = getDeviceUnchecked();
-    if( nullptr == device ) {
-        AttErrorRsp err(AttErrorRsp::ErrorCode::UNLIKELY_ERROR, pdu->getOpcode(), 0);
-        ERR_PRINT("GATT-Req: READ, null device: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-        return;
-    }
-    uint16_t handle = 0;
-    uint16_t value_offset = 0;
-    bool isBlobReq;
-    if( AttPDUMsg::Opcode::READ_REQ == pdu->getOpcode() ) {
-        const AttReadReq * req = static_cast<const AttReadReq*>(pdu);
-        handle = req->getHandle();
-        isBlobReq = false;
-    } else if( AttPDUMsg::Opcode::READ_BLOB_REQ == pdu->getOpcode() ) {
-        /**
-         * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value
-         *
-         * If the Characteristic Value is not longer than (ATT_MTU – 1)
-         * an ATT_ERROR_RSP PDU with the error
-         * code set to Attribute Not Long shall be received on the first
-         * ATT_READ_BLOB_REQ PDU.
-         */
-        const AttReadBlobReq * req = static_cast<const AttReadBlobReq*>(pdu);
-        handle = req->getHandle();
-        value_offset = req->getValueOffset();
-        isBlobReq = true;
-    } else {
-        AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu->getOpcode(), 0);
-        WARN_PRINT("GATT-Req: READ: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-        return;
-    }
-    if( 0 == handle ) {
-        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-        return;
-    }
-    const jau::nsize_t rspMaxSize = usedMTU.load()-1;
-    (void)rspMaxSize;
-
-    if( nullptr != gattServerData ) {
-        for(DBGattServiceRef& s : gattServerData->getServices()) {
-            if( s->getHandle() <= handle && handle <= s->getEndHandle() ) {
-                /**
-                 * AttReadByGroupTypeRsp (1 opcode + 1 element_size + 2 handle + 2 handle + 16 uuid128_t = 22 bytes)
-                 * always fits in minimum ATT_PDU 23
-                 */
-                for(DBGattCharRef& c : s->getCharacteristics()) {
-                    if( c->getHandle() <= handle && handle <= c->getEndHandle() ) {
-                        if( handle == c->getValueHandle() ) {
-                            if( isBlobReq ) {
-#if SEND_ATTRIBUTE_NOT_LONG
-                                if( c->getValue().size() <= rspMaxSize ) {
-                                    AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_LONG, pdu->getOpcode(), handle);
-                                    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-                                    send(err);
-                                    return;
-                                }
-#endif
-                                if( value_offset > c->getValue().size() ) {
-                                    AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_OFFSET, pdu->getOpcode(), handle);
-                                    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-                                    send(err);
-                                    return;
-                                }
-                            }
-                            {
-                                bool allowed = true;
-                                int i=0;
-                                jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
-                                    try {
-                                        allowed = l->readCharValue(device, s, c) && allowed;
-                                    } catch (std::exception &e) {
-                                        ERR_PRINT("GATT-REQ: READ: (%s) %d/%zd: %s of %s: Caught exception %s",
-                                                c->toString().c_str(), i+1, gattServerData->listener().size(),
-                                                device->toString().c_str(), e.what());
-                                    }
-                                    i++;
-                                });
-                                if( !allowed ) {
-                                    AttErrorRsp err(AttErrorRsp::ErrorCode::NO_READ_PERM, pdu->getOpcode(), handle);
-                                    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.2: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-                                    send(err);
-                                    return;
-                                }
-                            }
-                            AttReadNRsp rsp(isBlobReq, c->getValue(), value_offset); // Blob: value_size == value_offset -> OK, ends communication
-                            if( rsp.getPDUValueSize() > rspMaxSize ) {
-                                rsp.pdu.resize(usedMTU); // requires another READ_BLOB_REQ
-                            }
-                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-                            send(rsp);
-                            return;
-                        }
-                        for(DBGattDescRef& d : c->getDescriptors()) {
-                            if( handle == d->getHandle() ) {
-                                if( isBlobReq ) {
-#if SEND_ATTRIBUTE_NOT_LONG
-                                    if( isBlobReq && d->getValue().size() <= rspMaxSize ) {
-                                        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_LONG, pdu->getOpcode(), handle);
-                                        COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-                                        send(err);
-                                        return;
-                                    }
-#endif
-                                    if( value_offset > c->getValue().size() ) {
-                                        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_OFFSET, pdu->getOpcode(), handle);
-                                        COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-                                        send(err);
-                                        return;
-                                    }
-                                }
-                                {
-                                    bool allowed = true;
-                                    int i=0;
-                                    jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
-                                        try {
-                                            allowed = l->readDescValue(device, s, c, d) && allowed;
-                                        } catch (std::exception &e) {
-                                            ERR_PRINT("GATT-REQ: READ: (%s) %d/%zd: %s of %s: Caught exception %s",
-                                                    d->toString().c_str(), i+1, gattServerData->listener().size(),
-                                                    device->toString().c_str(), e.what());
-                                        }
-                                        i++;
-                                    });
-                                    if( !allowed ) {
-                                        AttErrorRsp err(AttErrorRsp::ErrorCode::NO_READ_PERM, pdu->getOpcode(), handle);
-                                        COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.4: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-                                        send(err);
-                                        return;
-                                    }
-                                }
-                                AttReadNRsp rsp(isBlobReq, d->getValue(), value_offset); // Blob: value_size == value_offset -> OK, ends communication
-                                if( rsp.getPDUValueSize() > rspMaxSize ) {
-                                    rsp.pdu.resize(usedMTU); // requires another READ_BLOB_REQ
-                                }
-                                COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.5: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-                                send(rsp);
-                                return;
-                            }
-                        }
-                    } // if characteristics-range
-                } // for characteristics
-            } // if service-range
-        } // for services
-    }
-    AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), handle);
-    COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-    send(err);
-}
-
-void BTGattHandler::replyFindInfoReq(const AttFindInfoReq * pdu) noexcept {
-    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.1 ATT_FIND_INFORMATION_REQ
-    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.2 ATT_FIND_INFORMATION_RSP
-    // BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
-    if( 0 == pdu->getStartHandle() ) {
-        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-        return;
-    }
-    if( pdu->getStartHandle() > pdu->getEndHandle() ) {
-        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), pdu->getStartHandle());
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-        return;
-    }
-    const uint16_t end_handle = pdu->getEndHandle();
-    const uint16_t start_handle = pdu->getStartHandle();
-
-    const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(255, usedMTU.load()-2);
-    AttFindInfoRsp rsp(usedMTU); // maximum size
-    jau::nsize_t rspElemSize = 0;
-    jau::nsize_t rspSize = 0;
-    jau::nsize_t rspCount = 0;
-
-    if( nullptr != gattServerData ) {
-        for(DBGattServiceRef& s : gattServerData->getServices()) {
-            for(DBGattCharRef& c : s->getCharacteristics()) {
-                for(DBGattDescRef& d : c->getDescriptors()) {
-                    if( start_handle <= d->getHandle() && d->getHandle() <= end_handle ) {
-                        const jau::nsize_t size = 2 + d->getType()->getTypeSizeInt();
-                        if( 0 == rspElemSize ) {
-                            // initial setting or reset
-                            rspElemSize = size;
-                            rsp.setElementSize(rspElemSize);
-                        }
-                        if( rspSize + size > rspMaxSize || rspElemSize != size ) {
-                            // send if rsp is full - or - element size changed
-                            rsp.setElementCount(rspCount);
-                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO.2: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-                            send(rsp);
-                            return; // Client shall issue additional FIND_INFORMATION_REQ
-                        }
-                        rsp.setElementHandle(rspCount, d->getHandle());
-                        rsp.setElementValueUUID(rspCount, *d->getType());
-                        rspSize += size;
-                        ++rspCount;
-                    }
-                }
-            }
-        }
-        if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
-            rsp.setElementCount(rspCount);
-            COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-            send(rsp);
-            return;
-        }
-    }
-    AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), start_handle);
-    COND_PRINT(env.DEBUG_DATA, "GATT-Req: INFO.4: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-    send(err);
-}
-
-void BTGattHandler::replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) noexcept {
-    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.3 ATT_FIND_BY_TYPE_VALUE_REQ
-    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.4 ATT_FIND_BY_TYPE_VALUE_RSP
-    // BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.2 Discover Primary Service by Service UUID
-    if( 0 == pdu->getStartHandle() ) {
-        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPEVALUE.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-        return;
-    }
-    if( pdu->getStartHandle() > pdu->getEndHandle() ) {
-        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), pdu->getStartHandle());
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPEVALUE.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-        return;
-    }
-    const jau::uuid16_t uuid_prim_service = jau::uuid16_t(GattAttributeType::PRIMARY_SERVICE);
-    const jau::uuid16_t uuid_secd_service = jau::uuid16_t(GattAttributeType::SECONDARY_SERVICE);
-    const uint16_t end_handle = pdu->getEndHandle();
-    const uint16_t start_handle = pdu->getStartHandle();
-    const jau::uuid16_t att_type = pdu->getAttType();
-    std::unique_ptr<const jau::uuid_t> att_value = pdu->getAttValue();
-
-    uint16_t req_group_type;
-    if( att_type.equivalent( uuid_prim_service ) ) {
-        req_group_type = GattAttributeType::PRIMARY_SERVICE;
-    } else if( att_type.equivalent( uuid_secd_service ) ) {
-        req_group_type = GattAttributeType::SECONDARY_SERVICE;
-    } else {
-        // not handled
-        req_group_type = 0;
-    }
-
-
-    // const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(255, usedMTU.load()-2);
-    AttFindByTypeValueRsp rsp(usedMTU); // maximum size
-    jau::nsize_t rspSize = 0;
-    jau::nsize_t rspCount = 0;
-
-    if( nullptr != gattServerData ) {
-        const jau::nsize_t size = 2 + 2;
-
-        for(DBGattServiceRef& s : gattServerData->getServices()) {
-            if( start_handle <= s->getHandle() && s->getHandle() <= end_handle ) {
-                if( ( ( GattAttributeType::PRIMARY_SERVICE   == req_group_type &&  s->isPrimary() ) ||
-                      ( GattAttributeType::SECONDARY_SERVICE == req_group_type && !s->isPrimary() )
-                    ) &&
-                    s->getType()->equivalent(*att_value) )
-                {
-                    rsp.setElementHandles(rspCount, s->getHandle(), s->getEndHandle());
-                    rspSize += size;
-                    ++rspCount;
-                    COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPEVALUE.4: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-                    send(rsp);
-                    return; // done
-                }
-            }
-        }
-        if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
-            rsp.setElementCount(rspCount);
-            COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPEVALUE.5: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-            send(rsp);
-            return;
-        }
-    }
-    AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), start_handle);
-    COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPEVALUE.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-    send(err);
-}
-
-void BTGattHandler::replyReadByTypeReq(const AttReadByNTypeReq * pdu) noexcept {
-    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.1 ATT_READ_BY_TYPE_REQ
-    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.2 ATT_READ_BY_TYPE_RSP
-    // BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
-    if( 0 == pdu->getStartHandle() ) {
-        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-        return;
-    }
-    if( pdu->getStartHandle() > pdu->getEndHandle() ) {
-        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), pdu->getStartHandle());
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-        return;
-    }
-    const jau::uuid16_t uuid_characteristic = jau::uuid16_t(GattAttributeType::CHARACTERISTIC);
-    const jau::uuid16_t uuid_incl_service = jau::uuid16_t(GattAttributeType::INCLUDE_DECLARATION);
-    uint16_t req_type;
-    if( pdu->getNType()->equivalent( uuid_characteristic ) ) {
-        req_type = GattAttributeType::CHARACTERISTIC;
-    } else if( pdu->getNType()->equivalent( uuid_incl_service ) ) {
-        req_type = GattAttributeType::INCLUDE_DECLARATION;
-    } else {
-        // not handled
-        req_type = 0;
-    }
-    if( GattAttributeType::CHARACTERISTIC == req_type ) {
-        const uint16_t end_handle = pdu->getEndHandle();
-        const uint16_t start_handle = pdu->getStartHandle();
-
-        const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(255, usedMTU.load()-2);
-        AttReadByTypeRsp rsp(usedMTU); // maximum size
-        jau::nsize_t rspElemSize = 0;
-        jau::nsize_t rspSize = 0;
-        jau::nsize_t rspCount = 0;
-
-        if( nullptr != gattServerData ) {
-            for(DBGattServiceRef& s : gattServerData->getServices()) {
-                for(DBGattCharRef& c : s->getCharacteristics()) {
-                    if( start_handle <= c->getHandle() && c->getHandle() <= end_handle ) {
-                        const jau::nsize_t size = 2 + 1 + 2 + c->getValueType()->getTypeSizeInt();
-                        if( 0 == rspElemSize ) {
-                            // initial setting or reset
-                            rspElemSize = size;
-                            rsp.setElementSize(rspElemSize);
-                        }
-                        if( rspSize + size > rspMaxSize || rspElemSize != size ) {
-                            // send if rsp is full - or - element size changed
-                            rsp.setElementCount(rspCount);
-                            COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.2: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-                            send(rsp);
-                            return; // Client shall issue additional READ_BY_TYPE_REQ
-                        }
-                        jau::nsize_t ePDUOffset = rsp.getElementPDUOffset(rspCount);
-                        rsp.setElementHandle(rspCount, c->getHandle()); // Characteristic Handle
-                        ePDUOffset += 2;
-                        rsp.pdu.put_uint8_nc(ePDUOffset, c->getProperties()); // Characteristics Property
-                        ePDUOffset += 1;
-                        rsp.pdu.put_uint16_nc(ePDUOffset, c->getValueHandle()); // Characteristics Value Handle
-                        ePDUOffset += 2;
-                        c->getValueType()->put(rsp.pdu.get_wptr_nc(ePDUOffset), 0, true /* littleEndian */); // Characteristics Value Type UUID
-                        ePDUOffset += c->getValueType()->getTypeSizeInt();
-                        rspSize += size;
-                        ++rspCount;
-                    }
-                }
-            }
-            if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
-                rsp.setElementCount(rspCount);
-                COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-                send(rsp);
-                return;
-            }
-        }
-        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), pdu->getStartHandle());
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.4: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-    } else if( GattAttributeType::INCLUDE_DECLARATION == req_type ) {
-        // TODO: Support INCLUDE_DECLARATION ??
-        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), pdu->getStartHandle());
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.5: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-    } else {
-        // TODO: Add other group types ???
-        AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu->getOpcode(), pdu->getStartHandle());
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: TYPE.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-    }
-}
-
-void BTGattHandler::replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) noexcept {
-    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.9 ATT_READ_BY_GROUP_TYPE_REQ
-    // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.10 ATT_READ_BY_GROUP_TYPE_RSP
-    // BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
-    if( 0 == pdu->getStartHandle() ) {
-        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-        return;
-    }
-    if( pdu->getStartHandle() > pdu->getEndHandle() ) {
-        AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), pdu->getStartHandle());
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-        return;
-    }
-    const jau::uuid16_t uuid_prim_service = jau::uuid16_t(GattAttributeType::PRIMARY_SERVICE);
-    const jau::uuid16_t uuid_secd_service = jau::uuid16_t(GattAttributeType::SECONDARY_SERVICE);
-    uint16_t req_group_type;
-    if( pdu->getNType()->equivalent( uuid_prim_service ) ) {
-        req_group_type = GattAttributeType::PRIMARY_SERVICE;
-    } else if( pdu->getNType()->equivalent( uuid_secd_service ) ) {
-        req_group_type = GattAttributeType::SECONDARY_SERVICE;
-    } else {
-        // not handled
-        req_group_type = 0;
-    }
-    if( 0 != req_group_type ) {
-        const uint16_t end_handle = pdu->getEndHandle();
-        const uint16_t start_handle = pdu->getStartHandle();
-
-        const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(255, usedMTU.load()-2);
-        AttReadByGroupTypeRsp rsp(usedMTU); // maximum size
-        jau::nsize_t rspElemSize = 0;
-        jau::nsize_t rspSize = 0;
-        jau::nsize_t rspCount = 0;
-
-        if( nullptr != gattServerData ) {
-            for(DBGattServiceRef& s : gattServerData->getServices()) {
-                if( ( ( GattAttributeType::PRIMARY_SERVICE   == req_group_type &&  s->isPrimary() ) ||
-                      ( GattAttributeType::SECONDARY_SERVICE == req_group_type && !s->isPrimary() )
-                    ) &&
-                    start_handle <= s->getHandle() && s->getHandle() <= end_handle )
-                {
-                    const jau::nsize_t size = 2 + 2 + s->getType()->getTypeSizeInt();
-                    if( 0 == rspElemSize ) {
-                        // initial setting or reset
-                        rspElemSize = size;
-                        rsp.setElementSize(rspElemSize);
-                    }
-                    if( rspSize + size > rspMaxSize || rspElemSize != size ) {
-                        // send if rsp is full - or - element size changed
-                        /**
-                         * AttReadByGroupTypeRsp (1 opcode + 1 element_size + 2 handle + 2 handle + 16 uuid128_t = 22 bytes)
-                         * always fits in minimum ATT_PDU 23
-                         */
-                        rsp.setElementCount(rspCount);
-                        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-                        send(rsp);
-                        return; // Client shall issue additional READ_BY_TYPE_REQ
-                    }
-                    rsp.setElementStartHandle(rspCount, s->getHandle());
-                    rsp.setElementEndHandle(rspCount, s->getEndHandle());
-                    rsp.setElementValueUUID(rspCount, *s->getType());
-                    rspSize += size;
-                    ++rspCount;
-                }
-            }
-            if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
-                rsp.setElementCount(rspCount);
-                COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.4: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), toString().c_str());
-                send(rsp);
-                return;
-            }
-        }
-        AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), pdu->getStartHandle());
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.5: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-    } else {
-        // TODO: Add other group types ???
-        AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu->getOpcode(), pdu->getStartHandle());
-        COND_PRINT(env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), toString().c_str());
-        send(err);
-    }
-}
-
 void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) noexcept {
     if( !validateConnected() ) { // shall not happen
         DBG_PRINT("GATT-Req: disconnected: req %s from %s",
@@ -997,57 +224,34 @@ void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) noex
     }
     switch( pdu->getOpcode() ) {
         case AttPDUMsg::Opcode::EXCHANGE_MTU_REQ: { // 2
-            const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
-            const uint16_t clientMTU = p->getMTUSize();
-            usedMTU = std::min(serverMTU, clientMTU);
-            const AttExchangeMTU rsp(AttPDUMsg::ReqRespType::RESPONSE, usedMTU);
-            COND_PRINT(env.DEBUG_DATA, "GATT-Req: MTU recv: %u, %s  -> %u %s from %s",
-                    clientMTU, pdu->toString().c_str(),
-                    usedMTU.load(), rsp.toString().c_str(), toString().c_str());
-            if( nullptr != gattServerData ) {
-                BTDeviceRef device = getDeviceUnchecked();
-                if( nullptr != device ) {
-                    int i=0;
-                    jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
-                        try {
-                            l->mtuChanged(device, usedMTU);
-                        } catch (std::exception &e) {
-                            ERR_PRINT("GATTHandler::mtuChanged: %d/%zd: %s: Caught exception %s",
-                                    i+1, gattServerData->listener().size(),
-                                    toString().c_str(), e.what());
-                        }
-                        i++;
-                    });
-                }
-            }
-            send(rsp);
+            gattServerHandler->replyExchangeMTUReq( static_cast<const AttExchangeMTU*>( pdu.get() ) );
             return;
         }
 
         case AttPDUMsg::Opcode::FIND_INFORMATION_REQ: { // 4
-            replyFindInfoReq( static_cast<const AttFindInfoReq*>( pdu.get() ) );
+            gattServerHandler->replyFindInfoReq( static_cast<const AttFindInfoReq*>( pdu.get() ) );
             return;
         }
 
         case AttPDUMsg::Opcode::FIND_BY_TYPE_VALUE_REQ: { // 6
-            replyFindByTypeValueReq( static_cast<const AttFindByTypeValueReq*>( pdu.get() ) );
+            gattServerHandler->replyFindByTypeValueReq( static_cast<const AttFindByTypeValueReq*>( pdu.get() ) );
             return;
         }
 
         case AttPDUMsg::Opcode::READ_BY_TYPE_REQ: { // 8
-            replyReadByTypeReq( static_cast<const AttReadByNTypeReq*>( pdu.get() ) );
+            gattServerHandler->replyReadByTypeReq( static_cast<const AttReadByNTypeReq*>( pdu.get() ) );
             return;
         }
 
         case AttPDUMsg::Opcode::READ_REQ: // 10
             [[fallthrough]];
         case AttPDUMsg::Opcode::READ_BLOB_REQ: { // 12
-            replyReadReq( pdu.get() );
+            gattServerHandler->replyReadReq( pdu.get() );
             return;
         }
 
         case AttPDUMsg::Opcode::READ_BY_GROUP_TYPE_REQ: { // 16
-            replyReadByGroupTypeReq( static_cast<const AttReadByNTypeReq*>( pdu.get() ) );
+            gattServerHandler->replyReadByGroupTypeReq( static_cast<const AttReadByNTypeReq*>( pdu.get() ) );
             return;
         }
 
@@ -1058,7 +262,7 @@ void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) noex
         case AttPDUMsg::Opcode::PREPARE_WRITE_REQ: // 22
             [[fallthrough]];
         case AttPDUMsg::Opcode::EXECUTE_WRITE_REQ: { // 24
-            replyWriteReq( pdu.get() );
+            gattServerHandler->replyWriteReq( pdu.get() );
             return;
         }
 
@@ -1104,53 +308,86 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
             ERR_PRINT("GATTHandler::reader: MULTI-NTF not implemented: %s", attPDU->toString().c_str());
         } else if( AttPDUMsg::Opcode::HANDLE_VALUE_NTF == opc ) { // AttPDUMsg::OpcodeType::NOTIFICATION
             const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
-            COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: NTF: %s, listener %zd", a->toString().c_str(), characteristicListenerList.size());
-            BTGattCharRef decl = findCharacterisicsByValueHandle(services, a->getHandle());
-            const jau::TOctetSlice& a_value_view = a->getValue();
-            const jau::TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.size(), a_value_view.byte_order()); // just a view, still owned by attPDU
-            // const std::shared_ptr<TROOctets> data( std::make_shared<POctets>(a->getValue()) );
-            const uint64_t timestamp = a->ts_creation;
-            int i=0;
-            jau::for_each_fidelity(characteristicListenerList, [&](std::shared_ptr<BTGattCharListener> &l) {
-                try {
-                    if( l->match(*decl) ) {
-                        l->notificationReceived(decl, data_view, timestamp);
+            COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: NTF: %s, listener [native %zd, bt %zd]",
+                    a->toString().c_str(), nativeGattCharListenerList.size(), btGattCharListenerList.size());
+            const uint64_t a_timestamp = a->ts_creation;
+            const uint16_t a_handle = a->getHandle();
+            const jau::TOctetSlice& a_value = a->getValue();
+            const jau::TROOctets a_data_view(a_value.get_ptr_nc(0), a_value.size(), a_value.byte_order()); // just a view, still owned by attPDU
+            BTDeviceRef device = getDeviceUnchecked();
+            if( nullptr != device ) {
+                int i=0;
+                jau::for_each_fidelity(nativeGattCharListenerList, [&](std::shared_ptr<NativeGattCharListener> &l) {
+                    try {
+                        l->notificationReceived(device, a_handle, a_data_view, a_timestamp);
+                    } catch (std::exception &e) {
+                        ERR_PRINT("GATTHandler::notificationReceived-CBs %d/%zd: NativeGattCharListener %s: Caught exception %s",
+                                i+1, nativeGattCharListenerList.size(),
+                                jau::to_hexstring((void*)l.get()).c_str(), e.what());
                     }
-                } catch (std::exception &e) {
-                    ERR_PRINT("GATTHandler::notificationReceived-CBs %d/%zd: GATTCharacteristicListener %s: Caught exception %s",
-                            i+1, characteristicListenerList.size(),
-                            jau::to_hexstring((void*)l.get()).c_str(), e.what());
-                }
-                i++;
-            });
+                    i++;
+                });
+            }
+            BTGattCharRef decl = findCharacterisicsByValueHandle(services, a_handle);
+            if( nullptr != decl ) {
+                int i=0;
+                jau::for_each_fidelity(btGattCharListenerList, [&](std::shared_ptr<BTGattCharListener> &l) {
+                    try {
+                        if( l->match(*decl) ) {
+                            l->notificationReceived(decl, a_data_view, a_timestamp);
+                        }
+                    } catch (std::exception &e) {
+                        ERR_PRINT("GATTHandler::notificationReceived-CBs %d/%zd: BTGattCharListener %s: Caught exception %s",
+                                i+1, btGattCharListenerList.size(),
+                                jau::to_hexstring((void*)l.get()).c_str(), e.what());
+                    }
+                    i++;
+                });
+            }
         } else if( AttPDUMsg::Opcode::HANDLE_VALUE_IND == opc ) { // AttPDUMsg::OpcodeType::INDICATION
             const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
-            COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: IND: %s, sendIndicationConfirmation %d, listener %zd",
-                    a->toString().c_str(), sendIndicationConfirmation.load(), characteristicListenerList.size());
+            COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: IND: %s, sendIndicationConfirmation %d, listener [native %zd, bt %zd]",
+                    a->toString().c_str(), sendIndicationConfirmation.load(), nativeGattCharListenerList.size(), btGattCharListenerList.size());
             bool cfmSent = false;
             if( sendIndicationConfirmation ) {
                 AttHandleValueCfm cfm;
                 send(cfm);
                 cfmSent = true;
             }
-            BTGattCharRef decl = findCharacterisicsByValueHandle(services, a->getHandle());
-            const jau::TOctetSlice& a_value_view = a->getValue();
-            const jau::TROOctets data_view(a_value_view.get_ptr_nc(0), a_value_view.size(), a_value_view.byte_order()); // just a view, still owned by attPDU
-            // const std::shared_ptr<TROOctets> data( std::make_shared<POctets>(a->getValue()) );
-            const uint64_t timestamp = a->ts_creation;
-            int i=0;
-            jau::for_each_fidelity(characteristicListenerList, [&](std::shared_ptr<BTGattCharListener> &l) {
-                try {
-                    if( l->match(*decl) ) {
-                        l->indicationReceived(decl, data_view, timestamp, cfmSent);
+            const uint64_t a_timestamp = a->ts_creation;
+            const uint16_t a_handle = a->getHandle();
+            const jau::TOctetSlice& a_value = a->getValue();
+            const jau::TROOctets a_data_view(a_value.get_ptr_nc(0), a_value.size(), a_value.byte_order()); // just a view, still owned by attPDU
+            BTDeviceRef device = getDeviceUnchecked();
+            if( nullptr != device ) {
+                int i=0;
+                jau::for_each_fidelity(nativeGattCharListenerList, [&](std::shared_ptr<NativeGattCharListener> &l) {
+                    try {
+                        l->indicationReceived(device, a_handle, a_data_view, a_timestamp, cfmSent);
+                    } catch (std::exception &e) {
+                        ERR_PRINT("GATTHandler::indicationReceived-CBs %d/%zd: NativeGattCharListener %s: Caught exception %s",
+                                i+1, nativeGattCharListenerList.size(),
+                                jau::to_hexstring((void*)l.get()).c_str(), e.what());
                     }
-                } catch (std::exception &e) {
-                    ERR_PRINT("GATTHandler::indicationReceived-CBs %d/%zd: GATTCharacteristicListener %s, cfmSent %d: Caught exception %s",
-                            i+1, characteristicListenerList.size(),
-                            jau::to_hexstring((void*)l.get()).c_str(), cfmSent, e.what());
-                }
-                i++;
-            });
+                    i++;
+                });
+            }
+            BTGattCharRef decl = findCharacterisicsByValueHandle(services, a_handle);
+            if( nullptr != decl ) {
+                int i=0;
+                jau::for_each_fidelity(btGattCharListenerList, [&](std::shared_ptr<BTGattCharListener> &l) {
+                    try {
+                        if( l->match(*decl) ) {
+                            l->indicationReceived(decl, a_data_view, a_timestamp, cfmSent);
+                        }
+                    } catch (std::exception &e) {
+                        ERR_PRINT("GATTHandler::indicationReceived-CBs %d/%zd: BTGattCharListener %s, cfmSent %d: Caught exception %s",
+                                i+1, btGattCharListenerList.size(),
+                                jau::to_hexstring((void*)l.get()).c_str(), cfmSent, e.what());
+                    }
+                    i++;
+                });
+            }
         } else if( AttPDUMsg::OpcodeType::RESPONSE == opc_type ) {
             COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: Ring: %s", attPDU->toString().c_str());
             attPDURing.putBlocking( std::move(attPDU) );
@@ -1182,13 +419,14 @@ void BTGattHandler::l2capReaderEndFinal(jau::service_runner& sr) noexcept {
     disconnect(true /* disconnectDevice */, has_ioerror);
 }
 
-BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPComm& l2cap_att, const int32_t supervision_timeout) noexcept
-: env(BTGattEnv::get()),
+BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPComm& l2cap_att, const int32_t supervision_timeout_) noexcept
+: supervision_timeout(supervision_timeout_),
+  env(BTGattEnv::get()),
+  read_cmd_reply_timeout(std::max<int32_t>(env.GATT_READ_COMMAND_REPLY_TIMEOUT, supervision_timeout+50)),
+  write_cmd_reply_timeout(std::max<int32_t>(env.GATT_WRITE_COMMAND_REPLY_TIMEOUT, supervision_timeout+50)),
   wbr_device(device),
   role(device->getLocalGATTRole()),
   l2cap(l2cap_att),
-  read_cmd_reply_timeout(std::max<int32_t>(env.GATT_READ_COMMAND_REPLY_TIMEOUT, supervision_timeout+50)),
-  write_cmd_reply_timeout(std::max<int32_t>(env.GATT_WRITE_COMMAND_REPLY_TIMEOUT, supervision_timeout+50)),
   deviceString(device->getAddressAndType().toString()),
   rbuffer(number(Defaults::MAX_ATT_MTU), jau::endian::little),
   is_connected(l2cap.isOpen()), has_ioerror(false),
@@ -1200,6 +438,7 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPComm& l2cap_att, co
   attPDURing(env.ATTPDU_RING_CAPACITY),
   serverMTU(number(Defaults::MIN_ATT_MTU)), usedMTU(number(Defaults::MIN_ATT_MTU)), clientMTUExchanged(false),
   gattServerData( GATTRole::Server == role ? device->getAdapter().getGATTServerData() : nullptr ),
+  gattServerHandler( selectGattServerHandler(*this, gattServerData) )
 {
     if( !validateConnected() ) {
         ERR_PRINT("GATTHandler.ctor: L2CAP could not connect");
@@ -1247,7 +486,8 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPComm& l2cap_att, co
 BTGattHandler::~BTGattHandler() noexcept {
     DBG_PRINT("GATTHandler::dtor: Start: %s", toString().c_str());
     disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
-    characteristicListenerList.clear();
+    btGattCharListenerList.clear();
+    nativeGattCharListenerList.clear();
     services.clear();
     genericAccess = nullptr;
     DBG_PRINT("GATTHandler::dtor: End: %s", toString().c_str());
@@ -1259,43 +499,25 @@ bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCa
     // and pull all underlying l2cap read operations!
     l2cap.close();
 
-    writeDataQueue.clear();
-    writeDataQueueHandles.clear();
-
     // Avoid disconnect re-entry -> potential deadlock
     bool expConn = true; // C++11, exp as value since C++20
     if( !is_connected.compare_exchange_strong(expConn, false) ) {
         // not connected
         DBG_PRINT("GATTHandler::disconnect: Not connected: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
                   disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), toString().c_str());
-        characteristicListenerList.clear();
+        btGattCharListenerList.clear();
+        nativeGattCharListenerList.clear();
         return false;
     }
 
-    if( nullptr != gattServerData ) {
-        BTDeviceRef device = getDeviceUnchecked();
-        if( nullptr == device ) {
-            ERR_PRINT("GATTHandler::disconnect: null device: %s", toString().c_str());
-        } else {
-            int i=0;
-            jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
-                try {
-                    l->disconnected(device);
-                } catch (std::exception &e) {
-                    ERR_PRINT("GATTHandler::disconnect: %d/%zd: %s: Caught exception %s",
-                            i+1, gattServerData->listener().size(),
-                            toString().c_str(), e.what());
-                }
-                i++;
-            });
-        }
-    }
+    gattServerHandler->close();
 
     // Lock to avoid other threads using instance while disconnecting
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("GATTHandler::disconnect: Start: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
               disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), toString().c_str());
-    characteristicListenerList.clear();
+    btGattCharListenerList.clear();
+    nativeGattCharListenerList.clear();
 
     PERF3_TS_TD("GATTHandler::disconnect.1");
     l2cap_reader_service.stop();
@@ -1407,13 +629,23 @@ uint16_t BTGattHandler::clientMTUExchange(const int32_t timeout) {
     return mtu;
 }
 
+DBGattCharRef BTGattHandler::findServerGattCharByValueHandle(const uint16_t char_value_handle) noexcept {
+    if( nullptr != gattServerData ) {
+        return gattServerData->findGattCharByValueHandle(char_value_handle);
+    } else {
+        return nullptr;
+    }
+}
+
 bool BTGattHandler::sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value) {
     if( GATTRole::Server != role ) {
         ERR_PRINT("BTDevice::sendNotification: GATTRole not server");
         return false;
     }
-    if( nullptr == findServerGattCharByValueHandle(char_value_handle) ) {
-        ERR_PRINT("BTDevice::sendIndication: invalid char handle %s", jau::to_hexstring(char_value_handle).c_str());
+    if( DBGattServer::Mode::DB == gattServerHandler->getMode() &&
+        nullptr == findServerGattCharByValueHandle(char_value_handle) )
+    {
+        ERR_PRINT("BTDevice::sendNotification: invalid char handle %s", jau::to_hexstring(char_value_handle).c_str());
         return false;
     }
     if( 0 == value.size() ) {
@@ -1431,7 +663,9 @@ bool BTGattHandler::sendIndication(const uint16_t char_value_handle, const jau::
         ERR_PRINT("BTDevice::sendIndication: GATTRole not server");
         return false;
     }
-    if( nullptr == findServerGattCharByValueHandle(char_value_handle) ) {
+    if( DBGattServer::Mode::DB == gattServerHandler->getMode() &&
+        nullptr == findServerGattCharByValueHandle(char_value_handle) )
+    {
         ERR_PRINT("BTDevice::sendIndication: invalid char handle %s", jau::to_hexstring(char_value_handle).c_str());
         return false;
     }
@@ -2016,13 +1250,13 @@ std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darra
 
 bool BTGattHandler::ping() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
-    bool isOK = true;
+    bool readOK = true;
 
-    for(size_t i=0; isOK && i<services.size(); i++) {
+    for(size_t i=0; readOK && i<services.size(); i++) {
         jau::darray<BTGattCharRef> & genericAccessCharDeclList = services.at(i)->characteristicList;
         jau::POctets value(32, 0, jau::endian::little);
 
-        for(size_t j=0; isOK && j<genericAccessCharDeclList.size(); j++) {
+        for(size_t j=0; readOK && j<genericAccessCharDeclList.size(); j++) {
             const BTGattChar & charDecl = *genericAccessCharDeclList.at(j);
             std::shared_ptr<BTGattService> service = charDecl.getServiceUnchecked();
             if( nullptr == service || _GENERIC_ACCESS != *(service->type) ) {
@@ -2033,11 +1267,11 @@ bool BTGattHandler::ping() {
                     return true; // unique success case
                 }
                 // read failure, but not disconnected as no exception thrown from sendWithReply
-                isOK = false;
+                readOK = false;
             }
         }
     }
-    if( isOK ) {
+    if( readOK ) {
         jau::INFO_PRINT("GATTHandler::pingGATT: No GENERIC_ACCESS Service with APPEARANCE Characteristic available -> disconnect");
     } else {
         jau::INFO_PRINT("GATTHandler::pingGATT: Read error -> disconnect");
@@ -2127,5 +1361,8 @@ std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(ja
 }
 
 std::string BTGattHandler::toString() const noexcept {
-    return "GattHndlr["+to_string(getRole())+", mtu "+std::to_string(usedMTU.load())+", "+std::to_string(characteristicListenerList.size())+" listener, "+deviceString+", "+getStateString()+"]";
+    return "GattHndlr["+to_string(getRole())+", mtu "+std::to_string(usedMTU.load())+
+           ", listener[BTGatt "+std::to_string(btGattCharListenerList.size())+", "+
+           "Native "+std::to_string(nativeGattCharListenerList.size())+"], "+
+           deviceString+", "+getStateString()+"]";
 }

@@ -631,6 +631,21 @@ namespace direct_bt {
     class DBGattServer : public jau::JavaUplink {
         public:
             /**
+             * Operating mode of a DBGattServer instance.
+             */
+            enum class Mode : uint8_t {
+                /** No operation mode, i.e. w/o any DBGattService. */
+                NOP = 0,
+
+                /** Database mode, the default operating on given list of DBGattService. */
+                DB = 1,
+
+                /** Forward mode, acting as a proxy forwarding all requests to a 3rd remote GATT server BTDevice. */
+                FWD = 2
+            };
+            static std::string toModeString(const Mode m) noexcept;
+
+            /**
              * Listener to remote master device's operations on the local GATT-Server.
              *
              * All methods shall return as soon as possible to not block GATT event processing.
@@ -780,6 +795,10 @@ namespace direct_bt {
 
             jau::darray<DBGattServiceRef> services;
 
+            BTDeviceRef fwdServer; // FWD mode
+
+            Mode mode;
+
         public:
             /** Used maximum server Rx ATT_MTU, defaults to 512+1. */
             uint16_t getMaxAttMTU() const noexcept { return max_att_mtu; }
@@ -794,6 +813,10 @@ namespace direct_bt {
 
             /** List of Services */
             jau::darray<DBGattServiceRef>& getServices() noexcept { return services; }
+
+            Mode getMode() const noexcept { return mode; }
+
+            BTDeviceRef getFwdServer() noexcept { return fwdServer; }
 
             static std::string java_class() noexcept {
                 return std::string(JAVA_MAIN_PACKAGE "DBGattServer");
@@ -810,20 +833,51 @@ namespace direct_bt {
                 #endif
             }
 
+            /**
+             * DBGattServer in Mode::NOP mode.
+             */
             DBGattServer()
-            : max_att_mtu(512+1), services()
-            { }
-
-            DBGattServer(uint16_t max_att_mtu_, jau::darray<DBGattServiceRef> && services_)
-            : max_att_mtu(std::min<uint16_t>(512+1, max_att_mtu_)), services( std::move( services_ ) )
+            : max_att_mtu(512+1),
+              services( ),
+              fwdServer( nullptr ),
+              mode(Mode::NOP)
             { }
 
             /**
+             * DBGattServer in Mode::DB mode if given services_ are not empty, otherwise in Mode::NOP mode.
+             * @param max_att_mtu_
+             * @param services_
+             */
+            DBGattServer(uint16_t max_att_mtu_, jau::darray<DBGattServiceRef> && services_)
+            : max_att_mtu(std::min<uint16_t>(512+1, max_att_mtu_)),
+              services( std::move( services_ ) ),
+              fwdServer( nullptr ),
+              mode( services.size() > 0 ? Mode::DB : Mode::NOP )
+            { }
+
+            /**
+             * DBGattServer in Mode::DB mode if given services_ are not empty, otherwise in Mode::NOP mode.
+             *
              * Ctor using default maximum ATT_MTU of 512+1
              * @param services_
              */
             DBGattServer(jau::darray<DBGattServiceRef> && services_)
-            : max_att_mtu(512+1), services( std::move( services_ ) )
+            : max_att_mtu(512+1),
+              services( std::move( services_ ) ),
+              fwdServer( nullptr ),
+              mode( services.size() > 0 ? Mode::DB : Mode::NOP )
+            { }
+
+            /**
+             * DBGattServer in Mode::FWD to the given forward BTDevice.
+             *
+             * @param fwdServer_
+             */
+            DBGattServer(BTDeviceRef fwdServer_)
+            : max_att_mtu(512+1),
+              services( ),
+              fwdServer( fwdServer_ ),
+              mode( Mode::FWD )
             { }
 
             DBGattServiceRef findGattService(const jau::uuid_t& type) noexcept {
@@ -908,12 +962,11 @@ namespace direct_bt {
                 return res;
             }
 
-            std::string toString() const noexcept override {
-                return "DBSrv[max mtu "+std::to_string(max_att_mtu)+", "+std::to_string(services.size())+" services, "+javaObjectToString()+"]";
-
-            }
+            std::string toString() const noexcept override;
     };
     typedef std::shared_ptr<DBGattServer> DBGattServerRef;
+
+    std::string to_string(const DBGattServer::Mode m) noexcept;
 
 } // namespace direct_bt
 

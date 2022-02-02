@@ -72,6 +72,15 @@ bool DBGattChar::setValue(const uint8_t* source, const jau::nsize_t source_len, 
     return true;
 }
 
+std::string direct_bt::to_string(const DBGattServer::Mode m) noexcept {
+    switch(m) {
+        case DBGattServer::Mode::NOP: return "nop";
+        case DBGattServer::Mode::DB:  return "db";
+        case DBGattServer::Mode::FWD: return "fwd";
+    }
+    return "Unknown mode";
+}
+
 static jau::cow_darray<DBGattServer::ListenerRef>::equal_comparator _listenerRefEqComparator =
         [](const DBGattServer::ListenerRef &a, const DBGattServer::ListenerRef &b) -> bool { return *a == *b; };
 
@@ -89,5 +98,9 @@ bool DBGattServer::removeListener(ListenerRef l) {
     }
     const int count = listenerList.erase_matching(l, false /* all_matching */, _listenerRefEqComparator);
     return count > 0;
+}
+
+std::string DBGattServer::toString() const noexcept {
+    return "DBSrv[mode "+to_string(mode)+", max mtu "+std::to_string(max_att_mtu)+", "+std::to_string(services.size())+" services, "+javaObjectToString()+"]";
 }
 

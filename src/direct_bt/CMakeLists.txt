@@ -28,6 +28,7 @@ set (direct_bt_LIB_SRCS
   ${PROJECT_SOURCE_DIR}/src/direct_bt/BTGattCmd.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/BTGattService.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/BTGattHandler.cpp
+  ${PROJECT_SOURCE_DIR}/src/direct_bt/BTGattServerHandler.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/BTManager.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/BTSecurityRegistry.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/BTTypes0.cpp
