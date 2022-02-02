@@ -246,7 +246,7 @@ namespace direct_bt {
              * Remote BTDevice is ready for user (GATT) processing, i.e. already connected, optionally (SMP) paired.
              *
              * In case of a LE connection to a remote BTDevice in BTRole::Slave, a GATT server (GATTRole::Server),
-             * user needs to call {@link BTDevice#getGattServices()} to have GATT MTU size negotiated and GATT services discovered.
+             * user needs to call BTDevice::getGattServices() to have GATT MTU size negotiated and GATT services discovered.
              * <p>
              * Method is being called from a dedicated native thread, hence restrictions on method duration and complex mutable operations don't apply here.
              * </p>

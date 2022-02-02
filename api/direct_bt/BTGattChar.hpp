@@ -94,7 +94,6 @@ namespace direct_bt {
                 AuthSignedWrite = (1 << 6),
                 ExtProps        = (1 << 7)
             };
-            static std::string toPropertiesString(const PropertyBitVal properties) noexcept;
 
             /**
              * {@link BTGattChar} event listener for notification and indication events.
