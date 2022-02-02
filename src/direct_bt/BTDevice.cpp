@@ -110,12 +110,12 @@ std::string const BTDevice::getName() const noexcept {
 }
 
 std::shared_ptr<const EInfoReport> BTDevice::getEIR() const noexcept {
-    jau::sc_atomic_critical sync(sync_data);
+    const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
     return eir;
 }
 
 std::shared_ptr<EInfoReport> BTDevice::getEIR() noexcept {
-    jau::sc_atomic_critical sync(sync_data);
+    const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
     return eir;
 }
 
@@ -137,8 +137,7 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
 }
 
 EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
-    const std::lock_guard<std::mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
+    const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
 
     // Update eir CoW style
     std::shared_ptr<EInfoReport> eir_new( std::make_shared<EInfoReport>( *eir ) );
@@ -184,8 +183,7 @@ EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
 }
 
 EIRDataType BTDevice::update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept {
-    const std::lock_guard<std::mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
+    const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
 
     // Update eir CoW style
     std::shared_ptr<EInfoReport> eir_new( std::make_shared<EInfoReport>( *eir ) );
