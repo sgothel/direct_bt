@@ -654,7 +654,7 @@ void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     }
-    const bool gatt_res = connectGATT(sthis); // may close connection and hence clear pairing_data
+    const bool gatt_res = connectGATT(sthis);
 
     if( !gatt_res && using_enc ) {
         // Need to repair as GATT communication failed
@@ -1908,41 +1908,10 @@ bool BTDevice::connectGATT(std::shared_ptr<BTDevice> sthis) noexcept {
         return false;
     } else if ( BTRole::Master == btRole ) {
         DBG_PRINT("BTDevice::connectGATT: Local GATT Server: Done: %s", toString().c_str());
-        return true;
     } else {
-        DBG_PRINT("BTDevice::connectGATT: Local GATT Client: Service Discovery Start: %s", toString().c_str());
-        try {
-            // Service discovery may consume 500ms - 2000ms, depending on bandwidth
-            jau::darray<BTGattServiceRef>& gattServices = gattHandler->discoverCompletePrimaryServices(gattHandler);
-            if( gattServices.size() == 0 ) { // nothing discovered
-                ERR_PRINT2("No primary services discovered");
-                gattHandler = nullptr;
-                return false;
-            }
-            DBG_PRINT("BTDevice::connectGATT: %zu Services Discovered: %s", gattServices.size(), toString().c_str());
-
-            // discovery success, parse GenericAccess
-            std::shared_ptr<GattGenericAccessSvc> gattGenericAccess = gattHandler->getGenericAccess();
-            if( nullptr != gattGenericAccess ) {
-                const uint64_t ts = jau::getCurrentMilliseconds();
-                EIRDataType updateMask = update(*gattGenericAccess, ts);
-                DBG_PRINT("BTDevice::connectGATT: GenericAccess updated %s:\n    %s\n    -> %s",
-                    to_string(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
-                if( EIRDataType::NONE != updateMask ) {
-                    adapter.sendDeviceUpdated("connectGATT", sthis, ts, updateMask);
-                }
-            } else {
-                // else: Actually an error w/o valid mandatory GenericAccess
-                WARN_PRINT("No GenericAccess: %s", toString().c_str());
-            }
-            return true;
-        } catch (std::exception &e) {
-            WARN_PRINT("Caught exception: '%s' on %s", e.what(), toString().c_str());
-        }
+        DBG_PRINT("BTDevice::connectGATT: Local GATT Client: Done: %s", toString().c_str());
     }
-    ERR_PRINT2("Failed GATT Service Processing");
-    gattHandler = nullptr;
-    return false;
+    return true;
 }
 
 std::shared_ptr<BTGattHandler> BTDevice::getGattHandler() noexcept {
@@ -1953,10 +1922,62 @@ std::shared_ptr<BTGattHandler> BTDevice::getGattHandler() noexcept {
 jau::darray<BTGattServiceRef> BTDevice::getGattServices() noexcept {
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh ) {
-        ERR_PRINT("GATTHandler nullptr");
+        ERR_PRINT("GATTHandler nullptr: %s", toString().c_str());
         return jau::darray<std::shared_ptr<BTGattService>>();
     }
-    return gh->getServices(); // copy previous discovery result
+    if( BTRole::Slave != getRole() ) {
+        // Remote device is not a slave (peripheral, responder) - hence no GATT services
+        ERR_PRINT("Remote device not a GATT server: ", toString().c_str());
+        return jau::darray<std::shared_ptr<BTGattService>>();
+    }
+
+    bool gatt_already_init = false;
+    const bool gatt_client_init = gh->initClientGatt(gh, gatt_already_init);
+    jau::darray<BTGattServiceRef>& gattServices = gh->getServices();
+    if( !gatt_client_init ) {
+        ERR_PRINT2("BTDevice::getGattServices: Client GATT Initialization failed");
+        return gattServices; // copy previous discovery result (zero sized)
+    }
+    if( gatt_already_init ) {
+        return gattServices; // copy previous discovery result
+    }
+    if( gattServices.size() == 0 ) { // nothing discovered
+        ERR_PRINT2("BTDevice::getGattServices: No primary services discovered");
+        return gattServices;
+    }
+    try {
+        // discovery success, parse GenericAccess
+        std::shared_ptr<GattGenericAccessSvc> gattGenericAccess = gh->getGenericAccess();
+        if( nullptr != gattGenericAccess ) {
+            const uint64_t ts = jau::getCurrentMilliseconds();
+            EIRDataType updateMask = update(*gattGenericAccess, ts);
+            DBG_PRINT("BTDevice::getGattServices: GenericAccess updated %s:\n    %s\n    -> %s",
+                to_string(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
+            if( EIRDataType::NONE != updateMask ) {
+                std::shared_ptr<BTDevice> sharedInstance = getSharedInstance();
+                if( nullptr == sharedInstance ) {
+                    ERR_PRINT("Device unknown to adapter and not tracked: %s", toString().c_str());
+                } else {
+                    adapter.sendDeviceUpdated("getGattServices", sharedInstance, ts, updateMask);
+                }
+            }
+        } else {
+            // else: Actually an error w/o valid mandatory GenericAccess
+            WARN_PRINT("No GenericAccess: %s", toString().c_str());
+        }
+    } catch (std::exception &e) {
+        WARN_PRINT("Caught exception: '%s' on %s", e.what(), toString().c_str());
+    }
+    return gattServices; // return copy
+}
+
+std::shared_ptr<GattGenericAccessSvc> BTDevice::getGattGenericAccess() {
+    std::shared_ptr<BTGattHandler> gh = getGattHandler();
+    if( nullptr == gh ) {
+        ERR_PRINT("GATTHandler nullptr");
+        return nullptr;
+    }
+    return gh->getGenericAccess();
 }
 
 BTGattServiceRef BTDevice::findGattService(const jau::uuid_t& service_uuid) noexcept {
@@ -2022,15 +2043,6 @@ bool BTDevice::pingGATT() noexcept {
         IRQ_PRINT("BTDevice::pingGATT: Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());
     }
     return false;
-}
-
-std::shared_ptr<GattGenericAccessSvc> BTDevice::getGattGenericAccess() {
-    std::shared_ptr<BTGattHandler> gh = getGattHandler();
-    if( nullptr == gh ) {
-        ERR_PRINT("GATTHandler nullptr");
-        return nullptr;
-    }
-    return gh->getGenericAccess();
 }
 
 bool BTDevice::addCharListener(std::shared_ptr<BTGattCharListener> l) {

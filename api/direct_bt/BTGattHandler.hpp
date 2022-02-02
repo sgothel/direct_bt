@@ -196,6 +196,10 @@ namespace direct_bt {
             jau::service_runner l2cap_reader_service;
             jau::ringbuffer<std::unique_ptr<const AttPDUMsg>, jau::nsize_t> attPDURing;
 
+            jau::relaxed_atomic_uint16 serverMTU; // set in initClientGatt()
+            jau::relaxed_atomic_uint16 usedMTU; // concurrent use in initClientGatt(set), send and l2capReaderThreadImpl
+            jau::relaxed_atomic_bool clientMTUExchanged; // set in initClientGatt()
+
             /** send immediate confirmation of indication events from device, defaults to true. */
             jau::relaxed_atomic_bool sendIndicationConfirmation = true;
             typedef jau::cow_darray<std::shared_ptr<BTGattCharListener>> characteristicListenerList_t;
@@ -206,8 +210,6 @@ namespace direct_bt {
             jau::darray<AttPrepWrite> writeDataQueue;
             jau::darray<uint16_t> writeDataQueueHandles;
 
-            uint16_t serverMTU;
-            std::atomic<uint16_t> usedMTU; // concurrent use in ctor(set), send and l2capReaderThreadImpl
             jau::darray<BTGattServiceRef> services;
             std::shared_ptr<GattGenericAccessSvc> genericAccess = nullptr;
 
@@ -231,55 +233,64 @@ namespace direct_bt {
             void l2capReaderEndFinal(jau::service_runner& sr) noexcept;
 
             /**
-             * Sends the given AttPDUMsg to the connected device via l2cap.
-             *
-             * Implementation throws an IllegalStateException if not connected,
-             * a IllegalArgumentException if message size exceeds usedMTU-1.
-             *
-             * ATT_MTU range
-             * - ATT_MTU minimum is 23 bytes (Vol 3, Part G: 5.2.1)
-             * - ATT_MTU is negotiated, maximum attribute value length is 512 bytes (Vol 3, Part F: 3.2.8-9)
-             * - ATT Value sent: [1 .. ATT_MTU-1] (Vol 3, Part F: 3.2.8-9)
-             *
-             * Implementation disconnect() and throws an BluetoothException
-             * if an l2cap write errors occurs.
-             *
-             * In case method completes, the message has been send out successfully.
-             * @param msg the message to be send
-             * @see exchangeMTUImpl()
-             */
-            void send(const AttPDUMsg & msg);
-
-            /**
-             * Sends the given AttPDUMsg to the connected device via l2cap using {@link #send()}.
-             * <p>
-             * Implementation waits for timeout milliseconds receiving the response
-             * from the ringbuffer, filled from the reader-thread.
-             * </p>
-             * <p>
-             * Implementation disconnect() and throws an BluetoothException
-             * if no matching reply has been received within timeout milliseconds.
-             * </p>
-             * <p>
-             * In case method completes, the message has been send out successfully
-             * and a reply has also been received and is returned as a result.<br>
-             * Hence this method either throws an exception or returns a matching reply.
-             * </p>
-             *
-             * @param msg the message to be send
-             * @param timeout milliseconds to wait for a reply
-             * @return a valid reply, never nullptrs
-             */
-            std::unique_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg, const int timeout);
-
-            /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.4.2 MTU Exchange
              *
              * Returns the server-mtu if successful, otherwise 0.
              *
-             * @see send()
+             * Method usually called via initClientGatt() and is only exposed special applications.
+             *
+             * @see initClientGatt()
              */
-            uint16_t exchangeMTUImpl(const uint16_t clientMaxMTU, const int32_t timeout);
+            uint16_t clientMTUExchange(const int32_t timeout);
+
+            /**
+             * Discover all primary services _only_.
+             * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
+             *
+             * @param shared_this shared pointer of this instance, used to forward a weak_ptr to BTGattService for back-reference. Reference is validated.
+             * @param result vector containing all discovered primary services
+             * @return true on success, otherwise false
+             * @see initClientGatt()
+             * @see discoverCompletePrimaryServices()
+             */
+            bool discoverPrimaryServices(std::shared_ptr<BTGattHandler> shared_this, jau::darray<BTGattServiceRef> & result);
+
+            /**
+             * Discover all characteristics of a service and declaration attributes _only_.
+             * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
+             * - BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1 Characterisic Declaration Attribute Value
+             *
+             * @see initClientGatt()
+             * @see discoverCompletePrimaryServices()
+             */
+            bool discoverCharacteristics(BTGattServiceRef & service);
+
+            /**
+             * Discover all descriptors of a service _only_.
+             * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
+             *
+             * @see initClientGatt()
+             * @see discoverCompletePrimaryServices()
+             */
+            bool discoverDescriptors(BTGattServiceRef & service);
+
+            /**
+             * Discover all primary services _and_ all its characteristics declarations
+             * including their client config.
+             * <p>
+             * BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
+             * </p>
+             * Method returns reference to BTGattHandler's internal BTGattService vector of discovered services
+             *
+             * Service discovery may consume 500ms - 2000ms, depending on bandwidth.
+             *
+             * Method usually called via initClientGatt() and is only exposed special applications.
+             *
+             * @param shared_this shared pointer of this instance, used to forward a weak_ptr to BTGattService for back-reference. Reference is validated.
+             * @return BTGattHandler's internal BTGattService vector of discovered services
+             * @see initClientGatt()
+             */
+            jau::darray<BTGattServiceRef> & discoverCompletePrimaryServices(std::shared_ptr<BTGattHandler> shared_this);
 
         public:
             /**
@@ -345,60 +356,75 @@ namespace direct_bt {
             BTGattCharRef findCharacterisicsByValueHandle(const BTGattServiceRef service, const uint16_t charValueHandle) noexcept;
 
             /**
-             * Discover all primary services _and_ all its characteristics declarations
-             * including their client config.
-             * <p>
-             * BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
-             * </p>
-             * Method returns reference to BTGattHandler's internal BTGattService vector of discovered services
+             * Initialize the connection and internal data set for GATT client operations:
+             * - Exchange MTU
+             * - Discover all primary services, its characteristics and its descriptors
              *
-             * @param shared_this shared pointer of this instance, used to forward a weak_ptr to BTGattService for back-reference. Reference is validated.
-             * @return BTGattHandler's internal BTGattService vector of discovered services
+             * Service discovery may consume 500ms - 2000ms, depending on bandwidth.
+             *
+             * @param shared_this the shared BTGattHandler reference
+             * @param already_init if already initialized true, will hold true, otherwise false
+             * @return true if already initialized or newly initialized, otherwise false
+             * @see clientMTUExchange()
+             * @see discoverCompletePrimaryServices()
              */
-            jau::darray<BTGattServiceRef> & discoverCompletePrimaryServices(std::shared_ptr<BTGattHandler> shared_this);
+            bool initClientGatt(std::shared_ptr<BTGattHandler> shared_this, bool& already_init) noexcept;
 
             /**
              * Returns a reference of the internal kept BTGattService list.
-             * <p>
-             * The internal list will be populated via {@link #discoverCompletePrimaryServices()}.
-             * </p>
+             *
+             * The internal list should have been populated via initClientGatt() once.
+             *
+             * @see initClientGatt()
              */
             inline jau::darray<BTGattServiceRef> & getServices() noexcept { return services; }
 
             /**
              * Returns the internal kept shared GattGenericAccessSvc instance.
-             * <p>
-             * This instance is created via {@link #discoverCompletePrimaryServices()}.
-             * </p>
+             *
+             * This instance is created via initClientGatt().
+             *
+             * @see initClientGatt()
              */
             inline std::shared_ptr<GattGenericAccessSvc> getGenericAccess() noexcept { return genericAccess; }
 
             /**
-             * Discover all primary services _only_.
-             * <p>
-             * BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
-             * </p>
-             * @param shared_this shared pointer of this instance, used to forward a weak_ptr to BTGattService for back-reference. Reference is validated.
-             * @param result vector containing all discovered primary services
-             * @return true on success, otherwise false
+             * Sends the given AttPDUMsg to the connected device via l2cap.
+             *
+             * Implementation throws an IllegalStateException if not connected,
+             * a IllegalArgumentException if message size exceeds usedMTU-1.
+             *
+             * ATT_MTU range
+             * - ATT_MTU minimum is 23 bytes (Vol 3, Part G: 5.2.1)
+             * - ATT_MTU is negotiated, maximum attribute value length is 512 bytes (Vol 3, Part F: 3.2.8-9)
+             * - ATT Value sent: [1 .. ATT_MTU-1] (Vol 3, Part F: 3.2.8-9)
+             *
+             * Implementation disconnect() and throws an BluetoothException
+             * if an l2cap write errors occurs.
+             *
+             * In case method completes, the message has been send out successfully.
+             * @param msg the message to be send
              */
-            bool discoverPrimaryServices(std::shared_ptr<BTGattHandler> shared_this, jau::darray<BTGattServiceRef> & result);
+            void send(const AttPDUMsg & msg);
 
             /**
-             * Discover all characteristics of a service and declaration attributes _only_.
-             * <p>
-             * BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
-             * </p>
-             * <p>
-             * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1 Characterisic Declaration Attribute Value
-             * </p>
+             * Sends the given AttPDUMsg to the connected device via l2cap using {@link #send()}.
+             *
+             * Implementation waits for timeout milliseconds receiving the response
+             * from the ringbuffer, filled from the reader-thread.
+             *
+             * Implementation disconnect() and throws an BluetoothException
+             * if no matching reply has been received within timeout milliseconds.
+             *
+             * In case method completes, the message has been send out successfully
+             * and a reply has also been received and is returned as a result.<br>
+             * Hence this method either throws an exception or returns a matching reply.
+             *
+             * @param msg the message to be send
+             * @param timeout milliseconds to wait for a reply
+             * @return a valid reply, never nullptrs
              */
-            bool discoverCharacteristics(BTGattServiceRef & service);
-
-            /**
-             * BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
-             */
-            bool discoverDescriptors(BTGattServiceRef & service);
+            std::unique_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg, const int timeout);
 
             /**
              * Generic read GATT value and long value

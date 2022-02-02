@@ -245,13 +245,15 @@ namespace direct_bt {
             /**
              * Remote BTDevice is ready for user (GATT) processing, i.e. already connected, optionally (SMP) paired.
              *
-             * In case of a LE connection to a remote BTDevice in BTRole::Slave, a GATT server (GATTRole::Server), GATT MTU size is negotiated and GATT services discovered.
+             * In case of a LE connection to a remote BTDevice in BTRole::Slave, a GATT server (GATTRole::Server),
+             * user needs to call {@link BTDevice#getGattServices()} to have GATT MTU size negotiated and GATT services discovered.
              * <p>
              * Method is being called from a dedicated native thread, hence restrictions on method duration and complex mutable operations don't apply here.
              * </p>
              * @param device the remote device ready to use
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              * @see ::SMPPairingState::COMPLETED
+             * @see BTDevice::getGattServices()
              */
             virtual void deviceReady(BTDeviceRef device, const uint64_t timestamp) {
                 (void)device;
@@ -459,6 +461,7 @@ namespace direct_bt {
             friend void BTDevice::hciSMPMsgCallback(BTDeviceRef sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
             friend void BTDevice::processDeviceReady(BTDeviceRef sthis, const uint64_t timestamp);
             friend bool BTDevice::connectGATT(std::shared_ptr<BTDevice> sthis) noexcept;
+            friend jau::darray<BTGattServiceRef> BTDevice::getGattServices() noexcept;
 
             bool lockConnect(const BTDevice & device, const bool wait, const SMPIOCapability io_cap) noexcept;
             bool unlockConnect(const BTDevice & device) noexcept;
@@ -1304,6 +1307,14 @@ namespace direct_bt {
 
             void printStatusListenerList() noexcept;
     };
+
+    inline bool operator==(const BTAdapter& lhs, const BTAdapter& rhs) noexcept
+    { return lhs.getAddressAndType() == rhs.getAddressAndType(); }
+
+    inline bool operator!=(const BTAdapter& lhs, const BTAdapter& rhs) noexcept
+    { return !(lhs == rhs); }
+
+    typedef std::shared_ptr<BTAdapter> BTAdapterRef;
 
 } // namespace direct_bt
 

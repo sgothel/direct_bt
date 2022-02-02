@@ -96,7 +96,7 @@ namespace direct_bt {
             std::shared_ptr<BTGattHandler> gattHandler = nullptr;
             mutable std::recursive_mutex mtx_gattHandler;
             mutable std::recursive_mutex mtx_connect;
-            mutable std::mutex mtx_data;
+            mutable std::mutex mtx_eir;
             jau::relaxed_atomic_bool isConnected;
             jau::relaxed_atomic_bool allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
             jau::relaxed_atomic_int32 supervision_timeout; // [ms]
@@ -1006,28 +1006,45 @@ namespace direct_bt {
              */
             void remove() noexcept;
 
-            /** Returns the connected GATTHandler or nullptr, see connectGATT(), getGattService() and disconnect(). */
+            /**
+             * Returns the connected GATTHandler or nullptr, see connectGATT(), getGattServices() and disconnect().
+             *
+             * @return
+             * @see connectGATT()
+             * @see getGattServices()
+             * @see disconnect()
+             */
             std::shared_ptr<BTGattHandler> getGattHandler() noexcept;
 
             /**
              * Returns a list of shared GATTService available on this device if successful,
              * otherwise returns an empty list if an error occurred.
-             * <p>
+             *
+             * Method is only functional on a remote BTDevice in BTRole::Slave, a GATT server (GATTRole::Server),
+             * i.e. the local BTAdapter acting as a BTRole::Master GATT client.
+             *
              * The HCI connectLE(..) or connectBREDR(..) must be performed first, see {@link #connectDefault()}.
-             * </p>
-             * <p>
-             * If this method has been called for the first time or no services has been detected yet,
-             * a list of GATTService will be retrieved.
-             * <br>
+             *
+             * If this method has been called for the first time or no services have been detected yet:
+             * - the client MTU exchange will be performed
+             * - a list of GATTService will be retrieved
+             *
              * A GATT connection will be created via connectGATT() if not established yet.
-             * </p>
              */
             jau::darray<BTGattServiceRef> getGattServices() noexcept;
 
             /**
+             * Returns the shared GenericAccess instance, retrieved by getGattServices() or nullptr if not available.
+             *
+             * @return
+             * @see getGattServices()
+             */
+            std::shared_ptr<GattGenericAccessSvc> getGattGenericAccess();
+
+            /**
              * Find a BTGattService by its service_uuid.
              *
-             * It will check objects of a connected device using getGattService().
+             * It will check objects of a connected device using getGattServices().
              *
              * It will not turn on discovery or connect to this remote device.
              *
@@ -1040,7 +1057,7 @@ namespace direct_bt {
             /**
              * Find a BTGattChar by its service_uuid and char_uuid.
              *
-             * It will check objects of this connected device using getGattService().
+             * It will check objects of this connected device using getGattServices().
              *
              * It will not turn on discovery or connect to this remote device.
              *
@@ -1055,7 +1072,7 @@ namespace direct_bt {
             /**
              * Find a BTGattChar by its char_uuid only.
              *
-             * It will check objects of this connected device using getGattService().
+             * It will check objects of this connected device using getGattServices().
              *
              * It will not turn on discovery or connect to this remote device.
              *
@@ -1068,9 +1085,6 @@ namespace direct_bt {
              * @see findGattService()
              */
             BTGattCharRef findGattChar(const jau::uuid_t& char_uuid) noexcept;
-
-            /** Returns the shared GenericAccess instance, retrieved by {@link #getGattService()} or nullptr if not available. */
-            std::shared_ptr<GattGenericAccessSvc> getGattGenericAccess();
 
             /**
              * Send a notification event consisting out of the given `value` representing the given characteristic value handle
@@ -1111,7 +1125,7 @@ namespace direct_bt {
              * A disconnect will finally being issued.
              * </p>
              * <p>
-             * GATT services must have been initialized via {@link #getGattService()}, otherwise `false` is being returned.
+             * GATT services must have been initialized via getGattServices(), otherwise `false` is being returned.
              * </p>
              * @return `true` if successful, otherwise false in case no GATT services exists or is not connected .. etc.
              */

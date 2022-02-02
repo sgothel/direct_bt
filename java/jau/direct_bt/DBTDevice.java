@@ -612,7 +612,10 @@ public class DBTDevice extends DBTObject implements BTDevice
     @Override
     public List<BTGattService> getGattServices() {
         try {
-            final List<BTGattService> services = getGattServicesImpl();
+            List<BTGattService> services = getGattServicesImpl();
+            if( null == services ) {
+                services = new ArrayList<BTGattService>();
+            }
             updateServiceCache(services);
             return services;
         } catch (final Throwable t) {
@@ -621,7 +624,7 @@ public class DBTDevice extends DBTObject implements BTDevice
                 t.printStackTrace();
             }
         }
-        return null;
+        return new ArrayList<BTGattService>();
     }
     private native List<BTGattService> getGattServicesImpl();
 

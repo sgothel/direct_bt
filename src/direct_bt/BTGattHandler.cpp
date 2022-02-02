@@ -1198,8 +1198,8 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPComm& l2cap_att, co
                        jau::bindMemberFunc(this, &BTGattHandler::l2capReaderEndLocked),
                        jau::bindMemberFunc(this, &BTGattHandler::l2capReaderEndFinal)),
   attPDURing(env.ATTPDU_RING_CAPACITY),
+  serverMTU(number(Defaults::MIN_ATT_MTU)), usedMTU(number(Defaults::MIN_ATT_MTU)), clientMTUExchanged(false),
   gattServerData( GATTRole::Server == role ? device->getAdapter().getGATTServerData() : nullptr ),
-  serverMTU(number(Defaults::MIN_ATT_MTU)), usedMTU(number(Defaults::MIN_ATT_MTU))
 {
     if( !validateConnected() ) {
         ERR_PRINT("GATTHandler.ctor: L2CAP could not connect");
@@ -1216,32 +1216,17 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPComm& l2cap_att, co
     l2cap_reader_service.start();
 
     if( GATTRole::Client == getRole() ) {
-        // First point of failure if remote device exposes no GATT functionality. Allow a longer timeout!
-        const int32_t initial_command_reply_timeout = std::min<int32_t>(10000, std::max<int32_t>(env.GATT_INITIAL_COMMAND_REPLY_TIMEOUT, 2*supervision_timeout));
-        uint16_t mtu = 0;
-        try {
-            mtu = exchangeMTUImpl(number(Defaults::MAX_ATT_MTU), initial_command_reply_timeout);
-        } catch (std::exception &e) {
-            ERR_PRINT2("GattHandler.ctor: exchangeMTU failed: %s", e.what());
-        } catch (std::string &msg) {
-            ERR_PRINT2("GattHandler.ctor: exchangeMTU failed: %s", msg.c_str());
-        } catch (const char *msg) {
-            ERR_PRINT2("GattHandler.ctor: exchangeMTU failed: %s", msg);
-        }
-        if( 0 == mtu ) {
-            ERR_PRINT2("GATTHandler::ctor: Zero serverMTU -> disconnect: %s", toString().c_str());
-            disconnect(true /* disconnectDevice */, false /* ioErrorCause */);
-        } else {
-            serverMTU = mtu;
-            usedMTU = std::min(number(Defaults::MAX_ATT_MTU), serverMTU);
-        }
+        // MTU to be negotiated via initClientGatt() from this GATT client later
+        serverMTU = number(Defaults::MAX_ATT_MTU);
+        usedMTU = number(Defaults::MIN_ATT_MTU);
     } else {
+        // MTU to be negotiated via client request on this GATT server
         if( nullptr != gattServerData ) {
             serverMTU = std::max( std::min( gattServerData->getMaxAttMTU(), number(Defaults::MAX_ATT_MTU) ), number(Defaults::MIN_ATT_MTU) );
         } else {
             serverMTU = number(Defaults::MAX_ATT_MTU);
         }
-        usedMTU = number(Defaults::MIN_ATT_MTU); // until negotiated!
+        usedMTU = number(Defaults::MIN_ATT_MTU);
 
         if( nullptr != gattServerData ) {
             int i=0;
@@ -1316,6 +1301,8 @@ bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCa
     l2cap_reader_service.stop();
     PERF3_TS_TD("GATTHandler::disconnect.2");
 
+    clientMTUExchanged = false;
+
     if( disconnectDevice ) {
         BTDeviceRef device = getDeviceUnchecked();
         if( nullptr != device ) {
@@ -1378,15 +1365,16 @@ std::unique_ptr<const AttPDUMsg> BTGattHandler::sendWithReply(const AttPDUMsg & 
     return res;
 }
 
-uint16_t BTGattHandler::exchangeMTUImpl(const uint16_t clientMaxMTU, const int32_t timeout) {
+uint16_t BTGattHandler::clientMTUExchange(const int32_t timeout) {
+    if( GATTRole::Client != getRole() ) {
+        ERR_PRINT("GATT MTU exchange only allowed in client mode");
+        return usedMTU;
+    }
     /***
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.3.1 Exchange MTU (Server configuration)
      */
-    if( clientMaxMTU > number(Defaults::MAX_ATT_MTU) ) {
-        throw jau::IllegalArgumentException("clientMaxMTU "+std::to_string(clientMaxMTU)+" > ClientMaxMTU "+std::to_string(number(Defaults::MAX_ATT_MTU)), E_FILE_LINE);
-    }
-    const AttExchangeMTU req(AttPDUMsg::ReqRespType::REQUEST, clientMaxMTU);
-    // called by ctor only, no locking: const std::lock_guard<std::recursive_mutex> lock(mtx_command);
+    const AttExchangeMTU req(AttPDUMsg::ReqRespType::REQUEST, number(Defaults::MAX_ATT_MTU));
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command);
     PERF_TS_T0();
 
     uint16_t mtu = 0;
@@ -1483,6 +1471,63 @@ BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const BTGattService
         }
     }
     return nullptr;
+}
+
+bool BTGattHandler::initClientGatt(std::shared_ptr<BTGattHandler> shared_this, bool& already_init) noexcept {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command);
+    already_init = clientMTUExchanged && services.size() > 0;
+    if( already_init ) {
+        return true;
+    }
+    if( !isConnected() ) {
+        DBG_PRINT("GATTHandler::initClientGatt: Not connected: %s", toString().c_str());
+        return false;
+    }
+    if( !clientMTUExchanged) {
+        // First point of failure if remote device exposes no GATT functionality. Allow a longer timeout!
+        const int32_t initial_command_reply_timeout = std::min<int32_t>(10000, std::max<int32_t>(env.GATT_INITIAL_COMMAND_REPLY_TIMEOUT, 2*supervision_timeout));
+        uint16_t mtu = 0;
+        try {
+            DBG_PRINT("GATTHandler::initClientGatt: Local GATT Client: MTU Exchange Start: %s", toString().c_str());
+            mtu = clientMTUExchange(initial_command_reply_timeout);
+        } catch (std::exception &e) {
+            ERR_PRINT2("GattHandler.initClientGatt: exchangeMTU failed: %s", e.what());
+        } catch (std::string &msg) {
+            ERR_PRINT2("GattHandler.initClientGatt: exchangeMTU failed: %s", msg.c_str());
+        } catch (const char *msg) {
+            ERR_PRINT2("GattHandler.initClientGatt: exchangeMTU failed: %s", msg);
+        }
+        if( 0 == mtu ) {
+            ERR_PRINT2("GATTHandler::initClientGatt: Local GATT Client: Zero serverMTU -> disconnect: %s", toString().c_str());
+            disconnect(true /* disconnectDevice */, false /* ioErrorCause */);
+            return false;
+        }
+        serverMTU = mtu;
+        usedMTU = std::min(number(Defaults::MAX_ATT_MTU), serverMTU.load());
+        clientMTUExchanged = true;
+        DBG_PRINT("GATTHandler::initClientGatt: Local GATT Client: MTU Exchanged: server %u -> used %u, %s", serverMTU.load(), usedMTU.load(), toString().c_str());
+    }
+
+    if( services.size() > 0 ) {
+        // already initialized
+        return true;
+    }
+
+    try {
+        // Service discovery may consume 500ms - 2000ms, depending on bandwidth
+        DBG_PRINT("GATTHandler::initClientGatt: Local GATT Client: Service Discovery Start: %s", toString().c_str());
+        jau::darray<BTGattServiceRef>& gattServices = discoverCompletePrimaryServices(shared_this);
+        if( gattServices.size() == 0 ) { // nothing discovered
+            ERR_PRINT2("GATTHandler::initClientGatt: No primary services discovered");
+            disconnect(true /* disconnectDevice */, false /* ioErrorCause */);
+            return false;
+        }
+        DBG_PRINT("GATTHandler::initClientGatt: %zu Services Discovered: %s", gattServices.size(), toString().c_str());
+        return true;
+    } catch (std::exception &e) {
+        WARN_PRINT("GATTHandler::initClientGatt: Caught exception: '%s' on %s", e.what(), toString().c_str());
+    }
+    return false;
 }
 
 jau::darray<BTGattServiceRef> & BTGattHandler::discoverCompletePrimaryServices(std::shared_ptr<BTGattHandler> shared_this) {

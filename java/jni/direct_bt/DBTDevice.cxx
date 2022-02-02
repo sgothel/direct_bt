@@ -837,12 +837,7 @@ jobject Java_jau_direct_1bt_DBTDevice_getGattServicesImpl(JNIEnv *env, jobject o
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
         jau::darray<BTGattServiceRef> services = device->getGattServices(); // implicit GATT connect and discovery if required incl GenericAccess retrieval
-        if( services.size() > 0 ) {
-            std::shared_ptr<GattGenericAccessSvc> ga = device->getGattGenericAccess();
-            if( nullptr != ga ) {
-                DBG_PRINT("BTDevice.getServices(): GenericAccess: %s", ga->toString().c_str());
-            }
-        } else {
+        if( services.size() == 0 ) {
             return nullptr;
         }
 

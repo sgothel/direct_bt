@@ -631,11 +631,17 @@ public interface BTDevice extends BTObject
      * Returns a list of shared BTGattService available on this device if successful,
      * otherwise returns an empty list if an error occurred.
      * <p>
+     * Method is only functional on a remote BTDevice in {@link BTRole#Slave}, a GATT server,
+     * i.e. the local BTAdapter acting as a {@link BTRole#Master} GATT client.
+     * </p>
+     * <p>
      * The HCI connectLE(..) or connectBREDR(..) must be performed first, see {@link #connectDefault()}.
      * </p>
      * <p>
-     * If this method has been called for the first time or no services has been detected yet,
-     * a list of GATTService will be retrieved.
+     * If this method has been called for the first time or no services have been detected yet:
+     * - the client MTU exchange will be performed
+     * - a list of GATTService will be retrieved
+     * </p>
      * @since 2.4.0
      */
     List<BTGattService> getGattServices();

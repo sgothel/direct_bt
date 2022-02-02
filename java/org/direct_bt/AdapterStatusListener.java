@@ -147,13 +147,15 @@ public abstract class AdapterStatusListener {
     /**
      * Remote {@link BTDevice} is ready for user (GATT) processing, i.e. already connected and optionally (SMP) paired.
      *
-     * In case of a LE connection to a remote {@link BTDevice} in {@link BTRole#Slave}, a GATT server, GATT MTU size is negotiated and GATT services discovered.
+     * In case of a LE connection to a remote {@link BTDevice} in {@link BTRole#Slave}, a GATT server,
+     * user needs to call {@link BTDevice#getGattServices()} to have GATT MTU size negotiated and GATT services discovered.
      * <p>
      * Method is being called from a dedicated native thread, hence restrictions on method duration and complex mutable operations don't apply here.
      * </p>
      * @param device the remote device ready to use
      * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
-     * @see {@link SMPPairingState#COMPLETED}
+     * @see SMPPairingState#COMPLETED
+     * @see BTDevice#getGattServices()
      */
     public void deviceReady(final BTDevice device, final long timestamp) {}
 
