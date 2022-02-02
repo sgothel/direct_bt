@@ -1178,8 +1178,8 @@ namespace direct_bt {
              * @param eir Full ADV EIR EInfoReport, will be updated with getName() and at least GAPFlags::LE_Gen_Disc set.
              * @param adv_mask EIRDataType mask for EInfoReport to select advertisement EIR PDU data, defaults to EIRDataType::FLAGS | EIRDataType::SERVICE_UUID
              * @param scanrsp_mask EIRDataType mask for EInfoReport to select scan-response (active scanning) EIR PDU data, defaults to EIRDataType::NAME | EIRDataType::CONN_IVAL
-             * @param adv_interval_min in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
-             * @param adv_interval_max in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+             * @param adv_interval_min in units of 0.625ms, default value 640 for 400ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+             * @param adv_interval_max in units of 0.625ms, default value 640 for 400ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
              * @param adv_type see AD_PDU_Type, default ::AD_PDU_Type::ADV_IND
              * @param adv_chan_map bit 0: chan 37, bit 1: chan 38, bit 2: chan 39, default is 0x07 (all 3 channels enabled)
              * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
@@ -1195,7 +1195,7 @@ namespace direct_bt {
                                            EInfoReport& eir,
                                            EIRDataType adv_mask = EIRDataType::FLAGS | EIRDataType::SERVICE_UUID,
                                            EIRDataType scanrsp_mask = EIRDataType::NAME | EIRDataType::CONN_IVAL,
-                                           const uint16_t adv_interval_min=0x0800, const uint16_t adv_interval_max=0x0800,
+                                           const uint16_t adv_interval_min=640, const uint16_t adv_interval_max=640,
                                            const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND,
                                            const uint8_t adv_chan_map=0x07,
                                            const uint8_t filter_policy=0x00) noexcept;
@@ -1231,8 +1231,8 @@ namespace direct_bt {
              * @param gattServerData_ the DBGattServer data to be advertised and offered via GattHandler as ::GATTRole::Server.
              *        Its handles will be setup via DBGattServer::setServicesHandles().
              *        Reference is held until next disconnect.
-             * @param adv_interval_min in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
-             * @param adv_interval_max in units of 0.625ms, default value 0x0800 for 1.28s; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+             * @param adv_interval_min in units of 0.625ms, default value 640 for 400ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+             * @param adv_interval_max in units of 0.625ms, default value 640 for 400ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
              * @param adv_type see AD_PDU_Type, default ::AD_PDU_Type::ADV_IND
              * @param adv_chan_map bit 0: chan 37, bit 1: chan 38, bit 2: chan 39, default is 0x07 (all 3 channels enabled)
              * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
@@ -1245,7 +1245,7 @@ namespace direct_bt {
              * @since 2.4.0
              */
             HCIStatusCode startAdvertising(DBGattServerRef gattServerData_,
-                                           const uint16_t adv_interval_min=0x0800, const uint16_t adv_interval_max=0x0800,
+                                           const uint16_t adv_interval_min=640, const uint16_t adv_interval_max=640,
                                            const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND,
                                            const uint8_t adv_chan_map=0x07,
                                            const uint8_t filter_policy=0x00) noexcept;

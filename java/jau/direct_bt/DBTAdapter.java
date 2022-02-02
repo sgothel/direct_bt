@@ -719,7 +719,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
 
     @Override
     public final HCIStatusCode startAdvertising(final DBGattServer gattServerData) {
-        return startAdvertising(gattServerData, (short)0x0800, (short)0x0800, (byte)0, // AD_PDU_Type::ADV_IND,
+        return startAdvertising(gattServerData, (short)640, (short)640, (byte)0, // AD_PDU_Type::ADV_IND,
                                 (byte)0x07, (byte)0x00);
     }
 

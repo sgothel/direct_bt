@@ -574,6 +574,6 @@ public class BTFactory {
  */
 
 /** \example DBTPeripheral00.java
- * This Java peripheral {@link BTRole::Slave} example uses the Direct-BT fully event driven workflow.
+ * This Java peripheral {@link BTRole::Slave} GATT server example uses an event driven workflow.
  */
 

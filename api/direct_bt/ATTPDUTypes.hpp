@@ -2115,7 +2115,7 @@ namespace direct_bt {
  */
 
 /** \example dbt_peripheral00.cpp
- * This _dbt_peripheral00__ C++ peripheral ::BTRole::Slave example uses the Direct-BT fully event driven workflow.
+ * This _dbt_peripheral00__ C++ peripheral ::BTRole::Slave GATT server example uses an event driven workflow.
  */
 
 

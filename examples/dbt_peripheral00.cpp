@@ -54,7 +54,7 @@ using namespace direct_bt;
 using namespace jau;
 
 /** \file
- * This _dbt_peripheral00__ C++ peripheral ::BTRole::Slave example uses the Direct-BT fully event driven workflow.
+ * This _dbt_peripheral00__ C++ peripheral ::BTRole::Slave GATT server example uses an event driven workflow.
  */
 
 static uint64_t timestamp_t0;
@@ -511,8 +511,8 @@ class MyGATTServerListener : public DBGattServer::Listener {
         }
 };
 
-static const uint16_t adv_interval_min=0x0800;
-static const uint16_t adv_interval_max=0x0800;
+static const uint16_t adv_interval_min=640;
+static const uint16_t adv_interval_max=640;
 static const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND;
 static const uint8_t adv_chan_map=0x07;
 static const uint8_t filter_policy=0x00;

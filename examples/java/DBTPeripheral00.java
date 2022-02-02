@@ -58,13 +58,12 @@ import org.direct_bt.LE_Features;
 import org.direct_bt.LE_PHYs;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPIOCapability;
-import org.direct_bt.SMPKeyBin;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
 import org.jau.net.EUI48;
 
 /**
- * This Java peripheral {@link BTRole::Slave} example uses the Direct-BT fully event driven workflow.
+ * This Java peripheral {@link BTRole::Slave} GATT server example uses an event driven workflow.
  */
 public class DBTPeripheral00 {
     long timestamp_t0;
@@ -557,8 +556,8 @@ public class DBTPeripheral00 {
             }
         }
     }
-    static final short adv_interval_min=(short)0x0800;
-    static final short adv_interval_max=(short)0x0800;
+    static final short adv_interval_min=(short)640;
+    static final short adv_interval_max=(short)640;
     static final byte adv_type=(byte)0; // AD_PDU_Type::ADV_IND;
     static final byte adv_chan_map=(byte)0x07;
     static final byte filter_policy=(byte)0x00;
