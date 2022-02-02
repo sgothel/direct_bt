@@ -1852,9 +1852,6 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
             device->toString().c_str());
     } else {
         addConnectedDevice(device); // track device, if not done yet
-        if( 2 <= new_connect ) {
-            device->ts_last_discovery = ad_report.getTimestamp();
-        }
         COND_PRINT(debug_event, "BTAdapter::EventHCI:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s, handle %s -> %s,\n    %s,\n    -> %s",
             dev_id, new_connect, to_string(updateMask).c_str(), event.toString().c_str(),
             jau::to_hexstring(device->getConnectionHandle()).c_str(), jau::to_hexstring(event.getHCIHandle()).c_str(),
@@ -2321,6 +2318,7 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
         // Already discovered device
         //
         const EIRDataType updateMask = dev_discovered->update(*eir);
+        dev_discovered->ts_last_discovery = eir->getTimestamp();
         if( nullptr == dev_shared ) {
             //
             // Discovered but not a shared device,
