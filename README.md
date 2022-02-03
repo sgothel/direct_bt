@@ -79,9 +79,14 @@ The following **platforms** are tested and hence supported
 - amd64 (validated, Generic)
 - arm64 (validated, Raspberry Pi 3+ and 4)
 - arm32 (validated, Raspberry Pi 3+ and 4)
+- potential issues with *capsh*, see below.
+
+**Ubuntu 20.04 (GNU/Linux)**
+- amd64 (validated, Generic)
 
 **Ubuntu 18.04 (GNU/Linux)**
 - amd64 (validated, Generic)
+- potential issues with *capsh*, see below.
 
 ## Tested Bluetooth Adapter
 
@@ -127,7 +132,7 @@ The following capabilites are required
 - *CAP_NET_RAW* (Raw HCI access)
 - *CAP_NET_ADMIN* (Additional raw HCI access plus (re-)setting the adapter etc)
 
-On Debian 11 we can use package `libcap2-bin`, version `1:2.44-1`, 
+On Debian >= 11 and Ubuntu >= 20.04 we can use package `libcap2-bin`, version `1:2.44-1`, 
 which provides the binaries `/sbin/setcap` and `/sbin/getcap`.
 It depends on package `libcap2`, version `>= 1:2.33`.
 If using earlier `setcap` binaries, *your mileage may vary (YMMV)*.
@@ -239,7 +244,7 @@ systemctl mask bluetooth
   - OpenJDK >= 11.
   - junit4 >= 4.12
 
-Installing build dependencies on Debian (10 or 11):
+Installing build dependencies for Debian >= 10 and Ubuntu >= 18.04:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 apt install git
