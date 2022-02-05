@@ -341,6 +341,24 @@ namespace direct_bt {
                                                [[maybe_unused]] BTDeviceRef clientDest) { }
 
                     /**
+                     * Informal notification about a complete MTU exchange request and response to and from this GATTRole::Server, optional.
+                     *
+                     * @param clientMTU the client MTU request
+                     * @param pduReply the response
+                     * @param error_reply in case of an AttErrorRsp reply, the AttErrorRsp::ErrorCode is passed for convenience, otherwise AttErrorRsp::ErrorCode::NO_ERROR.
+                     * @param serverMTU the replied server MTU, passed for convenience
+                     * @param usedMTU the MTU minimum of client and server to be used, passed for convenience
+                     * @param serverReplier the GATTRole::Server replier device, never nullptr
+                     * @param clientRequester the GATTRole::Client requester device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
+                     */
+                    virtual void mtuResponse([[maybe_unused]] const uint16_t clientMTU,
+                                             [[maybe_unused]] const AttPDUMsg& pduReply,
+                                             [[maybe_unused]] const AttErrorRsp::ErrorCode error_reply,
+                                             [[maybe_unused]] const uint16_t serverMTU,
+                                             [[maybe_unused]] const uint16_t usedMTU,
+                                             [[maybe_unused]] BTDeviceRef serverReplier,
+                                             [[maybe_unused]] BTDeviceRef clientRequester) { }
+                    /**
                      * Informal notification about a completed write request sent to this GATTRole::Server, optional.
                      *
                      * @param handle the GATT characteristic or descriptor handle, requested to be written
@@ -878,6 +896,23 @@ namespace direct_bt {
              * @param clientDest the GATTRole::Client receiver device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
              */
             void notifyNativeReplyReceived(const AttPDUMsg& pduReply, BTDeviceRef clientDest) noexcept;
+
+            /**
+             * Notify all NativeGattCharListener about a completed MTU exchange request and response to and from this GATTRole::Server.
+             *
+             * This functionality has an informal character only.
+             *
+             * @param clientMTU the client MTU request
+             * @param pduReply the response
+             * @param error_reply in case of an AttErrorRsp reply, the AttErrorRsp::ErrorCode is passed for convenience, otherwise AttErrorRsp::ErrorCode::NO_ERROR.
+             * @param serverMTU the replied server MTU, passed for convenience
+             * @param usedMTU the MTU minimum of client and server to be used, passed for convenience
+             * @param clientRequester the GATTRole::Client requester device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
+             */
+            void notifyNativeMTUResponse(const uint16_t clientMTU,
+                                         const AttPDUMsg& pduReply, const AttErrorRsp::ErrorCode error_reply,
+                                         const uint16_t serverMTU, const uint16_t usedMTU,
+                                         BTDeviceRef clientRequester) noexcept;
 
             /**
              * Notify all NativeGattCharListener about a completed write request sent to this GATTRole::Server.

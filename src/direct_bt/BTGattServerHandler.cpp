@@ -969,15 +969,21 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
             }
             BTDeviceRef clientSource = gh.getDeviceUnchecked();
             fwd_gh->notifyNativeRequestSent(*pdu, clientSource);
+            const uint16_t clientMTU = pdu->getMTUSize();
             std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.write_cmd_reply_timeout); // valid reply or exception
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: MTU: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
+            fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
             if( AttPDUMsg::Opcode::EXCHANGE_MTU_RSP == rsp->getOpcode() ) {
                 const AttExchangeMTU* mtuRsp = static_cast<const AttExchangeMTU*>( rsp.get() );
-                const uint16_t clientMTU = mtuRsp->getMTUSize();
-                gh.setUsedMTU( std::min(gh.getServerMTU(), clientMTU) );
-                COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: MTU: %u -> %u", clientMTU, gh.getUsedMTU());
+                const uint16_t serverMTU = mtuRsp->getMTUSize();
+                gh.setUsedMTU( std::min(gh.getServerMTU(), std::min(clientMTU, serverMTU) ) );
+                COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: MTU: %u -> %u -> %u", clientMTU, serverMTU, gh.getUsedMTU());
+                fwd_gh->notifyNativeMTUResponse(clientMTU, *rsp, AttErrorRsp::ErrorCode::NO_ERROR, serverMTU, gh.getUsedMTU(), clientSource);
+            } else {
+                const AttErrorRsp::ErrorCode error_code = AttPDUMsg::Opcode::ERROR_RSP == rsp->getOpcode() ?
+                        static_cast<const AttErrorRsp*>(rsp.get())->getErrorCode() : AttErrorRsp::ErrorCode::NO_ERROR;
+                fwd_gh->notifyNativeMTUResponse(clientMTU, *rsp, error_code, 0, 0, clientSource);
             }
-            fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
             gh.send(*rsp);
         }
 

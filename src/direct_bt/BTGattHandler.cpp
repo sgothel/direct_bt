@@ -242,6 +242,26 @@ void BTGattHandler::notifyNativeReplyReceived(const AttPDUMsg& pduReply, BTDevic
     }
 }
 
+void BTGattHandler::notifyNativeMTUResponse(const uint16_t clientMTU_,
+                                            const AttPDUMsg& pduReply, const AttErrorRsp::ErrorCode error_reply,
+                                            const uint16_t serverMTU_, const uint16_t usedMTU_,
+                                            BTDeviceRef clientRequester) noexcept {
+    BTDeviceRef serverReplier = getDeviceUnchecked();
+    if( nullptr != serverReplier ) {
+        int i=0;
+        jau::for_each_fidelity(nativeGattCharListenerList, [&](std::shared_ptr<BTGattHandler::NativeGattCharListener> &l) {
+            try {
+                l->mtuResponse(clientMTU_, pduReply, error_reply, serverMTU_, usedMTU_, serverReplier, clientRequester);
+            } catch (std::exception &e) {
+                ERR_PRINT("GATTHandler::mtuResponse-CBs %d/%zd: NativeGattCharListener %s: Caught exception %s",
+                        i+1, nativeGattCharListenerList.size(),
+                        jau::to_hexstring((void*)l.get()).c_str(), e.what());
+            }
+            i++;
+        });
+    }
+}
+
 void BTGattHandler::notifyNativeWriteRequest(const uint16_t handle, const jau::TROOctets& data, const NativeGattCharSections_t& sections, const bool with_response, BTDeviceRef clientSource) noexcept {
     BTDeviceRef serverDest = getDeviceUnchecked();
     if( nullptr != serverDest ) {

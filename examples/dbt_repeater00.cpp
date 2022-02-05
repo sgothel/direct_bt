@@ -323,7 +323,26 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
         if( nullptr != gh ) {
             gh->sendIndication(char_handle, char_value);
         }
-   }
+    }
+
+    void mtuResponse(const uint16_t clientMTU,
+                     const AttPDUMsg& pduReply,
+                     const AttErrorRsp::ErrorCode error_reply,
+                     const uint16_t serverMTU,
+                     const uint16_t usedMTU,
+                     BTDeviceRef serverReplier,
+                     BTDeviceRef clientRequester) override {
+        std::string serverReplierS = serverReplier->getAddressAndType().address.toString();
+        std::string clientRequesterS = nullptr != clientRequester ? clientRequester->getAddressAndType().address.toString() : "nil";
+
+        fprintf_td(stderr, "%s  <-> %s*: MTU: client %u -> %s, server %u -> used %u\n",
+                clientRequesterS.c_str(), serverReplierS.c_str(),
+                clientMTU, AttErrorRsp::getErrorCodeString(error_reply).c_str(), serverMTU, usedMTU);
+        if( AttErrorRsp::ErrorCode::NO_ERROR != error_reply ) {
+            fprintf_td(stderr, "    pdu : %s\n", pduReply.toString().c_str());
+        }
+        fprintf_td(stderr, "\n");
+    }
 
     void writeRequest(const uint16_t handle,
                       const jau::TROOctets& data,
