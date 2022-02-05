@@ -415,7 +415,8 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                             const AttPrepWrite &p = *iter_prep_write;
                             const uint16_t handle = p.getHandle();
                             if( handle == *iter_handle ) {
-                                jau::TROOctets p_val(p.getValue().get_ptr_nc(0), p.getValue().size(), p.getValue().byte_order());
+                                const jau::TOctetSlice &p_value = p.getValue();
+                                jau::TROOctets p_val(p_value.get_ptr_nc(0), p_value.size(), p_value.byte_order());
                                 res = applyWrite(device, handle, p_val, p.getValueOffset());
 
                                 if( AttErrorRsp::ErrorCode::NO_ERROR != res ) {
@@ -455,6 +456,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 vslice = &req->getValue();
                 withResp = false;
             } else {
+                // Actually an internal error, method should not have been called
                 AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu->getOpcode(), 0);
                 WARN_PRINT("GATT-Req: WRITE.20: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
                 gh.send(err);
@@ -943,6 +945,9 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
         BTDeviceRef fwdServer;
         std::shared_ptr<BTGattHandler> fwd_gh;
 
+        jau::darray<AttPrepWrite> writeDataQueue;
+        jau::darray<uint16_t> writeDataQueueHandles;
+
     public:
         FwdGattServerHandler(BTGattHandler& gh_, BTDeviceRef fwdServer_) noexcept
         : gh(gh_), fwdServer(fwdServer_) {
@@ -951,6 +956,8 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
 
         void close() noexcept override {
             fwdServer->disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
+            writeDataQueue.clear();
+            writeDataQueueHandles.clear();
         }
 
         DBGattServer::Mode getMode() noexcept override { return DBGattServer::Mode::FWD; }
@@ -960,6 +967,8 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                 close();
                 return;
             }
+            BTDeviceRef clientSource = gh.getDeviceUnchecked();
+            fwd_gh->notifyNativeRequestSent(*pdu, clientSource);
             std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.write_cmd_reply_timeout); // valid reply or exception
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: MTU: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
             if( AttPDUMsg::Opcode::EXCHANGE_MTU_RSP == rsp->getOpcode() ) {
@@ -968,6 +977,7 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                 gh.setUsedMTU( std::min(gh.getServerMTU(), clientMTU) );
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: MTU: %u -> %u", clientMTU, gh.getUsedMTU());
             }
+            fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
             gh.send(*rsp);
         }
 
@@ -976,29 +986,126 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                 close();
                 return;
             }
+            BTDeviceRef clientSource = gh.getDeviceUnchecked();
+
+            fwd_gh->notifyNativeRequestSent(*pdu, clientSource);
 
             if( AttPDUMsg::Opcode::PREPARE_WRITE_REQ == pdu->getOpcode() ) {
+                {
+                    const AttPrepWrite * req = static_cast<const AttPrepWrite*>(pdu);
+                    const uint16_t handle = req->getHandle();
+                    writeDataQueue.push_back(*req);
+                    if( writeDataQueueHandles.cend() == jau::find_if(writeDataQueueHandles.cbegin(), writeDataQueueHandles.cend(),
+                                                                     [&](const uint16_t it)->bool { return handle == it; }) )
+                    {
+                        // new entry
+                        writeDataQueueHandles.push_back(handle);
+                    }
+                }
                 std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.write_cmd_reply_timeout); // valid reply or exception
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.11: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
+                fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
+                {
+                    const AttErrorRsp::ErrorCode error_code = AttPDUMsg::Opcode::ERROR_RSP == rsp->getOpcode() ?
+                            static_cast<const AttErrorRsp*>(rsp.get())->getErrorCode() : AttErrorRsp::ErrorCode::NO_ERROR;
+                    fwd_gh->notifyNativeWriteResponse(*rsp, error_code, clientSource);
+                }
                 gh.send(*rsp);
                 return;
             } else if( AttPDUMsg::Opcode::EXECUTE_WRITE_REQ == pdu->getOpcode() ) {
+                {
+                    const AttExeWriteReq * req = static_cast<const AttExeWriteReq*>(pdu);
+                    if( 0x01 == req->getFlags() ) { // immediately write all pending prepared values
+                        for( auto iter_handle = writeDataQueueHandles.cbegin(); iter_handle < writeDataQueueHandles.cend(); ++iter_handle ) {
+                            const jau::endian byte_order = writeDataQueue.size() > 0 ? writeDataQueue[0].getValue().byte_order() : jau::endian::little;
+                            jau::POctets data(256, 0, byte_order); // same byte order across all requests
+                            BTGattHandler::NativeGattCharSections_t sections;
+                            for( auto iter_prep_write = writeDataQueue.cbegin(); iter_prep_write < writeDataQueue.cend(); ++iter_prep_write ) {
+                                const AttPrepWrite &p = *iter_prep_write;
+                                const uint16_t handle = p.getHandle();
+                                if( handle == *iter_handle ) {
+                                    const jau::TOctetSlice &p_value = p.getValue();
+                                    jau::TROOctets p_val(p_value.get_ptr_nc(0), p_value.size(), p_value.byte_order());
+                                    const jau::nsize_t p_end = p.getValueOffset() + p_value.size();
+                                    if( p_end > data.capacity() ) {
+                                        data.recapacity(p_end);
+                                    }
+                                    if( p_end > data.size() ) {
+                                        data.resize(p_end);
+                                    }
+                                    data.put_octets_nc(p.getValueOffset(), p_val);
+                                    BTGattHandler::NativeGattCharListener::Section section(p.getValueOffset(), (uint16_t)p_end);
+                                    if( sections.size() > 0 &&
+                                        section.start >= sections[sections.size()-1].start &&
+                                        section.start <= sections[sections.size()-1].end )
+                                    {
+                                        // quick merge of consecutive sections write requests
+                                        if( section.end > sections[sections.size()-1].end ) {
+                                            sections[sections.size()-1].end = section.end;
+                                        } // else section lies within last section
+                                    } else {
+                                        sections.push_back(section);
+                                    }
+                                }
+                                if( iter_prep_write + 1 == writeDataQueue.cend() ) {
+                                    // last entry
+                                    fwd_gh->notifyNativeWriteRequest(handle, data, sections, true /* with_response */, clientSource);
+                                }
+                            }
+                        }
+                    } // else 0x00 == req->getFlags() -> cancel all prepared writes
+                    writeDataQueue.clear();
+                    writeDataQueueHandles.clear();
+                }
                 std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.write_cmd_reply_timeout); // valid reply or exception
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.13: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
+                fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
+                {
+                    const AttErrorRsp::ErrorCode error_code = AttPDUMsg::Opcode::ERROR_RSP == rsp->getOpcode() ?
+                            static_cast<const AttErrorRsp*>(rsp.get())->getErrorCode() : AttErrorRsp::ErrorCode::NO_ERROR;
+                    fwd_gh->notifyNativeWriteResponse(*rsp, error_code, clientSource);
+                }
                 gh.send(*rsp);
                 return;
             }
 
             if( AttPDUMsg::Opcode::WRITE_REQ == pdu->getOpcode() ) {
+                {
+                    const AttWriteReq &p = *static_cast<const AttWriteReq*>(pdu);
+                    const jau::TOctetSlice &p_value = p.getValue();
+                    BTGattHandler::NativeGattCharSections_t sections;
+                    jau::TROOctets p_val(p_value.get_ptr_nc(0), p_value.size(), p_value.byte_order());
+                    sections.emplace_back( 0, (uint16_t)p_value.size() );
+                    fwd_gh->notifyNativeWriteRequest(p.getHandle(), p_val, sections, true /* with_response */, clientSource);
+                }
                 std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.write_cmd_reply_timeout); // valid reply or exception
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.22: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
+                fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
+                {
+                    const AttErrorRsp::ErrorCode error_code = AttPDUMsg::Opcode::ERROR_RSP == rsp->getOpcode() ?
+                            static_cast<const AttErrorRsp*>(rsp.get())->getErrorCode() : AttErrorRsp::ErrorCode::NO_ERROR;
+                    fwd_gh->notifyNativeWriteResponse(*rsp, error_code, clientSource);
+                }
                 gh.send(*rsp);
             } else if( AttPDUMsg::Opcode::WRITE_CMD == pdu->getOpcode() ) {
+                {
+                    const AttWriteCmd &p = *static_cast<const AttWriteCmd*>(pdu);
+                    const jau::TOctetSlice &p_value = p.getValue();
+                    BTGattHandler::NativeGattCharSections_t sections;
+                    jau::TROOctets p_val(p_value.get_ptr_nc(0), p_value.size(), p_value.byte_order());
+                    sections.emplace_back( 0, (uint16_t)p_value.size() );
+                    fwd_gh->notifyNativeWriteRequest(p.getHandle(), p_val, sections, false /* with_response */, clientSource);
+                }
                 fwd_gh->send(*pdu);
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.21: %s to  %s", pdu->toString().c_str(), fwd_gh->toString().c_str());
             } else {
+                // Actually an internal error, method should not have been called
                 AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu->getOpcode(), 0);
                 WARN_PRINT("GATT-Req: WRITE.20: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
+                fwd_gh->notifyNativeReplyReceived(err, clientSource);
+                {
+                    fwd_gh->notifyNativeWriteResponse(err, err.getErrorCode(), clientSource);
+                }
                 gh.send(err);
             }
         }
@@ -1008,8 +1115,51 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                 close();
                 return;
             }
+            BTDeviceRef clientSource = gh.getDeviceUnchecked();
+            fwd_gh->notifyNativeRequestSent(*pdu, clientSource);
+            uint16_t handle;
+            uint16_t value_offset;
+            {
+
+                if( AttPDUMsg::Opcode::READ_REQ == pdu->getOpcode() ) {
+                    const AttReadReq * req = static_cast<const AttReadReq*>(pdu);
+                    handle = req->getHandle();
+                    value_offset = 0;
+                } else if( AttPDUMsg::Opcode::READ_BLOB_REQ == pdu->getOpcode() ) {
+                    /**
+                     * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value
+                     *
+                     * If the Characteristic Value is not longer than (ATT_MTU – 1)
+                     * an ATT_ERROR_RSP PDU with the error
+                     * code set to Attribute Not Long shall be received on the first
+                     * ATT_READ_BLOB_REQ PDU.
+                     */
+                    const AttReadBlobReq * req = static_cast<const AttReadBlobReq*>(pdu);
+                    handle = req->getHandle();
+                    value_offset = req->getValueOffset();
+                } else {
+                    // Internal error
+                    handle = 0;
+                    value_offset = 0;
+                }
+            }
             std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.read_cmd_reply_timeout); // valid reply or exception
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
+            fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
+            {
+                if( AttPDUMsg::Opcode::READ_RSP == rsp->getOpcode() ||
+                    AttPDUMsg::Opcode::READ_BLOB_RSP == rsp->getOpcode() ) {
+                    const AttReadNRsp * p = static_cast<const AttReadNRsp*>(rsp.get());
+                    const jau::TOctetSlice& p_value = p->getValue();
+                    jau::TROOctets p_val(p_value.get_ptr_nc(0), p_value.size(), p_value.byte_order());
+                    fwd_gh->notifyNativeReadResponse(handle, value_offset, *rsp, AttErrorRsp::ErrorCode::NO_ERROR, p_val, clientSource);
+                } else {
+                    const AttErrorRsp::ErrorCode error_code = AttPDUMsg::Opcode::ERROR_RSP == rsp->getOpcode() ?
+                            static_cast<const AttErrorRsp*>(rsp.get())->getErrorCode() : AttErrorRsp::ErrorCode::NO_ERROR;
+                    jau::TROOctets p_val;
+                    fwd_gh->notifyNativeReadResponse(handle, value_offset, *rsp, error_code, p_val, clientSource);
+                }
+            }
             gh.send(*rsp);
         }
 
@@ -1018,8 +1168,11 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                 close();
                 return;
             }
+            BTDeviceRef clientSource = gh.getDeviceUnchecked();
+            fwd_gh->notifyNativeRequestSent(*pdu, clientSource);
             std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.read_cmd_reply_timeout); // valid reply or exception
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: INFO: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
+            fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
             gh.send(*rsp);
         }
 
@@ -1028,8 +1181,11 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                 close();
                 return;
             }
+            BTDeviceRef clientSource = gh.getDeviceUnchecked();
+            fwd_gh->notifyNativeRequestSent(*pdu, clientSource);
             std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.read_cmd_reply_timeout); // valid reply or exception
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
+            fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
             gh.send(*rsp);
         }
 
@@ -1038,8 +1194,11 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                 close();
                 return;
             }
+            BTDeviceRef clientSource = gh.getDeviceUnchecked();
+            fwd_gh->notifyNativeRequestSent(*pdu, clientSource);
             std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.read_cmd_reply_timeout); // valid reply or exception
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
+            fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
             gh.send(*rsp);
         }
 
@@ -1048,8 +1207,11 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                 close();
                 return;
             }
+            BTDeviceRef clientSource = gh.getDeviceUnchecked();
+            fwd_gh->notifyNativeRequestSent(*pdu, clientSource);
             std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.read_cmd_reply_timeout); // valid reply or exception
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
+            fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
             gh.send(*rsp);
         }
 };

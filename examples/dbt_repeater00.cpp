@@ -281,24 +281,24 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
 
     NativeGattToServerCharListener() {}
 
+    BTDeviceRef getToClient() noexcept {
+        jau::sc_atomic_critical sync(sync_data);
+        return connectedDeviceToClient;
+    }
+
     void notificationReceived(BTDeviceRef source, const uint16_t char_handle,
                               const TROOctets& char_value, const uint64_t timestamp) override
     {
-        const uint64_t tR = jau::getCurrentMilliseconds();
-        BTDeviceRef devToClient;
-        std::string devToClientS;
-        {
-            jau::sc_atomic_critical sync(sync_data);
-            devToClient = connectedDeviceToClient;
-            if( nullptr != devToClient ) {
-                devToClientS = devToClient->toString();
-            }
-        }
-        fprintf_td(stderr, "** Server Characteristic-Notify: handle %s, td %" PRIu64 " from %s ******\n",
-                jau::to_hexstring(char_handle).c_str(), (tR-timestamp), source->toString().c_str());
-        fprintf_td(stderr, "**     Fwd to client: %s ******\n", devToClientS.c_str());
-        fprintf_td(stderr, "**     Value R: %s ******\n", char_value.toString().c_str());
-        fprintf_td(stderr, "**     Value S: %s ******\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
+        (void)timestamp;
+        BTDeviceRef devToClient = getToClient();
+        std::string devToClientS = nullptr != devToClient ? devToClient->getAddressAndType().address.toString() : "nil";
+        std::string devFromServerS = source->getAddressAndType().address.toString();
+
+        fprintf_td(stderr, "%s*  -> %s: Notify: handle %s\n",
+                devFromServerS.c_str(), devToClientS.c_str(), jau::to_hexstring(char_handle).c_str());
+        fprintf_td(stderr, "    raw : %s\n", char_value.toString().c_str());
+        fprintf_td(stderr, "    utf8: %s\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
+        fprintf_td(stderr, "\n");
         std::shared_ptr<BTGattHandler> gh = nullptr != devToClient ? devToClient->getGattHandler() : nullptr;
         if( nullptr != gh ) {
             gh->sendNotification(char_handle, char_value);
@@ -309,26 +309,79 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
                             const TROOctets& char_value, const uint64_t timestamp,
                             const bool confirmationSent) override
     {
-        const uint64_t tR = jau::getCurrentMilliseconds();
-        BTDeviceRef devToClient;
-        std::string devToClientS;
-        {
-            jau::sc_atomic_critical sync(sync_data);
-            devToClient = connectedDeviceToClient;
-            if( nullptr != devToClient ) {
-                devToClientS = devToClient->toString();
-            }
-        }
-        fprintf_td(stderr, "** Server Characteristic-Indication: handle %s, td %" PRIu64 ", confirmed %d from %s ******\n",
-                jau::to_hexstring(char_handle).c_str(), (tR-timestamp), confirmationSent, source->toString().c_str());
-        fprintf_td(stderr, "**     Fwd to client: %s ******\n", devToClientS.c_str());
-        fprintf_td(stderr, "**     Value R: %s ******\n", char_value.toString().c_str());
-        fprintf_td(stderr, "**     Value S: %s ******\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
+        (void)timestamp;
+        BTDeviceRef devToClient = getToClient();
+        std::string devToClientS = nullptr != devToClient ? devToClient->getAddressAndType().address.toString() : "nil";
+        std::string devFromServerS = source->getAddressAndType().address.toString();
+
+        fprintf_td(stderr, "%s*  -> %s: Indication: handle %s, confirmed %d\n",
+                devFromServerS.c_str(), devToClientS.c_str(), jau::to_hexstring(char_handle).c_str(), confirmationSent);
+        fprintf_td(stderr, "    raw : %s\n", char_value.toString().c_str());
+        fprintf_td(stderr, "    utf8: %s\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
+        fprintf_td(stderr, "\n");
         std::shared_ptr<BTGattHandler> gh = nullptr != devToClient ? devToClient->getGattHandler() : nullptr;
         if( nullptr != gh ) {
             gh->sendIndication(char_handle, char_value);
         }
+   }
+
+    void writeRequest(const uint16_t handle,
+                      const jau::TROOctets& data,
+                      const jau::darray<Section>& sections,
+                      const bool with_response,
+                      BTDeviceRef serverDest,
+                      BTDeviceRef clientSource) override {
+        std::string serverDestS = serverDest->getAddressAndType().address.toString();
+        std::string clientSourceS = nullptr != clientSource ? clientSource->getAddressAndType().address.toString() : "nil";
+
+        fprintf_td(stderr, "%s   -> %s*: Write-Req: handle %s, with_response %d\n",
+                clientSourceS.c_str(), serverDestS.c_str(), jau::to_hexstring(handle).c_str(), with_response);
+        fprintf_td(stderr, "    raw : %s\n", data.toString().c_str());
+        fprintf_td(stderr, "    utf8: %s\n", jau::dfa_utf8_decode(data.get_ptr(), data.size()).c_str());
+        fprintf_td(stderr, "    sections: ");
+        for(Section s : sections) {
+            fprintf(stderr, "%s, ", s.toString().c_str());
+        }
+        fprintf(stderr, "\n");
+        fprintf_td(stderr, "\n");
     }
+
+    void writeResponse(const AttPDUMsg& pduReply,
+                       const AttErrorRsp::ErrorCode error_code,
+                       BTDeviceRef serverSource,
+                       BTDeviceRef clientDest) override {
+        std::string serverSourceS = serverSource->getAddressAndType().address.toString();
+        std::string clientDestS = nullptr != clientDest ? clientDest->getAddressAndType().address.toString() : "nil";
+
+        fprintf_td(stderr, "%s*  -> %s: Write-Rsp: %s\n",
+                serverSourceS.c_str(), clientDestS.c_str(), AttErrorRsp::getErrorCodeString(error_code).c_str());
+        fprintf_td(stderr, "    pdu : %s\n", pduReply.toString().c_str());
+        fprintf_td(stderr, "\n");
+    }
+
+
+    void readResponse(const uint16_t handle,
+                      const uint16_t value_offset,
+                      const AttPDUMsg& pduReply,
+                      const AttErrorRsp::ErrorCode error_reply,
+                      const jau::TROOctets& data_reply,
+                      BTDeviceRef serverReplier,
+                      BTDeviceRef clientRequester) override {
+        std::string serverReplierS = serverReplier->getAddressAndType().address.toString();
+        std::string clientRequesterS = nullptr != clientRequester ? clientRequester->getAddressAndType().address.toString() : "nil";
+
+        fprintf_td(stderr, "%s  <-> %s*: Read: handle %s, value_offset %d -> %s\n",
+                clientRequesterS.c_str(), serverReplierS.c_str(),
+                jau::to_hexstring(handle).c_str(), value_offset, AttErrorRsp::getErrorCodeString(error_reply).c_str());
+        if( 0 < data_reply.size() ) {
+            fprintf_td(stderr, "    raw : %s\n", data_reply.toString().c_str());
+            fprintf_td(stderr, "    utf8: %s\n", jau::dfa_utf8_decode(data_reply.get_ptr(), data_reply.size()).c_str());
+        } else {
+            fprintf_td(stderr, "    pdu : %s\n", pduReply.toString().c_str());
+        }
+        fprintf_td(stderr, "\n");
+    }
+
 };
 
 static void connectToDiscoveredServer(BTDeviceRef device) {

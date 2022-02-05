@@ -208,6 +208,93 @@ int BTGattHandler::removeAllCharListener() noexcept {
     return count;
 }
 
+void BTGattHandler::notifyNativeRequestSent(const AttPDUMsg& pduRequest, BTDeviceRef clientSource) noexcept {
+    BTDeviceRef serverDest = getDeviceUnchecked();
+    if( nullptr != serverDest ) {
+        int i=0;
+        jau::for_each_fidelity(nativeGattCharListenerList, [&](std::shared_ptr<BTGattHandler::NativeGattCharListener> &l) {
+            try {
+                l->requestSent(pduRequest, serverDest, clientSource);
+            } catch (std::exception &e) {
+                ERR_PRINT("GATTHandler::requestSent-CBs %d/%zd: NativeGattCharListener %s: Caught exception %s",
+                        i+1, nativeGattCharListenerList.size(),
+                        jau::to_hexstring((void*)l.get()).c_str(), e.what());
+            }
+            i++;
+        });
+    }
+}
+
+void BTGattHandler::notifyNativeReplyReceived(const AttPDUMsg& pduReply, BTDeviceRef clientDest) noexcept {
+    BTDeviceRef serverSource = getDeviceUnchecked();
+    if( nullptr != serverSource ) {
+        int i=0;
+        jau::for_each_fidelity(nativeGattCharListenerList, [&](std::shared_ptr<BTGattHandler::NativeGattCharListener> &l) {
+            try {
+                l->replyReceived(pduReply, serverSource, clientDest);
+            } catch (std::exception &e) {
+                ERR_PRINT("GATTHandler::replyReceived-CBs %d/%zd: NativeGattCharListener %s: Caught exception %s",
+                        i+1, nativeGattCharListenerList.size(),
+                        jau::to_hexstring((void*)l.get()).c_str(), e.what());
+            }
+            i++;
+        });
+    }
+}
+
+void BTGattHandler::notifyNativeWriteRequest(const uint16_t handle, const jau::TROOctets& data, const NativeGattCharSections_t& sections, const bool with_response, BTDeviceRef clientSource) noexcept {
+    BTDeviceRef serverDest = getDeviceUnchecked();
+    if( nullptr != serverDest ) {
+        int i=0;
+        jau::for_each_fidelity(nativeGattCharListenerList, [&](std::shared_ptr<BTGattHandler::NativeGattCharListener> &l) {
+            try {
+                l->writeRequest(handle, data, sections, with_response, serverDest, clientSource);
+            } catch (std::exception &e) {
+                ERR_PRINT("GATTHandler::writeRequest-CBs %d/%zd: NativeGattCharListener %s: Caught exception %s",
+                        i+1, nativeGattCharListenerList.size(),
+                        jau::to_hexstring((void*)l.get()).c_str(), e.what());
+            }
+            i++;
+        });
+    }
+}
+
+void BTGattHandler::notifyNativeWriteResponse(const AttPDUMsg& pduReply, const AttErrorRsp::ErrorCode error_code, BTDeviceRef clientDest) noexcept {
+    BTDeviceRef serverSource = getDeviceUnchecked();
+    if( nullptr != serverSource ) {
+        int i=0;
+        jau::for_each_fidelity(nativeGattCharListenerList, [&](std::shared_ptr<BTGattHandler::NativeGattCharListener> &l) {
+            try {
+                l->writeResponse(pduReply, error_code, serverSource, clientDest);
+            } catch (std::exception &e) {
+                ERR_PRINT("GATTHandler::writeResponse-CBs %d/%zd: NativeGattCharListener %s: Caught exception %s",
+                        i+1, nativeGattCharListenerList.size(),
+                        jau::to_hexstring((void*)l.get()).c_str(), e.what());
+            }
+            i++;
+        });
+    }
+}
+
+void BTGattHandler::notifyNativeReadResponse(const uint16_t handle, const uint16_t value_offset,
+                                             const AttPDUMsg& pduReply, const AttErrorRsp::ErrorCode error_code, const jau::TROOctets& data_reply,
+                                             BTDeviceRef clientRequester) noexcept {
+    BTDeviceRef serverReplier = getDeviceUnchecked();
+    if( nullptr != serverReplier ) {
+        int i=0;
+        jau::for_each_fidelity(nativeGattCharListenerList, [&](std::shared_ptr<BTGattHandler::NativeGattCharListener> &l) {
+            try {
+                l->readResponse(handle, value_offset, pduReply, error_code, data_reply, serverReplier, clientRequester);
+            } catch (std::exception &e) {
+                ERR_PRINT("GATTHandler::readResponse-CBs %d/%zd: NativeGattCharListener %s: Caught exception %s",
+                        i+1, nativeGattCharListenerList.size(),
+                        jau::to_hexstring((void*)l.get()).c_str(), e.what());
+            }
+            i++;
+        });
+    }
+}
+
 void BTGattHandler::setSendIndicationConfirmation(const bool v) {
     sendIndicationConfirmation = v;
 }
