@@ -379,7 +379,7 @@ namespace direct_bt {
                      * Informal notification about a write response received from this GATTRole::Server, optional.
                      *
                      * @param pduReply the write response
-                     * @param error_code in case of an AttErrorRsp reply, the AttErrorRsp::ErrorCode is passed convenience, otherwise AttErrorRsp::ErrorCode::NO_ERROR.
+                     * @param error_code in case of an AttErrorRsp reply, the AttErrorRsp::ErrorCode is passed for convenience, otherwise AttErrorRsp::ErrorCode::NO_ERROR.
                      * @param serverSource the GATTRole::Server source device, never nullptr
                      * @param clientDest the GATTRole::Client receiver device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
                      */
@@ -395,8 +395,8 @@ namespace direct_bt {
                      * @param handle the GATT characteristic or descriptor handle, requested to be written
                      * @param value_offset the value offset of the data to be read
                      * @param pduReply the response
-                     * @param error_reply in case of an AttErrorRsp reply, the AttErrorRsp::ErrorCode is passed convenience, otherwise AttErrorRsp::ErrorCode::NO_ERROR.
-                     * @param data_reply the replied read data at given value_offset passed for convenience
+                     * @param error_reply in case of an AttErrorRsp reply, the AttErrorRsp::ErrorCode is passed for convenience, otherwise AttErrorRsp::ErrorCode::NO_ERROR.
+                     * @param data_reply the replied read data at given value_offset, passed for convenience
                      * @param serverReplier the GATTRole::Server replier device, never nullptr
                      * @param clientRequester the GATTRole::Client requester device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
                      */
@@ -933,7 +933,7 @@ namespace direct_bt {
              * This functionality has an informal character only.
              *
              * @param pduReply the response
-             * @param error_code in case of an AttErrorRsp reply, the AttErrorRsp::ErrorCode is passed convenience, otherwise AttErrorRsp::ErrorCode::NO_ERROR.
+             * @param error_code in case of an AttErrorRsp reply, the AttErrorRsp::ErrorCode is passed for convenience, otherwise AttErrorRsp::ErrorCode::NO_ERROR.
              * @param clientDest the GATTRole::Client receiver device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
              */
             void notifyNativeWriteResponse(const AttPDUMsg& pduReply, const AttErrorRsp::ErrorCode error_code, BTDeviceRef clientDest) noexcept;
@@ -946,8 +946,8 @@ namespace direct_bt {
              * @param handle the GATT characteristic or descriptor handle, requested to be written
              * @param value_offset the value offset of the data to be read
              * @param pduReply the response
-             * @param error_reply in case of an AttErrorRsp reply, the AttErrorRsp::ErrorCode is passed convenience, otherwise AttErrorRsp::ErrorCode::NO_ERROR.
-             * @param data_reply the replied read data at given value_offset passed for convenience
+             * @param error_reply in case of an AttErrorRsp reply, the AttErrorRsp::ErrorCode is passed for convenience, otherwise AttErrorRsp::ErrorCode::NO_ERROR.
+             * @param data_reply the replied read data at given value_offset, passed for convenience
              * @param clientRequester the GATTRole::Client requester device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
              */
             void notifyNativeReadResponse(const uint16_t handle, const uint16_t value_offset,
