@@ -518,11 +518,12 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
 
 void BTGattHandler::l2capReaderEndLocked(jau::service_runner& sr) noexcept {
     (void)sr;
-    WORDY_PRINT("GATTHandler::reader: Ended. Ring has %u entries flushed", attPDURing.size());
+    WORDY_PRINT("GATTHandler::reader: EndLocked. Ring has %u entries flushed: %s", attPDURing.size(), toString().c_str());
     attPDURing.clear();
 }
 void BTGattHandler::l2capReaderEndFinal(jau::service_runner& sr) noexcept {
     (void)sr;
+    WORDY_PRINT("GATTHandler::reader: EndFinal: %s", toString().c_str());
     disconnect(true /* disconnectDevice */, has_ioerror);
 }
 
@@ -537,7 +538,7 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPComm& l2cap_att, co
   deviceString(device->getAddressAndType().toString()),
   rbuffer(number(Defaults::MAX_ATT_MTU), jau::endian::little),
   is_connected(l2cap.isOpen()), has_ioerror(false),
-  l2cap_reader_service("GATTHandler::reader", THREAD_SHUTDOWN_TIMEOUT_MS,
+  l2cap_reader_service("GATTHandler::reader::"+deviceString, THREAD_SHUTDOWN_TIMEOUT_MS,
                        jau::bindMemberFunc(this, &BTGattHandler::l2capReaderWork),
                        jau::service_runner::Callback() /* init */,
                        jau::bindMemberFunc(this, &BTGattHandler::l2capReaderEndLocked),
@@ -1468,8 +1469,13 @@ std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(ja
 }
 
 std::string BTGattHandler::toString() const noexcept {
-    return "GattHndlr["+to_string(getRole())+", mtu "+std::to_string(usedMTU.load())+
-           ", listener[BTGatt "+std::to_string(btGattCharListenerList.size())+", "+
-           "Native "+std::to_string(nativeGattCharListenerList.size())+"], "+
-           deviceString+", "+getStateString()+"]";
+    return "GattHndlr["+to_string(getRole())+", "+deviceString+
+           ", mode "+to_string(gattServerHandler->getMode())+
+           ", mtu "+std::to_string(usedMTU.load())+
+           ", listener[BTGatt "+std::to_string(btGattCharListenerList.size())+
+           ", Native "+std::to_string(nativeGattCharListenerList.size())+
+           "], l2capWorker[running "+std::to_string(l2cap_reader_service.is_running())+
+           ", shallStop "+std::to_string(l2cap_reader_service.get_shall_stop())+
+           ", thread_id "+jau::to_hexstring((void*)l2cap_reader_service.get_threadid())+
+           "], "+getStateString()+"]";
 }
