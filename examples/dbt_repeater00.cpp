@@ -513,6 +513,20 @@ static void removeDeviceToServer(BTDeviceRef device) {
     device->remove();
 }
 
+static void resetConnectionToServer(BTDeviceRef device) {
+    fprintf_td(stderr, "****** To Server: Disconnected: %s\n", device->toString().c_str());
+    device->disconnect(HCIStatusCode::DISCONNECTED);
+
+    BTAdapter& a = device->getAdapter();
+    fprintf_td(stderr, "****** To Server: Power off: %s\n", a.toString().c_str());
+    if( a.setPowered(false) ) {
+        fprintf_td(stderr, "****** To Server: Power on: %s\n", a.toString().c_str());
+        if( a.setPowered(true) ) {
+            startDiscoveryToServer(&a, "resetConnectionToServer");
+        }
+    }
+}
+
 static bool startDiscoveryToServer(BTAdapter *a, std::string msg) {
     if( adapterToServerAddr != EUI48::ALL_DEVICE && adapterToServerAddr != a->getAddressAndType().address ) {
         fprintf_td(stderr, "****** To Server: Start discovery (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
@@ -700,7 +714,17 @@ static void processDisconnectedDeviceToClient(BTDeviceRef device) {
     BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME: Fast restart of advertising error)
 
-    startAdvertisingToClient(adapterToClient, "processDisconnectedDeviceToClient");
+    BTDeviceRef devToServer;
+    {
+        jau::sc_atomic_critical sync(sync_data);
+        devToServer = connectedDeviceToServer;
+    }
+    if( nullptr != devToServer ) {
+        std::thread sd(::resetConnectionToServer, devToServer); // @suppress("Invalid arguments")
+        sd.detach();
+    } else {
+        startAdvertisingToClient(adapterToClient, "processDisconnectedDeviceToClient");
+    }
 
     fprintf_td(stderr, "****** To Client: Disonnected Device: End %s\n", device->toString().c_str());
 }

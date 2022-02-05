@@ -955,7 +955,6 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
         }
 
         void close() noexcept override {
-            fwdServer->disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
             writeDataQueue.clear();
             writeDataQueueHandles.clear();
         }
