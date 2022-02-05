@@ -294,7 +294,7 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
         std::string devToClientS = nullptr != devToClient ? devToClient->getAddressAndType().address.toString() : "nil";
         std::string devFromServerS = source->getAddressAndType().address.toString();
 
-        fprintf_td(stderr, "%s*  -> %s: Notify: handle %s\n",
+        fprintf_td(stderr, "%s*  -> %s : Notify: handle %s\n",
                 devFromServerS.c_str(), devToClientS.c_str(), jau::to_hexstring(char_handle).c_str());
         fprintf_td(stderr, "    raw : %s\n", char_value.toString().c_str());
         fprintf_td(stderr, "    utf8: %s\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
@@ -314,7 +314,7 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
         std::string devToClientS = nullptr != devToClient ? devToClient->getAddressAndType().address.toString() : "nil";
         std::string devFromServerS = source->getAddressAndType().address.toString();
 
-        fprintf_td(stderr, "%s*  -> %s: Indication: handle %s, confirmed %d\n",
+        fprintf_td(stderr, "%s*  -> %s : Indication: handle %s, confirmed %d\n",
                 devFromServerS.c_str(), devToClientS.c_str(), jau::to_hexstring(char_handle).c_str(), confirmationSent);
         fprintf_td(stderr, "    raw : %s\n", char_value.toString().c_str());
         fprintf_td(stderr, "    utf8: %s\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
@@ -353,7 +353,7 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
         std::string serverSourceS = serverSource->getAddressAndType().address.toString();
         std::string clientDestS = nullptr != clientDest ? clientDest->getAddressAndType().address.toString() : "nil";
 
-        fprintf_td(stderr, "%s*  -> %s: Write-Rsp: %s\n",
+        fprintf_td(stderr, "%s*  -> %s : Write-Rsp: %s\n",
                 serverSourceS.c_str(), clientDestS.c_str(), AttErrorRsp::getErrorCodeString(error_code).c_str());
         fprintf_td(stderr, "    pdu : %s\n", pduReply.toString().c_str());
         fprintf_td(stderr, "\n");
