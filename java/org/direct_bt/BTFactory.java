@@ -575,5 +575,8 @@ public class BTFactory {
 
 /** \example DBTPeripheral00.java
  * This Java peripheral {@link BTRole::Slave} GATT server example uses an event driven workflow.
+ * <p>
+ * See `dbt_peripheral00.cpp` for invocation examples, since both apps are fully compatible.
+ * </p>
  */
 

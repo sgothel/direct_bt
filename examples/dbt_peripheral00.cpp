@@ -55,6 +55,14 @@ using namespace jau;
 
 /** \file
  * This _dbt_peripheral00__ C++ peripheral ::BTRole::Slave GATT server example uses an event driven workflow.
+ *
+ * ### dbt_peripheral00 Invocation Examples:
+ * Using `scripts/run-dbt_peripheral00.sh` from `dist` directory:
+ *
+ * * Serving clients as `TestDevice001` using adapter 00:1A:7D:DA:71:03; Using ENC_ONLY (JUST_WORKS) encryption.
+ *   ~~~
+ *   ../scripts/run-dbt_peripheral00.sh -adapter 00:1A:7D:DA:71:03 -name TestDevice001 -seclevel 2
+ *   ~~~
  */
 
 static uint64_t timestamp_t0;

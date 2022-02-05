@@ -64,6 +64,9 @@ import org.jau.net.EUI48;
 
 /**
  * This Java peripheral {@link BTRole::Slave} GATT server example uses an event driven workflow.
+ * <p>
+ * See `dbt_peripheral00.cpp` for invocation examples, since both apps are fully compatible.
+ * </p>
  */
 public class DBTPeripheral00 {
     long timestamp_t0;

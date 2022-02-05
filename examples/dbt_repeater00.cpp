@@ -56,6 +56,14 @@ using namespace jau;
  *
  * The repeater can be used in between an existing Bluetooth LE client and server,
  * acting as a forwarder and to analyze the GATT client/server protocol.
+ *
+ * ### dbt_repeater00 Invocation Examples:
+ * Using `scripts/run-dbt_repeater00.sh` from `dist` directory:
+ *
+ * * Connection to server `TAIDOC TD1107` using adapter `DC:FB:48:00:90:19`; Serving client as `TAIDOC TD1108` using adapter `00:1A:7D:DA:71:03`; Using ENC_ONLY (JUST_WORKS) encryption.
+ *   ~~~
+ *   ../scripts/run-dbt_repeater00.sh -adapterToServer DC:FB:48:00:90:19 -adapterToClient 00:1A:7D:DA:71:03 -server 'TAIDOC TD1107' -nameToClient 'TAIDOC TD1108' -seclevelToServer 'TAIDOC TD1107' 2 -seclevelToClient 2 -quiet
+ *   ~~~
  */
 
 static uint64_t timestamp_t0;

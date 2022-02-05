@@ -2066,6 +2066,7 @@ namespace direct_bt {
  *
  * ### dbt_scanner10 Invocation Examples:
  * Using `scripts/run-dbt_scanner10.sh` from `dist` directory:
+ *
  * * Scan and read all devices (using default auto-sec w/ keyboard iocap)
  *   ~~~
  *   ../scripts/run-dbt_scanner10.sh
@@ -2116,6 +2117,14 @@ namespace direct_bt {
 
 /** \example dbt_peripheral00.cpp
  * This _dbt_peripheral00__ C++ peripheral ::BTRole::Slave GATT server example uses an event driven workflow.
+ *
+ * ### dbt_peripheral00 Invocation Examples:
+ * Using `scripts/run-dbt_peripheral00.sh` from `dist` directory:
+ *
+ * * Serving clients as `TestDevice001` using adapter 00:1A:7D:DA:71:03; Using ENC_ONLY (JUST_WORKS) encryption.
+ *   ~~~
+ *   ../scripts/run-dbt_peripheral00.sh -adapter 00:1A:7D:DA:71:03 -name TestDevice001 -seclevel 2
+ *   ~~~
  */
 
 /** \example dbt_repeater00.cpp
@@ -2124,6 +2133,14 @@ namespace direct_bt {
  *
  * The repeater can be used in between an existing Bluetooth LE client and server,
  * acting as a forwarder and to analyze the GATT client/server protocol.
+ *
+ * ### dbt_repeater00 Invocation Examples:
+ * Using `scripts/run-dbt_repeater00.sh` from `dist` directory:
+ *
+ * * Connection to server `TAIDOC TD1107` using adapter `DC:FB:48:00:90:19`; Serving client as `TAIDOC TD1108` using adapter `00:1A:7D:DA:71:03`; Using ENC_ONLY (JUST_WORKS) encryption.
+ *   ~~~
+ *   ../scripts/run-dbt_repeater00.sh -adapterToServer DC:FB:48:00:90:19 -adapterToClient 00:1A:7D:DA:71:03 -server 'TAIDOC TD1107' -nameToClient 'TAIDOC TD1108' -seclevelToServer 'TAIDOC TD1107' 2 -seclevelToClient 2 -quiet
+ *   ~~~
  */
 
 #endif /* ATT_PDU_TYPES_HPP_ */

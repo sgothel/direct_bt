@@ -59,6 +59,7 @@ using namespace jau;
  *
  * ### dbt_scanner10 Invocation Examples:
  * Using `scripts/run-dbt_scanner10.sh` from `dist` directory:
+ *
  * * Scan and read all devices (using default auto-sec w/ keyboard iocap)
  *   ~~~
  *   ../scripts/run-dbt_scanner10.sh
