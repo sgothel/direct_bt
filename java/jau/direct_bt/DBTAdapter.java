@@ -121,7 +121,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private native byte getBTModeImpl();
 
     @Override
-    public void close() {
+    public final void close() {
         final DBTManager mngr = (DBTManager)DBTManager.getManager();
         if( !isValid() ) {
             return;
@@ -155,7 +155,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     }
 
     @Override
-    public boolean equals(final Object obj)
+    public final boolean equals(final Object obj)
     {
         if(this == obj) {
             return true;
@@ -168,16 +168,16 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     }
 
     @Override
-    public BDAddressAndType getAddressAndType() { return addressAndType; }
+    public final BDAddressAndType getAddressAndType() { return addressAndType; }
 
     @Override
-    public BDAddressAndType getVisibleAddressAndType() { return visibleAddressAndType; }
+    public final BDAddressAndType getVisibleAddressAndType() { return visibleAddressAndType; }
 
     @Override
-    public int getDevID() { return dev_id; }
+    public final int getDevID() { return dev_id; }
 
     @Override
-    public native int getBTMajorVersion();
+    public final native int getBTMajorVersion();
 
     @Override
     public final String getName() {
@@ -210,12 +210,12 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private native byte setNameImpl(final String name, String short_name);
 
     @Override
-    public BTDevice find(final String name, final BDAddressAndType addressAndType, final long timeoutMS) {
+    public final BTDevice find(final String name, final BDAddressAndType addressAndType, final long timeoutMS) {
         return findDeviceInCache(name, addressAndType);
     }
 
     @Override
-    public BTDevice find(final String name, final BDAddressAndType addressAndType) {
+    public final BTDevice find(final String name, final BDAddressAndType addressAndType) {
         return find(name, addressAndType, 0);
     }
 
@@ -224,26 +224,26 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private final native boolean isDeviceWhitelistedImpl(final byte[] address, byte address_type);
 
     @Override
-    public boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
+    public final boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
                                         final HCIWhitelistConnectType ctype,
                                         final short conn_interval_min, final short conn_interval_max,
                                         final short conn_latency, final short timeout) {
         return addDeviceToWhitelistImpl1(addressAndType.address.b, addressAndType.type.value, ctype.value,
                                     conn_interval_min, conn_interval_max, conn_latency, timeout);
     }
-    private native boolean addDeviceToWhitelistImpl1(final byte[] address, final byte address_type, final int ctype,
+    private final native boolean addDeviceToWhitelistImpl1(final byte[] address, final byte address_type, final int ctype,
                                         final short conn_interval_min, final short conn_interval_max,
                                         final short conn_latency, final short timeout);
 
     @Override
-    public boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
+    public final boolean addDeviceToWhitelist(final BDAddressAndType addressAndType,
                                         final HCIWhitelistConnectType ctype) {
         return addDeviceToWhitelistImpl2(addressAndType.address.b, addressAndType.type.value, ctype.value);
     }
     private native boolean addDeviceToWhitelistImpl2(final byte[] address, final byte address_type, final int ctype);
 
     @Override
-    public boolean removeDeviceFromWhitelist(final BDAddressAndType addressAndType) {
+    public final boolean removeDeviceFromWhitelist(final BDAddressAndType addressAndType) {
         return removeDeviceFromWhitelistImpl(addressAndType.address.b, addressAndType.type.value);
     }
     private native boolean removeDeviceFromWhitelistImpl(final byte[] address, final byte address_type);
@@ -266,7 +266,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     }
 
     @Override
-    public String toString() {
+    public final String toString() {
         if( !isValid() ) {
             return "Adapter" + "\u271D" + "["+addressAndType+", '"+name_cached+"', id "+dev_id+"]";
         }
@@ -280,10 +280,10 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private native String toStringImpl();
 
     @Override
-    public native boolean setPowered(final boolean power_on);
+    public final native boolean setPowered(final boolean power_on);
 
     @Override
-    public native boolean getSecureConnectionsEnabled();
+    public final native boolean getSecureConnectionsEnabled();
 
     @Override
     public final HCIStatusCode setSecureConnections(final boolean enable) {
@@ -307,7 +307,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private final native void setServerConnSecurityImpl(final byte sec_level, final byte io_cap);
 
     @Override
-    public native void setSMPKeyPath(final String path);
+    public final native void setSMPKeyPath(final String path);
 
     @Override
     public final HCIStatusCode initialize() {
@@ -342,7 +342,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private native BTDevice connectDeviceImpl(byte[] address, byte addressType);
 
     @Override
-    public boolean getPoweredState() { return powered_state.get(); }
+    public final boolean getPoweredState() { return powered_state.get(); }
 
     @Override
     public final boolean isPowered() { return isValid() && isPoweredImpl(); }
@@ -368,18 +368,18 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     protected native void deleteImpl(long nativeInstance);
 
     @Override
-    public HCIStatusCode startDiscovery() throws BTException {
+    public final HCIStatusCode startDiscovery() throws BTException {
         return startDiscovery(DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_READY, true /* le_scan_active */, (short)24, (short)24, (byte)0, true /* filter_dup */);
     }
     @Override
-    public HCIStatusCode startDiscovery(final DiscoveryPolicy policy, final boolean le_scan_active) throws BTException {
+    public final HCIStatusCode startDiscovery(final DiscoveryPolicy policy, final boolean le_scan_active) throws BTException {
         return startDiscovery(policy, le_scan_active, (short)24, (short)24, (byte)0, true /* filter_dup */);
     }
     @Override
-    public HCIStatusCode startDiscovery(final DiscoveryPolicy policy, final boolean le_scan_active,
-                                        final short le_scan_interval, final short le_scan_window,
-                                        final byte filter_policy,
-                                        final boolean filter_dup) throws BTException {
+    public final HCIStatusCode startDiscovery(final DiscoveryPolicy policy, final boolean le_scan_active,
+                                              final short le_scan_interval, final short le_scan_window,
+                                              final byte filter_policy,
+                                              final boolean filter_dup) throws BTException {
         synchronized( discoveryLock ) {
             // Ignoring 'isDiscovering', as native implementation also handles change of 'keepAlive'.
             // The discoveredDevices shall always get cleared.
@@ -400,7 +400,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
                                            final boolean filter_dup) throws BTException;
 
     @Override
-    public HCIStatusCode stopDiscovery() throws BTException {
+    public final HCIStatusCode stopDiscovery() throws BTException {
         synchronized( discoveryLock ) {
             // Ignoring 'isDiscovering', be consistent with startDiscovery
             final HCIStatusCode res = HCIStatusCode.get( stopDiscoveryImpl() );  // event callbacks will be generated by implementation
@@ -414,19 +414,19 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private native byte stopDiscoveryImpl() throws BTException;
 
     @Override
-    public DiscoveryPolicy getCurrentDiscoveryPolicy() {
+    public final DiscoveryPolicy getCurrentDiscoveryPolicy() {
         return DiscoveryPolicy.get( getCurrentDiscoveryPolicyImpl() );
     }
     private native byte getCurrentDiscoveryPolicyImpl();
 
     @Override
-    public native boolean removeDevicePausingDiscovery(final BTDevice device);
+    public final native boolean removeDevicePausingDiscovery(final BTDevice device);
 
     // std::vector<std::shared_ptr<direct_bt::HCIDevice>> discoveredDevices = adapter.getDiscoveredDevices();
     private native List<BTDevice> getDiscoveredDevicesImpl();
 
     @Override
-    public int removeDiscoveredDevices() throws BTException {
+    public final int removeDiscoveredDevices() throws BTException {
         final int cj = removeDiscoveredDevicesImpl2j();
         final int cn = removeDiscoveredDevicesImpl1();
         if( DEBUG ) {
@@ -444,12 +444,12 @@ public class DBTAdapter extends DBTObject implements BTAdapter
             return n;
         }
     }
-    /* pp */ boolean removeDiscoveredDevice(final BTDevice device) {
+    /* pp */ final boolean removeDiscoveredDevice(final BTDevice device) {
         return removeDiscoveredDeviceImpl2j( device.getAddressAndType() );
     }
 
     @Override
-    public boolean removeDiscoveredDevice(final BDAddressAndType addressAndType) {
+    public final boolean removeDiscoveredDevice(final BDAddressAndType addressAndType) {
         final boolean cj = removeDiscoveredDeviceImpl2j(addressAndType);
         final boolean cn = removeDiscoveredDeviceImpl1(addressAndType.address.b, addressAndType.type.value);
         if( DEBUG ) {
@@ -476,7 +476,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
         return false;
     }
     @Override
-    public List<BTDevice> getDiscoveredDevices() {
+    public final List<BTDevice> getDiscoveredDevices() {
         final ArrayList<BTDevice> res = new ArrayList<BTDevice>();
         synchronized(discoveredDevicesLock) {
             for(final Iterator<WeakReference<BTDevice>> it = discoveredDevices.iterator(); it.hasNext();) {
@@ -490,7 +490,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
         }
         return res;
     }
-    private void cleanDiscoveredDevice() {
+    private final void cleanDiscoveredDevice() {
         synchronized(discoveredDevicesLock) {
             for(final Iterator<WeakReference<BTDevice>> it = discoveredDevices.iterator(); it.hasNext();) {
                 final BTDevice d = it.next().get();
@@ -513,7 +513,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     /* pp */ native boolean addStatusListenerImpl(final BTDevice deviceOwnerAndMatch, final AdapterStatusListener l);
 
     @Override
-    public boolean removeStatusListener(final AdapterStatusListener l) {
+    public final boolean removeStatusListener(final AdapterStatusListener l) {
         boolean res = false;
         if( !isClosing.get() ) {
             res = removeStatusListenerImpl(l);

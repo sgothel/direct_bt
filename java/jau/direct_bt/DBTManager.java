@@ -111,7 +111,7 @@ public class DBTManager implements BTManager
      * @param head if true add runnable at the start, otherwise at the end
      * @param runnable runnable to be added.
      */
-    public static void addShutdownHook(final boolean head, final Runnable runnable) {
+    public static final void addShutdownHook(final boolean head, final Runnable runnable) {
         synchronized( userShutdownHooks ) {
             if( !userShutdownHooks.contains( runnable ) ) {
                 if( head ) {
@@ -128,10 +128,10 @@ public class DBTManager implements BTManager
     private final List<ChangedAdapterSetListener> changedAdapterSetListenerList = new CopyOnWriteArrayList<ChangedAdapterSetListener>();
 
     @Override
-    public List<BTAdapter> getAdapters() { return new ArrayList<BTAdapter>(adapters); }
+    public final List<BTAdapter> getAdapters() { return new ArrayList<BTAdapter>(adapters); }
 
     @Override
-    public BTAdapter getAdapter(final int dev_id) {
+    public final BTAdapter getAdapter(final int dev_id) {
         for(final Iterator<BTAdapter> iter = adapters.iterator(); iter.hasNext(); ) {
             final BTAdapter a = iter.next();
             if( dev_id == a.getDevID() ) {
@@ -142,12 +142,12 @@ public class DBTManager implements BTManager
     }
 
     @Override
-    public boolean setDefaultAdapter(final BTAdapter adapter) {
+    public final boolean setDefaultAdapter(final BTAdapter adapter) {
         return false;
     }
 
     @Override
-    public BTAdapter getDefaultAdapter() {
+    public final BTAdapter getDefaultAdapter() {
         for(final Iterator<BTAdapter> iter = adapters.iterator(); iter.hasNext(); ) {
             final BTAdapter a = iter.next();
             if( a.isPowered() ) {
@@ -292,7 +292,7 @@ public class DBTManager implements BTManager
     /** Returns an instance of BluetoothManager, to be used instead of constructor.
       * @return An initialized BluetoothManager instance.
       */
-    public static BTManager getManager() throws RuntimeException, BTException {
+    public static final BTManager getManager() throws RuntimeException, BTException {
         return LazySingletonHolder.singleton;
     }
     /** Initialize-On-Demand Holder Class, similar to C++11's "Magic Statics". */
@@ -301,12 +301,12 @@ public class DBTManager implements BTManager
     }
 
     @Override
-    protected void finalize() {
+    protected final void finalize() {
         shutdown();
     }
 
     @Override
-    public void shutdown() {
+    public final void shutdown() {
         for(final Iterator<BTAdapter> ia= adapters.iterator(); ia.hasNext(); ) {
             final DBTAdapter a = (DBTAdapter)ia.next();
             a.close();
