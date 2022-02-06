@@ -1165,8 +1165,9 @@ namespace direct_bt {
              * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to ::BTRole::Slave
              * and treat connected BTDevice as ::BTRole::Master while service ::GATTRole::Server.
              *
-             * This adapter's HCIHandler instance is used to initiate scanning,
-             * see HCIHandler::le_start_adv().
+             * Advertising is active until either disabled via stopAdvertising() or a connection has been made, see isAdvertising().
+             *
+             * This adapter's HCIHandler instance is used to initiate scanning, see HCIHandler::le_start_adv().
              *
              * The given ADV EIR EInfoReport will be updated with getName() and at least GAPFlags::LE_Gen_Disc set.
              *
@@ -1220,8 +1221,9 @@ namespace direct_bt {
              * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to ::BTRole::Slave
              * and treat connected BTDevice as ::BTRole::Master while service ::GATTRole::Server.
              *
-             * This adapter's HCIHandler instance is used to initiate scanning,
-             * see HCIHandler::le_start_adv().
+             * Advertising is active until either disabled via stopAdvertising() or a connection has been made, see isAdvertising().
+             *
+             * This adapter's HCIHandler instance is used to initiate scanning, see HCIHandler::le_start_adv().
              *
              * The ADV EIR EInfoReport will be generated on the default
              * EIRDataType adv_mask using EIRDataType::FLAGS | EIRDataType::SERVICE_UUID
@@ -1257,6 +1259,10 @@ namespace direct_bt {
              *
              * - BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.9 LE Set Advertising Enable command
              *
+             * Advertising is active until either disabled via stopAdvertising() or a connection has been made, see isAdvertising().
+             *
+             * This adapter's HCIHandler instance is used to stop scanning, see HCIHandler::le_enable_adv().
+             *
              * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
              * @see startAdvertising()
              * @see isAdvertising()
@@ -1266,6 +1272,9 @@ namespace direct_bt {
 
             /**
              * Returns the adapter's current advertising state. It can be modified through startAdvertising(..) and stopAdvertising().
+             *
+             * Advertising is active until either disabled via stopAdvertising() or a connection has been made.
+             *
              * @see startAdvertising()
              * @see stopAdvertising()
              * @since 2.4.0

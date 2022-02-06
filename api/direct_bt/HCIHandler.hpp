@@ -409,6 +409,13 @@ namespace direct_bt {
             ScanType getCurrentScanType() const noexcept { return currentScanType.load(); }
             void setCurrentScanType(const ScanType v) noexcept { currentScanType = v; }
 
+            /**
+             * Advertising is enabled via le_start_adv() or le_enable_adv().
+             *
+             * Advertising is active until either disabled via le_enable_adv(false) or a connection has been made.
+             *
+             * @return true if advertising is active, otherwise false.
+             */
             bool isAdvertising() const noexcept { return advertisingEnabled.load(); }
 
             std::string toString() const noexcept;
@@ -809,6 +816,9 @@ namespace direct_bt {
              *
              * - BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.9 LE Set Advertising Enable command
              *
+             * Advertising is active until either disabled via le_enable_adv(false) or a connection has been made,
+             * see isAdvertising().
+             *
              * @param enable
              * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
              * @since 2.4.0
@@ -829,10 +839,12 @@ namespace direct_bt {
              * - BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.8 LE Set Scan Response Data command
              * - BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.9 LE Set Advertising Enable command
              *
+             * Advertising is active until either disabled via le_enable_adv(false) or a connection has been made,
+             * see isAdvertising().
+             *
              * TODO:
              * - Random address for privacy if desired!
              * - Consider SMP (security)
-             * </p>
              *
              * @param eir Full ADV EIR EInfoReport
              * @param adv_mask EIRDataType mask for EInfoReport to select advertisement EIR PDU data, defaults to EIRDataType::FLAGS | EIRDataType::SERVICE_UUID

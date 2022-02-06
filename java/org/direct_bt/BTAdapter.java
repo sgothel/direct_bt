@@ -306,6 +306,8 @@ public interface BTAdapter extends BTObject
      *
      * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to ::BTRole::Slave.
      *
+     * Advertising is active until either disabled via {@link #stopAdvertising()} or a connection has been made, see {@link #isAdvertising()}.
+     *
      * The given ADV EIR {@link EInfoReport} will be updated with {@link #getName()} and at least {@link GAPFlags.Bit#LE_Gen_Disc} set.
      *
      * The given adv_mask and scanrsp_mask will be updated to have at least {@link EIRDataTypeSet.DataType#FLAGS}
@@ -355,6 +357,8 @@ public interface BTAdapter extends BTObject
      *
      * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to ::BTRole::Slave.
      *
+     * Advertising is active until either disabled via {@link #stopAdvertising()} or a connection has been made, see {@link #isAdvertising()}.
+     *
      * The ADV EIR {@link EInfoReport} will be generated on the default
      * {@link EIRDataTypeSet} adv_mask using {@link EIRDataTypeSet.DataType#FLAGS} | {@link EIRDataTypeSet.DataType#SERVICE_UUID}
      * and {@link EIRDataTypeSet} scanrsp_mask using scan-response (active scanning) {@link EIRDataTypeSet.DataType#NAME} | {@link EIRDataTypeSet.DataType#CONN_IVAL}.
@@ -383,6 +387,8 @@ public interface BTAdapter extends BTObject
     /**
      * Starts advertising using all default arguments, see {@link #startAdvertising(short, short, byte, byte, byte)} for details.
      *
+     * Advertising is active until either disabled via {@link #stopAdvertising()} or a connection has been made, see {@link #isAdvertising()}.
+     *
      * @param gattServerData_ the {@link DBGattServer} data to be advertised and offered via GattHandler as ::GATTRole::Server.
      *        Its handles will be setup via DBGattServer::setServicesHandles().
      *        Reference is held until next disconnect.
@@ -407,6 +413,8 @@ public interface BTAdapter extends BTObject
      *
      * - BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.9 LE Set Advertising Enable command
      *
+     * Advertising is active until either disabled via {@link #stopAdvertising()} or a connection has been made, see {@link #isAdvertising()}.
+     *
      * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
      * @see #startAdvertising(short, short, byte, byte, byte)
      * @see #isAdvertising()
@@ -416,6 +424,9 @@ public interface BTAdapter extends BTObject
 
     /**
      * Returns the adapter's current advertising state. It can be modified through startAdvertising(..) and stopAdvertising().
+     *
+     * Advertising is active until either disabled via {@link #stopAdvertising()} or a connection has been made, see {@link #isAdvertising()}.
+     *
      * @see #startAdvertising(short, short, byte, byte, byte)
      * @see #stopAdvertising()
      * @since 2.4.0

@@ -211,6 +211,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
                 const HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, handle);
                 if( HCIStatusCode::SUCCESS == status ) {
+                    advertisingEnabled = false;
                     return std::make_unique<MgmtEvtDeviceConnected>(dev_id, addressAndType, handle);
                 } else {
                     removeTrackerConnection(conn);
@@ -239,6 +240,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
                 const HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, handle);
                 if( HCIStatusCode::SUCCESS == status ) {
+                    advertisingEnabled = false;
                     return std::make_unique<MgmtEvtDeviceConnected>(dev_id, addressAndType, handle);
                 } else {
                     removeTrackerConnection(conn);
@@ -304,6 +306,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             const BDAddressAndType addressAndType(jau::le_to_cpu(ev_cc->bdaddr), BDAddressType::BDADDR_BREDR);
             HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, ev_cc->handle);
             if( HCIStatusCode::SUCCESS == status ) {
+                advertisingEnabled = false;
                 return std::make_unique<MgmtEvtDeviceConnected>(dev_id, conn->getAddressAndType(), conn->getHandle());
             } else {
                 std::unique_ptr<MgmtEvent> res( new MgmtEvtDeviceConnectFailed(dev_id, conn->getAddressAndType(),status) );
@@ -1778,6 +1781,14 @@ HCIStatusCode HCIHandler::le_enable_adv(const bool enable) noexcept {
     }
     if( HCIStatusCode::SUCCESS == status ) {
         advertisingEnabled = enable;
+    } else if( advertisingEnabled == enable ) {
+        // Override erroneous HCI failure when
+        // - disabling advertising when already disabled, or
+        // - enabling advertising when already enabled
+        // as stated in spec 'BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.9 LE Set Advertising Enable command'
+        WARN_PRINT("HCIHandler::le_enable_adv(enable-arg %d == enabled-state %d): Unchanged request, overriding failure: %s -> %s - %s",
+                enable, advertisingEnabled.load(), to_string(status).c_str(), to_string(HCIStatusCode::SUCCESS).c_str(), toString().c_str());
+        status = HCIStatusCode::SUCCESS;
     }
     return status;
 }
