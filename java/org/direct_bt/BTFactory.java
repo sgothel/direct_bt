@@ -472,7 +472,10 @@ public class BTFactory {
         initLibrary(DirectBTImplementationID);
     }
 
-    private static final Manifest getManifest(final ClassLoader cl, final String[] extensions) {
+    /**
+     * Helper function to retrieve a Manifest instance.
+     */
+    public static final Manifest getManifest(final ClassLoader cl, final String[] extensions) {
         final Manifest[] extManifests = new Manifest[extensions.length];
         try {
             final Enumeration<URL> resources = cl.getResources("META-INF/MANIFEST.MF");
