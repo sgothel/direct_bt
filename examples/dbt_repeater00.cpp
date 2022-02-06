@@ -864,36 +864,28 @@ static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>
                 adapterToServer = adapter;
                 fprintf_td(stderr, "****** AdapterToServer ADDED__: InitOK: %s\n", adapter->toString().c_str());
                 return true;
-            } else {
-                fprintf_td(stderr, "****** AdapterToServer ADDED__: Ignored: %s\n", adapter->toString().c_str());
             }
-        } else {
-            fprintf_td(stderr, "****** AdapterToServer ADDED__: Ignored (other): %s\n", adapter->toString().c_str());
         }
         if( nullptr == adapterToClient ) {
             if( initAdapterToClient( adapter ) ) {
                 adapterToClient = adapter;
                 fprintf_td(stderr, "****** AdapterToClient ADDED__: InitOK: %s\n", adapter->toString().c_str());
                 return true;
-            } else {
-                fprintf_td(stderr, "****** AdapterToClient ADDED__: Ignored: %s\n", adapter->toString().c_str());
             }
-        } else {
-            fprintf_td(stderr, "****** AdapterToClient ADDED__: Ignored (other): %s\n", adapter->toString().c_str());
         }
+        fprintf_td(stderr, "****** Adapter ADDED__: Ignored: %s\n", adapter->toString().c_str());
     } else {
         if( nullptr != adapterToServer && adapter == adapterToServer ) {
             adapterToServer = nullptr;
             fprintf_td(stderr, "****** AdapterToServer REMOVED: %s\n", adapter->toString().c_str());
-        } else {
-            fprintf_td(stderr, "****** AdapterToServer REMOVED (other): %s\n", adapter->toString().c_str());
+            return true;
         }
         if( nullptr != adapterToClient && adapter == adapterToClient ) {
             adapterToClient = nullptr;
             fprintf_td(stderr, "****** AdapterToClient REMOVED: %s\n", adapter->toString().c_str());
-        } else {
-            fprintf_td(stderr, "****** AdapterToClient REMOVED (other): %s\n", adapter->toString().c_str());
+            return true;
         }
+        fprintf_td(stderr, "****** Adapter REMOVED: Ignored %s\n", adapter->toString().c_str());
     }
     return true;
 }
