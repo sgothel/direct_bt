@@ -431,7 +431,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
         final int cn = removeDiscoveredDevicesImpl1();
         if( DEBUG ) {
             if( cj != cn ) {
-                System.err.println("DBTAdapter::removeDevices: Unexpected discovered device count: Native "+cn+", callback "+cj);
+                BTUtils.println(System.err, "DBTAdapter::removeDevices: Unexpected discovered device count: Native "+cn+", callback "+cj);
             }
         }
         return cn;
@@ -454,7 +454,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
         final boolean cn = removeDiscoveredDeviceImpl1(addressAndType.address.b, addressAndType.type.value);
         if( DEBUG ) {
             if( cj != cn ) {
-                System.err.println("DBTAdapter::removeDevices("+addressAndType+"): Unexpected discovered device count: Native "+cn+", callback "+cj);
+                BTUtils.println(System.err, "DBTAdapter::removeDevices("+addressAndType+"): Unexpected discovered device count: Native "+cn+", callback "+cj);
             }
         }
         return cn;
@@ -561,9 +561,9 @@ public class DBTAdapter extends DBTObject implements BTAdapter
             final boolean initialSetting = oldmask.isEmpty();
             if( DEBUG ) {
                 if( initialSetting ) {
-                    System.err.println("Adapter.StatusListener.SETTINGS: "+oldmask+" -> "+newmask+", initial "+changedmask+" on "+a);
+                    BTUtils.println(System.err, "Adapter.StatusListener.SETTINGS: "+oldmask+" -> "+newmask+", initial "+changedmask+" on "+a);
                 } else {
-                    System.err.println("Adapter.StatusListener.SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask+" on "+a);
+                    BTUtils.println(System.err, "Adapter.StatusListener.SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask+" on "+a);
                 }
             }
             if( initialSetting ) {
@@ -582,7 +582,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
         @Override
         public void discoveringChanged(final BTAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final DiscoveryPolicy policy, final long timestamp) {
             if( DEBUG ) {
-                System.err.println("Adapter.StatusListener.DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", keepAlive "+policy+"] on "+adapter);
+                BTUtils.println(System.err, "Adapter.StatusListener.DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", keepAlive "+policy+"] on "+adapter);
             }
             // meta ignores changes on temp disabled discovery
             currentMetaScanType.set(currentMeta);
@@ -594,7 +594,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
                 discoveredDevices.add(new WeakReference<BTDevice>(device));
             }
             if( PRINT_DEVICE_LISTS || DEBUG ) {
-                System.err.println("Adapter.FOUND: discoveredDevices "+ discoveredDevices.size() + ": "+device+", on "+device.getAdapter());
+                BTUtils.println(System.err, "Adapter.FOUND: discoveredDevices "+ discoveredDevices.size() + ": "+device+", on "+device.getAdapter());
             }
             return false;
         }
@@ -604,7 +604,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
             final boolean rssiUpdated = updateMask.isSet( EIRDataTypeSet.DataType.RSSI );
             final boolean mdUpdated = updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA );
             if( DEBUG && !rssiUpdated && !mdUpdated) {
-                System.err.println("Adapter.UPDATED: "+updateMask+" of "+device+" on "+device.getAdapter());
+                BTUtils.println(System.err, "Adapter.UPDATED: "+updateMask+" of "+device+" on "+device.getAdapter());
             }
             // nop on discoveredDevices
         }
@@ -612,28 +612,28 @@ public class DBTAdapter extends DBTObject implements BTAdapter
         @Override
         public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
             if( DEBUG ) {
-                System.err.println("Adapter.CONNECTED: "+device+" on "+device.getAdapter());
+                BTUtils.println(System.err, "Adapter.CONNECTED: "+device+" on "+device.getAdapter());
             }
         }
 
         @Override
         public void devicePairingState(final BTDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {
             if( DEBUG ) {
-                System.err.println("Adapter.PAIRING_STATE: state "+state+", mode "+mode+": "+device);
+                BTUtils.println(System.err, "Adapter.PAIRING_STATE: state "+state+", mode "+mode+": "+device);
             }
         }
 
         @Override
         public void deviceReady(final BTDevice device, final long timestamp) {
             if( DEBUG ) {
-                System.err.println("Adapter.READY: "+device);
+                BTUtils.println(System.err, "Adapter.READY: "+device);
             }
         }
 
         @Override
         public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
             if( DEBUG ) {
-                System.err.println("Adapter.DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
+                BTUtils.println(System.err, "Adapter.DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
             }
             gattServerData = null;
         }
