@@ -130,7 +130,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
             return;
         }
         // mute all listener first
-        removeAllStatusListener();
+        removeAllStatusListenerImpl();
 
         stopDiscovery();
 
@@ -527,7 +527,12 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     /* pp */ native boolean removeStatusListenerImpl(final AdapterStatusListener l);
 
     @Override
-    public native int removeAllStatusListener();
+    public final int removeAllStatusListener() {
+        final int r = removeAllStatusListenerImpl();
+        addStatusListener(this.statusListener); // preserver internal listener to maintain functionality!
+        return r - 1;
+    }
+    private native int removeAllStatusListenerImpl();
 
     @Override
     public final void printDeviceLists() {

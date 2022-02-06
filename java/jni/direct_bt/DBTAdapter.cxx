@@ -493,7 +493,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_removeStatusListenerImpl(JNIEnv *env, jo
     return JNI_FALSE;
 }
 
-jint Java_jau_direct_1bt_DBTAdapter_removeAllStatusListener(JNIEnv *env, jobject obj) {
+jint Java_jau_direct_1bt_DBTAdapter_removeAllStatusListenerImpl(JNIEnv *env, jobject obj) {
     try {
         BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
         jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
