@@ -41,6 +41,10 @@ import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
 import org.jau.util.VersionUtil;
+import org.junit.FixMethodOrder;
+import org.junit.runners.MethodSorters;
+
+import trial.org.direct_bt.BaseDBTClientServer;
 
 /**
  * One stop {@link BTManager} API entry point.
@@ -583,3 +587,20 @@ public class BTFactory {
  * </p>
  */
 
+/** \example TestDBTClientServer00.java
+ * Unit test, trial using actual BT adapter.
+ *
+ * Basic client and server Bluetooth tests, requiring one BT adapter.
+ */
+
+/** \example TestDBTClientServer10.java
+ * Unit test, trial using actual BT adapter.
+ *
+ * Testing a full Bluetooth server and client lifecycle of operations, requiring two BT adapter:
+ * - start server advertising
+ * - start client discovery and connect to server when discovered
+ * - client/server processing of connection when ready
+ * - client disconnect
+ * - server stop advertising
+ * - security-level: NONE, ENC_ONLY freshly-paired and ENC_ONLY pre-paired
+ */
