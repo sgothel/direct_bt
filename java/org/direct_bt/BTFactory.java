@@ -41,10 +41,6 @@ import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
 import org.jau.util.VersionUtil;
-import org.junit.FixMethodOrder;
-import org.junit.runners.MethodSorters;
-
-import trial.org.direct_bt.BaseDBTClientServer;
 
 /**
  * One stop {@link BTManager} API entry point.
