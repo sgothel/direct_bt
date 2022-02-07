@@ -160,7 +160,7 @@ EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
         }
     }
     if( data.isSet(EIRDataType::NAME) ) {
-        if( 0 == name.length() || data.getName().length() > name.length() ) {
+        if( data.getName().length() > 0 ) {
             name = data.getName();
         }
     }
