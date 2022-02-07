@@ -586,7 +586,10 @@ public class BTFactory {
 /** \example TestDBTClientServer00.java
  * Unit test, trial using actual BT adapter.
  *
- * Basic client and server Bluetooth tests, requiring one BT adapter.
+ * Basic client and server Bluetooth tests, requiring one BT adapter:
+ * - start server advertising
+ * - server stop advertising
+ * - reuse server-adapter for client-mode discovery (just toggle on/off)
  */
 
 /** \example TestDBTClientServer10.java
@@ -599,4 +602,5 @@ public class BTFactory {
  * - client disconnect
  * - server stop advertising
  * - security-level: NONE, ENC_ONLY freshly-paired and ENC_ONLY pre-paired
+ * - reuse server-adapter for client-mode discovery (just toggle on/off)
  */

@@ -25,10 +25,10 @@
 package trial.org.direct_bt;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.List;
 
 import org.direct_bt.BTMode;
-import org.direct_bt.BTRole;
 import org.direct_bt.BTSecurityLevel;
 import org.direct_bt.AdapterStatusListener;
 import org.direct_bt.BTAdapter;
@@ -42,7 +42,6 @@ import org.direct_bt.BTUtils;
 import org.direct_bt.DiscoveryPolicy;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.EInfoReport;
-import org.direct_bt.HCIStatusCode;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPKeyBin;
 import org.jau.net.EUI48;
@@ -59,6 +58,7 @@ import org.junit.runners.MethodSorters;
  * - client disconnect
  * - server stop advertising
  * - security-level: NONE, ENC_ONLY freshly-paired and ENC_ONLY pre-paired
+ * - reuse server-adapter for client-mode discovery (just toggle on/off)
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TestDBTClientServer10 extends BaseDBTClientServer {
@@ -114,52 +114,13 @@ public class TestDBTClientServer10 extends BaseDBTClientServer {
             final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getOrCreate(serverName);
             sec.sec_level = secLevelClient;
         }
-        client.KEEP_CONNECTED = false; // default
-        client.REMOVE_DEVICE = false; // default and test side-effects
+        client.KEEP_CONNECTED = false; // default, auto-disconnect after work is done
+        client.REMOVE_DEVICE = false; // default, test side-effects
         client.measurementsLeft.set(1);
         client.discoveryPolicy = DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_DISCONNECTED;
 
-        final BTManager.ChangedAdapterSetListener myChangedAdapterSetListener =
-            new BTManager.ChangedAdapterSetListener() {
-                @Override
-                public void adapterAdded(final BTAdapter adapter) {
-                    if( null == server.getAdapter() ) {
-                        if( server.initAdapter( adapter ) ) {
-                            server.setAdapter(adapter);
-                            BTUtils.println(System.err, "****** Adapter-Server ADDED__: InitOK: " + adapter);
-                            return;
-                        }
-                    }
-                    if( null == client.getAdapter() ) {
-                        if( client.initAdapter( adapter ) ) {
-                            client.setAdapter(adapter);
-                            BTUtils.println(System.err, "****** Adapter-Client ADDED__: InitOK: " + adapter);
-                            return;
-                        }
-                    }
-                    BTUtils.println(System.err, "****** Adapter ADDED__: Ignored: " + adapter);
-                }
-
-                @Override
-                public void adapterRemoved(final BTAdapter adapter) {
-                    if( null != server.getAdapter() && adapter == server.getAdapter() ) {
-                        server.setAdapter(null);
-                        BTUtils.println(System.err, "****** Adapter-Server REMOVED: " + adapter);
-                        return;
-                    }
-                    if( null != client.getAdapter() && adapter == client.getAdapter() ) {
-                        client.setAdapter(null);
-                        BTUtils.println(System.err, "****** Adapter-Client REMOVED: " + adapter);
-                        return;
-                    }
-                    BTUtils.println(System.err, "****** Adapter REMOVED: Ignored " + adapter);
-                }
-            };
-
-        manager.addChangedAdapterSetListener(myChangedAdapterSetListener);
-        Assert.assertNotNull("No server adapter found", server.getAdapter());
-        Assert.assertNotNull("No client adapter found", client.getAdapter());
-
+        final DBTEndpoint.ChangedAdapterSetListener myChangedAdapterSetListener =
+                DBTEndpoint.initChangedAdapterSetListener(manager, Arrays.asList(server, client));
         lastCompletedDevice = null;
         lastCompletedDevicePairingMode = PairingMode.NONE;
         lastCompletedDeviceSecurityLevel = BTSecurityLevel.NONE;
@@ -179,37 +140,14 @@ public class TestDBTClientServer10 extends BaseDBTClientServer {
         //
         // Server start
         //
-        Assert.assertTrue( server.getAdapter().isInitialized() );
-        Assert.assertTrue( server.getAdapter().isPowered() );
-        Assert.assertEquals( BTRole.Master, server.getAdapter().getRole() );
-        Assert.assertTrue( 4 <= server.getAdapter().getBTMajorVersion() );
-        {
-            Assert.assertFalse(server.getAdapter().isAdvertising());
-            Assert.assertFalse(server.getAdapter().isDiscovering());
-
-            Assert.assertEquals( HCIStatusCode.SUCCESS, server.startAdvertising(server.getAdapter(), "test"+suffix+"_startAdvertising") );
-            Assert.assertTrue(server.getAdapter().isAdvertising());
-            Assert.assertFalse(server.getAdapter().isDiscovering());
-            Assert.assertEquals( BTRole.Slave, server.getAdapter().getRole() );
-            Assert.assertEquals( serverName, server.getAdapter().getName() );
-        }
+        DBTEndpoint.checkInitializedState(server);
+        DBTServerTest.startAdvertising(server, false /* current_exp_advertising_state */, "test"+suffix+"_startAdvertising");
 
         //
         // Client start
         //
-        Assert.assertTrue( client.getAdapter().isInitialized() );
-        Assert.assertTrue( client.getAdapter().isPowered() );
-        Assert.assertEquals( BTRole.Master, client.getAdapter().getRole() );
-        Assert.assertTrue( 4 <= client.getAdapter().getBTMajorVersion() );
-        {
-            Assert.assertFalse(client.getAdapter().isAdvertising());
-            Assert.assertFalse(client.getAdapter().isDiscovering());
-
-            Assert.assertEquals( HCIStatusCode.SUCCESS, client.startDiscovery(client.getAdapter(), "test"+suffix+"_startDiscovery") );
-            Assert.assertFalse(client.getAdapter().isAdvertising());
-            Assert.assertTrue(client.getAdapter().isDiscovering());
-            Assert.assertEquals( BTRole.Master, client.getAdapter().getRole() );
-        }
+        DBTEndpoint.checkInitializedState(client);
+        DBTClientTest.startDiscovery(client, false /* current_exp_discovering_state */, "test"+suffix+"_startDiscovery");
 
         while( 1 > server.servedConnections.get() ||
                1 > client.completedMeasurements.get() ||
@@ -223,19 +161,20 @@ public class TestDBTClientServer10 extends BaseDBTClientServer {
         Assert.assertNotNull(lastCompletedDevice);
         Assert.assertNotNull(lastCompletedDeviceEIR);
         Assert.assertFalse(lastCompletedDevice.getConnected());
-        Assert.assertEquals( HCIStatusCode.SUCCESS, client.stopDiscovery(client.getAdapter(), "test"+suffix+"_stopDiscovery") );
 
-        {
-            Assert.assertFalse(server.getAdapter().isAdvertising()); // stopped by connection
-            Assert.assertFalse(server.getAdapter().isDiscovering());
+        //
+        // Client stop
+        //
+        DBTClientTest.stopDiscovery(client, true /* current_exp_discovering_state */, "test"+suffix+"_stopDiscovery");
 
-            // Stopping advertising wven if stopped must be OK!
-            Assert.assertEquals( HCIStatusCode.SUCCESS, server.stopAdvertising(server.getAdapter(), "test"+suffix+"_stopAdvertising") );
-            Assert.assertFalse(server.getAdapter().isAdvertising());
-            Assert.assertFalse(server.getAdapter().isDiscovering());
-            Assert.assertEquals( BTRole.Slave, server.getAdapter().getRole() ); // kept
-        }
+        //
+        // Server stop
+        //
+        DBTServerTest.stopAdvertising(server, false /* current_exp_advertising_state */, "test"+suffix+"_stopAdvertising");
 
+        //
+        // Validating Security Mode
+        //
         final SMPKeyBin clientKeys = SMPKeyBin.read(DBTConstants.CLIENT_KEY_PATH, lastCompletedDevice, true /* verbose */);
         Assert.assertTrue(clientKeys.isValid());
         final BTSecurityLevel clientKeysSecLevel = clientKeys.getSecLevel();
@@ -257,6 +196,9 @@ public class TestDBTClientServer10 extends BaseDBTClientServer {
             }
         }
 
+        //
+        // Validating EIR
+        //
         Assert.assertNotEquals(0, lastCompletedDeviceEIR.getEIRDataMask().mask);
         Assert.assertTrue( lastCompletedDeviceEIR.isSet(EIRDataTypeSet.DataType.FLAGS) );
         Assert.assertTrue( lastCompletedDeviceEIR.isSet(EIRDataTypeSet.DataType.SERVICE_UUID) );
@@ -267,6 +209,21 @@ public class TestDBTClientServer10 extends BaseDBTClientServer {
             final EInfoReport eir = lastCompletedDevice.getEIR();
             Assert.assertEquals(0, eir.getEIRDataMask().mask);
             Assert.assertEquals(0, lastCompletedDeviceEIR.getName().length());
+        }
+
+        //
+        // Now reuse adapter for client mode -> Start discovery + Stop Discovery
+        //
+        {
+            final BTAdapter adapter = server.getAdapter();
+            {
+                final int r = adapter.removeAllStatusListener();
+                Assert.assertTrue("Not > 0 removed listener, but "+r, 0 < r );
+            }
+
+            DBTEndpoint.startDiscovery(adapter, false /* current_exp_discovering_state */);
+
+            DBTEndpoint.stopDiscovery(adapter, true /* current_exp_discovering_state */);
         }
 
         final int count = manager.removeChangedAdapterSetListener(myChangedAdapterSetListener);

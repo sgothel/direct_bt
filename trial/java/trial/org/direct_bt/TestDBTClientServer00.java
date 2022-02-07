@@ -26,6 +26,7 @@ package trial.org.direct_bt;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.List;
 
 import org.direct_bt.BTMode;
@@ -36,7 +37,6 @@ import org.direct_bt.BTException;
 import org.direct_bt.BTFactory;
 import org.direct_bt.BTManager;
 import org.direct_bt.BTUtils;
-import org.direct_bt.HCIStatusCode;
 import org.jau.net.EUI48;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -45,7 +45,10 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 /**
- * Basic client and server Bluetooth tests, requiring one BT adapter.
+ * Basic client and server Bluetooth tests, requiring one BT adapter:
+ * - start server advertising
+ * - server stop advertising
+ * - reuse server-adapter for client-mode discovery (just toggle on/off)
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TestDBTClientServer00 extends BaseDBTClientServer {
@@ -92,13 +95,6 @@ public class TestDBTClientServer00 extends BaseDBTClientServer {
         }
     }
 
-    /**
-     * Testing start and stop advertising (server mode) using a full DBGattServer,
-     * having the adapter in BTRole::Slave.
-     *
-     * Thereafter start and stop discovery (client mode),
-     * having the adapter in BTRole::Client.
-     */
     @Test(timeout = 5000)
     public final void test10_ServerStartStop_and_ToggleDiscovery() {
         BTManager manager = null;
@@ -117,94 +113,33 @@ public class TestDBTClientServer00 extends BaseDBTClientServer {
         final String serverName = "TestDBTCS00-T10";
         final DBTServer00 server = new DBTServer00(EUI48.ALL_DEVICE, BTMode.DUAL, true /* SC */, serverName, BTSecurityLevel.NONE);
 
-        final BTManager.ChangedAdapterSetListener myChangedAdapterSetListener =
-            new BTManager.ChangedAdapterSetListener() {
-                @Override
-                public void adapterAdded(final BTAdapter adapter) {
-                    if( null == server.getAdapter() ) {
-                        if( server.initAdapter( adapter ) ) {
-                            server.setAdapter(adapter);
-                            BTUtils.println(System.err, "****** Adapter-Server ADDED__: InitOK: " + adapter);
-                            return;
-                        }
-                    }
-                    BTUtils.println(System.err, "****** Adapter ADDED__: Ignored: " + adapter);
-                }
-
-                @Override
-                public void adapterRemoved(final BTAdapter adapter) {
-                    if( null != server.getAdapter() && adapter == server.getAdapter() ) {
-                        server.setAdapter(null);
-                        BTUtils.println(System.err, "****** Adapter-Server REMOVED: " + adapter);
-                        return;
-                    }
-                    BTUtils.println(System.err, "****** Adapter REMOVED: Ignored " + adapter);
-                }
-            };
-
-        manager.addChangedAdapterSetListener(myChangedAdapterSetListener);
-        Assert.assertNotNull("No server adapter found", server.getAdapter());
+        final DBTEndpoint.ChangedAdapterSetListener myChangedAdapterSetListener =
+                DBTEndpoint.initChangedAdapterSetListener(manager, Arrays.asList(server));
 
         //
         // Server start
         //
-        Assert.assertTrue( server.getAdapter().isInitialized() );
-        Assert.assertTrue( server.getAdapter().isPowered() );
-        Assert.assertEquals( BTRole.Master, server.getAdapter().getRole() );
-        Assert.assertTrue( 4 <= server.getAdapter().getBTMajorVersion() );
-        {
-            Assert.assertFalse(server.getAdapter().isAdvertising());
-            Assert.assertFalse(server.getAdapter().isDiscovering());
-
-            Assert.assertEquals( HCIStatusCode.SUCCESS, server.startAdvertising(server.getAdapter(), "test10_startAdvertising") );
-            Assert.assertTrue(server.getAdapter().isAdvertising());
-            Assert.assertFalse(server.getAdapter().isDiscovering());
-            Assert.assertEquals( BTRole.Slave, server.getAdapter().getRole() );
-            Assert.assertEquals( serverName, server.getAdapter().getName() );
-        }
+        DBTEndpoint.checkInitializedState(server);
+        DBTServerTest.startAdvertising(server, false /* current_exp_advertising_state */, "test10_startAdvertising");
 
         //
         // Server stop
         //
-        {
-            Assert.assertTrue(server.getAdapter().isAdvertising());
-            Assert.assertFalse(server.getAdapter().isDiscovering());
-
-            Assert.assertEquals( HCIStatusCode.SUCCESS, server.stopAdvertising(server.getAdapter(), "test10_stopAdvertising") );
-            Assert.assertFalse(server.getAdapter().isAdvertising());
-            Assert.assertFalse(server.getAdapter().isDiscovering());
-            Assert.assertEquals( BTRole.Slave, server.getAdapter().getRole() ); // keeps role
-        }
+        DBTServerTest.stopAdvertising(server, true /* current_exp_advertising_state */, "test10_stopAdvertising");
 
         //
         // Now reuse adapter for client mode -> Start discovery + Stop Discovery
         //
         {
-            Assert.assertFalse(server.getAdapter().isAdvertising());
-            Assert.assertFalse(server.getAdapter().isDiscovering());
-
             final BTAdapter adapter = server.getAdapter();
             {
                 final int r = adapter.removeAllStatusListener();
                 Assert.assertTrue("Not > 0 removed listener, but "+r, 0 < r );
             }
 
-            Assert.assertEquals( HCIStatusCode.SUCCESS, adapter.startDiscovery() ); // pending action
-            while( !adapter.isDiscovering() ) {
-                try { Thread.sleep(100); } catch (final InterruptedException e) { e.printStackTrace(); }
-            }
-            Assert.assertFalse(server.getAdapter().isAdvertising());
-            Assert.assertTrue(server.getAdapter().isDiscovering());
-            Assert.assertEquals( BTRole.Master, server.getAdapter().getRole() ); // changed role
+            DBTEndpoint.startDiscovery(adapter, false /* current_exp_discovering_state */);
 
-            Assert.assertEquals( HCIStatusCode.SUCCESS, adapter.stopDiscovery() ); // pending action
-            while( adapter.isDiscovering() ) {
-                try { Thread.sleep(100); } catch (final InterruptedException e) { e.printStackTrace(); }
-            }
-            Assert.assertFalse(server.getAdapter().isAdvertising());
-            Assert.assertFalse(server.getAdapter().isDiscovering());
-            Assert.assertEquals( BTRole.Master, server.getAdapter().getRole() ); // keeps role
-
+            DBTEndpoint.stopDiscovery(adapter, true /* current_exp_discovering_state */);
         }
 
         final int count = manager.removeChangedAdapterSetListener(myChangedAdapterSetListener);

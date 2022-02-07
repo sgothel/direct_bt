@@ -63,7 +63,7 @@ import org.jau.net.EUI48;
 /**
  * This Java peripheral {@link BTRole::Slave} test case working with {@link DBTClient00}.
  */
-public class DBTServer00 {
+public class DBTServer00 implements DBTServerTest {
     final boolean GATT_VERBOSE = false;
     boolean SHOW_UPDATE_EVENTS = false;
 
@@ -93,9 +93,18 @@ public class DBTServer00 {
     public DBTServer00(final String adapterName, final BTSecurityLevel adapterSecurityLevel) {
         this(EUI48.ALL_DEVICE, BTMode.DUAL, true /* SC */, adapterName, adapterSecurityLevel);
     }
+
+    @Override
+    public String getName() { return adapterName; }
+
+    @Override
+    public BTSecurityLevel getSecurityLevel() { return adapterSecurityLevel; }
+
+    @Override
     public void setAdapter(final BTAdapter serverAdapter) {
         this.serverAdapter = serverAdapter;
     }
+    @Override
     public BTAdapter getAdapter() { return serverAdapter; }
 
     boolean matches(final List<BDAddressAndType> cont, final BDAddressAndType mac) {
@@ -591,6 +600,7 @@ public class DBTServer00 {
     static final byte adv_chan_map=(byte)0x07;
     static final byte filter_policy=(byte)0x00;
 
+    @Override
     public HCIStatusCode stopAdvertising(final BTAdapter adapter, final String msg) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
             BTUtils.fprintf_td(System.err, "****** Stop advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
@@ -601,6 +611,7 @@ public class DBTServer00 {
         return status;
     }
 
+    @Override
     public HCIStatusCode startAdvertising(final BTAdapter adapter, final String msg) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
             BTUtils.fprintf_td(System.err, "****** Start advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
@@ -657,6 +668,7 @@ public class DBTServer00 {
         servedConnections.addAndGet(1);
     }
 
+    @Override
     public boolean initAdapter(final BTAdapter adapter) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
             BTUtils.fprintf_td(System.err, "initServerAdapter: Adapter not selected: %s\n", adapter.toString());

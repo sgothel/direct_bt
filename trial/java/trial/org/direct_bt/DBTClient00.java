@@ -58,7 +58,7 @@ import org.jau.net.EUI48;
 /**
  * This Java scanner {@link BTRole::Master} test case, working with {@link DBTServer00}.
  */
-public class DBTClient00 {
+public class DBTClient00 implements DBTClientTest {
     /**
      * Disconnect after processing.
      *
@@ -102,9 +102,11 @@ public class DBTClient00 {
         this.useAdapter = useAdapter;
         this.btMode = btMode;
     }
+    @Override
     public void setAdapter(final BTAdapter clientAdapter) {
         this.clientAdapter = clientAdapter;
     }
+    @Override
     public BTAdapter getAdapter() { return clientAdapter; }
 
     static void printf(final String format, final Object... args) {
@@ -563,6 +565,7 @@ public class DBTClient00 {
     static final byte filter_policy = (byte)0; // default value
     static final boolean filter_dup = true; // default value
 
+    @Override
     public HCIStatusCode startDiscovery(final BTAdapter adapter, final String msg) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
             BTUtils.fprintf_td(System.err, "****** Start discovery (%s): Adapter not selected: %s\n", msg, adapter.toString());
@@ -576,6 +579,7 @@ public class DBTClient00 {
         return status;
     }
 
+    @Override
     public HCIStatusCode stopDiscovery(final BTAdapter adapter, final String msg) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
             BTUtils.fprintf_td(System.err, "****** Stop discovery (%s): Adapter not selected: %s\n", msg, adapter.toString());
@@ -587,6 +591,7 @@ public class DBTClient00 {
         return status;
     }
 
+    @Override
     public boolean initAdapter(final BTAdapter adapter) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
             BTUtils.fprintf_td(System.err, "initClientAdapter: Adapter not selected: %s\n", adapter.toString());
