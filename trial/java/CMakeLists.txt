@@ -32,7 +32,7 @@ set( TARGETS_IDIOMATIC_EXAMPLES ${BASENAMES_IDIOMATIC_EXAMPLES} )
 
 foreach(name ${TARGETS_IDIOMATIC_EXAMPLES})
     add_test (NAME ${name} COMMAND sudo /sbin/capsh --caps=cap_net_raw,cap_net_admin+eip\ cap_setpcap,cap_setuid,cap_setgid+ep
-                           --keep=1 --user=sven --addamb=cap_net_raw,cap_net_admin+eip
+                           --keep=1 --user=$ENV{USER} --addamb=cap_net_raw,cap_net_admin+eip
                            -- -c "ulimit -c unlimited; $EXE_WRAPPER ${JAVA_RUNTIME} -cp ${JUNIT_JAR}:${direct_bt_fat_jar_file}:${jaulib_test_jar_file}:${direct_bt_trial_jar_file} org.junit.runner.JUnitCore ${name}")
 endforeach()
 
