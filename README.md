@@ -482,7 +482,7 @@ from the year 2016.
 
 * TODO
 
-**2.6.0**
+**2.6.1**
 * Added *online* unit testing using actual BT adapter, testing *client* with *server* functionality.
 * BTAdapter/HCIHandler: Fix advertising state: Active until either disabled or connected.
 * DBTAdapter: Fix removeAllStatusListener(): Re-add internal listener to maintain functionality.
