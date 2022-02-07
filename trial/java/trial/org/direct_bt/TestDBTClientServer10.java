@@ -40,6 +40,8 @@ import org.direct_bt.BTManager;
 import org.direct_bt.BTSecurityRegistry;
 import org.direct_bt.BTUtils;
 import org.direct_bt.DiscoveryPolicy;
+import org.direct_bt.EIRDataTypeSet;
+import org.direct_bt.EInfoReport;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPKeyBin;
@@ -80,6 +82,7 @@ public class TestDBTClientServer10 extends BaseDBTClientServer {
     volatile BTDevice lastCompletedDevice = null;
     volatile PairingMode lastCompletedDevicePairingMode = PairingMode.NONE;
     volatile BTSecurityLevel lastCompletedDeviceSecurityLevel = BTSecurityLevel.NONE;
+    volatile EInfoReport lastCompletedDeviceEIR = null;
 
     final void test8x_fullCycle(final String suffix,
                                 final BTSecurityLevel secLevelServer, final boolean serverShallHaveKeys,
@@ -160,12 +163,14 @@ public class TestDBTClientServer10 extends BaseDBTClientServer {
         lastCompletedDevice = null;
         lastCompletedDevicePairingMode = PairingMode.NONE;
         lastCompletedDeviceSecurityLevel = BTSecurityLevel.NONE;
+        lastCompletedDeviceEIR = null;
         final AdapterStatusListener clientAdapterStatusListener = new AdapterStatusListener() {
             @Override
             public void deviceReady(final BTDevice device, final long timestamp) {
                 lastCompletedDevice = device;
                 lastCompletedDevicePairingMode = device.getPairingMode();
                 lastCompletedDeviceSecurityLevel = device.getConnSecurityLevel();
+                lastCompletedDeviceEIR = device.getEIR();
                 BTUtils.println(System.err, "XXXXXX Client Ready: "+device);
             }
         };
@@ -208,13 +213,16 @@ public class TestDBTClientServer10 extends BaseDBTClientServer {
 
         while( 1 > server.servedConnections.get() ||
                1 > client.completedMeasurements.get() ||
-               null == lastCompletedDevice )
+               null == lastCompletedDevice ||
+               lastCompletedDevice.getConnected() )
         {
             try { Thread.sleep(500); } catch (final InterruptedException e) { e.printStackTrace(); }
         }
         Assert.assertEquals(1, server.servedConnections.get());
         Assert.assertEquals(1, client.completedMeasurements.get());
         Assert.assertNotNull(lastCompletedDevice);
+        Assert.assertNotNull(lastCompletedDeviceEIR);
+        Assert.assertFalse(lastCompletedDevice.getConnected());
         Assert.assertEquals( HCIStatusCode.SUCCESS, client.stopDiscovery(client.getAdapter(), "test"+suffix+"_stopDiscovery") );
 
         {
@@ -247,6 +255,18 @@ public class TestDBTClientServer10 extends BaseDBTClientServer {
                 Assert.assertEquals(PairingMode.NONE, lastCompletedDevicePairingMode);
                 Assert.assertEquals(BTSecurityLevel.NONE, lastCompletedDeviceSecurityLevel);
             }
+        }
+
+        Assert.assertNotEquals(0, lastCompletedDeviceEIR.getEIRDataMask().mask);
+        Assert.assertTrue( lastCompletedDeviceEIR.isSet(EIRDataTypeSet.DataType.FLAGS) );
+        Assert.assertTrue( lastCompletedDeviceEIR.isSet(EIRDataTypeSet.DataType.SERVICE_UUID) );
+        Assert.assertTrue( lastCompletedDeviceEIR.isSet(EIRDataTypeSet.DataType.NAME) );
+        Assert.assertTrue( lastCompletedDeviceEIR.isSet(EIRDataTypeSet.DataType.CONN_IVAL) );
+        Assert.assertEquals(serverName, lastCompletedDeviceEIR.getName());
+        {
+            final EInfoReport eir = lastCompletedDevice.getEIR();
+            Assert.assertEquals(0, eir.getEIRDataMask().mask);
+            Assert.assertEquals(0, lastCompletedDeviceEIR.getName().length());
         }
 
         final int count = manager.removeChangedAdapterSetListener(myChangedAdapterSetListener);

@@ -331,12 +331,16 @@ namespace direct_bt {
 
             /**
              * Return the merged advertised EInfoReport for this remote device.
+             *
+             * The EInfoReport is replaced by new scan-reports (update) and when disconnected (empty).
              * @since 2.5.3
              */
             std::shared_ptr<const EInfoReport> getEIR() const noexcept;
 
             /**
              * Return the merged advertised EInfoReport for this remote device.
+             *
+             * The EInfoReport is replaced by new scan-reports (update) and when disconnected (empty).
              * @since 2.5.3
              */
             std::shared_ptr<EInfoReport> getEIR() noexcept;

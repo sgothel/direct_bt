@@ -49,7 +49,7 @@ BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
   l2cap_att( std::make_unique<L2CAPComm>(adapter.getAddressAndType(), L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT) ), // copy elision, not copy-ctor
   ts_last_discovery(r.getTimestamp()),
   ts_last_update(ts_last_discovery),
-  eir( std::make_unique<EInfoReport>() ),
+  eir( std::make_shared<EInfoReport>() ),
   hciConnHandle(0),
   le_features(LE_Features::NONE),
   le_phy_tx(LE_PHYs::NONE),
@@ -2147,6 +2147,10 @@ void BTDevice::notifyDisconnected() noexcept {
     disconnectGATT(1);
     disconnectSMP(1);
     l2cap_att->close();
+    {
+        const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
+        eir = std::make_shared<EInfoReport>();
+    }
 }
 
 void BTDevice::sendMgmtEvDeviceDisconnected(std::unique_ptr<MgmtEvent> evt) noexcept {

@@ -790,6 +790,8 @@ public interface BTDevice extends BTObject
 
     /**
      * Return the merged advertised {@link EInfoReport} for this remote device.
+     *
+     * The EInfoReport is replaced by new scan-reports (update) and when disconnected (empty).
      * @since 2.5.3
      */
     EInfoReport getEIR();
