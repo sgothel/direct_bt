@@ -56,7 +56,7 @@ target_link_libraries (
 
 if(USE_STRIP)
 add_custom_command(TARGET direct_bt POST_BUILD
-                   COMMAND ${STRIP} ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}direct_bt${CMAKE_SHARED_LIBRARY_SUFFIX}.${direct_bt_VERSION_STRING}
+                   COMMAND ${STRIP} ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}direct_bt${CMAKE_SHARED_LIBRARY_SUFFIX}.${direct_bt_VERSION_SHORT}
                    COMMENT "stripping direct_bt"
                    VERBATIM
                    )
@@ -66,7 +66,7 @@ set_target_properties(
    direct_bt
    PROPERTIES
    SOVERSION ${direct_bt_VERSION_MAJOR}
-   VERSION ${direct_bt_VERSION_STRING}
+   VERSION ${direct_bt_VERSION_SHORT}
 )
 install (DIRECTORY ${PROJECT_SOURCE_DIR}/api/direct_bt/ DESTINATION include/direct_bt)
 

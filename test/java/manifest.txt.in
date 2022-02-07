@@ -3,19 +3,19 @@ Bundle-Date: @BUILD_TSTAMP@
 Bundle-ManifestVersion: 2
 Bundle-Name: org.direct_bt.test
 Bundle-SymbolicName: org.direct_bt.test
-Bundle-Version: @VERSION_SHORT@
+Bundle-Version: @direct_bt_VERSION_SHORT@
 Export-Package: org.direct_bt.test
 Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.9))"
 Package-Title: org.direct_bt.test
 Package-Vendor: Gothel Software
-Package-Version: @VERSION_SHORT@
+Package-Version: @direct_bt_VERSION_SHORT@
 Specification-Title: Direct-BT Unit Tests
 Specification-Vendor: Gothel Software
-Specification-Version: @VERSION_API@
+Specification-Version: @direct_bt_VERSION_API@
 Implementation-Title: Direct-BT Unit Tests
 Implementation-Vendor: Gothel Software
-Implementation-Version: @VERSION@
-Implementation-Commit: @VERSION_SHA1@
+Implementation-Version: @direct_bt_VERSION_LONG@
+Implementation-Commit: @direct_bt_VERSION_SHA1@
 Implementation-URL: http://www.jausoft.com/
 Extension-Name: org.direct_bt.test
 Trusted-Library: true

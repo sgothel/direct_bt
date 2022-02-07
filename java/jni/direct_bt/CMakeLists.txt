@@ -45,7 +45,7 @@ target_link_libraries(javadirect_bt ${JNI_LIBRARIES} direct_bt)
 
 if(USE_STRIP)
 add_custom_command(TARGET javadirect_bt POST_BUILD
-                   COMMAND ${STRIP} ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}javadirect_bt${CMAKE_SHARED_LIBRARY_SUFFIX}.${direct_bt_VERSION_STRING}
+                   COMMAND ${STRIP} ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}javadirect_bt${CMAKE_SHARED_LIBRARY_SUFFIX}.${direct_bt_VERSION_SHORT}
                    COMMENT "stripping javadirect_bt"
                    VERBATIM
                    )
@@ -55,7 +55,7 @@ set_target_properties(
     javadirect_bt
     PROPERTIES
     SOVERSION ${direct_bt_VERSION_MAJOR}
-    VERSION ${direct_bt_VERSION_STRING}
+    VERSION ${direct_bt_VERSION_SHORT}
 )
 
 install(TARGETS javadirect_bt LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})

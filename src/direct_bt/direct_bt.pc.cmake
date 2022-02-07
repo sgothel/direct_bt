@@ -5,7 +5,7 @@ includedir=${prefix}/include/direct_bt
 
 Name: direct_bt
 Description: Direct-BT LE and BREDR library
-Version: @direct_bt_VERSION_STRING@
+Version: @direct_bt_VERSION_LONG@
 
 Libs: -L${libdir} -ldirect_bt
 Cflags: -I${includedir}

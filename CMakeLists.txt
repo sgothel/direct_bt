@@ -19,14 +19,20 @@ endif(BUILD_TRIAL)
 include(jaulib/JaulibSetup.cmake)
 JaulibSetup()
 
+# this is the library version, derived from git tag and revision
+set (direct_bt_VERSION_MAJOR      ${VERSION_MAJOR})
+set (direct_bt_VERSION_MINOR      ${VERSION_MINOR})
+set (direct_bt_VERSION_PATCH      ${VERSION_PATCH})
+set (direct_bt_VERSION_COMMITS    ${VERSION_COMMITS})
+set (direct_bt_VERSION_SHA1       ${VERSION_SHA1})
+set (direct_bt_VERSION_SHA1_SHORT ${VERSION_SHA1_SHORT})
+set (direct_bt_GIT_DIRTY          ${GIT_WORKDIR_DIRTY})
+set (direct_bt_VERSION_LONG       ${VERSION_LONG})
+set (direct_bt_VERSION_SHORT      ${VERSION_SHORT})
+set (direct_bt_VERSION_API        ${VERSION_API})
+
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/version.c.in
                 ${CMAKE_CURRENT_BINARY_DIR}/src/version.c)
-
-# this is the library version, independant of git revision
-set (direct_bt_VERSION_MAJOR ${VERSION_MAJOR})
-set (direct_bt_VERSION_MINOR ${VERSION_MINOR})
-set (direct_bt_VERSION_PATCH ${VERSION_PATCH})
-set (direct_bt_VERSION_STRING "${direct_bt_VERSION_MAJOR}.${direct_bt_VERSION_MINOR}.${direct_bt_VERSION_PATCH}")
 
 set (CMAKE_SWIG_FLAGS "")
 

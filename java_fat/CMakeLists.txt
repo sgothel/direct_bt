@@ -18,13 +18,13 @@ add_custom_command (OUTPUT ${direct_bt_fat_jar_file} ${direct_bt_java_src_file}
                     COMMAND ${CMAKE_COMMAND}
                             -D_srcdir=${CMAKE_CURRENT_BINARY_DIR}/../src/direct_bt
                             -D_dstdir=${CMAKE_CURRENT_BINARY_DIR}/natives/${OS_AND_ARCH}
-                            -D_srcbasename=${CMAKE_SHARED_LIBRARY_PREFIX}direct_bt${CMAKE_SHARED_LIBRARY_SUFFIX}.${direct_bt_VERSION_STRING}
+                            -D_srcbasename=${CMAKE_SHARED_LIBRARY_PREFIX}direct_bt${CMAKE_SHARED_LIBRARY_SUFFIX}.${direct_bt_VERSION_SHORT}
                             -D_dstbasename=${CMAKE_SHARED_LIBRARY_PREFIX}direct_bt${CMAKE_SHARED_LIBRARY_SUFFIX}
                             -P ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/FileCopyS2D.cmake
                     COMMAND ${CMAKE_COMMAND}
                             -D_srcdir=${CMAKE_CURRENT_BINARY_DIR}/../java/jni/direct_bt
                             -D_dstdir=${CMAKE_CURRENT_BINARY_DIR}/natives/${OS_AND_ARCH}
-                            -D_srcbasename=${CMAKE_SHARED_LIBRARY_PREFIX}javadirect_bt${CMAKE_SHARED_LIBRARY_SUFFIX}.${direct_bt_VERSION_STRING}
+                            -D_srcbasename=${CMAKE_SHARED_LIBRARY_PREFIX}javadirect_bt${CMAKE_SHARED_LIBRARY_SUFFIX}.${direct_bt_VERSION_SHORT}
                             -D_dstbasename=${CMAKE_SHARED_LIBRARY_PREFIX}javadirect_bt${CMAKE_SHARED_LIBRARY_SUFFIX}
                             -P ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/FileCopyS2D.cmake
                     COMMAND ${CMAKE_COMMAND}
