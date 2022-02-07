@@ -529,7 +529,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     @Override
     public final int removeAllStatusListener() {
         final int r = removeAllStatusListenerImpl();
-        addStatusListener(this.statusListener); // preserver internal listener to maintain functionality!
+        addStatusListener(this.statusListener); // preserve internal listener to maintain functionality!
         return r - 1;
     }
     private native int removeAllStatusListenerImpl();
@@ -619,6 +619,10 @@ public class DBTAdapter extends DBTObject implements BTAdapter
             if( DEBUG ) {
                 BTUtils.println(System.err, "Adapter.CONNECTED: "+device+" on "+device.getAdapter());
             }
+            final DBTDevice device_ = (DBTDevice)device;
+            if( device_.isConnected.compareAndSet(false, true) ) {
+                // nop
+            }
         }
 
         @Override
@@ -641,6 +645,11 @@ public class DBTAdapter extends DBTObject implements BTAdapter
                 BTUtils.println(System.err, "Adapter.DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
             }
             gattServerData = null;
+
+            final DBTDevice device_ = (DBTDevice)device;
+            if( device_.isConnected.compareAndSet(true, false) ) {
+                device_.clearServiceCache();
+            }
         }
 
         @Override

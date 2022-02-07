@@ -29,7 +29,6 @@ import java.lang.ref.WeakReference;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.direct_bt.AdapterStatusListener;
@@ -42,7 +41,6 @@ import org.direct_bt.BTGattChar;
 import org.direct_bt.BTGattService;
 import org.direct_bt.BTRole;
 import org.direct_bt.BTUtils;
-import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.EInfoReport;
 import org.direct_bt.BTGattCharListener;
 import org.direct_bt.HCIStatusCode;
@@ -76,30 +74,7 @@ public class DBTDevice extends DBTObject implements BTDevice
 
     private final AtomicBoolean isClosing = new AtomicBoolean(false);
 
-    private final AtomicBoolean isConnected = new AtomicBoolean(false);
-
-    final AdapterStatusListener statusListener = new AdapterStatusListener() {
-        @Override
-        public void deviceUpdated(final BTDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
-        }
-        @Override
-        public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
-            if( isConnected.compareAndSet(false, true) ) {
-                // nop
-            }
-        }
-        @Override
-        public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
-            if( isConnected.compareAndSet(true, false) ) {
-                clearServiceCache();
-            }
-        }
-
-        @Override
-        public String toString() {
-            return "AdapterStatusListener[device "+addressAndType.toString()+"]";
-        }
-    };
+    /* pp */ final AtomicBoolean isConnected = new AtomicBoolean(false);
 
     /* pp */ DBTDevice(final long nativeInstance, final DBTAdapter adptr,
                        final byte byteAddress[/*6*/],
@@ -118,7 +93,6 @@ public class DBTDevice extends DBTObject implements BTDevice
         hciConnHandle = 0;
         name_cached = name;
         initImpl();
-        addStatusListener(statusListener); // associated events and lifecycle with this device
         // FIXME enableTrustedNotificationsImpl(trustedNotificationsCB);
     }
 
@@ -134,7 +108,6 @@ public class DBTDevice extends DBTObject implements BTDevice
 
         final DBTAdapter a = getAdapter();
         if( null != a ) {
-            a.removeStatusListener(statusListener);
             a.removeDiscoveredDevice(this);
         }
         super.close();
@@ -691,7 +664,7 @@ public class DBTDevice extends DBTObject implements BTDevice
 
     /* local functionality */
 
-    private void clearServiceCache() {
+    /* pp */ final void clearServiceCache() {
         synchronized(serviceCache) {
             for(int i = serviceCache.size() - 1; i >= 0; i-- ) {
                 serviceCache.get(i).clear();
@@ -710,7 +683,7 @@ public class DBTDevice extends DBTObject implements BTDevice
         }
     }
 
-    /* pp */ boolean checkServiceCache(final boolean retrieveGattServices) {
+    private final boolean checkServiceCache(final boolean retrieveGattServices) {
         synchronized(serviceCache) {
             if( serviceCache.isEmpty() ) {
                 if( retrieveGattServices ) {
