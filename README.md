@@ -482,7 +482,9 @@ from the year 2016.
 
 * TODO
 
-**2.6.1**
+**2.6.2**
+* Adopt jaulib detailed git version info: Using post-tag `VERSION_COMMITS` and `VERSION_SHA1_SHORT`. `VERSION_LONG` reflects post-tag and dirty.
+* Bump jaulib v0.7.12-1
 * Added *online* unit testing using actual BT adapter, testing *client* with *server* functionality.
 * BTAdapter/HCIHandler: Fix advertising state: Active until either disabled or connected.
 * DBTAdapter: Fix removeAllStatusListener(): Re-add internal listener to maintain functionality.
