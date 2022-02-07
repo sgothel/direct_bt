@@ -827,7 +827,7 @@ std::unique_ptr<L2CAPComm> L2CAPServer::accept() noexcept {
                           remoteAddressAndType.toString().c_str());
                 continue;
             } else {
-                ERR_PRINT("L2CAPServer::accept: Timeout # %d (done): dd[s %d, c %d], errno 0x%X %s, psm %s -> %s, cid %s -> %s, local %s -> remote %s",
+                WORDY_PRINT("L2CAPServer::accept: Timeout # %d (done): dd[s %d, c %d], errno 0x%X %s, psm %s -> %s, cid %s -> %s, local %s -> remote %s",
                           to_retry_count, server_socket.load(), client_socket, errno, strerror(errno),
                           to_string(psm).c_str(), to_string(c_psm).c_str(),
                           to_string(cid).c_str(), to_string(c_cid).c_str(),
@@ -838,7 +838,7 @@ std::unique_ptr<L2CAPComm> L2CAPServer::accept() noexcept {
 
         } else if( !interrupt_flag ) {
             // EALREADY == errno || ENETUNREACH == errno || EHOSTUNREACH == errno || ..
-            ERR_PRINT("L2CAPServer::accept: Failed: dd[s %d, c %d], errno 0x%X %s, psm %s -> %s, cid %s -> %s, local %s -> remote %s",
+            IRQ_PRINT("L2CAPServer::accept: Failed: dd[s %d, c %d], errno 0x%X %s, psm %s -> %s, cid %s -> %s, local %s -> remote %s",
                       server_socket.load(), client_socket, errno, strerror(errno),
                       to_string(psm).c_str(), to_string(c_psm).c_str(),
                       to_string(cid).c_str(), to_string(c_cid).c_str(),
