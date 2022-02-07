@@ -27,7 +27,7 @@ buildit() {
 
     cd $rootdir/build-$archabi
     rm -rf documentation
-    make -j $CPU_COUNT install doc
+    make -j $CPU_COUNT doc
     if [ $? -eq 0 ] ; then
         echo "REBUILD SUCCESS $bname $archabi"
         rm -f $rootdir/documentation.tar.xz
