@@ -56,6 +56,11 @@ Some elaboration on the implementation details
 > exposing BTSecurityLevel and SMPIOCapability setup per connection
 > and providing *automatic security mode negotiation*.
 >
+> Provoding *dbt_repeater00*, a *BT repeater* forwading between *GATT-Server* and *-Client*, 
+> allowing protocol analysis between an external client and server.
+>
+> *Online* unit testing with two BT adapter is provided.
+>
 > BREDR support is planned and prepared for.
 >
 
@@ -210,7 +215,7 @@ A guide for getting started with *Direct-BT* on C++ and Java may follow up.
 are available, demonstrating the event driven and multithreading workflow:
 - [dbt_scanner10.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_scanner10_8cpp-example.html) *Master* with *Gatt-Client*
 - [dbt_peripheral00.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_peripheral00_8cpp-example.html) *Peripheral* with *GATT-Server*
-- [dbt_repeater00.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_repeater00_8cpp-example.html) *Repeater* forwading between *GATT-Server* and *-Client*
+- [dbt_repeater00.cpp](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_repeater00_8cpp-example.html) *BT Repeater* forwading between *GATT-Server* and *-Client*, allowing protocol analysis between an external client and server.
 
 
 *Direct-BT* [Java examples](https://jausoft.com/projects/direct_bt/build/documentation/java/html/examples.html)
@@ -289,6 +294,18 @@ Building debug build:
 -DDEBUG=ON
 ~~~~~~~~~~~~~
 
+Building with enabled *testing*, i.e. offline testing without any potential interaction as user:
+
+~~~~~~~~~~~~~
+-DBUILD_TESTING=ON
+~~~~~~~~~~~~~
+
+Building with enabled *trial* and *testing* , i.e. live testing with 2 Bluetooth adapter and potential sudo interaction:
+
+~~~~~~~~~~~~~
+-DBUILD_TRIAL=ON
+~~~~~~~~~~~~~
+
 Disable stripping native lib even in non debug build:
 
 ~~~~~~~~~~~~~
@@ -339,6 +356,23 @@ To build documentation run:
 ~~~~~~~~~~~~~
 make doc
 ~~~~~~~~~~~~~
+
+### Unit Testing
+
+Building with enabled *testing*, i.e. offline testing without any potential interaction as user
+is provided via the *cmake* build argument `-DBUILD_TESTING=ON`, see above.
+
+Building with enabled *trial* and *testing* , i.e. live testing with 2 Bluetooth adapter
+is provided via the *cmake* build argument `-DBUILD_TRIAL=ON`, see above.
+
+The *trial* tests utilize one or more actual Bluetooth adapter,
+hence using the *capsh* launch for the required permissions as described above.
+Therefor, *sudo* will be called and a user interaction to enter the *sudo* password may occur. 
+
+The *trial* tests cover *Direct-BT*'s Bluetooth functionality,
+having its *master/client* and *slave/server peripheral* facilities communicating via actual adapter,
+supporting regression testing of the API, its implementation and adapter.
+
 
 ### Cross Build
 Also provided is a [cross-build script](https://jausoft.com/cgit/direct_bt.git/tree/scripts/build-cross.sh)
@@ -449,7 +483,9 @@ from the year 2016.
 * TODO
 
 **2.6.0**
-* TODO
+* Added *online* unit testing using actual BT adapter, testing *client* with *server* functionality.
+* BTAdapter/HCIHandler: Fix advertising state: Active until either disabled or connected.
+* DBTAdapter: Fix removeAllStatusListener(): Re-add internal listener to maintain functionality.
 * GATT Server enhancements, incl new DBGattServer::Mode and `dbt_repeater00` implementation.
 * BTDevice::getGattServices(): MTU and remote GATT Services shall be processed from here at request only, moved from BTDevice::connectGATT().
 * jaulib v0.7.11 fixes 

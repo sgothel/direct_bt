@@ -12,6 +12,10 @@ find_package (Threads REQUIRED)
 
 # set(CMAKE_MESSAGE_LOG_LEVEL DEBUG)
 
+if (BUILD_TRIAL)
+    set (BUILD_TESTING ON)
+endif(BUILD_TRIAL)
+
 include(jaulib/JaulibSetup.cmake)
 JaulibSetup()
 
@@ -89,5 +93,13 @@ if (BUILD_TESTING)
       add_subdirectory (test/java)
   endif(BUILDJAVA)
 endif(BUILD_TESTING)
+
+if (BUILD_TRIAL)
+  enable_testing ()
+  if (BUILDJAVA)
+      configure_file (${CMAKE_CURRENT_SOURCE_DIR}/trial/java/manifest.txt.in ${CMAKE_CURRENT_BINARY_DIR}/trial/java/manifest.txt)
+      add_subdirectory (trial/java)
+  endif(BUILDJAVA)
+endif(BUILD_TRIAL)
 
 
