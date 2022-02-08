@@ -69,12 +69,12 @@ public class TestDBTClientServer10 extends BaseDBTClientServer {
         test8x_fullCycle("00", BTSecurityLevel.NONE, false /* serverShallHaveKeys */, BTSecurityLevel.NONE, false /* clientShallHaveKeys */);
     }
 
-    @Test(timeout = 20000)
+    @Test(timeout = 40000)
     public final void test01_FullCycle_EncOnlyNo1() {
         test8x_fullCycle("01", BTSecurityLevel.ENC_ONLY, false /* serverShallHaveKeys */, BTSecurityLevel.ENC_ONLY, false /* clientShallHaveKeys */);
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 40000)
     public final void test02_FullCycle_EncOnlyNo2() {
         test8x_fullCycle("02", BTSecurityLevel.ENC_ONLY, true /* serverShallHaveKeys */, BTSecurityLevel.ENC_ONLY, true /* clientShallHaveKeys */);
     }
