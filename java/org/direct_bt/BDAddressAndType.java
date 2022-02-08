@@ -125,6 +125,12 @@ public class BDAddressAndType {
                  BDAddressType.BDADDR_UNDEFINED == o.type );
     }
 
+    /**
+     * If both types are of {@link BDAddressAndType}, it compares their {@link EUI48} address and {@link BDAddressType}.
+     * <p>
+     * {@inheritDoc}
+     * </p>
+     */
     @Override
     public final boolean equals(final Object obj) {
         if(this == obj) {
