@@ -434,6 +434,15 @@ public interface BTAdapter extends BTObject
     boolean isAdvertising();
 
     /**
+     * If both types are of {@link BTAdapter}, it compares their {@link BDAddressAndType}, see {@link #getAddressAndType()}.
+     * <p>
+     * {@inheritDoc}
+     * </p>
+     */
+    @Override
+    boolean equals(final Object obj);
+
+    /**
      * Returns the adapter's public BDAddressAndType.
      * <p>
      * The adapter's address as initially reported by the system is always its public address, i.e. {@link BDAddressType#BDADDR_LE_PUBLIC}.

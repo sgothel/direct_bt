@@ -114,19 +114,6 @@ public class DBTDevice extends DBTObject implements BTDevice
     }
 
     @Override
-    public boolean equals(final Object obj)
-    {
-        if(this == obj) {
-            return true;
-        }
-        if (obj == null || !(obj instanceof DBTDevice)) {
-            return false;
-        }
-        final DBTDevice other = (DBTDevice)obj;
-        return addressAndType.equals(other.addressAndType);
-    }
-
-    @Override
     public final long getCreationTimestamp() { return ts_creation; }
 
     @Override
@@ -143,6 +130,19 @@ public class DBTDevice extends DBTObject implements BTDevice
         return BTRole.get(getRoleImpl());
     }
     private native byte getRoleImpl();
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if(this == obj) {
+            return true;
+        }
+        if (obj == null || !(obj instanceof DBTDevice)) {
+            return false;
+        }
+        final DBTDevice other = (DBTDevice)obj;
+        return addressAndType.equals(other.addressAndType);
+    }
 
     @Override
     public BDAddressAndType getAddressAndType() { return addressAndType; }

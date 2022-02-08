@@ -768,6 +768,15 @@ public interface BTDevice extends BTObject
     long getLastUpdateTimestamp();
 
     /**
+     * If both types are of {@link BTDevice}, it compares their {@link BDAddressAndType}, see {@link #getAddressAndType()}.
+     * <p>
+     * {@inheritDoc}
+     * </p>
+     */
+    @Override
+    boolean equals(final Object obj);
+
+    /**
      * Returns the unique device {@link EUI48} address and {@link BDAddressType} type.
      * @since 2.2.0
      */
