@@ -659,7 +659,9 @@ public class DBTServer00 implements DBTServerTest {
         BTUtils.println(System.err, "****** Disconnected Device (count "+(servedConnections.get()+1)+"): Start "+device.toString());
 
         // already unpaired
+        device.remove();
         BTDeviceRegistry.removeFromProcessingDevices(device.getAddressAndType());
+
         try {
             Thread.sleep(100); // wait a little (FIXME: Fast restart of advertising error)
         } catch (final InterruptedException e) { }
