@@ -54,16 +54,6 @@ import org.junit.runners.MethodSorters;
 public class TestDBTClientServer00 extends BaseDBTClientServer {
     static final boolean DEBUG = false;
 
-    @BeforeClass
-    public static final void setupAllLocal() {
-        BTFactory.initDirectBTLibrary();
-
-        final Class<?> ThisClazz = MethodHandles.lookup().lookupClass();
-        BTUtils.println(System.err, "++++ Test "+ThisClazz.getSimpleName()+".setupAllLocal()");
-
-        DBTUtils.printVersionInfo();
-    }
-
     /**
      * Testing BTManager bring up and
      * - test that at least two adapter are present
@@ -71,6 +61,8 @@ public class TestDBTClientServer00 extends BaseDBTClientServer {
      */
     @Test(timeout = 5000)
     public final void test01_ManagerBringup() {
+        DBTUtils.printVersionInfo();
+
         BTManager manager = null;
         try {
             manager = BTFactory.getDirectBTManager();

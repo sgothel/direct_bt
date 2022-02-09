@@ -51,15 +51,16 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
 
     @BeforeClass
     public static final void setupAll() {
+        if( DEBUG ) {
+            System.setProperty("direct_bt.debug", "true"); // native code
+            // System.setProperty("direct_bt.debug", "true,gatt.data"); // native code
+            System.setProperty("org.direct_bt.debug", "true"); // java
+        }
         BTFactory.initDirectBTLibrary();
 
         final Class<?> ThisClazz = MethodHandles.lookup().lookupClass();
         BTUtils.println(System.err, "++++ Test "+ThisClazz.getSimpleName()+".setupAll()");
 
-        if( DEBUG ) {
-            System.setProperty("direct_bt.debug", "true");
-            System.setProperty("org.direct_bt.debug", "true");
-        }
         Assert.assertTrue( DBTUtils.rmKeyFolder() );
         Assert.assertTrue( DBTUtils.mkdirKeyFolder() );
     }
