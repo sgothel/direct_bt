@@ -88,6 +88,8 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
         if( null != manager ) {
             final List<BTAdapter> adapters = manager.getAdapters();
             for(final BTAdapter a : adapters) {
+                a.stopAdvertising();
+                a.stopDiscovery();
                 a.setPowered(false);
             }
             // All implicit via destructor or shutdown hook!
@@ -117,6 +119,8 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
         if( null != manager ) {
             final List<BTAdapter> adapters = manager.getAdapters();
             for(final BTAdapter a : adapters) {
+                a.stopAdvertising();
+                a.stopDiscovery();
                 Assert.assertTrue( a.setPowered(false) );
             }
         }
@@ -151,6 +155,8 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
                     final int r = a.removeAllStatusListener();
                     Assert.assertTrue("Not >= 0 removed listener, but "+r, 0 <= r );
                 }
+                a.stopAdvertising();
+                a.stopDiscovery();
                 Assert.assertTrue( a.setPowered(false) );
             }
         }
