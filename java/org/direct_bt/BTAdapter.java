@@ -189,9 +189,6 @@ public interface BTAdapter extends BTObject
      * paused until a certain readiness stage has been reached or preserved at all times.
      * Default is {@link DiscoveryPolicy#PAUSE_CONNECTED_UNTIL_READY}.
      *
-     * Using {@link #startDiscovery(boolean, boolean, short, short, byte) startDiscovery(keepAlive=true, ...) and {@link #stopDiscovery()}
-     * is the recommended workflow for a reliable discovery process.
-     *
      * <pre>
      * + --+-------+--------+-----------+----------------------------------------------------+
      * | # | meta  | native | keepAlive | Note

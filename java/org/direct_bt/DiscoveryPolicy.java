@@ -52,11 +52,11 @@ public enum DiscoveryPolicy {
      */
     PAUSE_CONNECTED_UNTIL_DISCONNECTED ((byte) 1),
     /**
-     * Pause discovery until all connected {@link BTDevice} reach readiness inclusive optional SMP pairing (~120ms) and GATT service discovery (~700ms),
+     * Pause discovery until all connected {@link BTDevice} reach readiness inclusive optional SMP pairing (~120ms) without GATT service discovery (~700ms),
      * effectively until {@link AdapterStatusListener#deviceReady(BTDevice, long)}. This is the default!
      */
     PAUSE_CONNECTED_UNTIL_READY  ((byte) 2),
-    /** Pause discovery until all connected {@link BTDevice} are optionally SMP paired (~120ms), exclusive GATT service discovery (~700ms -> ~1200ms). */
+    /** Pause discovery until all connected {@link BTDevice} are optionally SMP paired (~120ms) without GATT service discovery (~700ms). */
     PAUSE_CONNECTED_UNTIL_PAIRED ((byte) 3),
     /** Always keep discovery enabled, i.e. re-enabled if automatically turned-off by HCI host OS as soon as possible. */
     ALWAYS_ON                    ((byte) 4);

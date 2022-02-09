@@ -80,11 +80,11 @@ namespace direct_bt {
          */
         PAUSE_CONNECTED_UNTIL_DISCONNECTED  = 1,
         /**
-         * Pause discovery until all connected BTDevice reach readiness inclusive optional SMP pairing (~120ms) and GATT service discovery (~700ms),
+         * Pause discovery until all connected BTDevice reach readiness inclusive optional SMP pairing (~120ms) without GATT service discovery (~700ms),
          * effectively until AdapterStatusListener::deviceReady(). This is the default!
          */
         PAUSE_CONNECTED_UNTIL_READY  = 2,
-        /** Pause discovery until all connected BTDevice are optionally SMP paired (~120ms), exclusive GATT service discovery (~700ms -> ~1200ms). */
+        /** Pause discovery until all connected BTDevice are optionally SMP paired (~120ms) without GATT service discovery (~700ms). */
         PAUSE_CONNECTED_UNTIL_PAIRED = 3,
         /** Always keep discovery enabled, i.e. re-enabled if automatically turned-off by HCI host OS as soon as possible. */
         ALWAYS_ON                    = 4
@@ -999,9 +999,6 @@ namespace direct_bt {
              * Depending on given DiscoveryPolicy `policy`, the discovery mode may be turned-off,
              * paused until a certain readiness stage has been reached or preserved at all times.
              * Default is DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY.
-             *
-             * Using startDiscovery(keepAlive=true) and stopDiscovery()
-             * is the recommended workflow for a reliable discovery process.
              *
              * <pre>
              * + --+-------+--------+-----------+----------------------------------------------------+
