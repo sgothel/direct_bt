@@ -104,6 +104,7 @@ public class TestDBTClientServer00 extends BaseDBTClientServer {
 
         final String serverName = "TestDBTCS00-T10";
         final DBTServer00 server = new DBTServer00(EUI48.ALL_DEVICE, BTMode.DUAL, true /* SC */, serverName, BTSecurityLevel.NONE);
+        server.servingConnectionsLeft.set(1);
 
         final DBTEndpoint.ChangedAdapterSetListener myChangedAdapterSetListener =
                 DBTEndpoint.initChangedAdapterSetListener(manager, Arrays.asList(server));

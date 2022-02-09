@@ -75,6 +75,7 @@ public class DBTServer00 implements DBTServerTest {
     BTSecurityLevel adapterSecurityLevel = BTSecurityLevel.UNSET;
     BTAdapter serverAdapter = null;
 
+    public AtomicInteger servingConnectionsLeft = new AtomicInteger(1);
     public AtomicInteger servedConnections = new AtomicInteger(0);
 
     public DBTServer00(final EUI48 useAdapter, final BTMode btMode, final boolean use_SC, final String adapterName, final BTSecurityLevel adapterSecurityLevel) {
@@ -161,12 +162,6 @@ public class DBTServer00 implements DBTServerTest {
         return new DBGattValue(p, capacity, true /* variable_length */);
     }
 
-    static String DataServiceUUID = "d0ca6bf3-3d50-4760-98e5-fc5883e93712";
-    static String StaticDataUUID  = "d0ca6bf3-3d51-4760-98e5-fc5883e93712";
-    static String CommandUUID     = "d0ca6bf3-3d52-4760-98e5-fc5883e93712";
-    static String ResponseUUID    = "d0ca6bf3-3d53-4760-98e5-fc5883e93712";
-    static String PulseDataUUID   = "d0ca6bf3-3d54-4760-98e5-fc5883e93712";
-
     // DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
     private final DBGattServer dbGattServer = new DBGattServer(
             /* services: */
@@ -212,28 +207,28 @@ public class DBTServer00 implements DBTServerTest {
                                   make_gvalue("sw:0123456789") /* value */ )
                   ) ),
               new DBGattService ( true /* primary */,
-                  DataServiceUUID /* type_ */,
+                  DBTConstants.DataServiceUUID /* type_ */,
                   Arrays.asList( // DBGattChar
-                      new DBGattChar( StaticDataUUID /* value_type_ */,
+                      new DBGattChar( DBTConstants.StaticDataUUID /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   Arrays.asList( // DBGattDesc
                                       new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_gvalue("DATA_STATIC") )
                                   ),
                                 make_gvalue("Proprietary Static Data 0x00010203") /* value */ ),
-                      new DBGattChar( CommandUUID /* value_type_ */,
+                      new DBGattChar( DBTConstants.CommandUUID /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.WriteNoAck).set(GattCharPropertySet.Type.WriteWithAck),
                                   Arrays.asList( // DBGattDesc
                                       new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_gvalue("COMMAND") )
                                   ),
                                   make_gvalue(128, 64) /* value */ ),
-                      new DBGattChar( ResponseUUID /* value_type_ */,
+                      new DBGattChar( DBTConstants.ResponseUUID /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Notify).set(GattCharPropertySet.Type.Indicate),
                                   Arrays.asList( // DBGattDesc
                                       new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_gvalue("RESPONSE") ),
                                       DBGattDesc.createClientCharConfig()
                                   ),
                                   make_gvalue((short)0) /* value */ ),
-                      new DBGattChar( PulseDataUUID /* value_type_ */,
+                      new DBGattChar( DBTConstants.PulseDataUUID /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Notify).set(GattCharPropertySet.Type.Indicate),
                                   Arrays.asList( // DBGattDesc
                                       new DBGattDesc( DBGattDesc.UUID16.USER_DESC, make_gvalue("DATA_PULSE") ),
@@ -278,7 +273,7 @@ public class DBTServer00 implements DBTServerTest {
 
         @Override
         public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
-            BTUtils.println(System.err, "****** Server CONNECTED: "+device.toString());
+            BTUtils.println(System.err, "****** Server CONNECTED (served "+servedConnections.get()+", left "+servingConnectionsLeft.get()+"): handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
         }
 
         @Override
@@ -340,7 +335,7 @@ public class DBTServer00 implements DBTServerTest {
 
         @Override
         public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
-            BTUtils.println(System.err, "****** Server DISCONNECTED (count "+(servedConnections.get()+1)+"): Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
+            BTUtils.println(System.err, "****** Server DISCONNECTED (served "+servedConnections.get()+", left "+servingConnectionsLeft.get()+"): Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
 
             executeOffThread( () -> { processDisconnectedDevice(device); },
                               "DBT-Disconnected-"+device.getAdapter().getAddressAndType(), true /* detach */);
@@ -381,8 +376,8 @@ public class DBTServer00 implements DBTServerTest {
             handleResponseDataIndicate = 0;
             connectedDevice = null;
 
-            dbGattServer.resetGattClientCharConfig(DataServiceUUID, PulseDataUUID);
-            dbGattServer.resetGattClientCharConfig(DataServiceUUID, ResponseUUID);
+            dbGattServer.resetGattClientCharConfig(DBTConstants.DataServiceUUID, DBTConstants.PulseDataUUID);
+            dbGattServer.resetGattClientCharConfig(DBTConstants.DataServiceUUID, DBTConstants.ResponseUUID);
 
             sync_data = local; // SC-DRF release via sc_atomic_bool::store()
         }
@@ -485,13 +480,13 @@ public class DBTServer00 implements DBTServerTest {
         @Override
         public void mtuChanged(final BTDevice device, final int mtu) {
             final boolean match = matches(device);
-            if( GATT_VERBOSE ) {
-                BTUtils.fprintf_td(System.err, "****** GATT::mtuChanged(match %b): %d -> %d, %s\n",
-                        match, match ? (int)usedMTU : 0, mtu, device.toString());
-            }
+            final int usedMTU_old = usedMTU;
             if( match ) {
                 usedMTU = mtu;
             }
+            BTUtils.fprintf_td(System.err, "****** GATT::mtuChanged(match %b, served %d, left %d): %d -> %d, %s\n",
+                    match, servedConnections.get(), servingConnectionsLeft.get(),
+                    match ? usedMTU_old : 0, mtu, device.toString());
         }
 
         @Override
@@ -531,15 +526,27 @@ public class DBTServer00 implements DBTServerTest {
         public void writeCharValueDone(final BTDevice device, final DBGattService s, final DBGattChar c) {
             final boolean match = matches(device);
             final DBGattValue value = c.getValue();
-            if( GATT_VERBOSE ) {
-                BTUtils.fprintf_td(System.err, "****** GATT::writeCharValueDone(match %b): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
-                        match, device.toString(), s.toString(), c.toString(), value.toString());
-            }
+            final byte[] data = value.data();
+            boolean isSuccessHandshake = false;
+
             if( match &&
-                c.getValueType().equals( CommandUUID ) &&
+                c.getValueType().equals( DBTConstants.CommandUUID ) &&
                 ( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) )
             {
-                executeOffThread( () -> { sendResponse( value.data() ); }, true /* detach */);
+                isSuccessHandshake = Arrays.equals(DBTConstants.SuccessHandshakeCommandData, data);
+
+                if( isSuccessHandshake ) {
+                    servedConnections.addAndGet(1); // we assume this to be server, i.e. connected, SMP done and GATT action ..
+                    if( servingConnectionsLeft.get() > 0 ) {
+                        servingConnectionsLeft.decrementAndGet(); // ditto
+                    }
+                }
+                executeOffThread( () -> { sendResponse( data ); }, true /* detach */);
+            }
+            if( GATT_VERBOSE || isSuccessHandshake ) {
+                BTUtils.fprintf_td(System.err, "****** GATT::writeCharValueDone(match %b, successCmd %b, served %d, left %d): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
+                        match, isSuccessHandshake, servedConnections.get(), servingConnectionsLeft.get(),
+                        device.toString(), s.toString(), c.toString(), value.toString());
             }
         }
 
@@ -583,10 +590,10 @@ public class DBTServer00 implements DBTServerTest {
                 final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
                 final String value_type = c.getValueType();
                 final short value_handle = c.getValueHandle();
-                if( value_type.equals( PulseDataUUID ) ) {
+                if( value_type.equals( DBTConstants.PulseDataUUID ) ) {
                     handlePulseDataNotify = notificationEnabled ? value_handle : 0;
                     handlePulseDataIndicate = indicationEnabled ? value_handle : 0;
-                } else if( value_type.equals( ResponseUUID ) ) {
+                } else if( value_type.equals( DBTConstants.ResponseUUID ) ) {
                     handleResponseDataNotify = notificationEnabled ? value_handle : 0;
                     handleResponseDataIndicate = indicationEnabled ? value_handle : 0;
                 }
@@ -630,7 +637,7 @@ public class DBTServer00 implements DBTServerTest {
         eir.addFlag(GAPFlags.Bit.LE_Gen_Disc);
         eir.addFlag(GAPFlags.Bit.BREDR_UNSUP);
 
-        eir.addService(DataServiceUUID);
+        eir.addService(DBTConstants.DataServiceUUID);
         eir.setServicesComplete(false);
 
         eir.setName(adapter.getName());
@@ -656,9 +663,10 @@ public class DBTServer00 implements DBTServerTest {
     }
 
     private void processDisconnectedDevice(final BTDevice device) {
-        BTUtils.println(System.err, "****** Disconnected Device (count "+(servedConnections.get()+1)+"): Start "+device.toString());
+        BTUtils.println(System.err, "****** Disconnected Device (served "+servedConnections.get()+", left "+servingConnectionsLeft.get()+"): Start "+device.toString());
 
         // already unpaired
+        stopAdvertising(device.getAdapter(), "device-disconnected");
         device.remove();
         BTDeviceRegistry.removeFromProcessingDevices(device.getAddressAndType());
 
@@ -666,8 +674,11 @@ public class DBTServer00 implements DBTServerTest {
             Thread.sleep(100); // wait a little (FIXME: Fast restart of advertising error)
         } catch (final InterruptedException e) { }
 
+        if( servingConnectionsLeft.get() > 0 ) {
+            startAdvertising(device.getAdapter(), "device-disconnected");
+        }
+
         BTUtils.println(System.err, "****** Disonnected Device: End "+device.toString());
-        servedConnections.addAndGet(1);
     }
 
     @Override

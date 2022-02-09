@@ -24,6 +24,7 @@
 
 package trial.org.direct_bt;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -93,9 +94,6 @@ public class DBTClient00 implements DBTClientTest {
     AtomicInteger completedMeasurements = new AtomicInteger(0);
     AtomicInteger measurementsLeft = new AtomicInteger(1);
 
-    // Default from DBTServer00.java (or dbt_peripheral00.cpp or DBTPeripheral00.java)
-    final String cmd_uuid = "d0ca6bf3-3d52-4760-98e5-fc5883e93712";
-    final String cmd_rsp_uuid = "d0ca6bf3-3d53-4760-98e5-fc5883e93712";
     final byte cmd_arg = (byte)0x44;
 
     public DBTClient00(final EUI48 useAdapter, final BTMode btMode) {
@@ -421,23 +419,19 @@ public class DBTClient00 implements DBTClientTest {
             }
 
             {
-                final BTGattCmd cmd = new BTGattCmd(device, "TestCmd", null /* service_uuid */, cmd_uuid, cmd_rsp_uuid);
+                final BTGattCmd cmd = new BTGattCmd(device, "TestCmd", null /* service_uuid */, DBTConstants.CommandUUID, DBTConstants.ResponseUUID);
                 cmd.setVerbose(true);
                 final boolean cmd_resolved = cmd.isResolved();
                 BTUtils.println(System.err, "Command test: "+cmd.toString()+", resolved "+cmd_resolved);
                 final byte[] cmd_data = { cmd_arg };
                 final HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3000 /* timeoutMS */);
                 if( HCIStatusCode.SUCCESS == cmd_res ) {
-                    if( cmd.hasResponseSet() ) {
-                        final byte[] resp = cmd.getResponse();
-                        if( 1 == resp.length && resp[0] == cmd_arg ) {
-                            BTUtils.fprintf_td(System.err, "Success: %s -> %s (echo response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
-                            completedGATTCommands.incrementAndGet();
-                        } else {
-                            BTUtils.fprintf_td(System.err, "Failure: %s -> %s (different response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
-                        }
+                    final byte[] resp = cmd.getResponse();
+                    if( 1 == resp.length && resp[0] == cmd_arg ) {
+                        BTUtils.fprintf_td(System.err, "Success: %s -> %s (echo response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
+                        completedGATTCommands.incrementAndGet();
                     } else {
-                        BTUtils.fprintf_td(System.err, "Failure: %s -> no response\n", cmd.toString());
+                        BTUtils.fprintf_td(System.err, "Failure: %s -> %s (different response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
                     }
                 } else {
                     BTUtils.fprintf_td(System.err, "Failure: %s -> %s\n", cmd.toString(), cmd_res.toString());
@@ -504,6 +498,28 @@ public class DBTClient00 implements DBTClientTest {
                 e.printStackTrace();
             }
             success = completedGATTCommands.get() > 0 && ( notificationsReceived.get() > 0 || indicationsReceived.get() > 0 );
+
+            if( success ) {
+                // Tell server we have successfully completed the test.
+                final BTGattCmd cmd = new BTGattCmd(device, "SuccessHandshake", null /* service_uuid */, DBTConstants.CommandUUID, DBTConstants.ResponseUUID);
+                cmd.setVerbose(true);
+                final boolean cmd_resolved = cmd.isResolved();
+                BTUtils.println(System.err, "Command test: "+cmd.toString()+", resolved "+cmd_resolved);
+                final HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, DBTConstants.SuccessHandshakeCommandData, 3000 /* timeoutMS */);
+                if( HCIStatusCode.SUCCESS == cmd_res ) {
+                    final byte[] resp = cmd.getResponse();
+                    if( Arrays.equals(DBTConstants.SuccessHandshakeCommandData, resp) ) {
+                        BTUtils.fprintf_td(System.err, "Success: %s -> %s (echo response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
+                    } else {
+                        BTUtils.fprintf_td(System.err, "Failure: %s -> %s (different response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
+                        success = false;
+                    }
+                } else {
+                    BTUtils.fprintf_td(System.err, "Failure: %s -> %s\n", cmd.toString(), cmd_res.toString());
+                    success = false;
+                }
+                cmd.close();
+            }
         } catch (final Throwable t ) {
             BTUtils.println(System.err, "****** Processing Ready Device: Exception caught for " + device.toString() + ": "+t.getMessage());
             t.printStackTrace();

@@ -64,17 +64,17 @@ import org.junit.runners.MethodSorters;
 public class TestDBTClientServer10 extends BaseDBTClientServer {
     static final boolean DEBUG = false;
 
-    @Test(timeout = 20000)
+    @Test(timeout = 30000)
     public final void test00_FullCycle_EncNone() {
         test8x_fullCycle("00", BTSecurityLevel.NONE, false /* serverShallHaveKeys */, BTSecurityLevel.NONE, false /* clientShallHaveKeys */);
     }
 
-    @Test(timeout = 40000)
+    @Test(timeout = 30000)
     public final void test01_FullCycle_EncOnlyNo1() {
         test8x_fullCycle("01", BTSecurityLevel.ENC_ONLY, false /* serverShallHaveKeys */, BTSecurityLevel.ENC_ONLY, false /* clientShallHaveKeys */);
     }
 
-    @Test(timeout = 40000)
+    @Test(timeout = 30000)
     public final void test02_FullCycle_EncOnlyNo2() {
         test8x_fullCycle("02", BTSecurityLevel.ENC_ONLY, true /* serverShallHaveKeys */, BTSecurityLevel.ENC_ONLY, true /* clientShallHaveKeys */);
     }
@@ -107,6 +107,7 @@ public class TestDBTClientServer10 extends BaseDBTClientServer {
 
         final String serverName = "TestDBTCS00-T"+suffix;
         final DBTServer00 server = new DBTServer00(EUI48.ALL_DEVICE, BTMode.DUAL, true /* SC */, serverName, secLevelServer);
+        server.servingConnectionsLeft.set(1);
 
         final DBTClient00 client = new DBTClient00(EUI48.ALL_DEVICE, BTMode.DUAL);
         BTDeviceRegistry.addToWaitForDevices( serverName );
@@ -199,6 +200,7 @@ public class TestDBTClientServer10 extends BaseDBTClientServer {
         //
         // Validating EIR
         //
+        BTUtils.println(System.err, "lastCompletedDevice.connectedEIR: "+lastCompletedDeviceEIR.toString());
         Assert.assertNotEquals(0, lastCompletedDeviceEIR.getEIRDataMask().mask);
         Assert.assertTrue( lastCompletedDeviceEIR.isSet(EIRDataTypeSet.DataType.FLAGS) );
         Assert.assertTrue( lastCompletedDeviceEIR.isSet(EIRDataTypeSet.DataType.SERVICE_UUID) );
@@ -207,6 +209,7 @@ public class TestDBTClientServer10 extends BaseDBTClientServer {
         Assert.assertEquals(serverName, lastCompletedDeviceEIR.getName());
         {
             final EInfoReport eir = lastCompletedDevice.getEIR();
+            BTUtils.println(System.err, "lastCompletedDevice.currentEIR: "+eir.toString());
             Assert.assertEquals(0, eir.getEIRDataMask().mask);
             Assert.assertEquals(0, lastCompletedDeviceEIR.getName().length());
         }

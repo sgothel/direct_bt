@@ -28,4 +28,16 @@ public class DBTConstants {
     public static final String CLIENT_KEY_PATH = "client_keys";
 
     public static final String SERVER_KEY_PATH = "server_keys";
+
+    public static final String DataServiceUUID = "d0ca6bf3-3d50-4760-98e5-fc5883e93712";
+    public static final String StaticDataUUID  = "d0ca6bf3-3d51-4760-98e5-fc5883e93712";
+    public static final String CommandUUID     = "d0ca6bf3-3d52-4760-98e5-fc5883e93712";
+    public static final String ResponseUUID    = "d0ca6bf3-3d53-4760-98e5-fc5883e93712";
+    public static final String PulseDataUUID   = "d0ca6bf3-3d54-4760-98e5-fc5883e93712";
+
+
+    /**
+     * Success handshake command data, where client is signaling successful completion of test to server.
+     */
+    public static final byte[] SuccessHandshakeCommandData = { (byte)0xaa, (byte)0xff, (byte)0xff, (byte)0xee };
 }
