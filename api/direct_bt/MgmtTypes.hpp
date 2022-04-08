@@ -1172,10 +1172,10 @@ namespace direct_bt {
             }
         }
 
-        MgmtDefaultParam(const MgmtDefaultParam &o) noexcept = default;
-        MgmtDefaultParam(MgmtDefaultParam &&o) noexcept = default;
-        MgmtDefaultParam& operator=(const MgmtDefaultParam &o) noexcept = default;
-        MgmtDefaultParam& operator=(MgmtDefaultParam &&o) noexcept = default;
+        MgmtDefaultParam(const MgmtDefaultParam &o) = default;
+        MgmtDefaultParam(MgmtDefaultParam &&o) = default;
+        MgmtDefaultParam& operator=(const MgmtDefaultParam &o) = default;
+        MgmtDefaultParam& operator=(MgmtDefaultParam &&o) = default;
 
         /** 2 octets for type: [0x0000 - 0x001e], etc. */
         Type type;

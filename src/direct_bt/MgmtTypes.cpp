@@ -332,8 +332,8 @@ std::vector<MgmtDefaultParam> MgmtReadDefaultSysParamCmd::getParams(const uint8_
         if( !p.valid() ) {
             break;
         }
-        res.push_back(p);
         consumed += p.mgmt_size();
+        res.push_back( std::move(p) );
     }
     return res;
 }
