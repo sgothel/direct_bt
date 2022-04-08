@@ -267,8 +267,8 @@ std::string MgmtCommand::getOpcodeString(const Opcode op) noexcept {
     X(BREDR_INQUIRY_TYPE) \
     X(BREDR_INQUIRY_INTERVAL) \
     X(BREDR_INQUIRY_WINDOW) \
-    X(BREDR_LINK_SUPERVISOR_TIMEOUT_) \
-    X(BREDR_PAGE_TIMEOUT_) \
+    X(BREDR_LINK_SUPERVISOR_TIMEOUT) \
+    X(BREDR_PAGE_TIMEOUT) \
     X(BREDR_MIN_SNIFF_INTERVAL) \
     X(BREDR_MAX_SNIFF_INTERVAL) \
     X(LE_ADV_MIN_INTERVAL) \
@@ -301,46 +301,39 @@ std::string MgmtDefaultParam::getTypeString(const Type op) noexcept {
     return "Unknown Type";
 }
 
-MgmtDefaultParamU16 MgmtReadDefaultConnParamCmd::getParam(const MgmtDefaultParam::Type type, const uint8_t *data, const jau::nsize_t length) noexcept {
-    MgmtDefaultParamU16 res;
-    jau::nsize_t consumed = 0;
-    while( consumed < length && ( length - consumed ) >= 2U + 1U ) {
-        const MgmtDefaultParam * p = reinterpret_cast<const MgmtDefaultParam *>( data + consumed );
-        if( ( length - consumed ) < 2U + 1U + p->value_length ) {
-            break;
-        }
-        if( p->is_u16() ) {
-            const MgmtDefaultParamU16 * pu16 = reinterpret_cast<const MgmtDefaultParamU16 *>( data + consumed );
-            if( pu16->type == type ) {
-                res = *pu16;
-                return res;
-            }
-        }
-        consumed += 2 + 1 + p->value_length;
+MgmtDefaultParam MgmtDefaultParam::read(const uint8_t* data, const jau::nsize_t length) noexcept {
+    if( length < 2U ) {
+        return MgmtDefaultParam();
     }
-    return res;
+    const Type type = static_cast<Type>( jau::get_uint16(data, 0, true /* little_endian */) );
+    if( length < 2U + 1U ) {
+        return MgmtDefaultParam(type);
+    }
+    const uint8_t value_length = jau::get_uint8(data, 2);
+    if( value_length != to_size(type) ) {
+        return MgmtDefaultParam(type);
+    }
+    if( length < 2U + 1U + value_length ) {
+        return MgmtDefaultParam(type);
+    }
+    switch( value_length ) {
+        case 2:
+            return MgmtDefaultParam(type, jau::get_uint16(data, 2+1, true /* little */));
+        default:
+            return MgmtDefaultParam(type);
+    }
 }
 
-std::string MgmtReadDefaultConnParamCmd::replyToString(const uint8_t *data, const jau::nsize_t length) noexcept {
-    std::string res;
+std::vector<MgmtDefaultParam> MgmtReadDefaultSysParamCmd::getParams(const uint8_t *data, const jau::nsize_t length) noexcept {
+    std::vector<MgmtDefaultParam> res;
     jau::nsize_t consumed = 0;
-    jau::nsize_t param_count = 0;
-    while( consumed < length && ( length - consumed ) >= 2U + 1U ) {
-        const MgmtDefaultParam * p = reinterpret_cast<const MgmtDefaultParam *>( data + consumed );
-        if( ( length - consumed ) < 2U + 1U + p->value_length ) {
+    while( consumed < length && ( length - consumed ) > 2U + 1U ) {
+        MgmtDefaultParam p = MgmtDefaultParam::read(data+consumed, length-consumed);
+        if( !p.valid() ) {
             break;
         }
-        if( param_count > 0 ) {
-            res.append(", ");
-        }
-        if( p->is_u16() ) {
-            const MgmtDefaultParamU16 * pu16 = reinterpret_cast<const MgmtDefaultParamU16 *>( data + consumed );
-            res.append(pu16->toString());
-        } else {
-            res.append(p->toString());
-        }
-        consumed += 2 + 1 + p->value_length;
-        param_count++;
+        res.push_back(p);
+        consumed += p.mgmt_size();
     }
     return res;
 }

@@ -403,6 +403,15 @@ namespace direct_bt {
                                             const BTRole btRole, const BTMode btMode) noexcept;
 
             /**
+             * Read default connection parameter for given adapter to the kernel.
+             *
+             * @param dev_id
+             * @return list of MgmtDefaultParam if successful, empty if command failed.
+             * @since 2.6.3
+             */
+            std::vector<MgmtDefaultParam> readDefaultSysParam(const uint16_t dev_id) noexcept;
+
+            /**
              * Set default connection parameter for given adapter to the kernel.
              *
              * @param dev_id

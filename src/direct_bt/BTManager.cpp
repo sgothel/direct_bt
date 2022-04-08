@@ -696,10 +696,24 @@ MgmtStatus BTManager::setDiscoverable(const uint16_t dev_id, const uint8_t state
     return res;
 }
 
+std::vector<MgmtDefaultParam> BTManager::readDefaultSysParam(const uint16_t dev_id) noexcept {
+    MgmtReadDefaultSysParamCmd req(dev_id);
+    std::unique_ptr<MgmtEvent> res = sendWithReply(req);
+    DBG_PRINT("BTManager::readDefaultSysParam[%d]: %s, result %s", dev_id,
+            req.toString().c_str(), res->toString().c_str());
+    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+        if( MgmtStatus::SUCCESS == res1.getStatus() ) {
+            return MgmtReadDefaultSysParamCmd::getParams(res1.getData(), res1.getDataSize());
+        }
+    }
+    return std::vector<MgmtDefaultParam>();
+}
+
 bool BTManager::setDefaultConnParam(const uint16_t dev_id,
                                     const uint16_t conn_min_interval, const uint16_t conn_max_interval,
                                     const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
-    MgmtSetDefaultConnParamU16Cmd req(dev_id,
+    MgmtSetDefaultConnParamCmd req(dev_id,
                                       conn_min_interval, conn_max_interval,
                                       conn_latency, supervision_timeout);
     std::unique_ptr<MgmtEvent> res = sendWithReply(req);
