@@ -308,7 +308,21 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
 
     removeDeviceFromWhitelist(dev_id, BDAddressAndType::ANY_BREDR_DEVICE); // flush whitelist!
 
+    if( jau::environment::get().debug ) {
+        std::vector<MgmtDefaultParam> params = readDefaultSysParam(dev_id);
+        DBG_PRINT("BTManager::initializeAdapter[%d]: SysParam-Pre: %zd", dev_id, params.size());
+        for(size_t i=0; i<params.size(); ++i) {
+            jau::PLAIN_PRINT(true, "[%2.2zd]: %s", i, params[i].toString().c_str());
+        }
+    }
     setDefaultConnParam(dev_id); // using our defaults, exceeding BlueZ/Linux on the lower-end a bit
+    if( jau::environment::get().debug ) {
+        std::vector<MgmtDefaultParam> params = readDefaultSysParam(dev_id);
+        DBG_PRINT("BTManager::initializeAdapter[%d]: SysParam-Post: %zd", dev_id, params.size());
+        for(size_t i=0; i<params.size(); ++i) {
+            jau::PLAIN_PRINT(true, "[%2.2zd]: %s", i, params[i].toString().c_str());
+        }
+    }
 
     setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 1, current_settings);
 

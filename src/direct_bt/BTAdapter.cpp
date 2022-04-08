@@ -1410,7 +1410,13 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
         WARN_PRINT("Not allowed (%d connections open/pending): %s", connCount, toString(true).c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
-    // FIXME?? std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME: Fast restart of advertising error)
+    if( jau::environment::get().debug ) {
+        std::vector<MgmtDefaultParam> params = mgmt.readDefaultSysParam(dev_id);
+        DBG_PRINT("BTAdapter::startAdvertising[%d]: SysParam: %zd", dev_id, params.size());
+        for(size_t i=0; i<params.size(); ++i) {
+            jau::PLAIN_PRINT(true, "[%2.2zd]: %s", i, params[i].toString().c_str());
+        }
+    }
 
     l2cap_service.start();
 
