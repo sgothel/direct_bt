@@ -145,7 +145,7 @@ public class DBTGattChar extends DBTObject implements BTGattChar
             return null;
         }
         final DBTDevice device = service.wbr_device.get();
-        if( null != device ) {
+        if( null == device ) {
             return null;
         }
         final int size = descriptorList.size();
