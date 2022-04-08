@@ -541,7 +541,7 @@ static bool startAdvertising(BTAdapter *a, std::string msg) {
     eir.setServicesComplete(false);
 
     eir.setName(a->getName());
-    eir.setConnInterval(10, 24);
+    eir.setConnInterval(8, 24); // 10ms - 30ms
 
     DBGattCharRef gattDevNameChar = dbGattServer->findGattChar( jau::uuid16_t(GattServiceType::GENERIC_ACCESS),
                                                                 jau::uuid16_t(GattCharacteristicType::DEVICE_NAME) );

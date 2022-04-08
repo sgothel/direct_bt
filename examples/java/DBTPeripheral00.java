@@ -597,7 +597,7 @@ public class DBTPeripheral00 {
         eir.setServicesComplete(false);
 
         eir.setName(adapter.getName());
-        eir.setConnInterval((short)10, (short)24);
+        eir.setConnInterval((short)8, (short)24); // 10ms - 30ms
 
         final DBGattChar gattDevNameChar = dbGattServer.findGattChar(DBGattService.UUID16.GENERIC_ACCESS, DBGattChar.UUID16.DEVICE_NAME);
         if( null != gattDevNameChar ) {
