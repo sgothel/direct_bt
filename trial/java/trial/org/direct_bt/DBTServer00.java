@@ -754,11 +754,7 @@ public class DBTServer00 implements DBTServerTest {
         adapter.setSMPKeyPath(DBTConstants.SERVER_KEY_PATH);
 
         // adapter is powered-on
-        final AdapterStatusListener asl = new MyAdapterStatusListener();
-        adapter.addStatusListener( asl );
-        // Flush discovered devices after registering our status listener.
-        // This avoids discovered devices before we have registered!
-        adapter.removeDiscoveredDevices();
+        adapter.addStatusListener( new MyAdapterStatusListener() );
 
         adapter.setServerConnSecurity(adapterSecurityLevel, SMPIOCapability.UNSET);
 

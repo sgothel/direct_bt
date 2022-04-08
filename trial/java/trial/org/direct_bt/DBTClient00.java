@@ -639,8 +639,8 @@ public class DBTClient00 implements DBTClientTest {
             BTUtils.fprintf_td(System.err, "initClientAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
                                 res.toString(), Tx.toString(), Rx.toString());
         }
-        final AdapterStatusListener asl = new MyAdapterStatusListener();
-        adapter.addStatusListener( asl );
+        // adapter is powered-on
+        adapter.addStatusListener( new MyAdapterStatusListener() );
 
         return true;
     }

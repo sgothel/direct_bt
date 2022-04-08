@@ -709,9 +709,6 @@ public class DBTPeripheral00 {
         // adapter is powered-on
         final AdapterStatusListener asl = new MyAdapterStatusListener();
         adapter.addStatusListener( asl );
-        // Flush discovered devices after registering our status listener.
-        // This avoids discovered devices before we have registered!
-        adapter.removeDiscoveredDevices();
 
         adapter.setServerConnSecurity(adapter_sec_level, SMPIOCapability.UNSET);
 
