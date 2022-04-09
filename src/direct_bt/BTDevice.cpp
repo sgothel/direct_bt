@@ -137,6 +137,7 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
 }
 
 void BTDevice::clearData() noexcept {
+    // already done == performed on previous notidyDisconnected() !
     if( getConnected() ) {
         ERR_PRINT("Device still connected: %s", toString().c_str());
         return;
@@ -159,7 +160,7 @@ void BTDevice::clearData() noexcept {
     // isConnected = false; // already done
     // allowDisconnect = false; // already done
     // supervision_timeout = 0; // already done
-    clearSMPStates( false  /* connected */);
+    // clearSMPStates( false  /* connected */); // already done
 }
 
 EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
@@ -2175,7 +2176,7 @@ void BTDevice::notifyDisconnected() noexcept {
     disconnectGATT(1);
     disconnectSMP(1);
     l2cap_att->close();
-    clearData();
+    // clearData(); to be performed after notifying listener and if !isConnSecurityAutoEnabled()
 }
 
 void BTDevice::sendMgmtEvDeviceDisconnected(std::unique_ptr<MgmtEvent> evt) noexcept {

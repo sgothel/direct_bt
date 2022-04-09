@@ -1938,6 +1938,7 @@ bool BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
                 }
                 i++;
             });
+            device->clearData();
             removeDiscoveredDevice(device->addressAndType); // ensure device will cause a deviceFound event after disconnect
         }
     } else {
@@ -2036,6 +2037,7 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
                 }
                 i++;
             });
+            device->clearData();
             removeDiscoveredDevice(device->addressAndType); // ensure device will cause a deviceFound event after disconnect
         }
         if( BTRole::Slave == getRole() ) {
