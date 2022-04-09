@@ -1417,7 +1417,7 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
             jau::PLAIN_PRINT(true, "[%2.2zd]: %s", i, params[i].toString().c_str());
         }
     }
-
+    // FIXME?? std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME: Fast restart of advertising error)
     l2cap_service.start();
 
     // set minimum ...
