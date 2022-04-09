@@ -298,6 +298,10 @@ public class BTGattCmd implements AutoCloseable
      */
     public byte[] getResponse() { return rsp_data; }
 
+    private String rspDataToString() {
+        return null == rsp_data ? "null" : BTUtils.bytesHexString(rsp_data, 0, rsp_data.length, true /* lsbFirst */);
+    }
+
     /**
      * Query whether all UUIDs of this commands have been resolved.
      *
@@ -342,7 +346,7 @@ public class BTGattCmd implements AutoCloseable
             if( DEBUG ) {
                 BTUtils.fprintf_td(System.err, "BTGattCmd.sendBlocking: Start: Cmd %s, args[%s], Resp %s, result[%s]",
                         cmdCharRef.toString(), cmd_data.toString(),
-                        rspCharStr(), rsp_data.toString());
+                        rspCharStr(), rspDataToString());
             }
 
             final boolean hasWriteNoAck = cmdCharRef.getProperties().isSet(GattCharPropertySet.Type.WriteNoAck);
@@ -401,7 +405,7 @@ public class BTGattCmd implements AutoCloseable
         if( DEBUG && HCIStatusCode.SUCCESS == res ) {
             BTUtils.fprintf_td(System.err, "BTGattCmd.sendBlocking: OK: Cmd %s, args[%s], Resp %s, result[%s]\n",
                     cmdCharRef.toString(), BTUtils.bytesHexString(cmd_data, 0, cmd_data.length, true /* lsbFirst */),
-                    rspCharStr(), rsp_data.toString());
+                    rspCharStr(), rspDataToString());
         }
         return res;
     }
