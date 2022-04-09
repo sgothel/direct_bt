@@ -141,6 +141,7 @@ void BTDevice::clearData() noexcept {
         ERR_PRINT("Device still connected: %s", toString().c_str());
         return;
     }
+    btRole = !adapter.getRole(); // update role
     // l2cap_att->close(); // already done
     // ts_last_discovery = 0; // leave
     // ts_last_update = 0; // leave
@@ -163,6 +164,8 @@ void BTDevice::clearData() noexcept {
 
 EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
+
+    btRole = !adapter.getRole(); // update role
 
     // Update eir CoW style
     std::shared_ptr<EInfoReport> eir_new( std::make_shared<EInfoReport>( *eir ) );
