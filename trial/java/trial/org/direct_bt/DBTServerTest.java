@@ -31,17 +31,6 @@ import org.junit.Assert;
 
 public interface DBTServerTest extends DBTEndpoint {
 
-    @Override
-    boolean initAdapter(BTAdapter adapter);
-
-    @Override
-    void setAdapter(BTAdapter serverAdapter);
-
-    @Override
-    BTAdapter getAdapter();
-
-    String getName();
-
     BTSecurityLevel getSecurityLevel();
 
     HCIStatusCode stopAdvertising(BTAdapter adapter, String msg);

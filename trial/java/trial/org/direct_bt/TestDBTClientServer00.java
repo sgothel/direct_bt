@@ -24,7 +24,6 @@
 
 package trial.org.direct_bt;
 
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.List;
@@ -39,7 +38,6 @@ import org.direct_bt.BTManager;
 import org.direct_bt.BTUtils;
 import org.jau.net.EUI48;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
@@ -102,8 +100,8 @@ public class TestDBTClientServer00 extends BaseDBTClientServer {
             return;
         }
 
-        final String serverName = "TestDBTCS00-T10";
-        final DBTServer00 server = new DBTServer00(EUI48.ALL_DEVICE, BTMode.DUAL, true /* SC */, serverName, BTSecurityLevel.NONE);
+        final String serverName = "TestDBTCS00-S-T10";
+        final DBTServer00 server = new DBTServer00(serverName, EUI48.ALL_DEVICE, BTMode.DUAL, true /* SC */, BTSecurityLevel.NONE);
         server.servingConnectionsLeft.set(1);
 
         final DBTEndpoint.ChangedAdapterSetListener myChangedAdapterSetListener =

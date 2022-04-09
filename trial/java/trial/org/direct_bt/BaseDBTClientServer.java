@@ -124,6 +124,10 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
                 Assert.assertTrue( a.setPowered(false) );
             }
         }
+        BTDeviceRegistry.clearWaitForDevices();
+        BTDeviceRegistry.clearProcessedDevices();
+        BTDeviceRegistry.clearProcessingDevices();
+        BTSecurityRegistry.clear();
     }
 
     /**

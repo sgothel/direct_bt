@@ -30,15 +30,6 @@ import org.junit.Assert;
 
 public interface DBTClientTest extends DBTEndpoint {
 
-    @Override
-    boolean initAdapter(BTAdapter adapter);
-
-    @Override
-    void setAdapter(BTAdapter clientAdapter);
-
-    @Override
-    BTAdapter getAdapter();
-
     HCIStatusCode startDiscovery(BTAdapter adapter, String msg);
 
     HCIStatusCode stopDiscovery(BTAdapter adapter, String msg);

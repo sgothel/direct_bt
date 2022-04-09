@@ -67,32 +67,32 @@ public class DBTServer00 implements DBTServerTest {
     final boolean GATT_VERBOSE = false;
     boolean SHOW_UPDATE_EVENTS = false;
 
+    final String adapterShortName = "TDev1Srv";
+    String adapterName = "TestDev1_Srv";
     EUI48 useAdapter = EUI48.ALL_DEVICE;
     BTMode btMode = BTMode.DUAL;
     boolean use_SC = true;
-    String adapterName = "TestDev001_J";
-    final String adapterShortName = "TDev001J";
     BTSecurityLevel adapterSecurityLevel = BTSecurityLevel.UNSET;
     BTAdapter serverAdapter = null;
 
     public AtomicInteger servingConnectionsLeft = new AtomicInteger(1);
     public AtomicInteger servedConnections = new AtomicInteger(0);
 
-    public DBTServer00(final EUI48 useAdapter, final BTMode btMode, final boolean use_SC, final String adapterName, final BTSecurityLevel adapterSecurityLevel) {
+    public DBTServer00(final String adapterName, final EUI48 useAdapter, final BTMode btMode, final boolean use_SC, final BTSecurityLevel adapterSecurityLevel) {
+        this.adapterName = adapterName;
         this.useAdapter = useAdapter;
         this.btMode = btMode;
         this.use_SC = use_SC;
-        this.adapterName = adapterName;
         this.adapterSecurityLevel = adapterSecurityLevel;
 
         final MyGATTServerListener listener = new MyGATTServerListener();
         dbGattServer.addListener( listener );
     }
-    public DBTServer00(final EUI48 useAdapter, final String adapterName, final BTSecurityLevel adapterSecurityLevel) {
-        this(useAdapter, BTMode.DUAL, true /* SC */, adapterName, adapterSecurityLevel);
+    public DBTServer00(final String adapterName, final EUI48 useAdapter, final BTSecurityLevel adapterSecurityLevel) {
+        this(adapterName, useAdapter, BTMode.DUAL, true /* SC */, adapterSecurityLevel);
     }
     public DBTServer00(final String adapterName, final BTSecurityLevel adapterSecurityLevel) {
-        this(EUI48.ALL_DEVICE, BTMode.DUAL, true /* SC */, adapterName, adapterSecurityLevel);
+        this(adapterName, EUI48.ALL_DEVICE, BTMode.DUAL, true /* SC */, adapterSecurityLevel);
     }
 
     @Override
@@ -744,7 +744,8 @@ public class DBTServer00 implements DBTServerTest {
             final LE_Features le_feats = adapter.getLEFeatures();
             BTUtils.fprintf_td(System.err, "initServerAdapter: LE_Features %s\n", le_feats.toString());
         }
-        {
+        if( adapter.getBTMajorVersion() > 4 ) {
+            // BT5 specific
             final LE_PHYs Tx = new LE_PHYs( LE_PHYs.PHY.LE_2M );
             final LE_PHYs Rx = new LE_PHYs( LE_PHYs.PHY.LE_2M );
             final HCIStatusCode res = adapter.setDefaultLE_PHY(Tx, Rx);

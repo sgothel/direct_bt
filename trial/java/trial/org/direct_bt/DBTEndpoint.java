@@ -35,10 +35,37 @@ import org.junit.Assert;
 
 public interface DBTEndpoint {
 
-    void setAdapter(BTAdapter serverAdapter);
+    /**
+     * Return name of this endpoint,
+     * which becomes the adapter's name.
+     */
+    String getName();
 
+    /**
+     * Set the server adapter for this endpoint.
+     *
+     * This is done in {@link ChangedAdapterSetListener#adapterAdded(BTAdapter)}
+     * if {@link #initAdapter(BTAdapter)} returned true.
+     *
+     * @param a the associate adapter for this endpoint.
+     */
+    void setAdapter(BTAdapter a);
+
+    /**
+     * Return the adapter for this endpoint.
+     */
     BTAdapter getAdapter();
 
+    /**
+     * Initialize the given adapter for this endpoint.
+     *
+     * The matching and successfully initialized adapter
+     * will become this endpoint's associated adapter via {@link #setAdapter(BTAdapter)},
+     * as performed in in {@link ChangedAdapterSetListener#adapterAdded(BTAdapter)}.
+     *
+     * @param adapter the potential associated adapter for this endpoint.
+     * @return true if successful and associated
+     */
     boolean initAdapter(BTAdapter adapter);
 
     public static void checkInitializedState(final DBTEndpoint endp) {

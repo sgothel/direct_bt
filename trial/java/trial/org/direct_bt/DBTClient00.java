@@ -82,6 +82,8 @@ public class DBTClient00 implements DBTClientTest {
 
     final long timestamp_t0 = BTUtils.startupTimeMillis();
 
+    final String adapterShortName = "TDev2Clt";
+    String adapterName = "TestDev2_Clt";
     EUI48 useAdapter = EUI48.ALL_DEVICE;
     BTMode btMode = BTMode.DUAL;
     BTAdapter clientAdapter = null;
@@ -96,10 +98,15 @@ public class DBTClient00 implements DBTClientTest {
 
     final byte cmd_arg = (byte)0x44;
 
-    public DBTClient00(final EUI48 useAdapter, final BTMode btMode) {
+    public DBTClient00(final String adapterName, final EUI48 useAdapter, final BTMode btMode) {
+        this.adapterName = adapterName;
         this.useAdapter = useAdapter;
         this.btMode = btMode;
     }
+
+    @Override
+    public String getName() { return adapterName; }
+
     @Override
     public void setAdapter(final BTAdapter clientAdapter) {
         this.clientAdapter = clientAdapter;
@@ -626,12 +633,31 @@ public class DBTClient00 implements DBTClientTest {
             return false;
         }
         // adapter is powered-on
-        BTUtils.fprintf_td(System.err, "initClientAdapter: %s\n", adapter.toString());
+        BTUtils.fprintf_td(System.err, "initClientAdapter.1: %s\n", adapter.toString());
+
+        if( adapter.setPowered(false) ) {
+            final HCIStatusCode status = adapter.setName(adapterName, adapterShortName);
+            if( HCIStatusCode.SUCCESS == status ) {
+                BTUtils.fprintf_td(System.err, "initClientAdapter: setLocalName OK: %s\n", adapter.toString());
+            } else {
+                BTUtils.fprintf_td(System.err, "initClientAdapter: setLocalName failed: %s\n", adapter.toString());
+                return false;
+            }
+            if( !adapter.setPowered( true ) ) {
+                BTUtils.fprintf_td(System.err, "initClientAdapter: setPower.2 on failed: %s\n", adapter.toString());
+                return false;
+            }
+        } else {
+            BTUtils.fprintf_td(System.err, "initClientAdapter: setPowered.2 off failed: %s\n", adapter.toString());
+        }
+        BTUtils.println(System.err, "initClientAdapter.2: "+adapter.toString());
+
         {
             final LE_Features le_feats = adapter.getLEFeatures();
             BTUtils.fprintf_td(System.err, "initClientAdapter: LE_Features %s\n", le_feats.toString());
         }
-        {
+        if( adapter.getBTMajorVersion() > 4 ) {
+            // BT5 specific
             final LE_PHYs Tx = new LE_PHYs(LE_PHYs.PHY.LE_2M);
             final LE_PHYs Rx = new LE_PHYs(LE_PHYs.PHY.LE_2M);
 
