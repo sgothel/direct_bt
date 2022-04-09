@@ -136,6 +136,31 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
     return out;
 }
 
+void BTDevice::clearData() noexcept {
+    if( getConnected() ) {
+        ERR_PRINT("Device still connected: %s", toString().c_str());
+        return;
+    }
+    // l2cap_att->close(); // already done
+    // ts_last_discovery = 0; // leave
+    // ts_last_update = 0; // leave
+    name.clear();
+    rssi = 127; // The core spec defines 127 as the "not available" value
+    tx_power = 127; // The core spec defines 127 as the "not available" value
+    {
+        const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
+        eir = std::make_shared<EInfoReport>();
+    }
+    // hciConnHandle = 0; // already done
+    le_features = LE_Features::NONE;
+    le_phy_tx = LE_PHYs::NONE;
+    le_phy_rx = LE_PHYs::NONE;
+    // isConnected = false; // already done
+    // allowDisconnect = false; // already done
+    // supervision_timeout = 0; // already done
+    clearSMPStates( false  /* connected */);
+}
+
 EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
 
@@ -2147,10 +2172,7 @@ void BTDevice::notifyDisconnected() noexcept {
     disconnectGATT(1);
     disconnectSMP(1);
     l2cap_att->close();
-    {
-        const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
-        eir = std::make_shared<EInfoReport>();
-    }
+    clearData();
 }
 
 void BTDevice::sendMgmtEvDeviceDisconnected(std::unique_ptr<MgmtEvent> evt) noexcept {

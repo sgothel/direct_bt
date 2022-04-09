@@ -156,6 +156,8 @@ namespace direct_bt {
                 return std::make_shared<BTDevice>(BTDevice::ctor_cookie(0), adapter, r);
             }
 
+            void clearData() noexcept;
+
             EIRDataType update(EInfoReport const & data) noexcept;
             EIRDataType update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept;
 
