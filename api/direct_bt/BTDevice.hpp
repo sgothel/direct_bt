@@ -89,10 +89,8 @@ namespace direct_bt {
             jau::ordered_atomic<LE_Features, std::memory_order_relaxed> le_features;
             jau::ordered_atomic<LE_PHYs, std::memory_order_relaxed> le_phy_tx;
             jau::ordered_atomic<LE_PHYs, std::memory_order_relaxed> le_phy_rx;
-#if SMP_SUPPORTED_BY_OS
             std::shared_ptr<SMPHandler> smpHandler = nullptr;
             std::recursive_mutex mtx_smpHandler;
-#endif
             std::shared_ptr<BTGattHandler> gattHandler = nullptr;
             mutable std::recursive_mutex mtx_gattHandler;
             mutable std::recursive_mutex mtx_connect;

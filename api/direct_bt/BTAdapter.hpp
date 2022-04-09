@@ -1046,7 +1046,7 @@ namespace direct_bt {
                                          const bool filter_dup=true) noexcept;
 
         private:
-            HCIStatusCode stopDiscovery(const bool forceDiscoveringEvent, const bool temporary) noexcept;
+            HCIStatusCode stopDiscoveryImpl(const bool forceDiscoveringEvent, const bool temporary) noexcept;
 
         public:
             /**

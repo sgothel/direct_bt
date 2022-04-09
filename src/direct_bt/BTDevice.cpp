@@ -616,11 +616,9 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
             l2cap_open = l2cap_att->open(*this, sec_level); // initiates hciSMPMsgCallback() if sec_level > BT_SECURITY_LOW
         }
         const bool l2cap_enc = l2cap_open && BTSecurityLevel::NONE < sec_level;
-#if SMP_SUPPORTED_BY_OS
-        const bool smp_enc = connectSMP(sthis, sec_level) && BTSecurityLevel::NONE < sec_level;
-#else
-        const bool smp_enc = false;
-#endif
+
+        const bool smp_enc = SMP_SUPPORTED_BY_OS ? connectSMP(sthis, sec_level) && BTSecurityLevel::NONE < sec_level : false;
+
         DBG_PRINT("BTDevice::processL2CAPSetup: lvl %s, connect[smp_enc %d, l2cap[open %d, enc %d]]",
                 to_string(sec_level).c_str(), smp_enc, l2cap_open, l2cap_enc);
 
@@ -830,41 +828,42 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                     //
                     // No SMP pairing in process (maybe REQUESTED_BY_RESPONDER at maximum),
                     //
-#if CONSIDER_HCI_CMD_FOR_SMP_STATE
-                    if( MgmtEvent::Opcode::HCI_LE_ENABLE_ENC == mgmtEvtOpcode &&
-                        HCIStatusCode::SUCCESS == evtStatus )
-                    {
-                        // 3a
-                        // No SMP pairing in process (maybe REQUESTED_BY_RESPONDER at maximum),
-                        // i.e. prepairing or already paired, reusing keys and usable connection
-                        //
-                        // Local BTRole::Master initiator
-                        // Encryption key is associated with the remote device having role BTRole::Slave (responder).
-                        const MgmtEvtHCILEEnableEncryptionCmd& event = *static_cast<const MgmtEvtHCILEEnableEncryptionCmd *>(&evt);
-                        const bool use_auth = BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn;
-                        const SMPLongTermKey smp_ltk = event.toSMPLongTermKeyInfo(pairing_data.use_sc, use_auth);
-                        if( smp_ltk.isValid() ) {
-                            if( pairing_data.use_sc ) { // in !SC mode, SMP will deliver different keys!
-                                // Secure Connections (SC) use AES sync key for both, initiator and responder.
-                                // true == smp_ltk.isResponder()
-                                if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) == SMPKeyType::NONE ) { // no overwrite
-                                    pairing_data.ltk_resp = smp_ltk;
-                                    pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY;
-                                    if( pairing_data.use_sc &&
-                                        ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyType::NONE ) // no overwrite
-                                    {
-                                        pairing_data.ltk_init = smp_ltk;
-                                        pairing_data.ltk_init.properties &= ~SMPLongTermKey::Property::RESPONDER; // enforce for SC
-                                        pairing_data.keys_init_has |= SMPKeyType::ENC_KEY;
+                    if constexpr ( CONSIDER_HCI_CMD_FOR_SMP_STATE ) {
+                        if( MgmtEvent::Opcode::HCI_LE_ENABLE_ENC == mgmtEvtOpcode &&
+                            HCIStatusCode::SUCCESS == evtStatus )
+                        {
+                            // 3a
+                            // No SMP pairing in process (maybe REQUESTED_BY_RESPONDER at maximum),
+                            // i.e. prepairing or already paired, reusing keys and usable connection
+                            //
+                            // Local BTRole::Master initiator
+                            // Encryption key is associated with the remote device having role BTRole::Slave (responder).
+                            const MgmtEvtHCILEEnableEncryptionCmd& event = *static_cast<const MgmtEvtHCILEEnableEncryptionCmd *>(&evt);
+                            const bool use_auth = BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn;
+                            const SMPLongTermKey smp_ltk = event.toSMPLongTermKeyInfo(pairing_data.use_sc, use_auth);
+                            if( smp_ltk.isValid() ) {
+                                if( pairing_data.use_sc ) { // in !SC mode, SMP will deliver different keys!
+                                    // Secure Connections (SC) use AES sync key for both, initiator and responder.
+                                    // true == smp_ltk.isResponder()
+                                    if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) == SMPKeyType::NONE ) { // no overwrite
+                                        pairing_data.ltk_resp = smp_ltk;
+                                        pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY;
+                                        if( pairing_data.use_sc &&
+                                            ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyType::NONE ) // no overwrite
+                                        {
+                                            pairing_data.ltk_init = smp_ltk;
+                                            pairing_data.ltk_init.properties &= ~SMPLongTermKey::Property::RESPONDER; // enforce for SC
+                                            pairing_data.keys_init_has |= SMPKeyType::ENC_KEY;
+                                        }
                                     }
                                 }
+                                mode = PairingMode::PRE_PAIRED;
+                                // Waiting for HCI_ENC_CHANGED or HCI_ENC_KEY_REFRESH_COMPLETE
                             }
-                            mode = PairingMode::PRE_PAIRED;
-                            // Waiting for HCI_ENC_CHANGED or HCI_ENC_KEY_REFRESH_COMPLETE
+                            claimed_state = pairing_data.state; // not yet
+                            break; // case SMPPairingState::COMPLETED:
                         }
-                        claimed_state = pairing_data.state; // not yet
-                    } else
-#endif /* SMPHandler CONSIDER_HCI_CMD_FOR_SMP_STATE */
+                    }
                     if( MgmtEvent::Opcode::HCI_ENC_CHANGED == mgmtEvtOpcode &&
                         HCIStatusCode::SUCCESS == evtStatus )
                     {
@@ -890,84 +889,88 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                     //
                     // SMPPairingState::KEY_DISTRIBUTION
                     //
+                    if constexpr ( CONSIDER_HCI_CMD_FOR_SMP_STATE ) {
+                        if( MgmtEvent::Opcode::HCI_LE_ENABLE_ENC == mgmtEvtOpcode ) {
+                            // 4b
+                            // Local BTRole::Master initiator
+                            // Encryption key is associated with the remote device having role BTRole::Slave (responder).
+                            const MgmtEvtHCILEEnableEncryptionCmd& event = *static_cast<const MgmtEvtHCILEEnableEncryptionCmd *>(&evt);
+                            const bool use_auth = BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn;
+                            const SMPLongTermKey smp_ltk = event.toSMPLongTermKeyInfo(pairing_data.use_sc, use_auth);
+                            if( smp_ltk.isValid() ) {
+                                if( pairing_data.use_sc ) { // in !SC mode, SMP will deliver different keys!
+                                    // Secure Connections (SC) use AES sync key for both, initiator and responder.
+                                    // true == smp_ltk.isResponder()
+                                    if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) == SMPKeyType::NONE ) { // no overwrite
+                                        pairing_data.ltk_resp = smp_ltk;
+                                        pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY;
+                                        if( pairing_data.use_sc &&
+                                            ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyType::NONE ) // no overwrite
+                                        {
+                                            pairing_data.ltk_init = smp_ltk;
+                                            pairing_data.ltk_init.properties &= ~SMPLongTermKey::Property::RESPONDER; // enforce for SC
+                                            pairing_data.keys_init_has |= SMPKeyType::ENC_KEY;
+                                        }
+                                    }
+                                }
+                                // Waiting for HCI_ENC_CHANGED or HCI_ENC_KEY_REFRESH_COMPLETE
+                            }
+                            claimed_state = pairing_data.state; // not yet
+                            break; // case SMPPairingState::COMPLETED:
+                        } else if( MgmtEvent::Opcode::HCI_LE_LTK_REQUEST == mgmtEvtOpcode ) {
+                            // 4c
+                            // Local BTRole::Slave responder
+                            const MgmtEvtHCILELTKReq& event = *static_cast<const MgmtEvtHCILELTKReq *>(&evt);
+                            const bool use_auth = BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn;
+                            const SMPLongTermKey smp_ltk = event.toSMPLongTermKeyInfo(pairing_data.use_sc, use_auth);
+                            { // if( smp_ltk.isValid() ) // not yet valid
+                                if( pairing_data.use_sc ) { // in !SC mode, SMP will deliver different keys!
+                                    // true == smp_ltk.isResponder()
+                                    if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyType::NONE ) { // no overwrite
+                                        pairing_data.ltk_resp = smp_ltk;
+                                        // pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY; // not yet -> LE_LTK_REPLY_ACK LTK { LTK }
+                                    }
+                                }
+                                // Waiting for LE_LTK_REPLY_ACK { LTK }
+                            }
+                            claimed_state = pairing_data.state; // not yet
+                            break; // case SMPPairingState::COMPLETED:
+                        } else if( MgmtEvent::Opcode::HCI_LE_LTK_REPLY_ACK == mgmtEvtOpcode ) {
+                            // 4d
+                            // Local BTRole::Slave responder
+                            const MgmtEvtHCILELTKReplyAckCmd& event = *static_cast<const MgmtEvtHCILELTKReplyAckCmd *>(&evt);
+                            SMPLongTermKey smp_ltk = pairing_data.ltk_resp;
+                            smp_ltk.enc_size = 16; // valid now;
+                            smp_ltk.ltk = event.getLTK();
+                            if( smp_ltk.isValid() ) {
+                                if( pairing_data.use_sc ) { // in !SC mode, SMP will deliver different keys!
+                                    // Secure Connections (SC) use AES sync key for both, initiator and responder.
+                                    // true == smp_ltk.isResponder()
+                                    if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) == SMPKeyType::NONE ) { // no overwrite
+                                        pairing_data.ltk_resp = smp_ltk;
+                                        pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY;
+                                        if( pairing_data.use_sc &&
+                                            ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyType::NONE ) // no overwrite
+                                        {
+                                            pairing_data.ltk_init = smp_ltk;
+                                            pairing_data.ltk_init.properties &= ~SMPLongTermKey::Property::RESPONDER; // enforce for SC
+                                            pairing_data.keys_init_has |= SMPKeyType::ENC_KEY;
+                                        }
+                                        check_pairing_complete = true;
+                                    }
+                                }
+                            }
+                            if( !check_pairing_complete ) {
+                                claimed_state = pairing_data.state; // invalid smp_ltk or no overwrite
+                            }
+                            break; // case SMPPairingState::COMPLETED:
+                        }
+                    }
                     if( MgmtEvent::Opcode::HCI_ENC_CHANGED == mgmtEvtOpcode ||
                         MgmtEvent::Opcode::HCI_ENC_KEY_REFRESH_COMPLETE == mgmtEvtOpcode ) {
                         // 4a
                         pairing_data.encryption_enabled = true;
                         check_pairing_complete = true;
-#if CONSIDER_HCI_CMD_FOR_SMP_STATE
-                    } else if( MgmtEvent::Opcode::HCI_LE_ENABLE_ENC == mgmtEvtOpcode ) {
-                        // 4b
-                        // Local BTRole::Master initiator
-                        // Encryption key is associated with the remote device having role BTRole::Slave (responder).
-                        const MgmtEvtHCILEEnableEncryptionCmd& event = *static_cast<const MgmtEvtHCILEEnableEncryptionCmd *>(&evt);
-                        const bool use_auth = BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn;
-                        const SMPLongTermKey smp_ltk = event.toSMPLongTermKeyInfo(pairing_data.use_sc, use_auth);
-                        if( smp_ltk.isValid() ) {
-                            if( pairing_data.use_sc ) { // in !SC mode, SMP will deliver different keys!
-                                // Secure Connections (SC) use AES sync key for both, initiator and responder.
-                                // true == smp_ltk.isResponder()
-                                if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) == SMPKeyType::NONE ) { // no overwrite
-                                    pairing_data.ltk_resp = smp_ltk;
-                                    pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY;
-                                    if( pairing_data.use_sc &&
-                                        ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyType::NONE ) // no overwrite
-                                    {
-                                        pairing_data.ltk_init = smp_ltk;
-                                        pairing_data.ltk_init.properties &= ~SMPLongTermKey::Property::RESPONDER; // enforce for SC
-                                        pairing_data.keys_init_has |= SMPKeyType::ENC_KEY;
-                                    }
-                                }
-                            }
-                            // Waiting for HCI_ENC_CHANGED or HCI_ENC_KEY_REFRESH_COMPLETE
-                        }
-                        claimed_state = pairing_data.state; // not yet
-                    } else if( MgmtEvent::Opcode::HCI_LE_LTK_REQUEST == mgmtEvtOpcode ) {
-                        // 4c
-                        // Local BTRole::Slave responder
-                        const MgmtEvtHCILELTKReq& event = *static_cast<const MgmtEvtHCILELTKReq *>(&evt);
-                        const bool use_auth = BTSecurityLevel::ENC_AUTH <= pairing_data.sec_level_conn;
-                        const SMPLongTermKey smp_ltk = event.toSMPLongTermKeyInfo(pairing_data.use_sc, use_auth);
-                        { // if( smp_ltk.isValid() ) // not yet valid
-                            if( pairing_data.use_sc ) { // in !SC mode, SMP will deliver different keys!
-                                // true == smp_ltk.isResponder()
-                                if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyType::NONE ) { // no overwrite
-                                    pairing_data.ltk_resp = smp_ltk;
-                                    // pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY; // not yet -> LE_LTK_REPLY_ACK LTK { LTK }
-                                }
-                            }
-                            // Waiting for LE_LTK_REPLY_ACK { LTK }
-                        }
-                        claimed_state = pairing_data.state; // not yet
-                    } else if( MgmtEvent::Opcode::HCI_LE_LTK_REPLY_ACK == mgmtEvtOpcode ) {
-                        // 4d
-                        // Local BTRole::Slave responder
-                        const MgmtEvtHCILELTKReplyAckCmd& event = *static_cast<const MgmtEvtHCILELTKReplyAckCmd *>(&evt);
-                        SMPLongTermKey smp_ltk = pairing_data.ltk_resp;
-                        smp_ltk.enc_size = 16; // valid now;
-                        smp_ltk.ltk = event.getLTK();
-                        if( smp_ltk.isValid() ) {
-                            if( pairing_data.use_sc ) { // in !SC mode, SMP will deliver different keys!
-                                // Secure Connections (SC) use AES sync key for both, initiator and responder.
-                                // true == smp_ltk.isResponder()
-                                if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) == SMPKeyType::NONE ) { // no overwrite
-                                    pairing_data.ltk_resp = smp_ltk;
-                                    pairing_data.keys_resp_has |= SMPKeyType::ENC_KEY;
-                                    if( pairing_data.use_sc &&
-                                        ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) == SMPKeyType::NONE ) // no overwrite
-                                    {
-                                        pairing_data.ltk_init = smp_ltk;
-                                        pairing_data.ltk_init.properties &= ~SMPLongTermKey::Property::RESPONDER; // enforce for SC
-                                        pairing_data.keys_init_has |= SMPKeyType::ENC_KEY;
-                                    }
-                                    check_pairing_complete = true;
-                                }
-                            }
-                        }
-                        if( !check_pairing_complete ) {
-                            claimed_state = pairing_data.state; // invalid smp_ltk or no overwrite
-                        }
-#endif /* SMPHandler CONSIDER_HCI_CMD_FOR_SMP_STATE */
                     } else if( MgmtEvent::Opcode::NEW_LONG_TERM_KEY == mgmtEvtOpcode ) { /* Legacy: 2; SC: 2 (synthetic by mgmt) */
                         // 4e
                         // SMP pairing has started, mngr issued new LTK command
@@ -1492,71 +1495,71 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
         return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
     }
     const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
-#if USE_LINUX_BT_SECURITY
-    BTManager & mngr = adapter.getManager();
-    HCIStatusCode res = HCIStatusCode::SUCCESS;
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        BTManager & mngr = adapter.getManager();
+        HCIStatusCode res = HCIStatusCode::SUCCESS;
 
-    if( BTRole::Slave == btRole ) {
-        // Remote device is slave (peripheral, responder), we are master (initiator)
-        if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
-            res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_init);
-            DBG_PRINT("BTDevice::uploadKeys.LTK[Remote slave, master/init]: %s", to_string(res).c_str());
-            if( HCIStatusCode::SUCCESS != res ) {
-                return res;
+        if( BTRole::Slave == btRole ) {
+            // Remote device is slave (peripheral, responder), we are master (initiator)
+            if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
+                res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_init);
+                DBG_PRINT("BTDevice::uploadKeys.LTK[Remote slave, master/init]: %s", to_string(res).c_str());
+                if( HCIStatusCode::SUCCESS != res ) {
+                    return res;
+                }
+            }
+
+            if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
+                res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_resp);
+                DBG_PRINT("BTDevice::uploadKeys.LTK[Remote slave, peripheral/resp]: %s", to_string(res).c_str());
+                if( HCIStatusCode::SUCCESS != res ) {
+                    return res;
+                }
+            }
+        } else {
+            // Remote device is master (initiator), we are slave (peripheral, responder)
+            if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
+                res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_resp);
+                DBG_PRINT("BTDevice::uploadKeys.LTK[Remote master, peripheral/resp]: %s", to_string(res).c_str());
+                if( HCIStatusCode::SUCCESS != res ) {
+                    return res;
+                }
+            }
+
+            if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
+                res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_init);
+                DBG_PRINT("BTDevice::uploadKeys.LTK[Remote master, master/init]: %s", to_string(res).c_str());
+                if( HCIStatusCode::SUCCESS != res ) {
+                    return res;
+                }
             }
         }
 
-        if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
-            res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_resp);
-            DBG_PRINT("BTDevice::uploadKeys.LTK[Remote slave, peripheral/resp]: %s", to_string(res).c_str());
-            if( HCIStatusCode::SUCCESS != res ) {
-                return res;
+        if( BDAddressType::BDADDR_BREDR != addressAndType.type ) {
+            // Not supported
+            DBG_PRINT("BTDevice::uploadKeys: Upload LK for LE address not supported -> ignored: %s", toString().c_str());
+            return HCIStatusCode::SUCCESS;
+        }
+
+        if( BTRole::Slave == btRole ) {
+            // Remote device is slave (peripheral, responder), we are master (initiator)
+            if( ( SMPKeyType::LINK_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
+                res = mngr.uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_init);
+                DBG_PRINT("BTDevice::uploadKeys.LK[Remote slave]: %s", to_string(res).c_str());
+            }
+        } else {
+            // Remote device is master (initiator), we are slave (peripheral, responder)
+            if( ( SMPKeyType::LINK_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
+                res = mngr.uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_resp);
+                DBG_PRINT("BTDevice::uploadKeys.LK[Remote master]: %s", to_string(res).c_str());
             }
         }
+        return res;
+    } else if constexpr ( SMP_SUPPORTED_BY_OS ) {
+        return HCIStatusCode::NOT_SUPPORTED;
     } else {
-        // Remote device is master (initiator), we are slave (peripheral, responder)
-        if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
-            res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_resp);
-            DBG_PRINT("BTDevice::uploadKeys.LTK[Remote master, peripheral/resp]: %s", to_string(res).c_str());
-            if( HCIStatusCode::SUCCESS != res ) {
-                return res;
-            }
-        }
-
-        if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
-            res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_init);
-            DBG_PRINT("BTDevice::uploadKeys.LTK[Remote master, master/init]: %s", to_string(res).c_str());
-            if( HCIStatusCode::SUCCESS != res ) {
-                return res;
-            }
-        }
+        return HCIStatusCode::NOT_SUPPORTED;
     }
-
-    if( BDAddressType::BDADDR_BREDR != addressAndType.type ) {
-        // Not supported
-        DBG_PRINT("BTDevice::uploadKeys: Upload LK for LE address not supported -> ignored: %s", toString().c_str());
-        return HCIStatusCode::SUCCESS;
-    }
-
-    if( BTRole::Slave == btRole ) {
-        // Remote device is slave (peripheral, responder), we are master (initiator)
-        if( ( SMPKeyType::LINK_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
-            res = mngr.uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_init);
-            DBG_PRINT("BTDevice::uploadKeys.LK[Remote slave]: %s", to_string(res).c_str());
-        }
-    } else {
-        // Remote device is master (initiator), we are slave (peripheral, responder)
-        if( ( SMPKeyType::LINK_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
-            res = mngr.uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_resp);
-            DBG_PRINT("BTDevice::uploadKeys.LK[Remote master]: %s", to_string(res).c_str());
-        }
-    }
-    return res;
-#elif SMP_SUPPORTED_BY_OS
-    return HCIStatusCode::NOT_SUPPORTED;
-#else
-    return HCIStatusCode::NOT_SUPPORTED;
-#endif
 }
 
 SMPLongTermKey BTDevice::getLongTermKey(const bool responder) const noexcept {
@@ -1722,19 +1725,17 @@ HCIStatusCode BTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
     {
         WARN_PRINT("BTDevice:mgmt:SMP: PASSKEY '%u', state %s, wrong state", passkey, to_string(pairing_data.state).c_str());
     }
-#if USE_LINUX_BT_SECURITY
-    {
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
         BTManager& mngr = adapter.getManager();
         MgmtStatus res = mngr.userPasskeyReply(adapter.dev_id, addressAndType, passkey);
         DBG_PRINT("BTDevice:mgmt:SMP: PASSKEY '%d', state %s, result %s",
             passkey, to_string(pairing_data.state).c_str(), to_string(res).c_str());
         return HCIStatusCode::SUCCESS;
+    } else if constexpr ( SMP_SUPPORTED_BY_OS ) {
+        return HCIStatusCode::NOT_SUPPORTED;
+    } else {
+        return HCIStatusCode::NOT_SUPPORTED;
     }
-#elif SMP_SUPPORTED_BY_OS
-    return HCIStatusCode::NOT_SUPPORTED;
-#else
-    return HCIStatusCode::NOT_SUPPORTED;
-#endif
 }
 
 HCIStatusCode BTDevice::setPairingPasskeyNegative() noexcept {
@@ -1745,19 +1746,17 @@ HCIStatusCode BTDevice::setPairingPasskeyNegative() noexcept {
     {
         WARN_PRINT("BTDevice:mgmt:SMP: PASSKEY_NEGATIVE, state %s, wrong state", to_string(pairing_data.state).c_str());
     }
-#if USE_LINUX_BT_SECURITY
-    {
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
         BTManager& mngr = adapter.getManager();
         MgmtStatus res = mngr.userPasskeyNegativeReply(adapter.dev_id, addressAndType);
         DBG_PRINT("BTDevice:mgmt:SMP: PASSKEY NEGATIVE, state %s, result %s",
             to_string(pairing_data.state).c_str(), to_string(res).c_str());
         return HCIStatusCode::SUCCESS;
+    } else if constexpr ( SMP_SUPPORTED_BY_OS ) {
+        return HCIStatusCode::NOT_SUPPORTED;
+    } else {
+        return HCIStatusCode::NOT_SUPPORTED;
     }
-#elif SMP_SUPPORTED_BY_OS
-    return HCIStatusCode::NOT_SUPPORTED;
-#else
-    return HCIStatusCode::NOT_SUPPORTED;
-#endif
 }
 
 HCIStatusCode BTDevice::setPairingNumericComparison(const bool positive) noexcept {
@@ -1768,19 +1767,17 @@ HCIStatusCode BTDevice::setPairingNumericComparison(const bool positive) noexcep
     {
         WARN_PRINT("BTDevice:mgmt:SMP: CONFIRM '%d', state %s, wrong state", positive, to_string(pairing_data.state).c_str());
     }
-#if USE_LINUX_BT_SECURITY
-    {
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
         BTManager& mngr = adapter.getManager();
         MgmtStatus res = mngr.userConfirmReply(adapter.dev_id, addressAndType, positive);
         DBG_PRINT("BTDevice:mgmt:SMP: CONFIRM '%d', state %s, result %s",
             positive, to_string(pairing_data.state).c_str(), to_string(res).c_str());
         return HCIStatusCode::SUCCESS;
+    } else if constexpr ( SMP_SUPPORTED_BY_OS ) {
+        return HCIStatusCode::NOT_SUPPORTED;
+    } else {
+        return HCIStatusCode::NOT_SUPPORTED;
     }
-#elif SMP_SUPPORTED_BY_OS
-    return HCIStatusCode::NOT_SUPPORTED;
-#else
-    return HCIStatusCode::NOT_SUPPORTED;
-#endif
 }
 
 PairingMode BTDevice::getPairingMode() const noexcept {
@@ -1841,58 +1838,58 @@ void BTDevice::clearSMPStates(const bool connected) noexcept {
 }
 
 void BTDevice::disconnectSMP(const int caller) noexcept {
-  #if SMP_SUPPORTED_BY_OS
-    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_smpHandler);
-    if( nullptr != smpHandler ) {
-        DBG_PRINT("BTDevice::disconnectSMP: start (has smpHandler, caller %d)", caller);
-        smpHandler->disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
+    if constexpr ( SMP_SUPPORTED_BY_OS ) {
+        const std::lock_guard<std::recursive_mutex> lock_conn(mtx_smpHandler);
+        if( nullptr != smpHandler ) {
+            DBG_PRINT("BTDevice::disconnectSMP: start (has smpHandler, caller %d)", caller);
+            smpHandler->disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
+        } else {
+            DBG_PRINT("BTDevice::disconnectSMP: start (nil smpHandler, caller %d)", caller);
+        }
+        smpHandler = nullptr;
+        DBG_PRINT("BTDevice::disconnectSMP: end");
     } else {
-        DBG_PRINT("BTDevice::disconnectSMP: start (nil smpHandler, caller %d)", caller);
+        (void)caller;
     }
-    smpHandler = nullptr;
-    DBG_PRINT("BTDevice::disconnectSMP: end");
-  #else
-    (void)caller;
-  #endif
 }
 
 bool BTDevice::connectSMP(std::shared_ptr<BTDevice> sthis, const BTSecurityLevel sec_level) noexcept {
-  #if SMP_SUPPORTED_BY_OS
-    if( !isConnected || !allowDisconnect) {
-        ERR_PRINT("connectSMP(%u): Device not connected: %s", sec_level, toString().c_str());
-        return false;
-    }
-
-    if( !SMPHandler::IS_SUPPORTED_BY_OS ) {
-        DBG_PRINT("BTDevice::connectSMP(%u): SMP Not supported by OS (1): %s", sec_level, toString().c_str());
-        return false;
-    }
-
-    if( BTSecurityLevel::NONE >= sec_level ) {
-        return false;
-    }
-
-    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_gattHandler);
-    if( nullptr != smpHandler ) {
-        if( smpHandler->isConnected() ) {
-            return smpHandler->establishSecurity(sec_level);
+    if constexpr ( SMP_SUPPORTED_BY_OS ) {
+        if( !isConnected || !allowDisconnect) {
+            ERR_PRINT("connectSMP(%u): Device not connected: %s", sec_level, toString().c_str());
+            return false;
         }
-        smpHandler = nullptr;
-    }
 
-    smpHandler = std::make_shared<SMPHandler>(sthis);
-    if( !smpHandler->isConnected() ) {
-        ERR_PRINT("Connection failed");
-        smpHandler = nullptr;
+        if( !SMPHandler::IS_SUPPORTED_BY_OS ) {
+            DBG_PRINT("BTDevice::connectSMP(%u): SMP Not supported by OS (1): %s", sec_level, toString().c_str());
+            return false;
+        }
+
+        if( BTSecurityLevel::NONE >= sec_level ) {
+            return false;
+        }
+
+        const std::lock_guard<std::recursive_mutex> lock_conn(mtx_gattHandler);
+        if( nullptr != smpHandler ) {
+            if( smpHandler->isConnected() ) {
+                return smpHandler->establishSecurity(sec_level);
+            }
+            smpHandler = nullptr;
+        }
+
+        smpHandler = std::make_shared<SMPHandler>(sthis);
+        if( !smpHandler->isConnected() ) {
+            ERR_PRINT("Connection failed");
+            smpHandler = nullptr;
+            return false;
+        }
+        return smpHandler->establishSecurity(sec_level);
+    } else {
+        DBG_PRINT("BTDevice::connectSMP: SMP Not supported by OS (0): %s", toString().c_str());
+        (void)sthis;
+        (void)sec_level;
         return false;
     }
-    return smpHandler->establishSecurity(sec_level);
-  #else
-    DBG_PRINT("BTDevice::connectSMP: SMP Not supported by OS (0): %s", toString().c_str());
-    (void)sthis;
-    (void)sec_level;
-    return false;
-  #endif
 }
 
 void BTDevice::disconnectGATT(const int caller) noexcept {
@@ -2255,18 +2252,18 @@ exit:
 }
 
 HCIStatusCode BTDevice::unpair() noexcept {
-#if USE_LINUX_BT_SECURITY
-    const HCIStatusCode res = adapter.getManager().unpairDevice(adapter.dev_id, addressAndType, false /* disconnect */);
-    if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
-        DBG_PRINT("BTDevice::unpair(): Unpair device failed: %s, %s", to_string(res).c_str(), toString().c_str());
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        const HCIStatusCode res = adapter.getManager().unpairDevice(adapter.dev_id, addressAndType, false /* disconnect */);
+        if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
+            DBG_PRINT("BTDevice::unpair(): Unpair device failed: %s, %s", to_string(res).c_str(), toString().c_str());
+        }
+        clearSMPStates(getConnected() /* connected */);
+        return res;
+    } else if constexpr ( SMP_SUPPORTED_BY_OS ) {
+        return HCIStatusCode::NOT_SUPPORTED;
+    } else {
+        return HCIStatusCode::NOT_SUPPORTED;
     }
-    clearSMPStates(getConnected() /* connected */);
-    return res;
-#elif SMP_SUPPORTED_BY_OS
-    return HCIStatusCode::NOT_SUPPORTED;
-#else
-    return HCIStatusCode::NOT_SUPPORTED;
-#endif
 }
 
 void BTDevice::remove() noexcept {

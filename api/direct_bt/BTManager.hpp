@@ -205,13 +205,8 @@ namespace direct_bt {
         private:
             friend BTAdapter;
 
-#if USE_LINUX_BT_SECURITY
             /** Default initialization with ::SMPIOCapability::NO_INPUT_NO_OUTPUT for PairingMode::JUST_WORKS. */
-            constexpr static const SMPIOCapability defaultIOCapability = SMPIOCapability::NO_INPUT_NO_OUTPUT;
-#else
-            /** Default initialization with ::SMPIOCapability::NO_INPUT_NO_OUTPUT for PairingMode::JUST_WORKS. */
-            constexpr static const SMPIOCapability defaultIOCapability = SMPIOCapability::UNSET;
-#endif
+            constexpr static const SMPIOCapability defaultIOCapability = USE_LINUX_BT_SECURITY ? SMPIOCapability::NO_INPUT_NO_OUTPUT : SMPIOCapability::UNSET;
 
             struct WhitelistElem {
                 uint16_t dev_id;

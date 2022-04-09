@@ -37,7 +37,7 @@ namespace direct_bt {
      *
      * Usually used for socket reader threads, like used within HCIHandler.
      */
-    static constexpr const jau::nsize_t THREAD_SHUTDOWN_TIMEOUT_MS = 8000;
+    inline constexpr const jau::nsize_t THREAD_SHUTDOWN_TIMEOUT_MS = 8000;
 
 } // namespace direct_bt
 

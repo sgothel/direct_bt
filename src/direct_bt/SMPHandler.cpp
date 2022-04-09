@@ -67,11 +67,7 @@ SMPEnv::SMPEnv() noexcept
 {
 }
 
-#if SMP_SUPPORTED_BY_OS
-    bool SMPHandler::IS_SUPPORTED_BY_OS = true;
-#else
-    bool SMPHandler::IS_SUPPORTED_BY_OS = false;
-#endif
+bool SMPHandler::IS_SUPPORTED_BY_OS = SMP_SUPPORTED_BY_OS ? true : false;
 
 std::shared_ptr<BTDevice> SMPHandler::getDeviceChecked() const {
     std::shared_ptr<BTDevice> ref = wbr_device.lock();

@@ -140,12 +140,12 @@ bool BTAdapter::addDevicePausingDiscovery(const BTDeviceRef & device) noexcept {
         pausing_discovery_devices.push_back(device);
     }
     if( added_first ) {
-#if SCAN_DISABLED_POST_CONNECT
-        updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */, true /* off_thread */);
-#else
-        std::thread bg(&BTAdapter::stopDiscovery, this, false /* forceDiscoveringEvent */, true /* temporary */); // @suppress("Invalid arguments")
-        bg.detach();
-#endif
+        if constexpr ( SCAN_DISABLED_POST_CONNECT ) {
+            updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */, true /* off_thread */);
+        } else {
+            std::thread bg(&BTAdapter::stopDiscoveryImpl, this, false /* forceDiscoveringEvent */, true /* temporary */); // @suppress("Invalid arguments")
+            bg.detach();
+        }
         return true;
     } else {
         return false;
@@ -354,13 +354,12 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
 
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_CHANGED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCIEncryptionChangedHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI)) && ok;
-#if CONSIDER_HCI_CMD_FOR_SMP_STATE
-        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_LTK_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLELTKReqEventHCI)) && ok;
-        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_LTK_REPLY_ACK, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLELTKReplyAckCmdHCI)) && ok;
-        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_LTK_REPLY_REJ, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLELTKReplyRejCmdHCI)) && ok;
-        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_ENABLE_ENC, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLEEnableEncryptionCmdHCI)) && ok;
-#endif
-
+        if constexpr ( CONSIDER_HCI_CMD_FOR_SMP_STATE ) {
+            ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_LTK_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLELTKReqEventHCI)) && ok;
+            ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_LTK_REPLY_ACK, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLELTKReplyAckCmdHCI)) && ok;
+            ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_LTK_REPLY_REJ, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLELTKReplyRejCmdHCI)) && ok;
+            ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_ENABLE_ENC, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLEEnableEncryptionCmdHCI)) && ok;
+        }
         if( !ok ) {
             ERR_PRINT("Could not add all required MgmtEventCallbacks to HCIHandler: %s of %s", hci.toString().c_str(), toString().c_str());
             return false; // dtor local HCIHandler w/ closing
@@ -488,7 +487,7 @@ void BTAdapter::poweredOff(bool active) noexcept {
     discovery_policy = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY;
 
     if( active ) {
-        stopDiscovery(true /* forceDiscoveringEvent */, false /* temporary */);
+        stopDiscoveryImpl(true /* forceDiscoveringEvent */, false /* temporary */);
     }
 
     // Removes all device references from the lists: connectedDevices, discoveredDevices, sharedDevices
@@ -735,30 +734,29 @@ bool BTAdapter::lockConnect(const BTDevice & device, const bool wait, const SMPI
     single_conn_device_ptr = &device;
 
     if( SMPIOCapability::UNSET != io_cap ) {
-#if USE_LINUX_BT_SECURITY
-        SMPIOCapability pre_io_cap { SMPIOCapability::UNSET };
-        const bool res_iocap = mgmt.setIOCapability(dev_id, io_cap, pre_io_cap);
-        if( res_iocap ) {
-            iocap_defaultval  = pre_io_cap;
-            COND_PRINT(debug_lock, "BTAdapter::lockConnect: Success: New lock, setIOCapability[%s -> %s], %s",
-                to_string(pre_io_cap).c_str(), to_string(io_cap).c_str(),
-                device.toString().c_str());
-            return true;
+        if constexpr ( USE_LINUX_BT_SECURITY ) {
+            SMPIOCapability pre_io_cap { SMPIOCapability::UNSET };
+            const bool res_iocap = mgmt.setIOCapability(dev_id, io_cap, pre_io_cap);
+            if( res_iocap ) {
+                iocap_defaultval  = pre_io_cap;
+                COND_PRINT(debug_lock, "BTAdapter::lockConnect: Success: New lock, setIOCapability[%s -> %s], %s",
+                    to_string(pre_io_cap).c_str(), to_string(io_cap).c_str(),
+                    device.toString().c_str());
+                return true;
+            } else {
+                // failed, unlock and exit
+                COND_PRINT(debug_lock, "BTAdapter::lockConnect: Failed: setIOCapability[%s], %s",
+                    to_string(io_cap).c_str(), device.toString().c_str());
+                single_conn_device_ptr = nullptr;
+                lock.unlock(); // unlock mutex before notify_all to avoid pessimistic re-block of notified wait() thread.
+                cv_single_conn_device.notify_all(); // notify waiting getter
+                return false;
+            }
         } else {
-            // failed, unlock and exit
-            COND_PRINT(debug_lock, "BTAdapter::lockConnect: Failed: setIOCapability[%s], %s",
-                to_string(io_cap).c_str(), device.toString().c_str());
-            single_conn_device_ptr = nullptr;
-            lock.unlock(); // unlock mutex before notify_all to avoid pessimistic re-block of notified wait() thread.
-            cv_single_conn_device.notify_all(); // notify waiting getter
-            return false;
+            COND_PRINT(debug_lock, "BTAdapter::lockConnect: Success: New lock, ignored io-cap: %s, %s",
+                    to_string(io_cap).c_str(), device.toString().c_str());
+            return true;
         }
-#else
-        COND_PRINT(debug_lock, "BTAdapter::lockConnect: Success: New lock, ignored io-cap: %s, %s",
-                to_string(io_cap).c_str()
-                device.toString().c_str());
-        return true;
-#endif
     } else {
         COND_PRINT(debug_lock, "BTAdapter::lockConnect: Success: New lock, no io-cap: %s", device.toString().c_str());
         return true;
@@ -771,7 +769,7 @@ bool BTAdapter::unlockConnect(const BTDevice & device) noexcept {
     if( nullptr != single_conn_device_ptr && device == *single_conn_device_ptr ) {
         const SMPIOCapability v = iocap_defaultval;
         iocap_defaultval  = SMPIOCapability::UNSET;
-        if( SMPIOCapability::UNSET != v ) {
+        if( USE_LINUX_BT_SECURITY && SMPIOCapability::UNSET != v ) {
             // Unreachable: !USE_LINUX_BT_SECURITY
             SMPIOCapability o;
             const bool res = mgmt.setIOCapability(dev_id, v, o);
@@ -803,7 +801,7 @@ bool BTAdapter::unlockConnectAny() noexcept {
     if( nullptr != single_conn_device_ptr ) {
         const SMPIOCapability v = iocap_defaultval;
         iocap_defaultval  = SMPIOCapability::UNSET;
-        if( SMPIOCapability::UNSET != v ) {
+        if( USE_LINUX_BT_SECURITY && SMPIOCapability::UNSET != v ) {
             // Unreachable: !USE_LINUX_BT_SECURITY
             SMPIOCapability o;
             const bool res = mgmt.setIOCapability(dev_id, v, o);
@@ -1119,10 +1117,10 @@ void BTAdapter::startDiscoveryBackground() noexcept {
 HCIStatusCode BTAdapter::stopDiscovery() noexcept {
     clearDevicesPausingDiscovery();
 
-    return stopDiscovery(false /* forceDiscoveringEvent */, false /* temporary */);
+    return stopDiscoveryImpl(false /* forceDiscoveringEvent */, false /* temporary */);
 }
 
-HCIStatusCode BTAdapter::stopDiscovery(const bool forceDiscoveringEvent, const bool temporary) noexcept {
+HCIStatusCode BTAdapter::stopDiscoveryImpl(const bool forceDiscoveringEvent, const bool temporary) noexcept {
     // We allow !isEnabled, to utilize method for adjusting discovery state and notifying listeners
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to stop BREDR, LE or DUAL scanning!
 
@@ -1959,20 +1957,19 @@ bool BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
         if( BTRole::Master == getRole() ) {
             const DiscoveryPolicy policy = discovery_policy;
             if( DiscoveryPolicy::AUTO_OFF == policy ) {
-#if SCAN_DISABLED_POST_CONNECT
-                updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */, true /* off_thread */);
-#else
-                std::thread bg(&BTAdapter::stopDiscovery, this, false /* forceDiscoveringEvent */, true /* temporary */); // @suppress("Invalid arguments")
-                bg.detach();
-#endif
-
+                if constexpr ( SCAN_DISABLED_POST_CONNECT ) {
+                    updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */, true /* off_thread */);
+                } else {
+                    std::thread bg(&BTAdapter::stopDiscoveryImpl, this, false /* forceDiscoveringEvent */, true /* temporary */); // @suppress("Invalid arguments")
+                    bg.detach();
+                }
             } else if( DiscoveryPolicy::ALWAYS_ON == policy ) {
-#if SCAN_DISABLED_POST_CONNECT
-                updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */, true /* off_thread */);
-#else
-                std::thread bg(&BTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
-                bg.detach();
-#endif
+                if constexpr ( SCAN_DISABLED_POST_CONNECT ) {
+                    updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */, true /* off_thread */);
+                } else {
+                    std::thread bg(&BTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
+                    bg.detach();
+                }
             } else {
                 addDevicePausingDiscovery(device);
             }

@@ -224,11 +224,9 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
      *
      * See SMPTypes.cpp: getPairingMode(const bool le_sc_pairing, const SMPIOCapability ioCap_init, const SMPIOCapability ioCap_resp) noexcept
      */
-#if USE_LINUX_BT_SECURITY
-    const uint8_t debug_keys = 0;
-    const uint8_t ssp_on_param = 0x01; // SET_SSP 0x00 disabled, 0x01 enable Secure Simple Pairing. SSP only available for BREDR >= 2.1 not single-mode LE.
-    const uint8_t sc_on_param = 0x01; // SET_SECURE_CONN 0x00 disabled, 0x01 enables SC mixed, 0x02 enables SC only mode
-#endif
+    constexpr const uint8_t debug_keys = 0;
+    constexpr const uint8_t ssp_on_param = 0x01; // SET_SSP 0x00 disabled, 0x01 enable Secure Simple Pairing. SSP only available for BREDR >= 2.1 not single-mode LE.
+    constexpr const uint8_t sc_on_param = 0x01; // SET_SECURE_CONN 0x00 disabled, 0x01 enables SC mixed, 0x02 enables SC only mode
 
     AdapterSetting current_settings;
     MgmtCommand req0(MgmtCommand::Opcode::READ_INFO, dev_id);
@@ -257,42 +255,42 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
             setMode(dev_id, MgmtCommand::Opcode::SET_BREDR, 1, current_settings);
             setDiscoverable(dev_id, 0, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_LE, 1, current_settings);
-#if USE_LINUX_BT_SECURITY
-            setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, sc_on_param, current_settings);
-            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, ssp_on_param, current_settings);
-#endif
+            if constexpr ( USE_LINUX_BT_SECURITY ) {
+                setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, sc_on_param, current_settings);
+                setMode(dev_id, MgmtCommand::Opcode::SET_SSP, ssp_on_param, current_settings);
+            }
             break;
         case BTMode::BREDR:
             setMode(dev_id, MgmtCommand::Opcode::SET_BREDR, 1, current_settings);
             setDiscoverable(dev_id, 0, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_LE, 0, current_settings);
-#if USE_LINUX_BT_SECURITY
-            setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
-            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, ssp_on_param, current_settings);
-#endif
+            if constexpr ( USE_LINUX_BT_SECURITY ) {
+                setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
+                setMode(dev_id, MgmtCommand::Opcode::SET_SSP, ssp_on_param, current_settings);
+            }
             break;
         case BTMode::NONE:
             [[fallthrough]]; // map NONE -> LE
         case BTMode::LE:
             setMode(dev_id, MgmtCommand::Opcode::SET_BREDR, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_LE, 1, current_settings);
-#if USE_LINUX_BT_SECURITY
-            setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, sc_on_param, current_settings);
-            setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings); // SSP not available in LE single mode
-#endif
+            if constexpr ( USE_LINUX_BT_SECURITY ) {
+                setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, sc_on_param, current_settings);
+                setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings); // SSP not available in LE single mode
+            }
             break;
     }
 
-#if USE_LINUX_BT_SECURITY
-    setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, debug_keys, current_settings);
-    setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(BTManager::defaultIOCapability), current_settings);
-    setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 1, current_settings); // required for pairing
-#else
-    setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
-    setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings);
-    setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, 0, current_settings);
-    setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 0, current_settings);
-#endif
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, debug_keys, current_settings);
+        setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(BTManager::defaultIOCapability), current_settings);
+        setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 1, current_settings); // required for pairing
+    } else {
+        setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
+        setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings);
+        setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, 0, current_settings);
+        setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 0, current_settings);
+    }
 
 #if 0
     if( BTRole::Slave == btRole ) {
@@ -627,23 +625,23 @@ bool BTManager::removeAdapter(BTAdapter* adapter) noexcept {
 
 bool BTManager::setIOCapability(const uint16_t dev_id, const SMPIOCapability io_cap, SMPIOCapability& pre_io_cap) noexcept {
     if( SMPIOCapability::UNSET != io_cap ) {
-#if USE_LINUX_BT_SECURITY
-        typename adapters_t::const_iterator it = adapters.cbegin();
-        for (; !it.is_end(); ++it) {
-            if( (*it)->dev_id == dev_id ) {
-                const typename adapters_t::difference_type index = it.dist_begin();
-                const SMPIOCapability o = adapterIOCapability.at(index);
-                AdapterSetting current_settings { AdapterSetting::NONE }; // throw away return value, unchanged on SET_IO_CAPABILITY
-                if( setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(io_cap), current_settings) ) {
-                    adapterIOCapability.at(index) = io_cap;
-                    pre_io_cap = o;
-                    return true;
-                } else {
-                    return false;
+        if constexpr ( USE_LINUX_BT_SECURITY ) {
+            typename adapters_t::const_iterator it = adapters.cbegin();
+            for (; !it.is_end(); ++it) {
+                if( (*it)->dev_id == dev_id ) {
+                    const typename adapters_t::difference_type index = it.dist_begin();
+                    const SMPIOCapability o = adapterIOCapability.at(index);
+                    AdapterSetting current_settings { AdapterSetting::NONE }; // throw away return value, unchanged on SET_IO_CAPABILITY
+                    if( setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(io_cap), current_settings) ) {
+                        adapterIOCapability.at(index) = io_cap;
+                        pre_io_cap = o;
+                        return true;
+                    } else {
+                        return false;
+                    }
                 }
             }
         }
-#endif
     }
     return false;
 }
@@ -754,169 +752,170 @@ bool BTManager::uploadConnParam(const uint16_t dev_id, const BDAddressAndType & 
 }
 
 bool BTManager::isValidLongTermKeyAddressAndType(const EUI48 &address, const BDAddressType &address_type) const noexcept {
-#if USE_LINUX_BT_SECURITY
-    // Linux Kernel `load_long_term_keys(..)` (mgmt.c) require either `BDAddressType::BDADDR_LE_PUBLIC` or
-    // `BDAddressType::BDADDR_LE_RANDOM` and `BLERandomAddressType::STATIC_PUBLIC`
-    // in ltk_is_valid(..) (mgmt.c).
-    if( BDAddressType::BDADDR_LE_PUBLIC == address_type ) {
-        return true;
-    } else if( BDAddressType::BDADDR_LE_RANDOM == address_type &&
-               BLERandomAddressType::STATIC_PUBLIC == BDAddressAndType::getBLERandomAddressType(address, address_type) ) {
-        return true;
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        // Linux Kernel `load_long_term_keys(..)` (mgmt.c) require either `BDAddressType::BDADDR_LE_PUBLIC` or
+        // `BDAddressType::BDADDR_LE_RANDOM` and `BLERandomAddressType::STATIC_PUBLIC`
+        // in ltk_is_valid(..) (mgmt.c).
+        if( BDAddressType::BDADDR_LE_PUBLIC == address_type ) {
+            return true;
+        } else if( BDAddressType::BDADDR_LE_RANDOM == address_type &&
+                   BLERandomAddressType::STATIC_PUBLIC == BDAddressAndType::getBLERandomAddressType(address, address_type) ) {
+            return true;
+        } else {
+            return false;
+        }
     } else {
-        return false;
+        return true;
     }
-#else
-    return true;
-#endif
 }
 
 HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const MgmtLongTermKeyInfo &key) noexcept {
-#if USE_LINUX_BT_SECURITY
-    const bool is_valid_ltk_addr = isValidLongTermKeyAddressAndType(key.address, key.address_type);
-    MgmtLoadLongTermKeyCmd req(dev_id, key);
-    HCIStatusCode res;
-    std::unique_ptr<MgmtEvent> reply = sendWithReply(req);
-    if( nullptr != reply ) {
-        if( reply->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-            res = to_HCIStatusCode( static_cast<const MgmtEvtCmdComplete *>(reply.get())->getStatus() );
-        } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
-            res = to_HCIStatusCode( static_cast<const MgmtEvtCmdStatus *>(reply.get())->getStatus() );
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        const bool is_valid_ltk_addr = isValidLongTermKeyAddressAndType(key.address, key.address_type);
+        MgmtLoadLongTermKeyCmd req(dev_id, key);
+        HCIStatusCode res;
+        std::unique_ptr<MgmtEvent> reply = sendWithReply(req);
+        if( nullptr != reply ) {
+            if( reply->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+                res = to_HCIStatusCode( static_cast<const MgmtEvtCmdComplete *>(reply.get())->getStatus() );
+            } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
+                res = to_HCIStatusCode( static_cast<const MgmtEvtCmdStatus *>(reply.get())->getStatus() );
+            } else {
+                res = HCIStatusCode::UNKNOWN_HCI_COMMAND;
+            }
         } else {
-            res = HCIStatusCode::UNKNOWN_HCI_COMMAND;
+            res = HCIStatusCode::TIMEOUT;
         }
+        if( HCIStatusCode::SUCCESS != res ) {
+            WARN_PRINT("(dev_id %d): %s (valid_ltk_addr %d), result %s", dev_id,
+                    req.toString().c_str(), is_valid_ltk_addr, to_string(res).c_str());
+        } else {
+            DBG_PRINT("BTManager::uploadLongTermKeyInfo(dev_id %d): %s (valid_ltk_addr %d), result %s", dev_id,
+                    req.toString().c_str(), is_valid_ltk_addr, to_string(res).c_str());
+        }
+        return res;
     } else {
-        res = HCIStatusCode::TIMEOUT;
+        return HCIStatusCode::NOT_SUPPORTED;
     }
-    if( HCIStatusCode::SUCCESS != res ) {
-        WARN_PRINT("(dev_id %d): %s (valid_ltk_addr %d), result %s", dev_id,
-                req.toString().c_str(), is_valid_ltk_addr, to_string(res).c_str());
-    } else {
-        DBG_PRINT("BTManager::uploadLongTermKeyInfo(dev_id %d): %s (valid_ltk_addr %d), result %s", dev_id,
-                req.toString().c_str(), is_valid_ltk_addr, to_string(res).c_str());
-    }
-    return res;
-#else
-    return HCIStatusCode::NOT_SUPPORTED;
-#endif
 }
 
 HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const BDAddressAndType & addressAndType,
-                                                const SMPLongTermKey& ltk) noexcept {
-#if USE_LINUX_BT_SECURITY
-    const MgmtLTKType key_type = to_MgmtLTKType(ltk.properties);
-    const MgmtLongTermKeyInfo mgmt_ltk_info { addressAndType.address, addressAndType.type, key_type,
-                                              ltk.isResponder(), ltk.enc_size, ltk.ediv, ltk.rand, ltk.ltk };
-    return uploadLongTermKey(dev_id, mgmt_ltk_info);
-#else
-    return HCIStatusCode::NOT_SUPPORTED;
-#endif
+                                                const SMPLongTermKey& ltk) noexcept
+{
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        const MgmtLTKType key_type = to_MgmtLTKType(ltk.properties);
+        const MgmtLongTermKeyInfo mgmt_ltk_info { addressAndType.address, addressAndType.type, key_type,
+                                                  ltk.isResponder(), ltk.enc_size, ltk.ediv, ltk.rand, ltk.ltk };
+        return uploadLongTermKey(dev_id, mgmt_ltk_info);
+    } else {
+        return HCIStatusCode::NOT_SUPPORTED;
+    }
 }
 
 HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const MgmtLinkKeyInfo &key) noexcept {
-#if USE_LINUX_BT_SECURITY
-    MgmtLoadLinkKeyCmd req(dev_id, false /* debug_keys */, key);
-    HCIStatusCode res;
-    std::unique_ptr<MgmtEvent> reply = sendWithReply(req);
-    if( nullptr != reply ) {
-        if( reply->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-            res = to_HCIStatusCode( static_cast<const MgmtEvtCmdComplete *>(reply.get())->getStatus() );
-        } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
-            res = to_HCIStatusCode( static_cast<const MgmtEvtCmdStatus *>(reply.get())->getStatus() );
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        MgmtLoadLinkKeyCmd req(dev_id, false /* debug_keys */, key);
+        HCIStatusCode res;
+        std::unique_ptr<MgmtEvent> reply = sendWithReply(req);
+        if( nullptr != reply ) {
+            if( reply->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+                res = to_HCIStatusCode( static_cast<const MgmtEvtCmdComplete *>(reply.get())->getStatus() );
+            } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
+                res = to_HCIStatusCode( static_cast<const MgmtEvtCmdStatus *>(reply.get())->getStatus() );
+            } else {
+                res = HCIStatusCode::UNKNOWN_HCI_COMMAND;
+            }
         } else {
-            res = HCIStatusCode::UNKNOWN_HCI_COMMAND;
+            res = HCIStatusCode::TIMEOUT;
         }
+        if( HCIStatusCode::SUCCESS != res ) {
+            WARN_PRINT("(dev_id %d): %s, result %s", dev_id,
+                    req.toString().c_str(), to_string(res).c_str());
+        } else {
+            DBG_PRINT("BTManager::uploadLinkKeyInfo(dev_id %d): %s, result %s", dev_id,
+                    req.toString().c_str(), to_string(res).c_str());
+        }
+        return res;
     } else {
-        res = HCIStatusCode::TIMEOUT;
+        return HCIStatusCode::NOT_SUPPORTED;
     }
-    if( HCIStatusCode::SUCCESS != res ) {
-        WARN_PRINT("(dev_id %d): %s, result %s", dev_id,
-                req.toString().c_str(), to_string(res).c_str());
-    } else {
-        DBG_PRINT("BTManager::uploadLinkKeyInfo(dev_id %d): %s, result %s", dev_id,
-                req.toString().c_str(), to_string(res).c_str());
-    }
-    return res;
-#else
-    return HCIStatusCode::NOT_SUPPORTED;
-#endif
 }
 
 HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLinkKey& lk) noexcept {
-#if USE_LINUX_BT_SECURITY
-    const MgmtLinkKeyInfo mgmt_lk_info { addressAndType.address, addressAndType.type, static_cast<MgmtLinkKeyType>(lk.type),
-                                         lk.key, lk.pin_length };
-    return uploadLinkKey(dev_id, mgmt_lk_info);
-#else
-    return HCIStatusCode::NOT_SUPPORTED;
-#endif
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        const MgmtLinkKeyInfo mgmt_lk_info { addressAndType.address, addressAndType.type, static_cast<MgmtLinkKeyType>(lk.type),
+                                             lk.key, lk.pin_length };
+        return uploadLinkKey(dev_id, mgmt_lk_info);
+    } else {
+        return HCIStatusCode::NOT_SUPPORTED;
+    }
 }
 
 MgmtStatus BTManager::userPasskeyReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const uint32_t passkey) noexcept {
-#if USE_LINUX_BT_SECURITY
-    MgmtUserPasskeyReplyCmd cmd(dev_id, addressAndType, passkey);
-    std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
-    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-        // FIXME: Analyze address + addressType result?
-        return res1.getStatus();
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        MgmtUserPasskeyReplyCmd cmd(dev_id, addressAndType, passkey);
+        std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
+        if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+            // FIXME: Analyze address + addressType result?
+            return res1.getStatus();
+        }
+        return MgmtStatus::TIMEOUT;
+    } else {
+        return MgmtStatus::NOT_SUPPORTED;
     }
-    return MgmtStatus::TIMEOUT;
-#else
-    return MgmtStatus::NOT_SUPPORTED;
-#endif
 }
 
 MgmtStatus BTManager::userPasskeyNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept {
-#if USE_LINUX_BT_SECURITY
-    MgmtUserPasskeyNegativeReplyCmd cmd(dev_id, addressAndType);
-    std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
-    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-        // FIXME: Analyze address + addressType result?
-        return res1.getStatus();
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        MgmtUserPasskeyNegativeReplyCmd cmd(dev_id, addressAndType);
+        std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
+        if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+            // FIXME: Analyze address + addressType result?
+            return res1.getStatus();
+        }
+        return MgmtStatus::TIMEOUT;
+    } else {
+        return MgmtStatus::NOT_SUPPORTED;
     }
-    return MgmtStatus::TIMEOUT;
-#else
-    return MgmtStatus::NOT_SUPPORTED;
-#endif
 }
 
 MgmtStatus BTManager::userConfirmReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool positive) noexcept {
-#if USE_LINUX_BT_SECURITY
-    std::unique_ptr<MgmtEvent> res;
-    if( positive ) {
-        MgmtUserConfirmReplyCmd cmd(dev_id, addressAndType);
-        res = sendWithReply(cmd);
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        std::unique_ptr<MgmtEvent> res;
+        if( positive ) {
+            MgmtUserConfirmReplyCmd cmd(dev_id, addressAndType);
+            res = sendWithReply(cmd);
+        } else {
+            MgmtUserConfirmNegativeReplyCmd cmd(dev_id, addressAndType);
+            res = sendWithReply(cmd);
+        }
+        if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+            // FIXME: Analyze address + addressType result?
+            return res1.getStatus();
+        }
+        return MgmtStatus::TIMEOUT;
     } else {
-        MgmtUserConfirmNegativeReplyCmd cmd(dev_id, addressAndType);
-        res = sendWithReply(cmd);
+        return MgmtStatus::NOT_SUPPORTED;
     }
-    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-        // FIXME: Analyze address + addressType result?
-        return res1.getStatus();
-    }
-    return MgmtStatus::TIMEOUT;
-#else
-    return MgmtStatus::NOT_SUPPORTED;
-#endif
 }
 
 HCIStatusCode BTManager::unpairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool disconnect) noexcept {
-#if USE_LINUX_BT_SECURITY
-    MgmtUnpairDeviceCmd cmd(dev_id, addressAndType, disconnect);
-    std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        MgmtUnpairDeviceCmd cmd(dev_id, addressAndType, disconnect);
+        std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
 
-    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-        // FIXME: Analyze address + addressType result?
-        return to_HCIStatusCode( res1.getStatus() );
+        if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+            // FIXME: Analyze address + addressType result?
+            return to_HCIStatusCode( res1.getStatus() );
+        }
+        return HCIStatusCode::TIMEOUT;
+    } else {
+        return HCIStatusCode::NOT_SUPPORTED;
     }
-    return HCIStatusCode::TIMEOUT;
-#else
-    return HCIStatusCode::NOT_SUPPORTED;
-#endif
 }
 
 bool BTManager::isDeviceWhitelisted(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept {

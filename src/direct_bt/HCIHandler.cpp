@@ -720,10 +720,10 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         }
 #endif
         HCIComm::filter_clear(&filter_mask);
-#if CONSIDER_HCI_CMD_FOR_SMP_STATE
-        // Currently only used to determine ENCRYPTION STATE, if at all.
-        HCIComm::filter_set_ptype(number(HCIPacketType::COMMAND), &filter_mask); // COMMANDs
-#endif
+        if constexpr ( CONSIDER_HCI_CMD_FOR_SMP_STATE ) {
+            // Currently only used to determine ENCRYPTION STATE, if at all.
+            HCIComm::filter_set_ptype(number(HCIPacketType::COMMAND), &filter_mask); // COMMANDs
+        }
         HCIComm::filter_set_ptype(number(HCIPacketType::EVENT),  &filter_mask); // EVENTs
         HCIComm::filter_set_ptype(number(HCIPacketType::ACLDATA),  &filter_mask); // SMP via ACL DATA
 
