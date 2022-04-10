@@ -139,7 +139,7 @@ namespace direct_bt {
                  * @param addressAndType remote address of the BTDevice
                  * @param role remote role of the BTDevice
                  */
-                std::string toString(const BDAddressAndType& addressAndType, const BTRole& role) const;
+                std::string toString(const uint16_t dev_id, const BDAddressAndType& addressAndType, const BTRole& role) const;
             };
             PairingData pairing_data;
             mutable std::recursive_mutex mtx_pairing;
