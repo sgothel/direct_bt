@@ -148,7 +148,7 @@ namespace direct_bt {
     std::string to_string(const SMPPairingState state) noexcept;
 
     /**
-     * Returns true if the given SMPPairingState indicated an active pairing process,
+     * Returns true if the given SMPPairingState indicates an active pairing process,
      * i.e. none of the following terminal states: ::SMPPairingState::COMPLETED, ::SMPPairingState::FAILED or ::SMPPairingState::NONE
      */
     constexpr bool isSMPPairingActive(const SMPPairingState state) noexcept {
@@ -164,6 +164,16 @@ namespace direct_bt {
     constexpr bool hasSMPPairingFinished(const SMPPairingState state) noexcept {
         return SMPPairingState::COMPLETED == state ||
                SMPPairingState::FAILED    == state;
+    }
+
+    /**
+     * Returns true if the given SMPPairingState indicates expected user interaction,
+     * i.e. one of the following states: ::SMPPairingState::PASSKEY_EXPECTED, ::SMPPairingState::NUMERIC_COMPARE_EXPECTED or ::SMPPairingState::OOB_EXPECTED
+     */
+    constexpr bool isSMPPairingUserInteraction(const SMPPairingState state) noexcept {
+        return SMPPairingState::PASSKEY_EXPECTED         == state ||
+               SMPPairingState::NUMERIC_COMPARE_EXPECTED == state ||
+               SMPPairingState::OOB_EXPECTED             == state;
     }
 
     /**
