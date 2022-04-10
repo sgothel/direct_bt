@@ -611,7 +611,11 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
 
         bool l2cap_open;
         if( is_local_server && l2cap_att->isOpen() ) {
-            l2cap_open = l2cap_att->setBTSecurityLevel(sec_level);
+            if( BTSecurityLevel::UNSET < sec_level ) {
+                l2cap_open = l2cap_att->setBTSecurityLevel(sec_level);
+            } else {
+                l2cap_open = true;
+            }
         } else {
             l2cap_open = l2cap_att->open(*this, sec_level); // initiates hciSMPMsgCallback() if sec_level > BT_SECURITY_LOW
         }
