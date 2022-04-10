@@ -44,7 +44,7 @@ import org.junit.runners.MethodSorters;
 public class TestDBTClientServer11_SC0 extends DBTClientServer1x {
     static final boolean serverSC = false;
 
-    // @Test(timeout = 30000)
+    @Test(timeout = 30000)
     public final void test01_FullCycle_EncNone() {
         final boolean serverShallHaveKeys = false;
         final boolean clientShallHaveKeys = false;
