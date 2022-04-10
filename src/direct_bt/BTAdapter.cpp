@@ -1755,7 +1755,7 @@ void BTAdapter::l2capServerEnd(jau::service_runner& sr) {
 
 void BTAdapter::l2capServerWork(jau::service_runner& sr) {
     (void)sr;
-    std::unique_ptr<L2CAPComm> l2cap_att_ = l2cap_att_srv.accept();
+    std::unique_ptr<L2CAPClient> l2cap_att_ = l2cap_att_srv.accept();
     if( BTRole::Slave == getRole() && nullptr != l2cap_att_ ) {
         DBG_PRINT("BTAdapter::l2capServer connected.1: %s", l2cap_att_->toString().c_str());
 
@@ -1784,7 +1784,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     }
     DBG_PRINT("BTAdapter:hci:DeviceConnected(dev_id %d): %s: %s", dev_id, e.toString().c_str(), ad_report.toString().c_str());
 
-    std::unique_ptr<L2CAPComm> l2cap_att_;
+    std::unique_ptr<L2CAPClient> l2cap_att_;
     if( BTRole::Slave == getRole() ) {
         const uint32_t timeout_ms = 10000; // FIXME: Configurable?
         std::unique_lock<std::mutex> lock(mtx_l2cap_att); // RAII-style acquire and relinquish via destructor

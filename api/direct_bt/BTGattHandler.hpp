@@ -436,7 +436,7 @@ namespace direct_bt {
             /** BTGattHandler's device weak back-reference */
             std::weak_ptr<BTDevice> wbr_device;
             GATTRole role;
-            L2CAPComm& l2cap;
+            L2CAPClient& l2cap;
 
             const std::string deviceString;
             mutable std::recursive_mutex mtx_command;
@@ -546,7 +546,7 @@ namespace direct_bt {
              * @param l2cap_att the underlying used L2CAP
              * @param supervision_timeout the connection supervising timeout in [ms]
              */
-            BTGattHandler(const BTDeviceRef & device, L2CAPComm& l2cap_att, const int32_t supervision_timeout) noexcept;
+            BTGattHandler(const BTDeviceRef & device, L2CAPClient& l2cap_att, const int32_t supervision_timeout) noexcept;
 
             BTGattHandler(const BTGattHandler&) = delete;
             void operator=(const BTGattHandler&) = delete;
@@ -567,7 +567,7 @@ namespace direct_bt {
 
             bool isConnected() const noexcept { return is_connected ; }
             bool hasIOError() const noexcept { return has_ioerror; }
-            std::string getStateString() const noexcept { return L2CAPComm::getStateString(is_connected, has_ioerror); }
+            std::string getStateString() const noexcept { return L2CAPClientServer::getStateString(is_connected, has_ioerror); }
 
             /**
              * Disconnect this BTGattHandler and optionally the associated device

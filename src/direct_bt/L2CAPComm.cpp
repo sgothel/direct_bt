@@ -61,7 +61,24 @@ L2CAPEnv::L2CAPEnv() noexcept
 {
 }
 
-int L2CAPComm::l2cap_open_dev(const BDAddressAndType & adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept {
+// *************************************************
+// *************************************************
+// *************************************************
+
+std::string L2CAPClientServer::getStateString(bool isOpen, bool hasIOError) noexcept {
+    return "State[open "+std::to_string(isOpen)+
+            ", ioError "+std::to_string(hasIOError)+
+            ", errno "+std::to_string(errno)+" ("+std::string(strerror(errno))+")]";
+}
+
+std::string L2CAPClientServer::getStateString(bool isOpen, bool isInterrupted, bool hasIOError) noexcept {
+    return "State[open "+std::to_string(isOpen)+
+           ", isIRQed "+std::to_string(isInterrupted)+
+           ", ioError "+std::to_string(hasIOError)+
+           ", errno "+std::to_string(errno)+" ("+std::string(strerror(errno))+")]";
+}
+
+int L2CAPClientServer::l2cap_open_dev(const BDAddressAndType & adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept {
     sockaddr_l2 a;
     int fd, err;
 
@@ -96,34 +113,131 @@ failed:
     return -1;
 }
 
-int L2CAPComm::l2cap_close_dev(int dd) noexcept
+int L2CAPClientServer::l2cap_close_dev(int dd) noexcept
 {
     return ::close(dd);
 }
 
-
-// *************************************************
-// *************************************************
-// *************************************************
-
-L2CAPComm::L2CAPComm(const BDAddressAndType& adapterAddressAndType_, const L2CAP_PSM psm_, const L2CAP_CID cid_) noexcept
+L2CAPClientServer::L2CAPClientServer(const BDAddressAndType& localAddressAndType_, const L2CAP_PSM psm_, const L2CAP_CID cid_) noexcept
 : env(L2CAPEnv::get()),
-  localAddressAndType(adapterAddressAndType_),
+  localAddressAndType(localAddressAndType_),
   psm(psm_), cid(cid_),
+  socket(-1),
+  is_open(false), interrupt_flag(false)
+{ }
+
+bool L2CAPClientServer::setBTSecurityLevelImpl(const BTSecurityLevel sec_level, const BDAddressAndType& remoteAddressAndType) noexcept {
+    if( BTSecurityLevel::NONE > sec_level ) {
+        DBG_PRINT("L2CAP::setBTSecurityLevel: sec_level %s not set: dd %d, %s, psm %s, cid %s; %s",
+                  to_string(sec_level).c_str(),
+                  socket.load(), remoteAddressAndType.toString().c_str(),
+                  to_string(psm).c_str(), to_string(cid).c_str(),
+                  getStateString().c_str());
+        return false;
+    }
+
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        struct bt_security bt_sec;
+        int result;
+
+        BTSecurityLevel old_sec_level = getBTSecurityLevelImpl(remoteAddressAndType);
+        if( old_sec_level != sec_level ) {
+            bzero(&bt_sec, sizeof(bt_sec));
+            bt_sec.level = direct_bt::number(sec_level);
+            result = setsockopt(socket, SOL_BLUETOOTH, BT_SECURITY, &bt_sec, sizeof(bt_sec));
+            if ( 0 == result ) {
+                DBG_PRINT("L2CAP::setBTSecurityLevel: Success: sec_level %s -> %s: dd %d, %s, psm %s, cid %s; %s",
+                          to_string(old_sec_level).c_str(), to_string(sec_level).c_str(),
+                          socket.load(), remoteAddressAndType.toString().c_str(),
+                          to_string(psm).c_str(), to_string(cid).c_str(),
+                          getStateString().c_str());
+                return true;
+            } else {
+                ERR_PRINT("L2CAP::setBTSecurityLevel: Failed: sec_level %s -> %s: dd %d, %s, psm %s, cid %s; %s",
+                          to_string(old_sec_level).c_str(), to_string(sec_level).c_str(),
+                          socket.load(), remoteAddressAndType.toString().c_str(),
+                          to_string(psm).c_str(), to_string(cid).c_str(),
+                          getStateString().c_str());
+                return false;
+            }
+        } else {
+            DBG_PRINT("L2CAP::setBTSecurityLevel: Unchanged: sec_level %s -> %s: dd %d, %s, psm %s, cid %s; %s",
+                      to_string(old_sec_level).c_str(), to_string(sec_level).c_str(),
+                      socket.load(), remoteAddressAndType.toString().c_str(),
+                      to_string(psm).c_str(), to_string(cid).c_str(),
+                      getStateString().c_str());
+            return true;
+        }
+    } else {
+        DBG_PRINT("L2CAP::setBTSecurityLevel: Not implemented: sec_level %s: dd %d, %s, psm %s, cid %s; %s",
+                  to_string(sec_level).c_str(),
+                  socket.load(), remoteAddressAndType.toString().c_str(),
+                  to_string(psm).c_str(), to_string(cid).c_str(),
+                  getStateString().c_str());
+        return false;
+    }
+}
+
+BTSecurityLevel L2CAPClientServer::getBTSecurityLevelImpl(const BDAddressAndType& remoteAddressAndType) noexcept {
+    BTSecurityLevel sec_level = BTSecurityLevel::UNSET;
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        struct bt_security bt_sec;
+        socklen_t optlen = sizeof(bt_sec);
+        int result;
+
+        bzero(&bt_sec, sizeof(bt_sec));
+        result = getsockopt(socket, SOL_BLUETOOTH, BT_SECURITY, &bt_sec, &optlen);
+        if ( 0 == result ) {
+            if( optlen == sizeof(bt_sec) ) {
+                sec_level = static_cast<BTSecurityLevel>(bt_sec.level);
+                DBG_PRINT("L2CAP::getBTSecurityLevel: Success: sec_level %s: dd %d, %s, psm %s, cid %s; %s",
+                          to_string(sec_level).c_str(),
+                          socket.load(), remoteAddressAndType.toString().c_str(),
+                          to_string(psm).c_str(), to_string(cid).c_str(),
+                          getStateString().c_str());
+            } else {
+                ERR_PRINT("L2CAP::getBTSecurityLevel: Failed: sec_level %s, size %zd returned != %zd bt_sec: dd %d, %s, psm %s, cid %s; %s",
+                          to_string(sec_level).c_str(), optlen, sizeof(bt_sec),
+                          socket.load(), remoteAddressAndType.toString().c_str(),
+                          to_string(psm).c_str(), to_string(cid).c_str(),
+                          getStateString().c_str());
+            }
+        } else {
+            ERR_PRINT("L2CAP::getBTSecurityLevel: Failed: sec_level %s, result %d: dd %d, %s, psm %s, cid %s; %s",
+                      to_string(sec_level).c_str(), result,
+                      socket.load(), remoteAddressAndType.toString().c_str(),
+                      to_string(psm).c_str(), to_string(cid).c_str(),
+                      getStateString().c_str());
+        }
+    } else {
+        DBG_PRINT("L2CAP::getBTSecurityLevel: Not implemented: sec_level %s: dd %d, %s, psm %s, cid %s; %s",
+                  to_string(sec_level).c_str(),
+                  socket.load(), remoteAddressAndType.toString().c_str(),
+                  to_string(psm).c_str(), to_string(cid).c_str(),
+                  getStateString().c_str());
+    }
+    return sec_level;
+}
+
+// *************************************************
+// *************************************************
+// *************************************************
+
+L2CAPClient::L2CAPClient(const BDAddressAndType& adapterAddressAndType_, const L2CAP_PSM psm_, const L2CAP_CID cid_) noexcept
+: L2CAPClientServer(adapterAddressAndType_, psm_, cid_),
   remoteAddressAndType(BDAddressAndType::ANY_BREDR_DEVICE),
-  client_socket(-1),
-  is_open(false), has_ioerror(false), interrupt_flag(false), tid_connect(0), tid_read(0)
+  has_ioerror(false), tid_connect(0), tid_read(0)
 { }
 
-L2CAPComm::L2CAPComm(const BDAddressAndType& adapterAddressAndType_, const L2CAP_PSM psm_, const L2CAP_CID cid_,
+L2CAPClient::L2CAPClient(const BDAddressAndType& adapterAddressAndType_, const L2CAP_PSM psm_, const L2CAP_CID cid_,
                      const BDAddressAndType& remoteAddressAndType_, int client_socket_) noexcept
-: env(L2CAPEnv::get()),
-  localAddressAndType(adapterAddressAndType_),
-  psm(psm_), cid(cid_),
+: L2CAPClientServer(adapterAddressAndType_, psm_, cid_),
   remoteAddressAndType(remoteAddressAndType_),
-  client_socket(client_socket_),
-  is_open(0 <= client_socket_), has_ioerror(false), interrupt_flag(false), tid_connect(0), tid_read(0)
-{ }
+  has_ioerror(false), tid_connect(0), tid_read(0)
+{
+    socket = client_socket_;
+    is_open = 0 <= client_socket_;
+}
 
 /**
  * Setting BT_SECURITY within open() after bind() and before connect()
@@ -134,16 +248,16 @@ L2CAPComm::L2CAPComm(const BDAddressAndType& adapterAddressAndType_, const L2CAP
  *
  * Hence we set BT_SECURITY after connect() within open().
  */
-#define SET_BT_SECURITY_POST_CONNECT 1
-#define SET_BT_SECURITY_POST_ACCEPT 1
+inline constexpr const bool SET_BT_SECURITY_POST_CONNECT = true;
+inline constexpr const bool SET_BT_SECURITY_POST_ACCEPT = true;
 
-bool L2CAPComm::open(const BTDevice& device, const BTSecurityLevel sec_level) noexcept {
+bool L2CAPClient::open(const BTDevice& device, const BTSecurityLevel sec_level) noexcept {
 
     bool expOpen = false; // C++11, exp as value since C++20
     if( !is_open.compare_exchange_strong(expOpen, true) ) {
         DBG_PRINT("L2CAPComm::open(%s, %s): Already open: dd %d, %s, psm %s, cid %s; %s",
                   device.getAddressAndType().toString().c_str(), to_string(sec_level).c_str(),
-                  client_socket.load(), remoteAddressAndType.toString().c_str(),
+                  socket.load(), remoteAddressAndType.toString().c_str(),
                   to_string(psm).c_str(), to_string(cid).c_str(),
                   getStateString().c_str());
         return false;
@@ -175,25 +289,23 @@ bool L2CAPComm::open(const BTDevice& device, const BTSecurityLevel sec_level) no
     int to_retry_count=0; // ETIMEDOUT retry count
 
     DBG_PRINT("L2CAPComm::open: Start Connect: dd %d, %s, psm %s, cid %s, sec_level %s; %s",
-              client_socket.load(), remoteAddressAndType.toString().c_str(),
+              socket.load(), remoteAddressAndType.toString().c_str(),
               to_string(psm).c_str(), to_string(cid).c_str(), to_string(sec_level).c_str(),
               getStateString().c_str());
 
-    client_socket = l2cap_open_dev(localAddressAndType, psm, cid);
+    socket = l2cap_open_dev(localAddressAndType, psm, cid);
 
-    if( 0 > client_socket ) {
+    if( 0 > socket ) {
         goto failure; // open failed
     }
 
-#if !SET_BT_SECURITY_POST_CONNECT
-    #if USE_LINUX_BT_SECURITY
+    if constexpr ( !SET_BT_SECURITY_POST_CONNECT && USE_LINUX_BT_SECURITY ) {
         if( BTSecurityLevel::UNSET < sec_level ) {
-            if( !setBTSecurityLevelImpl(sec_level) ) {
+            if( !setBTSecurityLevelImpl(sec_level, remoteAddressAndType) ) {
                 goto failure; // sec_level failed
             }
         }
-    #endif
-#endif
+    }
 
     tid_connect = pthread_self(); // temporary safe tid to allow interruption
 
@@ -207,7 +319,7 @@ bool L2CAPComm::open(const BTDevice& device, const BTSecurityLevel sec_level) no
 
     while( !interrupt_flag ) {
         // blocking
-        res = ::connect(client_socket, (struct sockaddr*)&req, sizeof(req));
+        res = ::connect(socket, (struct sockaddr*)&req, sizeof(req));
 
         DBG_PRINT("L2CAPComm::open: Connect Result: %d, errno 0x%X %s, %s, psm %s, cid %s",
                   res, errno, strerror(errno),
@@ -223,14 +335,14 @@ bool L2CAPComm::open(const BTDevice& device, const BTSecurityLevel sec_level) no
             if( to_retry_count < number(Defaults::L2CAP_CONNECT_MAX_RETRY) ) {
                 WORDY_PRINT("L2CAPComm::open: Connect timeout, retry %d: dd %d, %s, psm %s, cid %s, sec_level %s; %s",
                           to_retry_count,
-                          client_socket.load(), remoteAddressAndType.toString().c_str(),
+                          socket.load(), remoteAddressAndType.toString().c_str(),
                           to_string(psm).c_str(), to_string(cid).c_str(), to_string(sec_level).c_str(),
                           getStateString().c_str());
                 continue;
             } else {
                 ERR_PRINT("L2CAPComm::open: Connect timeout, retried %d: dd %d, %s, psm %s, cid %s, sec_level %s; %s",
                           to_retry_count,
-                          client_socket.load(), remoteAddressAndType.toString().c_str(),
+                          socket.load(), remoteAddressAndType.toString().c_str(),
                           to_string(psm).c_str(), to_string(cid).c_str(), to_string(sec_level).c_str(),
                           getStateString().c_str());
                 goto failure; // exit
@@ -239,7 +351,7 @@ bool L2CAPComm::open(const BTDevice& device, const BTSecurityLevel sec_level) no
         } else if( !interrupt_flag ) {
             // EALREADY == errno || ENETUNREACH == errno || EHOSTUNREACH == errno || ..
             ERR_PRINT("L2CAPComm::open: Connect failed: dd %d, %s, psm %s, cid %s, sec_level %s; %s",
-                      client_socket.load(), remoteAddressAndType.toString().c_str(),
+                      socket.load(), remoteAddressAndType.toString().c_str(),
                       to_string(psm).c_str(), to_string(cid).c_str(), to_string(sec_level).c_str(),
                       getStateString().c_str());
             goto failure; // exit
@@ -250,15 +362,13 @@ bool L2CAPComm::open(const BTDevice& device, const BTSecurityLevel sec_level) no
     // success
     tid_connect = 0;
 
-#if SET_BT_SECURITY_POST_CONNECT
-    #if USE_LINUX_BT_SECURITY
+    if constexpr ( SET_BT_SECURITY_POST_CONNECT && USE_LINUX_BT_SECURITY ) {
         if( BTSecurityLevel::UNSET < sec_level ) {
-            if( !setBTSecurityLevelImpl(sec_level) ) {
+            if( !setBTSecurityLevelImpl(sec_level, remoteAddressAndType) ) {
                 goto failure; // sec_level failed
             }
         }
-    #endif
-#endif
+    }
 
     return true;
 
@@ -269,11 +379,11 @@ failure:
     return false;
 }
 
-bool L2CAPComm::close() noexcept {
+bool L2CAPClient::close() noexcept {
     bool expOpen = true; // C++11, exp as value since C++20
     if( !is_open.compare_exchange_strong(expOpen, false) ) {
         DBG_PRINT("L2CAPComm::close: Not connected: dd %d, %s, psm %s, cid %s; %s",
-                  client_socket.load(), remoteAddressAndType.toString().c_str(),
+                  socket.load(), remoteAddressAndType.toString().c_str(),
                   to_string(psm).c_str(), to_string(cid).c_str(),
                   getStateString().c_str());
         has_ioerror = false; // always clear last ioerror flag (should be redundant)
@@ -283,7 +393,7 @@ bool L2CAPComm::close() noexcept {
 
     has_ioerror = false;
     DBG_PRINT("L2CAPComm::close: Start: dd %d, %s, psm %s, cid %s; %s",
-              client_socket.load(), remoteAddressAndType.toString().c_str(),
+              socket.load(), remoteAddressAndType.toString().c_str(),
               to_string(psm).c_str(), to_string(cid).c_str(),
               getStateString().c_str());
     PERF_TS_T0();
@@ -302,7 +412,7 @@ bool L2CAPComm::close() noexcept {
             if( 0 != ( kerr = pthread_kill(_tid_read, SIGALRM) ) ) {
                 ERR_PRINT("L2CAPComm::close: pthread_kill read %p FAILED: %d; dd %d, %s, psm %s, cid %s; %s",
                           (void*)_tid_read, kerr,
-                          client_socket.load(), remoteAddressAndType.toString().c_str(),
+                          socket.load(), remoteAddressAndType.toString().c_str(),
                           to_string(psm).c_str(), to_string(cid).c_str(),
                           getStateString().c_str());
             }
@@ -314,36 +424,36 @@ bool L2CAPComm::close() noexcept {
             if( 0 != ( kerr = pthread_kill(_tid_connect, SIGALRM) ) ) {
                 ERR_PRINT("L2CAPComm::close: Start: pthread_kill connect %p FAILED: %d; dd %d, %s, psm %s, cid %s; %s",
                           (void*)_tid_connect, kerr,
-                          client_socket.load(), remoteAddressAndType.toString().c_str(),
+                          socket.load(), remoteAddressAndType.toString().c_str(),
                           to_string(psm).c_str(), to_string(cid).c_str(),
                           getStateString().c_str());
             }
         }
     }
 
-    l2cap_close_dev(client_socket);
-    client_socket = -1;
+    l2cap_close_dev(socket);
+    socket = -1;
     interrupt_flag = false;
     PERF_TS_TD("L2CAPComm::close");
     DBG_PRINT("L2CAPComm::close: End: dd %d, %s, psm %s, cid %s; %s",
-              client_socket.load(), remoteAddressAndType.toString().c_str(),
+              socket.load(), remoteAddressAndType.toString().c_str(),
               to_string(psm).c_str(), to_string(cid).c_str(),
               getStateString().c_str());
     return true;
 }
 
-bool L2CAPComm::setBTSecurityLevel(const BTSecurityLevel sec_level) noexcept {
+bool L2CAPClient::setBTSecurityLevel(const BTSecurityLevel sec_level) noexcept {
     if( !is_open ) {
         DBG_PRINT("L2CAPComm::setBTSecurityLevel(%s): Not connected: dd %d, %s, psm %s, cid %s; %s",
                   to_string(sec_level).c_str(),
-                  client_socket.load(), remoteAddressAndType.toString().c_str(),
+                  socket.load(), remoteAddressAndType.toString().c_str(),
                   to_string(psm).c_str(), to_string(cid).c_str(),
                   getStateString().c_str());
         return false;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
     if( BTSecurityLevel::UNSET < sec_level ) {
-        if( setBTSecurityLevelImpl(sec_level) ) {
+        if( setBTSecurityLevelImpl(sec_level, remoteAddressAndType) ) {
             return true;
         } else {
             close();
@@ -354,110 +464,17 @@ bool L2CAPComm::setBTSecurityLevel(const BTSecurityLevel sec_level) noexcept {
     }
 }
 
-bool L2CAPComm::setBTSecurityLevelImpl(const BTSecurityLevel sec_level) noexcept {
-    if( BTSecurityLevel::NONE > sec_level ) {
-        DBG_PRINT("L2CAPComm::setBTSecurityLevel: sec_level %s not set: dd %d, %s, psm %s, cid %s; %s",
-                  to_string(sec_level).c_str(),
-                  client_socket.load(), remoteAddressAndType.toString().c_str(),
-                  to_string(psm).c_str(), to_string(cid).c_str(),
-                  getStateString().c_str());
-        return false;
-    }
-
-#if USE_LINUX_BT_SECURITY
-    struct bt_security bt_sec;
-    int result;
-
-    BTSecurityLevel old_sec_level = getBTSecurityLevelImpl();
-    if( old_sec_level != sec_level ) {
-        bzero(&bt_sec, sizeof(bt_sec));
-        bt_sec.level = direct_bt::number(sec_level);
-        result = setsockopt(client_socket, SOL_BLUETOOTH, BT_SECURITY, &bt_sec, sizeof(bt_sec));
-        if ( 0 == result ) {
-            DBG_PRINT("L2CAPComm::setBTSecurityLevel: Success: sec_level %s -> %s: dd %d, %s, psm %s, cid %s; %s",
-                      to_string(old_sec_level).c_str(), to_string(sec_level).c_str(),
-                      client_socket.load(), remoteAddressAndType.toString().c_str(),
-                      to_string(psm).c_str(), to_string(cid).c_str(),
-                      getStateString().c_str());
-            return true;
-        } else {
-            ERR_PRINT("L2CAPComm::setBTSecurityLevel: Failed: sec_level %s -> %s: dd %d, %s, psm %s, cid %s; %s",
-                      to_string(old_sec_level).c_str(), to_string(sec_level).c_str(),
-                      client_socket.load(), remoteAddressAndType.toString().c_str(),
-                      to_string(psm).c_str(), to_string(cid).c_str(),
-                      getStateString().c_str());
-            return false;
-        }
-    } else {
-        DBG_PRINT("L2CAPComm::setBTSecurityLevel: Unchanged: sec_level %s -> %s: dd %d, %s, psm %s, cid %s; %s",
-                  to_string(old_sec_level).c_str(), to_string(sec_level).c_str(),
-                  client_socket.load(), remoteAddressAndType.toString().c_str(),
-                  to_string(psm).c_str(), to_string(cid).c_str(),
-                  getStateString().c_str());
-        return true;
-    }
-#else
-    DBG_PRINT("L2CAPComm::setBTSecurityLevel: Not implemented: sec_level %s: dd %d, %s, psm %s, cid %s; %s",
-              to_string(sec_level).c_str(),
-              client_socket.load(), remoteAddressAndType.toString().c_str(),
-              to_string(psm).c_str(), to_string(cid).c_str(),
-              getStateString().c_str());
-    return false;
-#endif
-}
-
-BTSecurityLevel L2CAPComm::getBTSecurityLevel() noexcept {
+BTSecurityLevel L2CAPClient::getBTSecurityLevel() noexcept {
     if( !is_open ) {
         DBG_PRINT("L2CAPComm::getBTSecurityLevel: Not connected: dd %d, %s, psm %s, cid %s; %s",
-                  client_socket.load(), remoteAddressAndType.toString().c_str(),
+                  socket.load(), remoteAddressAndType.toString().c_str(),
                   to_string(psm).c_str(), to_string(cid).c_str(),
                   getStateString().c_str());
         return BTSecurityLevel::UNSET;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
 
-    return getBTSecurityLevelImpl();
-}
-
-BTSecurityLevel L2CAPComm::getBTSecurityLevelImpl() noexcept {
-    BTSecurityLevel sec_level = BTSecurityLevel::UNSET;
-#if USE_LINUX_BT_SECURITY
-    struct bt_security bt_sec;
-    socklen_t optlen = sizeof(bt_sec);
-    int result;
-
-    bzero(&bt_sec, sizeof(bt_sec));
-    result = getsockopt(client_socket, SOL_BLUETOOTH, BT_SECURITY, &bt_sec, &optlen);
-    if ( 0 == result ) {
-        if( optlen == sizeof(bt_sec) ) {
-            sec_level = static_cast<BTSecurityLevel>(bt_sec.level);
-            DBG_PRINT("L2CAPComm::getBTSecurityLevel: Success: sec_level %s: dd %d, %s, psm %s, cid %s; %s",
-                      to_string(sec_level).c_str(),
-                      client_socket.load(), remoteAddressAndType.toString().c_str(),
-                      to_string(psm).c_str(), to_string(cid).c_str(),
-                      getStateString().c_str());
-        } else {
-            ERR_PRINT("L2CAPComm::getBTSecurityLevel: Failed: sec_level %s, size %zd returned != %zd bt_sec: dd %d, %s, psm %s, cid %s; %s",
-                      to_string(sec_level).c_str(), optlen, sizeof(bt_sec),
-                      client_socket.load(), remoteAddressAndType.toString().c_str(),
-                      to_string(psm).c_str(), to_string(cid).c_str(),
-                      getStateString().c_str());
-        }
-    } else {
-        ERR_PRINT("L2CAPComm::getBTSecurityLevel: Failed: sec_level %s, result %d: dd %d, %s, psm %s, cid %s; %s",
-                  to_string(sec_level).c_str(), result,
-                  client_socket.load(), remoteAddressAndType.toString().c_str(),
-                  to_string(psm).c_str(), to_string(cid).c_str(),
-                  getStateString().c_str());
-    }
-#else
-    DBG_PRINT("L2CAPComm::getBTSecurityLevel: Not implemented: sec_level %s: dd %d, %s, psm %s, cid %s; %s",
-              to_string(sec_level).c_str(),
-              client_socket.load(), remoteAddressAndType.toString().c_str(),
-              to_string(psm).c_str(), to_string(cid).c_str(),
-              getStateString().c_str());
-#endif
-    return sec_level;
+    return getBTSecurityLevelImpl(remoteAddressAndType);
 }
 
 #define RWEXITCODE_ENUM(X) \
@@ -472,7 +489,7 @@ BTSecurityLevel L2CAPComm::getBTSecurityLevelImpl() noexcept {
 
 #define CASE2_TO_STRING(U,V) case U::V: return #V;
 
-std::string L2CAPComm::getRWExitCodeString(const RWExitCode ec) noexcept {
+std::string L2CAPClient::getRWExitCodeString(const RWExitCode ec) noexcept {
     if( number(ec) >= 0 ) {
         return "SUCCESS";
     }
@@ -483,7 +500,7 @@ std::string L2CAPComm::getRWExitCodeString(const RWExitCode ec) noexcept {
     return "Unknown ExitCode";
 }
 
-jau::snsize_t L2CAPComm::read(uint8_t* buffer, const jau::nsize_t capacity) noexcept {
+jau::snsize_t L2CAPClient::read(uint8_t* buffer, const jau::nsize_t capacity) noexcept {
     const int32_t timeoutMS = env.L2CAP_READER_POLL_TIMEOUT;
     jau::snsize_t len = 0;
     jau::snsize_t err_res = 0;
@@ -496,7 +513,7 @@ jau::snsize_t L2CAPComm::read(uint8_t* buffer, const jau::nsize_t capacity) noex
         err_res = number(RWExitCode::INTERRUPTED);
         goto errout;
     }
-    if( 0 > client_socket ) {
+    if( 0 > socket ) {
         err_res = number(RWExitCode::INVALID_SOCKET_DD);
         goto errout;
     }
@@ -510,7 +527,7 @@ jau::snsize_t L2CAPComm::read(uint8_t* buffer, const jau::nsize_t capacity) noex
         struct pollfd p;
         int n;
 
-        p.fd = client_socket; p.events = POLLIN;
+        p.fd = socket; p.events = POLLIN;
         while ( is_open && !interrupt_flag && ( n = poll( &p, 1, timeoutMS ) ) < 0 ) {
             if( !is_open ) {
                 err_res = number(RWExitCode::NOT_OPEN);
@@ -534,7 +551,7 @@ jau::snsize_t L2CAPComm::read(uint8_t* buffer, const jau::nsize_t capacity) noex
         }
     }
 
-    while ( is_open && !interrupt_flag && ( len = ::read(client_socket, buffer, capacity) ) < 0 ) {
+    while ( is_open && !interrupt_flag && ( len = ::read(socket, buffer, capacity) ) < 0 ) {
         if( !is_open ) {
             err_res = number(RWExitCode::NOT_OPEN);
             goto errout;
@@ -561,7 +578,7 @@ errout:
         // closed or intentionally interrupted
         WORDY_PRINT("L2CAPComm::read: IRQed res %d (%s), len %d; dd %d, %s, psm %s, cid %s; %s",
               err_res, getRWExitCodeString(err_res).c_str(), len,
-              client_socket.load(), remoteAddressAndType.toString().c_str(),
+              socket.load(), remoteAddressAndType.toString().c_str(),
               to_string(psm).c_str(), to_string(cid).c_str(),
               getStateString().c_str());
     } else {
@@ -571,7 +588,7 @@ errout:
             if( err_res != number(RWExitCode::POLL_TIMEOUT) ) { // expected POLL_TIMEOUT if idle
                 DBG_PRINT("L2CAPComm::read: Timeout res %d (%s), len %d; dd %d, %s, psm %s, cid %s; %s",
                       err_res, getRWExitCodeString(err_res).c_str(), len,
-                      client_socket.load(), remoteAddressAndType.toString().c_str(),
+                      socket.load(), remoteAddressAndType.toString().c_str(),
                       to_string(psm).c_str(), to_string(cid).c_str(),
                       getStateString().c_str());
             }
@@ -582,13 +599,13 @@ errout:
             if( env.L2CAP_RESTART_COUNT_ON_ERROR < 0 ) {
                 ABORT("L2CAPComm::read: Error res %d (%s), len %d; dd %d, %s, psm %s, cid %s; %s",
                       err_res, getRWExitCodeString(err_res).c_str(), len,
-                      client_socket.load(), remoteAddressAndType.toString().c_str(),
+                      socket.load(), remoteAddressAndType.toString().c_str(),
                       to_string(psm).c_str(), to_string(cid).c_str(),
                       getStateString().c_str());
             } else {
                 IRQ_PRINT("L2CAPComm::read: Error res %d (%s), len %d; dd %d, %s, psm %s, cid %s; %s",
                       err_res, getRWExitCodeString(err_res).c_str(), len,
-                      client_socket.load(), remoteAddressAndType.toString().c_str(),
+                      socket.load(), remoteAddressAndType.toString().c_str(),
                       to_string(psm).c_str(), to_string(cid).c_str(),
                       getStateString().c_str());
             }
@@ -597,7 +614,7 @@ errout:
     return err_res;
 }
 
-jau::snsize_t L2CAPComm::write(const uint8_t * buffer, const jau::nsize_t length) noexcept {
+jau::snsize_t L2CAPClient::write(const uint8_t * buffer, const jau::nsize_t length) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
     jau::snsize_t len = 0;
     jau::snsize_t err_res = 0;
@@ -610,7 +627,7 @@ jau::snsize_t L2CAPComm::write(const uint8_t * buffer, const jau::nsize_t length
         err_res = number(RWExitCode::INTERRUPTED);
         goto errout;
     }
-    if( 0 > client_socket ) {
+    if( 0 > socket ) {
         err_res = number(RWExitCode::INVALID_SOCKET_DD);
         goto errout;
     }
@@ -618,7 +635,7 @@ jau::snsize_t L2CAPComm::write(const uint8_t * buffer, const jau::nsize_t length
         goto done;
     }
 
-    while ( is_open && !interrupt_flag && ( len = ::write(client_socket, buffer, length) ) < 0 ) {
+    while ( is_open && !interrupt_flag && ( len = ::write(socket, buffer, length) ) < 0 ) {
         if( !is_open ) {
             err_res = number(RWExitCode::NOT_OPEN);
             goto errout;
@@ -643,7 +660,7 @@ errout:
         // closed or intentionally interrupted
         WORDY_PRINT("L2CAPComm::write: IRQed res %d (%s), len %d; dd %d, %s, psm %s, cid %s; %s",
               err_res, getRWExitCodeString(err_res).c_str(), len,
-              client_socket.load(), remoteAddressAndType.toString().c_str(),
+              socket.load(), remoteAddressAndType.toString().c_str(),
               to_string(psm).c_str(), to_string(cid).c_str(),
               getStateString().c_str());
     } else {
@@ -653,13 +670,13 @@ errout:
         if( env.L2CAP_RESTART_COUNT_ON_ERROR < 0 ) {
             ABORT("L2CAPComm::write: Error res %d (%s), len %d; dd %d, %s, psm %s, cid %s; %s",
                   err_res, getRWExitCodeString(err_res).c_str(), len,
-                  client_socket.load(), remoteAddressAndType.toString().c_str(),
+                  socket.load(), remoteAddressAndType.toString().c_str(),
                   to_string(psm).c_str(), to_string(cid).c_str(),
                   getStateString().c_str());
         } else {
             IRQ_PRINT("L2CAPComm::write: Error res %d (%s), len %d; dd %d, %s, psm %s, cid %s; %s",
                   err_res, getRWExitCodeString(err_res).c_str(), len,
-                  client_socket.load(), remoteAddressAndType.toString().c_str(),
+                  socket.load(), remoteAddressAndType.toString().c_str(),
                   to_string(psm).c_str(), to_string(cid).c_str(),
                   getStateString().c_str());
         }
@@ -667,8 +684,8 @@ errout:
     return err_res;
 }
 
-std::string L2CAPComm::toString() const noexcept {
-    return "L2CAPComm[dd "+std::to_string(client_socket.load())+
+std::string L2CAPClient::toString() const noexcept {
+    return "L2CAPComm[dd "+std::to_string(socket.load())+
             ", psm "+to_string(psm)+
             ", cid "+to_string(cid)+
             ", local "+localAddressAndType.toString()+
@@ -681,17 +698,14 @@ std::string L2CAPComm::toString() const noexcept {
 // *************************************************
 
 L2CAPServer::L2CAPServer(const BDAddressAndType& localAddressAndType_, const L2CAP_PSM psm_, const L2CAP_CID cid_) noexcept
-: localAddressAndType(localAddressAndType_),
-  psm(psm_), cid(cid_),
-  server_socket(-1),
-  is_open(false), interrupt_flag(false), tid_accept(0)
+: L2CAPClientServer(localAddressAndType_, psm_, cid_), tid_accept(0)
 { }
 
 bool L2CAPServer::open() noexcept {
     bool expOpen = false; // C++11, exp as value since C++20
     if( !is_open.compare_exchange_strong(expOpen, true) ) {
         DBG_PRINT("L2CAPServer::open: Already open: dd %d, psm %s, cid %s, local %s",
-                  server_socket.load(), to_string(psm).c_str(), to_string(cid).c_str(),
+                  socket.load(), to_string(psm).c_str(), to_string(cid).c_str(),
                   localAddressAndType.toString().c_str());
         return false;
     }
@@ -699,29 +713,30 @@ bool L2CAPServer::open() noexcept {
     int res;
 
     DBG_PRINT("L2CAPServer::open: Start: dd %d, psm %s, cid %s, local %s",
-              server_socket.load(), to_string(psm).c_str(), to_string(cid).c_str(),
+              socket.load(), to_string(psm).c_str(), to_string(cid).c_str(),
               localAddressAndType.toString().c_str());
 
-    server_socket = L2CAPComm::l2cap_open_dev(localAddressAndType, psm, cid);
+    socket = l2cap_open_dev(localAddressAndType, psm, cid);
 
-    if( 0 > server_socket ) {
+    if( 0 > socket ) {
         goto failure; // open failed
     }
 
-#if !SET_BT_SECURITY_POST_ACCEPT
-    #if USE_LINUX_BT_SECURITY
+#if 0
+    // FIXME ???
+    if constexpr ( !SET_BT_SECURITY_POST_ACCEPT && USE_LINUX_BT_SECURITY ) {
         if( BTSecurityLevel::UNSET < sec_level ) {
-            if( !setBTSecurityLevelImpl(sec_level) ) {
+            if( !setBTSecurityLevelImpl(sec_level, remoteAddressAndType) ) {
                 goto failure; // sec_level failed
             }
         }
-    #endif
+    }
 #endif
 
-    res = ::listen(server_socket, 10);
+    res = ::listen(socket, 10);
 
     DBG_PRINT("L2CAPServer::open: End: res %d, dd %d, psm %s, cid %s, local %s",
-              res, server_socket.load(), to_string(psm).c_str(), to_string(cid).c_str(),
+              res, socket.load(), to_string(psm).c_str(), to_string(cid).c_str(),
               localAddressAndType.toString().c_str());
 
     if( res < 0 ) {
@@ -741,14 +756,14 @@ bool L2CAPServer::close() noexcept {
     bool expOpen = true; // C++11, exp as value since C++20
     if( !is_open.compare_exchange_strong(expOpen, false) ) {
         DBG_PRINT("L2CAPServer::close: Not connected: dd %d, psm %s, cid %s, local %s",
-                  server_socket.load(), to_string(psm).c_str(), to_string(cid).c_str(),
+                  socket.load(), to_string(psm).c_str(), to_string(cid).c_str(),
                   localAddressAndType.toString().c_str());
         return true;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_open); // RAII-style acquire and relinquish via destructor
 
     DBG_PRINT("L2CAPServer::close: Start: dd %d, psm %s, cid %s, local %s",
-              server_socket.load(), to_string(psm).c_str(), to_string(cid).c_str(),
+              socket.load(), to_string(psm).c_str(), to_string(cid).c_str(),
               localAddressAndType.toString().c_str());
     PERF_TS_T0();
 
@@ -765,23 +780,23 @@ bool L2CAPServer::close() noexcept {
             if( 0 != ( kerr = pthread_kill(_tid_accept, SIGALRM) ) ) {
                 ERR_PRINT("L2CAPServer::close: Start: pthread_kill connect %p FAILED: %d; dd %d, psm %s, cid %s, local %s",
                           (void*)_tid_accept, kerr,
-                          server_socket.load(), to_string(psm).c_str(), to_string(cid).c_str(),
+                          socket.load(), to_string(psm).c_str(), to_string(cid).c_str(),
                           localAddressAndType.toString().c_str());
             }
         }
     }
 
-    L2CAPComm::l2cap_close_dev(server_socket);
-    server_socket = -1;
+    l2cap_close_dev(socket);
+    socket = -1;
     interrupt_flag = false;
     PERF_TS_TD("L2CAPServer::close");
     DBG_PRINT("L2CAPServer::close: End: dd %d, psm %s, cid %s, local %s",
-              server_socket.load(), to_string(psm).c_str(), to_string(cid).c_str(),
+              socket.load(), to_string(psm).c_str(), to_string(cid).c_str(),
               localAddressAndType.toString().c_str());
     return true;
 }
 
-std::unique_ptr<L2CAPComm> L2CAPServer::accept() noexcept {
+std::unique_ptr<L2CAPClient> L2CAPServer::accept() noexcept {
     sockaddr_l2 peer;
     int to_retry_count=0; // ETIMEDOUT retry count
 
@@ -789,7 +804,7 @@ std::unique_ptr<L2CAPComm> L2CAPServer::accept() noexcept {
 
     if( !is_open ) {
         ERR_PRINT("L2CAPServer::accept: Not open: dd[s %d], errno 0x%X %s, psm %s, cid %s, local %s",
-                  server_socket.load(), errno, strerror(errno),
+                  socket.load(), errno, strerror(errno),
                   to_string(psm).c_str(),
                   to_string(cid).c_str(),
                   localAddressAndType.toString().c_str());
@@ -799,7 +814,7 @@ std::unique_ptr<L2CAPComm> L2CAPServer::accept() noexcept {
         // blocking
         bzero((void *)&peer, sizeof(peer));
         socklen_t addrlen = sizeof(peer); // on return it will contain the actual size of the peer address
-        int client_socket = ::accept(server_socket, (struct sockaddr*)&peer, &addrlen);
+        int client_socket = ::accept(socket, (struct sockaddr*)&peer, &addrlen);
 
         BDAddressAndType remoteAddressAndType(jau::le_to_cpu(peer.l2_bdaddr), static_cast<BDAddressType>(peer.l2_bdaddr_type));
         L2CAP_PSM c_psm = static_cast<L2CAP_PSM>(jau::le_to_cpu(peer.l2_psm));
@@ -808,19 +823,19 @@ std::unique_ptr<L2CAPComm> L2CAPServer::accept() noexcept {
         if( 0 <= client_socket )
         {
             DBG_PRINT("L2CAPServer::accept: Success: dd[s %d, c %d], errno 0x%X %s, psm %s -> %s, cid %s -> %s, local %s -> remote %s",
-                      server_socket.load(), client_socket, errno, strerror(errno),
+                      socket.load(), client_socket, errno, strerror(errno),
                       to_string(psm).c_str(), to_string(c_psm).c_str(),
                       to_string(cid).c_str(), to_string(c_cid).c_str(),
                       localAddressAndType.toString().c_str(),
                       remoteAddressAndType.toString().c_str());
             // success
             tid_accept = 0;
-            return std::make_unique<L2CAPComm>(localAddressAndType, c_psm, c_cid, remoteAddressAndType, client_socket);
+            return std::make_unique<L2CAPClient>(localAddressAndType, c_psm, c_cid, remoteAddressAndType, client_socket);
         } else if( ETIMEDOUT == errno ) {
             to_retry_count++;
-            if( to_retry_count < L2CAPComm::number(L2CAPComm::Defaults::L2CAP_CONNECT_MAX_RETRY) ) {
+            if( to_retry_count < L2CAPClient::number(L2CAPClient::Defaults::L2CAP_CONNECT_MAX_RETRY) ) {
                 WORDY_PRINT("L2CAPServer::accept: Timeout # %d (retry): dd[s %d, c %d], errno 0x%X %s, psm %s -> %s, cid %s -> %s, local %s -> remote %s",
-                          to_retry_count, server_socket.load(), client_socket, errno, strerror(errno),
+                          to_retry_count, socket.load(), client_socket, errno, strerror(errno),
                           to_string(psm).c_str(), to_string(c_psm).c_str(),
                           to_string(cid).c_str(), to_string(c_cid).c_str(),
                           localAddressAndType.toString().c_str(),
@@ -828,7 +843,7 @@ std::unique_ptr<L2CAPComm> L2CAPServer::accept() noexcept {
                 continue;
             } else {
                 WORDY_PRINT("L2CAPServer::accept: Timeout # %d (done): dd[s %d, c %d], errno 0x%X %s, psm %s -> %s, cid %s -> %s, local %s -> remote %s",
-                          to_retry_count, server_socket.load(), client_socket, errno, strerror(errno),
+                          to_retry_count, socket.load(), client_socket, errno, strerror(errno),
                           to_string(psm).c_str(), to_string(c_psm).c_str(),
                           to_string(cid).c_str(), to_string(c_cid).c_str(),
                           localAddressAndType.toString().c_str(),
@@ -839,7 +854,7 @@ std::unique_ptr<L2CAPComm> L2CAPServer::accept() noexcept {
         } else if( !interrupt_flag ) {
             // EALREADY == errno || ENETUNREACH == errno || EHOSTUNREACH == errno || ..
             IRQ_PRINT("L2CAPServer::accept: Failed: dd[s %d, c %d], errno 0x%X %s, psm %s -> %s, cid %s -> %s, local %s -> remote %s",
-                      server_socket.load(), client_socket, errno, strerror(errno),
+                      socket.load(), client_socket, errno, strerror(errno),
                       to_string(psm).c_str(), to_string(c_psm).c_str(),
                       to_string(cid).c_str(), to_string(c_cid).c_str(),
                       localAddressAndType.toString().c_str(),
@@ -853,8 +868,9 @@ std::unique_ptr<L2CAPComm> L2CAPServer::accept() noexcept {
 }
 
 std::string L2CAPServer::toString() const noexcept {
-    return "L2CAPServer[dd "+std::to_string(server_socket.load())+
+    return "L2CAPServer[dd "+std::to_string(socket.load())+
             ", psm "+to_string(psm)+
             ", cid "+to_string(cid)+
-            ", local "+localAddressAndType.toString()+"]";
+            ", local "+localAddressAndType.toString()+
+            ", "+getStateString()+"]";
 }

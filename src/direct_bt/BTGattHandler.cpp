@@ -505,13 +505,13 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
         }
     } else if( 0 > len && ETIMEDOUT != errno && !sr.get_shall_stop() ) { // expected exits
         IRQ_PRINT("GATTHandler::reader: l2cap read error -> Stop; l2cap.read %d (%s); %s",
-                len, L2CAPComm::getRWExitCodeString(len).c_str(),
+                len, L2CAPClient::getRWExitCodeString(len).c_str(),
                 getStateString().c_str());
         sr.set_shall_stop();
         has_ioerror = true;
-    } else if( len != L2CAPComm::number(L2CAPComm::RWExitCode::POLL_TIMEOUT) ) { // expected POLL_TIMEOUT if idle
+    } else if( len != L2CAPClient::number(L2CAPClient::RWExitCode::POLL_TIMEOUT) ) { // expected POLL_TIMEOUT if idle
         WORDY_PRINT("GATTHandler::reader: l2cap read: l2cap.read %d (%s); %s",
-                len, L2CAPComm::getRWExitCodeString(len).c_str(),
+                len, L2CAPClient::getRWExitCodeString(len).c_str(),
                 getStateString().c_str());
     }
 }
@@ -527,7 +527,7 @@ void BTGattHandler::l2capReaderEndFinal(jau::service_runner& sr) noexcept {
     disconnect(true /* disconnectDevice */, has_ioerror);
 }
 
-BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPComm& l2cap_att, const int32_t supervision_timeout_) noexcept
+BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, const int32_t supervision_timeout_) noexcept
 : supervision_timeout(supervision_timeout_),
   env(BTGattEnv::get()),
   read_cmd_reply_timeout(std::max<int32_t>(env.GATT_READ_COMMAND_REPLY_TIMEOUT, supervision_timeout+50)),
@@ -664,7 +664,7 @@ void BTGattHandler::send(const AttPDUMsg & msg) {
     const jau::snsize_t res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.size());
     if( 0 > res ) {
         IRQ_PRINT("GATTHandler::send: l2cap write error -> disconnect: l2cap.write %d (%s); %s; %s to %s",
-                res, L2CAPComm::getRWExitCodeString(res).c_str(), getStateString().c_str(),
+                res, L2CAPClient::getRWExitCodeString(res).c_str(), getStateString().c_str(),
                 msg.toString().c_str(), toString().c_str());
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected

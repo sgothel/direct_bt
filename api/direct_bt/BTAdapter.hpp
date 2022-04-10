@@ -496,7 +496,7 @@ namespace direct_bt {
 
             L2CAPServer l2cap_att_srv;
             jau::service_runner l2cap_service;
-            std::unique_ptr<L2CAPComm> l2cap_att;
+            std::unique_ptr<L2CAPClient> l2cap_att;
             std::mutex mtx_l2cap_att;
             std::condition_variable cv_l2cap_att;
             void l2capServerWork(jau::service_runner& sr);

@@ -78,7 +78,7 @@ namespace direct_bt {
         private:
             BTAdapter & adapter;
             BTRole btRole;
-            std::unique_ptr<L2CAPComm> l2cap_att;
+            std::unique_ptr<L2CAPClient> l2cap_att;
             uint64_t ts_last_discovery;
             uint64_t ts_last_update;
             std::string name;

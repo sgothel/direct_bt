@@ -198,7 +198,7 @@ namespace direct_bt {
             std::recursive_mutex mtx_command;
             jau::POctets rbuffer;
 
-            L2CAPComm l2cap;
+            L2CAPClient l2cap;
             jau::sc_atomic_bool is_connected; // reflects state
             jau::relaxed_atomic_bool has_ioerror;  // reflects state
 
@@ -237,7 +237,7 @@ namespace direct_bt {
 
             bool isConnected() const noexcept { return is_connected ; }
             bool hasIOError() const noexcept { return has_ioerror; }
-            std::string getStateString() const noexcept { return L2CAPComm::getStateString(is_connected, has_ioerror); }
+            std::string getStateString() const noexcept { return L2CAPClientServer::getStateString(is_connected, has_ioerror); }
 
             /**
              * If sec_level > ::BTSecurityLevel::UNSET, change security level per L2CAP connection.
