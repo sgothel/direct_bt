@@ -2050,23 +2050,30 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
         }
         if( BTRole::Slave == getRole() ) {
             // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS
-            SMPKeyBinRef key = findSMPKeyBin(device->getAddressAndType());
-            if( nullptr != key ) {
-                HCIStatusCode res;
-                #if 0
-                    res = getManager().unpairDevice(dev_id, device->getAddressAndType(), true /* disconnect */);
-                    if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
-                        WARN_PRINT("(dev_id %d): Unpair device failed %s of %s",
-                                dev_id, to_string(res).c_str(), device->getAddressAndType().toString().c_str());
+            if( HCIStatusCode::AUTHENTICATION_FAILURE == event.getHCIReason() ||
+                HCIStatusCode::PAIRING_WITH_UNIT_KEY_NOT_SUPPORTED == event.getHCIReason() )
+            {
+                // Pairing failed on the remote client side
+                removeSMPKeyBin(device->getAddressAndType(), true /* remove_file */);
+            } else {
+                SMPKeyBinRef key = findSMPKeyBin(device->getAddressAndType());
+                if( nullptr != key ) {
+                    HCIStatusCode res;
+                    #if 0
+                        res = getManager().unpairDevice(dev_id, device->getAddressAndType(), true /* disconnect */);
+                        if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
+                            WARN_PRINT("(dev_id %d): Unpair device failed %s of %s",
+                                    dev_id, to_string(res).c_str(), device->getAddressAndType().toString().c_str());
+                        }
+                        res = device->uploadKeys(*key, BTSecurityLevel::NONE);
+                    #else
+                        res = device->uploadKeys(*key, BTSecurityLevel::NONE);
+                    #endif
+                    if( HCIStatusCode::SUCCESS != res ) {
+                        WARN_PRINT("(dev_id %d): Upload SMPKeyBin failed %s, %s (removing file)",
+                                dev_id, to_string(res).c_str(), key->toString().c_str());
+                        removeSMPKeyBin(device->getAddressAndType(), true /* remove_file */);
                     }
-                    res = device->uploadKeys(*key, BTSecurityLevel::NONE);
-                #else
-                    res = device->uploadKeys(*key, BTSecurityLevel::NONE);
-                #endif
-                if( HCIStatusCode::SUCCESS != res ) {
-                    WARN_PRINT("(dev_id %d): Upload SMPKeyBin failed %s, %s (removing file)",
-                            dev_id, to_string(res).c_str(), key->toString().c_str());
-                    removeSMPKeyBin(device->getAddressAndType(), true /* remove_file */);
                 }
             }
         }
@@ -2486,7 +2493,7 @@ void BTAdapter::sendDevicePairingState(BTDeviceRef device, const SMPPairingState
                 }
             }
         } else if( SMPPairingState::FAILED == state ) {
-            // Pairing failed
+            // Pairing failed on this server side
             removeSMPKeyBin(device->getAddressAndType(), true /* remove_file */);
         }
     }
