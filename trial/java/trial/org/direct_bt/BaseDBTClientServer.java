@@ -54,7 +54,7 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
         if( DEBUG ) {
             System.setProperty("direct_bt.debug", "true"); // native code
             // System.setProperty("direct_bt.debug", "true,gatt.data"); // native code
-            System.setProperty("org.direct_bt.debug", "true"); // java
+            // System.setProperty("org.direct_bt.debug", "true"); // java
         }
         BTFactory.initDirectBTLibrary();
 

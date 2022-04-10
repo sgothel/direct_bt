@@ -392,13 +392,13 @@ public class DBTServer00 implements DBTServerTest {
                             final byte[] v = data.getBytes(StandardCharsets.UTF_8);
                             if( 0 != handlePulseDataNotify ) {
                                 if( GATT_VERBOSE ) {
-                                    BTUtils.fprintf_td(System.err, "****** GATT::sendNotification: PULSE to %s\n", connectedDevice.toString());
+                                    BTUtils.fprintf_td(System.err, "****** Server GATT::sendNotification: PULSE to %s\n", connectedDevice.toString());
                                 }
                                 connectedDevice.sendNotification(handlePulseDataNotify, v);
                             }
                             if( 0 != handlePulseDataIndicate ) {
                                 if( GATT_VERBOSE ) {
-                                    BTUtils.fprintf_td(System.err, "****** GATT::sendIndication: PULSE to %s\n", connectedDevice.toString());
+                                    BTUtils.fprintf_td(System.err, "****** Server GATT::sendIndication: PULSE to %s\n", connectedDevice.toString());
                                 }
                                 connectedDevice.sendIndication(handlePulseDataIndicate, v);
                             }
@@ -417,14 +417,14 @@ public class DBTServer00 implements DBTServerTest {
                 if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
                     if( 0 != handleResponseDataNotify ) {
                         if( GATT_VERBOSE ) {
-                            BTUtils.fprintf_td(System.err, "****** GATT::sendNotification: %s to %s\n",
+                            BTUtils.fprintf_td(System.err, "****** Server GATT::sendNotification: %s to %s\n",
                                     BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice.toString());
                         }
                         connectedDevice.sendNotification(handleResponseDataNotify, data);
                     }
                     if( 0 != handleResponseDataIndicate ) {
                         if( GATT_VERBOSE ) {
-                            BTUtils.fprintf_td(System.err, "****** GATT::sendIndication: %s to %s\n",
+                            BTUtils.fprintf_td(System.err, "****** Server GATT::sendIndication: %s to %s\n",
                                     BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice.toString());
                         }
                         connectedDevice.sendIndication(handleResponseDataIndicate, data);
@@ -457,7 +457,7 @@ public class DBTServer00 implements DBTServerTest {
         public void connected(final BTDevice device, final int initialMTU) {
             final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
             final boolean available = null == connectedDevice;
-            BTUtils.fprintf_td(System.err, "****** GATT::connected(available %b): initMTU %d, %s\n",
+            BTUtils.fprintf_td(System.err, "****** Server GATT::connected(available %b): initMTU %d, %s\n",
                     available, initialMTU, device.toString());
             if( available ) {
                 connectedDevice = device;
@@ -470,7 +470,7 @@ public class DBTServer00 implements DBTServerTest {
         public void disconnected(final BTDevice device) {
             final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
             final boolean match = null != connectedDevice ? connectedDevice.equals(device) : false;
-            BTUtils.fprintf_td(System.err, "****** GATT::disconnected(match %b): %s\n", match, device.toString());
+            BTUtils.fprintf_td(System.err, "****** Server GATT::disconnected(match %b): %s\n", match, device.toString());
             if( match ) {
                 clear();
             }
@@ -484,7 +484,7 @@ public class DBTServer00 implements DBTServerTest {
             if( match ) {
                 usedMTU = mtu;
             }
-            BTUtils.fprintf_td(System.err, "****** GATT::mtuChanged(match %b, served %d, left %d): %d -> %d, %s\n",
+            BTUtils.fprintf_td(System.err, "****** Server GATT::mtuChanged(match %b, served %d, left %d): %d -> %d, %s\n",
                     match, servedConnections.get(), servingConnectionsLeft.get(),
                     match ? usedMTU_old : 0, mtu, device.toString());
         }
@@ -493,7 +493,7 @@ public class DBTServer00 implements DBTServerTest {
         public boolean readCharValue(final BTDevice device, final DBGattService s, final DBGattChar c) {
             final boolean match = matches(device);
             if( GATT_VERBOSE ) {
-                BTUtils.fprintf_td(System.err, "****** GATT::readCharValue(match %b): to %s, from\n  %s\n    %s\n",
+                BTUtils.fprintf_td(System.err, "****** Server GATT::readCharValue(match %b): to %s, from\n  %s\n    %s\n",
                         match, device.toString(), s.toString(), c.toString());
             }
             return match;
@@ -503,7 +503,7 @@ public class DBTServer00 implements DBTServerTest {
         public boolean readDescValue(final BTDevice device, final DBGattService s, final DBGattChar c, final DBGattDesc d) {
             final boolean match = matches(device);
             if( GATT_VERBOSE ) {
-                BTUtils.fprintf_td(System.err, "****** GATT::readDescValue(match %b): to %s, from\n  %s\n    %s\n      %s\n",
+                BTUtils.fprintf_td(System.err, "****** Server GATT::readDescValue(match %b): to %s, from\n  %s\n    %s\n      %s\n",
                         match, device.toString(), s.toString(), c.toString(), d.toString());
             }
             return match;
@@ -515,7 +515,7 @@ public class DBTServer00 implements DBTServerTest {
             if( GATT_VERBOSE ) {
                 final String value_s = BTUtils.bytesHexString(value, 0, value.length, true /* lsbFirst */)+
                                        " '"+BTUtils.decodeUTF8String(value, 0, value.length)+"'";
-                BTUtils.fprintf_td(System.err, "****** GATT::writeCharValue(match %b): %s @ %d from %s, to\n  %s\n    %s\n",
+                BTUtils.fprintf_td(System.err, "****** Server GATT::writeCharValue(match %b): %s @ %d from %s, to\n  %s\n    %s\n",
                         match, value_s, value_offset,
                         device.toString(), s.toString(), c.toString());
             }
@@ -544,7 +544,7 @@ public class DBTServer00 implements DBTServerTest {
                 executeOffThread( () -> { sendResponse( data ); }, true /* detach */);
             }
             if( GATT_VERBOSE || isSuccessHandshake ) {
-                BTUtils.fprintf_td(System.err, "****** GATT::writeCharValueDone(match %b, successCmd %b, served %d, left %d): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
+                BTUtils.fprintf_td(System.err, "****** Server GATT::writeCharValueDone(match %b, successCmd %b, served %d, left %d): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
                         match, isSuccessHandshake, servedConnections.get(), servingConnectionsLeft.get(),
                         device.toString(), s.toString(), c.toString(), value.toString());
             }
@@ -558,7 +558,7 @@ public class DBTServer00 implements DBTServerTest {
             if( GATT_VERBOSE ) {
                 final String value_s = BTUtils.bytesHexString(value, 0, value.length, true /* lsbFirst */)+
                                        " '"+BTUtils.decodeUTF8String(value, 0, value.length)+"'";
-                BTUtils.fprintf_td(System.err, "****** GATT::writeDescValue(match %b): %s @ %d from %s\n  %s\n    %s\n      %s\n",
+                BTUtils.fprintf_td(System.err, "****** Server GATT::writeDescValue(match %b): %s @ %d from %s\n  %s\n    %s\n      %s\n",
                         match, value_s, value_offset,
                         device.toString(), s.toString(), c.toString(), d.toString());
             }
@@ -570,7 +570,7 @@ public class DBTServer00 implements DBTServerTest {
             if( GATT_VERBOSE ) {
                 final boolean match = matches(device);
                 final DBGattValue value = d.getValue();
-                BTUtils.fprintf_td(System.err, "****** GATT::writeDescValueDone(match %b): From %s\n  %s\n    %s\n      %s\n      Desc-Value: %s\n",
+                BTUtils.fprintf_td(System.err, "****** Server GATT::writeDescValueDone(match %b): From %s\n  %s\n    %s\n      %s\n      Desc-Value: %s\n",
                         match, device.toString(), s.toString(), c.toString(), d.toString(), value.toString());
             }
         }
@@ -582,7 +582,7 @@ public class DBTServer00 implements DBTServerTest {
             final boolean match = matches(device);
             if( GATT_VERBOSE ) {
                 final DBGattValue value = d.getValue();
-                BTUtils.fprintf_td(System.err, "****** GATT::clientCharConfigChanged(match %b): notify %b, indicate %b from %s\n  %s\n    %s\n      %s\n      Desc-Value: %s\n",
+                BTUtils.fprintf_td(System.err, "****** Server GATT::clientCharConfigChanged(match %b): notify %b, indicate %b from %s\n  %s\n    %s\n      %s\n      Desc-Value: %s\n",
                         match, notificationEnabled, indicationEnabled,
                         device.toString(), s.toString(), c.toString(), d.toString(), value.toString());
             }
@@ -610,18 +610,18 @@ public class DBTServer00 implements DBTServerTest {
     @Override
     public HCIStatusCode stopAdvertising(final BTAdapter adapter, final String msg) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
-            BTUtils.fprintf_td(System.err, "****** Stop advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
+            BTUtils.fprintf_td(System.err, "****** Server Stop advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
             return HCIStatusCode.FAILED;
         }
         final HCIStatusCode status = adapter.stopAdvertising();
-        BTUtils.println(System.err, "****** Stop advertising ("+msg+") result: "+status+": "+adapter.toString());
+        BTUtils.println(System.err, "****** Server Stop advertising ("+msg+") result: "+status+": "+adapter.toString());
         return status;
     }
 
     @Override
     public HCIStatusCode startAdvertising(final BTAdapter adapter, final String msg) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
-            BTUtils.fprintf_td(System.err, "****** Start advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
+            BTUtils.fprintf_td(System.err, "****** Server Start advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
             return HCIStatusCode.FAILED;
         }
         final EInfoReport eir = new EInfoReport();
@@ -649,13 +649,13 @@ public class DBTServer00 implements DBTServerTest {
             gattDevNameChar.setValue(aname_bytes, 0, aname_bytes.length, 0);
         }
 
-        BTUtils.println(System.err, "****** Start advertising ("+msg+"): EIR "+eir.toString());
-        BTUtils.println(System.err, "****** Start advertising ("+msg+"): adv "+adv_mask.toString()+", scanrsp "+scanrsp_mask.toString());
+        BTUtils.println(System.err, "****** Server Start advertising ("+msg+"): EIR "+eir.toString());
+        BTUtils.println(System.err, "****** Server Start advertising ("+msg+"): adv "+adv_mask.toString()+", scanrsp "+scanrsp_mask.toString());
 
         final HCIStatusCode status = adapter.startAdvertising(dbGattServer, eir, adv_mask, scanrsp_mask,
                                                               adv_interval_min, adv_interval_max,
                                                               adv_type, adv_chan_map, filter_policy);
-        BTUtils.println(System.err, "****** Start advertising ("+msg+") result: "+status+": "+adapter.toString());
+        BTUtils.println(System.err, "****** Server Start advertising ("+msg+") result: "+status+": "+adapter.toString());
         if( GATT_VERBOSE ) {
             BTUtils.println(System.err, dbGattServer.toFullString());
         }
@@ -663,7 +663,7 @@ public class DBTServer00 implements DBTServerTest {
     }
 
     private void processDisconnectedDevice(final BTDevice device) {
-        BTUtils.println(System.err, "****** Disconnected Device (served "+servedConnections.get()+", left "+servingConnectionsLeft.get()+"): Start "+device.toString());
+        BTUtils.println(System.err, "****** Server Disconnected Device (served "+servedConnections.get()+", left "+servingConnectionsLeft.get()+"): Start "+device.toString());
 
         // already unpaired
         stopAdvertising(device.getAdapter(), "device-disconnected");
@@ -678,7 +678,7 @@ public class DBTServer00 implements DBTServerTest {
             startAdvertising(device.getAdapter(), "device-disconnected");
         }
 
-        BTUtils.println(System.err, "****** Disonnected Device: End "+device.toString());
+        BTUtils.println(System.err, "****** Server Disonnected Device: End "+device.toString());
     }
 
     @Override

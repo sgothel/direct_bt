@@ -31,6 +31,7 @@ import org.junit.runners.MethodSorters;
 
 /**
  * Testing a full Bluetooth server and client lifecycle of operations, requiring two BT adapter:
+ * - operating in SC mode
  * - start server advertising
  * - start client discovery and connect to server when discovered
  * - client/server processing of connection when ready
@@ -40,36 +41,34 @@ import org.junit.runners.MethodSorters;
  * - reuse server-adapter for client-mode discovery (just toggle on/off)
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class TestDBTClientServer11 extends DBTClientServer1x {
+public class TestDBTClientServer12_SC1 extends DBTClientServer1x {
+    static final boolean serverSC = true;
 
     @Test(timeout = 30000)
-    public final void test01_FullCycle_EncNone() {
-        final boolean serverSC = true;
+    public final void test00_FullCycle_EncNone() {
         final boolean serverShallHaveKeys = false;
         final boolean clientShallHaveKeys = false;
-        test8x_fullCycle("01", false /* server_client_order */, serverSC,
+        test8x_fullCycle("00", true /* server_client_order */, serverSC,
                          BTSecurityLevel.NONE, serverShallHaveKeys, BTSecurityLevel.NONE, clientShallHaveKeys);
     }
 
-    @Test(timeout = 30000)
-    public final void test11_FullCycle_EncOnlyNo1() {
-        final boolean serverSC = true;
+    @Test(timeout = 40000)
+    public final void test10_FullCycle_EncOnlyNo1() {
         final boolean serverShallHaveKeys = false;
         final boolean clientShallHaveKeys = false;
-        test8x_fullCycle("11", false /* server_client_order */, serverSC,
+        test8x_fullCycle("10", true /* server_client_order */, serverSC,
                          BTSecurityLevel.ENC_ONLY, serverShallHaveKeys, BTSecurityLevel.ENC_ONLY, clientShallHaveKeys);
     }
 
-    @Test(timeout = 30000)
-    public final void test21_FullCycle_EncOnlyNo2() {
-        final boolean serverSC = true;
+    @Test(timeout = 40000)
+    public final void test20_FullCycle_EncOnlyNo2() {
         final boolean serverShallHaveKeys = true;
         final boolean clientShallHaveKeys = true;
-        test8x_fullCycle("21", false /* server_client_order */, serverSC,
-                         BTSecurityLevel.ENC_ONLY, serverShallHaveKeys, BTSecurityLevel.ENC_ONLY, clientShallHaveKeys);
+        test8x_fullCycle("20", true /* server_client_order */, serverSC,
+                          BTSecurityLevel.ENC_ONLY, serverShallHaveKeys, BTSecurityLevel.ENC_ONLY, clientShallHaveKeys);
     }
 
     public static void main(final String args[]) {
-        org.junit.runner.JUnitCore.main(TestDBTClientServer11.class.getName());
+        org.junit.runner.JUnitCore.main(TestDBTClientServer12_SC1.class.getName());
     }
 }

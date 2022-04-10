@@ -327,34 +327,34 @@ public class DBTClient00 implements DBTClientTest {
     }
 
     private void connectDiscoveredDevice(final BTDevice device) {
-        BTUtils.println(System.err, "****** Connecting Device: Start " + device.toString());
+        BTUtils.println(System.err, "****** Client Connecting Device: Start " + device.toString());
 
         resetLastProcessingStats();
 
         final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getStartOf(device.getAddressAndType().address, device.getName());
         if( null != sec ) {
-            BTUtils.println(System.err, "****** Connecting Device: Found SecurityDetail "+sec.toString()+" for "+device.toString());
+            BTUtils.println(System.err, "****** Client Connecting Device: Found SecurityDetail "+sec.toString()+" for "+device.toString());
         } else {
-            BTUtils.println(System.err, "****** Connecting Device: No SecurityDetail for "+device.toString());
+            BTUtils.println(System.err, "****** Client Connecting Device: No SecurityDetail for "+device.toString());
         }
         final BTSecurityLevel req_sec_level = null != sec ? sec.getSecLevel() : BTSecurityLevel.UNSET;
         HCIStatusCode res = device.uploadKeys(DBTConstants.CLIENT_KEY_PATH, req_sec_level, true /* verbose_ */);
-        BTUtils.fprintf_td(System.err, "****** Connecting Device: BTDevice::uploadKeys(...) result %s\n", res.toString());
+        BTUtils.fprintf_td(System.err, "****** Client Connecting Device: BTDevice::uploadKeys(...) result %s\n", res.toString());
         if( HCIStatusCode.SUCCESS != res ) {
             if( null != sec ) {
                 if( sec.isSecurityAutoEnabled() ) {
                     final boolean r = device.setConnSecurityAuto( sec.getSecurityAutoIOCap() );
-                    BTUtils.println(System.err, "****** Connecting Device: Using SecurityDetail.SEC AUTO "+sec+" -> set OK "+r);
+                    BTUtils.println(System.err, "****** Client Connecting Device: Using SecurityDetail.SEC AUTO "+sec+" -> set OK "+r);
                 } else if( sec.isSecLevelOrIOCapSet() ) {
                     final boolean r = device.setConnSecurity(sec.getSecLevel(), sec.getIOCap());
-                    BTUtils.println(System.err, "****** Connecting Device: Using SecurityDetail.Level+IOCap "+sec+" -> set OK "+r);
+                    BTUtils.println(System.err, "****** Client Connecting Device: Using SecurityDetail.Level+IOCap "+sec+" -> set OK "+r);
                 } else {
                     final boolean r = device.setConnSecurityAuto( SMPIOCapability.KEYBOARD_ONLY );
-                    BTUtils.println(System.err, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY ("+sec+") -> set OK "+r);
+                    BTUtils.println(System.err, "****** Client Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY ("+sec+") -> set OK "+r);
                 }
             } else {
                 final boolean r = device.setConnSecurityAuto( SMPIOCapability.KEYBOARD_ONLY );
-                BTUtils.println(System.err, "****** Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK "+r);
+                BTUtils.println(System.err, "****** Client Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK "+r);
             }
         }
         final EInfoReport eir = device.getEIR();
@@ -372,11 +372,11 @@ public class DBTClient00 implements DBTClientTest {
         final short supervision_timeout = BTUtils.getHCIConnSupervisorTimeout(conn_latency, (int) ( conn_interval_max * 1.25 ) /* ms */);
         res = device.connectLE(le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max, conn_latency, supervision_timeout);
         // res = device.connectDefault();
-        BTUtils.println(System.err, "****** Connecting Device Command, res "+res+": End result "+res+" of " + device.toString());
+        BTUtils.println(System.err, "****** Client Connecting Device Command, res "+res+": End result "+res+" of " + device.toString());
     }
 
     private void processReadyDevice(final BTDevice device) {
-        BTUtils.println(System.err, "****** Processing Ready Device: Start " + device.toString());
+        BTUtils.println(System.err, "****** Client Processing Ready Device: Start " + device.toString());
         final long t1 = BTUtils.currentTimeMillis();
 
         SMPKeyBin.createAndWrite(device, DBTConstants.CLIENT_KEY_PATH, true /* verbose */);
@@ -388,7 +388,7 @@ public class DBTClient00 implements DBTClientTest {
             final LE_PHYs resTx[] = { new LE_PHYs() };
             final LE_PHYs resRx[] = { new LE_PHYs() };
             final HCIStatusCode res = device.getConnectedLE_PHY(resTx, resRx);
-            BTUtils.fprintf_td(System.err, "****** Got Connected LE PHY: status %s: Tx %s, Rx %s\n",
+            BTUtils.fprintf_td(System.err, "****** Client Got Connected LE PHY: status %s: Tx %s, Rx %s\n",
                     res.toString(), resTx[0].toString(), resRx[0].toString());
         }
         final long t3 = BTUtils.currentTimeMillis();
@@ -528,11 +528,11 @@ public class DBTClient00 implements DBTClientTest {
                 cmd.close();
             }
         } catch (final Throwable t ) {
-            BTUtils.println(System.err, "****** Processing Ready Device: Exception caught for " + device.toString() + ": "+t.getMessage());
+            BTUtils.println(System.err, "****** Client Processing Ready Device: Exception caught for " + device.toString() + ": "+t.getMessage());
             t.printStackTrace();
         }
 
-        BTUtils.println(System.err, "****** Processing Ready Device: End-1: Success " + success +
+        BTUtils.println(System.err, "****** Client Processing Ready Device: End-1: Success " + success +
                            " on " + device.toString() + "; devInProc "+BTDeviceRegistry.getProcessingDeviceCount());
 
         BTDeviceRegistry.removeFromProcessingDevices( device.getAddressAndType() );
@@ -541,7 +541,7 @@ public class DBTClient00 implements DBTClientTest {
             device.getAdapter().removeDevicePausingDiscovery(device);
         }
 
-        BTUtils.println(System.err, "****** Processing Ready Device: End-2: Success " + success +
+        BTUtils.println(System.err, "****** Client Processing Ready Device: End-2: Success " + success +
                            " on " + device.toString() + "; devInProc "+BTDeviceRegistry.getProcessingDeviceCount());
         if( success ) {
             BTDeviceRegistry.addToProcessedDevices(device.getAddressAndType(), device.getName());
@@ -562,7 +562,7 @@ public class DBTClient00 implements DBTClientTest {
         if( 0 < measurementsLeft.get() ) {
             measurementsLeft.decrementAndGet();
         }
-        BTUtils.println(System.err, "****** Processing Ready Device: Success "+success+
+        BTUtils.println(System.err, "****** Client Processing Ready Device: Success "+success+
                         "; Measurements completed "+completedMeasurements.get()+
                         ", done "+completedMeasurements.get()+
                         ", left "+measurementsLeft.get()+
@@ -572,7 +572,7 @@ public class DBTClient00 implements DBTClientTest {
     }
 
     private void removeDevice(final BTDevice device) {
-        BTUtils.println(System.err, "****** Remove Device: removing: "+device.getAddressAndType());
+        BTUtils.println(System.err, "****** Client Remove Device: removing: "+device.getAddressAndType());
 
         BTDeviceRegistry.removeFromProcessingDevices(device.getAddressAndType());
 
@@ -591,26 +591,26 @@ public class DBTClient00 implements DBTClientTest {
     @Override
     public HCIStatusCode startDiscovery(final BTAdapter adapter, final String msg) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
-            BTUtils.fprintf_td(System.err, "****** Start discovery (%s): Adapter not selected: %s\n", msg, adapter.toString());
+            BTUtils.fprintf_td(System.err, "****** Client Start discovery (%s): Adapter not selected: %s\n", msg, adapter.toString());
             return HCIStatusCode.FAILED;
         }
 
         resetLastProcessingStats();
 
         final HCIStatusCode status = adapter.startDiscovery( discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
-        BTUtils.println(System.err, "****** Start discovery ("+msg+") result: "+status);
+        BTUtils.println(System.err, "****** Client Start discovery ("+msg+") result: "+status);
         return status;
     }
 
     @Override
     public HCIStatusCode stopDiscovery(final BTAdapter adapter, final String msg) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
-            BTUtils.fprintf_td(System.err, "****** Stop discovery (%s): Adapter not selected: %s\n", msg, adapter.toString());
+            BTUtils.fprintf_td(System.err, "****** Client Stop discovery (%s): Adapter not selected: %s\n", msg, adapter.toString());
             return HCIStatusCode.FAILED;
         }
 
         final HCIStatusCode status = adapter.stopDiscovery();
-        BTUtils.println(System.err, "****** Stop discovery ("+msg+") result: "+status);
+        BTUtils.println(System.err, "****** Client Stop discovery ("+msg+") result: "+status);
         return status;
     }
 

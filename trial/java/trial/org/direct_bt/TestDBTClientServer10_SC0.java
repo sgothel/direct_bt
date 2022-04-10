@@ -31,6 +31,7 @@ import org.junit.runners.MethodSorters;
 
 /**
  * Testing a full Bluetooth server and client lifecycle of operations, requiring two BT adapter:
+ * - operating in legacy non SC mode
  * - start server advertising
  * - start client discovery and connect to server when discovered
  * - client/server processing of connection when ready
@@ -40,29 +41,27 @@ import org.junit.runners.MethodSorters;
  * - reuse server-adapter for client-mode discovery (just toggle on/off)
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class TestDBTClientServer10 extends DBTClientServer1x {
+public class TestDBTClientServer10_SC0 extends DBTClientServer1x {
+    static final boolean serverSC = false;
 
     @Test(timeout = 30000)
     public final void test00_FullCycle_EncNone() {
-        final boolean serverSC = true;
         final boolean serverShallHaveKeys = false;
         final boolean clientShallHaveKeys = false;
         test8x_fullCycle("00", true /* server_client_order */, serverSC,
                          BTSecurityLevel.NONE, serverShallHaveKeys, BTSecurityLevel.NONE, clientShallHaveKeys);
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 40000)
     public final void test10_FullCycle_EncOnlyNo1() {
-        final boolean serverSC = true;
         final boolean serverShallHaveKeys = false;
         final boolean clientShallHaveKeys = false;
         test8x_fullCycle("10", true /* server_client_order */, serverSC,
                          BTSecurityLevel.ENC_ONLY, serverShallHaveKeys, BTSecurityLevel.ENC_ONLY, clientShallHaveKeys);
     }
 
-    @Test(timeout = 30000)
+    @Test(timeout = 40000)
     public final void test20_FullCycle_EncOnlyNo2() {
-        final boolean serverSC = true;
         final boolean serverShallHaveKeys = true;
         final boolean clientShallHaveKeys = true;
         test8x_fullCycle("20", true /* server_client_order */, serverSC,
@@ -70,6 +69,6 @@ public class TestDBTClientServer10 extends DBTClientServer1x {
     }
 
     public static void main(final String args[]) {
-        org.junit.runner.JUnitCore.main(TestDBTClientServer10.class.getName());
+        org.junit.runner.JUnitCore.main(TestDBTClientServer10_SC0.class.getName());
     }
 }
