@@ -465,7 +465,7 @@ namespace direct_bt {
      * SMP Long Term Key, used for platform agnostic persistence.
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
+     *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      * <p>
      * Byte layout must be synchronized with java org.tinyb.SMPLongTermKey
@@ -556,7 +556,7 @@ namespace direct_bt {
      * SMP Identity Resolving Key, used for platform agnostic persistence.
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
+     *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      * <p>
      * Byte layout must be synchronized with java org.tinyb.SMPIdentityResolvingKey
@@ -632,7 +632,7 @@ namespace direct_bt {
      * </p>
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
+     *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      * <p>
      * Byte layout must be synchronized with java org.tinyb.SMPSignatureResolvingKey
@@ -706,7 +706,7 @@ namespace direct_bt {
      * mapping to platform specific MgmtLoadLinkKeyCmd and MgmtEvtNewLinkKey.
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
+     *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      * <p>
      * Byte layout must be synchronized with java org.tinyb.SMPLinkKey
@@ -965,7 +965,7 @@ namespace direct_bt {
      * treated as byte stream (all of them).
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
+     *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
     class SMPEncKeyByteStream : public SMPPDUMsg
@@ -1191,7 +1191,7 @@ namespace direct_bt {
      * </p>
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
+     *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
     class SMPPairConfirmMsg : public SMPEncKeyByteStream
@@ -1286,7 +1286,7 @@ namespace direct_bt {
      * </p>
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
+     *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
     class SMPPairRandMsg : public SMPEncKeyByteStream
@@ -1420,7 +1420,7 @@ namespace direct_bt {
      * This PDU is only used for LE Secure Connections.
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
+     *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
     class SMPPairPubKeyMsg : public SMPEncKeyByteStream
@@ -1484,7 +1484,7 @@ namespace direct_bt {
      * This PDU is only used for LE Secure Connections.
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
+     *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
     class SMPPairDHKeyCheckMsg : public SMPEncKeyByteStream
@@ -1607,7 +1607,7 @@ namespace direct_bt {
      * </p>
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
+     *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
     class SMPEncInfoMsg : public SMPEncKeyByteStream
@@ -1676,7 +1676,7 @@ namespace direct_bt {
      * </p>
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
+     *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
     class SMPMasterIdentMsg : public SMPEncKeyByteStream
@@ -1754,7 +1754,7 @@ namespace direct_bt {
      * </p>
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
+     *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
     class SMPIdentInfoMsg : public SMPEncKeyByteStream
@@ -1890,7 +1890,7 @@ namespace direct_bt {
      * </p>
      * <p>
      * Notable: No endian wise conversion shall occur on this data,
-     *          since the encryption values are interpreted as a byte stream.
+     *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
     class SMPSignInfoMsg : public SMPEncKeyByteStream
