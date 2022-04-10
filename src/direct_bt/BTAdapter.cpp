@@ -1415,6 +1415,12 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
             jau::PLAIN_PRINT(true, "[%2.2zd]: %s", i, params[i].toString().c_str());
         }
     }
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        SMPIOCapability pre_io_cap { SMPIOCapability::UNSET };
+        const bool res_iocap = mgmt.setIOCapability(dev_id, SMPIOCapability::NO_INPUT_NO_OUTPUT, pre_io_cap);
+        DBG_PRINT("BTAdapter::startAdvertising: dev_id %u, setIOCapability[%s -> %s]: result %d",
+            dev_id, to_string(pre_io_cap).c_str(), to_string(SMPIOCapability::NO_INPUT_NO_OUTPUT).c_str(), res_iocap);
+    }
     // FIXME?? std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME: Fast restart of advertising error)
     l2cap_service.start();
 
