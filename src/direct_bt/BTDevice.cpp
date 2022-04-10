@@ -583,7 +583,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
     if( addressAndType.isLEAddress() && ( !l2cap_att->isOpen() || is_local_server ) ) {
         std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
-        DBG_PRINT("BTDevice::processL2CAPSetup: Start %s", toString().c_str());
+        DBG_PRINT("BTDevice::processL2CAPSetup: Start dev_id %u, %s", adapter.dev_id, toString().c_str());
 
         const BTSecurityLevel sec_level_user = pairing_data.sec_level_user;
         const SMPIOCapability io_cap_conn = pairing_data.ioCap_conn;
@@ -604,8 +604,8 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
             sec_level = BTSecurityLevel::NONE;
         }
         pairing_data.sec_level_conn = sec_level;
-        DBG_PRINT("BTDevice::processL2CAPSetup: sec_level_user %s, io_cap_conn %s -> sec_level %s",
-                to_string(sec_level_user).c_str(),
+        DBG_PRINT("BTDevice::processL2CAPSetup: dev_id %u, sec_level_user %s, io_cap_conn %s -> sec_level %s",
+                adapter.dev_id, to_string(sec_level_user).c_str(),
                 to_string(io_cap_conn).c_str(),
                 to_string(sec_level).c_str());
 
@@ -623,8 +623,8 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
 
         const bool smp_enc = SMP_SUPPORTED_BY_OS ? connectSMP(sthis, sec_level) && BTSecurityLevel::NONE < sec_level : false;
 
-        DBG_PRINT("BTDevice::processL2CAPSetup: lvl %s, connect[smp_enc %d, l2cap[open %d, enc %d]]",
-                to_string(sec_level).c_str(), smp_enc, l2cap_open, l2cap_enc);
+        DBG_PRINT("BTDevice::processL2CAPSetup: dev_id %u, lvl %s, connect[smp_enc %d, l2cap[open %d, enc %d]]",
+                adapter.dev_id, to_string(sec_level).c_str(), smp_enc, l2cap_open, l2cap_enc);
 
         adapter.unlockConnect(*this);
 
@@ -649,10 +649,10 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
             processDeviceReady(sthis, ts);
         }
     } else {
-        DBG_PRINT("BTDevice::processL2CAPSetup: Skipped (not LE) %s", toString().c_str());
+        DBG_PRINT("BTDevice::processL2CAPSetup: Skipped (not LE) dev_id %u, %s", adapter.dev_id, toString().c_str());
     }
-    DBG_PRINT("BTDevice::processL2CAPSetup: End [disconnect %d, deviceReady %d, smp_auto %d], %s",
-            callDisconnect, callProcessDeviceReady, smp_auto, toString().c_str());
+    DBG_PRINT("BTDevice::processL2CAPSetup: End [dev_id %u, disconnect %d, deviceReady %d, smp_auto %d], %s",
+            adapter.dev_id, callDisconnect, callProcessDeviceReady, smp_auto, toString().c_str());
 }
 
 void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_t timestamp) {
