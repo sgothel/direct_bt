@@ -388,7 +388,7 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const A
   currentMetaScanType( ScanType::NONE ),
   discovery_policy ( DiscoveryPolicy::AUTO_OFF ),
   scan_filter_dup( true ),
-  l2cap_att_srv(adapterInfo_.addressAndType, L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT),
+  l2cap_att_srv(dev_id, adapterInfo_.addressAndType, L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT),
   l2cap_service("BTAdapter::l2capServer", THREAD_SHUTDOWN_TIMEOUT_MS,
                 jau::bindMemberFunc(this, &BTAdapter::l2capServerWork),
                 jau::bindMemberFunc(this, &BTAdapter::l2capServerInit),

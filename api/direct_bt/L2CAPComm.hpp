@@ -110,7 +110,7 @@ namespace direct_bt {
     /**
      * L2CAP client/server socket abstract base class to listen for connecting remote devices
      */
-    class L2CAPClientServer {
+    class L2CAPComm {
         public:
             static std::string getStateString(bool isOpen, bool hasIOError) noexcept;
             static std::string getStateString(bool isOpen, bool isInterrupted, bool hasIOError) noexcept;
@@ -122,8 +122,13 @@ namespace direct_bt {
             const L2CAPEnv & env;
 
         public:
+            /** Corresponding BTAdapter device id */
+            const uint16_t adev_id;
+            /** Corresponding BTAdapter local BTAddressAndType */
             const BDAddressAndType localAddressAndType;
+            /** Corresponding L2CAP_PSM for the channel. */
             const L2CAP_PSM psm;
+            /** Corresponding L2CAP_CID for the channel. */
             const L2CAP_CID cid;
 
         protected:
@@ -136,13 +141,13 @@ namespace direct_bt {
             BTSecurityLevel getBTSecurityLevelImpl(const BDAddressAndType& remoteAddressAndType) noexcept;
 
         public:
-            L2CAPClientServer(const BDAddressAndType& localAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
+            L2CAPComm(const uint16_t adev_id, const BDAddressAndType& localAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
 
             /** Destructor specialization shall close the L2CAP socket, see {@link #close()}. */
-            virtual ~L2CAPClientServer() noexcept {}
+            virtual ~L2CAPComm() noexcept {}
 
-            L2CAPClientServer(const L2CAPClientServer&) = delete;
-            void operator=(const L2CAPClientServer&) = delete;
+            L2CAPComm(const L2CAPComm&) = delete;
+            void operator=(const L2CAPComm&) = delete;
 
             bool isOpen() const noexcept { return is_open; }
 
@@ -157,12 +162,10 @@ namespace direct_bt {
             virtual std::string toString() const noexcept = 0;
     };
 
-    class L2CAPServer; // fwd
-
     /**
      * L2CAP read/write communication channel to remote device
      */
-    class L2CAPClient : public L2CAPClientServer {
+    class L2CAPClient : public L2CAPComm {
         public:
             enum class Defaults : int {
                 L2CAP_CONNECT_MAX_RETRY = 3
@@ -204,13 +207,13 @@ namespace direct_bt {
             /**
              * Constructing a non connected L2CAP channel instance for the pre-defined PSM and CID.
              */
-            L2CAPClient(const BDAddressAndType& adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
+            L2CAPClient(const uint16_t adev_id, const BDAddressAndType& adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
 
             /**
              * Constructing a connected L2CAP channel instance for the pre-defined PSM and CID.
              */
-            L2CAPClient(const BDAddressAndType& adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid,
-                      const BDAddressAndType& remoteAddressAndType, int client_socket) noexcept;
+            L2CAPClient(const uint16_t adev_id, const BDAddressAndType& adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid,
+                        const BDAddressAndType& remoteAddressAndType, int client_socket) noexcept;
 
             /** Destructor closing the L2CAP channel, see {@link #close()}. */
             ~L2CAPClient() noexcept { close(); }
@@ -233,7 +236,7 @@ namespace direct_bt {
             bool close() noexcept override;
 
             bool hasIOError() const noexcept { return has_ioerror; }
-            std::string getStateString() const noexcept override { return L2CAPClientServer::getStateString(is_open, interrupt_flag, has_ioerror); }
+            std::string getStateString() const noexcept override { return L2CAPComm::getStateString(is_open, interrupt_flag, has_ioerror); }
 
             /** Return the recursive write mutex for multithreading access. */
             std::recursive_mutex & mutex_write() noexcept { return mtx_write; }
@@ -279,12 +282,12 @@ namespace direct_bt {
     /**
      * L2CAP server socket to listen for connecting remote devices
      */
-    class L2CAPServer : public L2CAPClientServer {
+    class L2CAPServer : public L2CAPComm {
         private:
             std::atomic<pthread_t> tid_accept;
 
         public:
-            L2CAPServer(const BDAddressAndType& localAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
+            L2CAPServer(const uint16_t adev_id, const BDAddressAndType& localAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
 
             /** Destructor closing the L2CAP channel, see {@link #close()}. */
             ~L2CAPServer() noexcept { close(); }
@@ -295,7 +298,7 @@ namespace direct_bt {
 
             std::unique_ptr<L2CAPClient> accept() noexcept;
 
-            std::string getStateString() const noexcept override { return L2CAPClientServer::getStateString(is_open, interrupt_flag, false /* has_ioerror */); }
+            std::string getStateString() const noexcept override { return L2CAPComm::getStateString(is_open, interrupt_flag, false /* has_ioerror */); }
 
             std::string toString() const noexcept override;
     };
