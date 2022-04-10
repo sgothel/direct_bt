@@ -427,7 +427,7 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
             }
             if( pairing_timeout ) {
                 pairing_data.ioCap_auto = SMPIOCapability::UNSET;
-                disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
+                disconnect(HCIStatusCode::AUTHENTICATION_FAILURE);
                 statusConnect = HCIStatusCode::INTERNAL_TIMEOUT;
                 adapter.unlockConnect(*this);
                 smp_auto_done = true;
@@ -440,7 +440,7 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
                     // disconnect for next smp_auto mode test
                     int32_t td_disconnect = 0;
                     DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.3 Failed SMPPairing -> Disconnect: %s", smp_auto_count, toString().c_str());
-                    HCIStatusCode dres = disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
+                    HCIStatusCode dres = disconnect(HCIStatusCode::AUTHENTICATION_FAILURE);
                     if( HCIStatusCode::SUCCESS == dres ) {
                         while( isConnected && hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td_disconnect ) {
                             jau::sc_atomic_critical sync2(sync_data);
@@ -466,7 +466,7 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
         if( HCIStatusCode::SUCCESS == statusConnect && SMPPairingState::FAILED == pstate ) {
             ERR_PRINT("SEC AUTO.%d.X Failed SMPPairing -> Disconnect: %s", smp_auto_count, toString().c_str());
             pairing_data.ioCap_auto = SMPIOCapability::UNSET;
-            disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
+            disconnect(HCIStatusCode::AUTHENTICATION_FAILURE);
             statusConnect = HCIStatusCode::AUTH_FAILED;
         }
         pairing_data.ioCap_auto = SMPIOCapability::UNSET; // always clear post-auto-action: Allow normal notification.
