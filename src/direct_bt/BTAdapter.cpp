@@ -1833,15 +1833,18 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         new_connect = BTRole::Master == getRole() ? 3 : 4;
         slave_unpair = BTRole::Slave == getRole();
     }
+    bool has_smp_key;
     if( BTRole::Slave == getRole() ) {
         device->l2cap_att = std::move(l2cap_att_);
+        has_smp_key = nullptr != findSMPKeyBin( device->getAddressAndType() ); // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS
+    } else {
+        has_smp_key = false;
     }
     if( slave_unpair ) {
         /**
          * Without unpair in SC mode (or key pre-pairing), the peripheral fails the DHKey Check.
          */
-        const SMPKeyBinRef key = findSMPKeyBin( device->getAddressAndType() ); // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS
-        if( nullptr == key ) {
+        if( !has_smp_key ) {
             // No pre-pairing -> unpair
             HCIStatusCode  res = mgmt.unpairDevice(dev_id, device->getAddressAndType(), false /* disconnect */);
             if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
@@ -1869,7 +1872,9 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
             device->toString().c_str());
     }
 
-    if( BTRole::Slave == getRole() ) {
+    if( BTRole::Slave == getRole() && !has_smp_key ) {
+        // Skipped if has_smp_key,
+        // where BTDevice::uploadKeys() -> BTDevice::setSMPKeyBin() was performed at disconnected tuning the security setup.
         device->setConnSecurity(sec_level_server, io_cap_server);
     }
     device->notifyConnected(device, event.getHCIHandle(), io_cap_conn);
