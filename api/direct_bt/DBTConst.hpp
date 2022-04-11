@@ -39,6 +39,10 @@ namespace direct_bt {
      */
     inline constexpr const jau::nsize_t THREAD_SHUTDOWN_TIMEOUT_MS = 8000;
 
+    /**
+     * Maximum time in milliseconds to wait for the next SMP event.
+     */
+    inline constexpr const jau::nsize_t SMP_NEXT_EVENT_TIMEOUT_MS = 2000;
 } // namespace direct_bt
 
 #endif /* DBT_CONST_HPP_ */

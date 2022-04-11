@@ -98,6 +98,7 @@ namespace direct_bt {
             jau::relaxed_atomic_bool isConnected;
             jau::relaxed_atomic_bool allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
             jau::relaxed_atomic_int32 supervision_timeout; // [ms]
+            jau::relaxed_atomic_uint32 smp_events; // registering smp events until next BTAdapter::smp_watchdog periodic timeout check
 
             struct PairingData {
                 SMPIOCapability ioCap_conn     = SMPIOCapability::UNSET;

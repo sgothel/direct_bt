@@ -388,6 +388,7 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const A
   currentMetaScanType( ScanType::NONE ),
   discovery_policy ( DiscoveryPolicy::AUTO_OFF ),
   scan_filter_dup( true ),
+  smp_watchdog("adapter"+std::to_string(dev_id)+"_smp_watchdog", THREAD_SHUTDOWN_TIMEOUT_MS),
   l2cap_att_srv(dev_id, adapterInfo_.addressAndType, L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT),
   l2cap_service("BTAdapter::l2capServer", THREAD_SHUTDOWN_TIMEOUT_MS,
                 jau::bindMemberFunc(this, &BTAdapter::l2capServerWork),
@@ -396,11 +397,16 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const A
 {
     (void)cc;
     valid = initialSetup();
+    if( isValid() ) {
+        const bool r = smp_watchdog.start(SMP_NEXT_EVENT_TIMEOUT_MS, jau::bindMemberFunc(this, &BTAdapter::smp_timeoutfunc));
+        DBG_PRINT("BTAdapter::ctor: dev_id %d: smp_watchdog.smp_timeoutfunc started %d", dev_id, r);
+    }
 }
 
 BTAdapter::~BTAdapter() noexcept {
     if( !isValid() ) {
         DBG_PRINT("BTAdapter::dtor: dev_id %d, invalid, %p", dev_id, this);
+        smp_watchdog.stop();
         mgmt.removeAdapter(this); // remove this instance from manager
         hci.clearAllCallbacks();
         return;
@@ -414,6 +420,7 @@ BTAdapter::~BTAdapter() noexcept {
 }
 
 void BTAdapter::close() noexcept {
+    smp_watchdog.stop();
     if( !isValid() ) {
         // Native user app could have destroyed this instance already from
         DBG_PRINT("BTAdapter::close: dev_id %d, invalid, %p", dev_id, this);
@@ -1775,6 +1782,46 @@ void BTAdapter::l2capServerWork(jau::service_runner& sr) {
     } else {
         DBG_PRINT("BTAdapter::l2capServer connected.0: nullptr");
     }
+}
+
+jau::nsize_t BTAdapter::smp_timeoutfunc(jau::simple_timer& timer) {
+    (void)timer;
+    device_list_t failed_devices;
+    {
+        const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+        jau::for_each_fidelity(connectedDevices, [&](BTDeviceRef& device) {
+            if( device->isValid() && device->getConnected() &&
+                BTSecurityLevel::NONE < device->getConnSecurityLevel() &&
+                SMPPairingState::KEY_DISTRIBUTION == device->pairing_data.state )
+                // isSMPPairingActive( device->pairing_data.state ) &&
+                // !isSMPPairingUserInteraction( device->pairing_data.state ) )
+            {
+                // actively within SMP negotiations, excluding user interaction
+                const uint32_t smp_events = device->smp_events.load();
+                DBG_PRINT("BTAdapter::smp_timeoutfunc(dev_id %d): SMP Timeout: Check %u -> %s", dev_id, smp_events, device->toString().c_str());
+                if( 0 == smp_events ) {
+                    failed_devices.push_back(device);
+                } else {
+                    device->smp_events = 0;
+                }
+            } else {
+                const uint32_t smp_events = device->smp_events.load();
+                DBG_PRINT("BTAdapter::smp_timeoutfunc(dev_id %d): SMP Timeout: Ignore %u -> %s", dev_id, smp_events, device->toString().c_str());
+            }
+        });
+    }
+    jau::for_each_fidelity(failed_devices, [&](BTDeviceRef& device) {
+        const bool smp_auto = device->isConnSecurityAutoEnabled();
+        IRQ_PRINT("BTAdapter(dev_id %d): SMP Timeout: Start: smp_auto %d, %s", dev_id, smp_auto, device->toString().c_str());
+        const SMPPairFailedMsg msg(SMPPairFailedMsg::ReasonCode::UNSPECIFIED_REASON);
+        const HCIACLData::l2cap_frame source(device->getConnectionHandle(),
+                HCIACLData::l2cap_frame::PBFlag::START_NON_AUTOFLUSH_HOST, 0 /* bc_flag */,
+                L2CAP_CID::SMP, L2CAP_PSM::UNDEFINED, 0 /* len */);
+        // BTAdapter::sendDevicePairingState() will delete device-key if server and issue disconnect if !smp_auto
+        device->hciSMPMsgCallback(device, msg, source);
+        DBG_PRINT("BTAdapter::smp_timeoutfunc(dev_id %d): SMP Timeout: Done: smp_auto %d, %s", dev_id, smp_auto, device->toString().c_str());
+    });
+    return SMP_NEXT_EVENT_TIMEOUT_MS; // keep going until BTAdapter closes
 }
 
 bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {

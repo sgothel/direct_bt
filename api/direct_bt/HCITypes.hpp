@@ -973,6 +973,12 @@ namespace direct_bt {
                 const L2CAP_PSM psm;
                 const uint16_t len;
 
+                /** Oly for manual injection, usually using casted pointer */
+                l2cap_frame(const uint16_t handle_, const PBFlag pb_flag_, const uint8_t bc_flag_,
+                            const L2CAP_CID cid_, const L2CAP_PSM psm_, const uint16_t len_)
+                : handle(handle_), pb_flag(pb_flag_), bc_flag(bc_flag_),
+                  cid(cid_), psm(psm_), len(len_) {}
+
                 constexpr bool isSMP() const noexcept { return L2CAP_CID::SMP == cid || L2CAP_CID::SMP_BREDR == cid; }
 
                 constexpr bool isGATT() const noexcept { return L2CAP_CID::ATT == cid; }

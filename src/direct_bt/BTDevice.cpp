@@ -57,6 +57,7 @@ BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
   isConnected(false),
   allowDisconnect(false),
   supervision_timeout(0),
+  smp_events(0),
   ts_creation(ts_last_discovery),
   addressAndType{r.getAddress(), r.getAddressType()}
 {
@@ -782,6 +783,8 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
     bool check_pairing_complete = false;
     bool is_device_ready = false;
 
+    smp_events++;
+
     // No encryption key will be overwritten by this update method, only initial setting allowed.
     // SMP encryption information always overrules.
 
@@ -1129,7 +1132,6 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
 
 void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept {
     std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
-
     const bool msg_sent = HCIACLData::l2cap_frame::PBFlag::START_NON_AUTOFLUSH_HOST == source.pb_flag; // from from Host to Controller
     const std::string msg_sent_s = msg_sent ? "sent" : "received";
     const BTRole localRole = !btRole; // local adapter role, opposite of device role
@@ -1143,6 +1145,8 @@ void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMs
     PairingMode pmode = old_pmode;
     bool check_pairing_complete = false;
     bool is_device_ready = false;
+
+    smp_events++;
 
     if( jau::environment::get().debug ) {
         jau::PLAIN_PRINT(false, "[%s] BTDevice:hci:SMP.0: %s: msg %s, local %s, remote %s @ address%s",
@@ -2173,6 +2177,7 @@ void BTDevice::notifyDisconnected() noexcept {
     supervision_timeout = 0;
     isConnected = false;
     hciConnHandle = 0;
+    smp_events = 0;
     unpair(); // -> clearSMPStates(false /* connected */);
     disconnectGATT(1);
     disconnectSMP(1);
