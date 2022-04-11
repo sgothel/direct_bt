@@ -40,7 +40,7 @@
 #include "BTAdapter.hpp"
 #include "BTDevice.hpp"
 #include "BTManager.hpp"
-
+#include "BTGattService.hpp"
 
 using namespace direct_bt;
 

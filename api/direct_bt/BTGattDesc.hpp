@@ -76,14 +76,10 @@ namespace direct_bt {
             /**
              * Following UUID16 GATT profile attribute types are listed under:
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.4 Summary of GATT Profile Attribute Types
+             *
+             * See GattAttributeType for further non BTGattDesc related declarations.
              */
             enum Type : uint16_t {
-                CHARACTERISTIC_APPEARANCE                   = 0x2A01,
-                CHARACTERISTIC_PERIPHERAL_PRIV_FLAG         = 0x2A02,
-                CHARACTERISTIC_RECONNECTION_ADDRESS         = 0x2A03,
-                CHARACTERISTIC_PERIPHERAL_PREF_CONN         = 0x2A04,
-                CHARACTERISTIC_SERVICE_CHANGED              = 0x2A05,
-
                 /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.1 Characteristic Extended Properties */
                 CHARACTERISTIC_EXTENDED_PROPERTIES          = 0x2900,
                 /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.2 Characteristic User Description (Characteristic Descriptor, optional, single, string) */

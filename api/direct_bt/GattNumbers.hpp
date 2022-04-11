@@ -50,7 +50,22 @@
 namespace direct_bt {
 
 /**
+ * Following UUID16 GATT profile attribute types are listed under:
+ * BT Core Spec v5.2: Vol 3, Part G GATT: 3.4 Summary of GATT Profile Attribute Types
+ *
+ * See BTGattDesc::Type and GattCharacteristicType for further declarations.
  */
+enum GattAttributeType : uint16_t {
+    /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services, using AttPDUMsg::Opcode::READ_BY_GROUP_TYPE_REQ */
+    PRIMARY_SERVICE                             = 0x2800,
+    SECONDARY_SERVICE                           = 0x2801,
+
+    /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.5.1 Find Included Services, using AttPDUMsg::Opcode::READ_BY_TYPE_REQ */
+    INCLUDE_DECLARATION                         = 0x2802,
+
+    /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service, using , using AttPDUMsg::Opcode::READ_BY_TYPE_REQ */
+    CHARACTERISTIC                              = 0x2803
+};
 
 /**
  * GATT Service Type, each encapsulating a set of Characteristics.
@@ -81,9 +96,10 @@ std::string GattServiceTypeToString(const GattServiceType v) noexcept;
 
 /**
  * GATT Assigned Characteristic Attribute Type for single logical value.
- * <p>
+ *
  * https://www.bluetooth.com/specifications/gatt/characteristics/
- * </p>
+ *
+ * See GattAttributeType for further non BTGattChar related declarations.
  */
 enum GattCharacteristicType : uint16_t {
     //

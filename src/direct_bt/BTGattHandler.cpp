@@ -59,6 +59,10 @@ extern "C" {
 #include "BTManager.hpp"
 #include "DBTConst.hpp"
 
+#include "BTGattService.hpp"
+#include "BTGattChar.hpp"
+#include "BTGattDesc.hpp"
+
 using namespace direct_bt;
 
 BTGattEnv::BTGattEnv() noexcept

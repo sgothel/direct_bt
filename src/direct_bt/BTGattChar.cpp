@@ -36,6 +36,7 @@
 #include <jau/debug.hpp>
 
 #include "BTDevice.hpp"
+#include "BTGattService.hpp"
 #include "BTGattChar.hpp"
 #include "BTGattHandler.hpp"
 

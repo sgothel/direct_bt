@@ -44,7 +44,7 @@
 #include "BTTypes0.hpp"
 #include "L2CAPComm.hpp"
 #include "ATTPDUTypes.hpp"
-#include "GattTypes.hpp"
+#include "GattNumbers.hpp"
 #include "DBGattServer.hpp"
 
 /**

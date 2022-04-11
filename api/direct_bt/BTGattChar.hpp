@@ -182,7 +182,7 @@ namespace direct_bt {
             int userDescriptionIndex = -1;
 
             BTGattChar(const BTGattServiceRef & service_, const uint16_t handle_,
-                               const PropertyBitVal properties_, const uint16_t value_handle_, std::unique_ptr<const jau::uuid_t> && value_type_) noexcept
+                       const PropertyBitVal properties_, const uint16_t value_handle_, std::unique_ptr<const jau::uuid_t> && value_type_) noexcept
             : wbr_service(service_), handle(handle_),
               properties(properties_), value_handle(value_handle_), value_type(std::move(value_type_)) {}
 

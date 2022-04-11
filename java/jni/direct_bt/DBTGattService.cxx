@@ -33,6 +33,7 @@
 
 #include "direct_bt/BTDevice.hpp"
 #include "direct_bt/BTAdapter.hpp"
+#include "direct_bt/BTGattService.hpp"
 
 using namespace direct_bt;
 using namespace jau;
