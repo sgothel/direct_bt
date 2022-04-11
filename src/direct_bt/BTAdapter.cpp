@@ -2510,6 +2510,11 @@ void BTAdapter::sendDevicePairingState(BTDeviceRef device, const SMPPairingState
         }
         i++;
     });
+    if( SMPPairingState::FAILED == state && !device->isConnSecurityAutoEnabled() ) {
+        // Don't rely on receiving a disconnect
+        std::thread dc(&BTDevice::disconnect, device.get(), HCIStatusCode::AUTHENTICATION_FAILURE);
+        dc.detach();
+    }
 }
 
 void BTAdapter::notifyPairingStageDone(BTDeviceRef device, uint64_t timestamp) noexcept {
