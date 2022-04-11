@@ -48,7 +48,7 @@ buildit() {
     # cmake $CLANG_ARGS -DCMAKE_INSTALL_PREFIX=$rootdir/dist-$archabi -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TESTING=ON -DDEBUG=ON -DINSTRUMENTATION_UNDEFINED=ON ..
     # cmake $CLANG_ARGS -DCMAKE_INSTALL_PREFIX=$rootdir/dist-$archabi -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TESTING=ON -DDEBUG=ON -DINSTRUMENTATION_THREAD=ON ..
 
-    make -j $CPU_COUNT install test
+    make -j $CPU_COUNT install
     if [ $? -eq 0 ] ; then
         echo "BUILD SUCCESS $bname $archabi"
         cd $rootdir

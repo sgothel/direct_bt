@@ -373,6 +373,20 @@ The *trial* tests cover *Direct-BT*'s Bluetooth functionality,
 having its *master/client* and *slave/server peripheral* facilities communicating via actual adapter,
 supporting regression testing of the API, its implementation and adapter.
 
+The *trial* tests are time consuming since `TestDBClientServer1*` performs the test twelve fold altogether:
+- Four fold between adapter and encryption mode
+  - between both installed adapter, i.e. in both client/server directions 
+  - in legacy mode (SC 0) and once using secure connections (SC 1)
+- Three fold for encryption usage and state
+  - without encryption
+  - with `ENC_ONLY` encryption and initial key pairing
+  - with `ENC_ONLY` encryption and reusing pre-paired keys
+
+The encryption tests using Direct-BT may fail and are currently 
+under investigation. The following issues are known:
+- *BlueZ* is not sending us all new key information
+  - This is mitigated by *BTAdapter*'s *smp_watchdog*, leading to a retrial visible as *SMP Timeout*
+- *BlueZ* is not accepting pre-paired legacy keys (SC 0), leading to newly paired keys.
 
 ### Cross Build
 Also provided is a [cross-build script](https://jausoft.com/cgit/direct_bt.git/tree/scripts/build-cross.sh)
@@ -481,6 +495,13 @@ from the year 2016.
 **3.0.0 *Direct-BT* Maturity (Bluetooth LE)**
 
 * TODO
+
+**2.6.3**
+- Have trial `TestDBClientServer1*` test in both client/server directions, legacy and secure connections (SC)
+* Fix BTAdapter's server mode key handling
+* Have failed pairing issue disconnect, posting indicative reason
+* Use global `inline constexpr` instead of `#define` macros
+* Bump jaulib v0.7.14
 
 **2.6.2**
 * Adopt jaulib detailed git version info: Using post-tag `VERSION_COMMITS` and `VERSION_SHA1_SHORT`. `VERSION_LONG` reflects post-tag and dirty.
