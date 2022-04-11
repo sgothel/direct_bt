@@ -416,7 +416,7 @@ public class DBTScanner10 {
 
         boolean success = false;
 
-        {
+        if( device.getAdapter().getBTMajorVersion() > 4 ) {
             final LE_PHYs Tx = new LE_PHYs(LE_PHYs.PHY.LE_2M);
             final LE_PHYs Rx = new LE_PHYs(LE_PHYs.PHY.LE_2M);
 
@@ -650,7 +650,7 @@ public class DBTScanner10 {
             final LE_Features le_feats = adapter.getLEFeatures();
             BTUtils.fprintf_td(System.err, "initAdapter: LE_Features %s\n", le_feats.toString());
         }
-        {
+        if( adapter.getBTMajorVersion() > 4 ) {
             final LE_PHYs Tx = new LE_PHYs(LE_PHYs.PHY.LE_2M);
             final LE_PHYs Rx = new LE_PHYs(LE_PHYs.PHY.LE_2M);
 

@@ -453,7 +453,7 @@ static void processReadyToServer(BTDeviceRef device) {
 
     bool success = false;
 
-    {
+    if( device->getAdapter().getBTMajorVersion() > 4 ) {
         LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
         HCIStatusCode res = device->setConnectedLE_PHY(Tx, Rx);
         fprintf_td(stderr, "****** To Server: Set Connected LE PHY: status %s: Tx %s, Rx %s\n",
@@ -560,7 +560,7 @@ static bool initAdapterToServer(std::shared_ptr<BTAdapter>& adapter) {
         const LE_Features le_feats = adapter->getLEFeatures();
         fprintf_td(stderr, "initAdapterToServer: LE_Features %s\n", to_string(le_feats).c_str());
     }
-    {
+    if( adapter->getBTMajorVersion() > 4 ) {
         LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
         HCIStatusCode res = adapter->setDefaultLE_PHY(Tx, Rx);
         fprintf_td(stderr, "initAdapterToServer: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
@@ -834,7 +834,7 @@ static bool initAdapterToClient(std::shared_ptr<BTAdapter>& adapter) {
         const LE_Features le_feats = adapter->getLEFeatures();
         fprintf_td(stderr, "initAdapterToClient: LE_Features %s\n", to_string(le_feats).c_str());
     }
-    {
+    if( adapter->getBTMajorVersion() > 4 ) {
         LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
         HCIStatusCode res = adapter->setDefaultLE_PHY(Tx, Rx);
         fprintf_td(stderr, "initAdapterToClient: Set Default LE PHY: status %s: Tx %s, Rx %s\n",

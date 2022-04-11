@@ -422,7 +422,7 @@ static void processReadyDevice(BTDeviceRef device) {
 
     bool success = false;
 
-    {
+    if( device->getAdapter().getBTMajorVersion() > 4 ) {
         LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
         HCIStatusCode res = device->setConnectedLE_PHY(Tx, Rx);
         fprintf_td(stderr, "****** Set Connected LE PHY: status %s: Tx %s, Rx %s\n",
@@ -666,7 +666,7 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
         const LE_Features le_feats = adapter->getLEFeatures();
         fprintf_td(stderr, "initAdapter: LE_Features %s\n", to_string(le_feats).c_str());
     }
-    {
+    if( adapter->getBTMajorVersion() > 4 ) {
         LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
         HCIStatusCode res = adapter->setDefaultLE_PHY(Tx, Rx);
         fprintf_td(stderr, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
