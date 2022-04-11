@@ -82,7 +82,7 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
                 | IllegalAccessException | IllegalArgumentException
                 | InvocationTargetException | ClassNotFoundException e) {
             e.printStackTrace();
-            BTUtils.println(System.err, "Unable to instantiate DirectBT BluetoothManager: "+e.getMessage());
+            BTUtils.println(System.err, "Unable to instantiate Direct-BT BluetoothManager: "+e.getMessage());
             e.printStackTrace();
         }
         if( null != manager ) {
@@ -113,7 +113,7 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
                 | IllegalAccessException | IllegalArgumentException
                 | InvocationTargetException | ClassNotFoundException e) {
             e.printStackTrace();
-            BTUtils.println(System.err, "Unable to instantiate DirectBT BluetoothManager: "+e.getMessage());
+            BTUtils.println(System.err, "Unable to instantiate Direct-BT BluetoothManager: "+e.getMessage());
             e.printStackTrace();
         }
         if( null != manager ) {
@@ -149,7 +149,7 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
                 | IllegalAccessException | IllegalArgumentException
                 | InvocationTargetException | ClassNotFoundException e) {
             e.printStackTrace();
-            BTUtils.println(System.err, "Unable to instantiate DirectBT BluetoothManager: "+e.getMessage());
+            BTUtils.println(System.err, "Unable to instantiate Direct-BT BluetoothManager: "+e.getMessage());
             e.printStackTrace();
         }
         if( null != manager ) {

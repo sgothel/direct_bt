@@ -67,8 +67,8 @@ public class DBTUtils {
             System.err.println(sb.toString());
         }
 
-        BTUtils.println(System.err, "DirectBT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
-        BTUtils.println(System.err, "DirectBT Java Version   "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
+        BTUtils.println(System.err, "Direct-BT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
+        BTUtils.println(System.err, "Direct-BT Java Version   "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
     }
 
     public static final boolean mkdirKeyFolder() {

@@ -74,7 +74,7 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
                 | IllegalAccessException | IllegalArgumentException
                 | InvocationTargetException | ClassNotFoundException e) {
             e.printStackTrace();
-            Assert.assertNull("Unable to instantiate DirectBT BluetoothManager: "+e.getMessage(), e);
+            Assert.assertNull("Unable to instantiate Direct-BT BluetoothManager: "+e.getMessage(), e);
         }
         if( null == manager ) {
             return;

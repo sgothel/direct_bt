@@ -806,14 +806,14 @@ public class DBTPeripheral00 {
         } catch (BTException | NoSuchMethodException | SecurityException
                 | IllegalAccessException | IllegalArgumentException
                 | InvocationTargetException | ClassNotFoundException e) {
-            System.err.println("Unable to instantiate DirectBT BluetoothManager");
+            System.err.println("Unable to instantiate Direct-BT BluetoothManager");
             e.printStackTrace();
             System.exit(-1);
             return;
         }
-        BTUtils.println(System.err, "DirectBT BluetoothManager initialized!");
-        BTUtils.println(System.err, "DirectBT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
-        BTUtils.println(System.err, "DirectBT Java Version "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
+        BTUtils.println(System.err, "Direct-BT BluetoothManager initialized!");
+        BTUtils.println(System.err, "Direct-BT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
+        BTUtils.println(System.err, "Direct-BT Java Version "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
 
         final DBTPeripheral00 test = new DBTPeripheral00();
 

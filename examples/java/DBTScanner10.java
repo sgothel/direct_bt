@@ -780,9 +780,9 @@ public class DBTScanner10 {
             System.exit(-1);
             return;
         }
-        BTUtils.println(System.err, "DirectBT BluetoothManager initialized!");
-        BTUtils.println(System.err, "DirectBT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
-        BTUtils.println(System.err, "DirectBT Java Version "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
+        BTUtils.println(System.err, "Direct-BT BluetoothManager initialized!");
+        BTUtils.println(System.err, "Direct-BT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
+        BTUtils.println(System.err, "Direct-BT Java Version "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
 
         final DBTScanner10 test = new DBTScanner10();
 
