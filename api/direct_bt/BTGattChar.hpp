@@ -218,6 +218,12 @@ namespace direct_bt {
                 userDescriptionIndex = -1;
             }
 
+            /**
+             * Return the Client Characteristic Configuration BTGattDescRef if available or nullptr.
+             *
+             * The BTGattDesc::Type::CLIENT_CHARACTERISTIC_CONFIGURATION has been indexed while
+             * retrieving the GATT database from the server.
+             */
             BTGattDescRef getClientCharConfig() const noexcept {
                 if( 0 > clientCharConfigIndex ) {
                     return nullptr;
@@ -225,6 +231,12 @@ namespace direct_bt {
                 return descriptorList.at(static_cast<size_t>(clientCharConfigIndex)); // abort if out of bounds
             }
 
+            /**
+             * Return the User Description BTGattDescRef if available or nullptr.
+             *
+             * The BTGattDesc::Type::CHARACTERISTIC_USER_DESCRIPTION has been indexed while
+             * retrieving the GATT database from the server.
+             */
             BTGattDescRef getUserDescription() const noexcept {
                 if( 0 > userDescriptionIndex ) {
                     return nullptr;

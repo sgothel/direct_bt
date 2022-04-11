@@ -115,6 +115,10 @@ public class DBTGattChar extends DBTObject implements BTGattChar
             }
         }
     }
+    private native List<BTGattDesc> getDescriptorsImpl();
+
+    @Override
+    protected native void deleteImpl(long nativeInstance);
 
     @Override
     public synchronized void close() {
@@ -170,16 +174,6 @@ public class DBTGattChar extends DBTObject implements BTGattChar
 
     @Override
     public final GattCharPropertySet getProperties() { return properties; }
-
-    @Override
-    public final byte[] readValue() throws BTException {
-        return readValueImpl();
-    }
-
-    @Override
-    public final boolean writeValue(final byte[] value, final boolean withResponse) throws BTException {
-        return writeValueImpl(value, withResponse);
-    }
 
     @Override
     public final List<BTGattDesc> getDescriptors() { return descriptorList; }
@@ -314,11 +308,33 @@ public class DBTGattChar extends DBTObject implements BTGattChar
      */
     public final short getValueHandle() { return value_handle; }
 
-    /** Returns optional Client Characteristic Configuration index within descriptorList */
-    public final int getClientCharacteristicsConfigIndex() { return clientCharacteristicsConfigIndex; }
+    @Override
+    public final BTGattDesc getClientCharConfig() {
+        if( 0 > clientCharacteristicsConfigIndex ) {
+            return null;
+        }
+        return descriptorList.get(clientCharacteristicsConfigIndex); // exception if out of bounds
+    }
 
-    /** Returns optional Characteristic User Description index within descriptorList */
-    public final int getUserDescriptionIndex() { return userDescriptionIndex; }
+    @Override
+    public final BTGattDesc getUserDescription() {
+        if( 0 > userDescriptionIndex ) {
+            return null;
+        }
+        return descriptorList.get(userDescriptionIndex); // exception if out of bounds
+    }
+
+    @Override
+    public final byte[] readValue() throws BTException {
+        return readValueImpl();
+    }
+    private native byte[] readValueImpl() throws BTException;
+
+    @Override
+    public final boolean writeValue(final byte[] value, final boolean withResponse) throws BTException {
+        return writeValueImpl(value, withResponse);
+    }
+    private native boolean writeValueImpl(byte[] argValue, boolean withResponse) throws BTException;
 
     @Override
     public final String toString() {
@@ -327,17 +343,5 @@ public class DBTGattChar extends DBTObject implements BTGattChar
         }
         return toStringImpl();
     }
-
-    /* Native method calls: */
-
     private native String toStringImpl();
-
-    private native byte[] readValueImpl() throws BTException;
-
-    private native boolean writeValueImpl(byte[] argValue, boolean withResponse) throws BTException;
-
-    private native List<BTGattDesc> getDescriptorsImpl();
-
-    @Override
-    protected native void deleteImpl(long nativeInstance);
 }

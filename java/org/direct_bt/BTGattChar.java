@@ -88,10 +88,21 @@ public interface BTGattChar extends BTObject
      */
     BTGattDesc findGattDesc(final String desc_uuid);
 
-    /** Reads the value of this characteristic.
-      * @return A std::vector<unsgined char> containing the value of this characteristic.
-      */
-    byte[] readValue() throws BTException;
+    /**
+     * Return the Client Characteristic Configuration BTGattDesc if available or null.
+     *
+     * The {@link BTGattDesc#UUID128#CCC_DESC} has been indexed while
+     * retrieving the GATT database from the server.
+     */
+    BTGattDesc getClientCharConfig();
+
+    /**
+     * Return the User Description BTGattDesc if available or null.
+     *
+     * The {@link BTGattDesc#UUID128#USER_DESC} has been indexed while
+     * retrieving the GATT database from the server.
+     */
+    BTGattDesc getUserDescription();
 
     /**
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
@@ -289,24 +300,6 @@ public interface BTGattChar extends BTObject
      */
     int removeAllAssociatedCharListener(final boolean shallDisableIndicationNotification);
 
-    /**
-     * Writes the value of this characteristic,
-     * using one of the following methods depending on {@code withResponse}
-     * <pre>
-     * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
-     * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response
-     * </pre>
-     * @param[in] arg_value The data as vector<uchar>
-     * to be written packed in a GBytes struct
-     * @param withResponse if {@code true} a subsequent ATT_WRITE_RSP is expected, otherwise not.
-     * @return TRUE if value was written successfully
-     * @since 2.0.0
-     * @implNote {@code withResponse} parameter has been added since 2.0.0
-     */
-    boolean writeValue(byte[] argValue, boolean withResponse) throws BTException;
-
-    /* D-Bus property accessors: */
-
     /** Get the UUID of this characteristic.
       * @return The 128 byte UUID of this characteristic, NULL if an error occurred
       */
@@ -336,6 +329,27 @@ public interface BTGattChar extends BTObject
       * NULL if an error occurred
       */
     List<BTGattDesc> getDescriptors();
+
+    /** Reads the value of this characteristic.
+      * @return A std::vector<unsgined char> containing the value of this characteristic.
+      */
+    byte[] readValue() throws BTException;
+
+    /**
+     * Writes the value of this characteristic,
+     * using one of the following methods depending on {@code withResponse}
+     * <pre>
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response
+     * </pre>
+     * @param[in] arg_value The data as vector<uchar>
+     * to be written packed in a GBytes struct
+     * @param withResponse if {@code true} a subsequent ATT_WRITE_RSP is expected, otherwise not.
+     * @return TRUE if value was written successfully
+     * @since 2.0.0
+     * @implNote {@code withResponse} parameter has been added since 2.0.0
+     */
+    boolean writeValue(byte[] argValue, boolean withResponse) throws BTException;
 
     @Override
     String toString();

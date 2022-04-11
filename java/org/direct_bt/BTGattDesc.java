@@ -32,6 +32,10 @@ package org.direct_bt;
  */
 public interface BTGattDesc extends BTObject
 {
+    /**
+     * Following UUID128 values represent original UUID16 GATT profile attribute types, listed under:
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 3.4 Summary of GATT Profile Attribute Types
+     */
     public static class UUID128 {
         /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.1 Characteristic Extended Properties */
         public static final String EXT_PROP  = "00002900-0000-1000-8000-00805f9b34fb";
