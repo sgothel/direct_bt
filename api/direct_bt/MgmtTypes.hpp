@@ -183,10 +183,13 @@ namespace direct_bt {
         /** Describing type of key, i.e. used ::BTSecurityLevel and whether using Secure Connections (SC) for P256. */
         MgmtLTKType key_type;
         /**
-         * BlueZ claims itself (initiator) as the SLAVE and the responder as the MASTER,
-         * contrary to the spec roles of: Initiator (LL Master) and Responder (LL Slave).
+         * BlueZ interprets `role` as follows:
+         * - Adapter role slave/responder (GATT server)
+         *   - 1 = master/initiator (GATT client); 0 = slave/responder (GATT server)
+         * - Adapter role master/initiator (GATT client)
+         *   - 0 = master/initiator (GATT client); 1 = slave/responder (GATT server)
          */
-        uint8_t master;
+        uint8_t role;
         /** Encryption Size */
         uint8_t enc_size;
         /** Encryption Diversifier */
@@ -198,7 +201,7 @@ namespace direct_bt {
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
             return "LTK[address["+address.toString()+", "+to_string(address_type)+BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", ")+
-                   "], type "+to_string(key_type)+", master "+jau::to_hexstring(master)+
+                   "], type "+to_string(key_type)+", role "+jau::to_hexstring(role)+
                    ", enc_size "+std::to_string(enc_size)+
                    ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), true /* lsbFirst */)+
                    ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), true /* lsbFirst */)+
@@ -207,12 +210,22 @@ namespace direct_bt {
         }
 
         /**
+         * Convert the given states to the MgmtLongTermKeyInfo compatoble role.
+         */
+        static constexpr uint8_t to_role(const BTRole adapterRole, const bool is_responder) {
+            return ( ( BTRole::Slave  == adapterRole && !is_responder ) ||
+                     ( BTRole::Master == adapterRole &&  is_responder )
+                   ) ? 1 : 0;
+        }
+
+        /**
          * Convert this instance into its platform agnostic SMPLongTermKeyInfo type.
          */
-        SMPLongTermKey toSMPLongTermKeyInfo() const noexcept {
+        SMPLongTermKey toSMPLongTermKeyInfo(const BTRole adapterRole) const noexcept {
             direct_bt::SMPLongTermKey res;
             res.clear();
-            if( master ) {
+            if( ( BTRole::Slave  == adapterRole && !role ) ||
+                ( BTRole::Master == adapterRole &&  role ) ) {
                 res.properties |= SMPLongTermKey::Property::RESPONDER;
             }
             switch( key_type ) {

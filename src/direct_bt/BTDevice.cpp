@@ -711,21 +711,9 @@ bool BTDevice::checkPairingKeyDistributionComplete() const noexcept {
     {
         const SMPKeyType key_mask = pairing_data.use_sc ? _key_mask_sc : _key_mask_legacy;
 
-        // Spec allows remote party to not distribute the keys,
-        // hence distribution is complete with local keys!
-        // Impact of missing remote keys: Requires new pairing each connection (except local LinkKey)
-        if( BTRole::Slave == btRole ) {
-            // Remote device is slave (peripheral, responder), we are master (initiator)
-            if( ( pairing_data.keys_init_has & key_mask ) == ( pairing_data.keys_init_exp & key_mask ) ) {
-                // pairing_data.keys_resp_has == ( pairing_data.keys_resp_exp & key_mask )
-                res = true;
-            }
-        } else {
-            // Remote device is master (initiator), we are slave (peripheral, responder)
-            if( ( pairing_data.keys_resp_has & key_mask ) == ( pairing_data.keys_resp_exp & key_mask ) ) {
-                // pairing_data.keys_init_has == ( pairing_data.keys_init_exp & key_mask )
-                res = true;
-            }
+        if( ( pairing_data.keys_init_has & key_mask ) == ( pairing_data.keys_init_exp & key_mask ) &&
+            ( pairing_data.keys_resp_has & key_mask ) == ( pairing_data.keys_resp_exp & key_mask ) ) {
+            res = true;
         }
     }
 
@@ -983,7 +971,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
                         // SMP pairing has started, mngr issued new LTK command
                         const MgmtEvtNewLongTermKey& event = *static_cast<const MgmtEvtNewLongTermKey *>(&evt);
                         const MgmtLongTermKeyInfo& mgmt_ltk = event.getLongTermKey();
-                        const SMPLongTermKey smp_ltk = mgmt_ltk.toSMPLongTermKeyInfo();
+                        const SMPLongTermKey smp_ltk = mgmt_ltk.toSMPLongTermKeyInfo(!btRole);
                         if( smp_ltk.isValid() ) {
                             // Secure Connections (SC) use AES sync key for both, initiator and responder.
                             if( pairing_data.use_sc || smp_ltk.isResponder() ) {
@@ -1507,39 +1495,21 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
         BTManager & mngr = adapter.getManager();
         HCIStatusCode res = HCIStatusCode::SUCCESS;
 
-        if( BTRole::Slave == btRole ) {
-            // Remote device is slave (peripheral, responder), we are master (initiator)
-            if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
-                res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_init);
-                DBG_PRINT("BTDevice::uploadKeys.LTK[Remote slave, master/init]: %s", to_string(res).c_str());
-                if( HCIStatusCode::SUCCESS != res ) {
-                    return res;
-                }
+        jau::darray<SMPLongTermKey> ltks;
+        if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
+            ltks.push_back(pairing_data.ltk_init);
+        }
+        if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
+            ltks.push_back(pairing_data.ltk_resp);
+        }
+        if( ltks.size() > 0 ) {
+            res = mngr.uploadLongTermKey(!btRole, adapter.dev_id, addressAndType, ltks);
+            if( jau::environment::get().debug ) {
+                const std::string role_s = BTRole::Slave == btRole ? "Remote slave, master/init" : "Remote master, peripheral/resp";
+                DBG_PRINT("BTDevice::uploadKeys.LTK[%s]: %s", role_s.c_str(), to_string(res).c_str());
             }
-
-            if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
-                res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_resp);
-                DBG_PRINT("BTDevice::uploadKeys.LTK[Remote slave, peripheral/resp]: %s", to_string(res).c_str());
-                if( HCIStatusCode::SUCCESS != res ) {
-                    return res;
-                }
-            }
-        } else {
-            // Remote device is master (initiator), we are slave (peripheral, responder)
-            if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
-                res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_resp);
-                DBG_PRINT("BTDevice::uploadKeys.LTK[Remote master, peripheral/resp]: %s", to_string(res).c_str());
-                if( HCIStatusCode::SUCCESS != res ) {
-                    return res;
-                }
-            }
-
-            if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
-                res = mngr.uploadLongTermKey(adapter.dev_id, addressAndType, pairing_data.ltk_init);
-                DBG_PRINT("BTDevice::uploadKeys.LTK[Remote master, master/init]: %s", to_string(res).c_str());
-                if( HCIStatusCode::SUCCESS != res ) {
-                    return res;
-                }
+            if( HCIStatusCode::SUCCESS != res ) {
+                return res;
             }
         }
 
