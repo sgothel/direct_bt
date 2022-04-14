@@ -1912,7 +1912,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
             device->toString().c_str());
     } else {
         addConnectedDevice(device); // track device, if not done yet
-        COND_PRINT(debug_event, "BTAdapter::EventHCI:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s, handle %s -> %s,\n    %s,\n    -> %s",
+        COND_PRINT(debug_event, "BTAdapter::hci:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s, handle %s -> %s,\n    %s,\n    -> %s",
             dev_id, new_connect, to_string(updateMask).c_str(), event.toString().c_str(),
             jau::to_hexstring(device->getConnectionHandle()).c_str(), jau::to_hexstring(event.getHCIHandle()).c_str(),
             ad_report.toString().c_str(),
@@ -1942,7 +1942,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
                 }
             }
         } catch (std::exception &except) {
-            ERR_PRINT("BTAdapter::EventHCI:DeviceConnected-CBs %d/%zd: %s of %s: Caught exception %s",
+            ERR_PRINT("BTAdapter::hci:DeviceConnected-CBs %d/%zd: %s of %s: Caught exception %s",
                     i+1, statusListenerList.size(),
                     p.listener->toString().c_str(), device->toString().c_str(), except.what());
         }
@@ -1966,13 +1966,12 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
 }
 
 bool BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
-    DBG_PRINT("BTAdapter::EventHCI:ConnectFailed: %s", e.toString().c_str());
     const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         const uint16_t handle = device->getConnectionHandle();
-        COND_PRINT(debug_event, "BTAdapter::EventHCI:ConnectFailed(dev_id %d): %s, handle %s -> zero,\n    -> %s",
+        DBG_PRINT("BTAdapter::hci:ConnectFailed(dev_id %d): %s, handle %s -> zero,\n    -> %s",
             dev_id, event.toString().c_str(), jau::to_hexstring(handle).c_str(),
             device->toString().c_str());
 
@@ -1988,7 +1987,7 @@ bool BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
                         p.listener->deviceDisconnected(device, event.getHCIStatus(), handle, event.getTimestamp());
                     }
                 } catch (std::exception &except) {
-                    ERR_PRINT("BTAdapter::EventHCI:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",
+                    ERR_PRINT("BTAdapter::hci:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",
                             i+1, statusListenerList.size(),
                             p.listener->toString().c_str(), device->toString().c_str(), except.what());
                 }
@@ -1998,7 +1997,7 @@ bool BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
             removeDiscoveredDevice(device->addressAndType); // ensure device will cause a deviceFound event after disconnect
         }
     } else {
-        WORDY_PRINT("BTAdapter::EventHCI:DeviceDisconnected(dev_id %d): Device not tracked: %s",
+        WORDY_PRINT("BTAdapter::hci:DeviceDisconnected(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
     return true;
@@ -2009,7 +2008,7 @@ bool BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
-        COND_PRINT(debug_event, "BTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): %s, %s",
+        COND_PRINT(debug_event, "BTAdapter::hci:LERemoteUserFeatures(dev_id %d): %s, %s",
             dev_id, event.toString().c_str(), device->toString().c_str());
 
         if( BTRole::Master == getRole() ) {
@@ -2039,7 +2038,7 @@ bool BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
             // - disconnect() .. eventually
         } // else: disconnect will occur
     } else {
-        WORDY_PRINT("BTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): Device not tracked: %s",
+        WORDY_PRINT("BTAdapter::hci:LERemoteUserFeatures(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
     return true;
@@ -2050,12 +2049,12 @@ bool BTAdapter::mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept {
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
-        COND_PRINT(debug_event, "BTAdapter::EventHCI:LEPhyUpdateComplete(dev_id %d): %s, %s",
+        COND_PRINT(debug_event, "BTAdapter::hci:LEPhyUpdateComplete(dev_id %d): %s, %s",
             dev_id, event.toString().c_str(), device->toString().c_str());
 
         device->notifyLEPhyUpdateComplete(event.getHCIStatus(), event.getTx(), event.getRx());
     } else {
-        WORDY_PRINT("BTAdapter::EventHCI:LEPhyUpdateComplete(dev_id %d): Device not tracked: %s",
+        WORDY_PRINT("BTAdapter::hci:LEPhyUpdateComplete(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
     return true;
@@ -2067,11 +2066,11 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         if( device->getConnectionHandle() != event.getHCIHandle() ) {
-            WORDY_PRINT("BTAdapter::EventHCI:DeviceDisconnected(dev_id %d): ConnHandle mismatch %s\n    -> %s",
+            WORDY_PRINT("BTAdapter::hci:DeviceDisconnected(dev_id %d): ConnHandle mismatch %s\n    -> %s",
                 dev_id, event.toString().c_str(), device->toString().c_str());
             return true;
         }
-        COND_PRINT(debug_event, "BTAdapter::EventHCI:DeviceDisconnected(dev_id %d): %s, handle %s -> zero,\n    -> %s",
+        DBG_PRINT("BTAdapter::hci:DeviceDisconnected(dev_id %d): %s, handle %s -> zero,\n    -> %s",
             dev_id, event.toString().c_str(), jau::to_hexstring(event.getHCIHandle()).c_str(),
             device->toString().c_str());
 
@@ -2088,7 +2087,7 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
                         p.listener->deviceDisconnected(device, event.getHCIReason(), event.getHCIHandle(), event.getTimestamp());
                     }
                 } catch (std::exception &except) {
-                    ERR_PRINT("BTAdapter::EventHCI:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",
+                    ERR_PRINT("BTAdapter::hci:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",
                             i+1, statusListenerList.size(),
                             p.listener->toString().c_str(), device->toString().c_str(), except.what());
                 }
@@ -2128,7 +2127,7 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
         }
         removeDevicePausingDiscovery(*device, true /* off_thread_enable */);
     } else {
-        DBG_PRINT("BTAdapter::EventHCI:DeviceDisconnected(dev_id %d): Device not connected: %s",
+        DBG_PRINT("BTAdapter::hci:DeviceDisconnected(dev_id %d): Device not connected: %s",
             dev_id, event.toString().c_str());
         device = findDevicePausingDiscovery(event.getAddress(), event.getAddressType());
         if( nullptr != device ) {
@@ -2147,7 +2146,7 @@ bool BTAdapter::mgmtEvLELTKReqEventHCI(const MgmtEvent& e) noexcept {
         // BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.65.5 LE Long Term Key Request event
         device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::COMPLETED);
     } else {
-        WORDY_PRINT("BTAdapter::EventHCI:LE_LTK_Request(dev_id %d): Device not tracked: %s",
+        WORDY_PRINT("BTAdapter::hci:LE_LTK_Request(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
     return true;
@@ -2160,7 +2159,7 @@ bool BTAdapter::mgmtEvLELTKReplyAckCmdHCI(const MgmtEvent& e) noexcept {
         // BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.25 LE Long Term Key Request Reply command
         device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::COMPLETED);
     } else {
-        WORDY_PRINT("BTAdapter::EventHCI:LE_LTK_REPLY_ACK(dev_id %d): Device not tracked: %s",
+        WORDY_PRINT("BTAdapter::hci:LE_LTK_REPLY_ACK(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
     return true;
@@ -2169,7 +2168,7 @@ bool BTAdapter::mgmtEvLELTKReplyRejCmdHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCILELTKReplyRejCmd &event = *static_cast<const MgmtEvtHCILELTKReplyRejCmd *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
-    DBG_PRINT("BTAdapter::EventHCI:LE_LTK_REPLY_REJ(dev_id %d): Ignored: %s (tracked %d)",
+    DBG_PRINT("BTAdapter::hci:LE_LTK_REPLY_REJ(dev_id %d): Ignored: %s (tracked %d)",
             dev_id, event.toString().c_str(), (nullptr!=device));
     return true;
 }
@@ -2183,7 +2182,7 @@ bool BTAdapter::mgmtEvLEEnableEncryptionCmdHCI(const MgmtEvent& e) noexcept {
         // BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.24 LE Enable Encryption command
         device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::COMPLETED);
     } else {
-        WORDY_PRINT("BTAdapter::EventHCI:LE_ENABLE_ENC(dev_id %d): Device not tracked: %s",
+        WORDY_PRINT("BTAdapter::hci:LE_ENABLE_ENC(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
     return true;
@@ -2200,7 +2199,7 @@ bool BTAdapter::mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept {
         const SMPPairingState pstate = ok ? SMPPairingState::COMPLETED : SMPPairingState::FAILED;
         device->updatePairingState(device, e, evtStatus, pstate);
     } else {
-        WORDY_PRINT("BTAdapter::EventHCI:ENC_CHANGED(dev_id %d): Device not tracked: %s",
+        WORDY_PRINT("BTAdapter::hci:ENC_CHANGED(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
     return true;
@@ -2217,7 +2216,7 @@ bool BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noe
         const SMPPairingState pstate = ok ? SMPPairingState::COMPLETED : SMPPairingState::FAILED;
         device->updatePairingState(device, e, evtStatus, pstate);
     } else {
-        WORDY_PRINT("BTAdapter::EventHCI:ENC_KEY_REFRESH_COMPLETE(dev_id %d): Device not tracked: %s",
+        WORDY_PRINT("BTAdapter::hci:ENC_KEY_REFRESH_COMPLETE(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
     return true;
