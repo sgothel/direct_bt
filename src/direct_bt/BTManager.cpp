@@ -117,7 +117,7 @@ void BTManager::mgmtReaderWork(jau::service_runner& sr) noexcept {
             COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (CB) %s", event->toString().c_str());
             sendMgmtEvent( *event );
         }
-    } else if( ETIMEDOUT != errno && !sr.get_shall_stop() ) { // expected exits
+    } else if( ETIMEDOUT != errno && !sr.shall_stop() ) { // expected exits
         ERR_PRINT("BTManager::reader: HCIComm read error");
     }
 }

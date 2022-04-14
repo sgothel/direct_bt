@@ -459,6 +459,7 @@ namespace direct_bt {
 
             /** Pass through user Gatt-Server database, non-nullptr if ::GATTRole::Server */
             DBGattServerRef gattServerData;
+            /** Always set, never nullptr */
             std::unique_ptr<GattServerHandler> gattServerHandler;
             static std::unique_ptr<GattServerHandler> selectGattServerHandler(BTGattHandler& gh, DBGattServerRef gattServerData) noexcept;
 
@@ -473,7 +474,6 @@ namespace direct_bt {
 
             void l2capReaderWork(jau::service_runner& sr) noexcept;
             void l2capReaderEndLocked(jau::service_runner& sr) noexcept;
-            void l2capReaderEndFinal(jau::service_runner& sr) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.4.2 MTU Exchange
@@ -567,7 +567,7 @@ namespace direct_bt {
 
             bool isConnected() const noexcept { return is_connected ; }
             bool hasIOError() const noexcept { return has_ioerror; }
-            std::string getStateString() const noexcept { return L2CAPComm::getStateString(is_connected, has_ioerror); }
+            std::string getStateString() const noexcept;
 
             /**
              * Disconnect this BTGattHandler and optionally the associated device

@@ -552,7 +552,7 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
                 COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV EVT Drop (no translation) %s", dev_id, event->toString().c_str());
             }
         }
-    } else if( ETIMEDOUT != errno && !sr.get_shall_stop() ) { // expected exits
+    } else if( ETIMEDOUT != errno && !sr.shall_stop() ) { // expected exits
         ERR_PRINT("HCIHandler<%u>::reader: HCIComm read error %s", dev_id, toString().c_str());
     }
 }
