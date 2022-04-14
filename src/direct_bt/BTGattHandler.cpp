@@ -524,6 +524,8 @@ void BTGattHandler::l2capReaderEndLocked(jau::service_runner& sr) noexcept {
     (void)sr;
     WORDY_PRINT("GATTHandler::reader: EndLocked. Ring has %u entries flushed: %s", attPDURing.size(), toString().c_str());
     attPDURing.clear();
+#if 0
+    // Disabled: BT host is sending out disconnect -> simplify tear down
     if( has_ioerror ) {
         // Don't rely on receiving a disconnect
         BTDeviceRef device = getDeviceUnchecked();
@@ -532,6 +534,7 @@ void BTGattHandler::l2capReaderEndLocked(jau::service_runner& sr) noexcept {
             dc.detach();
         }
     }
+#endif
 }
 
 BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, const int32_t supervision_timeout_) noexcept
