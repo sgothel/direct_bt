@@ -559,8 +559,8 @@ public class DBTPeripheral00 {
             }
         }
     }
-    static final short adv_interval_min=(short)640;
-    static final short adv_interval_max=(short)640;
+    static final short adv_interval_min=(short)160; // x0.625 = 100ms
+    static final short adv_interval_max=(short)480; // x0.625 = 300ms
     static final byte adv_type=(byte)0; // AD_PDU_Type::ADV_IND;
     static final byte adv_chan_map=(byte)0x07;
     static final byte filter_policy=(byte)0x00;
@@ -597,7 +597,7 @@ public class DBTPeripheral00 {
         eir.setServicesComplete(false);
 
         eir.setName(adapter.getName());
-        eir.setConnInterval((short)8, (short)24); // 10ms - 30ms
+        eir.setConnInterval((short)8, (short)12); // 10ms - 15ms
 
         final DBGattChar gattDevNameChar = dbGattServer.findGattChar(DBGattService.UUID16.GENERIC_ACCESS, DBGattChar.UUID16.DEVICE_NAME);
         if( null != gattDevNameChar ) {

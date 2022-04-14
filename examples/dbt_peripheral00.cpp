@@ -519,8 +519,8 @@ class MyGATTServerListener : public DBGattServer::Listener {
         }
 };
 
-static const uint16_t adv_interval_min=640;
-static const uint16_t adv_interval_max=640;
+static const uint16_t adv_interval_min=160; // x0.625 = 100ms
+static const uint16_t adv_interval_max=480; // x0.625 = 300ms
 static const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND;
 static const uint8_t adv_chan_map=0x07;
 static const uint8_t filter_policy=0x00;
@@ -541,7 +541,7 @@ static bool startAdvertising(BTAdapter *a, std::string msg) {
     eir.setServicesComplete(false);
 
     eir.setName(a->getName());
-    eir.setConnInterval(8, 24); // 10ms - 30ms
+    eir.setConnInterval(8, 12); // 10ms - 15ms
 
     DBGattCharRef gattDevNameChar = dbGattServer->findGattChar( jau::uuid16_t(GattServiceType::GENERIC_ACCESS),
                                                                 jau::uuid16_t(GattCharacteristicType::DEVICE_NAME) );

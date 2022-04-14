@@ -369,8 +369,8 @@ public class DBTScanner10 {
         final EInfoReport eir = device.getEIR();
         BTUtils.println(System.err, "Using EIR "+eir.toString());
 
-        short conn_interval_min  = (short)12;
-        short conn_interval_max  = (short)12;
+        short conn_interval_min  = (short)8;  // 10ms
+        short conn_interval_max  = (short)12; // 15ms
         final short conn_latency  = (short)0;
         if( eir.isSet(EIRDataTypeSet.DataType.CONN_IVAL) ) {
             final short[] minmax = new short[2];

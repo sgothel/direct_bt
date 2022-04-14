@@ -316,8 +316,8 @@ public interface BTAdapter extends BTObject
      * @param eir Full ADV EIR {@link EInfoReport}, will be updated with {@link #getName()} and at least {@link GAPFlags.Bit#LE_Gen_Disc} set.
      * @param adv_mask {@link EIRDataTypeSet} mask for {@link EInfoReport} to select advertisement EIR PDU data, defaults to {@link EIRDataTypeSet.DataType#FLAGS} | {@link EIRDataTypeSet.DataType#SERVICE_UUID}
      * @param scanrsp_mask {@link EIRDataTypeSet} mask for {@link EInfoReport} to select scan-response (active scanning) EIR PDU data, defaults to {@link EIRDataTypeSet.DataType#NAME} | {@link EIRDataTypeSet.DataType#CONN_IVAL}
-     * @param adv_interval_min in units of 0.625ms, default value 640 for 400ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
-     * @param adv_interval_max in units of 0.625ms, default value 640 for 400ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+     * @param adv_interval_min in units of 0.625ms, default value 160 for 100ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+     * @param adv_interval_max in units of 0.625ms, default value 480 for 300ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
      * @param adv_type see AD_PDU_Type, default 0x00, i.e. ::AD_PDU_Type::ADV_IND
      * @param adv_chan_map bit 0: chan 37, bit 1: chan 38, bit 2: chan 39, default is 0x07 (all 3 channels enabled)
      * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
@@ -363,8 +363,8 @@ public interface BTAdapter extends BTObject
      * @param gattServerData_ the {@link DBGattServer} data to be advertised and offered via GattHandler as ::GATTRole::Server.
      *        Its handles will be setup via DBGattServer::setServicesHandles().
      *        Reference is held until next disconnect.
-     * @param adv_interval_min in units of 0.625ms, default value 640 for 400ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
-     * @param adv_interval_max in units of 0.625ms, default value 640 for 400ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+     * @param adv_interval_min in units of 0.625ms, default value 160 for 100ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+     * @param adv_interval_max in units of 0.625ms, default value 480 for 300ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
      * @param adv_type see AD_PDU_Type, default 0x00, i.e. ::AD_PDU_Type::ADV_IND
      * @param adv_chan_map bit 0: chan 37, bit 1: chan 38, bit 2: chan 39, default is 0x07 (all 3 channels enabled)
      * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...

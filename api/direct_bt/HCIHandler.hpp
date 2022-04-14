@@ -852,8 +852,8 @@ namespace direct_bt {
              * @param peer_bdaddr EUI48 of directed peer, defaults to EUI48::ANY_DEVICE (zero address)
              * @param own_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
              * @param peer_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
-             * @param adv_interval_min in units of 0.625ms, default value 640 for 400ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
-             * @param adv_interval_max in units of 0.625ms, default value 640 for 400ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+             * @param adv_interval_min in units of 0.625ms, default value 160 for 100ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
+             * @param adv_interval_max in units of 0.625ms, default value 480 for 300ms; Value range [0x0020 .. 0x4000] for [20ms .. 10.24s]
              * @param adv_type see AD_PDU_Type, default ::AD_PDU_Type::ADV_IND
              * @param adv_chan_map bit 0: chan 37, bit 1: chan 38, bit 2: chan 39, default is 0x07 (all 3 channels enabled)
              * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
@@ -866,7 +866,7 @@ namespace direct_bt {
                                        const EUI48 &peer_bdaddr=EUI48::ANY_DEVICE,
                                        const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
                                        const HCILEOwnAddressType peer_mac_type=HCILEOwnAddressType::PUBLIC,
-                                       const uint16_t adv_interval_min=640, const uint16_t adv_interval_max=640,
+                                       const uint16_t adv_interval_min=160, const uint16_t adv_interval_max=480,
                                        const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND,
                                        const uint8_t adv_chan_map=0x07,
                                        const uint8_t filter_policy=0x00) noexcept;

@@ -47,7 +47,7 @@ import jau.test.junit.util.SingletonJunitCase;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public abstract class BaseDBTClientServer extends SingletonJunitCase {
-    static boolean DEBUG = false;
+    static boolean DEBUG = true;
 
     @BeforeClass
     public static final void setupAll() {
