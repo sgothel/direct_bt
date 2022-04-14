@@ -135,7 +135,7 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
                null == lastCompletedDevice ||
                lastCompletedDevice.getConnected() )
         {
-            try { Thread.sleep(500); } catch (final InterruptedException e) { e.printStackTrace(); }
+            try { Thread.sleep(88); } catch (final InterruptedException e) { e.printStackTrace(); }
         }
         Assert.assertEquals(1, server.servedConnections.get());
         Assert.assertEquals(1, client.completedMeasurements.get());

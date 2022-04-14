@@ -407,7 +407,7 @@ public class DBTServer00 implements DBTServerTest {
                     sync_data = local; // SC-DRF release via sc_atomic_bool::store()
                 }
                 try {
-                    Thread.sleep(500); // 500ms
+                    Thread.sleep(20); // 20ms
                 } catch (final InterruptedException e) { }
             }
         }
@@ -527,15 +527,16 @@ public class DBTServer00 implements DBTServerTest {
             final boolean match = matches(device);
             final DBGattValue value = c.getValue();
             final byte[] data = value.data();
-            boolean isSuccessHandshake = false;
+            boolean isFinalHandshake = false;
 
             if( match &&
                 c.getValueType().equals( DBTConstants.CommandUUID ) &&
                 ( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) )
             {
-                isSuccessHandshake = Arrays.equals(DBTConstants.SuccessHandshakeCommandData, data);
+                isFinalHandshake = Arrays.equals(DBTConstants.SuccessHandshakeCommandData, data) ||
+                                   Arrays.equals(DBTConstants.FailHandshakeCommandData, data);
 
-                if( isSuccessHandshake ) {
+                if( isFinalHandshake ) {
                     servedConnections.addAndGet(1); // we assume this to be server, i.e. connected, SMP done and GATT action ..
                     if( servingConnectionsLeft.get() > 0 ) {
                         servingConnectionsLeft.decrementAndGet(); // ditto
@@ -543,9 +544,9 @@ public class DBTServer00 implements DBTServerTest {
                 }
                 executeOffThread( () -> { sendResponse( data ); }, true /* detach */);
             }
-            if( GATT_VERBOSE || isSuccessHandshake ) {
-                BTUtils.fprintf_td(System.err, "****** Server GATT::writeCharValueDone(match %b, successCmd %b, served %d, left %d): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
-                        match, isSuccessHandshake, servedConnections.get(), servingConnectionsLeft.get(),
+            if( GATT_VERBOSE || isFinalHandshake ) {
+                BTUtils.fprintf_td(System.err, "****** Server GATT::writeCharValueDone(match %b, finalCmd %b, served %d, left %d): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
+                        match, isFinalHandshake, servedConnections.get(), servingConnectionsLeft.get(),
                         device.toString(), s.toString(), c.toString(), value.toString());
             }
         }

@@ -40,4 +40,9 @@ public class DBTConstants {
      * Success handshake command data, where client is signaling successful completion of test to server.
      */
     public static final byte[] SuccessHandshakeCommandData = { (byte)0xaa, (byte)0xff, (byte)0xff, (byte)0xee };
+
+    /**
+     * Fail handshake command data, where client is signaling unsuccessful completion of test to server.
+     */
+    public static final byte[] FailHandshakeCommandData = { (byte)0x00, (byte)0xea, (byte)0xea, (byte)0xff };
 }

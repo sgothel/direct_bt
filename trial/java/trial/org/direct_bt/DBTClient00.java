@@ -498,24 +498,32 @@ public class DBTClient00 implements DBTClientTest {
                 BTUtils.println(System.err, "Caught "+ex.getMessage());
                 ex.printStackTrace();
             }
-            // FIXME sleep 1s for notifications and/or indications ...
-            try {
-                Thread.sleep(1000);
-            } catch (final InterruptedException e) {
-                e.printStackTrace();
-            }
-            success = completedGATTCommands.get() > 0 && ( notificationsReceived.get() > 0 || indicationsReceived.get() > 0 );
 
-            if( success ) {
+            {
+                final long t0 = BTUtils.currentTimeMillis();
+                boolean timeout = false;
+                do {
+                    success = completedGATTCommands.get() >= 1 && ( notificationsReceived.get() >= 2 || indicationsReceived.get() >= 2 );
+                    if( !success ) {
+                        timeout = 3000 < ( BTUtils.currentTimeMillis() - t0 ); // 3s timeout
+                        if( !timeout ) {
+                            try { Thread.sleep(17); } catch (final InterruptedException e) { }
+                        }
+                    }
+                } while( !success && !timeout );
+            }
+
+            {
                 // Tell server we have successfully completed the test.
-                final BTGattCmd cmd = new BTGattCmd(device, "SuccessHandshake", null /* service_uuid */, DBTConstants.CommandUUID, DBTConstants.ResponseUUID);
+                final BTGattCmd cmd = new BTGattCmd(device, "FinalHandshake", null /* service_uuid */, DBTConstants.CommandUUID, DBTConstants.ResponseUUID);
                 cmd.setVerbose(true);
                 final boolean cmd_resolved = cmd.isResolved();
-                BTUtils.println(System.err, "Command test: "+cmd.toString()+", resolved "+cmd_resolved);
-                final HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, DBTConstants.SuccessHandshakeCommandData, 3000 /* timeoutMS */);
+                BTUtils.println(System.err, "FinalCommand test: "+cmd.toString()+", resolved "+cmd_resolved);
+                final byte[] cmd_data = success ? DBTConstants.SuccessHandshakeCommandData : DBTConstants.FailHandshakeCommandData;
+                final HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3000 /* timeoutMS */);
                 if( HCIStatusCode.SUCCESS == cmd_res ) {
                     final byte[] resp = cmd.getResponse();
-                    if( Arrays.equals(DBTConstants.SuccessHandshakeCommandData, resp) ) {
+                    if( Arrays.equals(cmd_data, resp) ) {
                         BTUtils.fprintf_td(System.err, "Success: %s -> %s (echo response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
                     } else {
                         BTUtils.fprintf_td(System.err, "Failure: %s -> %s (different response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
