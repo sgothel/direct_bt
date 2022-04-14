@@ -1960,7 +1960,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         // hci.le_read_remote_features(event.getHCIHandle(), device->getAddressAndType());
 
         // Hence .. induce it right after connect
-        device->notifyLEFeatures(device, HCIStatusCode::SUCCESS, LE_Features::LE_Encryption);
+        device->notifyLEFeatures(device, LE_Features::LE_Encryption);
     }
     return true;
 }
@@ -2032,10 +2032,12 @@ bool BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
                 addDevicePausingDiscovery(device);
             }
         }
-        device->notifyLEFeatures(device, event.getHCIStatus(), event.getFeatures());
-        // Performs optional SMP pairing, then one of
-        // - sendDeviceReady()
-        // - disconnect() .. eventually
+        if( HCIStatusCode::SUCCESS == event.getHCIStatus() ) {
+            device->notifyLEFeatures(device, event.getFeatures());
+            // Performs optional SMP pairing, then one of
+            // - sendDeviceReady()
+            // - disconnect() .. eventually
+        } // else: disconnect will occur
     } else {
         WORDY_PRINT("BTAdapter::EventHCI:LERemoteUserFeatures(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());

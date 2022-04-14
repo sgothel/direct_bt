@@ -162,7 +162,7 @@ namespace direct_bt {
 
             void notifyDisconnected() noexcept;
             void notifyConnected(std::shared_ptr<BTDevice> sthis, const uint16_t handle, const SMPIOCapability io_cap) noexcept;
-            void notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const HCIStatusCode status, const LE_Features features) noexcept;
+            void notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const LE_Features features) noexcept;
             void notifyLEPhyUpdateComplete(const HCIStatusCode status, const LE_PHYs Tx, const LE_PHYs Rx) noexcept;
 
             /**

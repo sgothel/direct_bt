@@ -547,17 +547,12 @@ void BTDevice::notifyConnected(std::shared_ptr<BTDevice> sthis, const uint16_t h
     (void)sthis; // not used yet
 }
 
-void BTDevice::notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const HCIStatusCode status, const LE_Features features) noexcept {
-    if( HCIStatusCode::SUCCESS == status ) {
-        le_features = features;
-    } else {
-        le_features = le_features | LE_Features::LE_Encryption; // required!
-    }
-    DBG_PRINT("BTDevice::notifyLEFeatures: %s: %s -> %s, %s",
-            direct_bt::to_string(status).c_str(),
-            direct_bt::to_string(features).c_str(),
+void BTDevice::notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const LE_Features features) noexcept {
+    DBG_PRINT("BTDevice::notifyLEFeatures: %s -> %s, %s",
             direct_bt::to_string(le_features).c_str(),
+            direct_bt::to_string(features).c_str(),
             toString().c_str());
+    le_features = features;
     const bool is_local_server = BTRole::Master == btRole; // -> local GattRole::Server
     if( addressAndType.isLEAddress() && ( !l2cap_att->isOpen() || is_local_server ) ) {
         std::thread bg(&BTDevice::processL2CAPSetup, this, sthis); // @suppress("Invalid arguments")
@@ -716,7 +711,6 @@ bool BTDevice::checkPairingKeyDistributionComplete() const noexcept {
             res = true;
         }
     }
-
     return res;
 }
 
