@@ -32,6 +32,31 @@
 
 namespace direct_bt {
 
+#ifdef __linux__
+
+    /**
+     * Linux/BlueZ prohibits access to the existing SMP implementation via L2CAP (socket).
+     */
+    inline constexpr const bool SMP_SUPPORTED_BY_OS = false;
+
+    inline constexpr const bool USE_LINUX_BT_SECURITY = true;
+
+    inline constexpr const bool CONSIDER_HCI_CMD_FOR_SMP_STATE = false;
+
+    inline constexpr const bool SCAN_DISABLED_POST_CONNECT = true;
+
+#else
+
+    inline constexpr const bool SMP_SUPPORTED_BY_OS = true;
+
+    inline constexpr const bool USE_LINUX_BT_SECURITY = false;
+
+    inline constexpr const bool CONSIDER_HCI_CMD_FOR_SMP_STATE = true;
+
+    inline constexpr const bool SCAN_DISABLED_POST_CONNECT = false;
+
+#endif
+
     /**
      * Maximum time in milliseconds to wait for a thread shutdown.
      *
@@ -43,6 +68,12 @@ namespace direct_bt {
      * Maximum time in milliseconds to wait for the next SMP event.
      */
     inline constexpr const jau::nsize_t SMP_NEXT_EVENT_TIMEOUT_MS = 2000;
+
+    /**
+     * Maximum number of enabling discovery in background in case of failure
+     */
+    inline constexpr const jau::nsize_t MAX_BACKGROUND_DISCOVERY_RETRY = 3;
+
 } // namespace direct_bt
 
 #endif /* DBT_CONST_HPP_ */

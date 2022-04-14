@@ -1105,20 +1105,44 @@ HCIStatusCode BTAdapter::startDiscovery(const DiscoveryPolicy policy, const bool
 }
 
 void BTAdapter::startDiscoveryBackground() noexcept {
-    // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
-    if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
-        poweredOff(false /* active */);
-        return;
-    }
-    const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
-    if( !hasScanType(hci.getCurrentScanType(), ScanType::LE) && DiscoveryPolicy::AUTO_OFF != discovery_policy ) { // still?
-        // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
-        const HCIStatusCode status = hci.le_enable_scan(true /* enable */, scan_filter_dup);
-        if( HCIStatusCode::SUCCESS != status ) {
-            ERR_PRINT("le_enable_scan failed: %s - %s", to_string(status).c_str(), toString(true).c_str());
+    jau::nsize_t trial_count = 0;
+    bool retry = false;
+    do {
+        // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
+        if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
+            poweredOff(false /* active */);
+            return;
         }
-        checkDiscoveryState();
-    }
+        {
+            const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
+            const ScanType currentNativeScanType = hci.getCurrentScanType();
+
+            if( !hasScanType(currentNativeScanType, ScanType::LE) &&
+                DiscoveryPolicy::AUTO_OFF != discovery_policy &&
+                !hasDevicesPausingDiscovery() ) // still required to start discovery ???
+            {
+                // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
+                DBG_PRINT("BTAdapter::startDiscoveryBackground[%u/%u]: Policy %s, currentScanType[native %s, meta %s] ... %s",
+                        trial_count+1, MAX_BACKGROUND_DISCOVERY_RETRY,
+                        to_string(discovery_policy.load()).c_str(),
+                        to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(), toString().c_str());
+                const HCIStatusCode status = hci.le_enable_scan(true /* enable */, scan_filter_dup);
+                if( HCIStatusCode::SUCCESS != status ) {
+                    ERR_PRINT2("le_enable_scan failed[%u/%u]: %s - %s",
+                            trial_count+1, MAX_BACKGROUND_DISCOVERY_RETRY,
+                            to_string(status).c_str(), toString().c_str());
+                    if( trial_count < MAX_BACKGROUND_DISCOVERY_RETRY ) {
+                        trial_count++;
+                        retry = true;
+                    }
+                }
+                checkDiscoveryState();
+            }
+        }
+        if( retry ) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME)
+        }
+    } while( retry );
 }
 
 HCIStatusCode BTAdapter::stopDiscovery() noexcept {

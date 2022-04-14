@@ -44,21 +44,7 @@
 #include "BTTypes0.hpp"
 #include "L2CAPComm.hpp"
 #include "SMPTypes.hpp"
-
-/**
- * Linux/BlueZ prohibits access to the existing SMP implementation via L2CAP (socket).
- */
-#ifdef __linux__
-    inline constexpr const bool SMP_SUPPORTED_BY_OS = false;
-    inline constexpr const bool USE_LINUX_BT_SECURITY = true;
-    inline constexpr const bool CONSIDER_HCI_CMD_FOR_SMP_STATE = false;
-    inline constexpr const bool SCAN_DISABLED_POST_CONNECT = true;
-#else
-    inline constexpr const bool SMP_SUPPORTED_BY_OS = true;
-    inline constexpr const bool USE_LINUX_BT_SECURITY = false;
-    inline constexpr const bool CONSIDER_HCI_CMD_FOR_SMP_STATE = true;
-    inline constexpr const bool SCAN_DISABLED_POST_CONNECT = false;
-#endif
+#include "DBTConst.hpp"
 
 /**
  * - - - - - - - - - - - - - - -
