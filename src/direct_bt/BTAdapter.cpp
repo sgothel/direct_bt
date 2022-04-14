@@ -1054,12 +1054,13 @@ HCIStatusCode BTAdapter::startDiscovery(const DiscoveryPolicy policy, const bool
 
     l2cap_service.stop();
 
+    removeDiscoveredDevices();
+
     scan_filter_dup = filter_dup; // cache for background scan
 
     const ScanType currentNativeScanType = hci.getCurrentScanType();
 
     if( hasScanType(currentNativeScanType, ScanType::LE) ) {
-        removeDiscoveredDevices();
         btRole = BTRole::Master;
         if( discovery_policy == policy ) {
             DBG_PRINT("BTAdapter::startDiscovery: Already discovering, unchanged policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
@@ -1081,7 +1082,6 @@ HCIStatusCode BTAdapter::startDiscovery(const DiscoveryPolicy policy, const bool
                 to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(), toString().c_str());
     }
 
-    removeDiscoveredDevices();
     discovery_policy = policy;
 
     // TODO: Potential changing adapter address mode to random and updating 'visibleAddressAndType'!
