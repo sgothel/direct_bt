@@ -154,6 +154,7 @@ public class DBTPeripheral00 {
     }
     static DBGattValue make_gvalue(final int capacity, final int size) {
         final byte[] p = new byte[size];
+        Arrays.fill(p, (byte)0);
         return new DBGattValue(p, capacity, true /* variable_length */);
     }
 

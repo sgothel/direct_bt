@@ -107,6 +107,7 @@ static jau::POctets make_poctets(const char* name) {
 static jau::POctets make_poctets(const char* name, const jau::nsize_t capacity) {
     const nsize_t name_len = (nsize_t)strlen(name);
     jau::POctets p( std::max<nsize_t>(capacity, name_len), name_len, endian::little );
+    p.bzero();
     p.put_bytes_nc(0, reinterpret_cast<const uint8_t*>(name), name_len);
     return p;
 }
@@ -116,7 +117,9 @@ static jau::POctets make_poctets(const uint16_t v) {
     return p;
 }
 static jau::POctets make_poctets(const jau::nsize_t capacity, const jau::nsize_t size) {
-    return jau::POctets(capacity, size, endian::little);
+    jau::POctets p(capacity, size, endian::little);
+    p.bzero();
+    return p;
 }
 
 static const jau::uuid128_t DataServiceUUID = jau::uuid128_t("d0ca6bf3-3d50-4760-98e5-fc5883e93712");

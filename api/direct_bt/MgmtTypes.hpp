@@ -606,6 +606,7 @@ namespace direct_bt {
                  * Same goes for `hdev->dev_name`, `HCI_MAX_NAME_LENGTH` and `MGMT_MAX_NAME_LENGTH`
                  * throughout `append_eir_data_to_buf(..)` and `set_local_name(..)`.
                  */
+                pdu.bzero_nc(MGMT_HEADER_SIZE, MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH);
                 pdu.put_string_nc(MGMT_HEADER_SIZE, name, MgmtConstU16::MGMT_MAX_NAME_LENGTH-1, true);
                 pdu.put_string_nc(MGMT_HEADER_SIZE+MgmtConstU16::MGMT_MAX_NAME_LENGTH, short_name, MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH-1, true);
             }
