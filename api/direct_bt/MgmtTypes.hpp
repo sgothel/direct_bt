@@ -2315,7 +2315,7 @@ namespace direct_bt {
 
         public:
             MgmtEvtHCILERemoteFeatures(const uint16_t dev_id, const BDAddressAndType& addressAndType, const HCIStatusCode hci_status, const LE_Features features_)
-            : MgmtEvent(Opcode::HCI_LE_REMOTE_FEATURES, dev_id, 6+1+8)
+            : MgmtEvent(Opcode::HCI_LE_REMOTE_FEATURES, dev_id, 6+1+1+8)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
