@@ -73,7 +73,10 @@ public class DBTServer00 implements DBTServerTest {
     BTMode btMode = BTMode.DUAL;
     boolean use_SC = true;
     BTSecurityLevel adapterSecurityLevel = BTSecurityLevel.UNSET;
+    private final MyGATTServerListener gattServerListener = new MyGATTServerListener();
     BTAdapter serverAdapter = null;
+    private volatile boolean sync_data;
+    private volatile BTDevice connectedDevice;
 
     public AtomicInteger servingConnectionsLeft = new AtomicInteger(1);
     public AtomicInteger servedConnections = new AtomicInteger(0);
@@ -85,8 +88,7 @@ public class DBTServer00 implements DBTServerTest {
         this.use_SC = use_SC;
         this.adapterSecurityLevel = adapterSecurityLevel;
 
-        final MyGATTServerListener listener = new MyGATTServerListener();
-        dbGattServer.addListener( listener );
+        dbGattServer.addListener( gattServerListener );
     }
     public DBTServer00(final String adapterName, final EUI48 useAdapter, final BTSecurityLevel adapterSecurityLevel) {
         this(adapterName, useAdapter, BTMode.DUAL, true /* SC */, adapterSecurityLevel);
@@ -107,6 +109,24 @@ public class DBTServer00 implements DBTServerTest {
     }
     @Override
     public BTAdapter getAdapter() { return serverAdapter; }
+
+    private final void setDevice(final BTDevice cd) {
+        final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
+        connectedDevice = cd;
+        sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+    }
+
+    private final BTDevice getDevice() {
+        final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
+        final BTDevice d = connectedDevice;
+        sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+        return d;
+    }
+
+    private boolean matches(final BTDevice device) {
+        final BTDevice d = getDevice();
+        return null != d ? d.equals(device) : false;
+    }
 
     boolean matches(final List<BDAddressAndType> cont, final BDAddressAndType mac) {
         for(final Iterator<BDAddressAndType> it = cont.iterator(); it.hasNext(); ) {
@@ -274,6 +294,10 @@ public class DBTServer00 implements DBTServerTest {
         @Override
         public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
             BTUtils.println(System.err, "****** Server CONNECTED (served "+servedConnections.get()+", left "+servingConnectionsLeft.get()+"): handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
+            final boolean available = null == getDevice();
+            if( available ) {
+                setDevice(device);
+            }
         }
 
         @Override
@@ -336,7 +360,10 @@ public class DBTServer00 implements DBTServerTest {
         @Override
         public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
             BTUtils.println(System.err, "****** Server DISCONNECTED (served "+servedConnections.get()+", left "+servingConnectionsLeft.get()+"): Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
-
+            final boolean match = matches(device);
+            if( match ) {
+                setDevice(null);
+            }
             executeOffThread( () -> { processDisconnectedDevice(device); },
                               "DBT-Disconnected-"+device.getAdapter().getAddressAndType(), true /* detach */);
         }
@@ -348,7 +375,6 @@ public class DBTServer00 implements DBTServerTest {
     };
 
     class MyGATTServerListener extends DBGattServer.Listener implements AutoCloseable {
-        private volatile boolean sync_data;
         private final Thread pulseSenderThread;
         private volatile boolean stopPulseSender = false;
 
@@ -357,15 +383,7 @@ public class DBTServer00 implements DBTServerTest {
         private volatile short handleResponseDataNotify = 0;
         private volatile short handleResponseDataIndicate = 0;
 
-        private BTDevice connectedDevice;
         private int usedMTU = 23; // BTGattHandler::number(BTGattHandler::Defaults::MIN_ATT_MTU);
-
-        private boolean matches(final BTDevice device) {
-            final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
-            final boolean res = null != connectedDevice ? connectedDevice.equals(device) : false;
-            sync_data = local; // SC-DRF release via sc_atomic_bool::store()
-            return res;
-        }
 
         private void clear() {
             final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
@@ -374,7 +392,6 @@ public class DBTServer00 implements DBTServerTest {
             handlePulseDataIndicate = 0;
             handleResponseDataNotify = 0;
             handleResponseDataIndicate = 0;
-            connectedDevice = null;
 
             dbGattServer.resetGattClientCharConfig(DBTConstants.DataServiceUUID, DBTConstants.PulseDataUUID);
             dbGattServer.resetGattClientCharConfig(DBTConstants.DataServiceUUID, DBTConstants.ResponseUUID);
@@ -386,21 +403,22 @@ public class DBTServer00 implements DBTServerTest {
             while( !stopPulseSender ) {
                 {
                     final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
-                    if( null != connectedDevice && connectedDevice.getConnected() ) {
+                    final BTDevice connectedDevice_ = getDevice();
+                    if( null != connectedDevice_ && connectedDevice_.getConnected() ) {
                         if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
                             final String data = String.format("Dynamic Data Example. Elapsed Milliseconds: %,9d", BTUtils.elapsedTimeMillis());
                             final byte[] v = data.getBytes(StandardCharsets.UTF_8);
                             if( 0 != handlePulseDataNotify ) {
                                 if( GATT_VERBOSE ) {
-                                    BTUtils.fprintf_td(System.err, "****** Server GATT::sendNotification: PULSE to %s\n", connectedDevice.toString());
+                                    BTUtils.fprintf_td(System.err, "****** Server GATT::sendNotification: PULSE to %s\n", connectedDevice_.toString());
                                 }
-                                connectedDevice.sendNotification(handlePulseDataNotify, v);
+                                connectedDevice_.sendNotification(handlePulseDataNotify, v);
                             }
                             if( 0 != handlePulseDataIndicate ) {
                                 if( GATT_VERBOSE ) {
-                                    BTUtils.fprintf_td(System.err, "****** Server GATT::sendIndication: PULSE to %s\n", connectedDevice.toString());
+                                    BTUtils.fprintf_td(System.err, "****** Server GATT::sendIndication: PULSE to %s\n", connectedDevice_.toString());
                                 }
-                                connectedDevice.sendIndication(handlePulseDataIndicate, v);
+                                connectedDevice_.sendIndication(handlePulseDataIndicate, v);
                             }
                         }
                     }
@@ -413,21 +431,22 @@ public class DBTServer00 implements DBTServerTest {
         }
 
         void sendResponse(final byte[] data) {
-            if( null != connectedDevice && connectedDevice.getConnected() ) {
+            final BTDevice connectedDevice_ = getDevice();
+            if( null != connectedDevice_ && connectedDevice_.getConnected() ) {
                 if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
                     if( 0 != handleResponseDataNotify ) {
                         if( GATT_VERBOSE ) {
                             BTUtils.fprintf_td(System.err, "****** Server GATT::sendNotification: %s to %s\n",
-                                    BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice.toString());
+                                    BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice_.toString());
                         }
-                        connectedDevice.sendNotification(handleResponseDataNotify, data);
+                        connectedDevice_.sendNotification(handleResponseDataNotify, data);
                     }
                     if( 0 != handleResponseDataIndicate ) {
                         if( GATT_VERBOSE ) {
                             BTUtils.fprintf_td(System.err, "****** Server GATT::sendIndication: %s to %s\n",
-                                    BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice.toString());
+                                    BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice_.toString());
                         }
-                        connectedDevice.sendIndication(handleResponseDataIndicate, data);
+                        connectedDevice_.sendIndication(handleResponseDataIndicate, data);
                     }
                 }
             }
@@ -442,7 +461,6 @@ public class DBTServer00 implements DBTServerTest {
             {
                 final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
                 stopPulseSender = true;
-                connectedDevice = null;
                 sync_data = local; // SC-DRF release via sc_atomic_bool::store()
             }
             if( !pulseSenderThread.isDaemon() ) {
@@ -456,11 +474,10 @@ public class DBTServer00 implements DBTServerTest {
         @Override
         public void connected(final BTDevice device, final int initialMTU) {
             final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
-            final boolean available = null == connectedDevice;
-            BTUtils.fprintf_td(System.err, "****** Server GATT::connected(available %b): initMTU %d, %s\n",
-                    available, initialMTU, device.toString());
-            if( available ) {
-                connectedDevice = device;
+            final boolean match = matches(device);
+            BTUtils.fprintf_td(System.err, "****** Server GATT::connected(match %b): initMTU %d, %s\n",
+                    match, initialMTU, device.toString());
+            if( match ) {
                 usedMTU = initialMTU;
             }
             sync_data = local; // SC-DRF release via sc_atomic_bool::store()
@@ -469,7 +486,7 @@ public class DBTServer00 implements DBTServerTest {
         @Override
         public void disconnected(final BTDevice device) {
             final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
-            final boolean match = null != connectedDevice ? connectedDevice.equals(device) : false;
+            final boolean match = matches(device);
             BTUtils.fprintf_td(System.err, "****** Server GATT::disconnected(match %b): %s\n", match, device.toString());
             if( match ) {
                 clear();
@@ -609,20 +626,38 @@ public class DBTServer00 implements DBTServerTest {
     static final byte filter_policy=(byte)0x00;
 
     @Override
-    public HCIStatusCode stopAdvertising(final BTAdapter adapter, final String msg) {
-        if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
-            BTUtils.fprintf_td(System.err, "****** Server Stop advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
+    public HCIStatusCode stop(final String msg) {
+        BTUtils.println(System.err, "****** Server Stop: "+msg);
+        final HCIStatusCode res = stopAdvertising(msg);
+        final BTDevice connectedDevice_ = getDevice();
+        if( null != connectedDevice_ ) {
+            connectedDevice_.disconnect();
+        }
+        gattServerListener.clear();
+        return res;
+    }
+
+    @Override
+    public void close(final String msg) {
+        BTUtils.println(System.err, "****** Server Close: "+msg);
+        stop(msg);
+        dbGattServer.close();
+    }
+
+    private HCIStatusCode stopAdvertising(final String msg) {
+        if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(serverAdapter.getAddressAndType().address) ) {
+            BTUtils.fprintf_td(System.err, "****** Server Stop advertising (%s): Adapter not selected: %s\n", msg, serverAdapter.toString());
             return HCIStatusCode.FAILED;
         }
-        final HCIStatusCode status = adapter.stopAdvertising();
-        BTUtils.println(System.err, "****** Server Stop advertising ("+msg+") result: "+status+": "+adapter.toString());
+        final HCIStatusCode status = serverAdapter.stopAdvertising();
+        BTUtils.println(System.err, "****** Server Stop advertising ("+msg+") result: "+status+": "+serverAdapter.toString());
         return status;
     }
 
     @Override
-    public HCIStatusCode startAdvertising(final BTAdapter adapter, final String msg) {
-        if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
-            BTUtils.fprintf_td(System.err, "****** Server Start advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
+    public HCIStatusCode startAdvertising(final String msg) {
+        if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(serverAdapter.getAddressAndType().address) ) {
+            BTUtils.fprintf_td(System.err, "****** Server Start advertising (%s): Adapter not selected: %s\n", msg, serverAdapter.toString());
             return HCIStatusCode.FAILED;
         }
         final EInfoReport eir = new EInfoReport();
@@ -641,22 +676,22 @@ public class DBTServer00 implements DBTServerTest {
         eir.addService(DBTConstants.DataServiceUUID);
         eir.setServicesComplete(false);
 
-        eir.setName(adapter.getName());
+        eir.setName(serverAdapter.getName());
         eir.setConnInterval((short)8, (short)12); // 10ms - 15ms
 
         final DBGattChar gattDevNameChar = dbGattServer.findGattChar(DBGattService.UUID16.GENERIC_ACCESS, DBGattChar.UUID16.DEVICE_NAME);
         if( null != gattDevNameChar ) {
-            final byte[] aname_bytes = adapter.getName().getBytes(StandardCharsets.UTF_8);
+            final byte[] aname_bytes = serverAdapter.getName().getBytes(StandardCharsets.UTF_8);
             gattDevNameChar.setValue(aname_bytes, 0, aname_bytes.length, 0);
         }
 
         BTUtils.println(System.err, "****** Server Start advertising ("+msg+"): EIR "+eir.toString());
         BTUtils.println(System.err, "****** Server Start advertising ("+msg+"): adv "+adv_mask.toString()+", scanrsp "+scanrsp_mask.toString());
 
-        final HCIStatusCode status = adapter.startAdvertising(dbGattServer, eir, adv_mask, scanrsp_mask,
+        final HCIStatusCode status = serverAdapter.startAdvertising(dbGattServer, eir, adv_mask, scanrsp_mask,
                                                               adv_interval_min, adv_interval_max,
                                                               adv_type, adv_chan_map, filter_policy);
-        BTUtils.println(System.err, "****** Server Start advertising ("+msg+") result: "+status+": "+adapter.toString());
+        BTUtils.println(System.err, "****** Server Start advertising ("+msg+") result: "+status+": "+serverAdapter.toString());
         if( GATT_VERBOSE ) {
             BTUtils.println(System.err, dbGattServer.toFullString());
         }
@@ -667,7 +702,7 @@ public class DBTServer00 implements DBTServerTest {
         BTUtils.println(System.err, "****** Server Disconnected Device (served "+servedConnections.get()+", left "+servingConnectionsLeft.get()+"): Start "+device.toString());
 
         // already unpaired
-        stopAdvertising(device.getAdapter(), "device-disconnected");
+        stopAdvertising("device-disconnected");
         device.remove();
         BTDeviceRegistry.removeFromProcessingDevices(device.getAddressAndType());
 
@@ -676,7 +711,7 @@ public class DBTServer00 implements DBTServerTest {
         } catch (final InterruptedException e) { }
 
         if( servingConnectionsLeft.get() > 0 ) {
-            startAdvertising(device.getAdapter(), "device-disconnected");
+            startAdvertising("device-disconnected");
         }
 
         BTUtils.println(System.err, "****** Server Disonnected Device: End "+device.toString());
