@@ -175,8 +175,6 @@ namespace direct_bt {
                 HCI_MAX_MTU = static_cast<jau::nsize_t>(HCIConstSizeT::PACKET_MAX_SIZE)
             };
 
-            static const pid_t pidSelf;
-
             const HCIEnv & env;
 
         private:

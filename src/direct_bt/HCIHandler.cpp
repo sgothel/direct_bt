@@ -72,8 +72,6 @@ HCIEnv::HCIEnv() noexcept
 {
 }
 
-const pid_t HCIHandler::pidSelf = getpid();
-
 __pack( struct hci_rp_status {
     __u8    status;
 } );
@@ -554,6 +552,7 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
         }
     } else if( ETIMEDOUT != errno && !sr.shall_stop() ) { // expected exits
         ERR_PRINT("HCIHandler<%u>::reader: HCIComm read error %s", dev_id, toString().c_str());
+        // Keep alive - sr.set_shall_stop();
     }
 }
 
@@ -679,7 +678,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
   currentScanType(ScanType::NONE),
   advertisingEnabled(false)
 {
-    WORDY_PRINT("HCIHandler<%u>.ctor: Start pid %d - %s", HCIHandler::pidSelf, dev_id, toString().c_str());
+    WORDY_PRINT("HCIHandler<%u>.ctor: Start %s", dev_id, toString().c_str());
     if( !allowClose ) {
         ERR_PRINT("HCIHandler<%u>::ctor: Could not open hci control channel %s", dev_id, toString().c_str());
         return;

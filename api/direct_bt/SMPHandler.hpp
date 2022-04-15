@@ -40,6 +40,7 @@
 #include <jau/darray.hpp>
 #include <jau/cow_darray.hpp>
 #include <jau/uuid.hpp>
+#include <jau/service_runner.hpp>
 
 #include "BTTypes0.hpp"
 #include "L2CAPComm.hpp"
@@ -188,13 +189,8 @@ namespace direct_bt {
             jau::sc_atomic_bool is_connected; // reflects state
             jau::relaxed_atomic_bool has_ioerror;  // reflects state
 
+            jau::service_runner smp_reader_service;
             jau::ringbuffer<std::unique_ptr<const SMPPDUMsg>, jau::nsize_t> smpPDURing;
-            jau::sc_atomic_bool l2capReaderShallStop;
-
-            std::mutex mtx_l2capReaderLifecycle;
-            std::condition_variable cv_l2capReaderInit;
-            pthread_t l2capReaderThreadId;
-            jau::sc_atomic_bool l2capReaderRunning;
 
             SMPSecurityReqCallbackList smpSecurityReqCallbackList;
 
@@ -202,7 +198,8 @@ namespace direct_bt {
 
             bool validateConnected() noexcept;
 
-            void l2capReaderThreadImpl();
+            void smpReaderWork(jau::service_runner& sr) noexcept;
+            void smpReaderEndLocked(jau::service_runner& sr) noexcept;
 
             void send(const SMPPDUMsg & msg);
             std::unique_ptr<const SMPPDUMsg> sendWithReply(const SMPPDUMsg & msg, const int timeout);
