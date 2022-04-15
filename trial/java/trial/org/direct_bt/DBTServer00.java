@@ -297,6 +297,7 @@ public class DBTServer00 implements DBTServerTest {
             final boolean available = null == getDevice();
             if( available ) {
                 setDevice(device);
+                BTDeviceRegistry.addToProcessingDevices(device.getAddressAndType(), device.getName());
             }
         }
 

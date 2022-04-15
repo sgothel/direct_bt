@@ -76,12 +76,30 @@ static std::shared_ptr<BTAdapter> chosenAdapter = nullptr;
 static BTSecurityLevel adapter_sec_level = BTSecurityLevel::UNSET;
 static bool SHOW_UPDATE_EVENTS = false;
 static bool RUN_ONLY_ONCE = false;
+static jau::sc_atomic_bool sync_data;
+static BTDeviceRef connectedDevice = nullptr;
+
 static jau::relaxed_atomic_nsize_t servedConnections = 0;
 
 static bool startAdvertising(BTAdapter *a, std::string msg);
 static bool stopAdvertising(BTAdapter *a, std::string msg);
-static void processReadyDevice(BTDeviceRef device);
 static void processDisconnectedDevice(BTDeviceRef device);
+
+static void setDevice(const BTDeviceRef cd) {
+    jau::sc_atomic_critical sync(sync_data);
+    connectedDevice = cd;
+}
+
+static BTDeviceRef getDevice() {
+    jau::sc_atomic_critical sync(sync_data);
+    return connectedDevice;
+}
+
+static bool matches(const BTDeviceRef& device) {
+    const BTDeviceRef d = getDevice();
+    return nullptr != d ? (*d) == *device : false;
+}
+
 
 static jau::POctets make_poctets(const char* name) {
     return jau::POctets( (const uint8_t*)name, (nsize_t)strlen(name), endian::little );
@@ -231,7 +249,11 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
     void deviceConnected(BTDeviceRef device, const uint16_t handle, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** CONNECTED: %s\n", device->toString(true).c_str());
-
+        const bool available = nullptr == getDevice();
+        if( available ) {
+            setDevice(device);
+            BTDeviceRegistry::addToProcessingDevices(device->getAddressAndType(), device->getName());
+        }
         (void)handle;
         (void)timestamp;
     }
@@ -295,18 +317,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
     void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
         (void)timestamp;
-        if( !BTDeviceRegistry::isDeviceProcessing( device->getAddressAndType() ) &&
-            ( !BTDeviceRegistry::isWaitingForAnyDevice() ||
-              BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType().address, device->getName())
-            )
-          )
-        {
-            fprintf_td(stderr, "****** READY-0: Processing %s\n", device->toString(true).c_str());
-            BTDeviceRegistry::addToProcessingDevices(device->getAddressAndType(), device->getName());
-            processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
-        } else {
-            fprintf_td(stderr, "****** READY-1: NOP %s\n", device->toString(true).c_str());
-        }
+        fprintf_td(stderr, "****** READY-1: NOP %s\n", device->toString(true).c_str());
     }
 
     void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
@@ -315,6 +326,10 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 servedConnections.load(), static_cast<uint8_t>(reason), to_string(reason).c_str(),
                 to_hexstring(handle).c_str(), device->toString(true).c_str());
 
+        const bool match = matches(device);
+        if( match ) {
+            setDevice(nullptr);
+        }
         std::thread sd(::processDisconnectedDevice, device); // @suppress("Invalid arguments")
         sd.detach();
         (void)timestamp;
@@ -328,7 +343,6 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
 class MyGATTServerListener : public DBGattServer::Listener {
     private:
-        mutable jau::sc_atomic_bool sync_data;
         std::thread pulseSenderThread;
         jau::sc_atomic_bool stopPulseSender = false;
 
@@ -337,13 +351,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
         jau::sc_atomic_uint16 handleResponseDataNotify = 0;
         jau::sc_atomic_uint16 handleResponseDataIndicate = 0;
 
-        BTDeviceRef connectedDevice;
         uint16_t usedMTU = BTGattHandler::number(BTGattHandler::Defaults::MIN_ATT_MTU);
-
-        bool matches(const BTDeviceRef& device) const {
-            jau::sc_atomic_critical sync(sync_data);
-            return nullptr != connectedDevice ? *connectedDevice == *device : false;
-        }
 
         void clear() {
             jau::sc_atomic_critical sync(sync_data);
@@ -352,7 +360,6 @@ class MyGATTServerListener : public DBGattServer::Listener {
             handlePulseDataIndicate = 0;
             handleResponseDataNotify = 0;
             handleResponseDataIndicate = 0;
-            connectedDevice = nullptr;
 
             dbGattServer->resetGattClientCharConfig(DataServiceUUID, PulseDataUUID);
             dbGattServer->resetGattClientCharConfig(DataServiceUUID, ResponseUUID);
@@ -362,18 +369,19 @@ class MyGATTServerListener : public DBGattServer::Listener {
             while( !stopPulseSender ) {
                 {
                     jau::sc_atomic_critical sync(sync_data);
-                    if( nullptr != connectedDevice && connectedDevice->getConnected() ) {
+                    BTDeviceRef connectedDevice_ = getDevice();
+                    if( nullptr != connectedDevice_ && connectedDevice_->getConnected() ) {
                         if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
                             std::string data( "Dynamic Data Example. Elapsed Milliseconds: "+jau::to_decstring(environment::getElapsedMillisecond(), ',', 9) );
                             jau::POctets v(data.size()+1, jau::endian::little);
                             v.put_string_nc(0, data, v.size(), true /* includeEOS */);
                             if( 0 != handlePulseDataNotify ) {
-                                fprintf_td(stderr, "****** GATT::sendNotification: PULSE to %s\n", connectedDevice->toString().c_str());
-                                connectedDevice->sendNotification(handlePulseDataNotify, v);
+                                fprintf_td(stderr, "****** GATT::sendNotification: PULSE to %s\n", connectedDevice_->toString().c_str());
+                                connectedDevice_->sendNotification(handlePulseDataNotify, v);
                             }
                             if( 0 != handlePulseDataIndicate ) {
-                                fprintf_td(stderr, "****** GATT::sendIndication: PULSE to %s\n", connectedDevice->toString().c_str());
-                                connectedDevice->sendIndication(handlePulseDataIndicate, v);
+                                fprintf_td(stderr, "****** GATT::sendIndication: PULSE to %s\n", connectedDevice_->toString().c_str());
+                                connectedDevice_->sendIndication(handlePulseDataIndicate, v);
                             }
                         }
                     }
@@ -383,17 +391,18 @@ class MyGATTServerListener : public DBGattServer::Listener {
         }
 
         void sendResponse(jau::POctets data) {
-            if( nullptr != connectedDevice && connectedDevice->getConnected() ) {
+            BTDeviceRef connectedDevice_ = getDevice();
+            if( nullptr != connectedDevice_ && connectedDevice_->getConnected() ) {
                 if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
                     if( 0 != handleResponseDataNotify ) {
                         fprintf_td(stderr, "****** GATT::sendNotification: %s to %s\n",
-                                data.toString().c_str(), connectedDevice->toString().c_str());
-                        connectedDevice->sendNotification(handleResponseDataNotify, data);
+                                data.toString().c_str(), connectedDevice_->toString().c_str());
+                        connectedDevice_->sendNotification(handleResponseDataNotify, data);
                     }
                     if( 0 != handleResponseDataIndicate ) {
                         fprintf_td(stderr, "****** GATT::sendIndication: %s to %s\n",
-                                data.toString().c_str(), connectedDevice->toString().c_str());
-                        connectedDevice->sendIndication(handleResponseDataIndicate, data);
+                                data.toString().c_str(), connectedDevice_->toString().c_str());
+                        connectedDevice_->sendIndication(handleResponseDataIndicate, data);
                     }
                 }
             }
@@ -410,7 +419,6 @@ class MyGATTServerListener : public DBGattServer::Listener {
             {
                 jau::sc_atomic_critical sync(sync_data);
                 stopPulseSender = true;
-                connectedDevice = nullptr;
             }
             if( pulseSenderThread.joinable() ) {
                 pulseSenderThread.join();
@@ -419,18 +427,17 @@ class MyGATTServerListener : public DBGattServer::Listener {
 
         void connected(BTDeviceRef device, const uint16_t initialMTU) override {
             jau::sc_atomic_critical sync(sync_data);
-            const bool available = nullptr == connectedDevice;
-            fprintf_td(stderr, "****** GATT::connected(available %d): initMTU %d, %s\n",
-                    available, (int)initialMTU, device->toString().c_str());
-            if( available ) {
-                connectedDevice = device;
+            const bool match = matches(device);
+            fprintf_td(stderr, "****** GATT::connected(match %d): initMTU %d, %s\n",
+                    match, (int)initialMTU, device->toString().c_str());
+            if( match ) {
                 usedMTU = initialMTU;
             }
         }
 
         void disconnected(BTDeviceRef device) override {
             jau::sc_atomic_critical sync(sync_data);
-            const bool match = nullptr != connectedDevice ? *connectedDevice == *device : false;
+            const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::disconnected(match %d): %s\n", match, device->toString().c_str());
             if( match ) {
                 clear();
@@ -577,7 +584,9 @@ static void processDisconnectedDevice(BTDeviceRef device) {
 
     // already unpaired
     stopAdvertising(&device->getAdapter(), "device-disconnected");
+    device->remove();
     BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
+
     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME: Fast restart of advertising error)
 
     if( !RUN_ONLY_ONCE ) {
@@ -585,12 +594,6 @@ static void processDisconnectedDevice(BTDeviceRef device) {
     }
 
     fprintf_td(stderr, "****** Disonnected Device: End %s\n", device->toString().c_str());
-}
-
-static void processReadyDevice(BTDeviceRef device) {
-    fprintf_td(stderr, "****** Processing Ready Device: Start %s\n", device->toString().c_str());
-
-    fprintf_td(stderr, "****** Processing Ready Device: End %s\n", device->toString().c_str());
 }
 
 static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {

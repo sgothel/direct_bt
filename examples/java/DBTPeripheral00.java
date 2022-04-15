@@ -81,9 +81,28 @@ public class DBTPeripheral00 {
     BTSecurityLevel adapter_sec_level = BTSecurityLevel.UNSET;
     boolean SHOW_UPDATE_EVENTS = false;
     boolean RUN_ONLY_ONCE = false;
+    private volatile boolean sync_data;
+    private volatile BTDevice connectedDevice;
 
     volatile int servedConnections = 0;
 
+    private final void setDevice(final BTDevice cd) {
+        final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
+        connectedDevice = cd;
+        sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+    }
+
+    private final BTDevice getDevice() {
+        final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
+        final BTDevice d = connectedDevice;
+        sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+        return d;
+    }
+
+    private boolean matches(final BTDevice device) {
+        final BTDevice d = getDevice();
+        return null != d ? d.equals(device) : false;
+    }
     boolean matches(final List<BDAddressAndType> cont, final BDAddressAndType mac) {
         for(final Iterator<BDAddressAndType> it = cont.iterator(); it.hasNext(); ) {
             if( it.next().matches(mac) ) {
@@ -264,6 +283,11 @@ public class DBTPeripheral00 {
         @Override
         public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
             BTUtils.println(System.err, "****** CONNECTED: "+device.toString());
+            final boolean available = null == getDevice();
+            if( available ) {
+                setDevice(device);
+                BTDeviceRegistry.addToProcessingDevices(device.getAddressAndType(), device.getName());
+            }
         }
 
         @Override
@@ -327,7 +351,10 @@ public class DBTPeripheral00 {
         public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
             servedConnections++;
             BTUtils.println(System.err, "****** DISCONNECTED (count "+servedConnections+"): Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
-
+            final boolean match = matches(device);
+            if( match ) {
+                setDevice(null);
+            }
             executeOffThread( () -> { processDisconnectedDevice(device); },
                               "DBT-Disconnected-"+device.getAdapter().getAddressAndType(), true /* detach */);
         }
@@ -339,7 +366,6 @@ public class DBTPeripheral00 {
     };
 
     class MyGATTServerListener extends DBGattServer.Listener implements AutoCloseable {
-        private volatile boolean sync_data;
         private final Thread pulseSenderThread;
         private volatile boolean stopPulseSender = false;
 
@@ -348,7 +374,6 @@ public class DBTPeripheral00 {
         private volatile short handleResponseDataNotify = 0;
         private volatile short handleResponseDataIndicate = 0;
 
-        private BTDevice connectedDevice;
         private int usedMTU = 23; // BTGattHandler::number(BTGattHandler::Defaults::MIN_ATT_MTU);
 
         private boolean matches(final BTDevice device) {
@@ -365,7 +390,6 @@ public class DBTPeripheral00 {
             handlePulseDataIndicate = 0;
             handleResponseDataNotify = 0;
             handleResponseDataIndicate = 0;
-            connectedDevice = null;
 
             dbGattServer.resetGattClientCharConfig(DataServiceUUID, PulseDataUUID);
             dbGattServer.resetGattClientCharConfig(DataServiceUUID, ResponseUUID);
@@ -377,17 +401,18 @@ public class DBTPeripheral00 {
             while( !stopPulseSender ) {
                 {
                     final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
-                    if( null != connectedDevice && connectedDevice.getConnected() ) {
+                    final BTDevice connectedDevice_ = getDevice();
+                    if( null != connectedDevice_ && connectedDevice_.getConnected() ) {
                         if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
                             final String data = String.format("Dynamic Data Example. Elapsed Milliseconds: %,9d", BTUtils.elapsedTimeMillis());
                             final byte[] v = data.getBytes(StandardCharsets.UTF_8);
                             if( 0 != handlePulseDataNotify ) {
-                                BTUtils.fprintf_td(System.err, "****** GATT::sendNotification: PULSE to %s\n", connectedDevice.toString());
-                                connectedDevice.sendNotification(handlePulseDataNotify, v);
+                                BTUtils.fprintf_td(System.err, "****** GATT::sendNotification: PULSE to %s\n", connectedDevice_.toString());
+                                connectedDevice_.sendNotification(handlePulseDataNotify, v);
                             }
                             if( 0 != handlePulseDataIndicate ) {
-                                BTUtils.fprintf_td(System.err, "****** GATT::sendIndication: PULSE to %s\n", connectedDevice.toString());
-                                connectedDevice.sendIndication(handlePulseDataIndicate, v);
+                                BTUtils.fprintf_td(System.err, "****** GATT::sendIndication: PULSE to %s\n", connectedDevice_.toString());
+                                connectedDevice_.sendIndication(handlePulseDataIndicate, v);
                             }
                         }
                     }
@@ -400,17 +425,18 @@ public class DBTPeripheral00 {
         }
 
         void sendResponse(final byte[] data) {
-            if( null != connectedDevice && connectedDevice.getConnected() ) {
+            final BTDevice connectedDevice_ = getDevice();
+            if( null != connectedDevice_ && connectedDevice_.getConnected() ) {
                 if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
                     if( 0 != handleResponseDataNotify ) {
                         BTUtils.fprintf_td(System.err, "****** GATT::sendNotification: %s to %s\n",
-                                BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice.toString());
-                        connectedDevice.sendNotification(handleResponseDataNotify, data);
+                                BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice_.toString());
+                        connectedDevice_.sendNotification(handleResponseDataNotify, data);
                     }
                     if( 0 != handleResponseDataIndicate ) {
                         BTUtils.fprintf_td(System.err, "****** GATT::sendIndication: %s to %s\n",
-                                BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice.toString());
-                        connectedDevice.sendIndication(handleResponseDataIndicate, data);
+                                BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice_.toString());
+                        connectedDevice_.sendIndication(handleResponseDataIndicate, data);
                     }
                 }
             }
@@ -425,7 +451,6 @@ public class DBTPeripheral00 {
             {
                 final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
                 stopPulseSender = true;
-                connectedDevice = null;
                 sync_data = local; // SC-DRF release via sc_atomic_bool::store()
             }
             if( !pulseSenderThread.isDaemon() ) {
@@ -439,11 +464,10 @@ public class DBTPeripheral00 {
         @Override
         public void connected(final BTDevice device, final int initialMTU) {
             final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
-            final boolean available = null == connectedDevice;
-            BTUtils.fprintf_td(System.err, "****** GATT::connected(available %b): initMTU %d, %s\n",
-                    available, initialMTU, device.toString());
-            if( available ) {
-                connectedDevice = device;
+            final boolean match = matches(device);
+            BTUtils.fprintf_td(System.err, "****** GATT::connected(match %b): initMTU %d, %s\n",
+                    match, initialMTU, device.toString());
+            if( match ) {
                 usedMTU = initialMTU;
             }
             sync_data = local; // SC-DRF release via sc_atomic_bool::store()
@@ -452,7 +476,7 @@ public class DBTPeripheral00 {
         @Override
         public void disconnected(final BTDevice device) {
             final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
-            final boolean match = null != connectedDevice ? connectedDevice.equals(device) : false;
+            final boolean match = matches(device);
             BTUtils.fprintf_td(System.err, "****** GATT::disconnected(match %b): %s\n", match, device.toString());
             if( match ) {
                 clear();
