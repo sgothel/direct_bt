@@ -49,6 +49,7 @@ BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
   l2cap_att( std::make_unique<L2CAPClient>(adapter.dev_id, adapter.getAddressAndType(), L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT) ), // copy elision, not copy-ctor
   ts_last_discovery(r.getTimestamp()),
   ts_last_update(ts_last_discovery),
+  name(),
   eir( std::make_shared<EInfoReport>() ),
   hciConnHandle(0),
   le_features(LE_Features::NONE),
@@ -58,12 +59,14 @@ BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
   allowDisconnect(false),
   supervision_timeout(0),
   smp_events(0),
+  pairing_data { },
   ts_creation(ts_last_discovery),
   addressAndType{r.getAddress(), r.getAddressType()}
 {
     (void)cc;
 
     clearSMPStates(false /* connected */);
+
     if( !r.isSet(EIRDataType::BDADDR) ) {
         throw jau::IllegalArgumentException("Address not set: "+r.toString(), E_FILE_LINE);
     }

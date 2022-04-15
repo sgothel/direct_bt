@@ -673,11 +673,15 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
                      jau::service_runner::Callback() /* init */,
                      jau::bindMemberFunc(this, &HCIHandler::hciReaderEndLocked)),
   hciEventRing(env.HCI_EVT_RING_CAPACITY),
+  le_ll_feats( LE_Features::NONE ),
+  sup_commands_set( false ),
   allowClose( comm.isOpen() ),
   btMode(btMode_),
   currentScanType(ScanType::NONE),
   advertisingEnabled(false)
 {
+    zeroSupCommands();
+
     WORDY_PRINT("HCIHandler<%u>.ctor: Start %s", dev_id, toString().c_str());
     if( !allowClose ) {
         ERR_PRINT("HCIHandler<%u>::ctor: Could not open hci control channel %s", dev_id, toString().c_str());

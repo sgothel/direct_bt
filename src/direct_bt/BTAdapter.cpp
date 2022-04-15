@@ -381,6 +381,7 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const A
   adapterInfo( adapterInfo_ ),
   adapter_initialized( false ), adapter_poweredon_at_init( false ),
   le_features( LE_Features::NONE ),
+  hci_uses_ext_scan( false ), hci_uses_ext_conn( false ), hci_uses_ext_adv( false ),
   visibleAddressAndType( adapterInfo_.addressAndType ),
   dev_id( adapterInfo.dev_id ),
   btRole ( BTRole::Master ),
