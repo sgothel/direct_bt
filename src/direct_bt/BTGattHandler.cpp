@@ -88,14 +88,14 @@ bool BTGattHandler::validateConnected() noexcept {
     const bool l2capHasIOError = l2cap.hasIOError();
 
     if( has_ioerror || l2capHasIOError ) {
-        ERR_PRINT("IOError state: GattHandler %s, l2cap %s: %s",
+        DBG_PRINT("IOError state: GattHandler %s, l2cap %s: %s",
                 getStateString().c_str(), l2cap.getStateString().c_str(), toString().c_str());
         has_ioerror = true; // propagate l2capHasIOError -> has_ioerror
         return false;
     }
 
     if( !is_connected || !l2capIsConnected ) {
-        ERR_PRINT("Disconnected state: GattHandler %s, l2cap %s: %s",
+        DBG_PRINT("Disconnected state: GattHandler %s, l2cap %s: %s",
                 getStateString().c_str(), l2cap.getStateString().c_str(), toString().c_str());
         return false;
     }
@@ -401,7 +401,7 @@ void BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) noex
 void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
     jau::snsize_t len;
     if( !validateConnected() ) {
-        ERR_PRINT("GATTHandler::reader: Invalid IO state -> Stop");
+        DBG_PRINT("GATTHandler::reader: Invalid IO state -> Stop");
         sr.set_shall_stop();
         return;
     }
@@ -416,7 +416,7 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
 
         if( AttPDUMsg::Opcode::MULTIPLE_HANDLE_VALUE_NTF == opc ) { // AttPDUMsg::OpcodeType::NOTIFICATION
             // FIXME TODO ..
-            ERR_PRINT("GATTHandler::reader: MULTI-NTF not implemented: %s", attPDU->toString().c_str());
+            ERR_PRINT("MULTI-NTF not implemented: %s", attPDU->toString().c_str());
         } else if( AttPDUMsg::Opcode::HANDLE_VALUE_NTF == opc ) { // AttPDUMsg::OpcodeType::NOTIFICATION
             const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
             COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: NTF: %s, listener [native %zd, bt %zd]",
@@ -505,7 +505,7 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
         } else if( AttPDUMsg::OpcodeType::REQUEST == opc_type ) {
             replyAttPDUReq( std::move( attPDU ) );
         } else {
-            ERR_PRINT("GATTHandler::reader: Unhandled: %s", attPDU->toString().c_str());
+            ERR_PRINT("Unhandled: %s", attPDU->toString().c_str());
         }
     } else if( 0 > len && ETIMEDOUT != errno && !sr.shall_stop() ) { // expected exits
         IRQ_PRINT("GATTHandler::reader: l2cap read error -> Stop; l2cap.read %d (%s); %s",
@@ -558,7 +558,7 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, 
   gattServerHandler( selectGattServerHandler(*this, gattServerData) )
 {
     if( !validateConnected() ) {
-        ERR_PRINT("GATTHandler.ctor: L2CAP could not connect");
+        ERR_PRINT("L2CAP could not connect");
         is_connected = false;
         return;
     }
@@ -678,7 +678,7 @@ void BTGattHandler::send(const AttPDUMsg & msg) {
     // Thread safe l2cap.write(..) operation..
     const jau::snsize_t res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.size());
     if( 0 > res ) {
-        IRQ_PRINT("GATTHandler::send: l2cap write error -> disconnect: l2cap.write %d (%s); %s; %s to %s",
+        IRQ_PRINT("l2cap write error -> disconnect: l2cap.write %d (%s); %s; %s to %s",
                 res, L2CAPClient::getRWExitCodeString(res).c_str(), getStateString().c_str(),
                 msg.toString().c_str(), toString().c_str());
         has_ioerror = true;
@@ -686,7 +686,7 @@ void BTGattHandler::send(const AttPDUMsg & msg) {
         throw BTException("GATTHandler::send: l2cap write error: req "+msg.toString()+" to "+toString(), E_FILE_LINE);
     }
     if( static_cast<size_t>(res) != msg.pdu.size() ) {
-        ERR_PRINT("GATTHandler::send: l2cap write count error, %d != %zu: %s -> disconnect: %s",
+        ERR_PRINT("l2cap write count error, %d != %zu: %s -> disconnect: %s",
                 res, msg.pdu.size(), msg.toString().c_str(), toString().c_str());
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
@@ -762,13 +762,13 @@ DBGattCharRef BTGattHandler::findServerGattCharByValueHandle(const uint16_t char
 
 bool BTGattHandler::sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value) {
     if( GATTRole::Server != role ) {
-        ERR_PRINT("BTDevice::sendNotification: GATTRole not server");
+        ERR_PRINT("GATTRole not server");
         return false;
     }
     if( DBGattServer::Mode::DB == gattServerHandler->getMode() &&
         nullptr == findServerGattCharByValueHandle(char_value_handle) )
     {
-        ERR_PRINT("BTDevice::sendNotification: invalid char handle %s", jau::to_hexstring(char_value_handle).c_str());
+        ERR_PRINT("Invalid char handle %s", jau::to_hexstring(char_value_handle).c_str());
         return false;
     }
     if( 0 == value.size() ) {
@@ -783,13 +783,13 @@ bool BTGattHandler::sendNotification(const uint16_t char_value_handle, const jau
 
 bool BTGattHandler::sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value) {
     if( GATTRole::Server != role ) {
-        ERR_PRINT("BTDevice::sendIndication: GATTRole not server");
+        ERR_PRINT("GATTRole not server");
         return false;
     }
     if( DBGattServer::Mode::DB == gattServerHandler->getMode() &&
         nullptr == findServerGattCharByValueHandle(char_value_handle) )
     {
-        ERR_PRINT("BTDevice::sendIndication: invalid char handle %s", jau::to_hexstring(char_value_handle).c_str());
+        ERR_PRINT("Invalid char handle %s", jau::to_hexstring(char_value_handle).c_str());
         return false;
     }
     if( 0 == value.size() ) {
@@ -848,14 +848,14 @@ bool BTGattHandler::initClientGatt(std::shared_ptr<BTGattHandler> shared_this, b
             DBG_PRINT("GATTHandler::initClientGatt: Local GATT Client: MTU Exchange Start: %s", toString().c_str());
             mtu = clientMTUExchange(initial_command_reply_timeout);
         } catch (std::exception &e) {
-            ERR_PRINT2("GattHandler.initClientGatt: exchangeMTU failed: %s", e.what());
+            ERR_PRINT2("ExchangeMTU failed: %s", e.what());
         } catch (std::string &msg) {
-            ERR_PRINT2("GattHandler.initClientGatt: exchangeMTU failed: %s", msg.c_str());
+            ERR_PRINT2("ExchangeMTU failed: %s", msg.c_str());
         } catch (const char *msg) {
-            ERR_PRINT2("GattHandler.initClientGatt: exchangeMTU failed: %s", msg);
+            ERR_PRINT2("ExchangeMTU failed: %s", msg);
         }
         if( 0 == mtu ) {
-            ERR_PRINT2("GATTHandler::initClientGatt: Local GATT Client: Zero serverMTU -> disconnect: %s", toString().c_str());
+            ERR_PRINT2("Local GATT Client: Zero serverMTU -> disconnect: %s", toString().c_str());
             disconnect(true /* disconnectDevice */, false /* ioErrorCause */);
             return false;
         }
@@ -875,7 +875,7 @@ bool BTGattHandler::initClientGatt(std::shared_ptr<BTGattHandler> shared_this, b
         DBG_PRINT("GATTHandler::initClientGatt: Local GATT Client: Service Discovery Start: %s", toString().c_str());
         jau::darray<BTGattServiceRef>& gattServices = discoverCompletePrimaryServices(shared_this);
         if( gattServices.size() == 0 ) { // nothing discovered
-            ERR_PRINT2("GATTHandler::initClientGatt: No primary services discovered");
+            ERR_PRINT2("No primary services discovered");
             disconnect(true /* disconnectDevice */, false /* ioErrorCause */);
             return false;
         }
