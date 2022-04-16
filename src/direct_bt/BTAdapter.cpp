@@ -523,9 +523,15 @@ void BTAdapter::printDeviceList(const std::string& prefix, const BTAdapter::devi
     jau::PLAIN_PRINT(true, "- BTAdapter::%s: %zu elements", prefix.c_str(), sz);
     int idx = 0;
     for (auto it = list.begin(); it != list.end(); ++idx, ++it) {
-        jau::PLAIN_PRINT(true, "  - %d / %zu: %s, name '%s'", (idx+1), sz,
-                (*it)->getAddressAndType().toString().c_str(),
-                (*it)->getName().c_str() );
+        if( nullptr != (*it) ) {
+            jau::PLAIN_PRINT(true, "  - %d / %zu: null", (idx+1), sz);
+        } else if( (*it)->isValid() ) {
+            jau::PLAIN_PRINT(true, "  - %d / %zu: invalid", (idx+1), sz);
+        } else {
+            jau::PLAIN_PRINT(true, "  - %d / %zu: %s, name '%s'", (idx+1), sz,
+                    (*it)->getAddressAndType().toString().c_str(),
+                    (*it)->getName().c_str() );
+        }
     }
 }
 void BTAdapter::printWeakDeviceList(const std::string& prefix, BTAdapter::weak_device_list_t& list) noexcept {
@@ -537,6 +543,8 @@ void BTAdapter::printWeakDeviceList(const std::string& prefix, BTAdapter::weak_d
         BTDeviceRef e = w.lock();
         if( nullptr == e ) {
             jau::PLAIN_PRINT(true, "  - %d / %zu: null", (idx+1), sz);
+        } else if( !e->isValid() ) {
+            jau::PLAIN_PRINT(true, "  - %d / %zu: invalid", (idx+1), sz);
         } else {
             jau::PLAIN_PRINT(true, "  - %d / %zu: %s, name '%s'", (idx+1), sz,
                     e->getAddressAndType().toString().c_str(),
@@ -545,19 +553,27 @@ void BTAdapter::printWeakDeviceList(const std::string& prefix, BTAdapter::weak_d
     }
 }
 void BTAdapter::printDeviceLists() noexcept {
-    device_list_t _sharedDevices, _discoveredDevices, _connectedDevices;
-    weak_device_list_t _pausingDiscoveryDevice;
+    // Using expensive copies here: debug mode only
+    weak_device_list_t _sharedDevices, _discoveredDevices, _connectedDevices, _pausingDiscoveryDevice;
     {
-        jau::sc_atomic_critical sync(sync_data); // lock-free simple cache-load 'snapshot'
-        // Using an expensive copy here: debug mode only
-        _sharedDevices = sharedDevices;
-        _discoveredDevices = discoveredDevices;
-        _connectedDevices = connectedDevices;
+        const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
+        for(BTDeviceRef d : sharedDevices) { _sharedDevices.push_back(d); }
+    }
+    {
+        const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+        for(BTDeviceRef d : discoveredDevices) { _discoveredDevices.push_back(d); }
+    }
+    {
+        const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+        for(BTDeviceRef d : connectedDevices) { _connectedDevices.push_back(d); }
+    }
+    {
+        const std::lock_guard<std::mutex> lock(mtx_pausingDiscoveryDevices); // RAII-style acquire and relinquish via destructor
         _pausingDiscoveryDevice = pausing_discovery_devices;
     }
-    printDeviceList("SharedDevices     ", _sharedDevices);
-    printDeviceList("ConnectedDevices  ", _connectedDevices);
-    printDeviceList("DiscoveredDevices ", _discoveredDevices);
+    printWeakDeviceList("SharedDevices     ", _sharedDevices);
+    printWeakDeviceList("ConnectedDevices  ", _connectedDevices);
+    printWeakDeviceList("DiscoveredDevices ", _discoveredDevices);
     printWeakDeviceList("PausingDiscoveryDevices ", _pausingDiscoveryDevice);
     printStatusListenerList();
 }
@@ -1248,13 +1264,11 @@ exit:
 
 BTDeviceRef BTAdapter::findDiscoveredDevice (const EUI48 & address, const BDAddressType addressType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     return findDevice(discoveredDevices, address, addressType);
 }
 
 bool BTAdapter::addDiscoveredDevice(BTDeviceRef const &device) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     if( nullptr != findDevice(discoveredDevices, *device) ) {
         // already discovered
         return false;
@@ -1265,7 +1279,6 @@ bool BTAdapter::addDiscoveredDevice(BTDeviceRef const &device) noexcept {
 
 bool BTAdapter::removeDiscoveredDevice(const BDAddressAndType & addressAndType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     for (auto it = discoveredDevices.begin(); it != discoveredDevices.end(); ++it) {
         const BTDevice& device = **it;
         if ( nullptr != *it && addressAndType == device.addressAndType ) {
@@ -1280,22 +1293,23 @@ bool BTAdapter::removeDiscoveredDevice(const BDAddressAndType & addressAndType) 
 }
 
 int BTAdapter::removeDiscoveredDevices() noexcept {
-    const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
+    int res;
+    {
+        const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
 
-    int res = discoveredDevices.size();
-    if( 0 < res ) {
-        auto it = discoveredDevices.end();
-        do {
-            --it;
-            const BTDevice& device = **it;
-            if( nullptr == getSharedDevice( device ) ) {
-                removeAllStatusListener( device );
-            }
-            discoveredDevices.erase(it);
-        } while( it != discoveredDevices.begin() );
+        res = discoveredDevices.size();
+        if( 0 < res ) {
+            auto it = discoveredDevices.end();
+            do {
+                --it;
+                const BTDevice& device = **it;
+                if( nullptr == getSharedDevice( device ) ) {
+                    removeAllStatusListener( device );
+                }
+                discoveredDevices.erase(it);
+            } while( it != discoveredDevices.begin() );
+        }
     }
-
     if( _print_device_lists || jau::environment::get().verbose ) {
         jau::PLAIN_PRINT(true, "BTAdapter::removeDiscoveredDevices: End: %d, %s", res, toString().c_str());
         printDeviceLists();
