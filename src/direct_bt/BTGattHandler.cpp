@@ -615,9 +615,16 @@ std::string BTGattHandler::getStateString() const noexcept {
 }
 
 bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause) noexcept {
+    BTDeviceRef device = getDeviceUnchecked();
+    if( nullptr == device ) {
+        // If the device has been pulled already, so its l2cap instance.
+        ERR_PRINT("BTDevice null");
+        return false;
+    }
     PERF3_TS_T0();
     // Interrupt GATT's L2CAP::connect(..) and L2CAP::read(..), avoiding prolonged hang
     // and pull all underlying l2cap read operations!
+    // l2cap is owned by BTDevice.
     l2cap.close();
 
     // Avoid disconnect re-entry -> potential deadlock
@@ -652,15 +659,12 @@ bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCa
             l2cap_service_stop_res, disconnectDevice, toString().c_str());
 
     if( disconnectDevice ) {
-        BTDeviceRef device = getDeviceUnchecked();
-        if( nullptr != device ) {
-            // Cleanup device resources, proper connection state
-            // Intentionally giving the POWER_OFF reason for the device in case of ioErrorCause!
-            const HCIStatusCode reason = ioErrorCause ?
-                                   HCIStatusCode::REMOTE_DEVICE_TERMINATED_CONNECTION_POWER_OFF :
-                                   HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION;
-            device->disconnect(reason);
-        }
+        // Cleanup device resources, proper connection state
+        // Intentionally giving the POWER_OFF reason for the device in case of ioErrorCause!
+        const HCIStatusCode reason = ioErrorCause ?
+                               HCIStatusCode::REMOTE_DEVICE_TERMINATED_CONNECTION_POWER_OFF :
+                               HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION;
+        device->disconnect(reason);
     }
     return true;
 }
