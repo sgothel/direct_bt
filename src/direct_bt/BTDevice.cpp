@@ -1407,8 +1407,7 @@ bool BTDevice::setSMPKeyBin(const SMPKeyBin& bin) noexcept {
     const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
     if( !isValid() ) {
-        DBG_PRINT("BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, device invalid: %s, %s",
-                bin.toString().c_str(), toString().c_str());
+        ERR_PRINT("Device invalid: %p", jau::to_hexstring((void*)this).c_str());
         return false;
     }
 
@@ -1620,8 +1619,12 @@ SMPIOCapability BTDevice::getConnIOCapability() const noexcept {
 }
 
 bool BTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {
-    if( !isValid() || isConnected || allowDisconnect ) {
-        DBG_PRINT("BTDevice::setConnSecurity: dev_id %u, lvl %s, io %s failed, invalid state %s",
+    if( !isValid() ) {
+        ERR_PRINT("Device invalid: %p", jau::to_hexstring((void*)this).c_str());
+        return false;
+    }
+    if( isConnected || allowDisconnect ) {
+        ERR_PRINT("Invalid State: Connected: dev_id %u, lvl %s, io %s failed, %s",
                 adapter.dev_id, to_string(sec_level).c_str(),
                 to_string(io_cap).c_str(), toString().c_str());
         return false;
@@ -1658,9 +1661,13 @@ bool BTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapab
 }
 
 bool BTDevice::setConnSecurityAuto(const SMPIOCapability iocap_auto) noexcept {
-    if( !isValid() || isConnected || allowDisconnect ) {
-        DBG_PRINT("BTDevice::setConnSecurityAuto: io %s failed, invalid state %s",
-                to_string(iocap_auto).c_str(), toString().c_str());
+    if( !isValid() ) {
+        ERR_PRINT("Device invalid: %p", jau::to_hexstring((void*)this).c_str());
+        return false;
+    }
+    if( isConnected || allowDisconnect ) {
+        ERR_PRINT("Invalid State: Connected: dev_id %d, io %s failed, %s",
+                adapter.dev_id, to_string(iocap_auto).c_str(), toString().c_str());
         return false;
     }
     if( BTSecurityLevel::UNSET != pairing_data.sec_level_user ||
@@ -2010,22 +2017,40 @@ BTGattCharRef BTDevice::findGattChar(const jau::uuid_t& char_uuid) noexcept {
     return nullptr;
 }
 
-bool BTDevice::sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value) {
+bool BTDevice::sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value) noexcept {
+    if( !isValid() ) {
+        ERR_PRINT("Device invalid: %p", jau::to_hexstring((void*)this).c_str());
+        return false;
+    }
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh || !gh->isConnected() ) {
         WARN_PRINT("GATTHandler not connected -> disconnected on %s", toString().c_str());
         return false;
     }
-    return gh->sendNotification(char_value_handle, value);
+    try {
+        return gh->sendNotification(char_value_handle, value);
+    } catch (std::exception &e) {
+        IRQ_PRINT("Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());
+    }
+    return false;
 }
 
-bool BTDevice::sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value) {
+bool BTDevice::sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value) noexcept {
+    if( !isValid() ) {
+        ERR_PRINT("Device invalid: %p", jau::to_hexstring((void*)this).c_str());
+        return false;
+    }
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh || !gh->isConnected() ) {
         WARN_PRINT("GATTHandler not connected -> disconnected on %s", toString().c_str());
         return false;
     }
-    return gh->sendIndication(char_value_handle, value);
+    try {
+        return gh->sendIndication(char_value_handle, value);
+    } catch (std::exception &e) {
+        IRQ_PRINT("Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());
+    }
+    return false;
 }
 
 
@@ -2039,7 +2064,7 @@ bool BTDevice::pingGATT() noexcept {
     try {
         return gh->ping();
     } catch (std::exception &e) {
-        IRQ_PRINT("BTDevice::pingGATT: Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());
+        IRQ_PRINT("Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());
     }
     return false;
 }

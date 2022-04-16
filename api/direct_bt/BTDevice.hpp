@@ -1103,7 +1103,7 @@ namespace direct_bt {
              * @param value the octets to be send
              * @return true if successful, otherwise false
              */
-            bool sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value);
+            bool sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value) noexcept;
 
             /**
              * Send an indication event consisting out of the given `value` representing the given characteristic value handle
@@ -1117,7 +1117,7 @@ namespace direct_bt {
              * @param value the octets to be send
              * @return true if successful, otherwise false
              */
-            bool sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value);
+            bool sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value) noexcept;
 
             /**
              * Issues a GATT ping to the device, validating whether it is still reachable.
