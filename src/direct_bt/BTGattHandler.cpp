@@ -779,6 +779,7 @@ bool BTGattHandler::sendNotification(const uint16_t char_value_handle, const jau
         COND_PRINT(env.DEBUG_DATA, "GATT SEND NTF: Zero size, skipped sending to %s", toString().c_str());
         return true;
     }
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     AttHandleValueRcv data(true /* isNotify */, char_value_handle, value, usedMTU);
     COND_PRINT(env.DEBUG_DATA, "GATT SEND NTF: %s to %s", data.toString().c_str(), toString().c_str());
     send(data);
