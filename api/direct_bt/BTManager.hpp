@@ -341,7 +341,7 @@ namespace direct_bt {
 
             /** Returns true if this mgmt instance is open and hence valid, otherwise false */
             bool isOpen() const noexcept {
-                return comm.isOpen();
+                return comm.is_open();
             }
 
             std::string toString() const noexcept override {

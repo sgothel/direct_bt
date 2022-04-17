@@ -79,7 +79,7 @@ MgmtEnv::MgmtEnv() noexcept
 
 void BTManager::mgmtReaderWork(jau::service_runner& sr) noexcept {
     jau::snsize_t len;
-    if( !comm.isOpen() ) {
+    if( !comm.is_open() ) {
         // not open
         ERR_PRINT("BTManager::reader: Not connected");
         sr.set_shall_stop();
@@ -117,7 +117,7 @@ void BTManager::mgmtReaderWork(jau::service_runner& sr) noexcept {
             COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (CB) %s", event->toString().c_str());
             sendMgmtEvent( *event );
         }
-    } else if( ETIMEDOUT != errno && !sr.shall_stop() ) { // expected exits
+    } else if( ETIMEDOUT != errno && !comm.interrupted() ) { // expected exits
         ERR_PRINT("BTManager::reader: HCIComm read error");
     }
 }
@@ -364,7 +364,7 @@ BTManager::BTManager() noexcept
                       jau::service_runner::Callback() /* init */,
                       jau::bindMemberFunc(this, &BTManager::mgmtReaderEndLocked)),
   mgmtEventRing(env.MGMT_EVT_RING_CAPACITY),
-  allowClose( comm.isOpen() )
+  allowClose( comm.is_open() )
 {
     if( ! jau::service_runner::singleton_sighandler() ) {
         ERR_PRINT("BTManager::ctor: Setting sighandler");
@@ -375,6 +375,7 @@ BTManager::BTManager() noexcept
         return;
     }
 
+    comm.set_interupt( jau::bindMemberFunc(&mgmt_reader_service, &jau::service_runner::shall_stop2) );
     mgmt_reader_service.start();
 
     PERF_TS_T0();
@@ -503,7 +504,9 @@ void BTManager::close() noexcept {
     bool expConn = true; // C++11, exp as value since C++20
     if( !allowClose.compare_exchange_strong(expConn, false) ) {
         // not open
-        DBG_PRINT("BTManager::close: Not open");
+        const bool mgmt_service_stopped = mgmt_reader_service.join(); // [data] race: wait until disconnecting thread has stopped service
+        comm.close();
+        DBG_PRINT("BTManager::close: Not open: stopped %d, %s", mgmt_service_stopped, toString().c_str());
         whitelist.clear();
         clearAllCallbacks();
         adapters.clear();
@@ -530,12 +533,9 @@ void BTManager::close() noexcept {
     adapters.clear();
     adapterIOCapability.clear();
 
-    // Interrupt BTManager's HCIComm::read(..), avoiding prolonged hang
-    // and pull all underlying hci read operations!
-    comm.close();
-
     PERF3_TS_TD("BTManager::close.1");
     mgmt_reader_service.stop();
+    comm.close();
     PERF3_TS_TD("BTManager::close.2");
 
     if( ! jau::service_runner::remove_sighandler() ) {
@@ -1107,7 +1107,7 @@ void BTManager::processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept {
         sendMgmtEvent(*e);
         DBG_PRINT("BTManager::Adapter[%d] Added: User_ %s", dev_id, adapter->toString().c_str());
         jau::for_each_fidelity(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
-           cb.invoke(true /* added */, adapter);
+           cb(true /* added */, adapter);
         });
         DBG_PRINT("BTManager::Adapter[%d] Added: End__ %s", dev_id, adapter->toString().c_str());
     } else {
@@ -1122,7 +1122,7 @@ void BTManager::processAdapterRemoved(std::unique_ptr<MgmtEvent> e) noexcept {
         sendMgmtEvent(*e);
         DBG_PRINT("BTManager::Adapter[%d] Removed: User_: %s", dev_id, ai->toString().c_str());
         jau::for_each_fidelity(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
-           cb.invoke(false /* added */, ai);
+           cb(false /* added */, ai);
         });
         ai->close(); // issuing dtor on DBTAdapter
         DBG_PRINT("BTManager::Adapter[%d] Removed: End__: %s", dev_id, ai->toString().c_str());

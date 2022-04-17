@@ -457,7 +457,7 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
                     COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV ACL (SMP) %s for %s",
                             dev_id, smpPDU->toString().c_str(), conn->toString().c_str());
                     jau::for_each_fidelity(hciSMPMsgCallbackList, [&](HCISMPMsgCallback &cb) {
-                       cb.invoke(conn->getAddressAndType(), *smpPDU, l2cap);
+                       cb(conn->getAddressAndType(), *smpPDU, l2cap);
                     });
                 } else {
                     WARN_PRINT("HCIHandler<%u>-IO RECV ACL Drop (SMP): Not tracked conn_handle %s: %s, %s",
@@ -550,7 +550,7 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
                 COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV EVT Drop (no translation) %s", dev_id, event->toString().c_str());
             }
         }
-    } else if( ETIMEDOUT != errno && !sr.shall_stop() ) { // expected exits
+    } else if( ETIMEDOUT != errno && !comm.interrupted() ) { // expected exits
         ERR_PRINT("HCIHandler<%u>::reader: HCIComm read error %s", dev_id, toString().c_str());
         // Keep alive - sr.set_shall_stop();
     }
@@ -569,7 +569,7 @@ void HCIHandler::sendMgmtEvent(const MgmtEvent& event) noexcept {
 
     jau::for_each_fidelity(mgmtEventCallbackList, [&](MgmtEventCallback &cb) {
         try {
-            cb.invoke(event);
+            cb(event);
         } catch (std::exception &e) {
             ERR_PRINT("HCIHandler<%u>::sendMgmtEvent-CBs %d/%zd: MgmtEventCallback %s : Caught exception %s - %s",
                     dev_id, invokeCount+1, mgmtEventCallbackList.size(),
@@ -675,7 +675,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
   hciEventRing(env.HCI_EVT_RING_CAPACITY),
   le_ll_feats( LE_Features::NONE ),
   sup_commands_set( false ),
-  allowClose( comm.isOpen() ),
+  allowClose( comm.is_open() ),
   btMode(btMode_),
   currentScanType(ScanType::NONE),
   advertisingEnabled(false)
@@ -688,6 +688,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         return;
     }
 
+    comm.set_interupt( jau::bindMemberFunc(&hci_reader_service, &jau::service_runner::shall_stop2) );
     hci_reader_service.start();
 
     PERF_TS_T0();
@@ -695,12 +696,12 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
 #if 0
     {
         int opt = 1;
-        if (setsockopt(comm.getSocketDescriptor(), SOL_SOCKET, SO_TIMESTAMP, &opt, sizeof(opt)) < 0) {
+        if (setsockopt(comm.socket(), SOL_SOCKET, SO_TIMESTAMP, &opt, sizeof(opt)) < 0) {
             ERR_PRINT("HCIHandler::ctor: setsockopt SO_TIMESTAMP %s", toString().c_str());
             goto fail;
         }
 
-        if (setsockopt(comm.getSocketDescriptor(), SOL_SOCKET, SO_PASSCRED, &opt, sizeof(opt)) < 0) {
+        if (setsockopt(comm.socket(), SOL_SOCKET, SO_PASSCRED, &opt, sizeof(opt)) < 0) {
             ERR_PRINT("HCIHandler::ctor: setsockopt SO_PASSCRED %s", toString().c_str());
             goto fail;
         }
@@ -717,7 +718,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         socklen_t olen;
 
         olen = sizeof(of);
-        if (getsockopt(comm.getSocketDescriptor(), SOL_HCI, HCI_FILTER, &of, &olen) < 0) {
+        if (getsockopt(comm.socket(), SOL_HCI, HCI_FILTER, &of, &olen) < 0) {
             ERR_PRINT("HCIHandler::ctor: getsockopt %s", toString().c_str());
             goto fail;
         }
@@ -750,7 +751,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
 #endif
         HCIComm::filter_set_opcode(0, &filter_mask); // all opcode
 
-        if (setsockopt(comm.getSocketDescriptor(), SOL_HCI, HCI_FILTER, &filter_mask, sizeof(filter_mask)) < 0) {
+        if (setsockopt(comm.socket(), SOL_HCI, HCI_FILTER, &filter_mask, sizeof(filter_mask)) < 0) {
             ERR_PRINT("HCIHandler::ctor: setsockopt HCI_FILTER %s", toString().c_str());
             goto fail;
         }
@@ -943,7 +944,9 @@ void HCIHandler::close() noexcept {
     bool expConn = true; // C++11, exp as value since C++20
     if( !allowClose.compare_exchange_strong(expConn, false) ) {
         // not open
-        DBG_PRINT("HCIHandler::close: Not connected %s", toString().c_str());
+        const bool hci_service_stopped = hci_reader_service.join(); // [data] race: wait until disconnecting thread has stopped service
+        comm.close();
+        DBG_PRINT("HCIHandler::close: Not open: stopped %d, %s", hci_service_stopped, toString().c_str());
         clearAllCallbacks();
         resetAllStates(false);
         comm.close();
@@ -955,13 +958,11 @@ void HCIHandler::close() noexcept {
     clearAllCallbacks();
     resetAllStates(false);
 
-    // Interrupt HCIHandler's HCIComm::read(..), avoiding prolonged hang
-    // and pull all underlying hci read operations!
-    comm.close();
-
     PERF_TS_TD("HCIHandler::close.1");
     hci_reader_service.stop();
+    comm.close();
     PERF_TS_TD("HCIHandler::close.X");
+
     DBG_PRINT("HCIHandler::close: End %s", toString().c_str());
 }
 
@@ -980,7 +981,7 @@ HCIStatusCode HCIHandler::startAdapter() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     #ifdef __linux__
         int res;
-        if( ( res = ioctl(comm.getSocketDescriptor(), HCIDEVUP, dev_id) ) < 0 ) {
+        if( ( res = ioctl(comm.socket(), HCIDEVUP, dev_id) ) < 0 ) {
             if (errno != EALREADY) {
                 ERR_PRINT("HCIHandler::startAdapter(dev_id %d): FAILED: %d - %s", dev_id, res, toString().c_str());
                 return HCIStatusCode::INTERNAL_FAILURE;
@@ -1002,7 +1003,7 @@ HCIStatusCode HCIHandler::stopAdapter() {
     HCIStatusCode status;
     #ifdef __linux__
         int res;
-        if( ( res = ioctl(comm.getSocketDescriptor(), HCIDEVDOWN, dev_id) ) < 0) {
+        if( ( res = ioctl(comm.socket(), HCIDEVDOWN, dev_id) ) < 0) {
             ERR_PRINT("HCIHandler::stopAdapter(dev_id %d): FAILED: %d - %s", dev_id, res, toString().c_str());
             status = HCIStatusCode::INTERNAL_FAILURE;
         } else {

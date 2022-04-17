@@ -78,7 +78,7 @@ std::shared_ptr<BTDevice> SMPHandler::getDeviceChecked() const {
 }
 
 bool SMPHandler::validateConnected() noexcept {
-    bool l2capIsConnected = l2cap.isOpen();
+    bool l2capIsConnected = l2cap.is_open();
     bool l2capHasIOError = l2cap.hasIOError();
 
     if( has_ioerror || l2capHasIOError ) {
@@ -112,7 +112,7 @@ void SMPHandler::smpReaderWork(jau::service_runner& sr) noexcept {
         if( SMPPDUMsg::Opcode::SECURITY_REQUEST == opc ) {
             COND_PRINT(env.DEBUG_DATA, "SMPHandler-IO RECV (SEC_REQ) %s", smpPDU->toString().c_str());
             jau::for_each_fidelity(smpSecurityReqCallbackList, [&](SMPSecurityReqCallback &cb) {
-               cb.invoke(*smpPDU);
+               cb(*smpPDU);
             });
         } else {
             COND_PRINT(env.DEBUG_DATA, "SMPHandler-IO RECV (MSG) %s", smpPDU->toString().c_str());
@@ -123,7 +123,7 @@ void SMPHandler::smpReaderWork(jau::service_runner& sr) noexcept {
             }
             smpPDURing.putBlocking( std::move(smpPDU) );
         }
-    } else if( 0 > len && ETIMEDOUT != errno && !sr.shall_stop() ) { // expected exits
+    } else if( 0 > len && ETIMEDOUT != errno && !l2cap.interrupted() ) { // expected exits
         IRQ_PRINT("SMPHandler::reader: l2cap read error -> Stop; l2cap.read %d (%s); %s",
                 len, L2CAPClient::getRWExitCodeString(len).c_str(),
                 getStateString().c_str());
@@ -174,6 +174,7 @@ SMPHandler::SMPHandler(const std::shared_ptr<BTDevice> &device) noexcept
     DBG_PRINT("SMPHandler::ctor: Start Connect: GattHandler[%s], l2cap[%s]: %s",
                 getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
 
+    l2cap.set_interupt( jau::bindMemberFunc(&smp_reader_service, &jau::service_runner::shall_stop2) );
     smp_reader_service.start();
 
     // FIXME: Determine proper MTU usage: Defaults::MIN_SMP_MTU or Defaults::LE_SECURE_SMP_MTU (if enabled)
@@ -195,28 +196,30 @@ bool SMPHandler::establishSecurity(const BTSecurityLevel sec_level) {
 
 bool SMPHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause) noexcept {
     PERF3_TS_T0();
-    // Interrupt SM's L2CAP::connect(..) and L2CAP::read(..), avoiding prolonged hang
-    // and pull all underlying l2cap read operations!
-    l2cap.close();
 
     // Avoid disconnect re-entry -> potential deadlock
     bool expConn = true; // C++11, exp as value since C++20
     if( !is_connected.compare_exchange_strong(expConn, false) ) {
         // not connected
-        DBG_PRINT("SMPHandler::disconnect: Not connected: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
-                  disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
+        const bool smp_service_stopped = smp_reader_service.join(); // [data] race: wait until disconnecting thread has stopped service
+        l2cap.close();
+        DBG_PRINT("SMPHandler::disconnect: Not connected: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s], stopped %d: %s",
+                  disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(),
+                  smp_service_stopped, deviceString.c_str());
         clearAllCallbacks();
         return false;
     }
+
+    PERF3_TS_TD("SMPHandler::disconnect.1");
+    const bool smp_service_stop_res = smp_reader_service.stop();
+    l2cap.close();
+    PERF3_TS_TD("SMPHandler::disconnect.2");
+
     // Lock to avoid other threads using instance while disconnecting
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("SMPHandler::disconnect: Start: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
               disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
     clearAllCallbacks();
-
-    PERF3_TS_TD("SMPHandler::disconnect.1");
-    const bool smp_service_stop_res = smp_reader_service.stop();
-    PERF3_TS_TD("SMPHandler::disconnect.2");
 
     DBG_PRINT("SMPHandler::disconnect: End: stopped %d, %s", smp_service_stop_res, deviceString.c_str());
 

@@ -38,6 +38,8 @@
 
 #include "HCIComm.hpp"
 
+#include "BTIoctl.hpp"
+
 extern "C" {
     #include <inttypes.h>
     #include <unistd.h>
@@ -67,7 +69,7 @@ int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel) noexcep
 	} */
 
 	// Create a loose HCI socket
-	fd = socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
+	fd = ::socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
 	if (0 > fd ) {
         ERR_PRINT("HCIComm::hci_open_dev: socket failed");
 		return fd;
@@ -78,7 +80,7 @@ int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel) noexcep
 	ptr_hci_addr->hci_family = AF_BLUETOOTH;
 	ptr_hci_addr->hci_dev = dev_id;
 	ptr_hci_addr->hci_channel = channel;
-	if (bind(fd, &addr_holder, sizeof(sockaddr_hci)) < 0) {
+	if (::bind(fd, &addr_holder, sizeof(sockaddr_hci)) < 0) {
 	    ERR_PRINT("hci_open_dev: bind failed");
 		goto failed;
 	}
@@ -104,7 +106,8 @@ int HCIComm::hci_close_dev(int dd) noexcept
 
 HCIComm::HCIComm(const uint16_t _dev_id, const uint16_t _channel) noexcept
 : dev_id( _dev_id ), channel( _channel ),
-  socket_descriptor( hci_open_dev(_dev_id, _channel) ), interrupt_flag(false), tid_read(0)
+  socket_descriptor( hci_open_dev(_dev_id, _channel) ),
+  interrupted_intern(false), is_interrupted_extern(/* Null Type */), tid_read(0)
 {
 }
 
@@ -117,7 +120,7 @@ void HCIComm::close() noexcept {
     DBG_PRINT("HCIComm::close: Start: dd %d", socket_descriptor.load());
     PERF_TS_T0();
     // interrupt ::read(..) and , avoiding prolonged hang
-    interrupt_flag = true;
+    interrupted_intern = true;
     {
         pthread_t _tid_read = tid_read;
         tid_read = 0;
@@ -133,7 +136,7 @@ void HCIComm::close() noexcept {
     }
     hci_close_dev(socket_descriptor);
     socket_descriptor = -1;
-    interrupt_flag = false;
+    interrupted_intern = false;
     PERF_TS_TD("HCIComm::close");
     DBG_PRINT("HCIComm::close: End: dd %d", socket_descriptor.load());
 }
@@ -152,8 +155,8 @@ jau::snsize_t HCIComm::read(uint8_t* buffer, const jau::nsize_t capacity, const 
         int n;
 
         p.fd = socket_descriptor; p.events = POLLIN;
-        while ( !interrupt_flag && (n = poll(&p, 1, timeoutMS)) < 0 ) {
-            if ( !interrupt_flag && ( errno == EAGAIN || errno == EINTR ) ) {
+        while ( !interrupted() && (n = ::poll(&p, 1, timeoutMS)) < 0 ) {
+            if ( !interrupted() && ( errno == EAGAIN || errno == EINTR ) ) {
                 // cont temp unavail or interruption
                 continue;
             }

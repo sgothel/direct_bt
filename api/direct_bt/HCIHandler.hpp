@@ -385,7 +385,7 @@ namespace direct_bt {
 
             /** Returns true if this mgmt instance is open, connected and hence valid, otherwise false */
             bool isOpen() const noexcept {
-                return true == allowClose.load() && comm.isOpen();
+                return true == allowClose.load() && comm.is_open();
             }
 
             /** Use extended scanning if HCI_LE_Set_Extended_Scan_Parameters and HCI_LE_Set_Extended_Scan_Enable is supported (Bluetooth 5.0). */

@@ -557,7 +557,7 @@ void BTDevice::notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const LE_Featur
             toString().c_str());
     le_features = features;
     const bool is_local_server = BTRole::Master == btRole; // -> local GattRole::Server
-    if( addressAndType.isLEAddress() && ( !l2cap_att->isOpen() || is_local_server ) ) {
+    if( addressAndType.isLEAddress() && ( !l2cap_att->is_open() || is_local_server ) ) {
         std::thread bg(&BTDevice::processL2CAPSetup, this, sthis); // @suppress("Invalid arguments")
         bg.detach();
     }
@@ -579,7 +579,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
     bool smp_auto = false;
     const bool is_local_server = BTRole::Master == btRole; // -> local GattRole::Server
 
-    if( addressAndType.isLEAddress() && ( !l2cap_att->isOpen() || is_local_server ) ) {
+    if( addressAndType.isLEAddress() && ( !l2cap_att->is_open() || is_local_server ) ) {
         std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
         DBG_PRINT("BTDevice::processL2CAPSetup: Start dev_id %u, %s", adapter.dev_id, toString().c_str());
@@ -609,7 +609,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
                 to_string(sec_level).c_str());
 
         bool l2cap_open;
-        if( is_local_server && l2cap_att->isOpen() ) {
+        if( is_local_server && l2cap_att->is_open() ) {
             if( BTSecurityLevel::UNSET < sec_level ) {
                 l2cap_open = l2cap_att->setBTSecurityLevel(sec_level);
             } else {
@@ -1891,7 +1891,7 @@ bool BTDevice::connectGATT(std::shared_ptr<BTDevice> sthis) noexcept {
         ERR_PRINT("Device not connected: %s", toString().c_str());
         return false;
     }
-    if( !l2cap_att->isOpen() ) {
+    if( !l2cap_att->is_open() ) {
         ERR_PRINT("L2CAP not open: %s", toString().c_str());
         return false;
     }

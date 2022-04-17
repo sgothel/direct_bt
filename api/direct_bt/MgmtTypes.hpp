@@ -40,6 +40,7 @@
 #include "BTTypes0.hpp"
 #include "BTIoctl.hpp"
 #include "HCIComm.hpp"
+#include "HCITypes.hpp"
 
 #include "BTTypes1.hpp"
 #include "SMPTypes.hpp"

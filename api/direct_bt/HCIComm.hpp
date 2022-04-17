@@ -32,10 +32,10 @@
 #include <memory>
 #include <mutex>
 
-#include "BTTypes0.hpp"
-#include "BTIoctl.hpp"
+#include <jau/basic_types.hpp>
+#include <jau/function_def.hpp>
+
 #include "HCIIoctl.hpp"
-#include "HCITypes.hpp"
 
 /**
  * - - - - - - - - - - - - - - -
@@ -51,6 +51,9 @@ namespace direct_bt {
      */
     class HCIComm {
         public:
+            /** Utilized for forced disconnect and read/accept interruption. */
+            typedef jau::FunctionDef<bool, int /* dummy*/> is_interrupted_t;
+
             const uint16_t dev_id;
             const uint16_t channel;
 
@@ -59,8 +62,9 @@ namespace direct_bt {
             static int hci_close_dev(int dd) noexcept;
 
             std::recursive_mutex mtx_write;
-            std::atomic<int> socket_descriptor; // the hci socket
-            std::atomic<bool> interrupt_flag; // for forced disconnect
+            jau::relaxed_atomic_int socket_descriptor; // the hci socket
+            jau::sc_atomic_bool interrupted_intern; // for forced disconnect and read interruption via close()
+            is_interrupted_t is_interrupted_extern; // for forced disconnect and read interruption via external event
             std::atomic<pthread_t> tid_read;
 
         public:
@@ -75,13 +79,19 @@ namespace direct_bt {
              */
             ~HCIComm() noexcept { close(); }
 
+            bool is_open() const noexcept { return 0 <= socket_descriptor; }
+
+            /** The external is_interrupted_t callback is used until close(), thereafter it is removed. */
+            void set_interupt(is_interrupted_t is_interrupted_cb) { is_interrupted_extern = is_interrupted_cb; }
+
+            /** Returns true if interrupted by internal or external cause, hence shall stop connecting and reading. */
+            bool interrupted() const noexcept { return interrupted_intern || ( !is_interrupted_extern.isNullType() && is_interrupted_extern(0/*dummy*/) ); }
+
             /** Closing the HCI channel, locking {@link #mutex_write()}. */
             void close() noexcept;
 
-            bool isOpen() const noexcept { return 0 <= socket_descriptor; }
-
             /** Return this HCI socket descriptor. */
-            inline int getSocketDescriptor() const noexcept { return socket_descriptor; }
+            inline int socket() const noexcept { return socket_descriptor; }
 
             /** Return the recursive write mutex for multithreading access. */
             inline std::recursive_mutex & mutex_write() noexcept { return mtx_write; }

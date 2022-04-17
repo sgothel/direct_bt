@@ -84,7 +84,7 @@ BTDeviceRef BTGattHandler::getDeviceChecked() const {
 }
 
 bool BTGattHandler::validateConnected() noexcept {
-    const bool l2capIsConnected = l2cap.isOpen();
+    const bool l2capIsConnected = l2cap.is_open();
     const bool l2capHasIOError = l2cap.hasIOError();
 
     if( has_ioerror || l2capHasIOError ) {
@@ -507,7 +507,7 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
         } else {
             ERR_PRINT("Unhandled: %s", attPDU->toString().c_str());
         }
-    } else if( 0 > len && ETIMEDOUT != errno && !sr.shall_stop() ) { // expected exits
+    } else if( 0 > len && ETIMEDOUT != errno && !l2cap.interrupted() ) { // expected exits
         IRQ_PRINT("GATTHandler::reader: l2cap read error -> Stop; l2cap.read %d (%s); %s",
                 len, L2CAPClient::getRWExitCodeString(len).c_str(),
                 getStateString().c_str());
@@ -547,7 +547,7 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, 
   l2cap(l2cap_att),
   deviceString(device->getAddressAndType().address.toString()),
   rbuffer(number(Defaults::MAX_ATT_MTU), jau::endian::little),
-  is_connected(l2cap.isOpen()), has_ioerror(false),
+  is_connected(l2cap.is_open()), has_ioerror(false),
   l2cap_reader_service("GATTHandler::reader_"+deviceString, THREAD_SHUTDOWN_TIMEOUT_MS,
                        jau::bindMemberFunc(this, &BTGattHandler::l2capReaderWork),
                        jau::service_runner::Callback() /* init */,
@@ -569,6 +569,7 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, 
      * We utilize DBTManager's mgmthandler_sigaction SIGALRM handler,
      * as we only can install one handler.
      */
+    l2cap.set_interupt( jau::bindMemberFunc(&l2cap_reader_service, &jau::service_runner::shall_stop2) );
     l2cap_reader_service.start();
 
     if( GATTRole::Client == getRole() ) {
@@ -622,16 +623,13 @@ bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCa
         return false;
     }
     PERF3_TS_T0();
-    // Interrupt GATT's L2CAP::connect(..) and L2CAP::read(..), avoiding prolonged hang
-    // and pull all underlying l2cap read operations!
-    // l2cap is owned by BTDevice.
-    l2cap.close();
 
     // Avoid disconnect re-entry -> potential deadlock
     bool expConn = true; // C++11, exp as value since C++20
     if( !is_connected.compare_exchange_strong(expConn, false) ) {
         // not connected
         const bool l2cap_service_stopped = l2cap_reader_service.join(); // [data] race: wait until disconnecting thread has stopped service
+        l2cap.close(); // owned by BTDevice.
         DBG_PRINT("GATTHandler::disconnect: Not connected: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s], stopped %d: %s",
                   disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(),
                   l2cap_service_stopped, toString().c_str());
@@ -639,6 +637,11 @@ bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCa
         nativeGattCharListenerList.clear();
         return false;
     }
+
+    PERF3_TS_TD("GATTHandler::disconnect.1");
+    const bool l2cap_service_stop_res = l2cap_reader_service.stop();
+    l2cap.close(); // owned by BTDevice.
+    PERF3_TS_TD("GATTHandler::disconnect.X");
 
     gattServerHandler->close();
 
@@ -648,10 +651,6 @@ bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCa
               disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), toString().c_str());
     btGattCharListenerList.clear();
     nativeGattCharListenerList.clear();
-
-    PERF3_TS_TD("GATTHandler::disconnect.1");
-    const bool l2cap_service_stop_res = l2cap_reader_service.stop();
-    PERF3_TS_TD("GATTHandler::disconnect.X");
 
     clientMTUExchanged = false;
 

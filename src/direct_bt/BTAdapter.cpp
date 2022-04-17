@@ -397,6 +397,7 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const A
                 jau::bindMemberFunc(this, &BTAdapter::l2capServerEnd))
 {
     (void)cc;
+
     valid = initialSetup();
     if( isValid() ) {
         const bool r = smp_watchdog.start(SMP_NEXT_EVENT_TIMEOUT_MS, jau::bindMemberFunc(this, &BTAdapter::smp_timeoutfunc));
@@ -447,11 +448,11 @@ void BTAdapter::close() noexcept {
         }
     }
 
-    DBG_PRINT("BTAdapter::close: closeHCI: ...");
+    DBG_PRINT("BTAdapter::close: close[HCI, l2cap_srv]: ...");
     hci.close();
-    DBG_PRINT("BTAdapter::close: closeHCI: XXX");
-
     l2cap_service.stop();
+    l2cap_att_srv.close();
+    DBG_PRINT("BTAdapter::close: close[HCI, l2cap_srv]: XXX");
 
     {
         const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
@@ -1791,8 +1792,11 @@ bool BTAdapter::mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept {
     return true;
 }
 
-void BTAdapter::l2capServerInit(jau::service_runner& sr) {
-    (void)sr;
+void BTAdapter::l2capServerInit(jau::service_runner& sr0) {
+    (void)sr0;
+
+    l2cap_att_srv.set_interupt( jau::bindMemberFunc(&l2cap_service, &jau::service_runner::shall_stop2) );
+
     if( !l2cap_att_srv.open() ) {
         ERR_PRINT("Adapter[%d]: L2CAP ATT open failed: %s", dev_id, l2cap_att_srv.toString().c_str());
     }
