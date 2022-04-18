@@ -73,6 +73,7 @@ public class DBTServer00 implements DBTServerTest {
     BTMode btMode = BTMode.DUAL;
     boolean use_SC = true;
     BTSecurityLevel adapterSecurityLevel = BTSecurityLevel.UNSET;
+    private final MyAdapterStatusListener myAdapterStatusListener = new MyAdapterStatusListener();
     private final MyGATTServerListener gattServerListener = new MyGATTServerListener();
     BTAdapter serverAdapter = null;
     private volatile boolean sync_data;
@@ -643,6 +644,7 @@ public class DBTServer00 implements DBTServerTest {
         BTUtils.println(System.err, "****** Server Close: "+msg);
         stop(msg);
         dbGattServer.close();
+        serverAdapter.removeStatusListener( myAdapterStatusListener );
     }
 
     private HCIStatusCode stopAdvertising(final String msg) {
@@ -792,7 +794,7 @@ public class DBTServer00 implements DBTServerTest {
         adapter.setSMPKeyPath(DBTConstants.SERVER_KEY_PATH);
 
         // adapter is powered-on
-        adapter.addStatusListener( new MyAdapterStatusListener() );
+        adapter.addStatusListener( myAdapterStatusListener );
 
         adapter.setServerConnSecurity(adapterSecurityLevel, SMPIOCapability.UNSET);
 
