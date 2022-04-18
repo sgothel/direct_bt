@@ -373,7 +373,7 @@ The *trial* tests cover *Direct-BT*'s Bluetooth functionality,
 having its *master/client* and *slave/server peripheral* facilities communicating via actual adapter,
 supporting regression testing of the API, its implementation and adapter.
 
-The *trial* tests are time consuming since `TestDBClientServer1*` performs the test twelve fold altogether:
+The *trial* tests take around 100 seconds, since `TestDBClientServer1*` performs the test twelve fold altogether:
 - Four fold between adapter and encryption mode
   - between both installed adapter, i.e. in both client/server directions 
   - in legacy mode (SC 0) and once using secure connections (SC 1)
@@ -382,11 +382,12 @@ The *trial* tests are time consuming since `TestDBClientServer1*` performs the t
   - with `ENC_ONLY` encryption and initial key pairing
   - with `ENC_ONLY` encryption and reusing pre-paired keys
 
-The encryption tests using Direct-BT may fail and are currently 
-under investigation. The following issues are known:
+All tests pass reproducible using two well working adapter, e.g. Raspi 3b+ (BT4) and CSR (BT4).
+
+1/7 tests using at least one not well working BT5 adapter may timeout and hence fail.
+The following issues are known and are under investigation:
 - *BlueZ* is not sending us all new key information
   - This is mitigated by *BTAdapter*'s *smp_watchdog*, leading to a retrial visible as *SMP Timeout*
-- *BlueZ* is not accepting pre-paired legacy keys (SC 0), leading to newly paired keys.
 
 ### Cross Build
 Also provided is a [cross-build script](https://jausoft.com/cgit/direct_bt.git/tree/scripts/build-cross.sh)
