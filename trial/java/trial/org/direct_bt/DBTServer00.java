@@ -726,6 +726,8 @@ public class DBTServer00 implements DBTServerTest {
             BTUtils.fprintf_td(System.err, "initServerAdapter: Adapter not selected: %s\n", adapter.toString());
             return false;
         }
+        adapterName = adapterName + "-" + adapter.getAddressAndType().address.toString().replace(":", "");
+
         if( !adapter.isInitialized() ) {
             // Initialize with defaults and power-on
             final HCIStatusCode status = adapter.initialize( btMode );

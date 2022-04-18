@@ -636,6 +636,8 @@ public class DBTClient00 implements DBTClientTest {
             BTUtils.fprintf_td(System.err, "initClientAdapter: Adapter not selected: %s\n", adapter.toString());
             return false;
         }
+        adapterName = adapterName + "-" + adapter.getAddressAndType().address.toString().replace(":", "");
+
         // Initialize with defaults and power-on
         if( !adapter.isInitialized() ) {
             final HCIStatusCode status = adapter.initialize( btMode );

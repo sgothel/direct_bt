@@ -84,12 +84,15 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
         BTUtils.println(System.err, "Adapter: Count "+adapters.size()+": "+adapters.toString());
         Assert.assertTrue("Adapter count not >= 2 but "+adapters.size(), adapters.size() >= 2);
 
-        final String serverName = "TestDBTCS10-S-T"+suffix;
-        final String clientName = "TestDBTCS10-C-T"+suffix;
-        final DBTServer00 server = new DBTServer00(serverName, EUI48.ALL_DEVICE, BTMode.DUAL, serverSC, secLevelServer);
+        final DBTServer00 server = new DBTServer00("S-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, serverSC, secLevelServer);
         server.servingConnectionsLeft.set(1);
 
-        final DBTClient00 client = new DBTClient00(clientName, EUI48.ALL_DEVICE, BTMode.DUAL);
+        final DBTClient00 client = new DBTClient00("C-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL);
+
+        final DBTEndpoint.ChangedAdapterSetListener myChangedAdapterSetListener =
+                DBTEndpoint.initChangedAdapterSetListener(manager, server_client_order ? Arrays.asList(server, client) : Arrays.asList(client, server));
+
+        final String serverName = server.getName();
         BTDeviceRegistry.addToWaitForDevices( serverName );
         {
             final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getOrCreate(serverName);
@@ -100,8 +103,6 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
         client.measurementsLeft.set(1);
         client.discoveryPolicy = DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_DISCONNECTED;
 
-        final DBTEndpoint.ChangedAdapterSetListener myChangedAdapterSetListener =
-                DBTEndpoint.initChangedAdapterSetListener(manager, server_client_order ? Arrays.asList(server, client) : Arrays.asList(client, server));
         lastCompletedDevice = null;
         lastCompletedDevicePairingMode = PairingMode.NONE;
         lastCompletedDeviceSecurityLevel = BTSecurityLevel.NONE;
