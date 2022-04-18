@@ -87,6 +87,7 @@ public class DBTClient00 implements DBTClientTest {
     EUI48 useAdapter = EUI48.ALL_DEVICE;
     BTMode btMode = BTMode.DUAL;
     BTAdapter clientAdapter = null;
+    private final MyAdapterStatusListener myAdapterStatusListener = new MyAdapterStatusListener();
 
     AtomicInteger deviceReadyCount = new AtomicInteger(0);
 
@@ -623,6 +624,13 @@ public class DBTClient00 implements DBTClientTest {
     }
 
     @Override
+    public void close(final String msg) {
+        BTUtils.println(System.err, "****** Client Close: "+msg);
+        clientAdapter.stopDiscovery();
+        clientAdapter.removeStatusListener( myAdapterStatusListener );
+    }
+
+    @Override
     public boolean initAdapter(final BTAdapter adapter) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
             BTUtils.fprintf_td(System.err, "initClientAdapter: Adapter not selected: %s\n", adapter.toString());
@@ -674,7 +682,7 @@ public class DBTClient00 implements DBTClientTest {
                                 res.toString(), Tx.toString(), Rx.toString());
         }
         // adapter is powered-on
-        adapter.addStatusListener( new MyAdapterStatusListener() );
+        adapter.addStatusListener( myAdapterStatusListener );
 
         return true;
     }

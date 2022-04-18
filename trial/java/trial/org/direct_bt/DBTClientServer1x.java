@@ -147,6 +147,7 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
         // Client stop
         //
         DBTClientTest.stopDiscovery(client, true /* current_exp_discovering_state */, "test"+suffix+"_stopDiscovery");
+        client.close("test"+suffix+"_close");
 
         //
         // Server stop

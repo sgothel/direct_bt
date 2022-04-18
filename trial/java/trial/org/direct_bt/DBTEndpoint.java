@@ -56,6 +56,8 @@ public interface DBTEndpoint {
      */
     BTAdapter getAdapter();
 
+    void close(final String msg);
+
     /**
      * Initialize the given adapter for this endpoint.
      *

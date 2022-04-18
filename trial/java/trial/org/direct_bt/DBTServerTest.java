@@ -34,7 +34,6 @@ public interface DBTServerTest extends DBTEndpoint {
     BTSecurityLevel getSecurityLevel();
 
     HCIStatusCode stop(final String msg);
-    void close(final String msg);
 
     HCIStatusCode startAdvertising(String msg);
 
