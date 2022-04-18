@@ -76,7 +76,7 @@ public class DBTServer00 implements DBTServerTest {
     private final MyAdapterStatusListener myAdapterStatusListener = new MyAdapterStatusListener();
     private final MyGATTServerListener gattServerListener = new MyGATTServerListener();
     BTAdapter serverAdapter = null;
-    private volatile boolean sync_data;
+    private final Object sync_lock = new Object();
     private volatile BTDevice connectedDevice;
 
     public AtomicInteger servingConnectionsLeft = new AtomicInteger(1);
@@ -112,16 +112,15 @@ public class DBTServer00 implements DBTServerTest {
     public BTAdapter getAdapter() { return serverAdapter; }
 
     private final void setDevice(final BTDevice cd) {
-        final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
-        connectedDevice = cd;
-        sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+        synchronized( sync_lock ) {
+            connectedDevice = cd;
+        }
     }
 
     private final BTDevice getDevice() {
-        final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
-        final BTDevice d = connectedDevice;
-        sync_data = local; // SC-DRF release via sc_atomic_bool::store()
-        return d;
+        synchronized( sync_lock ) {
+            return connectedDevice;
+        }
     }
 
     private boolean matches(final BTDevice device) {
@@ -378,7 +377,7 @@ public class DBTServer00 implements DBTServerTest {
 
     class MyGATTServerListener extends DBGattServer.Listener implements AutoCloseable {
         private final Thread pulseSenderThread;
-        private volatile boolean stopPulseSender = false;
+        private volatile boolean stopPulseSenderFlag = false;
 
         private volatile short handlePulseDataNotify = 0;
         private volatile short handlePulseDataIndicate = 0;
@@ -388,23 +387,25 @@ public class DBTServer00 implements DBTServerTest {
         private int usedMTU = 23; // BTGattHandler::number(BTGattHandler::Defaults::MIN_ATT_MTU);
 
         private void clear() {
-            final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
+            synchronized( sync_lock ) {
+                handlePulseDataNotify = 0;
+                handlePulseDataIndicate = 0;
+                handleResponseDataNotify = 0;
+                handleResponseDataIndicate = 0;
 
-            handlePulseDataNotify = 0;
-            handlePulseDataIndicate = 0;
-            handleResponseDataNotify = 0;
-            handleResponseDataIndicate = 0;
-
-            dbGattServer.resetGattClientCharConfig(DBTConstants.DataServiceUUID, DBTConstants.PulseDataUUID);
-            dbGattServer.resetGattClientCharConfig(DBTConstants.DataServiceUUID, DBTConstants.ResponseUUID);
-
-            sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+                dbGattServer.resetGattClientCharConfig(DBTConstants.DataServiceUUID, DBTConstants.PulseDataUUID);
+                dbGattServer.resetGattClientCharConfig(DBTConstants.DataServiceUUID, DBTConstants.ResponseUUID);
+            }
         }
 
+        private boolean shallStopPulseSender() {
+            synchronized( sync_lock ) {
+                return stopPulseSenderFlag;
+            }
+        }
         private void pulseSender() {
-            while( !stopPulseSender ) {
+            while( !shallStopPulseSender() ) {
                 {
-                    final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
                     final BTDevice connectedDevice_ = getDevice();
                     if( null != connectedDevice_ && connectedDevice_.getConnected() ) {
                         if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
@@ -424,10 +425,12 @@ public class DBTServer00 implements DBTServerTest {
                             }
                         }
                     }
-                    sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+                }
+                if( shallStopPulseSender() ) {
+                    return;
                 }
                 try {
-                    Thread.sleep(20); // 20ms
+                    Thread.sleep(100); // 100ms
                 } catch (final InterruptedException e) { }
             }
         }
@@ -460,10 +463,8 @@ public class DBTServer00 implements DBTServerTest {
 
         @Override
         public void close() {
-            {
-                final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
-                stopPulseSender = true;
-                sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+            synchronized( sync_lock ) {
+                stopPulseSenderFlag = true;
             }
             if( !pulseSenderThread.isDaemon() ) {
                 try {
@@ -475,25 +476,23 @@ public class DBTServer00 implements DBTServerTest {
 
         @Override
         public void connected(final BTDevice device, final int initialMTU) {
-            final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
             final boolean match = matches(device);
             BTUtils.fprintf_td(System.err, "****** Server GATT::connected(match %b): initMTU %d, %s\n",
                     match, initialMTU, device.toString());
             if( match ) {
-                usedMTU = initialMTU;
+                synchronized( sync_lock ) {
+                    usedMTU = initialMTU;
+                }
             }
-            sync_data = local; // SC-DRF release via sc_atomic_bool::store()
         }
 
         @Override
         public void disconnected(final BTDevice device) {
-            final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
             final boolean match = matches(device);
             BTUtils.fprintf_td(System.err, "****** Server GATT::disconnected(match %b): %s\n", match, device.toString());
             if( match ) {
                 clear();
             }
-            sync_data = local; // SC-DRF release via sc_atomic_bool::store()
         }
 
         @Override
@@ -501,7 +500,9 @@ public class DBTServer00 implements DBTServerTest {
             final boolean match = matches(device);
             final int usedMTU_old = usedMTU;
             if( match ) {
-                usedMTU = mtu;
+                synchronized( sync_lock ) {
+                    usedMTU = mtu;
+                }
             }
             BTUtils.fprintf_td(System.err, "****** Server GATT::mtuChanged(match %b, served %d, left %d): %d -> %d, %s\n",
                     match, servedConnections.get(), servingConnectionsLeft.get(),
@@ -607,17 +608,19 @@ public class DBTServer00 implements DBTServerTest {
                         device.toString(), s.toString(), c.toString(), d.toString(), value.toString());
             }
             if( match ) {
-                final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
                 final String value_type = c.getValueType();
                 final short value_handle = c.getValueHandle();
                 if( value_type.equals( DBTConstants.PulseDataUUID ) ) {
-                    handlePulseDataNotify = notificationEnabled ? value_handle : 0;
-                    handlePulseDataIndicate = indicationEnabled ? value_handle : 0;
+                    synchronized( sync_lock ) {
+                        handlePulseDataNotify = notificationEnabled ? value_handle : 0;
+                        handlePulseDataIndicate = indicationEnabled ? value_handle : 0;
+                    }
                 } else if( value_type.equals( DBTConstants.ResponseUUID ) ) {
-                    handleResponseDataNotify = notificationEnabled ? value_handle : 0;
-                    handleResponseDataIndicate = indicationEnabled ? value_handle : 0;
+                    synchronized( sync_lock ) {
+                        handleResponseDataNotify = notificationEnabled ? value_handle : 0;
+                        handleResponseDataIndicate = indicationEnabled ? value_handle : 0;
+                    }
                 }
-                sync_data = local; // SC-DRF release via sc_atomic_bool::store()
             }
         }
     }

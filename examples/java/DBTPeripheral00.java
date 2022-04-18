@@ -81,22 +81,21 @@ public class DBTPeripheral00 {
     BTSecurityLevel adapter_sec_level = BTSecurityLevel.UNSET;
     boolean SHOW_UPDATE_EVENTS = false;
     boolean RUN_ONLY_ONCE = false;
-    private volatile boolean sync_data;
+    private final Object sync_lock = new Object();
     private volatile BTDevice connectedDevice;
 
     volatile int servedConnections = 0;
 
     private final void setDevice(final BTDevice cd) {
-        final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
-        connectedDevice = cd;
-        sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+        synchronized( sync_lock ) {
+            connectedDevice = cd;
+        }
     }
 
     private final BTDevice getDevice() {
-        final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
-        final BTDevice d = connectedDevice;
-        sync_data = local; // SC-DRF release via sc_atomic_bool::store()
-        return d;
+        synchronized( sync_lock ) {
+            return connectedDevice;
+        }
     }
 
     private boolean matches(final BTDevice device) {
@@ -368,7 +367,7 @@ public class DBTPeripheral00 {
 
     class MyGATTServerListener extends DBGattServer.Listener implements AutoCloseable {
         private final Thread pulseSenderThread;
-        private volatile boolean stopPulseSender = false;
+        private volatile boolean stopPulseSenderFlag = false;
 
         private volatile short handlePulseDataNotify = 0;
         private volatile short handlePulseDataIndicate = 0;
@@ -377,31 +376,26 @@ public class DBTPeripheral00 {
 
         private int usedMTU = 23; // BTGattHandler::number(BTGattHandler::Defaults::MIN_ATT_MTU);
 
-        private boolean matches(final BTDevice device) {
-            final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
-            final boolean res = null != connectedDevice ? connectedDevice.equals(device) : false;
-            sync_data = local; // SC-DRF release via sc_atomic_bool::store()
-            return res;
-        }
-
         private void clear() {
-            final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
+            synchronized( sync_lock ) {
+                handlePulseDataNotify = 0;
+                handlePulseDataIndicate = 0;
+                handleResponseDataNotify = 0;
+                handleResponseDataIndicate = 0;
 
-            handlePulseDataNotify = 0;
-            handlePulseDataIndicate = 0;
-            handleResponseDataNotify = 0;
-            handleResponseDataIndicate = 0;
-
-            dbGattServer.resetGattClientCharConfig(DataServiceUUID, PulseDataUUID);
-            dbGattServer.resetGattClientCharConfig(DataServiceUUID, ResponseUUID);
-
-            sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+                dbGattServer.resetGattClientCharConfig(DataServiceUUID, PulseDataUUID);
+                dbGattServer.resetGattClientCharConfig(DataServiceUUID, ResponseUUID);
+            }
         }
 
+        private boolean shallStopPulseSender() {
+            synchronized( sync_lock ) {
+                return stopPulseSenderFlag;
+            }
+        }
         private void pulseSender() {
-            while( !stopPulseSender ) {
+            while( !shallStopPulseSender() ) {
                 {
-                    final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
                     final BTDevice connectedDevice_ = getDevice();
                     if( null != connectedDevice_ && connectedDevice_.getConnected() ) {
                         if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
@@ -417,10 +411,12 @@ public class DBTPeripheral00 {
                             }
                         }
                     }
-                    sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+                }
+                if( shallStopPulseSender() ) {
+                    return;
                 }
                 try {
-                    Thread.sleep(500); // 500ms
+                    Thread.sleep(100); // 100ms
                 } catch (final InterruptedException e) { }
             }
         }
@@ -449,10 +445,8 @@ public class DBTPeripheral00 {
 
         @Override
         public void close() {
-            {
-                final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
-                stopPulseSender = true;
-                sync_data = local; // SC-DRF release via sc_atomic_bool::store()
+            synchronized( sync_lock ) {
+                stopPulseSenderFlag = true;
             }
             if( !pulseSenderThread.isDaemon() ) {
                 try {
@@ -464,25 +458,23 @@ public class DBTPeripheral00 {
 
         @Override
         public void connected(final BTDevice device, final int initialMTU) {
-            final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
             final boolean match = matches(device);
             BTUtils.fprintf_td(System.err, "****** GATT::connected(match %b): initMTU %d, %s\n",
                     match, initialMTU, device.toString());
             if( match ) {
-                usedMTU = initialMTU;
+                synchronized( sync_lock ) {
+                    usedMTU = initialMTU;
+                }
             }
-            sync_data = local; // SC-DRF release via sc_atomic_bool::store()
         }
 
         @Override
         public void disconnected(final BTDevice device) {
-            final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
             final boolean match = matches(device);
             BTUtils.fprintf_td(System.err, "****** GATT::disconnected(match %b): %s\n", match, device.toString());
             if( match ) {
                 clear();
             }
-            sync_data = local; // SC-DRF release via sc_atomic_bool::store()
         }
 
         @Override
@@ -491,7 +483,9 @@ public class DBTPeripheral00 {
             BTUtils.fprintf_td(System.err, "****** GATT::mtuChanged(match %b): %d -> %d, %s\n",
                     match, match ? (int)usedMTU : 0, mtu, device.toString());
             if( match ) {
-                usedMTU = mtu;
+                synchronized( sync_lock ) {
+                    usedMTU = mtu;
+                }
             }
         }
 
@@ -570,17 +564,19 @@ public class DBTPeripheral00 {
                     device.toString(), s.toString(), c.toString(), d.toString(), value.toString());
 
             if( match ) {
-                final boolean local = sync_data; // SC-DRF acquire via sc_atomic_bool::load()
                 final String value_type = c.getValueType();
                 final short value_handle = c.getValueHandle();
                 if( value_type.equals( PulseDataUUID ) ) {
-                    handlePulseDataNotify = notificationEnabled ? value_handle : 0;
-                    handlePulseDataIndicate = indicationEnabled ? value_handle : 0;
+                    synchronized( sync_lock ) {
+                        handlePulseDataNotify = notificationEnabled ? value_handle : 0;
+                        handlePulseDataIndicate = indicationEnabled ? value_handle : 0;
+                    }
                 } else if( value_type.equals( ResponseUUID ) ) {
-                    handleResponseDataNotify = notificationEnabled ? value_handle : 0;
-                    handleResponseDataIndicate = indicationEnabled ? value_handle : 0;
+                    synchronized( sync_lock ) {
+                        handleResponseDataNotify = notificationEnabled ? value_handle : 0;
+                        handleResponseDataIndicate = indicationEnabled ? value_handle : 0;
+                    }
                 }
-                sync_data = local; // SC-DRF release via sc_atomic_bool::store()
             }
         }
     }
