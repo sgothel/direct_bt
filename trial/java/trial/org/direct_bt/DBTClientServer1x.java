@@ -202,9 +202,8 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
         //
         {
             final BTAdapter adapter = server.getAdapter();
-            {
-                final int r = adapter.removeAllStatusListener();
-                Assert.assertTrue("Not > 0 removed listener, but "+r, 0 < r );
+            { // if( false ) {
+                adapter.removeAllStatusListener();
             }
 
             DBTEndpoint.startDiscovery(adapter, false /* current_exp_discovering_state */);

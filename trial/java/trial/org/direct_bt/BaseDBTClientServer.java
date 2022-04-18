@@ -155,9 +155,8 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
         if( null != manager ) {
             final List<BTAdapter> adapters = manager.getAdapters();
             for(final BTAdapter a : adapters) {
-                {
-                    final int r = a.removeAllStatusListener();
-                    Assert.assertTrue("Not >= 0 removed listener, but "+r, 0 <= r );
+                { // if( false ) {
+                    a.removeAllStatusListener();
                 }
                 a.stopAdvertising();
                 a.stopDiscovery();
