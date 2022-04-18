@@ -386,7 +386,7 @@ All tests pass reproducible using two well working adapter, e.g. Raspi 3b+ (BT4)
 
 1/7 tests using at least one not well working BT5 adapter may timeout and hence fail.
 The following issues are known and are under investigation:
-- *BlueZ* is not sending us all new key information
+- *BlueZ* is not sending us all new key information under legacy security (SC 0)
   - This is mitigated by *BTAdapter*'s *smp_watchdog*, leading to a retrial visible as *SMP Timeout*
 
 ### Cross Build
