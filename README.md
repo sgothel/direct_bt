@@ -68,6 +68,9 @@ To support other platforms than Linux/BlueZ, we will have to
 * move specified HCI host features used in DBTManager to HCIHandler, SMPHandler,.. - and -
 * add specialization for each new platform using their non-platform-agnostic features.
 
+### Direct-BT Default Connection Parameter
+Please check the [Connection Paramter](doc/Connection_Parameter.md) for details.
+
 
 ## Supported Platforms
 The following **platforms** are tested and hence supported
@@ -384,9 +387,9 @@ The *trial* tests take around 100 seconds, since `TestDBClientServer1*` performs
 
 All tests pass reproducible using two well working adapter, e.g. Raspi 3b+ (BT4) and CSR (BT4).
 
-1/7 tests using at least one not well working BT5 adapter may timeout and hence fail.
+1/7 legacy security (SC 0) tests using at least one not well working BT5 adapter may timeout waiting for key completion.
 The following issues are known and are under investigation:
-- *BlueZ* is not sending us all new key information under legacy security (SC 0)
+- *BlueZ* is not sending us all new key information under legacy security (SC 0) using at least one BT5 adapter
   - This is mitigated by *BTAdapter*'s *smp_watchdog*, leading to a retrial visible as *SMP Timeout*
 
 ### Cross Build
@@ -497,8 +500,24 @@ from the year 2016.
 
 * TODO
 
+**2.6.4**
+* Fix several memory leaks and uninitialized fields using valgrind analysis (native and w/ JVM)
+  - BTGattHandler::disconnect(): Check weak BTDevice before using resources
+  - BTGattHandler::l2capReaderEndLocked(): Remove off-thread BTDevice::disconnect() on io-error, use BT host's disconnect (simplify tear down)
+  - BTGattHandler's l2capReader data race (use after free)
+* Trial `TestDBClientServer1*` test changes
+  - Split tests into NoEnc, SC0 and SC1 classes
+  - Have client/server adapter names unique, allowing multi-machine testing in one room
+* Bump jaulib v0.8.0
+* BTAdapter Server: Offload waiting for L2CAP client connection to BTDevice::processL2CAPSetup() dedicated thread
+* [L2CAP, HCI]Comm: Hold external interrupted delegate from `service_runner` for complete interrupted() query
+* WIP: BTAdapter::startDiscovery(): Retry up to `MAX_BACKGROUND_DISCOVERY_RETRY` (3), mitigating failure to start discovery
+* BTDevice::notifyLEFeature(): Remove HCIStatusCode param and only call with SUCCESS status code
+* Fix and [document default connection paramter](doc/Connection_Parameter.md), leaning to the higher performance side
+* Resolve legacy security (SC 0) BlueZ/Kernel Mgmt LTK role of `master` or `initiator` field
+
 **2.6.3**
-- Have trial `TestDBClientServer1*` test in both client/server directions, legacy and secure connections (SC)
+* Have trial `TestDBClientServer1*` test in both client/server directions, legacy and secure connections (SC)
 * Fix BTAdapter's server mode key handling
 * Have failed pairing issue disconnect, posting indicative reason
 * Use global `inline constexpr` instead of `#define` macros
