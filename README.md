@@ -500,7 +500,7 @@ from the year 2016.
 
 * TODO
 
-**2.6.4**
+**2.6.5**
 * Fix several memory leaks and uninitialized fields using valgrind analysis (native and w/ JVM)
   - BTGattHandler::disconnect(): Check weak BTDevice before using resources
   - BTGattHandler::l2capReaderEndLocked(): Remove off-thread BTDevice::disconnect() on io-error, use BT host's disconnect (simplify tear down)
