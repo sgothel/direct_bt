@@ -1813,7 +1813,7 @@ void BTAdapter::l2capServerWork(jau::service_runner& sr) {
     (void)sr;
     std::unique_ptr<L2CAPClient> l2cap_att_ = l2cap_att_srv.accept();
     if( BTRole::Slave == getRole() && nullptr != l2cap_att_ ) {
-        DBG_PRINT("BTAdapter::l2capServer connected.1: %s", l2cap_att_->toString().c_str());
+        DBG_PRINT("L2CAP-ACCEPT: BTAdapter::l2capServer connected.1: %s", l2cap_att_->toString().c_str());
 
         std::unique_lock<std::mutex> lock(mtx_l2cap_att); // RAII-style acquire and relinquish via destructor
         l2cap_att = std::move( l2cap_att_ );
@@ -1821,9 +1821,37 @@ void BTAdapter::l2capServerWork(jau::service_runner& sr) {
         cv_l2cap_att.notify_all(); // notify waiting getter
 
     } else if( nullptr != l2cap_att_ ) {
-        DBG_PRINT("BTAdapter::l2capServer connected.2: %s", l2cap_att_->toString().c_str());
+        DBG_PRINT("L2CAP-ACCEPT: BTAdapter::l2capServer connected.2: %s", l2cap_att_->toString().c_str());
     } else {
-        DBG_PRINT("BTAdapter::l2capServer connected.0: nullptr");
+        DBG_PRINT("L2CAP-ACCEPT: BTAdapter::l2capServer connected.0: nullptr");
+    }
+}
+
+std::unique_ptr<L2CAPClient> BTAdapter::get_l2cap_connection(std::shared_ptr<BTDevice> device) {
+    if( BTRole::Slave == getRole() ) {
+        const BDAddressAndType& clientAddrAndType = device->getAddressAndType();
+        const jau::nsize_t timeout_ms = L2CAP_CLIENT_CONNECT_TIMEOUT_MS;
+
+        std::unique_lock<std::mutex> lock(mtx_l2cap_att); // RAII-style acquire and relinquish via destructor
+        while( device->getConnected() && ( nullptr == l2cap_att || l2cap_att->getRemoteAddressAndType() != clientAddrAndType ) ) {
+            std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+            std::cv_status s = cv_l2cap_att.wait_until(lock, t0 + std::chrono::milliseconds(timeout_ms));
+            if( std::cv_status::timeout == s && ( nullptr == l2cap_att || l2cap_att->getRemoteAddressAndType() != clientAddrAndType ) ) {
+                DBG_PRINT("L2CAP-ACCEPT: BTAdapter:get_l2cap_connection(dev_id %d): l2cap_att TIMEOUT", dev_id);
+                return nullptr;
+            }
+        }
+        if( nullptr != l2cap_att ) {
+            std::unique_ptr<L2CAPClient> l2cap_att_ = std::move( l2cap_att );
+            DBG_PRINT("L2CAP-ACCEPT: BTAdapter:get_l2cap_connection(dev_id %d): l2cap_att %s", dev_id, l2cap_att_->toString().c_str());
+            return l2cap_att_; // copy elision
+        } else {
+            DBG_PRINT("L2CAP-ACCEPT: BTAdapter:get_l2cap_connection(dev_id %d): Might got disconnected", dev_id);
+            return nullptr;
+        }
+    } else {
+        DBG_PRINT("L2CAP-ACCEPT: BTAdapter:get_l2cap_connection(dev_id %d): Not in server mode", dev_id);
+        return nullptr;
     }
 }
 
@@ -1869,7 +1897,6 @@ jau::nsize_t BTAdapter::smp_timeoutfunc(jau::simple_timer& timer) {
 
 bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(&e);
-    const BDAddressAndType deviceAddressAndType(event.getAddress(), event.getAddressType());
     EInfoReport ad_report;
     {
         ad_report.setSource(EInfoReport::Source::EIR);
@@ -1879,22 +1906,6 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         ad_report.read_data(event.getData(), event.getDataSize());
     }
     DBG_PRINT("BTAdapter:hci:DeviceConnected(dev_id %d): %s: %s", dev_id, e.toString().c_str(), ad_report.toString().c_str());
-
-    std::unique_ptr<L2CAPClient> l2cap_att_;
-    if( BTRole::Slave == getRole() ) {
-        const uint32_t timeout_ms = 10000; // FIXME: Configurable?
-        std::unique_lock<std::mutex> lock(mtx_l2cap_att); // RAII-style acquire and relinquish via destructor
-        while( nullptr == l2cap_att || l2cap_att->getRemoteAddressAndType() != deviceAddressAndType ) {
-            std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
-            std::cv_status s = cv_l2cap_att.wait_until(lock, t0 + std::chrono::milliseconds(timeout_ms));
-            if( std::cv_status::timeout == s && ( nullptr == l2cap_att || l2cap_att->getRemoteAddressAndType() != deviceAddressAndType ) ) {
-                DBG_PRINT("BTAdapter:hci:DeviceConnected(dev_id %d): l2cap_att TIMEOUT", dev_id);
-                return true;
-            }
-        }
-        l2cap_att_ = std::move( l2cap_att );
-        DBG_PRINT("BTAdapter:hci:DeviceConnected(dev_id %d): l2cap_att %s", dev_id, l2cap_att_->toString().c_str());
-    }
 
     int new_connect = 0;
     bool slave_unpair = false;
@@ -1925,7 +1936,6 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     }
     bool has_smp_key;
     if( BTRole::Slave == getRole() ) {
-        device->l2cap_att = std::move(l2cap_att_);
         has_smp_key = nullptr != findSMPKeyBin( device->getAddressAndType() ); // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS
     } else {
         has_smp_key = false;

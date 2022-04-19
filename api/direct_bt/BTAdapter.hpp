@@ -505,6 +505,7 @@ namespace direct_bt {
             void l2capServerWork(jau::service_runner& sr);
             void l2capServerInit(jau::service_runner& sr);
             void l2capServerEnd(jau::service_runner& sr);
+            std::unique_ptr<L2CAPClient> get_l2cap_connection(std::shared_ptr<BTDevice> device);
 
             bool mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept;
             void updateAdapterSettings(const bool off_thread, const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept;

@@ -70,6 +70,11 @@ namespace direct_bt {
     inline constexpr const jau::nsize_t SMP_NEXT_EVENT_TIMEOUT_MS = 2000;
 
     /**
+     * Maximum time in milliseconds to wait for L2CAP client connection when adapter is in server mode.
+     */
+    inline constexpr const jau::nsize_t L2CAP_CLIENT_CONNECT_TIMEOUT_MS = 1000;
+
+    /**
      * Maximum number of enabling discovery in background in case of failure
      */
     inline constexpr const jau::nsize_t MAX_BACKGROUND_DISCOVERY_RETRY = 3;

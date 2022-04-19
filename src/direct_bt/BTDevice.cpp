@@ -579,7 +579,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
     bool smp_auto = false;
     const bool is_local_server = BTRole::Master == btRole; // -> local GattRole::Server
 
-    if( addressAndType.isLEAddress() && ( !l2cap_att->is_open() || is_local_server ) ) {
+    if( addressAndType.isLEAddress() && ( is_local_server || !l2cap_att->is_open() ) ) {
         std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
         DBG_PRINT("BTDevice::processL2CAPSetup: Start dev_id %u, %s", adapter.dev_id, toString().c_str());
@@ -609,11 +609,21 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
                 to_string(sec_level).c_str());
 
         bool l2cap_open;
-        if( is_local_server && l2cap_att->is_open() ) {
-            if( BTSecurityLevel::UNSET < sec_level ) {
-                l2cap_open = l2cap_att->setBTSecurityLevel(sec_level);
+        if( is_local_server ) {
+            const uint64_t t0 = ( jau::environment::get().debug ) ? jau::getCurrentMilliseconds() : 0;
+            std::unique_ptr<L2CAPClient> l2cap_att_new = adapter.get_l2cap_connection(sthis);
+            const uint64_t td = ( jau::environment::get().debug ) ? jau::getCurrentMilliseconds() - t0 : 0;
+            if( nullptr == l2cap_att_new ) {
+                DBG_PRINT("L2CAP-ACCEPT: BTDevice::processL2CAPSetup: dev_id %d, td %" PRIu64 "ms, NULL l2cap_att", adapter.dev_id, td);
+                l2cap_open = false;
             } else {
-                l2cap_open = true;
+                l2cap_att = std::move(l2cap_att_new);
+                DBG_PRINT("L2CAP-ACCEPT: BTDevice::processL2CAPSetup: dev_id %d, td %" PRIu64 "ms, l2cap_att %s", adapter.dev_id, td, l2cap_att->toString().c_str());
+                if( BTSecurityLevel::UNSET < sec_level ) {
+                    l2cap_open = l2cap_att->setBTSecurityLevel(sec_level);
+                } else {
+                    l2cap_open = true;
+                }
             }
         } else {
             l2cap_open = l2cap_att->open(*this, sec_level); // initiates hciSMPMsgCallback() if sec_level > BT_SECURITY_LOW
