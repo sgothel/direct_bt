@@ -851,11 +851,15 @@ namespace direct_bt {
         ALL          = 0xffffffff
     };
     constexpr uint32_t number(const EIRDataType rhs) noexcept { return static_cast<uint32_t>(rhs); }
+
     constexpr EIRDataType operator |(const EIRDataType lhs, const EIRDataType rhs) noexcept {
         return static_cast<EIRDataType> ( number(lhs) | number(rhs) );
     }
     constexpr EIRDataType operator &(const EIRDataType lhs, const EIRDataType rhs) noexcept {
         return static_cast<EIRDataType> ( number(lhs) & number(rhs) );
+    }
+    constexpr EIRDataType operator ~(const EIRDataType rhs) noexcept {
+        return static_cast<EIRDataType> ( ~number(rhs) );
     }
     constexpr bool operator ==(const EIRDataType lhs, const EIRDataType rhs) noexcept {
         return number(lhs) == number(rhs);
@@ -866,6 +870,10 @@ namespace direct_bt {
     constexpr bool isEIRDataTypeSet(const EIRDataType mask, const EIRDataType bit) noexcept { return EIRDataType::NONE != ( mask & bit ); }
     constexpr void setEIRDataTypeSet(EIRDataType &mask, const EIRDataType bit) noexcept { mask = mask | bit; }
     std::string to_string(const EIRDataType mask) noexcept;
+
+    /** Explicit mask to erase all implicit set EIRDataType fields: EVT_TYPE, EXT_EVT_TYPE, BDADDR_TYPE, BDADDR and RSSI. */
+    inline constexpr const EIRDataType EIR_DATA_TYPE_MASK = ~( EIRDataType::EVT_TYPE | EIRDataType::EXT_EVT_TYPE |
+                                                               EIRDataType::BDADDR_TYPE | EIRDataType::BDADDR | EIRDataType::RSSI );
 
     /**
      * Collection of 'Extended Advertising Data' (EAD), 'Advertising Data' (AD)
@@ -884,20 +892,26 @@ namespace direct_bt {
     class EInfoReport {
         public:
             enum class Source : int {
-                /** not available */
-                NA,
-                /* Advertising Data (AD) */
-                AD,
-                /* Extended Advertising Data (EAD) */
-                EAD,
+                /** Not Available */
+                NA          = 0,
+                /** (Extended) Advertising Data (AD or EAD) Indication Variant, i.e. initial passive scan data. */
+                AD_IND      = 1,
+                /** (Extended) Advertising Data (AD or EAD) Scan Response, i.e. optional active scanning data after AD_IND. */
+                AD_SCAN_RSP = 2,
                 /** Extended Inquiry Response (EIR) */
-                EIR,
+                EIR         = 3,
                 /** Extended Inquiry Response (EIR) from Kernel Mgmt */
-                EIR_MGMT
+                EIR_MGMT    = 4
             };
+            static constexpr int number(const Source rhs) noexcept { return static_cast<int>(rhs); }
+            static Source toSource(const AD_PDU_Type type);
+            static Source toSource(const EAD_Event_Type type);
 
         private:
+            /** Source */
             Source source = Source::NA;
+            /** Flag whether source originated from an extended BT5 data set, i.e. EAD */
+            bool source_ext = false;
             uint64_t timestamp = 0;
             EIRDataType eir_data_mask = static_cast<EIRDataType>(0);
 
@@ -956,7 +970,7 @@ namespace direct_bt {
              */
             EIRDataType set(const EInfoReport& eir) noexcept;
 
-            void setSource(Source s) noexcept { source = s; }
+            void setSource(Source s, bool ext) noexcept { source = s; source_ext = ext; }
             void setTimestamp(uint64_t ts) noexcept { timestamp = ts; }
             void setEvtType(AD_PDU_Type et) noexcept { evt_type = et; set(EIRDataType::EVT_TYPE); }
             void setExtEvtType(EAD_Event_Type eadt) noexcept { ead_type = eadt; set(EIRDataType::EXT_EVT_TYPE); }
@@ -1081,6 +1095,8 @@ namespace direct_bt {
             jau::nsize_t write_data(EIRDataType write_mask, uint8_t * data, jau::nsize_t const data_length) const noexcept;
 
             Source getSource() const noexcept { return source; }
+            bool getSourceExt() const noexcept { return source_ext; }
+
             uint64_t getTimestamp() const noexcept { return timestamp; }
             bool isSet(EIRDataType bit) const noexcept { return EIRDataType::NONE != (eir_data_mask & bit); }
             EIRDataType getEIRDataMask() const noexcept { return eir_data_mask; }

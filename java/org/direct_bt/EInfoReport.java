@@ -51,6 +51,39 @@ public final class EInfoReport implements AutoCloseable, Cloneable
     private volatile long nativeInstance;
     /* pp */ long getNativeInstance() { return nativeInstance; }
 
+    public enum Source {
+        /** Not Available */
+        NA( 0 ),
+        /** (Extended) Advertising Data (AD or EAD) Indication Variant, i.e. initial passive scan data. */
+        AD_IND( 1 ),
+        /** (Extended) Advertising Data (AD or EAD) Scan Response, i.e. optional active scanning data after AD_IND. */
+        AD_SCAN_RSP( 2 ),
+        /** Extended Inquiry Response (EIR) */
+        EIR( 3 ),
+        /** Extended Inquiry Response (EIR) from Kernel Mgmt */
+        EIR_MGMT( 4 );
+
+        Source(final int v) {
+            value = v;
+        }
+        public final int value;
+
+        /**
+         * Maps the specified integer value to a constant of {@link Source}.
+         * @param value the integer value to be mapped to a constant of this enum type.
+         * @return the corresponding constant of this enum type, using {@link #NA} if not supported.
+         */
+        public static Source get(final int value) {
+            switch(value) {
+                case 1: return AD_IND;
+                case 2: return AD_SCAN_RSP;
+                case 3: return EIR;
+                case 4: return EIR_MGMT;
+                default: return NA;
+            }
+        }
+    }
+
     /**
      * New independent EInfoReport instance
      */
@@ -166,7 +199,9 @@ public final class EInfoReport implements AutoCloseable, Cloneable
      */
     public native void setConnInterval(final short min, final short max);
 
-    // public native Source getSource();
+    public final Source getSource() { return Source.get( getSourceImpl() ); }
+    private native int getSourceImpl();
+
     public native long getTimestamp();
 
     public final EIRDataTypeSet getEIRDataMask() {

@@ -51,6 +51,8 @@ BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
   ts_last_update(ts_last_discovery),
   name(),
   eir( std::make_shared<EInfoReport>() ),
+  eir_ind( std::make_shared<EInfoReport>() ),
+  eir_scan_rsp( std::make_shared<EInfoReport>() ),
   hciConnHandle(0),
   le_features(LE_Features::NONE),
   le_phy_tx(LE_PHYs::NONE),
@@ -113,14 +115,19 @@ std::string const BTDevice::getName() const noexcept {
     return res;
 }
 
-std::shared_ptr<const EInfoReport> BTDevice::getEIR() const noexcept {
+std::shared_ptr<EInfoReport> BTDevice::getEIR() noexcept {
     const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
     return eir;
 }
 
-std::shared_ptr<EInfoReport> BTDevice::getEIR() noexcept {
+std::shared_ptr<EInfoReport> BTDevice::getEIRInd() noexcept {
     const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
-    return eir;
+    return eir_ind;
+}
+
+std::shared_ptr<EInfoReport> BTDevice::getEIRScanRsp() noexcept {
+    const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
+    return eir_scan_rsp;
 }
 
 std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
@@ -156,6 +163,8 @@ void BTDevice::clearData() noexcept {
     {
         const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
         eir = std::make_shared<EInfoReport>();
+        eir_ind = std::make_shared<EInfoReport>();
+        eir_scan_rsp = std::make_shared<EInfoReport>();
     }
     // hciConnHandle = 0; // already done
     le_features = LE_Features::NONE;
@@ -177,6 +186,11 @@ EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
     EIRDataType res0 = eir_new->set(data);
     if( EIRDataType::NONE != res0 ) {
         eir = eir_new;
+    }
+    if( EInfoReport::Source::AD_IND ==  data.getSource() ) {
+        eir_ind = std::make_shared<EInfoReport>( data );
+    } else if( EInfoReport::Source::AD_SCAN_RSP ==  data.getSource() ) {
+        eir_scan_rsp = std::make_shared<EInfoReport>( data );
     }
 
     ts_last_update = data.getTimestamp();

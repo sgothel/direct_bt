@@ -84,7 +84,9 @@ namespace direct_bt {
             std::string name;
             int8_t rssi = 127; // The core spec defines 127 as the "not available" value
             int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
-            std::shared_ptr<EInfoReport> eir; // shared_ptr to allow CoW style update
+            std::shared_ptr<EInfoReport> eir; // Merged EIR (using shared_ptr to allow CoW style update)
+            std::shared_ptr<EInfoReport> eir_ind; // AD_IND EIR
+            std::shared_ptr<EInfoReport> eir_scan_rsp; // AD_SCAN_RSP EIR
             jau::relaxed_atomic_uint16 hciConnHandle;
             jau::ordered_atomic<LE_Features, std::memory_order_relaxed> le_features;
             jau::ordered_atomic<LE_PHYs, std::memory_order_relaxed> le_phy_tx;
@@ -333,18 +335,26 @@ namespace direct_bt {
             /**
              * Return the merged advertised EInfoReport for this remote device.
              *
-             * The EInfoReport is replaced by new scan-reports (update) and when disconnected (empty).
-             * @since 2.5.3
-             */
-            std::shared_ptr<const EInfoReport> getEIR() const noexcept;
-
-            /**
-             * Return the merged advertised EInfoReport for this remote device.
-             *
-             * The EInfoReport is replaced by new scan-reports (update) and when disconnected (empty).
+             * The EInfoReport is updated by new scan-reports (update) and when disconnected (empty).
              * @since 2.5.3
              */
             std::shared_ptr<EInfoReport> getEIR() noexcept;
+
+            /**
+             * Return the latest advertised EInfoReport AD_IND variant for this remote device.
+             *
+             * The EInfoReport is replaced by new scan-reports only.
+             * @since 2.6.6
+             */
+            std::shared_ptr<EInfoReport> getEIRInd() noexcept;
+
+            /**
+             * Return the latest advertised EInfoReport AD_SCAN_RSP for this remote device.
+             *
+             * The EInfoReport is replaced by new scan-reports only.
+             * @since 2.6.6
+             */
+            std::shared_ptr<EInfoReport> getEIRScanRsp() noexcept;
 
             std::string toString() const noexcept override { return toString(false); }
 

@@ -800,10 +800,26 @@ public interface BTDevice extends BTObject
     /**
      * Return the merged advertised {@link EInfoReport} for this remote device.
      *
-     * The EInfoReport is replaced by new scan-reports (update) and when disconnected (empty).
+     * The EInfoReport is updated by new scan-reports (update) and when disconnected (empty).
      * @since 2.5.3
      */
     EInfoReport getEIR();
+
+    /**
+     * Return the latest advertised EInfoReport AD_IND variant for this remote device.
+     *
+     * The EInfoReport is replaced by new scan-reports only.
+     * @since 2.6.6
+     */
+    EInfoReport getEIRInd();
+
+    /**
+     * Return the latest advertised EInfoReport AD_SCAN_RSP for this remote device.
+     *
+     * The EInfoReport is replaced by new scan-reports only.
+     * @since 2.6.6
+     */
+    EInfoReport getEIRScanRsp();
 
     /** Returns the connected state of the device.
       * @return The connected state of the device.

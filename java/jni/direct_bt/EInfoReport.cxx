@@ -366,6 +366,16 @@ jint Java_org_direct_1bt_EInfoReport_getEIRDataMaskImpl(JNIEnv *env, jobject obj
     return 0;
 }
 
+jint Java_org_direct_1bt_EInfoReport_getSourceImpl(JNIEnv *env, jobject obj) {
+    try {
+        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, obj);
+        return static_cast<jint>( EInfoReport::number( eir_ptr->getSource() ) );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return static_cast<jint>( EInfoReport::number( EInfoReport::Source::NA ) );
+}
+
 /*
  * Class:     org_direct_bt_EInfoReport
  * Method:    getFlagsImpl

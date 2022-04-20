@@ -433,7 +433,9 @@ static void connectToDiscoveredServer(BTDeviceRef device) {
         }
     }
     std::shared_ptr<const EInfoReport> eir = device->getEIR();
-    fprintf_td(stderr, "To Server: Using EIR %s\n", eir->toString().c_str());
+    fprintf_td(stderr, "To Server: EIR-1 %s\n", device->getEIRInd()->toString().c_str());
+    fprintf_td(stderr, "To Server: EIR-2 %s\n", device->getEIRScanRsp()->toString().c_str());
+    fprintf_td(stderr, "To Server: EIR-+ %s\n", eir->toString().c_str());
 
     uint16_t conn_interval_min  = (uint16_t)12;
     uint16_t conn_interval_max  = (uint16_t)12;
@@ -741,8 +743,8 @@ static bool startAdvertisingToClient(BTAdapterRef a, std::string msg) {
     }
 
     EInfoReport eir = *devToServer->getEIR();
-    EIRDataType adv_mask = EIRDataType::FLAGS | EIRDataType::SERVICE_UUID;
-    EIRDataType scanrsp_mask = EIRDataType::NAME | EIRDataType::CONN_IVAL;
+    const EIRDataType ind_mask = EIR_DATA_TYPE_MASK & devToServer->getEIRInd()->getEIRDataMask();
+    const EIRDataType scanrsp_mask = EIR_DATA_TYPE_MASK & devToServer->getEIRScanRsp()->getEIRDataMask();
 
     DBGattServerRef dbGattServer( new DBGattServer( devToServer ) );
     fprintf_td(stderr, "To Client: Start advertising: GattServer %s\n", dbGattServer->toString().c_str());
@@ -755,9 +757,9 @@ static bool startAdvertisingToClient(BTAdapterRef a, std::string msg) {
     }
 
     fprintf_td(stderr, "****** To Client: Start advertising (%s): EIR %s\n", msg.c_str(), eir.toString().c_str());
-    fprintf_td(stderr, "****** To Client: Start advertising (%s): adv %s, scanrsp %s\n", msg.c_str(), to_string(adv_mask).c_str(), to_string(scanrsp_mask).c_str());
+    fprintf_td(stderr, "****** To Client: Start advertising (%s): adv %s, scanrsp %s\n", msg.c_str(), to_string(ind_mask).c_str(), to_string(scanrsp_mask).c_str());
 
-    HCIStatusCode status = a->startAdvertising(dbGattServer, eir, adv_mask, scanrsp_mask,
+    HCIStatusCode status = a->startAdvertising(dbGattServer, eir, ind_mask, scanrsp_mask,
                                                adv_interval_min, adv_interval_max,
                                                adv_type, adv_chan_map, filter_policy);
     fprintf_td(stderr, "****** To Client: Start advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());

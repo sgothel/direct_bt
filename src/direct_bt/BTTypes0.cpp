@@ -818,7 +818,7 @@ EIRDataType EInfoReport::set(const EInfoReport& eir) noexcept {
         }
     }
     if( EIRDataType::NONE != res ) {
-        setSource(eir.getSource());
+        setSource(eir.getSource(), eir.getSourceExt());
         setTimestamp(eir.getTimestamp());
     }
     return res;
@@ -839,8 +839,8 @@ int EInfoReport::findService(const jau::uuid_t& uuid) const noexcept
 std::string direct_bt::to_string(EInfoReport::Source source) noexcept {
     switch (source) {
         case EInfoReport::Source::NA: return "N/A";
-        case EInfoReport::Source::AD: return "AD";
-        case EInfoReport::Source::EAD: return "EAD";
+        case EInfoReport::Source::AD_IND: return "AD_IND";
+        case EInfoReport::Source::AD_SCAN_RSP: return "AD_SCAN_RSP";
         case EInfoReport::Source::EIR: return "EIR";
         case EInfoReport::Source::EIR_MGMT: return "EIR_MGMT";
     }
@@ -926,11 +926,12 @@ bool EInfoReport::addService(const jau::uuid_t& uuid) noexcept {
 }
 
 std::string EInfoReport::eirDataMaskToString() const noexcept {
-    return std::string("DataSet"+ direct_bt::to_string(eir_data_mask) );
+    return std::string("Set"+ direct_bt::to_string( EIR_DATA_TYPE_MASK & eir_data_mask ) );
 }
 std::string EInfoReport::toString(const bool includeServices) const noexcept {
-    std::string out("EInfoReport::"+to_string(source)+
-                    "[address["+address.toString()+", "+to_string(getAddressType())+"/"+std::to_string(ad_address_type)+
+    const std::string source_ext_s = source_ext ? "bt5" : "bt4";
+    std::string out(to_string(source)+
+                    "["+source_ext_s+", address["+address.toString()+", "+to_string(getAddressType())+"/"+std::to_string(ad_address_type)+
                     "], "+eirDataMaskToString()+", ");
     if( isSet(EIRDataType::NAME) || isSet(EIRDataType::NAME_SHORT) ) {
         out += "name['"+name+"'/'"+name_short+"'], ";
@@ -1383,6 +1384,49 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
 }
 // #define AD_DEBUG 1
 
+EInfoReport::Source EInfoReport::toSource(const AD_PDU_Type type) {
+    switch( type ) {
+        case AD_PDU_Type::ADV_IND:
+            [[fallthrough]];
+        case AD_PDU_Type::ADV_DIRECT_IND:
+            [[fallthrough]];
+        case AD_PDU_Type::ADV_SCAN_IND:
+            [[fallthrough]];
+        case AD_PDU_Type::ADV_NONCONN_IND:
+            [[fallthrough]];
+        case AD_PDU_Type::ADV_IND2:
+            [[fallthrough]];
+        case AD_PDU_Type::DIRECT_IND2:
+            [[fallthrough]];
+        case AD_PDU_Type::SCAN_IND2:
+            [[fallthrough]];
+        case AD_PDU_Type::NONCONN_IND2:
+            return Source::AD_IND;
+
+        case AD_PDU_Type::SCAN_RSP:
+            [[fallthrough]];
+        case AD_PDU_Type::SCAN_RSP_to_ADV_IND:
+            [[fallthrough]];
+        case AD_PDU_Type::SCAN_RSP_to_ADV_SCAN_IND:
+            return Source::AD_SCAN_RSP;
+        default:
+            return Source::NA;
+    }
+}
+
+EInfoReport::Source EInfoReport::toSource(const EAD_Event_Type type) {
+    if( isEAD_Event_TypeSet(type, EAD_Event_Type::CONN_ADV) ||
+        isEAD_Event_TypeSet(type, EAD_Event_Type::SCAN_ADV) ||
+        isEAD_Event_TypeSet(type, EAD_Event_Type::DIR_ADV) ) {
+        return Source::AD_IND;
+    }
+    if( isEAD_Event_TypeSet(type, EAD_Event_Type::SCAN_RSP) ) {
+        return Source::AD_SCAN_RSP;
+    }
+    return Source::NA;
+}
+
+
 jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept {
     jau::nsize_t const num_reports = (jau::nsize_t) data[0];
     jau::darray<std::unique_ptr<EInfoReport>> ad_reports;
@@ -1401,7 +1445,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
 
     for(i = 0; i < num_reports && i_octets < limes; i++) { // seg 1
         ad_reports.push_back( std::make_unique<EInfoReport>() );
-        ad_reports[i]->setSource(Source::AD);
+        ad_reports[i]->setSource(Source::AD_IND, false /* ext */); // first guess
         ad_reports[i]->setTimestamp(timestamp);
 
         if( i_octets + seg4_size > limes ) {
@@ -1413,7 +1457,11 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         }
 
         // seg 1: 1
-        ad_reports[i]->setEvtType(static_cast<AD_PDU_Type>(*i_octets++));
+        {
+            const AD_PDU_Type ad_type = static_cast<AD_PDU_Type>(*i_octets++);
+            ad_reports[i]->setEvtType( ad_type );
+            ad_reports[i]->setSource( toSource( ad_type ), false /* ext */);
+        }
 
         // seg 2: 1
         ad_reports[i]->setADAddressType(*i_octets++);
@@ -1484,7 +1532,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ext_ad_reports(uint8
 
     for(i = 0; i < num_reports; i++) {
         ad_reports.push_back( std::make_unique<EInfoReport>() );
-        ad_reports[i]->setSource(Source::EAD);
+        ad_reports[i]->setSource( Source::AD_IND, true /* ext */); // first guess
         ad_reports[i]->setTimestamp(timestamp);
 
         if( i_octets + seg12_size > limes ) {
@@ -1497,11 +1545,15 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ext_ad_reports(uint8
 
         // seg 1: 2
         {
-            const EAD_Event_Type ead_type_ = static_cast<EAD_Event_Type>(jau::get_uint16(i_octets, 0, true /* littleEndian */));
-            ad_reports[i]->setExtEvtType(ead_type_);
+            const EAD_Event_Type ead_type = static_cast<EAD_Event_Type>(jau::get_uint16(i_octets, 0, true /* littleEndian */));
+            ad_reports[i]->setExtEvtType(ead_type);
             i_octets+=2;
-            if( isEAD_Event_TypeSet(ead_type_, EAD_Event_Type::LEGACY_PDU) ) {
-                ad_reports[i]->setEvtType(static_cast<AD_PDU_Type>(number(ead_type_)));
+            if( isEAD_Event_TypeSet(ead_type, EAD_Event_Type::LEGACY_PDU) ) {
+                const AD_PDU_Type ad_type = static_cast<AD_PDU_Type>( ::number(ead_type) );
+                ad_reports[i]->setEvtType( ad_type );
+                ad_reports[i]->setSource( toSource( ad_type ), true /* ext */);
+            } else {
+                ad_reports[i]->setSource( toSource( ead_type ), true /* ext */);
             }
         }
 

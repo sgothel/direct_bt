@@ -660,7 +660,7 @@ HCIStatusCode BTAdapter::uploadKeys(SMPKeyBin& bin, const bool write) noexcept {
     }
     EInfoReport ad_report;
     {
-        ad_report.setSource( EInfoReport::Source::NA );
+        ad_report.setSource( EInfoReport::Source::NA, false );
         ad_report.setTimestamp( jau::getCurrentMilliseconds() );
         ad_report.setAddressType( bin.getRemoteAddrAndType().type );
         ad_report.setAddress( bin.getRemoteAddrAndType().address );
@@ -1899,7 +1899,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(&e);
     EInfoReport ad_report;
     {
-        ad_report.setSource(EInfoReport::Source::EIR);
+        ad_report.setSource(EInfoReport::Source::EIR, false);
         ad_report.setTimestamp(event.getTimestamp());
         ad_report.setAddressType(event.getAddressType());
         ad_report.setAddress( event.getAddress() );

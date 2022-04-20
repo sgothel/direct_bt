@@ -65,6 +65,10 @@ public class EIRDataTypeSet {
         DataType(final int v) { value = v; }
         public final int value;
     }
+    /** Explicit mask to erase all implicit set EIRDataType fields: EVT_TYPE, EXT_EVT_TYPE, BDADDR_TYPE, BDADDR and RSSI. */
+    static final EIRDataTypeSet EIR_DATA_TYPE_MASK =
+            new EIRDataTypeSet( ~( DataType.EVT_TYPE.value | DataType.EXT_EVT_TYPE.value |
+                                   DataType.BDADDR_TYPE.value  | DataType.BDADDR.value | DataType.RSSI.value ) );
 
     public int mask;
 

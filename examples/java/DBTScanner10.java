@@ -367,7 +367,9 @@ public class DBTScanner10 {
             }
         }
         final EInfoReport eir = device.getEIR();
-        BTUtils.println(System.err, "Using EIR "+eir.toString());
+        BTUtils.println(System.err, "EIR-1 "+device.getEIRInd().toString());
+        BTUtils.println(System.err, "EIR-2 "+device.getEIRScanRsp().toString());
+        BTUtils.println(System.err, "EIR-+ "+eir.toString());
 
         short conn_interval_min  = (short)8;  // 10ms
         short conn_interval_max  = (short)12; // 15ms

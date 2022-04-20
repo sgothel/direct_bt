@@ -965,6 +965,36 @@ void Java_jau_direct_1bt_DBTDevice_getEIRImpl(JNIEnv *env, jobject obj, jobject 
     }
 }
 
+void Java_jau_direct_1bt_DBTDevice_getEIRIndImpl(JNIEnv *env, jobject obj, jobject jeir_sink) {
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        std::shared_ptr<EInfoReport>* eir_sink_ptr_ref = jau::getInstance<std::shared_ptr<EInfoReport>>(env, jeir_sink);
+
+        std::shared_ptr<EInfoReport> eir = device->getEIRInd();
+
+        // replace the shared managed object
+        *eir_sink_ptr_ref = eir;
+
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
+void Java_jau_direct_1bt_DBTDevice_getEIRScanRspImpl(JNIEnv *env, jobject obj, jobject jeir_sink) {
+    try {
+        BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
+        std::shared_ptr<EInfoReport>* eir_sink_ptr_ref = jau::getInstance<std::shared_ptr<EInfoReport>>(env, jeir_sink);
+
+        std::shared_ptr<EInfoReport> eir = device->getEIRScanRsp();
+
+        // replace the shared managed object
+        *eir_sink_ptr_ref = eir;
+
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
 jshort Java_jau_direct_1bt_DBTDevice_getTxPower(JNIEnv *env, jobject obj)
 {
     try {

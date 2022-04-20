@@ -398,7 +398,9 @@ static void connectDiscoveredDevice(BTDeviceRef device) {
         }
     }
     std::shared_ptr<const EInfoReport> eir = device->getEIR();
-    fprintf_td(stderr, "Using EIR %s\n", eir->toString().c_str());
+    fprintf_td(stderr, "EIR-1 %s\n", device->getEIRInd()->toString().c_str());
+    fprintf_td(stderr, "EIR-2 %s\n", device->getEIRScanRsp()->toString().c_str());
+    fprintf_td(stderr, "EIR-+ %s\n", eir->toString().c_str());
 
     uint16_t conn_interval_min  = (uint16_t)8;  // 10ms
     uint16_t conn_interval_max  = (uint16_t)12; // 15ms
