@@ -573,11 +573,11 @@ namespace direct_bt {
 
             /**
              * Disconnect this BTGattHandler and optionally the associated device
-             * @param disconnectDevice if true, associated device will also be disconnected, otherwise not.
-             * @param ioErrorCause if true, reason for disconnection is an IO error
+             * @param disconnect_device if true, associated device will also be disconnected, otherwise not.
+             * @param ioerr_cause if true, reason for disconnection is an IO error
              * @return true if successful, otherwise false
              */
-            bool disconnect(const bool disconnectDevice, const bool ioErrorCause) noexcept;
+            bool disconnect(const bool disconnect_device, const bool ioerr_cause) noexcept;
 
             inline uint16_t getServerMTU() const noexcept { return serverMTU; }
             inline uint16_t getUsedMTU()  const noexcept { return usedMTU; }

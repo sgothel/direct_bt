@@ -616,7 +616,7 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, 
 
 BTGattHandler::~BTGattHandler() noexcept {
     DBG_PRINT("GATTHandler::dtor: Start: %s", toString().c_str());
-    disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
+    disconnect(false /* disconnect_device */, false /* ioerr_cause */);
     btGattCharListenerList.clear();
     nativeGattCharListenerList.clear();
     services.clear();
@@ -628,7 +628,7 @@ std::string BTGattHandler::getStateString() const noexcept {
     return L2CAPComm::getStateString(is_connected, has_ioerror);
 }
 
-bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause) noexcept {
+bool BTGattHandler::disconnect(const bool disconnect_device, const bool ioerr_cause) noexcept {
     BTDeviceRef device = getDeviceUnchecked();
     if( nullptr == device ) {
         // If the device has been pulled already, so its l2cap instance.
@@ -643,8 +643,8 @@ bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCa
         // not connected
         const bool l2cap_service_stopped = l2cap_reader_service.join(); // [data] race: wait until disconnecting thread has stopped service
         l2cap.close(); // owned by BTDevice.
-        DBG_PRINT("GATTHandler::disconnect: Not connected: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s], stopped %d: %s",
-                  disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(),
+        DBG_PRINT("GATTHandler::disconnect: Not connected: disconnect_device %d, ioerr %d: GattHandler[%s], l2cap[%s], stopped %d: %s",
+                  disconnect_device, ioerr_cause, getStateString().c_str(), l2cap.getStateString().c_str(),
                   l2cap_service_stopped, toString().c_str());
         btGattCharListenerList.clear();
         nativeGattCharListenerList.clear();
@@ -660,20 +660,20 @@ bool BTGattHandler::disconnect(const bool disconnectDevice, const bool ioErrorCa
 
     // Lock to avoid other threads using instance while disconnecting
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
-    DBG_PRINT("GATTHandler::disconnect: Start: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
-              disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), toString().c_str());
+    DBG_PRINT("GATTHandler::disconnect: Start: disconnect_device %d, ioerr %d: GattHandler[%s], l2cap[%s]: %s",
+              disconnect_device, ioerr_cause, getStateString().c_str(), l2cap.getStateString().c_str(), toString().c_str());
     btGattCharListenerList.clear();
     nativeGattCharListenerList.clear();
 
     clientMTUExchanged = false;
 
-    DBG_PRINT("GATTHandler::disconnect: End: stopped %d, disconnectDevice %d, %s",
-            l2cap_service_stop_res, disconnectDevice, toString().c_str());
+    DBG_PRINT("GATTHandler::disconnect: End: stopped %d, disconnect_device %d, %s",
+            l2cap_service_stop_res, disconnect_device, toString().c_str());
 
-    if( disconnectDevice ) {
+    if( disconnect_device ) {
         // Cleanup device resources, proper connection state
-        // Intentionally giving the POWER_OFF reason for the device in case of ioErrorCause!
-        const HCIStatusCode reason = ioErrorCause ?
+        // Intentionally giving the POWER_OFF reason for the device in case of ioerr_cause!
+        const HCIStatusCode reason = ioerr_cause ?
                                HCIStatusCode::REMOTE_DEVICE_TERMINATED_CONNECTION_POWER_OFF :
                                HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION;
         device->disconnect(reason);
@@ -698,14 +698,14 @@ void BTGattHandler::send(const AttPDUMsg & msg) {
                 res, L2CAPClient::getRWExitCodeString(res).c_str(), getStateString().c_str(),
                 msg.toString().c_str(), toString().c_str());
         has_ioerror = true;
-        disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
+        disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
         throw BTException("GATTHandler::send: l2cap write error: req "+msg.toString()+" to "+toString(), E_FILE_LINE);
     }
     if( static_cast<size_t>(res) != msg.pdu.size() ) {
         ERR_PRINT("l2cap write count error, %d != %zu: %s -> disconnect: %s",
                 res, msg.pdu.size(), msg.toString().c_str(), toString().c_str());
         has_ioerror = true;
-        disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
+        disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
         throw BTException("GATTHandler::send: l2cap write count error, "+std::to_string(res)+" != "+std::to_string(msg.pdu.size())
                                  +": "+msg.toString()+" -> disconnect: "+toString(), E_FILE_LINE);
     }
@@ -720,7 +720,7 @@ std::unique_ptr<const AttPDUMsg> BTGattHandler::sendWithReply(const AttPDUMsg & 
         errno = ETIMEDOUT;
         IRQ_PRINT("GATTHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), toString().c_str());
         has_ioerror = true;
-        disconnect(true /* disconnectDevice */, true /* ioErrorCause */);
+        disconnect(true /* disconnect_device */, true /* ioerr_cause */);
         throw BTException("GATTHandler::sendWithReply: nullptr result (timeout "+std::to_string(timeout)+"): req "+msg.toString()+" to "+toString(), E_FILE_LINE);
     }
     return res;
@@ -873,7 +873,7 @@ bool BTGattHandler::initClientGatt(std::shared_ptr<BTGattHandler> shared_this, b
         }
         if( 0 == mtu ) {
             ERR_PRINT2("Local GATT Client: Zero serverMTU -> disconnect: %s", toString().c_str());
-            disconnect(true /* disconnectDevice */, false /* ioErrorCause */);
+            disconnect(true /* disconnect_device */, false /* ioerr_cause */);
             return false;
         }
         serverMTU = mtu;
@@ -893,7 +893,7 @@ bool BTGattHandler::initClientGatt(std::shared_ptr<BTGattHandler> shared_this, b
         jau::darray<BTGattServiceRef>& gattServices = discoverCompletePrimaryServices(shared_this);
         if( gattServices.size() == 0 ) { // nothing discovered
             ERR_PRINT2("No primary services discovered");
-            disconnect(true /* disconnectDevice */, false /* ioErrorCause */);
+            disconnect(true /* disconnect_device */, false /* ioerr_cause */);
             return false;
         }
         DBG_PRINT("GATTHandler::initClientGatt: %zu Services Discovered: %s", gattServices.size(), toString().c_str());
@@ -1416,7 +1416,7 @@ bool BTGattHandler::ping() {
     } else {
         jau::INFO_PRINT("GATTHandler::pingGATT: Read error -> disconnect");
     }
-    disconnect(true /* disconnectDevice */, true /* ioErrorCause */); // state -> Disconnected
+    disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
     return false;
 }
 

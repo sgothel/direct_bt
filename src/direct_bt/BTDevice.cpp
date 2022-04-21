@@ -1848,7 +1848,7 @@ void BTDevice::disconnectSMP(const int caller) noexcept {
         const std::lock_guard<std::recursive_mutex> lock_conn(mtx_smpHandler);
         if( nullptr != smpHandler ) {
             DBG_PRINT("BTDevice::disconnectSMP: start (has smpHandler, caller %d)", caller);
-            smpHandler->disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
+            smpHandler->disconnect(false /* disconnect_device */, false /* ioerr_cause */);
         } else {
             DBG_PRINT("BTDevice::disconnectSMP: start (nil smpHandler, caller %d)", caller);
         }
@@ -1902,7 +1902,7 @@ void BTDevice::disconnectGATT(const int caller) noexcept {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_gattHandler);
     if( nullptr != gattHandler ) {
         DBG_PRINT("BTDevice::disconnectGATT: start (has gattHandler, caller %d)", caller);
-        gattHandler->disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
+        gattHandler->disconnect(false /* disconnect_device */, false /* ioerr_cause */);
     } else {
         DBG_PRINT("BTDevice::disconnectGATT: start (nil gattHandler, caller %d)", caller);
     }
