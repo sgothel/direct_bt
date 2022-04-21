@@ -475,6 +475,8 @@ namespace direct_bt {
             void l2capReaderWork(jau::service_runner& sr) noexcept;
             void l2capReaderEndLocked(jau::service_runner& sr) noexcept;
 
+            bool l2capReaderInterrupted(int dummy) /* const */ noexcept;
+
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.4.2 MTU Exchange
              *

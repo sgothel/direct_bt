@@ -537,6 +537,18 @@ void BTGattHandler::l2capReaderEndLocked(jau::service_runner& sr) noexcept {
 #endif
 }
 
+bool BTGattHandler::l2capReaderInterrupted(int dummy) /* const */ noexcept {
+    (void)dummy;
+    if( l2cap_reader_service.shall_stop() || !is_connected ) {
+        return true;
+    }
+    BTDeviceRef device = getDeviceUnchecked();
+    if( nullptr == device ) {
+        return true;
+    }
+    return !device->getConnected();
+}
+
 BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, const int32_t supervision_timeout_) noexcept
 : supervision_timeout(supervision_timeout_),
   env(BTGattEnv::get()),
@@ -569,7 +581,8 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, 
      * We utilize DBTManager's mgmthandler_sigaction SIGALRM handler,
      * as we only can install one handler.
      */
-    l2cap.set_interrupted_query( jau::bindMemberFunc(&l2cap_reader_service, &jau::service_runner::shall_stop2) );
+    // l2cap.set_interrupted_query( jau::bindMemberFunc(&l2cap_reader_service, &jau::service_runner::shall_stop2) );
+    l2cap.set_interrupted_query( jau::bindMemberFunc(this, &BTGattHandler::l2capReaderInterrupted) );
     l2cap_reader_service.start();
 
     if( GATTRole::Client == getRole() ) {
