@@ -550,9 +550,11 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
                 COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%u>-IO RECV EVT Drop (no translation) %s", dev_id, event->toString().c_str());
             }
         }
-    } else if( ETIMEDOUT != errno && !comm.interrupted() ) { // expected exits
-        ERR_PRINT("HCIHandler<%u>::reader: HCIComm read error %s", dev_id, toString().c_str());
+    } else if( 0 > len && ETIMEDOUT != errno && !comm.interrupted() ) { // expected exits
+        ERR_PRINT("HCIHandler<%u>::reader: HCIComm read: Error res %d, %s", dev_id, len, toString().c_str());
         // Keep alive - sr.set_shall_stop();
+    } else if( ETIMEDOUT != errno && !comm.interrupted() ) { // expected TIMEOUT if idle
+        WORDY_PRINT("HCIHandler<%u>::reader: HCIComm read: IRQed res %d, %s", dev_id, len, toString().c_str());
     }
 }
 

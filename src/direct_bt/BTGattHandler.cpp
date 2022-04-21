@@ -508,13 +508,13 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
             ERR_PRINT("Unhandled: %s", attPDU->toString().c_str());
         }
     } else if( 0 > len && ETIMEDOUT != errno && !l2cap.interrupted() ) { // expected exits
-        IRQ_PRINT("GATTHandler::reader: l2cap read error -> Stop; l2cap.read %d (%s); %s",
+        IRQ_PRINT("GATTHandler::reader: l2cap read: Error res %d (%s); %s",
                 len, L2CAPClient::getRWExitCodeString(len).c_str(),
                 getStateString().c_str());
         sr.set_shall_stop();
         has_ioerror = true;
     } else if( len != L2CAPClient::number(L2CAPClient::RWExitCode::POLL_TIMEOUT) ) { // expected POLL_TIMEOUT if idle
-        WORDY_PRINT("GATTHandler::reader: l2cap read: l2cap.read %d (%s); %s",
+        WORDY_PRINT("GATTHandler::reader: l2cap read: IRQed res %d (%s); %s",
                 len, L2CAPClient::getRWExitCodeString(len).c_str(),
                 getStateString().c_str());
     }

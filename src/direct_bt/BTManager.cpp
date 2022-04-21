@@ -117,8 +117,11 @@ void BTManager::mgmtReaderWork(jau::service_runner& sr) noexcept {
             COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (CB) %s", event->toString().c_str());
             sendMgmtEvent( *event );
         }
-    } else if( ETIMEDOUT != errno && !comm.interrupted() ) { // expected exits
-        ERR_PRINT("BTManager::reader: HCIComm read error");
+    } else if( 0 > len && ETIMEDOUT != errno && !comm.interrupted() ) { // expected exits
+        ERR_PRINT("BTManager::reader: HCIComm read: Error res %d, %s", len, toString().c_str());
+        // Keep alive - sr.set_shall_stop();
+    } else if( ETIMEDOUT != errno && !comm.interrupted() ) { // expected TIMEOUT if idle
+        WORDY_PRINT("BTManager::reader: HCIComm read: IRQed res %d, %s", len, toString().c_str());
     }
 }
 
