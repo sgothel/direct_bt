@@ -1795,7 +1795,7 @@ bool BTAdapter::mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept {
 void BTAdapter::l2capServerInit(jau::service_runner& sr0) {
     (void)sr0;
 
-    l2cap_att_srv.set_interupt( jau::bindMemberFunc(&l2cap_service, &jau::service_runner::shall_stop2) );
+    l2cap_att_srv.set_interrupted_query( jau::bindMemberFunc(&l2cap_service, &jau::service_runner::shall_stop2) );
 
     if( !l2cap_att_srv.open() ) {
         ERR_PRINT("Adapter[%d]: L2CAP ATT open failed: %s", dev_id, l2cap_att_srv.toString().c_str());

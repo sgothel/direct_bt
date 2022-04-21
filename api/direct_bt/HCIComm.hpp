@@ -51,8 +51,8 @@ namespace direct_bt {
      */
     class HCIComm {
         public:
-            /** Utilized for forced disconnect and read/accept interruption. */
-            typedef jau::FunctionDef<bool, int /* dummy*/> is_interrupted_t;
+            /** Utilized to query for external interruption, whether device is still connected etc. */
+            typedef jau::FunctionDef<bool, int /* dummy*/> get_boolean_callback_t;
 
             const uint16_t dev_id;
             const uint16_t channel;
@@ -64,7 +64,7 @@ namespace direct_bt {
             std::recursive_mutex mtx_write;
             jau::relaxed_atomic_int socket_descriptor; // the hci socket
             jau::sc_atomic_bool interrupted_intern; // for forced disconnect and read interruption via close()
-            is_interrupted_t is_interrupted_extern; // for forced disconnect and read interruption via external event
+            get_boolean_callback_t is_interrupted_extern; // for forced disconnect and read interruption via external event
             std::atomic<pthread_t> tid_read;
 
         public:
@@ -81,8 +81,8 @@ namespace direct_bt {
 
             bool is_open() const noexcept { return 0 <= socket_descriptor; }
 
-            /** The external is_interrupted_t callback is used until close(), thereafter it is removed. */
-            void set_interupt(is_interrupted_t is_interrupted_cb) { is_interrupted_extern = is_interrupted_cb; }
+            /** The external `is interrupted` callback is used until close(), thereafter it is removed. */
+            void set_interrupted_query(get_boolean_callback_t is_interrupted_cb) { is_interrupted_extern = is_interrupted_cb; }
 
             /** Returns true if interrupted by internal or external cause, hence shall stop connecting and reading. */
             bool interrupted() const noexcept { return interrupted_intern || ( !is_interrupted_extern.isNullType() && is_interrupted_extern(0/*dummy*/) ); }

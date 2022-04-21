@@ -688,7 +688,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         return;
     }
 
-    comm.set_interupt( jau::bindMemberFunc(&hci_reader_service, &jau::service_runner::shall_stop2) );
+    comm.set_interrupted_query( jau::bindMemberFunc(&hci_reader_service, &jau::service_runner::shall_stop2) );
     hci_reader_service.start();
 
     PERF_TS_T0();

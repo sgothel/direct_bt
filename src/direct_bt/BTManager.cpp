@@ -375,7 +375,7 @@ BTManager::BTManager() noexcept
         return;
     }
 
-    comm.set_interupt( jau::bindMemberFunc(&mgmt_reader_service, &jau::service_runner::shall_stop2) );
+    comm.set_interrupted_query( jau::bindMemberFunc(&mgmt_reader_service, &jau::service_runner::shall_stop2) );
     mgmt_reader_service.start();
 
     PERF_TS_T0();

@@ -116,8 +116,8 @@ namespace direct_bt {
             static std::string getStateString(bool isOpen, bool hasIOError) noexcept;
             static std::string getStateString(bool isOpen, bool isInterrupted, bool hasIOError) noexcept;
 
-            /** Utilized for forced disconnect and read/accept interruption. */
-            typedef jau::FunctionDef<bool, int /* dummy*/> is_interrupted_t;
+            /** Utilized to query for external interruption, whether device is still connected etc. */
+            typedef jau::FunctionDef<bool, int /* dummy*/> get_boolean_callback_t;
 
         protected:
             static int l2cap_open_dev(const BDAddressAndType & adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
@@ -140,7 +140,7 @@ namespace direct_bt {
             jau::relaxed_atomic_int socket_; // the native socket
             jau::sc_atomic_bool is_open_; // reflects state
             jau::sc_atomic_bool interrupted_intern; // for forced disconnect and read/accept interruption via close()
-            is_interrupted_t is_interrupted_extern; // for forced disconnect and read/accept interruption via external event
+            get_boolean_callback_t is_interrupted_extern; // for forced disconnect and read/accept interruption via external event
 
             bool setBTSecurityLevelImpl(const BTSecurityLevel sec_level, const BDAddressAndType& remoteAddressAndType) noexcept;
             BTSecurityLevel getBTSecurityLevelImpl(const BDAddressAndType& remoteAddressAndType) noexcept;
@@ -156,8 +156,8 @@ namespace direct_bt {
 
             bool is_open() const noexcept { return is_open_; }
 
-            /** The external is_interrupted_t callback is used until close(), thereafter it is removed. */
-            void set_interupt(is_interrupted_t is_interrupted_cb) { is_interrupted_extern = is_interrupted_cb; }
+            /** The external `is interrupted` callback is used until close(), thereafter it is removed. */
+            void set_interrupted_query(get_boolean_callback_t is_interrupted_cb) { is_interrupted_extern = is_interrupted_cb; }
 
             /** Returns true if interrupted by internal or external cause, hence shall stop connecting and reading. */
             bool interrupted() const noexcept { return interrupted_intern || ( !is_interrupted_extern.isNullType() && is_interrupted_extern(0/*dummy*/) ); }

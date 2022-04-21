@@ -569,7 +569,7 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, 
      * We utilize DBTManager's mgmthandler_sigaction SIGALRM handler,
      * as we only can install one handler.
      */
-    l2cap.set_interupt( jau::bindMemberFunc(&l2cap_reader_service, &jau::service_runner::shall_stop2) );
+    l2cap.set_interrupted_query( jau::bindMemberFunc(&l2cap_reader_service, &jau::service_runner::shall_stop2) );
     l2cap_reader_service.start();
 
     if( GATTRole::Client == getRole() ) {

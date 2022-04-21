@@ -386,7 +386,7 @@ bool L2CAPClient::close() noexcept {
                   to_string(psm).c_str(), to_string(cid).c_str(),
                   getStateString().c_str());
         has_ioerror = false; // always clear last ioerror flag (should be redundant)
-        set_interupt(L2CAPComm::is_interrupted_t()); // Null-Type
+        set_interrupted_query(L2CAPComm::get_boolean_callback_t()); // Null-Type
         return true;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
@@ -396,7 +396,7 @@ bool L2CAPClient::close() noexcept {
               to_string(psm).c_str(), to_string(cid).c_str(),
               getStateString().c_str());
     has_ioerror = false;
-    set_interupt(L2CAPComm::is_interrupted_t()); // Null-Type
+    set_interrupted_query(L2CAPComm::get_boolean_callback_t()); // Null-Type
     PERF_TS_T0();
 
     // interrupt connect() and read(), avoiding prolonged hang
