@@ -88,7 +88,7 @@ bool BTGattHandler::validateConnected() noexcept {
     const bool l2capHasIOError = l2cap.hasIOError();
 
     if( has_ioerror || l2capHasIOError ) {
-        DBG_PRINT("IOError state: GattHandler %s, l2cap %s: %s",
+        DBG_PRINT("ioerr state: GattHandler %s, l2cap %s: %s",
                 getStateString().c_str(), l2cap.getStateString().c_str(), toString().c_str());
         has_ioerror = true; // propagate l2capHasIOError -> has_ioerror
         return false;

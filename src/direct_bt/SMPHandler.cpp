@@ -83,7 +83,7 @@ bool SMPHandler::validateConnected() noexcept {
 
     if( has_ioerror || l2capHasIOError ) {
         has_ioerror = true; // propagate l2capHasIOError -> has_ioerror
-        ERR_PRINT("IOError state: GattHandler %s, l2cap %s: %s",
+        ERR_PRINT("ioerr state: GattHandler %s, l2cap %s: %s",
                 getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
         return false;
     }
