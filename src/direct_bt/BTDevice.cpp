@@ -2158,7 +2158,7 @@ HCIStatusCode BTDevice::getConnectedLE_PHY(LE_PHYs& resTx, LE_PHYs& resRx) noexc
     }
 
     HCIHandler &hci = adapter.getHCI();
-    HCIStatusCode res = hci.le_read_phy(hciConnHandle.load(), addressAndType, resTx, resRx);
+    HCIStatusCode res = hci.le_read_phy(hciConnHandle, addressAndType, resTx, resRx);
     if( HCIStatusCode::SUCCESS == res ) {
         le_phy_tx = resTx;
         le_phy_rx = resRx;
@@ -2182,7 +2182,7 @@ HCIStatusCode BTDevice::setConnectedLE_PHY(const LE_PHYs Tx, const LE_PHYs Rx) n
     }
 
     HCIHandler &hci = adapter.getHCI();
-    return hci.le_set_phy(hciConnHandle.load(), addressAndType, Tx, Rx);
+    return hci.le_set_phy(hciConnHandle, addressAndType, Tx, Rx);
 }
 
 void BTDevice::notifyDisconnected() noexcept {
@@ -2248,7 +2248,7 @@ HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept {
         goto exit;
     }
 
-    res = hci.disconnect(hciConnHandle.load(), addressAndType, reason);
+    res = hci.disconnect(hciConnHandle, addressAndType, reason);
     if( HCIStatusCode::SUCCESS != res ) {
         ERR_PRINT("status %s, handle 0x%X, isConnected %d/%d: errno %d %s on %s",
                 to_string(res).c_str(), hciConnHandle.load(),
@@ -2264,9 +2264,9 @@ exit:
         // send the DISCONN_COMPLETE event directly.
         // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
         std::thread bg(&BTDevice::sendMgmtEvDeviceDisconnected, this, // @suppress("Invalid arguments")
-                       std::make_unique<MgmtEvtDeviceDisconnected>(adapter.dev_id, addressAndType, reason, hciConnHandle.load()) );
+                       std::make_unique<MgmtEvtDeviceDisconnected>(adapter.dev_id, addressAndType, reason, hciConnHandle) );
         bg.detach();
-        // adapter.mgmtEvDeviceDisconnectedHCI( std::unique_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle.load()) ) );
+        // adapter.mgmtEvDeviceDisconnectedHCI( std::unique_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle) ) );
     }
     WORDY_PRINT("BTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d on %s",
             to_string(res).c_str(),

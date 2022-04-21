@@ -412,7 +412,7 @@ namespace direct_bt {
             /**
              * Return true if the device has been successfully connected, otherwise false.
              */
-            bool getConnected() noexcept { return isConnected.load(); }
+            bool getConnected() noexcept { return isConnected; }
 
             /**
              * Establish a HCI BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM connection to this device.

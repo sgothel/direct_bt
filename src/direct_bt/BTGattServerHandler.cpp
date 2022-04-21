@@ -731,7 +731,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
             }
 
 
-            // const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(255, getUsedMTU().load()-2);
+            // const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(255, getUsedMTU()-2);
             AttFindByTypeValueRsp rsp(gh.getUsedMTU()); // maximum size
             jau::nsize_t rspSize = 0;
             jau::nsize_t rspCount = 0;

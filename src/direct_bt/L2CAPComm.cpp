@@ -686,7 +686,7 @@ errout:
 }
 
 std::string L2CAPClient::toString() const noexcept {
-    return "L2CAPClient[dev_id "+std::to_string(adev_id)+", dd "+std::to_string(socket_.load())+
+    return "L2CAPClient[dev_id "+std::to_string(adev_id)+", dd "+std::to_string(socket_)+
             ", psm "+to_string(psm)+
             ", cid "+to_string(cid)+
             ", local "+localAddressAndType.toString()+
@@ -860,7 +860,7 @@ std::unique_ptr<L2CAPClient> L2CAPServer::accept() noexcept {
 }
 
 std::string L2CAPServer::toString() const noexcept {
-    return "L2CAPServer[dev_id "+std::to_string(adev_id)+", dd "+std::to_string(socket_.load())+
+    return "L2CAPServer[dev_id "+std::to_string(adev_id)+", dd "+std::to_string(socket_)+
             ", psm "+to_string(psm)+
             ", cid "+to_string(cid)+
             ", local "+localAddressAndType.toString()+

@@ -1028,7 +1028,7 @@ void BTAdapter::checkDiscoveryState() noexcept {
     // Check LE scan state
     if( DiscoveryPolicy::AUTO_OFF == discovery_policy ) {
         if( hasScanType(currentMetaScanType, ScanType::LE) != hasScanType(currentNativeScanType, ScanType::LE) ) {
-            std::string msg("Invalid DiscoveryState: policy "+to_string(discovery_policy.load())+
+            std::string msg("Invalid DiscoveryState: policy "+to_string(discovery_policy)+
                     ", currentScanType*[native "+
                     to_string(currentNativeScanType)+" != meta "+
                     to_string(currentMetaScanType)+"], "+toString());
@@ -1037,7 +1037,7 @@ void BTAdapter::checkDiscoveryState() noexcept {
         }
     } else {
         if( !hasScanType(currentMetaScanType, ScanType::LE) && hasScanType(currentNativeScanType, ScanType::LE) ) {
-            std::string msg("Invalid DiscoveryState: policy "+to_string(discovery_policy.load())+
+            std::string msg("Invalid DiscoveryState: policy "+to_string(discovery_policy)+
                     ", currentScanType*[native "+
                     to_string(currentNativeScanType)+", meta "+
                     to_string(currentMetaScanType)+"], "+toString());
@@ -1082,11 +1082,11 @@ HCIStatusCode BTAdapter::startDiscovery(const DiscoveryPolicy policy, const bool
         btRole = BTRole::Master;
         if( discovery_policy == policy ) {
             DBG_PRINT("BTAdapter::startDiscovery: Already discovering, unchanged policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
-                    to_string(discovery_policy.load()).c_str(), to_string(policy).c_str(),
+                    to_string(discovery_policy).c_str(), to_string(policy).c_str(),
                     to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(), toString(true).c_str());
         } else {
             DBG_PRINT("BTAdapter::startDiscovery: Already discovering, changed policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
-                    to_string(discovery_policy.load()).c_str(), to_string(policy).c_str(),
+                    to_string(discovery_policy).c_str(), to_string(policy).c_str(),
                     to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(), toString(true).c_str());
             discovery_policy = policy;
         }
@@ -1096,7 +1096,7 @@ HCIStatusCode BTAdapter::startDiscovery(const DiscoveryPolicy policy, const bool
 
     if( _print_device_lists || jau::environment::get().verbose ) {
         jau::PLAIN_PRINT(true, "BTAdapter::startDiscovery: Start: policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
-                to_string(discovery_policy.load()).c_str(), to_string(policy).c_str(),
+                to_string(discovery_policy).c_str(), to_string(policy).c_str(),
                 to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(), toString().c_str());
     }
 
@@ -1112,7 +1112,7 @@ HCIStatusCode BTAdapter::startDiscovery(const DiscoveryPolicy policy, const bool
     if( _print_device_lists || jau::environment::get().verbose ) {
         jau::PLAIN_PRINT(true, "BTAdapter::startDiscovery: End: Result %s, policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
                 to_string(status).c_str(),
-                to_string(discovery_policy.load()).c_str(), to_string(policy).c_str(),
+                to_string(discovery_policy).c_str(), to_string(policy).c_str(),
                 to_string(hci.getCurrentScanType()).c_str(), to_string(currentMetaScanType).c_str(), toString().c_str());
         printDeviceLists();
     }
@@ -1142,7 +1142,7 @@ void BTAdapter::startDiscoveryBackground() noexcept {
                 // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
                 DBG_PRINT("BTAdapter::startDiscoveryBackground[%u/%u]: Policy %s, currentScanType[native %s, meta %s] ... %s",
                         trial_count+1, MAX_BACKGROUND_DISCOVERY_RETRY,
-                        to_string(discovery_policy.load()).c_str(),
+                        to_string(discovery_policy).c_str(),
                         to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(), toString().c_str());
                 const HCIStatusCode status = hci.le_enable_scan(true /* enable */, scan_filter_dup);
                 if( HCIStatusCode::SUCCESS != status ) {
@@ -1199,7 +1199,7 @@ HCIStatusCode BTAdapter::stopDiscoveryImpl(const bool forceDiscoveringEvent, con
                                        DiscoveryPolicy::AUTO_OFF != discovery_policy;       // true
 
     DBG_PRINT("BTAdapter::stopDiscovery: Start: policy %s, currentScanType[native %s, meta %s], le_scan_temp_disabled %d, forceDiscEvent %d ...",
-            to_string(discovery_policy.load()).c_str(),
+            to_string(discovery_policy).c_str(),
             to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(),
             le_scan_temp_disabled, forceDiscoveringEvent);
 
@@ -1209,7 +1209,7 @@ HCIStatusCode BTAdapter::stopDiscoveryImpl(const bool forceDiscoveringEvent, con
 
     if( !hasScanType(currentMetaScanType, ScanType::LE) ) {
         DBG_PRINT("BTAdapter::stopDiscovery: Already disabled, policy %s, currentScanType[native %s, meta %s] ...",
-                to_string(discovery_policy.load()).c_str(),
+                to_string(discovery_policy).c_str(),
                 to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str());
         checkDiscoveryState();
         return HCIStatusCode::SUCCESS;
@@ -1250,7 +1250,7 @@ exit:
     }
     if( _print_device_lists || jau::environment::get().verbose ) {
         jau::PLAIN_PRINT(true, "BTAdapter::stopDiscovery: End: Result %s, policy %s, currentScanType[native %s, meta %s], le_scan_temp_disabled %d ...\n- %s",
-                to_string(status).c_str(), to_string(discovery_policy.load()).c_str(),
+                to_string(status).c_str(), to_string(discovery_policy).c_str(),
                 to_string(hci.getCurrentScanType()).c_str(), to_string(currentMetaScanType).c_str(), le_scan_temp_disabled,
                 toString().c_str());
         printDeviceLists();
@@ -1677,14 +1677,14 @@ bool BTAdapter::mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const b
         // update HCIHandler's currentNativeScanType from other source
         const ScanType nextNativeScanType = changeScanType(currentNativeScanType, eventScanType, eventEnabled);
         DBG_PRINT("BTAdapter:%s:DeviceDiscovering: dev_id %d, policy %s: scanType[native %s -> %s, meta %s -> %s])",
-            srctkn.c_str(), dev_id, to_string(discovery_policy.load()).c_str(),
+            srctkn.c_str(), dev_id, to_string(discovery_policy).c_str(),
             to_string(currentNativeScanType).c_str(), to_string(nextNativeScanType).c_str(),
             to_string(currentMetaScanType).c_str(), to_string(nextMetaScanType).c_str());
         currentNativeScanType = nextNativeScanType;
         hci.setCurrentScanType(currentNativeScanType);
     } else {
         DBG_PRINT("BTAdapter:%s:DeviceDiscovering: dev_id %d, policy %d: scanType[native %s, meta %s -> %s])",
-            srctkn.c_str(), dev_id, to_string(discovery_policy.load()).c_str(),
+            srctkn.c_str(), dev_id, to_string(discovery_policy).c_str(),
             to_string(currentNativeScanType).c_str(),
             to_string(currentMetaScanType).c_str(), to_string(nextMetaScanType).c_str());
     }
@@ -1868,7 +1868,7 @@ jau::nsize_t BTAdapter::smp_timeoutfunc(jau::simple_timer& timer) {
                 // !isSMPPairingUserInteraction( device->pairing_data.state ) )
             {
                 // actively within SMP negotiations, excluding user interaction
-                const uint32_t smp_events = device->smp_events.load();
+                const uint32_t smp_events = device->smp_events;
                 DBG_PRINT("BTAdapter::smp_timeoutfunc(dev_id %d): SMP Timeout: Check %u -> %s", dev_id, smp_events, device->toString().c_str());
                 if( 0 == smp_events ) {
                     failed_devices.push_back(device);
@@ -1876,7 +1876,7 @@ jau::nsize_t BTAdapter::smp_timeoutfunc(jau::simple_timer& timer) {
                     device->smp_events = 0;
                 }
             } else {
-                const uint32_t smp_events = device->smp_events.load();
+                const uint32_t smp_events = device->smp_events;
                 DBG_PRINT("BTAdapter::smp_timeoutfunc(dev_id %d): SMP Timeout: Ignore %u -> %s", dev_id, smp_events, device->toString().c_str());
             }
         });
