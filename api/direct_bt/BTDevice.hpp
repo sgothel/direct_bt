@@ -97,8 +97,8 @@ namespace direct_bt {
             mutable std::recursive_mutex mtx_gattHandler;
             mutable std::recursive_mutex mtx_connect;
             mutable std::mutex mtx_eir;
-            jau::relaxed_atomic_bool isConnected;
-            jau::relaxed_atomic_bool allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
+            jau::sc_atomic_bool isConnected;
+            jau::sc_atomic_bool allowDisconnect; // allowDisconnect = isConnected || 'isConnectIssued'
             jau::relaxed_atomic_int32 supervision_timeout; // [ms]
             jau::relaxed_atomic_uint32 smp_events; // registering smp events until next BTAdapter::smp_watchdog periodic timeout check
 
