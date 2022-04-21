@@ -77,14 +77,14 @@ inline constexpr const bool SET_BT_SECURITY_POST_CONNECT = true;
 
 std::string L2CAPComm::getStateString(bool isOpen, bool hasIOError) noexcept {
     return "State[open "+std::to_string(isOpen)+
-            ", ioError "+std::to_string(hasIOError)+
+            ", ioerr "+std::to_string(hasIOError)+
             ", errno "+std::to_string(errno)+" ("+std::string(strerror(errno))+")]";
 }
 
 std::string L2CAPComm::getStateString(bool isOpen, bool isInterrupted, bool hasIOError) noexcept {
     return "State[open "+std::to_string(isOpen)+
-           ", isIRQed "+std::to_string(isInterrupted)+
-           ", ioError "+std::to_string(hasIOError)+
+           ", irqed "+std::to_string(isInterrupted)+
+           ", ioerr "+std::to_string(hasIOError)+
            ", errno "+std::to_string(errno)+" ("+std::string(strerror(errno))+")]";
 }
 
