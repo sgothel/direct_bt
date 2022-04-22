@@ -98,7 +98,10 @@ jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj
         std::function<jobject(JNIEnv*, jclass, jmethodID, BTGattChar *)> ctor_char =
                 [&gattCharPropSetClazz, &gattCharPropSetClazzCtor](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, BTGattChar *characteristic)->jobject {
                     // prepare adapter ctor
-                    std::shared_ptr<BTGattService> _service = characteristic->getServiceChecked();
+                    std::shared_ptr<BTGattService> _service = characteristic->getServiceUnchecked();
+                    if( nullptr == _service ) {
+                        throw jau::RuntimeException("Characteristic's device null: "+characteristic->toString(), E_FILE_LINE);
+                    }
                     JavaGlobalObj::check(_service->getJavaObject(), E_FILE_LINE);
                     jobject jservice = JavaGlobalObj::GetObject(_service->getJavaObject());
 

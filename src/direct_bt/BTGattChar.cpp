@@ -180,24 +180,12 @@ std::string BTGattChar::toShortString() const noexcept {
            "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
 }
 
-std::shared_ptr<BTGattService> BTGattChar::getServiceChecked() const {
-    std::shared_ptr<BTGattService> ref = wbr_service.lock();
-    if( nullptr == ref ) {
-        throw IllegalStateException("GATTCharacteristic's service already destructed: "+toShortString(), E_FILE_LINE);
-    }
-    return ref;
-}
-
 std::shared_ptr<BTGattHandler> BTGattChar::getGattHandlerUnchecked() const noexcept {
     std::shared_ptr<BTGattService> s = getServiceUnchecked();
     if( nullptr != s ) {
         return s->getGattHandlerUnchecked();
     }
     return nullptr;
-}
-
-std::shared_ptr<BTGattHandler> BTGattChar::getGattHandlerChecked() const {
-    return getServiceChecked()->getGattHandlerChecked();
 }
 
 std::shared_ptr<BTDevice> BTGattChar::getDeviceUnchecked() const noexcept {
@@ -208,11 +196,7 @@ std::shared_ptr<BTDevice> BTGattChar::getDeviceUnchecked() const noexcept {
     return nullptr;
 }
 
-std::shared_ptr<BTDevice> BTGattChar::getDeviceChecked() const {
-    return getServiceChecked()->getDeviceChecked();
-}
-
-bool BTGattChar::configNotificationIndication(const bool enableNotification, const bool enableIndication, bool enabledState[2]) {
+bool BTGattChar::configNotificationIndication(const bool enableNotification, const bool enableIndication, bool enabledState[2]) noexcept {
     enabledState[0] = false;
     enabledState[1] = false;
 
@@ -229,10 +213,10 @@ bool BTGattChar::configNotificationIndication(const bool enableNotification, con
         if( !enableNotification && !enableIndication ) {
             // OK to have GATTHandler being shutdown @ disable
             DBG_PRINT("Characteristic's device GATTHandle not connected: %s", toShortString().c_str());
-            return false;
+        } else {
+            ERR_PRINT("Characteristic's device GATTHandle not connected: %s", toShortString().c_str());
         }
-        throw IllegalStateException("Characteristic's device GATTHandle not connected: "+
-                toString(), E_FILE_LINE);
+        return false;
     }
     const bool resEnableNotification = hasEnableNotification && enableNotification;
     const bool resEnableIndication = hasEnableIndication && enableIndication;
@@ -267,7 +251,7 @@ bool BTGattChar::configNotificationIndication(const bool enableNotification, con
     return res;
 }
 
-bool BTGattChar::enableNotificationOrIndication(bool enabledState[2]) {
+bool BTGattChar::enableNotificationOrIndication(bool enabledState[2]) noexcept {
     const bool hasEnableNotification = hasProperties(BTGattChar::PropertyBitVal::Notify);
     const bool hasEnableIndication = hasProperties(BTGattChar::PropertyBitVal::Indicate);
 
@@ -277,7 +261,7 @@ bool BTGattChar::enableNotificationOrIndication(bool enabledState[2]) {
     return configNotificationIndication(enableNotification, enableIndication, enabledState);
 }
 
-bool BTGattChar::disableIndicationNotification() {
+bool BTGattChar::disableIndicationNotification() noexcept {
     bool enabledState[2];
     return configNotificationIndication(false, false, enabledState);
 }
@@ -341,44 +325,69 @@ bool DelegatedBTGattCharListener::operator==(const BTGattCharListener& rhs) cons
     return delegate.get() == rhs2.delegate.get();
 }
 
-bool BTGattChar::addCharListener(std::shared_ptr<BTGattChar::Listener> l) {
-    return getDeviceChecked()->addCharListener( std::make_shared<DelegatedBTGattCharListener>( this, l ) );
+bool BTGattChar::addCharListener(std::shared_ptr<BTGattChar::Listener> l) noexcept {
+    std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+    if( nullptr == device ) {
+        ERR_PRINT("Characteristic's device null: %s", toShortString().c_str());
+        return false;
+    }
+    return device->addCharListener( std::make_shared<DelegatedBTGattCharListener>( this, l ) );
 }
 
-bool BTGattChar::addCharListener(std::shared_ptr<BTGattChar::Listener> l, bool enabledState[2]) {
+bool BTGattChar::addCharListener(std::shared_ptr<BTGattChar::Listener> l, bool enabledState[2]) noexcept {
     if( !enableNotificationOrIndication(enabledState) ) {
         return false;
     }
     return addCharListener(l);
 }
 
-bool BTGattChar::removeCharListener(std::shared_ptr<Listener> l) {
-    return getDeviceChecked()->removeCharListener( std::make_shared<DelegatedBTGattCharListener>( this, l ) );
+bool BTGattChar::removeCharListener(std::shared_ptr<Listener> l) noexcept {
+    std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+    if( nullptr == device ) {
+        ERR_PRINT("Characteristic's device null: %s", toShortString().c_str());
+        return false;
+    }
+    return device->removeCharListener( std::make_shared<DelegatedBTGattCharListener>( this, l ) );
 }
 
-int BTGattChar::removeAllAssociatedCharListener(bool shallDisableIndicationNotification) {
+int BTGattChar::removeAllAssociatedCharListener(bool shallDisableIndicationNotification) noexcept {
     if( shallDisableIndicationNotification ) {
         disableIndicationNotification();
     }
-    return getDeviceChecked()->removeAllAssociatedCharListener(this);
+    std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+    if( nullptr == device ) {
+        ERR_PRINT("Characteristic's device null: %s", toShortString().c_str());
+        return 0;
+    }
+    return device->removeAllAssociatedCharListener(this);
 }
 
-bool BTGattChar::readValue(POctets & res, int expectedLength) {
-    std::shared_ptr<BTDevice> device = getDeviceChecked();
+bool BTGattChar::readValue(POctets & res, int expectedLength) noexcept {
+    std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+    if( nullptr == device ) {
+        ERR_PRINT("Characteristic's device null: %s", toShortString().c_str());
+        return false;
+    }
     std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
     if( nullptr == gatt ) {
-        throw IllegalStateException("Characteristic's device GATTHandle not connected: "+toShortString(), E_FILE_LINE);
+        ERR_PRINT("Characteristic's device GATTHandle not connected: %s", toShortString().c_str());
+        return false;
     }
     return gatt->readCharacteristicValue(*this, res, expectedLength);
 }
 /**
  * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
  */
-bool BTGattChar::writeValue(const TROOctets & value) {
-    std::shared_ptr<BTDevice> device = getDeviceChecked();
+bool BTGattChar::writeValue(const TROOctets & value) noexcept {
+    std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+    if( nullptr == device ) {
+        ERR_PRINT("Characteristic's device null: %s", toShortString().c_str());
+        return false;
+    }
     std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
     if( nullptr == gatt ) {
-        throw IllegalStateException("Characteristic's device GATTHandle not connected: "+toShortString(), E_FILE_LINE);
+        ERR_PRINT("Characteristic's device GATTHandle not connected: %s", toShortString().c_str());
+        return false;
     }
     return gatt->writeCharacteristicValue(*this, value);
 }
@@ -386,11 +395,16 @@ bool BTGattChar::writeValue(const TROOctets & value) {
 /**
  * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response
  */
-bool BTGattChar::writeValueNoResp(const TROOctets & value) {
-    std::shared_ptr<BTDevice> device = getDeviceChecked();
+bool BTGattChar::writeValueNoResp(const TROOctets & value) noexcept {
+    std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+    if( nullptr == device ) {
+        ERR_PRINT("Characteristic's device null: %s", toShortString().c_str());
+        return false;
+    }
     std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
     if( nullptr == gatt ) {
-        throw IllegalStateException("Characteristic's device GATTHandle not connected: "+toShortString(), E_FILE_LINE);
+        ERR_PRINT("Characteristic's device GATTHandle not connected: %s", toShortString().c_str());
+        return false;
     }
     return gatt->writeCharacteristicValueNoResp(*this, value);
 }

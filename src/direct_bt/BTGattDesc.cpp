@@ -52,28 +52,46 @@ std::shared_ptr<BTGattChar> BTGattDesc::getGattCharChecked() const {
     return ref;
 }
 
-std::shared_ptr<BTGattHandler> BTGattDesc::getGattHandlerChecked() const {
-    return getGattCharChecked()->getGattHandlerChecked();
+std::shared_ptr<BTGattHandler> BTGattDesc::getGattHandlerUnchecked() const noexcept {
+    std::shared_ptr<BTGattChar> c = getGattCharUnchecked();
+    if( nullptr != c ) {
+        return c->getGattHandlerUnchecked();
+    }
+    return nullptr;
 }
 
-std::shared_ptr<BTDevice> BTGattDesc::getDeviceChecked() const {
-    return getGattCharChecked()->getDeviceChecked();
+std::shared_ptr<BTDevice> BTGattDesc::getDeviceUnchecked() const noexcept {
+    std::shared_ptr<BTGattChar> c = getGattCharUnchecked();
+    if( nullptr != c ) {
+        return c->getDeviceUnchecked();
+    }
+    return nullptr;
 }
 
-bool BTGattDesc::readValue(int expectedLength) {
-    std::shared_ptr<BTDevice> device = getDeviceChecked();
+bool BTGattDesc::readValue(int expectedLength) noexcept {
+    std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+    if( nullptr == device ) {
+        ERR_PRINT("Descriptor's device null: %s", toShortString().c_str());
+        return false;
+    }
     std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
     if( nullptr == gatt ) {
-        throw jau::IllegalStateException("Descriptor's device GATTHandle not connected: "+toShortString(), E_FILE_LINE);
+        ERR_PRINT("Descriptor's device GATTHandle not connected: %s", toShortString().c_str());
+        return false;
     }
     return gatt->readDescriptorValue(*this, expectedLength);
 }
 
-bool BTGattDesc::writeValue() {
-    std::shared_ptr<BTDevice> device = getDeviceChecked();
+bool BTGattDesc::writeValue() noexcept {
+    std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+    if( nullptr == device ) {
+        ERR_PRINT("Descriptor's device null: %s", toShortString().c_str());
+        return false;
+    }
     std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
     if( nullptr == gatt ) {
-        throw jau::IllegalStateException("Descriptor's device GATTHandle not connected: "+toShortString(), E_FILE_LINE);
+        ERR_PRINT("Descriptor's device GATTHandle not connected: %s", toShortString().c_str());
+        return false;
     }
     return gatt->writeDescriptorValue(*this);
 }

@@ -125,8 +125,8 @@ namespace direct_bt {
 
             std::shared_ptr<BTGattChar> getGattCharUnchecked() const noexcept { return wbr_char.lock(); }
             std::shared_ptr<BTGattChar> getGattCharChecked() const;
-            std::shared_ptr<BTGattHandler> getGattHandlerChecked() const;
-            std::shared_ptr<BTDevice> getDeviceChecked() const;
+            std::shared_ptr<BTGattHandler> getGattHandlerUnchecked() const noexcept;
+            std::shared_ptr<BTDevice> getDeviceUnchecked() const noexcept;
 
             std::string toString() const noexcept override;
 
@@ -157,10 +157,10 @@ namespace direct_bt {
              * </p>
              * <p>
              * Convenience delegation call to BTGattHandler via BTDevice
-             * If the BTDevice's BTGattHandler is null, i.e. not connected, an IllegalStateException is thrown.
+             * If the BTDevice's BTGattHandler is null, i.e. not connected, false is returned.
              * </p>
              */
-            bool readValue(int expectedLength=-1);
+            bool readValue(int expectedLength=-1) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.3 Write Characteristic Descriptors
@@ -172,10 +172,10 @@ namespace direct_bt {
              * </p>
              * <p>
              * Convenience delegation call to BTGattHandler via BTDevice
-             * If the BTDevice's BTGattHandler is null, i.e. not connected, an IllegalStateException is thrown.
+             * If the BTDevice's BTGattHandler is null, i.e. not connected, false is returned.
              * </p>
              */
-            bool writeValue();
+            bool writeValue() noexcept;
     };
     typedef std::shared_ptr<BTGattDesc> BTGattDescRef;
 

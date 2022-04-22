@@ -194,11 +194,8 @@ namespace direct_bt {
             }
 
             std::shared_ptr<BTGattService> getServiceUnchecked() const noexcept { return wbr_service.lock(); }
-            std::shared_ptr<BTGattService> getServiceChecked() const;
             std::shared_ptr<BTGattHandler> getGattHandlerUnchecked() const noexcept;
-            std::shared_ptr<BTGattHandler> getGattHandlerChecked() const;
             std::shared_ptr<BTDevice> getDeviceUnchecked() const noexcept;
-            std::shared_ptr<BTDevice> getDeviceChecked() const;
 
             bool hasProperties(const PropertyBitVal v) const noexcept { return v == ( properties & v ); }
 
@@ -264,13 +261,10 @@ namespace direct_bt {
              * or there is no BTGattDesc of type ClientCharacteristicConfiguration, or if the operation has failed.
              * Otherwise returns true.
              *
-             * @throws IllegalStateException if notification or indication is set to be enabled
-             * and the {@link BTDevice's}'s {@link BTGattHandler} is null, i.e. not connected
-             *
              * @see enableNotificationOrIndication()
              * @see disableIndicationNotification()
              */
-            bool configNotificationIndication(const bool enableNotification, const bool enableIndication, bool enabledState[2]);
+            bool configNotificationIndication(const bool enableNotification, const bool enableIndication, bool enabledState[2]) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
@@ -288,13 +282,10 @@ namespace direct_bt {
              * or there is no BTGattDesc of type ClientCharacteristicConfiguration, or if the operation has failed.
              * Otherwise returns true.
              *
-             * @throws IllegalStateException if notification or indication is set to be enabled
-             * and the {@link BTDevice's}'s {@link BTGattHandler} is null, i.e. not connected
-             *
              * @see configNotificationIndication()
              * @see disableIndicationNotification()
              */
-            bool enableNotificationOrIndication(bool enabledState[2]);
+            bool enableNotificationOrIndication(bool enabledState[2]) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
@@ -307,14 +298,11 @@ namespace direct_bt {
              * or there is no BTGattDesc of type ClientCharacteristicConfiguration, or if the operation has failed.
              * Otherwise returns true.
              *
-             * @throws IllegalStateException if notification or indication is set to be enabled
-             * and the {@link BTDevice's}'s {@link BTGattHandler} is null, i.e. not connected
-             *
              * @see configNotificationIndication()
              * @see enableNotificationOrIndication()
              * @since 2.4.0
              */
-            bool disableIndicationNotification();
+            bool disableIndicationNotification() noexcept;
 
             /**
              * Add the given BTGattChar::Listener to the listener list if not already present.
@@ -331,8 +319,6 @@ namespace direct_bt {
              *
              * Convenience delegation call to BTGattHandler via BTDevice
              *
-             * @throws IllegalStateException if the {@link BTDevice's}'s {@link BTGattHandler} is null, i.e. not connected
-             *
              * @see BTGattChar::disableIndicationNotification()
              * @see BTGattChar::enableNotificationOrIndication()
              * @see BTGattChar::configNotificationIndication()
@@ -340,7 +326,7 @@ namespace direct_bt {
              * @see BTGattChar::removeCharListener()
              * @see BTGattChar::removeAllAssociatedCharListener()
              */
-            bool addCharListener(std::shared_ptr<Listener> l);
+            bool addCharListener(std::shared_ptr<Listener> l) noexcept;
 
             /**
              * Add the given BTGattChar::Listener to the listener list if not already present
@@ -364,8 +350,6 @@ namespace direct_bt {
              * @param enabledState array of size 2, holding the resulting enabled state for notification and indication
              * using enableNotificationOrIndication(bool[])
              *
-             * @throws IllegalStateException if the {@link BTDevice's}'s {@link BTGattHandler} is null, i.e. not connected
-             *
              * @see BTGattChar::disableIndicationNotification()
              * @see BTGattChar::enableNotificationOrIndication()
              * @see BTGattChar::configNotificationIndication()
@@ -373,7 +357,7 @@ namespace direct_bt {
              * @see BTGattChar::removeCharListener()
              * @see BTGattChar::removeAllAssociatedCharListener()
              */
-            bool addCharListener(std::shared_ptr<Listener> l, bool enabledState[2]);
+            bool addCharListener(std::shared_ptr<Listener> l, bool enabledState[2]) noexcept;
 
             /**
              * Remove the given associated BTGattChar::Listener from the listener list if present.
@@ -384,8 +368,6 @@ namespace direct_bt {
              * @param l
              * @return
              *
-             * @throws IllegalStateException if the {@link BTDevice's}'s {@link BTGattHandler} is null, i.e. not connected
-             *
              * @see BTGattChar::disableIndicationNotification()
              * @see BTGattChar::enableNotificationOrIndication()
              * @see BTGattChar::configNotificationIndication()
@@ -394,7 +376,7 @@ namespace direct_bt {
              * @see BTGattChar::removeAllAssociatedCharListener()
              * @since 2.4.0
              */
-            bool removeCharListener(std::shared_ptr<Listener> l);
+            bool removeCharListener(std::shared_ptr<Listener> l) noexcept;
 
             /**
              * Removes all associated BTGattChar::Listener and and {@link BTGattCharListener} from the listener list.
@@ -415,7 +397,7 @@ namespace direct_bt {
              * @see BTGattChar::removeCharListener()
              * @see BTGattChar::removeAllAssociatedCharListener()
              */
-            int removeAllAssociatedCharListener(bool shallDisableIndicationNotification);
+            int removeAllAssociatedCharListener(bool shallDisableIndicationNotification) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value
@@ -437,10 +419,10 @@ namespace direct_bt {
              * Convenience delegation call to BTGattHandler via BTDevice
              * <p>
              * </p>
-             * If the BTDevice's BTGattHandler is null, i.e. not connected, an IllegalStateException is thrown.
+             * If the BTDevice's BTGattHandler is null, i.e. not connected, false is returned.
              * </p>
              */
-            bool readValue(jau::POctets & res, int expectedLength=-1);
+            bool readValue(jau::POctets & res, int expectedLength=-1) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
@@ -448,10 +430,10 @@ namespace direct_bt {
              * Convenience delegation call to BTGattHandler via BTDevice
              * <p>
              * </p>
-             * If the BTDevice's BTGattHandler is null, i.e. not connected, an IllegalStateException is thrown.
+             * If the BTDevice's BTGattHandler is null, i.e. not connected, false is returned.
              * </p>
              */
-            bool writeValue(const jau::TROOctets & value);
+            bool writeValue(const jau::TROOctets & value) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response
@@ -459,10 +441,10 @@ namespace direct_bt {
              * Convenience delegation call to BTGattHandler via BTDevice
              * <p>
              * </p>
-             * If the BTDevice's BTGattHandler is null, i.e. not connected, an IllegalStateException is thrown.
+             * If the BTDevice's BTGattHandler is null, i.e. not connected, false is returned.
              * </p>
              */
-            bool writeValueNoResp(const jau::TROOctets & value);
+            bool writeValueNoResp(const jau::TROOctets & value) noexcept;
     };
     typedef std::shared_ptr<BTGattChar> BTGattCharRef;
 
