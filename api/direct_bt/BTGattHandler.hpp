@@ -209,8 +209,9 @@ namespace direct_bt {
                      * Reply to an exchange MTU request
                      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.3.1 Exchange MTU (Server configuration)
                      * @param pdu
+                     * @return true if transmission was successful, otherwise false
                      */
-                    virtual void replyExchangeMTUReq(const AttExchangeMTU * pdu) noexcept = 0;
+                    virtual bool replyExchangeMTUReq(const AttExchangeMTU * pdu) noexcept = 0;
 
                     /**
                      * Reply to a read request
@@ -218,8 +219,9 @@ namespace direct_bt {
                      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value
                      * - For any follow up request, which previous request reply couldn't fit in ATT_MTU (Long Write)
                      * @param pdu
+                     * @return true if transmission was successful, otherwise false
                      */
-                    virtual void replyReadReq(const AttPDUMsg * pdu) noexcept = 0;
+                    virtual bool replyReadReq(const AttPDUMsg * pdu) noexcept = 0;
 
                     /**
                      * Reply to a write request.
@@ -237,8 +239,9 @@ namespace direct_bt {
                      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
                      *
                      * @param pdu
+                     * @return true if transmission was successful, otherwise false
                      */
-                    virtual void replyWriteReq(const AttPDUMsg * pdu) noexcept = 0;
+                    virtual bool replyWriteReq(const AttPDUMsg * pdu) noexcept = 0;
 
                     /**
                      * Reply to a find info request
@@ -247,8 +250,9 @@ namespace direct_bt {
                      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
                      *
                      * @param pdu
+                     * @return true if transmission was successful, otherwise false
                      */
-                    virtual void replyFindInfoReq(const AttFindInfoReq * pdu) noexcept = 0;
+                    virtual bool replyFindInfoReq(const AttFindInfoReq * pdu) noexcept = 0;
 
                     /**
                      * Reply to a find by type value request
@@ -256,8 +260,9 @@ namespace direct_bt {
                      * - BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.4 ATT_FIND_BY_TYPE_VALUE_RSP
                      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.2 Discover Primary Service by Service UUID
                      * @param pdu
+                     * @return true if transmission was successful, otherwise false
                      */
-                    virtual void replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) noexcept = 0;
+                    virtual bool replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) noexcept = 0;
 
                     /**
                      * Reply to a read by type request
@@ -266,8 +271,9 @@ namespace direct_bt {
                      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
                      *
                      * @param pdu
+                     * @return true if transmission was successful, otherwise false
                      */
-                    virtual void replyReadByTypeReq(const AttReadByNTypeReq * pdu) noexcept = 0;
+                    virtual bool replyReadByTypeReq(const AttReadByNTypeReq * pdu) noexcept = 0;
 
                     /**
                      * Reply to a read by group type request
@@ -276,8 +282,9 @@ namespace direct_bt {
                      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
                      *
                      * @param pdu
+                     * @return true if transmission was successful, otherwise false
                      */
-                    virtual void replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) noexcept = 0;
+                    virtual bool replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) noexcept = 0;
             };
 
             /**
@@ -470,7 +477,12 @@ namespace direct_bt {
 
             DBGattCharRef findServerGattCharByValueHandle(const uint16_t char_value_handle) noexcept;
 
-            void replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) noexcept;
+            /**
+             * Reply given ATT message using the installed GattServerHandler gattServerHandler
+             * @param pdu the message
+             * @return true if transmission was successful, otherwise false
+             */
+            bool replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) noexcept;
 
             void l2capReaderWork(jau::service_runner& sr) noexcept;
             void l2capReaderEndLocked(jau::service_runner& sr) noexcept;
@@ -486,7 +498,7 @@ namespace direct_bt {
              *
              * @see initClientGatt()
              */
-            uint16_t clientMTUExchange(const int32_t timeout);
+            uint16_t clientMTUExchange(const int32_t timeout) noexcept;
 
             /**
              * Discover all primary services _only_.
@@ -498,7 +510,7 @@ namespace direct_bt {
              * @see initClientGatt()
              * @see discoverCompletePrimaryServices()
              */
-            bool discoverPrimaryServices(std::shared_ptr<BTGattHandler> shared_this, jau::darray<BTGattServiceRef> & result);
+            bool discoverPrimaryServices(std::shared_ptr<BTGattHandler> shared_this, jau::darray<BTGattServiceRef> & result) noexcept;
 
             /**
              * Discover all characteristics of a service and declaration attributes _only_.
@@ -508,7 +520,7 @@ namespace direct_bt {
              * @see initClientGatt()
              * @see discoverCompletePrimaryServices()
              */
-            bool discoverCharacteristics(BTGattServiceRef & service);
+            bool discoverCharacteristics(BTGattServiceRef & service) noexcept;
 
             /**
              * Discover all descriptors of a service _only_.
@@ -517,7 +529,7 @@ namespace direct_bt {
              * @see initClientGatt()
              * @see discoverCompletePrimaryServices()
              */
-            bool discoverDescriptors(BTGattServiceRef & service);
+            bool discoverDescriptors(BTGattServiceRef & service) noexcept;
 
             /**
              * Discover all primary services _and_ all its characteristics declarations
@@ -535,7 +547,7 @@ namespace direct_bt {
              * @return BTGattHandler's internal BTGattService vector of discovered services
              * @see initClientGatt()
              */
-            jau::darray<BTGattServiceRef> & discoverCompletePrimaryServices(std::shared_ptr<BTGattHandler> shared_this);
+            jau::darray<BTGattServiceRef> & discoverCompletePrimaryServices(std::shared_ptr<BTGattHandler> shared_this) noexcept;
 
         public:
             /**
@@ -637,21 +649,17 @@ namespace direct_bt {
             /**
              * Sends the given AttPDUMsg to the connected device via l2cap.
              *
-             * Implementation throws an IllegalStateException if not connected,
-             * a IllegalArgumentException if message size exceeds usedMTU-1.
-             *
              * ATT_MTU range
              * - ATT_MTU minimum is 23 bytes (Vol 3, Part G: 5.2.1)
              * - ATT_MTU is negotiated, maximum attribute value length is 512 bytes (Vol 3, Part F: 3.2.8-9)
              * - ATT Value sent: [1 .. ATT_MTU-1] (Vol 3, Part F: 3.2.8-9)
              *
-             * Implementation disconnect() and throws an BluetoothException
-             * if an l2cap write errors occurs.
+             * Implementation disconnect() and returns false if an unexpected l2cap write errors occurs.
              *
-             * In case method completes, the message has been send out successfully.
              * @param msg the message to be send
+             * @return true if successful otherwise false if write error, not connected or if message size exceeds usedMTU-1.
              */
-            void send(const AttPDUMsg & msg);
+            bool send(const AttPDUMsg & msg) noexcept;
 
             /**
              * Sends the given AttPDUMsg to the connected device via l2cap using {@link #send()}.
@@ -659,18 +667,17 @@ namespace direct_bt {
              * Implementation waits for timeout milliseconds receiving the response
              * from the ringbuffer, filled from the reader-thread.
              *
-             * Implementation disconnect() and throws an BluetoothException
+             * Implementation disconnect() and returns nullptr
              * if no matching reply has been received within timeout milliseconds.
              *
-             * In case method completes, the message has been send out successfully
-             * and a reply has also been received and is returned as a result.<br>
-             * Hence this method either throws an exception or returns a matching reply.
+             * In case method completes successfully,
+             * the message has been send out and a reply has also been received and is returned as the result.
              *
              * @param msg the message to be send
              * @param timeout milliseconds to wait for a reply
-             * @return a valid reply, never nullptrs
+             * @return non nullptr for a valid reply, otherwise nullptr
              */
-            std::unique_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg, const int timeout);
+            std::unique_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg, const int timeout) noexcept;
 
             /**
              * Generic read GATT value and long value
@@ -686,7 +693,7 @@ namespace direct_bt {
              * if required until the response returns zero.
              * </p>
              */
-            bool readValue(const uint16_t handle, jau::POctets & res, int expectedLength=-1);
+            bool readValue(const uint16_t handle, jau::POctets & res, int expectedLength=-1) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value
@@ -705,7 +712,7 @@ namespace direct_bt {
              * if required until the response returns zero.
              * </p>
              */
-            bool readCharacteristicValue(const BTGattChar & c, jau::POctets & res, int expectedLength=-1);
+            bool readCharacteristicValue(const BTGattChar & c, jau::POctets & res, int expectedLength=-1) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.1 Read Characteristic Descriptor
@@ -724,12 +731,12 @@ namespace direct_bt {
              * if required until the response returns zero.
              * </p>
              */
-            bool readDescriptorValue(BTGattDesc & cd, int expectedLength=-1);
+            bool readDescriptorValue(BTGattDesc & cd, int expectedLength=-1) noexcept;
 
             /**
              * Generic write GATT value and long value
              */
-            bool writeValue(const uint16_t handle, const jau::TROOctets & value, const bool withResponse);
+            bool writeValue(const uint16_t handle, const jau::TROOctets & value, const bool withResponse) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.3 Write Characteristic Descriptors
@@ -740,17 +747,17 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
              * </p>
              */
-            bool writeDescriptorValue(const BTGattDesc & cd);
+            bool writeDescriptorValue(const BTGattDesc & cd) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
              */
-            bool writeCharacteristicValue(const BTGattChar & c, const jau::TROOctets & value);
+            bool writeCharacteristicValue(const BTGattChar & c, const jau::TROOctets & value) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response
              */
-            bool writeCharacteristicValueNoResp(const BTGattChar & c, const jau::TROOctets & value);
+            bool writeCharacteristicValueNoResp(const BTGattChar & c, const jau::TROOctets & value) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
@@ -765,7 +772,7 @@ namespace direct_bt {
              * Throws an IllegalArgumentException if the given BTGattDesc is not a ClientCharacteristicConfiguration.
              * </p>
              */
-            bool configNotificationIndication(BTGattDesc & cd, const bool enableNotification, const bool enableIndication);
+            bool configNotificationIndication(BTGattDesc & cd, const bool enableNotification, const bool enableIndication) noexcept;
 
             /**
              * Send a notification event consisting out of the given `value` representing the given characteristic value handle
@@ -778,7 +785,7 @@ namespace direct_bt {
              * @param char_value_handle valid characteristic value handle, must be sourced from referenced DBGattServer
              * @return true if successful, otherwise false
              */
-            bool sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value);
+            bool sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value) noexcept;
 
             /**
              * Send an indication event consisting out of the given `value` representing the given characteristic value handle
@@ -791,7 +798,7 @@ namespace direct_bt {
              * @param char_value_handle valid characteristic value handle, must be sourced from referenced DBGattServer
              * @return true if successful, otherwise false
              */
-            bool sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value);
+            bool sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value) noexcept;
 
             /**
              * Add the given listener to the list if not already present.
@@ -800,7 +807,7 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool addCharListener(std::shared_ptr<BTGattCharListener> l);
+            bool addCharListener(std::shared_ptr<BTGattCharListener> l) noexcept;
 
             /**
              * Remove the given listener from the list.
@@ -840,7 +847,7 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool addCharListener(std::shared_ptr<NativeGattCharListener> l);
+            bool addCharListener(std::shared_ptr<NativeGattCharListener> l) noexcept;
 
             /**
              * Remove the given listener from the list.
@@ -965,7 +972,7 @@ namespace direct_bt {
              * This setting is per BTGattHandler and hence per BTDevice.
              * </p>
              */
-            void setSendIndicationConfirmation(const bool v);
+            void setSendIndicationConfirmation(const bool v) noexcept;
 
             /**
              * Returns whether sending an immediate confirmation for received indication events from the device is enabled.
@@ -982,11 +989,11 @@ namespace direct_bt {
             /** Higher level semantic functionality **/
             /*****************************************************/
 
-            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(jau::darray<BTGattServiceRef> & primServices);
-            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(jau::darray<BTGattCharRef> & genericAccessCharDeclList);
+            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(jau::darray<BTGattServiceRef> & primServices) noexcept;
+            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(jau::darray<BTGattCharRef> & genericAccessCharDeclList) noexcept;
 
-            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(jau::darray<BTGattServiceRef> & primServices);
-            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(jau::darray<BTGattCharRef> & deviceInfoCharDeclList);
+            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(jau::darray<BTGattServiceRef> & primServices) noexcept;
+            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(jau::darray<BTGattCharRef> & deviceInfoCharDeclList) noexcept;
 
             /**
              * Issues a ping to the device, validating whether it is still reachable.
@@ -999,7 +1006,7 @@ namespace direct_bt {
              * </p>
              * @return `true` if successful, otherwise false in case no GATT services exists etc.
              */
-            bool ping();
+            bool ping() noexcept;
 
             std::string toString() const noexcept;
     };

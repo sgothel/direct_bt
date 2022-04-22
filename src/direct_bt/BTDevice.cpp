@@ -1975,28 +1975,25 @@ jau::darray<BTGattServiceRef> BTDevice::getGattServices() noexcept {
         ERR_PRINT2("BTDevice::getGattServices: No primary services discovered");
         return gattServices;
     }
-    try {
-        // discovery success, parse GenericAccess
-        std::shared_ptr<GattGenericAccessSvc> gattGenericAccess = gh->getGenericAccess();
-        if( nullptr != gattGenericAccess ) {
-            const uint64_t ts = jau::getCurrentMilliseconds();
-            EIRDataType updateMask = update(*gattGenericAccess, ts);
-            DBG_PRINT("BTDevice::getGattServices: GenericAccess updated %s:\n    %s\n    -> %s",
-                to_string(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
-            if( EIRDataType::NONE != updateMask ) {
-                std::shared_ptr<BTDevice> sharedInstance = getSharedInstance();
-                if( nullptr == sharedInstance ) {
-                    ERR_PRINT("Device unknown to adapter and not tracked: %s", toString().c_str());
-                } else {
-                    adapter.sendDeviceUpdated("getGattServices", sharedInstance, ts, updateMask);
-                }
+
+    // discovery success, parse GenericAccess
+    std::shared_ptr<GattGenericAccessSvc> gattGenericAccess = gh->getGenericAccess();
+    if( nullptr != gattGenericAccess ) {
+        const uint64_t ts = jau::getCurrentMilliseconds();
+        EIRDataType updateMask = update(*gattGenericAccess, ts);
+        DBG_PRINT("BTDevice::getGattServices: GenericAccess updated %s:\n    %s\n    -> %s",
+            to_string(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
+        if( EIRDataType::NONE != updateMask ) {
+            std::shared_ptr<BTDevice> sharedInstance = getSharedInstance();
+            if( nullptr == sharedInstance ) {
+                ERR_PRINT("Device unknown to adapter and not tracked: %s", toString().c_str());
+            } else {
+                adapter.sendDeviceUpdated("getGattServices", sharedInstance, ts, updateMask);
             }
-        } else {
-            // else: Actually an error w/o valid mandatory GenericAccess
-            WARN_PRINT("No GenericAccess: %s", toString().c_str());
         }
-    } catch (std::exception &e) {
-        WARN_PRINT("Caught exception: '%s' on %s", e.what(), toString().c_str());
+    } else {
+        // else: Actually an error w/o valid mandatory GenericAccess
+        WARN_PRINT("No GenericAccess: %s", toString().c_str());
     }
     return gattServices; // return copy
 }
@@ -2051,12 +2048,7 @@ bool BTDevice::sendNotification(const uint16_t char_value_handle, const jau::TRO
         WARN_PRINT("GATTHandler not connected -> disconnected on %s", toString().c_str());
         return false;
     }
-    try {
-        return gh->sendNotification(char_value_handle, value);
-    } catch (std::exception &e) {
-        IRQ_PRINT("Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());
-    }
-    return false;
+    return gh->sendNotification(char_value_handle, value);
 }
 
 bool BTDevice::sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value) noexcept {
@@ -2069,12 +2061,7 @@ bool BTDevice::sendIndication(const uint16_t char_value_handle, const jau::TROOc
         WARN_PRINT("GATTHandler not connected -> disconnected on %s", toString().c_str());
         return false;
     }
-    try {
-        return gh->sendIndication(char_value_handle, value);
-    } catch (std::exception &e) {
-        IRQ_PRINT("Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());
-    }
-    return false;
+    return gh->sendIndication(char_value_handle, value);
 }
 
 
@@ -2085,12 +2072,7 @@ bool BTDevice::pingGATT() noexcept {
         disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
         return false;
     }
-    try {
-        return gh->ping();
-    } catch (std::exception &e) {
-        IRQ_PRINT("Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());
-    }
-    return false;
+    return gh->ping();
 }
 
 bool BTDevice::addCharListener(std::shared_ptr<BTGattCharListener> l) {
