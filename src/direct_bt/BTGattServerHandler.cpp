@@ -63,32 +63,39 @@ class NopGattServerHandler : public BTGattHandler::GattServerHandler {
 
         DBGattServer::Mode getMode() noexcept override { return DBGattServer::Mode::NOP; }
 
-        void replyExchangeMTUReq(const AttExchangeMTU * pdu) noexcept override {
+        bool replyExchangeMTUReq(const AttExchangeMTU * pdu) noexcept override {
             (void)pdu;
+            return true;
         }
 
-        void replyReadReq(const AttPDUMsg * pdu) noexcept override {
+        bool replyReadReq(const AttPDUMsg * pdu) noexcept override {
             (void)pdu;
+            return true;
         }
 
-        void replyWriteReq(const AttPDUMsg * pdu) noexcept override {
+        bool replyWriteReq(const AttPDUMsg * pdu) noexcept override {
             (void)pdu;
+            return true;
         }
 
-        void replyFindInfoReq(const AttFindInfoReq * pdu) noexcept override {
+        bool replyFindInfoReq(const AttFindInfoReq * pdu) noexcept override {
             (void)pdu;
+            return true;
         }
 
-        void replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) noexcept override {
+        bool replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) noexcept override {
             (void)pdu;
+            return true;
         }
 
-        void replyReadByTypeReq(const AttReadByNTypeReq * pdu) noexcept override {
+        bool replyReadByTypeReq(const AttReadByNTypeReq * pdu) noexcept override {
             (void)pdu;
+            return true;
         }
 
-        void replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) noexcept override {
+        bool replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) noexcept override {
             (void)pdu;
+            return true;
         }
 };
 
@@ -338,7 +345,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
 
         DBGattServer::Mode getMode() noexcept override { return DBGattServer::Mode::DB; }
 
-        void replyExchangeMTUReq(const AttExchangeMTU * pdu) noexcept override {
+        bool replyExchangeMTUReq(const AttExchangeMTU * pdu) noexcept override {
             const uint16_t clientMTU = pdu->getMTUSize();
             gh.setUsedMTU( std::min(gh.getServerMTU(), clientMTU) );
             const AttExchangeMTU rsp(AttPDUMsg::ReqRespType::RESPONSE, gh.getUsedMTU());
@@ -361,10 +368,10 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                     });
                 }
             }
-            gh.send(rsp);
+            return gh.send(rsp);
         }
 
-        void replyWriteReq(const AttPDUMsg * pdu) noexcept override {
+        bool replyWriteReq(const AttPDUMsg * pdu) noexcept override {
             /**
              * Without Response:
              *   BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.5.3 ATT_WRITE_CMD
@@ -382,8 +389,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
             if( nullptr == device ) {
                 AttErrorRsp err(AttErrorRsp::ErrorCode::UNLIKELY_ERROR, pdu->getOpcode(), 0);
                 ERR_PRINT("GATT-Req: WRITE.0, null device: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
-                return;
+                return gh.send(err);
             }
 
             if( AttPDUMsg::Opcode::PREPARE_WRITE_REQ == pdu->getOpcode() ) {
@@ -391,8 +397,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 if( !hasServerHandle( req->getHandle() ) ) {
                     AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, req->getOpcode(), req->getHandle());
                     WARN_PRINT("GATT-Req: WRITE.10: %s -> %s from %s", req->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                    gh.send(err);
-                    return;
+                    return gh.send(err);
                 }
                 const uint16_t handle = req->getHandle();
                 AttPrepWrite rsp(false, *req);
@@ -404,8 +409,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                     writeDataQueueHandles.push_back(handle);
                 }
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.11: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
-                gh.send(rsp);
-                return;
+                return gh.send(rsp);
             } else if( AttPDUMsg::Opcode::EXECUTE_WRITE_REQ == pdu->getOpcode() ) {
                 const AttExeWriteReq * req = static_cast<const AttExeWriteReq*>(pdu);
                 if( 0x01 == req->getFlags() ) { // immediately write all pending prepared values
@@ -424,8 +428,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                     writeDataQueueHandles.clear();
                                     AttErrorRsp err(res, pdu->getOpcode(), handle);
                                     WARN_PRINT("GATT-Req: WRITE.12: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                                    gh.send(err);
-                                    return;
+                                    return gh.send(err);
                                 }
                             }
                         }
@@ -438,8 +441,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 writeDataQueueHandles.clear();
                 AttExeWriteRsp rsp;
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.13: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
-                gh.send(rsp);
-                return;
+                return gh.send(rsp);
             }
 
             uint16_t handle = 0;
@@ -459,8 +461,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 // Actually an internal error, method should not have been called
                 AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu->getOpcode(), 0);
                 WARN_PRINT("GATT-Req: WRITE.20: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
-                return;
+                return gh.send(err);
             }
             jau::TROOctets req_val(vslice->get_ptr_nc(0), vslice->size(), vslice->byte_order());
             AttErrorRsp::ErrorCode res = applyWrite(device, handle, req_val, 0);
@@ -469,19 +470,22 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 WARN_PRINT("GATT-Req: WRITE.21: %s -> %s (sent %d) from %s",
                         pdu->toString().c_str(), err.toString().c_str(), (int)withResp, gh.toString().c_str());
                 if( withResp ) {
-                    gh.send(err);
+                    return gh.send(err);
                 }
-                return;
+                return true;;
             }
             if( withResp ) {
                 AttWriteRsp rsp;
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.22: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
-                gh.send(rsp);
+                if( !gh.send(rsp) ) {
+                    return false;
+                }
             }
             signalWriteDone(device, handle);
+            return true;
         }
 
-        void replyReadReq(const AttPDUMsg * pdu) noexcept override {
+        bool replyReadReq(const AttPDUMsg * pdu) noexcept override {
             /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value */
             /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value */
             /* For any follow up request, which previous request reply couldn't fit in ATT_MTU */
@@ -489,8 +493,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
             if( nullptr == device ) {
                 AttErrorRsp err(AttErrorRsp::ErrorCode::UNLIKELY_ERROR, pdu->getOpcode(), 0);
                 ERR_PRINT("GATT-Req: READ, null device: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
-                return;
+                return gh.send(err);
             }
             uint16_t handle = 0;
             uint16_t value_offset = 0;
@@ -515,14 +518,12 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
             } else {
                 AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu->getOpcode(), 0);
                 WARN_PRINT("GATT-Req: READ: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
-                return;
+                return gh.send(err);
             }
             if( 0 == handle ) {
                 AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
-                return;
+                return gh.send(err);
             }
             const jau::nsize_t rspMaxSize = gh.getUsedMTU()-1;
             (void)rspMaxSize;
@@ -548,8 +549,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                     if( value_offset > c->getValue().size() ) {
                                         AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_OFFSET, pdu->getOpcode(), handle);
                                         COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                                        gh.send(err);
-                                        return;
+                                        return gh.send(err);
                                     }
                                 }
                                 {
@@ -568,8 +568,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                     if( !allowed ) {
                                         AttErrorRsp err(AttErrorRsp::ErrorCode::NO_READ_PERM, pdu->getOpcode(), handle);
                                         COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.2: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                                        gh.send(err);
-                                        return;
+                                        return gh.send(err);
                                     }
                                 }
                                 AttReadNRsp rsp(isBlobReq, c->getValue(), value_offset); // Blob: value_size == value_offset -> OK, ends communication
@@ -577,8 +576,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                     rsp.pdu.resize(gh.getUsedMTU()); // requires another READ_BLOB_REQ
                                 }
                                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
-                                gh.send(rsp);
-                                return;
+                                return gh.send(rsp);
                             }
                             for(DBGattDescRef& d : c->getDescriptors()) {
                                 if( handle == d->getHandle() ) {
@@ -594,8 +592,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                         if( value_offset > c->getValue().size() ) {
                                             AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_OFFSET, pdu->getOpcode(), handle);
                                             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                                            gh.send(err);
-                                            return;
+                                            return gh.send(err);
                                         }
                                     }
                                     {
@@ -614,8 +611,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                         if( !allowed ) {
                                             AttErrorRsp err(AttErrorRsp::ErrorCode::NO_READ_PERM, pdu->getOpcode(), handle);
                                             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.4: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                                            gh.send(err);
-                                            return;
+                                            return gh.send(err);
                                         }
                                     }
                                     AttReadNRsp rsp(isBlobReq, d->getValue(), value_offset); // Blob: value_size == value_offset -> OK, ends communication
@@ -623,8 +619,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                         rsp.pdu.resize(gh.getUsedMTU()); // requires another READ_BLOB_REQ
                                     }
                                     COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.5: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
-                                    gh.send(rsp);
-                                    return;
+                                    return gh.send(rsp);
                                 }
                             }
                         } // if characteristics-range
@@ -633,24 +628,22 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
             } // for services
             AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), handle);
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-            gh.send(err);
+            return gh.send(err);
         }
 
-        void replyFindInfoReq(const AttFindInfoReq * pdu) noexcept override {
+        bool replyFindInfoReq(const AttFindInfoReq * pdu) noexcept override {
             // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.1 ATT_FIND_INFORMATION_REQ
             // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.2 ATT_FIND_INFORMATION_RSP
             // BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
             if( 0 == pdu->getStartHandle() ) {
                 AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: INFO.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
-                return;
+                return gh.send(err);
             }
             if( pdu->getStartHandle() > pdu->getEndHandle() ) {
                 AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), pdu->getStartHandle());
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: INFO.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
-                return;
+                return gh.send(err);
             }
             const uint16_t end_handle = pdu->getEndHandle();
             const uint16_t start_handle = pdu->getStartHandle();
@@ -675,8 +668,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                 // send if rsp is full - or - element size changed
                                 rsp.setElementCount(rspCount);
                                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: INFO.2: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
-                                gh.send(rsp);
-                                return; // Client shall issue additional FIND_INFORMATION_REQ
+                                return gh.send(rsp); // Client shall issue additional FIND_INFORMATION_REQ
                             }
                             rsp.setElementHandle(rspCount, d->getHandle());
                             rsp.setElementValueUUID(rspCount, *d->getType());
@@ -689,29 +681,26 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
             if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
                 rsp.setElementCount(rspCount);
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: INFO.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
-                gh.send(rsp);
-                return;
+                return gh.send(rsp);
             }
             AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), start_handle);
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: INFO.4: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-            gh.send(err);
+            return gh.send(err);
         }
 
-        void replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) noexcept override {
+        bool replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) noexcept override {
             // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.3 ATT_FIND_BY_TYPE_VALUE_REQ
             // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.4 ATT_FIND_BY_TYPE_VALUE_RSP
             // BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.2 Discover Primary Service by Service UUID
             if( 0 == pdu->getStartHandle() ) {
                 AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
-                return;
+                return gh.send(err);
             }
             if( pdu->getStartHandle() > pdu->getEndHandle() ) {
                 AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), pdu->getStartHandle());
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
-                return;
+                return gh.send(err);
             }
             const jau::uuid16_t uuid_prim_service = jau::uuid16_t(GattAttributeType::PRIMARY_SERVICE);
             const jau::uuid16_t uuid_secd_service = jau::uuid16_t(GattAttributeType::SECONDARY_SERVICE);
@@ -749,37 +738,33 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                         rspSize += size;
                         ++rspCount;
                         COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.4: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
-                        gh.send(rsp);
-                        return; // done
+                        return gh.send(rsp); // done
                     }
                 }
             }
             if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
                 rsp.setElementCount(rspCount);
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.5: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
-                gh.send(rsp);
-                return;
+                return gh.send(rsp);
             }
             AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), start_handle);
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-            gh.send(err);
+            return gh.send(err);
         }
 
-        void replyReadByTypeReq(const AttReadByNTypeReq * pdu) noexcept override {
+        bool replyReadByTypeReq(const AttReadByNTypeReq * pdu) noexcept override {
             // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.1 ATT_READ_BY_TYPE_REQ
             // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.2 ATT_READ_BY_TYPE_RSP
             // BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
             if( 0 == pdu->getStartHandle() ) {
                 AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
-                return;
+                return gh.send(err);
             }
             if( pdu->getStartHandle() > pdu->getEndHandle() ) {
                 AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), pdu->getStartHandle());
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
-                return;
+                return gh.send(err);
             }
             const jau::uuid16_t uuid_characteristic = jau::uuid16_t(GattAttributeType::CHARACTERISTIC);
             const jau::uuid16_t uuid_incl_service = jau::uuid16_t(GattAttributeType::INCLUDE_DECLARATION);
@@ -815,8 +800,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                 // send if rsp is full - or - element size changed
                                 rsp.setElementCount(rspCount);
                                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.2: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
-                                gh.send(rsp);
-                                return; // Client shall issue additional READ_BY_TYPE_REQ
+                                return gh.send(rsp); // Client shall issue additional READ_BY_TYPE_REQ
                             }
                             jau::nsize_t ePDUOffset = rsp.getElementPDUOffset(rspCount);
                             rsp.setElementHandle(rspCount, c->getHandle()); // Characteristic Handle
@@ -835,40 +819,37 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
                     rsp.setElementCount(rspCount);
                     COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
-                    gh.send(rsp);
-                    return;
+                    return gh.send(rsp);
                 }
                 AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), pdu->getStartHandle());
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.4: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
+                return gh.send(err);
             } else if( GattAttributeType::INCLUDE_DECLARATION == req_type ) {
                 // TODO: Support INCLUDE_DECLARATION ??
                 AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), pdu->getStartHandle());
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.5: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
+                return gh.send(err);
             } else {
                 // TODO: Add other group types ???
                 AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu->getOpcode(), pdu->getStartHandle());
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
+                return gh.send(err);
             }
         }
 
-        void replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) noexcept override {
+        bool replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) noexcept override {
             // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.9 ATT_READ_BY_GROUP_TYPE_REQ
             // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.10 ATT_READ_BY_GROUP_TYPE_RSP
             // BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
             if( 0 == pdu->getStartHandle() ) {
                 AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
-                return;
+                return gh.send(err);
             }
             if( pdu->getStartHandle() > pdu->getEndHandle() ) {
                 AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), pdu->getStartHandle());
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.1: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
-                return;
+                return gh.send(err);
             }
             const jau::uuid16_t uuid_prim_service = jau::uuid16_t(GattAttributeType::PRIMARY_SERVICE);
             const jau::uuid16_t uuid_secd_service = jau::uuid16_t(GattAttributeType::SECONDARY_SERVICE);
@@ -911,8 +892,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                              */
                             rsp.setElementCount(rspCount);
                             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
-                            gh.send(rsp);
-                            return; // Client shall issue additional READ_BY_TYPE_REQ
+                            return gh.send(rsp); // Client shall issue additional READ_BY_TYPE_REQ
                         }
                         rsp.setElementStartHandle(rspCount, s->getHandle());
                         rsp.setElementEndHandle(rspCount, s->getEndHandle());
@@ -924,17 +904,16 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
                     rsp.setElementCount(rspCount);
                     COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.4: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
-                    gh.send(rsp);
-                    return;
+                    return gh.send(rsp);
                 }
                 AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), pdu->getStartHandle());
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.5: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
+                return gh.send(err);
             } else {
                 // TODO: Add other group types ???
                 AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu->getOpcode(), pdu->getStartHandle());
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-                gh.send(err);
+                return gh.send(err);
             }
         }
 };
@@ -961,15 +940,19 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
 
         DBGattServer::Mode getMode() noexcept override { return DBGattServer::Mode::FWD; }
 
-        void replyExchangeMTUReq(const AttExchangeMTU * pdu) noexcept override {
+        bool replyExchangeMTUReq(const AttExchangeMTU * pdu) noexcept override {
             if( !fwd_gh->isConnected() ) {
                 close();
-                return;
+                return false;
             }
             BTDeviceRef clientSource = gh.getDeviceUnchecked();
             fwd_gh->notifyNativeRequestSent(*pdu, clientSource);
             const uint16_t clientMTU = pdu->getMTUSize();
             std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.write_cmd_reply_timeout); // valid reply or exception
+            if( nullptr == rsp ) {
+                ERR_PRINT2("No reply; req %s from %s", pdu->toString().c_str(), fwd_gh->toString().c_str());
+                return false;
+            }
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: MTU: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
             fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
             if( AttPDUMsg::Opcode::EXCHANGE_MTU_RSP == rsp->getOpcode() ) {
@@ -983,13 +966,13 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                         static_cast<const AttErrorRsp*>(rsp.get())->getErrorCode() : AttErrorRsp::ErrorCode::NO_ERROR;
                 fwd_gh->notifyNativeMTUResponse(clientMTU, *rsp, error_code, 0, 0, clientSource);
             }
-            gh.send(*rsp);
+            return gh.send(*rsp);
         }
 
-        void replyWriteReq(const AttPDUMsg * pdu) noexcept override {
+        bool replyWriteReq(const AttPDUMsg * pdu) noexcept override {
             if( !fwd_gh->isConnected() ) {
                 close();
-                return;
+                return false;
             }
             BTDeviceRef clientSource = gh.getDeviceUnchecked();
 
@@ -1008,6 +991,10 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                     }
                 }
                 std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.write_cmd_reply_timeout); // valid reply or exception
+                if( nullptr == rsp ) {
+                    ERR_PRINT2("No reply; req %s from %s", pdu->toString().c_str(), fwd_gh->toString().c_str());
+                    return false;
+                }
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.11: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
                 fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
                 {
@@ -1015,8 +1002,7 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                             static_cast<const AttErrorRsp*>(rsp.get())->getErrorCode() : AttErrorRsp::ErrorCode::NO_ERROR;
                     fwd_gh->notifyNativeWriteResponse(*rsp, error_code, clientSource);
                 }
-                gh.send(*rsp);
-                return;
+                return gh.send(*rsp);
             } else if( AttPDUMsg::Opcode::EXECUTE_WRITE_REQ == pdu->getOpcode() ) {
                 {
                     const AttExeWriteReq * req = static_cast<const AttExeWriteReq*>(pdu);
@@ -1063,6 +1049,10 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                     writeDataQueueHandles.clear();
                 }
                 std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.write_cmd_reply_timeout); // valid reply or exception
+                if( nullptr == rsp ) {
+                    ERR_PRINT2("No reply; req %s from %s", pdu->toString().c_str(), fwd_gh->toString().c_str());
+                    return false;
+                }
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.13: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
                 fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
                 {
@@ -1070,8 +1060,7 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                             static_cast<const AttErrorRsp*>(rsp.get())->getErrorCode() : AttErrorRsp::ErrorCode::NO_ERROR;
                     fwd_gh->notifyNativeWriteResponse(*rsp, error_code, clientSource);
                 }
-                gh.send(*rsp);
-                return;
+                return gh.send(*rsp);
             }
 
             if( AttPDUMsg::Opcode::WRITE_REQ == pdu->getOpcode() ) {
@@ -1084,6 +1073,10 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                     fwd_gh->notifyNativeWriteRequest(p.getHandle(), p_val, sections, true /* with_response */, clientSource);
                 }
                 std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.write_cmd_reply_timeout); // valid reply or exception
+                if( nullptr == rsp ) {
+                    ERR_PRINT2("No reply; req %s from %s", pdu->toString().c_str(), fwd_gh->toString().c_str());
+                    return false;
+                }
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.22: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
                 fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
                 {
@@ -1091,7 +1084,7 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                             static_cast<const AttErrorRsp*>(rsp.get())->getErrorCode() : AttErrorRsp::ErrorCode::NO_ERROR;
                     fwd_gh->notifyNativeWriteResponse(*rsp, error_code, clientSource);
                 }
-                gh.send(*rsp);
+                return gh.send(*rsp);
             } else if( AttPDUMsg::Opcode::WRITE_CMD == pdu->getOpcode() ) {
                 {
                     const AttWriteCmd &p = *static_cast<const AttWriteCmd*>(pdu);
@@ -1101,8 +1094,9 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                     sections.emplace_back( 0, (uint16_t)p_value.size() );
                     fwd_gh->notifyNativeWriteRequest(p.getHandle(), p_val, sections, false /* with_response */, clientSource);
                 }
-                fwd_gh->send(*pdu);
-                COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.21: %s to  %s", pdu->toString().c_str(), fwd_gh->toString().c_str());
+                const bool res = fwd_gh->send(*pdu);
+                COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.21: res %d, %s to %s", res, pdu->toString().c_str(), fwd_gh->toString().c_str());
+                return res;
             } else {
                 // Actually an internal error, method should not have been called
                 AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu->getOpcode(), 0);
@@ -1111,21 +1105,20 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                 {
                     fwd_gh->notifyNativeWriteResponse(err, err.getErrorCode(), clientSource);
                 }
-                gh.send(err);
+                return gh.send(err);
             }
         }
 
-        void replyReadReq(const AttPDUMsg * pdu) noexcept override {
+        bool replyReadReq(const AttPDUMsg * pdu) noexcept override {
             if( !fwd_gh->isConnected() ) {
                 close();
-                return;
+                return false;
             }
             BTDeviceRef clientSource = gh.getDeviceUnchecked();
             fwd_gh->notifyNativeRequestSent(*pdu, clientSource);
             uint16_t handle;
             uint16_t value_offset;
             {
-
                 if( AttPDUMsg::Opcode::READ_REQ == pdu->getOpcode() ) {
                     const AttReadReq * req = static_cast<const AttReadReq*>(pdu);
                     handle = req->getHandle();
@@ -1149,6 +1142,10 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                 }
             }
             std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.read_cmd_reply_timeout); // valid reply or exception
+            if( nullptr == rsp ) {
+                ERR_PRINT2("No reply; req %s from %s", pdu->toString().c_str(), fwd_gh->toString().c_str());
+                return false;
+            }
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
             fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
             {
@@ -1165,59 +1162,75 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                     fwd_gh->notifyNativeReadResponse(handle, value_offset, *rsp, error_code, p_val, clientSource);
                 }
             }
-            gh.send(*rsp);
+            return gh.send(*rsp);
         }
 
-        void replyFindInfoReq(const AttFindInfoReq * pdu) noexcept override {
+        bool replyFindInfoReq(const AttFindInfoReq * pdu) noexcept override {
             if( !fwd_gh->isConnected() ) {
                 close();
-                return;
+                return false;
             }
             BTDeviceRef clientSource = gh.getDeviceUnchecked();
             fwd_gh->notifyNativeRequestSent(*pdu, clientSource);
             std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.read_cmd_reply_timeout); // valid reply or exception
+            if( nullptr == rsp ) {
+                ERR_PRINT2("No reply; req %s from %s", pdu->toString().c_str(), fwd_gh->toString().c_str());
+                return false;
+            }
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: INFO: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
             fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
-            gh.send(*rsp);
+            return gh.send(*rsp);
         }
 
-        void replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) noexcept override {
+        bool replyFindByTypeValueReq(const AttFindByTypeValueReq * pdu) noexcept override {
             if( !fwd_gh->isConnected() ) {
                 close();
-                return;
+                return false;
             }
             BTDeviceRef clientSource = gh.getDeviceUnchecked();
             fwd_gh->notifyNativeRequestSent(*pdu, clientSource);
             std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.read_cmd_reply_timeout); // valid reply or exception
+            if( nullptr == rsp ) {
+                ERR_PRINT2("No reply; req %s from %s", pdu->toString().c_str(), fwd_gh->toString().c_str());
+                return false;
+            }
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
             fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
-            gh.send(*rsp);
+            return gh.send(*rsp);
         }
 
-        void replyReadByTypeReq(const AttReadByNTypeReq * pdu) noexcept override {
+        bool replyReadByTypeReq(const AttReadByNTypeReq * pdu) noexcept override {
             if( !fwd_gh->isConnected() ) {
                 close();
-                return;
+                return false;
             }
             BTDeviceRef clientSource = gh.getDeviceUnchecked();
             fwd_gh->notifyNativeRequestSent(*pdu, clientSource);
             std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.read_cmd_reply_timeout); // valid reply or exception
+            if( nullptr == rsp ) {
+                ERR_PRINT2("No reply; req %s from %s", pdu->toString().c_str(), fwd_gh->toString().c_str());
+                return false;
+            }
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
             fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
-            gh.send(*rsp);
+            return gh.send(*rsp);
         }
 
-        void replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) noexcept override {
+        bool replyReadByGroupTypeReq(const AttReadByNTypeReq * pdu) noexcept override {
             if( !fwd_gh->isConnected() ) {
                 close();
-                return;
+                return false;
             }
             BTDeviceRef clientSource = gh.getDeviceUnchecked();
             fwd_gh->notifyNativeRequestSent(*pdu, clientSource);
             std::unique_ptr<const AttPDUMsg> rsp = fwd_gh->sendWithReply(*pdu, gh.read_cmd_reply_timeout); // valid reply or exception
+            if( nullptr == rsp ) {
+                ERR_PRINT2("No reply; req %s from %s", pdu->toString().c_str(), fwd_gh->toString().c_str());
+                return false;
+            }
             COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: GROUP_TYPE: %s -> %s from %s", pdu->toString().c_str(), rsp->toString().c_str(), fwd_gh->toString().c_str());
             fwd_gh->notifyNativeReplyReceived(*rsp, clientSource);
-            gh.send(*rsp);
+            return gh.send(*rsp);
         }
 };
 
