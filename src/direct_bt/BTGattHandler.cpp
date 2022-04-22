@@ -583,8 +583,6 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, 
         is_connected = false;
         return;
     }
-    DBG_PRINT("GATTHandler::ctor: Start Connect: GattHandler[%s], l2cap[%s]: %s",
-                getStateString().c_str(), l2cap.getStateString().c_str(), toString().c_str());
 
     /**
      * We utilize DBTManager's mgmthandler_sigaction SIGALRM handler,
@@ -593,6 +591,9 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, 
     // l2cap.set_interrupted_query( jau::bindMemberFunc(&l2cap_reader_service, &jau::service_runner::shall_stop2) );
     l2cap.set_interrupted_query( jau::bindMemberFunc(this, &BTGattHandler::l2capReaderInterrupted) );
     l2cap_reader_service.start();
+
+    DBG_PRINT("GATTHandler::ctor: Started: GattHandler[%s], l2cap[%s]: %s",
+                getStateString().c_str(), l2cap.getStateString().c_str(), toString().c_str());
 
     if( GATTRole::Client == getRole() ) {
         // MTU to be negotiated via initClientGatt() from this GATT client later

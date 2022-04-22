@@ -81,10 +81,10 @@ std::string L2CAPComm::getStateString(bool isOpen, bool hasIOError) noexcept {
             ", errno "+std::to_string(errno)+" ("+std::string(strerror(errno))+")]";
 }
 
-std::string L2CAPComm::getStateString(bool isOpen, bool isInterrupted, bool hasIOError) noexcept {
+std::string L2CAPComm::getStateString(bool isOpen, bool irqed_int, bool irqed_ext, bool hasIOError) noexcept {
     return "State[open "+std::to_string(isOpen)+
-           ", irqed "+std::to_string(isInterrupted)+
-           ", ioerr "+std::to_string(hasIOError)+
+           ", irqed "+std::to_string(irqed_int || irqed_ext)+" [int "+std::to_string(irqed_int)+", ext "+std::to_string(irqed_ext)+
+           "], ioerr "+std::to_string(hasIOError)+
            ", errno "+std::to_string(errno)+" ("+std::string(strerror(errno))+")]";
 }
 

@@ -115,6 +115,7 @@ namespace direct_bt {
         public:
             static std::string getStateString(bool isOpen, bool hasIOError) noexcept;
             static std::string getStateString(bool isOpen, bool isInterrupted, bool hasIOError) noexcept;
+            static std::string getStateString(bool isOpen, bool irqed_int, bool irqed_ext, bool hasIOError) noexcept;
 
             /** Utilized to query for external interruption, whether device is still connected etc. */
             typedef jau::FunctionDef<bool, int /* dummy*/> get_boolean_callback_t;
@@ -145,6 +146,12 @@ namespace direct_bt {
             bool setBTSecurityLevelImpl(const BTSecurityLevel sec_level, const BDAddressAndType& remoteAddressAndType) noexcept;
             BTSecurityLevel getBTSecurityLevelImpl(const BDAddressAndType& remoteAddressAndType) noexcept;
 
+            /** Returns true if interrupted by internal cause. */
+            bool interrupted_int() const noexcept { return interrupted_intern; }
+
+            /** Returns true if interrupted by external cause. */
+            bool interrupted_ext() const noexcept { return !is_interrupted_extern.isNullType() && is_interrupted_extern(0/*dummy*/); }
+
         public:
             L2CAPComm(const uint16_t adev_id, const BDAddressAndType& localAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
 
@@ -160,7 +167,7 @@ namespace direct_bt {
             void set_interrupted_query(get_boolean_callback_t is_interrupted_cb) { is_interrupted_extern = is_interrupted_cb; }
 
             /** Returns true if interrupted by internal or external cause, hence shall stop connecting and reading. */
-            bool interrupted() const noexcept { return interrupted_intern || ( !is_interrupted_extern.isNullType() && is_interrupted_extern(0/*dummy*/) ); }
+            bool interrupted() const noexcept { return interrupted_int() || interrupted_ext(); }
 
             /** Closing the L2CAP socket, see specializations. */
             virtual bool close() noexcept = 0;
@@ -247,7 +254,7 @@ namespace direct_bt {
             bool close() noexcept override;
 
             bool hasIOError() const noexcept { return has_ioerror; }
-            std::string getStateString() const noexcept override { return L2CAPComm::getStateString(is_open_, interrupted(), has_ioerror); }
+            std::string getStateString() const noexcept override { return L2CAPComm::getStateString(is_open_, interrupted_int(), interrupted_ext(), has_ioerror); }
 
             /** Return the recursive write mutex for multithreading access. */
             std::recursive_mutex & mutex_write() noexcept { return mtx_write; }
@@ -309,7 +316,7 @@ namespace direct_bt {
 
             std::unique_ptr<L2CAPClient> accept() noexcept;
 
-            std::string getStateString() const noexcept override { return L2CAPComm::getStateString(is_open_, interrupted(), false /* has_ioerror */); }
+            std::string getStateString() const noexcept override { return L2CAPComm::getStateString(is_open_, interrupted_int(), interrupted_ext(), false /* has_ioerror */); }
 
             std::string toString() const noexcept override;
     };
