@@ -522,7 +522,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
             BTUtils.fprintf_td(System.err, "BTAdapter::removeStatusListener: removed %b, %s", res, toString());
             printDeviceLists();
         }
-        return false;
+        return res;
     }
     /* pp */ native boolean removeStatusListenerImpl(final AdapterStatusListener l);
 
