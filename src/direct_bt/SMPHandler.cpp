@@ -248,7 +248,7 @@ void SMPHandler::send(const SMPPDUMsg & msg) {
     const jau::snsize_t len = l2cap.write(msg.pdu.get_ptr(), msg.pdu.size());
     if( len != L2CAPClient::number(L2CAPClient::RWExitCode::INTERRUPTED) ) { // expected exits
         if( 0 > len ) {
-            IRQ_PRINT("l2cap write: Error res %d (%s); %s; %s -> disconnect: %s",
+            ERR_PRINT("l2cap write: Error res %d (%s); %s; %s -> disconnect: %s",
                     len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str(),
                     msg.toString().c_str(), deviceString.c_str());
             has_ioerror = true;
