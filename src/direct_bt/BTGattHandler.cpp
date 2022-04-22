@@ -507,16 +507,14 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
         } else {
             ERR_PRINT("Unhandled: %s", attPDU->toString().c_str());
         }
-    } else if( 0 > len && ETIMEDOUT != errno && !l2cap.interrupted() ) { // expected exits
+    } else if( 0 > len && ETIMEDOUT != errno && len != L2CAPClient::number(L2CAPClient::RWExitCode::INTERRUPTED) ) { // expected exits
         IRQ_PRINT("GATTHandler::reader: l2cap read: Error res %d (%s); %s",
-                len, L2CAPClient::getRWExitCodeString(len).c_str(),
-                getStateString().c_str());
+                len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str());
         sr.set_shall_stop();
         has_ioerror = true;
     } else if( len != L2CAPClient::number(L2CAPClient::RWExitCode::POLL_TIMEOUT) ) { // expected POLL_TIMEOUT if idle
         WORDY_PRINT("GATTHandler::reader: l2cap read: IRQed res %d (%s); %s",
-                len, L2CAPClient::getRWExitCodeString(len).c_str(),
-                getStateString().c_str());
+                len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str());
     }
 }
 
@@ -692,22 +690,27 @@ void BTGattHandler::send(const AttPDUMsg & msg) {
     }
 
     // Thread safe l2cap.write(..) operation..
-    const jau::snsize_t res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.size());
-    if( 0 > res ) {
-        IRQ_PRINT("l2cap write error -> disconnect: l2cap.write %d (%s); %s; %s to %s",
-                res, L2CAPClient::getRWExitCodeString(res).c_str(), getStateString().c_str(),
-                msg.toString().c_str(), toString().c_str());
-        has_ioerror = true;
-        disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
-        throw BTException("GATTHandler::send: l2cap write error: req "+msg.toString()+" to "+toString(), E_FILE_LINE);
-    }
-    if( static_cast<size_t>(res) != msg.pdu.size() ) {
-        ERR_PRINT("l2cap write count error, %d != %zu: %s -> disconnect: %s",
-                res, msg.pdu.size(), msg.toString().c_str(), toString().c_str());
-        has_ioerror = true;
-        disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
-        throw BTException("GATTHandler::send: l2cap write count error, "+std::to_string(res)+" != "+std::to_string(msg.pdu.size())
-                                 +": "+msg.toString()+" -> disconnect: "+toString(), E_FILE_LINE);
+    const jau::snsize_t len = l2cap.write(msg.pdu.get_ptr(), msg.pdu.size());
+    if( len != L2CAPClient::number(L2CAPClient::RWExitCode::INTERRUPTED) ) { // expected exits
+        if( 0 > len ) {
+            IRQ_PRINT("l2cap write: Error res %d (%s); %s; %s -> disconnect: %s",
+                    len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str(),
+                    msg.toString().c_str(), toString().c_str());
+            has_ioerror = true;
+            disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
+            throw BTException("GATTHandler::send: l2cap write: Error: req "+msg.toString()+" -> disconnect: "+toString(), E_FILE_LINE);
+        }
+        if( static_cast<size_t>(len) != msg.pdu.size() ) {
+            ERR_PRINT("l2cap write: Error: Message size has %d != exp %zu: %s -> disconnect: %s",
+                    len, msg.pdu.size(), msg.toString().c_str(), toString().c_str());
+            has_ioerror = true;
+            disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
+            throw BTException("GATTHandler::send: l2cap write: Error: Message size has "+std::to_string(len)+" != exp "+std::to_string(msg.pdu.size())
+                                     +": "+msg.toString()+" -> disconnect: "+toString(), E_FILE_LINE);
+        }
+    } else {
+        WORDY_PRINT("GATTHandler::reader: l2cap read: IRQed res %d (%s); %s",
+                len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str());
     }
 }
 

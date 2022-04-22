@@ -575,7 +575,7 @@ done:
 
 errout:
     tid_read = 0;
-    if( !is_open_ || interrupted() ) {
+    if( err_res == number(RWExitCode::NOT_OPEN) || err_res == number(RWExitCode::INTERRUPTED) ) {
         // closed or intentionally interrupted
         WORDY_PRINT("L2CAPClient::read: IRQed res %d (%s), len %d; dev_id %u, dd %d, %s, psm %s, cid %s; %s",
               err_res, getRWExitCodeString(err_res).c_str(), len,
@@ -657,7 +657,7 @@ done:
     return len;
 
 errout:
-    if( !is_open_ || interrupted() ) {
+    if( err_res == number(RWExitCode::NOT_OPEN) || err_res == number(RWExitCode::INTERRUPTED) ) {
         // closed or intentionally interrupted
         WORDY_PRINT("L2CAPClient::write: IRQed res %d (%s), len %d; dev_id %u, dd %d, %s, psm %s, cid %s; %s",
               err_res, getRWExitCodeString(err_res).c_str(), len,
