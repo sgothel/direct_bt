@@ -179,11 +179,12 @@ SMPHandler::SMPHandler(const std::shared_ptr<BTDevice> &device) noexcept
         is_connected = false;
         return;
     }
-    DBG_PRINT("SMPHandler::ctor: Start Connect: GattHandler[%s], l2cap[%s]: %s",
-                getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
 
     l2cap.set_interrupted_query( jau::bindMemberFunc(&smp_reader_service, &jau::service_runner::shall_stop2) );
     smp_reader_service.start();
+
+    DBG_PRINT("SMPHandler::ctor: Started: SMPHandler[%s], l2cap[%s]: %s",
+                getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
 
     // FIXME: Determine proper MTU usage: Defaults::MIN_SMP_MTU or Defaults::LE_SECURE_SMP_MTU (if enabled)
     uint16_t mtu_ = number(Defaults::MIN_SMP_MTU);
