@@ -29,7 +29,6 @@ import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -157,6 +156,17 @@ public class BTFactory {
      */
     public static final boolean JAULIB_JARCACHE_USED;
 
+    /**
+     * Deprecated call to {@link java.security.AccessController#doPrivileged(PrivilegedAction)} w/o warnings.
+     * @param <T>
+     * @param o
+     * @return
+     */
+    @SuppressWarnings({ "deprecation", "removal" })
+    public static <T> T doPrivileged(final PrivilegedAction<T> o) {
+        return java.security.AccessController.doPrivileged( o );
+    }
+
     static {
         {
             final String v = System.getProperty("org.direct_bt.debug", "false");
@@ -263,7 +273,7 @@ public class BTFactory {
             if( DEBUG ) {
                 System.err.println("BlootoothFactory: Mapping '[org.|jau.]direct_bt.*' properties to native environment");
             }
-            final Properties props = AccessController.doPrivileged(new PrivilegedAction<Properties>() {
+            final Properties props = doPrivileged(new PrivilegedAction<Properties>() {
                   @Override
                   public Properties run() {
                       return System.getProperties();

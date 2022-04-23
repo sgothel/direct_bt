@@ -25,7 +25,6 @@
 
 package jau.direct_bt;
 
-import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -48,7 +47,7 @@ public class DBTManager implements BTManager
     private static final List<Runnable> userShutdownHooks = new ArrayList<Runnable>();
 
     static {
-        AccessController.doPrivileged(new PrivilegedAction<Object>() {
+        BTFactory.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
                 Runtime.getRuntime().addShutdownHook(

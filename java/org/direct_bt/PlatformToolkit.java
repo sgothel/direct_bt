@@ -29,7 +29,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
-import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -253,7 +252,7 @@ final class PlatformToolkit {
     static {
         {
             final String[] props =
-                    AccessController.doPrivileged(new PrivilegedAction<String[]>() {
+                    BTFactory.doPrivileged(new PrivilegedAction<String[]>() {
                         @Override
                         public String[] run() {
                             final String[] props = new String[5];
@@ -450,7 +449,7 @@ final class PlatformToolkit {
         return prefix + libBaseName + suffix;
     }
     private static final String getCanonicalPath(final String path) {
-        return AccessController.doPrivileged(new PrivilegedAction<String>() {
+        return BTFactory.doPrivileged(new PrivilegedAction<String>() {
             @Override
             public String run() {
                 try {
