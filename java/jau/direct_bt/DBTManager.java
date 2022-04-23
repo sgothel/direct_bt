@@ -56,6 +56,9 @@ public class DBTManager implements BTManager
                                 public void run() {
                                     DBTManager.shutdownImpl(true);
                                 } }, "DBTManager_ShutdownHook" ) ) ;
+                if(DEBUG) {
+                    System.err.println("DBTManager.init(): JVM ShutdownHook installed, on thread "+Thread.currentThread().getName());
+                }
                 return null;
             } } ) ;
     }
@@ -63,7 +66,7 @@ public class DBTManager implements BTManager
     private static synchronized void shutdownImpl(final boolean _isJVMShuttingDown) {
         isJVMShuttingDown = _isJVMShuttingDown;
         if(DEBUG) {
-            System.err.println("DBTManager.shutdown() START: JVM Shutdown "+isJVMShuttingDown+", on thread "+Thread.currentThread().getName());
+            System.err.println("DBTManager.shutdown() START: JVM ShutdownHook "+isJVMShuttingDown+", on thread "+Thread.currentThread().getName());
         }
         synchronized(userShutdownHooks) {
             final int cshCount = userShutdownHooks.size();
