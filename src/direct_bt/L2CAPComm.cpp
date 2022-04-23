@@ -760,6 +760,7 @@ bool L2CAPServer::close() noexcept {
         DBG_PRINT("L2CAPServer::close: Not connected: dev_id %u, dd %d, psm %s, cid %s, local %s",
                   adev_id, socket_.load(), to_string(psm).c_str(), to_string(cid).c_str(),
                   localAddressAndType.toString().c_str());
+        set_interrupted_query(L2CAPComm::get_boolean_callback_t()); // Null-Type
         return true;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_open); // RAII-style acquire and relinquish via destructor
@@ -767,6 +768,7 @@ bool L2CAPServer::close() noexcept {
     DBG_PRINT("L2CAPServer::close: Start: dev_id %u, dd %d, psm %s, cid %s, local %s",
               adev_id, socket_.load(), to_string(psm).c_str(), to_string(cid).c_str(),
               localAddressAndType.toString().c_str());
+    set_interrupted_query(L2CAPComm::get_boolean_callback_t()); // Null-Type
     PERF_TS_T0();
 
     // interrupt accept(..), avoiding prolonged hang
