@@ -26,51 +26,11 @@ package trial.org.direct_bt;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.jar.Attributes;
-import java.util.jar.Manifest;
 
 import org.direct_bt.BTFactory;
 import org.direct_bt.BTUtils;
-import org.direct_bt.DirectBTVersion;
-import org.jau.util.VersionUtil;
 
 public class DBTUtils {
-    public static final void printVersionInfo() {
-        BTFactory.initDirectBTLibrary();
-
-        BTUtils.println(System.err, "BTFactory: Jaulib: Available "+BTFactory.JAULIB_AVAILABLE+", JarCache in use "+BTFactory.JAULIB_JARCACHE_USED);
-        if( BTFactory.JAULIB_AVAILABLE ) {
-            System.err.println(VersionUtil.getPlatformInfo());
-            BTUtils.println(System.err, "Version Info:");
-            final DirectBTVersion v = DirectBTVersion.getInstance();
-            System.err.println(v.toString());
-            BTUtils.println(System.err, "");
-            BTUtils.println(System.err, "Full Manifest:");
-            System.err.println(v.getFullManifestInfo(null).toString());
-        } else {
-            BTUtils.println(System.err, "Full Manifest:");
-            final Manifest manifest = BTFactory.getManifest(BTFactory.class.getClassLoader(), new String[] { "org.direct_bt" } );
-            final Attributes attr = manifest.getMainAttributes();
-            final Set<Object> keys = attr.keySet();
-            final StringBuilder sb = new StringBuilder();
-            for(final Iterator<Object> iter=keys.iterator(); iter.hasNext(); ) {
-                final Attributes.Name key = (Attributes.Name) iter.next();
-                final String val = attr.getValue(key);
-                sb.append(" ");
-                sb.append(key);
-                sb.append(" = ");
-                sb.append(val);
-                sb.append(System.lineSeparator());
-            }
-            System.err.println(sb.toString());
-        }
-
-        BTUtils.println(System.err, "Direct-BT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
-        BTUtils.println(System.err, "Direct-BT Java Version   "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
-    }
-
     public static final boolean mkdirKeyFolder() {
         BTFactory.initDirectBTLibrary();
         boolean res = true;

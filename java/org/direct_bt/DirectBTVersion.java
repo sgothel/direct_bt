@@ -24,8 +24,22 @@
 
 package org.direct_bt;
 
+import java.io.IOException;
+import java.io.PrintStream;
+import java.net.URISyntaxException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.jar.Attributes;
 import java.util.jar.Manifest;
+import java.util.regex.Pattern;
 
+import org.jau.base.JaulibVersion;
+import org.jau.pkg.TempJarSHASum;
+import org.jau.sec.SHASum;
 import org.jau.util.JauVersion;
 import org.jau.util.VersionUtil;
 
@@ -34,6 +48,47 @@ import org.jau.util.VersionUtil;
  * usable when having {@code jaulib} available, naturally.
  */
 public class DirectBTVersion extends JauVersion {
+
+    /**
+     * Print full Direct-BT version information.
+     *
+     * {@link BTFactory#initDirectBTLibrary()} is being called.
+     *
+     * @param out the output stream used
+     */
+    public static final void printVersionInfo(final PrintStream out) {
+        BTFactory.initDirectBTLibrary();
+
+        BTUtils.println(out, "BTFactory: Jaulib: Available "+BTFactory.JAULIB_AVAILABLE+", JarCache in use "+BTFactory.JAULIB_JARCACHE_USED);
+        if( BTFactory.JAULIB_AVAILABLE ) {
+            out.println(VersionUtil.getPlatformInfo());
+            BTUtils.println(out, "Version Info:");
+            final DirectBTVersion v = DirectBTVersion.getInstance();
+            out.println(v.toString());
+            BTUtils.println(out, "");
+            BTUtils.println(out, "Full Manifest:");
+            out.println(v.getFullManifestInfo(null).toString());
+        } else {
+            BTUtils.println(out, "Full Manifest:");
+            final Manifest manifest = BTFactory.getManifest(BTFactory.class.getClassLoader(), new String[] { "org.direct_bt" } );
+            final Attributes attr = manifest.getMainAttributes();
+            final Set<Object> keys = attr.keySet();
+            final StringBuilder sb = new StringBuilder();
+            for(final Iterator<Object> iter=keys.iterator(); iter.hasNext(); ) {
+                final Attributes.Name key = (Attributes.Name) iter.next();
+                final String val = attr.getValue(key);
+                sb.append(" ");
+                sb.append(key);
+                sb.append(" = ");
+                sb.append(val);
+                sb.append(System.lineSeparator());
+            }
+            out.println(sb.toString());
+        }
+
+        BTUtils.println(out, "Direct-BT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
+        BTUtils.println(out, "Direct-BT Java Version   "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
+    }
 
     protected DirectBTVersion(final String packageName, final Manifest mf) {
         super(packageName, mf);
@@ -54,6 +109,34 @@ public class DirectBTVersion extends JauVersion {
         }
     }
 
+    /**
+     * Direct-BT definition of {@link TempJarSHASum}'s specialization of {@link SHASum}.
+     * <p>
+     * Implementation uses {@link org.jau.pkg.cache.TempJarCache}.
+     * </p>
+     * <p>
+     * Constructor defines the includes and excludes as used for Direct-BT {@link SHASum} computation.
+     * </p>
+     */
+    static public class JarSHASum extends TempJarSHASum {
+        /**
+         * See {@link DirectBTJarSHASum}
+         * @throws SecurityException
+         * @throws IllegalArgumentException
+         * @throws NoSuchAlgorithmException
+         * @throws IOException
+         * @throws URISyntaxException
+         */
+        public JarSHASum()
+                throws SecurityException, IllegalArgumentException, NoSuchAlgorithmException, IOException, URISyntaxException
+        {
+            super(MessageDigest.getInstance("SHA-256"), JaulibVersion.class, new ArrayList<Pattern>(), new ArrayList<Pattern>());
+            final List<Pattern> includes = getIncludes();
+            final String origin = getOrigin();
+            includes.add(Pattern.compile(origin+"/org/direct_bt/.*"));
+            includes.add(Pattern.compile(origin+"/jau/direct_bt/.*"));
+        }
+    }
     public static void main(final String args[]) {
         BTFactory.main(args);
     }
