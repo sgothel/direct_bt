@@ -9,7 +9,7 @@ bname=`basename $0 .sh`
 logfile=$rootdir/$bname-$archabi.log
 rm -f $logfile
 
-export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-$archabi
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-$archabi
 if [ ! -e $JAVA_HOME ] ; then
     echo $JAVA_HOME does not exist
     exit 1
