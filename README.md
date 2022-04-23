@@ -376,14 +376,14 @@ The *trial* tests cover *Direct-BT*'s Bluetooth functionality,
 having its *master/client* and *slave/server peripheral* facilities communicating via actual adapter,
 supporting regression testing of the API, its implementation and adapter.
 
-The *trial* tests take around 100 seconds, since `TestDBClientServer1*` performs the test twelve fold altogether:
-- Four fold between adapter and encryption mode
-  - between both installed adapter, i.e. in both client/server directions 
-  - in legacy mode (SC 0) and once using secure connections (SC 1)
-- Three fold for encryption usage and state
-  - without encryption
-  - with `ENC_ONLY` encryption and initial key pairing
-  - with `ENC_ONLY` encryption and reusing pre-paired keys
+The *trial* tests take around 110 seconds, since `TestDBClientServer1*` performs the test twelve fold altogether:
+- Two fold between installed adapter in both directions
+- Three fold w/o encryption, in legacy mode (SC 0) and secure connections (SC 1)
+- Two fold each test
+  - without encryption just twice
+  - with encryption
+    - with `ENC_ONLY` encryption and initial key pairing
+    - with `ENC_ONLY` encryption and reusing pre-paired keys
 
 All tests pass reproducible using two well working adapter, e.g. Raspi 3b+ (BT4) and CSR (BT4).
 
