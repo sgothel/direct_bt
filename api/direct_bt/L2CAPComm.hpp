@@ -201,6 +201,7 @@ namespace direct_bt {
                 POLL_ERROR          = -10,/**< POLL_ERROR */
                 POLL_TIMEOUT        = -11,/**< POLL_TIMEOUT */
                 READ_ERROR          = -20,/**< READ_ERROR */
+                READ_TIMEOUT        = -21,/**< READ_TIMEOUT */
                 WRITE_ERROR         = -30 /**< WRITE_ERROR */
             };
             static constexpr jau::snsize_t number(const RWExitCode rhs) noexcept {

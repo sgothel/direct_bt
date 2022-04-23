@@ -486,6 +486,7 @@ BTSecurityLevel L2CAPClient::getBTSecurityLevel() noexcept {
         X(RWExitCode, POLL_ERROR) \
         X(RWExitCode, POLL_TIMEOUT) \
         X(RWExitCode, READ_ERROR) \
+        X(RWExitCode, READ_TIMEOUT) \
         X(RWExitCode, WRITE_ERROR)
 
 #define CASE2_TO_STRING(U,V) case U::V: return #V;
@@ -542,10 +543,14 @@ jau::snsize_t L2CAPClient::read(uint8_t* buffer, const jau::nsize_t capacity) no
                 // cont temp unavail or interruption
                 continue;
             }
-            err_res = number(RWExitCode::POLL_ERROR);
+            if( errno == ETIMEDOUT ) {
+                err_res = number(RWExitCode::POLL_TIMEOUT);
+            } else {
+                err_res = number(RWExitCode::POLL_ERROR);
+            }
             goto errout;
         }
-        if (!n) {
+        if ( 0 == n ) {
             err_res = number(RWExitCode::POLL_TIMEOUT);
             errno = ETIMEDOUT;
             goto errout;
@@ -565,7 +570,11 @@ jau::snsize_t L2CAPClient::read(uint8_t* buffer, const jau::nsize_t capacity) no
             // cont temp unavail or interruption
             continue;
         }
-        err_res = number(RWExitCode::READ_ERROR);
+        if( errno == ETIMEDOUT ) {
+            err_res = number(RWExitCode::READ_TIMEOUT);
+        } else {
+            err_res = number(RWExitCode::READ_ERROR);
+        }
         goto errout;
     }
 
@@ -575,28 +584,28 @@ done:
 
 errout:
     tid_read = 0;
-    if( err_res == number(RWExitCode::NOT_OPEN) || err_res == number(RWExitCode::INTERRUPTED) ) {
-        // closed or intentionally interrupted
+    if( err_res == number(RWExitCode::NOT_OPEN) ) {
+        WORDY_PRINT("L2CAPClient::read: Not open res %d (%s), len %d; dev_id %u, dd %d, %s, psm %s, cid %s; %s",
+              err_res, getRWExitCodeString(err_res).c_str(), len,
+              adev_id, socket_.load(), remoteAddressAndType.toString().c_str(),
+              to_string(psm).c_str(), to_string(cid).c_str(),
+              getStateString().c_str());
+    } else if( err_res == number(RWExitCode::INTERRUPTED) ) { // interrupted (internal or external)
         WORDY_PRINT("L2CAPClient::read: IRQed res %d (%s), len %d; dev_id %u, dd %d, %s, psm %s, cid %s; %s",
               err_res, getRWExitCodeString(err_res).c_str(), len,
               adev_id, socket_.load(), remoteAddressAndType.toString().c_str(),
               to_string(psm).c_str(), to_string(cid).c_str(),
               getStateString().c_str());
-    } else {
+    } else if( err_res != number(RWExitCode::POLL_TIMEOUT) ) { // expected POLL_TIMEOUT if idle
         // open and not intentionally interrupted
-        if( ETIMEDOUT == errno ) {
-            // just timed out (???)
-            if( err_res != number(RWExitCode::POLL_TIMEOUT) ) { // expected POLL_TIMEOUT if idle
-                DBG_PRINT("L2CAPClient::read: Timeout res %d (%s), len %d; dev_id %u, dd %d, %s, psm %s, cid %s; %s",
-                      err_res, getRWExitCodeString(err_res).c_str(), len,
-                      adev_id, socket_.load(), remoteAddressAndType.toString().c_str(),
-                      to_string(psm).c_str(), to_string(cid).c_str(),
-                      getStateString().c_str());
-            }
-        } else {
-            // Only report as ioerror if open, not intentionally interrupted and no timeout!
+        if( err_res == number(RWExitCode::READ_TIMEOUT) ) {
+            DBG_PRINT("L2CAPClient::read: Read Timeout res %d (%s), len %d; dev_id %u, dd %d, %s, psm %s, cid %s; %s",
+                  err_res, getRWExitCodeString(err_res).c_str(), len,
+                  adev_id, socket_.load(), remoteAddressAndType.toString().c_str(),
+                  to_string(psm).c_str(), to_string(cid).c_str(),
+                  getStateString().c_str());
+        } else { // actual error case
             has_ioerror = true;
-
             if( env.L2CAP_RESTART_COUNT_ON_ERROR < 0 ) {
                 ABORT("L2CAPClient::read: Error res %d (%s), len %d; dev_id %u, dd %d, %s, psm %s, cid %s; %s",
                       err_res, getRWExitCodeString(err_res).c_str(), len,

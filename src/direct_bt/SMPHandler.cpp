@@ -123,14 +123,24 @@ void SMPHandler::smpReaderWork(jau::service_runner& sr) noexcept {
             }
             smpPDURing.putBlocking( std::move(smpPDU) );
         }
-    } else if( 0 > len && ETIMEDOUT != errno && len != L2CAPClient::number(L2CAPClient::RWExitCode::INTERRUPTED) ) { // expected exits
-        IRQ_PRINT("SMPHandler::reader: l2cap read: Error res %d (%s); %s",
-                len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str());
-        sr.set_shall_stop();
-        has_ioerror = true;
-    } else if( len != L2CAPClient::number(L2CAPClient::RWExitCode::POLL_TIMEOUT) ) { // expected POLL_TIMEOUT if idle
+    } else if( len == L2CAPClient::number(L2CAPClient::RWExitCode::INTERRUPTED) ) {
         WORDY_PRINT("SMPHandler::reader: l2cap read: IRQed res %d (%s); %s",
                 len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str());
+        if( !sr.shall_stop() ) {
+            // need to stop service_runner if interrupted externally
+            sr.set_shall_stop();
+        }
+    } else if( len != L2CAPClient::number(L2CAPClient::RWExitCode::POLL_TIMEOUT) &&
+               len != L2CAPClient::number(L2CAPClient::RWExitCode::READ_TIMEOUT) ) { // expected TIMEOUT if idle
+        if( 0 > len ) { // actual error case
+            IRQ_PRINT("SMPHandler::reader: l2cap read: Error res %d (%s); %s",
+                    len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str());
+            sr.set_shall_stop();
+            has_ioerror = true;
+        } else { // zero size
+            WORDY_PRINT("SMPHandler::reader: l2cap read: Zero res %d (%s); %s",
+                    len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str());
+        }
     }
 }
 
