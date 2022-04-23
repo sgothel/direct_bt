@@ -148,17 +148,13 @@ public class DBTServer00 implements DBTServerTest {
 
     static Thread executeOffThread(final Runnable runobj, final String threadName, final boolean detach) {
         final Thread t = new Thread( runobj, threadName );
-        if( detach ) {
-            t.setDaemon(true); // detach thread
-        }
+        t.setDaemon( detach );
         t.start();
         return t;
     }
     static Thread executeOffThread(final Runnable runobj, final boolean detach) {
         final Thread t = new Thread( runobj );
-        if( detach ) {
-            t.setDaemon(true); // detach thread
-        }
+        t.setDaemon( detach );
         t.start();
         return t;
     }
@@ -404,34 +400,41 @@ public class DBTServer00 implements DBTServerTest {
             }
         }
         private void pulseSender() {
+            {
+                final BTDevice connectedDevice_ = getDevice();
+                final String connectedDeviceStr = null != connectedDevice_ ? connectedDevice_.toString() : "n/a";
+                BTUtils.fprintf_td(System.err, "****** Server GATT::PULSE Start %s\n", connectedDeviceStr);
+            }
             while( !shallStopPulseSender() ) {
-                {
-                    final BTDevice connectedDevice_ = getDevice();
-                    if( null != connectedDevice_ && connectedDevice_.getConnected() ) {
-                        if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
-                            final String data = String.format("Dynamic Data Example. Elapsed Milliseconds: %,9d", BTUtils.elapsedTimeMillis());
-                            final byte[] v = data.getBytes(StandardCharsets.UTF_8);
-                            if( 0 != handlePulseDataNotify ) {
-                                if( GATT_VERBOSE ) {
-                                    BTUtils.fprintf_td(System.err, "****** Server GATT::sendNotification: PULSE to %s\n", connectedDevice_.toString());
-                                }
-                                connectedDevice_.sendNotification(handlePulseDataNotify, v);
+                final BTDevice connectedDevice_ = getDevice();
+                if( null != connectedDevice_ && connectedDevice_.getConnected() ) {
+                    if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
+                        final String data = String.format("Dynamic Data Example. Elapsed Milliseconds: %,9d", BTUtils.elapsedTimeMillis());
+                        final byte[] v = data.getBytes(StandardCharsets.UTF_8);
+                        if( 0 != handlePulseDataNotify ) {
+                            if( GATT_VERBOSE ) {
+                                BTUtils.fprintf_td(System.err, "****** Server GATT::sendNotification: PULSE to %s\n", connectedDevice_.toString());
                             }
-                            if( 0 != handlePulseDataIndicate ) {
-                                if( GATT_VERBOSE ) {
-                                    BTUtils.fprintf_td(System.err, "****** Server GATT::sendIndication: PULSE to %s\n", connectedDevice_.toString());
-                                }
-                                connectedDevice_.sendIndication(handlePulseDataIndicate, v);
+                            connectedDevice_.sendNotification(handlePulseDataNotify, v);
+                        }
+                        if( 0 != handlePulseDataIndicate ) {
+                            if( GATT_VERBOSE ) {
+                                BTUtils.fprintf_td(System.err, "****** Server GATT::sendIndication: PULSE to %s\n", connectedDevice_.toString());
                             }
+                            connectedDevice_.sendIndication(handlePulseDataIndicate, v);
                         }
                     }
                 }
-                if( shallStopPulseSender() ) {
-                    return;
+                if( !shallStopPulseSender() ) {
+                    try {
+                        Thread.sleep(100); // 100ms
+                    } catch (final InterruptedException e) { }
                 }
-                try {
-                    Thread.sleep(100); // 100ms
-                } catch (final InterruptedException e) { }
+            }
+            {
+                final BTDevice connectedDevice_ = getDevice();
+                final String connectedDeviceStr = null != connectedDevice_ ? connectedDevice_.toString() : "n/a";
+                BTUtils.fprintf_td(System.err, "****** Server GATT::PULSE End %s\n", connectedDeviceStr);
             }
         }
 
@@ -464,13 +467,12 @@ public class DBTServer00 implements DBTServerTest {
         @Override
         public void close() {
             synchronized( sync_lock ) {
+                clear();
                 stopPulseSenderFlag = true;
             }
-            if( !pulseSenderThread.isDaemon() ) {
-                try {
-                    pulseSenderThread.join(1000);
-                } catch (final InterruptedException e) { }
-            }
+            try {
+                pulseSenderThread.join(1000);
+            } catch (final InterruptedException e) { }
             super.close();
         }
 
@@ -632,22 +634,26 @@ public class DBTServer00 implements DBTServerTest {
 
     @Override
     public HCIStatusCode stop(final String msg) {
-        BTUtils.println(System.err, "****** Server Stop: "+msg);
+        BTUtils.println(System.err, "****** Server Stop.0: "+msg);
         final HCIStatusCode res = stopAdvertising(msg);
         final BTDevice connectedDevice_ = getDevice();
         if( null != connectedDevice_ ) {
+            setDevice(null);
             connectedDevice_.disconnect();
         }
         gattServerListener.clear();
+        BTUtils.println(System.err, "****** Server Stop.X: "+msg);
         return res;
     }
 
     @Override
     public void close(final String msg) {
-        BTUtils.println(System.err, "****** Server Close: "+msg);
+        BTUtils.println(System.err, "****** Server Close.0: "+msg);
         stop(msg);
+        gattServerListener.close();
         dbGattServer.close();
         serverAdapter.removeStatusListener( myAdapterStatusListener );
+        BTUtils.println(System.err, "****** Server Close.X: "+msg);
     }
 
     private HCIStatusCode stopAdvertising(final String msg) {
