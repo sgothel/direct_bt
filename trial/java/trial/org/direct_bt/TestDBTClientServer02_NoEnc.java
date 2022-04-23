@@ -45,10 +45,18 @@ public class TestDBTClientServer02_NoEnc extends DBTClientServer1x {
     static final boolean serverSC = true;
 
     @Test(timeout = 30000)
-    public final void test01_FullCycle_EncNone() {
+    public final void test02_FullCycle_EncNone() {
         final boolean serverShallHaveKeys = false;
         final boolean clientShallHaveKeys = false;
-        test8x_fullCycle("01", false /* server_client_order */, serverSC,
+        test8x_fullCycle("02", false /* server_client_order */, serverSC,
+                         BTSecurityLevel.NONE, serverShallHaveKeys, BTSecurityLevel.NONE, clientShallHaveKeys);
+    }
+
+    @Test(timeout = 30000)
+    public final void test03_FullCycle_EncNone() {
+        final boolean serverShallHaveKeys = false;
+        final boolean clientShallHaveKeys = false;
+        test8x_fullCycle("03", false /* server_client_order */, serverSC,
                          BTSecurityLevel.NONE, serverShallHaveKeys, BTSecurityLevel.NONE, clientShallHaveKeys);
     }
 

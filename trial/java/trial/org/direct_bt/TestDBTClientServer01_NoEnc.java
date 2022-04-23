@@ -52,6 +52,14 @@ public class TestDBTClientServer01_NoEnc extends DBTClientServer1x {
                          BTSecurityLevel.NONE, serverShallHaveKeys, BTSecurityLevel.NONE, clientShallHaveKeys);
     }
 
+    @Test(timeout = 30000)
+    public final void test01_FullCycle_EncNone() {
+        final boolean serverShallHaveKeys = false;
+        final boolean clientShallHaveKeys = false;
+        test8x_fullCycle("01", true /* server_client_order */, serverSC,
+                         BTSecurityLevel.NONE, serverShallHaveKeys, BTSecurityLevel.NONE, clientShallHaveKeys);
+    }
+
     public static void main(final String args[]) {
         org.junit.runner.JUnitCore.main(TestDBTClientServer01_NoEnc.class.getName());
     }
