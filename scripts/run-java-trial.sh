@@ -7,7 +7,11 @@ bname=`basename $0 .sh`
 
 . $sdir/setup-machine-arch.sh
 
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-$archabi
+if [ -e /usr/lib/jvm/java-17-openjdk-$archabi ] ; then
+    export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-$archabi
+elif [ -e /usr/lib/jvm/java-11-openjdk-$archabi ] ; then
+    export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-$archabi
+fi
 if [ ! -e $JAVA_HOME ] ; then
     echo $JAVA_HOME does not exist
     exit 1
@@ -25,7 +29,7 @@ test_basename=`echo ${test_class} | sed 's/.*\.//g'`
 logfile=$rootdir/${bname}-${test_basename}-${archabi}.log
 rm -f $logfile
 
-java=/usr/lib/jvm/java-17-openjdk-${archabi}/bin/java
+java=${JAVA_HOME}/bin/java
 
 project_dir=/usr/local/projects/zafena/direct_bt
 build_dir=${project_dir}/build-${archabi}
