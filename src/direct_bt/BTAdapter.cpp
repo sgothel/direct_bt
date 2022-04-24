@@ -1856,7 +1856,9 @@ std::unique_ptr<L2CAPClient> BTAdapter::get_l2cap_connection(std::shared_ptr<BTD
 }
 
 jau::nsize_t BTAdapter::smp_timeoutfunc(jau::simple_timer& timer) {
-    (void)timer;
+    if( timer.shall_stop() ) {
+        return 0;
+    }
     device_list_t failed_devices;
     {
         const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
@@ -1869,15 +1871,16 @@ jau::nsize_t BTAdapter::smp_timeoutfunc(jau::simple_timer& timer) {
             {
                 // actively within SMP negotiations, excluding user interaction
                 const uint32_t smp_events = device->smp_events;
-                DBG_PRINT("BTAdapter::smp_timeoutfunc(dev_id %d): SMP Timeout: Check %u -> %s", dev_id, smp_events, device->toString().c_str());
                 if( 0 == smp_events ) {
+                    DBG_PRINT("BTAdapter::smp_timeoutfunc(dev_id %d): SMP Timeout: Pairing-Failed %u: %s", dev_id, smp_events, device->toString().c_str());
                     failed_devices.push_back(device);
                 } else {
+                    DBG_PRINT("BTAdapter::smp_timeoutfunc(dev_id %d): SMP Timeout: Ignore-2 %u -> 0: %s", dev_id, smp_events, device->toString().c_str());
                     device->smp_events = 0;
                 }
             } else {
                 const uint32_t smp_events = device->smp_events;
-                DBG_PRINT("BTAdapter::smp_timeoutfunc(dev_id %d): SMP Timeout: Ignore %u -> %s", dev_id, smp_events, device->toString().c_str());
+                DBG_PRINT("BTAdapter::smp_timeoutfunc(dev_id %d): SMP Timeout: Ignore-1 %u: %s", dev_id, smp_events, device->toString().c_str());
             }
         });
     }
@@ -1892,7 +1895,7 @@ jau::nsize_t BTAdapter::smp_timeoutfunc(jau::simple_timer& timer) {
         device->hciSMPMsgCallback(device, msg, source);
         DBG_PRINT("BTAdapter::smp_timeoutfunc(dev_id %d): SMP Timeout: Done: smp_auto %d, %s", dev_id, smp_auto, device->toString().c_str());
     });
-    return SMP_NEXT_EVENT_TIMEOUT_MS; // keep going until BTAdapter closes
+    return timer.shall_stop() ? 0 : SMP_NEXT_EVENT_TIMEOUT_MS; // keep going until BTAdapter closes
 }
 
 bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
