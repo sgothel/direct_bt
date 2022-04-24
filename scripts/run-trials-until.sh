@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ ! -e trial/java/direct_bt-trial.jar ] ; then
-    echo run from build directory
+if [ ! -e trial/java/direct_bt-trial.jar -a ! -e direct_bt-trial.jar ] ; then
+    echo "Run from build directory, best build/trial/java"
     exit 1
 fi
 
