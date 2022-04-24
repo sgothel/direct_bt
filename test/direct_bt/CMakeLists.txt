@@ -4,11 +4,7 @@ include_directories(
 )
 
 # These examples use the standard separate compilation
-set( SOURCES_IDIOMATIC_EXAMPLES
-    test_adeir01.cpp
-    test_attpdu01.cpp
-    test_misc_types.cpp
-)
+file(GLOB_RECURSE SOURCES_IDIOMATIC_EXAMPLES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "test_*.cpp")
 
 string( REPLACE ".cpp" "" BASENAMES_IDIOMATIC_EXAMPLES "${SOURCES_IDIOMATIC_EXAMPLES}" )
 set( TARGETS_IDIOMATIC_EXAMPLES ${BASENAMES_IDIOMATIC_EXAMPLES} )
