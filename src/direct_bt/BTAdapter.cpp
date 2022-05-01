@@ -50,6 +50,7 @@ extern "C" {
 }
 
 using namespace direct_bt;
+using namespace jau::fractions_i64_literals;
 
 constexpr static const bool _print_device_lists = false;
 
@@ -641,7 +642,7 @@ void BTAdapter::setServerConnSecurity(const BTSecurityLevel sec_level, const SMP
 }
 
 void BTAdapter::setSMPKeyPath(const std::string path) noexcept {
-    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
+    jau::sc_atomic_critical sync(sync_data);
     key_path = path;
 
     std::vector<SMPKeyBin> keys = SMPKeyBin::readAllForLocalAdapter(getAddressAndType(), key_path, jau::environment::get().debug /* verbose_ */);
@@ -726,7 +727,7 @@ HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
 
 bool BTAdapter::lockConnect(const BTDevice & device, const bool wait, const SMPIOCapability io_cap) noexcept {
     std::unique_lock<std::mutex> lock(mtx_single_conn_device); // RAII-style acquire and relinquish via destructor
-    const uint32_t timeout_ms = 10000; // FIXME: Configurable?
+    const jau::fraction_i64 timeout = 10_s; // FIXME: Configurable?
 
     if( nullptr != single_conn_device_ptr ) {
         if( device == *single_conn_device_ptr ) {
@@ -734,9 +735,9 @@ bool BTAdapter::lockConnect(const BTDevice & device, const bool wait, const SMPI
             return true; // already set, same device: OK, locked
         }
         if( wait ) {
+            const jau::fraction_timespec timeout_time = jau::getMonotonicTime() + jau::fraction_timespec(timeout);
             while( nullptr != single_conn_device_ptr ) {
-                std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
-                std::cv_status s = cv_single_conn_device.wait_until(lock, t0 + std::chrono::milliseconds(timeout_ms));
+                std::cv_status s = wait_until(cv_single_conn_device, lock, timeout_time);
                 if( std::cv_status::timeout == s && nullptr != single_conn_device_ptr ) {
                     if( debug_lock ) {
                         jau::PLAIN_PRINT(true, "BTAdapter::lockConnect: Failed: Locked (waited)");
@@ -1408,12 +1409,10 @@ bool BTAdapter::removeSMPKeyBin(key_list_t & keys, BDAddressAndType const & remo
 }
 BTAdapter::SMPKeyBinRef BTAdapter::findSMPKeyBin(BDAddressAndType const & remoteAddress) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_keys); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     return findSMPKeyBin(key_list, remoteAddress);
 }
 bool BTAdapter::addSMPKeyBin(const SMPKeyBinRef& key, const bool write_file) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_keys); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     removeSMPKeyBin(key_list, key->getRemoteAddrAndType(), write_file /* remove_file */, key_path);
     if( jau::environment::get().debug ) {
         key->setVerbose(true);
@@ -1429,7 +1428,6 @@ bool BTAdapter::addSMPKeyBin(const SMPKeyBinRef& key, const bool write_file) noe
 }
 bool BTAdapter::removeSMPKeyBin(BDAddressAndType const & remoteAddress, const bool remove_file) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_keys); // RAII-style acquire and relinquish via destructor
-    jau::sc_atomic_critical sync(sync_data); // redundant due to mutex-lock cache-load operation, leaving it for doc
     return removeSMPKeyBin(key_list, remoteAddress, remove_file, key_path);
 }
 
@@ -1830,12 +1828,12 @@ void BTAdapter::l2capServerWork(jau::service_runner& sr) {
 std::unique_ptr<L2CAPClient> BTAdapter::get_l2cap_connection(std::shared_ptr<BTDevice> device) {
     if( BTRole::Slave == getRole() ) {
         const BDAddressAndType& clientAddrAndType = device->getAddressAndType();
-        const jau::nsize_t timeout_ms = L2CAP_CLIENT_CONNECT_TIMEOUT_MS;
+        const jau::fraction_i64 timeout = L2CAP_CLIENT_CONNECT_TIMEOUT_MS;
 
         std::unique_lock<std::mutex> lock(mtx_l2cap_att); // RAII-style acquire and relinquish via destructor
+        const jau::fraction_timespec timeout_time = jau::getMonotonicTime() + jau::fraction_timespec(timeout);
         while( device->getConnected() && ( nullptr == l2cap_att || l2cap_att->getRemoteAddressAndType() != clientAddrAndType ) ) {
-            std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
-            std::cv_status s = cv_l2cap_att.wait_until(lock, t0 + std::chrono::milliseconds(timeout_ms));
+            std::cv_status s = wait_until(cv_l2cap_att, lock, timeout_time);
             if( std::cv_status::timeout == s && ( nullptr == l2cap_att || l2cap_att->getRemoteAddressAndType() != clientAddrAndType ) ) {
                 DBG_PRINT("L2CAP-ACCEPT: BTAdapter:get_l2cap_connection(dev_id %d): l2cap_att TIMEOUT", dev_id);
                 return nullptr;
@@ -1855,9 +1853,9 @@ std::unique_ptr<L2CAPClient> BTAdapter::get_l2cap_connection(std::shared_ptr<BTD
     }
 }
 
-jau::nsize_t BTAdapter::smp_timeoutfunc(jau::simple_timer& timer) {
+jau::fraction_i64 BTAdapter::smp_timeoutfunc(jau::simple_timer& timer) {
     if( timer.shall_stop() ) {
-        return 0;
+        return 0_s;
     }
     device_list_t failed_devices;
     {
@@ -1895,7 +1893,7 @@ jau::nsize_t BTAdapter::smp_timeoutfunc(jau::simple_timer& timer) {
         device->hciSMPMsgCallback(device, msg, source);
         DBG_PRINT("BTAdapter::smp_timeoutfunc(dev_id %d): SMP Timeout: Done: smp_auto %d, %s", dev_id, smp_auto, device->toString().c_str());
     });
-    return timer.shall_stop() ? 0 : SMP_NEXT_EVENT_TIMEOUT_MS; // keep going until BTAdapter closes
+    return timer.shall_stop() ? 0_s : SMP_NEXT_EVENT_TIMEOUT_MS; // keep going until BTAdapter closes
 }
 
 bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {

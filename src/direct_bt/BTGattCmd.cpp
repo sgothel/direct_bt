@@ -166,7 +166,7 @@ bool BTGattCmd::isResolved() noexcept {
     }
 }
 
-HCIStatusCode BTGattCmd::send(const bool prefNoAck, const jau::TROOctets& cmd_data, const int timeoutMS) noexcept {
+HCIStatusCode BTGattCmd::send(const bool prefNoAck, const jau::TROOctets& cmd_data, const jau::fraction_i64& timeout) noexcept {
     std::unique_lock<std::mutex> lockCmd(mtxCommand); // RAII-style acquire and relinquish via destructor
     HCIStatusCode res = HCIStatusCode::SUCCESS;
 
@@ -220,12 +220,12 @@ HCIStatusCode BTGattCmd::send(const bool prefNoAck, const jau::TROOctets& cmd_da
         }
 
         if( nullptr != rspCharRef ) {
+            const jau::fraction_timespec timeout_time = jau::getMonotonicTime() + jau::fraction_timespec(timeout);
             while( HCIStatusCode::SUCCESS == res && 0 == rsp_data.size() ) {
-                if( 0 == timeoutMS ) {
+                if( jau::fractions_i64::zero == timeout ) {
                     cvRspReceived.wait(lockRsp);
                 } else {
-                    std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
-                    std::cv_status s = cvRspReceived.wait_until(lockRsp, t0 + std::chrono::milliseconds(timeoutMS));
+                    std::cv_status s = wait_until(cvRspReceived, lockRsp, timeout_time);
                     if( std::cv_status::timeout == s && 0 == rsp_data.size() ) {
                         ERR_PRINT("BTGattCmd::sendBlocking: Timeout: Cmd %s, args[%s]",
                                   cmdCharRef->toString().c_str(), cmd_data.toString().c_str());

@@ -83,7 +83,7 @@ namespace direct_bt {
              * Actually used timeout will be `max(connection_supervisor_timeout + 50ms, GATT_READ_COMMAND_REPLY_TIMEOUT)`,
              * additional 50ms to allow L2CAP timeout hit first.
              */
-            const int32_t GATT_READ_COMMAND_REPLY_TIMEOUT;
+            const jau::fraction_i64 GATT_READ_COMMAND_REPLY_TIMEOUT;
 
             /**
              * Timeout for GATT write command replies, defaults to 550ms minimum,
@@ -94,7 +94,7 @@ namespace direct_bt {
              * Actually used timeout will be `max(connection_supervisor_timeout + 50ms, GATT_WRITE_COMMAND_REPLY_TIMEOUT)`,
              * additional 50ms to allow L2CAP timeout hit first.
              */
-            const int32_t GATT_WRITE_COMMAND_REPLY_TIMEOUT;
+            const jau::fraction_i64 GATT_WRITE_COMMAND_REPLY_TIMEOUT;
 
             /**
              * Timeout for l2cap _initial_ command reply, defaults to 2500ms (2000ms minimum).
@@ -104,7 +104,7 @@ namespace direct_bt {
              * Actually used timeout will be `min(10000, max(2 * connection_supervisor_timeout, GATT_INITIAL_COMMAND_REPLY_TIMEOUT))`,
              * double of connection_supervisor_timeout, to make sure L2CAP timeout hits first.
              */
-            const int32_t GATT_INITIAL_COMMAND_REPLY_TIMEOUT;
+            const jau::fraction_i64 GATT_INITIAL_COMMAND_REPLY_TIMEOUT;
 
             /**
              * Medium ringbuffer capacity, defaults to 128 messages.
@@ -181,9 +181,9 @@ namespace direct_bt {
             /** Environment runtime configuration, usually used internally only. */
             const BTGattEnv & env;
             /** Derived environment runtime configuration, usually used internally only. */
-            const int32_t read_cmd_reply_timeout;
+            const jau::fraction_i64 read_cmd_reply_timeout;
             /** Derived environment runtime configuration, usually used internally only. */
-            const int32_t write_cmd_reply_timeout;
+            const jau::fraction_i64 write_cmd_reply_timeout;
 
             /**
              * Internal handler implementation for given DBGattServer instance
@@ -498,7 +498,7 @@ namespace direct_bt {
              *
              * @see initClientGatt()
              */
-            uint16_t clientMTUExchange(const int32_t timeout) noexcept;
+            uint16_t clientMTUExchange(const jau::fraction_i64& timeout) noexcept;
 
             /**
              * Discover all primary services _only_.
@@ -674,10 +674,10 @@ namespace direct_bt {
              * the message has been send out and a reply has also been received and is returned as the result.
              *
              * @param msg the message to be send
-             * @param timeout milliseconds to wait for a reply
+             * @param timeout fractions of seconds to wait for a reply
              * @return non nullptr for a valid reply, otherwise nullptr
              */
-            std::unique_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg, const int timeout) noexcept;
+            std::unique_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg, const jau::fraction_i64& timeout) noexcept;
 
             /**
              * Generic read GATT value and long value

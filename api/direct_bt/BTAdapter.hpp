@@ -392,7 +392,7 @@ namespace direct_bt {
             weak_device_list_t pausing_discovery_devices;
             /** An SMP event watchdog for each device in pairing state */
             jau::simple_timer smp_watchdog;
-            jau::nsize_t smp_timeoutfunc(jau::simple_timer& timer);
+            jau::fraction_i64 smp_timeoutfunc(jau::simple_timer& timer);
 
             typedef jau::cow_darray<impl::StatusListenerPair> statusListenerList_t;
             statusListenerList_t statusListenerList;

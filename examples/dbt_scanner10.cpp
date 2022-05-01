@@ -50,6 +50,7 @@ extern "C" {
 
 using namespace direct_bt;
 using namespace jau;
+using namespace jau::fractions_i64_literals;
 
 /** \file
  * This _dbt_scanner10_ C++ scanner ::BTRole::Master GATT client example uses an event driven workflow
@@ -118,6 +119,7 @@ static bool le_scan_active = true; // default value
 static const uint16_t le_scan_interval = 24; // default value
 static const uint16_t le_scan_window = 24; // default value
 static const uint8_t filter_policy = 0; // default value
+static const bool filter_dup = true; // default value
 
 static std::shared_ptr<BTAdapter> chosenAdapter = nullptr;
 
@@ -486,7 +488,7 @@ static void processReadyDevice(BTDeviceRef device) {
             fprintf_td(stderr, "Command test: %s, resolved %d\n", cmd.toString().c_str(), cmd_resolved);
             POctets cmd_data(1, endian::little);
             cmd_data.put_uint8_nc(0, cmd_arg);
-            const HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3000 /* timeoutMS */);
+            const HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3_s);
             if( HCIStatusCode::SUCCESS == cmd_res ) {
                 if( cmd.hasResponseSet() ) {
                     const jau::TROOctets& resp = cmd.getResponse();
@@ -640,7 +642,7 @@ static bool startDiscovery(BTAdapter *a, std::string msg) {
         fprintf_td(stderr, "****** Start discovery (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
         return false;
     }
-    HCIStatusCode status = a->startDiscovery( discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy );
+    HCIStatusCode status = a->startDiscovery( discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
     fprintf_td(stderr, "****** Start discovery (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
     return HCIStatusCode::SUCCESS == status;
 }

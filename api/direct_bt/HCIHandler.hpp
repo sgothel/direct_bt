@@ -79,7 +79,7 @@ namespace direct_bt {
              * Environment variable is 'direct_bt.hci.reader.timeout'.
              * </p>
              */
-            const int32_t HCI_READER_THREAD_POLL_TIMEOUT;
+            const jau::fraction_i64 HCI_READER_THREAD_POLL_TIMEOUT;
 
             /**
              * Timeout for HCI command status replies, excluding command complete, defaults to 3s.
@@ -87,7 +87,7 @@ namespace direct_bt {
              * Environment variable is 'direct_bt.hci.cmd.status.timeout'.
              * </p>
              */
-            const int32_t HCI_COMMAND_STATUS_REPLY_TIMEOUT;
+            const jau::fraction_i64 HCI_COMMAND_STATUS_REPLY_TIMEOUT;
 
             /**
              * Timeout for HCI command complete replies, defaults to 10s.
@@ -96,7 +96,7 @@ namespace direct_bt {
              * Environment variable is 'direct_bt.hci.cmd.complete.timeout'.
              * </p>
              */
-            const int32_t HCI_COMMAND_COMPLETE_REPLY_TIMEOUT;
+            const jau::fraction_i64 HCI_COMMAND_COMPLETE_REPLY_TIMEOUT;
 
             /**
              * Poll period for certain HCI commands actively waiting for clearance, defaults to 125ms.
@@ -109,7 +109,7 @@ namespace direct_bt {
              * Environment variable is 'direct_bt.hci.cmd.complete.timeout'.
              * </p>
              */
-            const int32_t HCI_COMMAND_POLL_PERIOD;
+            const jau::fraction_i64 HCI_COMMAND_POLL_PERIOD;
 
             /**
              * Small ringbuffer capacity for synchronized commands, defaults to 64 messages.
@@ -331,7 +331,7 @@ namespace direct_bt {
             void hciReaderEndLocked(jau::service_runner& sr) noexcept;
 
             bool sendCommand(HCICommand &req, const bool quiet=false) noexcept;
-            std::unique_ptr<HCIEvent> getNextReply(HCICommand &req, int32_t & retryCount, const int32_t replyTimeoutMS) noexcept;
+            std::unique_ptr<HCIEvent> getNextReply(HCICommand &req, int32_t & retryCount, const jau::fraction_i64& replyTimeout) noexcept;
             std::unique_ptr<HCIEvent> getNextCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) noexcept;
 
             std::unique_ptr<HCIEvent> processCommandStatus(HCICommand &req, HCIStatusCode *status, const bool quiet=false) noexcept;

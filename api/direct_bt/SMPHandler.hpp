@@ -202,7 +202,7 @@ namespace direct_bt {
             void smpReaderEndLocked(jau::service_runner& sr) noexcept;
 
             void send(const SMPPDUMsg & msg);
-            std::unique_ptr<const SMPPDUMsg> sendWithReply(const SMPPDUMsg & msg, const int timeout);
+            std::unique_ptr<const SMPPDUMsg> sendWithReply(const SMPPDUMsg & msg, const jau::fraction_i64& timeout);
 
             void clearAllCallbacks() noexcept;
 

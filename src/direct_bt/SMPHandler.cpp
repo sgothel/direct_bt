@@ -57,6 +57,7 @@ extern "C" {
 #include "DBTConst.hpp"
 
 using namespace direct_bt;
+using namespace jau::fractions_i64_literals;
 
 SMPEnv::SMPEnv() noexcept
 : exploding( jau::environment::getExplodingProperties("direct_bt.smp") ),
@@ -121,7 +122,7 @@ void SMPHandler::smpReaderWork(jau::service_runner& sr) noexcept {
                 smpPDURing.drop(dropCount);
                 WARN_PRINT("SMPHandler-IO RECV Drop (%u oldest elements of %u capacity, ring full)", dropCount, smpPDURing.capacity());
             }
-            smpPDURing.putBlocking( std::move(smpPDU) );
+            smpPDURing.putBlocking( std::move(smpPDU), 0_s );
         }
     } else if( len == L2CAPClient::number(L2CAPClient::RWExitCode::INTERRUPTED) ) {
         WORDY_PRINT("SMPHandler::reader: l2cap read: IRQed res %d (%s); %s",
@@ -280,7 +281,7 @@ void SMPHandler::send(const SMPPDUMsg & msg) {
     }
 }
 
-std::unique_ptr<const SMPPDUMsg> SMPHandler::sendWithReply(const SMPPDUMsg & msg, const int timeout) {
+std::unique_ptr<const SMPPDUMsg> SMPHandler::sendWithReply(const SMPPDUMsg & msg, const jau::fraction_i64& timeout) {
     send( msg );
 
     // Ringbuffer read is thread safe
@@ -290,7 +291,7 @@ std::unique_ptr<const SMPPDUMsg> SMPHandler::sendWithReply(const SMPPDUMsg & msg
         IRQ_PRINT("SMPHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), deviceString.c_str());
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */);
-        throw BTException("SMPHandler::sendWithReply: nullptr result (timeout "+std::to_string(timeout)+"): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
+        throw BTException("SMPHandler::sendWithReply: nullptr result (timeout "+timeout.to_string()+"): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     return res;
 }

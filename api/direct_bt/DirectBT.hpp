@@ -54,6 +54,8 @@
 
 #include "BTGattCmd.hpp"
 
+#include "DBGattServer.hpp"
+
 #include "BTDeviceRegistry.hpp"
 #include "BTSecurityRegistry.hpp"
 

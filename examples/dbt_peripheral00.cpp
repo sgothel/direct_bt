@@ -41,8 +41,6 @@
 #include <jau/darray.hpp>
 
 #include <direct_bt/DirectBT.hpp>
-#include <direct_bt/GattNumbers.hpp>
-#include <direct_bt/DBGattServer.hpp>
 
 extern "C" {
     #include <unistd.h>
@@ -52,6 +50,7 @@ extern "C" {
 
 using namespace direct_bt;
 using namespace jau;
+
 
 /** \file
  * This _dbt_peripheral00__ C++ peripheral ::BTRole::Slave GATT server example uses an event driven workflow.

@@ -96,8 +96,8 @@ namespace direct_bt {
             /** Return the recursive write mutex for multithreading access. */
             inline std::recursive_mutex & mutex_write() noexcept { return mtx_write; }
 
-            /** Generic read w/ own timeoutMS, w/o locking suitable for a unique ringbuffer sink. */
-            jau::snsize_t read(uint8_t* buffer, const jau::nsize_t capacity, const int32_t timeoutMS) noexcept;
+            /** Generic read w/ own timeout, w/o locking suitable for a unique ringbuffer sink. */
+            jau::snsize_t read(uint8_t* buffer, const jau::nsize_t capacity, const jau::fraction_i64& timeout) noexcept;
 
             /** Generic write, locking {@link #mutex_write()}. */
             jau::snsize_t write(const uint8_t* buffer, const jau::nsize_t size) noexcept;

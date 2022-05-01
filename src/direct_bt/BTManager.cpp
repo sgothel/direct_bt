@@ -57,15 +57,16 @@ extern "C" {
 }
 
 using namespace direct_bt;
+using namespace jau::fractions_i64_literals;
 
 MgmtEnv::MgmtEnv() noexcept
 : DEBUG_GLOBAL( jau::environment::get("direct_bt").debug ),
   exploding( jau::environment::getExplodingProperties("direct_bt.mgmt") ),
-  MGMT_READER_THREAD_POLL_TIMEOUT( jau::environment::getInt32Property("direct_bt.mgmt.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
-  MGMT_COMMAND_REPLY_TIMEOUT( jau::environment::getInt32Property("direct_bt.mgmt.cmd.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
-  MGMT_SET_POWER_COMMAND_TIMEOUT( jau::environment::getInt32Property("direct_bt.mgmt.setpower.timeout",
-                                                                  std::max(MGMT_COMMAND_REPLY_TIMEOUT, 6000) /* default */,
-                                                                  MGMT_COMMAND_REPLY_TIMEOUT /* min */, INT32_MAX /* max */) ),
+  MGMT_READER_THREAD_POLL_TIMEOUT( jau::environment::getFractionProperty("direct_bt.mgmt.reader.timeout", 10_s, 1500_ms /* min */, 365_d /* max */) ),
+  MGMT_COMMAND_REPLY_TIMEOUT( jau::environment::getFractionProperty("direct_bt.mgmt.cmd.timeout", 3_s, 1500_ms /* min */, 365_d /* max */) ),
+  MGMT_SET_POWER_COMMAND_TIMEOUT( jau::environment::getFractionProperty("direct_bt.mgmt.setpower.timeout",
+                                                                  jau::max(MGMT_COMMAND_REPLY_TIMEOUT, 6_s) /* default */,
+                                                                  MGMT_COMMAND_REPLY_TIMEOUT /* min */, 365_d /* max */) ),
   MGMT_EVT_RING_CAPACITY( jau::environment::getInt32Property("direct_bt.mgmt.ringsize", 64, 64 /* min */, 1024 /* max */) ),
   DEBUG_EVENT( jau::environment::getBooleanProperty("direct_bt.debug.mgmt.event", false) ),
   MGMT_READ_PACKET_MAX_RETRY( MGMT_EVT_RING_CAPACITY )
@@ -103,7 +104,7 @@ void BTManager::mgmtReaderWork(jau::service_runner& sr) noexcept {
                 mgmtEventRing.drop(dropCount);
                 WARN_PRINT("BTManager-IO RECV Drop (%u oldest elements of %u capacity, ring full)", dropCount, mgmtEventRing.capacity());
             }
-            mgmtEventRing.putBlocking( std::move( event ) );
+            mgmtEventRing.putBlocking( std::move( event ), 0_s );
         } else if( MgmtEvent::Opcode::INDEX_ADDED == opc ) {
             COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (ADD) %s", event->toString().c_str());
             std::thread adapterAddedThread(&BTManager::processAdapterAdded, this, std::move( event) ); // @suppress("Invalid arguments")
@@ -164,7 +165,7 @@ bool BTManager::send(MgmtCommand &req) noexcept {
     return true;
 }
 
-std::unique_ptr<MgmtEvent> BTManager::sendWithReply(MgmtCommand &req, const int timeoutMS) noexcept {
+std::unique_ptr<MgmtEvent> BTManager::sendWithReply(MgmtCommand &req, const jau::fraction_i64& timeout) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     if( !send(req) ) {
         return nullptr;
@@ -175,7 +176,7 @@ std::unique_ptr<MgmtEvent> BTManager::sendWithReply(MgmtCommand &req, const int 
     while( retryCount < env.MGMT_READ_PACKET_MAX_RETRY ) {
         /* timeoutMS default: env.MGMT_COMMAND_REPLY_TIMEOUT */
         std::unique_ptr<MgmtEvent> res;
-        if( !mgmtEventRing.getBlocking(res, timeoutMS) || nullptr == res ) {
+        if( !mgmtEventRing.getBlocking(res, timeout) || nullptr == res ) {
             errno = ETIMEDOUT;
             ERR_PRINT("BTManager::sendWithReply.X: nullptr result (timeout -> abort): req %s", req.toString().c_str());
             return nullptr;
@@ -660,9 +661,9 @@ SMPIOCapability BTManager::getIOCapability(const uint16_t dev_id) const noexcept
 }
 
 bool BTManager::setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, const uint8_t mode, AdapterSetting& current_settings) noexcept {
-    const int timeoutMS = MgmtCommand::Opcode::SET_POWERED == opc ? env.MGMT_SET_POWER_COMMAND_TIMEOUT : env.MGMT_COMMAND_REPLY_TIMEOUT;
+    const jau::fraction_i64& timeout = MgmtCommand::Opcode::SET_POWERED == opc ? env.MGMT_SET_POWER_COMMAND_TIMEOUT : env.MGMT_COMMAND_REPLY_TIMEOUT;
     MgmtUint8Cmd req(opc, dev_id, mode);
-    std::unique_ptr<MgmtEvent> reply = sendWithReply(req, timeoutMS);
+    std::unique_ptr<MgmtEvent> reply = sendWithReply(req, timeout);
     MgmtStatus res;
     if( nullptr != reply ) {
         if( reply->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {

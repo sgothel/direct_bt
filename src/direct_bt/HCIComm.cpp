@@ -141,7 +141,7 @@ void HCIComm::close() noexcept {
     DBG_PRINT("HCIComm::close: End: dd %d", socket_descriptor.load());
 }
 
-jau::snsize_t HCIComm::read(uint8_t* buffer, const jau::nsize_t capacity, const int32_t timeoutMS) noexcept {
+jau::snsize_t HCIComm::read(uint8_t* buffer, const jau::nsize_t capacity, const jau::fraction_i64& timeout) noexcept {
     jau::snsize_t len = 0;
     if( 0 > socket_descriptor ) {
         goto errout;
@@ -150,9 +150,10 @@ jau::snsize_t HCIComm::read(uint8_t* buffer, const jau::nsize_t capacity, const 
         goto done;
     }
 
-    if( timeoutMS ) {
+    if( !timeout.is_zero() ) {
         struct pollfd p;
         int n;
+        const int32_t timeoutMS = timeout.to_num_of(jau::fractions_i64::milli);
 
         p.fd = socket_descriptor; p.events = POLLIN;
         while ( !interrupted() && (n = ::poll(&p, 1, timeoutMS)) < 0 ) {

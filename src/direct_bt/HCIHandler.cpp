@@ -58,13 +58,14 @@ extern "C" {
 }
 
 using namespace direct_bt;
+using namespace jau::fractions_i64_literals;
 
 HCIEnv::HCIEnv() noexcept
 : exploding( jau::environment::getExplodingProperties("direct_bt.hci") ),
-  HCI_READER_THREAD_POLL_TIMEOUT( jau::environment::getInt32Property("direct_bt.hci.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
-  HCI_COMMAND_STATUS_REPLY_TIMEOUT( jau::environment::getInt32Property("direct_bt.hci.cmd.status.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
-  HCI_COMMAND_COMPLETE_REPLY_TIMEOUT( jau::environment::getInt32Property("direct_bt.hci.cmd.complete.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
-  HCI_COMMAND_POLL_PERIOD( jau::environment::getInt32Property("direct_bt.hci.cmd.poll.period", 125, 50 /* min */, INT32_MAX /* max */) ),
+  HCI_READER_THREAD_POLL_TIMEOUT( jau::environment::getFractionProperty("direct_bt.hci.reader.timeout", 10_s, 1500_ms /* min */, 365_d /* max */) ),
+  HCI_COMMAND_STATUS_REPLY_TIMEOUT( jau::environment::getFractionProperty("direct_bt.hci.cmd.status.timeout", 3_s, 1500_ms /* min */, 365_d /* max */) ),
+  HCI_COMMAND_COMPLETE_REPLY_TIMEOUT( jau::environment::getFractionProperty("direct_bt.hci.cmd.complete.timeout", 10_s, 1500_ms /* min */, 365_d /* max */) ),
+  HCI_COMMAND_POLL_PERIOD( jau::environment::getFractionProperty("direct_bt.hci.cmd.poll.period", 125_ms, 50_ms, 365_d) ),
   HCI_EVT_RING_CAPACITY( jau::environment::getInt32Property("direct_bt.hci.ringsize", 64, 64 /* min */, 1024 /* max */) ),
   DEBUG_EVENT( jau::environment::getBooleanProperty("direct_bt.debug.hci.event", false) ),
   DEBUG_SCAN_AD_EIR( jau::environment::getBooleanProperty("direct_bt.debug.hci.scan_ad_eir", false) ),
@@ -521,7 +522,7 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
                 WARN_PRINT("HCIHandler<%u>-IO RECV Drop (%u oldest elements of %u capacity, ring full) - %s",
                         dev_id, dropCount, hciEventRing.capacity(), toString().c_str());
             }
-            hciEventRing.putBlocking( std::move( event ) );
+            hciEventRing.putBlocking( std::move( event ), jau::fractions_i64::zero );
         } else if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
             // issue callbacks for the translated AD events
             jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
@@ -599,15 +600,15 @@ bool HCIHandler::sendCommand(HCICommand &req, const bool quiet) noexcept {
     return true;
 }
 
-std::unique_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int32_t & retryCount, const int32_t replyTimeoutMS) noexcept
+std::unique_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int32_t & retryCount, const jau::fraction_i64& replyTimeout) noexcept
 {
     // Ringbuffer read is thread safe
     while( retryCount < env.HCI_READ_PACKET_MAX_RETRY ) {
         std::unique_ptr<HCIEvent> ev;
-        if( !hciEventRing.getBlocking(ev, replyTimeoutMS) || nullptr == ev ) {
+        if( !hciEventRing.getBlocking(ev, replyTimeout) || nullptr == ev ) {
             errno = ETIMEDOUT;
-            ERR_PRINT("HCIHandler<%u>::getNextReply: nullptr result (timeout %d ms -> abort): req %s - %s",
-                    dev_id, replyTimeoutMS, req.toString().c_str(), toString().c_str());
+            ERR_PRINT("HCIHandler<%u>::getNextReply: nullptr result (timeout %s -> abort): req %s - %s",
+                    dev_id, replyTimeout.to_string(), req.toString().c_str(), toString().c_str());
             return nullptr;
         } else if( !ev->validate(req) ) {
             // This could occur due to an earlier timeout w/ a nullptr == res (see above),
@@ -1251,16 +1252,16 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
     int pendingConnections = countPendingTrackerConnections();
     if( 0 < pendingConnections ) {
         DBG_PRINT("HCIHandler::le_create_conn: %d connections pending - %s", pendingConnections, toString().c_str());
-        int32_t td = 0;
+        jau::fraction_i64 td = 0_s;
         while( env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td && 0 < pendingConnections ) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(env.HCI_COMMAND_POLL_PERIOD));
+            sleep_for(env.HCI_COMMAND_POLL_PERIOD);
             td += env.HCI_COMMAND_POLL_PERIOD;
             pendingConnections = countPendingTrackerConnections();
         }
         if( 0 < pendingConnections ) {
-            WARN_PRINT("HCIHandler::le_create_conn: %d connections pending after %d ms - %s", pendingConnections, td, toString().c_str());
+            WARN_PRINT("HCIHandler::le_create_conn: %d connections pending after %d ms - %s", pendingConnections, td.to_ms(), toString().c_str());
         } else {
-            DBG_PRINT("HCIHandler::le_create_conn: pending connections resolved after %d ms - %s", td, toString().c_str());
+            DBG_PRINT("HCIHandler::le_create_conn: pending connections resolved after %d ms - %s", td.to_ms(), toString().c_str());
         }
     }
     const BDAddressAndType addressAndType(peer_bdaddr, to_BDAddressType(peer_mac_type));
@@ -1268,17 +1269,17 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
     if( nullptr != disconn ) {
         DBG_PRINT("HCIHandler::le_create_conn: disconnect pending %s - %s",
                 disconn->toString().c_str(), toString().c_str());
-        int32_t td = 0;
+        jau::fraction_i64 td = 0_s;
         while( env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td && nullptr != disconn ) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(env.HCI_COMMAND_POLL_PERIOD));
+            sleep_for(env.HCI_COMMAND_POLL_PERIOD);
             td += env.HCI_COMMAND_POLL_PERIOD;
             disconn = findDisconnectCmd(addressAndType);
         }
         if( nullptr != disconn ) {
             WARN_PRINT("HCIHandler::le_create_conn: disconnect persisting after %d ms: %s - %s",
-                    td, disconn->toString().c_str(), toString().c_str());
+                    td.to_ms(), disconn->toString().c_str(), toString().c_str());
         } else {
-            DBG_PRINT("HCIHandler::le_create_conn: disconnect resolved after %d ms - %s", td, toString().c_str());
+            DBG_PRINT("HCIHandler::le_create_conn: disconnect resolved after %d ms - %s", td.to_ms(), toString().c_str());
         }
     }
     HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, 0);
@@ -1380,16 +1381,16 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
     int pendingConnections = countPendingTrackerConnections();
     if( 0 < pendingConnections ) {
         DBG_PRINT("HCIHandler::create_conn: %d connections pending - %s", pendingConnections, toString().c_str());
-        int32_t td = 0;
+        jau::fraction_i64 td = 0_s;
         while( env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td && 0 < pendingConnections ) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(env.HCI_COMMAND_POLL_PERIOD));
+            sleep_for(env.HCI_COMMAND_POLL_PERIOD);
             td += env.HCI_COMMAND_POLL_PERIOD;
             pendingConnections = countPendingTrackerConnections();
         }
         if( 0 < pendingConnections ) {
-            WARN_PRINT("HCIHandler::create_conn: %d connections pending after %d ms - %s", pendingConnections, td, toString().c_str());
+            WARN_PRINT("HCIHandler::create_conn: %d connections pending after %d ms - %s", pendingConnections, td.to_ms(), toString().c_str());
         } else {
-            DBG_PRINT("HCIHandler::create_conn: pending connections resolved after %d ms - %s", td, toString().c_str());
+            DBG_PRINT("HCIHandler::create_conn: pending connections resolved after %d ms - %s", td.to_ms(), toString().c_str());
         }
     }
     const BDAddressAndType addressAndType(bdaddr, BDAddressType::BDADDR_BREDR);
@@ -1397,17 +1398,17 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
     if( nullptr != disconn ) {
         DBG_PRINT("HCIHandler::create_conn: disconnect pending %s - %s",
                 disconn->toString().c_str(), toString().c_str());
-        int32_t td = 0;
+        jau::fraction_i64 td = 0_s;
         while( env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td && nullptr != disconn ) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(env.HCI_COMMAND_POLL_PERIOD));
+            sleep_for(env.HCI_COMMAND_POLL_PERIOD);
             td += env.HCI_COMMAND_POLL_PERIOD;
             disconn = findDisconnectCmd(addressAndType);
         }
         if( nullptr != disconn ) {
-            WARN_PRINT("HCIHandler::create_conn: disconnect persisting after %d ms: %s - %s",
-                    td, disconn->toString().c_str(), toString().c_str());
+            WARN_PRINT("HCIHandler::create_conn: disconnect persisting after %s ms: %s - %s",
+                    td.to_ms(), disconn->toString().c_str(), toString().c_str());
         } else {
-            DBG_PRINT("HCIHandler::create_conn: disconnect resolved after %d ms - %s", td, toString().c_str());
+            DBG_PRINT("HCIHandler::create_conn: disconnect resolved after %d ms - %s", td.to_ms(), toString().c_str());
         }
     }
     HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, 0);

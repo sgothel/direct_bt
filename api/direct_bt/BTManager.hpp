@@ -78,7 +78,7 @@ namespace direct_bt {
              * Environment variable is 'direct_bt.mgmt.reader.timeout'.
              * </p>
              */
-            const int32_t MGMT_READER_THREAD_POLL_TIMEOUT;
+            const jau::fraction_i64 MGMT_READER_THREAD_POLL_TIMEOUT;
 
             /**
              * Timeout for mgmt command replies, defaults to 3s.
@@ -86,7 +86,7 @@ namespace direct_bt {
              * Environment variable is 'direct_bt.mgmt.cmd.timeout'.
              * </p>
              */
-            const int32_t MGMT_COMMAND_REPLY_TIMEOUT;
+            const jau::fraction_i64 MGMT_COMMAND_REPLY_TIMEOUT;
 
             /**
              * Timeout for mgmt SET_POWER command reply, defaults to max(MGMT_COMMAND_REPLY_TIMEOUT, 6s).
@@ -94,7 +94,7 @@ namespace direct_bt {
              * Environment variable is 'direct_bt.mgmt.setpower.timeout'.
              * </p>
              */
-            const int32_t MGMT_SET_POWER_COMMAND_TIMEOUT;
+            const jau::fraction_i64 MGMT_SET_POWER_COMMAND_TIMEOUT;
 
             /**
              * Small ringbuffer capacity for synchronized commands, defaults to 64 messages.
@@ -256,10 +256,10 @@ namespace direct_bt {
              * function returns NULL.
              *
              * @param req the command request
-             * @param timeoutMS timeout in milliseconds
+             * @param timeout timeout in fractions of seconds
              * @return the resulting event or nullptr on failure (timeout)
              */
-            std::unique_ptr<MgmtEvent> sendWithReply(MgmtCommand &req, const int timeoutMS) noexcept;
+            std::unique_ptr<MgmtEvent> sendWithReply(MgmtCommand &req, const jau::fraction_i64& timeout) noexcept;
 
             /**
              * In case response size check or devID and optional opcode validation fails,

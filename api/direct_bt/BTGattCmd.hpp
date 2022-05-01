@@ -28,6 +28,7 @@
 
 #include <jau/uuid.hpp>
 #include <jau/octets.hpp>
+#include <jau/fraction_type.hpp>
 
 #include "BTGattDesc.hpp"
 #include "BTGattChar.hpp"
@@ -273,11 +274,11 @@ namespace direct_bt {
              *
              * @param prefNoAck pass true to prefer command write without acknowledge, otherwise use with-ack if available
              * @param cmd_data raw command octets
-             * @param timeoutMS timeout in milliseconds. Defaults to 10 seconds limited blocking for the response to become available, if any.
+             * @param timeout maximum duration in fractions of seconds to wait for the response to become available, if any.
              * @return
              * @see getResponse()
              */
-            HCIStatusCode send(const bool prefNoAck, const jau::TROOctets& cmd_data, const int timeoutMS=10000) noexcept;
+            HCIStatusCode send(const bool prefNoAck, const jau::TROOctets& cmd_data, const jau::fraction_i64& timeout) noexcept;
 
             std::string toString() const noexcept;
     };

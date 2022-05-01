@@ -43,6 +43,7 @@
 #include "BTGattService.hpp"
 
 using namespace direct_bt;
+using namespace jau::fractions_i64_literals;
 
 BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
 : adapter(a), btRole(!a.getRole()),
@@ -424,10 +425,9 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
             bool pairing_timeout = false;
             {
                 std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
-
+                const std::chrono::steady_clock::time_point timeout_time = std::chrono::steady_clock::now() + hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT.to_duration(std::chrono::milliseconds::zero());
                 while( !hasSMPPairingFinished( pairing_data.state ) ) {
-                    std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
-                    std::cv_status s = cv_pairing_state_changed.wait_until(lock_pairing, t0 + std::chrono::milliseconds(hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT));
+                    std::cv_status s = cv_pairing_state_changed.wait_until(lock_pairing, timeout_time);
                     DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.2c Wait for SMPPairing: state %s, %s",
                             smp_auto_count, to_string(pairing_data.state).c_str(), toString().c_str());
                     if( std::cv_status::timeout == s && !hasSMPPairingFinished( pairing_data.state ) ) {
@@ -456,20 +456,20 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
             } else if( SMPPairingState::FAILED == pstate ) {
                 if( !smp_auto_done ) { // not last one
                     // disconnect for next smp_auto mode test
-                    int32_t td_disconnect = 0;
+                    jau::fraction_i64 td_disconnect = 0_s;
                     DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.3 Failed SMPPairing -> Disconnect: %s", smp_auto_count, toString().c_str());
                     HCIStatusCode dres = disconnect(HCIStatusCode::AUTHENTICATION_FAILURE);
                     if( HCIStatusCode::SUCCESS == dres ) {
                         while( isConnected && hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td_disconnect ) {
                             jau::sc_atomic_critical sync2(sync_data);
                             td_disconnect += hci.env.HCI_COMMAND_POLL_PERIOD;
-                            std::this_thread::sleep_for(std::chrono::milliseconds(hci.env.HCI_COMMAND_POLL_PERIOD));
+                            sleep_for(hci.env.HCI_COMMAND_POLL_PERIOD);
                         }
                     }
                     if( hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT <= td_disconnect ) {
                         // timeout
                         ERR_PRINT("SEC AUTO.%d.4 Timeout Disconnect td_pairing %d ms: %s",
-                                smp_auto_count, td_disconnect, toString().c_str());
+                                smp_auto_count, td_disconnect.to_ms(), toString().c_str());
                         pairing_data.ioCap_auto = SMPIOCapability::UNSET;
                         statusConnect = HCIStatusCode::INTERNAL_TIMEOUT;
                         adapter.unlockConnect(*this);
@@ -1971,6 +1971,7 @@ jau::darray<BTGattServiceRef> BTDevice::getGattServices() noexcept {
     if( gatt_already_init ) {
         return gattServices; // copy previous discovery result
     }
+    // FIXME: GATTHandler::sendWithReply() == nullptr but gattServices.size() > 0 !!!
     if( gattServices.size() == 0 ) { // nothing discovered
         ERR_PRINT2("BTDevice::getGattServices: No primary services discovered");
         return gattServices;

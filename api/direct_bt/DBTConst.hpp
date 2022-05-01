@@ -32,6 +32,9 @@
 
 namespace direct_bt {
 
+    using namespace jau::fractions_i64_literals;
+    using namespace jau::int_literals;
+
 #ifdef __linux__
 
     /**
@@ -58,21 +61,21 @@ namespace direct_bt {
 #endif
 
     /**
-     * Maximum time in milliseconds to wait for a thread shutdown.
+     * Maximum time in fractions of seconds to wait for a thread shutdown.
      *
      * Usually used for socket reader threads, like used within HCIHandler.
      */
-    inline constexpr const jau::nsize_t THREAD_SHUTDOWN_TIMEOUT_MS = 8000;
+    inline constexpr const jau::fraction_i64 THREAD_SHUTDOWN_TIMEOUT_MS = 8_s;
 
     /**
-     * Maximum time in milliseconds to wait for the next SMP event.
+     * Maximum time in fractions of seconds to wait for the next SMP event.
      */
-    inline constexpr const jau::nsize_t SMP_NEXT_EVENT_TIMEOUT_MS = 2000;
+    inline constexpr const jau::fraction_i64 SMP_NEXT_EVENT_TIMEOUT_MS = 2_s;
 
     /**
-     * Maximum time in milliseconds to wait for L2CAP client connection when adapter is in server mode.
+     * Maximum time in fractions of seconds to wait for L2CAP client connection when adapter is in server mode.
      */
-    inline constexpr const jau::nsize_t L2CAP_CLIENT_CONNECT_TIMEOUT_MS = 1000;
+    inline constexpr const jau::fraction_i64 L2CAP_CLIENT_CONNECT_TIMEOUT_MS = 1_s;
 
     /**
      * Maximum number of enabling discovery in background in case of failure

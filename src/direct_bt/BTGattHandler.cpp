@@ -67,9 +67,9 @@ using namespace direct_bt;
 
 BTGattEnv::BTGattEnv() noexcept
 : exploding( jau::environment::getExplodingProperties("direct_bt.gatt") ),
-  GATT_READ_COMMAND_REPLY_TIMEOUT( jau::environment::getInt32Property("direct_bt.gatt.cmd.read.timeout", 550, 550 /* min */, INT32_MAX /* max */) ),
-  GATT_WRITE_COMMAND_REPLY_TIMEOUT(  jau::environment::getInt32Property("direct_bt.gatt.cmd.write.timeout", 550, 550 /* min */, INT32_MAX /* max */) ),
-  GATT_INITIAL_COMMAND_REPLY_TIMEOUT( jau::environment::getInt32Property("direct_bt.gatt.cmd.init.timeout", 2500, 2000 /* min */, INT32_MAX /* max */) ),
+  GATT_READ_COMMAND_REPLY_TIMEOUT( jau::environment::getFractionProperty("direct_bt.gatt.cmd.read.timeout", 550_ms, 550_ms /* min */, 365_d /* max */) ),
+  GATT_WRITE_COMMAND_REPLY_TIMEOUT(  jau::environment::getFractionProperty("direct_bt.gatt.cmd.write.timeout", 550_ms, 550_ms /* min */, 365_d /* max */) ),
+  GATT_INITIAL_COMMAND_REPLY_TIMEOUT( jau::environment::getFractionProperty("direct_bt.gatt.cmd.init.timeout", 2500_ms, 2000_ms /* min */, 365_d /* max */) ),
   ATTPDU_RING_CAPACITY( jau::environment::getInt32Property("direct_bt.gatt.ringsize", 128, 64 /* min */, 1024 /* max */) ),
   DEBUG_DATA( jau::environment::getBooleanProperty("direct_bt.debug.gatt.data", false) )
 {
@@ -507,7 +507,7 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
             }
         } else if( AttPDUMsg::OpcodeType::RESPONSE == opc_type ) {
             COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: Ring: %s", attPDU->toString().c_str());
-            attPDURing.putBlocking( std::move(attPDU) );
+            attPDURing.putBlocking( std::move(attPDU), 0_s );
         } else if( AttPDUMsg::OpcodeType::REQUEST == opc_type ) {
             if( !replyAttPDUReq( std::move( attPDU ) ) ) {
                 ERR_PRINT2("ATT Reply: %s", toString().c_str());
@@ -571,8 +571,8 @@ bool BTGattHandler::l2capReaderInterrupted(int dummy) /* const */ noexcept {
 BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, const int32_t supervision_timeout_) noexcept
 : supervision_timeout(supervision_timeout_),
   env(BTGattEnv::get()),
-  read_cmd_reply_timeout(std::max<int32_t>(env.GATT_READ_COMMAND_REPLY_TIMEOUT, supervision_timeout+50)),
-  write_cmd_reply_timeout(std::max<int32_t>(env.GATT_WRITE_COMMAND_REPLY_TIMEOUT, supervision_timeout+50)),
+  read_cmd_reply_timeout(jau::max(env.GATT_READ_COMMAND_REPLY_TIMEOUT, 1_ms*(supervision_timeout+50_i64))),
+  write_cmd_reply_timeout(jau::max(env.GATT_WRITE_COMMAND_REPLY_TIMEOUT, 1_ms*(supervision_timeout+50_i64))),
   wbr_device(device),
   role(device->getLocalGATTRole()),
   l2cap(l2cap_att),
@@ -741,7 +741,7 @@ bool BTGattHandler::send(const AttPDUMsg & msg) noexcept {
     }
 }
 
-std::unique_ptr<const AttPDUMsg> BTGattHandler::sendWithReply(const AttPDUMsg & msg, const int timeout) noexcept {
+std::unique_ptr<const AttPDUMsg> BTGattHandler::sendWithReply(const AttPDUMsg & msg, const jau::fraction_i64& timeout) noexcept {
     if( !send( msg ) ) {
         return nullptr;
     }
@@ -750,7 +750,7 @@ std::unique_ptr<const AttPDUMsg> BTGattHandler::sendWithReply(const AttPDUMsg & 
     std::unique_ptr<const AttPDUMsg> res;
     if( !attPDURing.getBlocking(res, timeout) || nullptr == res ) {
         errno = ETIMEDOUT;
-        ERR_PRINT("GATTHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), toString().c_str());
+        ERR_PRINT("GATTHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout.to_ms(), msg.toString().c_str(), toString().c_str());
         has_ioerror = true;
         disconnect(true /* disconnect_device */, true /* ioerr_cause */);
         return nullptr;
@@ -758,7 +758,7 @@ std::unique_ptr<const AttPDUMsg> BTGattHandler::sendWithReply(const AttPDUMsg & 
     return res;
 }
 
-uint16_t BTGattHandler::clientMTUExchange(const int32_t timeout) noexcept {
+uint16_t BTGattHandler::clientMTUExchange(const jau::fraction_i64& timeout) noexcept {
     if( GATTRole::Client != getRole() ) {
         ERR_PRINT("GATT MTU exchange only allowed in client mode");
         return usedMTU;
@@ -896,7 +896,7 @@ bool BTGattHandler::initClientGatt(std::shared_ptr<BTGattHandler> shared_this, b
     }
     if( !clientMTUExchanged) {
         // First point of failure if remote device exposes no GATT functionality. Allow a longer timeout!
-        const int32_t initial_command_reply_timeout = std::min<int32_t>(10000, std::max<int32_t>(env.GATT_INITIAL_COMMAND_REPLY_TIMEOUT, 2*supervision_timeout));
+        const jau::fraction_i64 initial_command_reply_timeout = jau::min(10_s, jau::max(env.GATT_INITIAL_COMMAND_REPLY_TIMEOUT, 1_ms*(2_i64*supervision_timeout)));
         DBG_PRINT("GATTHandler::initClientGatt: Local GATT Client: MTU Exchange Start: %s", toString().c_str());
         uint16_t mtu = clientMTUExchange(initial_command_reply_timeout);
         if( 0 == mtu ) {
