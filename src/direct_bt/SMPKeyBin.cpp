@@ -64,8 +64,8 @@ static std::vector<std::string> get_file_list(const std::string& dname) {
 #else
     DIR *dir;
     struct dirent *ent;
-    if( ( dir = opendir( dname.c_str() ) ) != nullptr ) {
-      while ( ( ent = readdir( dir ) ) != NULL ) {
+    if( ( dir = ::opendir( dname.c_str() ) ) != nullptr ) {
+      while ( ( ent = ::readdir( dir ) ) != NULL ) {
           std::string fname( ent->d_name );
           if( 0 == fname.find("bd_") ) { // prefix checl
               const jau::nsize_t suffix_pos = fname.size() - 4;
@@ -74,7 +74,7 @@ static std::vector<std::string> get_file_list(const std::string& dname) {
               }
           }
       }
-      closedir (dir);
+      ::closedir (dir);
     } // else: could not open directory
 #endif
     return res;
