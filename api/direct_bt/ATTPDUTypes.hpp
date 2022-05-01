@@ -646,7 +646,7 @@ namespace direct_bt {
      * ATT_PDU_UNDEFINED
      * </p>
      */
-    class AttPDUUndefined: public AttPDUMsg
+    class AttPDUUndefined : public AttPDUMsg
     {
         public:
             AttPDUUndefined(const uint8_t* source, const jau::nsize_t length) : AttPDUMsg(source, length) {
@@ -665,7 +665,7 @@ namespace direct_bt {
      *
      * Used to send a error reply for any request.
      */
-    class AttErrorRsp: public AttPDUMsg
+    class AttErrorRsp : public AttPDUMsg
     {
         public:
             enum class ErrorCode : uint8_t {
@@ -739,7 +739,7 @@ namespace direct_bt {
      * Used for
      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.3.1 Exchange MTU (Server configuration)
      */
-    class AttExchangeMTU: public AttPDUMsg
+    class AttExchangeMTU : public AttPDUMsg
     {
         public:
             AttExchangeMTU(const uint8_t* source, const jau::nsize_t length)
@@ -860,7 +860,7 @@ namespace direct_bt {
      * If expected value size exceeds getValueSize(), continue with ATT_READ_BLOB_REQ (3.4.4.5),
      * see shallReadBlobReq(..)
      */
-    class AttReadNRsp: public AttPDUMsg
+    class AttReadNRsp : public AttPDUMsg
     {
         private:
             const jau::TOctetSlice view;
@@ -1174,7 +1174,7 @@ namespace direct_bt {
      * Send by server to notify or indicate an ATT value (at any time).
      * </p>
      */
-    class AttHandleValueRcv: public AttPDUMsg
+    class AttHandleValueRcv : public AttPDUMsg
     {
         private:
             const jau::TOctetSlice view;
@@ -1234,7 +1234,7 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.11 Characteristic Value Indications
      * </p>
      */
-    class AttHandleValueCfm: public AttPDUMsg
+    class AttHandleValueCfm : public AttPDUMsg
     {
         public:
             AttHandleValueCfm(const uint8_t* source, const jau::nsize_t length)
@@ -1440,7 +1440,7 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1 Characteristic Declaration Attribute Value
      * </p>
      */
-    class AttReadByTypeRsp: public AttElementList
+    class AttReadByTypeRsp : public AttElementList
     {
         public:
             /**
@@ -1734,7 +1734,7 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
      * </p>
      */
-    class AttFindInfoRsp: public AttElementList
+    class AttFindInfoRsp : public AttElementList
     {
         private:
             static jau::uuid_t::TypeSize toTypeSize(const uint8_t format) {
@@ -1945,7 +1945,7 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.2 Discover Primary Service by Service UUID
      * </p>
      */
-    class AttFindByTypeValueRsp: public AttPDUMsg
+    class AttFindByTypeValueRsp : public AttPDUMsg
     {
         public:
             AttFindByTypeValueRsp(const uint8_t* source, const jau::nsize_t length)
