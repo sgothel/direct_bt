@@ -97,16 +97,6 @@ public class DBTScanner10 {
 
     int shutdownTest = 0;
 
-
-    static void printf(final String format, final Object... args) {
-        final Object[] args2 = new Object[args.length+1];
-        args2[0] = BTUtils.elapsedTimeMillis();
-        System.arraycopy(args, 0, args2, 1, args.length);
-        System.err.printf("[%,9d] "+format, args2);
-        // System.err.printf("[%,9d] ", BluetoothUtils.getElapsedMillisecond());
-        // System.err.printf(format, args);
-    }
-
     static void executeOffThread(final Runnable runobj, final String threadName, final boolean detach) {
         final Thread t = new Thread( runobj, threadName );
         if( detach ) {
@@ -296,11 +286,11 @@ public class DBTScanner10 {
         public void notificationReceived(final BTGattChar charDecl,
                                          final byte[] value, final long timestamp) {
             final long tR = BTUtils.currentTimeMillis();
-            printf("**[%02d.%02d] Characteristic-Notify: UUID %s, td %d ******\n",
+            BTUtils.fprintf_td(System.err, "**[%02d.%02d] Characteristic-Notify: UUID %s, td %d ******\n",
                     i, j, charDecl.getUUID(), (tR-timestamp));
-            printf("**[%02d.%02d]     Characteristic: %s ******\n", i, j, charDecl.toString());
-            printf("**[%02d.%02d]     Value R: size %d, ro: %s ******\n", i, j, value.length, BTUtils.bytesHexString(value, 0, -1, true));
-            printf("**[%02d.%02d]     Value S: %s ******\n", i, j, BTUtils.decodeUTF8String(value, 0, value.length));
+            BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Characteristic: %s ******\n", i, j, charDecl.toString());
+            BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Value R: size %d, ro: %s ******\n", i, j, value.length, BTUtils.bytesHexString(value, 0, -1, true));
+            BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Value S: %s ******\n", i, j, BTUtils.decodeUTF8String(value, 0, value.length));
 
             shutdownTest();
         }
@@ -309,11 +299,11 @@ public class DBTScanner10 {
         public void indicationReceived(final BTGattChar charDecl,
                                        final byte[] value, final long timestamp, final boolean confirmationSent) {
             final long tR = BTUtils.currentTimeMillis();
-            printf("**[%02d.%02d] Characteristic-Indication: UUID %s, td %d, confirmed %b ******\n",
+            BTUtils.fprintf_td(System.err, "**[%02d.%02d] Characteristic-Indication: UUID %s, td %d, confirmed %b ******\n",
                     i, j, charDecl.getUUID(), (tR-timestamp), confirmationSent);
-            printf("**[%02d.%02d]     Characteristic: %s ******\n", i, j, charDecl.toString());
-            printf("**[%02d.%02d]     Value R: size %d, ro: %s ******\n", i, j, value.length, BTUtils.bytesHexString(value, 0, -1, true));
-            printf("**[%02d.%02d]     Value S: %s ******\n", i, j, BTUtils.decodeUTF8String(value, 0, value.length));
+            BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Characteristic: %s ******\n", i, j, charDecl.toString());
+            BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Value R: size %d, ro: %s ******\n", i, j, value.length, BTUtils.bytesHexString(value, 0, -1, true));
+            BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Value S: %s ******\n", i, j, BTUtils.decodeUTF8String(value, 0, value.length));
 
             shutdownTest();
         }
@@ -497,23 +487,23 @@ public class DBTScanner10 {
                 for(final Iterator<BTGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
                     final BTGattService primService = srvIter.next();
                     {
-                        printf("  [%02d] Service UUID %s\n", i, primService.getUUID());
-                        printf("  [%02d]         %s\n", i, primService.toString());
+                        BTUtils.fprintf_td(System.err, "  [%02d] Service UUID %s\n", i, primService.getUUID());
+                        BTUtils.fprintf_td(System.err, "  [%02d]         %s\n", i, primService.toString());
                     }
                     int j=0;
                     final List<BTGattChar> serviceCharacteristics = primService.getChars();
                     for(final Iterator<BTGattChar> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
                         final BTGattChar serviceChar = charIter.next();
                         {
-                            printf("  [%02d.%02d] Characteristic: UUID %s\n", i, j, serviceChar.getUUID());
-                            printf("  [%02d.%02d]     %s\n", i, j, serviceChar.toString());
+                            BTUtils.fprintf_td(System.err, "  [%02d.%02d] Characteristic: UUID %s\n", i, j, serviceChar.getUUID());
+                            BTUtils.fprintf_td(System.err, "  [%02d.%02d]     %s\n", i, j, serviceChar.toString());
                         }
                         final GattCharPropertySet properties = serviceChar.getProperties();
                         if( properties.isSet(GattCharPropertySet.Type.Read) ) {
                             final byte[] value = serviceChar.readValue();
                             final String svalue = BTUtils.decodeUTF8String(value, 0, value.length);
                             {
-                                printf("  [%02d.%02d]     value: %s ('%s')\n", i, j, BTUtils.bytesHexString(value, 0, -1, true), svalue);
+                                BTUtils.fprintf_td(System.err, "  [%02d.%02d]     value: %s ('%s')\n", i, j, BTUtils.bytesHexString(value, 0, -1, true), svalue);
                             }
                         }
                         int k=0;
@@ -521,8 +511,8 @@ public class DBTScanner10 {
                         for(final Iterator<BTGattDesc> descIter = charDescList.iterator(); descIter.hasNext(); k++) {
                             final BTGattDesc charDesc = descIter.next();
                             {
-                                printf("  [%02d.%02d.%02d] Descriptor: UUID %s\n", i, j, k, charDesc.getUUID());
-                                printf("  [%02d.%02d.%02d]     %s\n", i, j, k, charDesc.toString());
+                                BTUtils.fprintf_td(System.err, "  [%02d.%02d.%02d] Descriptor: UUID %s\n", i, j, k, charDesc.getUUID());
+                                BTUtils.fprintf_td(System.err, "  [%02d.%02d.%02d]     %s\n", i, j, k, charDesc.toString());
                             }
                         }
                         final boolean cccdEnableResult[] = { false, false };
@@ -530,13 +520,13 @@ public class DBTScanner10 {
                             // ClientCharConfigDescriptor (CCD) is available
                             final boolean clAdded = null != serviceChar.addCharListener( new MyGATTEventListener(i, j) );
                             {
-                                printf("  [%02d.%02d] Characteristic-Listener: Notification(%b), Indication(%b): Added %b\n",
+                                BTUtils.fprintf_td(System.err, "  [%02d.%02d] Characteristic-Listener: Notification(%b), Indication(%b): Added %b\n",
                                         i, j, cccdEnableResult[0], cccdEnableResult[1], clAdded);
-                                printf("\n");
+                                BTUtils.fprintf_td(System.err, "\n");
                             }
                         }
                     }
-                    printf("\n");
+                    BTUtils.fprintf_td(System.err, "\n");
                 }
             } catch( final Exception ex) {
                 BTUtils.println(System.err, "Caught "+ex.getMessage());

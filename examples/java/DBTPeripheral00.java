@@ -111,15 +111,6 @@ public class DBTPeripheral00 {
         return false;
     }
 
-    static void printf(final String format, final Object... args) {
-        final Object[] args2 = new Object[args.length+1];
-        args2[0] = BTUtils.elapsedTimeMillis();
-        System.arraycopy(args, 0, args2, 1, args.length);
-        System.err.printf("[%,9d] "+format, args2);
-        // System.err.printf("[%,9d] ", BluetoothUtils.getElapsedMillisecond());
-        // System.err.printf(format, args);
-    }
-
     static Thread executeOffThread(final Runnable runobj, final String threadName, final boolean detach) {
         final Thread t = new Thread( runobj, threadName );
         if( detach ) {

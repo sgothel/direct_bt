@@ -57,7 +57,7 @@ import org.direct_bt.ScanType;
 import org.jau.net.EUI48;
 
 /**
- * This Java scanner {@link BTRole::Master} test case, working with {@link DBTServer00}.
+ * This central BTRole::Master participant works with DBTServer00.
  */
 public class DBTClient00 implements DBTClientTest {
     /**
@@ -115,15 +115,6 @@ public class DBTClient00 implements DBTClientTest {
     @Override
     public BTAdapter getAdapter() { return clientAdapter; }
 
-    static void printf(final String format, final Object... args) {
-        final Object[] args2 = new Object[args.length+1];
-        args2[0] = BTUtils.elapsedTimeMillis();
-        System.arraycopy(args, 0, args2, 1, args.length);
-        System.err.printf("[%,9d] "+format, args2);
-        // System.err.printf("[%,9d] ", BluetoothUtils.getElapsedMillisecond());
-        // System.err.printf(format, args);
-    }
-
     static void executeOffThread(final Runnable runobj, final String threadName, final boolean detach) {
         final Thread t = new Thread( runobj, threadName );
         if( detach ) {
@@ -151,7 +142,7 @@ public class DBTClient00 implements DBTClientTest {
             } else {
                 BTUtils.println(System.err, "****** Client SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
             }
-            BTUtils.println(System.err, "Status Adapter:");
+            BTUtils.println(System.err, "Client Status Adapter:");
             BTUtils.println(System.err, adapter.toString());
         }
 
@@ -176,7 +167,7 @@ public class DBTClient00 implements DBTClientTest {
                     BTUtils.println(System.err, "PERF: adapter-init -> FOUND__-0 " + td + " ms");
                 }
                 executeOffThread( () -> { connectDiscoveredDevice(device); },
-                                  "DBT-Connect-"+device.getAddressAndType(), true /* detach */);
+                                  "Client DBT-Connect-"+device.getAddressAndType(), true /* detach */);
                 return true;
             } else {
                 BTUtils.println(System.err, "****** Client FOUND__-1: NOP "+device.toString());
@@ -278,12 +269,12 @@ public class DBTClient00 implements DBTClientTest {
         public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
             BTUtils.println(System.err, "****** Client DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
 
-            executeOffThread( () -> { removeDevice(device); }, "DBT-Remove-"+device.getAddressAndType(), true /* detach */);
+            executeOffThread( () -> { removeDevice(device); }, "Client DBT-Remove-"+device.getAddressAndType(), true /* detach */);
         }
 
         @Override
         public String toString() {
-            return "AdapterStatusListener[user, per-adapter]";
+            return "Client AdapterStatusListener[user, per-adapter]";
         }
     };
 
@@ -297,11 +288,11 @@ public class DBTClient00 implements DBTClientTest {
                                          final byte[] value, final long timestamp) {
             if( GATT_VERBOSE ) {
                 final long tR = BTUtils.currentTimeMillis();
-                printf("**[%02d.%02d] Characteristic-Notify: UUID %s, td %d ******\n",
+                BTUtils.fprintf_td(System.err, "**[%02d.%02d] Characteristic-Notify: UUID %s, td %d ******\n",
                         i, j, charDecl.getUUID(), (tR-timestamp));
-                printf("**[%02d.%02d]     Characteristic: %s ******\n", i, j, charDecl.toString());
-                printf("**[%02d.%02d]     Value R: size %d, ro: %s ******\n", i, j, value.length, BTUtils.bytesHexString(value, 0, -1, true));
-                printf("**[%02d.%02d]     Value S: %s ******\n", i, j, BTUtils.decodeUTF8String(value, 0, value.length));
+                BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Characteristic: %s ******\n", i, j, charDecl.toString());
+                BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Value R: size %d, ro: %s ******\n", i, j, value.length, BTUtils.bytesHexString(value, 0, -1, true));
+                BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Value S: %s ******\n", i, j, BTUtils.decodeUTF8String(value, 0, value.length));
             }
             notificationsReceived.incrementAndGet();
         }
@@ -311,11 +302,11 @@ public class DBTClient00 implements DBTClientTest {
                                        final byte[] value, final long timestamp, final boolean confirmationSent) {
             if( GATT_VERBOSE ) {
                 final long tR = BTUtils.currentTimeMillis();
-                printf("**[%02d.%02d] Characteristic-Indication: UUID %s, td %d, confirmed %b ******\n",
+                BTUtils.fprintf_td(System.err, "**[%02d.%02d] Characteristic-Indication: UUID %s, td %d, confirmed %b ******\n",
                         i, j, charDecl.getUUID(), (tR-timestamp), confirmationSent);
-                printf("**[%02d.%02d]     Characteristic: %s ******\n", i, j, charDecl.toString());
-                printf("**[%02d.%02d]     Value R: size %d, ro: %s ******\n", i, j, value.length, BTUtils.bytesHexString(value, 0, -1, true));
-                printf("**[%02d.%02d]     Value S: %s ******\n", i, j, BTUtils.decodeUTF8String(value, 0, value.length));
+                BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Characteristic: %s ******\n", i, j, charDecl.toString());
+                BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Value R: size %d, ro: %s ******\n", i, j, value.length, BTUtils.bytesHexString(value, 0, -1, true));
+                BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Value S: %s ******\n", i, j, BTUtils.decodeUTF8String(value, 0, value.length));
             }
             indicationsReceived.incrementAndGet();
         }
@@ -359,7 +350,9 @@ public class DBTClient00 implements DBTClientTest {
             }
         }
         final EInfoReport eir = device.getEIR();
-        BTUtils.println(System.err, "Using EIR "+eir.toString());
+        BTUtils.println(System.err, "Client EIR-1 "+device.getEIRInd().toString());
+        BTUtils.println(System.err, "Client EIR-2 "+device.getEIRScanRsp().toString());
+        BTUtils.println(System.err, "Client EIR-+ "+eir.toString());
 
         short conn_interval_min  = (short)8;  // 10ms
         short conn_interval_max  = (short)12; // 15ms
@@ -430,19 +423,19 @@ public class DBTClient00 implements DBTClientTest {
                 final BTGattCmd cmd = new BTGattCmd(device, "TestCmd", null /* service_uuid */, DBTConstants.CommandUUID, DBTConstants.ResponseUUID);
                 cmd.setVerbose(true);
                 final boolean cmd_resolved = cmd.isResolved();
-                BTUtils.println(System.err, "Command test: "+cmd.toString()+", resolved "+cmd_resolved);
+                BTUtils.println(System.err, "Client Command test: "+cmd.toString()+", resolved "+cmd_resolved);
                 final byte[] cmd_data = { cmd_arg };
                 final HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3000 /* timeoutMS */);
                 if( HCIStatusCode.SUCCESS == cmd_res ) {
                     final byte[] resp = cmd.getResponse();
                     if( 1 == resp.length && resp[0] == cmd_arg ) {
-                        BTUtils.fprintf_td(System.err, "Success: %s -> %s (echo response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
+                        BTUtils.fprintf_td(System.err, "Client Success: %s -> %s (echo response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
                         completedGATTCommands.incrementAndGet();
                     } else {
-                        BTUtils.fprintf_td(System.err, "Failure: %s -> %s (different response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
+                        BTUtils.fprintf_td(System.err, "Client Failure: %s -> %s (different response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
                     }
                 } else {
-                    BTUtils.fprintf_td(System.err, "Failure: %s -> %s\n", cmd.toString(), cmd_res.toString());
+                    BTUtils.fprintf_td(System.err, "Client Failure: %s -> %s\n", cmd.toString(), cmd_res.toString());
                 }
                 cmd.close();
             }
@@ -452,23 +445,23 @@ public class DBTClient00 implements DBTClientTest {
                 for(final Iterator<BTGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
                     final BTGattService primService = srvIter.next();
                     if( GATT_VERBOSE ) {
-                        printf("  [%02d] Service UUID %s\n", i, primService.getUUID());
-                        printf("  [%02d]         %s\n", i, primService.toString());
+                        BTUtils.fprintf_td(System.err, "  [%02d] Service UUID %s\n", i, primService.getUUID());
+                        BTUtils.fprintf_td(System.err, "  [%02d]         %s\n", i, primService.toString());
                     }
                     int j=0;
                     final List<BTGattChar> serviceCharacteristics = primService.getChars();
                     for(final Iterator<BTGattChar> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
                         final BTGattChar serviceChar = charIter.next();
                         if( GATT_VERBOSE ) {
-                            printf("  [%02d.%02d] Characteristic: UUID %s\n", i, j, serviceChar.getUUID());
-                            printf("  [%02d.%02d]     %s\n", i, j, serviceChar.toString());
+                            BTUtils.fprintf_td(System.err, "  [%02d.%02d] Characteristic: UUID %s\n", i, j, serviceChar.getUUID());
+                            BTUtils.fprintf_td(System.err, "  [%02d.%02d]     %s\n", i, j, serviceChar.toString());
                         }
                         final GattCharPropertySet properties = serviceChar.getProperties();
                         if( properties.isSet(GattCharPropertySet.Type.Read) ) {
                             final byte[] value = serviceChar.readValue();
                             final String svalue = BTUtils.decodeUTF8String(value, 0, value.length);
                             if( GATT_VERBOSE ) {
-                                printf("  [%02d.%02d]     value: %s ('%s')\n", i, j, BTUtils.bytesHexString(value, 0, -1, true), svalue);
+                                BTUtils.fprintf_td(System.err, "  [%02d.%02d]     value: %s ('%s')\n", i, j, BTUtils.bytesHexString(value, 0, -1, true), svalue);
                             }
                         }
                         int k=0;
@@ -476,8 +469,8 @@ public class DBTClient00 implements DBTClientTest {
                         for(final Iterator<BTGattDesc> descIter = charDescList.iterator(); descIter.hasNext(); k++) {
                             final BTGattDesc charDesc = descIter.next();
                             if( GATT_VERBOSE ) {
-                                printf("  [%02d.%02d.%02d] Descriptor: UUID %s\n", i, j, k, charDesc.getUUID());
-                                printf("  [%02d.%02d.%02d]     %s\n", i, j, k, charDesc.toString());
+                                BTUtils.fprintf_td(System.err, "  [%02d.%02d.%02d] Descriptor: UUID %s\n", i, j, k, charDesc.getUUID());
+                                BTUtils.fprintf_td(System.err, "  [%02d.%02d.%02d]     %s\n", i, j, k, charDesc.toString());
                             }
                         }
                         final boolean cccdEnableResult[] = { false, false };
@@ -485,18 +478,18 @@ public class DBTClient00 implements DBTClientTest {
                             // ClientCharConfigDescriptor (CCD) is available
                             final boolean clAdded = null != serviceChar.addCharListener( new MyGATTEventListener(i, j) );
                             if( GATT_VERBOSE ) {
-                                printf("  [%02d.%02d] Characteristic-Listener: Notification(%b), Indication(%b): Added %b\n",
+                                BTUtils.fprintf_td(System.err, "  [%02d.%02d] Characteristic-Listener: Notification(%b), Indication(%b): Added %b\n",
                                         i, j, cccdEnableResult[0], cccdEnableResult[1], clAdded);
-                                printf("\n");
+                                BTUtils.fprintf_td(System.err, "\n");
                             }
                         }
                     }
                     if( GATT_VERBOSE ) {
-                        printf("\n");
+                        BTUtils.fprintf_td(System.err, "\n");
                     }
                 }
             } catch( final Exception ex) {
-                BTUtils.println(System.err, "Caught "+ex.getMessage());
+                BTUtils.println(System.err, "****** Client Processing Ready Device: Exception.2 caught for " + device.toString() + ": "+ex.getMessage());
                 ex.printStackTrace();
             }
 
@@ -519,25 +512,25 @@ public class DBTClient00 implements DBTClientTest {
                 final BTGattCmd cmd = new BTGattCmd(device, "FinalHandshake", null /* service_uuid */, DBTConstants.CommandUUID, DBTConstants.ResponseUUID);
                 cmd.setVerbose(true);
                 final boolean cmd_resolved = cmd.isResolved();
-                BTUtils.println(System.err, "FinalCommand test: "+cmd.toString()+", resolved "+cmd_resolved);
+                BTUtils.println(System.err, "Client FinalCommand test: "+cmd.toString()+", resolved "+cmd_resolved);
                 final byte[] cmd_data = success ? DBTConstants.SuccessHandshakeCommandData : DBTConstants.FailHandshakeCommandData;
                 final HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3000 /* timeoutMS */);
                 if( HCIStatusCode.SUCCESS == cmd_res ) {
                     final byte[] resp = cmd.getResponse();
                     if( Arrays.equals(cmd_data, resp) ) {
-                        BTUtils.fprintf_td(System.err, "Success: %s -> %s (echo response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
+                        BTUtils.fprintf_td(System.err, "Client Success: %s -> %s (echo response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
                     } else {
-                        BTUtils.fprintf_td(System.err, "Failure: %s -> %s (different response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
+                        BTUtils.fprintf_td(System.err, "Client Failure: %s -> %s (different response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
                         success = false;
                     }
                 } else {
-                    BTUtils.fprintf_td(System.err, "Failure: %s -> %s\n", cmd.toString(), cmd_res.toString());
+                    BTUtils.fprintf_td(System.err, "Client Failure: %s -> %s\n", cmd.toString(), cmd_res.toString());
                     success = false;
                 }
                 cmd.close();
             }
         } catch (final Throwable t ) {
-            BTUtils.println(System.err, "****** Client Processing Ready Device: Exception caught for " + device.toString() + ": "+t.getMessage());
+            BTUtils.println(System.err, "****** Client Processing Ready Device: Exception.2 caught for " + device.toString() + ": "+t.getMessage());
             t.printStackTrace();
         }
 
@@ -573,7 +566,6 @@ public class DBTClient00 implements DBTClientTest {
         }
         BTUtils.println(System.err, "****** Client Processing Ready Device: Success "+success+
                         "; Measurements completed "+completedMeasurements.get()+
-                        ", done "+completedMeasurements.get()+
                         ", left "+measurementsLeft.get()+
                         "; Received notitifications "+notificationsReceived.get()+", indications "+indicationsReceived.get()+
                         "; Completed GATT commands "+completedGATTCommands.get()+
@@ -668,6 +660,7 @@ public class DBTClient00 implements DBTClientTest {
         } else {
             BTUtils.fprintf_td(System.err, "initClientAdapter: setPowered.2 off failed: %s\n", adapter.toString());
         }
+        // adapter is powered-on
         BTUtils.println(System.err, "initClientAdapter.2: "+adapter.toString());
 
         {
@@ -683,7 +676,6 @@ public class DBTClient00 implements DBTClientTest {
             BTUtils.fprintf_td(System.err, "initClientAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
                                 res.toString(), Tx.toString(), Rx.toString());
         }
-        // adapter is powered-on
         adapter.addStatusListener( myAdapterStatusListener );
 
         return true;

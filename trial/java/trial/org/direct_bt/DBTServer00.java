@@ -61,7 +61,7 @@ import org.direct_bt.ScanType;
 import org.jau.net.EUI48;
 
 /**
- * This Java peripheral {@link BTRole::Slave} test case working with {@link DBTClient00}.
+ * This peripheral BTRole::Slave test participant works with DBTClient00.
  */
 public class DBTServer00 implements DBTServerTest {
     final boolean GATT_VERBOSE = false;
@@ -126,24 +126,6 @@ public class DBTServer00 implements DBTServerTest {
     private boolean matches(final BTDevice device) {
         final BTDevice d = getDevice();
         return null != d ? d.equals(device) : false;
-    }
-
-    boolean matches(final List<BDAddressAndType> cont, final BDAddressAndType mac) {
-        for(final Iterator<BDAddressAndType> it = cont.iterator(); it.hasNext(); ) {
-            if( it.next().matches(mac) ) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    static void printf(final String format, final Object... args) {
-        final Object[] args2 = new Object[args.length+1];
-        args2[0] = BTUtils.elapsedTimeMillis();
-        System.arraycopy(args, 0, args2, 1, args.length);
-        System.err.printf("[%,9d] "+format, args2);
-        // System.err.printf("[%,9d] ", BluetoothUtils.getElapsedMillisecond());
-        // System.err.printf(format, args);
     }
 
     static Thread executeOffThread(final Runnable runobj, final String threadName, final boolean detach) {
@@ -265,7 +247,7 @@ public class DBTServer00 implements DBTServerTest {
             } else {
                 BTUtils.println(System.err, "****** Server SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
             }
-            BTUtils.println(System.err, "Status Adapter:");
+            BTUtils.println(System.err, "Server Status Adapter:");
             BTUtils.println(System.err, adapter.toString());
         }
 
@@ -362,12 +344,12 @@ public class DBTServer00 implements DBTServerTest {
                 setDevice(null);
             }
             executeOffThread( () -> { processDisconnectedDevice(device); },
-                              "DBT-Disconnected-"+device.getAdapter().getAddressAndType(), true /* detach */);
+                              "Server DBT-Disconnected-"+device.getAdapter().getAddressAndType(), true /* detach */);
         }
 
         @Override
         public String toString() {
-            return "AdapterStatusListener[user, per-adapter]";
+            return "Server AdapterStatusListener[user, per-adapter]";
         }
     };
 
@@ -788,6 +770,7 @@ public class DBTServer00 implements DBTServerTest {
         } else {
             BTUtils.fprintf_td(System.err, "initServerAdapter: setPowered.2 off failed: %s\n", adapter.toString());
         }
+        // adapter is powered-on
         BTUtils.println(System.err, "initServerAdapter.2: "+adapter.toString());
 
         {
@@ -804,7 +787,6 @@ public class DBTServer00 implements DBTServerTest {
         }
         adapter.setSMPKeyPath(DBTConstants.SERVER_KEY_PATH);
 
-        // adapter is powered-on
         adapter.addStatusListener( myAdapterStatusListener );
 
         adapter.setServerConnSecurity(adapterSecurityLevel, SMPIOCapability.UNSET);

@@ -84,7 +84,6 @@ public interface DBTEndpoint {
         for(final DBTEndpoint endpt : endpts ) {
             Assert.assertNotNull("No adapter found for "+endpt.getClass().getSimpleName(), endpt.getAdapter());
         }
-        manager.removeChangedAdapterSetListener(casl);
         return casl;
     }
     public static class ChangedAdapterSetListener implements BTManager.ChangedAdapterSetListener {
@@ -113,7 +112,7 @@ public interface DBTEndpoint {
         @Override
         public void adapterRemoved(final BTAdapter adapter) {
             for(final DBTEndpoint endpt : endpts ) {
-                if( null != endpt.getAdapter() && adapter == endpt.getAdapter() ) {
+                if( null != endpt.getAdapter() && adapter.equals( endpt.getAdapter() ) ) {
                     endpt.setAdapter(null);
                     BTUtils.println(System.err, "****** Adapter-"+endpt.getClass().getSimpleName()+" REMOVED: " + adapter);
                     return;

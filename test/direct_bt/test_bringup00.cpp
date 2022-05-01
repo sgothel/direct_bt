@@ -42,7 +42,7 @@ using namespace direct_bt;
  * - show all installed adapter
  * - no extra permissions required
  */
-TEST_CASE( "ATT PDU Test 01", "[datatype][attpdu]" ) {
+TEST_CASE( "BTManager Bringup Test 00", "[test][BTManager][bringup]" ) {
     {
         // setenv("direct_bt.debug", "true", 1 /* overwrite */);
     }
