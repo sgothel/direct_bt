@@ -344,11 +344,15 @@ class DBTServer00 : public DBTServerTest {
                                 jau::POctets v(data.size()+1, jau::endian::little);
                                 v.put_string_nc(0, data, v.size(), true /* includeEOS */);
                                 if( 0 != handlePulseDataNotify ) {
-                                    fprintf_td(stderr, "****** Server GATT::sendNotification: PULSE to %s\n", connectedDevice_->toString().c_str());
+                                    if( GATT_VERBOSE ) {
+                                        fprintf_td(stderr, "****** Server GATT::sendNotification: PULSE to %s\n", connectedDevice_->toString().c_str());
+                                    }
                                     connectedDevice_->sendNotification(handlePulseDataNotify, v);
                                 }
                                 if( 0 != handlePulseDataIndicate ) {
-                                    fprintf_td(stderr, "****** Server GATT::sendIndication: PULSE to %s\n", connectedDevice_->toString().c_str());
+                                    if( GATT_VERBOSE ) {
+                                        fprintf_td(stderr, "****** Server GATT::sendIndication: PULSE to %s\n", connectedDevice_->toString().c_str());
+                                    }
                                     connectedDevice_->sendIndication(handlePulseDataIndicate, v);
                                 }
                             }

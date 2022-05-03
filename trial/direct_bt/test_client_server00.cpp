@@ -78,7 +78,7 @@ TEST_CASE( "BTManager Bringup Trial 00", "[trial][BTManager][bringup]" ) {
  * - test that at least one adapter are present
  * - validating basic default adapter status
  */
-TEST_CASE( "Server StartStop and SwitchRole Trial 10", "[trial][server][client][startstop][switchrole]" ) {
+TEST_CASE( "Server StartStop and SwitchRole Trial 10", "[trial][startstop][switchrole]" ) {
     base_test_framework.setupTest();
 
     BTManager & manager = BTManager::get();

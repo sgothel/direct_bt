@@ -73,3 +73,6 @@ class TestDBTClientServer01_NoEnc : public DBTClientServer1x {
         }
 
 };
+
+METHOD_AS_TEST_CASE( TestDBTClientServer01_NoEnc::test00_FullCycle_EncNone, "ClientServer 01 NoEnc Trial 00", "[trial][clientserver][fullcycle][noenc]");
+METHOD_AS_TEST_CASE( TestDBTClientServer01_NoEnc::test01_FullCycle_EncNone, "ClientServer 01 NoEnc Trial 01", "[trial][clientserver][fullcycle][noenc]");
