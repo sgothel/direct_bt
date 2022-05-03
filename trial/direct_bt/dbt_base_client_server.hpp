@@ -34,38 +34,41 @@
 
 class BaseDBTClientServer {
     private:
-        static constexpr const bool DEBUG = true;
+        static constexpr const bool debug = true;
+
+        jau::fraction_i64 test_timeout = 0_s;
 
         jau::simple_timer timeour_timer = jau::simple_timer("DBTTrial-Timeout", 1_s /* shutdown timeout */);
 
         jau::fraction_i64 timeout_func(jau::simple_timer& timer) {
             if( !timer.shall_stop() ) {
-                fprintf(stderr, "DBTTrial Timeout -> abort\n");
+                fprintf(stderr, "***** DBTTrial Timeout %s sec -> abort *****\n", test_timeout.to_string(true).c_str());
                 abort();
             }
             return 0_s;
         }
 
         BaseDBTClientServer() noexcept {
-            if( DEBUG ) {
+            if( debug ) {
                 setenv("direct_bt.debug", "true", 1 /* overwrite */);
                 // setenv("direct_bt.debug", "true,gatt.data", 1 /* overwrite */);
             }
 
-            REQUIRE( DBTUtils::rmKeyFolder() );
-            REQUIRE( DBTUtils::mkdirKeyFolder() );
+            DBTUtils::rmKeyFolder();
+            DBTUtils::mkdirKeyFolder();
         }
 
         void close() {
             timeour_timer.stop();
             BTManager& manager = BTManager::get();
-
+#if 0
             jau::darray<BTAdapterRef> adapters = manager.getAdapters();
             for(BTAdapterRef a : adapters) {
                 a->stopAdvertising();
                 a->stopDiscovery();
                 a->setPowered(false);
             }
+#endif
             // All implicit via destructor or shutdown hook!
             manager.close(); /* implies: adapter.close(); */
         }
@@ -89,6 +92,7 @@ class BaseDBTClientServer {
          */
         void setupTest(const jau::fraction_i64 timeout = 0_s) {
             timeour_timer.stop();
+            test_timeout = timeout;
             BTManager& manager = BTManager::get();
             jau::darray<BTAdapterRef> adapters = manager.getAdapters();
             for(BTAdapterRef a : adapters) {
@@ -114,6 +118,7 @@ class BaseDBTClientServer {
          */
         void cleanupTest() {
             timeour_timer.stop();
+            test_timeout = 0_s;
             BTManager& manager = BTManager::get();
             jau::darray<BTAdapterRef> adapters = manager.getAdapters();
             for(BTAdapterRef a : adapters) {

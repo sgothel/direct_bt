@@ -62,8 +62,8 @@ class DBTUtils {
                         name.c_str(), errno, strerror(errno));
                 return errno;
             }
-            is_file = S_ISDIR( s.st_mode );
-            is_dir = S_ISREG( s.st_mode );
+            is_file = S_ISREG( s.st_mode );
+            is_dir = S_ISDIR( s.st_mode );
             return 0;
         }
 
@@ -149,12 +149,14 @@ class DBTUtils {
             if( 0 != ::remove( file.c_str() ) ) {
                 if( ENOENT == errno ) {
                     // not existing
+                    jau::fprintf_td(stderr, "****** PATH '%s': remove OK, not existing\n", file.c_str());
                     return true;
                 } else {
                     jau::fprintf_td(stderr, "****** PATH '%s': remove failed: %d %s\n", file.c_str(), errno, strerror(errno));
                     return false;
                 }
             } else {
+                jau::fprintf_td(stderr, "****** PATH '%s': remove OK, removed\n", file.c_str());
                 return true;
             }
 #if 0

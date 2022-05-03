@@ -149,6 +149,7 @@ class DBTServer00 : public DBTServerTest {
                 ) );
 
 
+        jau::sc_atomic_bool sync_data;
         std::mutex mtx_sync;
         BTDeviceRef connectedDevice;
 
@@ -160,11 +161,13 @@ class DBTServer00 : public DBTServerTest {
 
         void setDevice(BTDeviceRef cd) {
             const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
+            // jau::sc_atomic_critical sync(sync_data);
             connectedDevice = cd;
         }
 
         BTDeviceRef getDevice() {
             const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
+            // jau::sc_atomic_critical sync(sync_data);
             return connectedDevice;
         }
 
@@ -323,6 +326,7 @@ class DBTServer00 : public DBTServerTest {
 
                 bool shallStopPulseSender() {
                     const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
+                    // jau::sc_atomic_critical sync(parent.sync_data);
                     return stopPulseSenderFlag;
                 }
 
@@ -330,7 +334,7 @@ class DBTServer00 : public DBTServerTest {
                     {
                         const BTDeviceRef connectedDevice_ = parent.getDevice();
                         const std::string connectedDeviceStr = nullptr != connectedDevice_ ? connectedDevice_->toString() : "n/a";
-                        fprintf_td(stderr, "****** Server GATT::PULSE Start %s\n", connectedDeviceStr);
+                        fprintf_td(stderr, "****** Server GATT::PULSE Start %s\n", connectedDeviceStr.c_str());
                     }
                     while( !shallStopPulseSender() ) {
                         BTDeviceRef connectedDevice_ = parent.getDevice();
@@ -356,7 +360,7 @@ class DBTServer00 : public DBTServerTest {
                     {
                         const BTDeviceRef connectedDevice_ = parent.getDevice();
                         const std::string connectedDeviceStr = nullptr != connectedDevice_ ? connectedDevice_->toString() : "n/a";
-                        fprintf_td(stderr, "****** Server GATT::PULSE End %s\n", connectedDeviceStr);
+                        fprintf_td(stderr, "****** Server GATT::PULSE End %s\n", connectedDeviceStr.c_str());
                     }
                 }
 
@@ -388,6 +392,7 @@ class DBTServer00 : public DBTServerTest {
 
                 void clear() {
                     const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
+                    // jau::sc_atomic_critical sync(parent.sync_data);
 
                     handlePulseDataNotify = 0;
                     handlePulseDataIndicate = 0;
@@ -400,9 +405,12 @@ class DBTServer00 : public DBTServerTest {
 
                 void close() noexcept {
                     {
-                        const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
                         clear();
-                        stopPulseSenderFlag = true;
+                        {
+                            const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
+                            // jau::sc_atomic_critical sync(parent.sync_data);
+                            stopPulseSenderFlag = true;
+                        }
                     }
                     if( pulseSenderThread.joinable() ) {
                         pulseSenderThread.join();
@@ -415,6 +423,7 @@ class DBTServer00 : public DBTServerTest {
                             match, (int)initialMTU, device->toString().c_str());
                     if( match ) {
                         const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
+                        // jau::sc_atomic_critical sync(parent.sync_data);
                         usedMTU = initialMTU;
                     }
                 }
@@ -432,6 +441,7 @@ class DBTServer00 : public DBTServerTest {
                     const uint16_t usedMTU_old = usedMTU;
                     if( match ) {
                         const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
+                        // jau::sc_atomic_critical sync(parent.sync_data);
                         usedMTU = mtu;
                     }
                     fprintf_td(stderr, "****** Server GATT::mtuChanged(match %d): %d -> %d, %s\n",
@@ -525,6 +535,7 @@ class DBTServer00 : public DBTServerTest {
                                 device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str(), value.toString().c_str());
                     }
                     if( match ) {
+                        // jau::sc_atomic_critical sync(parent.sync_data);
                         if( c->getValueType()->equivalent( DBTConstants::PulseDataUUID ) ) {
                             const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
                             handlePulseDataNotify = notificationEnabled ? c->getValueHandle() : 0;

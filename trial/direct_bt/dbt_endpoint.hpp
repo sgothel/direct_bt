@@ -113,7 +113,6 @@ class DBTEndpoint {
                 }
                 jau::fprintf_td(stderr, "****** Adapter REMOVED: Ignored: %s\n", adapter->toString().c_str());
             }
-            BTManager::get().removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
             return true;
         }
 

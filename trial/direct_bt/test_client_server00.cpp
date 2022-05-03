@@ -51,14 +51,15 @@ TEST_CASE( "BTManager Bringup Trial 00", "[trial][BTManager][bringup]" ) {
     jau::fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
 
     BTManager & manager = BTManager::get();
-
     jau::darray<BTAdapterRef> adapters = manager.getAdapters();
-    jau::fprintf_td(stderr, "Adapter: Count %u\n", adapters.size());
+    {
+        jau::fprintf_td(stderr, "Adapter: Count %u\n", adapters.size());
 
-    for(jau::nsize_t i=0; i<adapters.size(); i++) {
-        jau::fprintf_td(stderr, "%u: %s\n", i, adapters[i]->toString().c_str());
+        for(jau::nsize_t i=0; i<adapters.size(); i++) {
+            jau::fprintf_td(stderr, "%u: %s\n", i, adapters[i]->toString().c_str());
+        }
+        REQUIRE( adapters.size() >= 1 );
     }
-    REQUIRE( adapters.size() >= 1 );
 
     jau::fprintf_td(stderr, "Adapter: Status Checks\n");
     for(BTAdapterRef a : adapters) {
@@ -67,11 +68,6 @@ TEST_CASE( "BTManager Bringup Trial 00", "[trial][BTManager][bringup]" ) {
         REQUIRE( BTRole::Master == a->getRole() ); // default role
         REQUIRE( 4 <= a->getBTMajorVersion() );
     }
-
-    jau::fprintf_td(stderr, "Manager: Closing\n");
-    manager.close(); /* implies: adapter.close(); */
-
-    jau::fprintf_td(stderr, "Test: Done\n");
 
     base_test_framework.cleanupTest();
 }
@@ -82,10 +78,19 @@ TEST_CASE( "BTManager Bringup Trial 00", "[trial][BTManager][bringup]" ) {
  * - test that at least one adapter are present
  * - validating basic default adapter status
  */
-TEST_CASE( "BTManager Bringup Trial 00", "[trial][BTManager][bringup]" ) {
+TEST_CASE( "Server StartStop and SwitchRole Trial 10", "[trial][server][client][startstop][switchrole]" ) {
     base_test_framework.setupTest();
 
     BTManager & manager = BTManager::get();
+    {
+        jau::darray<BTAdapterRef> adapters = manager.getAdapters();
+        jau::fprintf_td(stderr, "Adapter: Count %u\n", adapters.size());
+
+        for(jau::nsize_t i=0; i<adapters.size(); i++) {
+            jau::fprintf_td(stderr, "%u: %s\n", i, adapters[i]->toString().c_str());
+        }
+        REQUIRE( adapters.size() >= 1 );
+    }
     REQUIRE( manager.getAdapterCount() >= 1 );
 
     const std::string serverName = "TestDBTCS00-S-T10";
