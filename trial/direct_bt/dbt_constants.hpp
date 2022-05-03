@@ -33,6 +33,8 @@
 
 class DBTConstants {
     public:
+        static constexpr const int max_connections_per_session = 5;
+
         /**
          * C++20 we could use `constexpr std::string`
          *

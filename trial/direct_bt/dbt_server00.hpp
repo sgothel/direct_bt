@@ -154,8 +154,10 @@ class DBTServer00 : public DBTServerTest {
         BTDeviceRef connectedDevice;
 
     public:
-        jau::sc_atomic_int servingConnectionsLeft = 1;
-        jau::sc_atomic_int servedConnections = 0;
+        jau::sc_atomic_int disconnectCount = 0;
+        jau::sc_atomic_int servedProtocolSessionsTotal = 0;
+        jau::sc_atomic_int servedProtocolSessionsSuccess = 0;
+        jau::sc_atomic_int servingProtocolSessionsLeft = 1;
 
     private:
 
@@ -291,9 +293,8 @@ class DBTServer00 : public DBTServerTest {
             }
 
             void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
-                parent.servedConnections++;
                 fprintf_td(stderr, "****** Server DISCONNECTED (count %zu): Reason 0x%X (%s), old handle %s: %s\n",
-                        parent.servedConnections.load(), static_cast<uint8_t>(reason), to_string(reason).c_str(),
+                        1+parent.disconnectCount.load(), static_cast<uint8_t>(reason), to_string(reason).c_str(),
                         to_hexstring(handle).c_str(), device->toString(true).c_str());
 
                 const bool match = parent.matches(device);
@@ -373,13 +374,17 @@ class DBTServer00 : public DBTServerTest {
                     if( nullptr != connectedDevice_ && connectedDevice_->getConnected() ) {
                         if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
                             if( 0 != handleResponseDataNotify ) {
-                                fprintf_td(stderr, "****** GATT::sendNotification: %s to %s\n",
-                                        data.toString().c_str(), connectedDevice_->toString().c_str());
+                                if( GATT_VERBOSE ) {
+                                    fprintf_td(stderr, "****** GATT::sendNotification: %s to %s\n",
+                                            data.toString().c_str(), connectedDevice_->toString().c_str());
+                                }
                                 connectedDevice_->sendNotification(handleResponseDataNotify, data);
                             }
                             if( 0 != handleResponseDataIndicate ) {
-                                fprintf_td(stderr, "****** GATT::sendIndication: %s to %s\n",
-                                        data.toString().c_str(), connectedDevice_->toString().c_str());
+                                if( GATT_VERBOSE ) {
+                                    fprintf_td(stderr, "****** GATT::sendIndication: %s to %s\n",
+                                            data.toString().c_str(), connectedDevice_->toString().c_str());
+                                }
                                 connectedDevice_->sendIndication(handleResponseDataIndicate, data);
                             }
                         }
@@ -391,8 +396,6 @@ class DBTServer00 : public DBTServerTest {
                 MyGATTServerListener(DBTServer00& p)
                 : parent(p), pulseSenderThread(&MyGATTServerListener::pulseSender, this)
                 { }
-
-                ~MyGATTServerListener() noexcept { close(); }
 
                 void clear() {
                     const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
@@ -448,8 +451,9 @@ class DBTServer00 : public DBTServerTest {
                         // jau::sc_atomic_critical sync(parent.sync_data);
                         usedMTU = mtu;
                     }
-                    fprintf_td(stderr, "****** Server GATT::mtuChanged(match %d): %d -> %d, %s\n",
-                            match, match ? (int)usedMTU_old : 0, (int)mtu, device->toString().c_str());
+                    fprintf_td(stderr, "****** Server GATT::mtuChanged(match %d, served %zu, left %zu): %d -> %d, %s\n",
+                            match, parent.servedProtocolSessionsTotal.load(), parent.servingProtocolSessionsLeft.load(),
+                            match ? (int)usedMTU_old : 0, (int)mtu, device->toString().c_str());
                 }
 
                 bool readCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
@@ -484,20 +488,25 @@ class DBTServer00 : public DBTServerTest {
                     const bool match = parent.matches(device);
                     const jau::TROOctets& value = c->getValue();
                     bool isFinalHandshake = false;
+                    bool isFinalHandshakeSuccess = false;
 
                     if( match &&
                         c->getValueType()->equivalent( DBTConstants::CommandUUID ) &&
                         ( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) )
                     {
-                        isFinalHandshake = ( DBTConstants::SuccessHandshakeCommandData.size() == value.size() &&
-                                             0 == ::memcmp(DBTConstants::SuccessHandshakeCommandData.data(), value.get_ptr(), value.size()) ) ||
+                        isFinalHandshakeSuccess = DBTConstants::SuccessHandshakeCommandData.size() == value.size() &&
+                                                  0 == ::memcmp(DBTConstants::SuccessHandshakeCommandData.data(), value.get_ptr(), value.size());
+                        isFinalHandshake = isFinalHandshakeSuccess ||
                                            ( DBTConstants::FailHandshakeCommandData.size() == value.size() &&
                                              0 == ::memcmp(DBTConstants::FailHandshakeCommandData.data(), value.get_ptr(), value.size()) );
 
                         if( isFinalHandshake ) {
-                            parent.servedConnections++; // we assume this to be server, i.e. connected, SMP done and GATT action ..
-                            if( parent.servingConnectionsLeft > 0 ) {
-                                parent.servingConnectionsLeft--; // ditto
+                            if( isFinalHandshakeSuccess ) {
+                                parent.servedProtocolSessionsSuccess++;
+                            }
+                            parent.servedProtocolSessionsTotal++;
+                            if( parent.servingProtocolSessionsLeft > 0 ) {
+                                parent.servingProtocolSessionsLeft--;
                             }
                         }
                         jau::POctets value2(value);
@@ -505,8 +514,8 @@ class DBTServer00 : public DBTServerTest {
                         senderThread.detach();
                     }
                     if( GATT_VERBOSE || isFinalHandshake ) {
-                        fprintf_td(stderr, "****** Server GATT::writeCharValueDone(match %d, finalCmd %d, served %d, left %d): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
-                                match, isFinalHandshake, parent.servedConnections.load(), parent.servingConnectionsLeft.load(),
+                        fprintf_td(stderr, "****** Server GATT::writeCharValueDone(match %d, finalCmd %d, sessions [%d ok / %d total], left %d): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
+                                match, isFinalHandshake, parent.servedProtocolSessionsSuccess.load(), parent.servedProtocolSessionsTotal.load(), parent.servingProtocolSessionsLeft.load(),
                                 device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), value.toString().c_str());
                     }
                 }
@@ -663,17 +672,19 @@ class DBTServer00 : public DBTServerTest {
 
     private:
         void processDisconnectedDevice(BTDeviceRef device) {
-            fprintf_td(stderr, "****** Server Disconnected Device (count %zu): Start %s\n",
-                    servedConnections.load(), device->toString().c_str());
+            fprintf_td(stderr, "****** Server Disconnected Device (count %zu, seved %zu, left %zu): Start %s\n",
+                    1+disconnectCount.load(), servedProtocolSessionsTotal.load(), servingProtocolSessionsLeft.load(), device->toString().c_str());
 
             // already unpaired
             stopAdvertising("device-disconnected");
             device->remove();
             BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME: Fast restart of advertising error)
+            disconnectCount++;
 
-            if( servingConnectionsLeft  > 0 ) {
+            jau::sleep_for( 100_ms ); // wait a little (FIXME: Fast restart of advertising error)
+
+            if( servingProtocolSessionsLeft  > 0 ) {
                 startAdvertising("device-disconnected");
             }
 

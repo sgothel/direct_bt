@@ -34,7 +34,7 @@
 
 class BaseDBTClientServer {
     private:
-        static constexpr const bool debug = true;
+        static constexpr const bool debug = false;
 
         jau::fraction_i64 test_timeout = 0_s;
 
@@ -42,7 +42,7 @@ class BaseDBTClientServer {
 
         jau::fraction_i64 timeout_func(jau::simple_timer& timer) {
             if( !timer.shall_stop() ) {
-                fprintf(stderr, "***** DBTTrial Timeout %s sec -> abort *****\n", test_timeout.to_string(true).c_str());
+                fprintf(stderr, "\n***** DBTTrial Error: Timeout %s sec -> abort *****\n\n", test_timeout.to_string(true).c_str());
                 abort();
             }
             return 0_s;
@@ -78,6 +78,8 @@ class BaseDBTClientServer {
             static BaseDBTClientServer s;
             return s;
         }
+
+        jau::fraction_i64 get_timeout_value() const { return test_timeout; }
 
         /**
          * Ensure

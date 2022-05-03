@@ -50,11 +50,13 @@ class DBTClientServer1x {
     EInfoReport lastCompletedDeviceEIR;
 
   public:
-    void test8x_fullCycle(const std::string& suffix, const bool server_client_order,
+    void test8x_fullCycle(const std::string& suffix, const int protocolSessionCount, const bool server_client_order,
                           const bool serverSC, const BTSecurityLevel secLevelServer, const bool serverShallHaveKeys,
                           const BTSecurityLevel secLevelClient, const bool clientShallHaveKeys)
     {
         (void)serverShallHaveKeys;
+
+        const jau::fraction_timespec t0 = jau::getMonotonicTime();
 
         BTManager & manager = BTManager::get();
         {
@@ -68,7 +70,7 @@ class DBTClientServer1x {
         }
 
         std::shared_ptr<DBTServer00> server = std::make_shared<DBTServer00>("S-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, serverSC, secLevelServer);
-        server->servingConnectionsLeft = 1;
+        server->servingProtocolSessionsLeft = protocolSessionCount;
 
         std::shared_ptr<DBTClient00> client = std::make_shared<DBTClient00>("C-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL);
 
@@ -83,13 +85,16 @@ class DBTClientServer1x {
         }
         client->KEEP_CONNECTED = false; // default, auto-disconnect after work is done
         client->REMOVE_DEVICE = false; // default, test side-effects
-        client->measurementsLeft = 1;
+        client->measurementsLeft = protocolSessionCount;
         client->discoveryPolicy = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_DISCONNECTED;
 
-        lastCompletedDevice = nullptr;
-        lastCompletedDevicePairingMode = PairingMode::NONE;
-        lastCompletedDeviceSecurityLevel = BTSecurityLevel::NONE;
-        lastCompletedDeviceEIR.clear();
+        {
+            const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
+            lastCompletedDevice = nullptr;
+            lastCompletedDevicePairingMode = PairingMode::NONE;
+            lastCompletedDeviceSecurityLevel = BTSecurityLevel::NONE;
+            lastCompletedDeviceEIR.clear();
+        }
         class MyAdapterStatusListener : public AdapterStatusListener {
           private:
             DBTClientServer1x& parent;
@@ -123,27 +128,50 @@ class DBTClientServer1x {
         DBTEndpoint::checkInitializedState(client);
         DBTClientTest::startDiscovery(client, false /* current_exp_discovering_state */, "test"+suffix+"_startDiscovery");
 
+        BaseDBTClientServer& framework = BaseDBTClientServer::get();
+        const jau::fraction_i64 timeout_value = framework.get_timeout_value();
+        jau::fraction_i64 test_duration = 0_s;
         bool done = false;
+        bool timeout = false;
+        bool max_connections_hit = false;
         do {
             {
                 const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
-                done = ! ( 1 > server->servedConnections ||
-                           1 > client->completedMeasurements ||
+                done = ! ( protocolSessionCount > server->servedProtocolSessionsTotal ||
+                           protocolSessionCount > client->completedMeasurements ||
                            nullptr == lastCompletedDevice ||
                            lastCompletedDevice->getConnected() );
             }
-            if( !done ) {
+            max_connections_hit = ( protocolSessionCount * DBTConstants::max_connections_per_session ) <= server->disconnectCount;
+            test_duration = ( jau::getMonotonicTime() - t0 ).to_fraction_i64();
+            timeout = 0_s < timeout_value && timeout_value <= test_duration + 500_ms; // let's timeout here before our timeout timer
+            if( !done && !max_connections_hit && !timeout ) {
                 jau::sleep_for( 88_ms );
             }
+        } while( !done && !max_connections_hit && !timeout );
+        test_duration = ( jau::getMonotonicTime() - t0 ).to_fraction_i64();
 
-        } while( !done );
+        fprintf_td(stderr, "\n\n");
+        fprintf_td(stderr, "****** Test Stats: duration %" PRIi64 " ms, timeout[hit %d, value %s sec], max_connections hit %d\n",
+                test_duration.to_ms(), timeout, timeout_value.to_string(true).c_str(), max_connections_hit);
+        fprintf_td(stderr, "  Server ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
+                server->servedProtocolSessionsSuccess.load(), server->servedProtocolSessionsTotal.load(), protocolSessionCount,
+                server->disconnectCount.load(), ( protocolSessionCount * DBTConstants::max_connections_per_session ));
+        fprintf_td(stderr, "  Client ProtocolSessions success %d \n",
+                client->completedMeasurements.load());
+        fprintf_td(stderr, "\n\n");
+
+        REQUIRE( false == max_connections_hit );
+        REQUIRE( false == timeout );
         {
             const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
-            REQUIRE( 1 == server->servedConnections );
-            REQUIRE( 1 == client->completedMeasurements );
+            REQUIRE( protocolSessionCount == server->servedProtocolSessionsTotal );
+            REQUIRE( protocolSessionCount == server->servedProtocolSessionsSuccess );
+            REQUIRE( protocolSessionCount == client->completedMeasurements );
             REQUIRE( nullptr != lastCompletedDevice );
             REQUIRE( EIRDataType::NONE != lastCompletedDeviceEIR.getEIRDataMask() );
             REQUIRE( false == lastCompletedDevice->getConnected() );
+            REQUIRE( ( protocolSessionCount * DBTConstants::max_connections_per_session ) > server->disconnectCount );
         }
 
         //

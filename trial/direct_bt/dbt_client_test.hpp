@@ -33,18 +33,18 @@ typedef std::shared_ptr<DBTClientTest> DBTClientTestRef;
 class DBTClientTest : public DBTEndpoint {
 
     public:
-        virtual HCIStatusCode startDiscovery(BTAdapterRef adapter, const std::string& msg) = 0;
+        virtual HCIStatusCode startDiscovery(const std::string& msg) = 0;
 
-        virtual HCIStatusCode stopDiscovery(BTAdapterRef adapter, const std::string& msg) = 0;
+        virtual HCIStatusCode stopDiscovery(const std::string& msg) = 0;
 
         static void startDiscovery(DBTClientTestRef client, const bool current_exp_discovering_state, const std::string& msg) {
             BTAdapterRef adapter = client->getAdapter();
             REQUIRE( false == adapter->isAdvertising() );
             REQUIRE( current_exp_discovering_state == adapter->isDiscovering() );
 
-            REQUIRE( HCIStatusCode::SUCCESS == client->startDiscovery(adapter, msg) );
+            REQUIRE( HCIStatusCode::SUCCESS == client->startDiscovery(msg) );
             while( !adapter->isDiscovering() ) { // pending action
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                jau::sleep_for( 100_ms );
             }
             REQUIRE( false == adapter->isAdvertising() );
             REQUIRE( true == adapter->isDiscovering() );
@@ -57,9 +57,9 @@ class DBTClientTest : public DBTEndpoint {
             REQUIRE( current_exp_discovering_state == adapter->isDiscovering() );
             REQUIRE( BTRole::Master == adapter->getRole() );
 
-            REQUIRE( HCIStatusCode::SUCCESS == client->stopDiscovery(client->getAdapter(), msg) );
+            REQUIRE( HCIStatusCode::SUCCESS == client->stopDiscovery(msg) );
             while( adapter->isDiscovering() ) { // pending action
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                jau::sleep_for( 100_ms );
             }
             REQUIRE( false == adapter->isAdvertising() );
             REQUIRE( false == adapter->isDiscovering() );

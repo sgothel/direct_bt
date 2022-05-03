@@ -25,6 +25,8 @@
 package trial.org.direct_bt;
 
 public class DBTConstants {
+    public static final int max_connections_per_session = 5;
+
     public static final String CLIENT_KEY_PATH = "client_keys";
 
     public static final String SERVER_KEY_PATH = "server_keys";

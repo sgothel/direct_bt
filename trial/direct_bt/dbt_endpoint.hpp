@@ -133,7 +133,7 @@ class DBTEndpoint {
 
             REQUIRE( HCIStatusCode::SUCCESS == adapter->startDiscovery() );
             while( !adapter->isDiscovering() ) { // pending action
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                jau::sleep_for( 100_ms );
             }
             REQUIRE( false == adapter->isAdvertising() );
             REQUIRE( true == adapter->isDiscovering() );
@@ -147,7 +147,7 @@ class DBTEndpoint {
 
             REQUIRE( HCIStatusCode::SUCCESS == adapter->stopDiscovery() ); // pending action
             while( adapter->isDiscovering() ) { // pending action
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                jau::sleep_for( 100_ms );
             }
             REQUIRE( false == adapter->isAdvertising() );
             REQUIRE( false == adapter->isDiscovering() );

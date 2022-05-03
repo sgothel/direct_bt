@@ -41,14 +41,14 @@ import org.junit.runners.MethodSorters;
  * - reuse server-adapter for client-mode discovery (just toggle on/off)
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class TestDBTClientServer01_NoEnc extends DBTClientServer1x {
+public class TestDBTClientServer10_NoEnc extends DBTClientServer1x {
     static final boolean serverSC = true;
 
-    @Test(timeout = 30000)
+    @Test(timeout = 20000)
     public final void test00_FullCycle_EncNone() {
         final boolean serverShallHaveKeys = false;
         final boolean clientShallHaveKeys = false;
-        test8x_fullCycle("00", true /* server_client_order */, serverSC,
+        test8x_fullCycle(20000, "10", 1, true /* server_client_order */, serverSC,
                          BTSecurityLevel.NONE, serverShallHaveKeys, BTSecurityLevel.NONE, clientShallHaveKeys);
     }
 
@@ -56,11 +56,11 @@ public class TestDBTClientServer01_NoEnc extends DBTClientServer1x {
     public final void test01_FullCycle_EncNone() {
         final boolean serverShallHaveKeys = false;
         final boolean clientShallHaveKeys = false;
-        test8x_fullCycle("01", true /* server_client_order */, serverSC,
+        test8x_fullCycle(30000, "11", 2, true /* server_client_order */, serverSC,
                          BTSecurityLevel.NONE, serverShallHaveKeys, BTSecurityLevel.NONE, clientShallHaveKeys);
     }
 
     public static void main(final String args[]) {
-        org.junit.runner.JUnitCore.main(TestDBTClientServer01_NoEnc.class.getName());
+        org.junit.runner.JUnitCore.main(TestDBTClientServer10_NoEnc.class.getName());
     }
 }

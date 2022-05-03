@@ -36,7 +36,7 @@ static BaseDBTClientServer& base_test_framework = BaseDBTClientServer::get();
 
 /**
  * Testing a full Bluetooth server and client lifecycle of operations, requiring two BT adapter:
- * - operating w/o encryption
+ * - operating in legacy non SC mode
  * - start server advertising
  * - start client discovery and connect to server when discovered
  * - client/server processing of connection when ready
@@ -45,34 +45,34 @@ static BaseDBTClientServer& base_test_framework = BaseDBTClientServer::get();
  * - security-level: NONE, ENC_ONLY freshly-paired and ENC_ONLY pre-paired
  * - reuse server-adapter for client-mode discovery (just toggle on/off)
  */
-class TestDBTClientServer10_NoEnc : public DBTClientServer1x {
+class TestDBTClientServer20_SC0 : public DBTClientServer1x {
     private:
-        static constexpr const bool serverSC = true;
+        static constexpr const bool serverSC = false;
 
     public:
-        void test00_FullCycle_EncNone() {
-            base_test_framework.setupTest( 20_s );
+        void test10_FullCycle_EncOnlyNo1() {
+            base_test_framework.setupTest( 40_s );
             {
                 const bool serverShallHaveKeys = false;
                 const bool clientShallHaveKeys = false;
-                test8x_fullCycle("10", 1 /* protocolSessionCount */, true /* server_client_order */, serverSC,
-                                 BTSecurityLevel::NONE, serverShallHaveKeys, BTSecurityLevel::NONE, clientShallHaveKeys);
+                test8x_fullCycle("20", 1 /* protocolSessionCount */, true /* server_client_order */, serverSC,
+                                 BTSecurityLevel::ENC_ONLY, serverShallHaveKeys, BTSecurityLevel::ENC_ONLY, clientShallHaveKeys);
             }
             base_test_framework.cleanupTest();
         }
 
-        void test01_FullCycle_EncNone() {
-            base_test_framework.setupTest( 30_s );
+        void test20_FullCycle_EncOnlyNo2() {
+            base_test_framework.setupTest( 40_s );
             {
-                const bool serverShallHaveKeys = false;
-                const bool clientShallHaveKeys = false;
-                test8x_fullCycle("11", 2 /* protocolSessionCount */, true /* server_client_order */, serverSC,
-                                 BTSecurityLevel::NONE, serverShallHaveKeys, BTSecurityLevel::NONE, clientShallHaveKeys);
+                const bool serverShallHaveKeys = true;
+                const bool clientShallHaveKeys = true;
+                test8x_fullCycle("21", 2 /* protocolSessionCount */, true /* server_client_order */, serverSC,
+                                 BTSecurityLevel::ENC_ONLY, serverShallHaveKeys, BTSecurityLevel::ENC_ONLY, clientShallHaveKeys);
             }
             base_test_framework.cleanupTest();
         }
 
 };
 
-METHOD_AS_TEST_CASE( TestDBTClientServer10_NoEnc::test00_FullCycle_EncNone, "ClientServer 10 NoEnc Trial", "[trial][serverclient][fullcycle][noenc]");
-METHOD_AS_TEST_CASE( TestDBTClientServer10_NoEnc::test01_FullCycle_EncNone, "ClientServer 11 NoEnc Trial", "[trial][serverclient][fullcycle][noenc]");
+METHOD_AS_TEST_CASE( TestDBTClientServer20_SC0::test10_FullCycle_EncOnlyNo1, "ClientServer 20 SC0 EncOnly Trial", "[trial][serverclient][fullcycle][sc0][enconly][newpairing]");
+METHOD_AS_TEST_CASE( TestDBTClientServer20_SC0::test20_FullCycle_EncOnlyNo2, "ClientServer 21 SC0 EncOnly Trial", "[trial][serverclient][fullcycle][sc0][enconly][prepaired]");

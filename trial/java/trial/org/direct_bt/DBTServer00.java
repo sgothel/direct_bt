@@ -79,8 +79,10 @@ public class DBTServer00 implements DBTServerTest {
     private final Object sync_lock = new Object();
     private volatile BTDevice connectedDevice;
 
-    public AtomicInteger servingConnectionsLeft = new AtomicInteger(1);
-    public AtomicInteger servedConnections = new AtomicInteger(0);
+    public AtomicInteger disconnectCount = new AtomicInteger(0);
+    public AtomicInteger servedProtocolSessionsTotal = new AtomicInteger(0);
+    public AtomicInteger servedProtocolSessionsSuccess = new AtomicInteger(0);
+    public AtomicInteger servingProtocolSessionsLeft = new AtomicInteger(1);
 
     public DBTServer00(final String adapterName, final EUI48 useAdapter, final BTMode btMode, final boolean use_SC, final BTSecurityLevel adapterSecurityLevel) {
         this.adapterName = adapterName;
@@ -271,7 +273,7 @@ public class DBTServer00 implements DBTServerTest {
 
         @Override
         public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
-            BTUtils.println(System.err, "****** Server CONNECTED (served "+servedConnections.get()+", left "+servingConnectionsLeft.get()+"): handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
+            BTUtils.println(System.err, "****** Server CONNECTED (served "+disconnectCount.get()+", left "+servingProtocolSessionsLeft.get()+"): handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
             final boolean available = null == getDevice();
             if( available ) {
                 setDevice(device);
@@ -338,7 +340,7 @@ public class DBTServer00 implements DBTServerTest {
 
         @Override
         public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
-            BTUtils.println(System.err, "****** Server DISCONNECTED (served "+servedConnections.get()+", left "+servingConnectionsLeft.get()+"): Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
+            BTUtils.println(System.err, "****** Server DISCONNECTED (served "+(1+disconnectCount.get())+", left "+servingProtocolSessionsLeft.get()+"): Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
             final boolean match = matches(device);
             if( match ) {
                 setDevice(null);
@@ -489,7 +491,7 @@ public class DBTServer00 implements DBTServerTest {
                 }
             }
             BTUtils.fprintf_td(System.err, "****** Server GATT::mtuChanged(match %b, served %d, left %d): %d -> %d, %s\n",
-                    match, servedConnections.get(), servingConnectionsLeft.get(),
+                    match, servedProtocolSessionsTotal.get(), servingProtocolSessionsLeft.get(),
                     match ? usedMTU_old : 0, mtu, device.toString());
         }
 
@@ -532,25 +534,30 @@ public class DBTServer00 implements DBTServerTest {
             final DBGattValue value = c.getValue();
             final byte[] data = value.data();
             boolean isFinalHandshake = false;
+            boolean isFinalHandshakeSuccess = false;
 
             if( match &&
                 c.getValueType().equals( DBTConstants.CommandUUID ) &&
                 ( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) )
             {
-                isFinalHandshake = Arrays.equals(DBTConstants.SuccessHandshakeCommandData, data) ||
+                isFinalHandshakeSuccess = Arrays.equals(DBTConstants.SuccessHandshakeCommandData, data);
+                isFinalHandshake = isFinalHandshakeSuccess ||
                                    Arrays.equals(DBTConstants.FailHandshakeCommandData, data);
 
                 if( isFinalHandshake ) {
-                    servedConnections.addAndGet(1); // we assume this to be server, i.e. connected, SMP done and GATT action ..
-                    if( servingConnectionsLeft.get() > 0 ) {
-                        servingConnectionsLeft.decrementAndGet(); // ditto
+                    if( isFinalHandshakeSuccess ) {
+                        servedProtocolSessionsSuccess.addAndGet(1);
+                    }
+                    servedProtocolSessionsTotal.addAndGet(1); // we assume this to be server, i.e. connected, SMP done and GATT action ..
+                    if( servingProtocolSessionsLeft.get() > 0 ) {
+                        servingProtocolSessionsLeft.decrementAndGet();
                     }
                 }
                 executeOffThread( () -> { sendResponse( data ); }, true /* detach */);
             }
             if( GATT_VERBOSE || isFinalHandshake ) {
-                BTUtils.fprintf_td(System.err, "****** Server GATT::writeCharValueDone(match %b, finalCmd %b, served %d, left %d): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
-                        match, isFinalHandshake, servedConnections.get(), servingConnectionsLeft.get(),
+                BTUtils.fprintf_td(System.err, "****** Server GATT::writeCharValueDone(match %b, finalCmd %b, sessions [%d ok / %d total], left %d): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
+                        match, isFinalHandshake, servedProtocolSessionsSuccess.get(), servedProtocolSessionsTotal.get(), servingProtocolSessionsLeft.get(),
                         device.toString(), s.toString(), c.toString(), value.toString());
             }
         }
@@ -685,18 +692,21 @@ public class DBTServer00 implements DBTServerTest {
     }
 
     private void processDisconnectedDevice(final BTDevice device) {
-        BTUtils.println(System.err, "****** Server Disconnected Device (served "+servedConnections.get()+", left "+servingConnectionsLeft.get()+"): Start "+device.toString());
+        BTUtils.println(System.err, "****** Server Disconnected Device (count "+(1+disconnectCount.get())+
+                ", served "+servedProtocolSessionsTotal.get()+", left "+servingProtocolSessionsLeft.get()+"): Start "+device.toString());
 
         // already unpaired
         stopAdvertising("device-disconnected");
         device.remove();
         BTDeviceRegistry.removeFromProcessingDevices(device.getAddressAndType());
 
+        disconnectCount.addAndGet(1);
+
         try {
             Thread.sleep(100); // wait a little (FIXME: Fast restart of advertising error)
         } catch (final InterruptedException e) { }
 
-        if( servingConnectionsLeft.get() > 0 ) {
+        if( servingProtocolSessionsLeft.get() > 0 ) {
             startAdvertising("device-disconnected");
         }
 

@@ -590,27 +590,17 @@ public class DBTClient00 implements DBTClientTest {
     static final boolean filter_dup = true; // default value
 
     @Override
-    public HCIStatusCode startDiscovery(final BTAdapter adapter, final String msg) {
-        if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
-            BTUtils.fprintf_td(System.err, "****** Client Start discovery (%s): Adapter not selected: %s\n", msg, adapter.toString());
-            return HCIStatusCode.FAILED;
-        }
-
+    public HCIStatusCode startDiscovery(final String msg) {
         resetLastProcessingStats();
 
-        final HCIStatusCode status = adapter.startDiscovery( discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
+        final HCIStatusCode status = clientAdapter.startDiscovery( discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
         BTUtils.println(System.err, "****** Client Start discovery ("+msg+") result: "+status);
         return status;
     }
 
     @Override
-    public HCIStatusCode stopDiscovery(final BTAdapter adapter, final String msg) {
-        if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
-            BTUtils.fprintf_td(System.err, "****** Client Stop discovery (%s): Adapter not selected: %s\n", msg, adapter.toString());
-            return HCIStatusCode.FAILED;
-        }
-
-        final HCIStatusCode status = adapter.stopDiscovery();
+    public HCIStatusCode stopDiscovery(final String msg) {
+        final HCIStatusCode status = clientAdapter.stopDiscovery();
         BTUtils.println(System.err, "****** Client Stop discovery ("+msg+") result: "+status);
         return status;
     }

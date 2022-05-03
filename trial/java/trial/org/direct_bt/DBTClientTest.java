@@ -30,16 +30,16 @@ import org.junit.Assert;
 
 public interface DBTClientTest extends DBTEndpoint {
 
-    HCIStatusCode startDiscovery(BTAdapter adapter, String msg);
+    HCIStatusCode startDiscovery(String msg);
 
-    HCIStatusCode stopDiscovery(BTAdapter adapter, String msg);
+    HCIStatusCode stopDiscovery(String msg);
 
     public static void startDiscovery(final DBTClientTest client, final boolean current_exp_discovering_state, final String msg) {
         final BTAdapter adapter = client.getAdapter();
         Assert.assertFalse(adapter.isAdvertising());
         Assert.assertEquals(current_exp_discovering_state, adapter.isDiscovering());
 
-        Assert.assertEquals( HCIStatusCode.SUCCESS, client.startDiscovery(adapter, msg) );
+        Assert.assertEquals( HCIStatusCode.SUCCESS, client.startDiscovery(msg) );
         while( !adapter.isDiscovering() ) { // pending action
             try { Thread.sleep(100); } catch (final InterruptedException e) { e.printStackTrace(); }
         }
@@ -54,7 +54,7 @@ public interface DBTClientTest extends DBTEndpoint {
         Assert.assertEquals(current_exp_discovering_state, adapter.isDiscovering());
         Assert.assertEquals( BTRole.Master, adapter.getRole() );
 
-        Assert.assertEquals( HCIStatusCode.SUCCESS, client.stopDiscovery(client.getAdapter(), msg) );
+        Assert.assertEquals( HCIStatusCode.SUCCESS, client.stopDiscovery(msg) );
         while( adapter.isDiscovering() ) { // pending action
             try { Thread.sleep(100); } catch (final InterruptedException e) { e.printStackTrace(); }
         }

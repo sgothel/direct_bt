@@ -406,7 +406,7 @@ class DBTClient00 : public DBTClientTest {
                 }
 
                 {
-                    BTGattCmd cmd = BTGattCmd(*device, "TestCmd", DBTConstants::CommandUUID, DBTConstants::ResponseUUID);
+                    BTGattCmd cmd = BTGattCmd(*device, "TestCmd", DBTConstants::CommandUUID, DBTConstants::ResponseUUID, 256);
                     cmd.setVerbose(true);
                     const bool cmd_resolved = cmd.isResolved();
                     fprintf_td(stderr, "Command test: %s, resolved %d\n", cmd.toString().c_str(), cmd_resolved);
@@ -497,7 +497,7 @@ class DBTClient00 : public DBTClientTest {
 
                 {
                     // Tell server we have successfully completed the test.
-                    BTGattCmd cmd = BTGattCmd(*device, "FinalHandshake", DBTConstants::CommandUUID, DBTConstants::ResponseUUID);
+                    BTGattCmd cmd = BTGattCmd(*device, "FinalHandshake", DBTConstants::CommandUUID, DBTConstants::ResponseUUID, 256);
                     cmd.setVerbose(true);
                     const bool cmd_resolved = cmd.isResolved();
                     fprintf_td(stderr, "FinalCommand test: %s, resolved %d\n", cmd.toString().c_str(), cmd_resolved);
@@ -589,23 +589,14 @@ class DBTClient00 : public DBTClientTest {
 
     public:
 
-        HCIStatusCode startDiscovery(BTAdapterRef a, const std::string& msg) override {
-            if( useAdapter != EUI48::ALL_DEVICE && useAdapter != a->getAddressAndType().address ) {
-                fprintf_td(stderr, "****** Client Start discovery (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
-                return HCIStatusCode::FAILED;
-            }
-            HCIStatusCode status = a->startDiscovery( discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
-            fprintf_td(stderr, "****** Client Start discovery (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
+        HCIStatusCode startDiscovery(const std::string& msg) override {
+            HCIStatusCode status = clientAdapter->startDiscovery( discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
+            fprintf_td(stderr, "****** Client Start discovery (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), clientAdapter->toString().c_str());
             return status;
         }
 
-        HCIStatusCode stopDiscovery(BTAdapterRef adapter, const std::string& msg) override {
-            if( useAdapter != EUI48::ALL_DEVICE && useAdapter != adapter->getAddressAndType().address ) {
-                fprintf_td(stderr, "****** Client Stop discovery (%s): Adapter not selected: %s\n", msg.c_str(), adapter->toString().c_str());
-                return HCIStatusCode::FAILED;
-            }
-
-            HCIStatusCode status = adapter->stopDiscovery();
+        HCIStatusCode stopDiscovery(const std::string& msg) override {
+            HCIStatusCode status = clientAdapter->stopDiscovery();
             fprintf_td(stderr, "****** Client Stop discovery (%s) result: %s\n", msg.c_str(), to_string(status).c_str());
             return status;
         }

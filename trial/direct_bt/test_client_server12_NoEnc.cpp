@@ -45,28 +45,28 @@ static BaseDBTClientServer& base_test_framework = BaseDBTClientServer::get();
  * - security-level: NONE, ENC_ONLY freshly-paired and ENC_ONLY pre-paired
  * - reuse server-adapter for client-mode discovery (just toggle on/off)
  */
-class TestDBTClientServer10_NoEnc : public DBTClientServer1x {
+class TestDBTClientServer12_NoEnc : public DBTClientServer1x {
     private:
         static constexpr const bool serverSC = true;
 
     public:
-        void test00_FullCycle_EncNone() {
+        void test02_FullCycle_EncNone() {
             base_test_framework.setupTest( 20_s );
             {
                 const bool serverShallHaveKeys = false;
                 const bool clientShallHaveKeys = false;
-                test8x_fullCycle("10", 1 /* protocolSessionCount */, true /* server_client_order */, serverSC,
+                test8x_fullCycle("12", 1 /* protocolSessionCount */, false /* server_client_order */, serverSC,
                                  BTSecurityLevel::NONE, serverShallHaveKeys, BTSecurityLevel::NONE, clientShallHaveKeys);
             }
             base_test_framework.cleanupTest();
         }
 
-        void test01_FullCycle_EncNone() {
+        void test03_FullCycle_EncNone() {
             base_test_framework.setupTest( 30_s );
             {
                 const bool serverShallHaveKeys = false;
                 const bool clientShallHaveKeys = false;
-                test8x_fullCycle("11", 2 /* protocolSessionCount */, true /* server_client_order */, serverSC,
+                test8x_fullCycle("13", 2 /* protocolSessionCount */, false /* server_client_order */, serverSC,
                                  BTSecurityLevel::NONE, serverShallHaveKeys, BTSecurityLevel::NONE, clientShallHaveKeys);
             }
             base_test_framework.cleanupTest();
@@ -74,5 +74,5 @@ class TestDBTClientServer10_NoEnc : public DBTClientServer1x {
 
 };
 
-METHOD_AS_TEST_CASE( TestDBTClientServer10_NoEnc::test00_FullCycle_EncNone, "ClientServer 10 NoEnc Trial", "[trial][serverclient][fullcycle][noenc]");
-METHOD_AS_TEST_CASE( TestDBTClientServer10_NoEnc::test01_FullCycle_EncNone, "ClientServer 11 NoEnc Trial", "[trial][serverclient][fullcycle][noenc]");
+METHOD_AS_TEST_CASE( TestDBTClientServer12_NoEnc::test02_FullCycle_EncNone, "ClientServer 12 NoEnc Trial", "[trial][clientserver][fullcycle][noenc]");
+METHOD_AS_TEST_CASE( TestDBTClientServer12_NoEnc::test03_FullCycle_EncNone, "ClientServer 13 NoEnc Trial", "[trial][clientserver][fullcycle][noenc]");

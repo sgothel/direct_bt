@@ -46,7 +46,7 @@ static BaseDBTClientServer& base_test_framework = BaseDBTClientServer::get();
  * - validating basic default adapter status
  */
 TEST_CASE( "BTManager Bringup Trial 00", "[trial][BTManager][bringup]" ) {
-    base_test_framework.setupTest();
+    base_test_framework.setupTest( 5_s );
 
     jau::fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
 
@@ -79,7 +79,7 @@ TEST_CASE( "BTManager Bringup Trial 00", "[trial][BTManager][bringup]" ) {
  * - validating basic default adapter status
  */
 TEST_CASE( "Server StartStop and SwitchRole Trial 10", "[trial][startstop][switchrole]" ) {
-    base_test_framework.setupTest();
+    base_test_framework.setupTest( 5_s );
 
     BTManager & manager = BTManager::get();
     {
@@ -95,7 +95,7 @@ TEST_CASE( "Server StartStop and SwitchRole Trial 10", "[trial][startstop][switc
 
     const std::string serverName = "TestDBTCS00-S-T10";
     std::shared_ptr<DBTServer00> server = std::make_shared<DBTServer00>(serverName, EUI48::ALL_DEVICE, BTMode::DUAL, true /* SC */, BTSecurityLevel::NONE);
-    server->servingConnectionsLeft = 1;
+    server->servingProtocolSessionsLeft = 1;
 
     ChangedAdapterSetCallback myChangedAdapterSetFunc = DBTEndpoint::initChangedAdapterSetListener(manager, { server });
 
