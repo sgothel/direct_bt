@@ -633,16 +633,12 @@ public class DBTServer00 implements DBTServerTest {
         BTUtils.println(System.err, "****** Server Close.0: "+msg);
         stop(msg);
         gattServerListener.close();
-        dbGattServer.close();
+        // dbGattServer.close(); // keep alive
         serverAdapter.removeStatusListener( myAdapterStatusListener );
         BTUtils.println(System.err, "****** Server Close.X: "+msg);
     }
 
     private HCIStatusCode stopAdvertising(final String msg) {
-        if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(serverAdapter.getAddressAndType().address) ) {
-            BTUtils.fprintf_td(System.err, "****** Server Stop advertising (%s): Adapter not selected: %s\n", msg, serverAdapter.toString());
-            return HCIStatusCode.FAILED;
-        }
         final HCIStatusCode status = serverAdapter.stopAdvertising();
         BTUtils.println(System.err, "****** Server Stop advertising ("+msg+") result: "+status+": "+serverAdapter.toString());
         return status;
@@ -650,10 +646,6 @@ public class DBTServer00 implements DBTServerTest {
 
     @Override
     public HCIStatusCode startAdvertising(final String msg) {
-        if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(serverAdapter.getAddressAndType().address) ) {
-            BTUtils.fprintf_td(System.err, "****** Server Start advertising (%s): Adapter not selected: %s\n", msg, serverAdapter.toString());
-            return HCIStatusCode.FAILED;
-        }
         final EInfoReport eir = new EInfoReport();
         final EIRDataTypeSet adv_mask = new EIRDataTypeSet();
         final EIRDataTypeSet scanrsp_mask = new EIRDataTypeSet();

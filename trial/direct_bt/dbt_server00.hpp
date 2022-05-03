@@ -60,8 +60,8 @@ class DBTServer00 : public DBTServerTest {
             return p;
         }
 
-        const bool GATT_VERBOSE = false;
-        bool SHOW_UPDATE_EVENTS = false;
+        static const bool GATT_VERBOSE = false;
+        static const bool SHOW_UPDATE_EVENTS = false;
 
         const std::string adapterShortName = "TDev1Srv";
         std::string adapterName = "TestDev1_Srv";
@@ -71,7 +71,9 @@ class DBTServer00 : public DBTServerTest {
         BTSecurityLevel adapterSecurityLevel = BTSecurityLevel::UNSET;
 
         // DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
-        DBGattServerRef dbGattServer = new DBGattServer(
+        // DBGattServerRef dbGattServer = new DBGattServer(
+        // DBGattServerRef dbGattServer( new DBGattServer(
+        DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
                 /* services: */
                 jau::make_darray( // DBGattService
                   std::make_shared<DBGattService> ( true /* primary */,
@@ -150,8 +152,11 @@ class DBTServer00 : public DBTServerTest {
         std::mutex mtx_sync;
         BTDeviceRef connectedDevice;
 
+    public:
         jau::sc_atomic_int servingConnectionsLeft = 1;
         jau::sc_atomic_int servedConnections = 0;
+
+    private:
 
         void setDevice(BTDeviceRef cd) {
             const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
@@ -169,6 +174,10 @@ class DBTServer00 : public DBTServerTest {
         }
 
         class MyAdapterStatusListener : public AdapterStatusListener {
+          public:
+            DBTServer00& parent;
+
+            MyAdapterStatusListener(DBTServer00& p) : parent(p) {}
 
             void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                         const AdapterSetting changedmask, const uint64_t timestamp) override {
@@ -207,9 +216,9 @@ class DBTServer00 : public DBTServerTest {
 
             void deviceConnected(BTDeviceRef device, const uint16_t handle, const uint64_t timestamp) override {
                 fprintf_td(stderr, "****** Server CONNECTED: %s\n", device->toString(true).c_str());
-                const bool available = nullptr == getDevice();
+                const bool available = nullptr == parent.getDevice();
                 if( available ) {
-                    setDevice(device);
+                    parent.setDevice(device);
                     BTDeviceRegistry::addToProcessingDevices(device->getAddressAndType(), device->getName());
                 }
                 (void)handle;
@@ -279,16 +288,16 @@ class DBTServer00 : public DBTServerTest {
             }
 
             void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
-                servedConnections = servedConnections + 1;
+                parent.servedConnections++;
                 fprintf_td(stderr, "****** Server DISCONNECTED (count %zu): Reason 0x%X (%s), old handle %s: %s\n",
-                        servedConnections.load(), static_cast<uint8_t>(reason), to_string(reason).c_str(),
+                        parent.servedConnections.load(), static_cast<uint8_t>(reason), to_string(reason).c_str(),
                         to_hexstring(handle).c_str(), device->toString(true).c_str());
 
-                const bool match = matches(device);
+                const bool match = parent.matches(device);
                 if( match ) {
-                    setDevice(nullptr);
+                    parent.setDevice(nullptr);
                 }
-                std::thread sd(DBTServer00::processDisconnectedDevice, this, device); // @suppress("Invalid arguments")
+                std::thread sd(&DBTServer00::processDisconnectedDevice, &parent, device); // @suppress("Invalid arguments")
                 sd.detach();
                 (void)timestamp;
             }
@@ -301,6 +310,7 @@ class DBTServer00 : public DBTServerTest {
 
         class MyGATTServerListener : public DBGattServer::Listener {
             private:
+                DBTServer00& parent;
                 std::thread pulseSenderThread;
                 jau::sc_atomic_bool stopPulseSenderFlag = false;
 
@@ -311,31 +321,19 @@ class DBTServer00 : public DBTServerTest {
 
                 uint16_t usedMTU = BTGattHandler::number(BTGattHandler::Defaults::MIN_ATT_MTU);
 
-                void clear() {
-                    const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
-
-                    handlePulseDataNotify = 0;
-                    handlePulseDataIndicate = 0;
-                    handleResponseDataNotify = 0;
-                    handleResponseDataIndicate = 0;
-
-                    dbGattServer->resetGattClientCharConfig(DBTConstants::DataServiceUUID, DBTConstants::PulseDataUUID);
-                    dbGattServer->resetGattClientCharConfig(DBTConstants::DataServiceUUID, DBTConstants::ResponseUUID);
-                }
-
                 bool shallStopPulseSender() {
-                    const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
+                    const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
                     return stopPulseSenderFlag;
                 }
 
                 void pulseSender() {
                     {
-                        const BTDeviceRef connectedDevice_ = getDevice();
+                        const BTDeviceRef connectedDevice_ = parent.getDevice();
                         const std::string connectedDeviceStr = nullptr != connectedDevice_ ? connectedDevice_->toString() : "n/a";
                         fprintf_td(stderr, "****** Server GATT::PULSE Start %s\n", connectedDeviceStr);
                     }
                     while( !shallStopPulseSender() ) {
-                        BTDeviceRef connectedDevice_ = getDevice();
+                        BTDeviceRef connectedDevice_ = parent.getDevice();
                         if( nullptr != connectedDevice_ && connectedDevice_->getConnected() ) {
                             if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
                                 std::string data( "Dynamic Data Example. Elapsed Milliseconds: "+jau::to_decstring(environment::getElapsedMillisecond(), ',', 9) );
@@ -356,14 +354,14 @@ class DBTServer00 : public DBTServerTest {
                         }
                     }
                     {
-                        const BTDeviceRef connectedDevice_ = getDevice();
+                        const BTDeviceRef connectedDevice_ = parent.getDevice();
                         const std::string connectedDeviceStr = nullptr != connectedDevice_ ? connectedDevice_->toString() : "n/a";
                         fprintf_td(stderr, "****** Server GATT::PULSE End %s\n", connectedDeviceStr);
                     }
                 }
 
                 void sendResponse(jau::POctets data) {
-                    BTDeviceRef connectedDevice_ = getDevice();
+                    BTDeviceRef connectedDevice_ = parent.getDevice();
                     if( nullptr != connectedDevice_ && connectedDevice_->getConnected() ) {
                         if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
                             if( 0 != handleResponseDataNotify ) {
@@ -381,15 +379,28 @@ class DBTServer00 : public DBTServerTest {
                 }
 
             public:
-                MyGATTServerListener()
-                : pulseSenderThread(&MyGATTServerListener::pulseSender, this)
+
+                MyGATTServerListener(DBTServer00& p)
+                : parent(p), pulseSenderThread(&MyGATTServerListener::pulseSender, this)
                 { }
 
                 ~MyGATTServerListener() noexcept { close(); }
 
+                void clear() {
+                    const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
+
+                    handlePulseDataNotify = 0;
+                    handlePulseDataIndicate = 0;
+                    handleResponseDataNotify = 0;
+                    handleResponseDataIndicate = 0;
+
+                    parent.dbGattServer->resetGattClientCharConfig(DBTConstants::DataServiceUUID, DBTConstants::PulseDataUUID);
+                    parent.dbGattServer->resetGattClientCharConfig(DBTConstants::DataServiceUUID, DBTConstants::ResponseUUID);
+                }
+
                 void close() noexcept {
                     {
-                        const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
+                        const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
                         clear();
                         stopPulseSenderFlag = true;
                     }
@@ -399,17 +410,17 @@ class DBTServer00 : public DBTServerTest {
                 }
 
                 void connected(BTDeviceRef device, const uint16_t initialMTU) override {
-                    const bool match = matches(device);
+                    const bool match = parent.matches(device);
                     fprintf_td(stderr, "****** Server GATT::connected(match %d): initMTU %d, %s\n",
                             match, (int)initialMTU, device->toString().c_str());
                     if( match ) {
-                        const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
+                        const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
                         usedMTU = initialMTU;
                     }
                 }
 
                 void disconnected(BTDeviceRef device) override {
-                    const bool match = matches(device);
+                    const bool match = parent.matches(device);
                     fprintf_td(stderr, "****** Server GATT::disconnected(match %d): %s\n", match, device->toString().c_str());
                     if( match ) {
                         clear();
@@ -417,10 +428,10 @@ class DBTServer00 : public DBTServerTest {
                 }
 
                 void mtuChanged(BTDeviceRef device, const uint16_t mtu) override {
-                    const bool match = matches(device);
+                    const bool match = parent.matches(device);
                     const uint16_t usedMTU_old = usedMTU;
                     if( match ) {
-                        const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
+                        const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
                         usedMTU = mtu;
                     }
                     fprintf_td(stderr, "****** Server GATT::mtuChanged(match %d): %d -> %d, %s\n",
@@ -428,7 +439,7 @@ class DBTServer00 : public DBTServerTest {
                 }
 
                 bool readCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
-                    const bool match = matches(device);
+                    const bool match = parent.matches(device);
                     if( GATT_VERBOSE ) {
                         fprintf_td(stderr, "****** Server GATT::readCharValue(match %d): to %s, from\n  %s\n    %s\n",
                                 match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str());
@@ -437,7 +448,7 @@ class DBTServer00 : public DBTServerTest {
                 }
 
                 bool readDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) override {
-                    const bool match = matches(device);
+                    const bool match = parent.matches(device);
                     if( GATT_VERBOSE ) {
                         fprintf_td(stderr, "****** Server GATT::readDescValue(match %d): to %s, from\n  %s\n    %s\n      %s\n",
                                 match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str());
@@ -446,7 +457,7 @@ class DBTServer00 : public DBTServerTest {
                 }
 
                 bool writeCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, const jau::TROOctets & value, const uint16_t value_offset) override {
-                    const bool match = matches(device);
+                    const bool match = parent.matches(device);
                     if( GATT_VERBOSE ) {
                         fprintf_td(stderr, "****** Server GATT::writeCharValue(match %d): %s '%s' @ %u from %s, to\n  %s\n    %s\n",
                                 match, value.toString().c_str(), jau::dfa_utf8_decode( value.get_ptr(), value.size() ).c_str(),
@@ -456,7 +467,7 @@ class DBTServer00 : public DBTServerTest {
                     return match;
                 }
                 void writeCharValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
-                    const bool match = matches(device);
+                    const bool match = parent.matches(device);
                     const jau::TROOctets& value = c->getValue();
                     bool isFinalHandshake = false;
 
@@ -465,14 +476,14 @@ class DBTServer00 : public DBTServerTest {
                         ( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) )
                     {
                         isFinalHandshake = ( DBTConstants::SuccessHandshakeCommandData.size() == value.size() &&
-                                             0 == ::memcmp(DBTConstants::SuccessHandshakeCommandData.data(), value.data(), value.size()) ) ||
+                                             0 == ::memcmp(DBTConstants::SuccessHandshakeCommandData.data(), value.get_ptr(), value.size()) ) ||
                                            ( DBTConstants::FailHandshakeCommandData.size() == value.size() &&
-                                             0 == ::memcmp(DBTConstants::FailHandshakeCommandData.data(), value.data(), value.size()) );
+                                             0 == ::memcmp(DBTConstants::FailHandshakeCommandData.data(), value.get_ptr(), value.size()) );
 
                         if( isFinalHandshake ) {
-                            servedConnections++; // we assume this to be server, i.e. connected, SMP done and GATT action ..
-                            if( servingConnectionsLeft > 0 ) {
-                                servingConnectionsLeft--; // ditto
+                            parent.servedConnections++; // we assume this to be server, i.e. connected, SMP done and GATT action ..
+                            if( parent.servingConnectionsLeft > 0 ) {
+                                parent.servingConnectionsLeft--; // ditto
                             }
                         }
                         jau::POctets value2(value);
@@ -481,13 +492,13 @@ class DBTServer00 : public DBTServerTest {
                     }
                     if( GATT_VERBOSE || isFinalHandshake ) {
                         fprintf_td(stderr, "****** Server GATT::writeCharValueDone(match %d, finalCmd %d, served %d, left %d): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
-                                match, isFinalHandshake, servedConnections.load(), servingConnectionsLeft.load(),
+                                match, isFinalHandshake, parent.servedConnections.load(), parent.servingConnectionsLeft.load(),
                                 device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), value.toString().c_str());
                     }
                 }
 
                 bool writeDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const jau::TROOctets & value, const uint16_t value_offset) override {
-                    const bool match = matches(device);
+                    const bool match = parent.matches(device);
                     if( GATT_VERBOSE ) {
                         fprintf_td(stderr, "****** Server GATT::writeDescValue(match %d): %s '%s' @ %u from %s\n  %s\n    %s\n      %s\n",
                                 match, value.toString().c_str(), jau::dfa_utf8_decode( value.get_ptr(), value.size() ).c_str(),
@@ -498,7 +509,7 @@ class DBTServer00 : public DBTServerTest {
                 }
                 void writeDescValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) override {
                     if( GATT_VERBOSE ) {
-                        const bool match = matches(device);
+                        const bool match = parent.matches(device);
                         const jau::TROOctets& value = d->getValue();
                         fprintf_td(stderr, "****** Server GATT::writeDescValueDone(match %d): From %s\n  %s\n    %s\n      %s\n    Desc-Value: %s\n",
                                 match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str(), value.toString().c_str());
@@ -506,7 +517,7 @@ class DBTServer00 : public DBTServerTest {
                 }
 
                 void clientCharConfigChanged(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const bool notificationEnabled, const bool indicationEnabled) override {
-                    const bool match = matches(device);
+                    const bool match = parent.matches(device);
                     if( GATT_VERBOSE ) {
                         const jau::TROOctets& value = d->getValue();
                         fprintf_td(stderr, "****** GATT::clientCharConfigChanged(match %d): notify %d, indicate %d from %s\n  %s\n    %s\n      %s\n    Desc-Value: %s\n",
@@ -515,11 +526,11 @@ class DBTServer00 : public DBTServerTest {
                     }
                     if( match ) {
                         if( c->getValueType()->equivalent( DBTConstants::PulseDataUUID ) ) {
-                            const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
+                            const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
                             handlePulseDataNotify = notificationEnabled ? c->getValueHandle() : 0;
                             handlePulseDataIndicate = indicationEnabled ? c->getValueHandle() : 0;
                         } else if( c->getValueType()->equivalent( DBTConstants::ResponseUUID ) ) {
-                            const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
+                            const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
                             handleResponseDataNotify = notificationEnabled ? c->getValueHandle() : 0;
                             handleResponseDataIndicate = indicationEnabled ? c->getValueHandle() : 0;
                         }
@@ -527,36 +538,36 @@ class DBTServer00 : public DBTServerTest {
                 }
         };
 
-        std::shared_ptr<MyGATTServerListener> gattServerListener = std::make_shared<MyGATTServerListener>();
-        std::shared_ptr<AdapterStatusListener> myAdapterStatusListener = std::make_shared<MyAdapterStatusListener>();
+        std::shared_ptr<MyGATTServerListener> gattServerListener = std::make_shared<MyGATTServerListener>(*this);
+        std::shared_ptr<AdapterStatusListener> myAdapterStatusListener = std::make_shared<MyAdapterStatusListener>(*this);
 
         BTAdapterRef serverAdapter = nullptr;
 
     public:
 
-        DBTServer00(const std::string& adapterName, const jau::EUI48& useAdapter, const BTMode btMode, const bool use_SC, const BTSecurityLevel adapterSecurityLevel) {
-            this->adapterName = adapterName;
-            this->useAdapter = useAdapter;
-            this->btMode = btMode;
-            this->use_SC = use_SC;
-            this->adapterSecurityLevel = adapterSecurityLevel;
+        DBTServer00(const std::string& adapterName_, const jau::EUI48& useAdapter_, const BTMode btMode_, const bool use_SC_, const BTSecurityLevel adapterSecurityLevel_) {
+            this->adapterName = adapterName_;
+            this->useAdapter = useAdapter_;
+            this->btMode = btMode_;
+            this->use_SC = use_SC_;
+            this->adapterSecurityLevel = adapterSecurityLevel_;
 
-            dbGattServer.addListener( gattServerListener );
+            dbGattServer->addListener( gattServerListener );
         }
-        DBTServer00(const std::string& adapterName, const jau::EUI48& useAdapter, const BTSecurityLevel adapterSecurityLevel)
-        : DBTServer00(adapterName, useAdapter, BTMode::DUAL, true /* SC */, adapterSecurityLevel)
+        DBTServer00(const std::string& adapterName_, const jau::EUI48& useAdapter_, const BTSecurityLevel adapterSecurityLevel_)
+        : DBTServer00(adapterName_, useAdapter_, BTMode::DUAL, true /* SC */, adapterSecurityLevel_)
         { }
 
-        DBTServer00(const std::string& adapterName, const BTSecurityLevel adapterSecurityLevel)
-        : DBTServer00(adapterName, EUI48::ALL_DEVICE, BTMode::DUAL, true /* SC */, adapterSecurityLevel)
+        DBTServer00(const std::string& adapterName_, const BTSecurityLevel adapterSecurityLevel_)
+        : DBTServer00(adapterName_, EUI48::ALL_DEVICE, BTMode::DUAL, true /* SC */, adapterSecurityLevel_)
         { }
 
         std::string getName() override { return adapterName; }
 
         BTSecurityLevel getSecurityLevel() override { return adapterSecurityLevel; }
 
-        void setAdapter(BTAdapterRef serverAdapter) override {
-            this->serverAdapter = serverAdapter;
+        void setAdapter(BTAdapterRef serverAdapter_) override {
+            this->serverAdapter = serverAdapter_;
         }
 
         BTAdapterRef getAdapter() override { return serverAdapter; }
@@ -587,29 +598,21 @@ class DBTServer00 : public DBTServerTest {
             fprintf_td(stderr, "****** Server Close.0: %s\n", msg.c_str());
             stop(msg);
             gattServerListener->close();
-            dbGattServer.close();
-            serverAdapter.removeStatusListener( myAdapterStatusListener );
+            // dbGattServer = nullptr; // keep alive
+            serverAdapter->removeStatusListener( myAdapterStatusListener );
             fprintf_td(stderr, "****** Server Close.X: %s\n", msg.c_str());
         }
 
     private:
-        HCIStatusCode stopAdvertising(BTAdapter *a, std::string msg) {
-            if( useAdapter != EUI48::ALL_DEVICE && useAdapter != a->getAddressAndType().address ) {
-                fprintf_td(stderr, "****** Server Stop advertising (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
-                return false;
-            }
-            HCIStatusCode status = a->stopAdvertising();
-            fprintf_td(stderr, "****** Server Stop advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
+        HCIStatusCode stopAdvertising(std::string msg) {
+            HCIStatusCode status = serverAdapter->stopAdvertising();
+            fprintf_td(stderr, "****** Server Stop advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), serverAdapter->toString().c_str());
             return status;
         }
 
     public:
 
-        HCIStatusCode startAdvertising(BTAdapter *a, std::string msg) override {
-            if( useAdapter != EUI48::ALL_DEVICE && useAdapter != a->getAddressAndType().address ) {
-                fprintf_td(stderr, "****** Server Start advertising (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
-                return false;
-            }
+        HCIStatusCode startAdvertising(const std::string& msg) override {
             EInfoReport eir;
             EIRDataType adv_mask = EIRDataType::FLAGS | EIRDataType::SERVICE_UUID;
             EIRDataType scanrsp_mask = EIRDataType::NAME | EIRDataType::CONN_IVAL;
@@ -620,23 +623,23 @@ class DBTServer00 : public DBTServerTest {
             eir.addService(DBTConstants::DataServiceUUID);
             eir.setServicesComplete(false);
 
-            eir.setName(a->getName());
+            eir.setName(serverAdapter->getName());
             eir.setConnInterval(8, 12); // 10ms - 15ms
 
             DBGattCharRef gattDevNameChar = dbGattServer->findGattChar( jau::uuid16_t(GattServiceType::GENERIC_ACCESS),
                                                                         jau::uuid16_t(GattCharacteristicType::DEVICE_NAME) );
             if( nullptr != gattDevNameChar ) {
-                std::string aname = a->getName();
+                std::string aname = serverAdapter->getName();
                 gattDevNameChar->setValue(reinterpret_cast<uint8_t*>(aname.data()), aname.size(), 0);
             }
 
             fprintf_td(stderr, "****** Start advertising (%s): EIR %s\n", msg.c_str(), eir.toString().c_str());
             fprintf_td(stderr, "****** Start advertising (%s): adv %s, scanrsp %s\n", msg.c_str(), to_string(adv_mask).c_str(), to_string(scanrsp_mask).c_str());
 
-            HCIStatusCode status = a->startAdvertising(dbGattServer, eir, adv_mask, scanrsp_mask,
+            HCIStatusCode status = serverAdapter->startAdvertising(dbGattServer, eir, adv_mask, scanrsp_mask,
                                                        adv_interval_min, adv_interval_max,
                                                        adv_type, adv_chan_map, filter_policy);
-            fprintf_td(stderr, "****** Server Start advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
+            fprintf_td(stderr, "****** Server Start advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), serverAdapter->toString().c_str());
             if( GATT_VERBOSE ) {
                 fprintf_td(stderr, "%s", dbGattServer->toFullString().c_str());
             }
@@ -649,14 +652,14 @@ class DBTServer00 : public DBTServerTest {
                     servedConnections.load(), device->toString().c_str());
 
             // already unpaired
-            stopAdvertising(&device->getAdapter(), "device-disconnected");
+            stopAdvertising("device-disconnected");
             device->remove();
             BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME: Fast restart of advertising error)
 
             if( servingConnectionsLeft  > 0 ) {
-                startAdvertising(&device->getAdapter(), "device-disconnected");
+                startAdvertising("device-disconnected");
             }
 
             fprintf_td(stderr, "****** Server Disonnected Device: End %s\n", device->toString().c_str());

@@ -57,7 +57,7 @@ class DBTClientTest : public DBTEndpoint {
             REQUIRE( current_exp_discovering_state == adapter->isDiscovering() );
             REQUIRE( BTRole::Master == adapter->getRole() );
 
-            REQUIRE( HCIStatusCode::SUCCESS == client->stopDiscovery(client.getAdapter(), msg) );
+            REQUIRE( HCIStatusCode::SUCCESS == client->stopDiscovery(client->getAdapter(), msg) );
             while( adapter->isDiscovering() ) { // pending action
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }

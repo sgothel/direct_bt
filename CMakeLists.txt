@@ -102,6 +102,7 @@ endif(BUILD_TESTING)
 
 if (BUILD_TRIAL)
   enable_testing ()
+  add_subdirectory (trial/direct_bt)
   if (BUILDJAVA)
       configure_file (${CMAKE_CURRENT_SOURCE_DIR}/trial/java/manifest.txt.in ${CMAKE_CURRENT_BINARY_DIR}/trial/java/manifest.txt)
       add_subdirectory (trial/java)

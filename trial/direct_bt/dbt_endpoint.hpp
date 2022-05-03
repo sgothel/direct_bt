@@ -31,6 +31,7 @@
 #include <cstring>
 
 #include <catch2/catch_amalgamated.hpp>
+#include <jau/test/catch2_ext.hpp>
 
 #include <direct_bt/DirectBT.hpp>
 
@@ -81,10 +82,10 @@ class DBTEndpoint {
 
         static void checkInitializedState(const DBTEndpointRef endp) {
             BTAdapterRef adapter = endp->getAdapter();
-            REQUIRE( true == adapter.isInitialized() );
-            REQUIRE( true == adapter.isPowered() );
-            REQUIRE( BTRole::Master == adapter.getRole() );
-            REQUIRE( 4 <= adapter.getBTMajorVersion() );
+            REQUIRE( true == adapter->isInitialized() );
+            REQUIRE( true == adapter->isPowered() );
+            REQUIRE( BTRole::Master == adapter->getRole() );
+            REQUIRE( 4 <= adapter->getBTMajorVersion() );
         }
 
         static std::mutex mtx_cas_endpts;
@@ -101,7 +102,7 @@ class DBTEndpoint {
                         }
                     }
                 }
-                jau::fprintf_td(stderr, "****** Adapter ADDED__: Ignored: %s\n" + adapter->toString().c_str());
+                jau::fprintf_td(stderr, "****** Adapter ADDED__: Ignored: %s\n", adapter->toString().c_str());
             } else {
                 for(DBTEndpointRef endpt : cas_endpts ) {
                     if( nullptr != endpt->getAdapter() && *adapter == *endpt->getAdapter() ) {
@@ -110,18 +111,18 @@ class DBTEndpoint {
                         return true;
                     }
                 }
-                jau::fprintf_td(stderr, "****** Adapter REMOVED: Ignored: %s\n" + adapter->toString().c_str());
+                jau::fprintf_td(stderr, "****** Adapter REMOVED: Ignored: %s\n", adapter->toString().c_str());
             }
-            int count = BTManager::get().removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
+            BTManager::get().removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
             return true;
         }
 
-        static ChangedAdapterSetCallback initChangedAdapterSetListener(BTManager& manager, std::vector<DBTEndpointRef>& endpts) {
+        static ChangedAdapterSetCallback initChangedAdapterSetListener(BTManager& manager, std::vector<DBTEndpointRef> endpts) {
             const std::lock_guard<std::mutex> lock(mtx_cas_endpts); // RAII-style acquire and relinquish via destructor
-            cas_endpts = endpts;
-            ChangedAdapterSetCallback casc = jau::bindPlainFunc(this, &DBTEndpoint::myChangedAdapterSetFunc);
-            manager.addChangedAdapterSetListener(casc);
-            for(DBTEndpointRef endpt : endpts ) {
+            cas_endpts = std::move( endpts );
+            ChangedAdapterSetCallback casc = jau::bindPlainFunc(&DBTEndpoint::myChangedAdapterSetFunc);
+            manager.addChangedAdapterSetCallback(casc);
+            for(DBTEndpointRef endpt : cas_endpts ) {
                 REQUIRE( nullptr != endpt->getAdapter() );
             }
             return casc;
@@ -154,5 +155,8 @@ class DBTEndpoint {
             REQUIRE( BTRole::Master == adapter->getRole() );
         }
 };
+
+std::mutex DBTEndpoint::mtx_cas_endpts;
+std::vector<DBTEndpointRef> DBTEndpoint::cas_endpts;
 
 #endif /* DBT_ENDPOINT_HPP_ */

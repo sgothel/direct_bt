@@ -86,11 +86,10 @@ TEST_CASE( "BTManager Bringup Trial 00", "[trial][BTManager][bringup]" ) {
     base_test_framework.setupTest();
 
     BTManager & manager = BTManager::get();
-
     REQUIRE( manager.getAdapterCount() >= 1 );
 
     const std::string serverName = "TestDBTCS00-S-T10";
-    std::shared_ptr<DBTServer00> server(serverName, EUI48::ALL_DEVICE, BTMode::DUAL, true /* SC */, BTSecurityLevel::NONE);
+    std::shared_ptr<DBTServer00> server = std::make_shared<DBTServer00>(serverName, EUI48::ALL_DEVICE, BTMode::DUAL, true /* SC */, BTSecurityLevel::NONE);
     server->servingConnectionsLeft = 1;
 
     ChangedAdapterSetCallback myChangedAdapterSetFunc = DBTEndpoint::initChangedAdapterSetListener(manager, { server });
@@ -121,7 +120,7 @@ TEST_CASE( "BTManager Bringup Trial 00", "[trial][BTManager][bringup]" ) {
         DBTEndpoint::stopDiscovery(adapter, true /* current_exp_discovering_state */);
     }
 
-    REQUIRE( 1 == manager.removeChangedAdapterSetListener(myChangedAdapterSetFunc) );
+    REQUIRE( 1 == manager.removeChangedAdapterSetCallback(myChangedAdapterSetFunc) );
 
     base_test_framework.cleanupTest();
 }

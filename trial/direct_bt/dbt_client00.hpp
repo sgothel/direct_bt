@@ -39,7 +39,7 @@ using namespace jau::fractions_i64_literals;
  * This central BTRole::Master participant works with DBTServer00.
  */
 class DBTClient00 : public DBTClientTest {
-    private:
+    public:
         /**
          * Disconnect after processing.
          *
@@ -57,11 +57,10 @@ class DBTClient00 : public DBTClientTest {
          */
         bool REMOVE_DEVICE = false;
 
-        const bool GATT_VERBOSE = false;
-        const bool SHOW_UPDATE_EVENTS = false;
+        DiscoveryPolicy discoveryPolicy = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY; // default value
 
-        const uint64_t timestamp_t0 = getCurrentMilliseconds();
-        // const fraction_i64 timestamp_t0 = jau::getMonotonicMicroseconds();
+        static const bool GATT_VERBOSE = false;
+        static const bool SHOW_UPDATE_EVENTS = false;
 
         jau::sc_atomic_int deviceReadyCount = 0;
 
@@ -71,9 +70,17 @@ class DBTClient00 : public DBTClientTest {
         jau::sc_atomic_int completedMeasurements = 0;
         jau::sc_atomic_int measurementsLeft = 0;
 
+    private:
+        const uint64_t timestamp_t0 = getCurrentMilliseconds();
+        // const fraction_i64 timestamp_t0 = jau::getMonotonicMicroseconds();
+
         const uint8_t cmd_arg = 0x44;
 
         class MyAdapterStatusListener : public AdapterStatusListener {
+          public:
+            DBTClient00& parent;
+
+            MyAdapterStatusListener(DBTClient00& p) : parent(p) {}
 
             void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                         const AdapterSetting changedmask, const uint64_t timestamp) override {
@@ -101,17 +108,17 @@ class DBTClient00 : public DBTClientTest {
                 if( !BTDeviceRegistry::isDeviceProcessing( device->getAddressAndType() ) &&
                     ( !BTDeviceRegistry::isWaitingForAnyDevice() ||
                       ( BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType().address, device->getName()) &&
-                        ( 0 < measurementsLeft || !BTDeviceRegistry::isDeviceProcessed(device->getAddressAndType()) )
+                        ( 0 < parent.measurementsLeft || !BTDeviceRegistry::isDeviceProcessed(device->getAddressAndType()) )
                       )
                     )
                   )
                 {
                     fprintf_td(stderr, "****** Client FOUND__-0: Connecting %s\n", device->toString(true).c_str());
                     {
-                        const uint64_t td = jau::getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
+                        const uint64_t td = jau::getCurrentMilliseconds() - parent.timestamp_t0; // adapter-init -> now
                         fprintf_td(stderr, "PERF: adapter-init -> FOUND__-0  %" PRIu64 " ms\n", td);
                     }
-                    std::thread dc(&DBTClient00::connectDiscoveredDevice, device); // @suppress("Invalid arguments")
+                    std::thread dc(&DBTClient00::connectDiscoveredDevice, &parent, device); // @suppress("Invalid arguments")
                     dc.detach();
                     return true;
                 } else {
@@ -121,6 +128,9 @@ class DBTClient00 : public DBTClientTest {
             }
 
             void deviceUpdated(BTDeviceRef device, const EIRDataType updateMask, const uint64_t timestamp) override {
+                (void)device;
+                (void)updateMask;
+                (void)timestamp;
             }
 
             void deviceConnected(BTDeviceRef device, const uint16_t handle, const uint64_t timestamp) override {
@@ -193,18 +203,18 @@ class DBTClient00 : public DBTClientTest {
                 (void)timestamp;
                 if( !BTDeviceRegistry::isDeviceProcessing( device->getAddressAndType() ) &&
                     ( !BTDeviceRegistry::isWaitingForAnyDevice() ||
-                      ( BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType().address, device.getName()) &&
-                        ( 0 < measurementsLeft || !BTDeviceRegistry::isDeviceProcessed(device->getAddressAndType()) )
+                      ( BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType().address, device->getName()) &&
+                        ( 0 < parent.measurementsLeft || !BTDeviceRegistry::isDeviceProcessed(device->getAddressAndType()) )
                       )
                     )
                   )
                 {
-                    deviceReadyCount++;
-                    fprintf_td(stderr, "****** Client READY-0: Processing[%d] %s\n", deviceReadyCount.load(), device->toString(true).c_str());
+                    parent.deviceReadyCount++;
+                    fprintf_td(stderr, "****** Client READY-0: Processing[%d] %s\n", parent.deviceReadyCount.load(), device->toString(true).c_str());
                     BTDeviceRegistry::addToProcessingDevices(device->getAddressAndType(), device->getName());
 
                     // Be nice to Test* case, allowing to reach its own listener.deviceReady() added later
-                    std::thread dc(&DBTClient00::processReadyDevice, device);
+                    std::thread dc(&DBTClient00::processReadyDevice, &parent, device);
                     dc.detach();
                     // processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
                 } else {
@@ -218,12 +228,8 @@ class DBTClient00 : public DBTClientTest {
                         to_hexstring(handle).c_str(), device->toString(true).c_str());
                 (void)timestamp;
 
-                if( REMOVE_DEVICE ) {
-                    std::thread dc(&DBTClient00::removeDevice, device); // @suppress("Invalid arguments")
-                    dc.detach();
-                } else {
-                    BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
-                }
+                std::thread dc(&DBTClient00::removeDevice, &parent, device); // @suppress("Invalid arguments")
+                dc.detach();
             }
 
             std::string toString() const override {
@@ -234,11 +240,11 @@ class DBTClient00 : public DBTClientTest {
 
         class MyGATTEventListener : public BTGattChar::Listener {
           private:
+            DBTClient00& parent;
             int i, j;
 
           public:
-
-            MyGATTEventListener(int i_, int j_) : i(i_), j(j_) {}
+            MyGATTEventListener(DBTClient00& p, int i_, int j_) : parent(p), i(i_), j(j_) {}
 
             void notificationReceived(BTGattCharRef charDecl, const TROOctets& char_value, const uint64_t timestamp) override {
                 if( GATT_VERBOSE ) {
@@ -249,7 +255,7 @@ class DBTClient00 : public DBTClientTest {
                     fprintf_td(stderr, "**[%2.2d.%2.2d]     Value R: %s ******\n", i, j, char_value.toString().c_str());
                     fprintf_td(stderr, "**[%2.2d.%2.2d]     Value S: %s ******\n", i, j, jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
                 }
-                ++notificationsReceived;
+                parent.notificationsReceived++;
             }
 
             void indicationReceived(BTGattCharRef charDecl,
@@ -264,7 +270,7 @@ class DBTClient00 : public DBTClientTest {
                     fprintf_td(stderr, "**[%2.2d.%2.2d]     Value R: %s ******\n", i, j, char_value.toString().c_str());
                     fprintf_td(stderr, "**[%2.2d.%2.2d]     Value S: %s ******\n", i, j, jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
                 }
-                ++indicationsReceived;
+                parent.indicationsReceived++;
             }
         };
 
@@ -273,19 +279,19 @@ class DBTClient00 : public DBTClientTest {
         EUI48 useAdapter = EUI48::ALL_DEVICE;
         BTMode btMode = BTMode::DUAL;
         BTAdapterRef clientAdapter = nullptr;
-        MyAdapterStatusListener myAdapterStatusListener = new MyAdapterStatusListener();
+        std::shared_ptr<AdapterStatusListener> myAdapterStatusListener = std::make_shared<MyAdapterStatusListener>(*this);
 
     public:
-        DBTClient00(const std::string& adapterName, const EUI48 useAdapter, const BTMode btMode) {
-            this->adapterName = adapterName;
-            this->useAdapter = useAdapter;
-            this->btMode = btMode;
+        DBTClient00(const std::string& adapterName_, const EUI48 useAdapter_, const BTMode btMode_) {
+            this->adapterName = adapterName_;
+            this->useAdapter = useAdapter_;
+            this->btMode = btMode_;
         }
 
         std::string getName() override { return adapterName; }
 
-        void setAdapter(BTAdapterRef clientAdapter) override {
-            this->clientAdapter = clientAdapter;
+        void setAdapter(BTAdapterRef clientAdapter_) override {
+            this->clientAdapter = clientAdapter_;
         }
 
         BTAdapterRef getAdapter() override { return clientAdapter; }
@@ -411,7 +417,7 @@ class DBTClient00 : public DBTClientTest {
                         const jau::TROOctets& resp = cmd.getResponse();
                         if( 1 == resp.size() && resp.get_uint8_nc(0) == cmd_arg ) {
                             fprintf_td(stderr, "Client Success: %s -> %s (echo response)\n", cmd.toString().c_str(), resp.toString().c_str());
-                            ++completedGATTCommands;
+                            completedGATTCommands++;
                         } else {
                             fprintf_td(stderr, "Client Failure: %s -> %s (different response)\n", cmd.toString().c_str(), resp.toString().c_str());
                         }
@@ -460,7 +466,7 @@ class DBTClient00 : public DBTClientTest {
                         bool cccdEnableResult[2];
                         if( serviceChar->enableNotificationOrIndication( cccdEnableResult ) ) {
                             // ClientCharConfigDescriptor (CCD) is available
-                            std::shared_ptr<BTGattChar::Listener> cl = std::make_shared<MyGATTEventListener>(i, j);
+                            std::shared_ptr<BTGattChar::Listener> cl = std::make_shared<MyGATTEventListener>(*this, i, j);
                             bool clAdded = serviceChar->addCharListener( cl );
                             if( GATT_VERBOSE ) {
                                 fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d\n",
@@ -480,7 +486,7 @@ class DBTClient00 : public DBTClientTest {
                     do {
                         success = completedGATTCommands >= 1 && ( notificationsReceived >= 2 || indicationsReceived >= 2 );
                         if( !success ) {
-                            const fraction_i64 td = ( getMonotonicTime() - t0 ).to_fraction();
+                            const fraction_i64 td = ( getMonotonicTime() - t0 ).to_fraction_i64();
                             timeout = 3_s < td;
                             if( !timeout ) {
                                 std::this_thread::sleep_for(std::chrono::milliseconds(17));
@@ -552,10 +558,10 @@ class DBTClient00 : public DBTClientTest {
             }
 
             if( success ) {
-                ++completedMeasurements;
+                completedMeasurements++;
             }
             if( 0 < measurementsLeft ) {
-                --measurementsLeft;
+                measurementsLeft--;
             }
             fprintf_td(stderr, "****** Client Processing Ready Device: Success %d; Measurements completed %d"
                             ", left %d; Received notitifications %d, indications %d"
@@ -575,8 +581,7 @@ class DBTClient00 : public DBTClientTest {
             }
         }
 
-        static DiscoveryPolicy discoveryPolicy = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY; // default value
-        static bool le_scan_active = true; // default value
+        static const bool le_scan_active = true; // default value
         static const uint16_t le_scan_interval = 24; // default value
         static const uint16_t le_scan_window = 24; // default value
         static const uint8_t filter_policy = 0; // default value
@@ -595,12 +600,12 @@ class DBTClient00 : public DBTClientTest {
         }
 
         HCIStatusCode stopDiscovery(BTAdapterRef adapter, const std::string& msg) override {
-            if( !useAdapter.equals(EUI48::ALL_DEVICE) && !useAdapter.equals(adapter->getAddressAndType().address) ) {
+            if( useAdapter != EUI48::ALL_DEVICE && useAdapter != adapter->getAddressAndType().address ) {
                 fprintf_td(stderr, "****** Client Stop discovery (%s): Adapter not selected: %s\n", msg.c_str(), adapter->toString().c_str());
                 return HCIStatusCode::FAILED;
             }
 
-            HCIStatusCode status = adapter.stopDiscovery();
+            HCIStatusCode status = adapter->stopDiscovery();
             fprintf_td(stderr, "****** Client Stop discovery (%s) result: %s\n", msg.c_str(), to_string(status).c_str());
             return status;
         }

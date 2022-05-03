@@ -31,13 +31,12 @@
 #include <cstdint>
 #include <cstdio>
 
+#include "dbt_constants.hpp"
+
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h>
 
-#include <jau/debug.hpp>
-
-#include "dbt_constants.hpp"
 
 class DBTUtils {
     private:
@@ -146,6 +145,7 @@ class DBTUtils {
          * @return true only if the file or the directory with content has been deleted, otherwise false
          */
         static bool remove(const std::string& file, const bool recursive) {
+            (void) recursive;
             if( 0 != ::remove( file.c_str() ) ) {
                 if( ENOENT == errno ) {
                     // not existing
@@ -193,8 +193,8 @@ class DBTUtils {
         }
 
         static bool rmKeyFolder() {
-            if( remove( DBTConstants::CLIENT_KEY_PATH ) ) {
-                if( remove( DBTConstants::SERVER_KEY_PATH ) ) {
+            if( remove( DBTConstants::CLIENT_KEY_PATH, true ) ) {
+                if( remove( DBTConstants::SERVER_KEY_PATH, true ) ) {
                     return true;
                 }
             }

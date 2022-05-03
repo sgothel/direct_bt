@@ -583,7 +583,7 @@ public class DBTClient00 implements DBTClientTest {
     }
 
     DiscoveryPolicy discoveryPolicy = DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_READY; // default value
-    boolean le_scan_active = true; // default value
+    static final boolean le_scan_active = true; // default value
     static final short le_scan_interval = (short)24; // 15ms, default value
     static final short le_scan_window = (short)24; // 15ms, default value
     static final byte filter_policy = (byte)0; // default value

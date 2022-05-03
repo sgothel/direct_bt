@@ -42,7 +42,7 @@ class DBTServerTest : public DBTEndpoint {
         static void startAdvertising(DBTServerTestRef server, const bool current_exp_advertising_state, const std::string& msg) {
             BTAdapterRef adapter = server->getAdapter();
             REQUIRE( current_exp_advertising_state == adapter->isAdvertising() );
-            REQUIRE( false == adapter.isDiscovering() );
+            REQUIRE( false == adapter->isDiscovering() );
 
             REQUIRE( HCIStatusCode::SUCCESS == server->startAdvertising(msg) );
             REQUIRE( true == adapter->isAdvertising() );
@@ -58,7 +58,7 @@ class DBTServerTest : public DBTEndpoint {
             REQUIRE( BTRole::Slave == adapter->getRole() ); // kept
 
             // Stopping advertising and serving even if stopped must be OK!
-            REQUIRE( HCIStatusCode::SUCCESS == server.stop(msg) );
+            REQUIRE( HCIStatusCode::SUCCESS == server->stop(msg) );
             REQUIRE( false == adapter->isAdvertising() );
             REQUIRE( false == adapter->isDiscovering() );
             REQUIRE( BTRole::Slave == adapter->getRole() ); // kept

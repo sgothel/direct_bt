@@ -79,10 +79,11 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
         if( null == manager ) {
             return;
         }
-
-        final List<BTAdapter> adapters = manager.getAdapters();
-        BTUtils.println(System.err, "Adapter: Count "+adapters.size()+": "+adapters.toString());
-        Assert.assertTrue("Adapter count not >= 2 but "+adapters.size(), adapters.size() >= 2);
+        {
+            final List<BTAdapter> adapters = manager.getAdapters();
+            BTUtils.println(System.err, "Adapter: Count "+adapters.size()+": "+adapters.toString());
+            Assert.assertTrue("Adapter count not >= 2 but "+adapters.size(), adapters.size() >= 2);
+        }
 
         final DBTServer00 server = new DBTServer00("S-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, serverSC, secLevelServer);
         server.servingConnectionsLeft.set(1);
@@ -113,7 +114,7 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
                 lastCompletedDevice = device;
                 lastCompletedDevicePairingMode = device.getPairingMode();
                 lastCompletedDeviceSecurityLevel = device.getConnSecurityLevel();
-                lastCompletedDeviceEIR = device.getEIR();
+                lastCompletedDeviceEIR = device.getEIR().clone();
                 BTUtils.println(System.err, "XXXXXX Client Ready: "+device);
             }
         };
@@ -191,10 +192,10 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
         Assert.assertTrue( lastCompletedDeviceEIR.isSet(EIRDataTypeSet.DataType.CONN_IVAL) );
         Assert.assertEquals(serverName, lastCompletedDeviceEIR.getName());
         {
-            final EInfoReport eir = lastCompletedDevice.getEIR();
+            final EInfoReport eir = lastCompletedDevice.getEIR().clone();
             BTUtils.println(System.err, "lastCompletedDevice.currentEIR: "+eir.toString());
             Assert.assertEquals(0, eir.getEIRDataMask().mask);
-            Assert.assertEquals(0, lastCompletedDeviceEIR.getName().length());
+            Assert.assertEquals(0, eir.getName().length());
         }
 
         //
