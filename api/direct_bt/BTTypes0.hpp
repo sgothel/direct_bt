@@ -913,7 +913,7 @@ namespace direct_bt {
             /** Flag whether source originated from an extended BT5 data set, i.e. EAD */
             bool source_ext = false;
             uint64_t timestamp = 0;
-            EIRDataType eir_data_mask = static_cast<EIRDataType>(0);
+            EIRDataType eir_data_mask = EIRDataType::NONE;
 
             AD_PDU_Type evt_type = AD_PDU_Type::UNDEFINED;
             EAD_Event_Type ead_type = EAD_Event_Type::NONE;
