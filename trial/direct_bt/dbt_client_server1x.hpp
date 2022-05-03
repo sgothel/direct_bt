@@ -29,6 +29,9 @@
 
 #include "dbt_base_client_server.hpp"
 
+#include "dbt_server00.hpp"
+#include "dbt_client00.hpp"
+
 using namespace direct_bt;
 
 /**

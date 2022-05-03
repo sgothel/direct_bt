@@ -34,6 +34,8 @@
 
 #include "dbt_base_client_server.hpp"
 
+#include "dbt_server00.hpp"
+
 using namespace direct_bt;
 
 // Singleton test framework, alive until test program ends

@@ -27,10 +27,13 @@
 
 #include "dbt_utils.hpp"
 
-#include "dbt_server00.hpp"
-#include "dbt_client00.hpp"
+#include "dbt_constants.hpp"
+
+#include <direct_bt/DirectBT.hpp>
 
 #include <jau/simple_timer.hpp>
+
+using namespace direct_bt;
 
 class BaseDBTClientServer {
     private:

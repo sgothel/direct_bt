@@ -17,7 +17,7 @@ if [ ! -e $JAVA_HOME ] ; then
     exit 1
 fi
 
-test_class=trial.org.direct_bt.TestDBTClientServer01_NoEnc
+test_class=trial.org.direct_bt.TestDBTClientServer10_NoEnc
 
 if [ ! -z "$1" ] ; then
     test_class=$1
