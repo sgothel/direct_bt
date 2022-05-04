@@ -68,7 +68,8 @@ static const std::string _gattCharPropSetClazzCtorArgs("(B)V");
 jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj) {
     try {
         BTGattService *service = getJavaUplinkObject<BTGattService>(env, obj);
-        JavaGlobalObj::check(service->getJavaObject(), E_FILE_LINE);
+        std::shared_ptr<JavaAnon> service_java = service->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(service_java, E_FILE_LINE);
 
         jau::darray<std::shared_ptr<BTGattChar>> & characteristics = service->characteristicList;
 
@@ -100,10 +101,12 @@ jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj
                     // prepare adapter ctor
                     std::shared_ptr<BTGattService> _service = characteristic->getServiceUnchecked();
                     if( nullptr == _service ) {
-                        throw jau::RuntimeException("Characteristic's device null: "+characteristic->toString(), E_FILE_LINE);
+                        throw jau::RuntimeException("Characteristic's service null: "+characteristic->toString(), E_FILE_LINE);
                     }
-                    JavaGlobalObj::check(_service->getJavaObject(), E_FILE_LINE);
-                    jobject jservice = JavaGlobalObj::GetObject(_service->getJavaObject());
+                    std::shared_ptr<JavaAnon> _service_java = _service->getJavaObject(); // hold until done!
+                    JavaGlobalObj::check(_service_java, E_FILE_LINE);
+
+                    jobject jservice = JavaGlobalObj::GetObject(_service_java);
 
                     jobject jGattCharPropSet = env_->NewObject(gattCharPropSetClazz, gattCharPropSetClazzCtor, (jbyte)characteristic->properties);
                     jau::java_exception_check_and_throw(env_, E_FILE_LINE);

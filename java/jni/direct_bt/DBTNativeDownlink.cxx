@@ -39,7 +39,8 @@ void Java_jau_direct_1bt_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, job
 {
     try {
         JavaUplink *javaUplink = castInstance<JavaUplink>(nativeInstance);
-        jclass javaClazz = search_class(env, obj);
+        JNIGlobalRef global_obj(obj); // hold until done!
+        jclass javaClazz = search_class(env, global_obj.getObject());
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == javaClazz ) {
             throw InternalError("DBTNativeDownlink class not found", E_FILE_LINE);
@@ -49,7 +50,7 @@ void Java_jau_direct_1bt_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, job
         if( nullptr == mNotifyDeleted ) {
             throw InternalError("DBTNativeDownlink class has no notifyDeleted() method, for "+javaUplink->toString(), E_FILE_LINE);
         }
-        javaUplink->setJavaObject( std::shared_ptr<JavaAnon>( new JavaGlobalObj(obj, mNotifyDeleted) ) );
+        javaUplink->setJavaObject( std::shared_ptr<JavaAnon>( new JavaGlobalObj(global_obj, mNotifyDeleted) ) );
         JavaGlobalObj::check(javaUplink->getJavaObject(), E_FILE_LINE);
         DBG_JNI_PRINT("Java_jau_direct_1bt_DBTNativeDownlink_initNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
     } catch(...) {

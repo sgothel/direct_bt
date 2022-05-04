@@ -835,7 +835,8 @@ static const std::string _serviceClazzCtorArgs("(JLjau/direct_bt/DBTDevice;ZLjav
 jobject Java_jau_direct_1bt_DBTDevice_getGattServicesImpl(JNIEnv *env, jobject obj) {
     try {
         BTDevice *device = getJavaUplinkObject<BTDevice>(env, obj);
-        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+        std::shared_ptr<JavaAnon> device_java = device->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         jau::darray<BTGattServiceRef> services = device->getGattServices(); // implicit GATT connect and discovery if required incl GenericAccess retrieval
         if( services.size() == 0 ) {
@@ -848,9 +849,14 @@ jobject Java_jau_direct_1bt_DBTDevice_getGattServicesImpl(JNIEnv *env, jobject o
         std::function<jobject(JNIEnv*, jclass, jmethodID, BTGattService*)> ctor_service =
                 [](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, BTGattService *service)->jobject {
                     // prepare adapter ctor
-                    std::shared_ptr<BTDevice> _device = service->getDeviceChecked();
-                    JavaGlobalObj::check(_device->getJavaObject(), E_FILE_LINE);
-                    jobject jdevice = JavaGlobalObj::GetObject(_device->getJavaObject());
+                    std::shared_ptr<BTDevice> _device = service->getDeviceUnchecked();
+                    if( nullptr == _device ) {
+                        throw jau::RuntimeException("Service's device null: "+service->toString(), E_FILE_LINE);
+                    }
+                    std::shared_ptr<JavaAnon> _device_java = _device->getJavaObject(); // hold until done!
+                    JavaGlobalObj::check(_device_java, E_FILE_LINE);
+                    jobject jdevice = JavaGlobalObj::GetObject(_device_java);
+
                     const jboolean isPrimary = service->primary;
                     const jstring juuid = from_string_to_jstring(env_, service->type->toUUID128String());
                     java_exception_check_and_throw(env_, E_FILE_LINE);

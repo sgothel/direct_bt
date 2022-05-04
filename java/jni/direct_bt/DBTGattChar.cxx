@@ -63,7 +63,8 @@ static const std::string _descriptorClazzCtorArgs("(JLjau/direct_bt/DBTGattChar;
 jobject Java_jau_direct_1bt_DBTGattChar_getDescriptorsImpl(JNIEnv *env, jobject obj) {
     try {
         BTGattChar *characteristic = getJavaUplinkObject<BTGattChar>(env, obj);
-        JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
+        std::shared_ptr<JavaAnon> characteristic_java = characteristic->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(characteristic_java, E_FILE_LINE);
 
         jau::darray<BTGattDescRef> & descriptorList = characteristic->descriptorList;
 
@@ -76,9 +77,13 @@ jobject Java_jau_direct_1bt_DBTGattChar_getDescriptorsImpl(JNIEnv *env, jobject 
         std::function<jobject(JNIEnv*, jclass, jmethodID, BTGattDesc *)> ctor_desc =
                 [](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, BTGattDesc *descriptor)->jobject {
                     // prepare adapter ctor
-                    std::shared_ptr<BTGattChar> _characteristic = descriptor->getGattCharChecked();
-                    JavaGlobalObj::check(_characteristic->getJavaObject(), E_FILE_LINE);
-                    jobject jcharacteristic = JavaGlobalObj::GetObject(_characteristic->getJavaObject());
+                    std::shared_ptr<BTGattChar> _characteristic = descriptor->getGattCharUnchecked();
+                    if( nullptr == _characteristic ) {
+                        throw jau::RuntimeException("Descriptor's characteristic null: "+descriptor->toString(), E_FILE_LINE);
+                    }
+                    std::shared_ptr<JavaAnon> _characteristic_java = _characteristic->getJavaObject(); // hold until done!
+                    JavaGlobalObj::check(_characteristic_java, E_FILE_LINE);
+                    jobject jcharacteristic = JavaGlobalObj::GetObject(_characteristic_java);
 
                     const jstring juuid = from_string_to_jstring(env_, descriptor->type->toUUID128String());
                     java_exception_check_and_throw(env_, E_FILE_LINE);
