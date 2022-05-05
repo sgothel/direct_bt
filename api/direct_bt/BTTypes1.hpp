@@ -44,25 +44,25 @@ namespace direct_bt {
     class BTObject : public jau::JavaUplink
     {
         protected:
-            std::atomic_bool valid;
+            std::atomic_bool instance_valid;
 
-            BTObject() noexcept : valid(true) {}
+            BTObject() noexcept : instance_valid(true) {}
 
         public:
             std::string toString() const noexcept override { return "BTObject["+to_hexstring(this)+"]"; }
 
             ~BTObject() noexcept override {
-                valid = false;
+                instance_valid = false;
             }
 
             /**
              * Returns whether the object's reference is valid and in a general operational state.
              */
-            inline bool isValid() const noexcept { return valid.load(); }
+            inline bool isValidInstance() const noexcept { return instance_valid.load(); }
 
-            void checkValid() const override {
-                if( !isValid() ) {
-                    throw jau::IllegalStateException("BTObject::checkValid: Invalid object: "+toString(), E_FILE_LINE);
+            void checkValidInstance() const override {
+                if( !isValidInstance() ) {
+                    throw jau::IllegalStateException("BTObject::checkValidInstance: Invalid object: "+toString(), E_FILE_LINE);
                 }
             }
     };

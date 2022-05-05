@@ -399,7 +399,7 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const A
 {
     (void)cc;
 
-    valid = initialSetup();
+    adapter_operational = initialSetup();
     if( isValid() ) {
         const bool r = smp_watchdog.start(SMP_NEXT_EVENT_TIMEOUT_MS, jau::bindMemberFunc(this, &BTAdapter::smp_timeoutfunc));
         DBG_PRINT("BTAdapter::ctor: dev_id %d: smp_watchdog.smp_timeoutfunc started %d", dev_id, r);
@@ -472,7 +472,7 @@ void BTAdapter::close() noexcept {
         key_list.clear();
         key_path.clear();
     }
-    valid = false;
+    adapter_operational = false;
     DBG_PRINT("BTAdapter::close: XXX");
 }
 
@@ -527,7 +527,7 @@ void BTAdapter::printDeviceList(const std::string& prefix, const BTAdapter::devi
     for (auto it = list.begin(); it != list.end(); ++idx, ++it) {
         if( nullptr != (*it) ) {
             jau::PLAIN_PRINT(true, "  - %d / %zu: null", (idx+1), sz);
-        } else if( (*it)->isValid() ) {
+        } else if( (*it)->isValidInstance() ) {
             jau::PLAIN_PRINT(true, "  - %d / %zu: invalid", (idx+1), sz);
         } else {
             jau::PLAIN_PRINT(true, "  - %d / %zu: %s, name '%s'", (idx+1), sz,
@@ -545,7 +545,7 @@ void BTAdapter::printWeakDeviceList(const std::string& prefix, BTAdapter::weak_d
         BTDeviceRef e = w.lock();
         if( nullptr == e ) {
             jau::PLAIN_PRINT(true, "  - %d / %zu: null", (idx+1), sz);
-        } else if( !e->isValid() ) {
+        } else if( !e->isValidInstance() ) {
             jau::PLAIN_PRINT(true, "  - %d / %zu: invalid", (idx+1), sz);
         } else {
             jau::PLAIN_PRINT(true, "  - %d / %zu: %s, name '%s'", (idx+1), sz,
@@ -1861,7 +1861,7 @@ jau::fraction_i64 BTAdapter::smp_timeoutfunc(jau::simple_timer& timer) {
     {
         const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
         jau::for_each_fidelity(connectedDevices, [&](BTDeviceRef& device) {
-            if( device->isValid() && device->getConnected() &&
+            if( device->isValidInstance() && device->getConnected() &&
                 BTSecurityLevel::NONE < device->getConnSecurityLevel() &&
                 SMPPairingState::KEY_DISTRIBUTION == device->pairing_data.state )
                 // isSMPPairingActive( device->pairing_data.state ) &&
@@ -2634,7 +2634,7 @@ void BTAdapter::sendDeviceReady(BTDeviceRef device, uint64_t timestamp) noexcept
     jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {
             // Only issue if valid && received connected confirmation (HCI) && not have called disconnect yet.
-            if( device->isValid() && device->getConnected() && device->allowDisconnect ) {
+            if( device->isValidInstance() && device->getConnected() && device->allowDisconnect ) {
                 if( p.listener->matchDevice(*device) ) {
                     p.listener->deviceReady(device, timestamp);
                 }

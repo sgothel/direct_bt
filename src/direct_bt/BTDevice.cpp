@@ -1430,7 +1430,7 @@ SMPKeyType BTDevice::getAvailableSMPKeys(const bool responder) const noexcept {
 bool BTDevice::setSMPKeyBin(const SMPKeyBin& bin) noexcept {
     const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
-    if( !isValid() ) {
+    if( !isValidInstance() ) {
         ERR_PRINT("Device invalid: %p", jau::to_hexstring((void*)this).c_str());
         return false;
     }
@@ -1643,7 +1643,7 @@ SMPIOCapability BTDevice::getConnIOCapability() const noexcept {
 }
 
 bool BTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {
-    if( !isValid() ) {
+    if( !isValidInstance() ) {
         ERR_PRINT("Device invalid: %p", jau::to_hexstring((void*)this).c_str());
         return false;
     }
@@ -1685,7 +1685,7 @@ bool BTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapab
 }
 
 bool BTDevice::setConnSecurityAuto(const SMPIOCapability iocap_auto) noexcept {
-    if( !isValid() ) {
+    if( !isValidInstance() ) {
         ERR_PRINT("Device invalid: %p", jau::to_hexstring((void*)this).c_str());
         return false;
     }
@@ -2040,7 +2040,7 @@ BTGattCharRef BTDevice::findGattChar(const jau::uuid_t& char_uuid) noexcept {
 }
 
 bool BTDevice::sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value) noexcept {
-    if( !isValid() ) {
+    if( !isValidInstance() ) {
         ERR_PRINT("Device invalid: %p", jau::to_hexstring((void*)this).c_str());
         return false;
     }
@@ -2053,7 +2053,7 @@ bool BTDevice::sendNotification(const uint16_t char_value_handle, const jau::TRO
 }
 
 bool BTDevice::sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value) noexcept {
-    if( !isValid() ) {
+    if( !isValidInstance() ) {
         ERR_PRINT("Device invalid: %p", jau::to_hexstring((void*)this).c_str());
         return false;
     }

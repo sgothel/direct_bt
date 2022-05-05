@@ -110,7 +110,7 @@ namespace direct_bt {
             bool isConnected() const noexcept;
 
             bool isResolvedEq() const noexcept {
-                return nullptr != cmdCharRef && cmdCharRef->isValid();
+                return nullptr != cmdCharRef && cmdCharRef->isValidInstance();
             }
 
             HCIStatusCode setup() noexcept;

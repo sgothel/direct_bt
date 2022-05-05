@@ -334,6 +334,7 @@ namespace direct_bt {
 
             const bool debug_event, debug_lock;
             BTManager& mgmt;
+            std::atomic_bool adapter_operational;
             AdapterInfo adapterInfo;
 
             /** Flag signaling whether initialize() has been called, regardless of success. */
@@ -644,7 +645,7 @@ namespace direct_bt {
              * @see #isSuspended()
              */
             bool isValid() const noexcept {
-                return BTObject::isValid();
+                return BTObject::isValidInstance() && adapter_operational;
             }
 
             /**
