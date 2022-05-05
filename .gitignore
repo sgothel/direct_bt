@@ -17,6 +17,7 @@ issues/
 *.swo
 *~
 *.log
+doc/log/*
 
 # Eclipse files
 #.cproject
