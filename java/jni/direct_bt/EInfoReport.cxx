@@ -165,7 +165,7 @@ void Java_org_direct_1bt_EInfoReport_setAddressImpl(JNIEnv *env, jobject obj, jb
         if( sizeof(EUI48) > address_size ) {
             throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(EUI48)), E_FILE_LINE);
         }
-        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        jau::JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == address_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(address byte array) is null", E_FILE_LINE);
@@ -661,7 +661,7 @@ void Java_org_direct_1bt_EInfoReport_getConnInterval(JNIEnv *env, jobject obj, j
         if( 2 > array_size ) {
             throw jau::IllegalArgumentException("minmax array size "+std::to_string(array_size)+" < 2", E_FILE_LINE);
         }
-        JNICriticalArray<uint16_t, jshortArray> criticalArray(env); // RAII - release
+        jau::JNICriticalArray<uint16_t, jshortArray> criticalArray(env); // RAII - release
         uint16_t * array_ptr = criticalArray.get(jminmax, criticalArray.Mode::UPDATE_AND_RELEASE);
         if( NULL == array_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(short array) is null", E_FILE_LINE);

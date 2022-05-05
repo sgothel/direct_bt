@@ -90,7 +90,7 @@ jstring Java_org_direct_1bt_BTUtils_decodeUTF8String(JNIEnv *env, jclass clazz, 
 
     std::string sres;
     {
-        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        jau::JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * buffer_ptr = criticalArray.get(jbuffer, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == buffer_ptr ) {
             throw jau::IllegalArgumentException("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);

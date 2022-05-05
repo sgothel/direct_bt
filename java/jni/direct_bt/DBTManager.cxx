@@ -118,7 +118,7 @@ void Java_jau_direct_1bt_DBTManager_initImpl(JNIEnv *env, jobject obj)
         manager->setJavaObject( std::shared_ptr<JavaAnon>( new JavaGlobalObj(obj, nullptr) ) );
         JavaGlobalObj::check(manager->getJavaObject(), E_FILE_LINE);
 
-        JNIGlobalRef jmgmtRef = JavaGlobalObj::GetJavaObject(manager->getJavaObject());
+        jau::JNIGlobalRef jmgmtRef = JavaGlobalObj::GetJavaObject(manager->getJavaObject());
         _addMgmtCBOnce(env, *manager, jmgmtRef, MgmtEvent::Opcode::INDEX_REMOVED, _removeAdapterCBMethodName, _removeAdapterCBMethodArgs);
         _addMgmtCBOnce(env, *manager, jmgmtRef, MgmtEvent::Opcode::INDEX_ADDED, _updatedAdapterCBMethodName, _updatedAdapterCBMethodArgs);
         _addMgmtCBOnce(env, *manager, jmgmtRef, MgmtEvent::Opcode::NEW_SETTINGS, _updatedAdapterCBMethodName, _updatedAdapterCBMethodArgs);
