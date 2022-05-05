@@ -573,7 +573,7 @@ namespace direct_bt {
             /**
              * Releases this instance.
              */
-            ~BTAdapter() noexcept;
+            ~BTAdapter() noexcept override;
 
             /**
              * Closes this instance, usually being called by destructor or when this adapter is being removed

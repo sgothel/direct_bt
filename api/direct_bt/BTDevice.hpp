@@ -255,7 +255,7 @@ namespace direct_bt {
             /**
              * Releases this instance after calling {@link #remove()}.
              */
-            ~BTDevice() noexcept;
+            ~BTDevice() noexcept override;
 
             std::string get_java_class() const noexcept override {
                 return java_class();

@@ -328,7 +328,7 @@ namespace direct_bt {
                 static BTManager s;
                 return s;
             }
-            ~BTManager() noexcept { close(); }
+            ~BTManager() noexcept override { close(); }
 
             void close() noexcept;
 

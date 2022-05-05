@@ -49,9 +49,9 @@ namespace direct_bt {
             BTObject() noexcept : valid(true) {}
 
         public:
-            virtual std::string toString() const noexcept override { return "BTObject["+to_hexstring(this)+"]"; }
+            std::string toString() const noexcept override { return "BTObject["+to_hexstring(this)+"]"; }
 
-            virtual ~BTObject() noexcept {
+            ~BTObject() noexcept override {
                 valid = false;
             }
 
@@ -60,7 +60,7 @@ namespace direct_bt {
              */
             inline bool isValid() const noexcept { return valid.load(); }
 
-            inline void checkValid() const override {
+            void checkValid() const override {
                 if( !isValid() ) {
                     throw jau::IllegalStateException("BTObject::checkValid: Invalid object: "+toString(), E_FILE_LINE);
                 }

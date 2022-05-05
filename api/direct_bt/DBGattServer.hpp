@@ -139,7 +139,7 @@ namespace direct_bt {
                 return java_class();
             }
 
-            ~DBGattDesc() {
+            ~DBGattDesc() noexcept override {
                 JAU_TRACE_DBGATT_PRINT("DBGattDesc dtor0: %p", this);
             }
 
@@ -345,7 +345,7 @@ namespace direct_bt {
                 return java_class();
             }
 
-            ~DBGattChar() {
+            ~DBGattChar() noexcept override {
                 JAU_TRACE_DBGATT_PRINT("DBGattChar dtor0: %p", this);
             }
 
@@ -543,7 +543,7 @@ namespace direct_bt {
                 return java_class();
             }
 
-            ~DBGattService() {
+            ~DBGattService() noexcept override {
                 JAU_TRACE_DBGATT_PRINT("DBGattService dtor0: %p", this);
             }
 
@@ -826,7 +826,7 @@ namespace direct_bt {
                 return java_class();
             }
 
-            ~DBGattServer() {
+            ~DBGattServer() noexcept override {
                 #ifdef JAU_TRACE_DBGATT
                     JAU_TRACE_DBGATT_PRINT("DBGattServer dtor0: %p", this);
                     jau::print_backtrace(true);
