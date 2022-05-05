@@ -113,9 +113,10 @@ void Java_jau_direct_1bt_DBTManager_initImpl(JNIEnv *env, jobject obj)
 {
     try {
         BTManager *manager = &BTManager::get(); // special: static singleton
-        setInstance<BTManager>(env, obj, manager);
+        jau::JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
+        setInstance<BTManager>(env, global_obj.getObject(), manager);
         java_exception_check_and_throw(env, E_FILE_LINE);
-        manager->setJavaObject( std::shared_ptr<JavaAnon>( new JavaGlobalObj(obj, nullptr) ) );
+        manager->setJavaObject( std::make_shared<jau::JavaGlobalObj>( std::move(global_obj), nullptr ) );
         JavaGlobalObj::check(manager->getJavaObject(), E_FILE_LINE);
 
         jau::JNIGlobalRef jmgmtRef = JavaGlobalObj::GetJavaObject(manager->getJavaObject());

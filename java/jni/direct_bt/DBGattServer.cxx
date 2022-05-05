@@ -136,6 +136,7 @@ jlong Java_org_direct_1bt_DBGattDesc_ctorImpl(JNIEnv *env, jobject obj,
         if( nullptr == jvalue_ ) {
             throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
         }
+        jau::JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
 
         // POctets value
         jau::POctets value(jcapacity_, env->GetArrayLength(jvalue_), jau::endian::little);
@@ -156,7 +157,7 @@ jlong Java_org_direct_1bt_DBGattDesc_ctorImpl(JNIEnv *env, jobject obj,
         std::shared_ptr<DBGattDesc> ref = std::make_shared<DBGattDesc>(
                                             type, std::move(value), JNI_TRUE == jvariable_length_);
 
-        ref->setJavaObject( std::shared_ptr<jau::JavaAnon>( new jau::JavaGlobalObj(obj, nullptr) ) );
+        ref->setJavaObject( std::make_shared<jau::JavaGlobalObj>( std::move(global_obj), nullptr ) );
         jau::JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
 
         std::shared_ptr<DBGattDesc> * ref_ptr = new std::shared_ptr<DBGattDesc>(std::move(ref));
@@ -275,6 +276,7 @@ jlong Java_org_direct_1bt_DBGattChar_ctorImpl(JNIEnv *env, jobject obj,
         if( nullptr == jDescriptors ) {
             throw jau::IllegalArgumentException("descriptor array null", E_FILE_LINE);
         }
+        jau::JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
 
         // POctets value
         jau::POctets value(jcapacity_, env->GetArrayLength(jvalue_), jau::endian::little);
@@ -315,7 +317,7 @@ jlong Java_org_direct_1bt_DBGattChar_ctorImpl(JNIEnv *env, jobject obj,
                                             std::move(descriptors),
                                             std::move(value), JNI_TRUE == jvariable_length_);
 
-        ref->setJavaObject( std::shared_ptr<jau::JavaAnon>( new jau::JavaGlobalObj(obj, nullptr) ) );
+        ref->setJavaObject( std::make_shared<jau::JavaGlobalObj>( std::move(global_obj), nullptr ) );
         jau::JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
 
         std::shared_ptr<DBGattChar> * ref_ptr = new std::shared_ptr<DBGattChar>(std::move(ref));
@@ -410,6 +412,7 @@ jlong Java_org_direct_1bt_DBGattService_ctorImpl(JNIEnv *env, jobject obj,
         if( nullptr == jCharacteristics ) {
             throw jau::IllegalArgumentException("characteristics array null", E_FILE_LINE);
         }
+        jau::JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
 
         // DBGattCharRef List
         jau::darray<DBGattCharRef> characteristics( env->GetArrayLength(jCharacteristics) /* capacity */ );
@@ -435,7 +438,7 @@ jlong Java_org_direct_1bt_DBGattService_ctorImpl(JNIEnv *env, jobject obj,
                                             JNI_TRUE == jprimary, type,
                                             std::move(characteristics));
 
-        ref->setJavaObject( std::shared_ptr<jau::JavaAnon>( new jau::JavaGlobalObj(obj, nullptr) ) );
+        ref->setJavaObject( std::make_shared<jau::JavaGlobalObj>( std::move(global_obj), nullptr ) );
         jau::JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
 
         std::shared_ptr<DBGattService> * ref_ptr = new std::shared_ptr<DBGattService>(std::move(ref));
@@ -507,6 +510,7 @@ jlong Java_org_direct_1bt_DBGattServer_ctorImpl(JNIEnv *env, jobject obj,
         if( nullptr == jService ) {
             throw jau::IllegalArgumentException("characteristics array null", E_FILE_LINE);
         }
+        jau::JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
 
         // DBGattServiceRef List
         jau::darray<DBGattServiceRef> services( env->GetArrayLength(jService) /* capacity */ );
@@ -528,7 +532,7 @@ jlong Java_org_direct_1bt_DBGattServer_ctorImpl(JNIEnv *env, jobject obj,
                                             jmax_att_mtu,
                                             std::move(services));
 
-        ref->setJavaObject( std::shared_ptr<jau::JavaAnon>( new jau::JavaGlobalObj(obj, nullptr) ) );
+        ref->setJavaObject( std::make_shared<jau::JavaGlobalObj>( std::move(global_obj), nullptr ) );
         jau::JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
 
         std::shared_ptr<DBGattServer> * ref_ptr = new std::shared_ptr<DBGattServer>(std::move(ref));
