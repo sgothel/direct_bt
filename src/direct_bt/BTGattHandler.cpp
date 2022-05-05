@@ -750,7 +750,7 @@ std::unique_ptr<const AttPDUMsg> BTGattHandler::sendWithReply(const AttPDUMsg & 
     std::unique_ptr<const AttPDUMsg> res;
     if( !attPDURing.getBlocking(res, timeout) || nullptr == res ) {
         errno = ETIMEDOUT;
-        ERR_PRINT("GATTHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout.to_ms(), msg.toString().c_str(), toString().c_str());
+        ERR_PRINT("GATTHandler::sendWithReply: nullptr result (timeout %" PRIi64 " ms): req %s to %s", timeout.to_ms(), msg.toString().c_str(), toString().c_str());
         has_ioerror = true;
         disconnect(true /* disconnect_device */, true /* ioerr_cause */);
         return nullptr;

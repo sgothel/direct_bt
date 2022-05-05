@@ -607,8 +607,8 @@ std::unique_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int32_t & re
         std::unique_ptr<HCIEvent> ev;
         if( !hciEventRing.getBlocking(ev, replyTimeout) || nullptr == ev ) {
             errno = ETIMEDOUT;
-            ERR_PRINT("HCIHandler<%u>::getNextReply: nullptr result (timeout %s -> abort): req %s - %s",
-                    dev_id, replyTimeout.to_string(), req.toString().c_str(), toString().c_str());
+            ERR_PRINT("HCIHandler<%u>::getNextReply: nullptr result (timeout %" PRIi64 " ms -> abort): req %s - %s",
+                    dev_id, replyTimeout.to_ms(), req.toString().c_str(), toString().c_str());
             return nullptr;
         } else if( !ev->validate(req) ) {
             // This could occur due to an earlier timeout w/ a nullptr == res (see above),
@@ -1259,9 +1259,9 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
             pendingConnections = countPendingTrackerConnections();
         }
         if( 0 < pendingConnections ) {
-            WARN_PRINT("HCIHandler::le_create_conn: %d connections pending after %d ms - %s", pendingConnections, td.to_ms(), toString().c_str());
+            WARN_PRINT("HCIHandler::le_create_conn: %d connections pending after %" PRIi64 " ms - %s", pendingConnections, td.to_ms(), toString().c_str());
         } else {
-            DBG_PRINT("HCIHandler::le_create_conn: pending connections resolved after %d ms - %s", td.to_ms(), toString().c_str());
+            DBG_PRINT("HCIHandler::le_create_conn: pending connections resolved after %" PRIi64 " ms - %s", td.to_ms(), toString().c_str());
         }
     }
     const BDAddressAndType addressAndType(peer_bdaddr, to_BDAddressType(peer_mac_type));
@@ -1276,10 +1276,10 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
             disconn = findDisconnectCmd(addressAndType);
         }
         if( nullptr != disconn ) {
-            WARN_PRINT("HCIHandler::le_create_conn: disconnect persisting after %d ms: %s - %s",
+            WARN_PRINT("HCIHandler::le_create_conn: disconnect persisting after %" PRIi64 " ms: %s - %s",
                     td.to_ms(), disconn->toString().c_str(), toString().c_str());
         } else {
-            DBG_PRINT("HCIHandler::le_create_conn: disconnect resolved after %d ms - %s", td.to_ms(), toString().c_str());
+            DBG_PRINT("HCIHandler::le_create_conn: disconnect resolved after %" PRIi64 " ms - %s", td.to_ms(), toString().c_str());
         }
     }
     HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, 0);
@@ -1388,9 +1388,9 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
             pendingConnections = countPendingTrackerConnections();
         }
         if( 0 < pendingConnections ) {
-            WARN_PRINT("HCIHandler::create_conn: %d connections pending after %d ms - %s", pendingConnections, td.to_ms(), toString().c_str());
+            WARN_PRINT("HCIHandler::create_conn: %d connections pending after %" PRIi64 " ms - %s", pendingConnections, td.to_ms(), toString().c_str());
         } else {
-            DBG_PRINT("HCIHandler::create_conn: pending connections resolved after %d ms - %s", td.to_ms(), toString().c_str());
+            DBG_PRINT("HCIHandler::create_conn: pending connections resolved after %" PRIi64 " ms - %s", td.to_ms(), toString().c_str());
         }
     }
     const BDAddressAndType addressAndType(bdaddr, BDAddressType::BDADDR_BREDR);
@@ -1405,10 +1405,10 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
             disconn = findDisconnectCmd(addressAndType);
         }
         if( nullptr != disconn ) {
-            WARN_PRINT("HCIHandler::create_conn: disconnect persisting after %s ms: %s - %s",
+            WARN_PRINT("HCIHandler::create_conn: disconnect persisting after %" PRIi64 " ms: %s - %s",
                     td.to_ms(), disconn->toString().c_str(), toString().c_str());
         } else {
-            DBG_PRINT("HCIHandler::create_conn: disconnect resolved after %d ms - %s", td.to_ms(), toString().c_str());
+            DBG_PRINT("HCIHandler::create_conn: disconnect resolved after %" PRIi64 " ms - %s", td.to_ms(), toString().c_str());
         }
     }
     HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, 0);
