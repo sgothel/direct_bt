@@ -580,13 +580,13 @@ class DBTClient01 : public DBTClientTest {
             return status;
         }
 
-        void close(const std::string& msg) {
+        void close(const std::string& msg) override {
             fprintf_td(stderr, "****** Client Close: %s\n", msg.c_str());
             clientAdapter->stopDiscovery();
             clientAdapter->removeStatusListener( myAdapterStatusListener );
         }
 
-        bool initAdapter(BTAdapterRef adapter) {
+        bool initAdapter(BTAdapterRef adapter) override {
             if( useAdapter != EUI48::ALL_DEVICE && useAdapter != adapter->getAddressAndType().address ) {
                 fprintf_td(stderr, "initClientAdapter: Adapter not selected: %s\n", adapter->toString().c_str());
                 return false;
