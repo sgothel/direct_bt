@@ -22,15 +22,15 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef DBT_CLIENT00_HPP_
-#define DBT_CLIENT00_HPP_
+#ifndef DBT_CLIENT01_HPP_
+#define DBT_CLIENT01_HPP_
 
 #include "dbt_constants.hpp"
 
 #include "dbt_client_test.hpp"
 
 class DBTClient01;
-typedef std::shared_ptr<DBTClient01> DBTClientRef;
+typedef std::shared_ptr<DBTClient01> DBTClient01Ref;
 
 using namespace jau;
 using namespace jau::fractions_i64_literals;
@@ -64,10 +64,12 @@ class DBTClient01 : public DBTClientTest {
 
         jau::sc_atomic_int deviceReadyCount = 0;
 
+        jau::sc_atomic_int disconnectCount = 0;
         jau::sc_atomic_int notificationsReceived = 0;
         jau::sc_atomic_int indicationsReceived = 0;
         jau::sc_atomic_int completedGATTCommands = 0;
-        jau::sc_atomic_int completedMeasurements = 0;
+        jau::sc_atomic_int completedMeasurementsTotal = 0;
+        jau::sc_atomic_int completedMeasurementsSuccess = 0;
         jau::sc_atomic_int measurementsLeft = 0;
 
     private:
@@ -214,6 +216,8 @@ class DBTClient01 : public DBTClientTest {
                         to_hexstring(handle).c_str(), device->toString(true).c_str());
                 (void)timestamp;
 
+                parent.disconnectCount++;
+
                 std::thread dc(&DBTClient01::removeDevice, &parent, device); // @suppress("Invalid arguments")
                 dc.detach();
             }
@@ -281,6 +285,32 @@ class DBTClient01 : public DBTClientTest {
         }
 
         BTAdapterRef getAdapter() override { return clientAdapter; }
+
+        void setProtocolSessionsLeft(const int v) override {
+            measurementsLeft = v;
+        }
+        int getProtocolSessionsLeft() override {
+            return measurementsLeft;
+        }
+        int getProtocolSessionsDoneTotal() override {
+            return completedMeasurementsTotal;
+        }
+        int getProtocolSessionsDoneSuccess() override {
+            return completedMeasurementsSuccess;
+        }
+        int getDisconnectCount() override {
+            return disconnectCount;
+        }
+
+        void setDiscoveryPolicy(const DiscoveryPolicy v) override {
+            discoveryPolicy = v;
+        }
+        void setKeepConnected(const bool v) override {
+            KEEP_CONNECTED = v;
+        }
+        void setRemoveDevice(const bool v) override {
+            REMOVE_DEVICE = v;
+        }
 
     private:
         void resetLastProcessingStats() {
@@ -475,7 +505,7 @@ class DBTClient01 : public DBTClientTest {
                             const fraction_i64 td = ( getMonotonicTime() - t0 ).to_fraction_i64();
                             timeout = 3_s < td;
                             if( !timeout ) {
-                                std::this_thread::sleep_for(std::chrono::milliseconds(17));
+                                jau::sleep_for( 17_ms );
                             }
                         }
                     } while( !success && !timeout );
@@ -510,9 +540,6 @@ class DBTClient01 : public DBTClientTest {
                     }
                     // cmd.close(); // done via dtor
                 }
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-                success = true;
             } catch ( std::exception & e ) {
                 fprintf_td(stderr, "****** Client Processing Ready Device: Exception.2 caught for %s: %s\n", device->toString().c_str(), e.what());
             }
@@ -538,8 +565,9 @@ class DBTClient01 : public DBTClientTest {
                 }
             }
 
+            completedMeasurementsTotal++;
             if( success ) {
-                completedMeasurements++;
+                completedMeasurementsSuccess++;
             }
             if( 0 < measurementsLeft ) {
                 measurementsLeft--;
@@ -547,7 +575,7 @@ class DBTClient01 : public DBTClientTest {
             fprintf_td(stderr, "****** Client Processing Ready Device: Success %d; Measurements completed %d"
                             ", left %d; Received notitifications %d, indications %d"
                             "; Completed GATT commands %d: %s\n",
-                            success, completedMeasurements.load(),
+                            success, completedMeasurementsSuccess.load(),
                             measurementsLeft.load(), notificationsReceived.load(), indicationsReceived.load(),
                             completedGATTCommands.load(), device->getAddressAndType().toString().c_str());
         }
@@ -652,4 +680,4 @@ class DBTClient01 : public DBTClientTest {
         }
 };
 
-#endif /* DBT_CLIENT00_HPP_ */
+#endif /* DBT_CLIENT01_HPP_ */

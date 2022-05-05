@@ -33,6 +33,30 @@ typedef std::shared_ptr<DBTClientTest> DBTClientTestRef;
 class DBTClientTest : public DBTEndpoint {
 
     public:
+        /**
+         * Set DiscoveryPolicy
+         *
+         * Default is {@link DiscoveryPolicy#PAUSE_CONNECTED_UNTIL_READY}
+         */
+        virtual void setDiscoveryPolicy(const DiscoveryPolicy v) = 0;
+
+        /**
+         * Set disconnect after processing.
+         *
+         * Default is `false`.
+         */
+        virtual void setKeepConnected(const bool v) = 0;
+
+        /**
+         * Set remove device when disconnecting.
+         *
+         * This removes the device from all instances within adapter
+         * and hence all potential side-effects of the current instance.
+         *
+         * Default is `false`, since it is good to test whether such side-effects exists.
+         */
+        virtual void setRemoveDevice(const bool v) = 0;
+
         virtual HCIStatusCode startDiscovery(const std::string& msg) = 0;
 
         virtual HCIStatusCode stopDiscovery(const std::string& msg) = 0;

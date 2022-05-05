@@ -54,10 +54,22 @@ class DBTClientServer1x {
 
   public:
     void test8x_fullCycle(const std::string& suffix, const int protocolSessionCount, const bool server_client_order,
-                          const bool serverSC, const BTSecurityLevel secLevelServer, const bool serverShallHaveKeys,
-                          const BTSecurityLevel secLevelClient, const bool clientShallHaveKeys)
+                          const bool serverSC, const BTSecurityLevel secLevelServer, const ExpectedPairing serverExpPairing,
+                          const BTSecurityLevel secLevelClient, const ExpectedPairing clientExpPairing)
     {
-        (void)serverShallHaveKeys;
+        std::shared_ptr<DBTServer00> server = std::make_shared<DBTServer00>("S-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, serverSC, secLevelServer);
+        std::shared_ptr<DBTClient00> client = std::make_shared<DBTClient00>("C-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL);
+        test8x_fullCycle(suffix, protocolSessionCount, server_client_order,
+                         server, secLevelServer, serverExpPairing,
+                         client, secLevelClient, clientExpPairing);
+    }
+
+    void test8x_fullCycle(const std::string& suffix, const int protocolSessionCount, const bool server_client_order,
+                          std::shared_ptr<DBTServerTest> server, const BTSecurityLevel secLevelServer, const ExpectedPairing serverExpPairing,
+                          std::shared_ptr<DBTClientTest> client, const BTSecurityLevel secLevelClient, const ExpectedPairing clientExpPairing)
+    {
+        (void)secLevelServer;
+        (void)serverExpPairing;
 
         const jau::fraction_timespec t0 = jau::getMonotonicTime();
 
@@ -72,10 +84,12 @@ class DBTClientServer1x {
             REQUIRE( adapters.size() >= 2 );
         }
 
-        std::shared_ptr<DBTServer00> server = std::make_shared<DBTServer00>("S-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, serverSC, secLevelServer);
-        server->servingProtocolSessionsLeft = protocolSessionCount;
+        server->setProtocolSessionsLeft(protocolSessionCount);
 
-        std::shared_ptr<DBTClient00> client = std::make_shared<DBTClient00>("C-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL);
+        client->setProtocolSessionsLeft( protocolSessionCount );
+        client->setKeepConnected( false ); // default, auto-disconnect after work is done
+        client->setRemoveDevice( false ); // default, test side-effects
+        client->setDiscoveryPolicy( DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_DISCONNECTED );
 
         ChangedAdapterSetCallback myChangedAdapterSetFunc = DBTEndpoint::initChangedAdapterSetListener(manager,
                 server_client_order ? std::vector<DBTEndpointRef>{ server, client } : std::vector<DBTEndpointRef>{ client, server } );
@@ -86,10 +100,6 @@ class DBTClientServer1x {
             BTSecurityRegistry::Entry * sec = BTSecurityRegistry::getOrCreate(serverName);
             sec->sec_level = secLevelClient;
         }
-        client->KEEP_CONNECTED = false; // default, auto-disconnect after work is done
-        client->REMOVE_DEVICE = false; // default, test side-effects
-        client->measurementsLeft = protocolSessionCount;
-        client->discoveryPolicy = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_DISCONNECTED;
 
         {
             const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
@@ -140,12 +150,12 @@ class DBTClientServer1x {
         do {
             {
                 const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
-                done = ! ( protocolSessionCount > server->servedProtocolSessionsTotal ||
-                           protocolSessionCount > client->completedMeasurements ||
+                done = ! ( protocolSessionCount > server->getProtocolSessionsDoneSuccess() ||
+                           protocolSessionCount > client->getProtocolSessionsDoneSuccess() ||
                            nullptr == lastCompletedDevice ||
                            lastCompletedDevice->getConnected() );
             }
-            max_connections_hit = ( protocolSessionCount * DBTConstants::max_connections_per_session ) <= server->disconnectCount;
+            max_connections_hit = ( protocolSessionCount * DBTConstants::max_connections_per_session ) <= server->getDisconnectCount();
             test_duration = ( jau::getMonotonicTime() - t0 ).to_fraction_i64();
             timeout = 0_s < timeout_value && timeout_value <= test_duration + 500_ms; // let's timeout here before our timeout timer
             if( !done && !max_connections_hit && !timeout ) {
@@ -158,23 +168,25 @@ class DBTClientServer1x {
         fprintf_td(stderr, "****** Test Stats: duration %" PRIi64 " ms, timeout[hit %d, value %s sec], max_connections hit %d\n",
                 test_duration.to_ms(), timeout, timeout_value.to_string(true).c_str(), max_connections_hit);
         fprintf_td(stderr, "  Server ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
-                server->servedProtocolSessionsSuccess.load(), server->servedProtocolSessionsTotal.load(), protocolSessionCount,
-                server->disconnectCount.load(), ( protocolSessionCount * DBTConstants::max_connections_per_session ));
-        fprintf_td(stderr, "  Client ProtocolSessions success %d \n",
-                client->completedMeasurements.load());
+                server->getProtocolSessionsDoneSuccess(), server->getProtocolSessionsDoneTotal(), protocolSessionCount,
+                server->getDisconnectCount(), ( protocolSessionCount * DBTConstants::max_connections_per_session ));
+        fprintf_td(stderr, "  Client ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
+                client->getProtocolSessionsDoneSuccess(), client->getProtocolSessionsDoneTotal(), protocolSessionCount,
+                client->getDisconnectCount(), ( protocolSessionCount * DBTConstants::max_connections_per_session ));
         fprintf_td(stderr, "\n\n");
 
         REQUIRE( false == max_connections_hit );
         REQUIRE( false == timeout );
         {
             const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
-            REQUIRE( protocolSessionCount == server->servedProtocolSessionsTotal );
-            REQUIRE( protocolSessionCount == server->servedProtocolSessionsSuccess );
-            REQUIRE( protocolSessionCount == client->completedMeasurements );
+            REQUIRE( protocolSessionCount <= server->getProtocolSessionsDoneTotal() );
+            REQUIRE( protocolSessionCount == server->getProtocolSessionsDoneSuccess() );
+            REQUIRE( protocolSessionCount <= client->getProtocolSessionsDoneTotal() );
+            REQUIRE( protocolSessionCount == client->getProtocolSessionsDoneSuccess() );
             REQUIRE( nullptr != lastCompletedDevice );
             REQUIRE( EIRDataType::NONE != lastCompletedDeviceEIR.getEIRDataMask() );
             REQUIRE( false == lastCompletedDevice->getConnected() );
-            REQUIRE( ( protocolSessionCount * DBTConstants::max_connections_per_session ) > server->disconnectCount );
+            REQUIRE( ( protocolSessionCount * DBTConstants::max_connections_per_session ) > server->getDisconnectCount() );
         }
 
         //
@@ -197,13 +209,17 @@ class DBTClientServer1x {
         const BTSecurityLevel clientKeysSecLevel = clientKeys.getSecLevel();
         REQUIRE( secLevelClient == clientKeysSecLevel);
         {
-            if( clientShallHaveKeys ) {
+            if( ExpectedPairing::PREPAIRED == clientExpPairing && BTSecurityLevel::NONE < secLevelClient ) {
                 // Using encryption: pre-paired
                 REQUIRE( PairingMode::PRE_PAIRED == lastCompletedDevicePairingMode );
                 REQUIRE( BTSecurityLevel::ENC_ONLY == lastCompletedDeviceSecurityLevel ); // pre-paired fixed level, no auth
-            } else if( BTSecurityLevel::NONE < secLevelClient ) {
+            } else if( ExpectedPairing::NEW_PAIRING == clientExpPairing && BTSecurityLevel::NONE < secLevelClient ) {
                 // Using encryption: Newly paired
                 REQUIRE( PairingMode::PRE_PAIRED != lastCompletedDevicePairingMode );
+                REQUIRE_MSG( "PairingMode client "+to_string(lastCompletedDevicePairingMode)+" not > NONE", PairingMode::NONE < lastCompletedDevicePairingMode );
+                REQUIRE_MSG( "SecurityLevel client "+to_string(lastCompletedDeviceSecurityLevel)+" not >= "+to_string(secLevelClient), secLevelClient <= lastCompletedDeviceSecurityLevel );
+            } else if( ExpectedPairing::DONT_CARE == clientExpPairing && BTSecurityLevel::NONE < secLevelClient ) {
+                // Any encryption, any pairing
                 REQUIRE_MSG( "PairingMode client "+to_string(lastCompletedDevicePairingMode)+" not > NONE", PairingMode::NONE < lastCompletedDevicePairingMode );
                 REQUIRE_MSG( "SecurityLevel client "+to_string(lastCompletedDeviceSecurityLevel)+" not >= "+to_string(secLevelClient), secLevelClient <= lastCompletedDeviceSecurityLevel );
             } else {

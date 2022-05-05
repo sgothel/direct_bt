@@ -22,15 +22,15 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef DBT_SERVER00_HPP_
-#define DBT_SERVER00_HPP_
+#ifndef DBT_SERVER01_HPP_
+#define DBT_SERVER01_HPP_
 
 #include "dbt_constants.hpp"
 
 #include "dbt_server_test.hpp"
 
 class DBTServer01;
-typedef std::shared_ptr<DBTServer01> DBTServer00Ref;
+typedef std::shared_ptr<DBTServer01> DBTServer01Ref;
 
 using namespace jau;
 
@@ -70,9 +70,11 @@ class DBTServer01 : public DBTServerTest {
         bool use_SC = true;
         BTSecurityLevel adapterSecurityLevel = BTSecurityLevel::UNSET;
 
-        // DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
-        // DBGattServerRef dbGattServer = new DBGattServer(
-        // DBGattServerRef dbGattServer( new DBGattServer(
+        jau::sc_atomic_int disconnectCount = 0;
+        jau::sc_atomic_int servedProtocolSessionsTotal = 0;
+        jau::sc_atomic_int servedProtocolSessionsSuccess = 0;
+        jau::sc_atomic_int servingProtocolSessionsLeft = 1;
+
         DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
                 /* services: */
                 jau::make_darray( // DBGattService
@@ -151,14 +153,6 @@ class DBTServer01 : public DBTServerTest {
 
         std::mutex mtx_sync;
         BTDeviceRef connectedDevice;
-
-    public:
-        jau::sc_atomic_int disconnectCount = 0;
-        jau::sc_atomic_int servedProtocolSessionsTotal = 0;
-        jau::sc_atomic_int servedProtocolSessionsSuccess = 0;
-        jau::sc_atomic_int servingProtocolSessionsLeft = 1;
-
-    private:
 
         void setDevice(BTDeviceRef cd) {
             const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
@@ -387,6 +381,17 @@ class DBTServer01 : public DBTServerTest {
                     }
                 }
 
+                bool onceDisconnect = true;
+
+                void disconnectDevice() {
+                    jau::sleep_for( 300_ms );
+                    BTDeviceRef connectedDevice_ = parent.getDevice();
+                    fprintf_td(stderr, "****** Server GATT::disconnectDevice(sessions [%d ok / %d total], left %d): client %s\n",
+                            parent.servedProtocolSessionsSuccess.load(), parent.servedProtocolSessionsTotal.load(), parent.servingProtocolSessionsLeft.load(),
+                            connectedDevice_->toString().c_str());
+                    connectedDevice_->disconnect();
+                }
+
             public:
 
                 MyGATTServerListener(DBTServer01& p)
@@ -418,17 +423,7 @@ class DBTServer01 : public DBTServerTest {
                     }
                 }
 
-                bool onceDisconnect = true;
-
-                void disconnectDevice() {
-                    jau::sleep_for( 300_ms );
-                    BTDeviceRef connectedDevice_ = parent.getDevice();
-                    fprintf_td(stderr, "****** Server GATT::disconnectDevice(sessions [%d ok / %d total], left %d): client %s\n",
-                            parent.servedProtocolSessionsSuccess.load(), parent.servedProtocolSessionsTotal.load(), parent.servingProtocolSessionsLeft.load(),
-                            connectedDevice_->toString().c_str());
-                    connectedDevice_->disconnect();
-                }
-
+            public:
                 void connected(BTDeviceRef device, const uint16_t initialMTU) override {
                     const bool match = parent.matches(device);
                     fprintf_td(stderr, "****** Server GATT::connected(match %d): initMTU %d, %s\n",
@@ -637,6 +632,22 @@ class DBTServer01 : public DBTServerTest {
             fprintf_td(stderr, "****** Server Close.X: %s\n", msg.c_str());
         }
 
+        void setProtocolSessionsLeft(const int v) override {
+            servingProtocolSessionsLeft = v;
+        }
+        int getProtocolSessionsLeft() override {
+            return servingProtocolSessionsLeft;
+        }
+        int getProtocolSessionsDoneTotal() override {
+            return servedProtocolSessionsTotal;
+        }
+        int getProtocolSessionsDoneSuccess() override {
+            return servedProtocolSessionsSuccess;
+        }
+        int getDisconnectCount() override {
+            return disconnectCount;
+        }
+
     private:
         HCIStatusCode stopAdvertising(std::string msg) {
             HCIStatusCode status = serverAdapter->stopAdvertising();
@@ -789,4 +800,4 @@ class DBTServer01 : public DBTServerTest {
         }
 };
 
-#endif // DBT_SERVER00_HPP_
+#endif // DBT_SERVER01_HPP_

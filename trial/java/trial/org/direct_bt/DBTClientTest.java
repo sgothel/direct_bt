@@ -25,10 +25,35 @@ package trial.org.direct_bt;
 
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTRole;
+import org.direct_bt.DiscoveryPolicy;
 import org.direct_bt.HCIStatusCode;
 import org.junit.Assert;
 
 public interface DBTClientTest extends DBTEndpoint {
+
+    /**
+     * Set DiscoveryPolicy
+     *
+     * Default is {@link DiscoveryPolicy#PAUSE_CONNECTED_UNTIL_READY}
+     */
+    void setDiscoveryPolicy(final DiscoveryPolicy v);
+
+    /**
+     * Set disconnect after processing.
+     *
+     * Default is `false`.
+     */
+    void setKeepConnected(final boolean v);
+
+    /**
+     * Set remove device when disconnecting.
+     *
+     * This removes the device from all instances within adapter
+     * and hence all potential side-effects of the current instance.
+     *
+     * Default is `false`, since it is good to test whether such side-effects exists.
+     */
+    void setRemoveDevice(final boolean v);
 
     HCIStatusCode startDiscovery(String msg);
 

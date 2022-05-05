@@ -68,6 +68,12 @@ class DBTEndpoint {
 
         virtual void close(const std::string& msg) = 0;
 
+        virtual void setProtocolSessionsLeft(const int v) = 0;
+        virtual int getProtocolSessionsLeft() = 0;
+        virtual int getProtocolSessionsDoneTotal() = 0;
+        virtual int getProtocolSessionsDoneSuccess() = 0;
+        virtual int getDisconnectCount() = 0;
+
         /**
          * Initialize the given adapter for this endpoint.
          *

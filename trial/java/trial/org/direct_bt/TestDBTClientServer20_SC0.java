@@ -46,18 +46,18 @@ public class TestDBTClientServer20_SC0 extends DBTClientServer1x {
 
     @Test(timeout = 40000)
     public final void test10_FullCycle_EncOnlyNo1() {
-        final boolean serverShallHaveKeys = false;
-        final boolean clientShallHaveKeys = false;
+        final ExpectedPairing serverExpPairing = ExpectedPairing.NEW_PAIRING;
+        final ExpectedPairing clientExpPairing = ExpectedPairing.NEW_PAIRING;
         test8x_fullCycle(40000, "20", 1, true /* server_client_order */, serverSC,
-                         BTSecurityLevel.ENC_ONLY, serverShallHaveKeys, BTSecurityLevel.ENC_ONLY, clientShallHaveKeys);
+                         BTSecurityLevel.ENC_ONLY, serverExpPairing, BTSecurityLevel.ENC_ONLY, clientExpPairing);
     }
 
     @Test(timeout = 40000)
     public final void test20_FullCycle_EncOnlyNo2() {
-        final boolean serverShallHaveKeys = true;
-        final boolean clientShallHaveKeys = true;
+        final ExpectedPairing serverExpPairing = ExpectedPairing.PREPAIRED;
+        final ExpectedPairing clientExpPairing = ExpectedPairing.PREPAIRED;
         test8x_fullCycle(40000, "21", 2, true /* server_client_order */, serverSC,
-                          BTSecurityLevel.ENC_ONLY, serverShallHaveKeys, BTSecurityLevel.ENC_ONLY, clientShallHaveKeys);
+                         BTSecurityLevel.ENC_ONLY, serverExpPairing, BTSecurityLevel.ENC_ONLY, clientExpPairing);
     }
 
     public static void main(final String args[]) {

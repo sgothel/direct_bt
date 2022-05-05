@@ -62,6 +62,12 @@ class DBTConstants {
         static const std::vector<uint8_t> FailHandshakeCommandData;
 };
 
+enum class ExpectedPairing {
+    DONT_CARE,
+    NEW_PAIRING,
+    PREPAIRED
+};
+
 const jau::uuid128_t DBTConstants::DataServiceUUID = jau::uuid128_t("d0ca6bf3-3d50-4760-98e5-fc5883e93712");
 const jau::uuid128_t DBTConstants::StaticDataUUID  = jau::uuid128_t("d0ca6bf3-3d51-4760-98e5-fc5883e93712");
 const jau::uuid128_t DBTConstants::CommandUUID     = jau::uuid128_t("d0ca6bf3-3d52-4760-98e5-fc5883e93712");

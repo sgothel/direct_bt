@@ -97,7 +97,7 @@ TEST_CASE( "Server StartStop and SwitchRole Trial 10", "[trial][startstop][switc
 
     const std::string serverName = "TestDBTCS00-S-T10";
     std::shared_ptr<DBTServer00> server = std::make_shared<DBTServer00>(serverName, EUI48::ALL_DEVICE, BTMode::DUAL, true /* SC */, BTSecurityLevel::NONE);
-    server->servingProtocolSessionsLeft = 1;
+    server->setProtocolSessionsLeft(1);
 
     ChangedAdapterSetCallback myChangedAdapterSetFunc = DBTEndpoint::initChangedAdapterSetListener(manager, { server });
 

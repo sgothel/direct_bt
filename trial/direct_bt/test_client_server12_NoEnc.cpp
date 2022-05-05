@@ -53,10 +53,10 @@ class TestDBTClientServer12_NoEnc : public DBTClientServer1x {
         void test02_FullCycle_EncNone() {
             base_test_framework.setupTest( 20_s );
             {
-                const bool serverShallHaveKeys = false;
-                const bool clientShallHaveKeys = false;
+                const ExpectedPairing serverExpPairing = ExpectedPairing::DONT_CARE;
+                const ExpectedPairing clientExpPairing = ExpectedPairing::DONT_CARE;
                 test8x_fullCycle("12", 1 /* protocolSessionCount */, false /* server_client_order */, serverSC,
-                                 BTSecurityLevel::NONE, serverShallHaveKeys, BTSecurityLevel::NONE, clientShallHaveKeys);
+                                 BTSecurityLevel::NONE, serverExpPairing, BTSecurityLevel::NONE, clientExpPairing);
             }
             base_test_framework.cleanupTest();
         }
@@ -64,10 +64,10 @@ class TestDBTClientServer12_NoEnc : public DBTClientServer1x {
         void test03_FullCycle_EncNone() {
             base_test_framework.setupTest( 30_s );
             {
-                const bool serverShallHaveKeys = false;
-                const bool clientShallHaveKeys = false;
+                const ExpectedPairing serverExpPairing = ExpectedPairing::DONT_CARE;
+                const ExpectedPairing clientExpPairing = ExpectedPairing::DONT_CARE;
                 test8x_fullCycle("13", 2 /* protocolSessionCount */, false /* server_client_order */, serverSC,
-                                 BTSecurityLevel::NONE, serverShallHaveKeys, BTSecurityLevel::NONE, clientShallHaveKeys);
+                                 BTSecurityLevel::NONE, serverExpPairing, BTSecurityLevel::NONE, clientExpPairing);
             }
             base_test_framework.cleanupTest();
         }

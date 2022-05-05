@@ -66,8 +66,21 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
 
     final void test8x_fullCycle(final long timeout_value,
                                 final String suffix, final int protocolSessionCount, final boolean server_client_order,
-                                final boolean serverSC, final BTSecurityLevel secLevelServer, final boolean serverShallHaveKeys,
-                                final BTSecurityLevel secLevelClient, final boolean clientShallHaveKeys)
+                                final boolean serverSC, final BTSecurityLevel secLevelServer, final ExpectedPairing serverExpPairing,
+                                final BTSecurityLevel secLevelClient, final ExpectedPairing clientExpPairing)
+    {
+        final DBTServer00 server = new DBTServer00("S-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, serverSC, secLevelServer);
+        final DBTClient00 client = new DBTClient00("C-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL);
+        test8x_fullCycle(timeout_value,
+                         suffix, protocolSessionCount, server_client_order,
+                         server, secLevelServer, serverExpPairing,
+                         client, secLevelClient, clientExpPairing);
+    }
+
+    final void test8x_fullCycle(final long timeout_value,
+                                final String suffix, final int protocolSessionCount, final boolean server_client_order,
+                                final DBTServerTest server, final BTSecurityLevel secLevelServer, final ExpectedPairing serverExpPairing,
+                                final DBTClientTest client, final BTSecurityLevel secLevelClient, final ExpectedPairing clientExpPairing)
     {
         final long t0 = BTUtils.currentTimeMillis();
 
@@ -89,10 +102,12 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
             Assert.assertTrue("Adapter count not >= 2 but "+adapters.size(), adapters.size() >= 2);
         }
 
-        final DBTServer00 server = new DBTServer00("S-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, serverSC, secLevelServer);
-        server.servingProtocolSessionsLeft.set(protocolSessionCount);
+        server.setProtocolSessionsLeft( protocolSessionCount );
 
-        final DBTClient00 client = new DBTClient00("C-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL);
+        client.setProtocolSessionsLeft( protocolSessionCount );
+        client.setKeepConnected( false ); // default, auto-disconnect after work is done
+        client.setRemoveDevice( false ); // default, test side-effects
+        client.setDiscoveryPolicy( DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_DISCONNECTED );
 
         final DBTEndpoint.ChangedAdapterSetListener myChangedAdapterSetListener =
                 DBTEndpoint.initChangedAdapterSetListener(manager, server_client_order ? Arrays.asList(server, client) : Arrays.asList(client, server));
@@ -103,10 +118,6 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
             final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getOrCreate(serverName);
             sec.sec_level = secLevelClient;
         }
-        client.KEEP_CONNECTED = false; // default, auto-disconnect after work is done
-        client.REMOVE_DEVICE = false; // default, test side-effects
-        client.measurementsLeft.set(protocolSessionCount);
-        client.discoveryPolicy = DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_DISCONNECTED;
 
         synchronized( mtx_sync ) {
             lastCompletedDevice = null;
@@ -146,12 +157,12 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
         boolean max_connections_hit = false;
         do {
             synchronized( mtx_sync ) {
-                done = ! ( protocolSessionCount > server.servedProtocolSessionsTotal.get() ||
-                           protocolSessionCount > client.completedMeasurements.get() ||
+                done = ! ( protocolSessionCount > server.getProtocolSessionsDoneSuccess() ||
+                           protocolSessionCount > client.getProtocolSessionsDoneSuccess() ||
                            null == lastCompletedDevice ||
                            lastCompletedDevice.getConnected() );
             }
-            max_connections_hit = ( protocolSessionCount * DBTConstants.max_connections_per_session ) <= server.disconnectCount.get();
+            max_connections_hit = ( protocolSessionCount * DBTConstants.max_connections_per_session ) <= server.getDisconnectCount();
             test_duration = BTUtils.currentTimeMillis() - t0;
             timeout = 0 < timeout_value && timeout_value <= test_duration + 500; // let's timeout here before our timeout timer
             if( !done && !max_connections_hit && !timeout ) {
@@ -164,23 +175,25 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
         BTUtils.fprintf_td(System.err, "****** Test Stats: duration %d ms, timeout[hit %b, value %d ms], max_connections hit %b\n",
                 test_duration, timeout, timeout_value, max_connections_hit);
         BTUtils.fprintf_td(System.err, "  Server ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
-                server.servedProtocolSessionsSuccess.get(), server.servedProtocolSessionsTotal.get(), protocolSessionCount,
-                server.disconnectCount.get(), ( protocolSessionCount * DBTConstants.max_connections_per_session ));
-        BTUtils.fprintf_td(System.err, "  Client ProtocolSessions success %d \n",
-                client.completedMeasurements.get());
+                server.getProtocolSessionsDoneSuccess(), server.getProtocolSessionsDoneTotal(), protocolSessionCount,
+                server.getDisconnectCount(), ( protocolSessionCount * DBTConstants.max_connections_per_session ));
+        BTUtils.fprintf_td(System.err, "  Client ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
+                client.getProtocolSessionsDoneSuccess(), client.getProtocolSessionsDoneTotal(), protocolSessionCount,
+                client.getDisconnectCount(), ( protocolSessionCount * DBTConstants.max_connections_per_session ));
         BTUtils.fprintf_td(System.err, "\n\n");
 
         Assert.assertFalse( max_connections_hit );
         Assert.assertFalse( timeout );
 
         synchronized( mtx_sync ) {
-            Assert.assertEquals(protocolSessionCount, server.servedProtocolSessionsTotal.get());
-            Assert.assertEquals(protocolSessionCount, server.servedProtocolSessionsSuccess.get());
-            Assert.assertEquals(protocolSessionCount, client.completedMeasurements.get());
+            Assert.assertTrue(protocolSessionCount <= server.getProtocolSessionsDoneTotal());
+            Assert.assertEquals(protocolSessionCount, server.getProtocolSessionsDoneSuccess());
+            Assert.assertTrue(protocolSessionCount <= client.getProtocolSessionsDoneTotal());
+            Assert.assertEquals(protocolSessionCount, client.getProtocolSessionsDoneSuccess());
             Assert.assertNotNull(lastCompletedDevice);
             Assert.assertNotNull(lastCompletedDeviceEIR);
             Assert.assertFalse(lastCompletedDevice.getConnected());
-            Assert.assertTrue( ( 1 * DBTConstants.max_connections_per_session ) > server.disconnectCount.get() );
+            Assert.assertTrue( ( 1 * DBTConstants.max_connections_per_session ) > server.getDisconnectCount() );
         }
 
         //
@@ -203,13 +216,17 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
         final BTSecurityLevel clientKeysSecLevel = clientKeys.getSecLevel();
         Assert.assertEquals(secLevelClient, clientKeysSecLevel);
         {
-            if( clientShallHaveKeys ) {
+            if( ExpectedPairing.PREPAIRED == clientExpPairing && BTSecurityLevel.NONE.value < secLevelClient.value ) {
                 // Using encryption: pre-paired
                 Assert.assertEquals(PairingMode.PRE_PAIRED, lastCompletedDevicePairingMode);
                 Assert.assertEquals(BTSecurityLevel.ENC_ONLY, lastCompletedDeviceSecurityLevel); // pre-paired fixed level, no auth
-            } else if( BTSecurityLevel.NONE.value < secLevelClient.value ) {
+            } else if( ExpectedPairing.NEW_PAIRING == clientExpPairing && BTSecurityLevel.NONE.value < secLevelClient.value ) {
                 // Using encryption: Newly paired
                 Assert.assertNotEquals(PairingMode.PRE_PAIRED, lastCompletedDevicePairingMode);
+                Assert.assertTrue("PairingMode client "+lastCompletedDevicePairingMode+" not > NONE", PairingMode.NONE.value < lastCompletedDevicePairingMode.value);
+                Assert.assertTrue("SecurityLevel client "+lastCompletedDeviceSecurityLevel+" not >= "+secLevelClient, secLevelClient.value <= lastCompletedDeviceSecurityLevel.value);
+            } else if( ExpectedPairing.DONT_CARE == clientExpPairing && BTSecurityLevel.NONE.value < secLevelClient.value ) {
+                // Any encryption, any pairing
                 Assert.assertTrue("PairingMode client "+lastCompletedDevicePairingMode+" not > NONE", PairingMode.NONE.value < lastCompletedDevicePairingMode.value);
                 Assert.assertTrue("SecurityLevel client "+lastCompletedDeviceSecurityLevel+" not >= "+secLevelClient, secLevelClient.value <= lastCompletedDeviceSecurityLevel.value);
             } else {

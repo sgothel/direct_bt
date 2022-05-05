@@ -56,12 +56,10 @@ import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
 import org.jau.net.EUI48;
 
-import trial.org.direct_bt.DBTClient01.MyAdapterStatusListener;
-
 /**
  * This central BTRole::Master participant works with DBTServer00.
  */
-public class DBTClient00 implements DBTClientTest {
+public class DBTClient01 implements DBTClientTest {
     private final boolean GATT_VERBOSE = false;
 
     private final long timestamp_t0 = BTUtils.startupTimeMillis();
@@ -92,7 +90,7 @@ public class DBTClient00 implements DBTClientTest {
     private final AtomicInteger completedMeasurementsTotal = new AtomicInteger(0);
     private final AtomicInteger completedMeasurementsSuccess = new AtomicInteger(0);
 
-    public DBTClient00(final String adapterName, final EUI48 useAdapter, final BTMode btMode) {
+    public DBTClient01(final String adapterName, final EUI48 useAdapter, final BTMode btMode) {
         this.adapterName = adapterName;
         this.useAdapter = useAdapter;
         this.btMode = btMode;
@@ -180,12 +178,8 @@ public class DBTClient00 implements DBTClientTest {
 
         @Override
         public boolean deviceFound(final BTDevice device, final long timestamp) {
-            if( !BTDeviceRegistry.isDeviceProcessing( device.getAddressAndType() ) &&
-                ( !BTDeviceRegistry.isWaitingForAnyDevice() ||
-                  ( BTDeviceRegistry.isWaitingForDevice(device.getAddressAndType().address, device.getName()) &&
-                    ( 0 < measurementsLeft.get() || !BTDeviceRegistry.isDeviceProcessed(device.getAddressAndType()) )
-                  )
-                )
+            if( BTDeviceRegistry.isWaitingForDevice(device.getAddressAndType().address, device.getName()) &&
+                0 < measurementsLeft.get()
               )
             {
                 BTUtils.println(System.err, "****** Client FOUND__-0: Connecting "+device.toString());
@@ -267,13 +261,6 @@ public class DBTClient00 implements DBTClientTest {
 
         @Override
         public void deviceReady(final BTDevice device, final long timestamp) {
-            if( !BTDeviceRegistry.isDeviceProcessing( device.getAddressAndType() ) &&
-                ( !BTDeviceRegistry.isWaitingForAnyDevice() ||
-                  ( BTDeviceRegistry.isWaitingForDevice(device.getAddressAndType().address, device.getName()) &&
-                    ( 0 < measurementsLeft.get() || !BTDeviceRegistry.isDeviceProcessed(device.getAddressAndType()) )
-                  )
-                )
-              )
             {
                 deviceReadyCount.incrementAndGet();
                 BTUtils.println(System.err, "****** Client READY-0: Processing["+deviceReadyCount.get()+"] "+device.toString());
@@ -281,14 +268,11 @@ public class DBTClient00 implements DBTClientTest {
                     final long td = BTUtils.currentTimeMillis() - timestamp_t0; // adapter-init -> now
                     BTUtils.println(System.err, "PERF: adapter-init -> READY-0 " + td + " ms");
                 }
-                BTDeviceRegistry.addToProcessingDevices(device.getAddressAndType(), device.getName());
 
                 // Be nice to Test* case, allowing to reach its own listener.deviceReady() added later
                 executeOffThread( () -> { processReadyDevice(device); },
                         "DBT-Process-"+device.getAddressAndType(), true /* detach */);
                 // processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
-            } else {
-                BTUtils.println(System.err, "****** Client READY-1: NOP " + device.toString());
             }
         }
 
@@ -566,17 +550,12 @@ public class DBTClient00 implements DBTClientTest {
         BTUtils.println(System.err, "****** Client Processing Ready Device: End-1: Success " + success +
                            " on " + device.toString() + "; devInProc "+BTDeviceRegistry.getProcessingDeviceCount());
 
-        BTDeviceRegistry.removeFromProcessingDevices( device.getAddressAndType() );
-
         if( DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_DISCONNECTED == discoveryPolicy ) {
             device.getAdapter().removeDevicePausingDiscovery(device);
         }
 
         BTUtils.println(System.err, "****** Client Processing Ready Device: End-2: Success " + success +
                            " on " + device.toString() + "; devInProc "+BTDeviceRegistry.getProcessingDeviceCount());
-        if( success ) {
-            BTDeviceRegistry.addToProcessedDevices(device.getAddressAndType(), device.getName());
-        }
         device.removeAllCharListener();
 
         if( !KEEP_CONNECTED ) {
@@ -604,8 +583,6 @@ public class DBTClient00 implements DBTClientTest {
 
     private void removeDevice(final BTDevice device) {
         BTUtils.println(System.err, "****** Client Remove Device: removing: "+device.getAddressAndType());
-
-        BTDeviceRegistry.removeFromProcessingDevices(device.getAddressAndType());
 
         if( REMOVE_DEVICE ) {
             device.remove();

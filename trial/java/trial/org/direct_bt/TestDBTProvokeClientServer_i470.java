@@ -24,43 +24,46 @@
 
 package trial.org.direct_bt;
 
+import org.direct_bt.BTMode;
 import org.direct_bt.BTSecurityLevel;
+import org.jau.net.EUI48;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 /**
- * Testing a full Bluetooth server and client lifecycle of operations, requiring two BT adapter:
- * - operating w/o encryption
- * - start server advertising
- * - start client discovery and connect to server when discovered
- * - client/server processing of connection when ready
- * - client disconnect
- * - server stop advertising
- * - security-level: NONE, ENC_ONLY freshly-paired and ENC_ONLY pre-paired
- * - reuse server-adapter for client-mode discovery (just toggle on/off)
+ * Testing w/o client filtering processing device and hence not blocking deviceFound.
+ *
+ * In other words, relying on BTAdapter to filter out:
+ * - already discovered devices
+ * - already connected devices
+ *
+ * Further, the server will issue a disconnect once only 300 ms after 1st MTU exchange,
+ * disrupting the client's getGATTServices().
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class TestDBTClientServer12_NoEnc extends DBTClientServer1x {
-    static final boolean serverSC = true;
+public class TestDBTProvokeClientServer_i470 extends DBTClientServer1x {
 
     @Test(timeout = 20000)
-    public final void test02_FullCycle_EncNone() {
+    public final void test_i470()
+    {
+        final boolean serverSC = true;
+        final String suffix = "i470";
+        final int protocolSessionCount = 2;
+        final boolean server_client_order = true;
         final ExpectedPairing serverExpPairing = ExpectedPairing.DONT_CARE;
         final ExpectedPairing clientExpPairing = ExpectedPairing.DONT_CARE;
-        test8x_fullCycle(20000, "12", 1, false /* server_client_order */, serverSC,
-                         BTSecurityLevel.NONE, serverExpPairing, BTSecurityLevel.NONE, clientExpPairing);
-    }
 
-    @Test(timeout = 30000)
-    public final void test03_FullCycle_EncNone() {
-        final ExpectedPairing serverExpPairing = ExpectedPairing.DONT_CARE;
-        final ExpectedPairing clientExpPairing = ExpectedPairing.DONT_CARE;
-        test8x_fullCycle(30000, "13", 2, false /* server_client_order */, serverSC,
-                         BTSecurityLevel.NONE, serverExpPairing, BTSecurityLevel.NONE, clientExpPairing);
+        // final DBTServerTest server = new DBTServer01("S-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, serverSC, BTSecurityLevel.ENC_ONLY);
+        final DBTServerTest server = new DBTServer00("S-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, serverSC, BTSecurityLevel.ENC_ONLY);
+        final DBTClientTest client = new DBTClient01("C-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL);
+
+        test8x_fullCycle(20000, suffix, protocolSessionCount, server_client_order,
+                         server, BTSecurityLevel.ENC_ONLY, serverExpPairing,
+                         client, BTSecurityLevel.ENC_ONLY, clientExpPairing);
     }
 
     public static void main(final String args[]) {
-        org.junit.runner.JUnitCore.main(TestDBTClientServer12_NoEnc.class.getName());
+        org.junit.runner.JUnitCore.main(TestDBTProvokeClientServer_i470.class.getName());
     }
 }

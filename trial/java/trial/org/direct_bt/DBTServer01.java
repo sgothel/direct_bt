@@ -60,10 +60,13 @@ import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
 import org.jau.net.EUI48;
 
+import trial.org.direct_bt.DBTServer00.MyAdapterStatusListener;
+import trial.org.direct_bt.DBTServer00.MyGATTServerListener;
+
 /**
  * This peripheral BTRole::Slave test participant works with DBTClient00.
  */
-public class DBTServer00 implements DBTServerTest {
+public class DBTServer01 implements DBTServerTest {
     final boolean GATT_VERBOSE = false;
     private final String adapterShortName = "TDev1Srv";
 
@@ -85,7 +88,7 @@ public class DBTServer00 implements DBTServerTest {
     private final AtomicInteger servedProtocolSessionsSuccess = new AtomicInteger(0);
     private final AtomicInteger servingProtocolSessionsLeft = new AtomicInteger(1);
 
-    public DBTServer00(final String adapterName, final EUI48 useAdapter, final BTMode btMode, final boolean use_SC, final BTSecurityLevel adapterSecurityLevel) {
+    public DBTServer01(final String adapterName, final EUI48 useAdapter, final BTMode btMode, final boolean use_SC, final BTSecurityLevel adapterSecurityLevel) {
         this.adapterName = adapterName;
         this.useAdapter = useAdapter;
         this.btMode = btMode;
@@ -94,10 +97,10 @@ public class DBTServer00 implements DBTServerTest {
 
         dbGattServer.addListener( gattServerListener );
     }
-    public DBTServer00(final String adapterName, final EUI48 useAdapter, final BTSecurityLevel adapterSecurityLevel) {
+    public DBTServer01(final String adapterName, final EUI48 useAdapter, final BTSecurityLevel adapterSecurityLevel) {
         this(adapterName, useAdapter, BTMode.DUAL, true /* SC */, adapterSecurityLevel);
     }
-    public DBTServer00(final String adapterName, final BTSecurityLevel adapterSecurityLevel) {
+    public DBTServer01(final String adapterName, final BTSecurityLevel adapterSecurityLevel) {
         this(adapterName, EUI48.ALL_DEVICE, BTMode.DUAL, true /* SC */, adapterSecurityLevel);
     }
 
@@ -130,6 +133,7 @@ public class DBTServer00 implements DBTServerTest {
     public int getProtocolSessionsDoneSuccess() {
         return servedProtocolSessionsSuccess.get();
     }
+
     @Override
     public int getDisconnectCount() {
         return this.disconnectCount.get();
@@ -466,6 +470,20 @@ public class DBTServer00 implements DBTServerTest {
             }
         }
 
+        boolean onceDisconnect = true;
+
+        private void disconnectDevice() {
+            try {
+                Thread.sleep(300);
+            } catch (final InterruptedException e) { }
+
+            final BTDevice connectedDevice_ = getDevice();
+            BTUtils.fprintf_td(System.err, "****** Server GATT::disconnectDevice(sessions [%d ok / %d total], left %d): client %s\n",
+                    servedProtocolSessionsSuccess.get(), servedProtocolSessionsTotal.get(), servingProtocolSessionsLeft.get(),
+                    connectedDevice_.toString());
+            connectedDevice_.disconnect();
+        }
+
         public MyGATTServerListener() {
             pulseSenderThread = executeOffThread( () -> { pulseSender(); }, "GattServer-PulseSender", false /* detach */);
         }
@@ -515,6 +533,10 @@ public class DBTServer00 implements DBTServerTest {
             BTUtils.fprintf_td(System.err, "****** Server GATT::mtuChanged(match %b, served %d, left %d): %d -> %d, %s\n",
                     match, servedProtocolSessionsTotal.get(), servingProtocolSessionsLeft.get(),
                     match ? usedMTU_old : 0, mtu, device.toString());
+            if( onceDisconnect ) {
+                onceDisconnect = false;
+                executeOffThread( () -> { disconnectDevice(); }, "GattServer-DisconnectDevice", true /* detach */);
+            }
         }
 
         @Override

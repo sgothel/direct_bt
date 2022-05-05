@@ -25,6 +25,7 @@ package trial.org.direct_bt;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTManager;
@@ -57,6 +58,12 @@ public interface DBTEndpoint {
     BTAdapter getAdapter();
 
     void close(final String msg);
+
+    void setProtocolSessionsLeft(final int v);
+    int getProtocolSessionsLeft();
+    int getProtocolSessionsDoneTotal();
+    int getProtocolSessionsDoneSuccess();
+    int getDisconnectCount();
 
     /**
      * Initialize the given adapter for this endpoint.

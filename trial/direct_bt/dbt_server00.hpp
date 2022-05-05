@@ -70,9 +70,11 @@ class DBTServer00 : public DBTServerTest {
         bool use_SC = true;
         BTSecurityLevel adapterSecurityLevel = BTSecurityLevel::UNSET;
 
-        // DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
-        // DBGattServerRef dbGattServer = new DBGattServer(
-        // DBGattServerRef dbGattServer( new DBGattServer(
+        jau::sc_atomic_int disconnectCount = 0;
+        jau::sc_atomic_int servedProtocolSessionsTotal = 0;
+        jau::sc_atomic_int servedProtocolSessionsSuccess = 0;
+        jau::sc_atomic_int servingProtocolSessionsLeft = 1;
+
         DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
                 /* services: */
                 jau::make_darray( // DBGattService
@@ -151,14 +153,6 @@ class DBTServer00 : public DBTServerTest {
 
         std::mutex mtx_sync;
         BTDeviceRef connectedDevice;
-
-    public:
-        jau::sc_atomic_int disconnectCount = 0;
-        jau::sc_atomic_int servedProtocolSessionsTotal = 0;
-        jau::sc_atomic_int servedProtocolSessionsSuccess = 0;
-        jau::sc_atomic_int servingProtocolSessionsLeft = 1;
-
-    private:
 
         void setDevice(BTDeviceRef cd) {
             const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
@@ -616,6 +610,22 @@ class DBTServer00 : public DBTServerTest {
             // dbGattServer = nullptr; // keep alive
             serverAdapter->removeStatusListener( myAdapterStatusListener );
             fprintf_td(stderr, "****** Server Close.X: %s\n", msg.c_str());
+        }
+
+        void setProtocolSessionsLeft(const int v) override {
+            servingProtocolSessionsLeft = v;
+        }
+        int getProtocolSessionsLeft() override {
+            return servingProtocolSessionsLeft;
+        }
+        int getProtocolSessionsDoneTotal() override {
+            return servedProtocolSessionsTotal;
+        }
+        int getProtocolSessionsDoneSuccess() override {
+            return servedProtocolSessionsSuccess;
+        }
+        int getDisconnectCount() override {
+            return disconnectCount;
         }
 
     private:
