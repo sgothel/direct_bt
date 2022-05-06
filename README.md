@@ -286,37 +286,36 @@ Our cmake configure has a number of options, *cmake-gui* or *ccmake* can show
 you all the options. The interesting ones are detailed below:
 
 Changing install path from /usr/local to /usr
-
 ~~~~~~~~~~~~~
 -DCMAKE_INSTALL_PREFIX=/usr
 ~~~~~~~~~~~~~
 
 Building debug build:
-
 ~~~~~~~~~~~~~
 -DDEBUG=ON
 ~~~~~~~~~~~~~
 
 Building with enabled *testing*, i.e. offline testing without any potential interaction as user:
-
 ~~~~~~~~~~~~~
 -DBUILD_TESTING=ON
 ~~~~~~~~~~~~~
 
 Building with enabled *trial* and *testing* , i.e. live testing with 2 Bluetooth adapter and potential sudo interaction:
-
 ~~~~~~~~~~~~~
 -DBUILD_TRIAL=ON
 ~~~~~~~~~~~~~
 
 Disable stripping native lib even in non debug build:
-
 ~~~~~~~~~~~~~
 -DUSE_STRIP=OFF
 ~~~~~~~~~~~~~
 
-Override default javac debug arguments `source,lines`:
+Disable using `libunwind` (default: enabled for all but `arm32`, `armhf`)
+~~~~~~~~~~~~~
+-DUSE_LIBUNWIND=OFF
+~~~~~~~~~~~~~
 
+Override default javac debug arguments `source,lines`:
 ~~~~~~~~~~~~~
 -DJAVAC_DEBUG_ARGS="source,lines,vars"
 
@@ -324,38 +323,32 @@ Override default javac debug arguments `source,lines`:
 ~~~~~~~~~~~~~
 
 Building debug and instrumentation (sanitizer) build:
-
 ~~~~~~~~~~~~~
 -DDEBUG=ON -DINSTRUMENTATION=ON
 ~~~~~~~~~~~~~
 
 Using clang instead of gcc:
-
 ~~~~~~~~~~~~~
 -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++
 ~~~~~~~~~~~~~
 
 Cross-compiling on a different system:
-
 ~~~~~~~~~~~~~
 -DCMAKE_CXX_FLAGS:STRING=-m32 -march=i586
 -DCMAKE_C_FLAGS:STRING=-m32 -march=i586
 ~~~~~~~~~~~~~
 
 To build Java bindings:
-
 ~~~~~~~~~~~~~
 -DBUILDJAVA=ON
 ~~~~~~~~~~~~~
 
 To build examples:
-
 ~~~~~~~~~~~~~
 -DBUILDEXAMPLES=ON
 ~~~~~~~~~~~~~
 
 To build documentation run: 
-
 ~~~~~~~~~~~~~
 make doc
 ~~~~~~~~~~~~~
