@@ -2351,23 +2351,27 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
     } // else: Sourced from HCIHandler via LE_ADVERTISING_REPORT (default!)
 
     /**
-     * <pre>
-     * + ------+------------+----------+----------+-------------------------------------------+
-     * | #     | discovered | shared   | update   |
-     * +-------+------------+----------+----------+-------------------------------------------+
-     * | 1.1   | false      | false    | ignored  | New undiscovered/unshared -> deviceFound(..)
-     * | 1.2   | false      | true     | ignored  | Undiscovered but shared -> deviceFound(..) [deviceUpdated(..)]
-     * | 2.1.1 | true       | false    | name     | Discovered but unshared, name changed -> deviceFound(..)
-     * | 2.1.2 | true       | false    | !name    | Discovered but unshared, no name change -> Drop(1)
-     * | 2.2.1 | true       | true     | any      | Discovered and shared, updated -> deviceUpdated(..)
-     * | 2.2.2 | true       | true     | none     | Discovered and shared, not-updated -> Drop(2)
-     * +-------+------------+----------+-----------------------------------------------------+
-     * </pre>
-     *
+     * + ------+-----------+------------+----------+----------+-------------------------------------------+
+     * | #     | connected | discovered | shared   | update   |
+     * +-------+-----------+------------+----------+----------+-------------------------------------------+
+     * | 1.0   | true      | any        | any      | ignored  | Already connected device -> Drop(1)
+     * | 1.1   | false     | false      | false    | ignored  | New undiscovered/unshared -> deviceFound(..)
+     * | 1.2   | false     | false      | true     | ignored  | Undiscovered but shared -> deviceFound(..) [deviceUpdated(..)]
+     * | 2.1.1 | false     | true       | false    | name     | Discovered but unshared, name changed -> deviceFound(..)
+     * | 2.1.2 | false     | true       | false    | !name    | Discovered but unshared, no name change -> Drop(2)
+     * | 2.2.1 | false     | true       | true     | any      | Discovered and shared, updated -> deviceUpdated(..)
+     * | 2.2.2 | false     | true       | true     | none     | Discovered and shared, not-updated -> Drop(3)
+     * +-------+-----------+------------+----------+----------+-------------------------------------------+
      */
+    BTDeviceRef dev_connected = findConnectedDevice(eir->getAddress(), eir->getAddressType());
     BTDeviceRef dev_discovered = findDiscoveredDevice(eir->getAddress(), eir->getAddressType());
     BTDeviceRef dev_shared = findSharedDevice(eir->getAddress(), eir->getAddressType());
-    if( nullptr == dev_discovered ) {
+    if( nullptr != dev_connected ) {
+        // already connected device shall be suppressed
+        DBG_PRINT("BTAdapter:hci:DeviceFound(1.0, dev_id %d): Discovered but already connected %s [discovered %d, shared %d] -> Drop(1) %s",
+                  dev_id, dev_connected->getAddressAndType().toString().c_str(),
+                  nullptr != dev_discovered, nullptr != dev_shared, eir->toString().c_str());
+    } else if( nullptr == dev_discovered ) { // nullptr == dev_connected && nullptr == dev_discovered
         if( nullptr == dev_shared ) {
             //
             // All new discovered device
@@ -2447,7 +2451,7 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
                 sendDeviceUpdated("SharedDeviceFound", dev_shared, eir->getTimestamp(), updateMask);
             }
         }
-    } else { // nullptr != dev_discovered
+    } else { // nullptr == dev_connected && nullptr != dev_discovered
         //
         // Already discovered device
         //
@@ -2485,7 +2489,7 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
                 }
             } else {
                 // Drop: NAME didn't change
-                COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(2.1.2, dev_id %d): Discovered but unshared %s, no name change -> Drop(1) %s",
+                COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(2.1.2, dev_id %d): Discovered but unshared %s, no name change -> Drop(2) %s",
                         dev_id, dev_discovered->getAddressAndType().toString().c_str(), eir->toString().c_str());
             }
         } else { // nullptr != dev_shared
@@ -2500,7 +2504,7 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
                 sendDeviceUpdated("DiscoveredDeviceFound", dev_shared, eir->getTimestamp(), updateMask);
             } else {
                 // Drop: No update
-                COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(2.2.2, dev_id %d): Discovered and shared %s, not-updated -> Drop(2) %s",
+                COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(2.2.2, dev_id %d): Discovered and shared %s, not-updated -> Drop(3) %s",
                         dev_id, dev_shared->getAddressAndType().toString().c_str(), eir->toString().c_str());
             }
         }
