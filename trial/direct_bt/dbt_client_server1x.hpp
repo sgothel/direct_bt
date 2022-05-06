@@ -46,6 +46,9 @@ using namespace direct_bt;
  */
 class DBTClientServer1x {
   private:
+    // timeout check: timeout_value < test_duration + timeout_preempt_diff; // let's timeout here before our timeout timer
+    static constexpr const fraction_i64 timeout_preempt_diff = 500_ms;
+
     std::mutex mtx_sync;
     BTDeviceRef lastCompletedDevice = nullptr;
     PairingMode lastCompletedDevicePairingMode = PairingMode::NONE;
@@ -59,12 +62,16 @@ class DBTClientServer1x {
     {
         std::shared_ptr<DBTServer00> server = std::make_shared<DBTServer00>("S-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, serverSC, secLevelServer);
         std::shared_ptr<DBTClient00> client = std::make_shared<DBTClient00>("C-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL);
-        test8x_fullCycle(suffix, protocolSessionCount, server_client_order,
+        test8x_fullCycle(suffix,
+                         protocolSessionCount, DBTConstants::max_connections_per_session, true /* expSuccess */,
+                         server_client_order,
                          server, secLevelServer, serverExpPairing,
                          client, secLevelClient, clientExpPairing);
     }
 
-    void test8x_fullCycle(const std::string& suffix, const int protocolSessionCount, const bool server_client_order,
+    void test8x_fullCycle(const std::string& suffix,
+                          const int protocolSessionCount, const int max_connections_per_session, const bool expSuccess,
+                          const bool server_client_order,
                           std::shared_ptr<DBTServerTest> server, const BTSecurityLevel secLevelServer, const ExpectedPairing serverExpPairing,
                           std::shared_ptr<DBTClientTest> client, const BTSecurityLevel secLevelClient, const ExpectedPairing clientExpPairing)
     {
@@ -155,9 +162,9 @@ class DBTClientServer1x {
                            nullptr == lastCompletedDevice ||
                            lastCompletedDevice->getConnected() );
             }
-            max_connections_hit = ( protocolSessionCount * DBTConstants::max_connections_per_session ) <= server->getDisconnectCount();
+            max_connections_hit = ( protocolSessionCount * max_connections_per_session ) <= server->getDisconnectCount();
             test_duration = ( jau::getMonotonicTime() - t0 ).to_fraction_i64();
-            timeout = 0_s < timeout_value && timeout_value <= test_duration + 500_ms; // let's timeout here before our timeout timer
+            timeout = 0_s < timeout_value && timeout_value <= test_duration + timeout_preempt_diff; // let's timeout here before our timeout timer
             if( !done && !max_connections_hit && !timeout ) {
                 jau::sleep_for( 88_ms );
             }
@@ -169,100 +176,105 @@ class DBTClientServer1x {
                 test_duration.to_ms(), timeout, timeout_value.to_string(true).c_str(), max_connections_hit);
         fprintf_td(stderr, "  Server ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
                 server->getProtocolSessionsDoneSuccess(), server->getProtocolSessionsDoneTotal(), protocolSessionCount,
-                server->getDisconnectCount(), ( protocolSessionCount * DBTConstants::max_connections_per_session ));
+                server->getDisconnectCount(), ( protocolSessionCount * max_connections_per_session ));
         fprintf_td(stderr, "  Client ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
                 client->getProtocolSessionsDoneSuccess(), client->getProtocolSessionsDoneTotal(), protocolSessionCount,
-                client->getDisconnectCount(), ( protocolSessionCount * DBTConstants::max_connections_per_session ));
+                client->getDisconnectCount(), ( protocolSessionCount * max_connections_per_session ));
         fprintf_td(stderr, "\n\n");
 
-        REQUIRE( false == max_connections_hit );
-        REQUIRE( false == timeout );
-        {
-            const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
-            REQUIRE( protocolSessionCount <= server->getProtocolSessionsDoneTotal() );
-            REQUIRE( protocolSessionCount == server->getProtocolSessionsDoneSuccess() );
-            REQUIRE( protocolSessionCount <= client->getProtocolSessionsDoneTotal() );
-            REQUIRE( protocolSessionCount == client->getProtocolSessionsDoneSuccess() );
-            REQUIRE( nullptr != lastCompletedDevice );
-            REQUIRE( EIRDataType::NONE != lastCompletedDeviceEIR.getEIRDataMask() );
-            REQUIRE( false == lastCompletedDevice->getConnected() );
-            REQUIRE( ( protocolSessionCount * DBTConstants::max_connections_per_session ) > server->getDisconnectCount() );
+        if( expSuccess ) {
+            REQUIRE( false == max_connections_hit );
+            REQUIRE( false == timeout );
+            {
+                const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
+                REQUIRE( protocolSessionCount <= server->getProtocolSessionsDoneTotal() );
+                REQUIRE( protocolSessionCount == server->getProtocolSessionsDoneSuccess() );
+                REQUIRE( protocolSessionCount <= client->getProtocolSessionsDoneTotal() );
+                REQUIRE( protocolSessionCount == client->getProtocolSessionsDoneSuccess() );
+                REQUIRE( nullptr != lastCompletedDevice );
+                REQUIRE( EIRDataType::NONE != lastCompletedDeviceEIR.getEIRDataMask() );
+                REQUIRE( false == lastCompletedDevice->getConnected() );
+                REQUIRE( ( protocolSessionCount * max_connections_per_session ) > server->getDisconnectCount() );
+            }
         }
 
         //
         // Client stop
         //
-        DBTClientTest::stopDiscovery(client, true /* current_exp_discovering_state */, "test"+suffix+"_stopDiscovery");
+        const bool current_exp_discovering_state = expSuccess ? true : client->getAdapter()->isDiscovering();
+        DBTClientTest::stopDiscovery(client, current_exp_discovering_state, "test"+suffix+"_stopDiscovery");
         client->close("test"+suffix+"_close");
 
         //
         // Server stop
         //
-        DBTServerTest::stop(server, false /* current_exp_advertising_state */, "test"+suffix+"_stopAdvertising");
+        const bool current_exp_advertising_state = expSuccess ? false : server->getAdapter()->isAdvertising();
+        DBTServerTest::stop(server, current_exp_advertising_state, "test"+suffix+"_stopAdvertising");
         server->close("test"+suffix+"_close");
 
-        //
-        // Validating Security Mode
-        //
-        SMPKeyBin clientKeys = SMPKeyBin::read(DBTConstants::CLIENT_KEY_PATH, *lastCompletedDevice, true /* verbose */);
-        REQUIRE( true == clientKeys.isValid() );
-        const BTSecurityLevel clientKeysSecLevel = clientKeys.getSecLevel();
-        REQUIRE( secLevelClient == clientKeysSecLevel);
-        {
-            if( ExpectedPairing::PREPAIRED == clientExpPairing && BTSecurityLevel::NONE < secLevelClient ) {
-                // Using encryption: pre-paired
-                REQUIRE( PairingMode::PRE_PAIRED == lastCompletedDevicePairingMode );
-                REQUIRE( BTSecurityLevel::ENC_ONLY == lastCompletedDeviceSecurityLevel ); // pre-paired fixed level, no auth
-            } else if( ExpectedPairing::NEW_PAIRING == clientExpPairing && BTSecurityLevel::NONE < secLevelClient ) {
-                // Using encryption: Newly paired
-                REQUIRE( PairingMode::PRE_PAIRED != lastCompletedDevicePairingMode );
-                REQUIRE_MSG( "PairingMode client "+to_string(lastCompletedDevicePairingMode)+" not > NONE", PairingMode::NONE < lastCompletedDevicePairingMode );
-                REQUIRE_MSG( "SecurityLevel client "+to_string(lastCompletedDeviceSecurityLevel)+" not >= "+to_string(secLevelClient), secLevelClient <= lastCompletedDeviceSecurityLevel );
-            } else if( ExpectedPairing::DONT_CARE == clientExpPairing && BTSecurityLevel::NONE < secLevelClient ) {
-                // Any encryption, any pairing
-                REQUIRE_MSG( "PairingMode client "+to_string(lastCompletedDevicePairingMode)+" not > NONE", PairingMode::NONE < lastCompletedDevicePairingMode );
-                REQUIRE_MSG( "SecurityLevel client "+to_string(lastCompletedDeviceSecurityLevel)+" not >= "+to_string(secLevelClient), secLevelClient <= lastCompletedDeviceSecurityLevel );
-            } else {
-                // No encryption: No pairing
-                REQUIRE( PairingMode::NONE == lastCompletedDevicePairingMode );
-                REQUIRE( BTSecurityLevel::NONE == lastCompletedDeviceSecurityLevel );
-            }
-        }
-
-        //
-        // Validating EIR
-        //
-        {
-            const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
-            fprintf_td(stderr, "lastCompletedDevice.connectedEIR: %s\n", lastCompletedDeviceEIR.toString().c_str());
-            REQUIRE( EIRDataType::NONE != lastCompletedDeviceEIR.getEIRDataMask() );
-            REQUIRE( true == lastCompletedDeviceEIR.isSet(EIRDataType::FLAGS) );
-            REQUIRE( true == lastCompletedDeviceEIR.isSet(EIRDataType::SERVICE_UUID) );
-            REQUIRE( true == lastCompletedDeviceEIR.isSet(EIRDataType::NAME) );
-            REQUIRE( true == lastCompletedDeviceEIR.isSet(EIRDataType::CONN_IVAL) );
-            REQUIRE( serverName == lastCompletedDeviceEIR.getName() );
+        if( expSuccess ) {
+            //
+            // Validating Security Mode
+            //
+            SMPKeyBin clientKeys = SMPKeyBin::read(DBTConstants::CLIENT_KEY_PATH, *lastCompletedDevice, true /* verbose */);
+            REQUIRE( true == clientKeys.isValid() );
+            const BTSecurityLevel clientKeysSecLevel = clientKeys.getSecLevel();
+            REQUIRE( secLevelClient == clientKeysSecLevel);
             {
-                const EInfoReport eir = *lastCompletedDevice->getEIR();
-                fprintf_td(stderr, "lastCompletedDevice.currentEIR: %s\n", eir.toString().c_str());
-                REQUIRE( EIRDataType::NONE == eir.getEIRDataMask() );
-                REQUIRE( 0 == eir.getName().length());
+                if( ExpectedPairing::PREPAIRED == clientExpPairing && BTSecurityLevel::NONE < secLevelClient ) {
+                    // Using encryption: pre-paired
+                    REQUIRE( PairingMode::PRE_PAIRED == lastCompletedDevicePairingMode );
+                    REQUIRE( BTSecurityLevel::ENC_ONLY == lastCompletedDeviceSecurityLevel ); // pre-paired fixed level, no auth
+                } else if( ExpectedPairing::NEW_PAIRING == clientExpPairing && BTSecurityLevel::NONE < secLevelClient ) {
+                    // Using encryption: Newly paired
+                    REQUIRE( PairingMode::PRE_PAIRED != lastCompletedDevicePairingMode );
+                    REQUIRE_MSG( "PairingMode client "+to_string(lastCompletedDevicePairingMode)+" not > NONE", PairingMode::NONE < lastCompletedDevicePairingMode );
+                    REQUIRE_MSG( "SecurityLevel client "+to_string(lastCompletedDeviceSecurityLevel)+" not >= "+to_string(secLevelClient), secLevelClient <= lastCompletedDeviceSecurityLevel );
+                } else if( ExpectedPairing::DONT_CARE == clientExpPairing && BTSecurityLevel::NONE < secLevelClient ) {
+                    // Any encryption, any pairing
+                    REQUIRE_MSG( "PairingMode client "+to_string(lastCompletedDevicePairingMode)+" not > NONE", PairingMode::NONE < lastCompletedDevicePairingMode );
+                    REQUIRE_MSG( "SecurityLevel client "+to_string(lastCompletedDeviceSecurityLevel)+" not >= "+to_string(secLevelClient), secLevelClient <= lastCompletedDeviceSecurityLevel );
+                } else {
+                    // No encryption: No pairing
+                    REQUIRE( PairingMode::NONE == lastCompletedDevicePairingMode );
+                    REQUIRE( BTSecurityLevel::NONE == lastCompletedDeviceSecurityLevel );
+                }
+            }
+
+            //
+            // Validating EIR
+            //
+            {
+                const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
+                fprintf_td(stderr, "lastCompletedDevice.connectedEIR: %s\n", lastCompletedDeviceEIR.toString().c_str());
+                REQUIRE( EIRDataType::NONE != lastCompletedDeviceEIR.getEIRDataMask() );
+                REQUIRE( true == lastCompletedDeviceEIR.isSet(EIRDataType::FLAGS) );
+                REQUIRE( true == lastCompletedDeviceEIR.isSet(EIRDataType::SERVICE_UUID) );
+                REQUIRE( true == lastCompletedDeviceEIR.isSet(EIRDataType::NAME) );
+                REQUIRE( true == lastCompletedDeviceEIR.isSet(EIRDataType::CONN_IVAL) );
+                REQUIRE( serverName == lastCompletedDeviceEIR.getName() );
+                {
+                    const EInfoReport eir = *lastCompletedDevice->getEIR();
+                    fprintf_td(stderr, "lastCompletedDevice.currentEIR: %s\n", eir.toString().c_str());
+                    REQUIRE( EIRDataType::NONE == eir.getEIRDataMask() );
+                    REQUIRE( 0 == eir.getName().length());
+                }
+            }
+
+            //
+            // Now reuse adapter for client mode -> Start discovery + Stop Discovery
+            //
+            {
+                const BTAdapterRef adapter = server->getAdapter();
+                { // if( false ) {
+                    adapter->removeAllStatusListener();
+                }
+
+                DBTEndpoint::startDiscovery(adapter, false /* current_exp_discovering_state */);
+
+                DBTEndpoint::stopDiscovery(adapter, true /* current_exp_discovering_state */);
             }
         }
-
-        //
-        // Now reuse adapter for client mode -> Start discovery + Stop Discovery
-        //
-        {
-            const BTAdapterRef adapter = server->getAdapter();
-            { // if( false ) {
-                adapter->removeAllStatusListener();
-            }
-
-            DBTEndpoint::startDiscovery(adapter, false /* current_exp_discovering_state */);
-
-            DBTEndpoint::stopDiscovery(adapter, true /* current_exp_discovering_state */);
-        }
-
         const int count = manager.removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
         fprintf_td(stderr, "****** EOL Removed ChangedAdapterSetCallback %d\n", count);
     }

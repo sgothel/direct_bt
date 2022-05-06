@@ -25,6 +25,8 @@
 #ifndef DBT_SERVER01_HPP_
 #define DBT_SERVER01_HPP_
 
+#include <random>
+
 #include "dbt_constants.hpp"
 
 #include "dbt_server_test.hpp"
@@ -74,6 +76,8 @@ class DBTServer01 : public DBTServerTest {
         jau::sc_atomic_int servedProtocolSessionsTotal = 0;
         jau::sc_atomic_int servedProtocolSessionsSuccess = 0;
         jau::sc_atomic_int servingProtocolSessionsLeft = 1;
+
+        bool do_disconnect = false;
 
         DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
                 /* services: */
@@ -381,14 +385,17 @@ class DBTServer01 : public DBTServerTest {
                     }
                 }
 
-                bool onceDisconnect = true;
-
                 void disconnectDevice() {
-                    jau::sleep_for( 300_ms );
+                    // sleep range: 100 - 1500 ms
+                    // sleep range: 100 - 1500 ms
+                    static const int sleep_min = 100;
+                    static const int sleep_max = 1500;
+                    static std::random_device rng_hw;;
+                    static std::uniform_int_distribution<int> rng_dist(sleep_min, sleep_max);
+                    const int64_t sleep_dur = rng_dist(rng_hw);
+                    jau::sleep_for( sleep_dur * 1_ms );
                     BTDeviceRef connectedDevice_ = parent.getDevice();
-                    fprintf_td(stderr, "****** Server GATT::disconnectDevice(sessions [%d ok / %d total], left %d): client %s\n",
-                            parent.servedProtocolSessionsSuccess.load(), parent.servedProtocolSessionsTotal.load(), parent.servingProtocolSessionsLeft.load(),
-                            connectedDevice_->toString().c_str());
+                    fprintf_td(stderr, "****** Server i470 disconnectDevice(delayed %d ms): client %s\n", sleep_dur, connectedDevice_->toString().c_str());
                     connectedDevice_->disconnect();
                 }
 
@@ -452,8 +459,7 @@ class DBTServer01 : public DBTServerTest {
                     fprintf_td(stderr, "****** Server GATT::mtuChanged(match %d, served %zu, left %zu): %d -> %d, %s\n",
                             match, parent.servedProtocolSessionsTotal.load(), parent.servingProtocolSessionsLeft.load(),
                             match ? (int)usedMTU_old : 0, (int)mtu, device->toString().c_str());
-                    if( onceDisconnect ) {
-                        onceDisconnect = false;
+                    if( parent.do_disconnect ) {
                         std::thread disconnectThread(&MyGATTServerListener::disconnectDevice, this);
                         disconnectThread.detach();
                     }
@@ -574,22 +580,18 @@ class DBTServer01 : public DBTServerTest {
 
     public:
 
-        DBTServer01(const std::string& adapterName_, const jau::EUI48& useAdapter_, const BTMode btMode_, const bool use_SC_, const BTSecurityLevel adapterSecurityLevel_) {
+        DBTServer01(const std::string& adapterName_, const jau::EUI48& useAdapter_, const BTMode btMode_,
+                    const bool use_SC_, const BTSecurityLevel adapterSecurityLevel_, const bool do_disconnect_)
+        {
             this->adapterName = adapterName_;
             this->useAdapter = useAdapter_;
             this->btMode = btMode_;
             this->use_SC = use_SC_;
             this->adapterSecurityLevel = adapterSecurityLevel_;
+            this->do_disconnect = do_disconnect_;
 
             dbGattServer->addListener( gattServerListener );
         }
-        DBTServer01(const std::string& adapterName_, const jau::EUI48& useAdapter_, const BTSecurityLevel adapterSecurityLevel_)
-        : DBTServer01(adapterName_, useAdapter_, BTMode::DUAL, true /* SC */, adapterSecurityLevel_)
-        { }
-
-        DBTServer01(const std::string& adapterName_, const BTSecurityLevel adapterSecurityLevel_)
-        : DBTServer01(adapterName_, EUI48::ALL_DEVICE, BTMode::DUAL, true /* SC */, adapterSecurityLevel_)
-        { }
 
         std::string getName() override { return adapterName; }
 

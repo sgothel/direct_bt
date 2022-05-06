@@ -50,22 +50,56 @@ static BaseDBTClientServer& base_test_framework = BaseDBTClientServer::get();
  */
 class TestDBTClientServer_i470 : public DBTClientServer1x {
     public:
-        void test_i470() {
-            base_test_framework.setupTest( 20_s );
+        void test_i470_a() {
+            base_test_framework.setupTest( 10_s );
             {
                 const bool serverSC = true;
-                const std::string suffix = "i470";
-                const int protocolSessionCount = 2;
+                const std::string suffix = "i470_a";
+                const int protocolSessionCount = 10;
+                const int max_connections_per_session = 200;
+                const bool expSuccess = false;
                 const bool server_client_order = true;
                 const BTSecurityLevel secLevelServer = BTSecurityLevel::ENC_ONLY;
                 const BTSecurityLevel secLevelClient = BTSecurityLevel::ENC_ONLY;
                 const ExpectedPairing serverExpPairing = ExpectedPairing::DONT_CARE;
                 const ExpectedPairing clientExpPairing = ExpectedPairing::DONT_CARE;
+                const bool client_do_disconnect = true;
+                const bool server_do_disconnect = false;
 
-                // std::shared_ptr<DBTServerTest> server = std::make_shared<DBTServer01>("S-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, serverSC, secLevelServer);
-                std::shared_ptr<DBTServerTest> server = std::make_shared<DBTServer00>("S-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, serverSC, secLevelServer);
-                std::shared_ptr<DBTClientTest> client = std::make_shared<DBTClient01>("C-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL);
-                test8x_fullCycle(suffix, protocolSessionCount, server_client_order,
+                std::shared_ptr<DBTServerTest> server = std::make_shared<DBTServer01>("S-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, serverSC, secLevelServer, server_do_disconnect);
+                std::shared_ptr<DBTClientTest> client = std::make_shared<DBTClient01>("C-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, client_do_disconnect);
+
+                test8x_fullCycle(suffix,
+                                 protocolSessionCount, max_connections_per_session, expSuccess,
+                                 server_client_order,
+                                 server, secLevelServer, serverExpPairing,
+                                 client, secLevelClient, clientExpPairing);
+            }
+            base_test_framework.cleanupTest();
+        }
+
+        void test_i470_b() {
+            base_test_framework.setupTest( 10_s );
+            {
+                const bool serverSC = true;
+                const std::string suffix = "i470_b";
+                const int protocolSessionCount = 10;
+                const int max_connections_per_session = 200;
+                const bool expSuccess = false;
+                const bool server_client_order = true;
+                const BTSecurityLevel secLevelServer = BTSecurityLevel::ENC_ONLY;
+                const BTSecurityLevel secLevelClient = BTSecurityLevel::ENC_ONLY;
+                const ExpectedPairing serverExpPairing = ExpectedPairing::DONT_CARE;
+                const ExpectedPairing clientExpPairing = ExpectedPairing::DONT_CARE;
+                const bool client_do_disconnect = false;
+                const bool server_do_disconnect = true;
+
+                std::shared_ptr<DBTServerTest> server = std::make_shared<DBTServer01>("S-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, serverSC, secLevelServer, server_do_disconnect);
+                std::shared_ptr<DBTClientTest> client = std::make_shared<DBTClient01>("C-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, client_do_disconnect);
+
+                test8x_fullCycle(suffix,
+                                 protocolSessionCount, max_connections_per_session, expSuccess,
+                                 server_client_order,
                                  server, secLevelServer, serverExpPairing,
                                  client, secLevelClient, clientExpPairing);
             }
@@ -73,4 +107,5 @@ class TestDBTClientServer_i470 : public DBTClientServer1x {
         }
 };
 
-METHOD_AS_TEST_CASE( TestDBTClientServer_i470::test_i470, "ClientServer i470 Trial", "[trial][i470]");
+METHOD_AS_TEST_CASE( TestDBTClientServer_i470::test_i470_a, "ClientServer i470 Trial a", "[trial][i470]");
+METHOD_AS_TEST_CASE( TestDBTClientServer_i470::test_i470_b, "ClientServer i470 Trial b", "[trial][i470]");

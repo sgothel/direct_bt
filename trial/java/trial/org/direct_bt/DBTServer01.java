@@ -60,9 +60,6 @@ import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
 import org.jau.net.EUI48;
 
-import trial.org.direct_bt.DBTServer00.MyAdapterStatusListener;
-import trial.org.direct_bt.DBTServer00.MyGATTServerListener;
-
 /**
  * This peripheral BTRole::Slave test participant works with DBTClient00.
  */
@@ -88,20 +85,17 @@ public class DBTServer01 implements DBTServerTest {
     private final AtomicInteger servedProtocolSessionsSuccess = new AtomicInteger(0);
     private final AtomicInteger servingProtocolSessionsLeft = new AtomicInteger(1);
 
-    public DBTServer01(final String adapterName, final EUI48 useAdapter, final BTMode btMode, final boolean use_SC, final BTSecurityLevel adapterSecurityLevel) {
+    private final boolean do_disconnect;
+
+    public DBTServer01(final String adapterName, final EUI48 useAdapter, final BTMode btMode, final boolean use_SC, final BTSecurityLevel adapterSecurityLevel, final boolean do_disconnect) {
         this.adapterName = adapterName;
         this.useAdapter = useAdapter;
         this.btMode = btMode;
         this.use_SC = use_SC;
         this.adapterSecurityLevel = adapterSecurityLevel;
+        this.do_disconnect = do_disconnect;
 
         dbGattServer.addListener( gattServerListener );
-    }
-    public DBTServer01(final String adapterName, final EUI48 useAdapter, final BTSecurityLevel adapterSecurityLevel) {
-        this(adapterName, useAdapter, BTMode.DUAL, true /* SC */, adapterSecurityLevel);
-    }
-    public DBTServer01(final String adapterName, final BTSecurityLevel adapterSecurityLevel) {
-        this(adapterName, EUI48.ALL_DEVICE, BTMode.DUAL, true /* SC */, adapterSecurityLevel);
     }
 
     @Override
@@ -470,17 +464,17 @@ public class DBTServer01 implements DBTServerTest {
             }
         }
 
-        boolean onceDisconnect = true;
-
         private void disconnectDevice() {
+            // sleep range: 100 - 1500 ms
+            final int sleep_min = 100;
+            final int sleep_max = 1500;
+            final int sleep_dur = (int) ( Math.random() * ( sleep_max - sleep_min + 1 ) + sleep_min );
             try {
-                Thread.sleep(300);
+                Thread.sleep(sleep_dur); // wait a little (FIXME: Fast restart of advertising error)
             } catch (final InterruptedException e) { }
 
             final BTDevice connectedDevice_ = getDevice();
-            BTUtils.fprintf_td(System.err, "****** Server GATT::disconnectDevice(sessions [%d ok / %d total], left %d): client %s\n",
-                    servedProtocolSessionsSuccess.get(), servedProtocolSessionsTotal.get(), servingProtocolSessionsLeft.get(),
-                    connectedDevice_.toString());
+            BTUtils.fprintf_td(System.err, "****** Server i470 disconnectDevice(delayed %d ms): client %s\n", sleep_dur, connectedDevice_.toString());
             connectedDevice_.disconnect();
         }
 
@@ -533,8 +527,7 @@ public class DBTServer01 implements DBTServerTest {
             BTUtils.fprintf_td(System.err, "****** Server GATT::mtuChanged(match %b, served %d, left %d): %d -> %d, %s\n",
                     match, servedProtocolSessionsTotal.get(), servingProtocolSessionsLeft.get(),
                     match ? usedMTU_old : 0, mtu, device.toString());
-            if( onceDisconnect ) {
-                onceDisconnect = false;
+            if( do_disconnect ) {
                 executeOffThread( () -> { disconnectDevice(); }, "GattServer-DisconnectDevice", true /* detach */);
             }
         }

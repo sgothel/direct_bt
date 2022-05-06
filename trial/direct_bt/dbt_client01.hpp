@@ -67,16 +67,15 @@ class DBTClient01 : public DBTClientTest {
         jau::sc_atomic_int disconnectCount = 0;
         jau::sc_atomic_int notificationsReceived = 0;
         jau::sc_atomic_int indicationsReceived = 0;
-        jau::sc_atomic_int completedGATTCommands = 0;
         jau::sc_atomic_int completedMeasurementsTotal = 0;
         jau::sc_atomic_int completedMeasurementsSuccess = 0;
         jau::sc_atomic_int measurementsLeft = 0;
 
+        bool do_disconnect = false;
+
     private:
         const uint64_t timestamp_t0 = getCurrentMilliseconds();
         // const fraction_i64 timestamp_t0 = jau::getMonotonicMicroseconds();
-
-        const uint8_t cmd_arg = 0x44;
 
         class MyAdapterStatusListener : public AdapterStatusListener {
           public:
@@ -197,6 +196,19 @@ class DBTClient01 : public DBTClientTest {
                 }
             }
 
+            void disconnectDevice(BTDeviceRef device) {
+                // sleep range: 100 - 1500 ms
+                // sleep range: 100 - 1500 ms
+                static const int sleep_min = 100;
+                static const int sleep_max = 1500;
+                static std::random_device rng_hw;;
+                static std::uniform_int_distribution<int> rng_dist(sleep_min, sleep_max);
+                const int64_t sleep_dur = rng_dist(rng_hw);
+                jau::sleep_for( sleep_dur * 1_ms );
+                fprintf_td(stderr, "****** Client i470 disconnectDevice(delayed %d ms): client %s\n", sleep_dur, device->toString().c_str());
+                device->disconnect();
+            }
+
             void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
                 (void)timestamp;
                 {
@@ -207,6 +219,11 @@ class DBTClient01 : public DBTClientTest {
                     std::thread dc(&DBTClient01::processReadyDevice, &parent, device);
                     dc.detach();
                     // processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
+
+                    if( parent.do_disconnect ) {
+                        std::thread disconnectThread(&MyAdapterStatusListener::disconnectDevice, this, device);
+                        disconnectThread.detach();
+                    }
                 }
             }
 
@@ -272,10 +289,11 @@ class DBTClient01 : public DBTClientTest {
         std::shared_ptr<AdapterStatusListener> myAdapterStatusListener = std::make_shared<MyAdapterStatusListener>(*this);
 
     public:
-        DBTClient01(const std::string& adapterName_, const EUI48 useAdapter_, const BTMode btMode_) {
+        DBTClient01(const std::string& adapterName_, const EUI48 useAdapter_, const BTMode btMode_, const bool do_disconnect_) {
             this->adapterName = adapterName_;
             this->useAdapter = useAdapter_;
             this->btMode = btMode_;
+            this->do_disconnect = do_disconnect_;
         }
 
         std::string getName() override { return adapterName; }
@@ -314,7 +332,6 @@ class DBTClient01 : public DBTClientTest {
 
     private:
         void resetLastProcessingStats() {
-            completedGATTCommands = 0;
             notificationsReceived = 0;
             indicationsReceived = 0;
         }
@@ -421,97 +438,63 @@ class DBTClient01 : public DBTClientTest {
                                        td13, td12, td23, td35);
                 }
 
-                {
-                    BTGattCmd cmd = BTGattCmd(*device, "TestCmd", DBTConstants::CommandUUID, DBTConstants::ResponseUUID, 256);
-                    cmd.setVerbose(true);
-                    const bool cmd_resolved = cmd.isResolved();
-                    fprintf_td(stderr, "Command test: %s, resolved %d\n", cmd.toString().c_str(), cmd_resolved);
-                    POctets cmd_data(1, endian::little);
-                    cmd_data.put_uint8_nc(0, cmd_arg);
-                    const HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3_s);
-                    if( HCIStatusCode::SUCCESS == cmd_res ) {
-                        const jau::TROOctets& resp = cmd.getResponse();
-                        if( 1 == resp.size() && resp.get_uint8_nc(0) == cmd_arg ) {
-                            fprintf_td(stderr, "Client Success: %s -> %s (echo response)\n", cmd.toString().c_str(), resp.toString().c_str());
-                            completedGATTCommands++;
-                        } else {
-                            fprintf_td(stderr, "Client Failure: %s -> %s (different response)\n", cmd.toString().c_str(), resp.toString().c_str());
-                        }
-                    } else {
-                        fprintf_td(stderr, "Client Failure: %s -> %s\n", cmd.toString().c_str(), to_string(cmd_res).c_str());
-                    }
-                    // cmd.close(); // done via dtor
-                }
-
-                for(size_t i=0; i<primServices.size(); i++) {
-                    BTGattService & primService = *primServices.at(i);
-                    if( GATT_VERBOSE ) {
-                        fprintf_td(stderr, "  [%2.2d] Service UUID %s (%s)\n", i,
-                                primService.type->toUUID128String().c_str(),
-                                primService.type->getTypeSizeString().c_str());
-                        fprintf_td(stderr, "  [%2.2d]         %s\n", i, primService.toString().c_str());
-                    }
-                    jau::darray<BTGattCharRef> & serviceCharacteristics = primService.characteristicList;
-                    for(size_t j=0; j<serviceCharacteristics.size(); j++) {
-                        BTGattCharRef & serviceChar = serviceCharacteristics.at(j);
+                do {
+                    for(size_t i=0; i<primServices.size(); i++) {
+                        BTGattService & primService = *primServices.at(i);
                         if( GATT_VERBOSE ) {
-                            fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic: UUID %s (%s)\n", i, j,
-                                    serviceChar->value_type->toUUID128String().c_str(),
-                                    serviceChar->value_type->getTypeSizeString().c_str());
-                            fprintf_td(stderr, "  [%2.2d.%2.2d]     %s\n", i, j, serviceChar->toString().c_str());
+                            fprintf_td(stderr, "  [%2.2d] Service UUID %s (%s)\n", i,
+                                    primService.type->toUUID128String().c_str(),
+                                    primService.type->getTypeSizeString().c_str());
+                            fprintf_td(stderr, "  [%2.2d]         %s\n", i, primService.toString().c_str());
                         }
-                        if( serviceChar->hasProperties(BTGattChar::PropertyBitVal::Read) ) {
-                            POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::endian::little);
-                            if( serviceChar->readValue(value) ) {
-                                std::string sval = dfa_utf8_decode(value.get_ptr(), value.size());
+                        jau::darray<BTGattCharRef> & serviceCharacteristics = primService.characteristicList;
+                        for(size_t j=0; j<serviceCharacteristics.size(); j++) {
+                            BTGattCharRef & serviceChar = serviceCharacteristics.at(j);
+                            if( GATT_VERBOSE ) {
+                                fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic: UUID %s (%s)\n", i, j,
+                                        serviceChar->value_type->toUUID128String().c_str(),
+                                        serviceChar->value_type->getTypeSizeString().c_str());
+                                fprintf_td(stderr, "  [%2.2d.%2.2d]     %s\n", i, j, serviceChar->toString().c_str());
+                            }
+                            if( serviceChar->hasProperties(BTGattChar::PropertyBitVal::Read) ) {
+                                POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::endian::little);
+                                if( serviceChar->readValue(value) ) {
+                                    std::string sval = dfa_utf8_decode(value.get_ptr(), value.size());
+                                    if( GATT_VERBOSE ) {
+                                        fprintf_td(stderr, "  [%2.2d.%2.2d]     value: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
+                                    }
+                                }
+                            }
+                            jau::darray<BTGattDescRef> & charDescList = serviceChar->descriptorList;
+                            for(size_t k=0; k<charDescList.size(); k++) {
+                                BTGattDesc & charDesc = *charDescList.at(k);
                                 if( GATT_VERBOSE ) {
-                                    fprintf_td(stderr, "  [%2.2d.%2.2d]     value: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
+                                    fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d] Descriptor: UUID %s (%s)\n", i, j, k,
+                                            charDesc.type->toUUID128String().c_str(),
+                                            charDesc.type->getTypeSizeString().c_str());
+                                    fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d]     %s\n", i, j, k, charDesc.toString().c_str());
+                                }
+                            }
+                            bool cccdEnableResult[2];
+                            if( serviceChar->enableNotificationOrIndication( cccdEnableResult ) ) {
+                                // ClientCharConfigDescriptor (CCD) is available
+                                std::shared_ptr<BTGattChar::Listener> cl = std::make_shared<MyGATTEventListener>(*this, i, j);
+                                bool clAdded = serviceChar->addCharListener( cl );
+                                if( GATT_VERBOSE ) {
+                                    fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d\n",
+                                            (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], clAdded);
+                                    fprintf_td(stderr, "\n");
                                 }
                             }
                         }
-                        jau::darray<BTGattDescRef> & charDescList = serviceChar->descriptorList;
-                        for(size_t k=0; k<charDescList.size(); k++) {
-                            BTGattDesc & charDesc = *charDescList.at(k);
-                            if( GATT_VERBOSE ) {
-                                fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d] Descriptor: UUID %s (%s)\n", i, j, k,
-                                        charDesc.type->toUUID128String().c_str(),
-                                        charDesc.type->getTypeSizeString().c_str());
-                                fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d]     %s\n", i, j, k, charDesc.toString().c_str());
-                            }
-                        }
-                        bool cccdEnableResult[2];
-                        if( serviceChar->enableNotificationOrIndication( cccdEnableResult ) ) {
-                            // ClientCharConfigDescriptor (CCD) is available
-                            std::shared_ptr<BTGattChar::Listener> cl = std::make_shared<MyGATTEventListener>(*this, i, j);
-                            bool clAdded = serviceChar->addCharListener( cl );
-                            if( GATT_VERBOSE ) {
-                                fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d\n",
-                                        (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], clAdded);
-                                fprintf_td(stderr, "\n");
-                            }
+                        if( GATT_VERBOSE ) {
+                            fprintf_td(stderr, "\n");
                         }
                     }
-                    if( GATT_VERBOSE ) {
-                        fprintf_td(stderr, "\n");
-                    }
-                }
+                    success = notificationsReceived >= 2 || indicationsReceived >= 2;
+                } while( !success && device->getConnected() );
 
-                {
-                    const fraction_timespec t0 = getMonotonicTime();
-                    bool timeout = false;
-                    do {
-                        success = completedGATTCommands >= 1 && ( notificationsReceived >= 2 || indicationsReceived >= 2 );
-                        if( !success ) {
-                            const fraction_i64 td = ( getMonotonicTime() - t0 ).to_fraction_i64();
-                            timeout = 3_s < td;
-                            if( !timeout ) {
-                                jau::sleep_for( 17_ms );
-                            }
-                        }
-                    } while( !success && !timeout );
-                }
-
-                {
+                if( device->getConnected() ) {
                     // Tell server we have successfully completed the test.
                     BTGattCmd cmd = BTGattCmd(*device, "FinalHandshake", DBTConstants::CommandUUID, DBTConstants::ResponseUUID, 256);
                     cmd.setVerbose(true);
@@ -568,16 +551,15 @@ class DBTClient01 : public DBTClientTest {
             completedMeasurementsTotal++;
             if( success ) {
                 completedMeasurementsSuccess++;
-            }
-            if( 0 < measurementsLeft ) {
-                measurementsLeft--;
+                if( 0 < measurementsLeft ) {
+                    measurementsLeft--;
+                }
             }
             fprintf_td(stderr, "****** Client Processing Ready Device: Success %d; Measurements completed %d"
-                            ", left %d; Received notitifications %d, indications %d"
-                            "; Completed GATT commands %d: %s\n",
+                            ", left %d; Received notitifications %d, indications %d: %s\n",
                             success, completedMeasurementsSuccess.load(),
                             measurementsLeft.load(), notificationsReceived.load(), indicationsReceived.load(),
-                            completedGATTCommands.load(), device->getAddressAndType().toString().c_str());
+                            device->getAddressAndType().toString().c_str());
         }
 
         void removeDevice(BTDeviceRef device) {

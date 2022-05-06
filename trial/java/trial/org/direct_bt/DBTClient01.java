@@ -68,8 +68,6 @@ public class DBTClient01 implements DBTClientTest {
 
     private final MyAdapterStatusListener myAdapterStatusListener = new MyAdapterStatusListener();
 
-    private final byte cmd_arg = (byte)0x44;
-
     private String adapterName = "TestDev2_Clt";
     private EUI48 useAdapter = EUI48.ALL_DEVICE;
     private BTMode btMode = BTMode.DUAL;
@@ -86,14 +84,16 @@ public class DBTClient01 implements DBTClientTest {
     private final AtomicInteger deviceReadyCount = new AtomicInteger(0);
     private final AtomicInteger notificationsReceived = new AtomicInteger(0);
     private final AtomicInteger indicationsReceived = new AtomicInteger(0);
-    private final AtomicInteger completedGATTCommands = new AtomicInteger(0);
     private final AtomicInteger completedMeasurementsTotal = new AtomicInteger(0);
     private final AtomicInteger completedMeasurementsSuccess = new AtomicInteger(0);
 
-    public DBTClient01(final String adapterName, final EUI48 useAdapter, final BTMode btMode) {
+    private final boolean do_disconnect;
+
+    public DBTClient01(final String adapterName, final EUI48 useAdapter, final BTMode btMode, final boolean do_disconnect) {
         this.adapterName = adapterName;
         this.useAdapter = useAdapter;
         this.btMode = btMode;
+        this.do_disconnect = do_disconnect;
     }
 
     @Override
@@ -259,6 +259,19 @@ public class DBTClient01 implements DBTClientTest {
             }
         }
 
+        private void disconnectDevice(final BTDevice device) {
+            // sleep range: 100 - 1500 ms
+            final int sleep_min = 100;
+            final int sleep_max = 1500;
+            final int sleep_dur = (int) ( Math.random() * ( sleep_max - sleep_min + 1 ) + sleep_min );
+            try {
+                Thread.sleep(sleep_dur); // wait a little (FIXME: Fast restart of advertising error)
+            } catch (final InterruptedException e) { }
+
+            BTUtils.fprintf_td(System.err, "****** Client i470 disconnectDevice(delayed %d ms): client %s\n", sleep_dur, device.toString());
+            device.disconnect();
+        }
+
         @Override
         public void deviceReady(final BTDevice device, final long timestamp) {
             {
@@ -271,8 +284,13 @@ public class DBTClient01 implements DBTClientTest {
 
                 // Be nice to Test* case, allowing to reach its own listener.deviceReady() added later
                 executeOffThread( () -> { processReadyDevice(device); },
-                        "DBT-Process-"+device.getAddressAndType(), true /* detach */);
+                        "DBT-Process1-"+device.getAddressAndType(), true /* detach */);
                 // processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
+
+                if( do_disconnect ) {
+                    executeOffThread( () -> { disconnectDevice(device); },
+                            "DBT-Disconnect-"+device.getAddressAndType(), true /* detach */);
+                }
             }
         }
 
@@ -326,7 +344,6 @@ public class DBTClient01 implements DBTClientTest {
     }
 
     private void resetLastProcessingStats() {
-        completedGATTCommands.set(0);
         notificationsReceived.set(0);
         indicationsReceived.set(0);
     }
@@ -432,95 +449,65 @@ public class DBTClient01 implements DBTClientTest {
                         "PERF:  get-gatt-services " + td35 + " ms,"+System.lineSeparator());
             }
 
-            {
-                final BTGattCmd cmd = new BTGattCmd(device, "TestCmd", null /* service_uuid */, DBTConstants.CommandUUID, DBTConstants.ResponseUUID);
-                cmd.setVerbose(true);
-                final boolean cmd_resolved = cmd.isResolved();
-                BTUtils.println(System.err, "Client Command test: "+cmd.toString()+", resolved "+cmd_resolved);
-                final byte[] cmd_data = { cmd_arg };
-                final HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3000 /* timeoutMS */);
-                if( HCIStatusCode.SUCCESS == cmd_res ) {
-                    final byte[] resp = cmd.getResponse();
-                    if( 1 == resp.length && resp[0] == cmd_arg ) {
-                        BTUtils.fprintf_td(System.err, "Client Success: %s -> %s (echo response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
-                        completedGATTCommands.incrementAndGet();
-                    } else {
-                        BTUtils.fprintf_td(System.err, "Client Failure: %s -> %s (different response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
-                    }
-                } else {
-                    BTUtils.fprintf_td(System.err, "Client Failure: %s -> %s\n", cmd.toString(), cmd_res.toString());
-                }
-                cmd.close();
-            }
-
-            try {
-                int i=0;
-                for(final Iterator<BTGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
-                    final BTGattService primService = srvIter.next();
-                    if( GATT_VERBOSE ) {
-                        BTUtils.fprintf_td(System.err, "  [%02d] Service UUID %s\n", i, primService.getUUID());
-                        BTUtils.fprintf_td(System.err, "  [%02d]         %s\n", i, primService.toString());
-                    }
-                    int j=0;
-                    final List<BTGattChar> serviceCharacteristics = primService.getChars();
-                    for(final Iterator<BTGattChar> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
-                        final BTGattChar serviceChar = charIter.next();
+            do {
+                try {
+                    int i=0;
+                    for(final Iterator<BTGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
+                        final BTGattService primService = srvIter.next();
                         if( GATT_VERBOSE ) {
-                            BTUtils.fprintf_td(System.err, "  [%02d.%02d] Characteristic: UUID %s\n", i, j, serviceChar.getUUID());
-                            BTUtils.fprintf_td(System.err, "  [%02d.%02d]     %s\n", i, j, serviceChar.toString());
+                            BTUtils.fprintf_td(System.err, "  [%02d] Service UUID %s\n", i, primService.getUUID());
+                            BTUtils.fprintf_td(System.err, "  [%02d]         %s\n", i, primService.toString());
                         }
-                        final GattCharPropertySet properties = serviceChar.getProperties();
-                        if( properties.isSet(GattCharPropertySet.Type.Read) ) {
-                            final byte[] value = serviceChar.readValue();
-                            final String svalue = BTUtils.decodeUTF8String(value, 0, value.length);
+                        int j=0;
+                        final List<BTGattChar> serviceCharacteristics = primService.getChars();
+                        for(final Iterator<BTGattChar> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
+                            final BTGattChar serviceChar = charIter.next();
                             if( GATT_VERBOSE ) {
-                                BTUtils.fprintf_td(System.err, "  [%02d.%02d]     value: %s ('%s')\n", i, j, BTUtils.bytesHexString(value, 0, -1, true), svalue);
+                                BTUtils.fprintf_td(System.err, "  [%02d.%02d] Characteristic: UUID %s\n", i, j, serviceChar.getUUID());
+                                BTUtils.fprintf_td(System.err, "  [%02d.%02d]     %s\n", i, j, serviceChar.toString());
+                            }
+                            final GattCharPropertySet properties = serviceChar.getProperties();
+                            if( properties.isSet(GattCharPropertySet.Type.Read) ) {
+                                final byte[] value = serviceChar.readValue();
+                                final String svalue = BTUtils.decodeUTF8String(value, 0, value.length);
+                                if( GATT_VERBOSE ) {
+                                    BTUtils.fprintf_td(System.err, "  [%02d.%02d]     value: %s ('%s')\n", i, j, BTUtils.bytesHexString(value, 0, -1, true), svalue);
+                                }
+                            }
+                            int k=0;
+                            final List<BTGattDesc> charDescList = serviceChar.getDescriptors();
+                            for(final Iterator<BTGattDesc> descIter = charDescList.iterator(); descIter.hasNext(); k++) {
+                                final BTGattDesc charDesc = descIter.next();
+                                if( GATT_VERBOSE ) {
+                                    BTUtils.fprintf_td(System.err, "  [%02d.%02d.%02d] Descriptor: UUID %s\n", i, j, k, charDesc.getUUID());
+                                    BTUtils.fprintf_td(System.err, "  [%02d.%02d.%02d]     %s\n", i, j, k, charDesc.toString());
+                                }
+                            }
+                            final boolean cccdEnableResult[] = { false, false };
+                            if( serviceChar.enableNotificationOrIndication( cccdEnableResult ) ) {
+                                // ClientCharConfigDescriptor (CCD) is available
+                                final boolean clAdded = null != serviceChar.addCharListener( new MyGATTEventListener(i, j) );
+                                if( GATT_VERBOSE ) {
+                                    BTUtils.fprintf_td(System.err, "  [%02d.%02d] Characteristic-Listener: Notification(%b), Indication(%b): Added %b\n",
+                                            i, j, cccdEnableResult[0], cccdEnableResult[1], clAdded);
+                                    BTUtils.fprintf_td(System.err, "\n");
+                                }
                             }
                         }
-                        int k=0;
-                        final List<BTGattDesc> charDescList = serviceChar.getDescriptors();
-                        for(final Iterator<BTGattDesc> descIter = charDescList.iterator(); descIter.hasNext(); k++) {
-                            final BTGattDesc charDesc = descIter.next();
-                            if( GATT_VERBOSE ) {
-                                BTUtils.fprintf_td(System.err, "  [%02d.%02d.%02d] Descriptor: UUID %s\n", i, j, k, charDesc.getUUID());
-                                BTUtils.fprintf_td(System.err, "  [%02d.%02d.%02d]     %s\n", i, j, k, charDesc.toString());
-                            }
-                        }
-                        final boolean cccdEnableResult[] = { false, false };
-                        if( serviceChar.enableNotificationOrIndication( cccdEnableResult ) ) {
-                            // ClientCharConfigDescriptor (CCD) is available
-                            final boolean clAdded = null != serviceChar.addCharListener( new MyGATTEventListener(i, j) );
-                            if( GATT_VERBOSE ) {
-                                BTUtils.fprintf_td(System.err, "  [%02d.%02d] Characteristic-Listener: Notification(%b), Indication(%b): Added %b\n",
-                                        i, j, cccdEnableResult[0], cccdEnableResult[1], clAdded);
-                                BTUtils.fprintf_td(System.err, "\n");
-                            }
+                        if( GATT_VERBOSE ) {
+                            BTUtils.fprintf_td(System.err, "\n");
                         }
                     }
-                    if( GATT_VERBOSE ) {
-                        BTUtils.fprintf_td(System.err, "\n");
-                    }
+
+                    success = notificationsReceived.get() >= 2 || indicationsReceived.get() >= 2;
+
+                } catch( final Exception ex) {
+                    BTUtils.println(System.err, "****** Client Processing Ready Device: Exception.2 caught for " + device.toString() + ": "+ex.getMessage());
+                    ex.printStackTrace();
                 }
-            } catch( final Exception ex) {
-                BTUtils.println(System.err, "****** Client Processing Ready Device: Exception.2 caught for " + device.toString() + ": "+ex.getMessage());
-                ex.printStackTrace();
-            }
+            } while( !success && device.getConnected() );
 
-            {
-                final long t0 = BTUtils.currentTimeMillis();
-                boolean timeout = false;
-                do {
-                    success = completedGATTCommands.get() >= 1 && ( notificationsReceived.get() >= 2 || indicationsReceived.get() >= 2 );
-                    if( !success ) {
-                        timeout = 3000 < ( BTUtils.currentTimeMillis() - t0 ); // 3s timeout
-                        if( !timeout ) {
-                            try { Thread.sleep(17); } catch (final InterruptedException e) { }
-                        }
-                    }
-                } while( !success && !timeout );
-            }
-
-            {
+            if( device.getConnected() ) {
                 // Tell server we have successfully completed the test.
                 final BTGattCmd cmd = new BTGattCmd(device, "FinalHandshake", null /* service_uuid */, DBTConstants.CommandUUID, DBTConstants.ResponseUUID);
                 cmd.setVerbose(true);
@@ -569,15 +556,14 @@ public class DBTClient01 implements DBTClientTest {
         completedMeasurementsTotal.addAndGet(1);
         if( success ) {
             completedMeasurementsSuccess.addAndGet(1);
-        }
-        if( 0 < measurementsLeft.get() ) {
-            measurementsLeft.decrementAndGet();
+            if( 0 < measurementsLeft.get() ) {
+                measurementsLeft.decrementAndGet();
+            }
         }
         BTUtils.println(System.err, "****** Client Processing Ready Device: Success "+success+
                         "; Measurements completed "+completedMeasurementsSuccess.get()+
                         ", left "+measurementsLeft.get()+
                         "; Received notitifications "+notificationsReceived.get()+", indications "+indicationsReceived.get()+
-                        "; Completed GATT commands "+completedGATTCommands.get()+
                         ": "+device.getAddressAndType());
     }
 
