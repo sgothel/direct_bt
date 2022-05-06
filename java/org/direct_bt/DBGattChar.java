@@ -47,6 +47,9 @@ public final class DBGattChar implements AutoCloseable
     private final boolean enabledNotifyState = false;
     private final boolean enabledIndicateState = false;
 
+    /**
+     * Selected standard GATT characteristic numbers in UUID16 format as defined.
+     */
     public static class UUID16 {
         //
         // GENERIC_ACCESS

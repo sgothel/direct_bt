@@ -36,6 +36,9 @@ import java.util.List;
  * Includes a complete [Primary] Service Declaration
  * including its list of Characteristic Declarations,
  * which also may include its client config if available.
+ *
+ * See {@link DBGattService.UUID16} for selected standard GATT service numbers in UUID16 format
+ * and {@link BTUtils#toUUID128(String)} for their conversion to UUID128.
  */
 public interface BTGattService extends BTObject
 {

@@ -38,6 +38,9 @@ import java.util.List;
  *
  * The handle represents a service's characteristics-declaration
  * and the value the Characteristics Property, Characteristics Value Handle _and_ Characteristics UUID.
+ *
+ * See {@link DBGattChar.UUID16} for selected standard GATT characteristic numbers in UUID16 format
+ * and {@link BTUtils#toUUID128(String)} for their conversion to UUID128.
  */
 public interface BTGattChar extends BTObject
 {

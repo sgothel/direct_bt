@@ -29,6 +29,24 @@ import java.io.PrintStream;
 import org.jau.util.BasicTypes;
 
 public class BTUtils {
+    /**
+     * Base UUID128 used to express a UUID16, etc.
+     */
+    public static final String UUID128_BASE  = "00000000-0000-1000-8000-00805f9b34fb";
+
+    /**
+     * Converts the given 4 digits uuid16 value to UUID128 representation.
+     * @param uuid16 the 4 characters long uuid16 value to convert
+     * @return UUID128 representation if uuid16 is 4 characters long, otherwise {@link #UUID128_BASE}.
+     */
+    public static final String toUUID128(final String uuid16) {
+        if( 4 == uuid16.length() ) {
+            return "0000" + uuid16 + UUID128_BASE.substring(8);
+        } else {
+            return UUID128_BASE;
+        }
+    }
+
     private static long t0;
     static {
         t0 = startupTimeMillisImpl();

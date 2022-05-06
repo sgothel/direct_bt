@@ -29,22 +29,12 @@ package org.direct_bt;
  * Representing a Gatt Characteristic Descriptor object from the GATT client perspective.
  *
  * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3 Characteristic Descriptor
+ *
+ * See {@link DBGattDesc.UUID16} for selected standard GATT descriptor numbers in UUID16 format
+ * and {@link BTUtils#toUUID128(String)} for their conversion to UUID128.
  */
 public interface BTGattDesc extends BTObject
 {
-    /**
-     * Following UUID128 values represent original UUID16 GATT profile attribute types, listed under:
-     * BT Core Spec v5.2: Vol 3, Part G GATT: 3.4 Summary of GATT Profile Attribute Types
-     */
-    public static class UUID128 {
-        /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.1 Characteristic Extended Properties */
-        public static final String EXT_PROP  = "00002900-0000-1000-8000-00805f9b34fb";
-        /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.2 Characteristic User Description (Characteristic Descriptor, optional, single, string) */
-        public static final String USER_DESC = "00002901-0000-1000-8000-00805f9b34fb";
-        /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration (Characteristic Descriptor, optional, single, uint16_t bitfield) */
-        public static final String CCC_DESC  = "00002902-0000-1000-8000-00805f9b34fb";
-    }
-
     /** Reads the value of this descriptor
       * @return A vector<uchar> containing data from this descriptor
       */

@@ -37,6 +37,9 @@ public final class DBGattDesc implements AutoCloseable
     private volatile long nativeInstance;
     /* pp */ long getNativeInstance() { return nativeInstance; }
 
+    /**
+     * Selected standard GATT descriptor numbers in UUID16 format as defined.
+     */
     public static class UUID16 {
         /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.1 Characteristic Extended Properties */
         public static final String EXT_PROP  = "2900";

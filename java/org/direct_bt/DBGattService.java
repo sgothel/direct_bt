@@ -43,6 +43,9 @@ public final class DBGattService implements AutoCloseable
     private volatile long nativeInstance;
     /* pp */ long getNativeInstance() { return nativeInstance; }
 
+    /**
+     * Selected standard GATT service service numbers in UUID16 format as defined.
+     */
     public static class UUID16 {
         /** This service contains generic information about the device. This is a mandatory service. */
         public static String GENERIC_ACCESS                              = "1800";
@@ -55,9 +58,9 @@ public final class DBGattService implements AutoCloseable
         /** This service exposes temperature and other data from a thermometer intended for healthcare and fitness applications. */
         public static String HEALTH_THERMOMETER                          = "1809";
         /** This service exposes manufacturer and/or vendor information about a device. */
-        public static String DEVICE_INFORMATION                          = "180A";
+        public static String DEVICE_INFORMATION                          = "180a";
         /** This service exposes the state of a battery within a device. */
-        public static String BATTERY_SERVICE                             = "180F";
+        public static String BATTERY_SERVICE                             = "180f";
     };
     /**
      * Indicate whether this service is a primary service.
