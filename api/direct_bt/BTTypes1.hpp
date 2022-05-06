@@ -62,7 +62,7 @@ namespace direct_bt {
 
             void checkValidInstance() const override {
                 if( !isValidInstance() ) {
-                    throw jau::IllegalStateException("BTObject::checkValidInstance: Invalid object: "+toString(), E_FILE_LINE);
+                    throw jau::IllegalStateException("BTObject::checkValidInstance: Invalid object: "+jau::to_hexstring(this), E_FILE_LINE);
                 }
             }
     };
